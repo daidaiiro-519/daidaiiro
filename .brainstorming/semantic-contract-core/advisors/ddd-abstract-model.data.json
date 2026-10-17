@@ -1,0 +1,807 @@
+{
+ "about": "ddd-abstract-model.json の回答が使う一覧。概念 ・ 関係 ・ x- キーワードの検証の振り分け ・ 基盤の契約のスキーマの構成 ・ 境界の崩れの直し方 ・ 名前の見直し ・ 論点の分け方",
+ "sources": {
+  "v03": ".brainstorming/semantic-contract-core/measured/v03-concepts.json（行は docs/<番号>:<行>）",
+  "base": ".brainstorming/semantic-contract-core/measured/base-schemas.json"
+ },
+ "concepts": [
+  {
+   "id": "abstract-schema",
+   "en": "Abstract schema",
+   "ja": "抽象スキーマ",
+   "group": "declare",
+   "means": "基盤が持つ契約の1つの版。ドメインスキーマ（JSON Schema）に、x- キーワードの定義と、x- キーワードごとの検証のしかたを足したもの。",
+   "impl": "assets/meta-schema.json（schema-driven/abstract@v1）・ contract.rs（version_of ・ abstract_schema）・ embedded.rs。x-ref ・ x-derive ・ x-view の形は annotations@v1 ・ view@v1 にあり、meta-schema とのつながりは schema_rules.rs:check_schemas のコードだけ",
+   "v03": "Abstract Schema。11:10「契約・語彙の宣言、識別、参照、適合、拡張に関する抽象の規則／形式」・ 10:42 ・ 17:10。10:13 は Core と同じものとして並べ、14:11 は「独自Abstract Semantic Model」と呼ぶ",
+   "adopt": "採る（11:10 の意味で。Core ・ Semantic Model と同じものとする用法は採らない）"
+  },
+  {
+   "id": "domain-schema",
+   "en": "domain schema",
+   "ja": "ドメインスキーマ",
+   "group": "declare",
+   "means": "JSON Schema 2020-12 のキーワード（type ・ required ・ enum など）で書く、構造と値の条件。標準として扱う唯一のもの。",
+   "impl": "$schema ＝ 2020-12 の dialect ・ jsonschema crate ・ domain/schema.rs:Schema::validate",
+   "v03": "Schema。02:7「JSONインスタンスの構造と値の許容範囲（標準JSON Schemaを参照・内包）」・ 03:7 ・ 14:29",
+   "adopt": "採る"
+  },
+  {
+   "id": "x-keyword",
+   "en": "x- keyword",
+   "ja": "x- キーワード（ドメインモデルでの拡張）",
+   "group": "declare",
+   "means": "抽象スキーマが名前 ・ 形 ・ 置ける場所 ・ 検証のしかたを定義し、Concrete スキーマが値だけを書くキー。",
+   "impl": "schema_rules.rs:BASE_ANNOTATIONS（7つ）・ meta-schema の rule の文（5つ）・ catalog@v1 の x-states（どちらの一覧にも無い）・ x-annotations（Concrete が x- を足す道。使っている Concrete は0件）",
+   "v03": "無い（docs と examples に x- の記述は無い）。近いのは 14:22「任意のVocabulary/Interpreterを登録できる」と 14:40「独自Contract上はそのまま表現できる」",
+   "adopt": "採る（定義するのは抽象スキーマだけ。Concrete が足す x-annotations は採らない）"
+  },
+  {
+   "id": "keyword-definition",
+   "en": "keyword definition",
+   "ja": "x- キーワードの定義",
+   "group": "declare",
+   "means": "x- キーワード1つについて、形（JSON Schema）・ 置ける場所 ・ 検証の種類 ・ 検証する validator を1行にまとめたもの。",
+   "impl": "無い。形は annotations@v1 ・ view@v1 ・ meta-schema の $defs/prompt ・ catalog@v1 に分かれ、検証の種類と validator はコードの中にしか無い",
+   "v03": "02:13「Vocabularyごとに意味、検証方法、表現できないものを宣言する」",
+   "adopt": "採る（抽象スキーマの中の表として持つ）"
+  },
+  {
+   "id": "validation-kind",
+   "en": "validation kind",
+   "ja": "検証の種類",
+   "group": "declare",
+   "means": "x- キーワードや rule を、機械的な検証（構造 ・ 参照 ・ 数）で見るか、セマンティックな検証（意味の判断。AI ・ 人）で見るかの区別。",
+   "impl": "無い。機械で見るものだけがあり、見ないものは結果に出ない",
+   "v03": "02:25「機械的に検査可能な意味と、人の解釈を要する意味」・ 08:23（形式検証可能・テスト可能・人間判断）・ 11:28〜31（Descriptive / Structural / Formal / Operational。11:33 で議論の視点とする）・ 14:64（expressible / interpretable / verifiable / executable）",
+   "adopt": "採る（機械的 ／ セマンティック ／ 両方 の3つ。v0.3 の4つの区分は採らない）"
+  },
+  {
+   "id": "base-contract-schema",
+   "en": "base contract schema",
+   "ja": "基盤の契約のスキーマ",
+   "group": "declare",
+   "means": "抽象スキーマを組み立てるスキーマ。Concrete スキーマの形 ・ x- キーワードの形 ・ Skill が書くファイルの形 ・ 基盤の記録の形の4つの群がある。",
+   "impl": "assets/ の7つ。meta-schema のほかの6つは x-abstract を書いた Concrete の形で書かれ、所有（基盤か Skill か）と準拠（どの形に従うか）が区別されていない",
+   "v03": "無い。近いのは 10:42 の Abstract Schema / Foundation の「抽象メタモデル、標準JSON Schemaとの接続、共通検証機構」",
+   "adopt": "採る"
+  },
+  {
+   "id": "concrete-schema",
+   "en": "Concrete schema",
+   "ja": "具体スキーマ",
+   "group": "use",
+   "means": "Skill が書くスキーマ。ドメインスキーマに、抽象スキーマが定義した x- キーワードの値を書く。x- キーワードを定義しない。",
+   "impl": "各 Skill の assets/*.schema.json（x-abstract ＝ abstract@v1、$id ＝ <Skill>/<kind>@<版>）。例 brainstorming/board@v1",
+   "v03": "Concrete Schema。10:14 ・ 11:11 ・ 11:19「Vocabularyを参照し、追加の構造・許容範囲・制約を宣言する」。examples/semantic/concrete.sensor の contract（uses ・ dataSchema ・ semanticBindings）",
+   "adopt": "採る（v0.3 の Contract という別名は採らない）"
+  },
+  {
+   "id": "instance",
+   "en": "instance",
+   "ja": "インスタンス",
+   "group": "use",
+   "means": "Concrete スキーマに従う JSON の1件。$schema に Concrete スキーマの $id を書く。",
+   "impl": "domain/instance.rs（集約。パス ・ スキーマ ・ 値 ・ ハッシュ）。検査は kind と id と注釈だけを読む",
+   "v03": "Instance。10:42「Instanceとの適合規則」・ 14:18「元のContract/Instance JSONを保持」・ examples/semantic/instance.sensor.*",
+   "adopt": "採る"
+  },
+  {
+   "id": "prompt",
+   "en": "prompt",
+   "ja": "書き方の案内",
+   "group": "use",
+   "means": "書く単位ごとの、読み方（read）と書くときの rule の並び（write）。AI が作成 ・ 更新のときに受け取る。",
+   "impl": "x-prompt（meta-schema の $defs/prompt）。instances.rs の create ・ update ・ prompt が未記入の欄に添えて返す",
+   "v03": "無い。近いのは 11:39 の最小単位の候補 Definition",
+   "adopt": "採る"
+  },
+  {
+   "id": "rule",
+   "en": "rule",
+   "ja": "ルール",
+   "group": "use",
+   "means": "スキーマに書く条件の1件。その rule を持つスキーマのインスタンスに当たる（抽象スキーマの rule は Concrete スキーマに、Concrete スキーマの rule はインスタンスに）。",
+   "impl": "meta-schema の $defs/rule（id ・ rule ・ why ・ test ・ bad ・ good）を x-prompt.write に並べる。JSON Schema のキーワードと x-ref ・ x-derive の設定も条件だが rule の id を持たず、Finding.rule は日本語の名前",
+   "v03": "Constraint。02:9「不変条件・振る舞い上の条件。表現しただけで検証済みとみなさない」・ 02:16 ・ examples/contract.example.json の constraints[].verification",
+   "adopt": "採る（by ・ requires ・ required を足す）"
+  },
+  {
+   "id": "vocabulary",
+   "en": "vocabulary",
+   "ja": "語彙",
+   "group": "use",
+   "means": "Skill をまたいで使う term の集まり。id と版を持つ。",
+   "impl": "無い。意味はプロパティごとに x-prompt.read.means で書くだけ",
+   "v03": "Vocabulary。11:18「識別子・概念・関係・単位・制約などの意味宣言」・ 02:13 ・ examples/semantic/vocabulary.duration。登録 ・ 互換 ・ 版は未決（17:31）",
+   "adopt": "採る（階層と term どうしの関係は採らない）"
+  },
+  {
+   "id": "term",
+   "en": "term",
+   "ja": "語",
+   "group": "use",
+   "means": "vocabulary の1件。id ・ 意味 ・ 値の形（JSON Schema）・ 単位を持つ。",
+   "impl": "無い",
+   "v03": "Term。11:39（最小単位の候補、未決）・ vocabulary.duration の terms.DurationSeconds（description ・ valueSchema ・ meaning ・ requires）・ concrete.sensor:27 の semanticBindings.term",
+   "adopt": "採る"
+  },
+  {
+   "id": "relation",
+   "en": "relation",
+   "ja": "関係",
+   "group": "use",
+   "means": "インスタンスの値が、ほかのインスタンスや項目を指すこと。指す先と指される数の条件を含む。",
+   "impl": "x-ref（annotations@v1）・ check.rs:Checker::resolve_link ・ check_inverse",
+   "v03": "Relation。02:8「契約間の参照、利用、生成、依存など」・ 12:21〜23 ・ examples/contract.example.json の relations（produces）。置き場所は未決（20:8）",
+   "adopt": "採る（独立の最小単位にはせず、x-ref の中身として持つ）"
+  },
+  {
+   "id": "derived-value",
+   "en": "derived value",
+   "ja": "導出値",
+   "group": "use",
+   "means": "オブジェクトの中の答えから、決まりで1つに決まる値。",
+   "impl": "x-derive（annotations@v1）・ check.rs:Checker::derive_value ・ derive",
+   "v03": "無い",
+   "adopt": "採る（基盤だけにある）"
+  },
+  {
+   "id": "validator",
+   "en": "validator",
+   "ja": "検証器",
+   "group": "validate",
+   "means": "rule 1件の合否を出す側（エンジン ・ AI）の一般名。",
+   "impl": "jsonschema（schema.rs）・ schema_rules.rs:check_schemas ・ check.rs:Checker ・ catalog.rs:check ・ design_system.rs:check ・ page.rs:page_errors ・ published.rs:check。AI は無い",
+   "v03": "Interpreter（11:20「Vocabulary・Concrete Schemaを解決し、対応するCapabilityに従って解釈／検証する」）・ 13:12 の Validator",
+   "adopt": "採る（Q5。Interpreter の語は使わない）"
+  },
+  {
+   "id": "schema-validator",
+   "en": "Schema Validator",
+   "ja": "スキーマ検証器",
+   "group": "validate",
+   "means": "Semantic Validator の中の、構造と値の検証。JSON Schema の実装を使う。",
+   "impl": "jsonschema crate ・ schema.rs:Schema::validate",
+   "v03": "Schema Validator（全体構成図）・ 13:22 の semantic-validator（構造検証・制約検証）・ 01:29「JSON Schema Validatorを自作すること」は目標外",
+   "adopt": "採る"
+  },
+  {
+   "id": "semantic-validator",
+   "en": "Semantic Validator",
+   "ja": "意味検証器",
+   "group": "validate",
+   "means": "検証の全体。rule ごとに validator を選んで呼び、結果を validation result にまとめる。",
+   "impl": "無い。checks.rs が check-schemas と check を並べて呼ぶだけで、rule ごとの振り分けと検証しなかった rule の報告が無い",
+   "v03": "Semantic Interpreter（全体構成図）・ 13:24 の semantic-interpreter（Capability照合と実行調停）・ 13:12 の Interpreter Manager",
+   "adopt": "採る（Q5）"
+  },
+  {
+   "id": "capability",
+   "en": "capability",
+   "ja": "能力",
+   "group": "validate",
+   "means": "validator が何を検証できるかの宣言。rule が求める能力と照らす。",
+   "impl": "無い",
+   "v03": "Capability。13:32 required capabilities ・ 14:20「Adapterが理解できる語彙・制約・操作を宣言する」・ 14:64 ・ examples/protocol の requiredCapabilities ・ providedCapabilities",
+   "adopt": "採る（宣言は validator の側。Concrete スキーマには書かない）"
+  },
+  {
+   "id": "validation-result",
+   "en": "validation result",
+   "ja": "検証結果",
+   "group": "validate",
+   "means": "rule 1件ごとの結果。値は verified ・ violated ・ unverified ・ unsupported ・ error の5つで、場所 ・ rule の id ・ validator を添える。",
+   "impl": "一部ある。Finding ・ SchemaFinding（違反だけを返す）・ 合格 ・ ずれ ・ 確かめ直し。検証しなかった rule は返らない",
+   "v03": "13:33 outcome（conformant / nonconformant / unsupported / unverified / error。未決）・ 04:36（verified / violated / unverified / unsupported と verifier ・ scope ・ artifact ・ timestamp ・ diagnostic）・ 13:34 structured diagnostics",
+   "adopt": "採る（Q5 の5つの値。形は protocol、Q4）"
+  },
+  {
+   "id": "resolver",
+   "en": "Resolver",
+   "ja": "解決器",
+   "group": "validate",
+   "means": "x-ref の指す先 ・ x-derive の導出値 ・ x-term の語を解決する。Semantic Validator と描画の両方が使う。",
+   "impl": "check.rs:graph ・ Checker::resolve_link ・ derive_value ・ application/context.rs:contexts（描画の文脈 links ・ referrers ・ derived）",
+   "v03": "Vocabulary Resolver（全体構成図）・ 13:12 の Resolver ・ 13:21 の semantic-resolver（IDとVocabularyの解決）",
+   "adopt": "採る（Q5）"
+  },
+  {
+   "id": "view",
+   "en": "view",
+   "ja": "表示の文の型",
+   "group": "render",
+   "means": "インスタンスの値を人が読む文にする型。プロパティと $defs に x-view で付ける。",
+   "impl": "x-view（view@v1）・ application/view.rs:ViewEngine",
+   "v03": "無い。10:78 は Renderer を Core から切り離したと書く",
+   "adopt": "採る（Q0：描画も基盤の契約）"
+  },
+  {
+   "id": "page-template",
+   "en": "page template",
+   "ja": "ページテンプレート",
+   "group": "render",
+   "means": "kind ごとの、節の並びと部品と値を取る式。HTML と色は書かない。",
+   "impl": "page@v1 ・ application/renders.rs ・ page.rs:page_errors",
+   "v03": "無い",
+   "adopt": "採る"
+  },
+  {
+   "id": "catalog",
+   "en": "catalog",
+   "ja": "部品のカタログ",
+   "group": "render",
+   "means": "Skill が持つ部品の一覧。部品ごとに入力の形と、状態ごとの振る舞い（x-states）を持つ。",
+   "impl": "catalog@v1（x-states を定義）・ domain/catalog.rs ・ parts.html",
+   "v03": "無い。04:40 の Component/Action Registry は AI の変更権限の話で別物",
+   "adopt": "採る"
+  },
+  {
+   "id": "design-system",
+   "en": "design system",
+   "ja": "デザインシステム",
+   "group": "render",
+   "means": "部品のカタログが従うトークンの値と、コントラストを比べる組。",
+   "impl": "design-system@v1 ・ domain/design_system.rs:check",
+   "v03": "無い",
+   "adopt": "採る"
+  },
+  {
+   "id": "schema-name",
+   "en": "schema name and version",
+   "ja": "スキーマの名前と版",
+   "group": "record",
+   "means": "「<所有者>/<種類>@<版>」の名前。頭の所有者で、基盤のものか Skill のものかが決まる。",
+   "impl": "domain/schema_name.rs（is_name ・ owner）・ contract.rs:Version",
+   "v03": "13:31 protocol version ・ 17:31 Vocabularyのバージョン（未決）",
+   "adopt": "採る"
+  },
+  {
+   "id": "published-record",
+   "en": "published record",
+   "ja": "公開の記録",
+   "group": "record",
+   "means": "公開した版のスキーマの名前と指紋。公開した版の書き換えと消失を見つける。",
+   "impl": "published@v1 ・ domain/published.rs。assets/ に published.json が無く、7つとも未公開",
+   "v03": "Contract Registry（13:12 に名前だけ。中身は書かれていない）・ 17:31 ・ 17:38（互換性モデル。未決）",
+   "adopt": "採る"
+  },
+  {
+   "id": "approval",
+   "en": "approval",
+   "ja": "承認",
+   "group": "record",
+   "means": "人が確かめたインスタンスのハッシュの記録。変わったら確かめ直しにする。",
+   "impl": "domain/approval.rs（集約）・ check.rs:check_links の確かめ直し",
+   "v03": "04:42「契約の意味変更: 原則、提案→差分検査→承認」",
+   "adopt": "採る（抽象の層の外。基盤のアプリケーションが持つ。Q3）"
+  }
+ ],
+ "not_adopted": [
+  {
+   "v03": "Semantic Model（Entity / Property / Type 等）",
+   "why": "docs 自身が Entity を必須の最小単位にしない（11:37 ・ 02:4）。抽象スキーマと別に内部のモデルを名前付きで持つと、同じものに2つのモデルができる"
+  },
+  {
+   "v03": "Interpretation / Interpreter",
+   "why": "検証 ・ 調停 ・ 実行の3つの意味を1語に載せている。Q5 で validator ・ Semantic Validator ・ Resolver に分けた"
+  },
+  {
+   "v03": "Contract（examples の kind contract）",
+   "why": "Concrete スキーマと同じものを指す。名前を1つにする"
+  },
+  {
+   "v03": "Relation / Graph Engine と Constraint Engine を別の部品にすること ・ Graph の正本",
+   "why": "Q3 で1つにまとめた。正本は JSON で、Graph は Resolver の中の作業の形"
+  },
+  {
+   "v03": "Projection（lossless / partial）・ JSON-LD ・ SHACL への投影",
+   "why": "Q2 で投影しないと決めた。@id ・ @protected は term の id と再定義の禁止に、SHACL の path と報告の形は x-ref と validation result に、概念だけを使う"
+  },
+  {
+   "v03": "検証の4つの側面（Descriptive / Structural / Formal / Operational）と Capability の4区別（expressible / interpretable / verifiable / executable）",
+   "why": "11:33 で議論の視点とされ、仕様の階層ではない。利用者の枠組みの2つ（機械的 ／ セマンティック）で足りる"
+  },
+  {
+   "v03": "Vocabulary の階層 ・ 登録 ・ 衝突の解決",
+   "why": "docs に階層の記述が無く、登録 ・ 衝突は未決（17:31）。いま要るのは id ・ 意味 ・ 値の形 ・ 単位だけ"
+  }
+ ],
+ "relations": [
+  {
+   "from": "abstract-schema",
+   "to": "x-keyword",
+   "label": "定義する"
+  },
+  {
+   "from": "abstract-schema",
+   "to": "keyword-definition",
+   "label": "x- キーワードごとに1行持つ"
+  },
+  {
+   "from": "keyword-definition",
+   "to": "validation-kind",
+   "label": "機械的 ／ セマンティック ／ 両方 を決める"
+  },
+  {
+   "from": "keyword-definition",
+   "to": "validator",
+   "label": "検証する validator を決める"
+  },
+  {
+   "from": "abstract-schema",
+   "to": "base-contract-schema",
+   "label": "複数のスキーマで組み立てる（同じ版）"
+  },
+  {
+   "from": "base-contract-schema",
+   "to": "page-template",
+   "label": "形を決める"
+  },
+  {
+   "from": "base-contract-schema",
+   "to": "catalog",
+   "label": "形を決める（x-states を定義する）"
+  },
+  {
+   "from": "base-contract-schema",
+   "to": "design-system",
+   "label": "形を決める"
+  },
+  {
+   "from": "base-contract-schema",
+   "to": "vocabulary",
+   "label": "形を決める（足す：vocabulary@v1）"
+  },
+  {
+   "from": "base-contract-schema",
+   "to": "published-record",
+   "label": "形を決める"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "abstract-schema",
+   "label": "従う（x-abstract に版を書く）"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "domain-schema",
+   "label": "持つ"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "x-keyword",
+   "label": "値を書く（定義しない）"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "prompt",
+   "label": "書く単位ごとに持つ"
+  },
+  {
+   "from": "prompt",
+   "to": "rule",
+   "label": "write に並べる"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "vocabulary",
+   "label": "使う（足す：x-vocabularies）"
+  },
+  {
+   "from": "vocabulary",
+   "to": "term",
+   "label": "持つ"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "term",
+   "label": "プロパティが指す（足す：x-term）"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "relation",
+   "label": "x-ref で宣言する"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "derived-value",
+   "label": "x-derive で宣言する"
+  },
+  {
+   "from": "concrete-schema",
+   "to": "view",
+   "label": "x-view で宣言する"
+  },
+  {
+   "from": "instance",
+   "to": "concrete-schema",
+   "label": "従う（$schema に $id を書く）"
+  },
+  {
+   "from": "rule",
+   "to": "validator",
+   "label": "検証させる側を名指す（足す：by）"
+  },
+  {
+   "from": "rule",
+   "to": "capability",
+   "label": "求める（足す：requires）"
+  },
+  {
+   "from": "validator",
+   "to": "capability",
+   "label": "宣言する"
+  },
+  {
+   "from": "semantic-validator",
+   "to": "validator",
+   "label": "rule ごとに選んで呼ぶ（capability を照らす）"
+  },
+  {
+   "from": "semantic-validator",
+   "to": "schema-validator",
+   "label": "中に持つ"
+  },
+  {
+   "from": "semantic-validator",
+   "to": "resolver",
+   "label": "使う"
+  },
+  {
+   "from": "validator",
+   "to": "validation-result",
+   "label": "rule 1件ごとに返す"
+  },
+  {
+   "from": "semantic-validator",
+   "to": "validation-result",
+   "label": "まとめる（required の rule が verified でなければ全体を verified にしない）"
+  },
+  {
+   "from": "resolver",
+   "to": "relation",
+   "label": "指す先を解決する"
+  },
+  {
+   "from": "resolver",
+   "to": "derived-value",
+   "label": "値を求める"
+  },
+  {
+   "from": "resolver",
+   "to": "term",
+   "label": "解決する"
+  },
+  {
+   "from": "page-template",
+   "to": "catalog",
+   "label": "部品を名前で使う"
+  },
+  {
+   "from": "page-template",
+   "to": "resolver",
+   "label": "描画の文脈（links ・ referrers ・ derived）を受け取る"
+  },
+  {
+   "from": "catalog",
+   "to": "design-system",
+   "label": "トークンに従う"
+  },
+  {
+   "from": "published-record",
+   "to": "schema-name",
+   "label": "名前と指紋を記録する"
+  },
+  {
+   "from": "approval",
+   "to": "instance",
+   "label": "ハッシュを記録する（抽象の層の外）"
+  }
+ ],
+ "keywords": [
+  {
+   "keyword": "x-abstract",
+   "where": "根",
+   "defined_in": "meta-schema の properties",
+   "kind": "機械的",
+   "validators": "Schema Validator（const）・ contract.rs:version_of",
+   "not_checked": "無い。ただし description が「$schema にこの $id を書いて」と書き、中身（x-abstract に版を書く）と食い違う",
+   "plan": "description の文を直す（検証の問題ではない）"
+  },
+  {
+   "keyword": "x-generates",
+   "where": "根（インスタンスを作るスキーマ）",
+   "defined_in": "meta-schema",
+   "kind": "機械的",
+   "validators": "Schema Validator（if/then）・ schema_rules（$schema.const と $id）",
+   "not_checked": "置き場所の文字列を create の --path と照らさない ・ placeholder ・ only-for-instances",
+   "plan": "create が置き場所を x-generates の型と照らし、違えば violated にする。placeholder と only-for-instances は schema_rules に足す"
+  },
+  {
+   "keyword": "x-annotations",
+   "where": "根",
+   "defined_in": "meta-schema",
+   "kind": "—",
+   "validators": "—",
+   "not_checked": "値のファイル名を読まない ・ only-new-annotations",
+   "plan": "採らない。Concrete は x- を定義しない枠組みと合わず、使っている Concrete は0件。消して、表に無い x- は schema_rules が violated で返す"
+  },
+  {
+   "keyword": "x-prompt（read）",
+   "where": "書く単位ごと",
+   "defined_in": "meta-schema の $defs/prompt ・ reading",
+   "kind": "機械的（形）",
+   "validators": "Schema Validator ・ schema_rules",
+   "not_checked": "文の中身",
+   "plan": "read は案内で rule ではないので、中身は検証の対象にしない。x-term を付けた欄で means と term の意味が食い違うかは、セマンティック（AI validator）の rule として抽象スキーマに置く"
+  },
+  {
+   "keyword": "x-prompt（write ＝ rule）",
+   "where": "書く単位ごと",
+   "defined_in": "meta-schema の $defs/rule",
+   "kind": "両方",
+   "validators": "形は Schema Validator。rule ごとに by が名指す validator（schema_rules ・ Checker ・ AI validator）",
+   "not_checked": "test を誰も実行しない。no-prompt-on-leaf ・ list-as-array ・ what-and-not ・ noun など",
+   "plan": "test が機械で決まる rule（例 not-with-bare ・ self-needs-in ・ with-accept ・ noun）は、同じ場所の JSON Schema のキーワード（not ・ if/then ・ dependentRequired）か schema_rules で機械にし、by にその validator を書く。「1文で言えるか」の類は by を AI validator にする。by が無い rule と、validator が無い rule は unverified ・ unsupported で返し、黙らない"
+  },
+  {
+   "keyword": "x-ref",
+   "where": "プロパティ",
+   "defined_in": "annotations@v1",
+   "kind": "機械的",
+   "validators": "Schema Validator（形）・ Resolver（解決）・ Checker（指す先 ・ accept ・ unique ・ covered_by ・ inverse）",
+   "not_checked": "label を誰も読まない ・ item と bare の同時 ・ self で in が無い ・ when だけで accept が無い ・ to の綴りと kind の const ・ 候補が2つ以上で先頭を黙って採る",
+   "plan": "label は消す（名前の出どころは x-view の label の1か所）。item と bare ・ self と in ・ when と accept は x-ref の形に not ・ if/then ・ dependentRequired を足す。to の綴りは schema_rules がスキーマの時点で照らす。候補が2つ以上なら violated「指す先が1つに決まらない」"
+  },
+  {
+   "keyword": "x-derive",
+   "where": "オブジェクト",
+   "defined_in": "annotations@v1",
+   "kind": "機械的",
+   "validators": "Schema Validator ・ Resolver（導出値）・ Checker（declared ・ expect）",
+   "not_checked": "when のキーがオブジェクトの中か ・ 上の決まりが下を隠すか ・ declared の名前があるか ・ 値が1つに決まるか",
+   "plan": "はじめの3つは schema_rules に足す（どれも JSON の比較で決まる）。値が1つに決まることは then が値1つの形で保たれている"
+  },
+  {
+   "keyword": "x-view",
+   "where": "プロパティ ・ $defs",
+   "defined_in": "view@v1",
+   "kind": "両方",
+   "validators": "Schema Validator ・ schema_rules（式の parse）・ 描画（ViewEngine）。文が読めるかは AI validator",
+   "not_checked": "hidden とほかのキー ・ map ・ part ・ view の名前の実在 ・ explicit-at ・ distinct-names ・ label の式が文字列に着くか",
+   "plan": "hidden は view@v1 の形で単独にする。名前の実在 ・ explicit-at ・ distinct-names は schema_rules に足す。label の式は描画のときに violated。文の読みやすさは required にしない rule として AI validator へ"
+  },
+  {
+   "keyword": "x-states",
+   "where": "カタログの部品",
+   "defined_in": "catalog@v1",
+   "kind": "両方",
+   "validators": "catalog.rs:check（形と default）。振る舞いの文と parts.html ・ catalog.js の照合は AI validator",
+   "not_checked": "BASE_ANNOTATIONS にも meta-schema にも無い ・ 振る舞いの文と実装の照合",
+   "plan": "x- キーワードの表に載せる。文と実装の照合は AI validator の rule にし、AI が無いうちは unverified"
+  },
+  {
+   "keyword": "x-vocabularies（足す）",
+   "where": "根",
+   "defined_in": "meta-schema",
+   "kind": "機械的",
+   "validators": "Schema Validator ・ Resolver（id が vocabulary に解決し、版があるか）",
+   "not_checked": "—",
+   "plan": "新しく足す。v0.3 の contract の uses に当たる"
+  },
+  {
+   "keyword": "x-term（足す）",
+   "where": "プロパティ",
+   "defined_in": "抽象スキーマ（vocabulary の群）",
+   "kind": "両方",
+   "validators": "機械的：Resolver（term が x-vocabularies の vocabulary にあるか）・ Schema Validator（インスタンスの値が term の値の形に合うか）。セマンティック：AI validator（そのプロパティが本当にその term の意味か）",
+   "not_checked": "—",
+   "plan": "新しく足す。v0.3 の semanticBindings.term（concrete.sensor:27）に当たる"
+  },
+  {
+   "keyword": "rule の by（足す）",
+   "where": "$defs/rule",
+   "defined_in": "meta-schema",
+   "kind": "機械的",
+   "validators": "schema_rules（抽象スキーマの validator の表にある名前か）。Semantic Validator が振り分けに使う",
+   "not_checked": "—",
+   "plan": "新しく足す。値は抽象スキーマが持つ validator の名前から選ぶ（Concrete は名前を作らない）"
+  },
+  {
+   "keyword": "rule の requires（足す）",
+   "where": "$defs/rule",
+   "defined_in": "meta-schema",
+   "kind": "機械的",
+   "validators": "Semantic Validator（validator の capability と照らし、無ければ unsupported）",
+   "not_checked": "—",
+   "plan": "新しく足す"
+  },
+  {
+   "keyword": "rule の required（足す）",
+   "where": "$defs/rule",
+   "defined_in": "meta-schema",
+   "kind": "機械的",
+   "validators": "Semantic Validator（required の rule が verified でなければ、全体を verified にしない。v0.3 14:21 の fail-closed）",
+   "not_checked": "—",
+   "plan": "新しく足す"
+  }
+ ],
+ "formats_not_checked": [
+  {
+   "schema": "page@v1",
+   "item": "values-from-context ・ no-html-or-color",
+   "plan": "機械的。page_errors に足す"
+  },
+  {
+   "schema": "page@v1",
+   "item": "sections-in-reading-order",
+   "plan": "セマンティック。AI validator の rule（required にしない）"
+  },
+  {
+   "schema": "catalog@v1",
+   "item": "by-meaning",
+   "plan": "セマンティック。AI validator の rule"
+  },
+  {
+   "schema": "catalog@v1",
+   "item": "versioned",
+   "plan": "機械的。Skill のカタログを公開の記録の対象にする"
+  },
+  {
+   "schema": "design-system@v1",
+   "item": "refer-by-name ・ declare-pairs",
+   "plan": "機械的。design_system.rs に足す"
+  },
+  {
+   "schema": "published@v1",
+   "item": "published.json 自体を published@v1 で検証しない",
+   "plan": "機械的。Schema Validator で検証する"
+  },
+  {
+   "schema": "published@v1",
+   "item": "行の削除と書き換え（append-only ・ never-edit）",
+   "plan": "いまの入力（published.json 1つ）では決まらないので unsupported と返す。履歴を読む outbound adapter を足したら機械的にする"
+  }
+ ],
+ "schemas": [
+  {
+   "file": "meta-schema.json",
+   "id": "schema-driven/abstract@v1",
+   "group": "Concrete スキーマの形",
+   "concepts": "抽象スキーマの根 ・ ドメインスキーマの dialect ・ x-abstract ・ x-generates ・ x-prompt ・ rule ・ x- キーワードの表（足す）・ x-vocabularies（足す）・ validator の表（足す）",
+   "writer": "Skill（Concrete スキーマ）"
+  },
+  {
+   "file": "annotations.schema.json",
+   "id": "schema-driven/annotations@v1",
+   "group": "x- キーワードの形",
+   "concepts": "relation（x-ref）・ derived value（x-derive）",
+   "writer": "Skill（Concrete スキーマの中の値）"
+  },
+  {
+   "file": "view.schema.json",
+   "id": "schema-driven/view@v1",
+   "group": "x- キーワードの形",
+   "concepts": "view（x-view）",
+   "writer": "Skill（Concrete スキーマの中の値）"
+  },
+  {
+   "file": "（足す）vocabulary の x- の形",
+   "id": "（Q7 で決める）",
+   "group": "x- キーワードの形",
+   "concepts": "x-term",
+   "writer": "Skill（Concrete スキーマの中の値）"
+  },
+  {
+   "file": "page.schema.json",
+   "id": "schema-driven/page@v1",
+   "group": "Skill が書くファイルの形",
+   "concepts": "page template",
+   "writer": "Skill（ページテンプレート）"
+  },
+  {
+   "file": "catalog.schema.json",
+   "id": "schema-driven/catalog@v1",
+   "group": "Skill が書くファイルの形",
+   "concepts": "catalog ・ x-states",
+   "writer": "Skill（カタログのスキーマ）"
+  },
+  {
+   "file": "design-system.schema.json",
+   "id": "schema-driven/design-system@v1",
+   "group": "Skill が書くファイルの形",
+   "concepts": "design system",
+   "writer": "Skill（design-system.json）"
+  },
+  {
+   "file": "（足す）vocabulary.schema.json",
+   "id": "schema-driven/vocabulary@v1",
+   "group": "Skill が書くファイルの形",
+   "concepts": "vocabulary ・ term",
+   "writer": "Skill（語彙）"
+  },
+  {
+   "file": "published.schema.json",
+   "id": "schema-driven/published@v1",
+   "group": "基盤の記録の形",
+   "concepts": "published record",
+   "writer": "基盤のコマンド"
+  },
+  {
+   "file": "（抽象スキーマに置かない）validation result ・ capability の形",
+   "id": "protocol（Q4）",
+   "group": "protocol",
+   "concepts": "validation result ・ capability",
+   "writer": "validator"
+  }
+ ],
+ "boundary_fixes": [
+  {
+   "issue": "6つが、自分は Concrete スキーマとして書かれている",
+   "cause": "「Concrete」が2つの意味（meta-schema に準拠する ／ Skill が所有する）を持っている",
+   "fix": "準拠と所有を別の関係にする。7つとも meta-schema に準拠してよい（同じ書き方の決まりで検査する）が、所有は基盤で、名前の頭 schema-driven/（schema_name.rs:owner）と、meta-schema の構成の表で抽象スキーマの一部と分かるようにする。「x- を定義しない」は所有が Skill のスキーマにだけ当てる"
+  },
+  {
+   "issue": "自分の検査で13件の指摘（catalog 10件 ・ design-system 3件）",
+   "cause": "基盤の契約が、自分が準拠すると書いた決まり（prompt-per-unit）を満たしていない",
+   "fix": "除外の道を作らず、description と x-prompt を足して0件にする。catalog と design-system は Skill の AI が書くファイルの形なので、書き方の案内は実際に要る"
+  },
+  {
+   "issue": "基盤の注釈の一覧が、meta-schema の文（5つ）とコード（7つ）で食い違い、x-states はどちらにも無い",
+   "cause": "x- キーワードの一覧の置き場所が2か所あり、どちらも正本でない",
+   "fix": "一覧を抽象スキーマの x- キーワードの表1か所にし、各行に形の $ref の先 ・ 置ける場所 ・ 検証の種類 ・ validator を持たせる。コードはこの表を読み、rule の文は表を指す"
+  },
+  {
+   "issue": "annotations ・ view と meta-schema をつなぐのがコードだけ",
+   "cause": "抽象スキーマを組み立てるスキーマの並びが、データとして書かれていない",
+   "fix": "同じ x- キーワードの表が、定義のスキーマを $ref で指す。JSON Schema 2020-12 の拡張の仕組み（$dynamicAnchor で全ての深さに当てる）を使えるかは、fact-check で原文を照合してから Q7 で決める"
+  },
+  {
+   "issue": "x-ref の label は形にあるが、誰も読まない",
+   "cause": "人が読む名前の出どころが2か所（x-ref.label と x-view.label）",
+   "fix": "x-ref から label を消し、x-view の label の1か所にする"
+  },
+  {
+   "issue": "7つとも未公開",
+   "cause": "公開の記録が1件も無い",
+   "fix": "Q6 で版を上げずに足すと決めたあと、公開の前に1回記録する"
+  }
+ ],
+ "naming_review": [
+  {
+   "now": "注釈（annotation）",
+   "propose": "x- キーワード（x- keyword）",
+   "why": "JSON Schema 2020-12 の annotation は、知らないキーワードが評価の結果として集められるだけで、合否に入らない値を指す（Q2 もこの意味で使う）。基盤の x- は検証する契約なので、同じ語で反対のことを言うことになる"
+  },
+  {
+   "now": "vocabulary",
+   "propose": "vocabulary（語彙）は term の集まりだけを指し、JSON Schema の意味は `$vocabulary` と綴りのまま書く",
+   "why": "JSON Schema の $vocabulary はキーワードの集まりで、v0.3 の Vocabulary（意味の宣言）とは別のもの。Q2 の details は $vocabulary の意味で使っている"
+  },
+  {
+   "now": "concrete（Skill が書くもの ／ meta-schema に準拠するもの）",
+   "propose": "Concrete スキーマは Skill が所有するものだけ。基盤のものは base contract schema（基盤の契約のスキーマ）",
+   "why": "所有と準拠を1語に載せると、「Concrete は x- を定義しない」が基盤のスキーマにも当たって見える"
+  }
+ ],
+ "board_split": [
+  {
+   "topic": "Q1 抽象の概念モデル",
+   "question": "抽象の層はどの概念で組み立て、概念どうしはどう関係するか",
+   "image": "概念図（概念と、持つ ・ 使う ・ 従う ・ 検証する の辺）・ 概念の表（英語 ・ 日本語 ・ 何を表すか ・ いまの実装 ・ v0.3 ・ 採否）・ 採らない v0.3 の概念と理由",
+   "done": "概念ごとに名前が1つで、v0.3 の概念が全部、採る ・ 採らない のどちらかに入っている"
+  },
+  {
+   "topic": "Q6 抽象スキーマの構成",
+   "question": "抽象スキーマを、どのスキーマの組で、どの版のつなぎ方で持つか",
+   "image": "基盤の契約のスキーマの一覧（ファイル ・ $id ・ 群 ・ 担う概念 ・ インスタンスを書く人）・ ディレクトリの変更前後の木 ・ 準拠と所有の分け方 ・ assets/ に check-schemas を当てて0件の結果",
+   "done": "7つ＋足すものが4つの群のどれかに入り、境界の崩れ6件の直し方が決まっている。いまの Q1 の「版は上げない」はここへ移す"
+  },
+  {
+   "topic": "Q7 抽象スキーマの中身",
+   "question": "x- キーワードと rule を、どう定義し、どの validator がどう検証するか",
+   "image": "x- キーワードの表（置く場所 ・ 形 ・ 機械的 ／ セマンティック ・ validator ・ いま見ていないものの扱い）・ 足すキーワードの JSON Schema の差分（$defs/rule の by ・ requires ・ required、x-vocabularies、x-term、vocabulary@v1）・ board@v1 に当てた validation result の例（5つの値の件数）",
+   "done": "いま見ていないものが全部、機械的にする ・ AI validator に回す ・ unsupported と返す ・ 消す のどれかに決まっている。いまの Q1 の details の「足すもの」はここへ移す"
+  }
+ ]
+}

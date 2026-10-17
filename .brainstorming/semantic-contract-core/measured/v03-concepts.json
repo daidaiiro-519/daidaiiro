@@ -1,0 +1,884 @@
+{
+  "source": "構想 v0.3（検討中の案）",
+  "items": [
+    {
+      "concept": "Semantic Model（意味の最小単位）Entity / Property / Type 等",
+      "group": "abstract-layer",
+      "quotes": [
+        {
+          "text": "**独自Abstract Semantic Model（表現できる世界の定義）が正本**。JSON Schema / JSON-LD / RDF / SHACL / OpenAPIは、それぞれ得意な領域を解釈・検証・射影・交換する**Adapter／ライブラリ／規格**。",
+          "at": "docs/14_standards-as-optional-adapters.md:11"
+        },
+        {
+          "text": "- DDDのEntity / UseCase、API Path、Angularコンポーネント、Rust crateをAbstract Schemaの必須プリミティブにしない。",
+          "at": "docs/11_semantic-layered-model.md:37"
+        },
+        {
+          "text": "- 最小単位の候補はTerm, Identity, Definition, Relation, Constraint, Interpretationなど。ただし**未決**。",
+          "at": "docs/11_semantic-layered-model.md:39"
+        },
+        {
+          "text": "現時点の提案は `Contract / Schema / Relation / Constraint / Interpretation`。最上位にDDDのEntityやUseCaseを埋め込まず、それらは後から追加するVocabularyとして検討する。",
+          "at": "docs/02_semantic-contract-model.md:4"
+        },
+        {
+          "text": "2. 最小プリミティブ（Term / Identity / Definition / Relation / Constraint等）。",
+          "at": "docs/17_decision-ledger-v0.3.md:30"
+        },
+        {
+          "text": "1. 意味の最小単位（Node / Term / Relation / Rule）を何に置くか。",
+          "at": "docs/20_conversation-recap-latest.md:32"
+        },
+        {
+          "text": "semantic-model/       # 内部型（外部仕様ではない）",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:20"
+        }
+      ],
+      "note": "docs に「Semantic Model」という名の節は無い。近い語は 14:11 の「独自Abstract Semantic Model（表現できる世界の定義）」と、13:20 の Rust crate `semantic-model`（内部型で外部仕様ではない）。図の「Entity / Property / Type 等」とは食い違う：docs は Entity を Abstract Schema の必須プリミティブにしない（11:37、02:4）と書き、最小単位の候補は Term, Identity, Definition, Relation, Constraint, Interpretation（11:39）／Node / Term / Relation / Rule（20:32）で、未決としている。Property と Type を最小単位とする記述は docs に無い。"
+    },
+    {
+      "concept": "Vocabulary Spec（語彙仕様）識別子・意味・階層・関係",
+      "group": "abstract-layer",
+      "quotes": [
+        {
+          "text": "1. Vocabularyは、識別子・概念・関係・単位・制約などの**意味宣言**を行う。",
+          "at": "docs/11_semantic-layered-model.md:18"
+        },
+        {
+          "text": "全てを `kind: entity` のような固定分類にしない。拡張Vocabulary側で `Entity / Operation / State / UI / Workflow / Architecture` などを定義する案。反面、汎用化しすぎると独自解釈器が巨大化するリスクがある。Vocabularyごとに意味、検証方法、表現できないものを宣言する。",
+          "at": "docs/02_semantic-contract-model.md:13"
+        },
+        {
+          "text": "RustはFoundation Engineの第一候補。ただし **Abstract Schema / Vocabulary / Concrete Schema / Interpreter Protocol / 診断仕様** をRust固有の型・trait・crateに従属させない。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:7"
+        },
+        {
+          "text": "1. **Semantic Specification:** 宣言形式、識別子、参照解決、制約の意味、適合性、Capabilities、診断の意味を言語非依存に仕様化。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:11"
+        },
+        {
+          "text": "3. Vocabularyの登録・互換性・バージョン・衝突解決。",
+          "at": "docs/17_decision-ledger-v0.3.md:31"
+        },
+        {
+          "text": "\"_note\": \"独自形式の試案。JSON-LDやJSON Schemaの正式な規格ではない。\"",
+          "at": "examples/semantic/vocabulary.duration.example.json:20"
+        }
+      ],
+      "note": "docs は Vocabulary を「意味宣言」を行うものとし、言語非依存に仕様化する対象に入れる。図の「階層」に当たる記述は docs に無い。登録・互換性・バージョン・衝突解決は未決（17:31）。"
+    },
+    {
+      "concept": "JSON Representation（共通 JSON 形式）拡張可能なスキーマ記述",
+      "group": "abstract-layer",
+      "quotes": [
+        {
+          "text": "**外部交換はJSON、元JSONを保持、意味解決後のGraphは必要に応じた派生表現。** ただし、正式な内部Canonical Representationは未決。",
+          "at": "docs/15_json-tree-and-semantic-graph.md:5"
+        },
+        {
+          "text": "- Authoring/Exchange: JSON",
+          "at": "docs/15_json-tree-and-semantic-graph.md:16"
+        },
+        {
+          "text": "- Original contract: 元JSONを失わず保持する",
+          "at": "docs/15_json-tree-and-semantic-graph.md:22"
+        },
+        {
+          "text": "`JSON -> Semantic Graph -> JSON` の往復は一般には情報を失う可能性がある。だから変換結果の`coverage`と`lossless`を明示し、**原本のJSONがCanonical Sourceとして残る**構造を検討する。",
+          "at": "docs/15_json-tree-and-semantic-graph.md:26"
+        },
+        {
+          "text": "2. **Preserve source:** 元のContract/Instance JSONを保持し、派生形式への変換で置き換えない。",
+          "at": "docs/14_standards-as-optional-adapters.md:18"
+        },
+        {
+          "text": "- **低依存な共通表現を維持する**: JSONを人間・AI・各実装技術が交換する表現に採用し、JSON Schemaなど成熟した標準の検証機能を再利用できるようにする。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:34"
+        },
+        {
+          "text": "5. Canonical Representation（JSONツリー／Graph／Hybrid）の正式決定。",
+          "at": "docs/17_decision-ledger-v0.3.md:33"
+        }
+      ],
+      "note": "外部交換は JSON・元 JSON を保持する、までは合意の方向。内部の Canonical Representation（JSON ツリー／Graph／Hybrid）は未決（15:5、17:33）。"
+    },
+    {
+      "concept": "Constraint Spec（制約仕様）構造・値・関係・意味制約",
+      "group": "abstract-layer",
+      "quotes": [
+        {
+          "text": "- **Constraint**: 不変条件・振る舞い上の条件。表現しただけで検証済みとみなさない。",
+          "at": "docs/02_semantic-contract-model.md:9"
+        },
+        {
+          "text": "JSON Schemaの `type`, `required`, `enum`, `minimum` などはデータの適合条件を表現する。一方、「この登録は重複してはならない」「停止中は送信しない」「DomainはInfrastructureに依存できない」といった主張には、DB制約、状態機械、依存ルールなど別の意味解釈と検証が要る。",
+          "at": "docs/02_semantic-contract-model.md:16"
+        },
+        {
+          "text": "2. Concrete Schemaは、特定領域に対してVocabularyを参照し、追加の構造・許容範囲・制約を宣言する。",
+          "at": "docs/11_semantic-layered-model.md:19"
+        },
+        {
+          "text": "| Formal | 単位関係・関係制約・状態条件 | 形式化された部分について検査可能 |",
+          "at": "docs/11_semantic-layered-model.md:30"
+        },
+        {
+          "text": "1. **Semantic Specification:** 宣言形式、識別子、参照解決、制約の意味、適合性、Capabilities、診断の意味を言語非依存に仕様化。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:11"
+        },
+        {
+          "text": "| JSON Schema | JSONの構造・値制約、Meta-Schema、既存Validator | 表現できない意味条件は独自Constraintとして保持 |",
+          "at": "docs/14_standards-as-optional-adapters.md:29"
+        },
+        {
+          "text": "| NodeShape / PropertyShape | 値だけでなくノードや関係に制約を置ける |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:30"
+        }
+      ],
+      "note": "構造・値は JSON Schema、関係は SHACL の NodeShape／PropertyShape を参考、表せない意味条件は独自 Constraint として保持、という分け方が docs にある。「Constraint Spec」という名の節は無い。"
+    },
+    {
+      "concept": "Interpreter Protocol（解釈プロトコル）能力表明・検証インターフェース",
+      "group": "abstract-layer",
+      "quotes": [
+        {
+          "text": "3. **External Interpreter Protocol:** JSON I/Oを標準の交換形式とし、CLI / IPCをPoCの通信手段にする。必要に応じてHTTP、WASM Component + WIT等もAdapterに追加。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:13"
+        },
+        {
+          "text": "- protocol version, operation, vocabulary references, contract reference, instance payload",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:31"
+        },
+        {
+          "text": "- required capabilities, interpreter implementation / version",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:32"
+        },
+        {
+          "text": "- outcome: `conformant`, `nonconformant`, `unsupported`, `unverified`, `error`（状態遷移・定義は**未決**）",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:33"
+        },
+        {
+          "text": "- structured diagnostics: focus, path, constraint, severity, provenance",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:34"
+        },
+        {
+          "text": "**注意:** 次の `examples/protocol` はあくまで互換性検討用の提案例。実行可能なプロトコルとして確定していない。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:37"
+        },
+        {
+          "text": "- 必須Capabilityを欠くときには**fail-closed**（成功とみなさない）。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:44"
+        },
+        {
+          "text": "候補ステータス: `verified`, `violated`, `unverified`, `unsupported`。必ず `verifier`, `scope`, `artifact`, `timestamp`, `diagnostic` と共に扱う。「verified」は実行された検査範囲での合格に過ぎない。",
+          "at": "docs/04_architecture-and-verification.md:36"
+        },
+        {
+          "text": "4. Interpreter未対応の意味を`verified`とみなさず、`unsupported`／`unverified`として報告する。",
+          "at": "docs/11_semantic-layered-model.md:21"
+        },
+        {
+          "text": "- InterpreterにはCapabilityを宣言させ、未対応を成功として隠さない。",
+          "at": "docs/17_decision-ledger-v0.3.md:22"
+        },
+        {
+          "text": "- CLI / IPC + JSONを最初の外部Interpreter Protocolとして試す。",
+          "at": "docs/17_decision-ledger-v0.3.md:25"
+        },
+        {
+          "text": "4. **Explicit capability:** Adapterが理解できる語彙・制約・操作を宣言する。",
+          "at": "docs/14_standards-as-optional-adapters.md:20"
+        },
+        {
+          "text": "\"requiredCapabilities\": [",
+          "at": "examples/protocol/interpreter-request.example.json:6"
+        },
+        {
+          "text": "\"status\": \"unverified\",",
+          "at": "examples/protocol/interpreter-response.example.json:3"
+        }
+      ],
+      "note": "outcome の値が文書ごとに違う：13:33 は conformant / nonconformant / unsupported / unverified / error、04:36 は verified / violated / unverified / unsupported、11:21 は verified／unsupported／unverified を使う。例の response は status: unverified。どの値の組を採るかは 13:33 自身が未決としている。"
+    },
+    {
+      "concept": "JSON / JSON Schema 互換",
+      "group": "public-spec",
+      "quotes": [
+        {
+          "text": "`2020-12` を候補に、Schema自身の検証とインスタンス検証を行う。`additionalProperties: false`、`required`、`enum` などを利用。適切なSchemaと実際の検証の双方が必要で、「想定外の値は絶対入らない」とは言えない。生成物の型への投影で全制約が保存されるとは限らない。",
+          "at": "docs/03_standards-and-schema-first.md:7"
+        },
+        {
+          "text": "- **Schema**: JSONインスタンスの構造と値の許容範囲（標準JSON Schemaを参照・内包）。",
+          "at": "docs/02_semantic-contract-model.md:7"
+        },
+        {
+          "text": "| JSON Schema | JSONの構造・値制約、Meta-Schema、既存Validator | 表現できない意味条件は独自Constraintとして保持 |",
+          "at": "docs/14_standards-as-optional-adapters.md:29"
+        },
+        {
+          "text": "| Abstract Schema / Foundation | 契約の識別、構造、意味の参照、関係、制約の定義法、Instanceとの適合規則 | Rustのクレート構成、HTTPのPath、特定UIのコンポーネント | 抽象メタモデル、標準JSON Schemaとの接続、共通検証機構 |",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:42"
+        },
+        {
+          "text": "8. どこまで標準JSON SchemaのMeta-Schema / Vocabulary機能をそのまま使うか。",
+          "at": "docs/17_decision-ledger-v0.3.md:36"
+        },
+        {
+          "text": "- JSON Schema Validatorを自作すること。",
+          "at": "docs/01_vision.md:29"
+        },
+        {
+          "text": "\"_note\": \"Bindingは独自Semantic仕様の試案。標準のJSON Schema Validatorはそれ自体ではこの意味Bindingを検査しない。\"",
+          "at": "examples/semantic/concrete.sensor.example.json:30"
+        }
+      ],
+      "note": "JSON Schema は「参照・内包」（02:7）と書く所と、「Adapter」（14:11, 14:29）と書く所がある。標準 JSON Schema の Meta-Schema / Vocabulary 機能をどこまでそのまま使うかは未決（17:36）。"
+    },
+    {
+      "concept": "JSON-LD / Context",
+      "group": "public-spec",
+      "quotes": [
+        {
+          "text": "| `@context` | ローカルキーを意味識別子（IRI）に対応付ける | Contextを使ったVocabulary alias解決の参考 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:10"
+        },
+        {
+          "text": "| `@id` | 対象の識別 | Contract / Term / Instance間の参照識別子の参考 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:11"
+        },
+        {
+          "text": "| `@type` | 資源がどの概念に属するかを記述 | Semantic typeの区別に利用（静的型保証と混同しない） |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:12"
+        },
+        {
+          "text": "| `@protected` | 重要な用語の再定義からの保護 | 名前空間の競合制御・定義の保護に応用 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:13"
+        },
+        {
+          "text": "| Expansion / Compaction | 人間向け略記を意味解決済みの形へ正規化 | 短いAI入力とCanonical formを分離 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:14"
+        },
+        {
+          "text": "**限界:** `@context`は名前の対応付けを行うのであって、業務上の意味や不変条件を自動的に証明しない。JSON-LD展開時に通常のJSON構造・順序を完全に保つとは限らない。語彙の対応付けがないフィールドの扱いにも注意が必要。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:17"
+        },
+        {
+          "text": "| JSON-LD | IRI / Context、名称展開、意味識別、Linked Data表現 | JSON-LDを全Contractの正本にしない。Context未対応部分を落とさない |",
+          "at": "docs/14_standards-as-optional-adapters.md:30"
+        },
+        {
+          "text": "- JSON-LDのContextは識別子の対応を提供するが、業務意味の正しさを直接証明しない。",
+          "at": "docs/19_standards-and-references.md:18"
+        }
+      ],
+      "note": "docs は JSON-LD を「概念を借りる」対象とし、正本にしない（14:30）。"
+    },
+    {
+      "concept": "SHACL 互換マッピング",
+      "group": "public-spec",
+      "quotes": [
+        {
+          "text": "JSON-LDはJSONとLinked Dataを接続する規格、RDFは識別可能な資源間の関係をトリプルとして表現するデータモデル、SHACLはRDFグラフをShapeに照らして検証する規格。**SHACLは一般のJSONをそのまま検証する仕様ではない**。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:4"
+        },
+        {
+          "text": "**限界:** SHACLが動作するにはRDFグラフとShapeの用意が必要。ソースコードの依存関係を直接検証するわけではなく、ソースからグラフを抽出するAdapterが必要。SHACLの制約体系で表せない意味まで無理に矮小化しない。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:36"
+        },
+        {
+          "text": "3. RDFへの射影・SHACL検証は**必要なConcrete Schemaに限定して**追加する。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:42"
+        },
+        {
+          "text": "「独自モデルがSHACLで表せないから、意味を削る」という設計はしない。SHACLで扱える部分だけをProjectionし、扱えない意味は原形のまま残し、別Interpreterまたは未対応として明示する。",
+          "at": "docs/14_standards-as-optional-adapters.md:13"
+        },
+        {
+          "text": "| SHACL | グラフ上のShape・Path・関係制約・診断 | 対応可能な関係部分にのみ使用。非対応の制約は別Interpreterへ |",
+          "at": "docs/14_standards-as-optional-adapters.md:32"
+        },
+        {
+          "text": "- SHACLはRDFグラフに対するShape制約。JSON Schemaの単純な置換ではない。",
+          "at": "docs/19_standards-and-references.md:19"
+        },
+        {
+          "text": "- Node・Relationへの基本制約をSHACL等で検証。",
+          "at": "docs/18_poc-and-conformance-cases.md:25"
+        },
+        {
+          "text": "- Graph化されない情報が元JSONに残り、検証結果がpartial扱いになることを確認。",
+          "at": "docs/18_poc-and-conformance-cases.md:26"
+        }
+      ],
+      "note": "docs は「互換マッピング」という語を使わない。書いているのは「SHACLで扱える部分だけをProjectionし」（14:13）と「必要なConcrete Schemaに限定して」（12:42）で、全体を SHACL へ対応付ける形ではない。"
+    },
+    {
+      "concept": "独自拡張（自由な表現）",
+      "group": "public-spec",
+      "quotes": [
+        {
+          "text": "1. **Expression-first:** 最初に私たちの表現モデルを設計。外部標準の制約が全体の上限にならない。",
+          "at": "docs/14_standards-as-optional-adapters.md:17"
+        },
+        {
+          "text": "6. **Open extension:** 任意のVocabulary/Interpreterを登録できる。ただし登録・実行権限は管理する。",
+          "at": "docs/14_standards-as-optional-adapters.md:22"
+        },
+        {
+          "text": "- 独自Contract上は**そのまま表現できる**ことを目指す（形式は未決）。",
+          "at": "docs/14_standards-as-optional-adapters.md:40"
+        },
+        {
+          "text": "- 「JSON Schemaで定義できないから、その関係は表現禁止」→ **不採用**。独自契約を保持し、別Interpreterで解釈する。",
+          "at": "docs/11_semantic-layered-model.md:44"
+        },
+        {
+          "text": "- **構造の自由**: JSONで新たな構成を自由に記述できる。",
+          "at": "docs/02_semantic-contract-model.md:19"
+        },
+        {
+          "text": "この三者は競合する場合がある。自由度を増やすだけでは保証力は向上しない。",
+          "at": "docs/02_semantic-contract-model.md:22"
+        }
+      ],
+      "note": "表現の自由を最優先とする一方、02:22 は「自由度を増やすだけでは保証力は向上しない」と書き、14:64 も表現力と検証能力は別とする。食い違いではなく、同じ docs の中で両方が書かれている。"
+    },
+    {
+      "concept": "Abstract Schema（抽象スキーマ）拡張可能な共通モデル",
+      "group": "expression-model",
+      "quotes": [
+        {
+          "text": "1. **Schema駆動基盤（Abstract Schema / Semantic Contract Core）**: 特定用途や言語に先立つ意味・契約・構造・関係・制約・インスタンスの扱い方を規定する、抽象側の基盤。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:13"
+        },
+        {
+          "text": "| Abstract Schema / Foundation | 契約の識別、構造、意味の参照、関係、制約の定義法、Instanceとの適合規則 | Rustのクレート構成、HTTPのPath、特定UIのコンポーネント | 抽象メタモデル、標準JSON Schemaとの接続、共通検証機構 |",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:42"
+        },
+        {
+          "text": "- **Abstract Schema / Concrete Schemaは、今回の構想内での暫定名称**。JSON Schema標準における正式な階層名だと誤解しない。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:50"
+        },
+        {
+          "text": "- **Abstract Schema** は、契約・語彙の宣言、識別、参照、適合、拡張に関する抽象の**規則／形式**。",
+          "at": "docs/11_semantic-layered-model.md:10"
+        },
+        {
+          "text": "- **Semantic Contract Engine** は、それらを解釈・検証する**実装**。まずRustで実装したい。",
+          "at": "docs/11_semantic-layered-model.md:12"
+        },
+        {
+          "text": "> この文書がv0.3時点の設計状態の正本。旧文書との解釈の衝突があればここを優先。",
+          "at": "docs/17_decision-ledger-v0.3.md:3"
+        },
+        {
+          "text": "- Abstract Schemaは語彙・解釈機構が成立する抽象規則、Concrete Schemaは用途の具体化。",
+          "at": "docs/20_conversation-recap-latest.md:7"
+        },
+        {
+          "text": "4. Abstract Schema＝Schema駆動の抽象基盤、Concrete Schema＝用途別の具体化という整理。",
+          "at": "docs/17_decision-ledger-v0.3.md:10"
+        },
+        {
+          "text": "**独自Abstract Semantic Model（表現できる世界の定義）が正本**。JSON Schema / JSON-LD / RDF / SHACL / OpenAPIは、それぞれ得意な領域を解釈・検証・射影・交換する**Adapter／ライブラリ／規格**。",
+          "at": "docs/14_standards-as-optional-adapters.md:11"
+        }
+      ],
+      "note": "名前の指し先が文書ごとに違う：10:13 は「Schema駆動基盤（Abstract Schema / Semantic Contract Core）」と Abstract Schema と Core を同じものとして並べる。11:10〜12 は Abstract Schema を「規則／形式」、解釈・検証する実装を「Semantic Contract Engine」として分ける。14:11 は正本を「独自Abstract Semantic Model」と呼ぶ。17:3 は 17 を v0.3 の正本と定め、17:10 は「Abstract Schema＝Schema駆動の抽象基盤」と書く。図の「私たちの表現モデル」という語は docs に無い。"
+    },
+    {
+      "concept": "Vocabulary（語彙・意味識別子）独自の語彙定義も可能",
+      "group": "expression-model",
+      "quotes": [
+        {
+          "text": "1. Vocabularyは、識別子・概念・関係・単位・制約などの**意味宣言**を行う。",
+          "at": "docs/11_semantic-layered-model.md:18"
+        },
+        {
+          "text": "- Coreが全Vocabularyの意味を静的に知るのではなく、語彙ごとのInterpreterへ委譲できる仕組みを持つ。",
+          "at": "docs/11_semantic-layered-model.md:40"
+        },
+        {
+          "text": "現時点の提案は `Contract / Schema / Relation / Constraint / Interpretation`。最上位にDDDのEntityやUseCaseを埋め込まず、それらは後から追加するVocabularyとして検討する。",
+          "at": "docs/02_semantic-contract-model.md:4"
+        },
+        {
+          "text": "全てを `kind: entity` のような固定分類にしない。拡張Vocabulary側で `Entity / Operation / State / UI / Workflow / Architecture` などを定義する案。反面、汎用化しすぎると独自解釈器が巨大化するリスクがある。Vocabularyごとに意味、検証方法、表現できないものを宣言する。",
+          "at": "docs/02_semantic-contract-model.md:13"
+        },
+        {
+          "text": "- **意味の拡張**: Vocabularyによって新しい概念を導入できる。",
+          "at": "docs/02_semantic-contract-model.md:21"
+        },
+        {
+          "text": "| `@context` | ローカルキーを意味識別子（IRI）に対応付ける | Contextを使ったVocabulary alias解決の参考 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:10"
+        },
+        {
+          "text": "\"id\": \"urn:example:vocab:time:1\",",
+          "at": "examples/semantic/vocabulary.duration.example.json:3"
+        },
+        {
+          "text": "\"term\": \"urn:example:vocab:time:1#DurationSeconds\"",
+          "at": "examples/semantic/concrete.sensor.example.json:27"
+        }
+      ],
+      "note": "DDD の Entity / UseCase は Core に入れず Vocabulary として後から足す（02:4）。"
+    },
+    {
+      "concept": "Relation Model（関係モデル）ドメインに応じた関係表現",
+      "group": "expression-model",
+      "quotes": [
+        {
+          "text": "- **Relation**: 契約間の参照、利用、生成、依存など。参照解決と整合性が必要。",
+          "at": "docs/02_semantic-contract-model.md:8"
+        },
+        {
+          "text": "| `@graph`, IRI references | 入れ子以外の関係を表現 | Relationの表現設計に応用 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:15"
+        },
+        {
+          "text": "- NodeとRelationshipを構造上対等に扱う（Subject–Predicate–Object）。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:21"
+        },
+        {
+          "text": "- ネストに依存しない参照と多対多の関係が表せる。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:22"
+        },
+        {
+          "text": "- JSONツリーとは異なる**意味関係の射影モデル**として使える。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:23"
+        },
+        {
+          "text": "- Relation projection: Graph（必要な部分だけ）",
+          "at": "docs/15_json-tree-and-semantic-graph.md:19"
+        },
+        {
+          "text": "- Relation verification: SHACLなど（必要時）",
+          "at": "docs/15_json-tree-and-semantic-graph.md:20"
+        },
+        {
+          "text": "- 「Termだけが最小単位か」「RelationとConstraintをどこへ置くか」は未決。",
+          "at": "docs/20_conversation-recap-latest.md:8"
+        },
+        {
+          "text": "\"type\": \"produces\",",
+          "at": "examples/contract.example.json:9"
+        }
+      ],
+      "note": "Relation をどこへ置くか（最小単位か、Core の何か）は未決（20:8）。"
+    },
+    {
+      "concept": "Constraint Model（制約モデル）複合的な制約表現",
+      "group": "expression-model",
+      "quotes": [
+        {
+          "text": "- **Constraint**: 不変条件・振る舞い上の条件。表現しただけで検証済みとみなさない。",
+          "at": "docs/02_semantic-contract-model.md:9"
+        },
+        {
+          "text": "`Constraint = 「Gatewayが3分連続で不達ならSensorの警告状態へ遷移」` は単なるJSONの形状制約ではない。JSON Schemaにはこの時間的意味論を直接検証できる汎用機構がない。",
+          "at": "docs/14_standards-as-optional-adapters.md:38"
+        },
+        {
+          "text": "- 独自Contract上は**そのまま表現できる**ことを目指す（形式は未決）。",
+          "at": "docs/14_standards-as-optional-adapters.md:40"
+        },
+        {
+          "text": "- JSON Schema Adapterは構造面のみ検証し、時間的制約のCapabilityは`unsupported`と報告。",
+          "at": "docs/14_standards-as-optional-adapters.md:41"
+        },
+        {
+          "text": "- 時間・状態のInterpreterが利用可能ならそこで検証する。",
+          "at": "docs/14_standards-as-optional-adapters.md:42"
+        },
+        {
+          "text": "- Interpreter自体が存在しないなら「完全適合」と報告しない。",
+          "at": "docs/14_standards-as-optional-adapters.md:43"
+        },
+        {
+          "text": "| `sh:path` / Property Paths | 参照の経路をたどる関係制約 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:31"
+        },
+        {
+          "text": "| `sh:minCount`, `sh:maxCount`, `sh:class` | 個数・型・関係先を限定 |",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:32"
+        },
+        {
+          "text": "\"verification\": \"db.unique+integration-test\"",
+          "at": "examples/contract.example.json:18"
+        }
+      ],
+      "note": "「複合的な制約表現」に当たる記述は docs に無い。docs の例は時間的制約 1 件（14:38）と一意制約（contract.example.json）。形式は未決（14:40）。"
+    },
+    {
+      "concept": "Interpretation Model（解釈モデル）宣言と解釈の分離",
+      "group": "expression-model",
+      "quotes": [
+        {
+          "text": "- **合意済みの方向:** Semanticの宣言と解釈を分離し、VocabularyとInterpreterで両方を扱う。",
+          "at": "docs/11_semantic-layered-model.md:4"
+        },
+        {
+          "text": "3. InterpreterはVocabulary・Concrete Schemaを解決し、対応するCapabilityに従って解釈／検証する。",
+          "at": "docs/11_semantic-layered-model.md:20"
+        },
+        {
+          "text": "- Coreが全Vocabularyの意味を静的に知るのではなく、語彙ごとのInterpreterへ委譲できる仕組みを持つ。",
+          "at": "docs/11_semantic-layered-model.md:40"
+        },
+        {
+          "text": "5. Semanticの宣言と解釈を分離し、VocabularyとInterpreterで両者を扱う方針。",
+          "at": "docs/17_decision-ledger-v0.3.md:11"
+        },
+        {
+          "text": "`02_semantic-contract-model.md` と `04_architecture-and-verification.md` はv0.1時点のブレスト記録として原文を維持した。そこではCore、コード生成、Renderer、Harnessが近接して図示されているが、**本書（v0.2）ではそれらの所属境界を明確に分離した**。旧文書を誤りとして削除するのではなく、思考過程として保存する。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:78"
+        },
+        {
+          "text": "- 「Semanticとは何か」を議論し、データ構造に対して解釈規則を与えるという仮定に到達。",
+          "at": "docs/20_conversation-recap-latest.md:5"
+        },
+        {
+          "text": "- ユーザーは、**Semanticの宣言と解釈を分け、VocabularyとInterpreterで扱う**方針を選択。",
+          "at": "docs/20_conversation-recap-latest.md:6"
+        },
+        {
+          "text": "- **Interpretation / Projection**: 契約の具体化規則。例: OpenAPI、Rust DTO、TS型、フォーム、検証計画。",
+          "at": "docs/02_semantic-contract-model.md:10"
+        }
+      ],
+      "note": "Interpretation の中身が文書ごとに違う：02:10（v0.1）は「Interpretation / Projection: 契約の具体化規則。例: OpenAPI、Rust DTO…」で、生成への射影を指す。11:20（v0.3）は Interpreter が Vocabulary・Concrete Schema を解決し Capability に従って解釈／検証するもので、検証を指す。10:78 は 02 を v0.1 の記録として残すと書く。"
+    },
+    {
+      "concept": "Vocabulary Resolver（識別子・語彙解決）",
+      "group": "core",
+      "quotes": [
+        {
+          "text": "2. **Engine Implementation:** RustによるResolver / Validator / Relation Engine / Registry / Interpreter Manager等の実装。内部ではenumやtrait等を使ってよい。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:12"
+        },
+        {
+          "text": "semantic-resolver/    # IDとVocabularyの解決",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:21"
+        },
+        {
+          "text": "- Vocabulary IDと参照解決。",
+          "at": "docs/18_poc-and-conformance-cases.md:17"
+        },
+        {
+          "text": "Contract Engine (validate, resolve, project, diagnose)",
+          "at": "docs/04_architecture-and-verification.md:13"
+        },
+        {
+          "text": "2. まず元JSONを正本に保持し、必要な契約・参照・関係だけを内部で解決する。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:41"
+        }
+      ],
+      "note": "docs の名前は「Resolver」（13:12）と crate `semantic-resolver`（13:21）。「Vocabulary Resolver」という名は docs に無い。"
+    },
+    {
+      "concept": "Schema Validator（構造・値の検証）",
+      "group": "core",
+      "quotes": [
+        {
+          "text": "2. **Engine Implementation:** RustによるResolver / Validator / Relation Engine / Registry / Interpreter Manager等の実装。内部ではenumやtrait等を使ってよい。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:12"
+        },
+        {
+          "text": "semantic-validator/   # 構造検証・制約検証",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:22"
+        },
+        {
+          "text": "- `jsonschema`: JSON Schema検証。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:49"
+        },
+        {
+          "text": "- JSON Schema 2020-12による構造検証。",
+          "at": "docs/18_poc-and-conformance-cases.md:18"
+        },
+        {
+          "text": "- JSON Schema Validatorを自作すること。",
+          "at": "docs/01_vision.md:29"
+        },
+        {
+          "text": "| JSON構造・値 | JSON Schema validator | Schemaの意図や業務妥当性は証明しない |",
+          "at": "docs/04_architecture-and-verification.md:25"
+        }
+      ],
+      "note": "13:22 の `semantic-validator` は「構造検証・制約検証」を1つに持つ。図は Schema Validator と Constraint Engine を分けている。JSON Schema Validator は自作しない（01:29）。"
+    },
+    {
+      "concept": "Semantic Interpreter（意味の解釈・調停）",
+      "group": "core",
+      "quotes": [
+        {
+          "text": "2. **Engine Implementation:** RustによるResolver / Validator / Relation Engine / Registry / Interpreter Manager等の実装。内部ではenumやtrait等を使ってよい。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:12"
+        },
+        {
+          "text": "semantic-interpreter/# Capability照合と実行調停",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:24"
+        },
+        {
+          "text": "3. InterpreterはVocabulary・Concrete Schemaを解決し、対応するCapabilityに従って解釈／検証する。",
+          "at": "docs/11_semantic-layered-model.md:20"
+        },
+        {
+          "text": "4. Interpreter未対応の意味を`verified`とみなさず、`unsupported`／`unverified`として報告する。",
+          "at": "docs/11_semantic-layered-model.md:21"
+        },
+        {
+          "text": "- Coreが全Vocabularyの意味を静的に知るのではなく、語彙ごとのInterpreterへ委譲できる仕組みを持つ。",
+          "at": "docs/11_semantic-layered-model.md:40"
+        },
+        {
+          "text": "- Interpreter Capabilityマッチング。",
+          "at": "docs/18_poc-and-conformance-cases.md:19"
+        }
+      ],
+      "note": "docs の名前は「Interpreter Manager」（13:12）と crate `semantic-interpreter`（Capability照合と実行調停）。Core が全語彙の意味を知るのではなく語彙ごとの Interpreter へ委譲する（11:40）。"
+    },
+    {
+      "concept": "Relation / Graph Engine（関係・グラフ処理）",
+      "group": "core",
+      "quotes": [
+        {
+          "text": "2. **Engine Implementation:** RustによるResolver / Validator / Relation Engine / Registry / Interpreter Manager等の実装。内部ではenumやtrait等を使ってよい。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:12"
+        },
+        {
+          "text": "semantic-relations/   # 関係・Graph射影",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:23"
+        },
+        {
+          "text": "**外部交換はJSON、元JSONを保持、意味解決後のGraphは必要に応じた派生表現。** ただし、正式な内部Canonical Representationは未決。",
+          "at": "docs/15_json-tree-and-semantic-graph.md:5"
+        },
+        {
+          "text": "- Relation projection: Graph（必要な部分だけ）",
+          "at": "docs/15_json-tree-and-semantic-graph.md:19"
+        },
+        {
+          "text": "- Relation verification: SHACLなど（必要時）",
+          "at": "docs/15_json-tree-and-semantic-graph.md:20"
+        },
+        {
+          "text": "- JSONデータから関係の一部をGraphに射影。",
+          "at": "docs/18_poc-and-conformance-cases.md:24"
+        },
+        {
+          "text": "- Node・Relationへの基本制約をSHACL等で検証。",
+          "at": "docs/18_poc-and-conformance-cases.md:25"
+        }
+      ],
+      "note": "docs の名前は「Relation Engine」（13:12）と crate `semantic-relations`（関係・Graph射影）。"
+    },
+    {
+      "concept": "Constraint Engine（制約・検証）",
+      "group": "core",
+      "quotes": [
+        {
+          "text": "semantic-validator/   # 構造検証・制約検証",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:22"
+        },
+        {
+          "text": "| SHACL | グラフ上のShape・Path・関係制約・診断 | 対応可能な関係部分にのみ使用。非対応の制約は別Interpreterへ |",
+          "at": "docs/14_standards-as-optional-adapters.md:32"
+        },
+        {
+          "text": "3. InterpreterはVocabulary・Concrete Schemaを解決し、対応するCapabilityに従って解釈／検証する。",
+          "at": "docs/11_semantic-layered-model.md:20"
+        }
+      ],
+      "note": "docs に無い。独立した部品としての Constraint Engine は docs のどこにも無く、制約検証は `semantic-validator`（13:22）に入っている。docs に無いので図の側の追加である。"
+    },
+    {
+      "concept": "Contract Registry（スキーマ・語彙管理）",
+      "group": "core",
+      "quotes": [
+        {
+          "text": "2. **Engine Implementation:** RustによるResolver / Validator / Relation Engine / Registry / Interpreter Manager等の実装。内部ではenumやtrait等を使ってよい。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:12"
+        },
+        {
+          "text": "6. **Open extension:** 任意のVocabulary/Interpreterを登録できる。ただし登録・実行権限は管理する。",
+          "at": "docs/14_standards-as-optional-adapters.md:22"
+        },
+        {
+          "text": "3. Vocabularyの登録・互換性・バージョン・衝突解決。",
+          "at": "docs/17_decision-ledger-v0.3.md:31"
+        }
+      ],
+      "note": "docs は「Registry」（13:12）とだけ書き、何を登録するかは書かない。「Contract Registry」という名と「スキーマ・語彙管理」の中身は docs に無い。13:17〜26 の crate 分割案にも Registry に当たる crate は無い（13:12 の列挙と食い違う）。04:40 の Component/Action Registry は UI の話で別物。"
+    },
+    {
+      "concept": "Abstract Schema と Concrete Schema の関係",
+      "group": "relation",
+      "quotes": [
+        {
+          "text": "2. **Concrete Schema（用途別スキーマ）**: 抽象基盤で定義された形式・ルールに基づき、具体的な用途の語彙、契約、表現空間を定義したもの。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:14"
+        },
+        {
+          "text": "Schema駆動基盤 / Abstract Schema（抽象ルール）",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:20"
+        },
+        {
+          "text": "↓ 準拠・具体化",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:21"
+        },
+        {
+          "text": "開発用 Concrete Schema（開発領域の語彙・制約）",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:22"
+        },
+        {
+          "text": "- **抽象→具体は常に一方向の完全自動生成とは限らない**。「準拠」「特殊化」「組成」「解釈」「射影」のどの関係なのかを明確にする必要がある。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:52"
+        },
+        {
+          "text": "2. Abstract SchemaとConcrete Schemaの間の関係は、継承・合成・準拠・型付きインスタンス化のどれが本質か。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:71"
+        },
+        {
+          "text": "- **Concrete Schema** は、特定ドメインの語彙を使って表現・制約を**宣言した成果物**。",
+          "at": "docs/11_semantic-layered-model.md:11"
+        },
+        {
+          "text": "2. Concrete Schemaは、特定領域に対してVocabularyを参照し、追加の構造・許容範囲・制約を宣言する。",
+          "at": "docs/11_semantic-layered-model.md:19"
+        },
+        {
+          "text": "Abstract Schemaという「形式・規則」→各用途Concrete Schemaという「定義」→開発基盤／Runtimeという「使用ソフトウェア」。",
+          "at": "docs/16_concrete-consumers-and-ai-platform.md:5"
+        },
+        {
+          "text": "4. Abstract/Concreteの正確な関係（準拠／特殊化／合成／型付きインスタンス化）。",
+          "at": "docs/17_decision-ledger-v0.3.md:32"
+        },
+        {
+          "text": "- Abstract Schemaは語彙・解釈機構が成立する抽象規則、Concrete Schemaは用途の具体化。",
+          "at": "docs/20_conversation-recap-latest.md:7"
+        }
+      ],
+      "note": "図は「Abstract Schema を拡張・具体化して実装される」と書く。docs は 10:21 で「準拠・具体化」と書く一方、関係の種類（継承・合成・準拠・型付きインスタンス化、特殊化・組成・解釈・射影）は未決とする（10:52、10:71、17:32）。「拡張」と言い切る記述は docs に無い。"
+    },
+    {
+      "concept": "機械的な検証とセマンティックな検証の区別",
+      "group": "validation",
+      "quotes": [
+        {
+          "text": "AIが生成しやすいこと（generation ease）と、AI生成物を検証しやすいこと（verifiability）は分けて測定する。型検査に通ったことは業務仕様を満たしたことと同義ではない。",
+          "at": "docs/01_vision.md:9"
+        },
+        {
+          "text": "JSON Schemaの `type`, `required`, `enum`, `minimum` などはデータの適合条件を表現する。一方、「この登録は重複してはならない」「停止中は送信しない」「DomainはInfrastructureに依存できない」といった主張には、DB制約、状態機械、依存ルールなど別の意味解釈と検証が要る。",
+          "at": "docs/02_semantic-contract-model.md:16"
+        },
+        {
+          "text": "「Semanticとは何か」。語彙の名前や自然言語の説明なのか、検証可能な意味論・制約・状態遷移なのか。機械的に検査可能な意味と、人の解釈を要する意味をどう分離するかが最優先。",
+          "at": "docs/02_semantic-contract-model.md:25"
+        },
+        {
+          "text": "4. 意味をどう検証可能な宣言へ落とすのか。形式検証可能・テスト可能・人間判断をどう区分するか。",
+          "at": "docs/08_decisions-and-open-questions.md:23"
+        },
+        {
+          "text": "5. AIはJSONを生成・変更できるが、JSONが妥当なことと業務上の意味が正しいことは別。",
+          "at": "docs/11_semantic-layered-model.md:22"
+        },
+        {
+          "text": "| Structural | 型・必須・パターン | JSON Schema等で一部機械検証可能 |",
+          "at": "docs/11_semantic-layered-model.md:29"
+        },
+        {
+          "text": "| Formal | 単位関係・関係制約・状態条件 | 形式化された部分について検査可能 |",
+          "at": "docs/11_semantic-layered-model.md:30"
+        },
+        {
+          "text": "| Operational | 状態遷移・変換・実行 | Interpreterとテスト等によって保証範囲が変化 |",
+          "at": "docs/11_semantic-layered-model.md:31"
+        },
+        {
+          "text": "上記は仕様の規定階層ではなく、議論を進めるための視点。Semanticを単なるラベルや説明文に還元しない。",
+          "at": "docs/11_semantic-layered-model.md:33"
+        },
+        {
+          "text": "- **検証可能性を分離する**: Foundationが定義する適合性と、開発基盤が追加で行うコンパイル・アーキテクチャ検査・テストは別の保証である。",
+          "at": "docs/10_abstract-concrete-schema-boundaries.md:36"
+        },
+        {
+          "text": "- 構造・型の適合と、意味的正しさ（業務ロジック）が区別されていることを診断する。",
+          "at": "docs/16_concrete-consumers-and-ai-platform.md:20"
+        },
+        {
+          "text": "表現力を無制限に追加できても、検証能力まで自動的に増えるわけではない。表現可能だが解釈不能な領域が増えた場合、ユーザーやAIへどう示すかが重要。`expressible` / `interpretable` / `verifiable` / `executable` の区別をCapabilityとして記述する案を検討する。",
+          "at": "docs/14_standards-as-optional-adapters.md:64"
+        },
+        {
+          "text": "6. 構造検証、意味解釈、実装検査の責務と結果ステータスの仕様。",
+          "at": "docs/17_decision-ledger-v0.3.md:34"
+        },
+        {
+          "text": "\"_note\": \"Bindingは独自Semantic仕様の試案。標準のJSON Schema Validatorはそれ自体ではこの意味Bindingを検査しない。\"",
+          "at": "examples/semantic/concrete.sensor.example.json:30"
+        },
+        {
+          "text": "\"message\": \"意味解釈Capabilityが未提供のため、意味的適合は未検証です。\"",
+          "at": "examples/protocol/interpreter-response.example.json:15"
+        }
+      ],
+      "note": "区別すること自体はどの文書も同じ。区分の仕方は文書ごとに違う：02:25 は「機械的に検査可能な意味と、人の解釈を要する意味」の2つ、11:28〜31 は Descriptive / Structural / Formal / Operational の4側面（11:33 で「仕様の規定階層ではなく、議論を進めるための視点」）、14:64 は expressible / interpretable / verifiable / executable の4区別を Capability にする案、08:23 は形式検証可能・テスト可能・人間判断の3区分。結果ステータスの仕様は未決（17:34）。"
+    },
+    {
+      "concept": "x- 拡張",
+      "group": "extension",
+      "quotes": [],
+      "note": "docs に無い。docs 20本と examples のどこにも「x-」で始まるキーの記述は無い（grep で確認）。"
+    },
+    {
+      "concept": "独自拡張の扱い（標準で表せない意味）",
+      "group": "extension",
+      "quotes": [
+        {
+          "text": "「独自モデルがSHACLで表せないから、意味を削る」という設計はしない。SHACLで扱える部分だけをProjectionし、扱えない意味は原形のまま残し、別Interpreterまたは未対応として明示する。",
+          "at": "docs/14_standards-as-optional-adapters.md:13"
+        },
+        {
+          "text": "3. **Loss awareness:** 射影の情報損失・非可逆性を明示する（lossless / partial / unsupported）。",
+          "at": "docs/14_standards-as-optional-adapters.md:19"
+        },
+        {
+          "text": "5. **Fail-closed on required semantics:** 必須の意味が検証不能なら成功判定しない。",
+          "at": "docs/14_standards-as-optional-adapters.md:21"
+        },
+        {
+          "text": "6. **Open extension:** 任意のVocabulary/Interpreterを登録できる。ただし登録・実行権限は管理する。",
+          "at": "docs/14_standards-as-optional-adapters.md:22"
+        },
+        {
+          "text": "- 必須Capabilityを欠くときには**fail-closed**（成功とみなさない）。",
+          "at": "docs/13_rust-engine-language-neutral-protocol.md:44"
+        },
+        {
+          "text": "4. 未表現・非互換・情報損失は診断として可視化。黙って無視しない。",
+          "at": "docs/12_jsonld-rdf-shacl-concept-review.md:43"
+        },
+        {
+          "text": "全てを `kind: entity` のような固定分類にしない。拡張Vocabulary側で `Entity / Operation / State / UI / Workflow / Architecture` などを定義する案。反面、汎用化しすぎると独自解釈器が巨大化するリスクがある。Vocabularyごとに意味、検証方法、表現できないものを宣言する。",
+          "at": "docs/02_semantic-contract-model.md:13"
+        },
+        {
+          "text": "10. Concrete Schemaでの拡張と破壊的変更の互換性モデル。",
+          "at": "docs/17_decision-ledger-v0.3.md:38"
+        },
+        {
+          "text": "\"notRepresented\": [",
+          "at": "examples/protocol/projection-report.example.json:8"
+        }
+      ],
+      "note": "拡張は「Vocabulary / Interpreter の登録」として書かれ、JSON のキー命名の規則（x- 等）としては書かれていない。Concrete Schema での拡張と破壊的変更の互換性モデルは未決（17:38）。"
+    }
+  ]
+}

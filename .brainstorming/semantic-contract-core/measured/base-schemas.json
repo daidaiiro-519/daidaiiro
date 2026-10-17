@@ -1,0 +1,196 @@
+{
+ "measured_at": "2026-10-17",
+ "sources": {
+  "schemas": ".claude/skills/schema-driven/assets/",
+  "skill": ".claude/skills/schema-driven/SKILL.md",
+  "engine": "src/schema-driven/crates/core/src/",
+  "example_concrete": ".claude/skills/brainstorming/assets/board.schema.json",
+  "note": "コードの場所は src/schema-driven/ からの相対パス。check-schemas を assets/ に当てた結果は self_check に置く"
+ },
+ "schemas": [
+  {
+   "id": "schema-driven/abstract@v1",
+   "file": ".claude/skills/schema-driven/assets/meta-schema.json",
+   "handles": "concrete スキーマが従う契約の版 v1。concrete スキーマは $schema にこの $id を書いて、使う版を示す。中身（プロパティの名前と意味）は concrete スキーマが決め、基盤はこの契約と注釈だけを読む。",
+   "x_keywords": [
+    {
+     "name": "x-abstract",
+     "shape": "根の required。const \"schema-driven/abstract@v1\"",
+     "checked_by": "crates/core/src/domain/contract.rs:version_of ・ crates/core/src/domain/schema_rules.rs:check_schemas（rule「版が無い」「知らない版」。版が決まらなければメタスキーマの検査をしない）",
+     "not_checked": "なし（値は const 1つで、版の判定にそのまま使う）。注：description は「$schema にこの $id を書いて」と書くが、properties.$schema は const が 2020-12 の dialect で、版は x-abstract に書く。description と中身が食い違っている"
+    },
+    {
+     "name": "x-generates",
+     "shape": "string（minLength 1）。インスタンスの置き場所を <…> 付きで書く。if required x-generates then required [properties, $id] かつ properties.kind.const と properties.$schema.const が必要",
+     "checked_by": "crates/core/src/domain/schema_rules.rs:check_schemas（メタスキーマの if/then を Schema::validate で当てる ・ rule「インスタンスが指す名前」= properties.$schema.const と $id の一致 ・ rule「参照される種類の id」= x-ref の to に出る kind を持つスキーマに properties.id があるか）",
+     "not_checked": "値（置き場所の文字列）は形以外を誰も読まない。create は --path で置き場所を受け取り、x-generates と照らさない（write の placeholder ・ only-for-instances の test はエンジンが見ない）"
+    },
+    {
+     "name": "x-annotations",
+     "shape": "object。propertyNames pattern ^x- 、値は string（minLength 1）＝仕様のスキーマのファイル名",
+     "checked_by": "crates/core/src/domain/schema_rules.rs:walk（BASE_ANNOTATIONS にも x-annotations のキーにも無い x- キーを rule「申告していない注釈」にする）",
+     "not_checked": "値のファイル名は読まない。申告した注釈の中身を、そのファイルの仕様で検証しない。基盤の名前と重なっていないか（only-new-annotations）も見ない。注：write の rule は基盤の注釈を5つ（x-prompt ・ x-view ・ x-ref ・ x-derive ・ x-generates）と書くが、コードの BASE_ANNOTATIONS は x-abstract ・ x-annotations を足した7つ"
+    },
+    {
+     "name": "x-prompt",
+     "shape": "$defs/prompt：{read: {means(必須), shown, parse, when}, write: [{id(^[a-z0-9]+(-[a-z0-9]+)*$), rule, why, test, bad, good}]}。additionalProperties false、write は minItems 1、rule ・ why ・ test ・ read の各観点は $defs/sentence（1〜120字）、bad と good は dependentRequired で対。$defs/field が properties と $defs の各形の properties の書く単位ごとに description と x-prompt を required にする（$schema は除く）",
+     "checked_by": "crates/core/src/domain/schema_rules.rs:check_schemas（メタスキーマで書く単位ごとの有無）・ schema_rules.rs:walk（すべての深さで abstract@v1#/$defs/prompt の形、rule「決まりの id の重なり」）。返す側：crates/core/src/domain/schema.rs:Schema::prompt、crates/core/src/application/instances.rs:create ・ update ・ prompt（未記入の欄に x-prompt を添えて返す）",
+     "not_checked": "read ・ write の文の中身。test は 120字以内の文であることだけを見て、エンジンも誰もその確かめ方を実行しない（rule ・ why ・ bad ・ good も同じ）。no-prompt-on-leaf ・ list-as-array ・ what-and-not ・ noun ・ never-reuse のような write の決まりは、published.rs が見る never-reuse を除き、機械では見ない"
+    }
+   ],
+   "refs": [
+    "#/$defs/prompt",
+    "#/$defs/fields",
+    "#/$defs/shape",
+    "#/$defs/field",
+    "#/$defs/reading",
+    "#/$defs/rule",
+    "#/$defs/sentence"
+   ]
+  },
+  {
+   "id": "schema-driven/annotations@v1",
+   "file": ".claude/skills/schema-driven/assets/annotations.schema.json",
+   "handles": "スキーマのプロパティに付ける注釈 x-ref（参照）と x-derive（導出値）の形と意味。schema-driven の検査は、この2つの注釈と、インスタンスの id と kind だけを読む。宣言の形（どのプロパティが何を意味するか）は、注釈を付けるスキーマの側が持つ",
+   "x_keywords": [
+    {
+     "name": "x-ref",
+     "shape": "$defs/x-ref：object、additionalProperties false、required [to]。to（string か string の配列。self は同じインスタンス）・ item（const true）・ bare（const true）・ in（$defs/path）・ only（regex）・ accept {at: path, in: values}（required 両方）・ when（$defs/field_condition）・ label（path）・ unique（const true）・ covered_by（path）・ inverse {group(必須), min, max, max_instances, where: field_condition, where_derive: {via, derive, in}}",
+     "checked_by": "スキーマの側：crates/core/src/domain/schema_rules.rs:walk（annotations@v1#/$defs/x-ref の形をすべての深さで）。インスタンスの側：crates/core/src/domain/check.rs:Checker::walk（only で絞る ・ 空の値は「指す先がある」のずれ）・ Checker::resolve_link（to ・ item ・ bare ・ in ・ self で探す。「指す先が無い」「形が違う」「指す先が1つに決まらない」）・ Checker::check_links（「指す先がある」・ accept と when で「指す先が受け付ける値」・ covered_by で「扱われている」・ 承認記録のハッシュと比べて「承認のあとの変化」＝確かめ直し ・ unique で「重ねて指さない」）・ Checker::check_inverse（group ごとに min ・ max ・ max_instances、where ・ where_derive で絞る）",
+     "not_checked": "label は検査にも描画にも読まれない（描画の名前は x-view の label を使う。check.rs の Link.label は指す先の id の文字列）。item と bare を同時に true にしても止めない（resolve_link は item を先に見る）。to が self で in が無くても止めない（インスタンスの中のどこでも探す）。when だけで accept が無くても止めない。to の綴りが指す先のスキーマの kind の const と同じかを、スキーマの時点で見ない（インスタンスの検査で「指す先が無い」になるだけ）。bare でない参照で候補が2つ以上あれば、先頭を黙って採る"
+    },
+    {
+     "name": "x-derive",
+     "shape": "$defs/x-derive：object、additionalProperties false、required [rules, otherwise]。title（string）・ rules [{when: object(minProperties 1), then: string|number|boolean}]（minItems 1）・ otherwise（string|number|boolean）・ declared（同じオブジェクトのプロパティ名）・ expect [{name, when: field_condition, in | not_in(oneOf)}]",
+     "checked_by": "スキーマの側：crates/core/src/domain/schema_rules.rs:walk（annotations@v1#/$defs/x-derive の形）。インスタンスの側：crates/core/src/domain/check.rs:Checker::derive_value（rules を上から当て、無ければ otherwise）・ Checker::derive（declared と比べて「導出値と宣言した値」、expect の name ごとに組み合わせ）。描画の文脈：crates/core/src/application/context.rs:contexts の derived",
+     "not_checked": "rules の when のキーがオブジェクトの中のプロパティか（expect-for-outside）、上の決まりが下を隠していないか（rules-in-priority）、declared の名前のプロパティがあるか（無ければ比べないだけ）、答えから値が1つに決まるか（only-mechanical）は見ない"
+    }
+   ],
+   "refs": [
+    "#/$defs/path",
+    "#/$defs/values",
+    "#/$defs/field_condition"
+   ]
+  },
+  {
+   "id": "schema-driven/view@v1",
+   "file": ".claude/skills/schema-driven/assets/view.schema.json",
+   "handles": "スキーマのプロパティや $defs に付ける注釈 x-view の形と意味。x-view は、インスタンスの値を人が読む文にする型を持つ。文の型の {…} の中は普通の JMESPath 式で、基盤が足す6つの関数（name ・ label ・ map ・ view ・ part ・ quote）を使える",
+   "x_keywords": [
+    {
+     "name": "x-view",
+     "shape": "$defs/x-view：object、additionalProperties false。text（$defs/template）・ cases [{when: JMESPath, text: template}]（minItems 1）・ parts {名前: template か cases と同じ形の配列} ・ maps {表の名前: {値: 語}} ・ label（JMESPath 式）・ hidden（const true）。$defs/template は {…} の中が JMESPath の文字列、{{ と }} は文字。$defs/functions が name ・ label ・ map ・ view ・ part ・ quote の6つを説明する",
+     "checked_by": "スキーマの側：crates/core/src/domain/schema_rules.rs:walk（view@v1#/$defs/x-view の形 ・ templates と expressions で text ・ cases ・ parts ・ label の式を取り出し、Query の parse で rule「文の型」、old_filter で rule「パイプの右が関数でない」）。描画の側：crates/core/src/application/view.rs:ViewEngine::render ・ ViewEngine::title ・ FUNCTIONS の6関数",
+     "not_checked": "hidden とほかのキーを一緒に書いても形の検査を通る（hidden-alone は x-prompt の文だけ）。map の表の名前 ・ part の名前 ・ view の場所が実在するかはスキーマの時点で見ず、描画のときに空か誤りになる。関数の引数に @ を書いたか（explicit-at）、parts の名前がプロパティと重ならないか（distinct-names）、label の式が名前の文字列に着くかは見ない"
+    }
+   ],
+   "refs": [
+    "#/$defs/template"
+   ]
+  },
+  {
+   "id": "schema-driven/page@v1",
+   "file": ".claude/skills/schema-driven/assets/page.schema.json",
+   "handles": "ある kind のインスタンスを、人が読むページにするときの並び。ページテンプレートは、節の並びと、節ごとの部品と、値を取る JMESPath 式だけを書く。HTML は書かない（見た目と操作は、Skill のフォルダの assets/catalog/ にある部品のカタログが持つ）。値は、基盤が用意する描画の文脈から取る",
+   "x_keywords": [
+    {
+     "name": "（定義する x- キーワードは無い）",
+     "shape": "x- キーワードは定義せず、ページテンプレートの形を持つ。根：kind（必須）・ head ・ sections（必須、minItems 1）・ $schema（string）。$defs：expr ・ context（this ・ schema ・ derived ・ links ・ referrers ・ instances の6つ、基盤が組む）・ node（式の文字列 | {text} | component）・ control（show ・ each）・ head（propertyNames から title ・ tokens ・ style ・ script ・ sections を除く）・ section（heading ・ help ・ show ・ body）・ component（component ＝カタログの $defs のキー）",
+     "checked_by": "crates/core/src/application/renders.rs（ページテンプレートを page@v1 で検証、74行目で読み込む）・ crates/core/src/application/page.rs:page_errors（head のキーがカタログの page のプレースホルダーにあるか ・ walk で知らない部品 ・ input_errors で部品の入力）・ renders.rs:render（ページテンプレートの無い kind があれば止める）・ crates/core/src/application/context.rs:contexts（文脈を組む）",
+     "not_checked": "x-prompt の test のうち、式の先頭が6つのキーか @ か（values-from-context）、ページテンプレートにタグや色の値が無いか（no-html-or-color）、判断に効く節が上にあるか（sections-in-reading-order）は見ない"
+    }
+   ],
+   "refs": [
+    "#/$defs/head",
+    "#/$defs/section",
+    "#/$defs/expr",
+    "#/$defs/node",
+    "#/$defs/component",
+    "#/$defs/control"
+   ]
+  },
+  {
+   "id": "schema-driven/catalog@v1",
+   "file": ".claude/skills/schema-driven/assets/catalog.schema.json",
+   "handles": "concrete（Skill）が持つ部品の一覧のスキーマ（Skill のフォルダの assets/catalog/catalog.schema.json）が守る形。基盤は部品の名前を持たず、部品1つの書き方の形（名前 ・ 入力の形 ・ 説明 ・ 状態ごとの振る舞い）だけを決める。$defs のキーが部品の名前で、値がその部品の入力の形である。部品の HTML は同じフォルダの parts.html の <template id=\"部品の名前\"> が持ち、入力の名前はテンプレートのプレースホルダー {{入力の名前}} と同じにする。",
+   "x_keywords": [
+    {
+     "name": "x-states",
+     "shape": "$defs/part の required。object、required [default]、propertyNames ^[a-z][a-z0-9]*(-[a-z0-9]+)*$、値は string（minLength 1）＝その状態での振る舞いの文",
+     "checked_by": "crates/core/src/domain/catalog.rs:frame_findings（catalog@v1 の形で、default の有無を含む）",
+     "not_checked": "振る舞いの文の中身を、parts.html や catalog.js と照らさない。x-states は schema_rules.rs の BASE_ANNOTATIONS に無く、meta-schema の x-annotations にも申告されていない"
+    },
+    {
+     "name": "（部品の形）$defs のキー ・ properties ・ contentMediaType",
+     "shape": "$defs のキー＝部品の名前（$defs/part-name、page ・ section は不可）、値＝$defs/part {type: const object, description, properties: {入力の名前($defs/input-name、component ・ show ・ each は不可): 形}, required, x-states}。contentMediaType が image/svg+xml の入力は検査した SVG を埋める",
+     "checked_by": "crates/core/src/domain/catalog.rs:frame_findings ・ template_findings（page と section のテンプレートがあるか、部品ごとに同じ id のテンプレートがあるか、入力の名前がプレースホルダーにあるか）・ catalog.rs:check ・ crates/core/src/application/page.rs（contentMediaType が SVG の入力だけ svg_html で検査して埋める）",
+     "not_checked": "部品の名前が意味で付いているか（by-meaning）、$id の版を上げたか（versioned。concrete のカタログは published.json の対象として扱う記述が無い）"
+    }
+   ],
+   "refs": [
+    "#/$defs/part-name",
+    "#/$defs/part",
+    "#/$defs/input-name"
+   ]
+  },
+  {
+   "id": "schema-driven/design-system@v1",
+   "file": ".claude/skills/schema-driven/assets/design-system.schema.json",
+   "handles": "部品のカタログが従うトークンの値（Skill のフォルダの assets/catalog/design-system.json）。基盤は、形式 ・ 参照（{名前} の参照先があるか）・ 循環しないこと ・ コントラストの下限（文字 4.5:1、部品の境界 3:1）だけを検査し、トークンから CSS の変数を作る。トークンの名前と層の分け方は concrete が決め、どの2色を比べるかは contrast に宣言する。",
+   "x_keywords": [
+    {
+     "name": "（定義する x- キーワードは無い）",
+     "shape": "根：required [scope, tokens, contrast]、additionalProperties false。scope（セレクタ）・ tokens（$defs/tokens：キーは $defs/key、値は string。{名前} はほかのトークンを指す）・ dark（tokens と同じ形）・ contrast [{foreground, background, use: text | border}]",
+     "checked_by": "crates/core/src/domain/design_system.rs:check（shape_findings で design-system@v1 の形 → reference_findings（{名前} の指す先 ・ dark の名前が tokens にあるか ・ 使えない文字）→ cycle_findings → contrast_findings（明と暗で 4.5:1 ・ 3:1）・ css_findings（カタログの CSS の色の値の直書き ・ 未定義の変数））",
+     "not_checked": "同じ色の値が tokens に2回以上出ていないか（refer-by-name）、color と background を組にしたトークンがすべて contrast にあるか（declare-pairs）は見ない。宣言していない組は比べない"
+    }
+   ],
+   "refs": [
+    "#/$defs/tokens",
+    "#/$defs/key",
+    "#/$defs/pair"
+   ]
+  },
+  {
+   "id": "schema-driven/published@v1",
+   "file": ".claude/skills/schema-driven/assets/published.schema.json",
+   "handles": "公開した版のスキーマの名前と指紋。check-schemas が、いまのスキーマと比べて、公開した版の書き換えと消失を指摘する。",
+   "x_keywords": [
+    {
+     "name": "x-generates",
+     "shape": "\"<スキーマのフォルダ>/published.json\"。根：required [$schema, kind, schemas]、$schema const schema-driven/published@v1、kind const published、schemas [{name, sha256(^[0-9a-f]{64}$)}]",
+     "checked_by": "crates/core/src/domain/published.rs:check（記録の指紋といまの fingerprint を比べ、rule「公開した版が書き換えられている」「公開した版が無い」、記録に無い名前は unpublished で返す）・ published.rs:fingerprint ・ crates/core/src/application/checks.rs:check_schemas（published.json を読む）",
+     "not_checked": "published.json 自体を published@v1 で検証しない（get(\"schemas\") の name と sha256 を拾うだけ）。記録の行を消した ・ 書き換えた（append-only ・ never-edit）ことは検出しない。行を消すと、その名前は unpublished に戻るだけ"
+    }
+   ],
+   "refs": [
+    "#/$defs/record"
+   ]
+  }
+ ],
+ "relations": "7つのファイルは、どれもほかのファイルを $ref しない（$ref はすべて自分の #/$defs の中）。ファイルどうしをつなぐのはエンジンのコードである：crates/core/src/domain/schema_rules.rs:check_schemas が {\"$ref\": \"schema-driven/view@v1#/$defs/x-view\"} ・ {\"$ref\": \"schema-driven/annotations@v1#/$defs/x-ref\"} ・ {\"$ref\": \"schema-driven/annotations@v1#/$defs/x-derive\"} ・ abstract@v1#/$defs/prompt を組み立てて注釈の形を検査する。7つはビルドのときに実行ファイルへ取り込まれ（crates/core/src/embedded.rs、名前は各 $id）、名前で引かれる。annotations ・ view ・ page ・ catalog ・ design-system ・ published の6つは、x-abstract に schema-driven/abstract@v1 を書いた abstract@v1 の concrete スキーマでもある。従う先は次のとおり：concrete スキーマ（$schema ＝2020-12 の dialect、x-abstract ＝ abstract@v1）→ meta-schema.json、その中の x-ref ・ x-derive → annotations、x-view → view、x-prompt → meta-schema の $defs/prompt。インスタンス（$schema ＝ concrete の $id）→ concrete スキーマ。ページテンプレート → page@v1。使う側のカタログ assets/catalog/catalog.schema.json（$schema ＝ schema-driven/catalog@v1）→ catalog@v1。assets/catalog/design-system.json → design-system@v1。published.json → published@v1（形は検証されない）。page の component は catalog の $defs のキーを、page の context.derived と links は annotations の x-derive と x-ref の結果を、view の name() は x-view の label を、design-system は catalog の CSS を、それぞれ値の上で参照する（$ref ではなく、エンジンの処理の中で）。例：brainstorming/board@v1 は x-abstract ・ x-generates（.brainstorming/<ボード>.json）・ x-prompt 110か所 ・ x-ref 4か所（{\"to\": \"board\"}、{\"to\": \"self\", \"in\": \"topics\", \"bare\": true} が3か所）・ x-view 2か所（根の {\"label\": \"title\"}、$defs/topic/properties/verification の {\"hidden\": true}）を使い、x-derive ・ x-annotations は使わない。$ref は自分の $defs だけ（#/$defs/code ・ diff ・ figure ・ run ・ screen ・ topic ・ tree）。",
+ "boundary": "abstract（契約）として版 v1 が持つのは meta-schema.json（schema-driven/abstract@v1）1つで、x-abstract の値で版を決める（contract.rs:version_of）。注釈 x-ref ・ x-derive ・ x-view の形は、別の名前 annotations@v1 ・ view@v1 が持ち、それらを abstract@v1 の版に結び付けているのは schema_rules.rs:check_schemas のコードだけで、meta-schema.json の中には書かれていない（meta-schema は x-ref ・ x-derive ・ x-view を properties にも $defs にも持たず、x-annotations の rule の文で名前を挙げるだけ）。concrete が書くのは $id ・ title ・ description ・ x-generates ・ properties と kind ・ $defs ・ 各書く単位の description と x-prompt の文 ・ x-ref ・ x-derive ・ x-view の値 ・ x-annotations。機械で見るのは、形（メタスキーマと注釈の形）と、x-ref ・ x-derive ・ x-view ・ x-abstract ・ x-generates ・ x-annotations の意味の一部。x-prompt は形（有無 ・ 1〜120字 ・ id の重なり ・ bad と good の対）までが契約で、rule ・ why ・ test の文の中身は concrete の文として誰も実行しない。境界の揺れ：(1) annotations ・ view ・ page ・ catalog ・ design-system ・ published は、エンジンが中身に依存する契約なのに、それ自体は abstract@v1 の concrete スキーマとして書かれている。(2) assets/ に check-schemas を当てると、catalog.schema.json に10件・ design-system.schema.json に3件の「メタスキーマ」の指摘が出る（書く単位の description か x-prompt が無い）。基盤の契約が、自分の契約を満たしていない。(3) assets/ に published.json が無く、7つとも unpublished。(4) 基盤の注釈の一覧が、meta-schema の文（5つ）とコードの BASE_ANNOTATIONS（7つ）で違い、catalog の x-states はどちらにも無い。(5) annotations の x-ref.label は形として契約にあるが、エンジンはどこでも読まない。",
+ "self_check": {
+  "command": ".claude/skills/schema-driven/scripts/bin/schema-driven check-schemas --dir .claude/skills/schema-driven/assets",
+  "findings": {
+   "catalog.schema.json": [
+    "/$defs/part/properties/description/x-prompt が無い",
+    "/$defs/part/properties/properties/x-prompt が無い",
+    "/$defs/part/properties/required/x-prompt が無い",
+    "/$defs/part/properties/type/description が無い",
+    "/$defs/part/properties/type/x-prompt が無い",
+    "/$defs/part/properties/x-states/x-prompt が無い",
+    "/properties/description/description が無い",
+    "/properties/description/x-prompt が無い",
+    "/properties/title/description が無い",
+    "/properties/title/x-prompt が無い"
+   ],
+   "design-system.schema.json": [
+    "/$defs/pair/properties/background/x-prompt が無い",
+    "/$defs/pair/properties/foreground/x-prompt が無い",
+    "/$defs/pair/properties/use/x-prompt が無い"
+   ]
+  },
+  "unpublished": "7つすべて（schema-driven/abstract@v1 ・ annotations@v1 ・ catalog@v1 ・ design-system@v1 ・ page@v1 ・ published@v1 ・ view@v1）"
+ }
+}

@@ -16,6 +16,9 @@ for op in patch:
             for k in sorted(set(a) | set(b)):
                 if k == "images" and k in a and k in b and len(a[k]) == len(b[k]):
                     for j, (x, y) in enumerate(zip(a[k], b[k])):
+                        if x.get("kind") != y.get("kind"):
+                            ops.append({"op": "replace", "path": f"/topics/{i}/images/{j}", "value": y})
+                            continue
                         for kk in sorted(set(x) | set(y)):
                             if x.get(kk) != y.get(kk):
                                 ops.append({"op": "add" if kk in y else "remove", "path": f"/topics/{i}/images/{j}/{kk}", **({"value": y[kk]} if kk in y else {})})
