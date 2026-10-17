@@ -42,8 +42,6 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - アドバイザーの回答はボードの advisors/、CLI の実測は measured/、原文の取り直し方（meta.json）と調べのまとめは sources/ にある（原文そのものは追跡しない）。
 - ボードの本体は `.brainstorming/<ボード>.json`、回の記録 ・ 回答 ・ 図は `.brainstorming/<ボード>/`（基盤の check と render が直下しか読まないため。2026-10-17 利用者の選択）。
 - 試作の画面：アプリ https://claude.ai/artifact/U4UvC4GPvBhxjVrWY4qEz1 ・ 論点 https://claude.ai/artifact/M73AEfCEP3GTi1u1e3211V（生成の台本はセッションの作業用の領域にだけあり、HTML はボードの Q2 に入っている）。
-- 2026-10-17：ボードは5つとも承認・決着。src/brainstorming/（core ・ adapters ・ xtask、試験76件）と .claude/skills/brainstorming/（SKILL.md ・ assets/ のスキーマ6 ・ ページ2 ・ カタログ）を作業ツリーで作った（未コミット）。ACDR 0183（Artifact https://claude.ai/artifact/Pom4jdrh1TDeb3FB1ELrLe、proposed）を出して承認待ち。画面の見本は Artifact https://claude.ai/artifact/HBnM941bs4qric1JLAc9XH。
-- 受け入れの記録はボード brainstorming-on-base の measured/acceptance/（Claude Code と Codex で回を2回、serve の AI に聞くを3つの CLI で）。
-- 3 OS の確かめは一時ブランチ probe-brainstorming（push で動く設定）で実行中。承認後に消す。作業フォルダの git worktree は scratchpad の probe-wt。
-- 承認されたら：状態を accepted にして描き直し、main へコミット ・ push、tag brainstorming-v0.1.0 で公開、probe-brainstorming を消す。
+- brainstorming は完成（2026-10-17）：ACDR 0183 承認（19debd24）、tag brainstorming-v0.1.0 で 3 OS の build ・ verify ・ publish ・ receive が通った。受け入れの記録はボード brainstorming-on-base の measured/acceptance/。
+- 利用者の提案（2026-10-17）：AI の CLI を呼ぶ能力（adapter）を基盤 schema-driven に持たせ、ACDR やほかの Skill でも使う。基盤の検証を「スキーマで機械的に見るもの」と「意味の検証」に分ける考え。ボードで決める予定（まだ立てていない）。
 - 残る別の目的：ワークフローを3本から共通の1本にまとめる（skills-creator.yml の注記「私たちが管理するものが3つになったら」）。古い brainstorming-board の Skill と .mcp.json の登録の扱い。
