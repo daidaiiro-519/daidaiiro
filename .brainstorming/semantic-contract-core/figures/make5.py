@@ -8,7 +8,7 @@ for i,(m,n) in enumerate([("module domain","宣言 ・ 結果の5つの語（enu
     o.append(f'<rect class="box" x="42" y="{y}" width="496" height="34"/><text class="label" x="54" y="{y+22}">{e(m)}</text><text class="note" x="200" y="{y+22}">{e(n)}</text>')
 o.append('<path class="flow" d="M290,262 V222"/><text class="note" x="300" y="246">adapters → core の一方向だけ（ビルドが守る）</text>')
 o.append('<rect class="box" x="26" y="266" width="528" height="180"/><text class="title" x="40" y="290">crate：adapters（trait を実物で満たす）</text>')
-for i,(m,n) in enumerate([("口","CLI ・ MCP ・ HTTP ・ WASM Component"),("外へ出ていく口","AI の CLI を起動する（Agents 契約）"),("標準の部品","jsonschema ・ json-ld など。feature で能力を選ぶ")]):
+for i,(m,n) in enumerate([("インターフェース","CLI ・ MCP ・ HTTP ・ WASM Component"),("出ていく側","AI の CLI を起動する（Agents 契約）"),("標準の部品","jsonschema ・ json-ld など。feature で能力を選ぶ")]):
     y=304+i*44
     o.append(f'<rect class="box" x="42" y="{y}" width="496" height="36"/><text class="label" x="54" y="{y+23}">{e(m)}</text><text class="note" x="170" y="{y+23}">{e(n)}</text>')
 o.append('<rect class="box focus" x="590" y="48" width="180" height="170"/><text class="title focus" x="604" y="72">外への契約</text>')

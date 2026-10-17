@@ -1,4 +1,4 @@
-# 第5回の図：標準の概念と写し（Q2）、protocol と4つの口（Q4）
+# 第5回の図：標準の概念と写し（Q2）、protocol と4つのインターフェース（Q4）
 def e(s): return s.replace('&','&amp;').replace('<','&lt;')
 W={}
 def lines(o,x,y,ls,cls="label",step=18):
@@ -22,7 +22,7 @@ o.append('<text class="label" x="34" y="360">自前の概念から標準へ写�
 o.append('<text class="label" x="34" y="384">写せた ・ 写せなかった ・ 扱えないを返し、必須の意味が写せなければ合格にしない</text>')
 o.append('</svg>'); W['q2-concepts']='\n'.join(o)
 
-o=['<svg viewBox="0 0 760 330" style="min-width:640px" role="img" aria-label="1つの protocol を、4つの口が同じ形で運ぶ">']
+o=['<svg viewBox="0 0 760 330" style="min-width:640px" role="img" aria-label="1つの protocol を、4つのインターフェースが同じ形で運ぶ">']
 ports=[("CLI（標準入出力）","いまある"),("MCP","いまある"),("HTTP","足す"),("WASM Component","足す")]
 for i,(n,st) in enumerate(ports):
     x=20+i*186
@@ -31,10 +31,10 @@ for i,(n,st) in enumerate(ports):
     o.append(f'<path class="flow" d="M{x+86},84 V122"/>')
 o.append('<rect class="box focus" x="20" y="126" width="730" height="74"/>')
 o.append('<text class="title" x="34" y="152">protocol（JSON Schema で公開）</text>')
-o.append('<text class="label" x="34" y="178">要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語。どの口からでも同じ形で返す</text>')
+o.append('<text class="label" x="34" y="178">要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語。どのインターフェースからでも同じ形で返す</text>')
 o.append('<path class="flow" d="M385,202 V236"/>')
 o.append('<rect class="box" x="20" y="240" width="730" height="74"/>')
 o.append('<text class="title" x="34" y="266">エンジン（Rust）</text>')
-o.append('<text class="label" x="34" y="292">適合の試験は入力と期待結果の JSON の組。どの口とどの言語の実装も同じ試験を通す</text>')
+o.append('<text class="label" x="34" y="292">適合の試験は入力と期待結果の JSON の組。どのインターフェースとどの言語の実装も同じ試験を通す</text>')
 o.append('</svg>'); W['q4-protocol']='\n'.join(o)
 for k,v in W.items(): open(k+'.src.svg','w').write(v)

@@ -4,11 +4,11 @@
   "id": "semantic-contract-core",
   "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
   "intro": "構想 v0.3 の全体構成図の層に沿って、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
-  "round": 6,
+  "round": 7,
   "queue": [
     {
       "topic": "Q0",
-      "why": "抽象の仕様 ・ 技術選定 ・ エンジン ・ 口は、どれも基盤の目的と設計原則で決まるため"
+      "why": "抽象の仕様 ・ 技術選定 ・ エンジン ・ インターフェースは、どれも基盤の目的と設計原則で決まるため"
     }
   ],
   "topics": [
@@ -18,16 +18,16 @@
       "status": "open",
       "question": "構想 v0.3 の5つの設計原則と従属させないための方針を、いまの基盤の約束と照らして、基盤は何を目的にし、どれを採るか",
       "answer": {
-        "text": "基盤は、AI が書いたインスタンスを宣言した決まりで機械が確かめ、確かめられなかった決まりも隠さずに返すためにある。5つの設計原則はすべて採り、基盤から AI を呼ぶ口（Agents 契約）を足す。",
+        "text": "基盤は、AI が書いたインスタンスを宣言した決まりで機械が確かめ、確かめられなかった決まりも隠さずに返すためにある。5つの設計原則はすべて採り、基盤から AI を呼ぶ契約（Agents 契約）を足す。",
         "details": [
-          "原則1 宣言と解釈の分離：採る。いまも宣言（スキーマと注釈）と確かめ（エンジン）は分かれているが、確かめる担い手を外から足す口が無い",
+          "原則1 宣言と解釈の分離：採る。いまも宣言（スキーマと注釈）と確かめ（エンジン）は分かれているが、確かめる担い手を外から足す仕組みが無い",
           "原則2 既存技術は部品として利用：採る。いまは JSON Schema をエンジンに組み込んでいる。JSON-LD ・ SHACL ・ RDF/SPARQL の概念は自前の概念として定義し、標準へは写して相互運用する",
           "原則3 言語非依存の意味モデル（実装は Rust）：採る。いまも Rust で作り、CLI ・ MCP ・ JSON で返す。出力の形を JSON Schema で公開することが足りない",
           "原則4 拡張可能な表現モデル：採る。いまも x-annotations で注釈を足せるが、足した注釈を確かめず、確かめなかったことも返さない",
           "原則4 の拡張には、外から足す解釈の担い手を閉じた環境で動かすこと（WASM Component）も含める。構想は、担い手の登録と実行の権限を管理するとしている",
           "原則5 検証可能で実用に耐える（再現性 ・ 適合性 ・ 可搬性）：採る。いまも同じ入力から同じ結果を返すが、別の言語の実装が使える適合の試験が無い",
           "従属させないための方針も採る。ただし「既存仕様をそのまま正本としない」は、いまの正本が JSON Schema であることと食い違うので、抽象の仕様の論点で扱う",
-          "足すもの：基盤から AI を呼ぶ口（Agents 契約）。全体構成図の外部インターフェースは、4つとも外から基盤を呼ぶ向きである",
+          "足すもの：基盤から AI を呼ぶ契約（Agents 契約）。全体構成図の外部インターフェースは、4つとも外から基盤を呼ぶ向きである",
           "基盤に残すもの：インスタンスの作成と更新 ・ 承認の記録 ・ 描画。全体構成図は描画を基盤の外に置くが、いまの基盤は承認の前に読む画面を作るために持つ"
         ]
       },
@@ -35,7 +35,7 @@
         {
           "kind": "figure",
           "caption": "5つの設計原則と、いまの基盤で足りているもの ・ 足りないもの。",
-          "svg": "<svg viewBox=\"0 0 760 450\" style=\"min-width:640px\" role=\"img\" aria-label=\"5つの設計原則と、いまの基盤で足りているもの ・ 足りないもの\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">設計原則（構想 v0.3）</text><text class=\"note\" x=\"236\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまの基盤で足りている</text><text class=\"note\" x=\"506\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りない</text>\n<rect class=\"box\" x=\"20\" y=\"34\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">1 宣言と解釈の分離</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"34\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">宣言（スキーマ ・ 注釈）と</text>\n<text class=\"label\" x=\"246\" y=\"76\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめ（エンジン）は分かれている</text>\n<rect class=\"box warn\" x=\"506\" y=\"34\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめる担い手を</text>\n<text class=\"label\" x=\"518\" y=\"76\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外から足す口</text>\n<rect class=\"box\" x=\"20\" y=\"104\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"138\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">2 既存技術は部品</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"104\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"128\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON Schema を</text>\n<text class=\"label\" x=\"246\" y=\"146\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">エンジンに組み込んでいる</text>\n<rect class=\"box warn\" x=\"506\" y=\"104\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"128\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON-LD ・ SHACL ・ RDF の</text>\n<text class=\"label\" x=\"518\" y=\"146\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">概念を自前で定義して写すこと</text>\n<rect class=\"box\" x=\"20\" y=\"174\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"198\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">3 言語非依存の</text>\n<text class=\"title\" x=\"32\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">意味モデル</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"174\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"198\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Rust で作り、</text>\n<text class=\"label\" x=\"246\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">CLI ・ MCP ・ JSON で返す</text>\n<rect class=\"box warn\" x=\"506\" y=\"174\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"198\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">出力の形を</text>\n<text class=\"label\" x=\"518\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON Schema で公開すること</text>\n<rect class=\"box\" x=\"20\" y=\"244\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"268\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">4 拡張可能な</text>\n<text class=\"title\" x=\"32\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">表現モデル</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"244\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"268\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">x-annotations で</text>\n<text class=\"label\" x=\"246\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">注釈を足せる</text>\n<rect class=\"box warn\" x=\"506\" y=\"244\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"268\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">足した注釈を確かめ、</text>\n<text class=\"label\" x=\"518\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめなければ返すこと</text>\n<rect class=\"box\" x=\"20\" y=\"314\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"338\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">5 検証可能で</text>\n<text class=\"title\" x=\"32\" y=\"356\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">実用に耐える</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"314\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"338\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">同じ入力から</text>\n<text class=\"label\" x=\"246\" y=\"356\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">同じ結果を返す</text>\n<rect class=\"box warn\" x=\"506\" y=\"314\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"338\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">別の言語の実装が</text>\n<text class=\"label\" x=\"518\" y=\"356\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">使える適合の試験</text>\n<rect class=\"box focus\" x=\"20\" y=\"390\" width=\"722\" height=\"48\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"34\" y=\"410\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">足す：基盤から AI を呼ぶ口（Agents 契約）</text>\n<text class=\"note\" x=\"34\" y=\"428\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">全体構成図の外部インターフェースは、4つとも外から基盤を呼ぶ向きである</text>\n</svg>"
+          "svg": "<svg viewBox=\"0 0 760 450\" style=\"min-width:640px\" role=\"img\" aria-label=\"5つの設計原則と、いまの基盤で足りているもの ・ 足りないもの\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">設計原則（構想 v0.3）</text><text class=\"note\" x=\"236\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまの基盤で足りている</text><text class=\"note\" x=\"506\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りない</text>\n<rect class=\"box\" x=\"20\" y=\"34\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">1 宣言と解釈の分離</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"34\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">宣言（スキーマ ・ 注釈）と</text>\n<text class=\"label\" x=\"246\" y=\"76\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめ（エンジン）は分かれている</text>\n<rect class=\"box warn\" x=\"506\" y=\"34\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめる担い手を</text>\n<text class=\"label\" x=\"518\" y=\"76\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外から足す仕組み</text>\n<rect class=\"box\" x=\"20\" y=\"104\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"138\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">2 既存技術は部品</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"104\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"128\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON Schema を</text>\n<text class=\"label\" x=\"246\" y=\"146\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">エンジンに組み込んでいる</text>\n<rect class=\"box warn\" x=\"506\" y=\"104\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"128\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON-LD ・ SHACL ・ RDF の</text>\n<text class=\"label\" x=\"518\" y=\"146\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">概念を自前で定義して写すこと</text>\n<rect class=\"box\" x=\"20\" y=\"174\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"198\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">3 言語非依存の</text>\n<text class=\"title\" x=\"32\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">意味モデル</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"174\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"198\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Rust で作り、</text>\n<text class=\"label\" x=\"246\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">CLI ・ MCP ・ JSON で返す</text>\n<rect class=\"box warn\" x=\"506\" y=\"174\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"198\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">出力の形を</text>\n<text class=\"label\" x=\"518\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON Schema で公開すること</text>\n<rect class=\"box\" x=\"20\" y=\"244\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"268\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">4 拡張可能な</text>\n<text class=\"title\" x=\"32\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">表現モデル</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"244\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"268\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">x-annotations で</text>\n<text class=\"label\" x=\"246\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">注釈を足せる</text>\n<rect class=\"box warn\" x=\"506\" y=\"244\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"268\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">足した注釈を確かめ、</text>\n<text class=\"label\" x=\"518\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめなければ返すこと</text>\n<rect class=\"box\" x=\"20\" y=\"314\" width=\"204\" height=\"58\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"32\" y=\"338\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">5 検証可能で</text>\n<text class=\"title\" x=\"32\" y=\"356\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">実用に耐える</text>\n<rect class=\"box kind-1\" x=\"234\" y=\"314\" width=\"262\" height=\"58\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"246\" y=\"338\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">同じ入力から</text>\n<text class=\"label\" x=\"246\" y=\"356\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">同じ結果を返す</text>\n<rect class=\"box warn\" x=\"506\" y=\"314\" width=\"236\" height=\"58\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"518\" y=\"338\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">別の言語の実装が</text>\n<text class=\"label\" x=\"518\" y=\"356\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">使える適合の試験</text>\n<rect class=\"box focus\" x=\"20\" y=\"390\" width=\"722\" height=\"48\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"34\" y=\"410\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">足す：基盤から AI を呼ぶ契約（Agents 契約）</text>\n<text class=\"note\" x=\"34\" y=\"428\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">全体構成図の外部インターフェースは、4つとも外から基盤を呼ぶ向きである</text>\n</svg>"
         }
       ],
       "assumptions": [
@@ -44,7 +44,7 @@
       "checks": [
         {
           "target": "Agents 契約",
-          "ask": "基盤から AI を呼ぶ口を、全体構成図の外部インターフェースの逆向きとして足すことでよいか"
+          "ask": "基盤から AI を呼ぶ契約を、全体構成図の外部インターフェースの逆向きとして足すことでよいか"
         },
         {
           "target": "描画",
@@ -69,8 +69,8 @@
           "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
-          "supports": "基盤から AI を呼ぶ口が、全体構成図に無いこと",
-          "basis": "無い。図の外部インターフェースは4つとも外から基盤を呼ぶ向きで、基盤から AI を呼ぶ向きの口が無い。これが利用者の補足の「足りない部分」の具体の形である",
+          "supports": "基盤から AI を呼ぶ向きのインターフェースが、全体構成図に無いこと",
+          "basis": "無い。図の外部インターフェースは4つとも外から基盤を呼ぶ向きで",
           "tag": "primary",
           "source": "ddd-advisor の回答（2026-10-17、構成の対応）。advisors/ddd-components.json"
         },
@@ -299,7 +299,7 @@
       ],
       "question": "エンジンの6つの部品といまのエンジンをどう対応させ、意味を確かめる担い手に AI を入れる Agents 契約は何を約束するか",
       "answer": {
-        "text": "6つの部品は1つの文脈の中のモジュールとし、関係と制約は1つにまとめる。Semantic Interpreter を足し、AI はその担い手の1つとして、基盤から外へ出ていく口（Agents 契約）で呼ぶ。",
+        "text": "6つの部品は1つの文脈の中のモジュールとし、関係と制約は1つにまとめる。Semantic Interpreter を足し、AI はその担い手の1つとして、出ていく側のアダプター（Agents 契約）で呼ぶ。",
         "details": [
           "Schema Validator：同じ。いまの jsonschema と schema.rs が受け持つ",
           "Vocabulary Resolver と Contract Registry：一部ある。スキーマの名前 ・ 版 ・ 公開の記録だけを扱い、語彙の管理は無い",
@@ -308,7 +308,7 @@
           "いまの合格 ・ ずれは verified ・ violated に写し、確かめ直しは承認の状態として別に持つ",
           "AI は「決定的でない」と宣言する担い手で、決まりの id ・ 場所 ・ 引用を基盤が確かめた指摘だけを違反にし、それ以外は unverified にする",
           "Agents 契約が約束するもの：protocol の版 ・ 能力の宣言 ・ 応答の形 ・ 形を満たさない応答は error ・ 結果の出どころ ・ 書く操作は再試行しない",
-          "AI の CLI を呼ぶ処理（起動 ・ 権限の型 ・ 時間切れ ・ 子孫まで止める）は6つの部品の外で、エンジンの外へ出ていく口に置く",
+          "AI の CLI を呼ぶ処理（起動 ・ 権限の型 ・ 時間切れ ・ 子孫まで止める）は6つの部品の外で、出ていく側のアダプターに置く",
           "作成 ・ 更新 ・ 承認 ・ 描画は、6つの部品に無い基盤の持ち物として残す",
           "実装は Rust にする。1つの workspace にし、版と Cargo.lock を1か所で決める",
           "crate で分けるのは、破られたら困る境界である（core と adapters、取り替えたい標準の部品）。Cargo.toml に書いた crate しか使えないので、依存の向きをビルドが守る",
@@ -321,7 +321,7 @@
         {
           "kind": "figure",
           "caption": "Rust の構成：workspace ・ crate ・ module ・ trait ・ feature と、外への契約。",
-          "svg": "<svg viewBox=\"0 0 780 470\" style=\"min-width:660px\" role=\"img\" aria-label=\"Rust の構成と、外への契約\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-f640009e-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-f640009e-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"area\" x=\"10\" y=\"10\" width=\"560\" height=\"450\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"24\" y=\"34\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">workspace（版と Cargo.lock は1か所）</text>\n<rect class=\"box\" x=\"26\" y=\"48\" width=\"528\" height=\"170\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">crate：core（入出力に触らない）</text>\n<rect class=\"box\" x=\"42\" y=\"86\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"108\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module domain</text><text class=\"note\" x=\"200\" y=\"108\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">宣言 ・ 結果の5つの語（enum）・ 決まりの判定</text>\n<rect class=\"box\" x=\"42\" y=\"128\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module application</text><text class=\"note\" x=\"200\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">作成 ・ 更新 ・ 検査 ・ 承認 ・ 描画の手順</text>\n<rect class=\"box\" x=\"42\" y=\"170\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module ports</text><text class=\"note\" x=\"200\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">trait：Files ・ Programs ・ Agents（AI を起動する）</text>\n<path class=\"flow\" d=\"M290,262 V222\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-f640009e-arrow-5B6B66)\"/><text class=\"note\" x=\"300\" y=\"246\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">adapters → core の一方向だけ（ビルドが守る）</text>\n<rect class=\"box\" x=\"26\" y=\"266\" width=\"528\" height=\"180\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">crate：adapters（trait を実物で満たす）</text>\n<rect class=\"box\" x=\"42\" y=\"304\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"327\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">口</text><text class=\"note\" x=\"170\" y=\"327\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">CLI ・ MCP ・ HTTP ・ WASM Component</text>\n<rect class=\"box\" x=\"42\" y=\"348\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"371\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外へ出ていく口</text><text class=\"note\" x=\"170\" y=\"371\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI の CLI を起動する（Agents 契約）</text>\n<rect class=\"box\" x=\"42\" y=\"392\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"415\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">標準の部品</text><text class=\"note\" x=\"170\" y=\"415\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">jsonschema ・ json-ld など。feature で能力を選ぶ</text>\n<rect class=\"box focus\" x=\"590\" y=\"48\" width=\"180\" height=\"170\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title focus\" x=\"604\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#0D5C55\">外への契約</text>\n<text class=\"label\" x=\"604\" y=\"100\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">protocol</text>\n<text class=\"label\" x=\"604\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（JSON Schema）</text>\n<text class=\"label\" x=\"604\" y=\"144\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">crate や trait は</text>\n<text class=\"label\" x=\"604\" y=\"166\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外へ出さない</text>\n<rect class=\"boundary\" x=\"590\" y=\"266\" width=\"180\" height=\"180\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"604\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ほかの言語</text>\n<text class=\"label\" x=\"604\" y=\"318\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">TypeScript ・ Python</text>\n<text class=\"label\" x=\"604\" y=\"340\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">・ Go の担い手は</text>\n<text class=\"label\" x=\"604\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">protocol でつなぐ</text>\n<text class=\"label\" x=\"604\" y=\"384\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（WASM でも使える）</text>\n<path class=\"link\" d=\"M680,220 V264\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n</svg>"
+          "svg": "<svg viewBox=\"0 0 780 470\" style=\"min-width:660px\" role=\"img\" aria-label=\"Rust の構成と、外への契約\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-ee0f60f3-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-ee0f60f3-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"area\" x=\"10\" y=\"10\" width=\"560\" height=\"450\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"24\" y=\"34\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">workspace（版と Cargo.lock は1か所）</text>\n<rect class=\"box\" x=\"26\" y=\"48\" width=\"528\" height=\"170\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">crate：core（入出力に触らない）</text>\n<rect class=\"box\" x=\"42\" y=\"86\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"108\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module domain</text><text class=\"note\" x=\"200\" y=\"108\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">宣言 ・ 結果の5つの語（enum）・ 決まりの判定</text>\n<rect class=\"box\" x=\"42\" y=\"128\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module application</text><text class=\"note\" x=\"200\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">作成 ・ 更新 ・ 検査 ・ 承認 ・ 描画の手順</text>\n<rect class=\"box\" x=\"42\" y=\"170\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module ports</text><text class=\"note\" x=\"200\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">trait：Files ・ Programs ・ Agents（AI を起動する）</text>\n<path class=\"flow\" d=\"M290,262 V222\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-ee0f60f3-arrow-5B6B66)\"/><text class=\"note\" x=\"300\" y=\"246\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">adapters → core の一方向だけ（ビルドが守る）</text>\n<rect class=\"box\" x=\"26\" y=\"266\" width=\"528\" height=\"180\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">crate：adapters（trait を実物で満たす）</text>\n<rect class=\"box\" x=\"42\" y=\"304\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"327\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">インターフェース</text><text class=\"note\" x=\"170\" y=\"327\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">CLI ・ MCP ・ HTTP ・ WASM Component</text>\n<rect class=\"box\" x=\"42\" y=\"348\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"371\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">出ていく側</text><text class=\"note\" x=\"170\" y=\"371\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI の CLI を起動する（Agents 契約）</text>\n<rect class=\"box\" x=\"42\" y=\"392\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"415\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">標準の部品</text><text class=\"note\" x=\"170\" y=\"415\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">jsonschema ・ json-ld など。feature で能力を選ぶ</text>\n<rect class=\"box focus\" x=\"590\" y=\"48\" width=\"180\" height=\"170\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title focus\" x=\"604\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#0D5C55\">外への契約</text>\n<text class=\"label\" x=\"604\" y=\"100\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">protocol</text>\n<text class=\"label\" x=\"604\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（JSON Schema）</text>\n<text class=\"label\" x=\"604\" y=\"144\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">crate や trait は</text>\n<text class=\"label\" x=\"604\" y=\"166\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外へ出さない</text>\n<rect class=\"boundary\" x=\"590\" y=\"266\" width=\"180\" height=\"180\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"604\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ほかの言語</text>\n<text class=\"label\" x=\"604\" y=\"318\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">TypeScript ・ Python</text>\n<text class=\"label\" x=\"604\" y=\"340\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">・ Go の担い手は</text>\n<text class=\"label\" x=\"604\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">protocol でつなぐ</text>\n<text class=\"label\" x=\"604\" y=\"384\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（WASM でも使える）</text>\n<path class=\"link\" d=\"M680,220 V264\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n</svg>"
         },
         {
           "kind": "figure",
@@ -421,7 +421,7 @@
         },
         {
           "option": "AI を呼ぶ処理を Semantic Interpreter の中に置く",
-          "reason": "プロセスの起動と止め方は外へ出ていく口の仕事で、解釈と変わる理由が違う"
+          "reason": "プロセスの起動と止め方は出ていく側のアダプターの仕事で、解釈と変わる理由が違う"
         },
         {
           "option": "6つの部品をそれぞれ crate に分ける",
@@ -439,19 +439,19 @@
         "Q2",
         "Q3"
       ],
-      "question": "やりとりの中身（protocol）と、それを運ぶ口（JSON I/O ・ CLI/IPC ・ HTTP/REST ・ WASM Component）、いまの基盤からの移し方と完成の条件をどうするか",
+      "question": "やりとりの中身（protocol）と、それを運ぶインターフェース（JSON I/O ・ CLI/IPC ・ HTTP/REST ・ WASM Component）、いまの基盤からの移し方と完成の条件をどうするか",
       "answer": {
-        "text": "protocol を運び方から切り離して JSON Schema で定義し、CLI ・ MCP ・ HTTP ・ WASM を同じ protocol を運ぶ口として並べる。基盤は足すだけの版で出し、4つの測り方がどれも0件なら完成とする。",
+        "text": "protocol を運び方から切り離して JSON Schema で定義し、CLI ・ MCP ・ HTTP ・ WASM を同じ protocol を運ぶインターフェースとして並べる。基盤は足すだけの版で出し、4つの測り方がどれも0件なら完成とする。",
         "details": [
-          "protocol：要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語を、JSON Schema で公開する。どの口から呼んでも同じ形で返す",
+          "protocol：要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語を、JSON Schema で公開する。どのインターフェースから呼んでも同じ形で返す",
           "CLI（標準入出力）と MCP：いまある。出力の形が JSON Schema になっておらず、版が無く、結果の値が日本語の文字列である",
-          "HTTP：外から呼ばれる口として持つ。「ネットワークに出ない」は、エンジンが自分から外へ取りに行かないという約束で、HTTP で受けることとは別である",
-          "HTTP で受けるときは、受ける範囲と認証を口の側で決める。手元だけで受ける形は、brainstorming の serve と同じ守りを使える",
+          "HTTP：外から呼ばれるインターフェースとして持つ。「ネットワークに出ない」は、エンジンが自分から外へ取りに行かないという約束で、HTTP で受けることとは別である",
+          "HTTP で受けるときは、受ける範囲と認証をインターフェースの側で決める。手元だけで受ける形は、brainstorming の serve と同じ守りを使える",
           "WASM Component：2つの使い道がある。エンジンをほかの言語の中で使うことと、外から足す担い手を閉じた環境で動かすことである",
           "WASM の部品は、WIT で宣言した受け取りと返しの関数でだけ外とやりとりするので、担い手に与える能力を宣言で絞れる",
           "Rust は WASM の両側に道具がある。部品を作る側は wit-bindgen（Rust を含む）、動かす側は wasmtime を crate として埋め込める",
           "標準の部品の能力は、crate の feature で選ぶ。外へ取りに行く能力（HTTP のローダーなど）は既定で外す",
-          "試験は、入力と期待結果の JSON の組で持ち、どの口とどの言語の実装も同じ試験を通す",
+          "試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す",
           "基盤は足すだけの版で出す。abstract@v1 に従う Skill は、手を入れなくても今までと同じ結果を返す",
           "測り方：公開した版を書き換えないと書けない決まり ・ 結果の語へ写せないもの ・ 確かめられないのに合格と返したもの ・ 足す前と後で結果が変わったものが、どれも0件"
         ]
@@ -459,18 +459,18 @@
       "images": [
         {
           "kind": "figure",
-          "caption": "1つの protocol を、4つの口が同じ形で運ぶ。",
-          "svg": "<svg viewBox=\"0 0 760 330\" style=\"min-width:640px\" role=\"img\" aria-label=\"1つの protocol を、4つの口が同じ形で運ぶ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg #dsvg-49adef1d-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-49adef1d-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"box\" x=\"20\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"32\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">CLI（標準入出力）</text><text class=\"note\" x=\"32\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまある</text>\n<path class=\"flow\" d=\"M106,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-49adef1d-arrow-5B6B66)\"/>\n<rect class=\"box\" x=\"206\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"218\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">MCP</text><text class=\"note\" x=\"218\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまある</text>\n<path class=\"flow\" d=\"M292,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-49adef1d-arrow-5B6B66)\"/>\n<rect class=\"box warn\" x=\"392\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"404\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">HTTP</text><text class=\"note\" x=\"404\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足す</text>\n<path class=\"flow\" d=\"M478,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-49adef1d-arrow-5B6B66)\"/>\n<rect class=\"box warn\" x=\"578\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"590\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">WASM Component</text><text class=\"note\" x=\"590\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足す</text>\n<path class=\"flow\" d=\"M664,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-49adef1d-arrow-5B6B66)\"/>\n<rect class=\"box focus\" x=\"20\" y=\"126\" width=\"730\" height=\"74\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"title\" x=\"34\" y=\"152\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">protocol（JSON Schema で公開）</text>\n<text class=\"label\" x=\"34\" y=\"178\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語。どの口からでも同じ形で返す</text>\n<path class=\"flow\" d=\"M385,202 V236\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-49adef1d-arrow-5B6B66)\"/>\n<rect class=\"box\" x=\"20\" y=\"240\" width=\"730\" height=\"74\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"34\" y=\"266\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">エンジン（Rust）</text>\n<text class=\"label\" x=\"34\" y=\"292\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">適合の試験は入力と期待結果の JSON の組。どの口とどの言語の実装も同じ試験を通す</text>\n</svg>"
+          "caption": "1つの protocol を、4つのインターフェースが同じ形で運ぶ。",
+          "svg": "<svg viewBox=\"0 0 760 330\" style=\"min-width:640px\" role=\"img\" aria-label=\"1つの protocol を、4つのインターフェースが同じ形で運ぶ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg #dsvg-d9ee6162-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-d9ee6162-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"box\" x=\"20\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"32\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">CLI（標準入出力）</text><text class=\"note\" x=\"32\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまある</text>\n<path class=\"flow\" d=\"M106,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-d9ee6162-arrow-5B6B66)\"/>\n<rect class=\"box\" x=\"206\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"218\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">MCP</text><text class=\"note\" x=\"218\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまある</text>\n<path class=\"flow\" d=\"M292,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-d9ee6162-arrow-5B6B66)\"/>\n<rect class=\"box warn\" x=\"392\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"404\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">HTTP</text><text class=\"note\" x=\"404\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足す</text>\n<path class=\"flow\" d=\"M478,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-d9ee6162-arrow-5B6B66)\"/>\n<rect class=\"box warn\" x=\"578\" y=\"20\" width=\"172\" height=\"62\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"590\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">WASM Component</text><text class=\"note\" x=\"590\" y=\"68\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足す</text>\n<path class=\"flow\" d=\"M664,84 V122\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-d9ee6162-arrow-5B6B66)\"/>\n<rect class=\"box focus\" x=\"20\" y=\"126\" width=\"730\" height=\"74\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"title\" x=\"34\" y=\"152\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">protocol（JSON Schema で公開）</text>\n<text class=\"label\" x=\"34\" y=\"178\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語。どのインターフェースからでも同じ形で返す</text>\n<path class=\"flow\" d=\"M385,202 V236\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-d9ee6162-arrow-5B6B66)\"/>\n<rect class=\"box\" x=\"20\" y=\"240\" width=\"730\" height=\"74\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"title\" x=\"34\" y=\"266\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">エンジン（Rust）</text>\n<text class=\"label\" x=\"34\" y=\"292\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">適合の試験は入力と期待結果の JSON の組。どのインターフェースとどの言語の実装も同じ試験を通す</text>\n</svg>"
         }
       ],
       "checks": [
         {
           "target": "HTTP",
-          "ask": "HTTP を外から呼ばれる口として持つことでよいか（エンジンが自分から外へ取りに行かない約束は変えない）"
+          "ask": "HTTP を外から呼ばれるインターフェースとして持つことでよいか（エンジンが自分から外へ取りに行かない約束は変えない）"
         },
         {
           "target": "WASM",
-          "ask": "WASM を、ほかの言語から使う口と、外から足す担い手を閉じて動かす手段の両方として持つことでよいか"
+          "ask": "WASM を、ほかの言語から使うインターフェースと、外から足す担い手を閉じて動かす手段の両方として持つことでよいか"
         }
       ],
       "grounds": [
@@ -529,7 +529,7 @@
           "source": "The Cargo Book の Features（features:189〜190、2026-10-17 取得、fact-check で照合）"
         },
         {
-          "supports": "言語に依存しない口にするための、いまとの差",
+          "supports": "言語に依存しないインターフェースにするための、いまとの差",
           "basis": "いまの基盤は、CLI と MCP の両方で同じ名前と引数を受け、標準出力の JSON と終了コードで返し、スキーマを $id の名前で引き、core が入出力に触らない。ここまでは言語に依存しない。差は、(1) 各ツールの出力の形が SKILL.md の表にだけあり JSON Schema で無い、(2) 出力に protocol の版が無い（エンジンの版だけ）、(3) findings の status の値が「合格」「確かめ直し」などの日本語の文字列で、v0.3 の5つの outcome との対応が無い、(4) 試験が Rust の #[test] と Rust のコードの値の表にあり、別の言語の実装が同じ試験を使えない（v0.3 の Conformance Suite にあたる、入力と期待する出力の JSON の組が無い）、(5) 指紋の「キーの順と空白に左右されない」の正規化の規則、文字列 ・ 数値 ・ 日時の扱い、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote）の意味が、別の言語で同じに作れる粒度で書かれていない、の5つである",
           "tag": "primary",
           "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
@@ -544,11 +544,11 @@
       "rejected": [
         {
           "option": "HTTP を持たない（ネットワークに出ない約束を理由に）",
-          "reason": "約束はエンジンが外へ取りに行かないことで、外から受ける口の話ではない。ほかの言語 ・ プロセスから使う目的に届かない"
+          "reason": "約束はエンジンが外へ取りに行かないことで、外から受けるインターフェースの話ではない。ほかの言語 ・ プロセスから使う目的に届かない"
         },
         {
-          "option": "口ごとに別の形で返す",
-          "reason": "同じ問いに口ごとの答えが並び、別の言語の実装が同じ試験を使えない"
+          "option": "インターフェースごとに別の形で返す",
+          "reason": "同じ問いにインターフェースごとの答えが並び、別の言語の実装が同じ試験を使えない"
         },
         {
           "option": "Rust の trait ・ 型を、外の担い手との契約にする",
@@ -558,6 +558,14 @@
     }
   ],
   "log": [
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 16か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "利用者の指摘で、外部インターフェースと出ていく側のアダプターの言い方をそろえた"
+    },
     {
       "date": "2026-10-17",
       "text": "ボードを更新した（変わったところ 6か所）"
@@ -572,7 +580,7 @@
     },
     {
       "date": "2026-10-17",
-      "text": "利用者の問いに答え直し、標準の概念を自前の概念として定義して写す形（Q2）と、運び方に依らない protocol と4つの口（Q4）に直した"
+      "text": "利用者の問いに答え直し、標準の概念を自前の概念として定義して写す形（Q2）と、運び方に依らない protocol と4つのインターフェース（Q4）に直した"
     },
     {
       "date": "2026-10-17",
@@ -610,34 +618,84 @@
   "opened": "2026-10-17",
   "changes": [
     {
+      "topic": "Q0",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "details",
+      "summary": "詳しい決まりを2件書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "grounds",
+      "summary": "根拠を1件書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
       "topic": "Q3",
       "part": "details",
-      "summary": "詳しい決まりを5件足した"
+      "summary": "詳しい決まりを1件書き直した"
     },
     {
       "topic": "Q3",
       "part": "images",
-      "summary": "完成イメージを1件足した"
-    },
-    {
-      "topic": "Q3",
-      "part": "grounds",
-      "summary": "根拠を5件足した"
+      "summary": "完成イメージを1件書き直した"
     },
     {
       "topic": "Q3",
       "part": "rejected",
-      "summary": "採らなかった案を1件足した"
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
     },
     {
       "topic": "Q4",
       "part": "details",
-      "summary": "詳しい決まりを2件足した"
+      "summary": "詳しい決まりを4件書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を2件書き直した"
     },
     {
       "topic": "Q4",
       "part": "grounds",
-      "summary": "根拠を3件足した"
+      "summary": "根拠を1件書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
     }
   ]
 }

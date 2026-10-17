@@ -4,7 +4,7 @@ W={}
 def lines(o,x,y,ls,cls="label",step=18):
     for i,l in enumerate(ls): o.append(f'<text class="{cls}" x="{x}" y="{y+i*step}">{e(l)}</text>')
 # Q0：5つの設計原則と、いまの基盤
-rows=[(["1 宣言と解釈の分離"],["宣言（スキーマ ・ 注釈）と","確かめ（エンジン）は分かれている"],["確かめる担い手を","外から足す口"]),
+rows=[(["1 宣言と解釈の分離"],["宣言（スキーマ ・ 注釈）と","確かめ（エンジン）は分かれている"],["確かめる担い手を","外から足す仕組み"]),
       (["2 既存技術は部品"],["JSON Schema を","エンジンに組み込んでいる"],["JSON-LD ・ SHACL ・ RDF の","概念を自前で定義して写すこと"]),
       (["3 言語非依存の","意味モデル"],["Rust で作り、","CLI ・ MCP ・ JSON で返す"],["出力の形を","JSON Schema で公開すること"]),
       (["4 拡張可能な","表現モデル"],["x-annotations で","注釈を足せる"],["足した注釈を確かめ、","確かめなければ返すこと"]),
@@ -17,7 +17,7 @@ for i,(p,h,n) in enumerate(rows):
     o.append(f'<rect class="box kind-1" x="234" y="{y}" width="262" height="58"/>'); lines(o,246,y+24,h)
     o.append(f'<rect class="box warn" x="506" y="{y}" width="236" height="58"/>'); lines(o,518,y+24,n)
 o.append('<rect class="box focus" x="20" y="390" width="722" height="48"/>')
-o.append('<text class="label" x="34" y="410">足す：基盤から AI を呼ぶ口（Agents 契約）</text>')
+o.append('<text class="label" x="34" y="410">足す：基盤から AI を呼ぶ契約（Agents 契約）</text>')
 o.append('<text class="note" x="34" y="428">全体構成図の外部インターフェースは、4つとも外から基盤を呼ぶ向きである</text>')
 o.append('</svg>'); W['q0-principles']='\n'.join(o)
 
