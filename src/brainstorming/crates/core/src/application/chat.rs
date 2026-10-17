@@ -521,7 +521,10 @@ mod tests {
     #[test]
     fn a_failing_cli_and_a_stop_both_end_with_an_error_event() {
         let (got, _) = events(&[], 3);
-        assert_eq!(kinds(&got), vec!["start", "phase", "phase", "check", "error", "done"]);
+        assert_eq!(
+            kinds(&got),
+            vec!["start", "phase", "phase", "check", "error", "done"]
+        );
         let env = env_with_git(MemoryFiles::with(&[("/r/.brainstorming/b.json", BOARD)]));
         let mut stopped = Vec::new();
         turn(
