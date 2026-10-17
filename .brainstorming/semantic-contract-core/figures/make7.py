@@ -1,4 +1,4 @@
-# 第9回の図。標準は JSON Schema だけ、x- の拡張は基盤の契約（Q0 の目的 ・ 原則2 ・ 原則4、Q2）。
+# 第9回 ・ 第10回の図。標準は JSON Schema だけ、x- の拡張は基盤の契約（Q0 の目的 ・ 原則2 ・ 原則4、Q2）。
 # class だけで書き、design-svg resolve で値へ解く。行は手で分ける（単語の途中で折らない）。
 import re
 def e(s): return s.replace('&','&amp;').replace('<','&lt;')
@@ -7,18 +7,20 @@ def lines(o,x,y,ls,cls="label",step=18):
     for i,l in enumerate(ls): o.append(f'<text class="{cls}" x="{x}" y="{y+i*step}">{e(l)}</text>')
 
 # Q0：先頭に目的を置き、原則2 ・ 原則4 の行を直す。ほかの行は第3回の図のまま。
-src=open('q0-principles.src.svg').read()
+import subprocess
+src=subprocess.run(['git','show','c02001db~1:.brainstorming/semantic-contract-core/figures/q0-principles.src.svg'],capture_output=True,text=True,check=True).stdout
 src=src.replace('>概念を自前で定義して写すこと<','>概念を参考に自前で定義すること<')
 src=src.replace('>JSON Schema を<','>標準は JSON Schema だけ。<').replace('>エンジンに組み込んでいる<','>形の確かめを任せている<')
 src=src.replace('>足した注釈を確かめ、<','>x- の拡張を基盤のコマンドで<').replace('>確かめなければ返すこと<','>確かめ、できなければ返すこと<')
 def shift(m):
-    return m.group(1)+str(int(m.group(2))+64)
+    return m.group(1)+str(int(m.group(2))+86)
 body=src.split('\n',1)[1]
 body=re.sub(r'(\by=")(\d+)',shift,body)
-top=['<svg viewBox="0 0 760 514" style="min-width:640px" role="img" aria-label="基盤の目的と、5つの設計原則のいまの基盤で足りているもの ・ 足りないもの">',
-     '<rect class="box focus" x="20" y="12" width="722" height="54"/>',
+top=['<svg viewBox="0 0 760 536" style="min-width:640px" role="img" aria-label="基盤の目的と、5つの設計原則のいまの基盤で足りているもの ・ 足りないもの">',
+     '<rect class="box focus" x="20" y="12" width="722" height="76"/>',
      '<text class="title" x="34" y="34">目的</text>',
-     '<text class="label" x="34" y="54">AI が書いたインスタンスを、宣言した決まりで機械が確かめ、確かめられなかった決まりも隠さず返す</text>']
+     '<text class="label" x="34" y="56">意味 ・ 構造 ・ 関係 ・ 制約を1つの契約（Schema）に宣言し、その契約でインスタンスを解釈して検証する</text>',
+     '<text class="label" x="34" y="76">形や数のように機械で決まる検証も、意味の判断が要る検証も、同じ契約から行い、同じ形の結果で返す</text>']
 W['q0-principles']='\n'.join(top)+'\n'+body
 
 # Q2：標準は JSON Schema だけ。ほかの3つは概念を参考にし、x- の拡張として基盤のコマンドが確かめる。写さない。
