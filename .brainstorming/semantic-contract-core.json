@@ -4,7 +4,7 @@
   "id": "semantic-contract-core",
   "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
   "intro": "構想 v0.3 の全体構成図の層に沿って、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
-  "round": 13,
+  "round": 17,
   "queue": [
     {
       "topic": "Q0",
@@ -32,12 +32,13 @@
           "原則4 の拡張には、外から足す解釈の担い手を閉じた環境で動かすこと（WASM Component）も含める。構想は、担い手の登録と実行の権限を管理するとしている",
           "原則5 検証可能で実用に耐える（再現性 ・ 適合性 ・ 可搬性）：採る。いまも同じ入力から同じ結果を返すが、別の言語の実装が使える適合の試験が無い",
           "従属させないための方針も採る。正本は abstract（JSON Schema に x- の拡張を足した私たちの契約）で、JSON Schema には形の確かめだけを任せる",
-          "足すもの：基盤から AI を呼ぶ契約（Agents 契約）。全体構成図の外部インターフェースは、4つとも外から基盤を呼ぶ向きである",
-          "基盤に残すもの：インスタンスの作成と更新 ・ 承認の記録 ・ 描画。全体構成図は描画を基盤の外に置くが、いまの基盤は承認の前に読む画面を作るために持つ",
+          "足すもの：AI を呼ぶポート（Agents 契約）。呼ぶ契約は1つで、利用者ごとに違う AI ツールはアダプターで差し替える",
+          "描画も基盤の契約である。人は JSON だけでは判断できないので、abstract が描画の契約（x-view ・ ページテンプレートとデザインシステムの形）を持つ",
+          "concrete スキーマは描画の契約を使い、ページテンプレート ・ 部品のカタログ ・ デザインシステムを用意すれば、基盤の render で描ける。いまの描き先は HTML で、Markdown は足す",
           "Agents 契約で呼ぶ AI：Claude Code ・ Codex ・ Kiro ・ GitHub Copilot。CLI でプロセスとして起動し、セッション ID で同じセッションを続けて呼ぶ",
           "答えの形は JSON Schema で渡す。Claude Code は --json-schema、Codex は --output-schema で縛る。Kiro と GitHub Copilot は旗が無いので、答えから JSON を取り出す",
           "GitHub Copilot：-p で非対話に起動し、--session-id ・ --resume でセッションを続け、--output-format json で1行ずつ JSON を返す。答えの形を縛る旗は無い",
-          "どの AI でも、返った答えは基盤が同じ JSON Schema で確かめ、満たさなければ error にする。CLI の旗は形を外れにくくするだけで、合否は基盤が決める"
+          "どの AI でも、返った答えは基盤が同じ JSON Schema で確かめ、満たさなければ error にする。Claude Code と Codex は、そのうえで CLI の旗でも形を縛る"
         ]
       },
       "images": [
@@ -57,8 +58,8 @@
         {
           "kind": "figure",
           "name": "境界と向き",
-          "caption": "基盤が持つもの ・ 持たないものと、呼ぶ向き。基盤から AI を呼ぶ向きを足す。",
-          "svg": "<svg viewBox=\"0 0 780 400\" style=\"min-width:660px\" role=\"img\" aria-label=\"基盤の境界と、呼ぶ向き\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-0a9ef0b3-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-0a9ef0b3-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"boundary\" x=\"20\" y=\"20\" width=\"170\" height=\"150\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"34\" y=\"44\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">使う側</text>\n<text class=\"label\" x=\"34\" y=\"70\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Skill ・ ほかの言語</text>\n<text class=\"label\" x=\"34\" y=\"88\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">の担い手 ・ 人</text>\n<path class=\"flow\" d=\"M192,95 H246\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-0a9ef0b3-arrow-5B6B66)\"/><text class=\"note\" x=\"200\" y=\"80\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">呼ぶ</text>\n<rect class=\"area\" x=\"250\" y=\"20\" width=\"300\" height=\"320\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"264\" y=\"44\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">基盤 schema-driven</text>\n<rect class=\"box\" x=\"264\" y=\"56\" width=\"272\" height=\"56\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"276\" y=\"80\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">インターフェース</text><text class=\"note\" x=\"276\" y=\"100\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">CLI ・ MCP ・ HTTP ・ WASM Component</text>\n<rect class=\"box\" x=\"264\" y=\"122\" width=\"272\" height=\"88\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"276\" y=\"146\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">持つもの</text>\n<text class=\"note\" x=\"276\" y=\"168\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">宣言の契約 ・ 確かめる仕組み ・ 結果の語</text>\n<text class=\"note\" x=\"276\" y=\"186\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">作成 ・ 更新 ・ 承認 ・ 描画</text>\n<rect class=\"box focus\" x=\"264\" y=\"220\" width=\"272\" height=\"56\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"label\" x=\"276\" y=\"244\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">出ていく側のアダプター（足す）</text><text class=\"note\" x=\"276\" y=\"264\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Agents 契約で AI の CLI を起動する</text>\n<path class=\"flow\" d=\"M538,248 H580\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-0a9ef0b3-arrow-5B6B66)\"/><text class=\"note\" x=\"552\" y=\"232\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">呼ぶ</text>\n<rect class=\"boundary\" x=\"584\" y=\"200\" width=\"184\" height=\"96\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"598\" y=\"224\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">AI の CLI</text><text class=\"note\" x=\"598\" y=\"246\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Claude Code ・ Codex</text><text class=\"note\" x=\"598\" y=\"264\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Kiro ・ GitHub Copilot</text><text class=\"note\" x=\"598\" y=\"282\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">答えは基盤が確かめる</text>\n<rect class=\"boundary\" x=\"584\" y=\"20\" width=\"184\" height=\"150\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"598\" y=\"44\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">持たないもの</text>\n<text class=\"note\" x=\"598\" y=\"70\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">使う側のデータ</text>\n<text class=\"note\" x=\"598\" y=\"88\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">UI ・ Workflow を</text>\n<text class=\"note\" x=\"598\" y=\"106\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">動かす側</text>\n<text class=\"note\" x=\"598\" y=\"124\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">コードの生成</text>\n<text class=\"note\" x=\"20\" y=\"366\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">全体構成図の外部インターフェースは「使う側 → 基盤」の向きだけ。</text>\n<text class=\"note\" x=\"20\" y=\"386\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">「基盤 → AI」の向きは、出ていく側のアダプターとして足す</text>\n</svg>\n"
+          "caption": "基盤のポートとアダプター：AI を呼ぶポートは1つで、AI ツールはアダプターで差し替える。描画の契約は abstract が持つ。",
+          "svg": "<svg viewBox=\"0 0 780 420\" style=\"min-width:660px\" role=\"img\" aria-label=\"基盤のポートとアダプターと、描画の契約\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-22987133-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-22987133-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"boundary\" x=\"20\" y=\"20\" width=\"150\" height=\"110\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"34\" y=\"44\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">使う側</text>\n<text class=\"label\" x=\"34\" y=\"70\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Skill ・ 人</text>\n<text class=\"label\" x=\"34\" y=\"90\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ほかの言語の担い手</text>\n<path class=\"flow\" d=\"M172,82 H206\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-22987133-arrow-5B6B66)\"/><text class=\"note\" x=\"176\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">呼ぶ</text>\n<rect class=\"area\" x=\"210\" y=\"20\" width=\"360\" height=\"340\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"224\" y=\"44\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">基盤 schema-driven</text>\n<rect class=\"box\" x=\"224\" y=\"56\" width=\"332\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"236\" y=\"78\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">入ってくる側のアダプター</text><text class=\"note\" x=\"236\" y=\"97\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">CLI ・ MCP ・ HTTP ・ WASM Component</text>\n<rect class=\"box\" x=\"224\" y=\"118\" width=\"332\" height=\"104\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"236\" y=\"140\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">持つ契約</text>\n<text class=\"note\" x=\"236\" y=\"160\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">宣言の契約 ・ 確かめる仕組み ・ 結果の5つの語</text>\n<text class=\"note\" x=\"236\" y=\"180\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">作成 ・ 更新 ・ 承認</text>\n<text class=\"note\" x=\"236\" y=\"200\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">描画の契約（abstract が持ち、render で描く）</text>\n<rect class=\"box focus\" x=\"224\" y=\"232\" width=\"332\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"label\" x=\"236\" y=\"253\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">AI を呼ぶポート（Agents 契約）</text><text class=\"note\" x=\"236\" y=\"272\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">呼ぶ契約は1つ。答えは基盤が Schema で確かめる</text>\n<rect class=\"box\" x=\"224\" y=\"292\" width=\"332\" height=\"54\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"236\" y=\"314\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">出ていく側のアダプター</text><text class=\"note\" x=\"236\" y=\"334\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI ツールごとに差し替える</text>\n<path class=\"flow\" d=\"M558,319 H596\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-22987133-arrow-5B6B66)\"/><text class=\"note\" x=\"562\" y=\"309\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">呼ぶ</text>\n<rect class=\"boundary\" x=\"600\" y=\"250\" width=\"160\" height=\"110\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"614\" y=\"274\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">AI ツール</text>\n<text class=\"note\" x=\"614\" y=\"296\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Claude Code ・ Codex</text>\n<text class=\"note\" x=\"614\" y=\"314\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Kiro ・ GitHub Copilot</text>\n<text class=\"note\" x=\"614\" y=\"334\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">利用者ごとに違う</text>\n<rect class=\"boundary\" x=\"600\" y=\"20\" width=\"160\" height=\"150\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"614\" y=\"44\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">使う側が用意する</text>\n<text class=\"note\" x=\"614\" y=\"70\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">concrete スキーマ</text>\n<text class=\"note\" x=\"614\" y=\"90\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">ページテンプレート</text>\n<text class=\"note\" x=\"614\" y=\"110\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">部品のカタログ</text>\n<text class=\"note\" x=\"614\" y=\"130\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">デザインシステム</text>\n<path class=\"link\" d=\"M600,170 L558,196\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"note\" x=\"20\" y=\"386\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI ツールは利用者ごとに違うので、出ていく側のアダプターで差し替える。ポートから見た呼ぶ契約は1つである。</text>\n<text class=\"note\" x=\"20\" y=\"406\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">描画の契約は abstract が持ち、concrete はテンプレート ・ カタログ ・ デザインシステムを用意して基盤の render で描く。</text>\n</svg>"
         },
         {
           "kind": "code",
@@ -71,20 +72,7 @@
       "assumptions": [
         "全体構成図の5つの設計原則と従属させないための方針は、画像の文字を書き写したもので、docs には同じ一覧が無い"
       ],
-      "checks": [
-        {
-          "target": "Agents 契約",
-          "ask": "基盤から AI を呼ぶ契約を、全体構成図の外部インターフェースの逆向きとして足すことでよいか"
-        },
-        {
-          "target": "描画",
-          "ask": "描画を基盤に残すことでよいか（全体構成図とは置き場所が逆になる）"
-        },
-        {
-          "target": "対応する AI",
-          "ask": "Kiro と GitHub Copilot を、答えの形を基盤だけで確かめる形で入れることでよいか"
-        }
-      ],
+      "checks": [],
       "grounds": [
         {
           "supports": "5つの設計原則",
@@ -217,6 +205,30 @@
           "basis": "      --output-format <format>\n          Output format: 'text' (default) or 'json' (JSONL, one JSON\n          object per line) [possible values: text, json]",
           "tag": "measured",
           "source": "measured/copilot-cli/help-1.0.98.txt（copilot --help、GitHub Copilot CLI 1.0.98、2026-10-17 に WSL で取得）:98〜100"
+        },
+        {
+          "supports": "Agents 契約をポートにし、AI ツールをアダプターで差し替えること",
+          "basis": "これってさAdapterに入れてるのはここが接続が変わるからそこに置いているんだよね？\nこれはポートとアダプターの概念と同じなんだけどそれでは伝わらないかな？？\nAIツールは利用者によって違うよね？？\nだけどポートからすると呼び出す契約は同じだよね？？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "描画を基盤の契約にし、abstract が持ち concrete が使うこと",
+          "basis": "あと描画するのもSchema駆動の契約だよね？？構造化データで基本的にやり取りはするけど、人間との契約はJsonだけではわからないから、HTMLやマークダウンへの描画する契約を持つんだよね？？\nそしてこれはAbstructスキーマではその契約を持っていてそれをConcrateスキーマは利用して、そのConcrateスキーマで必要なデザインシステムを用意すれば、描画できるような能力を提供するんでしょ？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "いまの基盤が描画の契約を持ち、使う側がテンプレートとカタログを持つこと",
+          "basis": "基盤はカタログの中身を持たず、カタログとデザインシステムが守る形だけを持つ。",
+          "tag": "primary",
+          "source": ".claude/skills/schema-driven/SKILL.md:20"
+        },
+        {
+          "supports": "Kiro と GitHub Copilot も、返った答えを基盤が Schema で確かめる形で入れること",
+          "basis": "上記はできるのであればそうしたほうがいいよね？？\nCodexとClaudeではできるんでしょ？？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
         }
       ],
       "rejected": [
@@ -494,6 +506,7 @@
           "Agents 契約が約束するもの：protocol の版 ・ 能力の宣言 ・ 応答の形 ・ 形を満たさない応答は error ・ 結果の出どころ ・ 書く操作は再試行しない",
           "Agents 契約は AI ごとの許可の設定も持つ：許すツール ・ sandbox ・ 権限を外す値を通さない決まり ・ 設定が検査に通らなければ起動しない。基盤が形を持ち、Skill は値（自分のコマンドと使い方の文）だけを持つ",
           "許可の設定は、いま brainstorming が一時に持っている（ACDR 0188、brainstorming/agents@v1）。Agents 契約が決まったら形を基盤へ移す",
+          "外への通信（WebSearch ・ 原文の取得など）も、出ていく側を通して行う。要るかどうかは Concrete が決めて許可の設定に書き、基盤は許していない通信をさせない。WebSearch や fact-check そのものは基盤に入れず、AI と fact-check の Skill が行う",
           "AI の CLI を呼ぶ処理（起動 ・ 権限の型 ・ 時間切れ ・ 子孫まで止める）は6つの部品の外で、出ていく側のアダプターに置く",
           "作成 ・ 更新 ・ 承認 ・ 描画は、6つの部品に無い基盤の持ち物として残す",
           "実装は Rust にする。1つの workspace にし、版と Cargo.lock を1か所で決める",
@@ -701,6 +714,12 @@
           "basis": "画面の「AI に聞く」で起動する AI ごとに、使ってよいツールと、新しいセッションの最初の依頼に足す文を持つ。serve は依頼のたびに読む。リポジトリの .brainstorming/.settings/agents.json があればそれを使い、無ければ Skill の assets/defaults/agents.json を使う（混ぜない）。読むたびに基盤の check で検査し、合格しなければ AI を起動しない。",
           "tag": "primary",
           "source": ".claude/skills/brainstorming/assets/agents.schema.json（ACDR 0188）"
+        },
+        {
+          "supports": "外への通信が要るかは Concrete が決めること",
+          "basis": "あとさ、外への通信が必要かどうかはコンクレートによるんじゃなくて？もちろんスキーマ駆動も外への通信をする時もあるとは思うしねぇ。たとえばウェブサーチとかはどうするの？ファクトチェックとかは？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
         }
       ],
       "rejected": [
@@ -744,12 +763,12 @@
         "details": [
           "protocol：要求と応答の形 ・ 版 ・ 能力の表明 ・ 結果の5つの語を、JSON Schema で公開する。どのインターフェースから呼んでも同じ形で返す",
           "CLI（標準入出力）と MCP：いまある。出力の形が JSON Schema になっておらず、版が無く、結果の値が日本語の文字列である",
-          "HTTP：外から呼ばれるインターフェースとして持つ。「ネットワークに出ない」は、エンジンが自分から外へ取りに行かないという約束で、HTTP で受けることとは別である",
+          "HTTP：基盤のバイナリを起動できない呼び手（ブラウザ ・ 別の機械）から基盤を呼ぶ手段である。同じ機械の Skill ・ AI ・ スクリプトからは CLI で足りる",
           "HTTP で受けるときは、受ける範囲と認証をインターフェースの側で決める。手元だけで受ける形は、brainstorming の serve と同じ守りを使える",
           "WASM Component：2つの使い道がある。エンジンをほかの言語の中で使うことと、外から足す担い手を閉じた環境で動かすことである",
           "WASM の部品は、WIT で宣言した受け取りと返しの関数でだけ外とやりとりするので、担い手に与える能力を宣言で絞れる",
           "Rust は WASM の両側に道具がある。部品を作る側は wit-bindgen（Rust を含む）、動かす側は wasmtime を crate として埋め込める",
-          "標準の部品の能力は、crate の feature で選ぶ。外へ取りに行く能力（$ref を HTTP で取りに行くなど）は既定で外す",
+          "検証の再現性：検証の途中で、$ref が指す外のスキーマを取りに行かない（同じ入力から同じ結果を返すため）。jsonschema の取りに行く機能は feature で外す。これは検証の中だけの約束で、Concrete が許す外への通信（Q3）とは別である",
           "試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す",
           "基盤は足すだけの版で出す。abstract@v1 に従う Skill は、手を入れなくても今までと同じ結果を返す",
           "測り方：公開した版を書き換えないと書けない決まり ・ 結果の語へ写せないもの ・ 確かめられないのに合格と返したもの ・ 足す前と後で結果が変わったものが、どれも0件"
@@ -813,10 +832,6 @@
         }
       ],
       "checks": [
-        {
-          "target": "HTTP",
-          "ask": "HTTP を外から呼ばれるインターフェースとして持つことでよいか（エンジンが自分から外へ取りに行かない約束は変えない）"
-        },
         {
           "target": "WASM",
           "ask": "WASM を、ほかの言語から使うインターフェースと、外から足す担い手を閉じて動かす手段の両方として持つことでよいか"
@@ -888,12 +903,18 @@
           "basis": "v0.3 の要求を、いまの基盤が公開した版を書き換えずに受け止められるかで決める。",
           "tag": "primary",
           "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "同じ機械からは CLI で呼ぶこと",
+          "basis": "基本はバイナリでcliを呼び出せばいいんだろうなって思ってたから。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
         }
       ],
       "rejected": [
         {
-          "option": "HTTP を持たない（ネットワークに出ない約束を理由に）",
-          "reason": "約束はエンジンが外へ取りに行かないことで、外から受けるインターフェースの話ではない。ほかの言語 ・ プロセスから使う目的に届かない"
+          "option": "HTTP を持たない（検証中に外へ取りに行かない約束を理由に）",
+          "reason": "その約束は検証中の $ref の話で、外から基盤を呼ぶ手段とは関係しない。ブラウザや別の機械から使う目的に届かない"
         },
         {
           "option": "インターフェースごとに別の形で返す",
@@ -907,6 +928,26 @@
     }
   ],
   "log": [
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 6か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "利用者の指摘で、Q4 の HTTP の話を3つに分けた（基盤を呼ぶ手段 ・ 検証中に外のスキーマを取りに行かない約束 ・ Concrete が許す外への通信は Q3 へ）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 1か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 3か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 3か所）"
+    },
     {
       "date": "2026-10-17",
       "text": "ボードを更新した（変わったところ 5か所）"
@@ -1015,29 +1056,34 @@
   "opened": "2026-10-17",
   "changes": [
     {
-      "topic": "Q0",
-      "part": "images",
-      "summary": "完成イメージを1件書き直した"
-    },
-    {
       "topic": "Q3",
       "part": "details",
-      "summary": "詳しい決まりを2件足した"
-    },
-    {
-      "topic": "Q3",
-      "part": "images",
-      "summary": "完成イメージを1件足した"
-    },
-    {
-      "topic": "Q3",
-      "part": "checks",
-      "summary": "確かめてほしい箇所を1件足した"
+      "summary": "詳しい決まりを1件足した"
     },
     {
       "topic": "Q3",
       "part": "grounds",
-      "summary": "根拠を3件足した"
+      "summary": "根拠を1件足した"
+    },
+    {
+      "topic": "Q4",
+      "part": "details",
+      "summary": "詳しい決まりを2件書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件消した"
+    },
+    {
+      "topic": "Q4",
+      "part": "grounds",
+      "summary": "根拠を1件足した"
+    },
+    {
+      "topic": "Q4",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
     }
   ]
 }
