@@ -9,6 +9,7 @@ from reference_slide_07 import slide_07
 from reference_slide_08 import slide_08
 from reference_slide_09 import slide_09
 from reference_slide_10 import slide_10
+from orientation_support_visuals import portal, support
 
 FIG = {
     'I0-CONTEXT': opening,
@@ -21,5 +22,7 @@ FIG = {
     'I0-ACTION-08': slide_08,
     'I0-ACTION-09': slide_09,
     'I0-ACTION-10': slide_10,
+    'I0-PORTAL': portal,
+    'I0-SUPPORT': support,
     'I0-SUMMARY': closing,
 }
