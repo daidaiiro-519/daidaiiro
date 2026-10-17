@@ -1,0 +1,424 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0189",
+ "title": "確かめてほしい箇所に、私の見解 ・ 根拠 ・ 決めきれない理由を持たせる",
+ "date": "2026-10-17",
+ "status": "accepted",
+ "decision": "確かめてほしい箇所は、問いに加えて、私の見解 ・ 根拠 ・ 決めきれない理由を短く持つ。",
+ "why": "確かめてほしい箇所は問いしか持たず、利用者が「見解や根拠が無いと、なぜ確かめてほしいのか分からない」と指摘した。さらに長い文は「文字が多すぎ、認知負荷が高すぎ」と指摘された。承認だけで決められるボードという目的に合わせ、短く構造で読める形にする。",
+ "shift": [
+  {
+   "what": "確かめてほしい箇所の中身",
+   "from": "問いだけ",
+   "to": "問い ・ 私の見解 ・ 根拠 ・ 決めきれない理由"
+  },
+  {
+   "what": "長さ",
+   "from": "決まりが無い",
+   "to": "見解と理由は60字まで。根拠は名前だけを3件まで（スキーマが止める）"
+  },
+  {
+   "what": "欠けたとき",
+   "from": "検査が無い",
+   "to": "回答待ちの論点で欠けていれば inspect が止める"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は問いだけ。変更後は問いの下に、見解 ・ 根拠 ・ 決めきれない理由が1行ずつ並ぶ。",
+ "alternatives": [
+  {
+   "option": "見解に根拠を混ぜた文で書く（最初の案）",
+   "why_not": "文が長くなり、結論が読み取れない"
+  },
+  {
+   "option": "3つを必ず要る欄にする",
+   "why_not": "前提待ちの論点にある過去の16件がすぐに落ちる。開くときに書けば足りる"
+  },
+  {
+   "option": "裏づけに書き、番号で指す",
+   "why_not": "読み手が裏づけを開いて探すことになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/brainstorming/SKILL.md",
+   "marks": [
+    {
+     "find": "確かめてほしい箇所を、問いだけで出さない",
+     "before": "（無い）",
+     "why": "ボードを書く AI が読むガードレールにも置く。"
+    }
+   ]
+  },
+  {
+   "key": "schema",
+   "tab": "board.schema.json",
+   "file": ".claude/skills/brainstorming/assets/board.schema.json",
+   "marks": [
+    {
+     "find": "\"view\": {",
+     "before": "（無い）",
+     "why": "私の見解の欄。結論だけ、60字まで。"
+    },
+    {
+     "find": "\"basis\": {",
+     "before": "（無い）",
+     "why": "根拠の名前の欄。3件まで。"
+    },
+    {
+     "find": "\"why\": {",
+     "before": "（無い）",
+     "why": "決めきれない理由の欄。60字まで。"
+    },
+    {
+     "find": "open-has-view",
+     "before": "（無い）",
+     "why": "回答待ちの論点では必ず書く。"
+    },
+    {
+     "find": "問い ・ 私の見解 ・ 根拠 ・ 決めきれない理由を持つ",
+     "before": "\"description\": \"確かめてほしい箇所（3件まで）\",",
+     "why": "説明を持つものに合わせる。"
+    }
+   ]
+  },
+  {
+   "key": "parts",
+   "tab": "parts.html",
+   "file": ".claude/skills/brainstorming/assets/catalog/parts.html",
+   "marks": [
+    {
+     "find": "私の見解",
+     "before": "（無い）",
+     "why": "問いの下に、見出しの列を持つ表で3行を並べる。空の行は出さない。"
+    }
+   ]
+  },
+  {
+   "key": "page",
+   "tab": "board.page.json",
+   "file": ".claude/skills/brainstorming/assets/pages/board.page.json",
+   "marks": [
+    {
+     "find": "\"has_basis\"",
+     "before": "\"ask\": \"ask\"",
+     "why": "根拠があるときだけ行を出す。"
+    },
+    {
+     "find": "\"component\": \"basis-tag\"",
+     "before": "\"ask\": \"ask\"",
+     "why": "根拠の名前を札で出す。"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "catalog.css",
+   "file": ".claude/skills/brainstorming/assets/catalog/catalog.css",
+   "marks": [
+    {
+     "find": "table.chk-t th {",
+     "before": "（無い）",
+     "why": "見出しの列に面の色を敷いた表にする。狭い幅では見出しを折り返す。"
+    },
+    {
+     "find": ".home { display: flex; align-items: center; gap: 8px; font-size: 14px;",
+     "before": ".home { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--color-text-body); text-decoration: none; padding: 6px 8px; border-radius: 8px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".bitem { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0;",
+     "before": ".bitem { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 6px 8px; border-radius: 8px; color: var(--color-text-body); text-decoration: none; font-size: 13px; line-height: 1.5; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".status { display: inline-flex; align-items: center; gap: 4px; border:",
+     "before": ".status { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-line-control); color: var(--color-text-sub); background: transparent; border-radius: 999px; padding: 0 9px 0 6px; font-size: 12px; font-weight: 400; line-height: 20px; white-space: nowrap; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".chip { position: relative; display: grid; align-content: start; justi",
+     "before": ".chip { position: relative; display: grid; align-content: start; justify-items: start; gap: 6px; min-width: 0; border: 1px solid var(--color-line-control); border-radius: 8px; background: var(--color-surface-block); color: var(--color-text-sub); padding: 10px 12px 12px; font-size: 13px; line-height: 1.5; cursor: pointer; text-align: left; box-shadow: inset 0 -3px 0 transparent; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".chip .chgn { position: absolute; top: 8px; right: 8px; font-size: 11p",
+     "before": ".chip .chgn { position: absolute; top: 8px; right: 8px; font-size: 11px; font-weight: 700; line-height: 18px; min-width: 18px; padding: 0 5px; border-radius: 999px; border: 1px solid var(--color-line-notice); background: var(--color-surface-notice); color: var(--color-text-warn); text-align: center; }\n.ghost { font-size: 13px; border: 1px solid var(--color-line-control); color: var(--color-text-body); background: transparent; border-radius: 999px; padding: 3px 14px; cursor: pointer; }\n.ask { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; border: 1px solid var(--color-key); color: var(--color-text-on-key); background: var(--color-key); border-radius: 999px; padding: 3px 14px 3px 10px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8p",
+     "before": ".banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; border: 1px solid var(--color-line-notice); background: var(--color-surface-notice); border-radius: 10px; padding: 8px 14px; font-size: 13px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".btn { font-size: 13px; font-weight: 700; border: 1px solid var(--colo",
+     "before": ".btn { font-size: 13px; font-weight: 700; border: 1px solid var(--color-line-control); background: var(--color-surface-block); color: var(--color-text-body); border-radius: 8px; padding: 3px 14px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".chgbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6p",
+     "before": ".chgbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; background: var(--color-surface-notice); border: 1px solid var(--color-line-notice); border-radius: 10px; padding: 8px 14px; font-size: 13px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".chgtopics button { white-space: nowrap; font-size: 12px; border: 1px ",
+     "before": ".chgtopics button { white-space: nowrap; font-size: 12px; border: 1px solid var(--color-line-notice); background: var(--color-surface-block); color: var(--color-text-body); border-radius: 999px; padding: 0 10px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".dsearch { display: flex; align-items: center; gap: 6px; border: 1px s",
+     "before": ".dsearch { display: flex; align-items: center; gap: 6px; border: 1px solid var(--color-line-control); border-radius: 8px; padding: 4px 8px; background: var(--color-surface-page); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".dfilter button { font-size: 12px; border: 1px solid var(--color-line-",
+     "before": ".dfilter button { font-size: 12px; border: 1px solid var(--color-line-control); background: transparent; color: var(--color-text-body); border-radius: 999px; padding: 1px 10px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".ditem { display: grid; gap: 2px; width: 100%; text-align: left; borde",
+     "before": ".ditem { display: grid; gap: 2px; width: 100%; text-align: left; border: 1px solid var(--color-line-block); background: var(--color-surface-page); color: var(--color-text-body); border-radius: 8px; padding: 6px 10px; margin-top: 4px; font-size: 13px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".chg-mark { display: inline-flex; align-items: center; gap: 4px; margi",
+     "before": ".chg-mark { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 11px; font-weight: 700; border: 1px solid var(--color-line-notice); background: var(--color-surface-notice); color: var(--color-text-warn); border-radius: 999px; padding: 0 8px; cursor: pointer; vertical-align: middle; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".notice { background: var(--color-surface-notice); border: 1px solid v",
+     "before": ".notice { background: var(--color-surface-notice); border: 1px solid var(--color-line-notice); border-radius: 10px; padding: 8px 14px; font-size: 13px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".block { background: var(--color-surface-block); border: 1px solid var",
+     "before": ".block { background: var(--color-surface-block); border: 1px solid var(--color-line-block); border-radius: 10px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".ans { background: var(--color-surface-answer); border-left: 4px solid",
+     "before": ".ans { background: var(--color-surface-answer); border-left: 4px solid var(--color-key); border-radius: 8px; padding: 10px 14px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": "/* 確かめてほしい箇所：問いの下に、私の見解 ・ 根拠 ・ 決めきれない理由を並べる */",
+     "before": "（無い）",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".tabs button { font-size: 13px; border: 1px solid var(--color-line-con",
+     "before": ".tabs button { font-size: 13px; border: 1px solid var(--color-line-control); background: transparent; color: var(--color-text-body); border-radius: 999px; padding: 2px 14px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".figbox { background: var(--color-surface-literal); border-radius: var",
+     "before": ".figbox { background: var(--color-surface-literal); border-radius: 8px; padding: 12px; overflow-x: auto; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".screen { width: 100%; height: 360px; border: 1px solid var(--color-li",
+     "before": ".screen { width: 100%; height: 360px; border: 1px solid var(--color-line-block); border-radius: 8px; background: var(--color-surface-block); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".editor { border: 1px solid var(--color-editor-line); border-radius: v",
+     "before": ".editor { border: 1px solid var(--color-editor-line); border-radius: 8px; overflow: hidden; background: var(--color-editor-surface); color: var(--color-editor-text); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".copy { font-size: 12px; border: 1px solid var(--color-editor-line); b",
+     "before": ".copy { font-size: 12px; border: 1px solid var(--color-editor-line); background: transparent; color: var(--color-editor-text); border-radius: 6px; padding: 1px 10px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".diffbox { background: var(--color-surface-literal); border-radius: va",
+     "before": ".diffbox { background: var(--color-surface-literal); border-radius: 8px; padding: 10px 12px; overflow-x: auto; font: var(--size-literal)/1.6 var(--font-literal); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".treebox { background: var(--color-surface-block); border: 1px solid v",
+     "before": ".treebox { background: var(--color-surface-block); border: 1px solid var(--color-line-block); border-radius: 8px; overflow-x: auto; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".mk { font-size: 12px; font-weight: 700; border-radius: var(--size-rad",
+     "before": ".mk { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 9px; white-space: nowrap; border: 1px solid transparent; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".term { border-radius: var(--size-radius); overflow: hidden; backgroun",
+     "before": ".term { border-radius: 8px; overflow: hidden; background: var(--color-terminal-surface); color: var(--color-terminal-text); font: var(--size-literal)/1.7 var(--font-literal); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".dots { display: flex; gap: 6px; } .dots i { width: 10px; height: 10px",
+     "before": ".dots { display: flex; gap: 6px; } .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--color-terminal-dot); display: block; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".tag { font-size: 11px; font-weight: 700; border: 1px solid var(--colo",
+     "before": ".tag { font-size: 11px; font-weight: 700; border: 1px solid var(--color-line-control); border-radius: 4px; padding: 0 5px; color: var(--color-text-body); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".btns button, .sendrow button { font-weight: 700; border: 1px solid va",
+     "before": ".btns button, .sendrow button { font-weight: 700; border: 1px solid var(--color-line-control); background: transparent; color: var(--color-text-body); border-radius: 8px; padding: 6px 18px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": "textarea { display: block; width: 100%; max-width: 100%; resize: verti",
+     "before": "textarea { display: block; width: 100%; max-width: 100%; resize: vertical; min-height: 60px; font: inherit; border: 1px solid var(--color-line-control); border-radius: 8px; background: var(--color-surface-block); color: var(--color-text-body); padding: 6px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".sendbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8",
+     "before": ".sendbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; box-shadow: 0 -6px 12px -8px var(--color-line-block); background: var(--color-surface-block); border: 1px solid var(--color-line-block); border-radius: 10px; padding: 10px 16px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".sendbar .primary { font-weight: 700; background: var(--color-key); bo",
+     "before": ".sendbar .primary { font-weight: 700; background: var(--color-key); border: 1px solid var(--color-key); color: var(--color-text-on-key); border-radius: 8px; padding: 6px 22px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".paste { background: var(--color-surface-literal); border-radius: var(",
+     "before": ".paste { background: var(--color-surface-literal); border-radius: 8px; padding: 8px 10px; font: 12px var(--font-literal); white-space: pre-wrap; margin: 0; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".chi { width: 30px; height: 30px; border-radius: var(--size-radius); b",
+     "before": ".chi { width: 30px; height: 30px; border-radius: 8px; background: var(--color-surface-answer); color: var(--color-text-key); display: grid; place-items: center; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".iconbtn { margin-left: auto; width: 30px; height: 30px; display: grid",
+     "before": ".iconbtn { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--color-text-sub); cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".sel select { appearance: none; -webkit-appearance: none; font: inheri",
+     "before": ".sel select { appearance: none; -webkit-appearance: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--color-text-body); background: var(--color-surface-block); border: 1px solid var(--color-line-control); border-radius: 8px; padding: 4px 30px 4px 26px; cursor: pointer; }\n.sel .on { position: absolute; left: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-line-control); pointer-events: none; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".cchip { display: inline-flex; align-items: center; gap: 4px; font-siz",
+     "before": ".cchip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; background: var(--color-surface-page); border: 1px solid var(--color-line-block); color: var(--color-text-body); border-radius: 6px; padding: 1px 8px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".av { width: 22px; height: 22px; border-radius: var(--size-radius-pill",
+     "before": ".av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".msg.me .bubble { background: var(--color-surface-answer); border-radi",
+     "before": ".msg.me .bubble { background: var(--color-surface-answer); border-radius: 12px 12px 4px 12px; }\n.msg.ai .bubble { background: var(--color-surface-page); border-radius: 4px 12px 12px 12px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：吹き出しの尾の角だけ0にし、残りを size-radius にする。"
+    },
+    {
+     "find": ".bubble code { font: 12px var(--font-literal); background: var(--color",
+     "before": ".bubble code { font: 12px var(--font-literal); background: var(--color-surface-literal); border-radius: 4px; padding: 0 4px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".work { border: 1px solid var(--color-line-block); border-radius: var(",
+     "before": ".work { border: 1px solid var(--color-line-block); border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".cand { border: 1px solid var(--color-line-notice); background: var(--",
+     "before": ".cand { border: 1px solid var(--color-line-notice); background: var(--color-surface-notice); border-radius: 10px; padding: 10px 12px; font-size: 13px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".quick button { font-size: 12px; border: 1px solid var(--color-line-bl",
+     "before": ".quick button { font-size: 12px; border: 1px solid var(--color-line-block); background: var(--color-surface-page); color: var(--color-text-body); border-radius: 999px; padding: 1px 10px; cursor: pointer; }\n.composer { margin: 8px 12px 12px; border: 1px solid var(--color-line-control); border-radius: 10px; background: var(--color-surface-block); padding: 6px 8px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".send { margin-left: auto; width: 32px; height: 32px; border-radius: v",
+     "before": ".send { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: 0; background: var(--color-key); color: var(--color-text-on-key); display: grid; place-items: center; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".stop { margin-left: auto; font-size: 12px; font-weight: 700; border: ",
+     "before": ".stop { margin-left: auto; font-size: 12px; font-weight: 700; border: 1px solid var(--color-text-removed); color: var(--color-text-removed); background: transparent; border-radius: 8px; padding: 4px 10px; cursor: pointer; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".running { display: flex; align-items: center; gap: 8px; font-size: 12",
+     "before": ".running { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-sub); padding: 6px 10px; border: 1px dashed var(--color-line-block); border-radius: 8px; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".rdots i { width: 6px; height: 6px; border-radius: var(--size-radius-p",
+     "before": ".rdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--color-key); display: block; animation: rdot 1.2s infinite ease-in-out; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".tile { background: var(--color-surface-block); border: 1px solid var(",
+     "before": ".tile { background: var(--color-surface-block); border: 1px solid var(--color-line-block); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; color: var(--color-text-body); text-decoration: none; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    },
+    {
+     "find": ".pn { flex: none; width: 24px; height: 24px; border-radius: var(--size",
+     "before": ".pn { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--color-key); color: var(--color-text-on-key); display: grid; place-items: center; font-size: 12px; font-weight: 700; }",
+     "why": "ACDR 0190 の変更（同じファイル）：札と丸の角を、トークン size-radius-pill にする。"
+    },
+    {
+     "find": ".menu { display: inline-block; font-size: 13px; border: 1px solid var(",
+     "before": ".menu { display: inline-block; font-size: 13px; border: 1px solid var(--color-line-control); background: transparent; color: var(--color-text-body); border-radius: 8px; padding: 2px 10px; margin: 12px 16px 0; }",
+     "why": "ACDR 0190 の変更（同じファイル）：面の角を、トークン size-radius にする。"
+    }
+   ]
+  },
+  {
+   "key": "catalog",
+   "tab": "catalog.schema.json",
+   "file": ".claude/skills/brainstorming/assets/catalog/catalog.schema.json",
+   "marks": [
+    {
+     "find": "\"basis-tag\": {",
+     "before": "（無い）",
+     "why": "根拠の札の部品を足す。"
+    },
+    {
+     "find": "\"view\": {",
+     "before": "（無い）",
+     "why": "部品の受け取るものを足す。"
+    }
+   ]
+  },
+  {
+   "key": "inspect",
+   "tab": "inspect.rs",
+   "file": "src/brainstorming/crates/core/src/domain/inspect.rs",
+   "marks": [
+    {
+     "find": "missing.push(\"根拠（basis）\")",
+     "before": "（無い）",
+     "why": "回答待ちの論点で欠けを知らせる。"
+    },
+    {
+     "find": "fn an_open_topic_says_why_it_asks_and_what_the_writer_thinks",
+     "before": "（無い）",
+     "why": "前提待ちの過去の分は止めないことを固定する。"
+    }
+   ]
+  }
+ ],
+ "seal_note": "2026年10月17日、利用者が Artifact（承認待ちの ACDR と、確かめてほしい箇所の比較）を見て承認した（「いいですよ！」）。",
+ "seal": {
+  "skill": "0ff2dd024022e8313223ff4bd2db5cb076bcec1ae01af8ce321154dbe48863d1",
+  "schema": "b376588197a05416ef151167e894c0076d674ebe53565e8131d1ded7f0694bda",
+  "parts": "1ef6a2eec00a47dd0e45da945c62427d1523d4312ece7e5e64838837fe4aa4fd",
+  "page": "e6c186e85476afb522bacdcb66d240330a68461ea62e349e524e55dbc453a874",
+  "css": "dd209e8cb7b6017290bd7e1042bae196b10296f1b2d6a7331169afda2fc66051",
+  "catalog": "388ab2fa638f9d11f13bafe995595ebfed069297f7928630c9aa1b36eacbfcba",
+  "inspect": "50f81efa1df652c4f9a4515c4848b9e5673a876865e7ba18798ef585326516cd"
+ }
+}

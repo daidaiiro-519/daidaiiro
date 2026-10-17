@@ -191,6 +191,29 @@ pub fn design_system(light: &Value, dark: &Value) -> Result<Value, String> {
     }))
 }
 
+/// 部品の見た目（catalog.css）で、角の丸みに直接の値を書いた行。デザインシステムの丸み（var(--size-radius…)）か 0 だけを許す。
+pub fn literal_radii(css: &str) -> Vec<String> {
+    css.lines()
+        .enumerate()
+        .flat_map(|(n, line)| {
+            line.match_indices("border-radius:").map(move |(at, key)| {
+                let value = line[at + key.len()..]
+                    .split([';', '}'])
+                    .next()
+                    .unwrap_or("")
+                    .trim();
+                (n + 1, value.to_owned())
+            })
+        })
+        .filter(|(_, value)| {
+            value
+                .split_whitespace()
+                .any(|part| part != "0" && !part.starts_with("var(--size-radius"))
+        })
+        .map(|(n, value)| format!("{n}行目：border-radius: {value}"))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,5 +263,14 @@ mod tests {
         let mut no_pairs = light();
         no_pairs.as_object_mut().map(|o| o.remove("$extensions"));
         assert!(design_system(&no_pairs, &json!({})).is_err());
+    }
+
+    #[test]
+    fn radii_come_only_from_the_design_system() {
+        let css = ".a { border-radius: var(--size-radius); }\n.b { padding: 2px; border-radius: 8px; }\n.c { border-radius: 0 var(--size-radius) var(--size-radius) var(--size-radius); }\n.d { border-radius: 50%; }\n.e { border-radius: var(--size-radius-pill); }";
+        assert_eq!(
+            literal_radii(css),
+            vec!["2行目：border-radius: 8px", "4行目：border-radius: 50%"]
+        );
     }
 }

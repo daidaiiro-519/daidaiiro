@@ -108,6 +108,27 @@ pub fn inspect(board: &Value) -> Vec<String> {
                 "{id}：1文が{length}字ある（{SENTENCE_MAX}字まで）── {head}…"
             ));
         }
+        if text(topic, "status") == "open" {
+            for check in list(topic, "checks") {
+                let mut missing: Vec<&str> = Vec::new();
+                if text(check, "view").trim().is_empty() {
+                    missing.push("私の見解（view）");
+                }
+                if list(check, "basis").is_empty() {
+                    missing.push("根拠（basis）");
+                }
+                if text(check, "why").trim().is_empty() {
+                    missing.push("決めきれない理由（why）");
+                }
+                if !missing.is_empty() {
+                    out.push(format!(
+                        "{id}：確かめてほしい箇所「{}」に、{}が無い",
+                        text(check, "target"),
+                        missing.join("と")
+                    ));
+                }
+            }
+        }
         let images = list(topic, "images");
         if images.len() > 1 {
             let unnamed: Vec<String> = images
@@ -193,6 +214,27 @@ mod tests {
         );
         topic["images"][1]["name"] = json!("担い手");
         assert!(inspect(&board(vec![topic], &[])).is_empty());
+    }
+
+    #[test]
+    fn an_open_topic_says_why_it_asks_and_what_the_writer_thinks() {
+        let mut topic = ok_topic("Q1", "open");
+        topic["checks"] = json!([{"target": "HTTP", "ask": "これでよいか"}]);
+        assert_eq!(
+            inspect(&board(vec![topic.clone()], &["Q1"])),
+            vec!["Q1：確かめてほしい箇所「HTTP」に、私の見解（view）と根拠（basis）と決めきれない理由（why）が無い"]
+        );
+        topic["checks"][0]["view"] = json!("基盤は待ち受けない");
+        topic["checks"][0]["basis"] = json!(["platform-advisor の回答"]);
+        assert_eq!(
+            inspect(&board(vec![topic.clone()], &["Q1"])),
+            vec!["Q1：確かめてほしい箇所「HTTP」に、決めきれない理由（why）が無い"]
+        );
+        topic["checks"][0]["why"] = json!("別の機械から呼ぶ予定は利用者しか知らない");
+        assert!(inspect(&board(vec![topic.clone()], &["Q1"])).is_empty());
+        let mut waiting = ok_topic("Q2", "waiting");
+        waiting["checks"] = json!([{"target": "古い", "ask": "これでよいか"}]);
+        assert!(inspect(&board(vec![topic, waiting], &["Q1"])).is_empty());
     }
 
     #[test]

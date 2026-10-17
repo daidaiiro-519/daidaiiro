@@ -3,7 +3,7 @@
 
 use crate::application::{Env, Skill};
 use crate::domain::board::pretty;
-use crate::domain::tokens::design_system;
+use crate::domain::tokens::{design_system, literal_radii};
 use crate::ports::{Clock, Files, Programs};
 use serde_json::{json, Value};
 
@@ -22,6 +22,13 @@ pub fn run<F: Files, P: Programs, C: Clock>(
     let current = env.files.read(&target).unwrap_or_default();
     // 改行の形（LF と CRLF）に左右されないように、値で比べる
     let same = serde_json::from_str::<Value>(&current).ok().as_ref() == Some(&value);
+    let radii = literal_radii(&env.files.read(&dir.join("catalog.css")).unwrap_or_default());
+    if !radii.is_empty() {
+        return Err(format!(
+            "catalog.css の角の丸みに直接の値がある。var(--size-radius) か var(--size-radius-pill) にする：{}",
+            radii.join(" ・ ")
+        ));
+    }
     if check {
         return match same {
             true => Ok(json!({"same": true})),
@@ -55,5 +62,22 @@ mod tests {
             .write(Path::new("/s/assets/catalog/design-system.json"), "{}")
             .unwrap();
         assert!(run(&env, &skill(), true).is_err());
+    }
+
+    #[test]
+    fn a_literal_radius_in_the_parts_is_refused() {
+        let env = env(
+            MemoryFiles::with(&[
+                ("/s/assets/catalog/light.tokens.json", LIGHT),
+                ("/s/assets/catalog/dark.tokens.json", "{}"),
+                (
+                    "/s/assets/catalog/catalog.css",
+                    ".a { border-radius: 10px; }",
+                ),
+            ]),
+            passing_engine(),
+        );
+        let said = run(&env, &skill(), true).unwrap_err();
+        assert!(said.contains("1行目：border-radius: 10px"), "{said}");
     }
 }
