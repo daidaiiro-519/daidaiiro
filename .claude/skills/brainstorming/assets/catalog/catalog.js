@@ -160,6 +160,17 @@
     });
     svg.innerHTML = html;
   });
+  // フォルダ構成：名前が / で終わるものはフォルダ。アイコンを付けて見分ける
+  var FOLDER = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
+  var FILE = '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>';
+  $$("ul.tree li:not(.thead)").forEach(function (li) {
+    var name = ($(".tp", li) || {}).textContent || "", dir = /\/$/.test(name.trim());
+    if (dir) li.setAttribute("data-dir", "");
+    var ti = $(".ti", li); if (ti) ti.innerHTML = '<svg viewBox="0 0 24 24">' + (dir ? FOLDER : FILE) + "</svg>";
+    // 狭い幅では / の後ろで折る（単語の途中で折らない）
+    var tp = $(".tp", li);
+    if (tp) { var parts = tp.textContent.split("/"); tp.textContent = ""; parts.forEach(function (part, i) { tp.appendChild(document.createTextNode(part + (i < parts.length - 1 ? "/" : ""))); if (i < parts.length - 1) tp.appendChild(document.createElement("wbr")); }); }
+  });
   $$("iframe.screen").forEach(function (f) { var h = parseInt(f.getAttribute("data-height"), 10); if (h > 0) f.style.height = h + "px"; });
 
   // ── コード：行番号 ・ 強調する行 ・ 色付け（近似） ──

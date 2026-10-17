@@ -162,15 +162,25 @@ table.diff tr.dr td { background: var(--color-surface-removed); } table.diff tr.
 table.diff.split td.sx { border-left: 1px solid var(--color-line-block); }
 table.diff td.da { background: var(--color-surface-added); } table.diff td.dr { background: var(--color-surface-removed); }
 
-ul.tree { list-style: none; margin: 0; padding: 10px 12px; background: var(--color-surface-literal); border-radius: 8px; overflow-x: auto; }
-ul.tree li { display: grid; grid-template-columns: minmax(12em, auto) auto 1fr; gap: 4px 12px; align-items: baseline; padding: 1px 0 1px calc(var(--depth) * 1.4em); }
-ul.tree .nm { font: var(--size-literal) var(--font-literal); }
-ul.tree li[data-mark="remove"] .nm { text-decoration: line-through; color: var(--color-text-removed); }
+/* フォルダ構成：白い面に、場所 ・ 変更 ・ 何を置くかの3列。階層は線で、フォルダとファイルはアイコンで見分ける */
+.treebox { background: var(--color-surface-block); border: 1px solid var(--color-line-block); border-radius: 8px; overflow-x: auto; }
+ul.tree { list-style: none; margin: 0; padding: 4px 0; display: grid; grid-template-columns: max-content max-content minmax(14em, 1fr); min-width: max-content; }
+ul.tree li { display: contents; }
+ul.tree li > span { padding: 6px 14px; border-bottom: 1px solid var(--color-line-block); display: flex; align-items: center; }
+ul.tree li:last-child > span { border-bottom: 0; }
+ul.tree li.thead > span { font-size: 11px; font-weight: 700; color: var(--color-text-sub); letter-spacing: .06em; padding-top: 4px; padding-bottom: 4px; }
+ul.tree .nm { gap: 6px; padding-left: calc(14px + var(--depth) * 20px); background-image: repeating-linear-gradient(to right, transparent 0 23px, var(--color-line-block) 23px 24px, transparent 24px 34px); background-size: calc(var(--depth) * 20px) 100%; background-repeat: no-repeat; background-position: 4px 0; }
+ul.tree .ti { width: 15px; height: 15px; flex: none; color: var(--color-text-sub); }
+ul.tree .ti svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+ul.tree li[data-dir] .ti { color: var(--color-text-key); }
+ul.tree .tp { font: var(--size-literal) var(--font-literal); color: var(--color-text-body); white-space: nowrap; }
+ul.tree li[data-dir] .tp { font-weight: 700; }
+ul.tree li[data-mark="remove"] .tp { text-decoration: line-through; color: var(--color-text-removed); }
 ul.tree .ds { font-size: 13px; color: var(--color-text-sub); }
-.mk { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 0 6px; white-space: nowrap; }
-li[data-mark="add"] .mk { color: var(--color-text-added); background: var(--color-surface-added); }
-li[data-mark="remove"] .mk { color: var(--color-text-removed); background: var(--color-surface-removed); }
-li[data-mark="change"] .mk { color: var(--color-text-warn); background: var(--color-surface-notice); }
+.mk { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 9px; white-space: nowrap; border: 1px solid transparent; }
+li[data-mark="add"] .mk { color: var(--color-text-added); background: var(--color-surface-added); border-color: var(--color-text-added); }
+li[data-mark="remove"] .mk { color: var(--color-text-removed); background: var(--color-surface-removed); border-color: var(--color-text-removed); }
+li[data-mark="change"] .mk { color: var(--color-text-warn); background: var(--color-surface-notice); border-color: var(--color-text-warn); }
 
 .term { border-radius: 8px; overflow: hidden; background: var(--color-terminal-surface); color: var(--color-terminal-text); font: var(--size-literal)/1.7 var(--font-literal); }
 .tbar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--color-terminal-bar); font: 12px var(--font-body); color: var(--color-terminal-sub); }
@@ -316,5 +326,5 @@ ul.log time { color: var(--color-text-sub); margin-right: 8px; font-variant-nume
   .side.open { display: flex; }
   .menu { display: inline-block; font-size: 13px; border: 1px solid var(--color-line-control); background: transparent; color: var(--color-text-body); border-radius: 8px; padding: 2px 10px; margin: 12px 16px 0; }
   .sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  ul.tree li { grid-template-columns: 1fr auto; } ul.tree .ds { grid-column: 1 / -1; padding-left: 1em; }
+  ul.tree { grid-template-columns: minmax(0, 1fr) max-content; min-width: 0; } ul.tree li.thead > span:last-child { display: none; } ul.tree .ds { grid-column: 1 / -1; padding-left: calc(35px + var(--depth) * 20px); padding-top: 0; } ul.tree .nm, ul.tree .mkc { border-bottom: 0; } ul.tree .tp { white-space: normal; overflow-wrap: anywhere; }
 }
