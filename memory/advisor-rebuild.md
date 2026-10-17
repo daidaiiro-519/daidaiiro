@@ -13,7 +13,7 @@ metadata:
 **次**：利用者の指摘「言語ごとに雛形を置く方針が筋が悪い。どの言語でも満たす契約 ・ ディレクトリ構成 ・ 擬似言語の雛形にすべき（Rust でも Go でも書きたい）」を受け、skills-creator を契約中心に作り直すブレストボードを立てる（利用者の了承済み）。論点の候補：契約に何を置くか ／ 擬似言語の雛形と正解の事例の形 ／ 既存11の Skill と5言語の雛形の移し方 ／ references の道具を各 Skill に複製するか共通の1つにするか。platform ・ ux の作り直しはその後。
 
 **qa にテストの臭いを足す作業**：ACDR 0102 で完了（判断基準56件、受け入れの検査7件に合格、試しの相談 archive/trial/judgment-erratic.json）。配線表に「テストを書いたら必ず qa」の行は足さない
-- **引き継ぎ**：テストを書くときに臭いを作らない規則（ガードレール）は、モデリング ・ コーディングの Skill が持つ（利用者の判断）。no-more-spaghetti に代わる Skill を設計するボード（usecase-modeling-coding）で、ガードレールに入れ、困ったときは qa-advisor の判断基準を引く形にする
+- **引き継ぎ**：テストを書くときに臭いを作らない規則（ガードレール）は、モデリング ・ コーディングの Skill が持つ（利用者の判断）。モデリング ・ コーディングの Skill を設計するボード（usecase-modeling-coding）で、ガードレールに入れ、困ったときは qa-advisor の判断基準を引く形にする
 - 決着済み：配線表の qa→ddd の2行は消した（ACDR 0101）。回答のゲート1は SKILL.md に入れない（advisor は他の Skill の名前を書けない。CLAUDE.md の規則で Orchestrator が当てる）。ミューテーションテストは原文を取得できないので足さない
 
 **platform（2026-10-03 完了）**：ACDR 0104 で承認 ・ コミット ・ push 済み（7704c847）。判断基準57件（WAF の質問ごと）・ 水準35件（grades.json）・ licenses.json。原典 ・ ノート ・ 依頼書 ・ grades-gen.py は archive（git の外）。確認用の頁は 8749 の /platform/

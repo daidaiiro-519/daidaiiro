@@ -6,7 +6,7 @@ metadata:
   type: project
 ---
 
-`.brainstorming-board/usecase-modeling-coding/`（Artifact https://claude.ai/artifact/SfY1RnNxrmAoPS2N3CDDGm 、ローカルの serve は 8751）。no-more-spaghetti（名前は廃止）に代わる一式（モデリングの Skill ・ コーディングの Skill ・ 両者を呼び出すエージェント、OSS は AI ツールに依存しない本体と、変換機が出すツールごとの形で配る）を決めるボード。
+`.brainstorming-board/usecase-modeling-coding/`（Artifact https://claude.ai/artifact/SfY1RnNxrmAoPS2N3CDDGm 、ローカルの serve は 8751）。一式（モデリングの Skill ・ コーディングの Skill ・ 両者を呼び出すエージェント、OSS は AI ツールに依存しない本体と、変換機が出すツールごとの形で配る）を決めるボード。
 
 **9月の usecase-schema-driven のボード（`.brainstorming-board/usecase-schema-driven/`） と合わせて考える**（利用者の依頼 2026-10-02）。宣言6種類 ・ 射影 ・ 引き算などの9月の決定が土台で、データの持ち方（スキーマ）・ 射影 ・ 逆参照 ・ 差分 ・ ドリフトの引き算はスキーマ駆動の道具が担当する。2つの Skill はその道具を使う側である。
 
@@ -22,6 +22,6 @@ Q7 は12回目で、テストを10の種類（宣言から7つ、実装の定義
 - ACDR 0109（助言役は作るあいだだけ使い、配るものに入れない）で、決まったことの表の論点4・5を改めた
 - Q8（名前）は B‴ で承認済み（2026-10-04）：use-case-driven-modeling ・ use-case-driven-coding ・ use-case-driven-development（呼び名の分かりやすさを優先）。原典は『ドメイン駆動設計をはじめよう』と『ユースケース実践ガイド』の2冊に限る（ボードの前提に書いた）
 - 点検：論点1・2・6・7 が Evans の DDD Reference、論点1・7 が Cockburn のヘキサゴナルの記事に頼っている。2冊で差し替えられるかを確かめ、ACDR で出す（道具の文書は原典の外として扱う案を利用者に確認中）
-- 次にすること： Q8 の承認 → ctxtrace で外の作業。no-more-spaghetti は ACDR 0123（2026-10-05）で先に廃止した（本体 ・ .coding-rules ・ 配線の3行 ・ MCP の登録を消した。コードを書くときの配線は、コーディングの Skill ができたら足す）。一覧はボードの現在地「決まったこと ・ 次にすること ・ 保留」
+- 次にすること： Q8 の承認 → ctxtrace で外の作業。一覧はボードの現在地「決まったこと ・ 次にすること ・ 保留」
 
-持ち越し：ACDR 0085 と ctxtrace の規則ファイル（どちらも no-more-spaghetti を前提にした未コミットの作業）は、2026-10-02 に取り下げて消した。brainstorming-board の定型文言（代償 ・ 要る ・ 持たない）と ux-advisor の validate の不備（CLI が検査しない ・ MCP が常に ok）は、別の ACDR で直す提案のみ。ctxtrace の是正（app 層の新設ほか）は、このボードの決定（Q8 の名前）で外の作業として当てる。
+持ち越し：ACDR 0085 と ctxtrace の規則ファイルは、2026-10-02 に取り下げて消した。brainstorming-board の定型文言（代償 ・ 要る ・ 持たない）と ux-advisor の validate の不備（CLI が検査しない ・ MCP が常に ok）は、別の ACDR で直す提案のみ。ctxtrace の是正（app 層の新設ほか）は、このボードの決定（Q8 の名前）で外の作業として当てる。
