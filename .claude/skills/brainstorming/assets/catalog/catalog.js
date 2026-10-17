@@ -66,7 +66,11 @@
     var filter = "", query = "";
     var openBtn = $("[data-open-changes]"), search = $("[data-chg-search]", drawer), list = $("[data-chg-list]", drawer);
     var fbox = $("[data-chg-filter]", drawer), counter = $("[data-chg-count]", drawer);
-    function open(topic) { filter = topic || ""; paintFilter(); render(); drawer.hidden = false; openBtn.setAttribute("aria-expanded", "true"); search.focus(); }
+    function open(topic) {
+      var chatBox = $("[data-chat]");
+      if (chatBox && !chatBox.hidden) { var x = $("[data-close-chat]", chatBox); if (x) x.click(); } // 重ねて開かない
+      filter = topic || ""; paintFilter(); render(); drawer.hidden = false; openBtn.setAttribute("aria-expanded", "true"); search.focus();
+    }
     function close() { drawer.hidden = true; openBtn.setAttribute("aria-expanded", "false"); openBtn.focus(); }
     function paintFilter() {
       fbox.textContent = "";
@@ -592,7 +596,10 @@
       $$("[data-say]", chat).forEach(function (b) { b.disabled = !served || locked; });
       input.placeholder = locked && !chatRunning ? "更新が終わると聞ける" : "この論点について聞く・直してほしいことを書く";
     });
-    function openChat() { chat.hidden = false; app.classList.add("with-chat"); input.focus(); store.set("bs-chat-open-" + boardId, true); }
+    function openChat() {
+      var dr = $("[data-chg-drawer]");
+      if (dr && !dr.hidden) { dr.hidden = true; var ob = $("[data-open-changes]"); if (ob) ob.setAttribute("aria-expanded", "false"); } // 重ねて開かない
+      chat.hidden = false; app.classList.add("with-chat"); input.focus(); store.set("bs-chat-open-" + boardId, true); }
     openButtons.forEach(function (b) { b.addEventListener("click", openChat); });
     $("[data-close-chat]", chat).addEventListener("click", function () { chat.hidden = true; app.classList.remove("with-chat"); store.set("bs-chat-open-" + boardId, false); });
     $("[data-composer]", chat).addEventListener("submit", function (e) { e.preventDefault(); if (locked) return; var t = input.value; input.value = ""; ask(t); });
