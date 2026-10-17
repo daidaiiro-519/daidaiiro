@@ -70,7 +70,8 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("schema name and version","スキーマの名前と版","所有者 ・ 種類 ・ 版の名前","protocol version など"),
 ("published record","公開の記録","公開した版の名前と指紋","Contract Registry"),
 ("approval","承認","人が確かめた記録（層の外）","承認（04:42）")]
-table('q1-concepts','抽象の層の概念27件の名前と、構想 v0.3 との対応',["英語","日本語","何を表すか","構想 v0.3（参考）"],[230,170,280,180],[list(c) for c in C],emph=(0,),row_h=34)
+OWN=['基盤', '基盤', '基盤', '基盤', '基盤', '基盤', 'Skill', 'Skill', 'Skill', 'Skill', 'Skill', 'Skill', 'Skill（値）', 'Skill（値）', '基盤 ・ 外（AI ・ 人）', '基盤', '基盤', '基盤（形）', '基盤', '基盤', '基盤（形）・ Skill', '基盤（形）・ Skill', '基盤（形）・ Skill', '基盤（形）・ Skill', '基盤', '基盤', '基盤の外（人）']
+table('q1-concepts','抽象の層の概念27件の名前と持ち主と、構想 v0.3 との対応',["英語","日本語","持ち主","何を表すか","構想 v0.3（参考）"],[230,170,170,280,180],[[c[0],c[1],o,c[2],c[3]] for c,o in zip(C,OWN)],emph=(0,),row_h=34)
 
 # ── Q1 採らない構想 v0.3 の概念 ──
 N=[(["Semantic Model","（Entity ・ Property ・ Type）"],["docs 自身が Entity を必須にしない。抽象スキーマと","別にモデルを持つと、同じものに2つのモデルができる"]),
@@ -120,3 +121,4 @@ K=[("x-abstract","根","機械的","Schema Validator","description の文を直�
 ("x-annotations","根","—","—","消す（使う所が0件）")]
 table('q7-keywords','x- キーワードの表：置く場所 ・ 検証の種類 ・ validator ・ 扱い',["x- キーワード","置く場所","検証の種類","validator","扱い"],[170,150,100,190,230],[list(k) for k in K],emph=(0,),row_h=34)
 # はみ出した項目を2行に分け、列を広げた。
+# 第38回：利用者の指摘で、q1-model を持ち主（基盤 ・ Skill ・ 基盤の外）の枠で描き直した（このファイルの外で直接書いた）。
