@@ -15,7 +15,7 @@ metadata:
 
 ## 次にすること
 
-第26回まで出した（2026-10-17）。いま見る論点は Q0 目的と設計原則と、Q5 用語（validator ・ 検証結果 ・ capability ・ インバウンド ・ アウトバウンドアダプター ・ ルール ・ Semantic Validator を提案）。Q1〜Q4 は Q0 と Q5 が前提。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない（根拠の種類は「前提」）。Q5 が承認されたら、ほかの論点の名前をその表に揃える（いまの Interpreter ・ outcome ・ inbound などは仮の名前）。
+第31回まで出した（2026-10-17）。Q5 用語は決着（英語と日本語の対：Resolver 解決器 ・ validator 検証器 ・ Semantic Validator 意味検証器 ・ Schema Validator スキーマ検証器 ・ validation result 検証結果 ・ capability 能力 ・ inbound adapter 入力アダプター ・ outbound adapter 出力アダプター ・ rule ルール。Interpreter は使わない）。Q0 ・ Q1〜Q4 の名前は第31回で揃えた。いま答えを待っているのは Q0。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない。
 
 決まったこと：基盤のインターフェースはコマンドと protocol（CLI ・ MCP）。インバウンド ・ アウトバウンドのアダプターを差し替えて、手元でもクラウドでも同じ振る舞い（クラウドは後で載せる）。HTTP などの API は Concrete が持つ。WASM は外した。
 
