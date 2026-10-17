@@ -2,74 +2,102 @@
   "$schema": "brainstorming/board@v1",
   "kind": "board",
   "id": "semantic-contract-core",
-  "title": "基盤が見逃している誤りと、構想 v0.3 の取り込み",
-  "intro": "構想 Semantic Contract Core v0.3 を受けて、いまの基盤が見逃している誤りから、基盤に何を足し、何を扱わないかを決める。",
-  "round": 1,
+  "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
+  "intro": "構想 v0.3 を受けて、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
+  "round": 2,
   "queue": [
     {
       "topic": "Q0",
-      "why": "足すものも扱わないものも、どの誤りを承認の前に見つけたいかで決まるため"
+      "why": "意味 ・ 正本の形 ・ 結果 ・ 移し方は、どれも基盤が何のためにあり何を持つかで決まるため"
     }
   ],
   "topics": [
     {
       "id": "Q0",
-      "name": "見逃している誤り",
+      "name": "基盤の目的と境界",
       "status": "open",
-      "question": "いまの基盤で、check と inspect を通ったのに、承認の前に人が読んで見つけている誤りは何か。それを承認の前に、誰が見つけるようにするか",
+      "question": "構想 v0.3 を受けたとき、基盤 schema-driven は何のためにあり、何を持ち、何を持たないか",
       "answer": {
-        "text": "形の外にある決まりの多くは誰も検査しておらず、破れたまま承認の前まで届いている。決まりごとに、誰が確かめて結果がどうだったかを、承認の前に返すようにする。",
+        "text": "基盤は、AI が書いたインスタンスを宣言した決まりで機械が確かめ、確かめられなかった決まりも隠さずに返すためにある。宣言の契約 ・ 確かめる仕組み ・ AI を呼ぶ契約を持ち、使う側のデータと動かす側は持たない。",
         "details": [
-          "ボードの決まりは、出どころごとに数えて397件ある。形（JSON Schema）が259件、形の外が138件である",
-          "形の外の138件のうち62件は、どこでも検査されていない。機械で見られるもの37件、意味の判断が要るもの12件、インスタンスの外の事実13件である",
-          "実物の2枚のボードは論点が6件で「3〜5件」の決まりを外れ、2文の caption も3件あった。check と inspect の指摘はどちらも0件だった",
-          "いまの基盤は、独自の注釈に書いた決まりを検査せず、検査しなかったことも報告しない。見つけるのは、承認の前に読む人だけである",
-          "見つける担い手は4つに分ける。エンジン（形）、決まりごとの検査（Rust など）、AI（意味の判断）、人（承認）である",
-          "確かめなかった決まりは、合格ではなく「確かめていない」として返す",
-          "変わらないこと：承認するのは人で、check ・ approve ・ render の合否は AI を呼ばずに決まる"
+          "変わること：目的に「確かめられなかった決まりを隠さず返す」と「AI を確かめる担い手として呼ぶ」を足す",
+          "足りているもの：JSON Schema で形を持つこと ・ 書いたその場の検証 ・ 参照と導出値の検査 ・ 承認の記録 ・ 公開した版を書き換えないこと ・ 言語に依存しない CLI と MCP",
+          "足りないもの：決まりごとの結果 ・ 確かめなかった決まりの報告 ・ Agents 契約（AI を呼ぶ約束）の3つである",
+          "Agents 契約を基盤が持つのは、確かめる担い手としての AI と、インスタンスを直す会話の相手としての AI を、どの Skill でも同じ約束で呼ぶためである",
+          "持たないもの：使う側のデータ ・ UI や Workflow を動かす側 ・ コードの生成と技術の選び方 ・ JSON-LD ・ RDF ・ SHACL への写し",
+          "描画（render）は持ち続ける。承認の前に人が読む画面を作るためで、UI を動かす側とは別である",
+          "変わらないこと：基盤は何のデータを持つかを決めず、使う側の Skill が concrete スキーマで決める"
         ]
       },
       "images": [
         {
           "kind": "figure",
-          "caption": "形の外の決まり138件と、だれが確かめているか。",
-          "svg": "<svg viewBox=\"0 0 680 330\" style=\"min-width:560px\" role=\"img\" aria-label=\"形の外の決まり138件のうち、どこでも検査されていない62件\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .badge.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .label.warn{fill:var(--dsvg-warn,#8F5410);font-size:12px}.dsvg #dsvg-4f6c8f0c-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-4f6c8f0c-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<text class=\"title\" x=\"20\" y=\"28\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ボードの決まり 397件（出どころごとに数えた）</text>\n<rect class=\"box\" x=\"20\" y=\"44\" width=\"380\" height=\"40\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"34\" y=\"69\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">形（JSON Schema）259件 ── check が見る</text>\n<rect class=\"box kind-2\" x=\"408\" y=\"44\" width=\"252\" height=\"40\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"422\" y=\"69\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">形の外 138件</text>\n<path class=\"flow\" d=\"M534,86 V112\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-4f6c8f0c-arrow-5B6B66)\"/>\n<text class=\"title\" x=\"20\" y=\"134\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">形の外の138件を、だれが確かめているか</text>\n<rect class=\"box kind-1\" x=\"20\" y=\"146\" width=\"352\" height=\"44\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"32\" y=\"173\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">確かめている 76件</text>\n<rect class=\"box warn\" x=\"372\" y=\"146\" width=\"288\" height=\"44\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"384\" y=\"173\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">どこでも検査されていない 62件</text>\n<text class=\"note\" x=\"20\" y=\"208\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">inspect ・ status ・ lock ・ x-ref など、Rust と基盤の検査で見ている</text>\n<text class=\"note\" x=\"20\" y=\"236\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">検査されていない62件の内訳</text>\n<rect class=\"badge warn\" x=\"200\" y=\"220\" width=\"148\" height=\"26\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"274\" y=\"238\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">機械で見られる 37件</text>\n<rect class=\"badge warn\" x=\"356\" y=\"220\" width=\"148\" height=\"26\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"430\" y=\"238\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">意味の判断が要る 12件</text>\n<rect class=\"badge warn\" x=\"512\" y=\"220\" width=\"148\" height=\"26\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"586\" y=\"238\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">外の事実 13件</text>\n<rect class=\"box warn\" x=\"20\" y=\"266\" width=\"640\" height=\"48\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"34\" y=\"287\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">実物の2枚：論点6件（決まりは3〜5件）・ 2文の caption 3件</text>\n<text class=\"label warn\" x=\"34\" y=\"305\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#8F5410\">それでも check と inspect の指摘は0件で、人が承認の前に読むまで見つからない</text>\n</svg>"
+          "caption": "基盤が持つものと持たないもの。いま足りているものと、足りないもの。",
+          "svg": "<svg viewBox=\"0 0 720 440\" style=\"min-width:600px\" role=\"img\" aria-label=\"基盤が持つものと持たないもの\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .badge{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-ink,#111D1A)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .badge.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme=\"dark\"] .dsvg{--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style>\n<rect class=\"area\" x=\"10\" y=\"10\" width=\"470\" height=\"420\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"24\" y=\"36\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">基盤 schema-driven が持つもの</text>\n<rect class=\"box\" x=\"24\" y=\"50\" width=\"442\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"38\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">宣言の契約</text><text class=\"note\" x=\"38\" y=\"92\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">abstract スキーマ ・ 注釈（x-ref ・ x-derive ・ x-prompt）</text>\n<rect class=\"badge\" x=\"380\" y=\"60\" width=\"76\" height=\"22\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"418\" y=\"76\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りている</text>\n<rect class=\"box\" x=\"24\" y=\"112\" width=\"442\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"38\" y=\"134\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">確かめる仕組み</text><text class=\"note\" x=\"38\" y=\"154\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">書いたその場の検証 ・ check ・ approve ・ 公開した版の指紋</text>\n<rect class=\"badge\" x=\"380\" y=\"122\" width=\"76\" height=\"22\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"418\" y=\"138\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りている</text>\n<rect class=\"box warn\" x=\"24\" y=\"174\" width=\"442\" height=\"52\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"38\" y=\"196\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">決まりごとの結果</text><text class=\"note\" x=\"38\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">確かめた担い手と結果を、決まり1件ずつ返す</text>\n<rect class=\"badge warn\" x=\"380\" y=\"184\" width=\"76\" height=\"22\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"418\" y=\"200\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りない</text>\n<rect class=\"box warn\" x=\"24\" y=\"236\" width=\"442\" height=\"52\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"38\" y=\"258\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">確かめなかったことの報告</text><text class=\"note\" x=\"38\" y=\"278\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">検査しなかった決まりを、合格にせず返す</text>\n<rect class=\"badge warn\" x=\"380\" y=\"246\" width=\"76\" height=\"22\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"418\" y=\"262\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りない</text>\n<rect class=\"box warn\" x=\"24\" y=\"298\" width=\"442\" height=\"52\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"38\" y=\"320\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Agents 契約</text><text class=\"note\" x=\"38\" y=\"340\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI を確かめる担い手 ・ 会話の相手として呼ぶ約束</text>\n<rect class=\"badge warn\" x=\"380\" y=\"308\" width=\"76\" height=\"22\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"418\" y=\"324\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りない</text>\n<rect class=\"box\" x=\"24\" y=\"360\" width=\"442\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"38\" y=\"382\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">描画</text><text class=\"note\" x=\"38\" y=\"402\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">インスタンスを承認の画面へ写す（render）</text>\n<rect class=\"badge\" x=\"380\" y=\"370\" width=\"76\" height=\"22\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"418\" y=\"386\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足りている</text>\n<rect class=\"boundary\" x=\"496\" y=\"10\" width=\"214\" height=\"420\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"510\" y=\"36\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">基盤が持たないもの</text>\n<rect class=\"box\" x=\"510\" y=\"50\" width=\"186\" height=\"74\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"522\" y=\"80\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">使う側のデータ</text><text class=\"label\" x=\"522\" y=\"104\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">何を持つかは Skill</text>\n<rect class=\"box\" x=\"510\" y=\"140\" width=\"186\" height=\"74\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"522\" y=\"170\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">UI ・ Workflow の</text><text class=\"label\" x=\"522\" y=\"194\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Runtime（動かす側）</text>\n<rect class=\"box\" x=\"510\" y=\"230\" width=\"186\" height=\"74\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"522\" y=\"260\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">コードの生成と</text><text class=\"label\" x=\"522\" y=\"284\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">技術の選び方</text>\n<rect class=\"box\" x=\"510\" y=\"320\" width=\"186\" height=\"74\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"522\" y=\"350\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON-LD ・ RDF ・</text><text class=\"label\" x=\"522\" y=\"374\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">SHACL への写し</text>\n</svg>"
         }
       ],
       "assumptions": [
-        "数えたのは brainstorming のボードのスキーマ1つと、実物のボード2枚である。ACDR と skills-creator のスキーマは数えていない"
+        "Concrete の Skill（brainstorming ・ ACDR）は、この基盤が決着したあとに、別のボードで移し方を決める"
       ],
       "checks": [
         {
-          "target": "見つけたい誤り",
-          "ask": "承認の前に見つけたいのは、この「形の外の決まりの破れ」で合っているか。ほかに見逃している誤りはあるか"
+          "target": "基盤が持つもの",
+          "ask": "Agents 契約を、基盤が持つものとして足すことでよいか"
         },
         {
-          "target": "担い手の4つ",
-          "ask": "エンジン ・ 決まりごとの検査 ・ AI ・ 人の4つに分けることでよいか"
+          "target": "持たないもの",
+          "ask": "UI ・ Workflow を動かす側と、コードの生成を、基盤の外に置くことでよいか"
+        },
+        {
+          "target": "描画",
+          "ask": "描画（render）を、承認の画面を作るものとして基盤に残すことでよいか"
         }
       ],
       "grounds": [
         {
-          "supports": "形の外の138件と、検査されていない62件",
-          "basis": "形以外の138件のうち **62件はどこでも検査されていない**。内訳は、機械で見られる37件、意味の判断を必要とする12件、インスタンスの外の事実に関わる13件である。",
-          "tag": "measured",
-          "source": "measured/v03-experiment/README.md（2026-10-17）"
+          "supports": "論点の立て方（変わること ・ 足りているもの ・ 足りないもの ・ 本当に必要か）",
+          "basis": "そもそもこの新しい概念においてSchema駆動がどのように変わるという部分を論点として扱い、何が足りないのか逆に今何が足りているのか、本当に必要なものか、このような内容を論点を進めて把握してい行きたいんです。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
         },
         {
-          "supports": "実物のボードで破れていたこと",
-          "basis": "検査されていない決まりは、実物のボードで破れていた。2枚のボードとも論点が6件あり、x-prompt の「3〜5件」を外れている。agents-in-base には、2文の caption が3件ある。どちらのボードも、inspect と check の指摘は0件だった。",
-          "tag": "measured",
-          "source": "measured/v03-experiment/README.md（2026-10-17）"
+          "supports": "基盤を先に決め、Concrete をそのあとにすること",
+          "basis": "まずは基盤を確立しないことには決まらないです。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
         },
         {
-          "supports": "検査しなかったことを報告しないこと",
+          "supports": "Agents 契約を基盤が持つものに入れること",
+          "basis": "そしてZipの内容は私はSchema駆動にAIのAgents契約を持たせたい目的とかなりシナジーがある内容だと思ってます。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "v0.3 の基盤の定義",
+          "basis": "**Schema駆動基盤（Abstract Schema / Semantic Contract Core）**: 特定用途や言語に先立つ意味・契約・構造・関係・制約・インスタンスの扱い方を規定する、抽象側の基盤。",
+          "tag": "primary",
+          "source": "構想 v0.3 の docs/10"
+        },
+        {
+          "supports": "動かす側を基盤の外に置くこと",
+          "basis": "UI RendererやWorkflow Engineは、それぞれのSchemaを利用する**Runtime**であり、Schemaそのものとは区別する。",
+          "tag": "primary",
+          "source": "構想 v0.3 の docs/10"
+        },
+        {
+          "supports": "いまの基盤が何のデータを持つかを決めないこと",
+          "basis": "この Skill は**基盤**である。何のデータを持つかは決めない。",
+          "tag": "primary",
+          "source": "基盤の SKILL.md（.claude/skills/schema-driven/SKILL.md）"
+        },
+        {
+          "supports": "確かめなかった決まりを報告しないことが、いま足りないこと",
           "basis": "いまの基盤は、知らない注釈を申告さえすれば受け付け、検査しないまま何も報告しない（keyword-trial）。",
           "tag": "measured",
-          "source": "measured/v03-experiment/README.md（2026-10-17）。keyword-trial/"
+          "source": "measured/v03-experiment/README.md（2026-10-17）"
         },
         {
-          "supports": "問いを v0.3 からではなく、見逃している誤りから始めること",
+          "supports": "目的を手段（v0.3）から始めないこと",
           "basis": "Q0 を「いまの基盤で見逃している誤りは何か」という問題発見の問いに戻し",
           "tag": "primary",
           "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
@@ -77,18 +105,22 @@
       ],
       "rejected": [
         {
-          "option": "v0.3 で何ができるようになるかを問う（最初に立てた Q0）",
+          "option": "基盤の目的を、v0.3 で何ができるようになるかから決める（第1回の Q0 の前）",
           "reason": "手段から問いを始めるので、答えが UI ・ Workflow ・ コードの生成まで広がり、決められない"
         },
         {
-          "option": "検査されていない決まりを、全部 inspect に足す",
-          "reason": "意味の判断12件とインスタンスの外13件は Rust の検査では見られず、検査しなかったことも報告されないまま残る"
+          "option": "brainstorming のボードの決まりから入る（第1回の Q0）",
+          "reason": "Concrete の1つから基盤を決めることになり、ACDR などほかの Skill に当てはまるかが分からない"
+        },
+        {
+          "option": "描画を基盤から外し、使う側の Runtime に置く",
+          "reason": "承認の前に人が読む画面を、Skill ごとに作り直すことになる"
         }
       ],
       "verification": {
         "out_of_scope": [
           {
-            "item": "ACDR と skills-creator のスキーマの決まりの数",
+            "item": "Concrete の Skill（brainstorming ・ ACDR ・ skills-creator）の移し方は、基盤が決着したあとの別のボードで決める",
             "treatment": "later"
           }
         ]
@@ -96,122 +128,164 @@
     },
     {
       "id": "Q1",
-      "name": "位置づけと取り込む範囲",
+      "name": "意味と最小単位",
       "status": "waiting",
       "depends": [
         "Q0"
       ],
-      "question": "構想 Semantic Contract Core v0.3 を、いまの基盤の作り直しにするか、足すか。足すなら、どの考えを取り込み、どれを扱わないか",
+      "question": "基盤が扱う「意味」は何か。宣言の最小単位は何にするか",
       "answer": {
-        "text": "基盤は作り直さず、abstract@v1 を変えずに足す。v0.3 から取り込むのは決まりごとの結果 ・ 担い手の宣言 ・ 確かめられなければ成功にしないことの3つで、正本は JSON Schema のままにする。",
+        "text": "意味は、インスタンスに課す決まりと、それを誰がどう確かめるかとして扱う。宣言の単位は名前 ・ 識別 ・ 関係 ・ 決まり ・ 文脈の5つにし、解釈は宣言から外す。",
         "details": [
-          "足す場所は基盤の新しい版（@v2）である。いまの操作と、abstract@v1 に従うインスタンスは、そのまま同じ結果を返す",
-          "取り込む1：決まり1件ごとに id を持たせ、結果を決まった5つの語で返す",
-          "取り込む2：決まりごとに、確かめる担い手と、その担い手に要る能力を宣言する",
-          "取り込む3：必須の決まりを確かめられなければ、全体を成功にしない",
-          "正本は JSON Schema と、その上に足す独自の語彙のままにする。試作で、それでは持てない意味が実例で出たときだけ見直す",
-          "扱わないもの：UI ・ Workflow などの Runtime、JSON-LD ・ RDF ・ SHACL への写し、自前のモデルを正本にすること",
-          "名前をそろえる：抽象の側は「abstract スキーマ」1つにし、Foundation などの別名を使わない"
+          "v0.3 の4つの側面のうち、基盤が宣言するのは構造と形式で、説明（x-prompt の文）は AI が確かめる決まりとして扱う",
+          "足りているもの：構造（JSON Schema）・ 関係（x-ref）・ 導出値（x-derive）・ 名前（$id）・ 説明（description と x-prompt）",
+          "足りないもの：決まり1件ごとの id ・ 語の意味が通る範囲（文脈）・ x-prompt の rule を確かめられる決まりとして持つ形",
+          "解釈（Interpretation）は宣言の単位にせず、確かめる担い手の側に置く。宣言の側には、どの担い手が要るかだけを置く",
+          "本当に必要か：振る舞い（状態の移り変わり ・ 時間）の宣言は、いまの Skill の決まりに実例が無いので、まだ持たない"
         ]
       },
       "images": [
         {
-          "kind": "figure",
-          "caption": "基盤に足すものと、扱わないもの。",
-          "svg": "<svg viewBox=\"0 0 700 420\" style=\"min-width:580px\" role=\"img\" aria-label=\"基盤を作り直さずに足すものと、扱わないもの\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-62ee055c-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE}}:root[data-theme=\"dark\"] .dsvg{--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-62ee055c-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"area\" x=\"10\" y=\"10\" width=\"480\" height=\"64\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"24\" y=\"34\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Skill のスキーマ（concrete）</text><text class=\"label\" x=\"24\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">brainstorming ・ ACDR ・ skills-creator</text>\n<path class=\"flow\" d=\"M250,76 V100\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-62ee055c-arrow-5B6B66)\"/>\n<rect class=\"area\" x=\"10\" y=\"104\" width=\"480\" height=\"300\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"24\" y=\"128\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">基盤 schema-driven</text>\n<rect class=\"box\" x=\"26\" y=\"142\" width=\"448\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"164\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">abstract@v1</text><text class=\"note\" x=\"40\" y=\"183\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">変えない。いまの操作と結果もそのまま</text>\n<rect class=\"box focus\" x=\"26\" y=\"204\" width=\"448\" height=\"104\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title focus\" x=\"40\" y=\"226\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#0D5C55\">足す（新しい版 @v2）</text>\n<text class=\"label\" x=\"40\" y=\"250\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">1 決まりごとの id と、5つの結果の語</text>\n<text class=\"label\" x=\"40\" y=\"272\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">2 決まりごとに、確かめる担い手と要る能力</text>\n<text class=\"label\" x=\"40\" y=\"294\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">3 必須の決まりを確かめられなければ成功にしない</text>\n<text class=\"note\" x=\"26\" y=\"330\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">確かめる担い手</text>\n<rect class=\"box\" x=\"26\" y=\"340\" width=\"104\" height=\"40\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"78\" y=\"365\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">エンジン</text>\n<rect class=\"box\" x=\"140\" y=\"340\" width=\"104\" height=\"40\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"192\" y=\"365\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Rust の検査</text>\n<rect class=\"box kind-2\" x=\"254\" y=\"340\" width=\"104\" height=\"40\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"306\" y=\"365\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">AI</text>\n<rect class=\"box\" x=\"368\" y=\"340\" width=\"104\" height=\"40\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"420\" y=\"365\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">人（承認）</text>\n<text class=\"note\" x=\"26\" y=\"396\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI は Agents 契約で呼ぶ</text>\n<rect class=\"boundary\" x=\"506\" y=\"104\" width=\"184\" height=\"300\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"520\" y=\"128\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">扱わない</text>\n<text class=\"label\" x=\"520\" y=\"158\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">UI ・ Workflow の</text>\n<text class=\"label\" x=\"520\" y=\"180\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Runtime</text>\n<text class=\"label\" x=\"520\" y=\"216\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON-LD ・ RDF ・</text>\n<text class=\"label\" x=\"520\" y=\"238\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">SHACL への写し</text>\n<text class=\"label\" x=\"520\" y=\"274\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">自前のモデルを</text>\n<text class=\"label\" x=\"520\" y=\"296\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">正本にすること</text>\n<text class=\"note\" x=\"520\" y=\"330\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">正本は JSON Schema と</text><text class=\"note\" x=\"520\" y=\"348\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">独自の語彙のまま。</text><text class=\"note\" x=\"520\" y=\"366\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">試作で持てない意味が</text><text class=\"note\" x=\"520\" y=\"384\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">出たときだけ見直す</text>\n</svg>"
-        }
-      ],
-      "assumptions": [
-        "@v2 を並べても、公開した abstract@v1 を書き換えずに、基盤の版は足すだけで出せる"
-      ],
-      "checks": [
-        {
-          "target": "扱わないもの",
-          "ask": "UI ・ Workflow の Runtime と、JSON-LD ・ SHACL への写しを、このボードで扱わないことでよいか"
+          "kind": "code",
+          "caption": "文で書いただけで確かめていない決まりの実例（ボードの論点の件数）。",
+          "path": ".claude/skills/brainstorming/assets/board.schema.json",
+          "language": "json",
+          "text": "    \"topics\": {\n      \"description\": \"論点の並び\",\n      \"x-prompt\": {\n        \"read\": {\n          \"means\": \"このボードの論点である。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"three-to-five\",\n            \"rule\": \"3〜5件にし、依存の順に並べる。\",\n            \"why\": \"多すぎると決着しないまま依存が増える。\",\n            \"test\": \"件数を見る。\"\n          }\n        ]\n      },\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"$ref\": \"#/$defs/topic\"\n      }\n    }",
+          "highlight": [
+            10,
+            18
+          ],
+          "note": "x-prompt は「3〜5件」と書くが、形は minItems 1 だけで、件数を確かめていない"
         }
       ],
       "grounds": [
         {
-          "supports": "表せる範囲では作り直す理由が無いこと",
-          "basis": "表せる範囲に差が出た決まりは 0件",
-          "tag": "measured",
-          "source": "measured/v03-experiment/README.md（2026-10-17）。タスク4（独自のキーワードと v0.3 の自前のモデルの比較）"
+          "supports": "v0.3 の4つの側面",
+          "basis": "| Descriptive | 名前・説明・意図 | 人手/外部根拠なしには真偽確定困難 |",
+          "tag": "primary",
+          "source": "構想 v0.3 の docs/11"
         },
         {
-          "supports": "v0.3 で増えるものが3つに絞れること",
-          "basis": "加えるのは「検査しなかった決まりを `unverified` として報告すること」である。",
+          "supports": "最小単位に文脈を足し、解釈を宣言から外すこと",
+          "basis": "最小単位の候補に「文脈」を足し、Interpretation を宣言の単位から外す案を反証にかける",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "意味の判断が要る決まりが、いま検査されていないこと",
+          "basis": "そのうち、test を確かめるのに意味の判断を必要とするものは **10件**（board.schema.json の 14 ・ 197 ・ 544 ・ 626 ・ 746 ・ 767 ・ 1143 ・ 1447 ・ 1574 ・ 1596 行）である。1447行だけは「描いて目で見る」で、人か、画像を読める AI が見る。SKILL.md のガードレールの2件（119 ・ 120 行）を足すと12件になる。12件とも、いまは検査として呼ばれていない。書く AI が自分で読むだけである。",
           "tag": "measured",
           "source": "measured/v03-experiment/README.md（2026-10-17）"
         },
         {
-          "supports": "確かめられなければ成功にしない仕組みが、JSON Schema にもともとあること",
-          "basis": "If the value is true, then implementations that do not recognize the vocabulary MUST refuse to process any schemas that declare this meta-schema with \"$schema\".",
+          "supports": "v0.3 で未決の1つ目と2つ目",
+          "basis": "1. **Semanticの形式的な定義**と独立な意味規則の検証範囲。",
           "tag": "primary",
-          "source": "draft-bhutton-json-schema-01.txt:1421。sources/README.md（2026-10-17 取得、fact-check で照合）"
-        },
-        {
-          "supports": "決まりごとの報告は、JSON Schema の外（基盤の応答）に持つこと",
-          "basis": "Complex behavior is usually better delegated to applications on the basis of annotation data than implemented directly as schema keywords.",
-          "tag": "primary",
-          "source": "draft-bhutton-json-schema-01.txt:747。sources/README.md（2026-10-17 取得、fact-check で照合）"
-        },
-        {
-          "supports": "作り直すより足すこと",
-          "basis": "いまの判断材料では「基盤の操作と abstract@v1 を変えずに層を足す」ほうが移行と配布のリスクが小さいが、v0.3 の Expression-first（JSON Schema を表現の上限にしない）をこの層の形で守れるかが未判定なので、それを決めるまでは条件付きである。",
-          "tag": "primary",
-          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
-        },
-        {
-          "supports": "@v2 に並べて足すこと",
-          "basis": "案B：上の層として足す（abstract@v1 はそのままにし、Vocabulary と Capability を注釈の版として abstract@v2 に並べて足す）",
-          "tag": "primary",
-          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+          "source": "構想 v0.3 の docs/17"
         }
       ],
       "rejected": [
         {
-          "option": "作り直す（v0.3 の自前のモデルを正本にし、基盤を置き換える）",
-          "reason": "表せる範囲の差は0件で、3つの Skill の公開した版とインスタンスがすべて移行の対象になる"
+          "option": "状態の移り変わりや時間の決まりも、最初から宣言できるようにする",
+          "reason": "いまの Skill の決まりに実例が無く、宣言できても確かめる担い手が無いまま増える"
         },
         {
-          "option": "横に足す（意味の検証を別の基盤にする）",
-          "reason": "結果の語が check と別に並び、1つの決まりに2つの結果が出る"
-        },
-        {
-          "option": "契約だけを基盤に置き、確かめる処理は Skill に残す",
-          "reason": "確かめられないときに成功にしないことを、基盤の側で守らせられない"
+          "option": "解釈（Interpretation）を宣言の単位に入れる",
+          "reason": "宣言と解釈を分けるという v0.3 自身の決定と食い違う"
         }
-      ],
-      "verification": {
-        "out_of_scope": [
-          {
-            "item": "自前のモデルを正本にするかは、試作で実例が出たときに見直す",
-            "treatment": "later"
-          }
-        ]
-      }
+      ]
     },
     {
       "id": "Q2",
-      "name": "決まりを確かめる担い手（AI を含む）",
+      "name": "抽象と具体の関係と正本の形",
       "status": "waiting",
       "depends": [
         "Q0",
         "Q1"
       ],
-      "question": "意味の決まりを、エンジン ・ AI ・ 人のどれが確かめ、AI を担い手にするときの Agents 契約は何を約束するか",
+      "question": "abstract と concrete の関係、語彙の版と互換、正本の形をどうするか",
       "answer": {
-        "text": "担い手は決まりごとに宣言し、AI は担い手の1つとして Agents 契約で呼ぶ。AI の答えは揺れるので、機械で裏付けた違反だけを違反とし、それ以外は確かめていないとして返す。",
+        "text": "関係はいまの「concrete は abstract のインスタンス」のままにし、独自の語彙は abstract の新しい版として足し、正本は JSON Schema とその語彙のままにする。",
         "details": [
+          "足りているもの：concrete は abstract のインスタンスである。公開した版は書き換えず、@v2 で足す。公開した版の指紋を published.json に残す",
+          "これらは、v0.3 が未決とした「Abstract と Concrete の関係」と「版と互換」に、いまの基盤がすでに答えている",
+          "変わること：独自の語彙を $vocabulary で必須として宣言し、その語彙を知らない実装には処理させない",
+          "足りないもの：語彙の名前が衝突したときの扱い。JSON Schema には名前空間の仕組みが無い",
+          "本当に必要か：自前のモデルを正本にすることは、いまは要らない。JSON Schema で持てない意味が実例で出たときだけ見直す",
+          "本当に必要か：JSON とグラフを並べて持つことは、いまは要らない。関係は x-ref で持てている"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "caption": "抽象と具体の関係と、版の足し方。",
+          "svg": "<svg viewBox=\"0 0 680 330\" style=\"min-width:560px\" role=\"img\" aria-label=\"抽象と具体の関係と、版の足し方\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-9b689fcd-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-9b689fcd-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"box\" x=\"20\" y=\"20\" width=\"300\" height=\"70\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"34\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">abstract@v1</text><text class=\"note\" x=\"34\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">変えない。いまのインスタンスも同じ結果</text>\n<rect class=\"box focus\" x=\"360\" y=\"20\" width=\"300\" height=\"70\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title focus\" x=\"374\" y=\"46\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#0D5C55\">abstract@v2（足す）</text><text class=\"note\" x=\"374\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">独自の語彙を $vocabulary で必須にする</text>\n<path class=\"flow\" d=\"M322,55 H358\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-9b689fcd-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M170,92 V138\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-9b689fcd-arrow-5B6B66)\"/><text class=\"note\" x=\"182\" y=\"120\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">concrete は abstract のインスタンス</text>\n<rect class=\"box\" x=\"20\" y=\"142\" width=\"640\" height=\"70\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"34\" y=\"168\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">concrete スキーマ（Skill ごと）</text><text class=\"note\" x=\"34\" y=\"194\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">決まり1件ごとの id ・ 確かめる担い手 ・ 要る能力を宣言する</text>\n<path class=\"flow\" d=\"M340,214 V250\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-9b689fcd-arrow-5B6B66)\"/>\n<rect class=\"box\" x=\"20\" y=\"254\" width=\"640\" height=\"56\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"34\" y=\"278\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">インスタンス（JSON のまま。正本）</text><text class=\"note\" x=\"34\" y=\"298\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">グラフや外の標準への写しは、必要が出たときの派生にとどめる</text>\n</svg>"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "未決に、いまの基盤がすでに答えていること",
+          "basis": "いまの基盤は「concrete スキーマは abstract スキーマのインスタンスである」と決めており、v0.3 が未決とする Abstract と Concrete の関係（docs/17 未決4）に、いまの基盤は「型付きインスタンス化」で答えている",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "必須の語彙を知らない実装に処理させない仕組み",
+          "basis": "If the value is true, then implementations that do not recognize the vocabulary MUST refuse to process any schemas that declare this meta-schema with \"$schema\".",
+          "tag": "primary",
+          "source": "draft-bhutton-json-schema-01.txt:1421。sources/README.md（fact-check で照合）"
+        },
+        {
+          "supports": "語彙の衝突の扱いが決まっていないこと",
+          "basis": "JSON Schema does not provide any formal namespacing system, but also does not constrain keyword names, allowing for any number of namespacing approaches.",
+          "tag": "primary",
+          "source": "draft-bhutton-json-schema-01.txt:3827。sources/README.md（fact-check で照合）"
+        },
+        {
+          "supports": "表せる範囲に差が無いこと",
+          "basis": "JSON Schema 2020-12 の独自のキーワードで書く場合と、v0.3 の自前のモデルで書く場合とで、**表せる範囲に差が出た決まりは0件**だった。",
+          "tag": "measured",
+          "source": "measured/v03-experiment/README.md（2026-10-17）"
+        },
+        {
+          "supports": "グラフは派生にとどめること（v0.3 の仮説と同じ向き）",
+          "basis": "**外部交換はJSON、元JSONを保持、意味解決後のGraphは必要に応じた派生表現。** ただし、正式な内部Canonical Representationは未決。",
+          "tag": "primary",
+          "source": "構想 v0.3 の docs/15"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "自前のモデルを正本にし、JSON Schema を部品に下げる",
+          "reason": "表せる範囲の差は0件で、3つの Skill の公開した版とインスタンスがすべて移行の対象になる"
+        },
+        {
+          "option": "JSON とグラフを並べて持つ",
+          "reason": "関係はいまの x-ref で持てていて、グラフを持つ実例が無い"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "name": "解釈と結果、Agents 契約",
+      "status": "waiting",
+      "depends": [
+        "Q0",
+        "Q1",
+        "Q2"
+      ],
+      "question": "誰が決まりを確かめ、何を結果として返し、AI を担い手にするとき Agents 契約は何を約束するか",
+      "answer": {
+        "text": "担い手と要る能力を決まりごとに宣言し、結果は5つの語で返し、必須の決まりを確かめられなければ成功にしない。AI は Agents 契約で呼ぶ担い手で、機械で裏付けた違反しか出さない。",
+        "details": [
+          "足りているもの：check と approve は、形の誤りがあれば止まる",
+          "足りないもの：形の外の決まりを、どの担い手がどう確かめたかを返す仕組み。実験では、形の外の138件のうち62件がどこでも検査されていなかった",
           "結果の語は5つにそろえる。合格（verified）・ 違反（violated）・ 確かめていない（unverified）・ 担い手が無い（unsupported）・ 処理の失敗（error）",
           "担い手が無い決まりは unsupported、担い手はいるが合否を決められなかった決まりは unverified である",
-          "必須の決まりに合格以外が1件でもあれば、全体を成功にしない",
-          "AI は「決定的でない」と宣言する担い手である。決まりの id ・ 場所 ・ 引用を基盤が機械で確かめた指摘だけを違反にする",
+          "AI は「決定的でない」と宣言する担い手である。決まりの id ・ 場所 ・ 引用を基盤が機械で確かめた指摘だけを違反にし、それ以外は unverified にする",
           "AI の答えの揺れは、同じ入力を N 回呼んだ判定ごとの回数として記録に残し、CI と承認の合否には使わない",
           "Agents 契約が約束するもの：protocol の版 ・ 能力の宣言 ・ 応答の形 ・ 形を満たさない応答は error ・ 結果の出どころ ・ 書く操作は再試行しない",
-          "結果の出どころには、CLI の名前と版 ・ モデル ・ 親と子のセッションの ID を残す",
-          "Agents 契約の使い道は3つである。意味の確かめ（読むだけ）、会話（インスタンスを直す）、Skill のスキーマが担い手を宣言することである",
-          "やらせたいことの型 ・ 親と子のセッション ・ 1つのインスタンスで子は1つ ・ ロックは、AI の呼び出しのモジュールにまとめる",
+          "Agents 契約の使い道は、意味の確かめ（読むだけ）と会話（インスタンスを直す）の2つで、やらせたいことの型 ・ 親と子のセッション ・ 子は1つ ・ ロックを共通に持つ",
           "人の判断（目的に合うかの妥当性確認）は5つの結果の外に置き、いまの approve の記録として持つ"
         ]
       },
@@ -222,48 +296,42 @@
           "svg": "<svg viewBox=\"0 0 700 380\" style=\"min-width:580px\" role=\"img\" aria-label=\"決まりを確かめる担い手と、返す結果\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-6ee6c343-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-6ee6c343-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<text class=\"note\" x=\"20\" y=\"24\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">確かめる担い手</text><text class=\"note\" x=\"380\" y=\"24\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">返す結果</text>\n<rect class=\"box\" x=\"20\" y=\"36\" width=\"310\" height=\"42\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"34\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">エンジン（JSON Schema）</text>\n<path class=\"flow\" d=\"M332,57 H372\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-6ee6c343-arrow-5B6B66)\"/>\n<text class=\"label\" x=\"380\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">合格 ・ 違反</text>\n<rect class=\"box\" x=\"20\" y=\"92\" width=\"310\" height=\"42\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"34\" y=\"118\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Rust などの検査</text>\n<path class=\"flow\" d=\"M332,113 H372\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-6ee6c343-arrow-5B6B66)\"/>\n<text class=\"label\" x=\"380\" y=\"118\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">合格 ・ 違反</text>\n<rect class=\"box kind-2\" x=\"20\" y=\"148\" width=\"310\" height=\"42\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"34\" y=\"174\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">AI（Agents 契約で呼ぶ）</text>\n<path class=\"flow\" d=\"M332,169 H372\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-6ee6c343-arrow-5B6B66)\"/>\n<text class=\"label\" x=\"380\" y=\"174\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">違反（機械で裏付けたもの）・ 確かめていない</text>\n<rect class=\"box warn\" x=\"20\" y=\"204\" width=\"310\" height=\"42\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"34\" y=\"230\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">担い手が無い</text>\n<path class=\"flow\" d=\"M332,225 H372\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-6ee6c343-arrow-5B6B66)\"/>\n<text class=\"label\" x=\"380\" y=\"230\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">担い手が無い</text>\n<rect class=\"box warn\" x=\"20\" y=\"260\" width=\"310\" height=\"42\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"34\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">どの担い手でも：時間切れ ・ 読めない応答</text>\n<path class=\"flow\" d=\"M332,281 H372\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-6ee6c343-arrow-5B6B66)\"/>\n<text class=\"label\" x=\"380\" y=\"286\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">処理の失敗（記録を作らない）</text>\n<rect class=\"box focus\" x=\"20\" y=\"320\" width=\"660\" height=\"44\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"34\" y=\"340\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">必須の決まりに合格以外が1件でもあれば、全体を成功にしない</text>\n<text class=\"note\" x=\"34\" y=\"357\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">人の判断（目的に合うか）は5つの外で、いまの approve の記録として持つ</text>\n</svg>"
         }
       ],
-      "checks": [
-        {
-          "target": "Agents 契約の約束",
-          "ask": "Agents 契約に足りないと考えていたものは、この6つの約束と3つの使い道で足りているか"
-        }
-      ],
       "grounds": [
         {
-          "supports": "Agents 契約を、基盤が持つ契約として足すこと",
+          "supports": "Agents 契約は、v0.3 に足りない部分であること",
           "basis": "たぶん前提が変わるなら、少し変わるんだけども、Shema駆動がAgents契約を持つっていう契約概念は今回のZipの内容においても必要でこれは足りてない部分だと思う。",
           "tag": "primary",
           "source": "利用者の言葉（2026-10-17）"
         },
         {
-          "supports": "v0.3 に AI を判断する役が無いこと",
+          "supports": "v0.3 に、答えの揺れる AI を担い手にする約束が無いこと",
           "basis": "利用者の「足りていない」という指摘は、v0.3 の Interpreter が「決まった結果を返す実装」だけを想定し、同じ入力で結果が揺れる AI を Interpreter にするときの約束（独立した文脈で呼ぶ ・ 判断した役を記録する ・ 承認の根拠にしない）を持たない点で当たっている",
           "tag": "primary",
           "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
         },
         {
-          "supports": "結果の語を5つにし、AI の判定を合格にしないこと",
+          "supports": "AI の判定を合格にしないこと",
           "basis": "守れている → unverified（verified にしない）。判断できない → unverified（理由を diagnostic に書く）。",
           "tag": "primary",
           "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
         },
         {
-          "supports": "Agents 契約に足りない6つの約束",
+          "supports": "Agents 契約に足りない約束",
           "basis": "v0.3 の Interpreter Protocol と比べて足りないのは、(1) protocol の版、(2) Interpreter が何を解釈 ・ 検証できるかの Capability の宣言、(3) 応答の形（いまは自由な文の出来事の並びで、構造化した診断 focus ・ path ・ constraint ・ severity ・ provenance を返す形が無い）、(4) 応答が形を満たさないときに error とする決まり、(5) 結果の出所（CLI の名前と版 ・ モデル ・ 親子のセッションの ID）と、同じ入力でも結果が変わりうることの印、(6) 書く操作の再試行をしない決まり（読むだけの検証は再試行してよい）",
           "tag": "primary",
           "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
         },
         {
-          "supports": "Agents 契約を独立の論点にせず、この論点に置くこと",
+          "supports": "形の外の決まりの多くが検査されていないこと",
+          "basis": "形以外の138件のうち **62件はどこでも検査されていない**。内訳は、機械で見られる37件、意味の判断を必要とする12件、インスタンスの外の事実に関わる13件である。",
+          "tag": "measured",
+          "source": "measured/v03-experiment/README.md（2026-10-17）"
+        },
+        {
+          "supports": "Agents 契約を、確かめる担い手の論点に置くこと",
           "basis": "Agents 契約は「意味の決まりを、誰が（エンジン ・ AI ・ 人）確かめるか」への答えの1つで、v0.3 の語で言えば Interpreter の1つである。独立させると、Q2 の「解釈を誰が持つか」と同じ問いを2か所で答えることになる。",
           "tag": "primary",
           "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
-        },
-        {
-          "supports": "やらせたいことの型 ・ 親と子のセッション ・ 子は1つ ・ ロック",
-          "basis": "1つのインスタンスで動く子セッションは1つだけにする。ロックはファイルで持ち、子へ依頼の ID を環境変数で渡し、子が呼ぶ入口は同じロックの下で書く",
-          "tag": "rule",
-          "source": "ボード agents-in-base の Q1（保留中）と、brainstorming 0.1.4 の CODING.md"
         }
       ],
       "rejected": [
@@ -282,123 +350,75 @@
       ]
     },
     {
-      "id": "Q3",
-      "name": "最初の試作と完成の条件",
+      "id": "Q4",
+      "name": "公開の口 ・ 移し方 ・ 完成の条件",
       "status": "waiting",
       "depends": [
+        "Q0",
         "Q1",
-        "Q2"
+        "Q2",
+        "Q3"
       ],
-      "question": "何を試作し、何で確かめたら、このボードの答えが正しかったと言えるか",
+      "question": "言語に依存しない口と実装を、いまの基盤からどう移し、何で確かめたら完成とするか",
       "answer": {
-        "text": "brainstorming のボードの決まり116件を対象に、決まりごとの結果を返す試作を abstract@v1 を変えずに作り、4つの測り方がどれも0件なら完成とする。",
+        "text": "口はいまの CLI ・ MCP ・ JSON のまま、出力の形と結果の語を JSON Schema で公開し、適合の試験を JSON の組で持ち、基盤を足すだけの版で出す。4つの測り方がどれも0件なら完成とする。",
         "details": [
-          "測り方1：公開した版を書き換えないと書けない決まりが0件",
-          "測り方2：いまの check と意味の検証の結果を5つの語へ写して、写せないものが0件",
-          "測り方3：確かめられない決まりを含むのに、合格と返した件数が0件",
-          "測り方4：足す前と後で、いまの全部のインスタンスの check と approve の結果が変わった件数が0件",
-          "段A（CI）：見本の期待結果と100%一致する。期待結果は試作を書く前に JSON で書く",
-          "段B（CI）：無い id や、インスタンスに無い引用を混ぜた AI の答えは、全件 error になる",
-          "段C（手元）：決まり10件の bad と good を Claude Code ・ Codex ・ Kiro で5回ずつ回し、指せた割合 ・ 偽陽性 ・ 揃った割合を記録する",
-          "段D（妥当性確認）：実物のボード1枚に AI の確かめを当て、利用者が違反の報告を全件読んで分けた記録が残る",
-          "測り方1で書けない決まりが1件でも出たら、Q1 の「正本は JSON Schema のまま」を見直す"
+          "足りているもの：CLI と MCP が同じ名前と引数を受け、標準出力の JSON と終了コードで返す。中心は入出力に触らない",
+          "足りないもの：各ツールの出力の形が JSON Schema になっていない ・ 出力に protocol の版が無い ・ 結果の値が日本語の文字列である",
+          "足りないもの：試験が Rust の中にだけあり、別の言語の実装が同じ試験を使えない。入力と期待結果の JSON の組で持つ",
+          "実装は Rust のままにし、Rust の型を公開の契約にしない",
+          "基盤は足すだけの版で出す。abstract@v1 に従う Skill は、手を入れなくても今までと同じ結果を返す",
+          "測り方：公開した版を書き換えないと書けない決まり ・ 結果の語へ写せないもの ・ 確かめられないのに合格と返したもの ・ 足す前と後で結果が変わったものが、どれも0件",
+          "保留にしたボード agents-in-base の答えは Q3 の材料として使い、2つの契約を並べない"
         ]
       },
-      "images": [
-        {
-          "kind": "code",
-          "caption": "実験で作った、決まりごとの結果の応答（試案。先頭45行）。",
-          "path": ".brainstorming/semantic-contract-core/measured/v03-experiment/v03/interpreter-response.trial.json",
-          "language": "json",
-          "text": "{\n  \"_note\": \"試案。v0.3 の examples の形にならったもので、正式な仕様ではない。 results の evidence は、この実験で実物のボード（またはその写し）に対して実際に動かした検査。動かしていない制約は unverified にした。\",\n  \"protocol\": \"semantic.interpreter/0-draft\",\n  \"status\": \"violated\",\n  \"providedCapabilities\": [\n    \"check-svg\",\n    \"extract-topic-mentions\",\n    \"validate-downstream-or-outer\",\n    \"validate-ja-sentence\",\n    \"validate-reference\",\n    \"validate-structure\"\n  ],\n  \"missingCapabilities\": [\n    \"check-html-no-external\",\n    \"check-rendered-page\",\n    \"judge-meaning\",\n    \"judge-visual\",\n    \"validate-implies\",\n    \"validate-ja-sentence（OneSentence）\",\n    \"validate-lines\",\n    \"validate-order\",\n    \"validate-tree-depth\",\n    \"validate-unique-key\"\n  ],\n  \"counts\": {\n    \"verified\": 11,\n    \"unverified\": 22,\n    \"violated\": 1\n  },\n  \"results\": [\n    {\n      \"constraint\": \"rejected-at-least-one\",\n      \"status\": \"verified\",\n      \"evidence\": \"jsonschema-trial/boards/real-as-is.json（標準のキーワードへ射影）\"\n    },\n    {\n      \"constraint\": \"title-40\",\n      \"status\": \"verified\",\n      \"evidence\": \"jsonschema-trial/boards/real-as-is.json（標準のキーワードへ射影）\",\n      \"measuredBy\": {\n        \"tool\": \"measure_unchecked.py（この実験の書き捨て。Interpreter として登録していない）\",\n        \"value\": 19,\n        \"ok\": true\n      }\n    },"
-        }
-      ],
-      "assumptions": [
-        "段C の回数と割合（5回 ・ 8割 ・ 1割）は例で、利用者が決める"
-      ],
       "grounds": [
         {
-          "supports": "4つの測り方と、判定の基準",
+          "supports": "言語に依存しない口にするための、いまとの差",
+          "basis": "いまの基盤は、CLI と MCP の両方で同じ名前と引数を受け、標準出力の JSON と終了コードで返し、スキーマを $id の名前で引き、core が入出力に触らない。ここまでは言語に依存しない。差は、(1) 各ツールの出力の形が SKILL.md の表にだけあり JSON Schema で無い、(2) 出力に protocol の版が無い（エンジンの版だけ）、(3) findings の status の値が「合格」「確かめ直し」などの日本語の文字列で、v0.3 の5つの outcome との対応が無い、(4) 試験が Rust の #[test] と Rust のコードの値の表にあり、別の言語の実装が同じ試験を使えない（v0.3 の Conformance Suite にあたる、入力と期待する出力の JSON の組が無い）、(5) 指紋の「キーの順と空白に左右されない」の正規化の規則、文字列 ・ 数値 ・ 日時の扱い、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote）の意味が、別の言語で同じに作れる粒度で書かれていない、の5つである",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
+        },
+        {
+          "supports": "測り方の基準",
           "basis": "v0.3 の要求を、いまの基盤が公開した版を書き換えずに受け止められるかで決める。",
           "tag": "primary",
           "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
         },
         {
-          "supports": "対象を116件にすること",
-          "basis": "中身の無い22件（「説明のとおりに書く」）を除いた116件",
-          "tag": "measured",
-          "source": "measured/v03-experiment/README.md（2026-10-17）"
-        },
-        {
-          "supports": "試作を、正本の形を決めるより前に置くこと",
-          "basis": "理由：最初の試作は Q3 を判定する材料になるので、Q3 より前に置く。",
-          "tag": "primary",
-          "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
-        }
-      ],
-      "rejected": [
-        {
-          "option": "正本の形を試作より先に決める（最初に立てた Q3）",
-          "reason": "JSON Schema で持てない意味の実例が無いまま、解き方どうしを比べることになる"
-        }
-      ]
-    },
-    {
-      "id": "Q4",
-      "name": "移し方",
-      "status": "waiting",
-      "depends": [
-        "Q1",
-        "Q2",
-        "Q3"
-      ],
-      "question": "いまの3つの Skill と、保留にしたボード agents-in-base を、どう移すか",
-      "answer": {
-        "text": "基盤を足すだけの版で出し、brainstorming から順に決まりごとの結果を使う。agents-in-base は再開せず、その答えをこのボードの Q2 の材料として閉じる。",
-        "details": [
-          "基盤は足すだけの版で出す。abstract@v1 に従う Skill は、手を入れなくても今までと同じ結果を返す",
-          "最初に移すのは brainstorming である。試作の対象と同じなので、試作の結果をそのまま使える",
-          "次に ACDR を、作り直すときに決まりごとの結果を使う形で作る",
-          "skills-creator は、作る Skill のスキーマに担い手の宣言を書けるようにする",
-          "agents-in-base の Q1 ・ Q4 の答え（AI の呼び出しの契約）は、Agents 契約の材料として Q2 へ移した。2つの契約を並べない",
-          "agents-in-base は、このボードの Q4 が決着したら、置き換えたことを記録して決着にする"
-        ]
-      },
-      "checks": [
-        {
-          "target": "agents-in-base の扱い",
-          "ask": "保留のまま再開せず、答えをこのボードへ移して閉じることでよいか"
-        }
-      ],
-      "grounds": [
-        {
-          "supports": "agents-in-base を並べて進めないこと",
-          "basis": "Q1 の5項目の契約と Q4 の約束の分け方は、v0.3 の Interpreter Protocol と同じものを別の言葉で決めようとしている疑いがある。",
-          "tag": "primary",
-          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
-        },
-        {
-          "supports": "agents-in-base の答えを材料として先に使うこと",
-          "basis": "agents-in-base を待たせる理由は無く、むしろこのボードの Q0 ・ Q2 の材料として先に使うほうが筋が通る",
-          "tag": "primary",
-          "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
-        },
-        {
-          "supports": "@v2 を並べて段階的に移すこと",
+          "supports": "足すだけの版で移すこと",
           "basis": "(2) 公開された言葉への影響：変更が abstract@v1 の意味を変えるなら、@v2 を並べて段階的に移す。",
           "tag": "primary",
           "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "agents-in-base と契約を並べないこと",
+          "basis": "Q1 の5項目の契約と Q4 の約束の分け方は、v0.3 の Interpreter Protocol と同じものを別の言葉で決めようとしている疑いがある。",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
         }
       ],
       "rejected": [
         {
+          "option": "Rust の trait ・ 型を、外の Interpreter との契約にする",
+          "reason": "別の言語の実装が同じ契約に従えなくなる"
+        },
+        {
           "option": "agents-in-base を再開して並べて進める",
-          "reason": "AI の呼び出しの契約が2つのボードで別の言葉で決まり、どちらが正本か分からなくなる"
+          "reason": "AI を呼ぶ契約が2つのボードで別の言葉で決まり、どちらが正本か分からなくなる"
         }
       ]
     }
   ],
   "log": [
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 36か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "利用者の指摘で、Concrete（brainstorming のボード）からではなく、基盤だけを対象に論点を依存の順に組み直した"
+    },
     {
       "date": "2026-10-17",
       "text": "ボードを出した"
@@ -409,5 +429,186 @@
     }
   ],
   "opened": "2026-10-17",
-  "changes": []
+  "changes": [
+    {
+      "topic": "Q0",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "details",
+      "summary": "詳しい決まりを7件書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "assumptions",
+      "summary": "置いた前提を1件書き直した"
+    },
+    {
+      "topic": "Q0",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を3件足して2件消した"
+    },
+    {
+      "topic": "Q0",
+      "part": "grounds",
+      "summary": "根拠を8件足して4件消した"
+    },
+    {
+      "topic": "Q0",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "details",
+      "summary": "詳しい決まりを5件足して7件消した"
+    },
+    {
+      "topic": "Q1",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "assumptions",
+      "summary": "置いた前提を1件消した"
+    },
+    {
+      "topic": "Q1",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件消した"
+    },
+    {
+      "topic": "Q1",
+      "part": "grounds",
+      "summary": "根拠を4件足して6件消した"
+    },
+    {
+      "topic": "Q1",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "details",
+      "summary": "詳しい決まりを6件足して10件消した"
+    },
+    {
+      "topic": "Q2",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件消した"
+    },
+    {
+      "topic": "Q2",
+      "part": "grounds",
+      "summary": "根拠を5件足して6件消した"
+    },
+    {
+      "topic": "Q2",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "details",
+      "summary": "詳しい決まりを9件書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "assumptions",
+      "summary": "置いた前提を1件消した"
+    },
+    {
+      "topic": "Q3",
+      "part": "grounds",
+      "summary": "根拠を6件足して3件消した"
+    },
+    {
+      "topic": "Q3",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q4",
+      "part": "details",
+      "summary": "詳しい決まりを6件足して5件消した"
+    },
+    {
+      "topic": "Q4",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件消した"
+    },
+    {
+      "topic": "Q4",
+      "part": "grounds",
+      "summary": "根拠を4件足して3件消した"
+    },
+    {
+      "topic": "Q4",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    }
+  ]
 }

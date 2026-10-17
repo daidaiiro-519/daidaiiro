@@ -12,4 +12,4 @@
 - [ユースケース駆動の concrete の宣言のボード](usecase-driven-concrete-board.md) ── 論点1〜5決着、論点6（セマンティックマイグレーション）承認待ち。土台の決め直しの結果で改める
 - [ユースケース駆動開発の手法の構成のボード](use-case-driven-development-board.md) ── プロダクトを最上位のドメインに置く構成と、2冊の概念の置き場所。論点1〜3 決着。次は ACDR で2つのボードへ反映
 - [具体と抽象の advisor](concrete-abstract-advisor.md) ── meta-thinking-advisor（判断基準65件）を作って承認済み。配線表に2行（0135）
-- [Semantic Contract Core v0.3 のボード](semantic-contract-core-board.md) ── 第1回を出した。Q0（見逃している誤り）が回答待ち。agents-in-base は保留
+- [Semantic Contract Core v0.3 のボード](semantic-contract-core-board.md) ── 第2回で基盤だけを対象に組み直した。Q0（基盤の目的と境界）が回答待ち。agents-in-base は保留
