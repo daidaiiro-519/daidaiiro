@@ -1,6 +1,6 @@
 //! AI のコーディング用 CLI（Claude Code ・ Codex ・ Kiro）の呼び方と、出来事を共通の形に直すこと。
 //! 権限を外す旗は使わない。Claude Code は許すツールを挙げ、聞くはずの呼び出しを拒否させる。
-//! Codex は workspace-write の sandbox、Kiro は信頼するツールを挙げる。書き換えの範囲は serve の検査でも確かめる。
+//! Codex は workspace-write の sandbox。Kiro はシェルのコマンドを絞れないので、読むツールだけを信頼させて読むだけにする。書き換えの範囲は serve の検査でも確かめる。
 
 use serde_json::Value;
 
@@ -60,6 +60,8 @@ pub struct Request {
     pub board_dir: String,
     /// 作業するフォルダ（リポジトリの根）
     pub root: String,
+    /// ボードを直してよいか。読むだけの AI には false を渡す
+    pub writable: bool,
     pub round: u64,
     pub topic: String,
     pub text: String,
@@ -68,10 +70,16 @@ pub struct Request {
 /// 依頼の文。新しいセッションの最初の依頼には、Skill の使い方を指す1文を必ず入れる。
 pub fn prompt(request: &Request, new_session: bool) -> String {
     let mut out = String::new();
-    if new_session {
+    if new_session && request.writable {
         out.push_str(&format!(
             "{} を読み、その手順で {} を使って作業する。ボードの JSON は {} の update で直し、ファイルを直接書き換えない。シェルで実行してよいのは {} で始まるコマンドだけで、ほかのファイルは読むツールで読む。\n",
             request.skill_md, request.entry, request.entry, request.entry
+        ));
+    }
+    if new_session && !request.writable {
+        out.push_str(&format!(
+            "{} を読んで手順を知る。この AI は読むだけで、ボードもほかのファイルも書き換えない。直す案は文で示す。\n",
+            request.skill_md
         ));
     }
     out.push_str(&format!(
@@ -160,7 +168,7 @@ pub fn plan(
                 "v2",
                 "--output-format",
                 "stream-json",
-                "--trust-tools=fs_read,execute_bash",
+                "--trust-tools=fs_read",
             ]);
             if let Some(id) = session {
                 args.extend(own(&["--resume-id", id]));
@@ -376,6 +384,7 @@ mod tests {
             board_file: ".brainstorming/b.json".to_owned(),
             board_dir: ".brainstorming/b/".to_owned(),
             root: "/r".to_owned(),
+            writable: true,
             round: 2,
             topic: "Q1".to_owned(),
             text: "前提を足して".to_owned(),
@@ -525,6 +534,22 @@ mod tests {
         let got: Vec<Vec<Event>> = cases.iter().map(|(a, l, _)| events(*a, l, "/r")).collect();
         let want: Vec<Vec<Event>> = cases.iter().map(|(_, _, w)| w.clone()).collect();
         assert_eq!(got, want);
+    }
+
+    #[test]
+    fn kiro_only_reads_and_is_told_so() {
+        let read_only = Request {
+            writable: false,
+            ..request()
+        };
+        assert!(plan(Agent::Kiro, None, "U", "/r", &read_only)
+            .args
+            .contains(&"--trust-tools=fs_read".to_owned()));
+        assert!(!plan(Agent::Kiro, None, "U", "/r", &read_only)
+            .args
+            .join(" ")
+            .contains("execute_bash"));
+        assert!(prompt(&read_only, true).contains("この AI は読むだけ"));
     }
 
     #[test]

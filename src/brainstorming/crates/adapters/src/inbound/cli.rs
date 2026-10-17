@@ -122,6 +122,7 @@ pub fn run<F: Files, P: Programs, C: Clock>(
             return Action::Done(0, json!({"ok": true, "data": {"name": "brainstorming", "version": env!("CARGO_PKG_VERSION")}}).to_string())
         }
         Request::Base(args) => {
+            let args = engine::resolve_args(env, skill, &args);
             return match engine::call(env, skill, &args) {
                 Ok(run) => Action::Done(run.code, format!("{}{}", run.stdout.trim_end(), if run.stderr.is_empty() { String::new() } else { format!("\n{}", run.stderr.trim_end()) })),
                 Err(reason) => Action::Done(1, json!({"ok": false, "reason": reason}).to_string()),

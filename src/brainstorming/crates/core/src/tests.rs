@@ -192,6 +192,12 @@ pub fn env(files: MemoryFiles, engine: (&'static str, bool)) -> Env3 {
     make(files, engine)
 }
 
+/// check が path のインスタンスに未記入があると答えるエンジン。
+pub fn env_incomplete(files: MemoryFiles, path: &str) -> Env3 {
+    let out: &'static str = Box::leak(format!(r#"{{"ok":true,"instances":[{{"path":"{path}","errors":[],"unfilled":["/kind"]}}],"findings":[]}}"#).into_boxed_str());
+    make(files, (out, false))
+}
+
 pub fn env_with_git(files: MemoryFiles) -> Env3 {
     make(files, (PASS, true))
 }

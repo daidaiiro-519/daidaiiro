@@ -1,7 +1,7 @@
 //! 描画のユースケース。.brainstorming/ のボードとダッシュボードを、この Skill のページテンプレートとカタログで site/ へ描く。
 //! ダッシュボードの印（dashboard.json）が無ければ置く。
 
-use crate::application::engine::call;
+use crate::application::engine::{call, incomplete_in};
 use crate::application::{Env, Skill};
 use crate::domain::board::{pretty, Layout};
 use crate::ports::{Clock, Files, Programs};
@@ -13,7 +13,8 @@ pub fn dashboard() -> Value {
     json!({"$schema": "brainstorming/dashboard@v1", "kind": "dashboard", "id": "dashboard", "title": "ブレインストーミング"})
 }
 
-/// root（.brainstorming/）を描く。
+/// root（.brainstorming/）を描く。作り途中のボード（検証エラーか未記入があるもの）は描かずに skipped で知らせ、ほかは描く。
+/// 基盤の render は、形の崩れたインスタンスが1件でもあると1ページも書かないので、そのときは形の揃ったものだけを写した所から描く。
 pub fn run<F: Files, P: Programs, C: Clock>(
     env: &Env<F, P, C>,
     skill: &Skill,
@@ -24,20 +25,40 @@ pub fn run<F: Files, P: Programs, C: Clock>(
         env.files
             .write(&layout.dashboard(), &pretty(&dashboard()))?;
     }
+    let skipped = incomplete_in(env, skill, root)?;
+    let source = if skipped.is_empty() {
+        root.to_path_buf()
+    } else {
+        let stage = layout.root.join(".serve").join("render");
+        env.files.remove_dir(&stage)?;
+        for path in env.files.list(root) {
+            let text = path.to_string_lossy();
+            if text.ends_with(".json") && !skipped.iter().any(|s| Path::new(s) == path) {
+                if let Some(name) = path.file_name() {
+                    env.files
+                        .write(&stage.join(name), &env.files.read(&path)?)?;
+                }
+            }
+        }
+        stage
+    };
     let args = [
         "render".to_owned(),
         "--dir".to_owned(),
-        root.to_string_lossy().into_owned(),
+        source.to_string_lossy().into_owned(),
         "--pages".to_owned(),
         skill.pages().to_string_lossy().into_owned(),
         "--out".to_owned(),
         layout.site().to_string_lossy().into_owned(),
     ];
     let run = call(env, skill, &args)?;
-    let value: Value = serde_json::from_str(&run.stdout)
+    let mut value: Value = serde_json::from_str(&run.stdout)
         .map_err(|_| format!("render の出力を読めない：{}{}", run.stdout, run.stderr))?;
     match value.get("ok").and_then(Value::as_bool) {
-        Some(true) => Ok(value),
+        Some(true) => {
+            value["skipped"] = json!(skipped);
+            Ok(value)
+        }
         _ => Err(format!("render が描かなかった：{}", run.stdout.trim())),
     }
 }
@@ -56,7 +77,7 @@ mod tests {
             .exists(Path::new("/r/.brainstorming/dashboard.json")));
         let calls = env.programs.calls();
         assert_eq!(
-            calls[0][2..],
+            calls.last().unwrap()[2..],
             [
                 "render",
                 "--dir",
@@ -67,5 +88,24 @@ mod tests {
                 "/r/.brainstorming/site"
             ]
         );
+    }
+
+    #[test]
+    fn an_incomplete_board_is_skipped_and_the_rest_are_drawn_from_a_stage() {
+        let files = MemoryFiles::with(&[
+            ("/r/.brainstorming/a.json", "{}"),
+            ("/r/.brainstorming/b.json", "{}"),
+        ]);
+        let env = crate::tests::env_incomplete(files, "/r/.brainstorming/b.json");
+        let out = run(&env, &skill(), Path::new("/r/.brainstorming")).unwrap();
+        assert_eq!(out["skipped"], json!(["/r/.brainstorming/b.json"]));
+        assert!(env
+            .files
+            .exists(Path::new("/r/.brainstorming/.serve/render/a.json")));
+        assert!(!env
+            .files
+            .exists(Path::new("/r/.brainstorming/.serve/render/b.json")));
+        let calls = env.programs.calls();
+        assert_eq!(calls.last().unwrap()[4], "/r/.brainstorming/.serve/render");
     }
 }

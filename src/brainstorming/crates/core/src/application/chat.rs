@@ -8,7 +8,7 @@
 //! 5. 書き換えてよい範囲の外で変わったファイルを探して知らせる（戻すかは利用者が選ぶ。黙って戻さない）
 //! 6. ボードが変わっていれば描き直し、やりとりをチャットの記録に残す
 
-use crate::application::engine::check_dir;
+use crate::application::engine::check_board;
 use crate::application::{relative, render, Env, Skill};
 use crate::domain::agent::{self, Agent, Event, Request};
 use crate::domain::board::{list, pretty, round, text, valid_id, Layout};
@@ -177,6 +177,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         board_file: relative(&board_file, &repo),
         board_dir: format!("{}/", relative(&layout.board_dir(&request.board), &repo)),
         root: repo.to_string_lossy().into_owned(),
+        writable: agent != Agent::Kiro,
         round: round(&board),
         topic: request.topic.clone(),
         text: request.text.clone(),
@@ -261,7 +262,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     }
 
     // 4. serve が自分で検査する
-    let check = check_dir(env, skill, root);
+    let check = check_board(env, skill, root, &board_file, &request.board);
     let (ok, target) = match &check {
         Ok(0) => (true, "check 合格".to_owned()),
         Ok(n) => (false, format!("check 不合格（{n}件）")),

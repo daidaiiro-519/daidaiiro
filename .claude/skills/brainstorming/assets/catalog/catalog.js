@@ -346,7 +346,7 @@
       fetch("/api/agents", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (j) {
         var ready = (j.data && j.data.agents) || {};
         $$("option", select).forEach(function (o) { if (!ready[o.value]) o.textContent = NAME[o.value] + "（見つからない）"; });
-        var mark = function () { stateDot.setAttribute("data-ready", String(!!ready[select.value])); };
+        var mark = function () { stateDot.setAttribute("data-ready", String(!!ready[select.value])); note.textContent = select.value === "kiro" ? "読むだけ（ボードは直さない）" : "書き換えはボードのフォルダだけ"; };
         select.addEventListener("change", function () { mark(); loadHistory(); }); mark();
       }, function () {});
       var loadHistory = function () {

@@ -1,7 +1,7 @@
 //! 回を進めるユースケース。前の回の記録と回答を読み、domain の advance に渡し、ボードと回の記録を書く。
 //! 書いたあとに基盤の check を通し、通らなければボードを元に戻して回の記録を消す。
 
-use crate::application::engine::check_dir;
+use crate::application::engine::{check_board, check_dir};
 use crate::application::{Env, Skill};
 use crate::domain::advance::advance;
 use crate::domain::board::{pretty, text, Layout};
@@ -76,7 +76,7 @@ pub fn run<F: Files, P: Programs, C: Clock>(
     }
     env.files.write(board_file, &pretty(&done.board))?;
     env.files.write(&record_path, &pretty(&done.record))?;
-    let problems = check_dir(env, skill, root)
+    let problems = check_board(env, skill, root, board_file, &id)
         .and_then(|a| check_dir(env, skill, &layout.rounds(&id)).map(|b| a + b));
     match problems {
         Ok(0) => Ok(json!({"board": id, "round": done.round, "changes": done.changes})),
