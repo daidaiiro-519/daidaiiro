@@ -83,7 +83,7 @@ scripts/bin/brainstorming render --dir .brainstorming
 scripts/bin/brainstorming serve --dir .brainstorming --port 0
 ```
 
-advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。2回目からは、前の回と欄ごとに比べて変わったところ（画面では「送った回答で変わったところ」）を書き、差し戻しの言葉を理由に入れる。前の回で承認された論点は決着になる。render は全部のボードとダッシュボードを `.brainstorming/site/` に描く。serve は出力の `url` を利用者に渡す（合言葉付きの URL で、最初の1回だけ使う）。
+advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。2回目からは、前の回と欄ごとに比べて変わったところ（画面では「送った回答で変わったところ」）を書き、差し戻しの言葉を理由に入れる。前の回で承認された論点は決着になる。render は全部のボードとダッシュボードを `.brainstorming/site/` に描く。serve は出力の `url` を利用者に渡す（合言葉付きの URL で、最初の1回だけ使う）。合言葉は `.serve/key` に残るので、serve を起動し直しても同じ URL のまま使える。
 
 ### Step 5: 回答を受けて、直して、次の回を出す
 

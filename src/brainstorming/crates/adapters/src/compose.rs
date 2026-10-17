@@ -7,6 +7,8 @@ use crate::outbound::clock::{random, RealClock};
 use crate::outbound::fs::RealFiles;
 use crate::outbound::process::RealPrograms;
 use brainstorming_core::application::{render, Env, Skill};
+use brainstorming_core::domain::board::Layout;
+use brainstorming_core::ports::Files;
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -26,6 +28,24 @@ pub fn own_dir() -> PathBuf {
         .ok()
         .and_then(|exe| Some(exe.parent()?.parent()?.parent()?.to_path_buf()))
         .unwrap_or_default()
+}
+
+/// serve の合言葉。.serve/key に残し、起動し直しても同じものを使う（開いているタブと前の URL がそのまま使える）。
+/// .serve/ は git で追跡しない手元の置き場所で、合言葉が守るのは、ほかのページや別の名前の解決からの要求である。
+fn key(
+    env: &Env<RealFiles, RealPrograms, RealClock>,
+    dir: &std::path::Path,
+) -> Result<String, String> {
+    let path = Layout::new(dir).serve_dir().join("key");
+    if let Ok(found) = env.files.read(&path) {
+        let found = found.trim();
+        if found.len() == 32 && found.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Ok(found.to_owned());
+        }
+    }
+    let made: String = random::<16>().iter().map(|b| format!("{b:02x}")).collect();
+    env.files.write(&path, &made)?;
+    Ok(made)
 }
 
 /// 引数を受けて動かし、終了コードを返す。serve は止めるまで戻らない。
@@ -49,7 +69,13 @@ pub fn main(args: &[String]) -> i32 {
                     return 1;
                 }
             };
-            let token: String = random::<16>().iter().map(|b| format!("{b:02x}")).collect();
+            let token = match key(&env, &dir) {
+                Ok(token) => token,
+                Err(reason) => {
+                    println!("{}", json!({"ok": false, "reason": reason}));
+                    return 1;
+                }
+            };
             let url = format!("http://127.0.0.1:{port}/?k={token}");
             println!(
                 "{}",

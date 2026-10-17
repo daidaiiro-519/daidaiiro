@@ -118,7 +118,33 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
+/// 合言葉が無いか違うときに、ブラウザへ出す案内の画面。外のものを読まずに1枚で出す。
+const KEY_PAGE: &str = r#"<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>brainstorming を開く</title><style>
+:root{--bg:#eef1ef;--card:#f8faf9;--ink:#111d1a;--sub:#3c4a46;--line:#ccd8d4;--key:#0d5c55}
+@media (prefers-color-scheme: dark){:root{--bg:#0e1614;--card:#16211e;--ink:#e6eeeb;--sub:#c2cec9;--line:#2a3936;--key:#6cc9b8;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 system-ui,sans-serif;padding:48px 16px}
+main{max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 24px}
+h1{font-size:19px;margin:0 0 8px}p{margin:8px 0;color:var(--sub)}code{color:var(--key)}
+</style></head><body><main><h1>この画面を開くには、serve の URL が必要です</h1>
+<p>serve を起動したときに出た、<code>?k=</code> の付いた URL を開いてください。一度開けば、このブラウザでは URL だけで開けます。</p>
+<p>URL が手元に無いときは、AI に「serve の URL を教えて」と聞いてください。合言葉は serve を起動し直しても変わりません。</p>
+</main></body></html>"#;
+
 impl Response {
+    /// 合言葉が無いか違うときの応答。画面の要求には案内の画面を、それ以外には JSON を返す。
+    fn need_key(request: &Request, reason: &str) -> Self {
+        if request.method == "GET" && !request.path.starts_with("/api/") {
+            return Self {
+                status: 403,
+                headers: vec![(
+                    "Content-Type".to_owned(),
+                    "text/html; charset=utf-8".to_owned(),
+                )],
+                body: KEY_PAGE.as_bytes().to_vec(),
+            };
+        }
+        Self::refuse(403, reason)
+    }
     fn json(status: u16, value: &Value) -> Self {
         Self {
             status,
@@ -178,8 +204,8 @@ pub fn guard(request: &Request, port: u16, token: &str) -> Result<(), Response> 
         .get("cookie")
         .is_some_and(|c| c.split(';').any(|part| part.trim() == cookie));
     if !has_cookie {
-        return Err(Response::refuse(
-            403,
+        return Err(Response::need_key(
+            request,
             "serve が出した URL から開いてください",
         ));
     }
@@ -208,7 +234,7 @@ pub fn guard(request: &Request, port: u16, token: &str) -> Result<(), Response> 
 pub fn welcome(request: &Request, port: u16, token: &str) -> Option<Response> {
     let given = request.query.get("k")?;
     if given != token {
-        return Some(Response::refuse(403, "合言葉が違う"));
+        return Some(Response::need_key(request, "合言葉が違う"));
     }
     let to = if request.path == "/" {
         "/dashboard.html".to_owned()
@@ -521,6 +547,19 @@ mod tests {
                 .collect(),
             ..Request::default()
         }
+    }
+
+    #[test]
+    fn a_page_without_the_key_gets_a_guide_page_and_an_api_gets_json() {
+        let page = request("GET", "/b.html", &[("host", "127.0.0.1:9")]);
+        let refused = guard(&page, 9, "t").unwrap_err();
+        assert_eq!(refused.status, 403);
+        assert!(String::from_utf8_lossy(&refused.body).contains("serve の URL が必要です"));
+        let api = request("GET", "/api/status", &[("host", "127.0.0.1:9")]);
+        assert!(
+            String::from_utf8_lossy(&guard(&api, 9, "t").unwrap_err().body)
+                .contains("\"ok\":false")
+        );
     }
 
     #[test]
