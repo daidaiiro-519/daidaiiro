@@ -28,6 +28,13 @@
 </div>
 </main>
 {{chat}}
+<aside class="drawer" id="chg-drawer" data-chg-drawer hidden aria-label="前の更新から変わったところ">
+ <div class="dh"><b>前の更新から変わったところ</b><button class="iconbtn" type="button" data-close-changes aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+ <label class="dsearch"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="変わったところを探す（語 ・ 理由）" aria-label="変わったところを探す" data-chg-search></label>
+ <div class="dfilter" role="group" aria-label="論点で絞る" data-chg-filter></div>
+ <p class="dcount" data-chg-count role="status"></p>
+ <div class="dlist" data-chg-list></div>
+</aside>
 </div>
 <script>
 {{script}}
@@ -59,14 +66,14 @@
 
 <template id="topic-chip"><button class="chip" type="button" role="tab" data-topic="{{id}}" data-status="{{status}}" aria-selected="false" aria-controls="topic-{{id}}"><span class="qn">{{id}} {{name}}</span><span class="status" data-status="{{status}}"><svg class="ic" aria-hidden="true"><use href="#st-{{status}}"/></svg><span class="sl">{{label}}</span></span></button></template>
 
-<template id="changes-band"><div class="notice" data-changes><b>前の更新から変わったところ（{{count}}か所）</b><ul class="changes">{{items}}</ul></div></template>
+<template id="changes-band"><div class="chgbar" data-changes><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><b>前の更新から変わったところ {{count}}か所</b><span class="chgtopics" data-chg-topics></span><button class="btn" type="button" data-open-changes aria-controls="chg-drawer" aria-expanded="false">一覧を開く</button><ul class="changes" data-chg-src hidden>{{items}}</ul></div></template>
 
-<template id="change-item"><li><button class="link" type="button" data-jump="{{topic}}" data-part="{{part}}">{{topic}} ・ {{part_label}}</button> ── {{summary}}<span class="why" data-show-if="{{reason}}">（理由：{{reason}}）</span></li></template>
+<template id="change-item"><li data-chg-topic="{{topic}}" data-chg-part="{{part}}" data-chg-label="{{part_label}}" data-chg-summary="{{summary}}" data-chg-reason="{{reason}}">{{topic}} ・ {{part_label}} ── {{summary}}</li></template>
 
 <template id="topic-panel"><article class="topic" id="topic-{{id}}" data-topic-panel="{{id}}" data-status="{{status}}" role="tabpanel" hidden>
  <section class="block">
   <h2>{{id}} ・ 問いと答え<span class="status" data-status="{{status}}"><svg class="ic" aria-hidden="true"><use href="#st-{{status}}"/></svg><span class="sl">{{status_label}}</span></span></h2>
-  <div class="lbl">問い</div><p class="q">{{question}}</p>
+  <div class="lbl">問い</div><p class="q" data-part="question">{{question}}</p>
   <div class="ans" data-part="answer"><div class="lbl">答え（承認してほしいこと）</div><p>{{answer}}</p>{{details}}</div>
  </section>
  {{images}}

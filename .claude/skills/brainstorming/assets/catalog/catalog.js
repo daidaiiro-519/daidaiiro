@@ -50,6 +50,85 @@
     openTopic(hash || (open || chips[0]).getAttribute("data-topic"));
   })();
 
+  // ── 前の更新から変わったところ：上は要約1行、一覧は引き出し（検索 ・ 論点で絞る）、論点の中は印 ──
+  (function changesView() {
+    var src = $("[data-chg-src]"), drawer = $("[data-chg-drawer]");
+    if (!src || !drawer) return;
+    var items = $$("li", src).map(function (li) {
+      return { topic: li.getAttribute("data-chg-topic"), part: li.getAttribute("data-chg-part"), label: li.getAttribute("data-chg-label"),
+        summary: li.getAttribute("data-chg-summary"), reason: li.getAttribute("data-chg-reason") || "" };
+    });
+    if (!items.length) return;
+    var topics = [];
+    items.forEach(function (c) { if (topics.indexOf(c.topic) < 0) topics.push(c.topic); });
+    var count = function (t) { return items.filter(function (c) { return c.topic === t; }).length; };
+    var nameOf = function (t) { var q = $('.chip[data-topic="' + t + '"] .qn'); return q ? q.textContent : t; };
+    var filter = "", query = "";
+    var openBtn = $("[data-open-changes]"), search = $("[data-chg-search]", drawer), list = $("[data-chg-list]", drawer);
+    var fbox = $("[data-chg-filter]", drawer), counter = $("[data-chg-count]", drawer);
+    function open(topic) { filter = topic || ""; paintFilter(); render(); drawer.hidden = false; openBtn.setAttribute("aria-expanded", "true"); search.focus(); }
+    function close() { drawer.hidden = true; openBtn.setAttribute("aria-expanded", "false"); openBtn.focus(); }
+    function paintFilter() {
+      fbox.textContent = "";
+      [""].concat(topics).forEach(function (t) {
+        var b = el("button", "", t ? t + "（" + count(t) + "）" : "すべて（" + items.length + "）");
+        b.type = "button"; b.setAttribute("aria-pressed", String(filter === t));
+        b.addEventListener("click", function () { filter = t; paintFilter(); render(); });
+        fbox.appendChild(b);
+      });
+    }
+    function render() {
+      list.textContent = "";
+      var q = query.trim().toLowerCase(), shown = 0;
+      topics.forEach(function (t) {
+        if (filter && filter !== t) return;
+        var rows = items.filter(function (c) { return c.topic === t && (!q || (c.label + " " + c.summary + " " + c.reason).toLowerCase().indexOf(q) >= 0); });
+        if (!rows.length) return;
+        var g = el("section", "dgroup"), h = el("h3", "", nameOf(t));
+        h.appendChild(el("small", "", rows.length + "か所")); g.appendChild(h);
+        rows.forEach(function (c) {
+          var b = el("button", "ditem"); b.type = "button";
+          b.appendChild(el("span", "dp", c.label)); b.appendChild(el("span", "", c.summary));
+          if (c.reason) b.appendChild(el("span", "dr", "理由：" + c.reason));
+          b.addEventListener("click", function () { openTopic(c.topic, c.part); if (window.matchMedia("(max-width: 760px)").matches) close(); });
+          g.appendChild(b); shown++;
+        });
+        list.appendChild(g);
+      });
+      counter.textContent = shown + "か所を表示" + (q ? "（「" + query.trim() + "」で探した）" : "");
+      if (!shown) list.appendChild(el("p", "dcount", "当てはまる変わったところは無い。"));
+    }
+    var sum = $("[data-chg-topics]");
+    topics.forEach(function (t) {
+      var b = el("button", "", t + " " + count(t) + "か所"); b.type = "button"; b.title = nameOf(t);
+      b.addEventListener("click", function () { open(t); }); sum.appendChild(b);
+    });
+    openBtn.addEventListener("click", function () { if (drawer.hidden) open(""); else close(); });
+    $("[data-close-changes]", drawer).addEventListener("click", close);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !drawer.hidden) close(); });
+    search.addEventListener("input", function () { query = search.value; render(); });
+    // タブに件数、論点の中の変わった部位に印。印を押すと、その論点で引き出しを開く
+    topics.forEach(function (t) {
+      var chip = $('.chip[data-topic="' + t + '"]');
+      if (!chip) return;
+      var n = el("span", "chgn", String(count(t)));
+      n.title = "前の更新から変わったところ " + count(t) + "か所"; n.setAttribute("aria-label", n.title);
+      chip.appendChild(n);
+    });
+    items.forEach(function (c) {
+      var panel = $('[data-topic-panel="' + c.topic + '"]');
+      var part = panel && $('[data-part="' + c.part + '"]', panel);
+      if (!part || part.classList.contains("changed")) return;
+      part.classList.add("changed");
+      var prev = part.previousElementSibling;
+      var at = part.tagName === "DETAILS" ? $("summary", part) : $(":scope > h2", part) || $(":scope > .lbl", part) || (prev && /^(H3|DIV)$/.test(prev.tagName) ? prev : null);
+      if (!at) return;
+      var m = el("button", "chg-mark", "変わった"); m.type = "button"; m.title = "前の更新から変わったところを見る";
+      m.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); open(c.topic); });
+      at.appendChild(m);
+    });
+  })();
+
   // ── 完成イメージのタブ ──
   $$("section[data-part=images]").forEach(function (block) {
     var tabs = $$(".tabs button", block), panes = $$(".pane", block);
