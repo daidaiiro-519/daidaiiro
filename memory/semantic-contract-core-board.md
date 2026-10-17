@@ -1,6 +1,6 @@
 ---
 name: semantic-contract-core-board
-description: Abstract スキーマの基盤 Semantic Schema Core（いまの schema-driven を改める）を決めるボード semantic-contract-core の現在地
+description: 基盤 Semantic Schema Core（中心に Abstract スキーマの仕様 Semantic Domain Schema を持つ。いまの schema-driven を改める）を決めるボード semantic-contract-core の現在地
 metadata:
   type: project
 ---
@@ -15,7 +15,7 @@ metadata:
 
 ## 次にすること
 
-第41回まで出した（2026-10-17）。基盤の名前は Semantic Schema Core に決めた（利用者が OK）。このボードは Abstract スキーマの基盤だけを決め、開発基盤（コード生成 ・ 言語の Adapter ・ AI の修正ループ、ボード ai-driven-process の話）は上に載る Concrete の側に置く。Q0 ・ Q5 は決着。いま答えを待っているのは Q1 の確認3つ（Concrete の意味 ・ 注釈の呼び名を x- keyword に ・ ユビキタス言語を <文脈>/terms@v1 の $defs と $ref で）。Q6 ・ Q7 ・ Q2〜Q4 は Q1 待ち。Q1 が決まったら Q6 ・ Q7 の vocabulary ・ x-term ・ x-vocabularies を terms@v1 に置き換える。いまのエンジンは別のスキーマへの $ref を解決できない（実測）。実装の名前（schema-driven の CLI ・ MCP）を Semantic Schema Core に改めるのは、別の ACDR で決める。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない。
+第48回まで出した（2026-10-17）。基盤の全体は Semantic Schema Core、その中の Abstract スキーマの仕様は Semantic Domain Schema（利用者が決めた）。検証の全体は Semantic Schema Validator、解決は Semantic Schema Resolver。Q1 は概念9 ・ 不変条件22（仕様）・ エンジンの能力11で組み直した。Semantic Schema Core は新しく作り、いまの実装は参考にする。このボードは Abstract スキーマの基盤だけを決め、開発基盤（コード生成 ・ 言語の Adapter ・ AI の修正ループ、ボード ai-driven-process の話）は上に載る Concrete の側に置く。Q0 ・ Q5 は決着。いま答えを待っているのは Q1 の確認3つ（Concrete の意味 ・ 注釈の呼び名を x- keyword に ・ ユビキタス言語を <文脈>/terms@v1 の $defs と $ref で）。Q6 ・ Q7 ・ Q2〜Q4 は Q1 待ち。Q1 が決まったら Q6 ・ Q7 の vocabulary ・ x-term ・ x-vocabularies を terms@v1 に置き換える。いまのエンジンは別のスキーマへの $ref を解決できない（実測）。実装の名前（schema-driven の CLI ・ MCP）を Semantic Schema Core に改めるのは、別の ACDR で決める。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない。
 
 決まったこと：基盤のインターフェースはコマンドと protocol（CLI ・ MCP）。インバウンド ・ アウトバウンドのアダプターを差し替えて、手元でもクラウドでも同じ振る舞い（クラウドは後で載せる）。HTTP などの API は Concrete が持つ。WASM は外した。
 

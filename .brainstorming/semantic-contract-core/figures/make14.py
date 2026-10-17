@@ -8,7 +8,7 @@ table, e = T['table'], T['e']
 def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
-o = ['<svg viewBox="0 0 960 500" style="min-width:860px" role="img" aria-label="Semantic Domain Schema の9つの概念と3つの集約">']
+o = ['<svg viewBox="0 0 960 500" style="min-width:860px" role="img" aria-label="Semantic Schema Core の9つの概念と3つの集約">']
 o.append('<rect class="box" x="120" y="16" width="260" height="48"/><text class="label" x="132" y="37">Abstract スキーマ（版）</text><text class="note" x="132" y="55">値オブジェクト。名前@vN で決まる</text>')
 o.append('<rect class="area" x="16" y="110" width="424" height="208"/><text class="title" x="30" y="134">Concrete スキーマの集約</text>')
 chip(o, 30, 150, 396, "Concrete スキーマ（集約のルート）", "box focus")
@@ -70,16 +70,16 @@ def grouped(name, label, heads, widths, rows, row_h=46):
         i=j+1
     for i,r in enumerate(rows):
         y=32+i*(row_h+6)
-        for c in (0,2,3,4):
+        for c in [0]+list(range(2,len(widths))):
             cell=r[c]; lines=cell if isinstance(cell,list) else [cell]
             o.append(f'<rect class="box" x="{X[c]}" y="{y}" width="{widths[c]}" height="{row_h}"/>')
             if len(lines)==1: o.append(f'<text class="label" x="{X[c]+10}" y="{y+row_h//2+5}">{e(lines[0])}</text>')
             else:
                 for k,l in enumerate(lines): o.append(f'<text class="label" x="{X[c]+10}" y="{y+row_h//2-4+16*k}">{e(l)}</text>')
     o.append('</svg>'); open(name+'.src.svg','w').write('\n'.join(o))
-grouped('q1-invariants', 'Semantic Domain Schema の不変条件22行を概念ごとに固めた表と、実現する実装の行と、検査する command',
-      ["#", "概念", "不変条件", "実装の行", "command"], [40, 140, 340, 170, 170],
-      [list(r) for r in INV])
+grouped('q1-invariants', 'Semantic Schema Core の不変条件22行を概念ごとに固めた表と、守る command',
+      ["#", "概念", "不変条件", "command"], [40, 140, 420, 190],
+      [[r[0], r[1], r[2], r[4]] for r in INV])
 
 # ── エンジンの能力の表 ──
 CAP = [
