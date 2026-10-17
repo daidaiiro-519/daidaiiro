@@ -1,0 +1,60 @@
+{
+  "kind": "vocabulary",
+  "id": "urn:daidaiiro:vocab:text-ja:0-trial",
+  "_note": "試案。v0.3 の examples の形にならったもので、正式な仕様ではない。",
+  "terms": {
+    "OneSentence": {
+      "description": "文が1つだけ。文は 。！？ と改行で切り、「」『』の中では切らない",
+      "aspect": "Formal",
+      "params": {},
+      "requires": [
+        "validate-ja-sentence"
+      ],
+      "definedBy": "src/brainstorming/crates/core/src/domain/text.rs:7"
+    },
+    "SentenceAtMost": {
+      "description": "どの1文も、「」『』の中を除いて max 字まで",
+      "aspect": "Formal",
+      "params": {
+        "max": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "requires": [
+        "validate-ja-sentence"
+      ],
+      "definedBy": "src/brainstorming/crates/core/src/domain/text.rs:39"
+    },
+    "CharsAtMost": {
+      "description": "欄全体が max 字まで。approx が true なら線は目安で、超えても誤りにしない",
+      "aspect": "Structural",
+      "params": {
+        "max": {
+          "type": "integer"
+        },
+        "approx": {
+          "type": "boolean"
+        }
+      },
+      "requires": [
+        "validate-structure"
+      ]
+    },
+    "LinesAtMost": {
+      "description": "改行で数えた行が max 行まで。approx は CharsAtMost と同じ",
+      "aspect": "Structural",
+      "params": {
+        "max": {
+          "type": "integer"
+        },
+        "approx": {
+          "type": "boolean"
+        }
+      },
+      "requires": [
+        "validate-lines"
+      ]
+    }
+  }
+}

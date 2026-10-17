@@ -1,0 +1,377 @@
+{
+  "kind": "design",
+  "question": "構想 Semantic Contract Core v0.3 の検証の考え方（Evidence と4つのステータス、expressible ・ interpretable ・ verifiable ・ executable の区別、fail-closed、Conformance Suite、PoC の評価指標）は検証と妥当性確認の観点で筋が通っているか。AI を Interpreter に使う意味の検証の結果をどう返すか。基盤を作り直すか層を足すかを何で測って決めるか。ボード semantic-contract-core の完成の条件と、最初の試作（P0）で確かめる観点は何か。",
+  "premises": [
+    {
+      "name": "v0.3 の材料",
+      "value": "docs/04（4つのステータスと Evidence の欄）・ docs/11（Semantic の4つの側面）・ docs/13（Interpreter Protocol の outcome と Conformance Suite、fail-closed）・ docs/14（7原則と4つの区別の案）・ docs/18（P0〜P3 と評価指標）・ examples/protocol を読んだ。v0.3 自身が、outcome の定義と4つの区別を「未決」「検討する案」と書いている",
+      "source": ".brainstorming/semantic-contract-core/sources/v0.3/"
+    },
+    {
+      "name": "いまの基盤",
+      "value": "schema-driven の check は終了コード 0 が「最後まで実行できた」だけを示し、合否は errors ・ unfilled ・ findings の status（合格 ・ ずれ ・ 確かめ直し）で見る。approve は検証エラー ・ ずれ ・ 未記入が1件でもあれば承認記録を書かない。AI を呼ばずに結果が決まる",
+      "source": ".claude/skills/schema-driven/SKILL.md（Step 4 ・ Step 6）"
+    },
+    {
+      "name": "保留中のボード",
+      "value": "agents-in-base の Q2（意味の検証は check と別の操作、記録は追記だけ、判定は 守れている ・ 守れていない ・ 判断できない、approve の合否に使わない）と Q5（段A ・ B は CI、段C は本物の3つの CLI で bad を指せた割合）は status が waiting のまま、ボード全体が保留である",
+      "source": ".brainstorming/agents-in-base.json（Q2 ・ Q5 ・ hold）"
+    },
+    {
+      "name": "利用者の言葉",
+      "value": "「Schema駆動が Agents 契約を持つという契約概念は、今回の Zip の内容においても必要で、これは足りていない部分だと思う」。v0.3 の Interpreter Protocol は Interpreter を言語非依存の外部プロセスとして扱うが、AI の CLI を Interpreter にしたときの揺れ ・ 独立性 ・ 渡す文脈は書いていない",
+      "source": "利用者（2026-10-17）と docs/13 ・ docs/16"
+    },
+    {
+      "name": "割合と件数のしきい値",
+      "value": "この回答で挙げる件数 ・ 回数 ・ 割合（例：5回 ・ 8割）は、判断基準の範囲外である。判断基準が言うのは「終了基準を測定可能な形で、段ごとに決める」までで、数値は利用者が決める。未判定",
+      "source": "判断基準の範囲外"
+    },
+    {
+      "name": "作り直す ・ 層を足すの意味",
+      "value": "この回答では、作り直す＝v0.3 の Abstract Semantic Model を新しい正本にし、schema-driven の abstract@v1 と check の語を置き換える。層を足す＝abstract@v1 と check の結果を変えずに、Vocabulary ・ Interpreter ・ Capability ・ 検証の Evidence を別の操作と別の記録として上に足す、と置いた",
+      "source": "相談の文からの仮定"
+    }
+  ],
+  "conclusion": {
+    "stance": "weak",
+    "headline": "「verified は実行した検査の範囲での合格に過ぎない」と fail-closed の2つは検証の考え方として筋が通っているが、結果の語が docs/04 と docs/13 で2組あり、処理の失敗 ・ 妥当性確認 ・ 揺れる判定の置き場所が無いので、語を1組にそろえ、Capability の段と結果のステータスを別の軸として対応させ、AI の判定は verified にしない規則を足してから P0 に入るのがよい。",
+    "because": "判断基準では、テストは欠陥があることを示せても欠陥がないことは示せず、検証に加えて妥当性確認も実施する。v0.3 の4つのステータスは検証の結果だけを表し、人やステークホルダーのニーズに照らす確かめの置き場所と、同じ入力で結果が揺れる Interpreter の扱いを持たないため、このままでは AI の「守れている」が verified として読まれる。"
+  },
+  "figure": {
+    "caption": "Capability の段（その意味に何ができるか）と、1回の検証の結果のステータスは別の軸である。段ごとに、返せるステータスが決まる。",
+    "nodes": [
+      {
+        "id": "exp",
+        "label": "expressible：契約に書ける",
+        "role": "段"
+      },
+      {
+        "id": "int",
+        "label": "interpretable：解釈する Interpreter が在る",
+        "role": "段"
+      },
+      {
+        "id": "ver",
+        "label": "verifiable：合否を決める期待結果が在る",
+        "role": "段"
+      },
+      {
+        "id": "exe",
+        "label": "executable：実行や変換ができる",
+        "role": "段"
+      },
+      {
+        "id": "uns",
+        "label": "unsupported",
+        "role": "結果"
+      },
+      {
+        "id": "unv",
+        "label": "unverified",
+        "role": "結果"
+      },
+      {
+        "id": "vv",
+        "label": "verified ／ violated",
+        "role": "結果"
+      },
+      {
+        "id": "err",
+        "label": "error（処理の失敗。記録を作らない）",
+        "role": "結果"
+      },
+      {
+        "id": "ai",
+        "label": "AI の Interpreter（非決定的）",
+        "role": "Interpreter"
+      },
+      {
+        "id": "human",
+        "label": "人の確かめ（妥当性確認）",
+        "role": "承認"
+      }
+    ],
+    "edges": [
+      {
+        "from": "exp",
+        "to": "uns",
+        "label": "書けるが Interpreter が無い"
+      },
+      {
+        "from": "int",
+        "to": "unv",
+        "label": "解釈できるが合否を決められない"
+      },
+      {
+        "from": "ver",
+        "to": "vv",
+        "label": "決定的な Interpreter が期待結果と比べた"
+      },
+      {
+        "from": "exe",
+        "to": "ver",
+        "label": "実行できても、それだけでは合否にならない",
+        "dashed": true
+      },
+      {
+        "from": "ai",
+        "to": "vv",
+        "label": "violated は不正の報告として返す（verified は返さない）"
+      },
+      {
+        "from": "ai",
+        "to": "unv",
+        "label": "守れている ・ 判断できない"
+      },
+      {
+        "from": "vv",
+        "to": "human",
+        "label": "検証の結果を人が読み、承認する"
+      },
+      {
+        "from": "int",
+        "to": "err",
+        "label": "時間切れ ・ 異常終了 ・ 読めない出力",
+        "dashed": true
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "AI の Interpreter が「守れている」と返したら verified にする",
+      "effect": "欠陥が無いことを示したように読まれる。同じ入力の次の回で violated になれば、同じ契約の結果が回ごとに変わり、CI と承認の合否が Erratic Test と同じ振る舞いになる",
+      "chosen": false
+    },
+    {
+      "option": "AI の判定は、守れていない → violated（不正の報告。引用と場所を基盤が機械で確かめたものだけ）、守れている ・ 判断できない → unverified、処理の失敗 → error として返し、どれも N 回の内訳を Evidence に持たせる",
+      "effect": "fail-closed を保ったまま、AI が見つけた違反の候補を人へ渡せる。必須の意味が AI だけで見られているあいだは、全体の結果が成功にならない",
+      "chosen": true
+    },
+    {
+      "option": "AI の判定をステータスに入れず、別の注釈として持つ",
+      "effect": "fail-closed とは矛盾しないが、violated の候補が Conformance Suite と Projection Report の集計から外れ、透明性の指標（未対応を成功と報告した件数）でも数えられない",
+      "chosen": false
+    }
+  ],
+  "path": [
+    {
+      "ask": "タスク1：4つのステータスは、検証の結果として筋が通っているか",
+      "answer": "通っている部分：verified を「実行した検査の範囲での合格」と限定し、検証できないものを unverified ・ unsupported として成功と分けたこと（fail-closed）は、テストの原則「欠陥がないことは示せない」と合う。足りない部分は次の4つ。①docs/04 の verified ・ violated ・ unverified ・ unsupported と、docs/13 の conformant ・ nonconformant ・ unsupported ・ unverified ・ error の2組が並んでいる。同じものに2つの名前があると、Conformance Suite で「同じ検証結果」を比べられない。1組にそろえる。②error（処理の失敗）が docs/04 に無い。時間切れや異常終了を unverified に入れると、失敗が判断に紛れる。error は別にし、Evidence の記録を作らない。③unverified と unsupported の境が書かれていない。docs/11 は「unsupported／unverified」と並べ、examples の interpreter-response は Capability が無いのに unverified を返している。unsupported＝その意味を解釈する Interpreter が登録されていない、unverified＝Interpreter は在るが合否を決められなかった（期待結果が無い ・ 判断できない ・ 決定的でない）と分ける。④制約1件ごとの結果から契約全体の結果を出す規則が無い。「必須の制約に1件でも violated ・ unverified ・ unsupported ・ error があれば全体は成功にしない」と書く"
+    },
+    {
+      "ask": "タスク1：expressible ・ interpretable ・ verifiable ・ executable の区別は筋が通っているか。ステータスと重なっていないか",
+      "answer": "4つの区別は「その意味に何ができるか」の段で、ステータスは「1回の検証で何が起きたか」の結果である。軸が違うので重なってはいないが、v0.3 は両者の対応を書いていない。expressible だが interpretable でない → unsupported、interpretable だが verifiable でない → unverified、verifiable → verified か violated、と1対1に対応させると、Capability の宣言から返し得るステータスが決まり、fail-closed を機械で確かめられる。executable は一列の4段目ではない。Operational の側面（状態遷移 ・ 変換）を実行できることで、実行できても合否を決める期待結果が無ければ verifiable にはならない（例：AI は判定を出せるが、その判定が正しいかの期待結果は持たない）。executable は verifiable と別の性質として持つ"
+    },
+    {
+      "ask": "タスク1：検証と妥当性確認の両方が入っているか",
+      "answer": "入っていない。4つのステータスはすべて「契約に書いた要件を満たすか」（検証）の結果である。docs/11 の Descriptive の側面（名前 ・ 説明 ・ 意図）は「人手/外部根拠なしには真偽確定困難」と書かれており、これは利用者やステークホルダーのニーズに照らす妥当性確認の領域である。ここをステータスで表そうとせず、人が Evidence を読んで判断した記録（いまの基盤の approve）を別に持つ。docs/07 の主要リスク「検証が通るだけで正しいと錯覚すること」は、この欠けから起きる"
+    },
+    {
+      "ask": "タスク1：Evidence の欄（verifier ・ scope ・ artifact ・ timestamp ・ diagnostic）で足りるか",
+      "answer": "トレーサビリティのために足りない。どの版の契約とどの版の Interpreter に対する結果かが追えないと、変更の影響を判断できない。契約 ・ Vocabulary ・ インスタンスのハッシュ、Interpreter の名前と版、決まり（制約）の id、インスタンスの中の場所を足す。AI の Interpreter には、渡した文脈のハッシュ、CLI と版、セッションの形（書いた AI と別のプロセスか）、実行した回数と判定ごとの回数を足す"
+    },
+    {
+      "ask": "タスク2：AI の判定は、どのステータスで返すか",
+      "answer": "守れていない → violated。ただし決まりの id とインスタンスの場所が契約に在り、引用がインスタンスか渡した文脈に文字どおり在ることを基盤が確かめたものだけにし、確かめに落ちたものは記録を作らず error にする。violated は確定した欠陥ではなく、偽陽性もあり得る「不正の報告」として扱い、人が読んで分類する。守れている → unverified（verified にしない）。判断できない → unverified（理由を diagnostic に書く）。時間切れ ・ 異常終了 ・ 読めない出力 → error。Capability の宣言では、AI の Interpreter は validate-semantics を「interpretable だが決定的でない」と宣言し、verifiable を名乗らない"
+    },
+    {
+      "ask": "タスク2：同じ入力でも答えが揺れることをどう扱うか",
+      "answer": "揺れを1回の結果で隠さず、記録する。同じ入力（インスタンス ・ 契約 ・ x-prompt ・ 文脈のハッシュが同じ）で N 回呼び、決まり1件と場所ごとに「守れていない k 回 ・ 守れている m 回 ・ 判断できない j 回」を Evidence に持たせる。ステータスは、k が利用者の決めた回数以上なら violated、そうでなければ unverified とし、k が1以上で violated に届かないときは diagnostic に「判定が揺れた」と書く。この結果は CI の合否と approve の条件に使わない（agents-in-base の Q2 と同じ）。揺れの大きさ自体は、段C の見本の組で CLI と版ごとに測る"
+    },
+    {
+      "ask": "タスク3：作り直すか層を足すかは、何で決めるか",
+      "answer": "v0.3 の要求を、いまの基盤が公開した版を書き換えずに受け止められるかで決める。測るのは4つ（下の「設計の手順」の 3〜6）：M1 表現の欠落、M2 結果の語の対応、M3 fail-closed の欠け、M4 既存のインスタンスへの影響。M1 で abstract@v1 の公開した版を書き換えないと表せない項目が出て、それが利用者の求める意味（Agents 契約を含む）に必須なら作り直しの候補、出なければ層を足す。M3 で基盤が未対応の意味を「合格」と返す件数が出ても、層の側で全体の結果を成功にしない規則を足して0にできるなら、作り直す理由にはならない。M4 は層を足す案の条件で、既存の check の結果が1件でも変われば層を足す案は成り立っていない"
+    }
+  ],
+  "steps": [
+    {
+      "do": "結果の語を1組にそろえる",
+      "detail": "docs/04 の4つと docs/13 の5つを突き合わせ、verified ・ violated ・ unverified ・ unsupported ・ error の5つ（名前は利用者が決める）に1組化する。それぞれの定義、契約全体の結果を出す規則（必須の制約に成功以外が1件でもあれば成功にしない）、Capability の段との対応表を P0 の仕様に書く。いまの基盤の check の語（合格 ・ ずれ ・ 確かめ直し）と、agents-in-base Q2 の語（守れている ・ 守れていない ・ 判断できない）との対応も同じ表に載せる"
+    },
+    {
+      "do": "AI の Interpreter を、Interpreter Protocol の1つの実装として書く",
+      "detail": "利用者の言う「Agents 契約」を、v0.3 の Interpreter Protocol の中に置く。request に「どの CLI を ・ どのセッションの形で ・ どの文脈と一緒に ・ 何回」呼ぶかを、response に判定ごとの回数 ・ 決まりの id ・ 場所 ・ 引用 ・ 渡した文脈のハッシュ ・ CLI と版を持たせる。Capability の宣言には「決定的でない」を書けるようにし、決定的でない Interpreter の結果は verified にならない規則を Conformance Suite の項目にする"
+    },
+    {
+      "do": "M1 表現の欠落を測る",
+      "detail": "対象：P0 の Vocabulary 3件（DurationSeconds ・ connectedTo ・ temporal-transition）と、いまの基盤で使っている x-prompt の決まりから、brainstorming ・ acdr ・ 助言型の回答の concrete スキーマを1つずつ選び、各5件の計15件、合わせて18件。項目ごとに「abstract@v1 のままで書ける ／ abstract に足せば書ける（公開した版の指紋が変わらない）／ 公開した版を書き換えないと書けない」の3つに分ける。基準：3つ目が0件なら層を足す案で受け止められる。1件以上なら、その項目が利用者の求める意味に必須かを利用者が判定する"
+    },
+    {
+      "do": "M2 結果の語の対応を測る",
+      "detail": "対象：いまの .brainstorming と .acdr の全インスタンスのディレクトリで check を実行して出た findings の status と、agents-in-base の measured/semantic-probe の判定の全件。それぞれを手順1の5つの語へ写し、写せないもの（2つ以上に当たる ・ どれにも当たらない）を数える。基準：写せないものが0件なら層を足す案で語をつなげる。1件以上なら、その語の意味を利用者と決め直す"
+    },
+    {
+      "do": "M3 fail-closed の欠けを測る",
+      "detail": "対象：P0 の Concrete Schema（計測間隔 10 ・ 15 ・ 60 秒と Gateway の関係）に、適合 ・ 不適合 ・ 未対応の意味（temporal-transition）を含むインスタンスを、制約の種類ごとに各3件、計9件作る。いまの基盤の check と、層を足した試作の両方で検証し、未対応の意味を含むのに全体を合格と返した件数を数える（docs/18 の透明性の指標。目標0）。基準：層の試作で0件になれば、基盤を作り直さずに fail-closed を足せる"
+    },
+    {
+      "do": "M4 既存のインスタンスへの影響を測る",
+      "detail": "対象：.brainstorming と .acdr の全インスタンス。層を足す前と後で check の出力（errors ・ unfilled ・ findings）を比べ、変わった件数を数え、approve の可否が変わった件数を数える。基準：どちらも0件。1件でも変われば、それは層ではなく基盤の変更なので、作り直しと同じ扱いで ACDR にかける"
+    },
+    {
+      "do": "P0 を Conformance Suite の形で作る",
+      "detail": "P0 の3種のインスタンス（適合 ・ 不適合 ・ 未対応の意味を含む）ごとに、制約1件ずつの期待するステータスと diagnostic（path ・ constraint ・ sourceVocabulary ・ capability ・ status）を JSON で先に書き、それを期待結果にする。Projection Report の notRepresented に temporal-transition-rule が入ることも期待結果にする。期待結果を書かずに試作を動かしてから結果を正とすると、試作の振る舞いをそのまま固定してしまう"
+    },
+    {
+      "do": "段ごとの完成の条件を書く（Q5 の案）",
+      "detail": "段A（CI ・ 決定的）：P0 の Conformance Suite の全件で、ステータスと diagnostic が期待結果と一致する（100%）。未対応の意味を成功と返した件数0。処理の失敗の見本（時間切れ ・ 異常終了 ・ 読めない出力の代役）で error を返し記録を作らない。CLI を PATH から外しネットワークを切っても段A の結果が変わらない。段B（CI ・ 決定的）：AI の Interpreter の response から基盤が作る Evidence を、欄の有無 ・ 決まりの id ・ 場所 ・ 引用 ・ ハッシュで確かめ、引用がインスタンスに無いもの ・ 無い id を混ぜた見本を全件 error にする。インスタンスを1文字変えたら古い Evidence を確かめ直しにする。段C（手元 ・ 揺れる）：x-prompt の bad と good の組と P0 の意味の不適合から作った見本 20 組（決まり10件 × bad ・ good）を、Claude Code ・ Codex ・ Kiro でそれぞれ5回ずつ回し、CLI と版ごとに、bad を正しい決まりと場所で violated にした割合、good を violated にした割合（偽陽性）、5回中4回以上同じ判定になった見本の割合を記録する。基準の数値は利用者が決める（例：8割以上 ・ 1割以下 ・ 8割以上）。段D（妥当性確認）：実際のボードのインスタンス1件に AI の検証を当て、violated の報告を利用者が全件読み、直す価値があったもの ・ 偽陽性 ・ 決まりの側の誤りに分けた記録が残る"
+    },
+    {
+      "do": "P0 で確かめる観点を一覧にして、試作の前に書く",
+      "detail": "①結果の語が1組で、docs/04 と docs/13 の語がすべて写っている ②P0 の Vocabulary 3件それぞれに Capability の段が宣言されている ③temporal-transition は unsupported、契約全体は成功にならない ④interpreter-response の例を、Capability が無いときは unsupported を返す形に直したうえで、Interpreter が在るが決められないときの unverified と別の見本で示す ⑤Descriptive の側面（名前 ・ 説明）を AI の Interpreter に見させた見本で、守れている判定が verified にならず unverified になる ⑥diagnostic から、制約の id ・ Vocabulary の id ・ インスタンスの場所 ・ 契約と Interpreter の版へたどれる ⑦同じ Contract と Instance を Rust 以外の Interpreter（P3 の前でも、代役の実装でよい）に渡したとき、ステータスの並びが一致する"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "testing",
+      "quote": "活動：検証 ・ 何を確認するか：指定された要件を、システムが満たしているか"
+    },
+    {
+      "criterion": "testing",
+      "quote": "活動：妥当性確認 ・ 何を確認するか：運用環境で、ユーザーやその他のステークホルダーのニーズを、システムが満たしているか"
+    },
+    {
+      "criterion": "testing-principles",
+      "quote": "原則：「テストは欠陥があることは示せるが、欠陥がないことは示せない」 ・ 内容：テストで未検出の欠陥の数は減らせる。欠陥が見つからなくても、テスト対象が正しいことの証明にはならない"
+    },
+    {
+      "criterion": "testing-principles",
+      "quote": "原則：「「欠陥ゼロ」の落とし穴」 ・ 内容：検証だけで、正しいシステムを構築できると期待することは誤り（思い込み）である"
+    },
+    {
+      "criterion": "testing-principles",
+      "quote": "条件：検証を実施した ・ 対応：検証に加えて、妥当性確認も実施する"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "Erratic Test：1つまたは複数のテストが、ときに成功し、ときに失敗するという不安定な振る舞いをする状態。"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "「Keep the Bar Green」を守ろうとして、失敗するテストをスイートから抜きたくなる。だが抜けば、わざと Lost Test を作ることになる。"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "条件：カバレッジを上げたくてランダムな値を使う ・ 対応：使わない。カバーしていないケースは追加のテストで足す ・ 理由：カバレッジについての理解と、テストの再現性（Repeatable Test）が下がる"
+    },
+    {
+      "criterion": "defect-management",
+      "quote": "報告した不正は、本当の欠陥と判明する場合もあれば、偽陽性や変更要求など他の何かの場合もある"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "終了基準：活動の完了を宣言するために、何を達成しなければならないかを定義する基準。"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "対応：開始基準と終了基準を、テストレベルごとに定義するべきである"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "区分：終了基準 ・ 基準：徹底度の測定 ・ 例：達成されたカバレッジレベル ・ 未解決欠陥の数 ・ 欠陥密度 ・ 不合格になったテストケースの数"
+    },
+    {
+      "criterion": "traceability",
+      "quote": "トレーサビリティ：テストベースの各要素と、関連するテストウェア（テスト条件 ・ リスク ・ テストケースなど）、テスト結果、検出した欠陥とを、追跡できる対応関係。"
+    },
+    {
+      "criterion": "traceability",
+      "quote": "価値：変更の影響を判断できる"
+    },
+    {
+      "criterion": "independence-of-testing",
+      "quote": "テストの独立性：作業成果物をテストする人が、その作成者からどれだけ独立しているか。ある程度の独立性があると、作成者とテスト担当者の認知バイアスの違いから、テスト担当者が欠陥をより効果的に発見できる。"
+    },
+    {
+      "criterion": "test-automation",
+      "quote": "リスク：ツールへの過剰な依存 ・ 具体的な内容：人の批判的思考の必要性を無視するなど"
+    },
+    {
+      "criterion": "test-monitoring-and-control",
+      "quote": "対応：プロダクトリスク ・ 要件 ・ 受け入れ基準などで定めたカバレッジを満たしたかを測る"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "AI の判定を CI と approve の合否に入れる（Erratic Test）",
+      "risk": "同じ契約とインスタンスで合否が回ごとに変わり、落ちたときに欠陥か揺れかを決められない。落ちる試験を外すと Lost Test になる",
+      "alternative": "AI の判定は段C で割合として測り、CI の合否は段A ・ 段B の決定的な確かめだけにする"
+    },
+    {
+      "name": "AI の「守れている」を verified にする（「欠陥ゼロ」の落とし穴）",
+      "risk": "違反が見つからなかっただけの回が、契約に適合した証拠として読まれ、fail-closed が AI の Interpreter の所だけ開く",
+      "alternative": "AI の Interpreter は verifiable を名乗らず、守れているは unverified で返す。Conformance Suite に「決定的でない Interpreter が verified を返した件数0」を入れる"
+    },
+    {
+      "name": "処理の失敗を unverified に入れる",
+      "risk": "時間切れや読めない出力が、Interpreter が考えた末に決められなかった結果として読まれ、失敗の件数が数えられなくなる",
+      "alternative": "error を5つ目の語として持ち、Evidence の記録を作らずに返す"
+    },
+    {
+      "name": "（推測）P0 の見本を、試作を動かした結果から作る",
+      "risk": "試作の誤った振る舞いが期待結果として固定され、Conformance Suite が別の実装の正しい振る舞いを不合格にする",
+      "alternative": "期待するステータスと diagnostic を、試作を書く前に JSON で書いて期待結果にする"
+    },
+    {
+      "name": "段C の見本を回ごとに生成し直す（Nondeterministic Test の原因）",
+      "risk": "回ごとに入力が変わり、当たった割合の変化が AI の揺れか見本の違いかを分けられない",
+      "alternative": "見本 20 組は固定してリポジトリに置き、変えるときは版を上げて前の版の結果と分けて記録する"
+    }
+  ],
+  "records": [
+    {
+      "target": "ボード semantic-contract-core の Q5（完成の条件）",
+      "content": "段A ・ 段B ・ 段C ・ 段D の終了基準と、段C の数値（回数 ・ 割合）は利用者が決めたこと"
+    },
+    {
+      "target": "P0 の仕様（結果の語）",
+      "content": "5つの語の定義、契約全体の結果を出す規則、Capability の段との対応、check と agents-in-base Q2 の語との対応"
+    },
+    {
+      "target": "Evidence の形",
+      "content": "verifier ・ scope ・ artifact ・ timestamp ・ diagnostic に加え、契約 ・ Vocabulary ・ インスタンスのハッシュ、Interpreter の名前と版、決まりの id と場所、AI の Interpreter では文脈のハッシュ ・ セッションの形 ・ 回数と判定ごとの回数"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "ddd-advisor（結果の語の名前）",
+      "why": "docs/04 と docs/13 で同じ結果に2組の名前があり、いまの基盤（合格 ・ ずれ ・ 確かめ直し）と agents-in-base Q2（守れている ・ 守れていない ・ 判断できない）にも別の語がある。どの語を正にするかは、テストの判断基準ではなく、語をそろえる側の判断である"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "AI が P0 の試作や Evidence を作るとき、AI の Interpreter の「守れている」を verified と書く",
+      "check": "Conformance Suite の結果を集計し、Interpreter の Capability が「決定的でない」で status が verified の件数が0かを確かめる"
+    },
+    {
+      "breaks": "時間切れや CLI の異常終了を unverified として記録する",
+      "check": "段A の処理の失敗の見本3種で、status が error であり、Evidence のファイルが増えていないことを確かめる"
+    },
+    {
+      "breaks": "段C の数値（回数 ・ 割合）を、利用者が決める前に決まったこととしてボードや ACDR に書く",
+      "check": "ボードの Q5 の checks に数値の確認が残っているか、利用者が承認した記録があるかを、書く前に確かめる"
+    },
+    {
+      "breaks": "docs/04 と docs/13 の語を両方とも残したまま試作を書く",
+      "check": "P0 の仕様と試作のコードを verified ・ conformant ・ nonconformant などの語で検索し、手順1で決めた1組の語だけが出ることを確かめる"
+    }
+  ],
+  "next": [
+    "docs/04 と docs/13 の結果の語を突き合わせ、1組にそろえる案を利用者に見せる",
+    "P0 の3種のインスタンスについて、制約ごとの期待するステータスと diagnostic を JSON で書く",
+    "M1 の18件を、3つの分け方で表にする",
+    "M3 の9件のインスタンスを作り、いまの基盤の check で未対応の意味を合格と返す件数を数える",
+    "段C の見本20組と、回数 ・ 割合の基準の案を利用者に見せて決めてもらう"
+  ],
+  "related": [
+    {
+      "criterion": "risk-management",
+      "relation": "作り直すか層を足すかを、M1〜M4 の結果を残るリスクのレベルとして並べて決めるときに使う"
+    },
+    {
+      "criterion": "confirmation-and-regression-testing",
+      "relation": "M4（層を足す前後で既存の check の結果が変わらないか）は、リグレッションテストに当たる"
+    }
+  ]
+}

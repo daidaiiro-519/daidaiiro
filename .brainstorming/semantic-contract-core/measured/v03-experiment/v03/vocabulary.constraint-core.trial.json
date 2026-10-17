@@ -1,0 +1,114 @@
+{
+  "kind": "vocabulary",
+  "id": "urn:daidaiiro:vocab:constraint-core:0-trial",
+  "_note": "試案。v0.3 の examples の形にならったもので、正式な仕様ではない。 どのボードにも依らない汎用の制約。どの Interpreter もまだ持たない。",
+  "terms": {
+    "Count": {
+      "description": "path の配列のうち where に当たる要素の数が min 以上 max 以下",
+      "aspect": "Formal",
+      "params": {
+        "where": {
+          "type": "object"
+        },
+        "min": {
+          "type": "integer"
+        },
+        "max": {
+          "type": "integer"
+        }
+      },
+      "requires": [
+        "validate-count"
+      ]
+    },
+    "Implies": {
+      "description": "if の条件がインスタンスで成り立つなら then の条件も成り立つ",
+      "aspect": "Formal",
+      "params": {
+        "if": {},
+        "then": {}
+      },
+      "requires": [
+        "validate-implies"
+      ]
+    },
+    "RefersTo": {
+      "description": "値が in の要素の id を指し、when が成り立つとき、指す先の at の値が accept のどれか",
+      "aspect": "Formal",
+      "params": {
+        "in": {
+          "type": "string"
+        },
+        "when": {
+          "type": "object"
+        },
+        "at": {
+          "type": "string"
+        },
+        "accept": {
+          "type": "array"
+        }
+      },
+      "requires": [
+        "validate-reference"
+      ]
+    },
+    "UniqueKey": {
+      "description": "path の配列の要素のあいだで key の値が重ならない",
+      "aspect": "Formal",
+      "params": {
+        "key": {
+          "type": "string"
+        }
+      },
+      "requires": [
+        "validate-unique-key"
+      ]
+    },
+    "OrderedBy": {
+      "description": "path の配列が key の値で order の順に並ぶ",
+      "aspect": "Formal",
+      "params": {
+        "key": {
+          "type": "string"
+        },
+        "order": {
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
+      "requires": [
+        "validate-order"
+      ]
+    },
+    "NotIn": {
+      "description": "when が成り立つとき、値（小文字にしてから）が values のどれでもない",
+      "aspect": "Structural",
+      "params": {
+        "values": {
+          "type": "array"
+        },
+        "when": {
+          "type": "object"
+        }
+      },
+      "requires": [
+        "validate-structure"
+      ]
+    },
+    "InList": {
+      "description": "値が list の名前の一覧のどれか。一覧はこの語彙の外に置く",
+      "aspect": "Structural",
+      "params": {
+        "list": {
+          "type": "string"
+        }
+      },
+      "requires": [
+        "validate-structure"
+      ]
+    }
+  }
+}

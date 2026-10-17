@@ -1,0 +1,77 @@
+{
+  "_note": "試案。v0.3 の examples の形にならったもので、正式な仕様ではない。 present は、この実験のときに動くものがあるか。",
+  "interpreters": [
+    {
+      "id": "schema-driven-validate",
+      "implementation": ".claude/skills/brainstorming/scripts/bin/schema-driven（update ・ check）",
+      "providedCapabilities": [
+        "validate-structure"
+      ],
+      "present": true
+    },
+    {
+      "id": "schema-driven-check-xref",
+      "implementation": "schema-driven check（x-ref の to ・ in ・ when ・ accept）",
+      "providedCapabilities": [
+        "validate-reference"
+      ],
+      "present": true,
+      "note": "xref-trial で queue-points-open と open-depends-settled が動いた"
+    },
+    {
+      "id": "brainstorming-inspect",
+      "implementation": "brainstorming inspect（inspect.rs）",
+      "providedCapabilities": [
+        "validate-ja-sentence",
+        "extract-topic-mentions",
+        "validate-downstream-or-outer"
+      ],
+      "present": true,
+      "note": "validate-ja-sentence は SentenceAtMost だけで、OneSentence は持たない。対象の欄も inspect.rs:99 の4つに決まっている"
+    },
+    {
+      "id": "schema-driven-render",
+      "implementation": "schema-driven render（contentMediaType image/svg+xml）",
+      "providedCapabilities": [
+        "check-svg"
+      ],
+      "present": true
+    },
+    {
+      "id": "constraint-core",
+      "implementation": "無い",
+      "providedCapabilities": [
+        "validate-count",
+        "validate-implies",
+        "validate-unique-key",
+        "validate-order",
+        "validate-lines"
+      ],
+      "present": false,
+      "note": "count と implies の一部は、標準の JSON Schema のキーワード（minItems ・ maxItems ・ maxContains ・ if/then）へ射影して jsonschema-trial で動かした"
+    },
+    {
+      "id": "ai-reviewer",
+      "implementation": "AI（x-prompt の test を読ませる）",
+      "providedCapabilities": [
+        "judge-meaning"
+      ],
+      "present": false,
+      "note": "いまは書く AI が自分で読むだけで、検査として呼ばれていない"
+    },
+    {
+      "id": "human",
+      "implementation": "人",
+      "providedCapabilities": [
+        "judge-visual"
+      ],
+      "present": false
+    }
+  ],
+  "capabilitiesWithoutInterpreter": [
+    "validate-ja-sentence（OneSentence）",
+    "validate-tree-depth",
+    "check-html-no-external",
+    "check-rendered-page"
+  ]
+}

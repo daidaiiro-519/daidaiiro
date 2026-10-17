@@ -1,0 +1,76 @@
+{
+  "kind": "vocabulary",
+  "id": "urn:daidaiiro:vocab:brainstorming:0-trial",
+  "_note": "試案。v0.3 の examples の形にならったもので、正式な仕様ではない。 このボードにしか無い意味。",
+  "terms": {
+    "TopicId": {
+      "description": "ボードの中の論点の名前（Q と数字）",
+      "aspect": "Descriptive",
+      "valueSchema": {
+        "type": "string",
+        "pattern": "^Q[0-9]+$"
+      },
+      "requires": [
+        "validate-structure"
+      ]
+    },
+    "TopicStatus": {
+      "description": "論点を開いたか（open）・ 決着したか（settled）・ どちらでもないか（waiting）。保存する事実",
+      "aspect": "Operational",
+      "valueSchema": {
+        "enum": [
+          "waiting",
+          "open",
+          "settled"
+        ]
+      },
+      "requires": [
+        "validate-structure"
+      ]
+    },
+    "MentionedTopicsDeclared": {
+      "description": "本文に出てくる論点の id（前後が英数字でない Q と数字）は、自分 ・ depends ・ 下流のどれか",
+      "aspect": "Formal",
+      "requires": [
+        "extract-topic-mentions"
+      ],
+      "definedBy": "src/brainstorming/crates/core/src/domain/inspect.rs:12"
+    },
+    "UsedDownstreamOrOutside": {
+      "description": "下流の論点の depends に現れるか、verification.out_of_scope の item に「外の作業」がある",
+      "aspect": "Formal",
+      "requires": [
+        "validate-downstream-or-outer"
+      ],
+      "definedBy": "src/brainstorming/crates/core/src/domain/inspect.rs:126"
+    },
+    "TreeDepthStep": {
+      "description": "tree の rows の depth は、前の行の depth + 1 を超えない",
+      "aspect": "Formal",
+      "requires": [
+        "validate-tree-depth"
+      ]
+    },
+    "CheckedSvg": {
+      "description": "design-svg の検査を通した SVG",
+      "aspect": "Operational",
+      "requires": [
+        "check-svg"
+      ]
+    },
+    "StandaloneHtml": {
+      "description": "外のファイルや URL を読まない1枚の HTML",
+      "aspect": "Formal",
+      "requires": [
+        "check-html-no-external"
+      ]
+    },
+    "NotRendered": {
+      "description": "書き手の検証の記録で、画面に描かない",
+      "aspect": "Operational",
+      "requires": [
+        "check-rendered-page"
+      ]
+    }
+  }
+}

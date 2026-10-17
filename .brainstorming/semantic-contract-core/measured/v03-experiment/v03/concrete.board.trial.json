@@ -1,0 +1,836 @@
+{
+  "kind": "contract",
+  "id": "urn:daidaiiro:contract:brainstorming-board:0-trial",
+  "_note": "試案。v0.3 の examples の形にならったもので、正式な仕様ではない。 形（JSON Schema）はいまのスキーマを名前で引き、写さない。",
+  "uses": [
+    "urn:daidaiiro:vocab:text-ja:0-trial",
+    "urn:daidaiiro:vocab:constraint-core:0-trial",
+    "urn:daidaiiro:vocab:brainstorming:0-trial",
+    "urn:daidaiiro:vocab:judgment:0-trial"
+  ],
+  "dataSchema": {
+    "$ref": "brainstorming/board@v1"
+  },
+  "coveredByDataSchema": {
+    "inventory": [
+      "P3",
+      "P4",
+      "P9",
+      "P10",
+      "P14",
+      "P40",
+      "P43",
+      "P65",
+      "P69",
+      "P74",
+      "P84",
+      "P90",
+      "P92",
+      "P100",
+      "P105",
+      "I5",
+      "G8",
+      "G11",
+      "I3",
+      "I7",
+      "P51"
+    ],
+    "note": "いまのスキーマの形（const ・ pattern ・ enum ・ required ・ additionalProperties ・ maxItems）と x-ref がそのまま持つ決まり"
+  },
+  "semanticBindings": {
+    "/topics/*/id": {
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#TopicId"
+    },
+    "/topics/*/status": {
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#TopicStatus"
+    },
+    "/topics/*/depends/*": {
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#TopicId"
+    },
+    "/queue/*/topic": {
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#TopicId"
+    },
+    "/changes/*/topic": {
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#TopicId"
+    }
+  },
+  "constraints": [
+    {
+      "id": "rejected-at-least-one",
+      "inventory": [
+        "P2",
+        "P48"
+      ],
+      "path": "/topics/*/rejected",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#Count",
+      "params": {
+        "min": 1
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:20",
+        ".claude/skills/brainstorming/assets/board.schema.json:981"
+      ]
+    },
+    {
+      "id": "title-40",
+      "inventory": [
+        "P6"
+      ],
+      "path": "/title",
+      "term": "urn:daidaiiro:vocab:text-ja:0-trial#CharsAtMost",
+      "params": {
+        "max": 40,
+        "approx": true
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:102"
+      ]
+    },
+    {
+      "id": "intro-one-sentence",
+      "inventory": [
+        "P7"
+      ],
+      "path": "/intro",
+      "term": "urn:daidaiiro:vocab:text-ja:0-trial#OneSentence",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:120"
+      ]
+    },
+    {
+      "id": "queue-points-open",
+      "inventory": [
+        "P15",
+        "I4"
+      ],
+      "path": "/queue/*/topic",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#RefersTo",
+      "params": {
+        "in": "/topics",
+        "at": "status",
+        "accept": [
+          "open"
+        ]
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:275",
+        "src/brainstorming/crates/core/src/domain/inspect.rs:55"
+      ]
+    },
+    {
+      "id": "open-depends-settled",
+      "inventory": [
+        "I8"
+      ],
+      "path": "/topics/*/depends/*",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#RefersTo",
+      "params": {
+        "in": "/topics",
+        "when": {
+          "status": "open"
+        },
+        "at": "status",
+        "accept": [
+          "settled"
+        ]
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:74"
+      ]
+    },
+    {
+      "id": "log-newest-first",
+      "inventory": [
+        "P23"
+      ],
+      "path": "/log",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#OrderedBy",
+      "params": {
+        "key": "date",
+        "order": "desc"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:458"
+      ]
+    },
+    {
+      "id": "topics-3-to-5",
+      "inventory": [
+        "P26"
+      ],
+      "path": "/topics",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#Count",
+      "params": {
+        "min": 3,
+        "max": 5
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:519"
+      ]
+    },
+    {
+      "id": "topic-id-unique",
+      "inventory": [
+        "P28"
+      ],
+      "path": "/topics",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#UniqueKey",
+      "params": {
+        "key": "id"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:569"
+      ]
+    },
+    {
+      "id": "topic-name-10",
+      "inventory": [
+        "P29"
+      ],
+      "path": "/topics/*/name",
+      "term": "urn:daidaiiro:vocab:text-ja:0-trial#CharsAtMost",
+      "params": {
+        "max": 10,
+        "approx": true
+      },
+      "note": "「10字くらい」。approx のため、誤りにはならず注意にとどまる",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:587"
+      ]
+    },
+    {
+      "id": "open-at-most-5",
+      "inventory": [
+        "I1"
+      ],
+      "path": "/topics",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#Count",
+      "params": {
+        "where": {
+          "status": "open"
+        },
+        "max": 5
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:40"
+      ]
+    },
+    {
+      "id": "open-needs-queue",
+      "inventory": [
+        "I2",
+        "P30"
+      ],
+      "path": "/",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#Implies",
+      "params": {
+        "if": {
+          "count": "/topics",
+          "where": {
+            "status": "open"
+          },
+          "min": 1
+        },
+        "then": {
+          "count": "/queue",
+          "min": 1
+        }
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:50",
+        ".claude/skills/brainstorming/assets/board.schema.json:608"
+      ]
+    },
+    {
+      "id": "no-open-means-all-settled",
+      "inventory": [
+        "I6"
+      ],
+      "path": "/",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#Implies",
+      "params": {
+        "if": {
+          "count": "/topics",
+          "where": {
+            "status": "open"
+          },
+          "max": 0
+        },
+        "then": {
+          "all": "/topics",
+          "where": {
+            "status": "settled"
+          }
+        }
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:65"
+      ]
+    },
+    {
+      "id": "open-has-image",
+      "inventory": [
+        "I12",
+        "P36"
+      ],
+      "path": "/topics/*",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#Implies",
+      "params": {
+        "if": {
+          "status": "open"
+        },
+        "then": {
+          "count": "images",
+          "min": 1
+        }
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:123",
+        ".claude/skills/brainstorming/assets/board.schema.json:740"
+      ]
+    },
+    {
+      "id": "code-language-not-text",
+      "inventory": [
+        "I11",
+        "P78"
+      ],
+      "path": "/topics/*/images/*/language",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#NotIn",
+      "params": {
+        "values": [
+          "text",
+          "plain",
+          "txt",
+          ""
+        ],
+        "when": {
+          "kind": "code"
+        }
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:113",
+        ".claude/skills/brainstorming/assets/board.schema.json:1550"
+      ]
+    },
+    {
+      "id": "language-known",
+      "inventory": [
+        "P77",
+        "P87"
+      ],
+      "path": "/topics/*/images/*/language",
+      "term": "urn:daidaiiro:vocab:constraint-core:0-trial#InList",
+      "params": {
+        "list": "languages"
+      },
+      "note": "一覧はまだ無い。test は「知っている名前か」",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1544",
+        ".claude/skills/brainstorming/assets/board.schema.json:1712"
+      ]
+    },
+    {
+      "id": "mentions-declared",
+      "inventory": [
+        "I9"
+      ],
+      "path": "/topics/*",
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#MentionedTopicsDeclared",
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:92"
+      ]
+    },
+    {
+      "id": "sentence-120",
+      "inventory": [
+        "I10",
+        "P32"
+      ],
+      "path": "/topics/*/{answer/text,answer/details/*,rejected/*/reason}",
+      "term": "urn:daidaiiro:vocab:text-ja:0-trial#SentenceAtMost",
+      "params": {
+        "max": 120
+      },
+      "note": "P32 の test は欄全体の120字だが、実際に検査しているのは1文の長さ（inspect.rs:105）。試案は実際の検査に合わせた",
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:105",
+        ".claude/skills/brainstorming/assets/board.schema.json:652"
+      ]
+    },
+    {
+      "id": "open-used-somewhere",
+      "inventory": [
+        "I13"
+      ],
+      "path": "/topics/*",
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#UsedDownstreamOrOutside",
+      "params": {
+        "when": {
+          "status": "open"
+        }
+      },
+      "source": [
+        "src/brainstorming/crates/core/src/domain/inspect.rs:132"
+      ]
+    },
+    {
+      "id": "tree-depth-step",
+      "inventory": [
+        "P94"
+      ],
+      "path": "/topics/*/images/*/rows",
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#TreeDepthStep",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1856"
+      ]
+    },
+    {
+      "id": "svg-checked",
+      "inventory": [
+        "P67"
+      ],
+      "path": "/topics/*/images/*/svg",
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#CheckedSvg",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1350"
+      ]
+    },
+    {
+      "id": "html-standalone",
+      "inventory": [
+        "P71"
+      ],
+      "path": "/topics/*/images/*/html",
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#StandaloneHtml",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1428"
+      ]
+    },
+    {
+      "id": "verification-hidden",
+      "inventory": [
+        "P52"
+      ],
+      "path": "/topics/*/verification",
+      "term": "urn:daidaiiro:vocab:brainstorming:0-trial#NotRendered",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1077"
+      ]
+    },
+    {
+      "id": "decisions-only",
+      "inventory": [
+        "P1",
+        "G2"
+      ],
+      "path": "/topics/*/question",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "問いに、調べれば分かることが入っていないか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:14",
+        ".claude/skills/brainstorming/SKILL.md:120"
+      ]
+    },
+    {
+      "id": "not-make-user-choose",
+      "inventory": [
+        "G1"
+      ],
+      "path": "/topics/*",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "案を並べて利用者に選ばせていないか（答えは1つか）"
+      },
+      "source": [
+        ".claude/skills/brainstorming/SKILL.md:119"
+      ]
+    },
+    {
+      "id": "flag-rare",
+      "inventory": [
+        "P11"
+      ],
+      "path": "/flag",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "ほかの作業を止めているときだけ true か"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:197"
+      ]
+    },
+    {
+      "id": "one-decision",
+      "inventory": [
+        "P27"
+      ],
+      "path": "/topics/*/answer/text",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "答えの1文が1つのことを決めているか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:544"
+      ]
+    },
+    {
+      "id": "decidable",
+      "inventory": [
+        "P31"
+      ],
+      "path": "/topics/*",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "答えの1文が問いに答えているか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:626"
+      ]
+    },
+    {
+      "id": "image-kind-by-content",
+      "inventory": [
+        "P37"
+      ],
+      "path": "/topics/*/images/*",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "code の完成イメージが、ファイルとして成り立つ本文か"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:746"
+      ]
+    },
+    {
+      "id": "assumption-one-each",
+      "inventory": [
+        "P38",
+        "P56"
+      ],
+      "path": "/topics/*/{assumptions,verification/assumptions}/*",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "1件に1つのことか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:767",
+        ".claude/skills/brainstorming/assets/board.schema.json:1143"
+      ]
+    },
+    {
+      "id": "screen-height-fits",
+      "inventory": [
+        "P72"
+      ],
+      "path": "/topics/*/images/*/height",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#VisualJudgment",
+      "params": {
+        "question": "中身が収まる高さか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1447"
+      ]
+    },
+    {
+      "id": "code-is-real-file",
+      "inventory": [
+        "P80"
+      ],
+      "path": "/topics/*/images/*/text",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "path に書いたファイルの本文として成り立つか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1574"
+      ]
+    },
+    {
+      "id": "highlight-few",
+      "inventory": [
+        "P81"
+      ],
+      "path": "/topics/*/images/*/highlight",
+      "term": "urn:daidaiiro:vocab:judgment:0-trial#Judgment",
+      "params": {
+        "question": "全体の行の数より十分少ないか"
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1596"
+      ]
+    },
+    {
+      "id": "lines-60",
+      "inventory": [
+        "P25",
+        "P33",
+        "P35",
+        "P39",
+        "P54",
+        "P55",
+        "P57",
+        "P59",
+        "P61",
+        "P63",
+        "P79"
+      ],
+      "path": "（各欄。inventory の行の where）",
+      "term": "urn:daidaiiro:vocab:text-ja:0-trial#LinesAtMost",
+      "params": {
+        "max": 60,
+        "approx": true
+      },
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:500",
+        ".claude/skills/brainstorming/assets/board.schema.json:671",
+        ".claude/skills/brainstorming/assets/board.schema.json:701",
+        ".claude/skills/brainstorming/assets/board.schema.json:782",
+        ".claude/skills/brainstorming/assets/board.schema.json:1110",
+        ".claude/skills/brainstorming/assets/board.schema.json:1129",
+        ".claude/skills/brainstorming/assets/board.schema.json:1170",
+        ".claude/skills/brainstorming/assets/board.schema.json:1207",
+        ".claude/skills/brainstorming/assets/board.schema.json:1242",
+        ".claude/skills/brainstorming/assets/board.schema.json:1271",
+        ".claude/skills/brainstorming/assets/board.schema.json:1568"
+      ]
+    },
+    {
+      "id": "caption-and-note-one-sentence",
+      "inventory": [
+        "P64",
+        "P66",
+        "P68",
+        "P70",
+        "P73",
+        "P75",
+        "P82",
+        "P83",
+        "P85",
+        "P91",
+        "P93",
+        "P97",
+        "P99",
+        "P101"
+      ],
+      "path": "/topics/*/images/*/{caption,note,rows/*/note}",
+      "term": "urn:daidaiiro:vocab:text-ja:0-trial#OneSentence",
+      "note": "one-thing と one-sentence は同じ caption に同じ test（1文か）を持つので、1つの制約にまとめた",
+      "source": [
+        ".claude/skills/brainstorming/assets/board.schema.json:1291",
+        ".claude/skills/brainstorming/assets/board.schema.json:1331",
+        ".claude/skills/brainstorming/assets/board.schema.json:1370",
+        ".claude/skills/brainstorming/assets/board.schema.json:1410",
+        ".claude/skills/brainstorming/assets/board.schema.json:1467",
+        ".claude/skills/brainstorming/assets/board.schema.json:1508",
+        ".claude/skills/brainstorming/assets/board.schema.json:1614",
+        ".claude/skills/brainstorming/assets/board.schema.json:1634",
+        ".claude/skills/brainstorming/assets/board.schema.json:1676",
+        ".claude/skills/brainstorming/assets/board.schema.json:1786",
+        ".claude/skills/brainstorming/assets/board.schema.json:1826",
+        ".claude/skills/brainstorming/assets/board.schema.json:1914",
+        ".claude/skills/brainstorming/assets/board.schema.json:1950",
+        ".claude/skills/brainstorming/assets/board.schema.json:1991"
+      ]
+    }
+  ],
+  "coveredByProtocol": {
+    "inventory": [
+      "G7"
+    ],
+    "note": "「AI の検査したで合格としない」は、決まりではなく Interpreter の応答（status ・ providedCapabilities）の性質になる"
+  },
+  "unplaced": [
+    {
+      "inventory": "P5",
+      "rule": "file-name：.brainstorming/<id>.json のファイル名と同じにする。（test：ファイル名と同じかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:84",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P12",
+      "rule": "by-id：ほかのボードの id を書く。（test：指す先のボードがあるかを check で見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:214",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P76",
+      "rule": "as-in-repo：リポジトリの根からの場所で書く。（test：その場所が在るか、作る予定かを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:1526",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P86",
+      "rule": "as-in-repo：リポジトリの根からの場所で書く。（test：その場所が在るか、作る予定かを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:1694",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P95",
+      "rule": "as-in-repo：リポジトリの根からの場所で書く。（test：その場所が在るか、作る予定かを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:1875",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P88",
+      "rule": "verbatim：変更前の原文をそのまま書く。（test：原文と同じかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:1729",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P89",
+      "rule": "verbatim：変更後の原文をそのまま書く。（test：原文と同じかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:1746",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P102",
+      "rule": "where：実行した場所を書く。（test：場所が在るかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:2009",
+      "reason": "検査にインスタンスの外のファイル（ファイル名 ・ リポジトリ ・ ほかのボード）を必要とする。v0.3 の要求の例は instance を1件しか渡さない",
+      "why": "ほかのファイル"
+    },
+    {
+      "inventory": "P13",
+      "rule": "by-advance：advance が書く。手で書き換えない。（test：rounds/ の最後の番号と同じかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:239",
+      "reason": "検査に前の回の記録を必要とする。v0.3 の試案には、版や履歴を渡す置き場所が無い",
+      "why": "前の回"
+    },
+    {
+      "inventory": "P18",
+      "rule": "by-advance：advance が、前の回と比べて書く。理由には差し戻しの言葉をそのまま入れる。（test：前の回の記録と比べて、変わった欄だけが並んでいるかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:343",
+      "reason": "検査に前の回の記録を必要とする。v0.3 の試案には、版や履歴を渡す置き場所が無い",
+      "why": "前の回"
+    },
+    {
+      "inventory": "G3",
+      "rule": "外した案を黙って消さない",
+      "source": ".claude/skills/brainstorming/SKILL.md:121",
+      "reason": "検査に前の回の記録を必要とする。v0.3 の試案には、版や履歴を渡す置き場所が無い",
+      "why": "前の回"
+    },
+    {
+      "inventory": "P8",
+      "rule": "by-user：利用者が画面の「保留にする」で書き、「保留を解く」で消す。AI は書かない。（test：date があるかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:138",
+      "reason": "誰が書いたか ・ どう書いたかはインスタンスに残らない",
+      "why": "誰が書いたか"
+    },
+    {
+      "inventory": "G4",
+      "rule": "ボードの JSON を手で書き換えない",
+      "source": ".claude/skills/brainstorming/SKILL.md:122",
+      "reason": "誰が書いたか ・ どう書いたかはインスタンスに残らない",
+      "why": "誰が書いたか"
+    },
+    {
+      "inventory": "G5",
+      "rule": "rounds/ と answers/ を書き換えない",
+      "source": ".claude/skills/brainstorming/SKILL.md:123",
+      "reason": "誰が書いたか ・ どう書いたかはインスタンスに残らない",
+      "why": "誰が書いたか"
+    },
+    {
+      "inventory": "P103",
+      "rule": "as-typed：打ったとおりに書く。（test：実行できるかを見る。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:2027",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "P104",
+      "rule": "as-printed：出たとおりに書き、長ければ途中を省いたと書く。（test：実物の出力と比べる。）",
+      "source": ".claude/skills/brainstorming/assets/board.schema.json:2044",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "L1",
+      "rule": "ロックが新しいあいだは持ち主だけが書く",
+      "source": "src/brainstorming/crates/core/src/domain/lock.rs:206",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "L2",
+      "rule": "serve のロックは60秒で古くなる",
+      "source": "src/brainstorming/crates/core/src/domain/lock.rs:175",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "L3",
+      "rule": "ターミナルのロックは10分で古くなる",
+      "source": "src/brainstorming/crates/core/src/domain/lock.rs:177",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "G6",
+      "rule": "ボードのフォルダの外を書き換えない",
+      "source": ".claude/skills/brainstorming/SKILL.md:124",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "G9",
+      "rule": "ロックを残したまま作業をやめない",
+      "source": ".claude/skills/brainstorming/SKILL.md:127",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "G10",
+      "rule": "画面の AI に聞くで、Kiro は読むだけ",
+      "source": ".claude/skills/brainstorming/SKILL.md:128",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "D2",
+      "rule": "AI が動いていればボードは更新中",
+      "source": "src/brainstorming/crates/core/src/domain/status.rs:79",
+      "reason": "プロセス ・ 時間 ・ 実行の結果の決まり。docs/14 は時間の制約を「そのまま表現できることを目指す（形式は未決）」とする",
+      "why": "実行と時間"
+    },
+    {
+      "inventory": "D1",
+      "rule": "論点のステータス：settled→決着、open→回答待ち、ほか→前提待ち",
+      "source": "src/brainstorming/crates/core/src/domain/status.rs:69",
+      "reason": "値を導く決まり（保存しない値）。v0.3 の試案の operation は validate だけが例にあり、導く操作が無い",
+      "why": "導く決まり"
+    },
+    {
+      "inventory": "D3",
+      "rule": "hold があればボードは保留",
+      "source": "src/brainstorming/crates/core/src/domain/status.rs:82",
+      "reason": "値を導く決まり（保存しない値）。v0.3 の試案の operation は validate だけが例にあり、導く操作が無い",
+      "why": "導く決まり"
+    },
+    {
+      "inventory": "D4",
+      "rule": "論点がすべて settled（1件以上）ならボードは決着",
+      "source": "src/brainstorming/crates/core/src/domain/status.rs:86",
+      "reason": "値を導く決まり（保存しない値）。v0.3 の試案の operation は validate だけが例にあり、導く操作が無い",
+      "why": "導く決まり"
+    },
+    {
+      "inventory": "D5",
+      "rule": "それ以外のボードは回答待ち",
+      "source": "src/brainstorming/crates/core/src/domain/status.rs:89",
+      "reason": "値を導く決まり（保存しない値）。v0.3 の試案の operation は validate だけが例にあり、導く操作が無い",
+      "why": "導く決まり"
+    }
+  ]
+}

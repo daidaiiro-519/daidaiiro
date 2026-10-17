@@ -1,0 +1,314 @@
+{
+  "kind": "judgment",
+  "question": "構想 Semantic Contract Core v0.3 の概念の切り方（Abstract Schema ・ Vocabulary ・ Concrete Schema ・ Interpreter ・ Capability ・ Engine ・ Platform／Runtime）は、いまの基盤 schema-driven と照らして、区切られた文脈と同じ言葉として筋が通っているか。AI を呼ぶ契約（agents-in-base）はどこに属し、基盤を作り直すのか足すのかをどう判断できるか。最小単位の候補（Term ・ Identity ・ Definition ・ Relation ・ Constraint ・ Interpretation）はよいか",
+  "premises": [
+    {
+      "name": "読んだ材料",
+      "value": "v0.3 の docs/10 ・ 11 ・ 13 ・ 14 ・ 15 ・ 16 ・ 17 ・ 20、schema-driven の SKILL.md ・ CODING.md ・ assets/meta-schema.json、brainstorming の board.schema.json、ボード agents-in-base の Q0〜Q5",
+      "source": "リポジトリの中のファイル"
+    },
+    {
+      "name": "業務領域としての扱い",
+      "value": "ここでの「業務」は、AI が扱うデータの意味を宣言し、検証し、使う仕事とみなした。事業の中核かどうかは未判定である（1人の作業で、事業としての評価の材料が無い）",
+      "source": "相談者の材料から置いた仮定"
+    },
+    {
+      "name": "所有するチーム",
+      "value": "所有者は1人（利用者）で、複数の文脈を1人が持つ形である。チームの数による分割の契機は当てはまらない",
+      "source": "CLAUDE.md（1人作業）"
+    },
+    {
+      "name": "対応表：Abstract Schema",
+      "value": "同じもの。いまの abstract スキーマ（schema-driven/abstract@v1、meta-schema.json と注釈）が、concrete スキーマの従う規則である。違い：いまの abstract は構造と注釈（x-prompt ・ x-ref ・ x-derive ・ x-view）だけを持ち、v0.3 が求める「意味の参照 ・ 識別 ・ 拡張の規則」は持たない",
+      "source": "v0.3 docs/10 §3 ・ docs/11、schema-driven SKILL.md"
+    },
+    {
+      "name": "対応表：Vocabulary",
+      "value": "いまの基盤に無い。近いものは2つで、x-annotations（基盤に無い x- のキーを名前と仕様のスキーマで登録する）と、x-prompt の read.means（プロパティ1つの意味の説明）である。Skill をまたいで語の意味を1か所で宣言する仕組みは無い",
+      "source": "meta-schema.json の declare-annotations、SKILL.md Step 1"
+    },
+    {
+      "name": "対応表：Concrete Schema",
+      "value": "同じもの。brainstorming/board@v1 のように、x-abstract で abstract の版を指し、$id で名前を持つ。いまの基盤は「concrete スキーマは abstract スキーマのインスタンスである」と決めており、v0.3 が未決とする Abstract と Concrete の関係（docs/17 未決4）に、いまの基盤は「型付きインスタンス化」で答えている",
+      "source": "board.schema.json、SKILL.md Step 1、v0.3 docs/17"
+    },
+    {
+      "name": "対応表：Instance",
+      "value": "同じもの（インスタンス）。v0.3 は契約のインスタンスと利用者のデータのインスタンスの区別を未決とする（docs/10 §4）が、いまの基盤では concrete スキーマも abstract のインスタンスとして同じ道具（create ・ update ・ check）で扱い、区別が要らない形になっている",
+      "source": "v0.3 docs/10 §4、SKILL.md Step 1"
+    },
+    {
+      "name": "対応表：Interpreter",
+      "value": "部分的に在る。check が、JSON Schema の検証と x-ref ・ x-derive の検査を行う組み込みの Interpreter 1つに当たる。外から Interpreter を足す仕組み（v0.3 の External Interpreter Protocol）は無い。agents-in-base Q2 の「意味の検証」は、AI を2つ目の Interpreter として足す案に当たる",
+      "source": "SKILL.md Step 4、agents-in-base Q2"
+    },
+    {
+      "name": "対応表：Capability",
+      "value": "いまの基盤に無い。近いものは2つで、check-schemas が「エンジンが扱わない版」を検査せずに指摘すること（版の単位の対応可否）と、agents-in-base Q2 の `by`（決まり1件ごとに check で見るか意味の検証で見るかを振り分ける）である。`by` は「どの Interpreter がこの決まりを解釈できるか」の宣言なので、Capability の照合の芽に当たる",
+      "source": "SKILL.md Step 1、agents-in-base Q2"
+    },
+    {
+      "name": "対応表：結果の語（outcome）",
+      "value": "違うものが3組ある。v0.3 は conformant ・ nonconformant ・ unsupported ・ unverified ・ error、いまの check は 合格 ・ ずれ ・ 確かめ直し、agents-in-base Q2 は 守れている ・ 守れていない ・ 判断できない。Q2 は check の語と混ぜないと決めているが、v0.3 の語との対応は決まっていない",
+      "source": "v0.3 docs/13、SKILL.md Step 4、agents-in-base Q2"
+    },
+    {
+      "name": "対応表：fail-closed",
+      "value": "同じ考え方がすでに在る。approve は検証エラー ・ ずれ ・ 未記入が1件でもあれば承認記録を書かず、render は1ページも書かずに止まる。違い：いまは「必須の意味を解釈できる Interpreter が無い」という理由で止まる場面が無い（Interpreter が1つしか無いため）",
+      "source": "SKILL.md Step 5 ・ Step 6、v0.3 docs/14 原則5"
+    },
+    {
+      "name": "対応表：Projection と Projection Report",
+      "value": "違うもの。render（インスタンス → ページテンプレート → HTML）は射影の1つだが、何を表せなかったかの報告（coverage ・ lossless ・ notRepresented）を返さない。いまの基盤は render を基盤の中に持つが、v0.3 は UI Renderer を Runtime（基盤の外）に置く。ここが境界の置き方の最大の違いである",
+      "source": "SKILL.md Step 5、v0.3 docs/10 §3 ・ docs/14"
+    },
+    {
+      "name": "対応表：Engine",
+      "value": "同じもの。Rust の core と adapters、CLI と MCP の2つの受け口、JSON を1つ返す出力の形は、v0.3 docs/13 の「Rust-native implementation, Language-agnostic semantics」と同じ方向である。core の trait を外の契約にしない点も CODING.md と一致する",
+      "source": "CODING.md、v0.3 docs/13"
+    },
+    {
+      "name": "対応表：Platform／Runtime",
+      "value": "使う側の Skill（brainstorming の serve ・ ACDR ・ 助言型の Skill）に当たる。SKILL.md の「基盤は使う側の実行ファイルを起動しない」は、v0.3 の「Schema と Platform は異なる」と同じ区別である",
+      "source": "SKILL.md 目的、v0.3 docs/10 §4 ・ docs/16"
+    },
+    {
+      "name": "対応表：x-prompt",
+      "value": "v0.3 に対応する語が無い。read.means は Definition（Descriptive の側面）、write の rule ・ test ・ bad ・ good は「機械で解釈できない Constraint」に当たる。v0.3 の語で言えば、AI か人を Interpreter とする Constraint で、その Interpreter が無ければ unverified になる",
+      "source": "meta-schema.json、v0.3 docs/11 Semantic の4つの側面"
+    },
+    {
+      "name": "対応表：approve",
+      "value": "v0.3 に無い。docs/16 の「意味的契約変更は確定権限を区別する」だけが近い。いまの基盤は、検査を通ったインスタンスのパスとハッシュを人の承認として記録し、agents-in-base Q2 は「守れていないが無い」を承認の根拠にしないと決めている",
+      "source": "SKILL.md Step 6、v0.3 docs/16、agents-in-base Q2"
+    },
+    {
+      "name": "対応表：check-schemas と published.json",
+      "value": "v0.3 の未決3（Vocabulary の版と互換）と未決10（破壊的変更の互換性）に、いまの基盤は「公開した版は消さず書き換えず、@v2 で足し、指紋で確かめる」で答えている",
+      "source": "SKILL.md ガードレール、v0.3 docs/17"
+    },
+    {
+      "name": "判断基準の範囲外",
+      "value": "Interpreter Protocol の通信の形（CLI ・ IPC ・ WASM）、JSON-LD ・ RDF ・ SHACL の採否、AI の CLI の権限 ・ ロック ・ 時間切れの水準は、判断基準の範囲外である。ここでは境界と言葉の観点だけで判定する",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "v0.3 の「宣言 ・ 解釈 ・ 使う側」を分ける切り方は区切られた文脈として筋が通るが、同じものに複数の名前がある点と、AI を判断する役として扱う概念が無い点を直す必要があり、作り直すか足すかは、v0.3 の言葉がいまの abstract@v1 と競合するかで決まる。",
+    "because": "区切られた文脈は同じ言葉の一貫性を保つ境界で、競合するモデルは同じ文脈に置かない。v0.3 の Abstract ・ Concrete ・ Instance ・ Engine はいまの基盤と同じ意味なので競合しないが、Capability ・ 結果の語 ・ Projection の置き場所は、いまの基盤と食い違うか、いまの基盤に無い。"
+  },
+  "figure": {
+    "caption": "v0.3 の概念を、区切られた文脈と、文脈どうしの連係で並べ直した案。公開された言葉は abstract の版で、使う側の文脈はそれに従属する。AI を呼ぶ契約は、解釈と検証の文脈と使う側の文脈の両方から使われる別の文脈になる。",
+    "nodes": [
+      { "id": "decl", "label": "意味の宣言（Abstract ・ Vocabulary ・ Concrete の規則）", "role": "文脈" },
+      { "id": "pl", "label": "公開された言葉（abstract@v1 ・ @v2）", "role": "契約" },
+      { "id": "interp", "label": "解釈と検証（Interpreter ・ Capability ・ 結果の語 ・ fail-closed）", "role": "文脈" },
+      { "id": "agents", "label": "AI を呼ぶ契約（やらせたいことの型 ・ 親と子のセッション ・ ロック）", "role": "文脈" },
+      { "id": "proj", "label": "射影（render ・ 外の標準への射影 ・ Projection Report）", "role": "文脈" },
+      { "id": "use", "label": "使う側（brainstorming ・ ACDR ・ 助言型の Skill）", "role": "文脈" },
+      { "id": "engine", "label": "Engine（Rust の core と adapters、CLI と MCP）", "role": "実装" }
+    ],
+    "edges": [
+      { "from": "decl", "to": "pl", "label": "公開する" },
+      { "from": "use", "to": "pl", "label": "従属する（x-abstract で版を指す）" },
+      { "from": "interp", "to": "pl", "label": "読む" },
+      { "from": "interp", "to": "agents", "label": "意味の検証で AI を Interpreter として呼ぶ" },
+      { "from": "use", "to": "agents", "label": "会話の型で呼ぶ" },
+      { "from": "proj", "to": "interp", "label": "検証を通ったものだけを射影する" },
+      { "from": "engine", "to": "decl", "label": "実装する", "dashed": true },
+      { "from": "engine", "to": "interp", "label": "実装する", "dashed": true }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "案A：基盤の次の形として作り直す（v0.3 の Core を新しい基盤にし、いまの schema-driven を置き換える）",
+      "effect": "abstract@v1 に従う concrete スキーマ（brainstorming ・ ACDR ・ 助言型の Skill）がすべて影響を受ける。v0.3 は未決が10件残り、言葉が固まっていないので、作り直した境界を後から直す費用が大きい。採るのは、v0.3 の言葉がいまの abstract と競合し、同じ文脈に置けないと分かったときで、その場合もストラングラー方式で段階的に移す",
+      "chosen": false
+    },
+    {
+      "option": "案B：上の層として足す（abstract@v1 はそのままにし、Vocabulary と Capability を注釈の版として abstract@v2 に並べて足す）",
+      "effect": "公開した版を書き換えずに、使う側が新しい版へ段階的に移れる。いまの基盤のガードレール（公開した版は @v2 で足す）と同じ形になる。Vocabulary の語が abstract@v1 の語と同じ意味で使える場合に限って成り立つ",
+      "chosen": true
+    },
+    {
+      "option": "案C：横の層として足す（解釈と検証 ・ AI を呼ぶ契約 ・ 射影を、基盤の外の別の文脈にする）",
+      "effect": "結果の語や Capability がいまの check の語と競合しても、文脈が分かれるので混ざらない。そのかわり、基盤との間に公開された言葉（Interpreter Protocol）を決める必要がある。採るのは、意味の検証の言葉が check の言葉と競合し続けると分かったときである",
+      "chosen": false
+    },
+    {
+      "option": "案D：いまの基盤の中で論理的に分ける（1つの広い文脈のまま、宣言 ・ 解釈 ・ AI の呼び出し ・ 射影をモジュールに分け、言葉の対応表を先に作る）",
+      "effect": "業務知識がまだ少なく変化が多い段階で、境界を誤っても直す費用が小さい。agents-in-base Q1 の「基盤の中では、AI の呼び出し ・ 意味の検証 ・ いまの操作を別のモジュールに分ける」と同じ形である。言葉が固まって競合が見えた時点で、案B か案C へ進める",
+      "chosen": true
+    }
+  ],
+  "path": [
+    {
+      "ask": "問1：v0.3 の概念は、区切られた文脈と同じ言葉として筋が通っているか",
+      "answer": "大筋は通っている。「定義（Schema）と、それを使うソフトウェア（Platform）を分ける」「宣言（Vocabulary）と解釈（Interpreter）を分ける」は、モデルの境界を用途ごとに決める考え方に合う。ただし Abstract と Concrete は区切られた文脈の境界ではなく、規則とその具体化という階層の違いである。区切られた文脈になるのは、用途ごとの Concrete とそれを使う Runtime の組（例：brainstorming のボードと serve）で、文脈ごとに別の同じ言葉を持つ"
+    },
+    {
+      "ask": "問1の続き：重なりはどこか",
+      "answer": "同じものに複数の名前がある。Abstract Schema ・ Foundation ・ Semantic Contract Core ・ Semantic Specification ・ Schema駆動基盤が、同じ抽象の側を指して並んでいる。Engine も Semantic Contract Engine ・ Foundation Engine ・ Engine Implementation の3つの名前を持つ。Adapter は、外の標準を使う部品（JSON Schema Adapter）・ Concrete Development の部品 ・ Rust の port の実装の3つの意味で使われる。JSON Schema Adapter は Capability を宣言して unsupported を返すので、Interpreter と役が重なる。Capability も、Interpreter が解釈できる範囲（docs/13 ・ 14）と、AI Agent の Concrete の語（docs/16 の Tool Permission ・ Output ・ Capability）の2つの意味を持つ"
+    },
+    {
+      "ask": "問1の続き：抜けはどこか",
+      "answer": "3つある。(1) AI を判断する役（Interpreter の1つ）として扱う概念が無い。v0.3 で AI は「JSON を作る ・ 直す側」（docs/11 の5）と「Concrete の用途の1つ」（docs/16 の AI Agent）にしか現れない。(2) 承認（誰が結果を確定するか）が概念になっていない。docs/16 の「確定権限を区別する」だけである。(3) 語の意味が通用する範囲（文脈）を表す単位が、最小単位の候補に無い"
+    },
+    {
+      "ask": "問2：いまの基盤との対応はどうなっているか",
+      "answer": "前置きの「対応表」の行のとおり。同じもの：Abstract Schema ・ Concrete Schema ・ Instance ・ Engine ・ fail-closed の考え方。違うもの：結果の語（3組が並ぶ）・ 射影の置き場所（いまの基盤は render を中に持つ）。いまの基盤に無いもの：Vocabulary ・ Capability ・ 外の Interpreter ・ Projection Report。v0.3 に無いもの：x-prompt ・ approve ・ 公開の記録（published.json）"
+    },
+    {
+      "ask": "問3：AI を呼ぶ契約は、v0.3 のどの概念に属するか",
+      "answer": "1つの概念には収まらず、3つに分かれる。(a) 意味の検証（agents-in-base Q2）は、AI を実装に使う Interpreter の1つである。v0.3 の Interpreter Protocol に従い、Capability を宣言し、結果を v0.3 の結果の語へ対応づける。(b) 会話の型（決めた入口でだけ書く）は解釈ではなくインスタンスを書き換える操作なので、Platform／Runtime の側（docs/16 の Agent Runtime）に属する。(c) 決まりをどの Interpreter が見るかの宣言（`by`）と、必要な文脈の宣言（x-context）は、Concrete が書くので Abstract の注釈の語に属する。(a) と (b) が共通に使う「やらせたいことの型 ・ 親と子のセッション ・ 1つのインスタンスで子は1つ ・ ロック」は、どちらとも言葉が違うので、独自の同じ言葉を持つ別の文脈（AI を呼ぶ契約）とするのが筋である。利用者の「足りていない」という指摘は、v0.3 の Interpreter が「決まった結果を返す実装」だけを想定し、同じ入力で結果が揺れる AI を Interpreter にするときの約束（独立した文脈で呼ぶ ・ 判断した役を記録する ・ 承認の根拠にしない）を持たない点で当たっている"
+    },
+    {
+      "ask": "問4：作り直すか足すかを、何で判断できるか",
+      "answer": "判断の材料は4つある。(1) 言葉の競合：v0.3 の語を、いまの abstract@v1 と同じ文脈に置いたとき、1つの語が2つの意味になるか（例：Capability ・ 結果の語）。なるなら同じ文脈に置かず、横の文脈（案C）にする。ならないなら、上に足す（案B）か、中で分ける（案D）。(2) 公開された言葉への影響：変更が abstract@v1 の意味を変えるなら、@v2 を並べて段階的に移す。書き換えて作り直すと、従属している使う側がすべて壊れる。(3) 業務知識の量：v0.3 は未決が10件ある。分かっていないうちは広く区切り、論理的な境界（モジュール）で分ける。物理的に分けるのは、言葉が固まってからにする。(4) 移し方：作り直すと決めた場合は、古い基盤の拡張を緊急の修正以外で止め、新しい文脈へ少しずつ移す。agents-in-base を保留にしたのは、この形の「拡張を止める」に当たる"
+    },
+    {
+      "ask": "問5：最小単位の候補はよいか",
+      "answer": "Term ・ Identity ・ Definition ・ Relation ・ Constraint は、宣言の側の単位として妥当である。Interpretation は宣言の単位に入れない。v0.3 自身が「宣言と解釈を分ける」と決めているので、解釈は Interpreter の側に置き、宣言の側には「どの解釈が要るか」（Capability の要求）だけを置く。Identity は、ID で見分けるもの（エンティティ）と、値の組み合わせで見分けるもの（値オブジェクト）の2つを表せるようにする。足りない単位は「文脈（Context）」で、Term の意味はある文脈の内側でだけ1つに決まるので、Term は必ず文脈に属させる。いまの基盤の $id（Skill の名前/種類@版）は、文脈の名前と版を持つ識別子として、すでにこの役を部分的に果たしている。DDD の Entity や UseCase を Core の単位にしない（docs/11）のは、判断基準とも合う"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "bounded-context",
+      "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "条件：競合するモデルを、異なるコンポーネントが使用している ・ 対応：競合するモデルを、それぞれ別の文脈へ移動する"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：業務ロジックをよく理解していないときや、変更が多いときは、広い範囲で区切る ・ 理由：誤って分割した文脈の修正は高くつく。論理的な境界の再定義は、物理的な境界の変更よりはるかに容易である"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。同義語は最初は問題に見えないが、言葉が違えば、ほとんどの場合、意図も違う"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "対応：用語集は、ユースケースや Gherkin のテストなど、振る舞いを表す手法と組み合わせる ・ 理由：用語集はモノ ・ プロセス ・ 役割などの名詞の整理に役立つ。振る舞いは動詞の一覧ではなく、業務ルール ・ 前提条件 ・ 制約で、用語集の形では表せない"
+    },
+    {
+      "criterion": "model",
+      "quote": "1つの区切られた文脈の中に複数のモデルを作らない。モデルが混ざると認知の負荷が増え、ソフトウェアが必要以上に複雑になる"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：内部モデルを変更するときは、下流が使用中の公開された言葉を維持できるかを確認する ・ 理由：下流への影響を考慮せずに内部を変更できるのは、公開された言葉を維持できる場合だけである"
+    },
+    {
+      "criterion": "conformist",
+      "quote": "従属：上流のチームが自分のモデルに都合のよい連係の契約を決め、下流のチームがその上流のモデルを変えずに受け入れて従う関係。従属（Conformist）と呼ぶ。下流は、モデルのある部分を自分たちで決めることを手放す。"
+    },
+    {
+      "criterion": "strangler",
+      "quote": "ストラングラー方式：既存システムの構成要素を段階的に置き換える改善の方法。新たな要求を実装する区切られた文脈を追加し、既存システムの機能を少しずつそこへ移行して、最後に既存システムのコードベースを廃止する。"
+    },
+    {
+      "criterion": "design-heuristics",
+      "quote": "対応：最初は広い範囲、または複数の業務領域を囲む範囲を境界として区切る ・ 理由：広く区切れば、境界やモデルの対象範囲が誤っていても比較的安全である。誤って分けた文脈を後で直すのは、かなり高くつく"
+    },
+    {
+      "criterion": "entity",
+      "quote": "エンティティ：インスタンスを1つずつ特定する識別情報（ID）を必要とするオブジェクト。他のフィールドの値が同じでも、ID によって別の個体として識別する。値オブジェクトとは対照的である。"
+    },
+    {
+      "criterion": "value-object",
+      "quote": "性質：値による識別 ・ 内容：等しいかどうかを、値が同じかどうかで判定する。ID フィールドや参照ポインタでは判定しない"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "ポート：業務ロジック層が定義する抽象的なインターフェースで、インフラストラクチャ層が実装する。業務ロジック層は、基盤のコンポーネントを直接には参照せず、ポートを介して連係する。"
+    },
+    {
+      "criterion": "context-map",
+      "quote": "契約：区切られた文脈どうしの間に必ずできる接合部分。文脈ごとにモデルと言葉が違うので、利害の違う当事者の取り決めとして明文化し、互いの利害を調整する。連係にどちらの文脈の同じ言葉を使うかも、重要な設計課題である。"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "同義語の放置（Abstract Schema ・ Foundation ・ Semantic Contract Core ・ Semantic Specification ・ Schema駆動基盤）",
+      "risk": "名前が違えば意図も違うと読み手が受け取り、どれが正本の境界かが文書ごとに揺れる。いまの基盤の abstract スキーマとの対応も、名前ごとに確かめ直すことになる",
+      "alternative": "抽象の側を指す名前を1つに決め、ほかの名前は用語集で「使わない」と記す。エンジンも1つの名前にする"
+    },
+    {
+      "name": "1つの語に複数の意味（Adapter ・ Capability）",
+      "risk": "JSON Schema Adapter が Interpreter と同じ役をするのに別の名前を持ち、Capability が Interpreter の能力と AI Agent の権限の2つを指す。コードに入ると、どちらの意味で使っているかを取り違える",
+      "alternative": "外の標準を使って解釈するものは Interpreter の実装の1つと呼び、Adapter は port の実装の意味にだけ使う。AI Agent の権限は Capability と呼ばず、agents-in-base の「許す範囲」の語を使う"
+    },
+    {
+      "name": "結果の語を3組並べる（v0.3 ・ check ・ 意味の検証）",
+      "risk": "同じ文脈に3組の語を置くと、「判断できない」と unverified と「確かめ直し」が同じものかが決まらず、approve の止め方が食い違う",
+      "alternative": "（推測）語を1組に寄せるのではなく、文脈ごとに1組を持ち、文脈の間の対応表（どの語がどの語に移るか）を公開された言葉の一部として書く"
+    },
+    {
+      "name": "Interpretation を宣言の最小単位に入れる",
+      "risk": "v0.3 自身の「宣言と解釈を分ける」に反し、Core が個々の解釈を知る形に戻る",
+      "alternative": "（推測）宣言の側には「必要な解釈（Capability の要求）」だけを置き、解釈そのものは Interpreter の側に置く"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "AI が v0.3 の文書や新しいボードを書くとき、Foundation ・ Semantic Contract Core ・ Abstract Schema を言い換えのつもりで混ぜて使う",
+      "check": "決めた1つの名前以外の同義語を、ボードと文書に grep して0件であることを確かめる"
+    },
+    {
+      "breaks": "意味の検証の結果を、check の語（合格 ・ ずれ ・ 確かめ直し）や v0.3 の語（conformant など）で書いてしまう",
+      "check": "意味の検証の記録のスキーマで、判定の欄を enum（守れている ・ 守れていない ・ 判断できない）にし、validate で他の語を弾く"
+    },
+    {
+      "breaks": "AI を呼ぶ契約（セッション ・ ロック）の語を、Interpreter の文脈のコードや abstract スキーマの注釈へ持ち込む",
+      "check": "基盤のモジュールごとに、AI を呼ぶ契約の語（セッション ・ ロック ・ 親 ・ 子）が AI の呼び出しのモジュールの外に現れないことを grep で確かめる"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "platform-advisor（AI を呼ぶ契約の許す範囲 ・ ロック ・ ネットワークに出ない約束）",
+      "why": "fail-closed とプロセスの権限の水準は、境界と言葉の判断基準の範囲外で、非機能の判断になるため"
+    },
+    {
+      "suspect": "qa-advisor（AI を Interpreter にしたときの合否の測り方）",
+      "why": "同じ入力で結果が揺れる Interpreter の確かめ方（agents-in-base Q5 の段C）は、テストの判断基準で見る必要があるため"
+    }
+  ],
+  "next": [
+    "v0.3 の概念ごとに、使う名前を1つ決めた用語集をボードの論点として出す",
+    "v0.3 の語といまの基盤の語の対応表を、競合する語に印を付けてボードに載せる",
+    "AI を呼ぶ契約を、意味の検証（Interpreter）・ 会話（Runtime）・ 宣言（注釈）の3つに分けた図をボードに載せる",
+    "最小単位の候補に「文脈」を足し、Interpretation を宣言の単位から外す案を反証にかける",
+    "作り直すか足すかは、言葉の競合 ・ 公開された言葉への影響 ・ 業務知識の量 ・ 移し方の4つの問いに答えてから決める"
+  ],
+  "related": [
+    { "criterion": "ubiquitous-language", "relation": "同義語と1語複数義の指摘の根拠" },
+    { "criterion": "open-host-service", "relation": "abstract の版を公開された言葉として扱い、@v2 を並べて足す根拠" },
+    { "criterion": "conformist", "relation": "使う側の Skill が abstract の版に従う関係の名前" },
+    { "criterion": "strangler", "relation": "作り直すと決めたときの移し方" },
+    { "criterion": "design-heuristics", "relation": "業務知識が少ないうちは広く区切る根拠" },
+    { "criterion": "ports-and-adapters", "relation": "Interpreter Protocol を port、AI の CLI を adapter とみなす根拠" },
+    { "criterion": "entity", "relation": "Identity を ID で見分けるものとして表す根拠" },
+    { "criterion": "value-object", "relation": "Identity を値の組み合わせで見分けるものとして表す根拠" },
+    { "criterion": "context-map", "relation": "文脈どうしの接合部分を契約として明文化する根拠" },
+    { "criterion": "model", "relation": "1つの文脈に複数のモデルを置かない根拠" }
+  ]
+}

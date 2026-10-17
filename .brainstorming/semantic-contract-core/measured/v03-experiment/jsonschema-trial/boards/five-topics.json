@@ -1,0 +1,618 @@
+{
+  "$schema": "brainstorming/board@v1",
+  "kind": "board",
+  "id": "five-topics",
+  "title": "AI がコードを書く前提の開発プロセス",
+  "intro": "AI がコードの大半を書く前提で、商用のプロダクトに使える開発プロセスの目的 ・ 構造 ・ 残すもの ・ 確かめ方 ・ 調整 ・ 変更の切り方を決める。",
+  "log": [
+    {
+      "date": "2026-10-17",
+      "text": "ボードを出した"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "5つのアドバイザーの反証を受けて、Q0 を先頭に足し、Q1〜Q5 を Q0 の決着待ちにした"
+    }
+  ],
+  "flag": true,
+  "round": 1,
+  "queue": [
+    {
+      "topic": "Q0",
+      "why": "構造 ・ 残すもの ・ 確かめ方 ・ 調整 ・ 切り方は、どれも何のための最適かで良し悪しが変わるため"
+    }
+  ],
+  "topics": [
+    {
+      "id": "Q0",
+      "name": "何のための最適か",
+      "status": "open",
+      "depends": [],
+      "question": "AI がコードの大半を書く前提での「最適な開発プロセス」は、誰が何を達成するための最適か",
+      "answer": {
+        "text": "商用で出すプロダクトのチームが、利用者の目的に届くものを、revert と障害を増やさない範囲で、人の時間を最小にして出し続けるための最適とする。",
+        "details": [
+          "誰の：商用で出すプロダクトを作るチーム（人と AI）と、その利用者である。このリポジトリの1人作業だけに合わせない",
+          "1つ目の目的：利用者の目的に届くこと。妥当性確認（validation）で確かめる",
+          "2つ目は制約：revert と障害の率を上げないこと。記事 A と同じくガードレールにする",
+          "3つ目の目的：上の2つを守る範囲で、人の時間を最小にすること。人の時間はコードを読むことより、目的と基準を決めることに使う",
+          "優先の順は、目的に届く → revert と障害を増やさない → 人の時間の順である",
+          "品質は、検証（決めた受け入れ基準を満たすか）と妥当性確認（利用者の目的に届いたか）の両方で見る。「品質が担保された」とは言わず、言えるのは、決めた終了基準を満たし、残った危険を関係者が受け入れたところまでである",
+          "変わらないこと：利用者が決めた方向（UATDD ・ 具体に落とす高さ ・ 仕様の境界 ・ 非機能要求を ATDD に入れる）は前提として固定する"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "caption": "プロセスの良し悪しを測る3つの指標と、見る順。",
+          "svg": "<svg viewBox=\"0 0 640 400\" style=\"min-width:540px\" role=\"img\" aria-label=\"プロセスを測る3つの指標と見る順\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .badge.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note.focus{fill:var(--dsvg-accent,#0D5C55);font-size:11px}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .badge.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .note.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:11px}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .badge.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .note.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:11px}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .label.warn{fill:var(--dsvg-warn,#8F5410);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-72561d9d-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-box-fill:#16211E}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-box-fill:#16211E}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-72561d9d-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<text class=\"label\" x=\"18\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">先</text>\n<line class=\"flow\" x1=\"18\" y1=\"32\" x2=\"18\" y2=\"282\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-72561d9d-arrow-5B6B66)\"/>\n<text class=\"label\" x=\"18\" y=\"300\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">後</text>\n<rect class=\"box focus\" x=\"40\" y=\"12\" width=\"590\" height=\"80\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<rect class=\"badge focus\" x=\"54\" y=\"26\" width=\"72\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"90\" y=\"41\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">1 目的</text>\n<text class=\"title focus\" x=\"140\" y=\"43\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#0D5C55\">利用者の目的に届いたか</text><text class=\"label\" x=\"54\" y=\"74\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">作ったものの妥当性確認で、目的を果たせた割合</text>\n<rect class=\"box kind-2\" x=\"40\" y=\"108\" width=\"590\" height=\"80\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/>\n<rect class=\"badge kind-2\" x=\"54\" y=\"122\" width=\"72\" height=\"22\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1\" rx=\"3\"/><text class=\"note kind-2\" x=\"90\" y=\"137\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#2F5B80\">2 制約</text>\n<text class=\"title kind-2\" x=\"140\" y=\"139\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#2F5B80\">revert と障害を増やしていないか</text><text class=\"label\" x=\"54\" y=\"170\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">上がったら、速くなったのではなく問題を後ろへ送っただけ</text>\n<rect class=\"box kind-3\" x=\"40\" y=\"204\" width=\"590\" height=\"80\" fill=\"#E8ECD3\" stroke=\"#566318\" stroke-width=\"1.5\" rx=\"5\"/>\n<rect class=\"badge kind-3\" x=\"54\" y=\"218\" width=\"72\" height=\"22\" fill=\"#E8ECD3\" stroke=\"#566318\" stroke-width=\"1\" rx=\"3\"/><text class=\"note kind-3\" x=\"90\" y=\"233\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#566318\">3 目的</text>\n<text class=\"title kind-3\" x=\"140\" y=\"235\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#566318\">人の時間を最小にしたか</text><text class=\"label\" x=\"54\" y=\"266\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">人の承認数 ・ 人を待つ時間 ・ 目的と基準に使った時間</text>\n<rect class=\"box warn\" x=\"40\" y=\"318\" width=\"250\" height=\"62\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label warn\" x=\"54\" y=\"342\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#8F5410\">言わないこと</text><text class=\"label\" x=\"54\" y=\"366\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">品質が担保された</text>\n<rect class=\"box\" x=\"306\" y=\"318\" width=\"324\" height=\"62\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"320\" y=\"342\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">言えること</text><text class=\"label\" x=\"320\" y=\"366\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">終了基準を満たし、残った危険を受け入れた</text>\n</svg>"
+        }
+      ],
+      "assumptions": [
+        "このボードで決めるプロセスは、商用で出すプロダクトに使う（会話で利用者が気にしていた点）",
+        "利用者は1人ではなく、目的を持つ別の人である"
+      ],
+      "checks": [
+        {
+          "target": "誰の",
+          "ask": "商用で出すプロダクトのチームと、その利用者でよいか。このリポジトリでの1人作業を先に置くべきか"
+        },
+        {
+          "target": "優先の順",
+          "ask": "目的に届く → 壊さない → 人の時間の順でよいか。記事 A は人の時間を目的にし、壊さないをガードレールにしている"
+        },
+        {
+          "target": "言わないこと",
+          "ask": "「品質が担保された」と言わず、終了基準と残った危険の受け入れまでとする扱いでよいか"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "Q0 を先頭に置くこと",
+          "basis": "受け入れ基準は問題が定義される尾根にあたり、尾根の手前は Why で上り、先は How で下りるので、試作（具体）から尾根へ届くには一度上らなければならない。また論点 Q1〜Q5 はどれも尾根より下（どう作るか ・ どう確かめるか）にあり、「最適な開発プロセス」が何のための最適かという問題発見の論点が欠けている。",
+          "tag": "primary",
+          "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
+        },
+        {
+          "supports": "利用者の目的に届くことを1つ目にすること",
+          "basis": "活動：妥当性確認 ・ 何を確認するか：運用環境で、ユーザーやその他のステークホルダーのニーズを、システムが満たしているか",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "利用者の目的に届くことを1つ目にすること",
+          "basis": "原則：「「欠陥ゼロ」の落とし穴」 ・ 内容：検証だけで、正しいシステムを構築できると期待することは誤り（思い込み）である",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "revert と障害をガードレールにすること",
+          "basis": "Revert and incident rates are the guardrail: if they rise, we haven't saved human time, we've only moved it.",
+          "tag": "primary",
+          "source": "A：How the Claude Code team does code review（claude.dev、2026-10-15、2026-10-17 取得）。sources/claude.dev_blog_solving-code-review-at-anthropic"
+        },
+        {
+          "supports": "人の時間を最小にすること",
+          "basis": "we started optimizing for the minimum amount of human review time that doesn't raise reverts or incidents.",
+          "tag": "primary",
+          "source": "A：How the Claude Code team does code review（claude.dev、2026-10-15、2026-10-17 取得）。sources/claude.dev_blog_solving-code-review-at-anthropic"
+        },
+        {
+          "supports": "「品質が担保された」と言わないこと",
+          "basis": "原則：「テストは欠陥があることは示せるが、欠陥がないことは示せない」 ・ 内容：テストで未検出の欠陥の数は減らせる。欠陥が見つからなくても、テスト対象が正しいことの証明にはならない",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "言えることの範囲",
+          "basis": "これらを妥当な終了基準とみなすことがある。他の終了基準が未達でも、追加のテストをせずに本稼働させるリスクを、ステークホルダーがレビューして受け入れたなら、テストの終了は許容される",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "商用で出すプロダクトを対象にすること",
+          "basis": "「気にしているのは本当にこれが商用で展開するプロダクトにも有用なプラクティスかどうかを知りたいんです。」",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "記事 A の目標をそのまま使う（人の時間を最小にし、revert と障害をガードレールにする）",
+          "reason": "作り手の側の目的だけで、作ったものが利用者の目的に届いたかが入らない"
+        },
+        {
+          "option": "「品質の担保」を目的にする",
+          "reason": "テストは欠陥が無いことを示せないので、達成したと判定できない"
+        },
+        {
+          "option": "マージの量や速さを目的にする",
+          "reason": "C はマージの需要を無限に近いとしている。量が増えても、目的に届いたかとは関係しない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "作り手の視点と利用者の視点を1文に並べる",
+            "cost": "1文が長くなる。優先の順を詳しい決まりに分けて書いた"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "Q1〜Q5 の答えが Q0 の目的に合うかは、Q0 の決着のあとに見直す",
+            "treatment": "later"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q1",
+      "name": "プロセスの構造",
+      "status": "waiting",
+      "depends": [
+        "Q0"
+      ],
+      "question": "アジャイルやウォーターフォールのどちらかを選ぶのではなく、どんな構造でプロセスを回すか",
+      "answer": {
+        "text": "作る前の妥当性確認 ・ 検証 ・ 学習の3つのループに分け、検証のあとに作ったものの妥当性確認を置き、学習は即時と遡及の2本で戻す。",
+        "details": [
+          "ループ1（人と利用者）：入口で「そもそも作るべきか」を問う。アクターと目的の一覧をシステム全体で先に作り、ユーザー目的レベルのユースケースを選ぶ",
+          "ループ1：目的が確かでなければ、作り込まない試作をぶつける。選んだ理由と退けた理由から目的を言葉にし、ユースケースへ書き戻す",
+          "ループ1：受け入れ基準は、試作の振る舞いからではなく、成功時保証 ・ 最低保証 ・ 拡張から起こす。試作と UI 設計は要求に含めない",
+          "ループ1は、業務エキスパートと同じ言葉で会話して、理解を確かめる場でもある",
+          "ループ2（ほぼ AI）：受け入れ基準を検査にし、実装の前に失敗させ、全検査が通るまで実装し、新しい文脈でレビューして、基準を満たしたら止める",
+          "ループ2で受け入れ基準の曖昧さに当たったら、AI は解釈で埋めずにループ1へ押し返す",
+          "ループ2のあと：作ったものを、探索的テスト ・ 使用性テスト ・ ユーザー受け入れテストで確かめる。検証だけでは閉じない",
+          "ループ3：即時は、運用の指標がしきい値を越えたら戻す。遡及は、見逃しを足りなかった層へ戻し、目的に届いたかも問う",
+          "ループ1とループ2は同じ指標で評価しない"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "caption": "3つのループと、検証のあとの妥当性確認のつながり。",
+          "svg": "<svg viewBox=\"0 0 720 380\" style=\"min-width:600px\" role=\"img\" aria-label=\"3つのループと、作ったものの妥当性確認\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:12px}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .label.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .flow.async{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .label.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:12px}.dsvg .badge{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-ink,#111D1A)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg #dsvg-b6277baf-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}}:root[data-theme=\"dark\"] .dsvg{--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-b6277baf-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"box kind-1\" x=\"10\" y=\"40\" width=\"210\" height=\"130\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label kind-1\" x=\"22\" y=\"64\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#7A3B6D\">ループ1　作る前の妥当性確認</text>\n<text class=\"label\" x=\"22\" y=\"90\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">そもそも作るべきか</text>\n<text class=\"label\" x=\"22\" y=\"112\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">目的 → ユースケース</text>\n<text class=\"label\" x=\"22\" y=\"134\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">保証と拡張 → 受け入れ基準</text>\n<text class=\"note\" x=\"22\" y=\"158\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">人と利用者</text>\n<rect class=\"box kind-2\" x=\"255\" y=\"40\" width=\"210\" height=\"130\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label kind-2\" x=\"267\" y=\"64\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#2F5B80\">ループ2　検証</text>\n<text class=\"label\" x=\"267\" y=\"90\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検査を書き、先に失敗させる</text>\n<text class=\"label\" x=\"267\" y=\"112\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">実装 → 新しい文脈のレビュー</text>\n<text class=\"label\" x=\"267\" y=\"134\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">基準を満たしたら止める</text>\n<text class=\"note\" x=\"267\" y=\"158\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">ほぼ AI</text>\n<rect class=\"box kind-1\" x=\"500\" y=\"40\" width=\"210\" height=\"130\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label kind-1\" x=\"512\" y=\"64\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#7A3B6D\">作ったものの妥当性確認</text>\n<text class=\"label\" x=\"512\" y=\"90\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">探索的テスト</text>\n<text class=\"label\" x=\"512\" y=\"112\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">使用性テスト</text>\n<text class=\"label\" x=\"512\" y=\"134\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ユーザー受け入れテスト</text>\n<text class=\"note\" x=\"512\" y=\"158\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">人と利用者</text>\n<path class=\"flow\" d=\"M220,92 H253\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M465,92 H498\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\"/>\n<path class=\"flow async\" d=\"M255,150 H222\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\" stroke-dasharray=\"4 3\"/>\n<rect class=\"box\" x=\"500\" y=\"240\" width=\"210\" height=\"90\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"512\" y=\"266\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">小さく出す</text>\n<text class=\"label\" x=\"512\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">フラグ ・ 段階リリース</text>\n<text class=\"note\" x=\"512\" y=\"314\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">戻せない変更は別の守り（Q4）</text>\n<path class=\"flow\" d=\"M605,170 V238\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\"/>\n<rect class=\"box kind-3\" x=\"10\" y=\"240\" width=\"455\" height=\"90\" fill=\"#E8ECD3\" stroke=\"#566318\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label kind-3\" x=\"22\" y=\"266\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#566318\">ループ3　学習</text>\n<text class=\"label\" x=\"22\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">即時：指標がしきい値を越えたら戻す</text>\n<text class=\"label\" x=\"22\" y=\"312\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">遡及：足りなかった層へ戻し、目的に届いたかを問う</text>\n<path class=\"flow\" d=\"M500,285 H467\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M115,240 V172\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M360,240 V172\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-b6277baf-arrow-5B6B66)\"/>\n<rect class=\"badge\" x=\"70\" y=\"196\" width=\"90\" height=\"20\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/>\n<text class=\"note small\" x=\"115\" y=\"210\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10\" fill=\"#5B6B66\">仕様へ戻す</text>\n<rect class=\"badge\" x=\"315\" y=\"196\" width=\"90\" height=\"20\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/>\n<text class=\"note small\" x=\"360\" y=\"210\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10\" fill=\"#5B6B66\">検査へ戻す</text>\n<text class=\"note\" x=\"10\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">破線：受け入れ基準が曖昧なとき、AI は解釈で埋めずにループ1へ押し返す</text>\n</svg>"
+        }
+      ],
+      "assumptions": [
+        "Q0 の目的（利用者の目的に届く ・ 壊さない ・ 人の時間）を採る"
+      ],
+      "checks": [
+        {
+          "target": "作ったものの妥当性確認",
+          "ask": "検証のあとに人と利用者の確認を置くと、人の時間は増える。Q0 の優先の順に合うか"
+        },
+        {
+          "target": "試作の扱い",
+          "ask": "試作から受け入れ基準を直接起こさず、目的とユースケースへ一度戻す流れでよいか"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "試作から目的へ上ってから受け入れ基準へ下りること",
+          "basis": "3つのループの骨組みは問題発見（上り）と問題解決（下り）の往復として成り立つので採ってよいが、ループ1の「試作の振る舞いから受け入れ基準を起こす」は具体から具体への横移動なので「試作 → 目的とユースケースへ上る → 受け入れ基準へ下りる」に直し、ループ1の入口に「そもそも作るべきか」を、ループ3に目的の Why を足すことを条件にする。",
+          "tag": "primary",
+          "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
+        },
+        {
+          "supports": "試作と UI 設計を要求に含めないこと",
+          "basis": "インタフェースを操作するユーザーの動きを要求文書に書くと、文書量が必要以上に増え、UI 設計のわずかな変更で「要求」まで直すことになって不安定になり（それはそもそも要求ではない）、UI 設計者の仕事を奪う",
+          "tag": "primary",
+          "source": "usecase-advisor の回答（2026-10-17）。advisors/usecase.json"
+        },
+        {
+          "supports": "アクターと目的の一覧を先に作ること",
+          "basis": "対応：第1段階の目的の一覧に十分な時間をかけ、ユーザー ・ スポンサー ・ 開発者とレビューする ・ 理由：システム全体を1つのビューで見られるのは、おそらくこれが最後である。次の段階からは関わる人も作業も増える",
+          "tag": "primary",
+          "source": "usecase-advisor の回答（2026-10-17）。advisors/usecase.json"
+        },
+        {
+          "supports": "検証のあとに妥当性確認を置くこと",
+          "basis": "象限：第三象限 ・ 視点の組み合わせ：ビジネス指向、プロダクトを批評する ・ 含むテスト：探索的テスト ・ 使用性テスト ・ ユーザー受け入れテスト ・ 実施の仕方：ユーザー志向で、多くの場合手動で実施する",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "検証だけで閉じないこと",
+          "basis": "原則：「「欠陥ゼロ」の落とし穴」 ・ 内容：検証だけで、正しいシステムを構築できると期待することは誤り（思い込み）である",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "ループ1で同じ言葉を会話で確かめること",
+          "basis": "対応：業務を正しく理解できているかは、業務の言葉で業務エキスパートと会話して確かめる ・ 理由：業務エキスパートが理解できる言葉で話すことが、確かめる方法として信頼できるただ1つのものである",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "入口で作るべきかを問うこと",
+          "basis": "Should we build this at all?",
+          "tag": "primary",
+          "source": "A：How the Claude Code team does code review（claude.dev、2026-10-15、2026-10-17 取得）。sources/claude.dev_blog_solving-code-review-at-anthropic"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "選んだ試作の振る舞いから受け入れ基準を起こす（叩き台の形）",
+          "reason": "具体から具体への横移動で目的へ上らず、UI の小さな変更で要求まで直すことになる"
+        },
+        {
+          "option": "検証が通ったら出す（ループ2で閉じる）",
+          "reason": "検証だけで正しいシステムを作れると期待する誤りに当たる"
+        },
+        {
+          "option": "アジャイルかウォーターフォールのどちらかを選ぶ",
+          "reason": "書くのが高い前提で作った手法で、まとめて決める量と戻しやすさを変更ごとに変えられない（Q4）"
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "name": "残すものと作り直すもの",
+      "status": "waiting",
+      "depends": [
+        "Q1"
+      ],
+      "question": "どれを残して人が育て、どれを AI が作り直してよいものとして扱うか",
+      "answer": {
+        "text": "仕様 ・ 概念モデルの公開面 ・ 受け入れと不変条件のテスト ・ 運用の手順を残して育て、集約の内部 ・ クラス ・ 関数 ・ 単体テストは作り直せるものとする。",
+        "details": [
+          "残すもの：ユースケース（保証と拡張まで）・ 受け入れ基準と受け入れテスト ・ 非機能要求の水準 ・ 技術の制約",
+          "残すもの：同じ言葉と用語集、集約の公開面（コマンド ・ 業務イベント ・ 不変条件）と不変条件のテスト、文脈の境界の検査",
+          "残すもの：デプロイと戻す手順（ランブック）・ IaC ・ 見張りの定義、見逃しの記録",
+          "同じ言葉は検査で置き換えない。業務エキスパートとの会話で確かめ、用語の検査は補助に使う",
+          "厚さは業務領域のカテゴリーで変える。中核は集約の層まで、補完は同じ言葉と受け入れテスト、一般は外の製品とつなぐ面だけを持つ",
+          "作り直せるもの：集約の内部、クラス、関数、単体テスト。単体テストはクラスと一緒に作り直されるので、前後で残る安全網は受け入れテストと不変条件のテストである",
+          "作り直してよいのは、Q3 の「確かめた」を満たすときだけである",
+          "残すものには消す手順も持つ。増える一方にしない"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "caption": "業務領域のカテゴリーごとに、概念モデルのどこまでを残すか。",
+          "svg": "<svg viewBox=\"0 0 660 260\" style=\"min-width:560px\" role=\"img\" aria-label=\"業務領域のカテゴリーごとに残して育てるもの\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .title.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:13px;font-weight:700}.dsvg .badge.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note.focus{fill:var(--dsvg-accent,#0D5C55);font-size:11px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}</style>\n<text class=\"note\" x=\"210\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">同じ言葉</text>\n<text class=\"note\" x=\"330\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">受け入れテスト</text>\n<text class=\"note\" x=\"450\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">集約の公開面と不変条件</text>\n<text class=\"note\" x=\"570\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">外の製品とつなぐ面</text>\n<rect class=\"box kind-1\" x=\"10\" y=\"38\" width=\"130\" height=\"48\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-1\" x=\"75\" y=\"68\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#7A3B6D\">中核</text>\n<rect class=\"badge focus\" x=\"176\" y=\"51\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"210\" y=\"66\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<rect class=\"badge focus\" x=\"296\" y=\"51\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"330\" y=\"66\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<rect class=\"badge focus\" x=\"416\" y=\"51\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"450\" y=\"66\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<text class=\"note\" x=\"570\" y=\"67\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">―</text>\n<rect class=\"box kind-2\" x=\"10\" y=\"98\" width=\"130\" height=\"48\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-2\" x=\"75\" y=\"128\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#2F5B80\">補完</text>\n<rect class=\"badge focus\" x=\"176\" y=\"111\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"210\" y=\"126\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<rect class=\"badge focus\" x=\"296\" y=\"111\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"330\" y=\"126\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<text class=\"note\" x=\"450\" y=\"127\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">―</text>\n<text class=\"note\" x=\"570\" y=\"127\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">―</text>\n<rect class=\"box kind-3\" x=\"10\" y=\"158\" width=\"130\" height=\"48\" fill=\"#E8ECD3\" stroke=\"#566318\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-3\" x=\"75\" y=\"188\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#566318\">一般</text>\n<rect class=\"badge focus\" x=\"176\" y=\"171\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"210\" y=\"186\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<text class=\"note\" x=\"330\" y=\"187\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">―</text>\n<text class=\"note\" x=\"450\" y=\"187\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">―</text>\n<rect class=\"badge focus\" x=\"536\" y=\"171\" width=\"68\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"570\" y=\"186\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">残す</text>\n<text class=\"note\" x=\"10\" y=\"238\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">同じ言葉はどのカテゴリーでも残す。集約の層まで持つのは中核だけ</text>\n</svg>"
+        },
+        {
+          "kind": "tree",
+          "caption": "商用プロダクトのリポジトリで、残して育てるものと作り直せるものの置き場所。",
+          "rows": [
+            {
+              "path": "product/",
+              "depth": 0
+            },
+            {
+              "path": "spec/",
+              "depth": 1,
+              "note": "残す ・ 人がレビューする"
+            },
+            {
+              "path": "actors-goals.md",
+              "depth": 2,
+              "note": "アクターと目的の一覧（システム全体）"
+            },
+            {
+              "path": "usecases/",
+              "depth": 2
+            },
+            {
+              "path": "UC-3-place-order.md",
+              "depth": 3,
+              "note": "ユースケース（保証と拡張まで）"
+            },
+            {
+              "path": "nfr.md",
+              "depth": 2,
+              "note": "非機能要求の水準（システム全体）"
+            },
+            {
+              "path": "model/",
+              "depth": 1,
+              "note": "残す ・ 中核の業務領域だけ厚く持つ"
+            },
+            {
+              "path": "glossary.md",
+              "depth": 2,
+              "note": "同じ言葉"
+            },
+            {
+              "path": "ordering/",
+              "depth": 2,
+              "note": "区切られた文脈"
+            },
+            {
+              "path": "order.aggregate.md",
+              "depth": 3,
+              "note": "集約の公開面（コマンド ・ 業務イベント ・ 不変条件）"
+            },
+            {
+              "path": "tests/",
+              "depth": 1
+            },
+            {
+              "path": "acceptance/",
+              "depth": 2,
+              "note": "残す ・ 受け入れテスト"
+            },
+            {
+              "path": "UC-3.feature",
+              "depth": 3,
+              "note": "拡張の番号をタグに持つ"
+            },
+            {
+              "path": "invariants/",
+              "depth": 2,
+              "note": "残す ・ 不変条件のテスト"
+            },
+            {
+              "path": "architecture/",
+              "depth": 2,
+              "note": "残す ・ 文脈の境界と依存の向きの検査"
+            },
+            {
+              "path": "unit/",
+              "depth": 2,
+              "note": "作り直せる ・ クラスと一緒に作り直す"
+            },
+            {
+              "path": "src/",
+              "depth": 1,
+              "note": "作り直せる ・ 集約の内部 ・ クラス ・ 関数"
+            },
+            {
+              "path": "ops/",
+              "depth": 1,
+              "note": "残す"
+            },
+            {
+              "path": "runbook.md",
+              "depth": 2,
+              "note": "デプロイと戻す手順"
+            },
+            {
+              "path": "infra/",
+              "depth": 2,
+              "note": "IaC"
+            },
+            {
+              "path": "monitors/",
+              "depth": 2,
+              "note": "見張りの定義としきい値"
+            },
+            {
+              "path": "misses/",
+              "depth": 1,
+              "note": "残す ・ 見逃しの記録と戻した層"
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "target": "同じ言葉",
+          "ask": "概念モデルのうち同じ言葉だけは、検査ではなく会話で確かめる扱いでよいか"
+        },
+        {
+          "target": "カテゴリーで厚さを変える",
+          "ask": "中核以外は概念モデルを薄く持つ形でよいか"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "同じ言葉を会話で確かめること",
+          "basis": "対応：道具や文書化に頼らず、毎日の会話の中で実際に使用する ・ 理由：道具は補助手段にすぎず、文書化は会話のかわりにならない。アジャイルソフトウェア開発宣言の「プロセスやツールよりも個人と対話」に沿う",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "集約の境界を検査で持てること",
+          "basis": "対応：1つのトランザクションで変更する集約は1つにし、複数の集約の状態は集約ごとに別々にコミットする ・ 理由：一貫性を維持する境界の定義が、正しいことを保証する",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "残すもの全体",
+          "basis": "Q1〜Q5 の骨組みは採ってよいが、Q2 は「概念モデルを検査に置き換える」のではなく、同じ言葉は会話と用語集で育て、検査はその補助と、集約の不変条件 ・ 文脈の境界の違反の検出に使う形に直し、厚さは業務領域のカテゴリーで変える条件で採る。",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-17）。advisors/ddd.json"
+        },
+        {
+          "supports": "不変条件のテストと受け入れテストを安全網として残すこと",
+          "basis": "Q1〜Q5 の骨組みは採ってよいが、①ループ2の「基準を満たしたら止める」を検証だけで閉じず、作ったものの妥当性確認をループ3の前に置く ②「検査が強い」を受け入れテストの合否だけで判定せず、カバレッジ ・ トレーサビリティ ・ テストの臭いの3つで測る ③人が確かめる場所を「受け入れテストが受け入れ基準どおりか」のレビューと、リスクの高い所の独立したテストに絞る、の3点を直すことが条件である。",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "運用の手順と見張りを残すこと",
+          "basis": "Q1〜Q5 の骨組みは採ってよいが、Q4 のダイヤルは「プロダクトごとに1つ」ではなく「変更の種類ごと」に置き、出す大きさは常に小さく保ち、戻しやすさを3つの数（戻すまでの時間 ・ 戻す手順を試したか ・ 戻しても失うデータ）で測り、運用の指標にはしきい値を付けて承認の段階へつなぐ、という4点を直してから採る。",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
+        },
+        {
+          "supports": "試作と UI 設計を要求に入れないこと",
+          "basis": "対応：UI 設計の記述そのものは要求文書に含めない ・ 理由：UI 設計は、ユースケースに書いた要求を満たすように作る別の成果物である",
+          "tag": "primary",
+          "source": "usecase-advisor の回答（2026-10-17）。advisors/usecase.json"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "概念モデルの全部を検査に置き換える",
+          "reason": "同じ言葉を確かめられるのは会話だけで、用語の検査は補助にとどまる"
+        },
+        {
+          "option": "どの業務領域でも概念モデルを同じ厚さで持つ",
+          "reason": "補完と一般の領域に中核と同じ手間がかかり、残すものが増える一方になる"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "name": "確かめたと言える条件",
+      "status": "waiting",
+      "depends": [
+        "Q2"
+      ],
+      "question": "何をもって「正しいと確かめた」ことにし、人はどこを確かめるか",
+      "answer": {
+        "text": "受け入れ基準とテストの対応表に欠けが無く、テストが実装の前に失敗し、間接の出力とカバレッジまで満たし、妥当性確認が済んだときに確かめたとする。",
+        "details": [
+          "人が確かめるのは、AI が出した受け入れ基準とテストの対応表である。欠け ・ 範囲の越え ・ 重複を見る。コードは読まない",
+          "各テストは、実装の前に失敗した記録を持つ（通るのに確かめていないテストを残さない）",
+          "外から見えない振る舞い（ログ ・ 書き出し）まで確かめ、ブランチカバレッジのしきい値を決める",
+          "AI が書いた検査を AI だけで確かめる形は独立性が無い。リスクの高い所だけ、人が受け入れテストに関わる",
+          "必要な強さは、利用者の目的と危険の大きさから決める。点数そのものを目的にしない",
+          "非機能要求は、変更ごとの検査 ・ 決まった間隔の試験（負荷 ・ 回復力）・ 運用の指標（しきい値付き）の3つで確かめる",
+          "ミューテーションテストは、相談した判断基準の範囲外で、まだ判定していない",
+          "テストの数を見張り、黙って消えたテストを見つける"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "caption": "人が確かめる、受け入れ基準とテストの対応表。",
+          "svg": "<svg viewBox=\"0 0 700 330\" style=\"min-width:600px\" role=\"img\" aria-label=\"受け入れ基準とテストの対応表\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .badge.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note.focus{fill:var(--dsvg-accent,#0D5C55);font-size:11px}.dsvg .badge.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .note.warn{fill:var(--dsvg-warn,#8F5410);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style>\n<text class=\"note\" x=\"10\" y=\"22\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">受け入れ基準</text>\n<text class=\"note\" x=\"330\" y=\"22\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">テスト</text>\n<text class=\"note\" x=\"500\" y=\"22\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">実装前に失敗</text>\n<text class=\"note\" x=\"620\" y=\"22\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">人の確認</text>\n<rect class=\"box\" x=\"10\" y=\"36\" width=\"300\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"22\" y=\"55\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">UC-3 主成功</text>\n<text class=\"label small\" x=\"22\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10\" fill=\"#111D1A\">確定すると在庫が減る</text>\n<rect class=\"box\" x=\"330\" y=\"36\" width=\"150\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"342\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">test UC-3/main</text>\n<text class=\"label\" x=\"540\" y=\"63\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">あり</text>\n<rect class=\"badge focus\" x=\"606\" y=\"47\" width=\"88\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"650\" y=\"62\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">済</text>\n<rect class=\"box\" x=\"10\" y=\"90\" width=\"300\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"22\" y=\"109\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">UC-3 最低保証</text>\n<text class=\"label small\" x=\"22\" y=\"126\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10\" fill=\"#111D1A\">失敗してもログが残る</text>\n<rect class=\"box\" x=\"330\" y=\"90\" width=\"150\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"342\" y=\"117\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">test UC-3/min</text>\n<text class=\"label\" x=\"540\" y=\"117\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">あり</text>\n<rect class=\"badge focus\" x=\"606\" y=\"101\" width=\"88\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"650\" y=\"116\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">済</text>\n<rect class=\"box\" x=\"10\" y=\"144\" width=\"300\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"22\" y=\"163\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">UC-3 4a</text>\n<text class=\"label small\" x=\"22\" y=\"180\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10\" fill=\"#111D1A\">在庫切れなら確定しない</text>\n<rect class=\"box\" x=\"330\" y=\"144\" width=\"150\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"342\" y=\"171\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">test UC-3/4a</text>\n<text class=\"label\" x=\"540\" y=\"171\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">あり</text>\n<rect class=\"badge focus\" x=\"606\" y=\"155\" width=\"88\" height=\"22\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"3\"/><text class=\"note focus\" x=\"650\" y=\"170\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#0D5C55\">済</text>\n<rect class=\"box\" x=\"10\" y=\"198\" width=\"300\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"22\" y=\"217\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">UC-3 6a</text>\n<text class=\"label small\" x=\"22\" y=\"234\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10\" fill=\"#111D1A\">決済が落ちたら取り消す</text>\n<rect class=\"box\" x=\"330\" y=\"198\" width=\"150\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"342\" y=\"225\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（無い）</text>\n<text class=\"label\" x=\"540\" y=\"225\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">―</text>\n<rect class=\"badge warn\" x=\"606\" y=\"209\" width=\"88\" height=\"22\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note warn\" x=\"650\" y=\"224\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#8F5410\">欠け</text>\n<rect class=\"box\" x=\"10\" y=\"252\" width=\"300\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"22\" y=\"271\" font-weight=\"700\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（無い）</text>\n<rect class=\"box\" x=\"330\" y=\"252\" width=\"150\" height=\"44\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"342\" y=\"279\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">test 3回やり直す</text>\n<text class=\"label\" x=\"540\" y=\"279\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">あり</text>\n<rect class=\"badge warn\" x=\"606\" y=\"263\" width=\"88\" height=\"22\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note warn\" x=\"650\" y=\"278\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#8F5410\">範囲の越え</text>\n<text class=\"note\" x=\"10\" y=\"314\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">人が見るのは右の列だけ：欠け ・ 範囲の越え ・ 重複</text>\n</svg>"
+        },
+        {
+          "kind": "code",
+          "caption": "ユースケース UC-3 から起こした受け入れテストで、拡張の番号をタグに持つ。",
+          "path": "tests/acceptance/UC-3.feature",
+          "language": "gherkin",
+          "text": "# language: ja\n@UC-3\n機能: 注文を確定する\n  購入者は、カートの中身で注文を確定し、在庫を引き当てたい\n\n  @UC-3/main\n  シナリオ: 確定すると在庫が減る\n    前提 在庫が 3 個ある商品を、カートに 1 個入れている\n    もし 購入者が注文を確定する\n    ならば 注文の状態は「確定」になる\n    かつ 在庫は 2 個になる\n\n  @UC-3/min\n  シナリオ: 確定できなくても記録が残る\n    前提 決済の窓口が応答しない\n    もし 購入者が注文を確定する\n    ならば 注文は確定されない\n    かつ 失敗の理由と注文の番号がログに残る\n\n  @UC-3/4a\n  シナリオ: 在庫切れなら確定しない\n    前提 在庫が 0 個の商品を、カートに入れている\n    もし 購入者が注文を確定する\n    ならば 「在庫がありません」と伝える\n    かつ 注文は確定されない\n",
+          "highlight": [
+            6,
+            13,
+            20
+          ],
+          "note": "タグが受け入れ基準の識別子で、対応表の左の列になる。6a はまだ無いので、対応表では欠けになる。"
+        },
+        {
+          "kind": "run",
+          "caption": "実装の前に受け入れテストを走らせ、3つとも失敗した記録を残す。",
+          "cwd": "product/",
+          "command": "behave tests/acceptance/UC-3.feature",
+          "exit": 1,
+          "output": "機能: 注文を確定する\n  シナリオ: 確定すると在庫が減る ... failed\n    Assertion Failed: 注文の状態は「未確定」で、「確定」ではない\n  シナリオ: 確定できなくても記録が残る ... failed\n    Assertion Failed: ログに失敗の理由が無い\n  シナリオ: 在庫切れなら確定しない ... failed\n    Assertion Failed: 「在庫がありません」と伝えていない\n\n0 features passed, 1 failed, 0 skipped\n0 scenarios passed, 3 failed, 0 skipped\n9 steps passed, 3 failed, 0 skipped, 0 undefined"
+        }
+      ],
+      "checks": [
+        {
+          "target": "非機能の3つ目",
+          "ask": "変更ごとの検査と運用の指標の間に、決まった間隔の試験を足してよいか（決めた方向4を広げる）"
+        },
+        {
+          "target": "人が確かめる場所",
+          "ask": "人はコードではなく対応表を見る形でよいか"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "対応表 ・ カバレッジ ・ テストの臭いで測ること",
+          "basis": "Q1〜Q5 の骨組みは採ってよいが、①ループ2の「基準を満たしたら止める」を検証だけで閉じず、作ったものの妥当性確認をループ3の前に置く ②「検査が強い」を受け入れテストの合否だけで判定せず、カバレッジ ・ トレーサビリティ ・ テストの臭いの3つで測る ③人が確かめる場所を「受け入れテストが受け入れ基準どおりか」のレビューと、リスクの高い所の独立したテストに絞る、の3点を直すことが条件である。",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "終了基準の形",
+          "basis": "区分：終了基準 ・ 基準：徹底度の測定 ・ 例：達成されたカバレッジレベル ・ 未解決欠陥の数 ・ 欠陥密度 ・ 不合格になったテストケースの数",
+          "tag": "primary",
+          "source": "qa-advisor の回答（2026-10-17）。advisors/qa.json"
+        },
+        {
+          "supports": "決まった間隔の試験を足すこと",
+          "basis": "判断基準は、変更ごとに影響の度合いを分析して扱いを変え（OPS 6）、リリースを小さくして戻しやすくし（OPS 5 ・ OPS 6）、戻す手順を本番の前に試すこと（OPS 6 ・ REL 8）を求めており、ダイヤルをプロダクト単位に置くとこの3つが同時に崩れる。非機能要求は、水準をシステム全体で決め、レスポンスなどの具体の数値だけを機能ごとに決める形が非機能要求グレードの決め方と合う。",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
+        },
+        {
+          "supports": "点数を目的にしないこと",
+          "basis": "3つのループの骨組みは問題発見（上り）と問題解決（下り）の往復として成り立つので採ってよいが、ループ1の「試作の振る舞いから受け入れ基準を起こす」は具体から具体への横移動なので「試作 → 目的とユースケースへ上る → 受け入れ基準へ下りる」に直し、ループ1の入口に「そもそも作るべきか」を、ループ3に目的の Why を足すことを条件にする。",
+          "tag": "primary",
+          "source": "meta-thinking-advisor の回答（2026-10-17）。advisors/meta.json"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "全部の検査が通れば確かめたとする",
+          "reason": "通るのに確かめていないテストを、合否だけでは見つけられない"
+        },
+        {
+          "option": "AI が書いた検査を、別の AI だけで確かめる",
+          "reason": "独立性が無く、同じ思い込みが重なる"
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "name": "調整のしかた",
+      "status": "waiting",
+      "depends": [
+        "Q1"
+      ],
+      "question": "プロダクトや変更の違いに合わせて、プロセスのどこを何で調整するか",
+      "answer": {
+        "text": "プロダクトごとではなく変更の種類ごとに、まとめて決める量 ・ 出す量 ・ 出したあとの守りを決め、出す量はいつも小さく保つ。",
+        "details": [
+          "変更の種類は、コード ・ 設定 ・ データ ・ 外への作用の4つである。同じプロダクトの中でも、すぐ戻せる変更と戻せない変更が混ざる",
+          "まとめて決める量は、目的の不確かさで決める。どの設定でも、アクターと目的の一覧はシステム全体で先に作る",
+          "戻しやすさは、戻すまでの時間 ・ 戻す手順を本番の前に試したか ・ 戻しても失うデータの3つで測る",
+          "戻せない変更は、承認を厚くするだけで守らない。手順を本番に近い所で試す ・ フィックスフォワードを試しておく ・ 直前にデータを退避する ・ 小さく分けて出す ・ 承認は証拠を読む",
+          "承認の厚さは、触れる業務領域のカテゴリーと面で上げる。中核の集約の公開面や文脈の境界に触れる変更は厚くする",
+          "運用の指標にしきい値を付け、越えたら自動で戻す",
+          "アジャイルとウォーターフォールは、この設定の組み合わせの呼び名として残る"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "caption": "変更の種類ごとの、まとめて決める量 ・ 出す量 ・ 出したあとの守り。",
+          "svg": "<svg viewBox=\"0 0 700 330\" style=\"min-width:600px\" role=\"img\" aria-label=\"変更の種類ごとの3つの設定\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .title.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE}</style>\n<text class=\"note\" x=\"225\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">まとめて決める量</text>\n<text class=\"note\" x=\"371\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">出す量</text>\n<text class=\"note\" x=\"563\" y=\"22\" font-weight=\"700\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">出したあとの守り</text>\n<rect class=\"box kind-1\" x=\"10\" y=\"36\" width=\"116\" height=\"50\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-1\" x=\"68\" y=\"67\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#7A3B6D\">コード</text>\n<rect class=\"box\" x=\"140\" y=\"36\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"225\" y=\"67\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ユースケース1つずつ</text>\n<rect class=\"box\" x=\"326\" y=\"36\" width=\"90\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"371\" y=\"67\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">小さく</text>\n<rect class=\"box\" x=\"432\" y=\"36\" width=\"262\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"563\" y=\"67\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">フラグ ・ 段階リリース ・ すぐ戻す</text>\n<rect class=\"box kind-1\" x=\"10\" y=\"98\" width=\"116\" height=\"50\" fill=\"#F1E3EE\" stroke=\"#7A3B6D\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-1\" x=\"68\" y=\"129\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#7A3B6D\">設定</text>\n<rect class=\"box\" x=\"140\" y=\"98\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"225\" y=\"129\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ユースケース1つずつ</text>\n<rect class=\"box\" x=\"326\" y=\"98\" width=\"90\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"371\" y=\"129\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">小さく</text>\n<rect class=\"box\" x=\"432\" y=\"98\" width=\"262\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"563\" y=\"129\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">段階リリース ・ すぐ戻す</text>\n<rect class=\"box kind-2\" x=\"10\" y=\"160\" width=\"116\" height=\"50\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-2\" x=\"68\" y=\"191\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#2F5B80\">データ</text>\n<rect class=\"box\" x=\"140\" y=\"160\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"225\" y=\"191\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">リリースの分を先に</text>\n<rect class=\"box\" x=\"326\" y=\"160\" width=\"90\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"371\" y=\"191\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">小さく</text>\n<rect class=\"box\" x=\"432\" y=\"160\" width=\"262\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"563\" y=\"191\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">直前に退避 ・ 手順を試す</text>\n<rect class=\"box kind-2\" x=\"10\" y=\"222\" width=\"116\" height=\"50\" fill=\"#DCE7F1\" stroke=\"#2F5B80\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title kind-2\" x=\"68\" y=\"253\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#2F5B80\">外への作用</text>\n<rect class=\"box\" x=\"140\" y=\"222\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"225\" y=\"253\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">リリースの分を先に</text>\n<rect class=\"box\" x=\"326\" y=\"222\" width=\"90\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"371\" y=\"253\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">小さく</text>\n<rect class=\"box\" x=\"432\" y=\"222\" width=\"262\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"563\" y=\"253\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">フィックスフォワードを試す</text>\n<text class=\"note\" x=\"10\" y=\"294\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">色：すぐ戻せる変更（kind-1）・ 戻せない変更（kind-2）</text>\n<text class=\"note\" x=\"10\" y=\"316\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">戻しやすさは、戻すまでの時間 ・ 手順を試したか ・ 失うデータで測る</text>\n</svg>"
+        }
+      ],
+      "checks": [
+        {
+          "target": "ダイヤルを変更の種類ごとに置く",
+          "ask": "プロダクトごとに1つではなく、変更の種類ごとに置く形でよいか"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "変更の種類ごとに扱いを変えること",
+          "basis": "ワークロードの各コンポーネントに関わる変更すべての影響レベルを分析する。繰り返す変更が、ポリシーを実行する同じワークフローに沿っていれば、標準化 ・ テンプレート化 ・ 事前承認を認める。変更を小さくして、影響を減らし、復旧を早め、ビジネスへの響きを軽くする。インシデントをできる限り避けるため、ロールバック手順でコードが確実に既知の良い状態へ戻るようにする",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
+        },
+        {
+          "supports": "出す量を小さく保つこと",
+          "basis": "小さなリリースで更新できる設計にしていない",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
+        },
+        {
+          "supports": "戻す手順を本番の前に試すこと",
+          "basis": "対応：戻す時間を最小にするため、フィックスフォワードかロールバックの計画を本番前に文書にし、十分に試す",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-17）。advisors/platform.json"
+        },
+        {
+          "supports": "アクターと目的の一覧を先に作ること",
+          "basis": "対応：第1段階の目的の一覧に十分な時間をかけ、ユーザー ・ スポンサー ・ 開発者とレビューする ・ 理由：システム全体を1つのビューで見られるのは、おそらくこれが最後である。次の段階からは関わる人も作業も増える",
+          "tag": "primary",
+          "source": "usecase-advisor の回答（2026-10-17）。advisors/usecase.json"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "プロダクトごとにダイヤルを1つ置く",
+          "reason": "戻せないデータの変更も、すぐ戻せるコードの変更と同じ扱いになる"
+        },
+        {
+          "option": "戻せないプロダクトは承認を厚くして守る",
+          "reason": "承認だけでは、戻す手順が試されていない危険が残る"
+        }
+      ]
+    }
+  ],
+  "opened": "2026-10-17",
+  "changes": []
+}

@@ -1,0 +1,2150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-abstract": "schema-driven/abstract@v1",
+  "$id": "brainstorming/board@v1",
+  "title": "ボード",
+  "description": "決めることがある問いを論点に分け、反証で絞った答えを承認だけで決められるようにする1枚。本体は .brainstorming/<id>.json に置き、回の記録 ・ 回答 ・ 図は .brainstorming/<id>/ に置く。",
+  "x-prompt": {
+    "read": {
+      "means": "1枚のボードである。論点はこの中のエンティティで、回答と回の記録は別のインスタンスが持つ。"
+    },
+    "write": [
+      {
+        "id": "decisions-only",
+        "rule": "利用者に渡すのは決定だけにし、事実は調べて根拠に書く。",
+        "why": "事実を聞くと、承認ではなく調べものを利用者に任せることになる。",
+        "test": "問いに、調べれば分かることが入っていないかを見る。"
+      },
+      {
+        "id": "refuted-first",
+        "rule": "案を複数出して反証し、残った1つだけを答えに書く。除外した案は rejected に残す。",
+        "why": "並べて選ばせると、判断を利用者に移すことになる。",
+        "test": "rejected が1件以上あるかを見る。"
+      }
+    ]
+  },
+  "x-generates": ".brainstorming/<ボード>.json",
+  "x-view": {
+    "label": "title"
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "title",
+    "round",
+    "topics"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "従うスキーマの名前",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスが従う型の名前である。"
+        },
+        "write": [
+          {
+            "id": "this-name",
+            "rule": "brainstorming/board@v1 と書く。",
+            "why": "エンジンは、この名前で型のスキーマを引く。",
+            "test": "値がこの文字列と同じかを見る。"
+          }
+        ]
+      },
+      "const": "brainstorming/board@v1"
+    },
+    "kind": {
+      "description": "インスタンスの種類",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスの種類である。"
+        },
+        "write": [
+          {
+            "id": "const",
+            "rule": "board と書く。",
+            "why": "ページテンプレートと参照は kind で選ぶ。",
+            "test": "値が同じかを見る。"
+          }
+        ]
+      },
+      "const": "board"
+    },
+    "id": {
+      "description": "ボードの名前。ファイル名と同じ",
+      "x-prompt": {
+        "read": {
+          "means": "ボードの名前である。"
+        },
+        "write": [
+          {
+            "id": "file-name",
+            "rule": ".brainstorming/<id>.json のファイル名と同じにする。",
+            "why": "サイドバーとダッシュボードは id でボードを指す。",
+            "test": "ファイル名と同じかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": {
+      "description": "題",
+      "x-prompt": {
+        "read": {
+          "means": "ボードが何を決めるかの短い題である。"
+        },
+        "write": [
+          {
+            "id": "short",
+            "rule": "40字くらいまでの名詞句で書く。",
+            "why": "サイドバーに並ぶ。",
+            "test": "40字を超えていないかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "intro": {
+      "description": "このボードが何を決めるかの1文",
+      "x-prompt": {
+        "read": {
+          "means": "ボードの目的である。"
+        },
+        "write": [
+          {
+            "id": "one-sentence",
+            "rule": "何を決めるかを1文で書く。決まったことの一覧は書かない。",
+            "why": "論点の一覧と重なる。",
+            "test": "1文かを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "minLength": 1
+    },
+    "hold": {
+      "description": "保留",
+      "x-prompt": {
+        "read": {
+          "means": "利用者がボード全体を止めた決定である。あるあいだは回答を受けない。"
+        },
+        "write": [
+          {
+            "id": "by-user",
+            "rule": "利用者が画面の「保留にする」で書き、「保留を解く」で消す。AI は書かない。",
+            "why": "保留は利用者の決定で、論点の状態からは導けない。",
+            "test": "date があるかを見る。"
+          }
+        ]
+      },
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date"
+      ],
+      "properties": {
+        "date": {
+          "description": "保留にした日",
+          "x-prompt": {
+            "read": {
+              "means": "保留にした日である。"
+            },
+            "write": [
+              {
+                "id": "today",
+                "rule": "保留にした日を書く。",
+                "why": "ダッシュボードに、いつから止めているかを出す。",
+                "test": "日付の形かを見る。"
+              }
+            ]
+          },
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "why": {
+          "description": "保留にした理由",
+          "x-prompt": {
+            "read": {
+              "means": "止めた理由である。"
+            },
+            "write": [
+              {
+                "id": "optional",
+                "rule": "利用者が書いたときだけ入れる。",
+                "why": "再開するかを決めるときに読む。",
+                "test": "空の文字でないかを見る。"
+              }
+            ]
+          },
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "flag": {
+      "description": "優先の印",
+      "x-prompt": {
+        "read": {
+          "means": "先に決めてほしいボードの印である。"
+        },
+        "write": [
+          {
+            "id": "rare",
+            "rule": "ほかの作業を止めているときだけ true にする。",
+            "why": "全部に付けると印にならない。",
+            "test": "true のボードが少数かを見る。"
+          }
+        ]
+      },
+      "type": "boolean"
+    },
+    "waits_for": {
+      "description": "このボードが答えを待っているほかのボード",
+      "x-prompt": {
+        "read": {
+          "means": "このボードの答えが前提にしているほかのボードである。"
+        },
+        "write": [
+          {
+            "id": "by-id",
+            "rule": "ほかのボードの id を書く。",
+            "why": "ダッシュボードは、待たれている数で先に決めるものを並べる。",
+            "test": "指す先のボードがあるかを check で見る。"
+          }
+        ]
+      },
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true,
+      "x-ref": {
+        "to": "board"
+      }
+    },
+    "round": {
+      "description": "いまの回の番号",
+      "x-prompt": {
+        "read": {
+          "means": "いま出している回である。"
+        },
+        "write": [
+          {
+            "id": "by-advance",
+            "rule": "advance が書く。手で書き換えない。",
+            "why": "回の記録の番号と合わなくなる。",
+            "test": "rounds/ の最後の番号と同じかを見る。"
+          }
+        ]
+      },
+      "type": "integer",
+      "minimum": 1
+    },
+    "opened": {
+      "description": "いまの回を出した日",
+      "x-prompt": {
+        "read": {
+          "means": "回答を待ち始めた日である。"
+        },
+        "write": [
+          {
+            "id": "by-advance",
+            "rule": "advance が書く。",
+            "why": "ダッシュボードは、回答を待っている日数をここから数える。",
+            "test": "日付の形かを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "queue": {
+      "description": "いま見る論点と、なぜいま開いたか",
+      "x-prompt": {
+        "read": {
+          "means": "いま答えてほしい論点の並びである。"
+        },
+        "write": [
+          {
+            "id": "ready-only",
+            "rule": "前提が片付いた論点だけを並べ、なぜいま開いたかを1文で書く。",
+            "why": "前提が開いている論点に答えると、あとで覆る。",
+            "test": "並べた論点の depends がすべて決着しているかを見る。"
+          }
+        ]
+      },
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "topic",
+          "why"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "pattern": "^Q[0-9]+$",
+            "description": "論点の id",
+            "x-ref": {
+              "to": "self",
+              "in": "topics",
+              "bare": true
+            },
+            "x-prompt": {
+              "read": {
+                "means": "論点の idである。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1,
+            "description": "なぜいま開いたか",
+            "x-prompt": {
+              "read": {
+                "means": "なぜいま開いたかである。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "changes": {
+      "description": "この回で変わったところ",
+      "x-prompt": {
+        "read": {
+          "means": "前の回から変わったところと、その理由である。"
+        },
+        "write": [
+          {
+            "id": "by-advance",
+            "rule": "advance が、前の回と比べて書く。理由には差し戻しの言葉をそのまま入れる。",
+            "why": "どこを直したかを書き手が文章で言うのは、仕組みではない。",
+            "test": "前の回の記録と比べて、変わった欄だけが並んでいるかを見る。"
+          }
+        ]
+      },
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "topic",
+          "part",
+          "summary"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "pattern": "^Q[0-9]+$",
+            "description": "論点の id",
+            "x-ref": {
+              "to": "self",
+              "in": "topics",
+              "bare": true
+            },
+            "x-prompt": {
+              "read": {
+                "means": "論点の idである。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          },
+          "part": {
+            "enum": [
+              "question",
+              "answer",
+              "details",
+              "images",
+              "assumptions",
+              "checks",
+              "grounds",
+              "rejected",
+              "status",
+              "added"
+            ],
+            "description": "変わった欄",
+            "x-prompt": {
+              "read": {
+                "means": "変わった欄である。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "何が変わったかの1文",
+            "x-prompt": {
+              "read": {
+                "means": "何が変わったかの1文である。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "なぜ変えたか（差し戻しの言葉）",
+            "x-prompt": {
+              "read": {
+                "means": "なぜ変えたか（差し戻しの言葉）である。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "log": {
+      "description": "最近の動き",
+      "x-prompt": {
+        "read": {
+          "means": "このボードで起きたことの記録である。"
+        },
+        "write": [
+          {
+            "id": "append",
+            "rule": "新しいものを先頭に足す。",
+            "why": "ダッシュボードは先頭から読む。",
+            "test": "日付が新しい順かを見る。"
+          }
+        ]
+      },
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "text"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "x-prompt": {
+              "read": {
+                "means": "dateである。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "x-prompt": {
+              "read": {
+                "means": "textである。"
+              },
+              "write": [
+                {
+                  "id": "only-needed",
+                  "rule": "見せたい部分だけを書く。",
+                  "why": "長いと強調した行が埋もれる。",
+                  "test": "60行くらいまでかを見る。"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "topics": {
+      "description": "論点の並び",
+      "x-prompt": {
+        "read": {
+          "means": "このボードの論点である。"
+        },
+        "write": [
+          {
+            "id": "three-to-five",
+            "rule": "3〜5件にし、依存の順に並べる。",
+            "why": "多すぎると決着しないまま依存が増える。",
+            "test": "件数を見る。"
+          }
+        ]
+      },
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/topic"
+      },
+      "maxItems": 5,
+      "contains": {
+        "properties": {
+          "status": {
+            "const": "open"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "minContains": 0,
+      "maxContains": 5
+    }
+  },
+  "$defs": {
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "論点1つ",
+      "x-prompt": {
+        "read": {
+          "means": "決めることを1つ持つ論点である。"
+        },
+        "write": [
+          {
+            "id": "one-decision",
+            "rule": "1つの論点で決めることを1つにする。",
+            "why": "2つを1つの論点で決めると、片方だけを差し戻せない。",
+            "test": "答えの1文が1つのことを決めているかを見る。"
+          }
+        ]
+      },
+      "required": [
+        "id",
+        "name",
+        "status",
+        "question",
+        "answer"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^Q[0-9]+$",
+          "description": "論点の id（Q0 ・ Q1 …）",
+          "x-prompt": {
+            "read": {
+              "means": "論点の id（Q0 ・ Q1 …）である。"
+            },
+            "write": [
+              {
+                "id": "unique",
+                "rule": "ボードの中で重ならない id を書く。",
+                "why": "回答と変わったところは id で論点を指す。",
+                "test": "重なりが無いかを見る。"
+              }
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "論点の短い名前",
+          "x-prompt": {
+            "read": {
+              "means": "論点の短い名前である。"
+            },
+            "write": [
+              {
+                "id": "short",
+                "rule": "10字くらいの名前を書く。",
+                "why": "タブに並ぶ。",
+                "test": "長すぎないかを見る。"
+              }
+            ]
+          }
+        },
+        "status": {
+          "enum": [
+            "waiting",
+            "open",
+            "settled"
+          ],
+          "description": "前提待ち ・ 回答待ち ・ 決着",
+          "x-prompt": {
+            "read": {
+              "means": "前提待ち（waiting）・ 回答待ち（open）・ 決着（settled）である。画面のステータスはこの値から導く。"
+            },
+            "write": [
+              {
+                "id": "by-flow",
+                "rule": "前提が片付いていなければ waiting、AI が開いて利用者の回答を待つなら open、承認されて更新したら settled にする。",
+                "why": "画面は open の論点にだけ回答欄を出す。",
+                "test": "queue と合っているかを見る。"
+              }
+            ]
+          }
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "description": "問い",
+          "x-prompt": {
+            "read": {
+              "means": "問いである。"
+            },
+            "write": [
+              {
+                "id": "decidable",
+                "rule": "答えが1つに決まる問いを書く。",
+                "why": "広すぎる問いは承認で決められない。",
+                "test": "答えの1文が問いに答えているかを見る。"
+              }
+            ]
+          }
+        },
+        "answer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text"
+          ],
+          "description": "答え",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "承認してほしいことの1文",
+              "x-prompt": {
+                "read": {
+                  "means": "承認してほしいことの1文である。"
+                },
+                "write": [
+                  {
+                    "id": "only-needed",
+                    "rule": "見せたい部分だけを書く。",
+                    "why": "長いと強調した行が埋もれる。",
+                    "test": "60行くらいまでかを見る。"
+                  }
+                ]
+              }
+            },
+            "details": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "x-prompt": {
+                  "read": {
+                    "means": "textである。"
+                  },
+                  "write": [
+                    {
+                      "id": "only-needed",
+                      "rule": "見せたい部分だけを書く。",
+                      "why": "長いと強調した行が埋もれる。",
+                      "test": "60行くらいまでかを見る。"
+                    }
+                  ]
+                }
+              },
+              "description": "詳しい決まり",
+              "x-prompt": {
+                "read": {
+                  "means": "詳しい決まりである。"
+                },
+                "write": [
+                  {
+                    "id": "as-described",
+                    "rule": "説明のとおりに書く。",
+                    "why": "読み手とツールは説明のとおりに読む。",
+                    "test": "説明と合っているかを見る。"
+                  }
+                ]
+              }
+            }
+          },
+          "x-prompt": {
+            "read": {
+              "means": "答えである。"
+            },
+            "write": [
+              {
+                "id": "one-sentence-first",
+                "rule": "承認してほしいことを1文で text に書き、詳しい決まりを details に並べる。",
+                "why": "読み手は1文だけで判断できる。",
+                "test": "text が120字までかを見る。"
+              }
+            ]
+          }
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/figure"
+              },
+              {
+                "$ref": "#/$defs/screen"
+              },
+              {
+                "$ref": "#/$defs/code"
+              },
+              {
+                "$ref": "#/$defs/diff"
+              },
+              {
+                "$ref": "#/$defs/tree"
+              },
+              {
+                "$ref": "#/$defs/run"
+              }
+            ]
+          },
+          "description": "完成イメージ。在る種類だけがタブになる",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージ。在る種類だけがタブになるである。"
+            },
+            "write": [
+              {
+                "id": "always",
+                "rule": "答えの完成イメージを1つ以上置く。",
+                "why": "文字だけだと、読み手が頭の中で像を作り、そこでぶれる。",
+                "test": "1つ以上あるかを見る。"
+              },
+              {
+                "id": "kind-by-content",
+                "rule": "示すものから種類を選ぶ。比べ ・ 流れ ・ 構成は figure、変更前後は diff、触れるものは screen、コマンドは run、フォルダは tree、ファイルの本文は code にする。",
+                "why": "種類が中身と合わないと、読み手は形を読み替えてから中身を読むことになる。表は入れず、変化の要約は差分か図で見せる。",
+                "test": "code の完成イメージが、ファイルとして成り立つ本文（コード ・ 設定 ・ Markdown など）かを見る。",
+                "bad": "{\"kind\":\"code\",\"language\":\"text\",\"text\":\"検証  毎回新しい  読むだけ\\n会話  同じセッション  入口でだけ書く\"}",
+                "good": "{\"kind\":\"figure\",\"caption\":\"やらせたいことの型\",\"svg\":\"<svg …>\"}"
+              }
+            ]
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "x-prompt": {
+              "read": {
+                "means": "textである。"
+              },
+              "write": [
+                {
+                  "id": "only-needed",
+                  "rule": "見せたい部分だけを書く。",
+                  "why": "長いと強調した行が埋もれる。",
+                  "test": "60行くらいまでかを見る。"
+                }
+              ]
+            }
+          },
+          "description": "置いた前提",
+          "x-prompt": {
+            "read": {
+              "means": "置いた前提である。"
+            },
+            "write": [
+              {
+                "id": "numbered",
+                "rule": "答えが前提にしたことを1件ずつ書く。",
+                "why": "前提が崩れたら答えも覆る。",
+                "test": "1件に1つのことかを見る。"
+              }
+            ]
+          }
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 3,
+          "description": "確かめてほしい箇所（3件まで）",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "ask"
+            ],
+            "properties": {
+              "target": {
+                "type": "string",
+                "minLength": 1,
+                "description": "どこを見るか",
+                "x-prompt": {
+                  "read": {
+                    "means": "どこを見るかである。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              },
+              "ask": {
+                "type": "string",
+                "minLength": 1,
+                "description": "何を確かめてほしいか",
+                "x-prompt": {
+                  "read": {
+                    "means": "何を確かめてほしいかである。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "x-prompt": {
+            "read": {
+              "means": "確かめてほしい箇所（3件まで）である。"
+            },
+            "write": [
+              {
+                "id": "three",
+                "rule": "読み手に確かめてほしい箇所を3件まで書く。",
+                "why": "多いと全部を読むことになる。",
+                "test": "3件以下かを見る。"
+              }
+            ]
+          }
+        },
+        "grounds": {
+          "type": "array",
+          "description": "根拠",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "supports",
+              "basis",
+              "tag",
+              "source"
+            ],
+            "properties": {
+              "supports": {
+                "type": "string",
+                "minLength": 1,
+                "description": "答えのどこを支えるか",
+                "x-prompt": {
+                  "read": {
+                    "means": "答えのどこを支えるかである。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              },
+              "basis": {
+                "type": "string",
+                "minLength": 1,
+                "description": "もとにしたこと（引用はそのまま）",
+                "x-prompt": {
+                  "read": {
+                    "means": "もとにしたこと（引用はそのまま）である。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              },
+              "tag": {
+                "enum": [
+                  "measured",
+                  "primary",
+                  "rule",
+                  "assumption",
+                  "unverified"
+                ],
+                "description": "実測 ・ 原典 ・ 決まり ・ 前提 ・ 未確認",
+                "x-prompt": {
+                  "read": {
+                    "means": "実測 ・ 原典 ・ 決まり ・ 前提 ・ 未確認である。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "description": "出どころ",
+                "x-prompt": {
+                  "read": {
+                    "means": "出どころである。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "x-prompt": {
+            "read": {
+              "means": "根拠である。"
+            },
+            "write": [
+              {
+                "id": "three-parts",
+                "rule": "答えのどこを支えるか ・ もとにしたこと ・ 出どころの3つを書く。",
+                "why": "出どころの無い根拠は確かめられない。",
+                "test": "3つがそろっているかを見る。"
+              }
+            ]
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "description": "採らなかった案",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "option",
+              "reason"
+            ],
+            "properties": {
+              "option": {
+                "type": "string",
+                "minLength": 1,
+                "description": "案",
+                "x-prompt": {
+                  "read": {
+                    "means": "案である。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "description": "何が壊れるか",
+                "x-prompt": {
+                  "read": {
+                    "means": "何が壊れるかである。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "x-prompt": {
+            "read": {
+              "means": "採らなかった案である。"
+            },
+            "write": [
+              {
+                "id": "keep",
+                "rule": "反証で外した案と、何が壊れるかを書く。",
+                "why": "消すと、選択肢を潰したことに誰も気づけない。",
+                "test": "1件以上あるかを見る。"
+              }
+            ]
+          },
+          "minItems": 1
+        },
+        "depends": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^Q[0-9]+$"
+          },
+          "uniqueItems": true,
+          "description": "前提にした論点",
+          "x-ref": {
+            "to": "self",
+            "in": "topics",
+            "bare": true
+          },
+          "x-prompt": {
+            "read": {
+              "means": "前提にした論点である。"
+            },
+            "write": [
+              {
+                "id": "declared",
+                "rule": "前提にした論点の id を書く。",
+                "why": "前提が決着していない論点は出さない。",
+                "test": "指す論点があるかを見る。"
+              }
+            ]
+          }
+        },
+        "verification": {
+          "type": "object",
+          "description": "書き手の検証の記録。描画しない",
+          "x-view": {
+            "hidden": true
+          },
+          "additionalProperties": false,
+          "properties": {
+            "passed": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "option",
+                  "cost"
+                ],
+                "properties": {
+                  "option": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-prompt": {
+                      "read": {
+                        "means": "textである。"
+                      },
+                      "write": [
+                        {
+                          "id": "only-needed",
+                          "rule": "見せたい部分だけを書く。",
+                          "why": "長いと強調した行が埋もれる。",
+                          "test": "60行くらいまでかを見る。"
+                        }
+                      ]
+                    }
+                  },
+                  "cost": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-prompt": {
+                      "read": {
+                        "means": "textである。"
+                      },
+                      "write": [
+                        {
+                          "id": "only-needed",
+                          "rule": "見せたい部分だけを書く。",
+                          "why": "長いと強調した行が埋もれる。",
+                          "test": "60行くらいまでかを見る。"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "x-prompt": {
+                "read": {
+                  "means": "passedである。"
+                },
+                "write": [
+                  {
+                    "id": "as-described",
+                    "rule": "説明のとおりに書く。",
+                    "why": "読み手とツールは説明のとおりに読む。",
+                    "test": "説明と合っているかを見る。"
+                  }
+                ]
+              }
+            },
+            "assumptions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "x-prompt": {
+                  "read": {
+                    "means": "textである。"
+                  },
+                  "write": [
+                    {
+                      "id": "only-needed",
+                      "rule": "見せたい部分だけを書く。",
+                      "why": "長いと強調した行が埋もれる。",
+                      "test": "60行くらいまでかを見る。"
+                    }
+                  ]
+                }
+              },
+              "x-prompt": {
+                "read": {
+                  "means": "assumptionsである。"
+                },
+                "write": [
+                  {
+                    "id": "numbered",
+                    "rule": "答えが前提にしたことを1件ずつ書く。",
+                    "why": "前提が崩れたら答えも覆る。",
+                    "test": "1件に1つのことかを見る。"
+                  }
+                ]
+              }
+            },
+            "out_of_scope": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "item",
+                  "treatment"
+                ],
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-prompt": {
+                      "read": {
+                        "means": "textである。"
+                      },
+                      "write": [
+                        {
+                          "id": "only-needed",
+                          "rule": "見せたい部分だけを書く。",
+                          "why": "長いと強調した行が埋もれる。",
+                          "test": "60行くらいまでかを見る。"
+                        }
+                      ]
+                    }
+                  },
+                  "treatment": {
+                    "enum": [
+                      "out",
+                      "later",
+                      "resolved"
+                    ],
+                    "x-prompt": {
+                      "read": {
+                        "means": "treatmentである。"
+                      },
+                      "write": [
+                        {
+                          "id": "as-described",
+                          "rule": "説明のとおりに書く。",
+                          "why": "読み手とツールは説明のとおりに読む。",
+                          "test": "説明と合っているかを見る。"
+                        }
+                      ]
+                    }
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-prompt": {
+                      "read": {
+                        "means": "textである。"
+                      },
+                      "write": [
+                        {
+                          "id": "only-needed",
+                          "rule": "見せたい部分だけを書く。",
+                          "why": "長いと強調した行が埋もれる。",
+                          "test": "60行くらいまでかを見る。"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "x-prompt": {
+                "read": {
+                  "means": "out_of_scopeである。"
+                },
+                "write": [
+                  {
+                    "id": "as-described",
+                    "rule": "説明のとおりに書く。",
+                    "why": "読み手とツールは説明のとおりに読む。",
+                    "test": "説明と合っているかを見る。"
+                  }
+                ]
+              }
+            },
+            "history": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "x-prompt": {
+                  "read": {
+                    "means": "textである。"
+                  },
+                  "write": [
+                    {
+                      "id": "only-needed",
+                      "rule": "見せたい部分だけを書く。",
+                      "why": "長いと強調した行が埋もれる。",
+                      "test": "60行くらいまでかを見る。"
+                    }
+                  ]
+                }
+              },
+              "x-prompt": {
+                "read": {
+                  "means": "historyである。"
+                },
+                "write": [
+                  {
+                    "id": "as-described",
+                    "rule": "説明のとおりに書く。",
+                    "why": "読み手とツールは説明のとおりに読む。",
+                    "test": "説明と合っているかを見る。"
+                  }
+                ]
+              }
+            }
+          },
+          "x-prompt": {
+            "read": {
+              "means": "書き手の検証の記録。描画しないである。"
+            },
+            "write": [
+              {
+                "id": "not-shown",
+                "rule": "書き手の検証の記録を書く。描画しない。",
+                "why": "画面に出すと、結論を探しながら読むことになる。",
+                "test": "画面に出ていないかを見る。"
+              }
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "open"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "images"
+            ],
+            "properties": {
+              "images": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "figure": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "図",
+      "x-prompt": {
+        "read": {
+          "means": "SVG の図である。"
+        },
+        "write": [
+          {
+            "id": "one-thing",
+            "rule": "この完成イメージで示すことを1つにし、caption にそれを1文で書く。",
+            "why": "1つの完成イメージに2つのことを入れると、どれを見ればよいかが決まらない。",
+            "test": "caption が1文かを見る。"
+          }
+        ]
+      },
+      "required": [
+        "kind",
+        "caption",
+        "svg"
+      ],
+      "properties": {
+        "kind": {
+          "const": "figure",
+          "description": "完成イメージの種類",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージの種類である。"
+            },
+            "write": [
+              {
+                "id": "as-is",
+                "rule": "完成イメージの種類の名前をそのまま書く。",
+                "why": "画面は kind でタブと部品を選ぶ。",
+                "test": "6つの名前のどれかかを見る。"
+              }
+            ]
+          }
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を示すかの1文",
+          "x-prompt": {
+            "read": {
+              "means": "何を示すかの1文である。"
+            },
+            "write": [
+              {
+                "id": "one-sentence",
+                "rule": "何を示すかを1文で書く。",
+                "why": "読み手は caption で、この完成イメージを見るかを決める。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        },
+        "svg": {
+          "type": "string",
+          "minLength": 1,
+          "contentMediaType": "image/svg+xml",
+          "description": "図の SVG。script とイベントの属性を含むものは、基盤が断る",
+          "x-prompt": {
+            "read": {
+              "means": "図の SVG。script とイベントの属性を含むものは、基盤が断るである。"
+            },
+            "write": [
+              {
+                "id": "checked",
+                "rule": "design-svg の検査を通した SVG を書く。",
+                "why": "基盤は script とイベントの属性を含む SVG を断る。",
+                "test": "render が断らないかを見る。"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "画面",
+      "x-prompt": {
+        "read": {
+          "means": "触れる1枚の HTML である。分けた枠の中に描く。"
+        },
+        "write": [
+          {
+            "id": "one-thing",
+            "rule": "この完成イメージで示すことを1つにし、caption にそれを1文で書く。",
+            "why": "1つの完成イメージに2つのことを入れると、どれを見ればよいかが決まらない。",
+            "test": "caption が1文かを見る。"
+          }
+        ]
+      },
+      "required": [
+        "kind",
+        "caption",
+        "html"
+      ],
+      "properties": {
+        "kind": {
+          "const": "screen",
+          "description": "完成イメージの種類",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージの種類である。"
+            },
+            "write": [
+              {
+                "id": "as-is",
+                "rule": "完成イメージの種類の名前をそのまま書く。",
+                "why": "画面は kind でタブと部品を選ぶ。",
+                "test": "6つの名前のどれかかを見る。"
+              }
+            ]
+          }
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を示すかの1文",
+          "x-prompt": {
+            "read": {
+              "means": "何を示すかの1文である。"
+            },
+            "write": [
+              {
+                "id": "one-sentence",
+                "rule": "何を示すかを1文で書く。",
+                "why": "読み手は caption で、この完成イメージを見るかを決める。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        },
+        "html": {
+          "type": "string",
+          "minLength": 1,
+          "description": "1枚で完結する HTML",
+          "x-prompt": {
+            "read": {
+              "means": "1枚で完結する HTMLである。"
+            },
+            "write": [
+              {
+                "id": "standalone",
+                "rule": "外のファイルを読まない1枚の HTML を書く。",
+                "why": "分けた枠の中で、外のファイルは読めない。",
+                "test": "外の URL を読んでいないかを見る。"
+              }
+            ]
+          }
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 120,
+          "maximum": 1200,
+          "description": "枠の高さ（px）。無ければ 360",
+          "x-prompt": {
+            "read": {
+              "means": "枠の高さ（px）。無ければ 360である。"
+            },
+            "write": [
+              {
+                "id": "fit",
+                "rule": "中身が収まる高さを書く。",
+                "why": "枠の中でスクロールさせると、触れる見本として読みにくい。",
+                "test": "描いて目で見る。"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "コード",
+      "x-prompt": {
+        "read": {
+          "means": "1つのファイルのコードである。"
+        },
+        "write": [
+          {
+            "id": "one-thing",
+            "rule": "この完成イメージで示すことを1つにし、caption にそれを1文で書く。",
+            "why": "1つの完成イメージに2つのことを入れると、どれを見ればよいかが決まらない。",
+            "test": "caption が1文かを見る。"
+          }
+        ]
+      },
+      "required": [
+        "kind",
+        "caption",
+        "language",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "const": "code",
+          "description": "完成イメージの種類",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージの種類である。"
+            },
+            "write": [
+              {
+                "id": "as-is",
+                "rule": "完成イメージの種類の名前をそのまま書く。",
+                "why": "画面は kind でタブと部品を選ぶ。",
+                "test": "6つの名前のどれかかを見る。"
+              }
+            ]
+          }
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を示すかの1文",
+          "x-prompt": {
+            "read": {
+              "means": "何を示すかの1文である。"
+            },
+            "write": [
+              {
+                "id": "one-sentence",
+                "rule": "何を示すかを1文で書く。",
+                "why": "読み手は caption で、この完成イメージを見るかを決める。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ファイルの場所",
+          "x-prompt": {
+            "read": {
+              "means": "ファイルの場所である。"
+            },
+            "write": [
+              {
+                "id": "as-in-repo",
+                "rule": "リポジトリの根からの場所で書く。",
+                "why": "読み手が実物を開けるようにする。",
+                "test": "その場所が在るか、作る予定かを見る。"
+              }
+            ]
+          }
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "言語の名前（rust ・ python ・ json ・ shell など）",
+          "x-prompt": {
+            "read": {
+              "means": "言語の名前（rust ・ python ・ json ・ shell など）である。"
+            },
+            "write": [
+              {
+                "id": "lowercase",
+                "rule": "言語の名前を小文字で書く。",
+                "why": "色付けは言語の名前で選ぶ。",
+                "test": "知っている名前かを見る。"
+              },
+              {
+                "id": "file-language",
+                "rule": "そのファイルの言語（rust ・ json ・ markdown ・ shell など）を書く。text は書かない。",
+                "why": "言語が text になるのは、ファイルとして成り立たない文を code に入れたときである。",
+                "test": "inspect が、言語が text ・ plain ・ txt のコードを見つけないかを見る。"
+              }
+            ]
+          },
+          "not": {
+            "enum": [
+              "text",
+              "plain",
+              "txt"
+            ]
+          }
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "コードの本文",
+          "x-prompt": {
+            "read": {
+              "means": "コードの本文である。"
+            },
+            "write": [
+              {
+                "id": "only-needed",
+                "rule": "見せたい部分だけを書く。",
+                "why": "長いと強調した行が埋もれる。",
+                "test": "60行くらいまでかを見る。"
+              },
+              {
+                "id": "real-file",
+                "rule": "実在するか作る予定のファイルの本文だけを書く。場面の比べや一覧は図にする。",
+                "why": "コードの部品はエディタの形で描くので、ファイルでない文はエディタの中で読みにくくなる。",
+                "test": "path に書いたファイルの本文として成り立つかを見る。"
+              }
+            ]
+          }
+        },
+        "highlight": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uniqueItems": true,
+          "description": "強調する行の番号",
+          "x-prompt": {
+            "read": {
+              "means": "強調する行の番号である。"
+            },
+            "write": [
+              {
+                "id": "few",
+                "rule": "読んでほしい行だけを書く。",
+                "why": "全部を強調すると強調にならない。",
+                "test": "全体の行の数より十分少ないかを見る。"
+              }
+            ]
+          }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "description": "強調した行が何かの1文",
+          "x-prompt": {
+            "read": {
+              "means": "強調した行が何かの1文である。"
+            },
+            "write": [
+              {
+                "id": "why-highlight",
+                "rule": "強調した行が何かを1文で書く。",
+                "why": "行番号だけでは何を見ればよいかが分からない。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "差分",
+      "x-prompt": {
+        "read": {
+          "means": "1つのファイルの変更前と変更後である。"
+        },
+        "write": [
+          {
+            "id": "one-thing",
+            "rule": "この完成イメージで示すことを1つにし、caption にそれを1文で書く。",
+            "why": "1つの完成イメージに2つのことを入れると、どれを見ればよいかが決まらない。",
+            "test": "caption が1文かを見る。"
+          }
+        ]
+      },
+      "required": [
+        "kind",
+        "caption",
+        "path",
+        "before",
+        "after"
+      ],
+      "properties": {
+        "kind": {
+          "const": "diff",
+          "description": "完成イメージの種類",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージの種類である。"
+            },
+            "write": [
+              {
+                "id": "as-is",
+                "rule": "完成イメージの種類の名前をそのまま書く。",
+                "why": "画面は kind でタブと部品を選ぶ。",
+                "test": "6つの名前のどれかかを見る。"
+              }
+            ]
+          }
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を示すかの1文",
+          "x-prompt": {
+            "read": {
+              "means": "何を示すかの1文である。"
+            },
+            "write": [
+              {
+                "id": "one-sentence",
+                "rule": "何を示すかを1文で書く。",
+                "why": "読み手は caption で、この完成イメージを見るかを決める。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ファイルの場所",
+          "x-prompt": {
+            "read": {
+              "means": "ファイルの場所である。"
+            },
+            "write": [
+              {
+                "id": "as-in-repo",
+                "rule": "リポジトリの根からの場所で書く。",
+                "why": "読み手が実物を開けるようにする。",
+                "test": "その場所が在るか、作る予定かを見る。"
+              }
+            ]
+          }
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "言語の名前",
+          "x-prompt": {
+            "read": {
+              "means": "言語の名前である。"
+            },
+            "write": [
+              {
+                "id": "lowercase",
+                "rule": "言語の名前を小文字で書く。",
+                "why": "色付けは言語の名前で選ぶ。",
+                "test": "知っている名前かを見る。"
+              }
+            ]
+          }
+        },
+        "before": {
+          "type": "string",
+          "description": "変更前の原文",
+          "x-prompt": {
+            "read": {
+              "means": "変更前の原文である。"
+            },
+            "write": [
+              {
+                "id": "verbatim",
+                "rule": "変更前の原文をそのまま書く。",
+                "why": "要約すると差分が意味を失う。",
+                "test": "原文と同じかを見る。"
+              }
+            ]
+          }
+        },
+        "after": {
+          "type": "string",
+          "description": "変更後の原文",
+          "x-prompt": {
+            "read": {
+              "means": "変更後の原文である。"
+            },
+            "write": [
+              {
+                "id": "verbatim",
+                "rule": "変更後の原文をそのまま書く。",
+                "why": "要約すると差分が意味を失う。",
+                "test": "原文と同じかを見る。"
+              }
+            ]
+          }
+        },
+        "layout": {
+          "enum": [
+            "unified",
+            "split"
+          ],
+          "description": "統合（unified）か並べる（split）か。無ければ unified",
+          "x-prompt": {
+            "read": {
+              "means": "統合（unified）か並べる（split）か。無ければ unifiedである。"
+            },
+            "write": [
+              {
+                "id": "default-unified",
+                "rule": "並べたいときだけ split と書く。",
+                "why": "幅の狭い画面では並べると読めない。",
+                "test": "値を見る。"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "tree": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "フォルダ構成",
+      "x-prompt": {
+        "read": {
+          "means": "フォルダとファイルの並びと、行ごとの説明である。"
+        },
+        "write": [
+          {
+            "id": "one-thing",
+            "rule": "この完成イメージで示すことを1つにし、caption にそれを1文で書く。",
+            "why": "1つの完成イメージに2つのことを入れると、どれを見ればよいかが決まらない。",
+            "test": "caption が1文かを見る。"
+          }
+        ]
+      },
+      "required": [
+        "kind",
+        "caption",
+        "rows"
+      ],
+      "properties": {
+        "kind": {
+          "const": "tree",
+          "description": "完成イメージの種類",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージの種類である。"
+            },
+            "write": [
+              {
+                "id": "as-is",
+                "rule": "完成イメージの種類の名前をそのまま書く。",
+                "why": "画面は kind でタブと部品を選ぶ。",
+                "test": "6つの名前のどれかかを見る。"
+              }
+            ]
+          }
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を示すかの1文",
+          "x-prompt": {
+            "read": {
+              "means": "何を示すかの1文である。"
+            },
+            "write": [
+              {
+                "id": "one-sentence",
+                "rule": "何を示すかを1文で書く。",
+                "why": "読み手は caption で、この完成イメージを見るかを決める。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "description": "上から並べる行",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "depth"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "その段での名前（フォルダは / で終える）",
+                "x-prompt": {
+                  "read": {
+                    "means": "その段での名前（フォルダは / で終える）である。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-in-repo",
+                      "rule": "リポジトリの根からの場所で書く。",
+                      "why": "読み手が実物を開けるようにする。",
+                      "test": "その場所が在るか、作る予定かを見る。"
+                    }
+                  ]
+                }
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 12,
+                "description": "字下げの段",
+                "x-prompt": {
+                  "read": {
+                    "means": "字下げの段である。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "何を置くかの説明",
+                "x-prompt": {
+                  "read": {
+                    "means": "何を置くかの説明である。"
+                  },
+                  "write": [
+                    {
+                      "id": "why-highlight",
+                      "rule": "強調した行が何かを1文で書く。",
+                      "why": "行番号だけでは何を見ればよいかが分からない。",
+                      "test": "1文かを見る。"
+                    }
+                  ]
+                }
+              },
+              "mark": {
+                "enum": [
+                  "add",
+                  "remove",
+                  "change"
+                ],
+                "description": "足す ・ 消す ・ 変える",
+                "x-prompt": {
+                  "read": {
+                    "means": "足す ・ 消す ・ 変えるである。"
+                  },
+                  "write": [
+                    {
+                      "id": "as-described",
+                      "rule": "説明のとおりに書く。",
+                      "why": "読み手とツールは説明のとおりに読む。",
+                      "test": "説明と合っているかを見る。"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "x-prompt": {
+            "read": {
+              "means": "上から並べる行である。"
+            },
+            "write": [
+              {
+                "id": "top-down",
+                "rule": "上から順に、フォルダの中身を字下げで並べる。",
+                "why": "並びがフォルダの形を表す。",
+                "test": "depth が親より1つ深いかを見る。"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "実行例",
+      "x-prompt": {
+        "read": {
+          "means": "1つのコマンドと、その出力と終了コードである。"
+        },
+        "write": [
+          {
+            "id": "one-thing",
+            "rule": "この完成イメージで示すことを1つにし、caption にそれを1文で書く。",
+            "why": "1つの完成イメージに2つのことを入れると、どれを見ればよいかが決まらない。",
+            "test": "caption が1文かを見る。"
+          }
+        ]
+      },
+      "required": [
+        "kind",
+        "caption",
+        "command",
+        "exit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "run",
+          "description": "完成イメージの種類",
+          "x-prompt": {
+            "read": {
+              "means": "完成イメージの種類である。"
+            },
+            "write": [
+              {
+                "id": "as-is",
+                "rule": "完成イメージの種類の名前をそのまま書く。",
+                "why": "画面は kind でタブと部品を選ぶ。",
+                "test": "6つの名前のどれかかを見る。"
+              }
+            ]
+          }
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を示すかの1文",
+          "x-prompt": {
+            "read": {
+              "means": "何を示すかの1文である。"
+            },
+            "write": [
+              {
+                "id": "one-sentence",
+                "rule": "何を示すかを1文で書く。",
+                "why": "読み手は caption で、この完成イメージを見るかを決める。",
+                "test": "1文かを見る。"
+              }
+            ]
+          }
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1,
+          "description": "実行した場所",
+          "x-prompt": {
+            "read": {
+              "means": "実行した場所である。"
+            },
+            "write": [
+              {
+                "id": "where",
+                "rule": "実行した場所を書く。",
+                "why": "同じコマンドでも場所で結果が変わる。",
+                "test": "場所が在るかを見る。"
+              }
+            ]
+          }
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "コマンド",
+          "x-prompt": {
+            "read": {
+              "means": "コマンドである。"
+            },
+            "write": [
+              {
+                "id": "as-typed",
+                "rule": "打ったとおりに書く。",
+                "why": "読み手がそのまま試せるようにする。",
+                "test": "実行できるかを見る。"
+              }
+            ]
+          }
+        },
+        "output": {
+          "type": "string",
+          "description": "出力",
+          "x-prompt": {
+            "read": {
+              "means": "出力である。"
+            },
+            "write": [
+              {
+                "id": "as-printed",
+                "rule": "出たとおりに書き、長ければ途中を省いたと書く。",
+                "why": "出力を言い換えると、実物と食い違う。",
+                "test": "実物の出力と比べる。"
+              }
+            ]
+          }
+        },
+        "exit": {
+          "type": "integer",
+          "description": "終了コード",
+          "x-prompt": {
+            "read": {
+              "means": "終了コードである。"
+            },
+            "write": [
+              {
+                "id": "as-returned",
+                "rule": "返った終了コードを書く。",
+                "why": "合否は終了コードで決まる。",
+                "test": "整数かを見る。"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "topics": {
+            "contains": {
+              "properties": {
+                "status": {
+                  "const": "open"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "topics"
+        ]
+      },
+      "then": {
+        "required": [
+          "queue"
+        ],
+        "properties": {
+          "queue": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}
