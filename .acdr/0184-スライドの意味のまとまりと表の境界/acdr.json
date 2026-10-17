@@ -1,0 +1,125 @@
+{
+ "no": "ACDR 0184",
+ "title": "スライドの意味のまとまりと表の境界",
+ "date": "2026-10-17",
+ "status": "accepted",
+ "decision": "比較ページで確認した、意味のまとまりと表の境界を示すデザインを企画書とオリエンテーションに採用します。",
+ "why": "説明や表が背景に埋もれ、図の中でも一つの内容に属する要素を読み分けにくい状態でした。既存のカードの角丸、線幅、配色に合わせて修正しました。",
+ "shift": [
+  {
+   "what": "説明と表のまとまり",
+   "from": "背景に直接置いた説明と、角丸のない表",
+   "to": "意味ごとの面と境界、カードと同じ角丸を持つ表"
+  },
+  {
+   "what": "図の対応関係",
+   "from": "一部の要素だけに枠があり、関係する説明が独立して見える",
+   "to": "対応する要素をカードで示し、矢印の接続先と説明の範囲を明確にする"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "期待する効果の三列を、既存のカード部品で示します。",
+ "alternatives": [
+  {
+   "option": "説明文と表だけを修正する",
+   "why_not": "図の中の説明や書籍の情報には、まとまりの境界が不足したまま残ります。"
+  },
+  {
+   "option": "文字を一つずつ囲む",
+   "why_not": "人物名や矢印の動作名まで分断され、図の関係を読み取りにくくなります。"
+  }
+ ],
+ "docs": [
+  {
+   "key": "build_deck",
+   "tab": "build_deck.py",
+   "file": "docs/workshops/ai-workshop/proposal/src/build_deck.py",
+   "marks": [
+    {
+     "find": "    return '<div class=\"ws-table-frame\"><table class=\"ws-table '+cls+'\"><thead><tr>'+''.join('<th>'+x+'</th>' for x in headers)+'</tr></thead><tbody>'+''.join('<tr>'+''.join('<td>'+c+'</td>' for c in row)+'</tr>' for row in rows)+'</tbody></table></div>'",
+     "before": "    return '<table class=\"ws-table '+cls+'\"><thead><tr>'+''.join('<th>'+x+'</th>' for x in headers)+'</tr></thead><tbody>'+''.join('<tr>'+''.join('<td>'+c+'</td>' for c in row)+'</tr>' for row in rows)+'</tbody></table>'",
+     "why": "表をカードと同じ角丸の外枠で包み、共通の説明と補足にも面と境界を適用します。"
+    },
+    {
+     "find": "# 既存の図のカードと、説明・表の境界を共通にする。",
+     "before": "追加前は記述がありません。",
+     "why": "表をカードと同じ角丸の外枠で包み、共通の説明と補足にも面と境界を適用します。"
+    }
+   ]
+  },
+  {
+   "key": "visuals",
+   "tab": "visuals.py",
+   "file": "docs/workshops/ai-workshop/proposal/src/visuals.py",
+   "marks": [
+    {
+     "find": "        a += rect(404, y, 310, 74, PAPER, 12, LINE)",
+     "before": "追加前は記述がありません。",
+     "why": "期待する効果の中央列と右列も左列と同じカードにし、矢印の接続先を明確にします。"
+    },
+    {
+     "find": "        a += icon(802, y + 23, 'check', INK, .6)",
+     "before": "        a += icon(792, y + 23, 'check', INK, .6)\n        a += text(830, y + 30, eff, 17, INK, 700, gap=26)",
+     "why": "期待する効果の中央列と右列も左列と同じカードにし、矢印の接続先を明確にします。"
+    }
+   ]
+  },
+  {
+   "key": "reference_slide_04",
+   "tab": "reference_slide_04.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/reference_slide_04.py",
+   "marks": [
+    {
+     "find": "    a+=rect(0,306,358,58,PAPER,12,LINE)",
+     "before": "    a+=text(0,323,['作れる成果物の種類と量が増え、','確認する対象も増えることがある'],15,DIM,gap=26)",
+     "why": "確認対象の増加を示す独立した補足を、一つの説明として囲みます。"
+    }
+   ]
+  },
+  {
+   "key": "reference_slide_06",
+   "tab": "reference_slide_06.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/reference_slide_06.py",
+   "marks": [
+    {
+     "find": "    a+=rect(716,276,322,40,PAPER,12,LINE)",
+     "before": "    a+=text(1019,304,'合わない条件・手順を改善',16,INK,anchor='end')",
+     "why": "改善の説明を囲み、戻る矢印との対応を明確にします。"
+    }
+   ]
+  },
+  {
+   "key": "reference_slide_09",
+   "tab": "reference_slide_09.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/reference_slide_09.py",
+   "marks": [
+    {
+     "find": "    a=rect(0,208,540,190,PAPER,12,LINE)+rect(572,208,540,190,PAPER,12,LINE)",
+     "before": "    a=rect(0,0,W,192,PAPER,12,ACCENT)",
+     "why": "表紙、書名、著者、選定理由を、書籍ごとのカードにまとめます。"
+    }
+   ]
+  },
+  {
+   "key": "semantic-boundaries",
+   "tab": "semantic-boundaries.css",
+   "file": "docs/workshops/ai-workshop/proposal/src/semantic-boundaries.css",
+   "marks": [
+    {
+     "find": "/* warm-paperの既存トークンで、意味のまとまりと表の境界を示す。 */",
+     "before": "追加前は記述がありません。",
+     "why": "既存のwarm-paperの色とカードの形に合わせ、説明と表を背景から区別します。"
+    }
+   ]
+  }
+ ],
+ "seal_note": "2026年10月17日、利用者が比較ページでデザインを確認し、正本への反映を承認しました。",
+ "seal": {
+  "build_deck": "7c4d8892449882b7fcb8dcbc64b662bc46d465bbdb3beb3f8be99a9913f1eced",
+  "visuals": "1134f5ea3339ea4dd444fd43e189d270b31bb7ce70aadc5054d3d0b8908ed50f",
+  "reference_slide_04": "1f386cff20cf623b565ffb5fd7d38798e92fa6a1bbadfa0c6b260d1a83354ab6",
+  "reference_slide_06": "ffe861fd37b01abfbb3adb7ea29c241befeaf3f510317f0fc0ac19ff38838b8f",
+  "reference_slide_09": "f8fe136342a52875bb5c9f4a827d3c599930057da2f7817dd83a29121afbfd69",
+  "semantic-boundaries": "9b2d824e0193c531948e2945a279fbfbbda1279354884b413b6abfe7c9b8374e"
+ }
+}

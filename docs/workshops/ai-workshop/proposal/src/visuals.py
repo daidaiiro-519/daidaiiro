@@ -941,13 +941,15 @@ def impact_rows():
     for k, (no, name, ic, keep, eff) in enumerate(rows):
         y = 34 + k * 86
         a += rect(0, y, 330, 74, PAPER, 12, LINE)
+        a += rect(404, y, 310, 74, PAPER, 12, LINE)
+        a += rect(790, y, 322, 74, PAPER, 12, LINE)
         a += text(22, y + 30, no, 14, DIM, 700) + text(22, y + 58, name, 20, INK, 700)
         a += arrow(340, y + 37, 386, y + 37)
         a += _robot_at(412, y + 11, INK) if ic == 'robot' else icon(414, y + 11, ic, INK, .9 if ic == 'book' else .95)
         a += text(484, y + 30, keep, 16, INK, gap=26)
         a += arrow(730, y + 37, 776, y + 37)
-        a += icon(792, y + 23, 'check', INK, .6)
-        a += text(830, y + 30, eff, 17, INK, 700, gap=26)
+        a += icon(802, y + 23, 'check', INK, .6)
+        a += text(840, y + 30, eff, 17, INK, 700, gap=26)
     a += rect(0, 296, 1112, 70, PAPER, 12, ACCENT)
     a += text(24, 324, 'だから', 15, ACCENT, 700) + text(24, 352, '作業をAIに任せられる', 20, ACCENT, 700)
     a += path('M262 312 V350', LINE, 1.5)

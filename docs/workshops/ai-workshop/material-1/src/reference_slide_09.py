@@ -4,7 +4,8 @@ from visuals import cover,BOOKS
 
 def slide_09():
     isbn,title,author,pub=BOOKS[0]
-    a=rect(0,0,W,192,PAPER,12,ACCENT)
+    a=rect(0,208,540,190,PAPER,12,LINE)+rect(572,208,540,190,PAPER,12,LINE)
+    a+=rect(0,0,W,192,PAPER,12,ACCENT)
     a+=cover(20,16,112,160,isbn)
     a+=text(156,30,'教材全体の土台',14,ACCENT,700)
     a+=text(156,59,''.join(title),21,INK,700)

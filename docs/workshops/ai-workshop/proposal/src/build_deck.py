@@ -35,7 +35,7 @@ def diagram(nodes, *, caption='', hot=-1):
     return ''.join(pieces)
 
 def table(headers, rows, cls=''):
-    return '<table class="ws-table '+cls+'"><thead><tr>'+''.join('<th>'+x+'</th>' for x in headers)+'</tr></thead><tbody>'+''.join('<tr>'+''.join('<td>'+c+'</td>' for c in row)+'</tr>' for row in rows)+'</tbody></table>'
+    return '<div class="ws-table-frame"><table class="ws-table '+cls+'"><thead><tr>'+''.join('<th>'+x+'</th>' for x in headers)+'</tr></thead><tbody>'+''.join('<tr>'+''.join('<td>'+c+'</td>' for c in row)+'</tr>' for row in rows)+'</tbody></table></div>'
 
 def note(s):
     return f'<p class="ws-note">{s}</p>'
@@ -594,6 +594,9 @@ h1{font-size:51px;line-height:1.43} h2{font-size:36px;line-height:1.46;margin-bo
  .chrome,.progress,.navzone{display:none}
 }
 '''
+# 既存の図のカードと、説明・表の境界を共通にする。
+CSS += (SRC / 'semantic-boundaries.css').read_text()
+
 # :root はテーマの値から組む。色を書き足すときは、テーマのキーを var(--…) で参照する
 CSS = CSS.replace('{{ROOT}}', ':root{' + ''.join(f'--{k}:{v};' for k, v in T.items()) + '--surface-2:var(--canvas)}')
 
