@@ -329,10 +329,19 @@
       else if (ev.type === "usage") { addUsage(current, ev); }
       else if (ev.type === "check") { addWork(current, { act: "check", target: ev.target || "check", ok: ev.ok }); }
       else if (ev.type === "outside") {
-        addNotice("outside", "ボードの外が変わった", ev.files.join(" ・ "), [
-          { label: "起動の前に戻す", primary: true, run: function () { postJSON("/api/restore", { board: boardId, run: ev.run }).then(function () { addNotice("restored", "戻した", "起動の前の写しへ戻した。", []); }); } },
-          { label: "このままにする", run: function () {} }
-        ]);
+        var edited = ev.edited || ev.files || [], boards = ev.boards || [], unknown = ev.unknown || [];
+        if (edited.length) {
+          addNotice("outside", "AI がボードの外を直した", edited.join(" ・ "), [
+            { label: "起動の前に戻す", primary: true, run: function () { postJSON("/api/restore", { board: boardId, run: ev.run }).then(function () { addNotice("restored", "戻した", "起動の前の写しへ戻した。", []); }); } },
+            { label: "このままにする", run: function () {} }
+          ]);
+        }
+        if (boards.length) {
+          addNotice("outside", "ほかのボードが変わった", "AI の作業の記録に無い。同じ時間に別のセッションが動かしたことが多いので、このボードではすることは無い：" + boards.join(" ・ "), []);
+        }
+        if (unknown.length) {
+          addNotice("outside", "ボードの外が変わった", (ev.ran ? "AI の作業の記録に無い。AI が実行したコマンドか、同じ時間のほかの作業が変えた：" : "AI の作業の記録に無い。同じ時間のほかの作業が変えた：") + unknown.join(" ・ "), []);
+        }
       }
       else if (ev.type === "changed") {
         addNotice("changed", "ボードが書き換わった", "画面を描き直した。変わったところは次の回で確かめる。", [{ label: "読み込み直す", primary: true, run: function () { location.reload(); } }]);

@@ -12,7 +12,7 @@ use crate::application::engine::check_board;
 use crate::application::{relative, render, Env, Skill};
 use crate::domain::agent::{self, Agent, Event, Request};
 use crate::domain::board::{list, pretty, round, text, valid_id, Layout};
-use crate::domain::scope::{outside, porcelain};
+use crate::domain::scope::{outside, porcelain, sort_out, Sorted};
 use crate::ports::{Agents, Clock, Files, Next, Programs, Running};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -310,8 +310,24 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         (Some(before), Some(after)) => {
             let files = outside(before, &after, &ranges);
             if !files.is_empty() {
-                notices.push(format!("ボードの外が変わった：{}", files.join(" ・ ")));
-                sink(json!({"type": "outside", "files": files, "run": run_id}));
+                let edited: Vec<String> = items
+                    .iter()
+                    .filter(|item| item["act"] == "edit")
+                    .filter_map(|item| item["target"].as_str().map(str::to_owned))
+                    .collect();
+                let ran = items.iter().any(|item| item["act"] == "run");
+                let data_dir = relative(root, &repo);
+                let sorted = sort_out(&files, &edited, &data_dir);
+                notices.extend(outside_notices(&sorted, ran));
+                sink(json!({
+                    "type": "outside",
+                    "files": files,
+                    "edited": sorted.edited,
+                    "boards": sorted.boards,
+                    "unknown": sorted.unknown,
+                    "ran": ran,
+                    "run": run_id
+                }));
             }
         }
         _ => {
@@ -364,6 +380,35 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     )?;
     sink(json!({"type": "done", "ok": failure.is_none()}));
     Ok(())
+}
+
+/// 範囲の外で変わったファイルの知らせ。誰が変えたかの手がかりごとに1件にする。
+fn outside_notices(sorted: &Sorted, ran: bool) -> Vec<String> {
+    let mut out = Vec::new();
+    if !sorted.edited.is_empty() {
+        out.push(format!(
+            "AI がボードの外を直した：{}",
+            sorted.edited.join(" ・ ")
+        ));
+    }
+    if !sorted.boards.is_empty() {
+        out.push(format!(
+            "ほかのボードが変わった（AI の作業の記録に無い。同じ時間に別のセッションが動かしたことが多い）：{}",
+            sorted.boards.join(" ・ ")
+        ));
+    }
+    if !sorted.unknown.is_empty() {
+        let who = if ran {
+            "AI の作業の記録に無い。AI が実行したコマンドか、同じ時間のほかの作業が変えた"
+        } else {
+            "AI の作業の記録に無い。同じ時間のほかの作業が変えた"
+        };
+        out.push(format!(
+            "ボードの外が変わった（{who}）：{}",
+            sorted.unknown.join(" ・ ")
+        ));
+    }
+    out
 }
 
 /// 起動の前の写しへ、ボードの本体とフォルダを戻す。
@@ -496,6 +541,7 @@ mod tests {
             &[
                 ("/r/notes.txt", "x"),
                 ("/r/.brainstorming/b/answers/x.json", "{}"),
+                ("/r/.brainstorming/other.json", "{}"),
             ],
         );
         let mut got = Vec::new();
@@ -514,7 +560,13 @@ mod tests {
             .iter()
             .filter(|e| text(e, "type") == "outside")
             .collect();
-        assert_eq!(outside[0]["files"], json!(["notes.txt"]));
+        assert_eq!(
+            outside[0]["files"],
+            json!([".brainstorming/other.json", "notes.txt"])
+        );
+        assert_eq!(outside[0]["boards"], json!([".brainstorming/other.json"]));
+        assert_eq!(outside[0]["unknown"], json!(["notes.txt"]));
+        assert_eq!(outside[0]["edited"], json!([]));
         assert!(env.files.exists(Path::new("/r/notes.txt")));
     }
 

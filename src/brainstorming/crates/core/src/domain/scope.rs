@@ -27,6 +27,34 @@ pub fn outside(
         .collect()
 }
 
+/// 範囲の外で変わったファイルを、誰が変えたかの手がかりで3つに分けたもの。
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Sorted {
+    /// AI の作業の記録に、直した対象として出てくるもの。
+    pub edited: Vec<String>,
+    /// データの置き場所の中で、ほかのボードのもの。同じ時間に別のセッションが動かしたことが多い。
+    pub boards: Vec<String>,
+    /// AI の作業の記録に出てこないもの。AI が実行したコマンドか、同じ時間のほかの作業が変えた。
+    pub unknown: Vec<String>,
+}
+
+/// 範囲の外で変わったファイルを、AI が直した対象（edited）とデータの置き場所（data_dir）で分ける。
+/// git の比べ方では変えた者を区別できないので、AI の作業の記録と場所だけを手がかりにする。
+pub fn sort_out(files: &[String], edited: &[String], data_dir: &str) -> Sorted {
+    let data_dir = data_dir.trim_end_matches('/');
+    let mut sorted = Sorted::default();
+    for file in files {
+        if edited.iter().any(|target| target == file) {
+            sorted.edited.push(file.clone());
+        } else if !data_dir.is_empty() && file.starts_with(&format!("{data_dir}/")) {
+            sorted.boards.push(file.clone());
+        } else {
+            sorted.unknown.push(file.clone());
+        }
+    }
+    sorted
+}
+
 /// `git status --porcelain=v1 -z` の出力から、場所の一覧を読む（名前を変えたものは新しい名前）。
 pub fn porcelain(output: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -90,6 +118,28 @@ mod tests {
             outside(&BTreeMap::new(), &after, &ranges),
             vec![".brainstorming/b.json.bak", ".brainstorming/b2/x.json"]
         );
+    }
+
+    #[test]
+    fn outside_files_are_sorted_by_the_work_record_and_the_data_folder() {
+        let files: Vec<String> = [
+            ".brainstorming/other.json",
+            ".brainstorming/other/rounds/5.json",
+            "notes.txt",
+            "src/x.rs",
+        ]
+        .map(str::to_owned)
+        .to_vec();
+        let sorted = sort_out(&files, &["src/x.rs".to_owned()], ".brainstorming/");
+        assert_eq!(sorted.edited, vec!["src/x.rs"]);
+        assert_eq!(
+            sorted.boards,
+            vec![
+                ".brainstorming/other.json",
+                ".brainstorming/other/rounds/5.json"
+            ]
+        );
+        assert_eq!(sorted.unknown, vec!["notes.txt"]);
     }
 
     #[test]
