@@ -10,7 +10,7 @@
 //! 5. 書き換えてよい範囲の外で変わったファイルを探して知らせる（戻すかは利用者が選ぶ。黙って戻さない）
 //! 6. ボードが変わっていれば描き直し、やりとりをチャットの記録に残す
 
-use crate::application::engine::check_board;
+use crate::application::engine::{check_board, check_dir};
 use crate::application::{answer, lock, relative, render, Env, Skill};
 use crate::domain::agent::{self, Agent, Event, Request};
 use crate::domain::board::{list, pretty, round, text, valid_id, Layout};
@@ -189,6 +189,31 @@ fn clear_outside_git<F: Files>(files: &F, dir: &Path) -> Result<(), String> {
 }
 
 /// 起動の前の写しを取る。
+/// 許可の設定を選んで読む。リポジトリの .settings/agents.json があればそれを、無ければ Skill の既定を使う（混ぜない）。
+/// 読むたびに基盤の check で確かめ、合格しなければ AI を起動しない。
+fn allowed_for<F: Files, P: Programs, C: Clock>(
+    env: &Env<F, P, C>,
+    skill: &Skill,
+    layout: &Layout,
+) -> Result<agent::Allowed, String> {
+    let mine = layout.settings().join("agents.json");
+    let file = if env.files.exists(&mine) {
+        mine
+    } else {
+        skill.default_agents()
+    };
+    let dir = file.parent().ok_or("許可の設定の置き場所が無い")?;
+    let problems = check_dir(env, skill, dir)?;
+    if problems > 0 {
+        return Err(format!(
+            "許可の設定 {} が検査に通らない（{problems}件）。brainstorming check --dir {} で中身を確かめる",
+            file.display(),
+            dir.display()
+        ));
+    }
+    agent::allowed(&env.read_json(&file)?)
+}
+
 fn snapshot<F: Files>(files: &F, layout: &Layout, board: &str, run: &Path) -> Result<(), String> {
     files.write(
         &run.join("board.json"),
@@ -287,10 +312,7 @@ fn work<F: Files, P: Programs, C: Clock, A: Agents>(
         topic: request.topic.clone(),
         text: instruction,
         run: run_id.to_owned(),
-        checker: env
-            .files
-            .exists(&skill.checker())
-            .then(|| relative(&skill.checker(), &repo)),
+        allowed: allowed_for(env, skill, &layout)?,
     };
     let plan = agent::plan(
         agent,
@@ -559,7 +581,7 @@ pub fn restore<F: Files, P: Programs, C: Clock>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::{env_with_git, skill, FakeAgents, MemoryFiles};
+    use crate::tests::{env, env_with_git, failing_engine, skill, FakeAgents, MemoryFiles};
 
     const BOARD: &str = r#"{"$schema":"brainstorming/board@v1","kind":"board","id":"b","title":"t","status":"answer","round":2,"topics":[]}"#;
 
@@ -790,6 +812,76 @@ mod tests {
             .as_deref()
             .unwrap_or("")
             .starts_with("作業するフォルダは /r。対象は .brainstorming/b.json"));
+    }
+
+    #[test]
+    fn the_repository_settings_win_over_the_skill_default_and_are_read_every_time() {
+        let env = env_with_git(MemoryFiles::with(&[
+            ("/r/.brainstorming/b.json", BOARD),
+            (
+                "/r/.brainstorming/.settings/agents.json",
+                r#"{"claude":{"allow":["Read","WebSearch","Bash(${entry}:*)"]},"codex":{"sandbox":"read-only"},"kiro":{"trust":["fs_read"]},"guide":["WebSearch で探す。"]}"#,
+            ),
+        ]));
+        let agents = FakeAgents::new(&[], 0);
+        let ask = Turn {
+            agent: "claude".to_owned(),
+            ..request("調べて")
+        };
+        let go = |agents: &FakeAgents| {
+            turn(
+                &env,
+                agents,
+                &skill(),
+                Path::new("/r/.brainstorming"),
+                &ask,
+                &Limits::default(),
+                &AtomicU8::new(RUNNING),
+                &mut |_| {},
+            )
+        };
+        go(&agents).unwrap();
+        let plan = agents.started();
+        assert!(plan.args.contains(&"WebSearch".to_owned()));
+        assert!(!plan.args.contains(&"Grep".to_owned()));
+        assert!(plan
+            .stdin
+            .as_deref()
+            .unwrap_or("")
+            .contains("WebSearch で探す。"));
+        env.files
+            .remove_file(Path::new("/r/.brainstorming/.settings/agents.json"))
+            .unwrap();
+        env.files
+            .remove_file(Path::new("/r/.brainstorming/.chat/b/claude.json"))
+            .unwrap_or(());
+        let again = FakeAgents::new(&[], 0);
+        go(&again).unwrap();
+        assert!(again.started().args.contains(&"Grep".to_owned()));
+        assert!(!again.started().args.contains(&"WebSearch".to_owned()));
+    }
+
+    #[test]
+    fn settings_that_fail_the_check_do_not_start_the_ai() {
+        let env = env(
+            MemoryFiles::with(&[("/r/.brainstorming/b.json", BOARD)]),
+            failing_engine(),
+        );
+        let agents = FakeAgents::new(&[], 0);
+        let mut got = Vec::new();
+        let out = turn(
+            &env,
+            &agents,
+            &skill(),
+            Path::new("/r/.brainstorming"),
+            &request("x"),
+            &Limits::default(),
+            &AtomicU8::new(RUNNING),
+            &mut |e| got.push(e),
+        );
+        let said = format!("{out:?}{got:?}");
+        assert!(said.contains("許可の設定"), "{said}");
+        assert!(agents.started().program.is_empty());
     }
 
     #[test]

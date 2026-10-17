@@ -188,11 +188,17 @@ impl Clock for FakeClock {
 /// FakeClock の epoch_secs。
 pub const EPOCH: u64 = 1_792_200_000;
 
+/// Skill の既定の許可の設定（assets/defaults/agents.json と同じ形）。
+pub const DEFAULT_AGENTS: &str = r#"{"$schema":"brainstorming/agents@v1","kind":"agents","id":"agents","claude":{"allow":["Read","Grep","Glob","Bash(${entry}:*)"]},"codex":{"sandbox":"workspace-write"},"kiro":{"trust":["fs_read"]}}"#;
+
 pub type Env3 = Env<MemoryFiles, FakePrograms, FakeClock>;
 
 fn make(files: MemoryFiles, (check, git): (&'static str, bool)) -> Env3 {
     files
         .write(Path::new("/s/scripts/bin/schema-driven"), "engine")
+        .unwrap_or(());
+    files
+        .write(Path::new("/s/assets/defaults/agents.json"), DEFAULT_AGENTS)
         .unwrap_or(());
     Env {
         programs: FakePrograms {

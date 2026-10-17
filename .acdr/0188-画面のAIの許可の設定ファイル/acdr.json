@@ -1,0 +1,268 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0188",
+ "title": "画面の AI に許すツールを、設定ファイルから読む",
+ "date": "2026-10-17",
+ "status": "accepted",
+ "decision": "画面の「AI に聞く」で起動する AI に許すツールを、コードではなく設定ファイル（brainstorming/agents@v1）に持たせ、serve が依頼のたびに読む。",
+ "why": "許可を足すたびに Rust のコードを直し、ビルドして入れ直していた（WebSearch と fact-check を足したときも同じだった）。しかも許可がどのリポジトリでも同じになり、fact-check の経路のようにリポジトリの並びに依存するものまでコードが探していた。利用者が「許可リストは外出しのファイルを読む形にしないと回らない」と指摘した。許可は利用者が決めるものなので、利用者が書くファイルに一致させる。",
+ "shift": [
+  {
+   "what": "許可の置き場所",
+   "from": "brainstorming のコード（agent.rs）に、Claude Code の許すツール ・ Codex の sandbox ・ Kiro の信頼するツールを書いている",
+   "to": ".brainstorming/.settings/agents.json に書く。無ければ Skill の assets/defaults/agents.json を使う（混ぜない）"
+  },
+  {
+   "what": "許可を変える手順",
+   "from": "コードを直し、テストし、ビルドして入れ直し、serve を起動し直す",
+   "to": "ファイルを書き換える。次の依頼から効く"
+  },
+  {
+   "what": "危ない値の止め方",
+   "from": "コードに書かないことと、テストで旗の名前を探すことで止めている",
+   "to": "スキーマが止める（sandbox を外す値 ・ dangerously と bypass を含む値 ・ Kiro のシェル ・ ボードを直すツールが無い一覧）。serve は読むたびに基盤の check で確かめ、通らなければ AI を起動しない"
+  },
+  {
+   "what": "形の持ち主",
+   "from": "形が無く、許可の並びがコードに埋め込まれている",
+   "to": "いまは brainstorming（Concrete）が形を持つ。一時の置き場所であり、基盤の Agents 契約が決まったら形を基盤（Abstract）へ移し、brainstorming には値だけを残す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は許可がコードの中にあり、変えるたびにビルドが要る。変更後は設定ファイルを依頼のたびに読み、検査に通ったものだけを AI の起動に渡す。",
+ "alternatives": [
+  {
+   "option": "Skill の既定とリポジトリの設定を項目ごとに混ぜる",
+   "why_not": "どの許可が効いているかを、2つのファイルから組み立てて読むことになる"
+  },
+  {
+   "option": "設定ファイルを .brainstorming/agents.json に置く",
+   "why_not": "render が置き場所の直下の JSON をページにしようとして止まる（実際に止まった）。ドットで始まるフォルダはページにしない"
+  },
+  {
+   "option": "起動の旗をそのまま設定に書けるようにする",
+   "why_not": "権限を外す旗（--dangerously-skip-permissions など）も書けてしまう。設定に書けるのは、ツールの名前と sandbox の値だけにする"
+  },
+  {
+   "option": "既定の許可をコードに残し、設定は足す分だけにする",
+   "why_not": "許可の一部がコードに残り、何が許されているかを読むのにコードとファイルの両方が要る"
+  },
+  {
+   "option": "基盤の Agents 契約（ボード semantic-contract-core の Q3）が決まるまで待つ",
+   "why_not": "画面のチャットは今日も動いていて、許可を変えるたびにコードを直す状態が続く。形を基盤へ移すときは、この設定の値をそのまま持ち込める"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "settings",
+   "tab": ".settings/agents.json",
+   "file": ".brainstorming/.settings/agents.json",
+   "marks": [
+    {
+     "find": "WebSearch",
+     "before": "（新しいファイル）",
+     "why": "このリポジトリでは WebSearch と fact-check を許す（2026-10-17 に利用者が許可した）。WebFetch は許さない。"
+    },
+    {
+     "find": "guide",
+     "before": "（新しいファイル）",
+     "why": "許したツールの使い方を、新しいセッションの最初の依頼に足す。コードに書いていた1文をここへ移した。"
+    }
+   ]
+  },
+  {
+   "key": "defaults",
+   "tab": "defaults/agents.json",
+   "file": ".claude/skills/brainstorming/assets/defaults/agents.json",
+   "marks": [
+    {
+     "find": "Bash(${entry}:*)",
+     "before": "（新しいファイル）",
+     "why": "リポジトリに設定が無いときの既定。ボードを直すのに要る最小だけを許す。"
+    }
+   ]
+  },
+  {
+   "key": "schema",
+   "tab": "agents.schema.json",
+   "file": ".claude/skills/brainstorming/assets/agents.schema.json",
+   "marks": [
+    {
+     "find": "\"contains\"",
+     "before": "（新しいファイル）",
+     "why": "Bash(${entry}:*) が無い一覧を通さない。無いと AI がボードを直せない。"
+    },
+    {
+     "find": "dangerously|bypass",
+     "before": "（新しいファイル）",
+     "why": "権限を外す旗に使う語を含む値を通さない。"
+    },
+    {
+     "find": "\"read-only\",",
+     "before": "（新しいファイル）",
+     "why": "Codex の sandbox は read-only か workspace-write だけにし、danger-full-access を通さない。"
+    },
+    {
+     "find": "\"fs_read\"",
+     "before": "（新しいファイル）",
+     "why": "Kiro はシェルのコマンドを絞れないので、help の出力で確かめた読むツール fs_read だけを通す。"
+    }
+   ]
+  },
+  {
+   "key": "agent",
+   "tab": "agent.rs",
+   "file": "src/brainstorming/crates/core/src/domain/agent.rs",
+   "marks": [
+    {
+     "find": "何を許すかはコードに持たず",
+     "why": "許可の正本が設定ファイルに移ったことを、モジュールの説明に一致させる。",
+     "before": "//! Codex は workspace-write の sandbox。Kiro はシェルのコマンドを絞れないので、読むツールだけを信頼させて読むだけにする。書き換えの範囲は serve の検査でも確かめる。"
+    },
+    {
+     "find": "pub allowed: Allowed,",
+     "why": "fact-check の経路を探して渡す欄（checker）をやめ、設定から読んだ許可を渡す。",
+     "before": "/// リポジトリの根からの、原文を取得して照合する道具（fact-check）の実行ファイル。在れば AI に使わせる\npub checker: Option<String>,"
+    },
+    {
+     "find": "for line in &request.allowed.guide",
+     "why": "コードに書いていた使い方の文を、設定の guide から足す。",
+     "before": "if let Some(checker) = &request.checker {\nout.push_str(&format!(\n\"外の原典は WebSearch で探し、{checker} で原文を取得して照合する（{checker} で始まるコマンドも実行してよい）。原文は {} の sources/ に置く。\\n\",\nrequest.board_dir\n));"
+    },
+    {
+     "find": ".claude",
+     "why": "Claude Code の --allowedTools を、コードの並びではなく設定の allow から作る。",
+     "before": "args.extend(own(&[\n\"--permission-mode\",\n\"dontAsk\",\n\"--allowedTools\",\n\"Read\",\n\"Grep\",\n\"Glob\",\n\"WebSearch\",\n]));\nif let Some(checker) = &request.checker {\nargs.push(format!(\"Bash({checker}:*)\"));\n}\nargs.push(format!(\"Bash({}:*)\", request.entry));"
+    },
+    {
+     "find": "request.allowed.codex_sandbox),",
+     "why": "続きの起動の sandbox も設定から取る。",
+     "before": "\"sandbox_mode=\\\"workspace-write\\\"\","
+    },
+    {
+     "find": "&request.allowed.codex_sandbox,",
+     "why": "新しい起動の sandbox を設定から取る。",
+     "before": "\"workspace-write\","
+    },
+    {
+     "find": "request.allowed.kiro_trust.join(\",\")",
+     "why": "Kiro の --trust-tools を設定から作る。",
+     "before": "（無い）"
+    },
+    {
+     "find": "fn each_cli_gets_exactly_what_the_settings_allow",
+     "why": "設定に書いたものだけが、3つの AI の起動に渡ることを固定する。",
+     "before": "fn claude_may_search_the_web_and_check_sources_when_the_checker_is_there() {\nlet with = Request {\nchecker: Some(\".claude/skills/fact-check/bin/fact-check\".to_owned()),"
+    },
+    {
+     "find": "\"codex\": {\"sandbox\": \"workspace-write\"},",
+     "why": "テストの依頼も、既定と同じ設定から作る。",
+     "before": "checker: None,"
+    }
+   ]
+  },
+  {
+   "key": "chat",
+   "tab": "chat.rs",
+   "file": "src/brainstorming/crates/core/src/application/chat.rs",
+   "marks": [
+    {
+     "find": "use crate::application::engine::{check_board, check_dir};",
+     "why": "設定を読む前に、基盤の check で確かめるため。",
+     "before": "use crate::application::engine::check_board;"
+    },
+    {
+     "find": "fn allowed_for",
+     "why": "リポジトリの設定があればそれを、無ければ Skill の既定を読む。検査に通らなければ AI を起動しない。",
+     "before": "（無い）"
+    },
+    {
+     "find": "allowed: allowed_for(env, skill, &layout)?,",
+     "why": "依頼のたびに読むので、ファイルを書き換えれば次の依頼から効く。",
+     "before": "checker: env\n.files\n.exists(&skill.checker())\n.then(|| relative(&skill.checker(), &repo)),"
+    },
+    {
+     "find": "use crate::tests::{env, env_with_git, failing_engine",
+     "why": "検査に通らない設定のテストに要る。",
+     "before": "use crate::tests::{env_with_git, skill, FakeAgents, MemoryFiles};"
+    },
+    {
+     "find": "fn the_repository_settings_win_over_the_skill_default",
+     "why": "リポジトリの設定が既定より先に使われ、消せば既定に戻ることを固定する。",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "mod",
+   "tab": "mod.rs",
+   "file": "src/brainstorming/crates/core/src/application/mod.rs",
+   "marks": [
+    {
+     "find": "pub fn default_agents",
+     "why": "隣の fact-check を探す処理をやめ、Skill の既定の設定の場所を返す。",
+     "before": "/// 隣に置いた fact-check の実行ファイル（原文を取得して照合する）。無いこともある。\npub fn checker(&self) -> PathBuf {\nlet dir = self.dir.parent().unwrap_or(&self.dir);\ndir.join(\"fact-check\")\n.join(\"bin\")\n.join(format!(\"fact-check{}\", std::env::consts::EXE_SUFFIX))"
+    }
+   ]
+  },
+  {
+   "key": "board",
+   "tab": "board.rs",
+   "file": "src/brainstorming/crates/core/src/domain/board.rs",
+   "marks": [
+    {
+     "find": "pub fn settings",
+     "why": "利用者が書く設定の置き場所。ドットで始めて、render がページにしないようにする。",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "tests.rs",
+   "file": "src/brainstorming/crates/core/src/tests.rs",
+   "marks": [
+    {
+     "find": "pub const DEFAULT_AGENTS",
+     "why": "テストの Skill にも既定の設定を置く。",
+     "before": "（無い）"
+    },
+    {
+     "find": "/s/assets/defaults/agents.json",
+     "why": "テストの Skill の既定の置き場所を、実物と同じにする。",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/brainstorming/SKILL.md",
+   "marks": [
+    {
+     "find": "画面の AI に許すツールを、コードに書かない",
+     "before": "（無い）",
+     "why": "許可をコードへ戻さないことを、ガードレールに書く。"
+    },
+    {
+     "find": "許可の設定の形（brainstorming/agents@v1）",
+     "before": "（無い）",
+     "why": "参照の表に、スキーマと既定の設定を足す。"
+    }
+   ]
+  }
+ ],
+ "seal_note": "2026年10月17日、利用者が Concrete 側の一時の置き場所として入れることを承認した（「これは一時的よね？これからこの契約を持つのはAbstruct側になる」）。",
+ "seal": {
+  "settings": "76865ebfeaf319fef964fe416b68bda81aba2df7167fc4bbf17d7059cd5b1ff9",
+  "defaults": "f573e9fabadb5f2ba702f1e434f11bf12235a3eddefa766867f9e5a3a5696302",
+  "schema": "406cfcd32313cd0415d71eea77dfb3c3cf85f96478f02dd8fa2202f8fe5faa09",
+  "agent": "aac10781257ae09ba155327e1790c9092f74a35cad48138d704245f2a1445974",
+  "chat": "4e4adeff4e1666d642bda8729d985532e0910ad58511a068d71c90bfaf79e44a",
+  "mod": "e1d206b28d9992f1af37851dd1bf15d7f417fb4041c61e6a5f4309b8e9dc385f",
+  "board": "f69a2e6dbe73a426c5413fc670cb8d399d3a2aa15c0b322d353101b5c25b6084",
+  "tests": "026f537a0218cb098a8b6d6d9358113075ddb893d86686dcf1158f6f85ed6354",
+  "skill": "a289dc185bd1ef41f16e257af2ce8973600589a921a580b0f83db071c131ef81"
+ }
+}

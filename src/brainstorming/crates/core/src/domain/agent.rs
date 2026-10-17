@@ -1,6 +1,6 @@
 //! AI のコーディング用 CLI（Claude Code ・ Codex ・ Kiro）の呼び方と、出来事を共通の形に直すこと。
 //! 権限を外す旗は使わない。Claude Code は許すツールを挙げ、聞くはずの呼び出しを拒否させる。
-//! Codex は workspace-write の sandbox。Kiro はシェルのコマンドを絞れないので、読むツールだけを信頼させて読むだけにする。書き換えの範囲は serve の検査でも確かめる。
+//! 何を許すかはコードに持たず、許可の設定（brainstorming/agents@v1）から受け取る。書き換えの範囲は serve の検査でも確かめる。
 
 use serde_json::Value;
 
@@ -72,8 +72,56 @@ pub struct Request {
     pub text: String,
     /// この依頼の ID。ロックの持ち主になる。空なら環境変数を渡さない
     pub run: String,
-    /// リポジトリの根からの、原文を取得して照合する道具（fact-check）の実行ファイル。在れば AI に使わせる
-    pub checker: Option<String>,
+    /// 許可の設定（brainstorming/agents@v1）から読んだ、AI に許すこと
+    pub allowed: Allowed,
+}
+
+/// AI に許すこと。値の決まり（ボードを直すツールを必ず許す ・ sandbox を外さない ・ Kiro は読むだけ）は、
+/// スキーマ brainstorming/agents@v1 が持ち、読む前に基盤の check で確かめる。ここは形を読むだけにする。
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Allowed {
+    /// Claude Code の --allowedTools。${entry} を含む
+    pub claude: Vec<String>,
+    /// Codex の sandbox
+    pub codex_sandbox: String,
+    /// Kiro の --trust-tools
+    pub kiro_trust: Vec<String>,
+    /// 新しいセッションの最初の依頼に足す文。${entry} ・ ${board_dir} を含む
+    pub guide: Vec<String>,
+}
+
+/// 許可の設定のインスタンスを読む。
+pub fn allowed(value: &Value) -> Result<Allowed, String> {
+    let strings = |pointer: &str| -> Result<Vec<String>, String> {
+        match value.pointer(pointer) {
+            None => Ok(vec![]),
+            Some(Value::Array(items)) => items
+                .iter()
+                .map(|item| {
+                    item.as_str()
+                        .map(str::to_owned)
+                        .ok_or_else(|| format!("許可の設定の {pointer} に文字列でない値がある"))
+                })
+                .collect(),
+            Some(_) => Err(format!("許可の設定の {pointer} が配列でない")),
+        }
+    };
+    Ok(Allowed {
+        claude: strings("/claude/allow")?,
+        codex_sandbox: value
+            .pointer("/codex/sandbox")
+            .and_then(Value::as_str)
+            .ok_or("許可の設定に /codex/sandbox が無い")?
+            .to_owned(),
+        kiro_trust: strings("/kiro/trust")?,
+        guide: strings("/guide")?,
+    })
+}
+
+/// 設定の値の ${entry} ・ ${board_dir} を、この依頼の値に置き換える。
+fn fill(text: &str, request: &Request) -> String {
+    text.replace("${entry}", &request.entry)
+        .replace("${board_dir}", &request.board_dir)
 }
 
 /// 依頼の文。新しいセッションの最初の依頼には、Skill の使い方を指す1文を必ず入れる。
@@ -86,11 +134,9 @@ pub fn prompt(request: &Request, new_session: bool) -> String {
         ));
     }
     if new_session && request.writable {
-        if let Some(checker) = &request.checker {
-            out.push_str(&format!(
-                "外の原典は WebSearch で探し、{checker} で原文を取得して照合する（{checker} で始まるコマンドも実行してよい）。原文は {} の sources/ に置く。\n",
-                request.board_dir
-            ));
+        for line in &request.allowed.guide {
+            out.push_str(&fill(line, request));
+            out.push('\n');
         }
     }
     if new_session && !request.writable {
@@ -141,19 +187,14 @@ pub fn plan(
                 Some(id) => args.extend(own(&["--resume", id])),
                 None => args.extend(own(&["--session-id", fresh])),
             }
-            args.extend(own(&[
-                "--permission-mode",
-                "dontAsk",
-                "--allowedTools",
-                "Read",
-                "Grep",
-                "Glob",
-                "WebSearch",
-            ]));
-            if let Some(checker) = &request.checker {
-                args.push(format!("Bash({checker}:*)"));
-            }
-            args.push(format!("Bash({}:*)", request.entry));
+            args.extend(own(&["--permission-mode", "dontAsk", "--allowedTools"]));
+            args.extend(
+                request
+                    .allowed
+                    .claude
+                    .iter()
+                    .map(|tool| fill(tool, request)),
+            );
             Plan {
                 program: agent.program().to_owned(),
                 args,
@@ -168,7 +209,7 @@ pub fn plan(
                     "resume",
                     "--json",
                     "-c",
-                    "sandbox_mode=\"workspace-write\"",
+                    &format!("sandbox_mode=\"{}\"", request.allowed.codex_sandbox),
                     id,
                     "-",
                 ]),
@@ -176,7 +217,7 @@ pub fn plan(
                     "exec",
                     "--json",
                     "--sandbox",
-                    "workspace-write",
+                    &request.allowed.codex_sandbox,
                     "-C",
                     root,
                     "-",
@@ -196,8 +237,11 @@ pub fn plan(
                 "v2",
                 "--output-format",
                 "stream-json",
-                "--trust-tools=fs_read",
             ]);
+            args.push(format!(
+                "--trust-tools={}",
+                request.allowed.kiro_trust.join(",")
+            ));
             if let Some(id) = session {
                 args.extend(own(&["--resume-id", id]));
             }
@@ -440,26 +484,57 @@ mod tests {
             topic: "Q1".to_owned(),
             text: "前提を足して".to_owned(),
             run: "R1".to_owned(),
-            checker: None,
+            allowed: allowed(&serde_json::json!({
+                "claude": {"allow": ["Read", "Grep", "Glob", "Bash(${entry}:*)"]},
+                "codex": {"sandbox": "workspace-write"},
+                "kiro": {"trust": ["fs_read"]}
+            }))
+            .unwrap(),
         }
     }
 
     #[test]
-    fn claude_may_search_the_web_and_check_sources_when_the_checker_is_there() {
-        let with = Request {
-            checker: Some(".claude/skills/fact-check/bin/fact-check".to_owned()),
+    fn each_cli_gets_exactly_what_the_settings_allow() {
+        let wide = Request {
+            allowed: allowed(&serde_json::json!({
+                "claude": {"allow": ["Read", "WebSearch", "Bash(${entry}:*)", "Bash(.claude/skills/fact-check/bin/fact-check:*)"]},
+                "codex": {"sandbox": "read-only"},
+                "kiro": {"trust": ["fs_read"]},
+                "guide": ["原文は ${board_dir}sources/ に置き、${entry} で直す。"]
+            }))
+            .unwrap(),
             ..request()
         };
-        let args = plan(Agent::Claude, None, "U", "/r", &with).args;
-        assert!(args.contains(&"WebSearch".to_owned()));
-        assert!(!args.contains(&"WebFetch".to_owned()));
-        assert!(args.contains(&"Bash(.claude/skills/fact-check/bin/fact-check:*)".to_owned()));
-        assert!(prompt(&with, true)
-            .contains(".claude/skills/fact-check/bin/fact-check で原文を取得して照合する"));
-        let without = plan(Agent::Claude, None, "U", "/r", &request()).args;
-        assert!(without.contains(&"WebSearch".to_owned()));
-        assert!(!without.join(" ").contains("fact-check"));
-        assert!(!prompt(&request(), true).contains("原文を取得して照合する"));
+        let claude = plan(Agent::Claude, None, "U", "/r", &wide).args;
+        let tools = &claude[claude.iter().position(|a| a == "--allowedTools").unwrap() + 1..];
+        assert_eq!(
+            tools,
+            [
+                "Read",
+                "WebSearch",
+                "Bash(.claude/skills/brainstorming/scripts/bin/brainstorming:*)",
+                "Bash(.claude/skills/fact-check/bin/fact-check:*)"
+            ]
+        );
+        assert!(plan(Agent::Codex, None, "U", "/r", &wide)
+            .args
+            .contains(&"read-only".to_owned()));
+        assert!(plan(Agent::Codex, Some("S"), "U", "/r", &wide)
+            .args
+            .contains(&"sandbox_mode=\"read-only\"".to_owned()));
+        assert!(prompt(&wide, true).contains(
+            "原文は .brainstorming/b/sources/ に置き、.claude/skills/brainstorming/scripts/bin/brainstorming で直す。"
+        ));
+        assert!(!prompt(&wide, false).contains("原文は"));
+    }
+
+    #[test]
+    fn settings_of_the_wrong_shape_are_refused() {
+        assert!(allowed(
+            &serde_json::json!({"claude": {"allow": "Read"}, "codex": {"sandbox": "read-only"}})
+        )
+        .is_err());
+        assert!(allowed(&serde_json::json!({"claude": {"allow": []}})).is_err());
     }
 
     #[test]
