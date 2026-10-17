@@ -4,7 +4,7 @@
   "id": "semantic-contract-core",
   "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
   "intro": "構想 v0.3 の全体構成図の層に沿って、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
-  "round": 33,
+  "round": 34,
   "queue": [
     {
       "topic": "Q1",
@@ -457,7 +457,7 @@
       ],
       "question": "抽象の仕様に採る5つの概念（instance ・ vocabulary ・ JSON Schema ・ rule ・ capability と validation result）を、いまの abstract@v1 でどこまで持ち、何を足すか",
       "answer": {
-        "text": "JSON Schema 2020-12 は abstract@v1 で足りている。instance ・ rule ・ capability と validation result は一部あり、vocabulary は無い。足すものは abstract の新しい版に置き、abstract@v1 は変えない。",
+        "text": "JSON Schema 2020-12 は abstract@v1 で足りている。instance ・ rule ・ capability と validation result は一部あり、vocabulary は無い。足すものは abstract@v1 に足す。まだ公開していないので、版は上げない。",
         "details": [
           "名前は構想 v0.3 の仕様の名前を使わず、採る概念を標準の仕様と基盤のコードの語で呼ぶ（Q5）。v0.3 の名前は図の参考の列に置く",
           "JSON Schema 2020-12（JSON での書き方）：同じ。abstract@v1 が JSON Schema 2020-12 と注釈で持つ",
@@ -467,7 +467,11 @@
           "rule の足りないもの：意味のルールは x-prompt の test の文だけで、validator ・ 必要な capability ・ 必須かを宣言できない",
           "capability と validation result：一部ある。結果の形（合格 ・ ずれ ・ 確かめ直し）はあるが、capability の宣言と、検証しなかったルールの報告が無い",
           "公開の仕様：標準として互換を持つのは JSON/JSON Schema だけで、ほかは独自の拡張（x-）として基盤の契約に置く",
-          "構想 v0.3 の全体構成図にある表現モデルは、エンジンの中のモデルとし、正本はこの抽象の仕様の1か所に置く"
+          "構想 v0.3 の全体構成図にある表現モデルは、エンジンの中のモデルとし、正本はこの抽象の仕様の1か所に置く",
+          "足す先は abstract@v1 である。公開の記録（published）が1件も無く、版を上げる決まり（never-reuse）は公開した版にだけ当たる",
+          "abstract@v1 に足すもの：根に x-vocabularies（使う vocabulary の id ＝ instance の文脈）、$defs/rule に by ・ requires ・ required",
+          "同じ v1 の仲間として、vocabulary の形 schema-driven/vocabulary@v1 を足す。validation result の形は abstract に置かず、protocol（Q4）が持つ",
+          "足すものはどれも description と x-prompt を持つ（prompt-per-unit）。rule の by ・ requires ・ required は葉なので、根の x-prompt の rule-validator が案内する"
         ]
       },
       "images": [
@@ -475,20 +479,20 @@
           "kind": "figure",
           "name": "概念の対応",
           "caption": "抽象の仕様に採る概念と名前と、いまの基盤の対応。構想 v0.3 の名前は参考。",
-          "svg": "<svg viewBox=\"0 0 940 360\" style=\"min-width:780px\" role=\"img\" aria-label=\"抽象の仕様に採る概念と名前と、いまの基盤の対応\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .badge{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-ink,#111D1A)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .badge.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">採る概念</text>\n<text class=\"note\" x=\"210\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">名前</text>\n<text class=\"note\" x=\"450\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまの基盤にあるもの</text>\n<text class=\"note\" x=\"670\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">判定</text>\n<text class=\"note\" x=\"760\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">構想 v0.3（参考）</text>\n<rect class=\"box\" x=\"16\" y=\"32\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"54\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">データの1件と、</text><text class=\"label\" x=\"26\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">プロパティと型</text>\n<rect class=\"box focus\" x=\"206\" y=\"32\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">instance（インスタンス）</text>\n<rect class=\"box\" x=\"446\" y=\"32\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">kind と id ・ プロパティと型</text>\n<rect class=\"badge\" x=\"666\" y=\"46\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"63\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">一部ある</text>\n<rect class=\"boundary\" x=\"756\" y=\"32\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Semantic Model</text>\n<rect class=\"box\" x=\"16\" y=\"94\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">共有する語の意味</text>\n<rect class=\"box focus\" x=\"206\" y=\"94\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">vocabulary（語彙）</text>\n<rect class=\"box\" x=\"446\" y=\"94\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">$ref で形だけ共有</text>\n<rect class=\"badge warn\" x=\"666\" y=\"108\" width=\"80\" height=\"24\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"125\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">無い</text>\n<rect class=\"boundary\" x=\"756\" y=\"94\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Vocabulary Spec</text>\n<rect class=\"box\" x=\"16\" y=\"156\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"187\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON での書き方</text>\n<rect class=\"box focus\" x=\"206\" y=\"156\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"187\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">JSON Schema 2020-12</text>\n<rect class=\"box\" x=\"446\" y=\"156\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"178\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON Schema 2020-12</text><text class=\"label\" x=\"456\" y=\"196\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">と注釈</text>\n<rect class=\"badge\" x=\"666\" y=\"170\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"187\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">同じ</text>\n<rect class=\"boundary\" x=\"756\" y=\"156\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"187\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">JSON Representation</text>\n<rect class=\"box\" x=\"16\" y=\"218\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"240\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">構造 ・ 値 ・ 関係</text><text class=\"label\" x=\"26\" y=\"258\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">・ 意味の条件</text>\n<rect class=\"box focus\" x=\"206\" y=\"218\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"249\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">rule（ルール）</text>\n<rect class=\"box\" x=\"446\" y=\"218\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"249\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">形 ・ x-ref ・ x-derive</text>\n<rect class=\"badge\" x=\"666\" y=\"232\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"249\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">一部ある</text>\n<rect class=\"boundary\" x=\"756\" y=\"218\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"249\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Constraint Spec</text>\n<rect class=\"box\" x=\"16\" y=\"280\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証できることと</text><text class=\"label\" x=\"26\" y=\"320\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">結果の返し方</text>\n<rect class=\"box focus\" x=\"206\" y=\"280\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">capability と</text><text class=\"title\" x=\"216\" y=\"320\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">validation result</text>\n<rect class=\"box\" x=\"446\" y=\"280\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"311\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">結果の形だけ</text>\n<rect class=\"badge\" x=\"666\" y=\"294\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"311\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">一部ある</text>\n<rect class=\"boundary\" x=\"756\" y=\"280\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"311\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Interpreter Protocol</text>\n<text class=\"note\" x=\"20\" y=\"348\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足すものは abstract の新しい版（@v2）に置き、abstract@v1 は変えない</text>\n</svg>\n"
+          "svg": "<svg viewBox=\"0 0 940 360\" style=\"min-width:780px\" role=\"img\" aria-label=\"抽象の仕様に採る概念と名前と、いまの基盤の対応\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .badge{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-ink,#111D1A)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .badge.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">採る概念</text>\n<text class=\"note\" x=\"210\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">名前</text>\n<text class=\"note\" x=\"450\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いまの基盤にあるもの</text>\n<text class=\"note\" x=\"670\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">判定</text>\n<text class=\"note\" x=\"760\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">構想 v0.3（参考）</text>\n<rect class=\"box\" x=\"16\" y=\"32\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"54\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">データの1件と、</text><text class=\"label\" x=\"26\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">プロパティと型</text>\n<rect class=\"box focus\" x=\"206\" y=\"32\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">instance（インスタンス）</text>\n<rect class=\"box\" x=\"446\" y=\"32\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">kind と id ・ プロパティと型</text>\n<rect class=\"badge\" x=\"666\" y=\"46\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"63\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">一部ある</text>\n<rect class=\"boundary\" x=\"756\" y=\"32\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"63\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Semantic Model</text>\n<rect class=\"box\" x=\"16\" y=\"94\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">共有する語の意味</text>\n<rect class=\"box focus\" x=\"206\" y=\"94\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">vocabulary（語彙）</text>\n<rect class=\"box\" x=\"446\" y=\"94\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">$ref で形だけ共有</text>\n<rect class=\"badge warn\" x=\"666\" y=\"108\" width=\"80\" height=\"24\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"125\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">無い</text>\n<rect class=\"boundary\" x=\"756\" y=\"94\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"125\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Vocabulary Spec</text>\n<rect class=\"box\" x=\"16\" y=\"156\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"187\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON での書き方</text>\n<rect class=\"box focus\" x=\"206\" y=\"156\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"187\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">JSON Schema 2020-12</text>\n<rect class=\"box\" x=\"446\" y=\"156\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"178\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON Schema 2020-12</text><text class=\"label\" x=\"456\" y=\"196\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">と注釈</text>\n<rect class=\"badge\" x=\"666\" y=\"170\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"187\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">同じ</text>\n<rect class=\"boundary\" x=\"756\" y=\"156\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"187\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">JSON Representation</text>\n<rect class=\"box\" x=\"16\" y=\"218\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"240\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">構造 ・ 値 ・ 関係</text><text class=\"label\" x=\"26\" y=\"258\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">・ 意味の条件</text>\n<rect class=\"box focus\" x=\"206\" y=\"218\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"249\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">rule（ルール）</text>\n<rect class=\"box\" x=\"446\" y=\"218\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"249\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">形 ・ x-ref ・ x-derive</text>\n<rect class=\"badge\" x=\"666\" y=\"232\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"249\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">一部ある</text>\n<rect class=\"boundary\" x=\"756\" y=\"218\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"249\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Constraint Spec</text>\n<rect class=\"box\" x=\"16\" y=\"280\" width=\"180\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"26\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証できることと</text><text class=\"label\" x=\"26\" y=\"320\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">結果の返し方</text>\n<rect class=\"box focus\" x=\"206\" y=\"280\" width=\"230\" height=\"52\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"216\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">capability と</text><text class=\"title\" x=\"216\" y=\"320\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">validation result</text>\n<rect class=\"box\" x=\"446\" y=\"280\" width=\"210\" height=\"52\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"456\" y=\"311\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">結果の形だけ</text>\n<rect class=\"badge\" x=\"666\" y=\"294\" width=\"80\" height=\"24\" fill=\"#F8FAF9\" stroke=\"#111D1A\" stroke-width=\"1\" rx=\"3\"/><text class=\"note\" x=\"706\" y=\"311\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">一部ある</text>\n<rect class=\"boundary\" x=\"756\" y=\"280\" width=\"170\" height=\"52\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"766\" y=\"311\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Interpreter Protocol</text>\n<text class=\"note\" x=\"20\" y=\"348\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">足すものは abstract@v1 に足す（まだ公開していないので、版は上げない）</text>\n</svg>\n"
         },
         {
           "kind": "code",
-          "name": "@v2 の宣言（案）",
-          "caption": "abstract@v2 の先頭の案：abstract@v1 を変えずに含め、足した語彙を $vocabulary で必須にする。",
-          "path": ".brainstorming/semantic-contract-core/proposals/abstract-v2.head.json",
-          "language": "json",
-          "text": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"schema-driven/abstract@v2\",\n  \"title\": \"abstract スキーマ v2 のメタスキーマ（案）\",\n  \"description\": \"abstract@v1 を変えずに含め、ルールごとの validator（rules）と共通の語（terms）の語彙を足す。足した語彙を知らない実装には、処理させない。\",\n  \"$vocabulary\": {\n    \"https://json-schema.org/draft/2020-12/vocab/core\": true,\n    \"https://json-schema.org/draft/2020-12/vocab/applicator\": true,\n    \"https://json-schema.org/draft/2020-12/vocab/validation\": true,\n    \"https://json-schema.org/draft/2020-12/vocab/meta-data\": true,\n    \"urn:schema-driven:vocab:rules:1\": true,\n    \"urn:schema-driven:vocab:terms:1\": true\n  },\n  \"allOf\": [\n    { \"$ref\": \"schema-driven/abstract@v1\" }\n  ]\n}"
+          "name": "abstract@v1 の全体",
+          "caption": "足したあとの abstract@v1：「// 足す」が今回足すもの。足すものはどれも description と x-prompt を持つ。既存の x-prompt は id だけ示した。",
+          "path": ".claude/skills/schema-driven/assets/meta-schema.json",
+          "language": "jsonc",
+          "text": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"schema-driven/abstract@v1\",              // 版は v1 のまま（まだ公開していない）\n  \"title\": \"abstract スキーマ v1 のメタスキーマ\",\n  \"x-prompt\": {\n    \"read\": { \"means\": \"concrete スキーマを書く人が従う契約で、…\", \"when\": \"…\" },\n    \"write\": [\n      // 既存8件：declare-version ・ name-and-description ・ generates-kind ・ generates-schema-name\n      //          prompt-per-unit ・ no-prompt-on-leaf ・ list-as-array ・ declare-annotations\n      {                                              // 足す\n        \"id\": \"declare-vocabularies\",\n        \"rule\": \"スキーマをまたいで同じ意味で使う語を使うときは、根の x-vocabularies に vocabulary の id を書く。\",\n        \"why\": \"基盤は x-vocabularies で、語の意味をどの vocabulary で読むかを決める。\",\n        \"test\": \"x-vocabularies の id が、vocabulary のインスタンスとして在るかを見る。\"\n      },\n      {                                              // 足す\n        \"id\": \"rule-validator\",\n        \"rule\": \"意味の判断が要る決まりには、by ・ requires ・ required を書く。\",\n        \"why\": \"基盤は by で validator を選び、requires の capability が無ければ検証しなかったことを返す。\",\n        \"test\": \"test を確かめるのに意味の判断が要る決まりに、by があるかを見る。\"\n      }\n    ]\n  },\n  \"properties\": {\n    \"$schema\": {…}, \"x-abstract\": {…}, \"$id\": {…}, \"title\": {…}, \"description\": {…},\n    \"x-generates\": {…}, \"x-prompt\": {…}, \"properties\": {…}, \"$defs\": {…},  // どれも description と x-prompt を持つ\n    \"x-annotations\": {\n      \"x-prompt\": { \"write\": [ {\n        \"id\": \"only-new-annotations\",\n        \"rule\": \"基盤の注釈（x-prompt ・ x-view ・ x-ref ・ x-derive ・ x-generates ・ x-vocabularies）に無い注釈を使うときだけ書く。\"\n      } ] }                                          // 足す：基盤の注釈の一覧に x-vocabularies\n    },\n    \"x-vocabularies\": {                              // 足す\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\", \"format\": \"uri\" },\n      \"uniqueItems\": true,\n      \"description\": \"このスキーマが使う vocabulary の id\",\n      \"x-prompt\": {\n        \"read\": { \"means\": \"このスキーマの語の意味を読む vocabulary の並びである。\" },\n        \"write\": [ {\n          \"id\": \"only-used\",\n          \"rule\": \"スキーマの中で使う vocabulary の id だけを書く。\",\n          \"why\": \"使わない vocabulary を書くと、語の意味をどれで読むかが決まらない。\",\n          \"test\": \"書いた id の語が、スキーマの中で1つ以上使われているかを見る。\"\n        } ]\n      }\n    }\n  },\n  \"$defs\": {\n    \"rule\": {\n      \"required\": [\"id\", \"rule\", \"why\", \"test\"],\n      \"properties\": {\n        \"id\": {…}, \"rule\": {…}, \"why\": {…}, \"test\": {…}, \"bad\": {…}, \"good\": {…},\n        \"by\":       { \"enum\": [\"engine\", \"check\", \"ai\", \"human\"], \"description\": \"この決まりを検証する validator\" },  // 足す\n        \"requires\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"description\": \"validator に必要な capability\" }, // 足す\n        \"required\": { \"type\": \"boolean\", \"description\": \"検証できなければ全体を成功にしない決まりか\" }               // 足す\n      }\n    }\n    // shape ・ fields ・ field ・ prompt ・ reading ・ sentence は変えない\n  }\n}\n// by ・ requires ・ required は葉なので x-prompt を書かず、根の rule-validator が案内する（no-prompt-on-leaf）"
         },
         {
           "kind": "diff",
           "name": "ルールの差分",
-          "caption": "rule を足す例：abstract のルール1件に、validator ・ 必要な capability ・ 必須かを足す（新しい版 @v2。abstract@v1 は変えない）。",
+          "caption": "rule を足す差分：abstract@v1 のルール1件に、validator ・ 必要な capability ・ 必須かを足す。",
           "path": ".claude/skills/schema-driven/assets/meta-schema.json（$defs/rule）",
           "language": "json",
           "before": "  \"rule\": {\n   \"type\": \"object\",\n   \"description\": \"書くときの決まり1件\",\n   \"required\": [\n    \"id\",\n    \"rule\",\n    \"why\",\n    \"test\"\n   ],\n   \"additionalProperties\": false,\n   \"properties\": {\n    \"id\": {\n     \"type\": \"string\",\n     \"pattern\": \"^[a-z0-9]+(-[a-z0-9]+)*$\"\n    },\n    \"rule\": {\n     \"$ref\": \"#/$defs/sentence\"\n    },\n    \"why\": {\n     \"$ref\": \"#/$defs/sentence\"\n    },\n    \"test\": {\n     \"$ref\": \"#/$defs/sentence\"\n    },\n    \"bad\": {\n     \"type\": \"string\",\n     \"minLength\": 1\n    },\n    \"good\": {\n     \"type\": \"string\",\n     \"minLength\": 1\n    }\n   },\n   \"dependentRequired\": {\n    \"bad\": [\n     \"good\"\n    ],\n    \"good\": [\n     \"bad\"\n    ]\n   }\n  },",
@@ -505,8 +509,8 @@
       ],
       "rejected": [
         {
-          "option": "abstract@v1 を書き換えて足す",
-          "reason": "公開した版の中身が変わり、前に書いたインスタンスが別のスキーマで検査される"
+          "option": "足すものを abstract の新しい版（@v2）に置き、abstract@v1 は変えない（第32回まで）",
+          "reason": "abstract@v1 はまだ公開していないので、守る相手がいない。公開の前から版を上げると、足すたびに版が増える"
         },
         {
           "option": "表現モデルと抽象の仕様を、別々に正本として持つ",
@@ -553,6 +557,48 @@
           "basis": "これ原典で書いているものに引っ張られてるけど、採用にするのは概念なわけで、まんま用語をそのまま使用するわけではないよね？",
           "tag": "primary",
           "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "abstract@v1 に足し、版を上げないこと",
+          "basis": "これさ、Q1だけどさ、abstractのv1に対して追加するような形にしてほしいのでここで全体を見たい。まだreleaseしてないので別にv1でいいです。こんなの上げまくってたら、バージョンが上がりすぎちゃうよ。。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "版を上げる決まりは、公開した版にだけ当たること",
+          "basis": "公開した版の中身を変えるときは、版を上げた新しい名前で足す。",
+          "tag": "primary",
+          "source": ".claude/skills/schema-driven/assets/meta-schema.json:124（never-reuse）"
+        },
+        {
+          "supports": "abstract@v1 がまだ公開されていないこと",
+          "basis": "公開の記録（kind が published のインスタンス）は、リポジトリにテストの1件（src/schema-driven/crates/adapters/tests/published.rs）しか無い",
+          "tag": "measured",
+          "source": "リポジトリの検索（2026-10-17）"
+        },
+        {
+          "supports": "足すものに x-prompt を持たせること",
+          "basis": "あとさ、これ大事なx-promptが見当たらないぞ？？？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "書く単位ごとに x-prompt が要ること",
+          "basis": "書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt を書く。",
+          "tag": "primary",
+          "source": ".claude/skills/schema-driven/assets/meta-schema.json:38（prompt-per-unit）"
+        }
+      ],
+      "checks": [
+        {
+          "target": "x-vocabularies",
+          "ask": "instance の文脈を、スキーマの根の x-vocabularies に vocabulary の id を並べて示す形でよいか",
+          "view": "根に id の並びを置く形にする。語ごとの対応付けは vocabulary の側に置く",
+          "basis": [
+            "JSON-LD の @context",
+            "vocabulary の形（案）"
+          ],
+          "why": "1つのスキーマが使う vocabulary の数と、Skill をまたいで共有する範囲で形が変わる"
         }
       ]
     },
@@ -1206,6 +1252,10 @@
   "log": [
     {
       "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 6か所）"
+    },
+    {
+      "date": "2026-10-17",
       "text": "ボードを更新した（変わったところ 8か所）"
     },
     {
@@ -1453,18 +1503,13 @@
   "changes": [
     {
       "topic": "Q1",
-      "part": "question",
-      "summary": "問いを書き直した"
-    },
-    {
-      "topic": "Q1",
       "part": "answer",
       "summary": "答えの1文を書き直した"
     },
     {
       "topic": "Q1",
       "part": "details",
-      "summary": "詳しい決まりを8件足して7件消した"
+      "summary": "詳しい決まりを4件足した"
     },
     {
       "topic": "Q1",
@@ -1473,23 +1518,18 @@
     },
     {
       "topic": "Q1",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件足した"
+    },
+    {
+      "topic": "Q1",
       "part": "grounds",
-      "summary": "根拠を2件足して1件消した"
+      "summary": "根拠を5件足した"
     },
     {
       "topic": "Q1",
       "part": "rejected",
-      "summary": "採らなかった案を1件足した"
-    },
-    {
-      "topic": "Q2",
-      "part": "details",
-      "summary": "詳しい決まりを2件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "images",
-      "summary": "完成イメージを1件書き直した"
+      "summary": "採らなかった案を書き直した"
     }
   ]
 }
