@@ -27,7 +27,7 @@ def chip(o,x,y,w,t,cls="box"): o.append(f'<rect class="{cls}" x="{x}" y="{y}" wi
 o=['<svg viewBox="0 0 920 620" style="min-width:820px" role="img" aria-label="抽象の層の概念と、群どうしの関係">']
 groups=[("宣言（Abstract スキーマ）",20,["Abstract schema","domain schema","x- keyword","x- キーワードの定義","検証の種類","base contract schema"]),
         ("使う側（Concrete スキーマ）",170,["Concrete schema","instance","prompt","rule","ubiquitous language ・ term","relation","derived value"]),
-        ("検証",320,["Semantic Validator","Schema Validator","validator","Resolver","capability","validation result"])]
+        ("検証",320,["Semantic Schema Validator","Schema Validator","validator","Semantic Schema Resolver","capability","validation result"])]
 for title,y,items in groups:
     o.append(f'<rect class="area" x="16" y="{y}" width="888" height="130"/><text class="title" x="30" y="{y+24}">{e(title)}</text>')
     for i,t in enumerate(items):
@@ -39,7 +39,7 @@ o.append('<rect class="area" x="468" y="470" width="436" height="130"/><text cla
 for i,t in enumerate(["schema name and version","published record"]): chip(o,482,510+i*42,280,t)
 o.append('<path class="flow" d="M120,152 V168"/><text class="note" x="130" y="164">定義した x- の値を書くだけ</text>')
 o.append('<path class="flow" d="M120,302 V318"/><text class="note" x="130" y="314">rule ごとに validator を選んで検証する</text>')
-o.append('<path class="flow" d="M120,452 V468"/><text class="note" x="130" y="464">Resolver の結果を使う</text>')
+o.append('<path class="flow" d="M120,452 V468"/><text class="note" x="130" y="464">Semantic Schema Resolver の結果を使う</text>')
 o.append('</svg>'); open('q1-model.src.svg','w').write('\n'.join(o))
 
 # ── Q1 概念の表 ──
@@ -59,10 +59,10 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("derived value","導出値","答えから1つに決まる値","無い"),
 ("validator","検証器","rule 1件の合否を出す側","Interpreter"),
 ("Schema Validator","スキーマ検証器","構造と値の検証","Schema Validator"),
-("Semantic Validator","意味検証器","検証の全体。validator を選ぶ","Semantic Interpreter"),
+("Semantic Schema Validator","セマンティックスキーマ検証器","検証の全体。validator を選ぶ","Semantic Interpreter"),
 ("capability","能力","validator が検証できることの宣言","Capability"),
 ("validation result","検証結果","rule ごとの結果（5つの値）","outcome"),
-("Resolver","解決器","参照 ・ 導出値 ・ 語を解決する","Vocabulary Resolver"),
+("Semantic Schema Resolver","セマンティックスキーマ解決器","参照 ・ 導出値 ・ 語を解決する","Vocabulary Resolver"),
 ("view","表示の文の型","値を人が読む文にする型","無い"),
 ("page template","ページテンプレート","kind ごとの節の並びと部品","無い"),
 ("catalog","部品のカタログ","部品と状態ごとの振る舞い","無い"),
@@ -71,13 +71,13 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("published record","公開の記録","公開した版の名前と指紋","Contract Registry"),
 ("approval","承認","人が確かめた記録（層の外）","承認（04:42）")]
 OWN=['基盤', '基盤', '基盤', '基盤', '基盤', '基盤', '文脈', '文脈', '文脈', '文脈', '文脈', '文脈', '文脈（値）', '文脈（値）', '基盤 ・ 外（AI ・ 人）', '基盤', '基盤', '基盤（形）', '基盤', '基盤', '基盤（形）・ 文脈', '基盤（形）・ 文脈', '基盤（形）・ 文脈', '基盤（形）・ 文脈', '基盤', '基盤', '基盤の外（人）']
-table('q1-concepts','抽象の層の概念27件の名前と持ち主と、構想 v0.3 との対応',["英語","日本語","持ち主","何を表すか","構想 v0.3（参考）"],[230,170,170,280,180],[[c[0],c[1],o,c[2],c[3]] for c,o in zip(C,OWN)],emph=(0,),row_h=34)
+table('q1-concepts','抽象の層の概念27件の名前と持ち主と、構想 v0.3 との対応',["英語","日本語","持ち主","何を表すか","構想 v0.3（参考）"],[230,200,170,280,180],[[c[0],c[1],o,c[2],c[3]] for c,o in zip(C,OWN)],emph=(0,),row_h=34)
 
 # ── Q1 採らない構想 v0.3 の概念 ──
 N=[(["Semantic Model","（Entity ・ Property ・ Type）"],["docs 自身が Entity を必須にしない。抽象スキーマと","別にモデルを持つと、同じものに2つのモデルができる"]),
-("Interpreter ・ Interpretation",["検証 ・ 調停 ・ 実行の3つの意味を1語に載せている","（Q5 で validator ・ Semantic Validator ・ Resolver に分けた）"]),
+("Interpreter ・ Interpretation",["検証 ・ 調停 ・ 実行の3つの意味を1語に載せている","（Q5 で3つの語に分けた）"]),
 ("Contract（examples の kind）",["Concrete スキーマと同じものを指す。名前を1つにする"]),
-(["Relation / Graph Engine と","Constraint Engine を分けること"],["Q3 で1つにまとめた。正本は JSON で、Graph は","Resolver の中の作業の形"]),
+(["Relation / Graph Engine と","Constraint Engine を分けること"],["Q3 で1つにまとめた。正本は JSON で、Graph は","Semantic Schema Resolver の中の作業の形"]),
 (["Projection","（JSON-LD ・ SHACL への投影）"],["Q2 で投影しないと決めた。概念だけを使う"]),
 (["検証の4つの側面と","capability の4区別"],["docs 自身が議論の視点としている。","機械的 ／ セマンティックの2つで足りる"]),
 ("Vocabulary の階層 ・ 登録 ・ 衝突",["docs に階層の記述が無く、登録と衝突は未決。","いま要るのは id ・ 意味 ・ 値の形 ・ 単位だけ"])]
@@ -109,17 +109,17 @@ K=[("x-abstract","根","機械的","Schema Validator","description の文を直�
 ("x-generates","根","機械的","Schema Validator","置き場所を create と照らす"),
 ("x-prompt の read","書く単位","形だけ","Schema Validator","中身は検証しない（案内）"),
 ("x-prompt の write","書く単位","両方","by が名指す validator","機械で決まる rule は形へ"),
-("x-ref","プロパティ","機械的","Resolver ・ Checker","label を消し、矛盾を形で止める"),
-("x-derive","オブジェクト","機械的","Resolver ・ Checker","3つを schema_rules に足す"),
+("x-ref","プロパティ","機械的","Semantic Schema Resolver ・ Checker","label を消し、矛盾を形で止める"),
+("x-derive","オブジェクト","機械的","Semantic Schema Resolver ・ Checker","3つを schema_rules に足す"),
 ("x-view","プロパティ ・ $defs","両方","描画 ・ AI","hidden を単独にする"),
 ("x-states","カタログの部品","両方","catalog.rs ・ AI","表に載せる。照合は AI"),
-("x-vocabularies","根","機械的","Resolver","足す"),
-("x-term","プロパティ","両方","Resolver ・ AI","足す"),
+("x-vocabularies","根","機械的","Semantic Schema Resolver","足す"),
+("x-term","プロパティ","両方","Semantic Schema Resolver ・ AI","足す"),
 ("rule の by","$defs/rule","機械的","schema_rules","足す（validator の名前）"),
-("rule の requires","$defs/rule","機械的","Semantic Validator","足す（必要な capability）"),
-("rule の required","$defs/rule","機械的","Semantic Validator","足す（必須か）"),
+("rule の requires","$defs/rule","機械的","Semantic Schema Validator","足す（必要な capability）"),
+("rule の required","$defs/rule","機械的","Semantic Schema Validator","足す（必須か）"),
 ("x-annotations","根","—","—","消す（使う所が0件）")]
-table('q7-keywords','x- キーワードの表：置く場所 ・ 検証の種類 ・ validator ・ 扱い',["x- キーワード","置く場所","検証の種類","validator","扱い"],[170,150,100,190,230],[list(k) for k in K],emph=(0,),row_h=34)
+table('q7-keywords','x- キーワードの表：置く場所 ・ 検証の種類 ・ validator ・ 扱い',["x- キーワード","置く場所","検証の種類","validator","扱い"],[170,150,100,280,230],[list(k) for k in K],emph=(0,),row_h=34)
 # はみ出した項目を2行に分け、列を広げた。
 # 第38回：利用者の指摘で、q1-model を持ち主（基盤 ・ Skill ・ 基盤の外）の枠で描き直した（このファイルの外で直接書いた）。
 
