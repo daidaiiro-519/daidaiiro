@@ -160,10 +160,30 @@ fn fingerprint<F: Files, P: Programs, C: Clock>(
     )
 }
 
+/// git の中のファイルか（取ってきたリポジトリの写しなど）。写しと戻しの対象から外す。
+fn in_git(rest: &Path) -> bool {
+    rest.components().any(|part| part.as_os_str() == ".git")
+}
+
+/// from の下のファイルを、バイトのまま to の下へ写す。git の中は写さない。
 fn copy_into<F: Files>(files: &F, from: &Path, to: &Path) -> Result<(), String> {
     for path in files.tree(from) {
         let rest = path.strip_prefix(from).map_err(|e| e.to_string())?;
-        files.write(&to.join(rest), &files.read(&path)?)?;
+        if in_git(rest) {
+            continue;
+        }
+        files.write_bytes(&to.join(rest), &files.read_bytes(&path)?)?;
+    }
+    Ok(())
+}
+
+/// dir の下のファイルのうち、git の中でないものを消す（フォルダごとは消さない）。
+fn clear_outside_git<F: Files>(files: &F, dir: &Path) -> Result<(), String> {
+    for path in files.tree(dir) {
+        let rest = path.strip_prefix(dir).map_err(|e| e.to_string())?;
+        if !in_git(rest) {
+            files.remove_file(&path)?;
+        }
     }
     Ok(())
 }
@@ -526,7 +546,7 @@ pub fn restore<F: Files, P: Programs, C: Clock>(
         &layout.board_file(board),
         &env.files.read(&saved.join("board.json"))?,
     )?;
-    env.files.remove_dir(&layout.board_dir(board))?;
+    clear_outside_git(&env.files, &layout.board_dir(board))?;
     copy_into(&env.files, &saved.join("dir"), &layout.board_dir(board))?;
     render::run(env, skill, root)?;
     Ok(json!({"restored": run}))
@@ -672,6 +692,42 @@ mod tests {
         )]));
         let (sent, _) = run_turn(&env, &FakeAgents::new(&[], 0), &send("kiro"));
         assert!(sent.unwrap_err().starts_with("Kiro は読むだけなので"));
+    }
+
+    #[test]
+    fn the_snapshot_copies_bytes_and_leaves_git_folders_alone() {
+        let files = MemoryFiles::with(&[("/r/.brainstorming/b.json", OPEN_BOARD)]);
+        files
+            .write_bytes(
+                Path::new("/r/.brainstorming/b/figures/a.png"),
+                &[0xff, 0xd8, 0x00],
+            )
+            .unwrap();
+        files
+            .write_bytes(
+                Path::new("/r/.brainstorming/b/sources/repo/.git/index"),
+                &[0xc3, 0x28],
+            )
+            .unwrap();
+        let env = env_with_git(files);
+        let layout = Layout::new(Path::new("/r/.brainstorming"));
+        snapshot(&env.files, &layout, "b", Path::new("/r/run")).unwrap();
+        assert_eq!(
+            env.files
+                .read_bytes(Path::new("/r/run/dir/figures/a.png"))
+                .unwrap(),
+            vec![0xff, 0xd8, 0x00]
+        );
+        assert!(!env
+            .files
+            .exists(Path::new("/r/run/dir/sources/repo/.git/index")));
+        clear_outside_git(&env.files, &layout.board_dir("b")).unwrap();
+        assert!(!env
+            .files
+            .exists(Path::new("/r/.brainstorming/b/figures/a.png")));
+        assert!(env
+            .files
+            .exists(Path::new("/r/.brainstorming/b/sources/repo/.git/index")));
     }
 
     #[test]

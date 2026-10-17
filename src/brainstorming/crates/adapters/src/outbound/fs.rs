@@ -38,6 +38,12 @@ impl Files for RealFiles {
         }
         fs::write(path, text).map_err(|error| said(path, error))
     }
+    fn write_bytes(&self, path: &Path, bytes: &[u8]) -> Result<(), String> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| said(parent, error))?;
+        }
+        fs::write(path, bytes).map_err(|error| said(path, error))
+    }
     fn create_new(&self, path: &Path, text: &str) -> Result<bool, String> {
         use std::io::Write;
         if let Some(parent) = path.parent() {

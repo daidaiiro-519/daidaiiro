@@ -49,6 +49,12 @@ impl Files for MemoryFiles {
             .insert(path.to_path_buf(), text.as_bytes().to_vec());
         Ok(())
     }
+    fn write_bytes(&self, path: &Path, bytes: &[u8]) -> Result<(), String> {
+        self.inner
+            .borrow_mut()
+            .insert(path.to_path_buf(), bytes.to_vec());
+        Ok(())
+    }
     fn create_new(&self, path: &Path, text: &str) -> Result<bool, String> {
         if self.inner.borrow().contains_key(path) {
             return Ok(false);

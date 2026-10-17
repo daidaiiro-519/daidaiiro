@@ -10,6 +10,8 @@ pub trait Files {
     fn read_bytes(&self, path: &Path) -> Result<Vec<u8>, String>;
     /// 書く。親のフォルダが無ければ作る。
     fn write(&self, path: &Path, text: &str) -> Result<(), String>;
+    /// バイトのまま書く。親のフォルダが無ければ作る。
+    fn write_bytes(&self, path: &Path, bytes: &[u8]) -> Result<(), String>;
     /// 無いときだけ書く（あるか無いかの確かめと書くことを一度に行う）。書いたら true、すでにあれば false。
     fn create_new(&self, path: &Path, text: &str) -> Result<bool, String>;
     fn exists(&self, path: &Path) -> bool;
