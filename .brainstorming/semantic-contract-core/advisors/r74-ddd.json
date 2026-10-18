@@ -1,0 +1,212 @@
+{
+  "kind": "judgment",
+  "question": "Concrete ごとにデータモデルは変わるのではないか。仕様ドキュメント（集約 ・ 使う場面 ・ 業務領域 ・ 事業領域 ・ 文脈の境界）が互いに関係を持つデータモデルを、Semantic Schema Core 側で共通の契約として持てるか",
+  "premises": [
+    {
+      "name": "上流の決定",
+      "value": "正本はコミットする JSON のファイル、索引は Core が持つ手元の DB（コミットしない）、Concrete は保存の形を宣言しない（I40）。エンティティの種類は Concrete スキーマ、1件は instance、関係は x-ref（extension_contract.storage）",
+      "source": "domain-model-v2.json ・ ボード Q1"
+    },
+    {
+      "name": "いまの x-ref の形",
+      "value": "to（指す先の kind）・ item ・ bare ・ in ・ only ・ accept ・ when ・ label ・ unique ・ covered_by ・ inverse。検査はインスタンスの id と kind だけを読む。kind は名前の範囲を持たない文字列で、ほかの文脈の版を指す欄は無い",
+      "source": ".claude/skills/schema-driven/assets/annotations.schema.json"
+    },
+    {
+      "name": "文脈どうしが同じリポジトリか",
+      "value": "未判定。仕様の文脈を読む Skill ・ Agent が別のリポジトリに在るとき、指された instance を消す変更を上流の検証で止められるか（I9）が変わる",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "Core が共通の契約として持てるのは「データモデルの書き方」（種類 ・ 識別子 ・ 参照の宣言 ・ 参照の整合 ・ 関係の索引）だけで、集約 ・ 使う場面 ・ 業務領域などの中身の種類は Core に置かず、1つの仕様の文脈が定義して公開された言葉として出し、ほかの文脈は版を指して読む。",
+    "because": "中身の種類は文脈ごとのモデルで、Core の Abstract に入れると Core の中に競合しうる2つ目のモデルが入り、Q9 で退けた「Abstract を基盤と Skill ・ Agent のモデルの共有にする」と同じになる。書き方の側はいまの x-ref と I9 ・ I40 でほぼ足りるが、kind の名前の範囲と、ほかの文脈の版を指す書き方が契約に無いので、そこを既存の宣言の拡張で埋めることが条件である。"
+  },
+  "figure": {
+    "caption": "Core は書き方だけを持ち、中身の種類は仕様の文脈が持って公開する",
+    "nodes": [
+      {"id": "core", "label": "Core（Abstract）：種類 ＝ Concrete ・ id ・ x-ref ・ 整合 ・ 索引", "role": "Core"},
+      {"id": "spec", "label": "仕様の文脈（Concrete）：集約 ・ 使う場面 ・ 業務領域 ・ 事業領域 ・ 文脈", "role": "上流"},
+      {"id": "pub", "label": "公開された言葉の版（term ・ 指される欄の形）", "role": "公開"},
+      {"id": "reader", "label": "読む文脈（試験の Skill ・ advisor など）", "role": "下流"}
+    ],
+    "edges": [
+      {"from": "spec", "to": "core", "label": "書き方に従う"},
+      {"from": "reader", "to": "core", "label": "書き方に従う"},
+      {"from": "spec", "to": "pub", "label": "版を並べて出す（I7）"},
+      {"from": "reader", "to": "pub", "label": "x-ref で版を指して読む（U24）"},
+      {"from": "core", "to": "spec", "label": "中身の種類は持たない", "dashed": true}
+    ]
+  },
+  "comparison": [
+    {
+      "option": "A：Core の Abstract が中身の種類（集約 ・ 使う場面 ・ 業務領域 ・ 事業領域 ・ 文脈）を持つ",
+      "effect": "仕様の言葉を育てるたびに Core の版が変わり、ACDR やブレストのような DDD を使わない文脈まで Core の版を移す。Core 自身の業務領域の語（Q9 の「集約」）と利用者の仕様の「集約」が同じ Abstract に並び、1つの語が2つのモデルを指す",
+      "chosen": false
+    },
+    {
+      "option": "B：Core は書き方だけを持ち、1つの仕様の文脈が中身の種類を Concrete として定義し、公開する部分（term ・ 指される欄の形）を版で出す。ほかの文脈は版を指して x-ref で読む",
+      "effect": "仕様の言葉の変更は仕様の文脈の中で閉じ、読む側は指した版で検証され続ける（I7 ・ U24）。Core の変更は書き方の変更のときだけになる",
+      "chosen": true
+    },
+    {
+      "option": "C：同じ意味の種類（例：利用者のプロダクトの「集約」）を、使う文脈ごとに別々に定義する",
+      "effect": "同じ集約が2か所に書かれ、どちらが正本かを毎回比べる。仕様は UATDD の中心のデータなので、互いに独立を選んでよい範囲（補完 ・ 一般）を外れる",
+      "chosen": false
+    },
+    {
+      "option": "D：使う場面は usecase-advisor の文脈、集約は ddd-advisor の文脈、のように種類ごとに持ち主の文脈を分ける",
+      "effect": "使う場面 × 業務領域 × 集約の対応表のように同じデータを操作するユースケースが文脈をまたぎ、1件を足すたびに2〜3の文脈の版を同時に出すことになる",
+      "chosen": false
+    },
+    {
+      "option": "E：Core が汎用のメタモデル（Entity ・ Property ・ Relation）を JSON Schema と別に持つ",
+      "effect": "Q1 で退けた構想 v0.3 の Semantic Model と同じで、Concrete スキーマと同じものに2つのモデルができる",
+      "chosen": false
+    }
+  ],
+  "path": [
+    {
+      "ask": "1. データモデルのうち Core が共通の契約として持てるのはどこか",
+      "answer": "持てる：種類の書き方（種類 ＝ Concrete スキーマ、1件 ＝ instance）・ 識別子（id と kind を読む決まり）・ 参照の宣言（x-ref の to ・ in ・ accept ・ inverse）・ 参照の整合（I9）・ 関係の索引（I40）。必須と参照する側の件数は JSON Schema の required ・ minItems ・ maxItems に任せ、x- で書き直さない。持てない：集約 ・ 使う場面 ・ 業務領域 ・ 事業領域 ・ 文脈の境界という中身の種類と、その間の関係の名前と件数の決まり"
+    },
+    {
+      "ask": "2. 中身の種類を複数の文脈が使うとき、どこに置くか",
+      "answer": "1つの仕様の文脈に5つの種類をまとめて置き、公開する部分を版で出す。種類どうしは対応表で密に指し合うので、種類ごとに文脈を分けない。Core に置くと、Core の語（Q9 の集約5つ）と利用者の仕様の語が同じ Abstract に並び、Core が意味を解釈しないという決定（extension_contract）も崩れる"
+    },
+    {
+      "ask": "3. いまの x-ref ・ U24 ・ 意味で探して取り出す で足りるか",
+      "answer": "文脈の中では足りる。文脈をまたぐと2つ足りない：kind が名前の範囲を持たない（2つの文脈が kind「aggregate」を持つと to と bare が両方を拾う）、x-ref にほかの文脈の公開された言葉の版を指す欄が無い（値オブジェクトの「参照」と U24 は書いているが、annotations.schema.json に無い）。どちらも新しい仕組みではなく、kind の範囲を Concrete の $id で決める（Q7 の x- の名前の範囲と同じ決め方）・ x-ref の to に $id と版を書けるようにする、という既存の宣言の拡張で足りる"
+    },
+    {
+      "ask": "4. Concrete ごとにデータモデルが変わる中で、Core が共通に持てる部分はどこか",
+      "answer": "変わるのは中身（どの種類があり、どう指し合うか）で、変わらないのは書き方（種類 ＝ Concrete、id、x-ref、整合、索引）である。Core はこの書き方を持てるし、いまも持っている。悪くなるのは、同じ意味の種類を2つの文脈が別々に定義するとき ・ 公開していない欄を読むとき ・ 中身の種類を Core に寄せるとき。悪くならないのは、意味が違う同じ名前を文脈ごとに持つとき（仕様の「文脈の境界」と skill-wiring.json の文脈）と、1つが持って版で公開し、ほかが読むとき"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：同じデータを操作するユースケースの集まりを、複数の文脈に分散させない ・ 理由：誤った分割では、1つの変更要求のために複数の文脈を同時に修正し、同時に配置する調整が必要になる"
+    },
+    {
+      "criterion": "model",
+      "quote": "1つの区切られた文脈の中に複数のモデルを作らない。モデルが混ざると認知の負荷が増え、ソフトウェアが必要以上に複雑になる"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "組織全体で統一した言葉という意味ではなく、広い範囲で通用する共通言語でもない。通用する範囲は区切られた文脈の内側に限られ、同じ言葉は文脈ごとのモデルを表すことに焦点を合わせる。モデルに解く課題があるのと同じく、同じ言葉を定義して使うには、通用する範囲をはっきり決めた区切られた文脈が欠かせない"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：内部モデルを変更するときは、下流が使用中の公開された言葉を維持できるかを確認する ・ 理由：下流への影響を考慮せずに内部を変更できるのは、公開された言葉を維持できる場合だけである"
+    },
+    {
+      "criterion": "shared-kernel",
+      "quote": "別々のチームが実装する文脈でモデルを共有すると、共有部分を事実上複数のチームで開発することになり、1つの文脈を所有できるのは1つのチームだけという原則に反する"
+    },
+    {
+      "criterion": "shared-kernel",
+      "quote": "対応：理想としては、連係の契約と、境界を越えて渡すデータ構造だけを共有する"
+    },
+    {
+      "criterion": "separate-ways",
+      "quote": "対応：互いに独立を選択するのは、補完的な業務領域か一般的な業務領域に限定する ・ 理由：中核の業務領域は、どちらか一方のチームが開発すべきである"
+    },
+    {
+      "criterion": "conformist",
+      "quote": "条件：上流の提供内容が、下流のニーズを十分に満たす ・ 対応：下流が上流のモデルを受け入れ、従属を選択できる"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "（推測）穴1：kind が名前の範囲を持たない",
+      "risk": "x-ref の to と bare は kind の文字列だけで探す。仕様の文脈と Core 自身のドメインモデル（domain-model-v2 の aggregates）が両方 kind「aggregate」を持つと、別の意味の instance を指しても合格する。I25 は term を版付きの名前で一致させるが、kind には同じ決まりが無い",
+      "alternative": "kind の範囲を Concrete の $id で決める（Q7 で x- の名前の範囲を $id で決めたのと同じ決め方）。新しい仕組みではなく、Concrete の契約の1行と x-ref の to の書き方の拡張で足りる"
+    },
+    {
+      "name": "（推測）穴2：x-ref に、ほかの文脈の公開された言葉の版を指す書き方が無い",
+      "risk": "値オブジェクト「参照（x-ref）」と U24 ・ I7 は「指した版で検証され続ける」と書くが、annotations.schema.json の x-ref には版を書く欄が無い。いまのままでは U24 の最低保証（読む先の版が無いと出る）を検査できない",
+      "alternative": "x-ref の to に「$id@版」を書けるようにする。Q7（x- と rule の定義）で x-ref の形を詰めるときに足す"
+    },
+    {
+      "name": "（推測）穴3：公開する部分が形（term ・ 指される欄の形）だけで、指される instance の id を含まない",
+      "risk": "UATDD で下流が指すのは種類ではなく1件の instance（例：使う場面 U24 そのもの）である。文脈の中では全 instance がすぐ従うので、上流が instance を消す ・ id を使い直すと、別のリポジトリの下流は次に自分を検証するまで気づかない。I9 の「指されたものを消す変更は取り込めない理由に出る」は、上流が下流の参照を見られる範囲（同じリポジトリの索引）でしか効かない",
+      "alternative": "同じリポジトリなら I9 で足りる。別のリポジトリにまたがるなら、公開する部分に「指されてよい instance の id」を含めるかを Q6 ・ Q7 で決める。前置きの未判定（同じリポジトリか）が決まるまで足さない"
+    },
+    {
+      "name": "境界と依存1：中身の種類を Core に置く（モデルの共有）",
+      "risk": "Core と仕様の文脈の持ち主が2つになり、仕様の言葉を育てるたびに Core の版が変わる。Q9 で退けた「Abstract を、基盤と Skill ・ Agent のモデルの共有にする」と同じ形になる",
+      "alternative": "Core には書き方だけを置き、中身の種類は仕様の文脈が持って公開された言葉で出す（比較の B）"
+    },
+    {
+      "name": "（推測）境界と依存2：種類ごとに持ち主を advisor に分ける",
+      "risk": "使う場面 × 業務領域 × 集約の対応表（担い手が消えないかの確かめ）が3つの文脈をまたぎ、1件を足すたびに複数の文脈の版を同時に出す。advisor の Concrete は回答の形（answer.schema.json）で、仕様の instance の持ち主ではない",
+      "alternative": "5つの種類を1つの仕様の文脈にまとめ、advisor は公開された言葉を読む下流にする"
+    },
+    {
+      "name": "（推測）重なり1：同じ語「文脈」「集約」が、仕様の中身と Core ・ harness の両方に在る",
+      "risk": "利用者のプロダクトの「文脈の境界」と、このリポジトリの skill-wiring.json（Q1 でプロダクトの文脈の地図）、利用者の仕様の「集約」と Core のドメインモデルの「集約5つ」が同じ名前で別の意味を持つ。1つに統一しようとすると、どちらかが過剰か不十分なモデルになる",
+      "alternative": "統一しない。それぞれ持ち主の文脈の中で意味を1つに定め、kind の範囲（穴1の修正）で区別する"
+    },
+    {
+      "name": "（推測）重なり2：domain-model-v2.json と仕様の文脈",
+      "risk": "measured/domain-model-v2.json は、use_cases ・ subdomains ・ aggregates ・ invariants を持つ、どの Concrete にも従わない JSON である。仕様の文脈を作ると、同じ種類が仕様の文脈の instance と measured の独自の形の2つで書かれる",
+      "alternative": "仕様の文脈を作るときに、domain-model-v2.json をその最初の instance として移すか、移さない理由を決める"
+    },
+    {
+      "name": "外せる1：Core に汎用のメタモデルや関係の種類（関係の名前を型として持つ層）を足すこと",
+      "risk": "関係の意味は、指す側の欄の名前と description ・ x-prompt で既に書ける。足すと Q1 で退けた Semantic Model と、Q0 で参考にとどめた RDF の述語と同じものを Core が持つ",
+      "alternative": "足さない。関係の件数は JSON Schema（指す側）と inverse（指される側）で書く"
+    },
+    {
+      "name": "外せる2：関係の索引を最初から作ること",
+      "risk": "正本のファイルから作り直せるので、遅いと測れる前に作ると、正本と索引のずれを見る仕事だけが増える",
+      "alternative": "I40 のとおり、全件を読むのが遅いと測れてから足す"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "Q7（x- キーワードと rule の定義）",
+      "why": "x-ref が版を指す書き方と kind の名前の範囲は、x-ref の形を詰めるこの論点に属するが、いまの answer に無い"
+    },
+    {
+      "suspect": "Q6（公開された言葉の一員と版）",
+      "why": "公開する部分に instance の id を含めるかは、公開の記録（published）と版の扱いを決めるこの論点に属する"
+    }
+  ],
+  "next": [
+    "kind の名前の範囲を Concrete の $id で決める行を、Concrete の契約に足す案を Q7 に書く",
+    "x-ref の to に「$id@版」を書ける形を、Q7 の x-ref の形に足す",
+    "仕様の文脈が別のリポジトリにまたがるかを利用者に確かめる",
+    "またがるなら、公開する部分に指されてよい instance の id を含めるかを Q6 で決める",
+    "集約 ・ 使う場面 ・ 業務領域 ・ 事業領域 ・ 文脈の境界の5つの種類を持つ仕様の文脈を、どの Skill にするか決める"
+  ],
+  "related": [
+    {"criterion": "bounded-context", "relation": "中身の種類を1つの文脈にまとめ、Core と分ける根拠"},
+    {"criterion": "open-host-service", "relation": "仕様の文脈が版で出す公開された言葉"},
+    {"criterion": "shared-kernel", "relation": "Core に中身を置く案が当たる形"},
+    {"criterion": "separate-ways", "relation": "同じ意味の種類を文脈ごとに定義する案が当たる形"},
+    {"criterion": "conformist", "relation": "読む側が仕様の文脈のモデルをそのまま受け入れる関係"},
+    {"criterion": "ubiquitous-language", "relation": "同じ名前で意味が違う語を統一しない根拠"},
+    {"criterion": "model", "relation": "1つの文脈に2つのモデルを入れない根拠"}
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "Abstract（schema-driven の assets）に、集約 ・ 使う場面のような中身の種類の名前を enum や const で書き足す",
+      "check": "Abstract のファイルに、仕様の文脈の kind の名前（aggregate ・ use_case ・ subdomain など）が現れないかを grep で見る"
+    },
+    {
+      "breaks": "ほかの文脈の instance を、版を書かずに kind の文字列だけで x-ref する",
+      "check": "x-ref の to が、自分の文脈に無い kind を指しているのに $id と版を持たない宣言を、validate で数える"
+    }
+  ]
+}
