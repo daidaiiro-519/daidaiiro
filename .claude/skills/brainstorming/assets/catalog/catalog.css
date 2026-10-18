@@ -11,16 +11,31 @@ button { font: inherit; }
 :focus-visible { outline: 3px solid var(--color-state-focus); outline-offset: 2px; }
 
 /* == レイアウト == */
-.app { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
-.app.with-chat { grid-template-columns: 270px minmax(0, 1fr) 360px; }
+.app { --side-w: var(--size-pane-side); --chat-w: var(--size-pane-chat); --drawer-w: var(--size-pane-drawer); display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); min-height: 100vh; }
+.app.side-closed { --side-w: 0px; grid-template-columns: minmax(0, 1fr); }
+.app.side-closed.with-chat { grid-template-columns: minmax(0, 1fr) var(--chat-w); }
+.app.side-closed .side { display: none; }
+.app.with-chat { grid-template-columns: var(--side-w) minmax(0, 1fr) var(--chat-w); }
 .main { min-width: 0; }
 .wrap { max-width: 920px; margin: 0 auto; padding-block: 20px 60px; padding-inline: 16px; display: flex; flex-direction: column; gap: 14px; }
 .sec { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.menu { display: none; }
+/* 一覧の開け閉め：開いても閉じても同じ座標の同じボタン1つ（サイドバーの上端の左端 ＝ 閉じたときの本文の左上） */
+.menu { position: fixed; top: 18px; left: 14px; z-index: 6; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; background: transparent; color: var(--color-text-sub); border-radius: var(--size-radius); cursor: pointer; }
+.menu:hover { background: var(--color-surface-page); color: var(--color-text-body); }
+.menu:focus-visible { outline: 2px solid var(--color-key); outline-offset: 2px; }
+.app.side-closed .menu { background: var(--color-surface-block); box-shadow: 0 0 0 1px var(--color-line-block); }
+.app.side-closed .wrap { padding-top: 60px; }
+.menu .ic { width: 18px; height: 18px; }
+/* 右の枠の幅を動かすつまみ。枠の左の縁に置く */
+.resizer { position: absolute; top: 0; bottom: 0; left: -12px; width: 24px; cursor: col-resize; z-index: 5; touch-action: none; }
+.resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 11px; width: 2px; background: transparent; }
+.resizer:hover::after, .resizer:focus-visible::after, .resizer.dragging::after { background: var(--color-key); }
+.resizer:focus-visible { outline: none; }
+body.resizing { cursor: col-resize; user-select: none; }
 
 /* == サイドバー == */
 .side { background: var(--color-surface-block); border-right: 1px solid var(--color-line-block); padding: 14px 10px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; height: 100vh; overflow: auto; }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; border-bottom: 1px solid var(--color-line-block); text-decoration: none; color: var(--color-text-body); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px 44px; border-bottom: 1px solid var(--color-line-block); text-decoration: none; color: var(--color-text-body); }
 .brand > span { display: flex; flex-direction: column; }
 .logo { width: 32px; height: 32px; flex: none; }
 .logo-bg { fill: var(--color-key); } .logo-line { stroke: var(--color-text-on-key); } .logo-dot { fill: var(--color-text-on-key); }
@@ -78,7 +93,7 @@ h1 { font: 600 26px/1.4 var(--font-heading); margin: 0; text-wrap: balance; }
 .chgbar > b { flex: 1; min-width: 10em; }
 .chgtopics { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; order: 3; min-width: 0; }
 .chgtopics button { white-space: nowrap; font-size: 12px; border: 1px solid var(--color-line-notice); background: var(--color-surface-block); color: var(--color-text-body); border-radius: var(--size-radius-pill); padding: 0 10px; cursor: pointer; }
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); z-index: 30; background: var(--color-surface-block); border-left: 1px solid var(--color-line-block); box-shadow: -8px 0 24px -12px var(--color-line-control); display: flex; flex-direction: column; gap: 10px; padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--drawer-w), 100vw); z-index: 30; background: var(--color-surface-block); border-left: 1px solid var(--color-line-block); box-shadow: -8px 0 24px -12px var(--color-line-control); display: flex; flex-direction: column; gap: 10px; padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); }
 .drawer .dh { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
 .dsearch { display: flex; align-items: center; gap: 6px; border: 1px solid var(--color-line-control); border-radius: var(--size-radius); padding: 4px 8px; background: var(--color-surface-page); }
 .dsearch input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--color-text-body); font: inherit; font-size: 13px; outline: none; }
@@ -239,7 +254,7 @@ textarea { display: block; width: 100%; max-width: 100%; resize: vertical; min-h
 .paste { background: var(--color-surface-literal); border-radius: var(--size-radius); padding: 8px 10px; font: 12px var(--font-literal); white-space: pre-wrap; margin: 0; }
 
 /* == チャット == */
-.chat { border-left: 1px solid var(--color-line-block); background: var(--color-surface-block); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
+.chat { border-left: 1px solid var(--color-line-block); background: var(--color-surface-block); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; min-width: 0; }
 .ch { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px; }
 .chi { width: 30px; height: 30px; border-radius: var(--size-radius); background: var(--color-surface-answer); color: var(--color-text-key); display: grid; place-items: center; }
 .cht { display: flex; flex-direction: column; line-height: 1.3; } .cht b { font-size: 15px; } .cht span { font-size: 11px; color: var(--color-text-sub); }
@@ -335,15 +350,18 @@ ul.log time { color: var(--color-text-sub); margin-right: 8px; font-variant-nume
 
 /* == 幅 == */
 @media (max-width: 980px) {
-  .app.with-chat { grid-template-columns: 270px minmax(0, 1fr); }
-  .chat { position: fixed; inset: auto 0 0 auto; width: min(380px, 100%); height: 70vh; box-shadow: 0 0 0 1px var(--color-line-block); z-index: 3; }
+  .app.with-chat { grid-template-columns: var(--side-w) minmax(0, 1fr); }
+  .chat { position: fixed; inset: auto 0 0 auto; width: min(var(--chat-w), 100%); height: 70vh; box-shadow: 0 0 0 1px var(--color-line-block); z-index: 3; }
 }
 @media (max-width: 720px) {
   .app, .app.with-chat { grid-template-columns: minmax(0, 1fr); }
   .chat { inset: auto 0 0 0; width: 100%; }
   .side { display: none; position: fixed; inset: 0; z-index: 4; height: 100%; }
-  .side.open { display: flex; }
-  .menu { display: inline-block; font-size: 13px; border: 1px solid var(--color-line-control); background: transparent; color: var(--color-text-body); border-radius: var(--size-radius); padding: 2px 10px; margin: 12px 16px 0; }
+  .side.open, .app.side-closed .side.open { display: flex; }
+  .resizer { display: none; }
+  .menu { width: 44px; height: 44px; top: 12px; left: 8px; }
+  .wrap, .app.side-closed .wrap { padding-top: 66px; }
+  .brand { padding-left: 58px; }
   .sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   ul.tree { grid-template-columns: minmax(0, 1fr) max-content; min-width: 0; } ul.tree li.thead > span:last-child { display: none; } ul.tree .ds { grid-column: 1 / -1; padding-left: calc(35px + var(--depth) * 20px); padding-top: 0; } ul.tree .nm, ul.tree .mkc { border-bottom: 0; } ul.tree .tp { white-space: normal; overflow-wrap: anywhere; }
 }

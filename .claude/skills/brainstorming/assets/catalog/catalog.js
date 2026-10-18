@@ -17,9 +17,53 @@
     if (a.getAttribute("data-board-link") === boardId) a.setAttribute("aria-current", "page");
   });
   if (page === "dashboard") { var home = $("[data-home]"); if (home) home.setAttribute("aria-current", "page"); }
-  var side = $(".side"), menu = $("[data-menu]");
-  if (menu && side) menu.addEventListener("click", function () {
-    var open = side.classList.toggle("open"); menu.setAttribute("aria-expanded", String(open));
+  // 画面の枠の好み（左の一覧を閉じたか ・ 右の枠の幅）は、この端末に残す。残せない枠では残さない
+  var prefs = {
+    get: function (k) { try { return JSON.parse(localStorage.getItem("bs-" + k) || "null"); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem("bs-" + k, JSON.stringify(v)); } catch (e) { /* 残せない */ } }
+  };
+  var app = $(".app"), side = $(".side"), menu = $("[data-menu]");
+  var narrow = function () { return window.matchMedia("(max-width: 720px)").matches; };
+  // 左の一覧：広い画面では折りたたみ、狭い画面では上に重ねて開く
+  if (app && prefs.get("side-closed") && !narrow()) app.classList.add("side-closed");
+  var paintMenu = function () { if (menu) menu.setAttribute("aria-expanded", String(narrow() ? side.classList.contains("open") : !app.classList.contains("side-closed"))); };
+  if (menu && side && app) {
+    paintMenu();
+    menu.addEventListener("click", function () {
+      if (narrow()) side.classList.toggle("open");
+      else { var closed = app.classList.toggle("side-closed"); prefs.set("side-closed", closed); }
+      paintMenu();
+    });
+    // 狭い画面で重ねて開いた一覧は Esc で閉じ、ボタンへ戻る
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && narrow() && side.classList.contains("open")) { side.classList.remove("open"); paintMenu(); menu.focus(); } });
+  }
+  // 右の枠（AI に聞く ・ 変わったところの引き出し）の幅：左の縁のつまみを引くか、矢印の鍵で動かす。押すと既定と広いを切り替える
+  $$("[data-resize]").forEach(function (handle) {
+    var key = handle.getAttribute("data-resize"), prop = "--" + key + "-w";
+    var px = function (name) { var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)); return isNaN(v) ? 0 : v; };
+    var clamp = function (w) { var max = window.innerWidth - (app.classList.contains("side-closed") ? 0 : px("--size-pane-side")) - px("--size-pane-main-min"); return Math.round(Math.max(px("--size-pane-min"), Math.min(w, Math.max(px("--size-pane-min"), max)))); };
+    var apply = function (w) { app.style.setProperty(prop, w + "px"); handle.setAttribute("aria-valuenow", String(w)); };
+    var saved = prefs.get(key + "-w"); if (saved) apply(clamp(saved));
+    var start = null, moved = false;
+    handle.setAttribute("aria-valuemin", String(px("--size-pane-min")));
+    handle.addEventListener("pointerdown", function (e) {
+      start = { x: e.clientX, w: handle.parentNode.getBoundingClientRect().width }; moved = false;
+      try { handle.setPointerCapture(e.pointerId); } catch (err) { /* 捕まえられない枠でも、動かすことはできる */ }
+      handle.classList.add("dragging"); body.classList.add("resizing"); e.preventDefault();
+    });
+    handle.addEventListener("pointermove", function (e) { if (start && Math.abs(start.x - e.clientX) > 3) { moved = true; apply(clamp(start.w + (start.x - e.clientX))); } });
+    // 引かずに押したときは、既定の幅と広い幅（既定の1.6倍）を切り替える。引く操作だけに頼らない
+    var end = function () {
+      if (!start) return; var w0 = start.w; start = null; handle.classList.remove("dragging"); body.classList.remove("resizing");
+      if (!moved) { var def = px("--size-pane-" + key), wide = clamp(Math.round(def * 1.6)); var next = Math.abs(w0 - def) < 8 ? wide : def; if (next === def) { app.style.removeProperty(prop); prefs.set(key + "-w", null); } else { apply(next); prefs.set(key + "-w", next); } return; }
+      prefs.set(key + "-w", parseFloat(app.style.getPropertyValue(prop)));
+    };
+    handle.addEventListener("pointerup", end); handle.addEventListener("pointercancel", end);
+    handle.addEventListener("keydown", function (e) {
+      var step = e.shiftKey ? 64 : 16, now = handle.parentNode.getBoundingClientRect().width;
+      if (e.key === "ArrowLeft") { apply(clamp(now + step)); prefs.set(key + "-w", clamp(now + step)); e.preventDefault(); }
+      if (e.key === "ArrowRight") { apply(clamp(now - step)); prefs.set(key + "-w", clamp(now - step)); e.preventDefault(); }
+    });
   });
 
   // ── 論点のチップと面 ──
