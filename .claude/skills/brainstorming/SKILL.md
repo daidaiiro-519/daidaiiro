@@ -126,7 +126,7 @@ advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。
 - **ボードに `status` を書かない**。ステータスは論点の状態 ・ 保留 ・ ロックから導く。手で書くと、回答したのに回答待ちのまま見えるような食い違いが出る
 - **ロックを残したまま作業をやめない**。`advance` か `unlock` で外す。残すと、画面の「送る」と「AI に聞く」が止まったままになる
 - **画面の AI に聞くで、Kiro は読むだけにする**。手元の Kiro はシェルのコマンドを絞れないので、ボードを直すのは Claude Code と Codex だけである
-- **画面の AI に許すツールを、コードに書かない**。許可の設定（`.brainstorming/.settings/agents.json`。無ければ `assets/defaults/agents.json`）に書く。serve は依頼のたびに読んで基盤の check で確かめ、合格しなければ AI を起動しない。AI はこのファイルを書き換えない
+- **画面の AI に許すツールを、コードにも Skill の設定にも書かない**。許可は各 AI ツールの設定ファイルに書く（Claude Code は `.claude/settings.json` か `.claude/settings.local.json`、Codex は `.codex/config.toml`、Kiro は `permissions.yaml`）。serve は Claude Code を `--permission-mode dontAsk` で起動し、許可の一覧は渡さない。この Skill が要るのは、実行ファイルの `Bash` とボードのフォルダへの `Edit` である
 - **確かめてほしい箇所を、問いだけで出さない**。回答待ちの論点では、私の見解（`view`）・ 根拠の名前（`basis`）・ 決めきれない理由（`why`）を書く。見解と理由は60字まで。問いだけだと、なぜ聞かれているのかを読み手が推し量ることになる。inspect が欠けを知らせる
 - **扱わない範囲に扱いを付けずに承認を求めない**。`verification.out_of_scope` に、対象外 ・ 後で決める ・ 解消済みのどれかを付ける
 
@@ -139,8 +139,6 @@ advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。
 | `assets/round.schema.json` | 回の記録の形（brainstorming/round@v1） |
 | `assets/dashboard.schema.json` | ダッシュボードの印の形（brainstorming/dashboard@v1） |
 | `assets/chat.schema.json` | チャットの記録の形（brainstorming/chat@v1）。serve だけが書く |
-| `assets/agents.schema.json` | 許可の設定の形（brainstorming/agents@v1）。画面の AI ごとに許すツールと、最初の依頼に足す文。利用者が書く |
-| `assets/defaults/agents.json` | 許可の設定の既定。リポジトリに `.brainstorming/.settings/agents.json` が無いときに使う（混ぜない） |
 | `assets/tokens.schema.json` | デザイントークンの正本の形（Design Tokens 形式） |
 | `assets/pages/` | ボードとダッシュボードのページテンプレート |
 | `assets/catalog/` | 部品のカタログ（parts.html ・ catalog.schema.json ・ catalog.css ・ catalog.js）と、トークンの正本（light.tokens.json ・ dark.tokens.json）から作った design-system.json |

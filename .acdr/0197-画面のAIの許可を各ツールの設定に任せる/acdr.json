@@ -1,0 +1,197 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0197",
+ "title": "画面の AI の許可を、各 AI ツールの設定ファイルに任せる",
+ "date": "2026-10-18",
+ "status": "accepted",
+ "decision": "ボードの画面の AI に何を許すかを、brainstorming の許可の設定（agents.json）ではなく、各 AI ツール自身の設定ファイルで決める。",
+ "why": "画面の AI は agents.json の一覧だけで起動され、利用者が .claude/settings.local.json に足した許可を足し直す場所が2つあった。agents.json の中身もツールごとの書き方の写しで、共通の契約になっていなかった。利用者の「特別な契約は増やさないでほしい」に合わせ、各ツールの設定ファイル1か所に一致させる。",
+ "shift": [
+  {
+   "what": "画面の AI の許可の置き場所",
+   "from": "brainstorming の agents.json（.brainstorming/.settings/ か Skill の既定）",
+   "to": "各 AI ツールの設定ファイル。Claude Code は .claude/settings.json（コミット）か settings.local.json、Codex は .codex/config.toml、Kiro は permissions.yaml"
+  },
+  {
+   "what": "起動のしかた",
+   "from": "Claude は --allowedTools に一覧を並べ、Codex は --sandbox、Kiro は --trust-tools を渡す",
+   "to": "Claude は --permission-mode dontAsk だけを渡す。Codex と Kiro には許可の旗を渡さない"
+  },
+  {
+   "what": "最初の依頼に足す文（guide）",
+   "from": "agents.json の guide を足す",
+   "to": "足さない。道具の使い方は CLAUDE.md と各 Skill の SKILL.md が持つ"
+  },
+  {
+   "what": "brainstorming の版",
+   "from": "0.1.4",
+   "to": "0.1.5（承認のあと、serve を止めて実行ファイルを入れ替える）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は許可を agents.json と各ツールの設定の2か所に書いていた。変更後は各ツールの設定ファイルの1か所だけに書く。",
+ "alternatives": [
+  {
+   "option": "agents.json を残し、各ツールの設定と合わせて使う",
+   "why_not": "許可を2か所に書くことになり、どちらで許したかを毎回確かめることになる。agents.json の中身も、ツールごとの書き方の写しだった"
+  },
+  {
+   "option": "agents.json の形を Semantic Schema Core の tool permissions へ移す（ACDR 0188 の予定）",
+   "why_not": "Core で権限を制御したい場面が無く、tool permissions はボード semantic-contract-core の第77回で外した"
+  },
+  {
+   "option": "dontAsk も外し、各ツールの既定のモードで起動する",
+   "why_not": "利用者の対話用のモード（acceptEdits など）を画面の AI が受け継ぎ、許可の一覧に無い編集も通る。確認を待って画面が止まるおそれもある"
+  }
+ ],
+ "supersedes": "ACDR 0188",
+ "docs": [
+  {
+   "key": "agent",
+   "tab": "agent.rs",
+   "file": "src/brainstorming/crates/core/src/domain/agent.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub allowed: Allowed,",
+     "before": "（差分の - の行）",
+     "why": "許可の一覧を依頼に持たせない。許可は各ツールの設定ファイルが持つ。"
+    },
+    {
+     "find": "request.skill_md, request.entry, request.entry",
+     "before": "（差分の - の行）",
+     "why": "「シェルで実行してよいのは」の文を外す。何を実行してよいかは設定ファイルが決めるので、依頼の文で狭めると食い違う。"
+    },
+    {
+     "find": "for line in &request.allowed.guide",
+     "before": "（差分の - の行）",
+     "why": "guide を足さない。道具の使い方は CLAUDE.md と SKILL.md が持つ。"
+    },
+    {
+     "find": "--permission-mode\", \"dontAsk\"]",
+     "before": "（差分の - の行）",
+     "why": "Claude には dontAsk だけを渡す。許可の一覧は設定ファイルから読まれ、dontAsk は一覧に無い操作を確認せずに断る。"
+    },
+    {
+     "find": "sandbox は Codex の設定ファイル",
+     "before": "（差分の - の行）",
+     "why": "Codex の sandbox は .codex/config.toml の sandbox_mode に任せる。"
+    },
+    {
+     "find": "信頼するツールは Kiro の設定ファイル",
+     "before": "（差分の - の行）",
+     "why": "Kiro の --trust-tools を渡さない。信頼するツールは permissions.yaml に任せる。"
+    },
+    {
+     "find": "\"codex\": {\"sandbox\": \"workspace-write\"},",
+     "before": "（差分の - の行）",
+     "why": "試験の依頼から、許可の一覧を外す。"
+    },
+    {
+     "find": "plans_carry_no_permission_list_and_leave_it_to_each_tool",
+     "before": "（差分の - の行）",
+     "why": "どの AI にも許可の旗を渡さないこと、Claude には dontAsk を渡すことを試験で固定する。"
+    },
+    {
+     "find": "Some(\"dontAsk\")",
+     "before": "（差分の - の行）",
+     "why": "起動の引数の期待値を、許可の一覧が無い形に合わせる。"
+    },
+    {
+     "find": "kiro_again.args[5..7]",
+     "before": "（差分の - の行）",
+     "why": "Kiro の引数から --trust-tools が減ったので、位置を合わせる。"
+    },
+    {
+     "find": "--trust-tools=fs_read",
+     "before": "（差分の - の行）",
+     "why": "Kiro に --trust-tools=fs_read を渡すことを確かめる行を外す。Kiro が読むだけかは、permissions.yaml と依頼の文が決める。"
+    }
+   ]
+  },
+  {
+   "key": "chat",
+   "tab": "chat.rs",
+   "file": "src/brainstorming/crates/core/src/application/chat.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::application::engine::check_board;",
+     "before": "（差分の - の行）",
+     "why": "許可の設定の検査をやめたので、check_dir を使わなくなった。"
+    },
+    {
+     "find": "fn allowed_for",
+     "before": "（差分の - の行）",
+     "why": "agents.json を選んで読み、検査する処理を外す。"
+    },
+    {
+     "find": "allowed: allowed_for(env, skill, &layout)?,",
+     "before": "（差分の - の行）",
+     "why": "依頼に許可の一覧を渡さない。"
+    },
+    {
+     "find": "use crate::tests::{env_with_git, skill, FakeAgents, MemoryFiles};",
+     "before": "（差分の - の行）",
+     "why": "外した試験だけが使っていた部品を、読み込みから外す。"
+    },
+    {
+     "find": "fn the_repository_settings_win_over_the_skill_default",
+     "before": "（差分の - の行）",
+     "why": "agents.json を読む試験と、検査に落ちたら起動しない試験を外す。どちらも agents.json が無くなると対象が無い。"
+    }
+   ]
+  },
+  {
+   "key": "settings",
+   "tab": "settings.json",
+   "file": ".claude/settings.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"permissions\"",
+     "before": "（差分の - の行）",
+     "why": "この Skill が要る許可（実行ファイルとボードのフォルダへの書き込み）と、このリポジトリの検証の道具を、コミットする設定に書く。画面の AI も対話の Claude も、同じ許可で動く。"
+    }
+   ]
+  },
+  {
+   "key": "codex",
+   "tab": "config.toml",
+   "file": ".codex/config.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "sandbox_mode = \"workspace-write\"",
+     "before": "（差分の - の行）",
+     "why": "Codex の画面の AI がボードを直せるよう、作業のフォルダへの書き込みをプロジェクトの設定で許す。"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/brainstorming/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "コードにも Skill の設定にも書かない",
+     "before": "（差分の - の行）",
+     "why": "ガードレールを、各ツールの設定ファイルに書く形に改める。"
+    },
+    {
+     "find": "assets/chat.schema.json",
+     "before": "（差分の - の行）",
+     "why": "参照の表から、agents.schema.json と defaults/agents.json の行を外す。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "agent": "2de020fca8c774c49c7a5dcd01e4aa6632096f4d3c9e6af23f5ccef9861554ff",
+  "chat": "ce7af42c524e589a447f337c22788bd7a710f556398a2cb80cd87f578f342cc7",
+  "settings": "29c1859fa9aceb0184b563b07474efc5cc22bb026b5bbd04805eb185c53035cf",
+  "codex": "5950a7d1796b6b3abc302aff37169e312e763713c70b228feae35c86674d4ad4",
+  "skill": "c86380f71ed006ccd8a7ca5165faa4c7c4748792e3ef693e4e0ee1cc39168e6f"
+ }
+}

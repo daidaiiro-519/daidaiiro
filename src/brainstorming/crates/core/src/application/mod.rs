@@ -47,10 +47,6 @@ impl Skill {
             .join("bin")
             .join(format!("brainstorming{}", std::env::consts::EXE_SUFFIX))
     }
-    /// 許可の設定の既定（リポジトリの .settings に無いときに使う）。
-    pub fn default_agents(&self) -> PathBuf {
-        self.dir.join("assets").join("defaults").join("agents.json")
-    }
     pub fn skill_md(&self) -> PathBuf {
         self.dir.join("SKILL.md")
     }

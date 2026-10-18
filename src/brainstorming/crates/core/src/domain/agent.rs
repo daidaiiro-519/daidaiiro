@@ -72,56 +72,6 @@ pub struct Request {
     pub text: String,
     /// この依頼の ID。ロックの持ち主になる。空なら環境変数を渡さない
     pub run: String,
-    /// 許可の設定（brainstorming/agents@v1）から読んだ、AI に許すこと
-    pub allowed: Allowed,
-}
-
-/// AI に許すこと。値の決まり（ボードを直すツールを必ず許す ・ sandbox を外さない ・ Kiro は読むだけ）は、
-/// スキーマ brainstorming/agents@v1 が持ち、読む前に基盤の check で確かめる。ここは形を読むだけにする。
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Allowed {
-    /// Claude Code の --allowedTools。${entry} を含む
-    pub claude: Vec<String>,
-    /// Codex の sandbox
-    pub codex_sandbox: String,
-    /// Kiro の --trust-tools
-    pub kiro_trust: Vec<String>,
-    /// 新しいセッションの最初の依頼に足す文。${entry} ・ ${board_dir} を含む
-    pub guide: Vec<String>,
-}
-
-/// 許可の設定のインスタンスを読む。
-pub fn allowed(value: &Value) -> Result<Allowed, String> {
-    let strings = |pointer: &str| -> Result<Vec<String>, String> {
-        match value.pointer(pointer) {
-            None => Ok(vec![]),
-            Some(Value::Array(items)) => items
-                .iter()
-                .map(|item| {
-                    item.as_str()
-                        .map(str::to_owned)
-                        .ok_or_else(|| format!("許可の設定の {pointer} に文字列でない値がある"))
-                })
-                .collect(),
-            Some(_) => Err(format!("許可の設定の {pointer} が配列でない")),
-        }
-    };
-    Ok(Allowed {
-        claude: strings("/claude/allow")?,
-        codex_sandbox: value
-            .pointer("/codex/sandbox")
-            .and_then(Value::as_str)
-            .ok_or("許可の設定に /codex/sandbox が無い")?
-            .to_owned(),
-        kiro_trust: strings("/kiro/trust")?,
-        guide: strings("/guide")?,
-    })
-}
-
-/// 設定の値の ${entry} ・ ${board_dir} を、この依頼の値に置き換える。
-fn fill(text: &str, request: &Request) -> String {
-    text.replace("${entry}", &request.entry)
-        .replace("${board_dir}", &request.board_dir)
 }
 
 /// 依頼の文。新しいセッションの最初の依頼には、Skill の使い方を指す1文を必ず入れる。
@@ -129,15 +79,9 @@ pub fn prompt(request: &Request, new_session: bool) -> String {
     let mut out = String::new();
     if new_session && request.writable {
         out.push_str(&format!(
-            "{} を読み、その手順で {} を使って作業する。ボードの JSON は {} の update で直し、ファイルを直接書き換えない。シェルで実行してよいのは {} で始まるコマンドだけで、ほかのファイルは読むツールで読む。\n",
-            request.skill_md, request.entry, request.entry, request.entry
+            "{} を読み、その手順で {} を使って作業する。ボードの JSON は {} の update で直し、ファイルを直接書き換えない。\n",
+            request.skill_md, request.entry, request.entry
         ));
-    }
-    if new_session && request.writable {
-        for line in &request.allowed.guide {
-            out.push_str(&fill(line, request));
-            out.push('\n');
-        }
     }
     if new_session && !request.writable {
         out.push_str(&format!(
@@ -187,14 +131,9 @@ pub fn plan(
                 Some(id) => args.extend(own(&["--resume", id])),
                 None => args.extend(own(&["--session-id", fresh])),
             }
-            args.extend(own(&["--permission-mode", "dontAsk", "--allowedTools"]));
-            args.extend(
-                request
-                    .allowed
-                    .claude
-                    .iter()
-                    .map(|tool| fill(tool, request)),
-            );
+            // 許可は Claude Code の設定ファイル（.claude/settings.json など）に任せる。
+            // dontAsk は、許可されていない操作を確認せずに断り、利用者の対話用のモードを受け継がない。
+            args.extend(own(&["--permission-mode", "dontAsk"]));
             Plan {
                 program: agent.program().to_owned(),
                 args,
@@ -204,24 +143,9 @@ pub fn plan(
         }
         Agent::Codex => {
             let args = match session {
-                Some(id) => own(&[
-                    "exec",
-                    "resume",
-                    "--json",
-                    "-c",
-                    &format!("sandbox_mode=\"{}\"", request.allowed.codex_sandbox),
-                    id,
-                    "-",
-                ]),
-                None => own(&[
-                    "exec",
-                    "--json",
-                    "--sandbox",
-                    &request.allowed.codex_sandbox,
-                    "-C",
-                    root,
-                    "-",
-                ]),
+                // sandbox は Codex の設定ファイル（.codex/config.toml の sandbox_mode）に任せる。
+                Some(id) => own(&["exec", "resume", "--json", id, "-"]),
+                None => own(&["exec", "--json", "-C", root, "-"]),
             };
             Plan {
                 program: agent.program().to_owned(),
@@ -238,10 +162,7 @@ pub fn plan(
                 "--output-format",
                 "stream-json",
             ]);
-            args.push(format!(
-                "--trust-tools={}",
-                request.allowed.kiro_trust.join(",")
-            ));
+            // 信頼するツールは Kiro の設定ファイル（permissions.yaml）に任せる。
             if let Some(id) = session {
                 args.extend(own(&["--resume-id", id]));
             }
@@ -484,57 +405,24 @@ mod tests {
             topic: "Q1".to_owned(),
             text: "前提を足して".to_owned(),
             run: "R1".to_owned(),
-            allowed: allowed(&serde_json::json!({
-                "claude": {"allow": ["Read", "Grep", "Glob", "Bash(${entry}:*)"]},
-                "codex": {"sandbox": "workspace-write"},
-                "kiro": {"trust": ["fs_read"]}
-            }))
-            .unwrap(),
         }
     }
 
     #[test]
-    fn each_cli_gets_exactly_what_the_settings_allow() {
-        let wide = Request {
-            allowed: allowed(&serde_json::json!({
-                "claude": {"allow": ["Read", "WebSearch", "Bash(${entry}:*)", "Bash(.claude/skills/fact-check/bin/fact-check:*)"]},
-                "codex": {"sandbox": "read-only"},
-                "kiro": {"trust": ["fs_read"]},
-                "guide": ["原文は ${board_dir}sources/ に置き、${entry} で直す。"]
-            }))
-            .unwrap(),
-            ..request()
-        };
-        let claude = plan(Agent::Claude, None, "U", "/r", &wide).args;
-        let tools = &claude[claude.iter().position(|a| a == "--allowedTools").unwrap() + 1..];
-        assert_eq!(
-            tools,
-            [
-                "Read",
-                "WebSearch",
-                "Bash(.claude/skills/brainstorming/scripts/bin/brainstorming:*)",
-                "Bash(.claude/skills/fact-check/bin/fact-check:*)"
-            ]
-        );
-        assert!(plan(Agent::Codex, None, "U", "/r", &wide)
-            .args
-            .contains(&"read-only".to_owned()));
-        assert!(plan(Agent::Codex, Some("S"), "U", "/r", &wide)
-            .args
-            .contains(&"sandbox_mode=\"read-only\"".to_owned()));
-        assert!(prompt(&wide, true).contains(
-            "原文は .brainstorming/b/sources/ に置き、.claude/skills/brainstorming/scripts/bin/brainstorming で直す。"
-        ));
-        assert!(!prompt(&wide, false).contains("原文は"));
-    }
-
-    #[test]
-    fn settings_of_the_wrong_shape_are_refused() {
-        assert!(allowed(
-            &serde_json::json!({"claude": {"allow": "Read"}, "codex": {"sandbox": "read-only"}})
-        )
-        .is_err());
-        assert!(allowed(&serde_json::json!({"claude": {"allow": []}})).is_err());
+    fn plans_carry_no_permission_list_and_leave_it_to_each_tool() {
+        for agent in Agent::ALL {
+            for session in [None, Some("S")] {
+                let joined = plan(agent, session, "U", "/r", &request()).args.join(" ");
+                assert!(!joined.contains("--allowedTools"), "{joined}");
+                assert!(!joined.contains("--sandbox"), "{joined}");
+                assert!(!joined.contains("sandbox_mode"), "{joined}");
+                assert!(!joined.contains("--trust-tools"), "{joined}");
+            }
+        }
+        let claude = plan(Agent::Claude, None, "U", "/r", &request()).args;
+        assert!(claude
+            .windows(2)
+            .any(|w| w == ["--permission-mode", "dontAsk"]));
     }
 
     #[test]
@@ -595,30 +483,16 @@ mod tests {
             claude_again.args[4..6],
             ["--resume".to_owned(), "S".to_owned()]
         );
-        assert_eq!(
-            claude_new.args.last().map(String::as_str),
-            Some("Bash(.claude/skills/brainstorming/scripts/bin/brainstorming:*)")
-        );
-        assert_eq!(
-            codex_new.args,
-            [
-                "exec",
-                "--json",
-                "--sandbox",
-                "workspace-write",
-                "-C",
-                "/r",
-                "-"
-            ]
-        );
+        assert_eq!(claude_new.args.last().map(String::as_str), Some("dontAsk"));
+        assert_eq!(codex_new.args, ["exec", "--json", "-C", "/r", "-"]);
         assert_eq!(
             codex_again.args[..3],
             ["exec".to_owned(), "resume".to_owned(), "--json".to_owned()]
         );
-        assert_eq!(codex_again.args[5..], ["S".to_owned(), "-".to_owned()]);
+        assert_eq!(codex_again.args[3..], ["S".to_owned(), "-".to_owned()]);
         assert_eq!(kiro_again.stdin, None);
         assert_eq!(
-            kiro_again.args[6..8],
+            kiro_again.args[5..7],
             ["--resume-id".to_owned(), "S".to_owned()]
         );
     }
@@ -702,9 +576,6 @@ mod tests {
             writable: false,
             ..request()
         };
-        assert!(plan(Agent::Kiro, None, "U", "/r", &read_only)
-            .args
-            .contains(&"--trust-tools=fs_read".to_owned()));
         assert!(!plan(Agent::Kiro, None, "U", "/r", &read_only)
             .args
             .join(" ")

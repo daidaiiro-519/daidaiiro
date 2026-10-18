@@ -61,10 +61,6 @@ impl Layout {
         self.root.join(".chat")
     }
     /// serve と CLI が使う作業の置き場所（写し ・ ロック ・ 描画の写し）。
-    /// 利用者が書く設定の置き場所。ページにしないので、ドットで始める。
-    pub fn settings(&self) -> PathBuf {
-        self.root.join(".settings")
-    }
     pub fn serve_dir(&self) -> PathBuf {
         self.root.join(".serve")
     }
