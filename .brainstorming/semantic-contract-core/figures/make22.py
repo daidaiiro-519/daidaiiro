@@ -7,9 +7,9 @@ G('q1-boundary', '境界：何を誰が持ち、誰が変えるか', ['', 'も�
   [[str(n + 1)] + r for n, r in enumerate(d['boundary'])], group_col=0)
 
 E = d['extension_contract']
-rows = [['拡張の仕方', a, b] for a, b in E['parts']] + [['言語に依らない', str(n + 1), t] for n, t in enumerate(E['language'])] \
+rows = [['責任', a, f'Core：{b} ／ Concrete：{c}'] for a, b, c in E['responsibility']] + [['作法（Q7 で詰める）', a, b] for a, b in E['manners']] + [['拡張の仕方', a, b] for a, b in E['parts']] + [['言語に依らない', str(n + 1), t] for n, t in enumerate(E['language'])] \
      + [['外のツール', str(n + 1), t] for n, t in enumerate(E['external_tool'])]
-G('q1-extension', '拡張の契約：Concrete が x- を足すときの決まり', ['', '項目', '中身'], [140, 110, 700], rows, group_col=0)
+G('q1-extension', '拡張の契約：Core は作法だけを持ち、足した x- の意味の検証は Concrete が持つ', ['', '項目', '中身'], [140, 250, 560], rows, group_col=0)
 
 M = [['集約', a['name'], f"{a['holder']}。{a['members']}", a['subdomain']] for a in d['aggregates']] \
   + [['値オブジェクト', a, b, ''] for a, b in d['value_objects']] \
@@ -21,7 +21,7 @@ P = [['駆動する側（外に差し出す口）', p[0], p[2], ' ・ '.join(p[1
   + [['駆動される側（中が外に求める口）', p[0], p[1], p[2]] for p in d['ports']['outbound']]
 G('q1-ports', 'ポートとアダプター：駆動する側は見せるアダプター、駆動される側は満たすアダプター', ['', 'ポート', 'アダプター', '使う場面 ・ 業務領域'], [150, 330, 270, 210], P, group_col=0)
 
-G('q1-invariants', '不変条件29行：対象ごとに固め、導いた使う場面を付けた表', ['#', '対象', '不変条件', '使う場面'], [50, 110, 640, 150],
+G('q1-invariants', '不変条件30行：対象ごとに固め、導いた使う場面を付けた表', ['#', '対象', '不変条件', '使う場面'], [50, 110, 640, 150],
   [[i[0], i[1], i[2], ' ・ '.join(i[3])] for i in d['invariants']], group_col=1)
 
 cov = []
