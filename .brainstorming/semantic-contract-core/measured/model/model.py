@@ -34,7 +34,6 @@ class Core:
     def __init__(self, team=False):
         self.team = team            # チームの使い方：効く記録は CI が書いたものだけ（J35）
         self.today = 0
-        self.claims = {}            # (instance, rule) -> 取った人
         self.revocations = []       # 判断の取り消しの記録（足すだけ）
         self.versions = []          # {id, rules, scope, state, request}
         self.assignment = {"draft": None, "published": None, "request": None, "history": []}  # J7
@@ -52,7 +51,7 @@ class Core:
         self.terms[name] = definition
 
     # ── 承認を通すもの：Concrete の版 ──
-    def write_version(self, rules, vid=None, scope=None, policy=None):
+    def write_version(self, rules, vid=None, scope=None):
         if vid is not None and self.version(vid)["state"] in ("公開", "引退"):
             raise Refused("公開した版は変えない。新しい版を下書きで作る", "J1")
         for r in rules.values():
@@ -60,37 +59,21 @@ class Core:
                 raise Refused("AI と人が判定する rule は読む欄を持つ", "J9")
         if vid is None:
             vid = len(self.versions) + 1
-            self.versions.append({"id": vid, "rules": rules, "scope": scope, "policy": policy, "state": "下書き", "request": None})
+            self.versions.append({"id": vid, "rules": rules, "scope": scope, "state": "下書き", "request": None})
             return vid
         v = self.version(vid)
-        v["rules"], v["scope"], v["policy"], v["state"], v["request"] = rules, scope, policy, "下書き", None  # J4：書けば依頼は取り下げ
+        v["rules"], v["scope"], v["state"], v["request"] = rules, scope, "下書き", None  # J4：書けば依頼は取り下げ
         return vid
 
     def version(self, vid):
         return next(v for v in self.versions if v["id"] == vid)
 
     def _content(self, v):
-        return h({"rules": v["rules"], "scope": v["scope"], "policy": v.get("policy")})
+        return h({"rules": v["rules"], "scope": v["scope"]})
 
     def latest_hash(self):
         vid = self.latest()
         return self._content(self.version(vid)) if vid else None
-
-    def policy(self, v=None):
-        """J28：誰が承認 ・ 判断してよいかは、いま公開している版の policy が決める。最初の版だけは自分の policy。"""
-        done = [w for w in self.versions if w["state"] in ("公開", "引退")]
-        if done:
-            return done[-1].get("policy")  # 引退しても、最後に承認した版の名簿のまま
-        return v.get("policy") if v else None
-
-    def _approver(self, who, requester, v=None):
-        p = self.policy(v)
-        if p is None:
-            return
-        if who not in p.get("approvers", []):
-            raise Refused("契約の承認者ではない", "J28")
-        if who == requester:
-            raise Refused("依頼した本人は承認できない", "J28")
 
     def try_version(self, vid, answer):
         """J5：下書きの版を instance に当てて検証し、効いている結果が変わる instance を返す。いまの結果にはしない。"""
@@ -139,15 +122,13 @@ class Core:
             raise Refused("下書きの版だけを依頼できる", "J4")
         if trial is None or trial["hash"] != self._content(v):
             raise Refused("試した結果の無い依頼", "J5")
-        if self.team and not requester:
-            raise Refused("依頼した人が無い", "J28")
         mismatch = self._check_samples(trial, samples)
         v["state"], v["request"] = "承認待ち", {"hash": self._content(v), "trial": trial, "mismatch": mismatch,
                                                "requester": requester, "parent": self.latest_hash()}
 
     def _reviewed(self, review):
         if self.team and not review:
-            raise Refused("PR のレビューを通らない承認 ・ 判断は効かない", "J35")
+            raise Refused("PR で確かめたものでなければ効かない", "J35")
 
     def approve_version(self, vid, actor, seen_hash, who=None, review=False):
         self._human(actor)
@@ -157,7 +138,6 @@ class Core:
             raise Refused("依頼されていない", "J4")
         if seen_hash != v["request"]["hash"] or self._content(v) != seen_hash:
             raise Refused("人が見た中身といまの中身が違う", "J4")
-        self._approver(who, v["request"]["requester"], v)
         if v["request"]["parent"] != self.latest_hash():
             raise Refused("親の版が変わったので承認し直す", "J30")
         v["state"], v["approved_by"] = "公開", who
@@ -208,8 +188,6 @@ class Core:
             raise Refused("下書きの割り当てが無い", "J4")
         if trial is None or trial["hash"] != h(a["draft"]):
             raise Refused("試した結果の無い依頼", "J5")
-        if self.team and not requester:
-            raise Refused("依頼した人が無い", "J28")
         mismatch = self._check_samples(trial, samples)
         a["request"] = {"hash": h(a["draft"]), "trial": trial, "mismatch": mismatch, "requester": requester}
 
@@ -227,7 +205,6 @@ class Core:
             raise Refused("依頼されていない", "J4")
         if seen_hash != a["request"]["hash"] or h(a["draft"]) != seen_hash:
             raise Refused("人が見た中身といまの中身が違う", "J4")
-        self._approver(who, a["request"]["requester"])
         if a["published"] is not None:
             a["history"].append(a["published"])
         a["published"], a["draft"], a["request"] = a["draft"], None, None
@@ -346,14 +323,14 @@ class Core:
             parts["validator"] = self.validator_of(rid, r)
         return h(parts)
 
-    def record(self, iid, rid, result, quote=None, place=None):
+    def record(self, iid, rid, result, quote=None, place=None, by=None):
         r = self.rules(iid)[rid]
-        if r["by"] == "AI" and result in ("verified", "violated"):
+        if by is None and r["by"] == "AI" and result in ("verified", "violated"):
             vals = [str(v) for v in self.given(iid, rid)["fields"].values() if v]
             if not quote or not any(str(quote) in v for v in vals):
                 result = "unverified"  # J16：根拠が読む欄の値に無い
         self.records.append({"inst": iid, "rule": rid, "input": self.rule_input(iid, rid), "result": result,
-                             "by": self.validator_of(rid, r), "tampered": False, "writer": place or "手元",
+                             "by": by or self.validator_of(rid, r), "tampered": False, "writer": place or "手元",
                              "trusted": True, "day": self.today})
 
     def add_file(self, kind, obj):
@@ -368,7 +345,11 @@ class Core:
         """J18：検証待ちの rule だけを渡す。"""
         for rid in self.pending(iid):
             r = self.rules(iid)[rid]
-            if r["by"] == "人":
+            x = self.instances[iid]
+            if any(x["fields"].get(f) and (x["fields"][f] not in self.instances or x["fields"][f] in self.deleted)
+                   for f in r.get("refs", [])):
+                self.record(iid, rid, "violated", place=place, by=ENGINE)  # J12：参照先が無い（基盤が判定する）
+            elif r["by"] == "人":
                 self.record(iid, rid, "unverified", place=place)
             elif self.validator_of(rid, r) is None:
                 self.record(iid, rid, "unsupported", place=place)
@@ -410,22 +391,10 @@ class Core:
         """人に示す。示した時点の入力（validator を除く）を返し、判断はそれに結び付く（J21）。"""
         return self.rule_input(iid, rid, with_validator=False)
 
-    def allowed(self, rid):
-        """J29：この rule を判断してよい人。担当 ・ 代わり ・ 承認者（割れたものを決める）。担当の無い rule は承認者だけ。"""
-        p = self.policy()
-        if p is None:
-            return None
-        return set(p.get("judges", {}).get(rid, [])) | set(p.get("deputies", {}).get(rid, [])) | set(p.get("approvers", []))
-
     def judge(self, iid, rid, verdict, actor, shown, who=None, review=False):
         self._human(actor)
         self._alive(iid)
-        if self.team and not who:
-            raise Refused("判断した人が無い", "J35")
         self._reviewed(review)
-        ok = self.allowed(rid)
-        if ok is not None and who not in ok:
-            raise Refused("この rule の判断の担当ではない", "J29")
         if shown != self.rule_input(iid, rid, with_validator=False):
             raise Refused("人に示した入力といまの入力が違う", "J21")
         if self.unfilled(iid, rid):
@@ -441,7 +410,6 @@ class Core:
              "via": "review" if review else "手元", "trusted": True, "day": self.today}
         j["id"] = h(j)
         self.judgments.append(j)
-        self.claims.pop((iid, rid), None)
 
     def judge_many(self, items, verdict, actor, who=None, review=False):
         """J22：instance ごとに別に保存し、断ったものの一覧を返す。"""
@@ -459,8 +427,6 @@ class Core:
     def revoke(self, iid, rid, actor, who=None):
         """取り消しは、前の判断を書き換えずに、取り消しの記録を足す。"""
         self._human(actor)
-        if self.team and not who:
-            raise Refused("取り消した人が無い", "J35")
         dead = self._revoked()
         js = [j for j in self.judgments if j["inst"] == iid and j["rule"] == rid and j.get("id") not in dead
               and (who is None or j.get("who") == who)]
@@ -483,23 +449,20 @@ class Core:
         return "効く"
 
     def live_judgments(self, iid, rid):
-        """効いている判断：取り消していない ・ 書き換えが見つかっていない ・ 示した入力がいまと同じ ・ いまの名簿で判断してよい人。
-        チームでは、PR のレビューを通ったものだけ。順番には頼らない。"""
+        """効いている判断：取り消していない ・ 書き換えが見つかっていない ・ 示した入力がいまと同じ。
+        チームでは、PR で確かめたものだけ。順番には頼らない。"""
         inp = self.rule_input(iid, rid, with_validator=False)
-        dead, ok = self._revoked(), self.allowed(rid)
+        dead = self._revoked()
         return [j for j in self.judgments
                 if j["inst"] == iid and j["rule"] == rid and j.get("id") not in dead and not j["tampered"]
                 and j.get("trusted", True) and j["input"] == inp
-                and (not self.team or j.get("via") == "review") and (ok is None or j.get("who") in ok)]
+                and (not self.team or j.get("via") == "review")]
 
     def effective(self, iid, rid):
-        """J23 ・ J31：未記入 → 効いている判断（承認者の判断が優先。割れたら「割れた」）→ いまの結果 の順で決める。"""
+        """J23 ・ J31：未記入 → 効いている判断（割れたら「割れた」）→ いまの結果 の順で決める。"""
         if self.unfilled(iid, rid):
             return "未記入"
-        live = self.live_judgments(iid, rid)
-        p = self.policy() or {}
-        boss = [j for j in live if j.get("who") in p.get("approvers", [])]
-        verdicts = {j["verdict"] for j in (boss or live)}
+        verdicts = {j["verdict"] for j in self.live_judgments(iid, rid)}
         if len(verdicts) > 1:
             return "割れた"
         if verdicts:
@@ -529,68 +492,33 @@ class Core:
             return "前の版で検証済み"
         return "検証済み"
 
-    # ── 届け先（J33 ・ J36）：人ごとの受信箱。検証済み以外の状態は、必ず誰かに届く ──
-    def _why(self, iid, rid):
-        recs = self._recs(iid, rid)
-        got = {r["result"] for r in recs if r["result"] != "error"}
-        if len(got) > 1:
-            return "割れ"
-        if not got and recs:
-            return "error"
-        return None
-
-    def recipients(self, iid, rid):
-        p = self.policy() or {}
-        judges = p.get("judges", {}).get(rid)
-        if judges is None:
-            return set(p.get("approvers", []))
-        since = min([r["day"] for r in self._recs(iid, rid)] or [self.today])
-        late = self.today - since >= p.get("days", 10 ** 9)
-        out = set(judges) | ((set(p.get("deputies", {}).get(rid, [])) | set(p.get("approvers", []))) if late else set())
-        c = self.claims.get((iid, rid))
-        return {c} if c and not late else out
-
-    def claim(self, iid, rid, who):
-        if self.policy() is not None and who not in self.recipients(iid, rid):
-            raise Refused("この判断の届け先ではない", "J33")
-        self.claims[(iid, rid)] = who
-
-    def inbox(self, who):
-        p = self.policy()
-        approvers = set((p or {}).get("approvers", []))
-        out, bundles = [], set()
+    # ── PR に出すもの（J33）：変更の差分と、人が見るべきもの。誰が見るかはチームのやり方で、基盤は決めない ──
+    def report(self):
+        out = []
         for v in self.versions:
-            if v["state"] == "承認待ち" and (p is None or (who in approvers and who != v["request"]["requester"])):
-                out.append(f"契約の新しい版 {v['id']} の承認")
-            if v["state"] == "下書き" and v.get("note") and (p is None or who in approvers or who == (v.get("request") or {}).get("requester")):
-                out.append(f"契約の版 {v['id']}：{v['note']}")
-        a = self.assignment
-        if a["request"] and (p is None or (who in approvers and who != a["request"]["requester"])):
-            out.append("validator の割り当ての承認")
-        for iid, x in self.instances.items():
+            if v["state"] == "承認待ち":
+                out.append(f"契約の版 {v['id']}：差分と試した結果（状態が変わる instance {len(v['request']['trial']['changed'])}件）")
+        if self.assignment["request"]:
+            out.append("validator の割り当て：差分と試した結果")
+        for iid in self.instances:
             if iid in self.deleted:
                 continue
-            if self.state(iid) == "下書き" and who == x.get("author"):
-                out.append(f"直す：{iid}（下書き）")
-            for rid, r in self.rules(iid).items():
+            st = self.state(iid)
+            if st == "下書き":
+                out.append(f"{iid}：違反がある（AI が直す）")
+            for rid in self.rules(iid):
                 e = self.effective(iid, rid)
-                why = self._why(iid, rid)
-                if e == "検証待ち" and why == "割れ" and (p is None or who in approvers):
-                    bundles.add(f"機械の答えが割れた：rule {rid}")
-                elif e == "unsupported" and (p is None or who in approvers):
-                    bundles.add(f"割り当てが無い：rule {rid}")
-                elif e == "unverified" and why == "error" and (p is None or who in approvers):
-                    bundles.add(f"error が続いた：rule {rid}")
-                elif e == "割れた" and (p is None or who in approvers):
-                    out.append(f"判断が割れた：{iid} × {rid}")
-                elif e == "unverified" and (p is None or who in self.recipients(iid, rid)):
-                    out.append(f"判断：{iid} × {rid}")
-        return out + sorted(bundles)
+                if e in ("unverified", "unsupported", "割れた"):
+                    out.append(f"{iid} × {rid}：人が見る（{e}）")
+                elif e == "検証待ち" and st != "下書き":
+                    out.append(f"{iid} × {rid}：検証できていない")
+        return out
 
 
 def merge(base, ours, theirs):
-    """J34 ・ J30 ・ J12：Git がファイル（記録と判断は1件1ファイル、名前は中身のハッシュ）を合わせたあとの姿を作り、
-    併合の前に CI が検査する。検査に通らなければ、その PR は併合できない。"""
+    """J34：main（theirs）の差分を自分のブランチ（ours）へ取り込む。ファイルの併合は Git が行い、
+    記録と判断は1件1ファイルなので合わせるだけ。取り込んだあとの中身は、CI がいつもの検証でもう一度確かめる。
+    同じ instance の同じ欄を両方で変えたときだけ、Git の衝突として人が中身を選ぶ。"""
     m = copy.deepcopy(ours)
     for name in ("records", "judgments", "revocations"):
         have = {h(x) for x in getattr(m, name)}
@@ -599,33 +527,34 @@ def merge(base, ours, theirs):
                 getattr(m, name).append(copy.deepcopy(x)); have.add(h(x))
     for name, d in theirs.terms.items():
         m.publish_term(name, d)
-    renum = {}
-    known = {m._content(v): v["id"] for v in m.versions}
-    for v in theirs.versions[len(base.versions):]:
-        if theirs._content(v) in known:
-            renum[v["id"]] = known[theirs._content(v)]
-            continue
-        if v["state"] == "公開" and v["request"]["parent"] != m.latest_hash():
-            raise Refused(f"版 {v['id']} の親の版が変わった。PR は併合できず、承認し直す", "J30")
-        nv = copy.deepcopy(v); nv["id"] = len(m.versions) + 1; renum[v["id"]] = nv["id"]
-        m.versions.append(nv)
+    # 版：先に main（theirs）が足した版を並べ、そのあとに自分のブランチ（ours）の版を並べる。
+    # 公開した版の親が、並べた時点のいまの版と違えば、試し直して PR で確かめる（J30）
+    m.versions = copy.deepcopy(base.versions)
+    renum = {"ours": {}, "theirs": {}}
+    for side, src in (("theirs", theirs), ("ours", ours)):
+        for v in src.versions[len(base.versions):]:
+            known = {m._content(w): w["id"] for w in m.versions}
+            if src._content(v) in known:
+                renum[side][v["id"]] = known[src._content(v)]
+                continue
+            nv = copy.deepcopy(v); nv["id"] = len(m.versions) + 1; renum[side][v["id"]] = nv["id"]
+            if v["state"] == "公開" and v["request"]["parent"] != m.latest_hash():
+                nv["state"], nv["note"] = "承認待ち", "取り込んだら親の版が変わった。試し直して PR で確かめる"
+            m.versions.append(nv)
+    for iid, x in m.instances.items():
+        x["version"] = renum["ours"].get(x["version"], x["version"]); x["schema"] = renum["ours"].get(x["schema"], x["schema"])
     if theirs.assignment["published"] != base.assignment["published"]:
         if m.assignment["published"] not in (base.assignment["published"], theirs.assignment["published"]):
-            raise Refused("割り当てを両方のブランチで別々に変えた", "J34")
+            raise Refused("割り当てを両方で別々に変えた（Git の衝突）", "J34")
         m.assignment = copy.deepcopy(theirs.assignment)
     for iid in set(base.instances) | set(ours.instances) | set(theirs.instances):
         b, o, t = (x.instances.get(iid) for x in (base, ours, theirs))
         if o == t or t == b:
             continue
         if o == b:
-            nt = copy.deepcopy(t); nt["version"] = renum.get(nt["version"], nt["version"]); nt["schema"] = renum.get(nt["schema"], nt["schema"])
+            nt = copy.deepcopy(t); nt["version"] = renum["theirs"].get(nt["version"], nt["version"]); nt["schema"] = renum["theirs"].get(nt["schema"], nt["schema"])
             m.instances[iid] = nt
-            if iid in theirs.deleted:
-                m.deleted.add(iid)
             continue
-        raise Refused("同じ instance を両方のブランチで変えた。人が中身を選ぶ", "J34")
+        raise Refused("同じ instance を両方で変えた（Git の衝突）。人が中身を選ぶ", "J34")
     m.deleted |= (theirs.deleted - base.deleted)
-    for iid in m.deleted:
-        if m.referrers(iid):
-            raise Refused(f"{iid} は消したが、ほかの instance が指している", "J12")
     return m
