@@ -1,0 +1,185 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0191",
+ "title": "長いパッチをファイルで渡し、チャットの AI にボードのフォルダへの書き込みを許す",
+ "date": "2026-10-17",
+ "status": "accepted",
+ "decision": "基盤の update は JSON Patch をファイルからも受け取り、ボードのチャットの AI には、そのボードのフォルダへのファイルの書き込みと design-svg を許す。",
+ "why": "チャットの AI が図の SVG（約1万字）を引数に入れた update を実行し、Claude Code の許可の判定で止められた。短い update は通るので、許可の一覧の不足ではなく、長いコマンドの形が原因である（改行 ・ ; ・ $ は試して原因でないと確かめた）。利用者が許可の設定を外に出した意図に沿い、長い中身はファイルで渡す形に一致させる。",
+ "shift": [
+  {
+   "what": "長いパッチの渡し方",
+   "from": "--patch の引数に全部入れる",
+   "to": "ボードのフォルダにファイルで書き、--patch_file でファイルの名前だけを渡す（--patch とどちらか1つ）"
+  },
+  {
+   "what": "チャットの AI が書けるファイル",
+   "from": "書けない（brainstorming のコマンドだけ）",
+   "to": "そのボードのフォルダだけ（Edit(./${board_dir}**)）。許可の設定のフォルダには書けない"
+  },
+  {
+   "what": "図の作り方",
+   "from": "SVG を手で組んで、そのまま渡す",
+   "to": "design-svg の resolve と verify を通してから渡す"
+  },
+  {
+   "what": "基盤の版",
+   "from": "0.1.1",
+   "to": "0.1.2（公開は別に確認する。それまでは手元でビルドしたものを brainstorming に入れる）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は長い update が止められていた。変更後はボードのフォルダのファイルで渡し、コマンドは短いまま。",
+ "alternatives": [
+  {
+   "option": "許可の一覧に、長い update を通す設定を足す",
+   "why_not": "止められたのは一覧の不足ではなく、コマンドの形である。一覧に足しても通るとは限らない"
+  },
+  {
+   "option": ".brainstorming 全体への書き込みを許す",
+   "why_not": "AI が自分の許可の設定（.brainstorming/.settings/agents.json）を書き換えられる。試して、ボードのフォルダに絞った規則なら設定のフォルダに書けないことを確かめた"
+  },
+  {
+   "option": "パッチを標準入力で渡す（--patch -）",
+   "why_not": "シェルのヒアドキュメントを使うことになり、許可の判定がコマンドの形に左右されるのは同じである"
+  },
+  {
+   "option": "brainstorming の側だけでファイルを読む",
+   "why_not": "ほかの Skill も同じ問題に当たる。update は基盤の操作なので、基盤で受ける"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tools",
+   "tab": "tools.rs",
+   "file": "src/schema-driven/crates/adapters/src/inbound/tools.rs",
+   "marks": [
+    {
+     "find": "patch_file",
+     "before": "(\"patch\", \"JSON Patch（RFC 6902）の文字列\", true),",
+     "why": "update の引数に patch_file を足し、patch を必須から外す。"
+    },
+    {
+     "find": "update は patch か patch_file のどちらか1つを渡す",
+     "before": "\"update\" => instances.update(arg(\"path\"), arg(\"patch\"), args.get(\"hash\").and_then(Value::as_str)).map(|updated| {",
+     "why": "両方か、どちらも無いときは使い方の誤り（終了コード 2）にする。"
+    },
+    {
+     "find": "json!([\"path\"])",
+     "before": "assert_eq!(schema[\"required\"], json!([\"path\", \"patch\"]));",
+     "why": "MCP の inputSchema で、必須が path だけになったことを固定する。"
+    }
+   ]
+  },
+  {
+   "key": "core",
+   "tab": "instances.rs",
+   "file": "src/schema-driven/crates/core/src/application/instances.rs",
+   "marks": [
+    {
+     "find": "pub fn update_from_file",
+     "before": "（無い）",
+     "why": "パッチをファイルから読んで、いまの update に渡す。読めなければ「読めない」を返す。"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "cli.rs",
+   "file": "src/schema-driven/crates/adapters/src/inbound/cli.rs",
+   "marks": [
+    {
+     "find": "{\"name\": \"patch_file\", \"required\": false}",
+     "before": "{\"name\": \"patch\", \"required\": true},",
+     "why": "ツールの一覧の試験を、新しい引数に合わせる。"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "tests/instances.rs",
+   "file": "src/schema-driven/crates/adapters/tests/instances.rs",
+   "marks": [
+    {
+     "find": "fn update_reads_a_long_patch_from_a_file",
+     "before": "（無い）",
+     "why": "ファイルのパッチで更新できることを固定する。"
+    },
+    {
+     "find": "fn update_takes_either_patch_or_patch_file_but_not_both",
+     "before": "（無い）",
+     "why": "どちらか1つだけ ・ 読めないファイルの扱いを固定する。"
+    }
+   ]
+  },
+  {
+   "key": "ver",
+   "tab": "Cargo.toml",
+   "file": "src/schema-driven/Cargo.toml",
+   "marks": [
+    {
+     "find": "version = \"0.1.2\"",
+     "before": "version = \"0.1.1\"",
+     "why": "引数を足したので版を上げる。"
+    }
+   ]
+  },
+  {
+   "key": "lock",
+   "tab": "Cargo.lock",
+   "file": "src/schema-driven/Cargo.lock",
+   "marks": [
+    {
+     "find": "version = \"0.1.2\"",
+     "before": "version = \"0.1.1\"",
+     "why": "版を上げたので作り直した。"
+    }
+   ]
+  },
+  {
+   "key": "settings",
+   "tab": "agents.json",
+   "file": ".brainstorming/.settings/agents.json",
+   "marks": [
+    {
+     "find": "Edit(./${board_dir}**)",
+     "before": "\"Bash(.claude/skills/fact-check/bin/fact-check:*)\"",
+     "why": "そのボードのフォルダだけに書き込みを許す。"
+    },
+    {
+     "find": "design-svg:*",
+     "before": "\"Bash(.claude/skills/fact-check/bin/fact-check:*)\"",
+     "why": "図を resolve と verify に通せるようにする。"
+    },
+    {
+     "find": "--patch_file",
+     "before": "\"外の原典は WebSearch で探し、.claude/skills/fact-check/bin/fact-check で原文を取得して照合する（このコマンドも実行してよい）。原文は ${board_dir}sources/ に置く。\"",
+     "why": "新しいセッションの最初の依頼に、長い中身はファイルで渡す使い方を足す。"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "marks": [
+    {
+     "find": "--patch_file",
+     "before": "（無い）",
+     "why": "基盤の Skill の使い方に、ファイルで渡す書き方を足す。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "tools": "f4fce9db341d415af85c9af179167507926c434a90f44fc33f5237957d5fe018",
+  "core": "0c28a0c77bc4e14725466eccbf0a8e4d03b0247c1ba9328c9d5dc3ff4c5fdbe6",
+  "cli": "d0af527166d106ba619ddbf1d79d8de62da4cc7d9bded5691d354b3112bf0e5a",
+  "tests": "204c3a7849508490bdb82e5357f32cf53661912d3d31ec9d2716646f0ab27ed8",
+  "ver": "299a0d49b658552b49bc1618b6ed2cc1526302964b454a83e80e31a893d34bfe",
+  "lock": "0802c598d11916783ae1d1b44364380a62fd21a4bf27a8a59beef5dbf92df443",
+  "settings": "57a32853ab8d9035d971008d09b1f5ee0843997875eaf0afabfcd98d1b59558c",
+  "skill": "fd77f441591f2f91e79f4c567eb19bd21ca3e9d8165ee7c4e54ad3a52cedd047"
+ }
+}

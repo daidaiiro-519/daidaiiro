@@ -96,6 +96,56 @@ fn update_applies_the_patch() {
 }
 
 #[test]
+fn update_reads_a_long_patch_from_a_file() {
+    let dir = workdir("update-patch-file");
+    dir.put_text("data/name.patch.json", NAME);
+    run(
+        &dir,
+        SKILL,
+        &[
+            create(0, &[]),
+            call(
+                "update",
+                &[("path", A), ("patch_file", "./data/name.patch.json")],
+                0,
+                &[],
+            ),
+        ],
+    );
+    assert_eq!(saved(&dir)["name"], "a");
+}
+
+#[test]
+fn update_takes_either_patch_or_patch_file_but_not_both() {
+    let dir = workdir("update-patch-one");
+    dir.put_text("data/name.patch.json", NAME);
+    run(
+        &dir,
+        SKILL,
+        &[
+            create(0, &[]),
+            call("update", &[("path", A)], 2, &[]),
+            call(
+                "update",
+                &[
+                    ("path", A),
+                    ("patch", NAME),
+                    ("patch_file", "./data/name.patch.json"),
+                ],
+                2,
+                &[],
+            ),
+            call(
+                "update",
+                &[("path", A), ("patch_file", "./data/missing.json")],
+                1,
+                &[("/reason", eq("読めない"))],
+            ),
+        ],
+    );
+}
+
+#[test]
 fn update_refuses_a_stale_hash() {
     let dir = workdir("update-stale");
     let stale = "0".repeat(64);

@@ -134,7 +134,10 @@ create は、必須のプロパティを空のままにしてインスタンス�
 
 ```
 scripts/bin/schema-driven update --path <インスタンス> --patch '<JSON Patch>' [--hash <読んだ時点のハッシュ値>]
+scripts/bin/schema-driven update --path <インスタンス> --patch_file <JSON Patch を書いたファイル> [--hash <読んだ時点のハッシュ値>]
 ```
+
+長いパッチ（図の SVG を含むものなど）は、ファイルに書いて `--patch_file` で渡す。`--patch` と `--patch_file` はどちらか1つだけを渡す。
 
 未記入以外の検証エラーがあれば、書かずに `errors` を返す。直して、もう一度送る。未記入が残っているときは書いて、残りを x-prompt と一緒に返す。
 

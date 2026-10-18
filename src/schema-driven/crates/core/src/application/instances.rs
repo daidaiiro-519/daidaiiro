@@ -301,6 +301,20 @@ impl<F: Files, S: Schemas, Q: Query> Instances<F, S, Q> {
     }
 
     /// インスタンスを更新する。`hash` は呼ぶ側が読んだ時点のハッシュ値（無ければ、このユースケースが読んだ時点）
+    /// JSON Patch をファイルから読んで当てる。長いパッチを、コマンドの引数に入れずに渡すため。
+    pub fn update_from_file(
+        &self,
+        path: &str,
+        patch_file: &str,
+        hash: Option<&str>,
+    ) -> Result<Updated, UseCaseError> {
+        let patch = self
+            .files
+            .read(patch_file)
+            .map_err(|error| UseCaseError::new("読めない", error.0))?;
+        self.update(path, &patch, hash)
+    }
+
     pub fn update(
         &self,
         path: &str,

@@ -31,7 +31,8 @@ pub const TOOLS: &[ToolDef] = &[
         description: "インスタンスへ JSON Patch を適用し、未記入以外の検証エラーが無いときだけ書く",
         args: &[
             ("path", "インスタンスのパス", true),
-            ("patch", "JSON Patch（RFC 6902）の文字列", true),
+            ("patch", "JSON Patch（RFC 6902）の文字列。patch_file とどちらか1つを渡す", false),
+            ("patch_file", "JSON Patch を書いたファイルのパス。長いパッチはこちらで渡す", false),
             ("hash", "読んだ時点のハッシュ値。違えば「ほかの更新と競合した」で拒む", false),
         ],
     },
@@ -202,9 +203,17 @@ impl<F: Files, S: Schemas, Q: Query> Toolbox<F, S, Q> {
                 json!({"ok": true, "path": created.path, "hash": created.hash, "unfilled": unfilled(&created.unfilled)})
             }),
             "get" => instances.get(arg("path"), arg("query")).map(|got| json!({"ok": true, "value": got.value, "found": got.found})),
-            "update" => instances.update(arg("path"), arg("patch"), args.get("hash").and_then(Value::as_str)).map(|updated| {
+            "update" => {
+                let hash = args.get("hash").and_then(Value::as_str);
+                let updated = match (args.get("patch"), args.get("patch_file")) {
+                    (Some(_), None) => instances.update(arg("path"), arg("patch"), hash),
+                    (None, Some(_)) => instances.update_from_file(arg("path"), arg("patch_file"), hash),
+                    _ => return misuse("update は patch か patch_file のどちらか1つを渡す"),
+                };
+                updated.map(|updated| {
                 json!({"ok": true, "hash": updated.hash, "changed": updated.changed, "errors": errors(&updated.errors), "unfilled": unfilled(&updated.unfilled)})
-            }),
+                })
+            }
             "delete" => checks.delete(arg("path")).map(|deleted| json!({"ok": true, "remaining": findings(&deleted.remaining)})),
             "check" => checks.check(arg("dir")).map(|checked| {
                 let validated: Vec<Value> = checked
@@ -266,7 +275,7 @@ mod tests {
         let update = TOOLS.iter().find(|tool| tool.name == "update").unwrap();
         let schema = Value::Object(input_schema(update));
         assert_eq!(schema["type"], "object");
-        assert_eq!(schema["required"], json!(["path", "patch"]));
+        assert_eq!(schema["required"], json!(["path"]));
         assert_eq!(schema["additionalProperties"], false);
         assert_eq!(schema["properties"]["hash"]["type"], "string");
     }

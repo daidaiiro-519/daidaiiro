@@ -106,7 +106,8 @@ mod tests {
             update["args"],
             serde_json::json!([
                 {"name": "path", "required": true},
-                {"name": "patch", "required": true},
+                {"name": "patch", "required": false},
+                {"name": "patch_file", "required": false},
                 {"name": "hash", "required": false}
             ])
         );

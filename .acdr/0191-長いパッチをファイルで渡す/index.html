@@ -1,0 +1,2022 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>長いパッチをファイルで渡し、チャットの AI にボードのフォルダへの書き込みを許す</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code td.cd code{background:none;padding:0;border-radius:0;font-size:inherit;font-family:inherit;white-space:inherit}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper);overflow-x:auto}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0191 ・ 2026-10-17 ・ <span class="tag">承認</span></p><h1>長いパッチをファイルで渡し、チャットの AI にボードのフォルダへの書き込みを許す</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">基盤の update は JSON Patch をファイルからも受け取り、ボードのチャットの AI には、そのボードのフォルダへのファイルの書き込みと design-svg を許す。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>チャットの AI が図の SVG（約1万字）を引数に入れた update を実行し、Claude Code の許可の判定で止められた。短い update は通るので、許可の一覧の不足ではなく、長いコマンドの形が原因である（改行 ・ ; ・ $ は試して原因でないと確かめた）。利用者が許可の設定を外に出した意図に沿い、長い中身はファイルで渡す形に一致させる。</p></section><section class="block"><h2>どう変わるか</h2><figure><figcaption>変更前は長い update が止められていた。変更後はボードのフォルダのファイルで渡し、コマンドは短いまま。</figcaption><svg viewBox="0 0 780 300" style="min-width:660px" role="img" aria-label="長いパッチを引数で渡して止められていたのを、ボードのフォルダのファイルで渡す形に変える" class="dsvg"><style data-dsvg="dark">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg #dsvg-698237bb-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2}}:root[data-theme="dark"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-accent-bg:#173330;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2}</style><defs data-dsvg="marker"><marker id="dsvg-698237bb-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs>
+<text class="note" x="20" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">変更前</text><text class="note" x="410" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">変更後</text>
+<rect class="box" x="20" y="34" width="360" height="62" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="34" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">チャットの AI</text><text class="label" x="34" y="80" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">図の SVG（約1万字）を手で組む</text>
+<rect class="box warn" x="20" y="116" width="360" height="62" fill="#F0E2CD" stroke="#8F5410" stroke-width="1.5" rx="5"/><text class="title" x="34" y="140" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">update --patch '&lt;1万字&gt;'</text><text class="label" x="34" y="162" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">長いコマンドが許可の判定で止められる</text>
+<rect class="boundary" x="20" y="198" width="360" height="62" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/><text class="label" x="34" y="222" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">図が直せず、人が代わりに直す</text>
+<path class="flow" d="M200,98 V112" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-698237bb-arrow-5B6B66)"/><path class="flow" d="M200,180 V194" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-698237bb-arrow-5B6B66)"/>
+<rect class="box" x="410" y="34" width="350" height="62" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="424" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">ボードのフォルダにファイルで書く</text><text class="label" x="424" y="80" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">Edit はボードのフォルダだけ許す</text>
+<rect class="box focus" x="410" y="116" width="350" height="62" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="title" x="424" y="140" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">update --patch_file &lt;ファイル&gt;</text><text class="label" x="424" y="162" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">コマンドは短いまま（基盤 0.1.2）</text>
+<rect class="box kind-1" x="410" y="198" width="350" height="62" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/><text class="label" x="424" y="222" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">図は design-svg の resolve と verify を通す</text><text class="note" x="424" y="244" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">許可の設定のフォルダには書けない</text>
+<path class="flow" d="M585,98 V112" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-698237bb-arrow-5B6B66)"/><path class="flow" d="M585,180 V194" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-698237bb-arrow-5B6B66)"/>
+</svg>
+</figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>長いパッチの渡し方</td><td>--patch の引数に全部入れる</td><td>ボードのフォルダにファイルで書き、--patch_file でファイルの名前だけを渡す（--patch とどちらか1つ）</td></tr><tr><td>チャットの AI が書けるファイル</td><td>書けない（brainstorming のコマンドだけ）</td><td>そのボードのフォルダだけ（Edit(./${board_dir}**)）。許可の設定のフォルダには書けない</td></tr><tr><td>図の作り方</td><td>SVG を手で組んで、そのまま渡す</td><td>design-svg の resolve と verify を通してから渡す</td></tr><tr><td>基盤の版</td><td>0.1.1</td><td>0.1.2（公開は別に確認する。それまでは手元でビルドしたものを brainstorming に入れる）</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>許可の一覧に、長い update を通す設定を足す</td><td>止められたのは一覧の不足ではなく、コマンドの形である。一覧に足しても通るとは限らない</td></tr><tr><td>.brainstorming 全体への書き込みを許す</td><td>AI が自分の許可の設定（.brainstorming/.settings/agents.json）を書き換えられる。試して、ボードのフォルダに絞った規則なら設定のフォルダに書けないことを確かめた</td></tr><tr><td>パッチを標準入力で渡す（--patch -）</td><td>シェルのヒアドキュメントを使うことになり、許可の判定がコマンドの形に左右されるのは同じである</td></tr><tr><td>brainstorming の側だけでファイルを読む</td><td>ほかの Skill も同じ問題に当たる。update は基盤の操作なので、基盤で受ける</td></tr></tbody></table></div></section></div><p class="bridge">ここから下は、この決定で<b>変わるファイルごとの差分</b>である。タブでファイルを切り替える。</p>
+<p class="lede"></p>
+
+<section class="diffs">
+<div id="bar"><b>変更 11 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="tools">tools.rs<span class="n">3</span></button><button class="tab" role="tab" data-t="core">instances.rs<span class="n">1</span></button><button class="tab" role="tab" data-t="cli">cli.rs<span class="n">1</span></button><button class="tab" role="tab" data-t="tests">tests/instances.rs<span class="n">1</span></button><button class="tab" role="tab" data-t="ver">Cargo.toml<span class="n">1</span></button><button class="tab" role="tab" data-t="lock">Cargo.lock<span class="n">1</span></button><button class="tab" role="tab" data-t="settings">agents.json<span class="n">2</span></button><button class="tab" role="tab" data-t="skill">SKILL.md<span class="n">1</span></button></div>
+<section class="pane code-pane" data-k="tools" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 3 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 3 件</summary><ol><li><div class="w">update の引数に patch_file を足し、patch を必須から外す。</div><div class="at"><span class="lbl">場所</span><code>patch_file</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">両方か、どちらも無いときは使い方の誤り（終了コード 2）にする。</div><div class="at"><span class="lbl">場所</span><code>update は patch か patch_file のどちらか1つを渡す</code><button class="go" data-i="1">その箇所へ移動</button></div></li><li><div class="w">MCP の inputSchema で、必須が path だけになったことを固定する。</div><div class="at"><span class="lbl">場所</span><code>json!([&quot;path&quot;])</code><button class="go" data-i="2">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 31 ／ 新 31 @@</td></tr><tr class="r"><td class="ln">31</td><td class="ln">31</td><td class="mk"> </td><td class="cd"><code>        description: &quot;インスタンスへ JSON Patch を適用し、未記入以外の検証エラーが無いときだけ書く&quot;,</code></td></tr><tr class="r"><td class="ln">32</td><td class="ln">32</td><td class="mk"> </td><td class="cd"><code>        args: &amp;[</code></td></tr><tr class="r"><td class="ln">33</td><td class="ln">33</td><td class="mk"> </td><td class="cd"><code>            (&quot;path&quot;, &quot;インスタンスのパス&quot;, <span class="t-k">true</span>),</code></td></tr><tr class="rd"><td class="ln">34</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>            (&quot;patch&quot;, &quot;JSON Patch（RFC <span class="t-n">6902</span>）の文字列&quot;, <span class="t-k">true</span>),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">34</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="(&quot;patch&quot;, &quot;JSON Patch（RFC 6902）の文字列&quot;, true)," data-w="update の引数に patch_file を足し、patch を必須から外す。">            (&quot;patch&quot;, &quot;JSON Patch（RFC <span class="t-n">6902</span>）の文字列。patch_file とどちらか1つを渡す&quot;, <span class="t-k">false</span>),</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">35</td><td class="mk">+</td><td class="cd"><code>            (&quot;patch_file&quot;, &quot;JSON Patch を書いたファイルのパス。長いパッチはこちらで渡す&quot;, <span class="t-k">false</span>),</code></td></tr><tr class="r"><td class="ln">35</td><td class="ln">36</td><td class="mk"> </td><td class="cd"><code>            (&quot;hash&quot;, &quot;読んだ時点のハッシュ値。違えば「ほかの更新と競合した」で拒む&quot;, <span class="t-k">false</span>),</code></td></tr><tr class="r"><td class="ln">36</td><td class="ln">37</td><td class="mk"> </td><td class="cd"><code>        ],</code></td></tr><tr class="r"><td class="ln">37</td><td class="ln">38</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 202 ／ 新 203 @@</td></tr><tr class="r"><td class="ln">202</td><td class="ln">203</td><td class="mk"> </td><td class="cd"><code>                json!({&quot;ok&quot;: <span class="t-k">true</span>, &quot;path&quot;: created.path, &quot;hash&quot;: created.hash, &quot;unfilled&quot;: unfilled(&amp;created.unfilled)})</code></td></tr><tr class="r"><td class="ln">203</td><td class="ln">204</td><td class="mk"> </td><td class="cd"><code>            }),</code></td></tr><tr class="r"><td class="ln">204</td><td class="ln">205</td><td class="mk"> </td><td class="cd"><code>            &quot;get&quot; =&gt; instances.get(arg(&quot;path&quot;), arg(&quot;query&quot;)).map(|got| json!({&quot;ok&quot;: <span class="t-k">true</span>, &quot;value&quot;: got.value, &quot;found&quot;: got.found})),</code></td></tr><tr class="rd"><td class="ln">205</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>            &quot;update&quot; =&gt; instances.update(arg(&quot;path&quot;), arg(&quot;patch&quot;), args.get(&quot;hash&quot;).and_then(Value::as_str)).map(|updated| {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">206</td><td class="mk">+</td><td class="cd"><code>            &quot;update&quot; =&gt; {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">207</td><td class="mk">+</td><td class="cd"><code>                <span class="t-k">let</span> hash = args.get(&quot;hash&quot;).and_then(Value::as_str);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">208</td><td class="mk">+</td><td class="cd"><code>                <span class="t-k">let</span> updated = <span class="t-k">match</span> (args.get(&quot;patch&quot;), args.get(&quot;patch_file&quot;)) {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">209</td><td class="mk">+</td><td class="cd"><code>                    (Some(_), None) =&gt; instances.update(arg(&quot;path&quot;), arg(&quot;patch&quot;), hash),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">210</td><td class="mk">+</td><td class="cd"><code>                    (None, Some(_)) =&gt; instances.update_from_file(arg(&quot;path&quot;), arg(&quot;patch_file&quot;), hash),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">211</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="&quot;update&quot; =&gt; instances.update(arg(&quot;path&quot;), arg(&quot;patch&quot;), args.get(&quot;hash&quot;).and_then(Value::as_str)).map(|updated| {" data-w="両方か、どちらも無いときは使い方の誤り（終了コード 2）にする。">                    _ =&gt; <span class="t-k">return</span> misuse(&quot;update は patch か patch_file のどちらか1つを渡す&quot;),</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">212</td><td class="mk">+</td><td class="cd"><code>                };</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">213</td><td class="mk">+</td><td class="cd"><code>                updated.map(|updated| {</code></td></tr><tr class="r"><td class="ln">206</td><td class="ln">214</td><td class="mk"> </td><td class="cd"><code>                json!({&quot;ok&quot;: <span class="t-k">true</span>, &quot;hash&quot;: updated.hash, &quot;changed&quot;: updated.changed, &quot;errors&quot;: errors(&amp;updated.errors), &quot;unfilled&quot;: unfilled(&amp;updated.unfilled)})</code></td></tr><tr class="rd"><td class="ln">207</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>            }),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">215</td><td class="mk">+</td><td class="cd"><code>                })</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">216</td><td class="mk">+</td><td class="cd"><code>            }</code></td></tr><tr class="r"><td class="ln">208</td><td class="ln">217</td><td class="mk"> </td><td class="cd"><code>            &quot;delete&quot; =&gt; checks.delete(arg(&quot;path&quot;)).map(|deleted| json!({&quot;ok&quot;: <span class="t-k">true</span>, &quot;remaining&quot;: findings(&amp;deleted.remaining)})),</code></td></tr><tr class="r"><td class="ln">209</td><td class="ln">218</td><td class="mk"> </td><td class="cd"><code>            &quot;check&quot; =&gt; checks.check(arg(&quot;dir&quot;)).map(|checked| {</code></td></tr><tr class="r"><td class="ln">210</td><td class="ln">219</td><td class="mk"> </td><td class="cd"><code>                <span class="t-k">let</span> validated: Vec&lt;Value&gt; = checked</code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 266 ／ 新 275 @@</td></tr><tr class="r"><td class="ln">266</td><td class="ln">275</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">let</span> update = TOOLS.iter().find(|tool| tool.name == &quot;update&quot;).unwrap();</code></td></tr><tr class="r"><td class="ln">267</td><td class="ln">276</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">let</span> schema = Value::Object(input_schema(update));</code></td></tr><tr class="r"><td class="ln">268</td><td class="ln">277</td><td class="mk"> </td><td class="cd"><code>        assert_eq!(schema[&quot;<span class="t-k">type</span>&quot;], &quot;object&quot;);</code></td></tr><tr class="rd"><td class="ln">269</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>        assert_eq!(schema[&quot;required&quot;], json!([&quot;path&quot;, &quot;patch&quot;]));</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">278</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="assert_eq!(schema[&quot;required&quot;], json!([&quot;path&quot;, &quot;patch&quot;]));" data-w="MCP の inputSchema で、必須が path だけになったことを固定する。">        assert_eq!(schema[&quot;required&quot;], json!([&quot;path&quot;]));</mark></code></td></tr><tr class="r"><td class="ln">270</td><td class="ln">279</td><td class="mk"> </td><td class="cd"><code>        assert_eq!(schema[&quot;additionalProperties&quot;], <span class="t-k">false</span>);</code></td></tr><tr class="r"><td class="ln">271</td><td class="ln">280</td><td class="mk"> </td><td class="cd"><code>        assert_eq!(schema[&quot;properties&quot;][&quot;hash&quot;][&quot;<span class="t-k">type</span>&quot;], &quot;string&quot;);</code></td></tr><tr class="r"><td class="ln">272</td><td class="ln">281</td><td class="mk"> </td><td class="cd"><code>    }</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="core" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">パッチをファイルから読んで、いまの update に渡す。読めなければ「読めない」を返す。</div><div class="at"><span class="lbl">場所</span><code>pub fn update_from_file</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 301 ／ 新 301 @@</td></tr><tr class="r"><td class="ln">301</td><td class="ln">301</td><td class="mk"> </td><td class="cd"><code>    }</code></td></tr><tr class="r"><td class="ln">302</td><td class="ln">302</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">303</td><td class="ln">303</td><td class="mk"> </td><td class="cd"><code>    <span class="t-c">/// インスタンスを更新する。`hash` は呼ぶ側が読んだ時点のハッシュ値（無ければ、このユースケースが読んだ時点）</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">304</td><td class="mk">+</td><td class="cd"><code>    <span class="t-c">/// JSON Patch をファイルから読んで当てる。長いパッチを、コマンドの引数に入れずに渡すため。</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">305</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="パッチをファイルから読んで、いまの update に渡す。読めなければ「読めない」を返す。">    <span class="t-k">pub</span> <span class="t-k">fn</span> update_from_file(</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">306</td><td class="mk">+</td><td class="cd"><code>        &amp;<span class="t-k">self</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">307</td><td class="mk">+</td><td class="cd"><code>        path: &amp;str,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">308</td><td class="mk">+</td><td class="cd"><code>        patch_file: &amp;str,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">309</td><td class="mk">+</td><td class="cd"><code>        hash: Option&lt;&amp;str&gt;,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">310</td><td class="mk">+</td><td class="cd"><code>    ) -&gt; Result&lt;Updated, UseCaseError&gt; {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">311</td><td class="mk">+</td><td class="cd"><code>        <span class="t-k">let</span> patch = <span class="t-k">self</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">312</td><td class="mk">+</td><td class="cd"><code>            .files</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">313</td><td class="mk">+</td><td class="cd"><code>            .read(patch_file)</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">314</td><td class="mk">+</td><td class="cd"><code>            .map_err(|error| UseCaseError::new(&quot;読めない&quot;, error.<span class="t-n">0</span>))?;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">315</td><td class="mk">+</td><td class="cd"><code>        <span class="t-k">self</span>.update(path, &amp;patch, hash)</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">316</td><td class="mk">+</td><td class="cd"><code>    }</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">317</td><td class="mk">+</td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">304</td><td class="ln">318</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">pub</span> <span class="t-k">fn</span> update(</code></td></tr><tr class="r"><td class="ln">305</td><td class="ln">319</td><td class="mk"> </td><td class="cd"><code>        &amp;<span class="t-k">self</span>,</code></td></tr><tr class="r"><td class="ln">306</td><td class="ln">320</td><td class="mk"> </td><td class="cd"><code>        path: &amp;str,</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="cli" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">ツールの一覧の試験を、新しい引数に合わせる。</div><div class="at"><span class="lbl">場所</span><code>{&quot;name&quot;: &quot;patch_file&quot;, &quot;required&quot;: false</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 106 ／ 新 106 @@</td></tr><tr class="r"><td class="ln">106</td><td class="ln">106</td><td class="mk"> </td><td class="cd"><code>            update[&quot;args&quot;],</code></td></tr><tr class="r"><td class="ln">107</td><td class="ln">107</td><td class="mk"> </td><td class="cd"><code>            serde_json::json!([</code></td></tr><tr class="r"><td class="ln">108</td><td class="ln">108</td><td class="mk"> </td><td class="cd"><code>                {&quot;name&quot;: &quot;path&quot;, &quot;required&quot;: <span class="t-k">true</span>},</code></td></tr><tr class="rd"><td class="ln">109</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>                {&quot;name&quot;: &quot;patch&quot;, &quot;required&quot;: <span class="t-k">true</span>},</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">109</td><td class="mk">+</td><td class="cd"><code>                {&quot;name&quot;: &quot;patch&quot;, &quot;required&quot;: <span class="t-k">false</span>},</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">110</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="{&quot;name&quot;: &quot;patch&quot;, &quot;required&quot;: true}," data-w="ツールの一覧の試験を、新しい引数に合わせる。">                {&quot;name&quot;: &quot;patch_file&quot;, &quot;required&quot;: <span class="t-k">false</span>},</mark></code></td></tr><tr class="r"><td class="ln">110</td><td class="ln">111</td><td class="mk"> </td><td class="cd"><code>                {&quot;name&quot;: &quot;hash&quot;, &quot;required&quot;: <span class="t-k">false</span>}</code></td></tr><tr class="r"><td class="ln">111</td><td class="ln">112</td><td class="mk"> </td><td class="cd"><code>            ])</code></td></tr><tr class="r"><td class="ln">112</td><td class="ln">113</td><td class="mk"> </td><td class="cd"><code>        );</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="tests" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 2 件</summary><ol><li><div class="w">ファイルのパッチで更新できることを固定する。</div><div class="at"><span class="lbl">場所</span><code>fn update_reads_a_long_patch_from_a_file</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">どちらか1つだけ ・ 読めないファイルの扱いを固定する。</div><div class="at"><span class="lbl">場所</span><code>fn update_takes_either_patch_or_patch_fi</code><button class="go" data-i="1">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 93 ／ 新 93 @@</td></tr><tr class="r"><td class="ln">93</td><td class="ln">93</td><td class="mk"> </td><td class="cd"><code>        ],</code></td></tr><tr class="r"><td class="ln">94</td><td class="ln">94</td><td class="mk"> </td><td class="cd"><code>    );</code></td></tr><tr class="r"><td class="ln">95</td><td class="ln">95</td><td class="mk"> </td><td class="cd"><code>    assert_eq!(saved(&amp;dir)[&quot;name&quot;], &quot;a&quot;);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">96</td><td class="mk">+</td><td class="cd"><code>}</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">97</td><td class="mk">+</td><td class="cd"><code>&nbsp;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">98</td><td class="mk">+</td><td class="cd"><code>#[test]</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">99</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="ファイルのパッチで更新できることを固定する。"><span class="t-k">fn</span> update_reads_a_long_patch_from_a_file() {</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">100</td><td class="mk">+</td><td class="cd"><code>    <span class="t-k">let</span> dir = workdir(&quot;update-patch-file&quot;);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">101</td><td class="mk">+</td><td class="cd"><code>    dir.put_text(&quot;data/name.patch.json&quot;, NAME);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">102</td><td class="mk">+</td><td class="cd"><code>    run(</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">103</td><td class="mk">+</td><td class="cd"><code>        &amp;dir,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">104</td><td class="mk">+</td><td class="cd"><code>        SKILL,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">105</td><td class="mk">+</td><td class="cd"><code>        &amp;[</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">106</td><td class="mk">+</td><td class="cd"><code>            create(<span class="t-n">0</span>, &amp;[]),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">107</td><td class="mk">+</td><td class="cd"><code>            call(</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">108</td><td class="mk">+</td><td class="cd"><code>                &quot;update&quot;,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">109</td><td class="mk">+</td><td class="cd"><code>                &amp;[(&quot;path&quot;, A), (&quot;patch_file&quot;, &quot;./data/name.patch.json&quot;)],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">110</td><td class="mk">+</td><td class="cd"><code>                <span class="t-n">0</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">111</td><td class="mk">+</td><td class="cd"><code>                &amp;[],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">112</td><td class="mk">+</td><td class="cd"><code>            ),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">113</td><td class="mk">+</td><td class="cd"><code>        ],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">114</td><td class="mk">+</td><td class="cd"><code>    );</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">115</td><td class="mk">+</td><td class="cd"><code>    assert_eq!(saved(&amp;dir)[&quot;name&quot;], &quot;a&quot;);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">116</td><td class="mk">+</td><td class="cd"><code>}</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">117</td><td class="mk">+</td><td class="cd"><code>&nbsp;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">118</td><td class="mk">+</td><td class="cd"><code>#[test]</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">119</td><td class="mk">+</td><td class="cd"><code><span class="t-k">fn</span> update_takes_either_patch_or_patch_file_but_not_both() {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">120</td><td class="mk">+</td><td class="cd"><code>    <span class="t-k">let</span> dir = workdir(&quot;update-patch-one&quot;);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">121</td><td class="mk">+</td><td class="cd"><code>    dir.put_text(&quot;data/name.patch.json&quot;, NAME);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">122</td><td class="mk">+</td><td class="cd"><code>    run(</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">123</td><td class="mk">+</td><td class="cd"><code>        &amp;dir,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">124</td><td class="mk">+</td><td class="cd"><code>        SKILL,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">125</td><td class="mk">+</td><td class="cd"><code>        &amp;[</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">126</td><td class="mk">+</td><td class="cd"><code>            create(<span class="t-n">0</span>, &amp;[]),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">127</td><td class="mk">+</td><td class="cd"><code>            call(&quot;update&quot;, &amp;[(&quot;path&quot;, A)], <span class="t-n">2</span>, &amp;[]),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">128</td><td class="mk">+</td><td class="cd"><code>            call(</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">129</td><td class="mk">+</td><td class="cd"><code>                &quot;update&quot;,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">130</td><td class="mk">+</td><td class="cd"><code>                &amp;[</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">131</td><td class="mk">+</td><td class="cd"><code>                    (&quot;path&quot;, A),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">132</td><td class="mk">+</td><td class="cd"><code>                    (&quot;patch&quot;, NAME),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">133</td><td class="mk">+</td><td class="cd"><code>                    (&quot;patch_file&quot;, &quot;./data/name.patch.json&quot;),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">134</td><td class="mk">+</td><td class="cd"><code>                ],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">135</td><td class="mk">+</td><td class="cd"><code>                <span class="t-n">2</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">136</td><td class="mk">+</td><td class="cd"><code>                &amp;[],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">137</td><td class="mk">+</td><td class="cd"><code>            ),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">138</td><td class="mk">+</td><td class="cd"><code>            call(</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">139</td><td class="mk">+</td><td class="cd"><code>                &quot;update&quot;,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">140</td><td class="mk">+</td><td class="cd"><code>                &amp;[(&quot;path&quot;, A), (&quot;patch_file&quot;, &quot;./data/missing.json&quot;)],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">141</td><td class="mk">+</td><td class="cd"><code>                <span class="t-n">1</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">142</td><td class="mk">+</td><td class="cd"><code>                &amp;[(&quot;/reason&quot;, eq(&quot;読めない&quot;))],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">143</td><td class="mk">+</td><td class="cd"><code>            ),</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">144</td><td class="mk">+</td><td class="cd"><code>        ],</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">145</td><td class="mk">+</td><td class="cd"><code>    );</code></td></tr><tr class="r"><td class="ln">96</td><td class="ln">146</td><td class="mk"> </td><td class="cd"><code>}</code></td></tr><tr class="r"><td class="ln">97</td><td class="ln">147</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">98</td><td class="ln">148</td><td class="mk"> </td><td class="cd"><code>#[test]</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="ver" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">引数を足したので版を上げる。</div><div class="at"><span class="lbl">場所</span><code>version = &quot;0.1.2&quot;</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="toml"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 7 ／ 新 7 @@</td></tr><tr class="r"><td class="ln">7</td><td class="ln">7</td><td class="mk"> </td><td class="cd"><code>resolver = &quot;<span class="t-n">2</span>&quot;</code></td></tr><tr class="r"><td class="ln">8</td><td class="ln">8</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">9</td><td class="ln">9</td><td class="mk"> </td><td class="cd"><code>[workspace.package]</code></td></tr><tr class="rd"><td class="ln">10</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>version = &quot;<span class="t-n">0.1</span>.<span class="t-n">1</span>&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">10</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="version = &quot;0.1.1&quot;" data-w="引数を足したので版を上げる。">version = &quot;<span class="t-n">0.1</span>.<span class="t-n">2</span>&quot;</mark></code></td></tr><tr class="r"><td class="ln">11</td><td class="ln">11</td><td class="mk"> </td><td class="cd"><code>edition = &quot;<span class="t-n">2021</span>&quot;</code></td></tr><tr class="r"><td class="ln">12</td><td class="ln">12</td><td class="mk"> </td><td class="cd"><code>license = &quot;MIT&quot;</code></td></tr><tr class="r"><td class="ln">13</td><td class="ln">13</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane html" data-k="lock" data-tab="Cargo.lock" hidden><div class="lane"><b>HTML（そのままの見た目）</b><span class="how">経路を確認している…</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">版を上げたので作り直した。</div><div class="at"><span class="lbl">場所</span><code>version = &quot;0.1.2&quot;</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><template data-shadowcss=""># This file is automatically @generated by Cargo.
+# It is not intended for manual editing.
+version = 4
+
+[[package]]
+name = "ahash"
+version = "0.8.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
+dependencies = [
+ "cfg-if",
+ "getrandom 0.3.4",
+ "once_cell",
+ "serde",
+ "version_check",
+ "zerocopy",
+]
+
+[[package]]
+name = "aho-corasick"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c982642fa9e8606056828ee9a8505737230110bb1099153c79efe865c59d12ba"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+
+[[package]]
+name = "android_system_properties"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae221649c9976a6f6c56ae1facf410f3ddb33cc661c4b7b61020a912d4237fbc"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "autocfg"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+
+[[package]]
+name = "bit-set"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
+dependencies = [
+ "bit-vec",
+]
+
+[[package]]
+name = "bit-vec"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+
+[[package]]
+name = "bitflags"
+version = "2.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
+
+[[package]]
+name = "block-buffer"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa"
+dependencies = [
+ "hybrid-array",
+]
+
+[[package]]
+name = "borrow-or-share"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc0b364ead1874514c8c2855ab558056ebfeb775653e7ae45ff72f28f8f3166c"
+
+[[package]]
+name = "bumpalo"
+version = "3.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
+
+[[package]]
+name = "bytecount"
+version = "0.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "175812e0be2bccb6abe50bb8d566126198344f707e304f45c648fd8f2cc0365e"
+
+[[package]]
+name = "bytes"
+version = "1.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
+
+[[package]]
+name = "cc"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f74872d07caf508b30a21f6836e7d7016a2eaf7d9ff4f48deaa58cd8a0407630"
+dependencies = [
+ "find-msvc-tools",
+ "shlex",
+]
+
+[[package]]
+name = "cfg-if"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
+
+[[package]]
+name = "cfg_aliases"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
+
+[[package]]
+name = "chrono"
+version = "0.4.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
+dependencies = [
+ "iana-time-zone",
+ "num-traits",
+ "serde",
+ "windows-link",
+]
+
+[[package]]
+name = "const-oid"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
+
+[[package]]
+name = "cpufeatures"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "crypto-common"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453"
+dependencies = [
+ "hybrid-array",
+]
+
+[[package]]
+name = "darling"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec"
+dependencies = [
+ "darling_core",
+ "darling_macro",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff"
+dependencies = [
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
+dependencies = [
+ "darling_core",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "data-encoding"
+version = "2.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
+
+[[package]]
+name = "deunicode"
+version = "1.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abd57806937c9cc163efc8ea3910e00a62e2aeb0b8119f1793a978088f8f6b04"
+
+[[package]]
+name = "digest"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2"
+dependencies = [
+ "block-buffer",
+ "const-oid",
+ "crypto-common",
+]
+
+[[package]]
+name = "dyn-clone"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
+
+[[package]]
+name = "email_address"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e079f19b08ca6239f47f8ba8509c11cf3ea30095831f7fed61441475edd8c449"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "equivalent"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "errno"
+version = "0.3.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
+dependencies = [
+ "libc",
+ "windows-sys",
+]
+
+[[package]]
+name = "fancy-regex"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d301f5bf187b3c295fce6468d3875037a0bccc5f6b151c63cac2f85babf21912"
+dependencies = [
+ "bit-set",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "find-msvc-tools"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
+
+[[package]]
+name = "fluent-uri"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc74ac4d8359ae70623506d512209619e5cf8f347124910440dbc221714b328e"
+dependencies = [
+ "borrow-or-share",
+ "ref-cast",
+ "serde",
+]
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
+name = "fraction"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e246562084dde8ebbcc943b261c406ce4f68e5032ec28029a251a47d6a295500"
+dependencies = [
+ "num",
+ "num-bigint",
+]
+
+[[package]]
+name = "futures"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a31d2a3fbaaeb2af2368bbdd904aa8e812d3c04a1ee10d3171f52d556e5d0a3"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
+name = "futures-channel"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+]
+
+[[package]]
+name = "futures-core"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e"
+
+[[package]]
+name = "futures-executor"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "031b47cf1a3c6cc8bc2fc76cd437f521619387907d469316e7c0bc278f1f5432"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
+name = "futures-io"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53c0fa8157de1303bfffdaa1cc2a673bfffb60102f76b0ef4441659124373fed"
+
+[[package]]
+name = "futures-macro"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "futures-sink"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1944426bf7d03f1d14f708785e4b33efd750b36d48a157b836b3efc15ede8e1d"
+
+[[package]]
+name = "futures-task"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd417de3d1d015fc3bfd2b1ea46dfc7bab72ef86f1cc7cc9c78e728b34a6d1fd"
+
+[[package]]
+name = "futures-util"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-io",
+ "futures-macro",
+ "futures-sink",
+ "futures-task",
+ "memchr",
+ "pin-project-lite",
+ "slab",
+]
+
+[[package]]
+name = "getrandom"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
+dependencies = [
+ "cfg-if",
+ "js-sys",
+ "libc",
+ "r-efi 5.3.0",
+ "wasip2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "getrandom"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi 6.0.0",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash",
+]
+
+[[package]]
+name = "heck"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "hybrid-array"
+version = "0.4.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27f864f10dfb56725ce5ce5472bc52252c8f93a4ab86327122cebf62c5f59a17"
+dependencies = [
+ "typenum",
+]
+
+[[package]]
+name = "iana-time-zone"
+version = "0.1.65"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e31bc9ad994ba00e440a8aa5c9ef0ec67d5cb5e5cb0cc7f8b744a35b389cc470"
+dependencies = [
+ "android_system_properties",
+ "core-foundation-sys",
+ "iana-time-zone-haiku",
+ "js-sys",
+ "log",
+ "wasm-bindgen",
+ "windows-core",
+]
+
+[[package]]
+name = "iana-time-zone-haiku"
+<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="version = &quot;0.1.1&quot;" data-w="版を上げたので作り直した。">version = "0.1.2"</mark>
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "ident_case"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
+
+[[package]]
+name = "indexmap"
+version = "2.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
+dependencies = [
+ "equivalent",
+ "hashbrown",
+ "serde",
+ "serde_core",
+]
+
+[[package]]
+name = "itoa"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "jmespath"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "094f2a852a5b9d2fa1a37e9295b3e65ce181b3abf1b16445467b101ca1c4c6e2"
+dependencies = [
+ "serde",
+ "serde_json",
+ "slug",
+]
+
+[[package]]
+name = "js-sys"
+version = "0.3.106"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7883d941dae510fb2d978fc3fe018c71c9e2892fd38854de3e8b92c2e5ad9cc5"
+dependencies = [
+ "cfg-if",
+ "futures-util",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "json-patch"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7421438de105a0827e44fadd05377727847d717c80ce29a229f85fd04c427b72"
+dependencies = [
+ "jsonptr",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "jsonptr"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5a3cc660ba5d72bce0b3bb295bf20847ccbb40fd423f3f05b61273672e561fe"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "jsonschema"
+version = "0.58.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea18b8d5e1469b1bdd6b349169305141316a7c26da27f239773b65c830c0f5d6"
+dependencies = [
+ "ahash",
+ "bytecount",
+ "data-encoding",
+ "email_address",
+ "fancy-regex",
+ "fraction",
+ "getrandom 0.3.4",
+ "itoa",
+ "jsonschema-regex",
+ "jsonschema-value",
+ "num-cmp",
+ "num-traits",
+ "percent-encoding",
+ "referencing",
+ "regex",
+ "serde",
+ "serde_json",
+ "strum",
+ "unicode-general-category",
+ "uuid-simd",
+]
+
+[[package]]
+name = "jsonschema-regex"
+version = "0.58.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "854e9e22c420535035e95eed240cbfb4a5f4b7da74d122d63144e0c31926dbfd"
+dependencies = [
+ "regex-syntax",
+]
+
+[[package]]
+name = "jsonschema-value"
+version = "0.58.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e3bfac11ac357ec620880025757d38c67da8fd5b9ef5024d19f0f360002b4ca"
+dependencies = [
+ "ahash",
+ "bytecount",
+ "fraction",
+ "getrandom 0.3.4",
+ "num-cmp",
+ "num-traits",
+ "serde_json",
+ "zmij",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.190"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
+
+[[package]]
+name = "lock_api"
+version = "0.4.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
+dependencies = [
+ "scopeguard",
+]
+
+[[package]]
+name = "log"
+version = "0.4.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "memchr"
+version = "2.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "micromap"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2a86d3146ed3995b5913c414f6664344b9617457320782e64f0bb44afd49d74"
+
+[[package]]
+name = "mio"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8"
+dependencies = [
+ "libc",
+ "wasi",
+ "windows-sys",
+]
+
+[[package]]
+name = "nix"
+version = "0.31.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
+name = "num"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
+dependencies = [
+ "num-bigint",
+ "num-complex",
+ "num-integer",
+ "num-iter",
+ "num-rational",
+ "num-traits",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-cmp"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63335b2e2c34fae2fb0aa2cecfd9f0832a1e24b3b32ecec612c3426d46dc8aaa"
+
+[[package]]
+name = "num-complex"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "num-integer"
+version = "0.1.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ce2d95d4b3734dc35aa2f45e1aa22cd416814592a4f9d9205e11affd5b8e10b"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c92800bd69a1eac91786bcfe9da64a897eb72911b8dc3095decbd07429e8048b"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
+dependencies = [
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
+name = "once_cell"
+version = "1.21.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+
+[[package]]
+name = "outref"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a80800c0488c3a21695ea981a54918fbb37abf04f4d0720c453632255e2ff0e"
+
+[[package]]
+name = "parking_lot"
+version = "0.12.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a"
+dependencies = [
+ "lock_api",
+ "parking_lot_core",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.9.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_syscall",
+ "smallvec",
+ "windows-link",
+]
+
+[[package]]
+name = "pastey"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
+
+[[package]]
+name = "percent-encoding"
+version = "2.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
+
+[[package]]
+name = "pin-project-lite"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+
+[[package]]
+name = "proc-macro2"
+version = "1.0.107"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "process-wrap"
+version = "10.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f21b97672d2dc848e7b25701ab4535618b92f4861c13cc3f7f7bed52ad3c8da"
+dependencies = [
+ "futures",
+ "indexmap",
+ "nix",
+ "tokio",
+ "tracing",
+ "windows",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
+dependencies = [
+ "proc-macro2",
+]
+
+[[package]]
+name = "r-efi"
+version = "5.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
+
+[[package]]
+name = "r-efi"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+
+[[package]]
+name = "redox_syscall"
+version = "0.5.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
+name = "ref-cast"
+version = "1.0.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e440fb4e4b4147295338efb76001ab9e4efc0e5839df2c47fc5ac2381d365c3"
+dependencies = [
+ "ref-cast-impl",
+]
+
+[[package]]
+name = "ref-cast-impl"
+version = "1.0.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92ecd8964f8453721699a1ed72037b0db49ce2f5a5138486ee89bed6f67cdf3a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "referencing"
+version = "0.58.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "590efadb0a669f1712c1e3ab810a55d4c3d20d0127c455f7236dd0710aba0346"
+dependencies = [
+ "ahash",
+ "fluent-uri",
+ "getrandom 0.3.4",
+ "hashbrown",
+ "itoa",
+ "micromap",
+ "parking_lot",
+ "percent-encoding",
+ "serde_json",
+]
+
+[[package]]
+name = "regex"
+version = "1.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.4.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad8553b9b26413251cbf30e620595c7a41b3887f03da04579c0e6b0d6a06b4b2"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+
+[[package]]
+name = "rmcp"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fae7019994ae0fe4ada40b732f798f3ff26f0f04facb1477f1bf37eb4f18a2d3"
+dependencies = [
+ "chrono",
+ "futures",
+ "indexmap",
+ "pastey",
+ "pin-project-lite",
+ "process-wrap",
+ "rmcp-macros",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rmcp-macros"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7e66877136e969d5a2d561ee5841b17717a0619aebd64abb47a2a2f46e34683"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "rustversion"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
+
+[[package]]
+name = "schema-driven-adapters"
+version = "0.1.2"
+dependencies = [
+ "jmespath",
+ "rmcp",
+ "schema-driven-core",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "schema-driven-core"
+version = "0.1.2"
+dependencies = [
+ "json-patch",
+ "jsonschema",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "schemars"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "687274d293b6cdc6e73e0fee520bf2049650090d7164f87672d212a3c530cf4a"
+dependencies = [
+ "chrono",
+ "dyn-clone",
+ "ref-cast",
+ "schemars_derive",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "schemars_derive"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d98c67716b46af2f0b8cf752abc930f6f9aecfbf671ecfb531db8a31dbe4e2ba"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "scopeguard"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "serde"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
+dependencies = [
+ "serde_core",
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_core"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f852137cce035d6a4df67ccce505ff6b3e9fd3a10e3e52b24dc71e650bb1a9bd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.151"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
+]
+
+[[package]]
+name = "sha2"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest",
+]
+
+[[package]]
+name = "shlex"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+
+[[package]]
+name = "signal-hook-registry"
+version = "1.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b"
+dependencies = [
+ "errno",
+ "libc",
+]
+
+[[package]]
+name = "slab"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
+name = "slug"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "882a80f72ee45de3cc9a5afeb2da0331d58df69e4e7d8eeb5d3c7784ae67e724"
+dependencies = [
+ "deunicode",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "smallvec"
+version = "1.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
+
+[[package]]
+name = "strsim"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "strum"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9628de9b8791db39ceda2b119bbe13134770b56c138ec1d3af810d045c04f9bd"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab85eea0270ee17587ed4156089e10b9e6880ee688791d45a905f5b1ca36f664"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "syn"
+version = "2.0.119"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "syn"
+version = "3.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "tokio"
+version = "1.53.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e95f91fcc7a621e8b030f6aa23c71fe9838ae2fb4d8118b75602a328f5144044"
+dependencies = [
+ "bytes",
+ "libc",
+ "mio",
+ "pin-project-lite",
+ "signal-hook-registry",
+ "tokio-macros",
+ "windows-sys",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "tokio-stream"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3d06f0b082ba57c26b79407372e57cf2a1e28124f78e9479fe80322cf53420b"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-util"
+version = "0.7.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "494815d09bf52b5548659851081238f0ca39ff638363907596da739561c62c52"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-sink",
+ "libc",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
+name = "tracing"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
+dependencies = [
+ "pin-project-lite",
+ "tracing-attributes",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "tracing-core"
+version = "0.1.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
+name = "typenum"
+version = "1.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+
+[[package]]
+name = "unicode-general-category"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b993bddc193ae5bd0d623b49ec06ac3e9312875fdae725a975c51db1cc1677f"
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+
+[[package]]
+name = "uuid"
+version = "1.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97277d36b9c3ace13e58fa6e753f8b0bbbf302a18dd193240d70f9e29681059a"
+dependencies = [
+ "getrandom 0.4.3",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "uuid-simd"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b082222b4f6619906941c17eb2297fff4c2fb96cb60164170522942a200bd8"
+dependencies = [
+ "outref",
+ "vsimd",
+]
+
+[[package]]
+name = "version_check"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vsimd"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64"
+
+[[package]]
+name = "wasi"
+version = "0.11.1+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
+
+[[package]]
+name = "wasip2"
+version = "1.0.4+wasi-0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487"
+dependencies = [
+ "wit-bindgen",
+]
+
+[[package]]
+name = "wasm-bindgen"
+version = "0.2.129"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bb54f33acc68fd454578d9820b0bde1a1a3d17aa17bb7b6595806d02886d409"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+ "rustversion",
+ "wasm-bindgen-macro",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-macro"
+version = "0.2.129"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e29d0c35b16e224a7eeb5cd2d25e3e1968fbd65604117b44d3b789d00ee8535"
+dependencies = [
+ "quote",
+ "wasm-bindgen-macro-support",
+]
+
+[[package]]
+name = "wasm-bindgen-macro-support"
+version = "0.2.129"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f501a8bc3719dba86ef8ae4728879c08001bea749eb1333ac5b91e040e2a6b7"
+dependencies = [
+ "bumpalo",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-shared"
+version = "0.2.129"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23f0c9c52aa7cd7d77769a4cfe2a9adb1b331f489a41d912ce14513d5ab995c6"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "windows"
+version = "0.62.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "527fadee13e0c05939a6a05d5bd6eec6cd2e3dbd648b9f8e447c6518133d8580"
+dependencies = [
+ "windows-collections",
+ "windows-core",
+ "windows-future",
+ "windows-numerics",
+]
+
+[[package]]
+name = "windows-collections"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b2d95af1a8a14a3c7367e1ed4fc9c20e0a26e79551b1454d72583c97cc6610"
+dependencies = [
+ "windows-core",
+]
+
+[[package]]
+name = "windows-core"
+version = "0.62.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
+dependencies = [
+ "windows-implement",
+ "windows-interface",
+ "windows-link",
+ "windows-result",
+ "windows-strings",
+]
+
+[[package]]
+name = "windows-future"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1d6f90251fe18a279739e78025bd6ddc52a7e22f921070ccdc67dde84c605cb"
+dependencies = [
+ "windows-core",
+ "windows-link",
+ "windows-threading",
+]
+
+[[package]]
+name = "windows-implement"
+version = "0.60.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "windows-interface"
+version = "0.59.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f316c4a2570ba26bbec722032c4099d8c8bc095efccdc15688708623367e358"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "windows-link"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
+
+[[package]]
+name = "windows-numerics"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e2e40844ac143cdb44aead537bbf727de9b044e107a0f1220392177d15b0f26"
+dependencies = [
+ "windows-core",
+ "windows-link",
+]
+
+[[package]]
+name = "windows-result"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7781fa89eaf60850ac3d2da7af8e5242a5ea78d1a11c49bf2910bb5a73853eb5"
+dependencies = [
+ "windows-link",
+]
+
+[[package]]
+name = "windows-strings"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7837d08f69c77cf6b07689544538e017c1bfcf57e34b4c0ff58e6c2cd3b37091"
+dependencies = [
+ "windows-link",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.61.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
+dependencies = [
+ "windows-link",
+]
+
+[[package]]
+name = "windows-threading"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3949bd5b99cafdf1c7ca86b43ca564028dfe27d66958f2470940f73d86d75b37"
+dependencies = [
+ "windows-link",
+]
+
+[[package]]
+name = "wit-bindgen"
+version = "0.57.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
+
+[[package]]
+name = "xtask"
+version = "0.1.2"
+dependencies = [
+ "jsonschema",
+ "rmcp",
+ "serde_json",
+ "sha2",
+ "tokio",
+]
+
+[[package]]
+name = "zerocopy"
+version = "0.8.59"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6df92bf3d9227be3d53173901ddbffac2babc27ae50f397776ffd6dc33f800cb"
+dependencies = [
+ "zerocopy-derive",
+]
+
+[[package]]
+name = "zerocopy-derive"
+version = "0.8.59"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac4f328cf2f05d084e496c3e9c3f33ed0a183656a16e1fcec4d464d8373aec82"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "zmij"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+</template></section><section class="pane code-pane" data-k="settings" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 2 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 3 件</summary><ol><li><div class="w">そのボードのフォルダだけに書き込みを許す。</div><div class="at"><span class="lbl">場所</span><code>Edit(./${board_dir}**)</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">図を resolve と verify に通せるようにする。</div><div class="at"><span class="lbl">場所</span><code>design-svg:*</code><button class="go" data-i="1">その箇所へ移動</button></div></li><li><div class="w">新しいセッションの最初の依頼に、長い中身はファイルで渡す使い方を足す。</div><div class="at"><span class="lbl">場所</span><code>--patch_file</code><button class="go" data-i="2">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 9 ／ 新 9 @@</td></tr><tr class="r"><td class="ln">9</td><td class="ln">9</td><td class="mk"> </td><td class="cd"><code>      &quot;Glob&quot;,</code></td></tr><tr class="r"><td class="ln">10</td><td class="ln">10</td><td class="mk"> </td><td class="cd"><code>      &quot;WebSearch&quot;,</code></td></tr><tr class="r"><td class="ln">11</td><td class="ln">11</td><td class="mk"> </td><td class="cd"><code>      &quot;Bash(${entry}:*)&quot;,</code></td></tr><tr class="rd"><td class="ln">12</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;Bash(.claude/skills/fact-check/bin/fact-check:*)&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">12</td><td class="mk">+</td><td class="cd"><code>      &quot;Bash(.claude/skills/fact-check/bin/fact-check:*)&quot;,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">13</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="&quot;Bash(.claude/skills/fact-check/bin/fact-check:*)&quot;" data-w="そのボードのフォルダだけに書き込みを許す。">      &quot;Edit(./${board_dir}**)&quot;,</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">14</td><td class="mk">+</td><td class="cd"><code>      &quot;Bash(.claude/skills/design-svg/bin/design-svg:*)&quot;</code></td></tr><tr class="r"><td class="ln">13</td><td class="ln">15</td><td class="mk"> </td><td class="cd"><code>    ]</code></td></tr><tr class="r"><td class="ln">14</td><td class="ln">16</td><td class="mk"> </td><td class="cd"><code>  },</code></td></tr><tr class="r"><td class="ln">15</td><td class="ln">17</td><td class="mk"> </td><td class="cd"><code>  &quot;codex&quot;: {</code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 21 ／ 新 23 @@</td></tr><tr class="r"><td class="ln">21</td><td class="ln">23</td><td class="mk"> </td><td class="cd"><code>    ]</code></td></tr><tr class="r"><td class="ln">22</td><td class="ln">24</td><td class="mk"> </td><td class="cd"><code>  },</code></td></tr><tr class="r"><td class="ln">23</td><td class="ln">25</td><td class="mk"> </td><td class="cd"><code>  &quot;guide&quot;: [</code></td></tr><tr class="rd"><td class="ln">24</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>    &quot;外の原典は WebSearch で探し、.claude/skills/fact-check/bin/fact-check で原文を取得して照合する（このコマンドも実行してよい）。原文は ${board_dir}sources/ に置く。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">26</td><td class="mk">+</td><td class="cd"><code>    &quot;外の原典は WebSearch で探し、.claude/skills/fact-check/bin/fact-check で原文を取得して照合する（このコマンドも実行してよい）。原文は ${board_dir}sources/ に置く。&quot;,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">27</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="&quot;外の原典は WebSearch で探し、.claude/skills/fact-check/bin/fact-check で原文を取得して照合する（このコマンドも実行してよい）。原文は ${board_dir}sources/ に置く。&quot;" data-w="新しいセッションの最初の依頼に、長い中身はファイルで渡す使い方を足す。">    &quot;長い中身（図の SVG など）は ${board_dir} の下にファイルで書き、update には --patch_file でそのファイルの名前だけを渡す。図は .claude/skills/design-svg/bin/design-svg の resolve と verify を通してから使う。&quot;</mark></code></td></tr><tr class="r"><td class="ln">25</td><td class="ln">28</td><td class="mk"> </td><td class="cd"><code>  ]</code></td></tr><tr class="r"><td class="ln">26</td><td class="ln">29</td><td class="mk"> </td><td class="cd"><code>}</code></td></tr><tr class="r"><td class="ln">27</td><td class="ln">30</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane md" data-k="skill" hidden><div class="lane"><b>Markdown を描画した文書</b><span class="how">変更箇所 1 件</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">基盤の Skill の使い方に、ファイルで渡す書き方を足す。</div><div class="at"><span class="lbl">場所</span><code>--patch_file</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="doc"><hr>
+<p>name: schema-driven<br>description: AI が扱うデータを、Markdown ではなく JSON Schema とそのインスタンスで持つときに使う基盤の Skill。abstract スキーマ（版ごとに振る舞いを保証する契約）とエンジンを持つ。Skill ・ Agent は、abstract に従う concrete スキーマ ・ インスタンス ・ ページテンプレートを持ち、エンジンの共通ツールで作成 ・ 取得 ・ 更新 ・ 検査 ・ 承認 ・ 描画する。<br>license: MIT</p>
+<hr>
+<h1>構造化データを正本として持つ基盤の Skill：schema-driven</h1>
+<h2>目的</h2>
+<p>AI が扱うデータを、<strong>JSON Schema とそのインスタンスで持つ</strong>ときに使う。Markdown の文書は、書いたものが形を満たしているかを機械で確かめられない。スキーマとインスタンスなら、書いたその場で検証でき、参照と導出値も検査できる。</p>
+<p>この Skill は<strong>基盤</strong>である。何のデータを持つかは決めない。</p>
+<div class="scroll"><table><tr><th>誰が</th><th>何を持つか</th></tr><tr><td>基盤（この Skill）</td><td>abstract スキーマ（<code>assets/</code> の契約）と、それを版ごとに守るエンジン（共通ツール9つ）</td></tr><tr><td>使う側（基盤の上に作る Skill ・ Agent）</td><td>concrete スキーマ ・ インスタンス ・ ページテンプレート ・ 部品のカタログ（<code>assets/catalog/</code>）・ 自分の能力を持つ実行ファイル（任意）</td></tr></table></div>
+<p><strong>使う側は、基盤の能力をそのまま使い、自分の能力は自分の実行ファイルとして持つ。</strong> 基盤は使う側の実行ファイルを起動しない。使う側が、自分の実行ファイルを直接呼ぶ。ページの見た目と操作は、使う側の Skill のフォルダにある部品のカタログが持つ。基盤はカタログの中身を持たず、カタログとデザインシステムが守る形だけを持つ。abstract スキーマを書き換えると、エンジンが扱えなくなる。</p>
+<hr>
+<h2>役割</h2>
+<p>- concrete スキーマが abstract スキーマの版に従っているかを検査する<br>- スキーマからインスタンスを作成し、未記入のプロパティと、その x-prompt を返す<br>- JMESPath 式で値を取得し、JSON Patch で更新する。更新は、検証エラーが無いときだけ書く<br>- ディレクトリのインスタンスを検証し、x-ref（参照）と x-derive（導出値）を検査する<br>- 検査を通ったインスタンスのパスとハッシュ値を、承認記録へ書く<br>- 検証を通ったインスタンスを、ページテンプレートと、使う側の Skill のフォルダの部品のカタログでページへ描画する</p>
+<hr>
+<h2>処理対象と成果物</h2>
+<h3>処理対象</h3>
+<p>concrete スキーマと、それに従うインスタンスのディレクトリ。スキーマは <code>x-abstract</code> に従う abstract の版を、<code>$id</code> に自分の名前を書く。インスタンスは <code>$schema</code> に、そのスキーマの名前を書く。</p>
+<h3>成果物</h3>
+<div class="scroll"><table><tr><th>成果物</th><th>どこに書くか</th></tr><tr><td>インスタンス</td><td>渡したパス</td></tr><tr><td>検証と検査の結果</td><td>標準出力（JSON）</td></tr><tr><td>承認記録</td><td>検査したディレクトリの <code>approval.json</code></td></tr><tr><td>ページ</td><td>渡した出力のディレクトリ（インスタンス1件につき HTML 1枚）</td></tr></table></div>
+<hr>
+<h2>入力の想定</h2>
+<div class="scroll"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>スキーマ ・ インスタンス ・ ディレクトリのパス</td><td>明示されなければ受け付けない。相対パスは、CLI を起動した場所から解決する</td></tr><tr><td>ページテンプレートのディレクトリ（render の <code>--pages</code>）</td><td>明示されなければ、どの種類にもページテンプレートの指定が無い。インスタンスが1件でもあれば描画しない</td></tr><tr><td>読んだ時点のハッシュ値（update の <code>--hash</code>）</td><td>明示されなければ、update が読んだ時点のハッシュ値で書く。ほかの更新と重なりうるときは渡す</td></tr><tr><td>Skill のフォルダ（<code>--skill</code>）</td><td>明示されなければ、スキーマの名前はエンジンが持つものだけを引き、描画はできない。渡すと、その Skill のスキーマも名前で引き、その Skill の <code>assets/catalog/</code> のカタログで描画する</td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<p>ツールは、CLI の実行ファイル <code>scripts/bin/schema-driven</code> と、MCP のサーバー <code>scripts/bin/schema-driven-mcp</code> の両方から、同じ名前と引数で呼べる。MCP の登録はツールごとに形が違うので、導入するときに行う。一覧と版は次で取れる。</p>
+<pre class="code">scripts/bin/schema-driven --json
+scripts/bin/schema-driven --version</pre>
+<h3>Step 1: concrete スキーマを書き、abstract に従っているかを検査する</h3>
+<p>concrete スキーマは、abstract スキーマのインスタンスである。インスタンスと同じ共通ツールで作り、書き進める。中身（何を持つか）は、作る側が決める。</p>
+<pre class="code">scripts/bin/schema-driven create --schema schema-driven/abstract@v1 --path &lt;Skill のフォルダ&gt;/assets/&lt;種類&gt;.schema.json
+scripts/bin/schema-driven prompt --schema schema-driven/abstract@v1 --property /&lt;欄&gt;
+scripts/bin/schema-driven update --path &lt;スキーマ&gt; --patch &#x27;&lt;JSON Patch&gt;&#x27;</pre>
+<p>create は、根に <code>$schema</code> と <code>x-abstract</code> を書いて枠を作り、未記入の欄を x-prompt と一緒に返す。根に置く3つの欄は次のとおりで、書き方の決まりは <code>assets/meta-schema.json</code> が持つ。</p>
+<div class="scroll"><table><tr><th>欄</th><th>書くもの</th></tr><tr><td><code>$schema</code></td><td>JSON Schema の標準の dialect <code>https://json-schema.org/draft/2020-12/schema</code></td></tr><tr><td><code>x-abstract</code></td><td>従う abstract の版 <code>schema-driven/abstract@v1</code></td></tr><tr><td><code>$id</code></td><td>このスキーマの名前「&lt;Skill の名前&gt;/&lt;種類&gt;@&lt;版&gt;」。インスタンスを作るスキーマ（<code>x-generates</code> を持つもの）は必ず書く</td></tr></table></div>
+<p><code>$id</code> は create のあとに書く。インスタンスを作るスキーマは、根の <code>properties</code> に <code>kind</code> と <code>$schema</code> を置き、<code>$schema</code> の <code>const</code> に自分の <code>$id</code> を書く。</p>
+<p>プロパティごとに <code>description</code> と <code>x-prompt</code>（<code>read</code> と <code>write</code>）を書き、参照には <code>x-ref</code>、導出値には <code>x-derive</code> を付ける（<code>assets/annotations.schema.json</code>）。</p>
+<p>ほかのスキーマの定義を使うときは、<code>$ref</code> をファイル名ではなく名前で書く。同じ Skill のスキーマなら、<code>$id</code> を基準に JSON Schema の規則で解けるので、「&lt;種類&gt;@&lt;版&gt;」だけでよい（例：<code>term@v1#/$defs/short</code>）。ファイル名を変えても、参照は切れない。</p>
+<pre class="code">scripts/bin/schema-driven check-schemas --dir &lt;スキーマのディレクトリ&gt;</pre>
+<p><code>findings</code> が空なら、契約に従っている。版を書いていないスキーマと、エンジンが扱わない版のスキーマは、検査せずに指摘する。</p>
+<p>スキーマのフォルダに公開の記録 <code>published.json</code>（<code>assets/published.schema.json</code>）があれば、check-schemas は公開した版の指紋といまの中身を比べる。</p>
+<div class="scroll"><table><tr><th>状態</th><th>check-schemas の返し方</th></tr><tr><td>公開した版の中身が変わった</td><td><code>findings</code> に「公開した版が書き換えられている」</td></tr><tr><td>公開した版が消えた</td><td><code>findings</code> に「公開した版が無い」</td></tr><tr><td>まだ記録に無い名前</td><td><code>unpublished</code> に名前と指紋。公開するときに、そのまま記録へ足す</td></tr></table></div>
+<p>指紋は、キーの順と空白に左右されない SHA-256 である。名前（<code>$id</code>）を持つ JSON は、ファイル名が <code>.schema.json</code> で終わらなくても対象になる。</p>
+<h3>Step 2: インスタンスを作成し、x-prompt を読む</h3>
+<pre class="code">scripts/bin/schema-driven create --schema &lt;スキーマ&gt; --path &lt;インスタンス&gt;
+scripts/bin/schema-driven prompt --schema &lt;スキーマ&gt; --property /&lt;プロパティ&gt;</pre>
+<p>create は、必須のプロパティを空のままにしてインスタンスを作り、未記入のプロパティを x-prompt と一緒に返す。インスタンスの <code>$schema</code> には、スキーマの名前を書く。<strong>x-prompt の <code>write</code> の決まりに従って値を決める。</strong></p>
+<p>インスタンスを読むツールは、<code>$schema</code> の名前から次の順にスキーマを引く。</p>
+<div class="scroll"><table><tr><th>名前</th><th>引く先</th></tr><tr><td><code>schema-driven/…</code></td><td>エンジンが持つスキーマ（ページテンプレート ・ カタログの枠 ・ デザインシステムなど）。<code>--skill</code> を渡さなくても引ける</td></tr><tr><td><code>--skill</code> の Skill の名前で始まるもの</td><td>その Skill の <code>assets</code> の下の <code>*.schema.json</code> のうち、<code>$id</code> が同じもの</td></tr><tr><td>ほかの Skill の名前で始まるもの</td><td>どの Skill のスキーマかを返して止める。その Skill を <code>--skill</code> に渡して検査し直す</td></tr><tr><td>JSON Schema の dialect（concrete スキーマ）</td><td><code>x-abstract</code> に書いた abstract スキーマ。エンジンが持つので、<code>--skill</code> を渡さなくても引ける</td></tr><tr><td>名前の形でない値</td><td>断って「スキーマの名前でない」を返す。パスでは引かない</td></tr></table></div>
+<p>同じ名前のスキーマが2つあれば、どちらも使わずに止める。</p>
+<h3>Step 3: JSON Patch で更新する</h3>
+<pre class="code">scripts/bin/schema-driven update --path &lt;インスタンス&gt; --patch &#x27;&lt;JSON Patch&gt;&#x27; [--hash &lt;読んだ時点のハッシュ値&gt;]
+scripts/bin/schema-driven update --path &lt;インスタンス&gt; --patch_file &lt;JSON Patch を書いたファイル&gt; [--hash &lt;読んだ時点のハッシュ値&gt;]</pre>
+<p>長いパッチ（図の SVG を含むものなど）は、ファイルに書いて <code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="基盤の Skill の使い方に、ファイルで渡す書き方を足す。">--patch_file</mark></code> で渡す。<code>--patch</code> と <code>--patch_file</code> はどちらか1つだけを渡す。</p>
+<p>未記入以外の検証エラーがあれば、書かずに <code>errors</code> を返す。直して、もう一度送る。未記入が残っているときは書いて、残りを x-prompt と一緒に返す。</p>
+<p>値を読むときは get を使う。</p>
+<pre class="code">scripts/bin/schema-driven get --path &lt;インスタンス&gt; --query &#x27;&lt;JMESPath 式&gt;&#x27;</pre>
+<h3>Step 4: ディレクトリを検査する</h3>
+<pre class="code">scripts/bin/schema-driven check --dir &lt;インスタンスのディレクトリ&gt;</pre>
+<p><strong>終了コード 0 は、検査を最後まで実行できたことだけを示す。</strong> 合格かどうかは、<code>instances</code> の <code>errors</code> と <code>unfilled</code>、<code>findings</code> の <code>status</code>（合格 ・ ずれ ・ 確かめ直し など）で見る。</p>
+<h3>Step 5: カタログを置き、ページテンプレートを書き、描画する</h3>
+<p>ページの見た目と操作は、使う側の Skill のフォルダの <code>assets/catalog/</code> に置く部品のカタログが持つ。基盤はカタログの中身（部品の名前 ・ HTML ・ CSS ・ JS ・ トークンの値）を持たない。render は、<code>--skill</code> に渡した Skill のフォルダから、描画のたびにカタログを読む。</p>
+<div class="scroll"><table><tr><th>ファイル</th><th>中身</th><th>守る形</th></tr><tr><td><code>assets/catalog/catalog.schema.json</code></td><td>部品の一覧。<code>$defs</code> のキーが部品の名前で、値が入力の形 ・ 説明 ・ 状態ごとの振る舞い（<code>x-states</code>）</td><td><code>assets/catalog.schema.json</code>（<code>schema-driven/catalog@v1</code>）</td></tr><tr><td><code>assets/catalog/parts.html</code></td><td>部品の HTML。部品ごとに <code>&lt;template id=&quot;部品の名前&quot;&gt;</code> を1つ置き、ほかにページの <code>page</code> と節の <code>section</code> を置く</td><td>プレースホルダーは <code>{{名前}}</code></td></tr><tr><td><code>assets/catalog/design-system.json</code></td><td>トークンの値と、コントラストを確かめる色の組</td><td><code>assets/design-system.schema.json</code>（<code>schema-driven/design-system@v1</code>）</td></tr><tr><td><code>assets/catalog/catalog.css</code></td><td>部品の見た目。無くてもよい</td><td>色の値を直接書かず、<code>var(--トークンの名前)</code> で引く</td></tr><tr><td><code>assets/catalog/catalog.js</code></td><td>部品の操作。無くてもよい</td><td>―</td></tr></table></div>
+<p>基盤は、テンプレートのプレースホルダーへ次の値を入れる。</p>
+<div class="scroll"><table><tr><th>テンプレート</th><th>基盤が入れる値</th></tr><tr><td><code>page</code></td><td><code>{{title}}</code>（インスタンスの名前）・ <code>{{tokens}}</code>（トークンから作った CSS の変数）・ <code>{{style}}</code>（catalog.css）・ <code>{{script}}</code>（catalog.js）・ <code>{{sections}}</code>（節）。ほかのプレースホルダーには、ページテンプレートの <code>head</code> の同じ名前の値</td></tr><tr><td><code>section</code></td><td><code>{{heading}}</code>（見出し）・ <code>{{help}}</code>（説明）・ <code>{{body}}</code>（節の要素）</td></tr><tr><td>部品</td><td>ページテンプレートに書いた入力の値を、同じ名前のプレースホルダーへ入れる。文字はエスケープする。入力の形の <code>contentMediaType</code> が <code>image/svg+xml</code> の入力だけは、検査した SVG をそのまま入れる</td></tr></table></div>
+<p>デザインシステムについて基盤が確かめるのは、形式 ・ 参照（<code>{名前}</code> の指す先があるか）・ 参照が循環しないこと ・ <code>contrast</code> に書いた組のコントラスト（文字 4.5:1、部品の境界 3:1。明と暗の両方）と、カタログの CSS に色の値を直接書いていないことだけである。トークンの名前と層の分け方は、使う側が決める。</p>
+<p>ページテンプレートは、節の並びと、節ごとに置く部品と、値を取る JMESPath 式だけを書いた JSON である（<code>assets/page.schema.json</code>）。部品は、カタログの部品の名前で呼ぶ。<strong>HTML ・ CSS ・ JS は書かない。</strong></p>
+<pre class="code">scripts/bin/schema-driven --skill &lt;Skill のフォルダ&gt; render --dir &lt;インスタンスのディレクトリ&gt; --pages &lt;ページテンプレートのディレクトリ&gt; --out &lt;出力&gt;</pre>
+<div class="scroll"><table><tr><th>状態</th><th>render の返し方</th></tr><tr><td>カタログが無い</td><td>1ページも書かずに「部品のカタログを読めない」</td></tr><tr><td>カタログが枠かデザインシステムの契約を満たさない</td><td>1ページも書かずに「部品のカタログが契約を満たさない」</td></tr><tr><td>ページテンプレートに、カタログに無い部品 ・ 入力の欠け ・ <code>page</code> に無い <code>head</code> の名前がある</td><td>1ページも書かずに「ページテンプレートが契約を通過しない」</td></tr><tr><td>ページテンプレートの指定が無い種類がある</td><td>1ページも書かずに「ページテンプレートの指定が無い種類がある」</td></tr><tr><td>検証エラーのあるインスタンスがある</td><td>1ページも書かずに「検証を通過しないインスタンスがある」</td></tr></table></div>
+<p>内容が変わったページだけを書くので、同じ入力から何度描画しても結果は変わらない。インスタンスの値は、HTML を含んでいても文字として出る。</p>
+<h3>Step 6: 承認を記録する</h3>
+<pre class="code">scripts/bin/schema-driven approve --dir &lt;インスタンスのディレクトリ&gt;</pre>
+<p>検証エラー ・ ずれ ・ 未記入が1件でもあれば、承認記録を書かない。</p>
+<hr>
+<h2>出力形式</h2>
+<p>どのツールも、標準出力へ JSON を1つ書く。</p>
+<div class="scroll"><table><tr><th>終了コード</th><th>意味</th><th>出力</th></tr><tr><td>0</td><td>実行できた</td><td><code>{&quot;ok&quot;: true, …}</code>。中身はツールごとに違う</td></tr><tr><td>1</td><td>拒否した ・ 失敗した</td><td><code>{&quot;ok&quot;: false, &quot;reason&quot;: …, &quot;detail&quot;: …, &quot;errors&quot;: […]}</code></td></tr><tr><td>2</td><td>使い方が違う</td><td><code>{&quot;ok&quot;: false, &quot;reason&quot;: &quot;使い方が違う&quot;, &quot;detail&quot;: …, &quot;tools&quot;: […]}</code></td></tr></table></div>
+<p>動詞なしの <code>--json</code> だけは、ツールの一覧を <code>{&quot;ok&quot;: true, &quot;findings&quot;: [], &quot;data&quot;: {&quot;tools&quot;: […]}}</code> で返す。</p>
+<hr>
+<h2>ガードレール</h2>
+<p>- <strong>abstract スキーマを、使う側で書き換えない</strong>。エンジンは、版ごとの abstract スキーマに対する振る舞いだけを保証する<br>- <strong>公開した版のスキーマを、消さず書き換えない</strong>。中身を変えるときは、版を上げた新しい名前（<code>@v2</code>）で足す。同じ名前で中身が変わると、前に書いたインスタンスが別のスキーマで検査される。公開するときは、その版の指紋を <code>published.json</code> に記録し、配る前の検査で確かめる<br>- <strong>インスタンスの <code>$schema</code> に、Skill の置き場所へのパスを書かない</strong>。名前で指す。配った先では、Skill は別の場所に置かれる<br>- <strong>ファイルを手で書き換えて、update を通さずにインスタンスを直さない</strong>。update を通さないと、書いたその場の検証が行われない。手で直したときは、check で確かめ直す<br>- <strong>check の終了コードだけで合格と判断しない</strong>。0 は実行できたことだけを示す<br>- <strong>検証エラーのあるインスタンスを、描画や承認で先へ進めない</strong>。基盤はどちらも止める<br>- <strong>ページテンプレートに、HTML ・ CSS ・ 色の値を書かない</strong>。見た目と操作は、Skill のフォルダのカタログ（<code>assets/catalog/</code>）だけが持つ。ページテンプレートに書くと、カタログを替えても見た目が揃わない<br>- <strong>部品のカタログは、枠とデザインシステムに従う</strong>。部品ごとに名前 ・ 入力の形 ・ 説明 ・ 状態ごとの振る舞いを書き、CSS に色の値を直接書かず、文字と背景 ・ 部品の境界と背景の組を <code>contrast</code> に書く<br>- <strong>基盤の中心は、ファイルを直接扱わない</strong>。入出力はポートを通す<br>- <strong>基盤はネットワークに出ない</strong>。依存の版は1か所で決める</p>
+<hr>
+<h2>参照</h2>
+<div class="scroll"><table><tr><th>場所</th><th>中身</th></tr><tr><td><code>scripts/bin/</code></td><td>エンジンの実行ファイル（CLI と MCP）。OS ごとにビルドしたもの</td></tr><tr><td><code>dist.json</code></td><td>このフォルダの中身の記録。エンジンの版 ・ target ・ <code>assets/</code> のスキーマの名前 ・ ファイルごとの SHA-256（<code>schema-driven/dist@v1</code>）</td></tr><tr><td><code>assets/meta-schema.json</code></td><td>abstract スキーマ v1（<code>schema-driven/abstract@v1</code>）。concrete スキーマが従う契約で、check-schemas が検査する</td></tr><tr><td><code>assets/annotations.schema.json</code></td><td>注釈 x-ref（指される側の数の決まり inverse を含む）と x-derive の仕様</td></tr><tr><td><code>assets/view.schema.json</code></td><td>x-view の書き方と、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote）</td></tr><tr><td><code>assets/page.schema.json</code></td><td>ページテンプレートの形と、描画の文脈</td></tr><tr><td><code>assets/catalog.schema.json</code></td><td>部品のカタログの枠。使う側の部品の一覧（<code>assets/catalog/catalog.schema.json</code>）が守る、部品1つの書き方の形</td></tr><tr><td><code>assets/design-system.schema.json</code></td><td>デザインシステムの契約（形式 ・ 参照 ・ 循環 ・ コントラストの下限）。描画の前に基盤が検査する</td></tr><tr><td><code>assets/published.schema.json</code></td><td>公開の記録（<code>published.json</code>）の形。公開した版の名前と指紋</td></tr></table></div></div></section>
+</section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 対象の文書も、同じ名前の変数（--move など）を持っていることがある。
+     印と欄にだけ、この道具の値を直に持たせる ── 文書の側の見た目は変えない */
+  var VARS = (MARKCSS.match(/--[\w-]+(?=:)/g) || []).filter(function(v, i, a){ return a.indexOf(v) === i; });
+  function ownVars(el){
+    var cs = getComputedStyle(document.documentElement);
+    VARS.forEach(function(v){ var x = cs.getPropertyValue(v); if (x) el.style.setProperty(v, x.trim()); });
+  }
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く。
+     **この道具が付けた印（data-acdr）だけを扱う。** 対象の文書が自分の印を
+     同じ class で持っていることがある（brainstorming-board のボード） */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-acdr]").forEach(function(m){
+      var p = doc.createElement("div");
+      /* **初めから開いて出す。** 閉じて出すと、どこが変わったかを1件ずつ押して探すことになる */
+      p.className = "pop"; p.hidden = false;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        /* 表のセルの中の印は、セルの中へ置く。<td> の隣へ置くと、列が1つ増えて見える */
+        var cell = m.closest("td,th");
+        if (cell) cell.appendChild(p);
+        else {
+          var host = m.closest("li") || m.parentNode;
+          if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+          else host.parentNode.appendChild(p);
+        }
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      /* 対象の文書の script も、同じ印に開閉を付けていることがある。
+         捕捉の段で受けて止め、この道具の開閉だけを動かす */
+      m.addEventListener("click", function(e){ e.stopImmediatePropagation(); tg(); }, true);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+      m.setAttribute("aria-expanded", "true");
+      if (doc !== document) { ownVars(m); ownVars(p); }
+      /* 印を囲む畳まれた節も開く。タブ（hidden）は開かない ── 面の切り替えが壊れる */
+      for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+        if (e.tagName === "DETAILS") e.open = true;
+      }
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  /* **見えているかを offsetParent で判定しない。**
+     閉じた <details> の中でも、Chromium は offsetParent を返す。
+     checkVisibility が在ればそれを使う */
+  function shown(m){
+    return m.checkVisibility ? m.checkVisibility() : !!m.offsetParent;
+  }
+
+  function reveal(m){
+    if (shown(m)) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (shown(m)) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (shown(m)) return true;
+      ins[i].checked = was;
+    }
+    return shown(m);
+  }
+
+  /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg[data-acdr]")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その箇所へ移動" : "表示されていない箇所";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンのファイル */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>
