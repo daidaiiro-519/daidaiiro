@@ -1,0 +1,182 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0192",
+ "title": "チャットの返事の Markdown を描き、地を吹き出しと分ける",
+ "date": "2026-10-18",
+ "status": "accepted",
+ "decision": "ブレストボードのチャットは、AI の返事の Markdown を、表 ・ 引用 ・ 区切り線 ・ コードの塊 ・ リンク ・ 斜体まで描き、表とコードの地を吹き出しの地と分ける。表の見出しの行には、意味の層のトークン color.surface.head を足して使う。",
+ "why": "チャットの AI が返事に表を書くと、| と --- の文字のまま出て読みにくい、と利用者に指摘された。描画は太字 ・ コード ・ 箇条書き ・ 見出しだけに対応していて、引用 ・ 区切り線 ・ コードの塊 ・ リンク ・ 斜体も記号のまま出ていた。またコードの地（surface-literal）は AI の吹き出しの地（surface-page）と同じ値で、重なる面が区別できなかった。描画を返事の書き方に一致させ、重なる面をデザインシステムの決まりどおり別の地にする。",
+ "shift": [
+  {
+   "what": "返事の中の表",
+   "from": "| と --- の文字のまま出る",
+   "to": "表として描く。区切りの行（|---|）の前の行を見出しにする"
+  },
+  {
+   "what": "表の見出しの行",
+   "from": "（表として扱わない）",
+   "to": "太字と、新しいトークン color.surface.head の面で示す（ライト paper.300 ・ ダーク night.700）"
+  },
+  {
+   "what": "ほかの記法",
+   "from": "引用 ・ 区切り線 ・ コードの塊 ・ リンク ・ 斜体は記号のまま出る",
+   "to": "どれも描く。リンクは http と https だけを、新しいタブで開く"
+  },
+  {
+   "what": "番号付きと箇条書きが続くとき",
+   "from": "あとの項目も前の並びに入る（- の項目が 3. になる）",
+   "to": "種類が変わったところで、別の並びにする"
+  },
+  {
+   "what": "表とコードの地",
+   "from": "コードの地が AI の吹き出しの地と同じ値で、溶ける",
+   "to": "表の欄 ・ コード ・ コードの塊の地を surface-block にし、吹き出し（surface-page）と分ける"
+  },
+  {
+   "what": "幅が足りないとき",
+   "from": "（表とコードの塊を扱わない）",
+   "to": "表とコードの塊だけを横に動かせる（吹き出しの幅は変えない）"
+  },
+  {
+   "what": "HTML として読むか",
+   "from": "読まない（文字として作る）",
+   "to": "読まない（変えない）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は表が | の文字のまま出ていた。変更後は表として描き、地を吹き出しと分ける。",
+ "alternatives": [
+  {
+   "option": "チャットの AI に、表や記法を使わないよう指示する",
+   "why_not": "AI が整理して返す形として表は自然で、指示しても守られる保証が無い。描画の側で受けるほうが確実である"
+  },
+  {
+   "option": "Markdown のライブラリで描く",
+   "why_not": "ライブラリは HTML を出すので、ACDR 0183 の「AI の返事を HTML として読まない」を守るには、出した HTML を無害化する処理がさらに要る。いくつかの記法のために、依存とその処理を足すことになる"
+  },
+  {
+   "option": "表を等幅の文字で整形して出す",
+   "why_not": "日本語の幅がそろわず、列がずれて読みにくいままである"
+  },
+  {
+   "option": "表の地を surface-literal のままにする",
+   "why_not": "surface-literal は AI の吹き出しの地 surface-page と同じ値で、重なる面が区別できない"
+  },
+  {
+   "option": "表の見出しに、いまある面のトークン（answer ・ notice ・ literal）を使う",
+   "why_not": "answer は答えの面、notice は変わったところの帯の面、literal は字面を見せる面と、どれも別の役割が決まっている。役割の違うトークンを流用すると、意味が2つになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "js",
+   "tab": "catalog.js",
+   "file": ".claude/skills/brainstorming/assets/catalog/catalog.js",
+   "marks": [
+    {
+     "find": "太字 ・ 斜体 ・ `コード` ・ リンク ・ 箇条書き ・ 見出し ・ 表 ・ 引用 ・ 区切り線 ・ コードの塊を",
+     "before": "// 返事の Markdown のうち、太字 ・ `コード` ・ 箇条書き ・ 見出しだけを、文字として作る（HTML としては読まない）",
+     "why": "描く記法を足したことを、説明の文にも書く。HTML として読まない方針は変えない。"
+    },
+    {
+     "find": "https?:\\/\\/[^)\\s]+",
+     "before": "var re = /(\\*\\*([^*]+)\\*\\*|`([^`]+)`)/g, at = 0, m;",
+     "why": "リンクと斜体を足す。リンクは http と https だけを a 要素にし、href は属性に入れるので、文字が HTML として読まれない。"
+    },
+    {
+     "find": "function cells(line)",
+     "before": "（無し。新しく足す）",
+     "why": "表の1行を欄に分ける。行頭と行末の | は外す。"
+    },
+    {
+     "find": "コードの塊：``` から ``` まで",
+     "before": "（無し。新しく足す）",
+     "why": "コードの塊は、中を1文字も変えずに pre の中へ文字として置く。"
+    },
+    {
+     "find": "if (/^\\s*\\|/.test(line)) {",
+     "before": "（無し。新しく足す）",
+     "why": "| で始まる行が続くあいだを表にし、区切りの行の前の行を見出しにする。"
+    },
+    {
+     "find": "引用：> で始まる行が続くあいだ",
+     "before": "（無し。新しく足す）",
+     "why": "引用と区切り線を描く。"
+    },
+    {
+     "find": "番号付きと箇条書きが入れ替わったら、別の並びにする",
+     "before": "if (!list) { list = el(/^\\s*[0-9]/.test(line) ? \"ol\" : \"ul\"); box.appendChild(list); }",
+     "why": "番号付きのあとに箇条書きが続いたとき、別の並びにする。比較のページで見つけた、前からの不具合である。"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "catalog.css",
+   "file": ".claude/skills/brainstorming/assets/catalog/catalog.css",
+   "marks": [
+    {
+     "find": ".msg.ai .bubble code, .bubble .fence { background: var(--color-surface-block); }",
+     "before": "（無し。新しく足す）",
+     "why": "AI の吹き出しの中のコードの地を、吹き出し（surface-page）と別の surface-block にする。"
+    },
+    {
+     "find": ".bubble table { border-collapse: collapse;",
+     "before": "（無し。新しく足す）",
+     "why": "表の地を surface-block にし、吹き出しと分ける。"
+    },
+    {
+     "find": ".bubble .tbl { overflow-x: auto;",
+     "before": "（無し。新しく足す）",
+     "why": "幅が足りないときは、表だけを横に動かせる。"
+    },
+    {
+     "find": ".bubble blockquote {",
+     "before": "（無し。新しく足す）",
+     "why": "引用は線と控えめの文字色で示す。色はトークンから引き、文字と地の組は design-system の contrast に在るもの（text-sub on surface-page）を使う。"
+    },
+    {
+     "find": ".bubble th { font-weight: 700; background: var(--color-surface-head); }",
+     "before": "（無し。新しく足す）",
+     "why": "表の見出しの行を、太字と見出しの面で示す。"
+    }
+   ]
+  },
+  {
+   "key": "tokens",
+   "tab": "light.tokens.json",
+   "file": ".claude/skills/brainstorming/assets/catalog/light.tokens.json",
+   "marks": [
+    {
+     "find": "表の見出しの行の面。吹き出し（page）とも欄（block）とも違う値にする",
+     "before": "（無し。新しく足す）",
+     "why": "表の見出しの行の面のトークンが無かったので、意味の層に1つ足す。値は基礎の層を参照するだけで、直値を書かない。"
+    },
+    {
+     "find": "\"background\": \"color.surface.head\",",
+     "before": "（無し。新しく足す）",
+     "why": "新しい面の上の本文の文字が、コントラストの基準を満たすかを検査の対象に足す。"
+    }
+   ]
+  },
+  {
+   "key": "dark",
+   "tab": "dark.tokens.json",
+   "file": ".claude/skills/brainstorming/assets/catalog/dark.tokens.json",
+   "marks": [
+    {
+     "find": "\"{base.night.700}\"",
+     "before": "（無し。新しく足す）",
+     "why": "ダークの値。吹き出し（night.900）とも欄（night.800）とも違う値にする。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "js": "5722af51a00d7319846081e7db37664a2c140c7627b3ac70a06b52c5727ae6d2",
+  "css": "25f6641543a97911299a5b88550e1e769d8f50899927be90c2c1cb2f17d40f38",
+  "tokens": "7e501f63cd623a5ec9d7bedd68691f45f2d74dc43ecb4fd9c069390e2aa0ff3d",
+  "dark": "c5ff7b00a250f41af66a211ca20bf65f6430bb0daaee405f53000dd351fd0914"
+ }
+}

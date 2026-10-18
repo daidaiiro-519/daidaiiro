@@ -479,23 +479,55 @@
       var first = String(item.target || "").split("\n")[0]; var code = el("code", "", first + (String(item.target).indexOf("\n") >= 0 ? " …" : "")); code.title = item.target; li.appendChild(code);
       $("ul", m.work).appendChild(li);
     }
-    // 返事の Markdown のうち、太字 ・ `コード` ・ 箇条書き ・ 見出しだけを、文字として作る（HTML としては読まない）
+    // 返事の Markdown のうち、太字 ・ 斜体 ・ `コード` ・ リンク ・ 箇条書き ・ 見出し ・ 表 ・ 引用 ・ 区切り線 ・ コードの塊を、文字として作る（HTML としては読まない）
     function inline(parent, line) {
-      var re = /(\*\*([^*]+)\*\*|`([^`]+)`)/g, at = 0, m;
+      var re = /(\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|\*([^*\s][^*]*)\*)/g, at = 0, m;
       while ((m = re.exec(line))) {
         if (m.index > at) parent.appendChild(document.createTextNode(line.slice(at, m.index)));
-        parent.appendChild(m[2] ? el("b", "", m[2]) : el("code", "", m[3]));
+        if (m[2]) parent.appendChild(el("b", "", m[2]));
+        else if (m[3]) parent.appendChild(el("code", "", m[3]));
+        else if (m[4]) { var a = el("a", "", m[4]); a.href = m[5]; a.target = "_blank"; a.rel = "noopener noreferrer"; parent.appendChild(a); }
+        else parent.appendChild(el("i", "", m[6]));
         at = re.lastIndex;
       }
       if (at < line.length) parent.appendChild(document.createTextNode(line.slice(at)));
     }
+    // 表の1行を欄に分ける。行頭と行末の | は外す
+    function cells(line) { return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); }); }
+    var RULE = /^\s*\|?\s*:?-{3,}/;
     function markdown(box, text) {
       box.textContent = "";
-      var list = null;
-      text.split("\n").forEach(function (line) {
+      var list = null, table = null, quote = null, fence = null;
+      text.split("\n").forEach(function (line, i, lines) {
+        // コードの塊：``` から ``` まで。中は1文字も変えずに置く
+        if (/^\s*```/.test(line)) {
+          if (fence) { fence = null; return; }
+          list = table = quote = null; fence = el("pre", "fence"); fence.appendChild(el("code")); box.appendChild(fence); return;
+        }
+        if (fence) { var c = fence.firstChild; c.textContent += (c.textContent ? "\n" : "") + line; return; }
+        // 表：| で始まる行が続くあいだ。2行目が区切り（|---|）なら1行目を見出しにする
+        if (/^\s*\|/.test(line)) {
+          list = quote = null;
+          if (RULE.test(line)) return;
+          if (!table) {
+            var wrap = el("div", "tbl"); table = el("table"); wrap.appendChild(table); box.appendChild(wrap);
+            var head = RULE.test(lines[i + 1] || "");
+            var tr = el("tr"); cells(line).forEach(function (c) { var td = el(head ? "th" : "td"); inline(td, c); tr.appendChild(td); }); table.appendChild(tr); return;
+          }
+          var row = el("tr"); cells(line).forEach(function (c) { var td = el("td"); inline(td, c); row.appendChild(td); }); table.appendChild(row); return;
+        }
+        table = null;
+        // 引用：> で始まる行が続くあいだ
+        var q = line.match(/^\s*>\s?(.*)$/);
+        if (q) { list = null; if (!quote) { quote = el("blockquote"); box.appendChild(quote); } var qp = el("p"); inline(qp, q[1]); quote.appendChild(qp); return; }
+        quote = null;
+        // 区切り線
+        if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { list = null; box.appendChild(el("hr")); return; }
         var item = line.match(/^\s*(?:[-*]|[0-9]+\.)\s+(.*)$/);
         if (item) {
-          if (!list) { list = el(/^\s*[0-9]/.test(line) ? "ol" : "ul"); box.appendChild(list); }
+          // 番号付きと箇条書きが入れ替わったら、別の並びにする
+          var kind = /^\s*[0-9]/.test(line) ? "OL" : "UL";
+          if (!list || list.tagName !== kind) { list = el(kind.toLowerCase()); box.appendChild(list); }
           var li = el("li"); inline(li, item[1]); list.appendChild(li); return;
         }
         list = null;
