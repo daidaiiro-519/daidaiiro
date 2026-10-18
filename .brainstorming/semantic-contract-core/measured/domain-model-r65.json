@@ -1,0 +1,3281 @@
+{
+ "concept_order": [
+  "版と語（値オブジェクト）",
+  "承認を通すもの（Concrete の集約）",
+  "rule（Concrete の集約）",
+  "instance（集約）",
+  "検証の記録（集約）",
+  "人の判断（集約）",
+  "状態を導く（ドメインサービス）",
+  "チーム（変更セット ・ 取り込み）",
+  "集約に共通"
+ ],
+ "invariants": [
+  {
+   "id": "J1",
+   "order": 0,
+   "concept": "版と語（値オブジェクト）",
+   "text": "公開した Concrete の版 ・ 割り当て ・ term ・ Abstract は中身を変えない。変えるときは新しい版を並べて出す。",
+   "test": "S21 ・ T1 ・ T3"
+  },
+  {
+   "id": "J2",
+   "order": 1,
+   "concept": "版と語（値オブジェクト）",
+   "text": "term の版付きの名前は、どの文脈から指しても定義1つに決まる。",
+   "test": "承認の依頼で検査する（モデルの外）"
+  },
+  {
+   "id": "J3",
+   "order": 2,
+   "concept": "承認を通すもの（Concrete の集約）",
+   "text": "Concrete の版と validator の割り当ては、人が承認したものだけが検証に使われる。",
+   "test": "S3 ・ T3 ・ T4"
+  },
+  {
+   "id": "J4",
+   "order": 3,
+   "concept": "承認を通すもの（Concrete の集約）",
+   "text": "承認は依頼した時点の中身のハッシュに結び付き、いまの中身と違えば断られる。依頼のあとに書けば依頼は取り下げになる。",
+   "test": "S3 ・ T3：承認待ち × 書く"
+  },
+  {
+   "id": "J5",
+   "order": 4,
+   "concept": "承認を通すもの（Concrete の集約）",
+   "text": "承認の依頼は、試した結果（結果が変わる instance）と、AI の rule ごとに決めた件数の抜き取りへの人の判断を持つ。",
+   "test": "S16 ・ S17 ・ T3 ・ T4"
+  },
+  {
+   "id": "J6",
+   "order": 5,
+   "concept": "承認を通すもの（Concrete の集約）",
+   "text": "承認 ・ 差し戻し ・ 人の判断 ・ 取り消し ・ 取り込みの確定は、人の操作の入口からだけ行える。",
+   "test": "S15 ・ S19 ・ T1 ・ T3 ・ T4 ・ T5"
+  },
+  {
+   "id": "J7",
+   "order": 6,
+   "concept": "承認を通すもの（Concrete の集約）",
+   "text": "validator の割り当ては Concrete に1つで、公開したすべての版に効く。",
+   "test": "S2 ・ T4"
+  },
+  {
+   "id": "J8",
+   "order": 7,
+   "concept": "承認を通すもの（Concrete の集約）",
+   "text": "版を引退させるのは従う instance が無いときだけで、引退した版に従う instance は下書きとして返る。",
+   "test": "T3：引退させる ・ D"
+  },
+  {
+   "id": "J9",
+   "order": 8,
+   "concept": "rule（Concrete の集約）",
+   "text": "AI と人が判定する rule は読む欄を持ち、AI には読む欄 ・ term ・ 参照先の値だけを渡す。",
+   "test": "S11 ・ T3"
+  },
+  {
+   "id": "J10",
+   "order": 9,
+   "concept": "instance（集約）",
+   "text": "instance は公開した版1つに従い、版を変えるのは移すだけである。移すと下書きか検証待ちになるなら元の版に残る。",
+   "test": "S8 ・ T5"
+  },
+  {
+   "id": "J11",
+   "order": 10,
+   "concept": "instance（集約）",
+   "text": "instance の保存は、読んだ時点のハッシュが一致し、変える欄が版の決めた変えてよい範囲の中にあるときだけ成り立つ。",
+   "test": "S22 ・ T5"
+  },
+  {
+   "id": "J12",
+   "order": 11,
+   "concept": "instance（集約）",
+   "text": "消すのは、ほかの instance が x-ref で指していない instance だけである。",
+   "test": "S18 ・ T5"
+  },
+  {
+   "id": "J13",
+   "order": 12,
+   "concept": "instance（集約）",
+   "text": "消した ID と無い ID へのコマンドは断られ、消した ID は使い直さない。",
+   "test": "S9 ・ T5"
+  },
+  {
+   "id": "J14",
+   "order": 13,
+   "concept": "instance（集約）",
+   "text": "基盤を通らずに、変えてよい範囲の外か $schema が変わった instance と、消した ID を持つファイルは違反として返る。",
+   "test": "T5 ・ D"
+  },
+  {
+   "id": "J15",
+   "order": 14,
+   "concept": "検証の記録（集約）",
+   "text": "rule の入力は、rule の宣言 ・ 読む欄の値 ・ term ・ 参照先 ・ その rule の validator である。版の番号は入れない。",
+   "test": "S1 ・ S2 ・ T1"
+  },
+  {
+   "id": "J16",
+   "order": 15,
+   "concept": "検証の記録（集約）",
+   "text": "AI の答えの根拠が読む欄の値に無ければ、verified ・ violated でも unverified として記録する。",
+   "test": "S11 ・ T1"
+  },
+  {
+   "id": "J17",
+   "order": 16,
+   "concept": "検証の記録（集約）",
+   "text": "rule のいまの結果は、入力がいまと一致する最後の記録の結果。無ければ検証待ち。error は検証待ちで、AI の rule だけ3回続けば unverified。",
+   "test": "S7 ・ S20 ・ T1"
+  },
+  {
+   "id": "J18",
+   "order": 17,
+   "concept": "検証の記録（集約）",
+   "text": "検証するは検証待ちの rule だけを渡す。人が判定する rule は渡さずに unverified、validator の無い rule は unsupported にする。",
+   "test": "S2 ・ T1"
+  },
+  {
+   "id": "J19",
+   "order": 18,
+   "concept": "人の判断（集約）",
+   "text": "人の判断は「合っている」か「合っていない」を持ち、判定した者を人にした verified か violated として返る。",
+   "test": "S6 ・ T1"
+  },
+  {
+   "id": "J20",
+   "order": 19,
+   "concept": "人の判断（集約）",
+   "text": "人の判断を付けられるのは、いまの結果が unverified ・ unsupported の rule と、AI が判定した rule だけである。",
+   "test": "S10 ・ T1"
+  },
+  {
+   "id": "J21",
+   "order": 20,
+   "concept": "人の判断（集約）",
+   "text": "人の判断は人に示した時点の入力（validator を除く）に結び付く。示した入力がいまと違えば断られ、あとで変われば効かない。",
+   "test": "S13 ・ T2"
+  },
+  {
+   "id": "J22",
+   "order": 21,
+   "concept": "人の判断（集約）",
+   "text": "まとめて判断しても、判断は instance ごとに別に保存され、断ったものの一覧が返る。",
+   "test": "S14"
+  },
+  {
+   "id": "J23",
+   "order": 22,
+   "concept": "状態を導く（ドメインサービス）",
+   "text": "rule の効いている結果は、読む欄に未記入があれば未記入、効いている判断があればその結果、無ければいまの結果である。",
+   "test": "S5 ・ T1"
+  },
+  {
+   "id": "J24",
+   "order": 23,
+   "concept": "状態を導く（ドメインサービス）",
+   "text": "instance の状態は、読むたびに決定表 D で導く。",
+   "test": "D の全行"
+  },
+  {
+   "id": "J25",
+   "order": 24,
+   "concept": "状態を導く（ドメインサービス）",
+   "text": "前の版で検証済みは、従う版が最新でなく、最新の版を試した結果で結果が変わる instance だけである。",
+   "test": "S12 ・ D"
+  },
+  {
+   "id": "J26",
+   "order": 25,
+   "concept": "集約に共通",
+   "text": "記録（承認 ・ 検証 ・ 人の判断）は足すだけで、書き換えた記録と判断は効かない。",
+   "test": "S5 ・ T1 ・ T2"
+  },
+  {
+   "id": "J27",
+   "order": 26,
+   "concept": "集約に共通",
+   "text": "集約は文脈の中で一意の ID を持ち、ほかの集約からは ID とハッシュで指される。",
+   "test": "T5：在る × 作る"
+  },
+  {
+   "id": "J30",
+   "order": 29,
+   "concept": "チーム（変更セット ・ 取り込み）",
+   "text": "取り込んだら親の版が変わっていた契約の版は、試し直して変更セットの中で確かめる。先に統合先に入った版が正になる。",
+   "test": "TS6"
+  },
+  {
+   "id": "J31",
+   "order": 30,
+   "concept": "チーム（変更セット ・ 取り込み）",
+   "text": "同じ中身への人の確かめが割れたら「割れた」とし、変更セットに人が見るものとして出す。順番には頼らない。",
+   "test": "TS9（記録）・ 1人の S13"
+  },
+  {
+   "id": "J32",
+   "order": 31,
+   "concept": "チーム（変更セット ・ 取り込み）",
+   "text": "同じ入力の記録の答えが割れたら、AI の rule は unverified、機械の rule は検証待ちとして変更セットに出る。",
+   "test": "TS9"
+  },
+  {
+   "id": "J33",
+   "order": 32,
+   "concept": "チーム（変更セット ・ 取り込み）",
+   "text": "変更セットには、差分 ・ 理由 ・ 検証の結果と、人が見るもの（判定できなかった rule ・ 契約の差分と試した結果）を出す。",
+   "test": "TS1 ・ TS4"
+  },
+  {
+   "id": "J34",
+   "order": 33,
+   "concept": "チーム（変更セット ・ 取り込み）",
+   "text": "記録と判断は1件1ファイルで、取り込みは合わせるだけ。取り込んだ中身は、いつもの検証で確かめ直す。",
+   "test": "TS3 ・ TS5 ・ TS7"
+  },
+  {
+   "id": "J35",
+   "order": 34,
+   "concept": "チーム（変更セット ・ 取り込み）",
+   "text": "効く検証の記録は、信頼できる実行者が書いたものだけ。人の確かめは、変更セットの中で行ったものだけが効く。",
+   "test": "TS8 ・ TS10"
+  }
+ ],
+ "kind_order": [
+  "集約の操作",
+  "command",
+  "ドメインサービス",
+  "query",
+  "腐敗防止層"
+ ],
+ "capabilities": [
+  {
+   "order": 0,
+   "kind": "集約の操作",
+   "name": "版 ・ 割り当てを書く",
+   "does": "Concrete の下書きの版に rule ・ term ・ 読む欄 ・ 判定する者 ・ 変えてよい範囲 ・ 移し方を書き、validator の割り当てと抜き取りの割合を書く",
+   "from_u": [
+    "U1",
+    "U2",
+    "U14"
+   ],
+   "event_of": "T3 ・ T4"
+  },
+  {
+   "order": 1,
+   "kind": "command",
+   "name": "試す",
+   "does": "下書きの版や割り当てを instance に当てて検証し、結果が変わる instance と、抜き取る instance を返す。結果はいまの結果にしない",
+   "from_u": [
+    "U2",
+    "U9",
+    "U14"
+   ],
+   "event_of": "T3 ・ T4"
+  },
+  {
+   "order": 2,
+   "kind": "command",
+   "name": "承認を依頼する",
+   "does": "試した結果と、抜き取りへの人の判断（件数がそろっていること）を付けて人へ出す",
+   "from_u": [
+    "U9"
+   ],
+   "event_of": "T3 ・ T4"
+  },
+  {
+   "order": 3,
+   "kind": "集約の操作",
+   "name": "承認する ・ 差し戻す",
+   "does": "人の操作の入口だけから、依頼の時点のハッシュと一致する版 ・ 割り当てを公開にするか、下書きへ戻す",
+   "from_u": [
+    "U9"
+   ],
+   "event_of": "T3 ・ T4"
+  },
+  {
+   "order": 4,
+   "kind": "集約の操作",
+   "name": "引退させる",
+   "does": "従う instance の無い版を引退にする",
+   "from_u": [
+    "U2",
+    "U11"
+   ],
+   "event_of": "T3 ・ T4"
+  },
+  {
+   "order": 5,
+   "kind": "集約の操作",
+   "name": "instance を作る ・ 変える",
+   "does": "変えてよい範囲の中で書き、ハッシュが一致するときだけ保存する",
+   "from_u": [
+    "U5",
+    "U6"
+   ],
+   "event_of": "T5"
+  },
+  {
+   "order": 6,
+   "kind": "command",
+   "name": "取り込む",
+   "does": "$schema が公開した版1つに決まるファイルはそのまま instance にし、決まらないものだけ人が版を確定する",
+   "from_u": [
+    "U17"
+   ],
+   "event_of": "T5"
+  },
+  {
+   "order": 7,
+   "kind": "command",
+   "name": "移す",
+   "does": "instance を新しい公開した版へ1件ずつ移し、移せなかったものは元の版に残して理由を返す",
+   "from_u": [
+    "U3",
+    "U7"
+   ],
+   "event_of": "T5"
+  },
+  {
+   "order": 8,
+   "kind": "command",
+   "name": "消す",
+   "does": "ほかの instance が x-ref で指していない instance を消す",
+   "from_u": [
+    "U11"
+   ],
+   "event_of": "T5"
+  },
+  {
+   "order": 9,
+   "kind": "集約の操作",
+   "name": "人が判断する ・ 取り消す",
+   "does": "人の操作の入口だけから、rule ごとに instance を並べて判断を足すか取り消す",
+   "from_u": [
+    "U16"
+   ],
+   "event_of": "T1 ・ T2"
+  },
+  {
+   "order": 10,
+   "kind": "ドメインサービス",
+   "name": "検証する",
+   "does": "検証待ちの rule だけを、割り当てた validator に渡して記録に足す。error は次の検証で再び渡す",
+   "from_u": [
+    "U5",
+    "U6",
+    "U8"
+   ],
+   "event_of": "T1"
+  },
+  {
+   "order": 11,
+   "kind": "ドメインサービス",
+   "name": "状態を導く",
+   "does": "読むたびに入力を比べ、rule の効いている結果と instance の状態を決定表で導く",
+   "from_u": [
+    "U0",
+    "U10",
+    "U12"
+   ],
+   "event_of": "D"
+  },
+  {
+   "order": 12,
+   "kind": "ドメインサービス",
+   "name": "解決する",
+   "does": "$schema ・ $ref ・ x-ref ・ x-derive の指す先と導出値を決める",
+   "from_u": [
+    "U6",
+    "U8",
+    "U11"
+   ],
+   "event_of": "──"
+  },
+  {
+   "order": 13,
+   "kind": "ドメインサービス",
+   "name": "意味で探して取り出す",
+   "does": "term ・ x-ref ・ rule の結果 ・ 状態で探し、要る部分だけを返す",
+   "from_u": [
+    "U5",
+    "U6",
+    "U10",
+    "U12"
+   ],
+   "event_of": "──"
+  },
+  {
+   "order": 14,
+   "kind": "ドメインサービス",
+   "name": "描画する",
+   "does": "instance を、rule ごとの効いている結果と状態と一緒に人が読む形にする",
+   "from_u": [
+    "U12",
+    "U16"
+   ],
+   "event_of": "──"
+  },
+  {
+   "order": 15,
+   "kind": "query",
+   "name": "案内する",
+   "does": "書く単位ごとの x-prompt と変えてよい範囲を返す",
+   "from_u": [
+    "U1",
+    "U5",
+    "U6"
+   ],
+   "event_of": "──"
+  },
+  {
+   "order": 16,
+   "kind": "query",
+   "name": "経緯をたどる",
+   "does": "承認 ・ 検証 ・ 人の判断の記録を時の順に返し、欠けと書き換えの位置を返す",
+   "from_u": [
+    "U13"
+   ],
+   "event_of": "──"
+  },
+  {
+   "order": 17,
+   "kind": "腐敗防止層",
+   "name": "AI に判定を頼む",
+   "does": "読む欄と term の値だけを AI に渡して判定させ、答えの形と根拠を検査する",
+   "from_u": [
+    "U5",
+    "U8",
+    "U14"
+   ],
+   "event_of": "T1"
+  },
+  {
+   "order": 18,
+   "kind": "腐敗防止層",
+   "name": "validator の能力を受け付ける",
+   "does": "validator が判定できる rule の種類の宣言を受け、担当の無い rule を unsupported にする",
+   "from_u": [
+    "U14"
+   ],
+   "event_of": "T1"
+  }
+ ],
+ "state_tables": [
+  {
+   "id": "T1",
+   "name": "rule の結果（instance × rule 1件）",
+   "note": "状態は rule の効いている結果。／ の右は instance の状態",
+   "table": {
+    "states": [
+     "検証待ち",
+     "verified（機械）",
+     "violated（機械）",
+     "verified（AI）",
+     "violated（AI）",
+     "unverified",
+     "unsupported",
+     "未記入",
+     "verified（人）",
+     "violated（人）"
+    ],
+    "events": [
+     "読む欄を変える",
+     "読まない欄を変える",
+     "公開した term を書き換える",
+     "検証する（verified が返る）",
+     "検証する（根拠の無い verified が返る）",
+     "検証する（error が返る）",
+     "検証する（同じ入力で error が3回続く）",
+     "人が「合っている」と判断する",
+     "AI が判断する",
+     "判断を取り消す",
+     "validator を替える（承認）",
+     "記録の書き換えが見つかる",
+     "基盤を通らずに読む欄を書き換える"
+    ],
+    "cells": [
+     {
+      "state": "検証待ち",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "読まない欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "検証する（verified が返る）",
+      "to": "verified（AI） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "検証する（error が返る）",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "人が「合っている」と判断する",
+      "to": "無効：判断を付けられない結果（検証待ち）",
+      "by": [
+       "J20"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "validator を替える（承認）",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "検証待ち",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "読まない欄を変える",
+      "to": "verified（機械） ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "検証する（verified が返る）",
+      "to": "verified（機械） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "verified（機械） ／ instance は検証済み",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "検証する（error が返る）",
+      "to": "verified（機械） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "verified（機械） ／ instance は検証済み",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "人が「合っている」と判断する",
+      "to": "無効：判断を付けられない結果（verified）",
+      "by": [
+       "J20"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "validator を替える（承認）",
+      "to": "verified（機械） ／ instance は検証済み",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（機械）",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "読まない欄を変える",
+      "to": "violated（機械） ／ instance は下書き",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "検証する（verified が返る）",
+      "to": "violated（機械） ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "violated（機械） ／ instance は下書き",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "検証する（error が返る）",
+      "to": "violated（機械） ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "violated（機械） ／ instance は下書き",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "人が「合っている」と判断する",
+      "to": "無効：判断を付けられない結果（violated）",
+      "by": [
+       "J20"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "validator を替える（承認）",
+      "to": "violated（機械） ／ instance は下書き",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（機械）",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "読まない欄を変える",
+      "to": "verified（AI） ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "検証する（verified が返る）",
+      "to": "verified（AI） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "verified（AI） ／ instance は検証済み",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "検証する（error が返る）",
+      "to": "verified（AI） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "verified（AI） ／ instance は検証済み",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "人が「合っている」と判断する",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J19",
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "validator を替える（承認）",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（AI）",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "読まない欄を変える",
+      "to": "violated（AI） ／ instance は下書き",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "検証する（verified が返る）",
+      "to": "violated（AI） ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "violated（AI） ／ instance は下書き",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "検証する（error が返る）",
+      "to": "violated（AI） ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "violated（AI） ／ instance は下書き",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "人が「合っている」と判断する",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J19",
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "validator を替える（承認）",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（AI）",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "読まない欄を変える",
+      "to": "unverified ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "検証する（verified が返る）",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "検証する（error が返る）",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "人が「合っている」と判断する",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J19",
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "validator を替える（承認）",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "unverified",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "読まない欄を変える",
+      "to": "unsupported ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "検証する（verified が返る）",
+      "to": "unsupported ／ instance は判断待ち",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "unsupported ／ instance は判断待ち",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "検証する（error が返る）",
+      "to": "unsupported ／ instance は判断待ち",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "unsupported ／ instance は判断待ち",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "人が「合っている」と判断する",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J19",
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "validator を替える（承認）",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "記録の書き換えが見つかる",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "unsupported",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "読まない欄を変える",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "検証する（verified が返る）",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "検証する（error が返る）",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "人が「合っている」と判断する",
+      "to": "無効：未記入の欄を読む rule",
+      "by": [
+       "J20"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "判断を取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "validator を替える（承認）",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "記録の書き換えが見つかる",
+      "to": "未記入 ／ instance は下書き",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "未記入",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "読まない欄を変える",
+      "to": "verified（人） ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "検証する（verified が返る）",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "検証する（error が返る）",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "人が「合っている」と判断する",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J19",
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "判断を取り消す",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J21",
+       "J23"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "validator を替える（承認）",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "記録の書き換えが見つかる",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "verified（人）",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "読む欄を変える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J11",
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "読まない欄を変える",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "公開した term を書き換える",
+      "to": "無効：公開した term は変えない。新しい版を出す",
+      "by": [
+       "J1",
+       "J2"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "検証する（verified が返る）",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "検証する（根拠の無い verified が返る）",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J16"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "検証する（error が返る）",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J17",
+       "J18"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "検証する（同じ入力で error が3回続く）",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "人が「合っている」と判断する",
+      "to": "verified（人） ／ instance は検証済み",
+      "by": [
+       "J19",
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "AI が判断する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "判断を取り消す",
+      "to": "unverified ／ instance は判断待ち",
+      "by": [
+       "J21",
+       "J23"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "validator を替える（承認）",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J5",
+       "J7",
+       "J15",
+       "J21"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "記録の書き換えが見つかる",
+      "to": "violated（人） ／ instance は下書き",
+      "by": [
+       "J26",
+       "J17"
+      ]
+     },
+     {
+      "state": "violated（人）",
+      "event": "基盤を通らずに読む欄を書き換える",
+      "to": "検証待ち ／ instance は検証待ち",
+      "by": [
+       "J15",
+       "J17"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "T2",
+   "name": "人の判断",
+   "note": "判断の状態は記録から導く値で、保存しない",
+   "table": {
+    "states": [
+     "無い",
+     "効く",
+     "入力が違って効かない",
+     "書き換えが見つかって効かない",
+     "取り消した"
+    ],
+    "events": [
+     "判断する",
+     "示したあとに読む欄が変わってから判断する",
+     "読む欄が変わる",
+     "読む欄が判断の時点の値に戻る",
+     "validator を替える（承認）",
+     "判断の書き換えが見つかる",
+     "取り消す"
+    ],
+    "cells": [
+     {
+      "state": "無い",
+      "event": "判断する",
+      "to": "効く",
+      "by": [
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "示したあとに読む欄が変わってから判断する",
+      "to": "無効：人に示した入力といまの入力が違う",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "読む欄が変わる",
+      "to": "無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "読む欄が判断の時点の値に戻る",
+      "to": "無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "validator を替える（承認）",
+      "to": "無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "判断の書き換えが見つかる",
+      "to": "無効：判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "判断する",
+      "to": "効く",
+      "by": [
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "示したあとに読む欄が変わってから判断する",
+      "to": "無効：人に示した入力といまの入力が違う",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "読む欄が変わる",
+      "to": "入力が違って効かない",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "読む欄が判断の時点の値に戻る",
+      "to": "効く",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "validator を替える（承認）",
+      "to": "効く",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "判断の書き換えが見つかる",
+      "to": "書き換えが見つかって効かない",
+      "by": [
+       "J26"
+      ]
+     },
+     {
+      "state": "効く",
+      "event": "取り消す",
+      "to": "取り消した",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "判断する",
+      "to": "効く",
+      "by": [
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "示したあとに読む欄が変わってから判断する",
+      "to": "無効：人に示した入力といまの入力が違う",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "読む欄が変わる",
+      "to": "入力が違って効かない",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "読む欄が判断の時点の値に戻る",
+      "to": "効く",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "validator を替える（承認）",
+      "to": "入力が違って効かない",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "判断の書き換えが見つかる",
+      "to": "書き換えが見つかって効かない",
+      "by": [
+       "J26"
+      ]
+     },
+     {
+      "state": "入力が違って効かない",
+      "event": "取り消す",
+      "to": "取り消した",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "判断する",
+      "to": "効く",
+      "by": [
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "示したあとに読む欄が変わってから判断する",
+      "to": "無効：人に示した入力といまの入力が違う",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "読む欄が変わる",
+      "to": "書き換えが見つかって効かない",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "読む欄が判断の時点の値に戻る",
+      "to": "書き換えが見つかって効かない",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "validator を替える（承認）",
+      "to": "書き換えが見つかって効かない",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "判断の書き換えが見つかる",
+      "to": "書き換えが見つかって効かない",
+      "by": [
+       "J26"
+      ]
+     },
+     {
+      "state": "書き換えが見つかって効かない",
+      "event": "取り消す",
+      "to": "取り消した",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "判断する",
+      "to": "効く",
+      "by": [
+       "J20",
+       "J21"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "示したあとに読む欄が変わってから判断する",
+      "to": "無効：人に示した入力といまの入力が違う",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "読む欄が変わる",
+      "to": "取り消した",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "読む欄が判断の時点の値に戻る",
+      "to": "取り消した",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "validator を替える（承認）",
+      "to": "取り消した",
+      "by": [
+       "J21"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "判断の書き換えが見つかる",
+      "to": "取り消した",
+      "by": [
+       "J26"
+      ]
+     },
+     {
+      "state": "取り消した",
+      "event": "取り消す",
+      "to": "無効：取り消す判断が無い",
+      "by": [
+       "J21"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "T3",
+   "name": "Concrete の版",
+   "note": "人が承認するものの1つ目",
+   "table": {
+    "states": [
+     "下書き",
+     "承認待ち",
+     "公開",
+     "引退"
+    ],
+    "events": [
+     "書く",
+     "読む欄の無い AI の rule を書く",
+     "試す",
+     "承認を依頼する（試して抜き取ったあと）",
+     "承認を依頼する（抜き取りが足りない）",
+     "承認を依頼する（試さずに）",
+     "人が承認する",
+     "AI が承認する",
+     "差し戻す",
+     "引退させる（従う instance がある）",
+     "引退させる（従う instance を移したあと）"
+    ],
+    "cells": [
+     {
+      "state": "下書き",
+      "event": "書く",
+      "to": "下書き",
+      "by": [
+       "J1",
+       "J4",
+       "J9"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "読む欄の無い AI の rule を書く",
+      "to": "無効：AI と人が判定する rule は読む欄を持つ",
+      "by": [
+       "J9"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "試す",
+      "to": "下書き",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "承認待ち",
+      "by": [
+       "J4",
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：抜き取りの人の判断がそろっていない",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：試した結果の無い依頼",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "人が承認する",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "差し戻す",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "引退させる（従う instance がある）",
+      "to": "無効：公開した版だけを引退できる",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "引退させる（従う instance を移したあと）",
+      "to": "無効：公開した版だけを引退できる",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "書く",
+      "to": "下書き",
+      "by": [
+       "J1",
+       "J4",
+       "J9"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "読む欄の無い AI の rule を書く",
+      "to": "無効：AI と人が判定する rule は読む欄を持つ",
+      "by": [
+       "J9"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "試す",
+      "to": "承認待ち",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "人が承認する",
+      "to": "公開",
+      "by": [
+       "J3",
+       "J4"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "差し戻す",
+      "to": "下書き",
+      "by": [
+       "J4",
+       "J6"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "引退させる（従う instance がある）",
+      "to": "無効：公開した版だけを引退できる",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "引退させる（従う instance を移したあと）",
+      "to": "無効：公開した版だけを引退できる",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "書く",
+      "to": "無効：公開した版は変えない。新しい版を下書きで作る",
+      "by": [
+       "J1"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "読む欄の無い AI の rule を書く",
+      "to": "無効：公開した版は変えない。新しい版を下書きで作る",
+      "by": [
+       "J1"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "試す",
+      "to": "公開",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "人が承認する",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "差し戻す",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "引退させる（従う instance がある）",
+      "to": "無効：従う instance がある",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "公開",
+      "event": "引退させる（従う instance を移したあと）",
+      "to": "引退",
+      "by": [
+       "J8",
+       "J10"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "書く",
+      "to": "無効：公開した版は変えない。新しい版を下書きで作る",
+      "by": [
+       "J1"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "読む欄の無い AI の rule を書く",
+      "to": "無効：公開した版は変えない。新しい版を下書きで作る",
+      "by": [
+       "J1"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "試す",
+      "to": "無効：引退した版",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "無効：引退した版",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：引退した版",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：下書きの版だけを依頼できる",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "人が承認する",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "差し戻す",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "引退させる（従う instance がある）",
+      "to": "無効：公開した版だけを引退できる",
+      "by": [
+       "J8"
+      ]
+     },
+     {
+      "state": "引退",
+      "event": "引退させる（従う instance を移したあと）",
+      "to": "無効：公開した版だけを引退できる",
+      "by": [
+       "J8"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "T4",
+   "name": "validator の割り当て（Concrete に1つ）",
+   "note": "人が承認するものの2つ目。承認すると前の割り当ては履歴へ移る",
+   "table": {
+    "states": [
+     "下書き無し",
+     "下書き",
+     "承認待ち"
+    ],
+    "events": [
+     "書く",
+     "承認を依頼する（試して抜き取ったあと）",
+     "承認を依頼する（抜き取りが足りない）",
+     "承認を依頼する（試さずに）",
+     "人が承認する",
+     "AI が承認する",
+     "差し戻す"
+    ],
+    "cells": [
+     {
+      "state": "下書き無し",
+      "event": "書く",
+      "to": "下書き ／ 公開は ai@1",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き無し",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "無効：下書きの割り当てが無い",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き無し",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：下書きの割り当てが無い",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き無し",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：下書きの割り当てが無い",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き無し",
+      "event": "人が承認する",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き無し",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "下書き無し",
+      "event": "差し戻す",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "書く",
+      "to": "下書き ／ 公開は ai@1",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "承認待ち ／ 公開は ai@1",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：抜き取りの人の判断がそろっていない",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：試した結果の無い依頼",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "人が承認する",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "下書き",
+      "event": "差し戻す",
+      "to": "無効：依頼されていない",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "書く",
+      "to": "下書き ／ 公開は ai@1",
+      "by": [
+       "J4"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "承認を依頼する（試して抜き取ったあと）",
+      "to": "承認待ち ／ 公開は ai@1",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "承認を依頼する（抜き取りが足りない）",
+      "to": "無効：抜き取りの人の判断がそろっていない",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "承認を依頼する（試さずに）",
+      "to": "無効：試した結果の無い依頼",
+      "by": [
+       "J5"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "人が承認する",
+      "to": "下書き無し ／ 公開は ai@2",
+      "by": [
+       "J3",
+       "J4",
+       "J7"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "AI が承認する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "承認待ち",
+      "event": "差し戻す",
+      "to": "下書き ／ 公開は ai@1",
+      "by": [
+       "J4",
+       "J6"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "T5",
+   "name": "instance の有無",
+   "note": "従う版を変えるのは移すだけ",
+   "table": {
+    "states": [
+     "無い",
+     "在る",
+     "消した"
+    ],
+    "events": [
+     "作る",
+     "取り込む（$schema が決まる）",
+     "取り込む（$schema が決まらない）",
+     "AI が取り込みの版を確定する",
+     "変える（範囲の中）",
+     "変える（範囲の外）",
+     "移す（新しい版で検証済み）",
+     "移す（新しい版で violated）",
+     "消す",
+     "消す（ほかの instance が指している）",
+     "基盤を通らずに範囲の外を書き換える",
+     "基盤を通らずに $schema を書き換える"
+    ],
+    "cells": [
+     {
+      "state": "無い",
+      "event": "作る",
+      "to": "在る ／ 版2 ・ 検証待ち",
+      "by": [
+       "J3",
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "取り込む（$schema が決まる）",
+      "to": "在る ／ 版1 ・ 検証待ち",
+      "by": [
+       "J10",
+       "J27"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "取り込む（$schema が決まらない）",
+      "to": "無い（取り込みの候補）",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "AI が取り込みの版を確定する",
+      "to": "無効：人の操作の入口からだけ",
+      "by": [
+       "J6"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "変える（範囲の中）",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "変える（範囲の外）",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "移す（新しい版で検証済み）",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "移す（新しい版で violated）",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "消す",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "消す（ほかの instance が指している）",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "基盤を通らずに範囲の外を書き換える",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "無い",
+      "event": "基盤を通らずに $schema を書き換える",
+      "to": "無効：無い instance",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "作る",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "取り込む（$schema が決まる）",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "取り込む（$schema が決まらない）",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "AI が取り込みの版を確定する",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "変える（範囲の中）",
+      "to": "在る ／ 版1 ・ 検証待ち",
+      "by": [
+       "J11",
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "変える（範囲の外）",
+      "to": "無効：変えてよい範囲の外",
+      "by": [
+       "J11"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "移す（新しい版で検証済み）",
+      "to": "在る ／ 版2 ・ 検証済み",
+      "by": [
+       "J10"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "移す（新しい版で violated）",
+      "to": "在る ／ 版2 ・ 検証済み",
+      "by": [
+       "J10"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "消す",
+      "to": "消した ／ 版1 ・ 消した",
+      "by": [
+       "J12",
+       "J13"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "消す（ほかの instance が指している）",
+      "to": "無効：指されている",
+      "by": [
+       "J12"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "基盤を通らずに範囲の外を書き換える",
+      "to": "在る ／ 版1 ・ 下書き",
+      "by": [
+       "J14"
+      ]
+     },
+     {
+      "state": "在る",
+      "event": "基盤を通らずに $schema を書き換える",
+      "to": "在る ／ 版1 ・ 下書き",
+      "by": [
+       "J14"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "作る",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "取り込む（$schema が決まる）",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "取り込む（$schema が決まらない）",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "AI が取り込みの版を確定する",
+      "to": "無効：同じ ID ・ 消した ID は使えない",
+      "by": [
+       "J27",
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "変える（範囲の中）",
+      "to": "無効：消した ID",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "変える（範囲の外）",
+      "to": "無効：消した ID",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "移す（新しい版で検証済み）",
+      "to": "無効：消した ID",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "移す（新しい版で violated）",
+      "to": "無効：消した ID",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "消す",
+      "to": "無効：消した ID",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "消す（ほかの instance が指している）",
+      "to": "無効：消した ID",
+      "by": [
+       "J13"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "基盤を通らずに範囲の外を書き換える",
+      "to": "消した ／ 版1 ・ 消した（消した ID のファイルを違反として返す）",
+      "by": [
+       "J14"
+      ]
+     },
+     {
+      "state": "消した",
+      "event": "基盤を通らずに $schema を書き換える",
+      "to": "消した ／ 版1 ・ 消した（消した ID のファイルを違反として返す）",
+      "by": [
+       "J14"
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "decision_table": [
+  {
+   "if": "violated か未記入の rule がある",
+   "then": "下書き"
+  },
+  {
+   "if": "violated が無く、検証待ちの rule がある",
+   "then": "検証待ち"
+  },
+  {
+   "if": "上の2つでなく、unverified ・ unsupported の rule がある",
+   "then": "判断待ち"
+  },
+  {
+   "if": "すべて verified（機械 ・ AI ・ 人）で、従う版が最新",
+   "then": "検証済み"
+  },
+  {
+   "if": "すべて verified で、従う版が最新でなく、最新の版を試すと結果が変わる",
+   "then": "前の版で検証済み"
+  },
+  {
+   "if": "すべて verified で、従う版が最新でなく、試しても結果が変わらない",
+   "then": "検証済み"
+  },
+  {
+   "if": "基盤を通らずに範囲の外か $schema が変わった",
+   "then": "下書き"
+  },
+  {
+   "if": "従う版が引退した",
+   "then": "下書き"
+  }
+ ],
+ "sequences": [
+  {
+   "id": "S1",
+   "u": "U0",
+   "by": [
+    "J15",
+    "J17",
+    "J20",
+    "J24"
+   ],
+   "steps": "検証済み → 参照先の instance が変わる → 読むと検証待ち。人の判断は断られる"
+  },
+  {
+   "id": "S2",
+   "u": "U10",
+   "by": [
+    "J3",
+    "J5",
+    "J15",
+    "J21"
+   ],
+   "steps": "AI の validator を替える → 抜き取ってから承認1回 → AI の rule だけ検証し直し、人の判断は効いたまま"
+  },
+  {
+   "id": "S3",
+   "u": "U9",
+   "by": [
+    "J3",
+    "J4"
+   ],
+   "steps": "AI が rule を弱めた版を依頼 → AI が書き直す → 人が見た中身では承認できない"
+  },
+  {
+   "id": "S4",
+   "u": "U12",
+   "by": [
+    "J15",
+    "J17"
+   ],
+   "steps": "検証済み → 基盤を通らずに読む欄を書き換える → その rule は検証待ちで、verified と示さない"
+  },
+  {
+   "id": "S5",
+   "u": "U13",
+   "by": [
+    "J26",
+    "J23"
+   ],
+   "steps": "人の判断の記録を書き換える → その判断は効かず、判断の前の結果に戻る"
+  },
+  {
+   "id": "S6",
+   "u": "U16",
+   "by": [
+    "J19",
+    "J24"
+   ],
+   "steps": "unverified → 人が「合っていない」と判断 → violated（人）で、instance は下書き"
+  },
+  {
+   "id": "S7",
+   "u": "U14",
+   "by": [
+    "J17",
+    "J18"
+   ],
+   "steps": "AI の validator が error を返す → 検証待ちのまま次の検証で再び渡し、同じ入力で3回続けば unverified"
+  },
+  {
+   "id": "S8",
+   "u": "U7",
+   "by": [
+    "J10"
+   ],
+   "steps": "新しい版へ移すと violated → 元の版とハッシュのまま残り、理由が返る"
+  },
+  {
+   "id": "S9",
+   "u": "U11",
+   "by": [
+    "J13"
+   ],
+   "steps": "消した → 消した ID で変える ・ 作る → 断られる"
+  },
+  {
+   "id": "S10",
+   "u": "U16",
+   "by": [
+    "J20"
+   ],
+   "steps": "AI の violated を人が覆す。機械の violated は覆せない"
+  },
+  {
+   "id": "S11",
+   "u": "U5",
+   "by": [
+    "J9",
+    "J16"
+   ],
+   "steps": "AI には読む欄だけが渡り、根拠が読む欄に無い verified は unverified になる（検証の経路で）"
+  },
+  {
+   "id": "S12",
+   "u": "U2",
+   "by": [
+    "J25"
+   ],
+   "steps": "新しい版を公開 → 試して結果が変わる instance だけが前の版で検証済み"
+  },
+  {
+   "id": "S13",
+   "u": "U16",
+   "by": [
+    "J21"
+   ],
+   "steps": "人に示したあとに AI が読む欄を変える → 示した入力では判断できない"
+  },
+  {
+   "id": "S14",
+   "u": "U16",
+   "by": [
+    "J22"
+   ],
+   "steps": "まとめて判断 → instance ごとに保存し、断ったものの一覧が返る"
+  },
+  {
+   "id": "S15",
+   "u": "U9",
+   "by": [
+    "J6"
+   ],
+   "steps": "AI は承認 ・ 判断 ・ 取り消しができない"
+  },
+  {
+   "id": "S16",
+   "u": "U14",
+   "by": [
+    "J5"
+   ],
+   "steps": "抜き取りの人の判断が無いまま割り当ての承認を依頼する → 断られる（qa の U0-1）"
+  },
+  {
+   "id": "S17",
+   "u": "U14",
+   "by": [
+    "J5"
+   ],
+   "steps": "抜き取りで人と AI が食い違う → 承認の依頼に食い違いの数が載る"
+  },
+  {
+   "id": "S18",
+   "u": "U11",
+   "by": [
+    "J12"
+   ],
+   "steps": "ほかの instance が x-ref で指している instance を消す → 断られる（qa の U0-3）"
+  },
+  {
+   "id": "S19",
+   "u": "U17",
+   "by": [
+    "J6"
+   ],
+   "steps": "$schema が決まらないファイルを取り込む → 候補になり、AI は確定できず、人が確定すると検証待ちから始まる（qa の U0-4）"
+  },
+  {
+   "id": "S20",
+   "u": "U8",
+   "by": [
+    "J17",
+    "J20"
+   ],
+   "steps": "機械の rule が error を返し続ける → 検証待ちのままで、人は判断で埋められない"
+  },
+  {
+   "id": "S21",
+   "u": "U1",
+   "by": [
+    "J1",
+    "J2"
+   ],
+   "steps": "公開した term を書き換える → 断られる。新しい版は別の名前で並べる"
+  },
+  {
+   "id": "S22",
+   "u": "U6",
+   "by": [
+    "J11"
+   ],
+   "steps": "変えてよい範囲は Concrete の版が決め、範囲の外の欄の変更は断られる"
+  }
+ ],
+ "ux_acceptance": [
+  "人が操作するのは、版 ・ 割り当ての承認（抜き取りを含む）、判断が要る rule の判断、取り込みの割り当ての確定だけである",
+  "判断の依頼は原因ごとに1件にし、rule ごとに instance を並べ、何が ・ なぜ ・ 根拠 ・ 割れた答え ・ 次の操作を示す",
+  "判断が効かなくなったときは、原因ごとに1件の知らせにまとめる",
+  "承認の画面は、差分と試した結果（結果が変わる rule ・ instance の具体 ・ 抜き取りでの人と AI の食い違い）を先に示す",
+  "検証待ちの rule は「確かめ中」と示し、前の結果を参考として添えるが verified とは示さない",
+  "validator を1つもつないでいない版は、承認のときに「意味の rule は人が判断することになる」と示す",
+  "断る応答は、断った決まり ・ 該当する欄 ・ 次に呼べるコマンドを持つ。人へ出す文に id ・ ハッシュの生の値を書かない"
+ ],
+ "source": "表 ・ 決定表 ・ 試験は model/ の実行できるモデルから生成した（model.py ・ gen.py ・ tests.py。22本が通り、qa の指摘した4つの穴をモデルへ戻すと対応する試験が落ちる）",
+ "replaces": "domain-model-r60-v3.json（表と文を手で書いていたため、反証のたびに食い違いが生じた）",
+ "decisions": [
+  "人が承認するのは Concrete の版と validator の割り当て（Concrete に1つ）だけ",
+  "抜き取りは承認の前の試すで、rule と割り当ての組ごとに決めた件数",
+  "人が判断するのは、判定できなかった rule と、AI が判定した rule（覆す）",
+  "rule の入力に版の番号を入れない。人の判断の入力に validator を入れない",
+  "前の版で検証済みは、最新の版を試して結果が変わる instance だけ"
+ ],
+ "open": [
+  {
+   "id": "O1",
+   "what": "error を unverified にする回数（モデルの仮の値は3）と時間切れの値",
+   "why": "validator ごとに変えるか"
+  },
+  {
+   "id": "O2",
+   "what": "抜き取りの件数の既定値",
+   "why": "rule と割り当ての組ごとの件数"
+  },
+  {
+   "id": "O5",
+   "what": "承認のあとに AI の誤りが見つかったとき、同じ rule と割り当ての残りをどうするか",
+   "why": "覆した1件に閉じ、残りは検証済みのまま。割り当ての見直しを承認者へ知らせるか、残りを判断待ちに戻すか"
+  },
+  {
+   "id": "O9",
+   "what": "記録の量と読む速さ",
+   "why": "記録は書き直しの回数 × 読む rule の数で増え、状態を読むたびに全件を見る。索引を持つかを決める"
+  }
+ ],
+ "team_sequences": [
+  {
+   "id": "TS1",
+   "u": "U5",
+   "by": [
+    "J35"
+   ],
+   "steps": "変更セットで AI が記事を書く → 変更セットの 信頼できる実行者が検証し、人が見るものが 変更セットに出る"
+  },
+  {
+   "id": "TS2",
+   "u": "U16",
+   "by": [
+    "J21",
+    "J35"
+   ],
+   "steps": "変更セットの中で人が確かめる → 検証済み。そのあと 変更セットに追加の変更 して中身が変わる → 確かめたことは効かない"
+  },
+  {
+   "id": "TS3",
+   "u": "U18",
+   "by": [
+    "J34",
+    "J21"
+   ],
+   "steps": "統合先に別の人の変更が入る → 自分の変更セットに取り込むと、変わった中身だけが検証し直される"
+  },
+  {
+   "id": "TS4",
+   "u": "U18",
+   "by": [
+    "J21"
+   ],
+   "steps": "自分が 変更セットの中で確かめた記事を、統合先で別の人が変えていた → 取り込むと、確かめたことは効かず 変更セットに出る"
+  },
+  {
+   "id": "TS5",
+   "u": "U11",
+   "by": [
+    "J12"
+   ],
+   "steps": "統合先で記事 p1 が消された → 自分の変更セットで p1 を指していた記事は、取り込み時の検証で違反になる"
+  },
+  {
+   "id": "TS6",
+   "u": "U19",
+   "by": [
+    "J30"
+   ],
+   "steps": "統合先に別の契約 v2 が先に入った → 自分の v2 は取り込み時に「試し直して変更セットの中で確かめる」になる"
+  },
+  {
+   "id": "TS7",
+   "u": "U18",
+   "by": [
+    "J34"
+   ],
+   "steps": "同じ記事の同じ欄を、統合先 と自分の変更セットで別々に変えた → 衝突として人が中身を選ぶ"
+  },
+  {
+   "id": "TS8",
+   "u": "U8",
+   "by": [
+    "J35"
+   ],
+   "steps": "手で verified の記録をファイルとして足す ・ 信頼できない場所で検証する → どちらも効かない。信頼できる実行者の検証だけが効く"
+  },
+  {
+   "id": "TS9",
+   "u": "U20",
+   "by": [
+    "J32"
+   ],
+   "steps": "信頼できる実行者の2回の検証 で AI の答えが割れた → 取り込みの順番によらず unverified になり、変更セット に人が見るものとして出る"
+  },
+  {
+   "id": "TS10",
+   "u": "U16",
+   "by": [
+    "J35"
+   ],
+   "steps": "変更セットで確かめていない判断は、チームでは効かない"
+  },
+  {
+   "id": "TS11",
+   "u": "U5",
+   "by": [
+    "J9"
+   ],
+   "steps": "AI の validator が渡された値を書き換えようとしても、記事は変わらない（AI が書けるのは答えだけ）"
+  }
+ ],
+ "adapters": [
+  {
+   "contract": "変更は、差分と理由を持つ変更セットとして出す",
+   "git": "ブランチと PR（説明欄が理由）"
+  },
+  {
+   "contract": "変更セットごとに検証し、結果と人が見るものを出す",
+   "git": "ブランチの CI と、PR へのコメント"
+  },
+  {
+   "contract": "効く検証の記録を書けるのは、信頼できる実行者だけ",
+   "git": "CI（手元の実行は参考）"
+  },
+  {
+   "contract": "人の確かめは、そのときの中身のハッシュに結び付く",
+   "git": "PR のレビュー（push で古い承認を消す設定）"
+  },
+  {
+   "contract": "ほかの変更を取り込んだら、取り込んだ中身を検証し直す",
+   "git": "main の取り込み（merge ・ rebase）と、そのあとの CI"
+  },
+  {
+   "contract": "同じところを両方で変えたら、人が中身を選ぶ",
+   "git": "Git の衝突"
+  },
+  {
+   "contract": "記録は足すだけで、合わせても衝突しない",
+   "git": "1件1ファイル、名前は中身のハッシュ"
+  },
+  {
+   "contract": "validator の割り当て（AI とモデルの名前）は契約の一部で、変えるのは変更セット",
+   "git": "割り当てのファイルの変更を PR で出す"
+  }
+ ]
+}

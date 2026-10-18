@@ -9,7 +9,7 @@ def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
 o = ['<svg viewBox="0 0 960 660" style="min-width:860px" role="img" aria-label="Semantic Schema Core の概念と4つの集約">']
-o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員7つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
+o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員6つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
 o.append('<rect class="area" x="16" y="110" width="424" height="248"/><text class="title" x="30" y="134">Concrete スキーマの集約（人が承認する）</text>')
 chip(o, 30, 150, 396, "Concrete の版（下書き → 承認待ち → 公開 → 引退）", "box focus")
 chip(o, 30, 190, 396, "rule（判定する者 ・ 読む欄 ・ why ・ test）")
@@ -104,16 +104,15 @@ table('q1-capabilities', 'エンジンの能力11と、いまのコマンドと�
       ["能力", "いまのコマンド", "対象", "種別", "守る不変条件"], [110, 200, 270, 90, 170],
       [list(r) for r in CAP], emph=(0,), row_h=46)
 
-# ── 第52回：Semantic Abstract Schema の一員（第60回に記録の形を検証と人の判断の2つにして7つ）──
+# ── 第52回：Semantic Abstract Schema の一員（第66回に記録の形を判定の記録1つにして6つ）──
 MEM = [
  ("メタスキーマ", ["x- キーワードの定義と、", "スキーマの書き方"], "定義する", "する", "一員ごとに名前@vN", "──"),
  ("ページテンプレートの形", ["kind ごとの節 ・ 部品 ・", "値を取る式"], "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
  ("部品のカタログの形", "部品の一覧の枠", "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
  ("デザインシステムの形", "トークンの形", "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
  ("公開の記録の形", ["公開した版の名前と指紋"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
- ("検証の記録の形", ["rule ごとの入力 ・ 結果 ・", "根拠 ・ validator"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
- ("人の判断の記録の形", ["示した入力 ・ 合っているか ・", "判断した人"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
+ ("判定の記録の形", ["入力のハッシュ ・ 結果 ・", "根拠 ・ 判定した者"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
 ]
-table('q6-abstract', 'Semantic Abstract Schema の一員7つ：基盤が持ち、基盤だけが変えるスキーマ',
+table('q6-abstract', 'Semantic Abstract Schema の一員6つ：基盤が持ち、基盤だけが変えるスキーマ',
       ["一員", "何の形か", "x- を", "公開するか", "版", "従う x- 定義の版"], [200, 220, 90, 190, 160, 160],
       [list(r) for r in MEM], emph=(0,), row_h=46)

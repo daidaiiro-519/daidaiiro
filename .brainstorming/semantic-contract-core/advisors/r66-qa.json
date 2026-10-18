@@ -1,0 +1,170 @@
+{
+ "kind": "judgment",
+ "question": "Semantic Schema Core のモデル（第66回、invariants.json ・ model.py ・ tests.py）は、U0（利用者が、AI に書かせた成果物を、正しいと確かめた状態で使い続ける）を一人の場面とチームの場面で守るか",
+ "premises": [
+  {
+   "name": "見た対象",
+   "value": "measured/model/ の invariants.json ・ model.py ・ tests.py。試験15本は python3 tests.py で 15/15 通過",
+   "source": "実行した結果"
+  },
+  {
+   "name": "出来事の列の確かめ方",
+   "value": "model.py の関数をそのまま呼ぶ probe.py を scratchpad/r66 に置いて実行した。モデルのファイルは変えていない",
+   "source": "実行した結果"
+  },
+  {
+   "name": "AI の validator",
+   "value": "tests.py の ai は決定的な偽物。実際の AI は同じ入力で答えが変わる。これは判断基準の範囲外の前提",
+   "source": "判断基準の範囲外"
+  },
+  {
+   "name": "チームの場面",
+   "value": "取り込みのあとの姿を report ・ state に渡す形で書いた（tests.py の冒頭の書き方に従う）",
+   "source": "tests.py の冒頭の注記"
+  }
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "いまのモデルは U0 を守らない出来事の列を5つ通すので、それを試験にして赤にしてから判定する。",
+  "because": "参照先が無いのを人が覆せる ・ 空の根拠が通る ・ 契約ファイルの書き換えで公開した term が変わり差分にも出ない ・ 定義の無い term で検証済みになる ・ 同じ中身で検証し直すと状態が変わる、の5つが、いまの試験15本では通過してしまう。エラー推測で挙げた出来事を1つずつ試験にすると、どれも実行できる形になる。"
+ },
+ "comparison": [
+  {
+   "option": "試験15本が通るので、U0 を守ると判定する",
+   "effect": "下の P1 ・ P2 ・ P3 ・ P4 ・ P5 が検証済みや差分なしで通り、正しいと確かめていない成果物が検証済みとして使われ続ける",
+   "chosen": false
+  },
+  {
+   "option": "P1〜P5 を試験として足し、期待する結果で赤になることを確かめてから判定する",
+   "effect": "不変条件の文とコードの違いが、試験の赤として見える",
+   "chosen": true
+  }
+ ],
+ "path": [
+  {
+   "ask": "P1（一人）AI が書いた a1 が、無い a2 を AI の rule の refs で指す。verify は violated（参照先が無い）。人が要約を読んで「合っている」と確かめる",
+   "answer": "期待：下書きのまま（M6）、または確かめを断る（M10）。いま：confirm が通り、state は 検証済み。M10 の確認は by が 機械 かどうかだけを見るので、M6 の violated を AI の結果として覆せる。分類：穴"
+  },
+  {
+   "ask": "P2（一人）AI の validator が ('verified', '') や ('verified', '出') を返す",
+   "answer": "期待：unverified（根拠が読む欄に無い、M5）。いま：verified。照合が str(ev) in v の部分文字列なので、空の文字列はどの欄にも含まれ、1字でも通る。分類：穴"
+  },
+  {
+   "ask": "P3（チーム）PR で契約のファイルを直し、記事@1 の定義を「社内だけの文章」に替える。取り込みのあとの姿で report を出す",
+   "answer": "期待：Refused M3、少なくとも diff に term の変更が出る（M9）。いま：Contract() は断らず（M3 の確認は with_term の中だけ）、diff は rules ・ assignment ・ instances しか持たないので空、changed も look も空。差分なしで取り込める。分類：穴"
+  },
+  {
+   "ask": "P4（一人）AI の rule が terms に 記事@9 を挙げるが、契約に 記事@9 が無い",
+   "answer": "期待：契約として断る、または検証済みにしない（M3：版付きの名前で1つの定義に決まる）。いま：AI には定義 None が渡り、state は 検証済み。分類：穴"
+  },
+  {
+   "ask": "P5（一人 ・ チーム）中身も契約も変えずに、同じ AI の rule を3回検証し直す。チームでは、作った人の手元と取り込み時の検証がこれに当たる",
+   "answer": "期待：毎回同じ状態（M4：中身と契約だけから決まり、何度でも計算し直せる）。いま：検証済み → 下書き → 検証済み。M5 の割れの検出は1回の呼び出しの中の答えだけを比べ、呼び出しどうしは比べない。保存しないので、前回との違いも残らない。分類：穴"
+  },
+  {
+   "ask": "P6（一人）confirm を通らずに、確かめの記録 {inst, rule, seen, verdict} を直接 confirmations に足す（成果物を書いた AI が足す場合を含む）",
+   "answer": "期待：人が確かめたものだけが効く（M7）。いま：下書き → 検証済み。記録に誰が確かめたかが無く、effective は記録の出所を見ない。チームでは PR の差分とコミットの作者で見えるので 既にある仕組みで足りる。一人で AI に作業させる場面では区別する手段が無いので 穴"
+  },
+  {
+   "ask": "P7 a1 が a2 を機械の rule の refs で指し、a2 が下書き（AI の violated）",
+   "answer": "期待（文が書いていない）：a1 の状態が a2 に依るかは不変条件に無い。いま：a1 は 検証済み、a2 は 下書き。加えて、validator に渡る refs はハッシュだけで（P9 の実行：{'関連': '4772d2fd9ea3'}）、M5 の文の「参照先の値の写し」と違う。このため a2 の中身を読んで a1 を判定する rule を契約に書けない。分類：M5 の文とコードの違いとして 穴、a2 の状態を a1 に伝えないこと自体は 外せる"
+  },
+  {
+   "ask": "P8（チーム）確かめの記録だけを足す PR の report",
+   "answer": "期待：変更として見える（M9）。いま：diff は空、changed に a1 が出る。確かめの記録の差分は Git の差分に出るので 既にある仕組みで足りる"
+  },
+  {
+   "ask": "P10 AI の答えが verified 1回と error 2回",
+   "answer": "いま：verified。error を答えとして数えないので割れにならない。根拠の照合は verified の答えに掛かっており U0 は壊れないので 外せる"
+  },
+  {
+   "ask": "P11 confirm に verdict「たぶん」を渡す",
+   "answer": "いま：confirm は通り、state が KeyError で落ちる。誤って検証済みにはならないので 外せる"
+  },
+  {
+   "ask": "既にある試験で守れている出来事の列はどれか",
+   "answer": "参照先を別の変更で消す（S10）・確かめのあとに読む欄が変わる（S3）・2人の確かめが割れる（S9）・validator を替える（S12）は、取り込みのあとの姿に同じ関数を当てれば成り立つ。チームの取り込みでの衝突はこの範囲で 既にある仕組みで足りる"
+  }
+ ],
+ "records": [
+  {
+   "target": "tests.py に足す試験（P1）",
+   "content": "AI の rule に refs を持たせ、参照先が無い a1 に人が「合っている」を付ける → 期待：state が 下書き か confirm が Refused M6/M10。いま：検証済み"
+  },
+  {
+   "target": "tests.py に足す試験（P2）",
+   "content": "ai@1 が [('verified', '')] を返す → 期待：summary が unverified。いま：verified"
+  },
+  {
+   "target": "tests.py に足す試験（P3）",
+   "content": "Contract(c.rules, {'記事@1': '社内だけの文章'}, c.assignment) を after にした report → 期待：Refused M3 か diff に term が出る。いま：diff が空"
+  },
+  {
+   "target": "tests.py に足す試験（P4）",
+   "content": "terms に契約に無い 記事@9 を持つ AI の rule → 期待：Contract が断るか 検証済み にならない。いま：検証済み"
+  },
+  {
+   "target": "tests.py に足す試験（P5）",
+   "content": "呼ぶたびに verified と violated を交互に返す ai@1 で state を3回 → 期待：3回とも同じ。いま：検証済み ・ 下書き ・ 検証済み"
+  },
+  {
+   "target": "invariants.json の M5 の文とコード",
+   "content": "文は「参照先の値の写し」、コードは参照先のハッシュだけを渡す。どちらかに揃える"
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "error-guessing",
+   "quote": "フォールト攻撃：エラー推測を系統的に実施するためのアプローチ。想定されるエラー ・ 欠陥 ・ 故障のリストを手がかりに、テストケースを設計する。"
+  },
+  {
+   "criterion": "decision-table-testing",
+   "quote": "見逃されやすい組み合わせも含め、条件のすべての組み合わせを識別する体系的なアプローチになる。要件の相違点や矛盾の発見にも役立つ。"
+  },
+  {
+   "criterion": "state-transition-testing",
+   "quote": "条件：全遷移カバレッジで無効な遷移をテストする ・ 対応：1つのテストケースで無効な遷移を1つだけテストし、欠陥のマスキングを回避する"
+  },
+  {
+   "criterion": "erratic-test",
+   "quote": "Erratic Test：1つまたは複数のテストが、ときに成功し、ときに失敗するという不安定な振る舞いをする状態。"
+  },
+  {
+   "criterion": "independence-of-testing",
+   "quote": "作業成果物をテストする人：作成者 ・ 独立性：独立性なし"
+  },
+  {
+   "criterion": "configuration-management",
+   "quote": "条件：新しいベースラインを作成したとき ・ 対応：変更した構成アイテムを記録し、以前のベースラインへの復帰と以前のテスト結果の再現を可能にする"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "AI が成果物と一緒に確かめの記録を書くと、人が見ていない成果物が検証済みになる（P6）",
+   "check": "一人の場面で、confirmations に足された記録が confirm を通ったものかを、試験で記録を直接足して state が変わらないことで確かめる"
+  },
+  {
+   "breaks": "試験の AI validator を決定的な偽物にすると、M4 の「計算し直せる」が常に通る（P5）",
+   "check": "呼ぶたびに答えを変える validator を1本の試験に入れ、state が呼ぶたびに変わらないことを確かめる"
+  }
+ ],
+ "next": [
+  "P1〜P5 を tests.py に試験として足し、期待する結果で赤になることを確かめる",
+  "M3 ・ M4 ・ M5 ・ M6 の文と、P1〜P5 の実行の結果を突き合わせ、文とコードのどちらを直すかを決める",
+  "一人の場面で、確かめの記録を誰が書いたかを区別しないまま U0 を満たすと言えるかを、論点として出す"
+ ],
+ "related": [
+  {
+   "criterion": "error-guessing",
+   "relation": "U0 を壊す出来事の列を、想定される欠陥の一覧として挙げた"
+  },
+  {
+   "criterion": "erratic-test",
+   "relation": "P5 は同じ中身で結果が変わる振る舞いである"
+  },
+  {
+   "criterion": "independence-of-testing",
+   "relation": "P6 は成果物を書いた側が確かめも書ける形である"
+  }
+ ]
+}

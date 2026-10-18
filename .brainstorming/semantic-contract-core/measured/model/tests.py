@@ -1,6 +1,6 @@
-# 出来事の列の試験。成功の列と失敗の列の両方を持つ。python3 tests.py で全部を実行する。
-from model import Refused, h
-from gen import at, base, swap_validator, approve_v, approve_a, samples_for, rules1, OK, rh
+# 出来事の列の試験（第66回、最小の形）。python3 tests.py で全部を実行する。
+# チームで使う場面も、同じ関数で書ける：変更 ・ 取り込みのあとの姿（契約 ・ instance ・ 判定の記録）を渡すだけ。
+from model import Contract, Refused, verify, confirm, state, report, seen, h
 
 T = {}
 
@@ -21,200 +21,218 @@ def refused(f, *ids):
     raise AssertionError("断られなかった")
 
 
-@case("S1", "U0", ["J15", "J17", "J20", "J24"])
+def engine(rid, g):
+    """機械の rule：必須の欄（JSON Schema の required にあたる）と、タイトルの長さ。"""
+    f = g["fields"]
+    if any(v in (None, "") for v in f.values()):
+        return ("violated", "必須の欄が空")
+    t = f.get("タイトル", "")
+    return ("verified", f"{len(t)}字") if len(t) <= 20 else ("violated", f"{len(t)}字")
+
+
+def ai(rid, g):
+    """要約と本文を読む AI。本文に「曖昧」があれば判定できない。要約に「矛盾」があれば違反。根拠は読んだ値から引く。"""
+    f = g["fields"]
+    if "曖昧" in f["本文"]:
+        return [("unverified", "判定できない")]
+    if "矛盾" in f["要約"]:
+        return [("violated", f["要約"])]
+    return [("verified", f["本文"])]
+
+
+V = {"engine": engine, "ai@1": ai}
+RULES = {"required": {"by": "機械", "reads": ["タイトル", "要約", "本文"]},
+         "title": {"by": "機械", "reads": ["タイトル"]},
+         "summary": {"by": "AI", "reads": ["要約", "本文"], "terms": ["記事@1"]}}
+TERMS = {"記事@1": "社外に出す文章"}
+
+
+def world(**arts):
+    c = Contract(RULES, TERMS, {"summary": "ai@1"})
+    inst = {k: dict(v) for k, v in arts.items()} or {"a1": {"タイトル": "新製品", "要約": "出す", "本文": "10月に出す"}}
+    rec = {}
+    for iid in inst:
+        rec.update(verify(c, inst, rec, iid, V)[1])
+    return c, inst, rec
+
+
+def st(c, i, k, iid="a1", v=V):
+    return state(c, i, k, iid, v)
+
+
+def human(c, i, k, verdict="合っている", iid="a1", rid="summary"):
+    k[(iid, rid)] = confirm(c, i, verify(c, i, k, iid, V)[0], iid, rid, verdict, seen(c, i, iid, rid))
+
+
+VAGUE = {"タイトル": "窓口", "要約": "変わる", "本文": "場所は曖昧"}
+
+
+@case("S1", "U5", ["M3", "M9"])
 def s1():
-    """検証済み → 参照先の instance が変わる → 読むと検証待ち。人の判断は断られる"""
-    c = base(refs=["p"])
-    assert c.state("i") == "検証済み"
-    c.change("p1", {"a": "参照先2"}, h(c.instances["p1"]["fields"]))
-    assert c.state("i") == "検証待ち"
-    refused(lambda: c.judge("i", "r", "合っている", "人", c.show("i", "r")), "J20")
+    """AI が書いた記事を検証する → 機械と AI がどちらも verified なら、人には何も出ず検証済み"""
+    c, i, k = world()
+    assert st(c, i, k) == "検証済み" and report((c, {}, {}), (c, i, k), V)["look"] == []
 
 
-@case("S2", "U10", ["J3", "J5", "J15", "J21"])
+@case("S2", "U16", ["M7", "M9"])
 def s2():
-    """AI の validator を替える → 抜き取ってから承認1回 → AI の rule だけ検証し直し、人の判断は効いたまま"""
-    c = at("verified（人）")
-    swap_validator(c)
-    assert c.effective("i", "r") == "verified（人）" and c.effective("i", "o") == "verified"
-    d = at("verified（AI）"); swap_validator(d)
-    assert d.pending("i") == ["r"]
+    """AI が判定できない → 判断待ちで人が見るものに出る → 人が判定すると検証済み"""
+    c, i, k = world(a1=VAGUE)
+    r = report((c, {}, {}), (c, i, k), V)
+    assert st(c, i, k) == "判断待ち" and r["look"][0][:2] == ("a1", "summary")
+    human(c, i, k)
+    assert st(c, i, k) == "検証済み" and verify(c, i, k, "a1", V)[0]["summary"][2] == "人"
 
 
-@case("S3", "U9", ["J3", "J4"])
+@case("S3", "U6", ["M7"])
 def s3():
-    """AI が rule を弱めた版を依頼 → AI が書き直す → 人が見た中身では承認できない"""
-    c = base()
-    c.write_version({"r": {"by": "AI", "reads": ["a"]}})
-    t = c.try_version(2, OK); c.request_version(2, t, samples_for(c, t, OK))
-    seen = c.version(2)["request"]["hash"]
-    c.write_version({"r": {"by": "AI", "reads": ["b"]}}, 2)
-    refused(lambda: c.approve_version(2, "人", seen), "J4")
-    refused(lambda: c.create("j", {"a": "x"}, 2), "J3")
+    """人が判定したあとに読む欄が変わる → 判定は効かず、AI に聞き直す"""
+    c, i, k = world(a1=VAGUE); human(c, i, k)
+    i["a1"]["本文"] = "場所はまだ曖昧"
+    assert st(c, i, k) == "判断待ち"
 
 
-@case("S4", "U12", ["J15", "J17"])
+@case("S4", "U6", ["M7"])
 def s4():
-    """検証済み → 基盤を通らずに読む欄を書き換える → その rule は検証待ちで、verified と示さない"""
-    c = at("verified（AI）"); c.external_write("i", {"a": "x9"})
-    assert c.effective("i", "r") == "検証待ち" and c.state("i") == "検証待ち"
+    """読まない欄だけが変わる → 人の判定は効いたまま"""
+    c, i, k = world(a1=VAGUE); human(c, i, k)
+    i["a1"]["タイトル"] = "窓口の変更"
+    assert st(c, i, k) == "検証済み"
 
 
-@case("S5", "U13", ["J26", "J23"])
+@case("S5", "U16", ["M7"])
 def s5():
-    """人の判断の記録を書き換える → その判断は効かず、判断の前の結果に戻る"""
-    c = at("verified（人）"); c.judgments[-1]["tampered"] = True
-    assert c.effective("i", "r") == "unverified" and c.state("i") == "判断待ち"
+    """人に見せたあとに中身が変わる → 見せた中身では判定できない"""
+    c, i, k = world(a1=VAGUE); shown = seen(c, i, "a1", "summary")
+    i["a1"]["本文"] = "場所はかなり曖昧"
+    refused(lambda: confirm(c, i, verify(c, i, k, "a1", V)[0], "a1", "summary", "合っている", shown), "M7")
 
 
-@case("S6", "U16", ["J19", "J24"])
+@case("S6", "U5", ["M5"])
 def s6():
-    """unverified → 人が「合っていない」と判断 → violated（人）で、instance は下書き"""
-    c = at("unverified"); c.judge("i", "r", "合っていない", "人", c.show("i", "r"))
-    assert c.effective("i", "r") == "violated（人）" and c.state("i") == "下書き"
+    """AI の根拠が読む欄に無い ・ 根拠が空 ・ 答えが割れる → どれも unverified"""
+    c, i, _ = world()
+    for bad in ([("verified", "読んでいない語")], [("verified", "")], [("verified", "10月に出す"), ("violated", "出す")]):
+        assert verify(c, i, {}, "a1", {**V, "ai@1": lambda rid, g, b=bad: b})[0]["summary"][0] == "unverified"
 
 
-@case("S7", "U14", ["J17", "J18"])
+@case("S7", "U5", ["M5"])
 def s7():
-    """AI の validator が error を返す → 検証待ちのまま次の検証で再び渡し、同じ入力で3回続けば unverified"""
-    c = at("検証待ち"); c.verify("i", lambda r: "error")
-    assert c.pending("i") == ["r"]
-    c.verify("i", lambda r: "error"); c.verify("i", lambda r: "error")
-    assert c.effective("i", "r") == "unverified"
+    """AI が渡された値を書き換えても、記事は変わらない（AI に渡すのは写しだけ）"""
+    c, i, _ = world(); before = h(i)
+    verify(c, i, {}, "a1", {**V, "ai@1": lambda rid, g: (g["fields"].__setitem__("要約", "書き換え"), [("verified", "10月に出す")])[1]})
+    assert h(i) == before
 
 
-@case("S8", "U7", ["J10"])
+@case("S8", "U16", ["M8"])
 def s8():
-    """新しい版へ移すと violated → 元の版とハッシュのまま残り、理由が返る"""
-    c = base(); approve_v(c, {"r": {"by": "AI", "reads": ["a"]}})
-    before = h(c.instances["i"])
-    refused(lambda: c.move("i", 2, lambda r: "violated"), "J10")
-    assert h(c.instances["i"]) == before
+    """AI の violated は人が覆せる。機械の violated と、基盤の violated（参照先が無い）は覆せない"""
+    c, i, k = world(a1={"タイトル": "窓口", "要約": "続ける（矛盾）", "本文": "締め切った"})
+    assert st(c, i, k) == "下書き"
+    human(c, i, k)
+    assert st(c, i, k) == "検証済み"
+    c2, i2, k2 = world(a1={"タイトル": "とても長いタイトルの社内イベント報告とまとめ", "要約": "出す", "本文": "出す"})
+    refused(lambda: human(c2, i2, k2, rid="title"), "M8")
+    rules = {**RULES, "link": {"by": "AI", "reads": ["要約"], "refs": ["関連"]}}
+    c3 = Contract(rules, TERMS, {"summary": "ai@1", "link": "ai@1"})
+    i3 = {"a1": {"タイトル": "新製品", "要約": "出す", "本文": "10月に出す", "関連": "消えた記事"}}
+    refused(lambda: human(c3, i3, {}, rid="link"), "M8")
 
 
-@case("S9", "U11", ["J13"])
+@case("S9", "U22", ["M7"])
 def s9():
-    """消した → 消した ID で変える ・ 作る → 断られる"""
-    c = base(); c.delete("i")
-    refused(lambda: c.change("i", {"a": "z"}, "-"), "J13")
-    refused(lambda: c.create("i", {"a": "z"}), "J13")
+    """判定し直す → 判定の記録は instance × rule ごとに1つで、新しい判定に置き換わる"""
+    c, i, k = world(a1=VAGUE)
+    human(c, i, k, "合っていない"); assert st(c, i, k) == "下書き"
+    human(c, i, k, "合っている"); assert st(c, i, k) == "検証済み"
 
 
-@case("S10", "U16", ["J20"])
+@case("S10", "U11", ["M6"])
 def s10():
-    """AI の violated を人が覆す。機械の violated は覆せない"""
-    c = at("violated（AI）"); c.judge("i", "r", "合っている", "人", c.show("i", "r"))
-    assert c.state("i") == "検証済み"
-    m = at("violated（機械）")
-    refused(lambda: m.judge("i", "r", "合っている", "人", m.show("i", "r")), "J20")
+    """参照先の記事が消える（別の変更を取り込んだ結果でも同じ）→ 指していた記事は基盤が violated にする"""
+    rules = {**RULES, "link": {"by": "AI", "reads": ["要約"], "refs": ["関連"]}}
+    c = Contract(rules, TERMS, {"summary": "ai@1", "link": "ai@1"})
+    i = {"a1": {"タイトル": "新製品", "要約": "出す", "本文": "10月に出す", "関連": "a2"}, "a2": {"タイトル": "旧製品", "要約": "x", "本文": "x"}}
+    k = {}
+    assert state(c, i, k, "a1", {**V, "ai@1": lambda rid, g: [("verified", "出す")]}) == "検証済み"
+    del i["a2"]
+    assert verify(c, i, k, "a1", V)[0]["link"] == ("violated", "参照先が無い", "基盤")
 
 
-@case("S11", "U5", ["J9", "J16"])
+@case("S11", "U12", ["M5", "M6"])
 def s11():
-    """AI には読む欄だけが渡り、根拠が読む欄に無い verified は unverified になる（検証の経路で）"""
-    c = at("検証待ち"); seen = []
-    c.verify("i", lambda rid, given: (seen.append(given), ("verified", "読む欄に無い語"))[1])
-    assert set(seen[0]["fields"]) == {"a"} and c.effective("i", "r") == "unverified"
-    refused(lambda: c.write_version({"r": {"by": "AI"}}), "J9")
+    """AI には参照先の値が渡り、関係を意味で判定できる。参照先が下書きでも、参照元には伝えない"""
+    rules = {**RULES, "link": {"by": "AI", "reads": ["要約"], "refs": ["関連"]}}
+    c = Contract(rules, TERMS, {"summary": "ai@1", "link": "ai@1"})
+    i = {"a1": {"タイトル": "新製品", "要約": "旧製品の後継", "本文": "10月に出す", "関連": "a2"},
+         "a2": {"タイトル": "旧製品", "要約": "続ける（矛盾）", "本文": "終わる"}}
+    seen_refs = []
+    rel = lambda rid, g: (seen_refs.append(g["refs"]), [("verified", "旧製品")] if rid == "link" else ai(rid, g))[1]
+    assert state(c, i, {}, "a1", {**V, "ai@1": rel}) == "検証済み" and seen_refs and seen_refs[-1]["関連"]["タイトル"] == "旧製品"
+    assert state(c, i, {}, "a2", {**V, "ai@1": rel}) == "下書き"
 
 
-@case("S12", "U2", ["J25"])
+@case("S12", "U2", ["M10"])
 def s12():
-    """新しい版を公開 → 試して結果が変わる instance だけが前の版で検証済み"""
-    c = at("verified（AI）")
-    approve_v(c, rules1() | {"n": {"by": "人", "reads": ["b"]}})
-    assert c.state("i") == "前の版で検証済み"
-    d = at("verified（AI）"); approve_v(d, rules1())
-    assert d.state("i") == "検証済み"
+    """契約の rule を消す変更 → 状態が変わる記事が出る（差分と理由は変更の仕組みが持つ）"""
+    c, i, k = world(a1={"タイトル": "採用", "要約": "続ける（矛盾）", "本文": "締め切った"})
+    c2 = Contract({"title": RULES["title"]}, TERMS, c.assignment)
+    r = report((c, i, k), (c2, i, k), V)
+    assert r["changed"] == ["a1"] and r["states"]["a1"] == "検証済み"
 
 
-@case("S13", "U16", ["J21"])
+@case("S13", "U14", ["M10", "M7"])
 def s13():
-    """人に示したあとに AI が読む欄を変える → 示した入力では判断できない"""
-    c = at("unverified"); shown = c.show("i", "r")
-    c.change("i", {"a": "x2"}, rh(c)); c.verify("i", lambda r: "unverified")
-    refused(lambda: c.judge("i", "r", "合っている", "人", shown), "J21")
+    """validator を替える変更 → AI の判定は聞き直して記録が変更に入り、結果が変わる記事が出る。人の判定は効いたまま"""
+    c, i, k = world(a1=VAGUE, a2={"タイトル": "価格", "要約": "上げる", "本文": "上げる"})
+    human(c, i, k)
+    strict = lambda rid, g: [("violated", g["fields"]["要約"])] if g["fields"]["要約"] == g["fields"]["本文"] else ai(rid, g)
+    c2 = Contract(c.rules, c.terms, {"summary": "ai@2"})
+    r = report((c, i, k), (c2, i, k), {**V, "ai@2": strict})
+    assert r["changed"] == ["a2"] and r["states"]["a1"] == "検証済み" and ("a2", "summary") in r["records"]
 
 
-@case("S14", "U16", ["J22"])
+@case("S14", "U1", ["M2"])
 def s14():
-    """まとめて判断 → instance ごとに保存し、断ったものの一覧が返る"""
-    c = at("unverified"); c.create("j", {"a": "", "b": "y"}); c.verify("j", lambda r: "unverified")
-    out = c.judge_many([("i", "r", c.show("i", "r")), ("j", "r", c.show("j", "r"))], "合っている", "人")
-    assert c.state("i") == "検証済み" and [x[0] for x in out] == ["j"]
+    """判定する者 ・ 読む欄の無い rule と、契約に無い term を使う rule は断られる"""
+    refused(lambda: Contract({"x": {"by": "AI"}}), "M2")
+    refused(lambda: Contract({"x": {"reads": ["a"]}}), "M2")
+    refused(lambda: Contract({"x": {"by": "AI", "reads": ["a"], "terms": ["記事@9"]}}, TERMS), "M2")
 
 
-@case("S15", "U9", ["J6"])
+@case("S15", "U2", ["M7"])
 def s15():
-    """AI は承認 ・ 判断 ・ 取り消しができない"""
-    c = at("unverified")
-    refused(lambda: c.judge("i", "r", "合っている", "AI", c.show("i", "r")), "J6")
-    c.write_version({"r": {"by": "AI", "reads": ["a"]}})
-    t = c.try_version(2, OK); c.request_version(2, t, samples_for(c, t, OK))
-    refused(lambda: c.approve_version(2, "AI", c.version(2)["request"]["hash"]), "J6")
+    """term の定義を変える変更 → 断らない。その term を使う rule の AI と人の判定は効かなくなり、聞き直す"""
+    c, i, k = world(a1=VAGUE); human(c, i, k)
+    c2 = Contract(c.rules, {"記事@1": "社内だけの文章"}, c.assignment)
+    assert st(c2, i, k) == "判断待ち" and report((c, i, k), (c2, i, k), V)["changed"] == ["a1"]
 
 
-@case("S16", "U14", ["J5"])
+@case("S16", "U0", ["M4"])
 def s16():
-    """抜き取りの人の判断が無いまま割り当ての承認を依頼する → 断られる（qa の U0-1）"""
-    c = base(); c.write_assignment({"r": "ai@2"})
-    t = c.try_assignment(OK)
-    assert t["to_sample"] == {"r": ["i"]}
-    refused(lambda: c.request_assignment(t, []), "J5")
+    """何も変えずに何度検証し直しても、AI の判定は記録を使うので状態は変わらない（AI が毎回違う答えを返しても）"""
+    c, i, k = world()
+    flaky = iter([[("violated", "出す")], [("unverified", "x")]] * 5)
+    v = {**V, "ai@1": lambda rid, g: next(flaky)}
+    assert [st(c, i, k, v=v) for _ in range(3)] == ["検証済み"] * 3
 
 
-@case("S17", "U14", ["J5"])
+@case("S17", "U8", ["M3", "M9"])
 def s17():
-    """抜き取りで人と AI が食い違う → 承認の依頼に食い違いの数が載る"""
-    c = base(); c.write_assignment({"r": "ai@2"})
-    t = c.try_assignment(OK)
-    c.request_assignment(t, [{"inst": "i", "rule": "r", "ai": "verified", "verdict": "合っていない"}])
-    assert c.assignment["request"]["mismatch"] == 1
+    """validator が答えられない（error）→ 記録せず、確かめ直しを待つ。必須の欄が空なら機械の rule で下書き"""
+    c, i, _ = world()
+    assert state(c, i, {}, "a1", {**V, "ai@1": lambda rid, g: [("error", "時間切れ")]}) == "確かめ直しを待つ"
+    assert verify(c, i, {}, "a1", {**V, "ai@1": lambda rid, g: [("error", "時間切れ")]})[1] == {}
+    c2, i2, k2 = world(a1={"タイトル": "窓口", "要約": "", "本文": "出す"})
+    assert st(c2, i2, k2) == "下書き"
 
 
-@case("S18", "U11", ["J12"])
+@case("S18", "U14", ["M3"])
 def s18():
-    """ほかの instance が x-ref で指している instance を消す → 断られる（qa の U0-3）"""
-    c = base(refs=["p"])
-    refused(lambda: c.delete("p1"), "J12")
-
-
-@case("S19", "U17", ["J6"])
-def s19():
-    """$schema が決まらないファイルを取り込む → 候補になり、AI は確定できず、人が確定すると検証待ちから始まる（qa の U0-4）"""
-    c = base()
-    assert c.take("f", {"a": "x", "b": "y"}) == "候補"
-    refused(lambda: c.take("f", {}, actor="AI", vid=1), "J6")
-    c.take("f", {}, actor="人", vid=1)
-    assert c.state("f") == "検証待ち"
-    c.take("g", {"a": "x", "b": "y"}, schema=1)
-    assert c.state("g") == "検証待ち"
-
-
-@case("S20", "U8", ["J17", "J20"])
-def s20():
-    """機械の rule が error を返し続ける → 検証待ちのままで、人は判断で埋められない"""
-    c = base(by="機械"); c.records = [x for x in c.records if not (x["inst"] == "i" and x["rule"] == "r")]
-    for _ in range(5):
-        c.verify("i", lambda r: "error")
-    assert c.effective("i", "r") == "検証待ち"
-    refused(lambda: c.judge("i", "r", "合っている", "人", c.show("i", "r")), "J20")
-
-
-@case("S21", "U1", ["J1", "J2"])
-def s21():
-    """公開した term を書き換える → 断られる。新しい版は別の名前で並べる"""
-    c = base()
-    refused(lambda: c.publish_term("t@1", "別の定義"), "J1")
-    c.publish_term("t@2", "別の定義")
-
-
-@case("S22", "U6", ["J11"])
-def s22():
-    """変えてよい範囲は Concrete の版が決め、範囲の外の欄の変更は断られる"""
-    c = base(scope=["a"])
-    refused(lambda: c.change("i", {"b": "y2"}, rh(c)), "J11")
-    c.change("i", {"a": "x2"}, rh(c))
+    """validator の割り当てが無い AI の rule → unsupported で人が見るものに出る。判定は「合っている」「合っていない」だけ"""
+    c, i, _ = world(); c = Contract(c.rules, c.terms, {})
+    assert verify(c, i, {}, "a1", V)[0]["summary"][0] == "unsupported" and st(c, i, {}) == "判断待ち"
+    refused(lambda: human(c, i, {}, "たぶん"), "M3")
 
 
 if __name__ == "__main__":
@@ -223,5 +241,5 @@ if __name__ == "__main__":
         try:
             f(); ok += 1; print("ok  ", sid, doc)
         except Exception as e:
-            print("FAIL", sid, doc, "──", repr(e))
+            print("FAIL", sid, doc, "──", repr(e)[:200])
     print(f"{ok}/{len(T)} 通過")

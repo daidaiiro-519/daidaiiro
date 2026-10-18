@@ -52,12 +52,12 @@ code{font-family:"JetBrains Mono",monospace;font-size:11px}
 <div class="grid">
  <div class="col"><h4>前の作り（第59回）</h4><div class="sub">人が記事を1件ずつ承認する</div>
   <div class="ops">人の操作 <b id="o59">0</b> 回 <span class="plus" id="p59"></span></div><div id="m59"></div></div>
- <div class="col"><h4>新しい作り（第60回）</h4><div class="sub">人が見るのは契約の変更と、AI が判定できなかったものだけ</div>
+ <div class="col"><h4>新しい作り（第66回）</h4><div class="sub">人が見るのは、変更の差分と理由と、AI が判定できなかったものだけ</div>
   <div class="ops">人の操作 <b id="o60">0</b> 回 <span class="plus" id="p60"></span></div><div id="m60"></div></div>
 </div>
 <div class="why" id="why"></div>
 <details id="inside"><summary>新しい作りの中で、何をどう記録したか（開く）</summary>
- <div class="note">記事の状態は保存しない。保存するのは「契約」「検証の記録」「人の判断」「記事」の4つで、状態は読むたびに計算する。記事を押すと計算の中身が出る。</div>
+ <div class="note">記事の状態は保存しない。残すのは「契約」「記事」「判定の記録（AI と人の判定。入力のハッシュに結び付く）」だけで、機械の rule は記録せず毎回計算し直す。記事を押すと計算の中身が出る。</div>
  <div id="recs"></div><div class="arts" id="arts"></div><div id="calc"></div></details>
 <script>
 const $=s=>document.querySelector(s);
@@ -91,15 +91,15 @@ function trial(apply){const keep=JSON.stringify(S);const before={};for(const a o
  const changed=S.arts.filter(a=>state(a)!==before[a.id]).map(a=>a.id);S=JSON.parse(keep);return changed;}
 // 届いているもの
 function inbox(){if(S.mode==='r59')return S.old.cards.map(c=>c.id+'：'+c.kind);
- const out=[];if(S.pv)out.push('契約の新しい版の承認（'+S.pv.diff+'。試した結果：状態が変わる記事 '+S.pv.changed.length+'件）');
- if(S.pa)out.push('validator を '+S.pa.to+' に替える承認（試した結果：状態が変わる記事 '+S.pa.changed.length+'件。抜き取り '+S.pa.samples.length+'件を確かめる）');
+ const out=[];if(S.pv)out.push('契約を変える変更（'+S.pv.diff+'。基盤が全記事を検証した結果：状態が変わる記事 '+S.pv.changed.length+'件）');
+ if(S.pa)out.push('validator を '+S.pa.to+' に替える変更（基盤が全記事を検証した結果：状態が変わる記事 '+S.pa.changed.length+'件）');
  for(const rid of Object.keys(S.c.rules)){const l=S.arts.filter(a=>['unverified','unsupported'].includes(eff(a,rid)));if(l.length)out.push('判断が要る：「'+S.c.rules[rid].name+'」'+l.map(a=>a.id).join('、'));}
  return out;}
 // 人が届いたものにすべて答える（操作の回数を数える）
 function answer(reject){if(S.mode==='r59'){for(const c of S.old.cards){S.ops++;const a=art(c.id);if(c.kind.startsWith('変更の提案'))a.f=c.f;
    S.ops+=Object.keys(S.c.rules).filter(r=>runV(a,r)[0]==='unverified').length;S.old.state[c.id]='承認済み';}S.old.cards=[];return;}
  if(S.pv){S.ops++;if(!reject)S.c={v:S.c.v+1,rules:S.pv.rules};S.pv=null;verifyAll();}
- if(S.pa){S.ops+=S.pa.samples.length+1;S.asg.summary=S.pa.to;S.pa=null;verifyAll();}
+ if(S.pa){S.ops++;S.asg.summary=S.pa.to;S.pa=null;verifyAll();}
  for(const a of S.arts)for(const rid of Object.keys(S.c.rules))if(['unverified','unsupported'].includes(eff(a,rid))){S.ops++;S.judg.push({inst:a.id,rule:rid,shown:inputOf(a,rid,false),verdict:'合っている'});}}
 const card=(id,kind,f)=>{S.old.cards.push({id,kind,f});};
 const STEPS=[
@@ -119,10 +119,10 @@ const STEPS=[
  {t:'AI のモデルを新しくする（validator を ai@2 に替える）',d:'記事の中身は変わっていない。判定する AI だけを新しくする。',
   act(){if(S.mode==='r59'){S.asg.summary='ai@2';for(const a of S.arts)if(S.old.state[a.id]==='承認済み'){S.old.state[a.id]='確かめ直し';card(a.id,'確かめ直してください');}return;}
    const ch=trial(()=>{S.asg.summary='ai@2';});S.pa={to:'ai@2',changed:ch,samples:['記事1','記事2']};},
-  why:'前の作りは、承認済みの全件が承認し直しになる。新しい作りは、替える前に試して「状態が変わる記事」と抜き取り2件を見せ、承認は1回で済む。'},
+  why:'前の作りは、承認済みの全件が承認し直しになる。新しい作りでは、AI の割り当ても契約の一部なので、替えるのはふつうの変更。基盤が全記事を検証し直して「状態が変わる記事」を出し、人はその変更を1回見て取り込む。人の判定は AI に依らないので効いたまま。'},
  {t:'AI が規則を弱めようとする',d:'AI が「要約は本文と矛盾しない」という規則を消そうとした。',reject:true,
   act(){if(S.mode==='r59'){delete S.c.rules.summary;S.missed++;return;}const rules=clone(S.c.rules);delete rules.summary;const ch=trial(()=>{S.c.rules=rules;});S.pv={rules,diff:'−「要約は本文と矛盾しない」を消す',changed:ch};},
-  why:'前の作りには契約の変更を止める関門が無く、規則が消えても人は気づけない。新しい作りは、差分付きで人へ届き、人が差し戻す。'},
+  why:'前の作りには契約の変更を見る場所が無く、規則が消えても人は気づけない。新しい作りでは、規則を消すのもふつうの変更で、差分と理由と影響が出る。人は見て取り込まない。'},
 ];
 let step=-1,W={},hist=[];
 function run(to){W={r59:fresh('r59'),r60:fresh('r60')};hist=[];for(let i=0;i<=to;i++){const rec={};
@@ -136,16 +136,16 @@ function render(){$('#dots').innerHTML=STEPS.map((_,i)=>'<span class="'+(i<=step
   for(const m of['59','60']){$('#o'+m).textContent=0;$('#p'+m).textContent='';$('#m'+m).innerHTML='<div class="none">まだ何も起きていない</div>';}$('#why').textContent='左右の「人の操作」の数と、届いたものの中身を比べる。';$('#inside').style.display='none';return;}
  $('#inside').style.display='';
  if(step>=STEPS.length){$('#no').textContent='まとめ';$('#title').textContent='6つの場面を通しての合計';$('#detail').textContent='';
-  const a=W.r59,b=W.r60;$('#why').innerHTML='<div class="sum"><div>前の作り：人の操作 <b>'+a.ops+'</b> 回 ／ 人が気づけなかった契約の変更 <b>'+a.missed+'</b> 件</div><div>新しい作り：人の操作 <b>'+b.ops+'</b> 回 ／ 気づけなかった変更 <b>0</b> 件</div></div><p class="note">新しい作りで人が見たのは、AI が判定できなかった記事と、契約（規則 ・ AI のモデル）を変えるときだけだった。</p>';
+  const a=W.r59,b=W.r60;$('#why').innerHTML='<div class="sum"><div>前の作り：人の操作 <b>'+a.ops+'</b> 回 ／ 人が気づけなかった契約の変更 <b>'+a.missed+'</b> 件</div><div>新しい作り：人の操作 <b>'+b.ops+'</b> 回 ／ 気づけなかった変更 <b>0</b> 件</div></div><p class="note">新しい作りで人が見たのは、AI が判定できなかった記事と、契約（規則 ・ AI のモデル）を変える変更の差分だけだった。承認の仕組みは無く、ふつうの変更を見て取り込むだけ。</p>';
   for(const m of['59','60']){$('#o'+m).textContent=W['r'+m].ops;$('#p'+m).textContent='';$('#m'+m).innerHTML='';}renderInside();return;}
  const st=STEPS[step],h=hist[step];$('#no').textContent='場面 '+(step+1)+' / '+STEPS.length;$('#title').textContent=st.t;$('#detail').textContent=st.d;
  for(const m of['59','60']){const r=h['r'+m];$('#o'+m).textContent=W['r'+m].ops;$('#p'+m).textContent=r.plus?'（この場面で +'+r.plus+'）':'（この場面で +0）';
   $('#m'+m).innerHTML='<div class="note">人に届いたもの</div>'+(r.got.length?r.got.map(g=>'<div class="mail">'+g+'</div>').join(''):'<div class="none">何も届かない</div>')+(m==='59'&&st.reject?'<div class="miss">規則が消えたが、人には何も届かない</div>':'')+(m==='60'&&st.reject?'<div class="note">人は差し戻した。規則は残る。</div>':'');}
  $('#why').textContent=st.why;renderInside();}
 function renderInside(){S=W.r60;const h=hist[Math.min(step,STEPS.length-1)].r60;
- const rows=h.newRecs.map(r=>'<tr><td>'+r.inst+'</td><td>'+(S.c.rules[r.rule]?S.c.rules[r.rule].name:r.rule)+'</td><td><code>'+r.input+'</code></td><td>'+r.result+'</td><td>'+r.by+'</td></tr>').join('');
+ const rows=h.newRecs.filter(r=>r.by!=='engine@1').map(r=>'<tr><td>'+r.inst+'</td><td>'+(S.c.rules[r.rule]?S.c.rules[r.rule].name:r.rule)+'</td><td><code>'+r.input+'</code></td><td>'+r.result+'</td><td>'+r.by+'</td></tr>').join('');
  const jr=h.newJ.map(j=>'<tr><td>'+j.inst+'</td><td>'+S.c.rules[j.rule].name+'</td><td><code>'+j.shown+'</code></td><td>'+j.verdict+'</td></tr>').join('');
- $('#recs').innerHTML=step>=STEPS.length?'<p class="note">契約：v'+S.c.v+'（規則 '+Object.keys(S.c.rules).length+'つ）／ validator：'+S.asg.summary+'</p>':'<p><b>この場面で足した検証の記録：'+h.newRecs.length+'行</b>（足すだけで書き換えない）</p>'+(rows?'<div class="tw"><table><tr><th>記事</th><th>規則</th><th>入力のハッシュ</th><th>結果</th><th>判定した者</th></tr>'+rows+'</table></div>':'')+(jr?'<p><b>この場面で足した人の判断：'+h.newJ.length+'件</b></p><table><tr><th>記事</th><th>規則</th><th>見せた中身のハッシュ</th><th>判断</th></tr>'+jr+'</table>':'')+'<p class="note">契約：v'+S.c.v+'（規則 '+Object.keys(S.c.rules).length+'つ）／ validator：'+S.asg.summary+'</p>';
+ $('#recs').innerHTML=step>=STEPS.length?'<p class="note">契約：v'+S.c.v+'（規則 '+Object.keys(S.c.rules).length+'つ）／ validator：'+S.asg.summary+'</p>':'<p><b>この場面で足した判定の記録（AI）：'+h.newRecs.filter(r=>r.by!=='engine@1').length+'件</b>（機械の rule は記録せず毎回計算し直す）</p>'+(rows?'<div class="tw"><table><tr><th>記事</th><th>規則</th><th>入力のハッシュ</th><th>結果</th><th>判定した者</th></tr>'+rows+'</table></div>':'')+(jr?'<p><b>この場面で足した判定の記録（人）：'+h.newJ.length+'件</b></p><table><tr><th>記事</th><th>規則</th><th>見せた中身のハッシュ</th><th>判断</th></tr>'+jr+'</table>':'')+'<p class="note">契約：v'+S.c.v+'（規則 '+Object.keys(S.c.rules).length+'つ）／ validator：'+S.asg.summary+'</p>';
  $('#arts').innerHTML=S.arts.map(a=>'<span class="art" aria-selected="'+(sel===a.id)+'" data-id="'+a.id+'">'+a.id+badge(state(a))+'</span>').join('');
  document.querySelectorAll('.art').forEach(e=>e.onclick=()=>{sel=e.dataset.id;renderInside();});
  const a=art(sel);if(!a){$('#calc').innerHTML='';return;}
