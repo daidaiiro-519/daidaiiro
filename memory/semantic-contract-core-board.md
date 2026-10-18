@@ -15,5 +15,5 @@ metadata:
 ## 次にすること
 
 - Q1 の回答を受け取り、承認なら advance して Q7 を開く。
-- 持ち越し：ACDR 0191（長いパッチをファイルで渡す、schema-driven 0.1.2）は承認待ちで、作業ツリーにある。brainstorming の update は --patch の引数だけを受けるので、figures/apply_patch.py で分けて渡す（1つの値が 128KB を超える図は渡せない）。
+- brainstorming の update は --patch_file でファイルから受ける（ACDR 0191 承認済み）。長い図はボードのフォルダにパッチを書いて渡す。
 - 実装の名前（schema-driven の CLI ・ MCP）を Semantic Schema Core に改めるのは、別の ACDR で決める。
