@@ -1,0 +1,111 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0195",
+ "title": "選んでいないタブと決着の札を、置いた面と分かれる色にする",
+ "date": "2026-10-18",
+ "status": "accepted",
+ "decision": "ブレストボードは、選んでいないタブに押せる部品の地 surface.control を、決着の札に完了の緑（地 surface.done ・ 線 line.done ・ 文字 text.done）を持たせる。完了の緑は、色の基礎に green を足して作る。",
+ "why": "選んでいないタブの地が透明で置いた枠と同じ色に見え、決着の札も淡い線と控えめの文字で背景に溶けて分かりにくい、と利用者に指摘された。重なる面は別の地にするというデザインシステムの決まりに一致させる。決着の色は、中立の暗い塗り（甲）・ 回答待ちと同じ青緑の線（乙）・ 完了の緑（丙）を比べ（ui-variants.html）、暗い色は完了を伝えるには違和感がある、として利用者が丙を選んだ。",
+ "shift": [
+  {
+   "what": "選んでいないタブの地",
+   "from": "透明（置いた枠 surface.block が透ける）",
+   "to": "surface.control（明 paper.100 ・ 暗 night.700）。押せる部品の地として、意味の層に足す"
+  },
+  {
+   "what": "決着の札",
+   "from": "線 line.block（いちばん淡い）・ 地は透明 ・ 文字は控えめの色",
+   "to": "地 surface.done（明 #E3F1DF ・ 暗 #1C2B19）・ 線 line.done（明 #3E7B36 ・ 暗 #86C27A）・ 文字 text.done（明 #2F6528 ・ 暗 #A6D69B）"
+  },
+  {
+   "what": "色の基礎",
+   "from": "完了に向く緑が無い（緑みは回答待ちの青緑だけ）",
+   "to": "base.green（100 ・ 200 ・ 300 ・ 700 ・ 800 ・ 900）を足す"
+  },
+  {
+   "what": "コントラストの検査",
+   "from": "（無し）",
+   "to": "text.done on surface.done ・ text.body on surface.control ・ line.done on surface.block の3組を足す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前はタブと決着の札が置いた面に溶けていた。変更後は押せる部品の地と、完了の緑で分ける。",
+ "alternatives": [
+  {
+   "option": "甲：決着を中立の暗い塗りにする",
+   "why_not": "暗い色は「止まった」に近く見え、完了を伝えるには違和感がある、と利用者が判断した"
+  },
+  {
+   "option": "乙：決着を回答待ちと同じ青緑の線と文字にする",
+   "why_not": "回答待ち（青緑の塗り）との違いが塗りの有無だけになり、状態を取り違えやすい"
+  },
+  {
+   "option": "選んでいないタブに、いまある面のトークン（page ・ literal）を使う",
+   "why_not": "page はページの背景、literal は字面を見せる面と役割が決まっていて、流用すると1つのトークンに意味が2つできる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "css",
+   "tab": "catalog.css",
+   "file": ".claude/skills/brainstorming/assets/catalog/catalog.css",
+   "marks": [
+    {
+     "find": ".status[data-status=\"done\"] { border-color: var(--color-line-done);",
+     "before": ".status[data-status=\"done\"] { border-color: var(--color-line-block); }",
+     "why": "決着の札を、完了の緑の地 ・ 線 ・ 文字にする。"
+    },
+    {
+     "find": "background: var(--color-surface-control);",
+     "before": ".tabs button { font-size: 13px; border: 1px solid var(--color-line-control); background: transparent;",
+     "why": "選んでいないタブに、置いた枠と違う地を持たせる。"
+    }
+   ]
+  },
+  {
+   "key": "light",
+   "tab": "light.tokens.json",
+   "file": ".claude/skills/brainstorming/assets/catalog/light.tokens.json",
+   "marks": [
+    {
+     "find": "\"green\": {",
+     "before": "（無し。新しく足す）",
+     "why": "完了に向く緑を、色の基礎に足す。値はここにだけ書く。"
+    },
+    {
+     "find": "選んでいないタブなど、押せる部品の地。置いた枠（block）と違う値にする",
+     "before": "（無し。新しく足す）",
+     "why": "押せる部品の地のトークンを、意味の層に足す。"
+    },
+    {
+     "find": "決着の札の地。完了を明るい緑で伝える",
+     "before": "（無し。新しく足す）",
+     "why": "完了の地のトークンを足す。"
+    },
+    {
+     "find": "\"background\": \"color.surface.done\",",
+     "before": "（無し。新しく足す）",
+     "why": "完了の文字と地のコントラストを、検査の対象に足す。"
+    }
+   ]
+  },
+  {
+   "key": "dark",
+   "tab": "dark.tokens.json",
+   "file": ".claude/skills/brainstorming/assets/catalog/dark.tokens.json",
+   "marks": [
+    {
+     "find": "\"{base.green.900}\"",
+     "before": "（無し。新しく足す）",
+     "why": "暗の完了の地。暗い面の上でも緑と分かる値にする。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "css": "5243994a229b9ada4c372642af2e064ebde5208aa8a5769a59eba83887f01c78",
+  "light": "cf7a6fb49daf93b7ebe59ce8956daae73eaa012f95cbb90cde864c78b1cb5007",
+  "dark": "339d250c8f151cf0866b293246a180c582ff19478b88e8bd011984ff56b2ec88"
+ }
+}
