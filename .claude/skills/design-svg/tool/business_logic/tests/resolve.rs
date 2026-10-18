@@ -154,7 +154,8 @@ fn no_override_with_dark_values_emits_the_style() {
 
 #[test]
 fn no_override_without_dark_values_emits_no_style() {
-    let svg = r##"<svg viewBox="0 0 100 60"><rect class="swatch" x="0" y="0" width="10" height="10" fill="#123456"/></svg>"##;
+    // viewBox の無い図には図の地（canvas）を敷かないので、色を持たない class だけが残る
+    let svg = r##"<svg width="100" height="60"><rect class="swatch" x="0" y="0" width="10" height="10" fill="#123456"/></svg>"##;
     let out = resolve(svg, None, true).expect("解決できる");
     assert!(!out.contains("<style"), "{out}");
     assert!(out.contains("fill=\"#123456\""), "swatch の色はそのまま");
@@ -167,7 +168,7 @@ fn an_override_with_dark_values_emits_no_style() {
     let out = resolve(svg, Some(&t), false).expect("解決できる");
     assert!(!out.contains("<style"), "{out}");
     assert!(
-        !out.contains(ROOT_CLASS),
+        !out.contains(&format!("class=\"{ROOT_CLASS}\"")),
         "上書きした図は dsvg を持たない: {out}"
     );
     assert!(
@@ -178,7 +179,8 @@ fn an_override_with_dark_values_emits_no_style() {
 
 #[test]
 fn an_override_without_dark_values_emits_no_style() {
-    let svg = r##"<svg viewBox="0 0 100 60"><rect class="swatch" x="0" y="0" width="10" height="10" fill="#123456"/></svg>"##;
+    // viewBox の無い図には図の地（canvas）を敷かないので、色を持たない class だけが残る
+    let svg = r##"<svg width="100" height="60"><rect class="swatch" x="0" y="0" width="10" height="10" fill="#123456"/></svg>"##;
     let t = colour_override();
     let out = resolve(svg, Some(&t), false).expect("解決できる");
     assert!(!out.contains("<style"), "{out}");

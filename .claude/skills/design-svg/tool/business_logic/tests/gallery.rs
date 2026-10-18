@@ -97,7 +97,8 @@ fn every_class_is_used_by_some_figure() {
         .classes
         .iter()
         .map(|c| c.name.as_str())
-        .filter(|n| !seen.contains(*n))
+        // 図の地（canvas）は書き手が使う class ではなく、resolve が図のいちばん下に敷く
+        .filter(|n| !seen.contains(*n) && *n != "canvas")
         .collect();
     assert!(unused.is_empty(), "どの事例も使わない class: {unused:?}");
 }
@@ -110,7 +111,7 @@ fn the_21_figures_alone_leave_only_content_colours_unused() {
         .classes
         .iter()
         .map(|c| c.name.as_str())
-        .filter(|n| !seen.contains(*n))
+        .filter(|n| !seen.contains(*n) && *n != "canvas")
         .collect();
     assert_eq!(
         unused,

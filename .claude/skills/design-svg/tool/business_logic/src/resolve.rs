@@ -357,6 +357,30 @@ fn dark_style(got: &Gathered) -> Option<Element> {
     })
 }
 
+/// 図の地の矩形を、viewBox の全体に作る。viewBox が読めない図には敷かない。
+fn canvas_of(root: &Element) -> Option<Element> {
+    let vb: Vec<f64> = root
+        .get("viewBox")?
+        .split(|c: char| c == ' ' || c == ',')
+        .filter(|t| !t.is_empty())
+        .map(str::parse::<f64>)
+        .collect::<Result<_, _>>()
+        .ok()?;
+    let [x, y, w, h] = vb.as_slice() else {
+        return None;
+    };
+    let mut el = Element {
+        tag: "rect".to_owned(),
+        ..Element::default()
+    };
+    el.set(GENERATED, "canvas");
+    el.set("class", "canvas");
+    for (k, v) in [("x", x), ("y", y), ("width", w), ("height", h)] {
+        el.set(k, &crate::py::fixed(*v, 1));
+    }
+    Some(el)
+}
+
 /// class を値へ解決した SVG を返す。
 ///
 /// `theme` は既定のテーマに上書きを重ねたもの（`None` なら既定）。`dark` が偽なら、ダークモードの
@@ -385,6 +409,11 @@ pub fn resolve(
     let mut renamed = Vec::new();
     prefix_ids(&mut root, &head, &mut renamed);
     rewrite_refs(&mut root, &renamed);
+    // 図の地（class canvas）を、図のいちばん下に1枚敷く。図を置く面がどの色でも、
+    // 囲みの外に置いた箱や表の欄が、置いた面と同じ色に見えないようにする
+    if let Some(canvas) = canvas_of(&root) {
+        root.children.insert(0, Node::Element(canvas));
+    }
     let mut got = Gathered::default();
     for ch in root.elements_mut() {
         resolve_element(ch, theme_, &head, &mut got)?;
