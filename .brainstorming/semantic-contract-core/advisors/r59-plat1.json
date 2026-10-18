@@ -1,0 +1,80 @@
+{
+"kind": "judgment",
+"question": "Semantic Schema Core のメタスキーマで、拡張キーワード（x-prompt ・ x-view ・ x-ref ・ x-derive ・ x-term など）を1つの語彙として \"$vocabulary\" に required: true で宣言し、文脈（Skill ・ Agent）のスキーマは \"$schema\" でそのメタスキーマを指すだけにする案でよいか",
+"premises": [
+{"name": "x-* の性質", "value": "x-prompt ・ x-view ・ x-term は表示と説明の annotation。x-ref ・ x-derive はほかのインスタンスや計算を要し、1つの文書の JSON Schema 評価だけでは合否を決められない（推測：案の名前から読んだ。x-ref が1文書の中で合否を変える語なら結論が変わるので未判定）", "source": "依頼の文と推測"},
+{"name": "jsonschema 0.58.6 の挙動", "value": "required が true の語彙だけを集合に入れ、false は集合に入れない（referencing-0.58.6 src/vocabularies.rs:191）。集合に入った未申告の語彙だけを「Unknown vocabulary」で断る（compiler.rs:1186-1200）。with_keyword は語彙と無関係に、キーワードの名前で働く", "source": "~/.cargo/registry の原文を読んだ"},
+{"name": "いまのエンジン", "value": "jsonschema を default-features = false で使い、.offline() と、埋め込んだメタスキーマの registry で検証する（src/schema-driven/crates/core/src/domain/schema.rs:192-216）。版は x-abstract で示す（contract.rs:1-35）", "source": "リポジトリのコード"},
+{"name": "ほかの道具の挙動", "value": "エディタの補完はメタスキーマの properties から出て、$vocabulary は読まない。$vocabulary の required を実装する検証器は、知らない語彙を持つスキーマを丸ごと断る（推測：実装ごとに違い、確かめていない）", "source": "判断基準の範囲外"},
+{"name": "JSON Schema 2020-12 Core", "value": "required の語彙を知らない実装は処理を断り、任意なら続ける。語彙の URI が指す文書の形は未定義", "source": "依頼の事実（core:2898 ・ 2900 ・ 2885 付近）"}
+],
+"conclusion": {
+"stance": "conditional",
+"headline": "語彙を URI で宣言する形は採るが、required は false にし、エンジンが断る仕組みは \"$schema\" の閉じた一覧（埋め込んだメタスキーマの URI だけを受ける）で持たせる。",
+"because": "x-* は1文書の評価の合否を変えない annotation なので、true にするとほかの道具だけが断って壊れ、エンジンの再現性は $vocabulary ではなく $schema の閉じた一覧と適合の試験で守れるからである。x-ref が1文書の中で合否を変える語なら、その語だけを required: true の別の語彙に分ける。"
+},
+"figure": {
+"caption": "文脈のスキーマ → 版つきメタスキーマ → エンジンの閉じた一覧。ほかの道具は同じメタスキーマを annotation として読む",
+"nodes": [
+{"id": "ctx", "label": "文脈のスキーマ（$schema だけを書く）"},
+{"id": "meta", "label": "メタスキーマ …/meta/v1（$vocabulary: 標準7語彙 true ＋ 拡張語彙 v1 false）"},
+{"id": "cat", "label": "エンジンのポート：MetaSchemaCatalog（埋め込みの閉じた一覧）"},
+{"id": "val", "label": "アダプター：jsonschema 0.58（offline ・ registry）"},
+{"id": "sem", "label": "コア：x-* の意味の処理（x-ref ・ x-derive の検査）"},
+{"id": "tool", "label": "ほかの道具（エディタ ・ ほかの検証器）"}
+],
+"edges": [
+{"from": "ctx", "to": "meta", "label": "$schema"},
+{"from": "meta", "to": "cat", "label": "URI で引く。一覧に無ければ断る"},
+{"from": "cat", "to": "val", "label": "構造の検証"},
+{"from": "cat", "to": "sem", "label": "x-* を annotation として渡す"},
+{"from": "tool", "to": "meta", "label": "補完と構造の検証だけ", "dashed": true}
+]
+},
+"comparison": [
+{"option": "A：拡張語彙を1つ、required: true（依頼の案）", "effect": "$vocabulary を実装するほかの検証器が、文脈のスキーマを丸ごと断る。annotation しか持たない語のために構造の検証まで止まる。エンジン側は with_vocabulary の申告に縛られ、検証ライブラリの語彙の機能に依存する", "chosen": false},
+{"option": "B：拡張語彙を1つ、required: false ＋ エンジンは $schema の閉じた一覧で断る", "effect": "ほかの道具は x-* を annotation として読み、構造の検証と補完は効く。エンジンは知らない版の $schema を断るので、版の食い違いは止まる。jsonschema 0.58 では with_vocabulary が不要になる", "chosen": true},
+{"option": "C：annotation の語彙（false）と、合否を変える語彙（true）の2つ", "effect": "x-ref ・ x-derive が1文書の評価の合否を変えるときだけ正しい。そうでなければ、語彙の URI と版を2系統管理する手間だけが増える", "chosen": false},
+{"option": "D：$vocabulary を使わず、いまの x-abstract で版を示し続ける", "effect": "ほかの言語の実装が、どの語を実装すれば適合かを JSON Schema の仕組みで読めない。x-abstract はエンジン独自の語なので、ほかの道具からは版が見えない", "chosen": false}
+],
+"path": [
+{"ask": "1. 可搬性：x-* は1文書の評価の合否を変えるか", "answer": "変えない（前置きの推測）。合否を変えない語を required: true にすると、知らない実装に断らせる理由が無いまま断らせる。false を推す"},
+{"ask": "1. ほかの道具での振る舞い", "answer": "補完はメタスキーマの properties に x-* の型を書けば効く。$vocabulary の値には依らない（推測）"},
+{"ask": "2. 版の入れ方", "answer": "語彙の URI とメタスキーマの $id に大きな版だけを入れる（…/vocab/v1 ・ …/meta/v1）。任意の語を足すだけなら同じ版の中で拡張し、意味を変える ・ 語を消すときに v2 を起こす"},
+{"ask": "2. 版を並べて出すとき", "answer": "エンジンは v1 と v2 のメタスキーマを両方埋め込み、$schema で選ぶ。v1 を外す前に、v1→v2 の移行コマンドと、廃止の予告の期間を置く"},
+{"ask": "2. x-abstract からの移し方", "answer": "x-abstract の各版を1つの $schema の URI に対応させる表をエンジンに持たせ、移行の期間は両方を読む。両方があって食い違えば断る。移行コマンドで x-abstract を $schema に書き換える"},
+{"ask": "3. 再現性：URI を取りに行くか", "answer": "取りに行かない。いまの .offline() と default-features = false を保ち、$schema が一覧に無い URI なら、URL の形でも断る。語彙の URI は名前としてだけ使う"},
+{"ask": "3. セキュリティ：任意の URL や $id の衝突", "answer": "文脈が持つ兄弟のスキーマの $id が、予約したメタスキーマの名前空間と同じなら断る（推測：registry で上書きされうる）"},
+{"ask": "4. 実装の依存の切り方", "answer": "コアにポート（MetaSchemaCatalog ・ SchemaValidator）を置き、x-* の意味はコアが木をたどって処理する。jsonschema の with_keyword ・ with_vocabulary はアダプターの中だけで使い、コアは知らない"},
+{"ask": "5. 直すべき点", "answer": "メタスキーマの $vocabulary に標準の7語彙（core ・ applicator ・ unevaluated ・ validation ・ meta-data ・ format-annotation ・ content）を true で並べる。jsonschema 0.58 は並べた語彙だけを集合に入れるので、拡張語彙だけを書くと標準の語の検証が止まる（推測：原文から読んだ挙動）"}
+],
+"grounds": [
+{"criterion": "rel-03", "quote": "サービス契約とは、API プロデューサーとコンシューマーの間で取り決め、機械が読める API 定義で書き表した契約である。契約のバージョニング戦略があれば、コンシューマーは今の API を使い続けながら、準備ができたときに新しい API へ移れる。契約が守られている限り、プロデューサーはいつでもデプロイでき、サービスチームは好きな技術スタックで契約の条件を満たせる"},
+{"criterion": "rel-03", "quote": "API を拡張するか、バージョニングする。オプションのフィールドや、必須でもデフォルト値で埋められるフィールドを足すだけなら、拡張のほうが楽である。REST や GraphQL のような JSON ベースの契約は拡張しやすい。SOAP のような XML ベースの契約は、拡張できるかをサービスのコンシューマーといっしょにテストして決める"},
+{"criterion": "rel-03", "quote": "API 契約は分かりやすい自己文書化インターフェイスになり、システムやプログラミング言語が違っても相互運用しやすくなる"},
+{"criterion": "sec-06", "quote": "ランタイムの依存先（アプリケーションライブラリやコンテナイメージなど）は、信頼できるレジストリからだけ取り、署名を確かめる"},
+{"criterion": "sec-11", "quote": "テストした版がそのままデプロイする版で、デプロイは毎回同じように行われる。ワークロードの設定を外に出し、変えずにいろいろな環境へデプロイできる。環境のあいだで何も変わっていないことを、パッケージの暗号の署名で確かめる"},
+{"criterion": "ops-05", "quote": "既知の良い状態や前のバージョンへすぐ戻せ、アセットを失うリスクが下がる"}
+],
+"cautions": [
+{"name": "rel-03：バージョニング戦略を採らない", "risk": "API コンシューマーに更新とリリースを強いるか、サービス契約が変わったときに失敗する", "alternative": "（推測）語彙とメタスキーマの URI に大きな版を入れ、エンジンが複数の版を並べて受ける"},
+{"name": "（推測）合否を変えない語を required: true で宣言する", "risk": "$vocabulary を実装するほかの検証器が、文脈のスキーマを丸ごと断る", "alternative": "required: false にし、断る仕組みは $schema の閉じた一覧に置く"},
+{"name": "（推測）$schema の URL を取りに行く", "risk": "ネットワークの状態で結果が変わり、書き換えられたメタスキーマを受ける", "alternative": "埋め込んだメタスキーマだけで解決し、一覧に無い URI は断る"}
+],
+"ai_cautions": [
+{"breaks": "メタスキーマの $vocabulary に拡張語彙だけを書き、標準の語彙を落とす", "check": "適合の試験に「type が合わないインスタンスが失格になる」を入れ、新しいメタスキーマで通るかを見る"},
+{"breaks": "エンジンの依存に jsonschema の default-features を戻し、HTTP の取得が入る", "check": "Cargo.toml の default-features = false と、一覧に無い $schema を断る試験（ネットワークを切って実行）を CI に置く"},
+{"breaks": "コアの domain が jsonschema の型（with_keyword など）を直接使う", "check": "core/src/domain で jsonschema:: を grep し、アダプターの外に出ていないかを見る"}
+],
+"related": [
+{"criterion": "sec-11", "relation": "テストした版とデプロイする版が同じであることを、メタスキーマを埋め込む形が支える"},
+{"criterion": "sec-06", "relation": "外の依存先を信頼できる所からだけ取る考え方を、メタスキーマの解決に当てる"}
+],
+"next": [
+"x-ref ・ x-derive が1文書の評価の合否を変えるかを、語ごとに決める",
+"語彙の URI とメタスキーマの $id を、大きな版を入れた形で決める",
+"メタスキーマに標準の7語彙と拡張語彙 v1（false）を並べ、x-* の型を properties に書く",
+"x-abstract の版と $schema の URI の対応表と、移行コマンドを作る",
+"一覧に無い $schema を断る試験と、版ごとの適合の試験をエンジンの CI に足す"
+]
+}

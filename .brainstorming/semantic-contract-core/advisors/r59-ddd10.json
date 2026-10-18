@@ -1,0 +1,53 @@
+{
+"kind": "judgment",
+"question": "Semantic Abstract Schema のメタスキーマが $vocabulary で x- キーワードの集まりを1つの語彙として宣言し、Concrete は $schema でそのメタスキーマを指すだけにする案を採るか",
+"premises": [
+ {"name": "JSON Schema 2020-12 Core の事実", "value": "required の語彙を知らない実装は処理を断る（core:2898）。語彙で定義された未知の語と、どの語彙にも無い未知の語は区別できない（core:2908）。名前空間の仕組みは無い（core:5301）。$vocabulary はメタスキーマとして読むとき以外は無視される", "source": "依頼者が照合済みの原文。判断基準の範囲外"},
+ {"name": "6つの一員の形", "value": "ページテンプレートとデザインシステムが JSON Schema かどうかは未判定。下の問い2の答えはこれに依存する", "source": "推測"},
+ {"name": "汎用の検証器の実装", "value": "既存の汎用の検証器が core:2898 の拒否をどこまで実装しているかは確かめていない", "source": "判断基準の範囲外"}
+],
+"conclusion": {"stance": "conditional", "headline": "条件付きで採る。語彙の URI とメタスキーマの $id の両方に、メタスキーマという一員の版を入れて版を並べて出し、x- を定義できるのは Abstract だけという不変条件は $vocabulary ではなく、メタスキーマの検証とエンジンの $schema の許可一覧で守る。", "because": "語彙の URI ＋ メタスキーマは、内部のモデルから分けた公開された言葉を版ごとに並べて出す形に合う（open-host-service）。ただし core:2908 により $vocabulary だけでは Concrete が書いた未知の x- を検出できないので、不変条件の担い手を別に置く必要がある。"},
+"comparison": [
+ {"option": "A 案のまま（単一の語彙・required: true・不変条件を $vocabulary に任せる・x-abstract を消すだけ）", "effect": "Concrete が勝手な x-foo を書いても、自前のメタスキーマを $schema で指しても検出されない（core:2908）。x-abstract が持っていた残り5つの一員の版の指定が消え、どの版のテンプレートやカタログに従うかが書けなくなる", "chosen": false},
+ {"option": "B 条件付きの案（語彙の URI と $id に同じ版・メタスキーマで x- の名前を閉じる・エンジンが $schema を許可一覧で照合・他の一員は版付きの $id を $ref で指す）", "effect": "版を並べて出せ、Concrete は $schema の値を変えるだけで新しい版へ移れる。不変条件はメタスキーマとエンジンの2か所で検出できる", "chosen": true},
+ {"option": "C x-abstract で版を書く形を残す", "effect": "メタスキーマの版を $schema と x-abstract の2か所に書くことになり、食い違いを毎回検査する。汎用の道具は x-abstract を知らないので、版の宣言が JSON Schema の外に置かれる", "chosen": false},
+ {"option": "D 語彙の URI に版を入れず、メタスキーマの $id だけに版を入れる", "effect": "実装は語彙の URI でハンドラを登録する（core:2259）ので、x-derive の意味が版で変わると、同じ URI に2つの意味が付き、並べて出した版をハンドラが区別できない", "chosen": false},
+ {"option": "E x- 接頭辞を外す", "effect": "名前空間の仕組みが無い（core:5301）ので、将来の標準キーワードや他の語彙と名前が衝突する", "chosen": false}
+],
+"path": [
+ {"ask": "1. 語彙の URI ＋ メタスキーマで公開された言葉として出すのは妥当か。版はどこに入れるか", "answer": "妥当。メタスキーマは内部の実装（エンジンの区分）から分けた公開の契約になる。版は両方に入れ、値はメタスキーマという一員の版1つにそろえる。語彙の URI はキーワードの意味の版、$id はメタスキーマの版を指すが、2つは同じ一員なので別々に数えない。出した版は変更せず、変えるときは新しい版を並べる"},
+ {"ask": "2. 6つの一員のうち、語彙を宣言するメタスキーマはどれか", "answer": "メタスキーマ1つだけ。部品のカタログ・公開の記録・承認の記録の形は、そのメタスキーマで書いたふつうのスキーマ。ページテンプレートとデザインシステムは JSON Schema でない形を持つ可能性があり、その場合は語彙と無関係で、版付きの識別子で指すだけ（推測）"},
+ {"ask": "3. Concrete が $vocabulary を書けないことで不変条件は守られるか", "answer": "守られない。$vocabulary が無視されるのは語彙の宣言だけで、Concrete の本文に x-foo を書くことは止めない（core:2908）。塞ぎ方は2つ ── メタスキーマが x- で始まる名前を宣言した集まりに閉じる（propertyNames と if/then で、$dynamicRef により入れ子のスキーマにも及ぶ）／エンジンが $schema の値を Abstract が公開したメタスキーマの $id の一覧と照合し、それ以外を断る（推測：JSON Schema の外の検査）"},
+ {"ask": "4. vocabulary を JSON Schema の意味だけに使い、ユビキタス言語の語の集まりを terms と呼ぶのは妥当か", "answer": "妥当。1つの用語に1つの意味の条件を満たす。日本語の文書で「語彙」を使うなら $vocabulary の訳としてだけ使い、terms を「語彙」と書かないことまで決める"},
+ {"ask": "5. required: true でよいか", "answer": "キーワードごとに決める。無視されても検証の結果が変わらない注釈（x-prompt・x-view・x-term）まで required にすると、語彙を知らない汎用の道具が Concrete をすべて断り、他の AI ツールで使える契約が狭まる（推測）。値を作る・照合する x-ref・x-derive は required、注釈だけの語は別の語彙に分けて required: false にする案を比べる"}
+],
+"grounds": [
+ {"criterion": "open-host-service", "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"},
+ {"criterion": "open-host-service", "quote": "得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる"},
+ {"criterion": "open-host-service", "quote": "対応：内部モデルを変更するときは、下流が使用中の公開された言葉を維持できるかを確認する ・ 理由：下流への影響を考慮せずに内部を変更できるのは、公開された言葉を維持できる場合だけである"},
+ {"criterion": "conformist", "quote": "条件：上流の契約が業界標準で、安定したモデルである ・ 対応：下流が上流のモデルを受け入れ、従属を選択できる"},
+ {"criterion": "value-object", "quote": "性質：不変 ・ 内容：フィールドを変更すると別の値になってしまうので、変更せず、別のインスタンスを生成する"},
+ {"criterion": "value-object", "quote": "対応：妥当性を検証するロジックを、値オブジェクト自身に持たせる ・ 理由：値を設定するたびに、使う側で妥当性を検証する必要がなくなる"},
+ {"criterion": "ubiquitous-language", "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"},
+ {"criterion": "bounded-context", "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"}
+],
+"cautions": [
+ {"name": "不変条件を $vocabulary に任せる", "risk": "core:2908 により、Concrete が書いた未知の x- と自前のメタスキーマが通り、Abstract の外で x- が増える", "alternative": "メタスキーマで x- の名前を閉じ、エンジンが $schema を許可一覧で照合する（推測：判断基準に代替案が無いので回答の側で作った）"},
+ {"name": "x-abstract を消して他の一員の版の指定も消える", "risk": "Concrete がどの版のテンプレート・カタログ・記録の形に従うかを書く場所が無くなる", "alternative": "残り5つの一員にも版付きの $id を与え、Concrete は $ref でその $id を指す（推測）"},
+ {"name": "出した版を書き換える", "risk": "同じ $id で中身が変わると、Abstract を値オブジェクトとした前提が破れ、Concrete の検証結果が黙って変わる", "alternative": "版を変えるときは新しい $id と語彙の URI で並べて出す"}
+],
+"ai_cautions": [
+ {"breaks": "Concrete のスキーマに、メタスキーマが宣言していない x- キーワードを書く", "check": "Concrete を Abstract のメタスキーマで検証し、x- で始まる名前が宣言した集まりに無ければ失敗にする試験を置く"},
+ {"breaks": "語彙の URI とメタスキーマの $id の版をずらす", "check": "メタスキーマの $id と $vocabulary の自前の URI から版を取り出し、一致を検査する"},
+ {"breaks": "文書やコードで terms の集まりを vocabulary や「語彙」と書く", "check": "Semantic Schema Core の文書とコードを vocabulary・語彙で検索し、$vocabulary 以外の用法を検出する"}
+],
+"next": [
+ "6つの一員のうち、ページテンプレートとデザインシステムが JSON Schema かどうかを確定する",
+ "x- キーワードごとに、無視されると検証の結果が変わるかを表にして required の値を決める",
+ "メタスキーマで x- の名前を閉じる試作を書き、入れ子のスキーマにも及ぶかを確かめる",
+ "残り5つの一員の版付きの $id と、Concrete がそれを指す書き方を決める"
+],
+"related": [
+ {"criterion": "anticorruption-layer", "relation": "Concrete が Abstract の版に合わせられないときの代わりの連係方法"}
+]
+}

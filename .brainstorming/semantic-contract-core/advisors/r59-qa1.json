@@ -1,0 +1,86 @@
+{
+"kind": "design",
+"question": "Semantic Schema Core の derived.json（保証16 ・ 不変条件30 ・ 能力18）は、試験で確かめられる形か。観点の抜け、AI の validator の試験の方針、完了の基準、直すべき行は何か",
+"premises": [
+ {"name": "読んだもの", "value": "derived.json の guarantees ・ invariants ・ capabilities ・ compare ・ new_possibilities をすべて読んだ。from_u を U ごとに集計して突き合わせた", "source": "derived.json"},
+ {"name": "試験の対象", "value": "基盤（Core）の振る舞いを試験の対象にし、AI の validator の判定の正しさは基盤の試験の外（別の測定）に置く", "source": "判断基準の範囲外（この回答の仮定）"},
+ {"name": "時間切れの値 ・ 繰り返しの回数", "value": "未判定。derived.json に値が無い。値によって境界値の試験の入力が変わる", "source": "derived.json に無い"},
+ {"name": "指標", "value": "構想 v0.3 の「未対応 Capability を成功として報告した件数は0」「検出した割合と誤検知率」「AI修正収束」は検討中の案として扱い、合否の判定には使わない", "source": "依頼の文"}
+],
+"conclusion": {
+ "stance": "weak",
+ "headline": "30行のうち 12行（N2 ・ N6 ・ N9 ・ N10 ・ N15 ・ N16 ・ N18 ・ N22 ・ N24 ・ N25 ・ N27 ・ N28）は合否が観測できないか条件が足りず、承認の状態の遷移と validator の失敗の観点に抜けがあるので、状態表の全遷移カバレッジで埋めてから確定する。",
+ "because": "状態表は無効な遷移を空のセルで明示的に示し、全遷移カバレッジは無効な遷移の実行も試みることを求める。いまの表は U からの導出（トレーサビリティ）だけで作られ、U に書かれていない遷移（承認と保存の競合、validator の版の変化など）を拾う手段を持たない。"
+},
+"steps": [
+ {"do": "1. 合否が観測できない行を直す", "detail": "N9「1つの意味だけ」・ N10「同じ意味に解決」は意味そのものを観測できない。観測できるのは「term の版付きの名前 → 定義1つ（ハッシュ）」の対応である。N2 ・ N6「移し方を持つ」は空の移し方でも成り立つ。N18「検証を通る」は5つの値のどれを許すかが無い。N28「扱われない」はどの能力の出力で観測するかが無い。直した文は下の『直すべき行』の表に置く"},
+ {"do": "2. 値の割り当ての矛盾を直す", "detail": "N20 は rule ごとに5つの値のどれか1つ、N16 は未記入を violated と分けて返すとする。未記入が5つの値のどれに入るかが決まっていない。同値分割法の『重複してはならず、空でない集合』の条件で、5つの値と未記入 ・ 参照の解決失敗 ・ $schema の解決失敗の割り当てを1つに決める"},
+ {"do": "3. 抜けている観点を不変条件に足す", "detail": "境界値：rule 0件 ・ validator 0件（U14 の最小保証に行が無い）・ unverified 0件の承認 ・ 時間切れちょうど。並行：承認と保存の競合（N26 がハッシュを持つが、承認の時点で現在のハッシュと照らす行が無い）・ 消すと参照を足すの競合（N14）。失敗：形は正しいが中身が誤った答え（N22 は形だけ）・ 保存と移すの途中の失敗（N30 の原子性は描画だけ）。版の不一致：validator の版 ・ Abstract の版 ・ term の版の変化が N27 の陳腐化の条件に無い。参照先の削除：基盤の外での削除を次の検証で返す行が無い。権限：承認できるのは人だけ（U9 の行為者）・ Abstract を公開できるのは提供側、の行が無い。再現性：N24 は機械の validator だけで、U8 の成功保証『手元と同じ結果』と食い違う"},
+ {"do": "4. U の最小保証の抜けを埋める", "detail": "from_u の集計で、行が無い保証は U13『欠けている記録は欠けていると分かる』・ U14『validator を1つもつながなくても機械で決まる rule は検証される』・ U4『前の版を申告する Concrete は検証を通り続ける』・ U7『元の意味が保たれている』の4つである"},
+ {"do": "5. AI の validator は Test Stub に置き換えて基盤を試験する", "detail": "基盤の不変条件の試験では、validator の答えをテストが決めて差し込む。そうすれば基盤の振る舞いは決定的になり、N20〜N25 は入力と期待結果の組で合否が出る。AI の判定の正しさ（検出した割合 ・ 誤検知率）は、作り込んだ違反の集まりに対する別の測定にし、不変条件の合否に混ぜない"},
+ {"do": "6. unverified に落とす条件を不変条件にする", "detail": "AI の答えは、形が正しくても次のどれかで unverified にする：根拠が指す欄（JSON Pointer）が instance に無い ・ 根拠の引用が欄の値に文字列として無い ・ 同じ入力に対する決めた回数の答えが一致しない ・ validator が判定を保留した。こうすると『形は正しいが誤った答え』の一部を機械で落とせる。誤りの残りは承認者の判断に回る"},
+ {"do": "7. 適合の試験の入力と期待結果の組を作る", "detail": "記録案の T1〜T8 に、Test Stub の答えと期待結果の組を置く。1つの試験には無効な答えを1つだけ入れ、欠陥のマスキングを避ける"},
+ {"do": "8. 状態表を作り、全遷移カバレッジを完了の基準にする", "detail": "行は承認の状態（下書き ・ 検証済み ・ 承認済み ・ 陳腐化 ・ 消した）、列はイベント（保存 ・ 基盤の外の書き換え ・ 検証 ・ validator の失敗 ・ 承認 ・ 提案の反映 ・ 版の公開 ・ 参照先の削除 ・ validator の版の変化）。全セルが『不変条件1つで決まる遷移』か『無効（拒否と理由を返す不変条件）』で埋まり、各セルに試験が1つ以上あることを完了とする"}
+],
+"comparison": [
+ {"option": "A. 状態表（承認の状態 × イベント）の全遷移カバレッジ100%", "effect": "無効な遷移を空のセルで明示するので、U に書かれていない競合 ・ 失敗 ・ 版の変化が空のセルとして見える。直した N27 ・ N28 ・ N25 ・ N17 の試験もセルから導ける", "chosen": true},
+ {"option": "B. 保証（success ・ minimal の32文）→ 不変条件 → 試験のトレーサビリティ100%", "effect": "U13 ・ U14 ・ U4 ・ U7 の抜けは見つかるが、U に書かれていない観点（並行 ・ validator の版）は見つからない。A の前に1回だけ当てれば足りる", "chosen": false},
+ {"option": "C. 観点の一覧（境界値 ・ 並行 ・ 失敗 ・ 版 ・ 削除 ・ 陳腐化 ・ 権限 ・ 再現性）に1行ずつ当てる", "effect": "抜けは見つけやすいが、何件当てれば終わりかの数が決まらず、終了基準として測れない", "chosen": false}
+],
+"records": [
+ {"target": "適合の試験 T1（応答しない）", "content": "Test Stub：時間切れの値 +1 で答えない → 期待：その rule は error。verified の件数に数えない（N22）。時間切れの値 −1 で答える場合は答えの値になる（境界値）"},
+ {"target": "適合の試験 T2（形が違う）", "content": "Test Stub：答えの JSON Schema を満たさない JSON → 期待：error（N22）"},
+ {"target": "適合の試験 T3（根拠が無い欄を指す）", "content": "Test Stub：violated、根拠の JSON Pointer が instance に無い → 期待：unverified。violated として承認を止めない"},
+ {"target": "適合の試験 T4（根拠の引用が値に無い）", "content": "Test Stub：verified、根拠の引用が欄の値に無い文字列 → 期待：unverified"},
+ {"target": "適合の試験 T5（答えが割れる）", "content": "Test Stub：同じ入力に1回目 verified、2回目 violated → 期待：unverified。2つの答えを根拠として残す"},
+ {"target": "適合の試験 T6（能力の外）", "content": "Test Stub：宣言した capability の外の rule に verified を返す → 期待：unsupported（N21）"},
+ {"target": "適合の試験 T7（validator 0件）", "content": "validator をつながない → 期待：機械で決まる rule は verified か violated、意味の rule はすべて unsupported。件数の合計は rule の総数と一致（N20）"},
+ {"target": "適合の試験 T8（正常）", "content": "Test Stub：verified、根拠が欄と引用に一致 → 期待：verified。validator の名前と版 ・ 対象の版 ・ 根拠を持つ（N23）"},
+ {"target": "直すべき行 N2", "content": "Abstract の新しい版を公開すると、前の版を申告するすべての Concrete について、移した結果か、移せない箇所と理由の一覧が返る。"},
+ {"target": "直すべき行 N6", "content": "Concrete の新しい版を公開する前に、前の版に従うすべての instance について、移せるか、移せない箇所と理由の一覧が返る。"},
+ {"target": "直すべき行 N9", "content": "欄の意味は term への $ref で決まり、1つの term の版付きの名前は定義1つ（ハッシュ）にだけ解決する。2つ以上の定義に解決する term は violated になる。"},
+ {"target": "直すべき行 N10", "content": "term は版付きの名前で1つに決まり、どの文脈から指しても同じ定義のハッシュに解決する。"},
+ {"target": "直すべき行 N15", "content": "変更が書き換える欄（JSON Pointer）はすべて、Concrete が定める変えてよい範囲の中にあり、範囲の外を1つでも含む変更は保存されず、範囲の外の欄の一覧が返る。（書き手が AI か人かを問わない）"},
+ {"target": "直すべき行 N16", "content": "下書きの未記入の欄に対する rule は unverified になり、理由に『未記入』を持つ。violated にはならない。"},
+ {"target": "直すべき行 N18", "content": "新しい版へ移した instance は、新しい版の検証で violated と error が0件になり、元の版で verified だった意味の rule は移した後も verified である。そうならない instance は元の版のまま残り、理由が返る。"},
+ {"target": "直すべき行 N22", "content": "validator が時間切れの値までに答えない rule、答えが答えの JSON Schema を満たさない rule は error である。形を満たしても根拠が instance の欄と引用に一致しない答えは unverified である。"},
+ {"target": "直すべき行 N24", "content": "同じ instance ・ 同じ版 ・ 同じ validator の版に対し、機械の validator の結果は手元と CI で rule ごとに同じ値と同じ根拠になる。AI の validator の rule は、手元と CI で値が違えば unverified として返る。"},
+ {"target": "直すべき行 N25", "content": "承認は、承認の時点の instance のハッシュが検証したハッシュと一致し、violated と error が0件で、unverified の rule すべてに人の判断が付いているときだけ成り立つ。承認の記録を足せるのは人だけである。"},
+ {"target": "直すべき行 N27", "content": "承認のあとで instance ・ Concrete ・ Abstract ・ term の版 ・ 参照先 ・ 導出値 ・ validator の版のどれかが変わった承認は、基盤を通らない書き換えも含めて、次の検証で陳腐化として返る。"},
+ {"target": "直すべき行 N28", "content": "陳腐化した承認は、描画 ・ 意味で探して取り出す ・ 経緯をたどるのどの出力でも承認済みとして返らない。"},
+ {"target": "足す行（U13）", "content": "承認と検証の記録は、前の記録のハッシュを持ち、欠けた記録か書き換えた記録があれば、経緯をたどるがその位置を返す。"},
+ {"target": "足す行（原子性）", "content": "保存 ・ 移す ・ 提案の反映が途中で失敗したときは、対象の instance はすべて失敗の前の状態のまま残る。"}
+],
+"grounds": [
+ {"criterion": "state-transition-testing", "quote": "観点：無効な遷移 ・ 状態遷移図：明示的には示さない ・ 状態表：空のセルで明示的に示す"},
+ {"criterion": "state-transition-testing", "quote": "カバレッジ基準：全遷移カバレッジ ・ カバレッジアイテム：状態表に示されるすべての遷移 ・ 100%の条件：テストケースで、有効な遷移はすべて通過し、無効な遷移は実行を試みる"},
+ {"criterion": "state-transition-testing", "quote": "条件：全遷移カバレッジで無効な遷移をテストする ・ 対応：1つのテストケースで無効な遷移を1つだけテストし、欠陥のマスキングを回避する"},
+ {"criterion": "fragile-test", "quote": "敏感さ：Context Sensitivity ・ 直し方：テストを決定的にするため、SUT のすべての入力を制御する。ほかのシステムからの入力は、テストが値を決めて差し込む Test Stub で制御する。時刻か日付に固有の処理があれば、システムクロックを Virtual Clock に差し替え、テストが開始の時刻か日付を決め、ことによると時間の経過もまねられるようにする"},
+ {"criterion": "erratic-test", "quote": "原因：Nondeterministic Test ・ 直し方：Conditional Test Logic を取り除き、ランダムな値を決定的な値に置き換える（下の手順）"},
+ {"criterion": "equivalence-partitioning", "quote": "観点：満たすべき条件 ・ 内容：重複してはならず、空でない集合でなければならない"},
+ {"criterion": "boundary-value-analysis", "quote": "開発担当者は、境界値に関するエラーを起こしやすい。BVA で発見される代表的な欠陥は、実装された境界が意図した位置より上か下にずれているもの、または完全に省略されているものである。"},
+ {"criterion": "traceability", "quote": "トレーサビリティ：テストケースと要件 ・ 評価できること：要件がテストケースでカバーされていること"},
+ {"criterion": "testing-principles", "quote": "原則：「テストは欠陥があることは示せるが、欠陥がないことは示せない」 ・ 内容：テストで未検出の欠陥の数は減らせる。欠陥が見つからなくても、テスト対象が正しいことの証明にはならない"},
+ {"criterion": "acceptance-criteria", "quote": "条件：受け入れ基準が十分に定義され、曖昧さが無い ・ 対応：チームは、2つの形式とは別の独自の形式を使用してもよい"}
+],
+"cautions": [
+ {"name": "AI の validator を本物のまま不変条件の試験に入れる", "risk": "同じ試験が実行ごとに成功と失敗を繰り返す Erratic Test（Nondeterministic Test）になり、基盤の欠陥と AI の揺れを分けられない", "alternative": "不変条件の試験は Test Stub で答えを決め、AI の判定の質は作り込んだ違反の集まりで別に測る"},
+ {"name": "verified の件数が多いことを品質の証拠にする", "risk": "verified は『欠陥が見つからなかった』だけで、正しいことの証明にならない。AI の verified は特に根拠の検証が無いと誤りを含む", "alternative": "AI の verified には根拠の照合（T3 ・ T4）を通したものだけを数え、検出した割合は作り込んだ違反で測る"},
+ {"name": "（推測）時間切れの値を決めずに『応答しない』を書く", "risk": "試験の入力が決まらず、境界値（値ちょうど ・ ±1）の試験が作れない", "alternative": "Concrete か validator の宣言に時間切れの値を持たせ、N22 から参照する"}
+],
+"ai_cautions": [
+ {"breaks": "不変条件を直すときに『意味が保たれる』『扱われない』のような観測できない述部を残す", "check": "各行に『どの能力の出力の、どの欄が、どの値になるか』が書けるかを1行ずつ確かめ、書けない行を一覧にする"},
+ {"breaks": "状態表のセルを埋めるときに、U に書かれていない遷移を空のまま残す", "check": "状態 × イベントの全セルに、不変条件の id か『無効』と拒否の不変条件の id があるかを数え、空のセルが0件であることを確かめる"}
+],
+"related": [
+ {"criterion": "decision-table-testing", "relation": "N25 の承認の条件（violated ・ error ・ unverified の判断 ・ ハッシュの一致）の組み合わせを列にして試験を導く"},
+ {"criterion": "entry-exit-criteria", "relation": "全遷移カバレッジ100% を不変条件の表の終了基準として書く"}
+],
+"next": [
+ "直すべき行の表で N2 ・ N6 ・ N9 ・ N10 ・ N15 ・ N16 ・ N18 ・ N22 ・ N24 ・ N25 ・ N27 ・ N28 を書き換える。",
+ "U13 ・ U14 ・ U4 ・ U7 の最小保証に対応する不変条件を足す。",
+ "承認の状態 × イベントの状態表を作り、空のセルを不変条件か『無効』で埋める。",
+ "時間切れの値と、答えが割れたかを見る繰り返しの回数を決める。",
+ "T1〜T8 を Test Stub で書き、基盤の試験として CI に置く。"
+]
+}

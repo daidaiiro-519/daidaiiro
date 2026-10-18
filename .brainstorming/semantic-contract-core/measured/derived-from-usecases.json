@@ -1,0 +1,809 @@
+{
+  "source": {
+    "scenes": ".brainstorming/semantic-contract-core.json の Q8（answer ・ images：使う場面 ・ サブ機能 ・ 設計の範囲）",
+    "premises": "同じボードの Q0 ・ Q5 ・ Q9（settled）と Q1 の下書き（open）",
+    "compared_with": "Q1 の不変条件22 ・ エンジンの能力11、measured/invariants-inventory.json（いまの実装の検査115件）",
+    "derived": "2026-10-18"
+  },
+  "guarantees": [
+    {
+      "u": "U0",
+      "actor": "利用者",
+      "success": "使っている instance はすべていまの版に従い、承認のあとで古くなっていない。",
+      "minimal": "古くなった instance や検証できなかった rule は、承認済み ・ verified として見えない。"
+    },
+    {
+      "u": "U1",
+      "actor": "作者（人か AI）",
+      "success": "Concrete スキーマが Abstract の版の契約を満たして公開され、Agent が案内に従って instance を書ける。公開した版は変わらない。",
+      "minimal": "契約を満たさない Concrete は公開されず、違反した rule が返る。"
+    },
+    {
+      "u": "U2",
+      "actor": "作者",
+      "success": "新しい版が、既存の instance への影響と移し方と一緒に公開される。",
+      "minimal": "前の版とそれに従う instance は変わらず、そのまま使える。"
+    },
+    {
+      "u": "U3",
+      "actor": "作者",
+      "success": "Concrete が Abstract の新しい版に合い、機械で直せる箇所は直り、残りは案内に従って直る。",
+      "minimal": "移せなかった箇所は一覧で返り、前の版の Concrete は壊れない。"
+    },
+    {
+      "u": "U4",
+      "actor": "提供側",
+      "success": "Abstract の新しい版が移し方と一緒に公開され、作者が U3 を案内どおりに終えられる。",
+      "minimal": "前の Abstract の版は中身が変わらず、それを申告する Concrete は検証を通り続ける。"
+    },
+    {
+      "u": "U5",
+      "actor": "利用者の代わりの AI の Agent",
+      "success": "instance が変えてよい範囲の中で書かれ、rule ごとの結果がそろい、violated が無い。",
+      "minimal": "violated ・ error の rule が根拠付きで返り、承認済みとして扱われない。下書きの未記入は violated と分けて返る。"
+    },
+    {
+      "u": "U6",
+      "actor": "利用者の代わりの AI の Agent",
+      "success": "ほかの変更を上書きせず、参照と導出値が整合したまま保存される。",
+      "minimal": "競合した変更 ・ 参照が壊れる変更は保存されず、元の instance が残る。"
+    },
+    {
+      "u": "U7",
+      "actor": "利用者の代わりの AI の Agent",
+      "success": "instance が新しい版の Concrete で検証を通り、元の意味が保たれている。",
+      "minimal": "移せなかった instance は元の版のまま残り、移せなかった理由が返る。"
+    },
+    {
+      "u": "U8",
+      "actor": "利用者の代わりの CI",
+      "success": "すべての instance について、violated と unverified の一覧が返り、手元と同じ結果になる。",
+      "minimal": "validator が応答しない ・ 誤った形で応答した rule は error として返り、verified として数えない。"
+    },
+    {
+      "u": "U9",
+      "actor": "承認者（人）",
+      "success": "unverified の rule が人の判断で埋まり、承認の記録が根拠付きで残る。",
+      "minimal": "violated ・ error が残る instance は承認されない。"
+    },
+    {
+      "u": "U10",
+      "actor": "利用者",
+      "success": "承認のあとで変わった instance が、すべて再承認か修正に回っている。",
+      "minimal": "基盤を通らずに書き換えられた instance も、次の検証で承認のあとの変化として見つかる。"
+    },
+    {
+      "u": "U11",
+      "actor": "利用者",
+      "success": "要らない instance ・ 記録 ・ 版が消え、消したものを指す参照が残っていない。",
+      "minimal": "指されているものは、参照を解くまで消えない。"
+    },
+    {
+      "u": "U12",
+      "actor": "読み手（人）",
+      "success": "検証の結果と承認の状態が、内容と一緒に見える。",
+      "minimal": "描画に失敗したら1ページも書かず、古くなった承認を承認済みとして見せない。"
+    },
+    {
+      "u": "U13",
+      "actor": "利用者 ・ 監査する人",
+      "success": "誰が ・ どの版で ・ どの範囲を ・ いつ判定したかが分かる。",
+      "minimal": "記録の中身は書き換わらず、欠けている記録は欠けていると分かる。"
+    },
+    {
+      "u": "U14",
+      "actor": "harness の作者",
+      "success": "validator が判定できる rule が宣言され、宣言の外の rule は unsupported と返る。",
+      "minimal": "validator を1つもつながなくても、機械で決まる rule は検証され、残りは unsupported として返る。"
+    },
+    {
+      "u": "U15",
+      "actor": "利用者の代わりの AI の Agent",
+      "success": "差分 ・ なぜ必要か ・ なぜこの変更か（比べた案）・ 検証の結果がそろい、承認者が判断できる。",
+      "minimal": "承認されるまで、承認済みの instance は変わらない。"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "N1",
+      "concept": "Abstract スキーマ（値オブジェクト）",
+      "text": "Abstract の版は名前と版で1つに決まり、公開した版の中身は変わらない。",
+      "from_u": [
+        "U3",
+        "U4"
+      ],
+      "capability": "公開する"
+    },
+    {
+      "id": "N2",
+      "concept": "Abstract スキーマ（値オブジェクト）",
+      "text": "Abstract の新しい版は、前の版からの移し方を持つ。",
+      "from_u": [
+        "U3",
+        "U4"
+      ],
+      "capability": "公開する"
+    },
+    {
+      "id": "N3",
+      "concept": "Abstract スキーマ（値オブジェクト）",
+      "text": "x- キーワードを定義するのは Abstract だけであり、定義されていない x- は検証の結果で unsupported になる。",
+      "from_u": [
+        "U1",
+        "U14"
+      ],
+      "capability": "意味を宣言する"
+    },
+    {
+      "id": "N4",
+      "concept": "Concrete スキーマ（集約）",
+      "text": "Concrete スキーマは Abstract の版を1つ申告し、その版の契約を満たす。",
+      "from_u": [
+        "U1",
+        "U3"
+      ],
+      "capability": "意味を宣言する"
+    },
+    {
+      "id": "N5",
+      "concept": "Concrete スキーマ（集約）",
+      "text": "公開した Concrete の版の中身は変わらず、公開の記録は末尾に足すだけである。",
+      "from_u": [
+        "U1",
+        "U2",
+        "U13"
+      ],
+      "capability": "公開する"
+    },
+    {
+      "id": "N6",
+      "concept": "Concrete スキーマ（集約）",
+      "text": "Concrete の新しい版は、既存の instance への影響と移し方を持つ。",
+      "from_u": [
+        "U2",
+        "U7"
+      ],
+      "capability": "移す"
+    },
+    {
+      "id": "N7",
+      "concept": "Concrete スキーマ（集約）",
+      "text": "rule は id ・ rule ・ why ・ test を持ち、id はスキーマの中で一意である。",
+      "from_u": [
+        "U8",
+        "U9",
+        "U13"
+      ],
+      "capability": "検証する"
+    },
+    {
+      "id": "N8",
+      "concept": "Concrete スキーマ（集約）",
+      "text": "Concrete は、Agent が書く単位ごとに案内（x-prompt）と変えてよい範囲を持つ。",
+      "from_u": [
+        "U1",
+        "U5",
+        "U6"
+      ],
+      "capability": "案内する"
+    },
+    {
+      "id": "N9",
+      "concept": "term（値オブジェクト）",
+      "text": "欄の意味は term への $ref で決まり、1つの term は1つの意味だけを持つ。",
+      "from_u": [
+        "U1",
+        "U2",
+        "U5"
+      ],
+      "capability": "語のずれを見つける"
+    },
+    {
+      "id": "N10",
+      "concept": "term（値オブジェクト）",
+      "text": "term は版付きの名前で1つに決まり、文脈をまたいで指しても同じ意味に解決する。",
+      "from_u": [
+        "U1",
+        "U2"
+      ],
+      "capability": "解決する"
+    },
+    {
+      "id": "N11",
+      "concept": "instance（集約）",
+      "text": "instance は $schema で Concrete の版1つに解決する。",
+      "from_u": [
+        "U5",
+        "U7",
+        "U8"
+      ],
+      "capability": "解決する"
+    },
+    {
+      "id": "N12",
+      "concept": "instance（集約）",
+      "text": "instance の変更は、読んだ時点のハッシュと保存先のハッシュが一致するときだけ成り立つ。",
+      "from_u": [
+        "U6"
+      ],
+      "capability": "instance を作る ・ 変える"
+    },
+    {
+      "id": "N13",
+      "concept": "instance（集約）",
+      "text": "保存した instance の x-ref は指す先が在って1つに決まり、x-derive の宣言値は導出値と一致する。",
+      "from_u": [
+        "U6",
+        "U11"
+      ],
+      "capability": "解決する"
+    },
+    {
+      "id": "N14",
+      "concept": "instance（集約）",
+      "text": "指されている instance ・ 版 ・ 記録は、参照が残っている間は消えない。",
+      "from_u": [
+        "U11"
+      ],
+      "capability": "消す"
+    },
+    {
+      "id": "N15",
+      "concept": "instance（集約）",
+      "text": "AI の Agent が書いた変更は、Concrete が定める変えてよい範囲の中にある。",
+      "from_u": [
+        "U5",
+        "U6"
+      ],
+      "capability": "instance を作る ・ 変える"
+    },
+    {
+      "id": "N16",
+      "concept": "instance（集約）",
+      "text": "承認前の下書きは未記入を持ってよく、未記入は violated と分けて返る。",
+      "from_u": [
+        "U5"
+      ],
+      "capability": "検証する"
+    },
+    {
+      "id": "N17",
+      "concept": "instance（集約）",
+      "text": "承認済みの instance は、承認された変更の提案を通してだけ変わる。",
+      "from_u": [
+        "U6",
+        "U15"
+      ],
+      "capability": "提案を反映する"
+    },
+    {
+      "id": "N18",
+      "concept": "instance（集約）",
+      "text": "新しい版へ移した instance は新しい版で検証を通り、移せなかった instance は元の版のまま残る。",
+      "from_u": [
+        "U3",
+        "U7"
+      ],
+      "capability": "移す"
+    },
+    {
+      "id": "N19",
+      "concept": "変更の提案（概念の候補。Q1 の概念9に無い）",
+      "text": "変更の提案は、差分 ・ なぜ必要か ・ なぜこの変更か（比べた案）・ 検証の結果を持ち、提案の元にした instance のハッシュを持つ。",
+      "from_u": [
+        "U15",
+        "U2",
+        "U3"
+      ],
+      "capability": "変更を提案にまとめる"
+    },
+    {
+      "id": "N20",
+      "concept": "検証結果（値オブジェクト）",
+      "text": "検証結果は rule 1件ごとに verified ・ violated ・ unverified ・ unsupported ・ error のどれか1つを持ち、検証しなかった rule も含む。",
+      "from_u": [
+        "U5",
+        "U8",
+        "U9"
+      ],
+      "capability": "検証する"
+    },
+    {
+      "id": "N21",
+      "concept": "検証結果（値オブジェクト）",
+      "text": "validator が宣言した能力の外の rule は unsupported であり、verified ではない。",
+      "from_u": [
+        "U14",
+        "U8"
+      ],
+      "capability": "validator の能力を受け付ける"
+    },
+    {
+      "id": "N22",
+      "concept": "検証結果（値オブジェクト）",
+      "text": "validator が応答しない rule と、答えが答えの JSON Schema を満たさない rule は error である。",
+      "from_u": [
+        "U8",
+        "U14"
+      ],
+      "capability": "AI に判定を頼む"
+    },
+    {
+      "id": "N23",
+      "concept": "検証結果（値オブジェクト）",
+      "text": "verified と violated は、判定した validator ・ 対象の版 ・ 根拠を持つ。",
+      "from_u": [
+        "U9",
+        "U13",
+        "U5"
+      ],
+      "capability": "検証する"
+    },
+    {
+      "id": "N24",
+      "concept": "検証結果（値オブジェクト）",
+      "text": "同じ instance と同じ版に対する機械の validator の結果は、手元でも CI でも同じである。",
+      "from_u": [
+        "U8"
+      ],
+      "capability": "検証する"
+    },
+    {
+      "id": "N25",
+      "concept": "承認の記録（集約）",
+      "text": "承認は、violated と error が0件で、unverified の rule すべてに人の判断が付いているときだけ成り立つ。",
+      "from_u": [
+        "U9",
+        "U5"
+      ],
+      "capability": "承認する"
+    },
+    {
+      "id": "N26",
+      "concept": "承認の記録（集約）",
+      "text": "承認の記録は、承認者の名前 ・ instance のハッシュ ・ Concrete と Abstract の版 ・ rule ごとの判断 ・ 日時を持ち、中身は書き換わらない。",
+      "from_u": [
+        "U9",
+        "U13"
+      ],
+      "capability": "承認する"
+    },
+    {
+      "id": "N27",
+      "concept": "承認の記録（集約）",
+      "text": "承認のあとで instance ・ Concrete の版 ・ 参照先 ・ 導出値のどれかが変わった承認は、基盤を通らない書き換えも含めて陳腐化した状態である。",
+      "from_u": [
+        "U10",
+        "U0"
+      ],
+      "capability": "陳腐化を見つける"
+    },
+    {
+      "id": "N28",
+      "concept": "承認の記録（集約）",
+      "text": "陳腐化した承認は、再承認か修正が終わるまで承認済みとして扱われない。",
+      "from_u": [
+        "U10",
+        "U12",
+        "U0"
+      ],
+      "capability": "陳腐化を見つける"
+    },
+    {
+      "id": "N29",
+      "concept": "view（値オブジェクト）",
+      "text": "view は検証の結果と承認の状態を内容と一緒に示し、陳腐化した承認と unverified を承認済み ・ verified として示さない。",
+      "from_u": [
+        "U12"
+      ],
+      "capability": "描画する"
+    },
+    {
+      "id": "N30",
+      "concept": "view（値オブジェクト）",
+      "text": "描画に失敗したときは、1ページも書かない。",
+      "from_u": [
+        "U12"
+      ],
+      "capability": "描画する"
+    }
+  ],
+  "capabilities": [
+    {
+      "name": "意味を宣言する",
+      "does": "Concrete スキーマを Abstract の版に照らし、rule ・ term ・ 変えてよい範囲を宣言する",
+      "input": "Concrete スキーマの下書き",
+      "output": "Concrete スキーマと、契約に対する rule ごとの検証結果",
+      "from_u": [
+        "U1",
+        "U2",
+        "U3"
+      ],
+      "subdomain": "中核：意味の宣言",
+      "changes_state": true
+    },
+    {
+      "name": "公開する",
+      "does": "Concrete ・ Abstract の版を、移し方と一緒に公開の記録の末尾に足す",
+      "input": "検証を通った版と移し方",
+      "output": "公開した版（名前@版）",
+      "from_u": [
+        "U1",
+        "U2",
+        "U4"
+      ],
+      "subdomain": "補完：スキーマの保存と公開",
+      "changes_state": true
+    },
+    {
+      "name": "案内する",
+      "does": "書く単位ごとの x-prompt と変えてよい範囲を返す",
+      "input": "Concrete の版と、書く欄",
+      "output": "案内と変えてよい範囲",
+      "from_u": [
+        "U1",
+        "U3",
+        "U5",
+        "U6"
+      ],
+      "subdomain": "補完：instance の作成と変更",
+      "changes_state": false
+    },
+    {
+      "name": "instance を作る ・ 変える",
+      "does": "変えてよい範囲の中で instance を書き、保存の前に検証を呼び、ハッシュが一致するときだけ保存する",
+      "input": "instance（または差分）と、読んだ時点のハッシュ",
+      "output": "保存した instance と検証結果。競合 ・ 範囲外なら保存しない理由",
+      "from_u": [
+        "U5",
+        "U6"
+      ],
+      "subdomain": "補完：instance の作成と変更",
+      "changes_state": true
+    },
+    {
+      "name": "消す",
+      "does": "instance ・ 記録 ・ 版を、指している参照が無いことを確かめてから消す",
+      "input": "消す対象",
+      "output": "消した結果。参照が残っていれば、指している側の一覧",
+      "from_u": [
+        "U11"
+      ],
+      "subdomain": "補完：instance の作成と変更",
+      "changes_state": true
+    },
+    {
+      "name": "意味で探して取り出す",
+      "does": "全文を読まず、語 ・ 参照 ・ rule の結果 ・ 承認の状態で instance と欄を探し、必要な部分だけを返す",
+      "input": "条件（term ・ x-ref の指す先 ・ rule の id と結果 ・ 承認の状態）",
+      "output": "該当する instance と欄の部分",
+      "from_u": [
+        "U5",
+        "U6",
+        "U7",
+        "U10",
+        "U12"
+      ],
+      "subdomain": "中核：意味で探す",
+      "changes_state": false
+    },
+    {
+      "name": "解決する",
+      "does": "$schema から Concrete の版、$ref から term、x-ref から指す先（文脈をまたぐものを含む）、x-derive から導出値を決める",
+      "input": "instance か Concrete",
+      "output": "解決した参照と導出値。解決できないものの一覧",
+      "from_u": [
+        "U6",
+        "U8",
+        "U10",
+        "U11"
+      ],
+      "subdomain": "中核：意味の検証",
+      "changes_state": false
+    },
+    {
+      "name": "検証する",
+      "does": "rule ごとに validator を選び、機械と意味の両方で検証して、rule 1件ごとの検証結果を根拠付きで返す",
+      "input": "instance か Concrete と、その版",
+      "output": "rule ごとの検証結果（5つの値）と件数",
+      "from_u": [
+        "U1",
+        "U5",
+        "U6",
+        "U7",
+        "U8",
+        "U9",
+        "U15"
+      ],
+      "subdomain": "中核：意味の検証",
+      "changes_state": false
+    },
+    {
+      "name": "語のずれを見つける",
+      "does": "欄の値と term の意味、文脈をまたいで指した term の意味が合っているかを判定する",
+      "input": "instance か Concrete と、terms の版",
+      "output": "ずれている欄と term の一覧（検証結果として）",
+      "from_u": [
+        "U1",
+        "U2",
+        "U5"
+      ],
+      "subdomain": "中核：意味の検証",
+      "changes_state": false
+    },
+    {
+      "name": "AI に判定を頼む",
+      "does": "意味の rule を Agents 契約で外の AI に判定させ、答えを答えの JSON Schema で検証する。応答しない ・ 形が違うときは error にする",
+      "input": "rule ・ 対象の部分 ・ 答えの JSON Schema",
+      "output": "rule 1件の検証結果",
+      "from_u": [
+        "U5",
+        "U8",
+        "U9",
+        "U14"
+      ],
+      "subdomain": "一般：AI による判定",
+      "changes_state": false
+    },
+    {
+      "name": "validator の能力を受け付ける",
+      "does": "validator が判定できる rule の種類（capability）の宣言を受け付け、rule と照らす",
+      "input": "validator の capability の宣言",
+      "output": "rule ごとの担当 validator。担当の無い rule は unsupported",
+      "from_u": [
+        "U14"
+      ],
+      "subdomain": "一般：AI による判定（腐敗防止層）",
+      "changes_state": true
+    },
+    {
+      "name": "承認する",
+      "does": "violated と error が0件で、unverified の rule に人の判断が付いた instance について、承認の記録を足す",
+      "input": "instance ・ 検証結果 ・ unverified の rule への人の判断 ・ 承認者の名前",
+      "output": "承認の記録",
+      "from_u": [
+        "U9"
+      ],
+      "subdomain": "中核：承認と陳腐化の管理",
+      "changes_state": true
+    },
+    {
+      "name": "陳腐化を見つける",
+      "does": "承認の記録のハッシュ ・ 版と、いまの instance ・ Concrete ・ 参照先 ・ 導出値を比べる",
+      "input": "承認の記録の集まり",
+      "output": "陳腐化した承認と、変わったものの一覧",
+      "from_u": [
+        "U10",
+        "U0",
+        "U12"
+      ],
+      "subdomain": "中核：承認と陳腐化の管理",
+      "changes_state": false
+    },
+    {
+      "name": "変更を提案にまとめる",
+      "does": "承認済みの instance への変更を、差分 ・ なぜ必要か ・ なぜこの変更か ・ 検証の結果を持つ1件の提案にする",
+      "input": "承認済みの instance と、変更の案（比べた案を含む）",
+      "output": "変更の提案",
+      "from_u": [
+        "U15",
+        "U2",
+        "U3"
+      ],
+      "subdomain": "中核：承認と陳腐化の管理",
+      "changes_state": true
+    },
+    {
+      "name": "提案を反映する",
+      "does": "承認された提案を instance に当てる。提案の元のハッシュといまのハッシュが違えば当てない",
+      "input": "承認された提案",
+      "output": "変わった instance と承認の記録。競合なら当てない理由",
+      "from_u": [
+        "U15",
+        "U6"
+      ],
+      "subdomain": "中核：承認と陳腐化の管理",
+      "changes_state": true
+    },
+    {
+      "name": "移す",
+      "does": "版が変わった Concrete と instance を新しい版へ移し、新しい版で検証する。移さずに、影響を受ける instance と移せない箇所だけを返すこともできる",
+      "input": "instance か Concrete と、移し方（影響だけを返すかの指定）",
+      "output": "移した結果、または影響を受ける instance の一覧。移せなかった箇所と理由",
+      "from_u": [
+        "U2",
+        "U3",
+        "U4",
+        "U7"
+      ],
+      "subdomain": "補完：マイグレーション",
+      "changes_state": true
+    },
+    {
+      "name": "経緯をたどる",
+      "does": "instance について、検証 ・ 承認 ・ 提案 ・ 公開の記録を時の順に返す",
+      "input": "instance",
+      "output": "誰が ・ どの版で ・ どの範囲を ・ いつ判定したかの一覧",
+      "from_u": [
+        "U13"
+      ],
+      "subdomain": "中核：承認と陳腐化の管理",
+      "changes_state": false
+    },
+    {
+      "name": "描画する",
+      "does": "instance を、検証の結果と承認の状態と一緒に、人が読む形にする",
+      "input": "instance ・ 検証結果 ・ 承認の状態 ・ ページテンプレート ・ 部品のカタログ ・ デザインシステム",
+      "output": "view",
+      "from_u": [
+        "U9",
+        "U12"
+      ],
+      "subdomain": "補完：描画",
+      "changes_state": false
+    }
+  ],
+  "compare": {
+    "keep": [
+      "不変条件1 Abstract の版は名前で1つに決まり、公開した版は変えない → N1",
+      "不変条件2 1つの Abstract の版を申告し、その版の契約を満たす → N4",
+      "不変条件6 書く単位ごとに x-prompt を持つ → N8（変えてよい範囲を足した。「葉には書かない」は外した）",
+      "不変条件7 x- を定義できるのは Abstract だけ → N3（定義外の x- は unsupported と返ることを足した）",
+      "不変条件10 rule は id ・ rule ・ why ・ test を持ち、id は一意 → N7",
+      "不変条件11 欄の意味は term への $ref で決まる → N9 ・ N10",
+      "不変条件12 公開した版は書き換えない ・ 消さない ・ 末尾に足すだけ → N5",
+      "不変条件13 $schema の名前で Concrete 1つに解決する → N11",
+      "不変条件15 更新は読んだ時点のハッシュと一致するときだけ → N12",
+      "不変条件16 未記入は違反と分けて持つ → N16",
+      "不変条件17 ・ 19 x-ref の指す先 ・ x-derive の導出値 → N13",
+      "不変条件20 違反が無いときだけ承認し、ハッシュを持つ → N25 ・ N26（unverified への人の判断を条件に足した）",
+      "不変条件21 rule 1件ごとに5つの値を返し、検証できなかった rule も返す → N20",
+      "不変条件22 失敗したら1ページも書かない → N30",
+      "能力 作成 ・ 更新 → instance を作る ・ 変える",
+      "能力 削除 → 消す（参照の確認を足した）",
+      "能力 案内 → 案内する",
+      "能力 検証 → 検証する",
+      "能力 解決 → 解決する（文脈をまたぐ x-ref を足した）",
+      "能力 承認 → 承認する",
+      "能力 描画 → 描画する",
+      "能力 公開 → 公開する"
+    ],
+    "drop": [
+      {
+        "old": "不変条件3 $id は <名>/<種類>@v<n> で、文脈の中で一意で、変えない",
+        "why": "名前の書式は実装の手段。場面が要るのは「版で1つに決まる」ことで、N1 ・ N10 ・ N11 が持つ。U 番号無し（実装から来た疑い）"
+      },
+      {
+        "old": "不変条件4 title と description を持つ",
+        "why": "どの場面の保証にもつながらない。U 番号無し（実装から来た疑い）。必要なら Concrete の rule に下げる"
+      },
+      {
+        "old": "不変条件5 instance を作る Concrete は kind と $schema の const を持つ",
+        "why": "N11（$schema で版1つに解決する）を満たすための手段。U 番号無し（実装から来た疑い）"
+      },
+      {
+        "old": "不変条件6 の「葉には書かない」",
+        "why": "x-prompt の置き方の手段。U 番号無し（実装から来た疑い）"
+      },
+      {
+        "old": "不変条件8 参照 ・ 導出 ・ 描画の宣言は読める形である",
+        "why": "N4（Abstract の版の契約を満たす）の一部。単独の行にする場面が無い（実装から来た疑い）"
+      },
+      {
+        "old": "不変条件9 参照される種類は id を持つ",
+        "why": "N13（x-ref の指す先が1つに決まる）を満たす手段。U 番号無し（実装から来た疑い）"
+      },
+      {
+        "old": "不変条件14 同じ場所に2つ作らない",
+        "why": "ファイルの置き場所の規則で、保存の手段。場面の保証は N12 の競合の検出が持つ（実装から来た疑い）"
+      },
+      {
+        "old": "不変条件18 関係の数の制約（covered_by ・ unique ・ inverse）を満たす",
+        "why": "Core の不変条件ではなく、Concrete が宣言する rule の種類。結果は N20 の検証結果で返る"
+      },
+      {
+        "old": "不変条件22 の「形とコントラストを満たす」",
+        "why": "デザインシステムの rule で、view の検証として N20 の形で返す。場面の保証は N29 ・ N30"
+      },
+      {
+        "old": "能力 取得（get ・ JMESPath）",
+        "why": "JMESPath は手段。場面が要るのは意味で探して必要な部分だけを返すことで、「意味で探して取り出す」に入れた"
+      },
+      {
+        "old": "能力 走査 ・ 索引（Scan ・ Index）",
+        "why": "索引は「意味で探して取り出す」と「陳腐化を見つける」の実装の手段。U 番号無し（実装から来た疑い）"
+      }
+    ],
+    "add": [
+      "不変条件 N2 Abstract の新しい版は移し方を持つ（U3 ・ U4）",
+      "不変条件 N6 Concrete の新しい版は既存 instance への影響と移し方を持つ（U2 ・ U7）",
+      "不変条件 N14 指されているものは参照が残る間は消えない（U11。いまは参照が残っていても消す）",
+      "不変条件 N15 AI の Agent の変更は変えてよい範囲の中にある（U5 ・ U6）",
+      "不変条件 N17 承認済みの instance は承認された提案を通してだけ変わる（U6 ・ U15）",
+      "不変条件 N18 移せなかった instance は元の版のまま残る（U3 ・ U7）",
+      "不変条件 N19 変更の提案の4つの中身と元のハッシュ（U15）。概念9に無い「変更の提案」を概念の候補に足す",
+      "不変条件 N21 能力の外の rule は unsupported で verified ではない（U14 ・ U8）",
+      "不変条件 N22 応答しない ・ 形が違う答えは error（U8 ・ U14）",
+      "不変条件 N23 verified と violated は validator ・ 版 ・ 根拠を持つ（U9 ・ U13）",
+      "不変条件 N24 機械の validator の結果は手元と CI で同じ（U8）",
+      "不変条件 N27 ・ N28 承認のあとの変化（基盤を通らない書き換えを含む）で陳腐化し、陳腐化した承認は承認済みとして扱わない（U10 ・ U0）",
+      "不変条件 N29 view は陳腐化 ・ unverified を承認済み ・ verified として示さない（U12。いまの render は承認の結果を見ない）",
+      "能力 意味を宣言する（U1 ・ U2 ・ U3）",
+      "能力 意味で探して取り出す（U5 ・ U6 ・ U7 ・ U10 ・ U12）",
+      "能力 語のずれを見つける（U1 ・ U2 ・ U5）",
+      "能力 AI に判定を頼む（U5 ・ U8 ・ U9 ・ U14）",
+      "能力 validator の能力を受け付ける（U14）",
+      "能力 陳腐化を見つける（U10）",
+      "能力 変更を提案にまとめる ・ 提案を反映する（U15）",
+      "能力 経緯をたどる（U13）",
+      "能力 移す（U2 ・ U3 ・ U4 ・ U7。公開の前に影響だけを返すことを含む）"
+    ]
+  },
+  "new_possibilities": [
+    {
+      "what": "欄の値が term の意味と合っているかを AI の validator が判定し、語のずれを、文脈をまたいで指した term についても見つける",
+      "from_u": [
+        "U1",
+        "U2",
+        "U5"
+      ]
+    },
+    {
+      "what": "機械で決まる rule は verified ・ violated で閉じ、人に見せるのは unverified の rule だけにして、承認者が判断する範囲を絞る",
+      "from_u": [
+        "U9",
+        "U12"
+      ]
+    },
+    {
+      "what": "violated の rule ・ 根拠 ・ 変えてよい範囲を Agent に返すので、Agent が直すループを回して収束させられる（ループを回すのは Out）",
+      "from_u": [
+        "U5",
+        "U6"
+      ]
+    },
+    {
+      "what": "未対応の rule を unsupported として数えるので、「未対応を成功として報告した件数は0」を CI で測れる",
+      "from_u": [
+        "U8",
+        "U14"
+      ]
+    },
+    {
+      "what": "機械で移せない箇所の移し方を AI が案として出し、元の意味が保たれたかを意味の rule で検証してから提案にする",
+      "from_u": [
+        "U3",
+        "U7",
+        "U15"
+      ]
+    },
+    {
+      "what": "承認済みの instance への変更に、比べた案と rule ごとの検証結果が付くので、人は全文を読まずに提案1件ごとに判断できる",
+      "from_u": [
+        "U15",
+        "U9"
+      ]
+    },
+    {
+      "what": "参照先の変更から、陳腐化した承認を意味で探して取り出し、AI の validator で再検証したうえで、意味が変わった instance だけを人の再承認に回す",
+      "from_u": [
+        "U10",
+        "U0"
+      ]
+    },
+    {
+      "what": "rule の結果 ・ term ・ 参照の意味で探して必要な部分だけを Agent に渡すので、Agent の文脈を全文で埋めずに作る ・ 変える ・ 移すができる",
+      "from_u": [
+        "U5",
+        "U6",
+        "U7"
+      ]
+    },
+    {
+      "what": "基盤を通らずにファイルを書き換えた Agent の変更を、次の検証で承認のあとの変化として見つける",
+      "from_u": [
+        "U10"
+      ]
+    }
+  ]
+}
