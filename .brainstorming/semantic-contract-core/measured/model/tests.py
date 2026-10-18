@@ -219,10 +219,10 @@ def s16():
 
 @case("S17", "U8", ["M3", "M9"])
 def s17():
-    """validator が答えられない（error）→ 記録せず、確かめ直しを待つ。必須の欄が空なら機械の rule で下書き"""
+    """validator が答えられない（error）→ 回数を記録し、確かめ直しを待つ。必須の欄が空なら機械の rule で下書き"""
     c, i, _ = world()
     assert state(c, i, {}, "a1", {**V, "ai@1": lambda rid, g: [("error", "時間切れ")]}) == "確かめ直しを待つ"
-    assert verify(c, i, {}, "a1", {**V, "ai@1": lambda rid, g: [("error", "時間切れ")]})[1] == {}
+    assert verify(c, i, {}, "a1", {**V, "ai@1": lambda rid, g: [("error", "時間切れ")]})[1][("a1", "summary")]["errors"] == 1
     c2, i2, k2 = world(a1={"タイトル": "窓口", "要約": "", "本文": "出す"})
     assert st(c2, i2, k2) == "下書き"
 
@@ -233,6 +233,46 @@ def s18():
     c, i, _ = world(); c = Contract(c.rules, c.terms, {})
     assert verify(c, i, {}, "a1", V)[0]["summary"][0] == "unsupported" and st(c, i, {}) == "判断待ち"
     refused(lambda: human(c, i, {}, "たぶん"), "M3")
+
+
+@case("S19", "U5", ["M11"])
+def s19():
+    """AI の変更が、変えてよい範囲の外の欄を変えた → 取り込めない理由として出る。人の変更なら出ない"""
+    c, i, k = world()
+    c = Contract(c.rules, c.terms, c.assignment, scope=["要約", "本文"])
+    i2 = {"a1": {**i["a1"], "タイトル": "書き換えたタイトル"}}
+    assert report((c, i, k), (c, i2, k), V)["blocked"][0][0] == "a1"
+    assert report((c, i, k), (c, i2, k), V, author="人")["blocked"] == []
+    i3 = {"a1": {**i["a1"], "要約": "10月に出す"}}
+    assert report((c, i, k), (c, i3, k), V)["blocked"] == []
+
+
+@case("S20", "U9", ["M12"])
+def s20():
+    """AI の変更が「人が判定した」記録を書いた → 取り込めない理由として出て、その記録は効かない"""
+    c, i, k = world(a1=VAGUE)
+    k2 = dict(k); k2[("a1", "summary")] = {"inst": "a1", "rule": "summary", "input": seen(c, i, "a1", "summary"), "result": "verified", "evidence": "偽", "by": "人"}
+    r = report((c, i, k), (c, i, k2), V)
+    assert r["blocked"] and r["states"]["a1"] == "判断待ち"
+    assert report((c, i, k), (c, i, k2), V, author="人")["states"]["a1"] == "検証済み"
+
+
+@case("S21", "U11", ["M13"])
+def s21():
+    """消した ID で別の記事を作り直す → 取り込めない理由として出る（古い参照が別の記事を黙って指さないように）"""
+    c, i, k = world()
+    i2 = {**i, "a9": {"タイトル": "別の記事", "要約": "x", "本文": "x"}}
+    assert report((c, i, k), (c, i2, k), V, deleted_ids={"a9"})["blocked"] == [("a9", "消した ID を使い直した")]
+
+
+@case("S22", "U8", ["M4"])
+def s22():
+    """AI が同じ入力で3回答えられない → 人が見るもの（unverified）に出て、確かめ直しを待ったまま止まらない"""
+    c, i, _ = world(); k = {}
+    v = {**V, "ai@1": lambda rid, g: [("error", "時間切れ")]}
+    for _ in range(3):
+        res, n = verify(c, i, k, "a1", v); k.update(n)
+    assert res["summary"][0] == "unverified" and state(c, i, k, "a1", v) == "判断待ち"
 
 
 if __name__ == "__main__":

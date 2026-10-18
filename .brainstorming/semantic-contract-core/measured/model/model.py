@@ -5,6 +5,7 @@
 import copy, hashlib, json
 
 RESULTS = ("verified", "violated", "unverified", "unsupported", "error")
+ERROR_LIMIT = 3  # 同じ入力で AI が答えられなかった回数がこれに届いたら、人が見るものに出す（未決 O1 の仮の値）
 VERDICT = {"合っている": "verified", "合っていない": "violated"}
 
 
@@ -21,7 +22,7 @@ def h(x):
 class Contract:
     """契約（Concrete スキーマ）。rule ・ term ・ validator の割り当てを持つ。変えるのはふつうの変更である。"""
 
-    def __init__(self, rules, terms=None, assignment=None):
+    def __init__(self, rules, terms=None, assignment=None, scope=None):
         terms = dict(terms or {})
         for rid, r in rules.items():
             if r.get("by") not in ("機械", "AI", "人"):
@@ -31,7 +32,8 @@ class Contract:
             for t in r.get("terms", []):
                 if t not in terms:
                     raise Refused(f"rule {rid} の term {t} が契約に無い", "M2")
-        self.rules, self.terms, self.assignment = rules, terms, dict(assignment or {})
+        # scope：AI が書いてよい欄（変えてよい範囲。M11）。None なら全部
+        self.rules, self.terms, self.assignment, self.scope = rules, terms, dict(assignment or {}), scope
 
 
 def given(c, inst, iid, rid):
@@ -77,7 +79,7 @@ def verify(c, inst, records, iid, validators):
         if r["by"] == "人":
             out[rid] = ("unverified", "人が判定する rule", "基盤")
             continue
-        if rec and rec["by"] == "AI" and rec["input"] == ai_input(c, inst, iid, rid):
+        if rec and rec["by"] == "AI" and rec["input"] == ai_input(c, inst, iid, rid) and rec["result"] != "error":
             out[rid] = (rec["result"], rec["evidence"], "AI")                  # M4：入力が同じなら聞き直さない
             continue
         name = c.assignment.get(rid)
@@ -90,7 +92,12 @@ def verify(c, inst, records, iid, validators):
                    else ("unverified", "根拠が読む欄に無い") for res, ev in answers]   # M5
         kinds = {res for res, _ in checked if res != "error"}
         if not kinds:
-            out[rid] = ("error", "validator が答えられなかった", "AI")         # 記録しない。次の検証で聞き直す
+            n = (rec["errors"] + 1) if rec and rec.get("result") == "error" and rec["input"] == ai_input(c, inst, iid, rid) else 1
+            if n >= ERROR_LIMIT:
+                out[rid] = ("unverified", f"validator が{n}回答えられなかった", "AI")   # 人が見るものに出す
+            else:
+                out[rid] = ("error", "validator が答えられなかった", "AI")
+            new[(iid, rid)] = {"inst": iid, "rule": rid, "input": ai_input(c, inst, iid, rid), "result": "error", "evidence": "", "by": "AI", "errors": n}
             continue
         res, ev = (("unverified", "答えが割れた") if len(kinds) > 1 else next(a for a in checked if a[0] in kinds))
         out[rid] = (res, ev, "AI")
@@ -122,11 +129,25 @@ def state(c, inst, records, iid, validators):
     return "検証済み"
 
 
-def report(before, after, validators):
-    """M10：変更（契約でも instance でも、取り込んだあとの姿でも）について、変更後の契約で全 instance を検証した状態 ・
-    状態が変わった instance ・ 人が見るもの ・ 変更に入れて残す新しい判定の記録を出す。差分と理由は変更の仕組みが持つ。
-    before ・ after は (contract, instances, records)。"""
+def report(before, after, validators, author="AI", deleted_ids=()):
+    """M10 〜 M13：変更（契約でも instance でも、取り込んだあとの姿でも）について、変更後の契約で全 instance を検証した状態 ・
+    状態が変わった instance ・ 人が見るもの ・ 変更に入れて残す新しい判定の記録と、取り込めない理由を出す。
+    差分と理由は変更の仕組みが持つ。before ・ after は (contract, instances, records)。
+    author（変更を出したのが AI か人か）と deleted_ids（これまでに消した ID）は、変更の仕組み（アダプター）が渡す。"""
     (c0, i0, k0), (c1, i1, k1) = before, after
+    blocked = []
+    if author == "AI":
+        for iid in i1:                                                     # M11：変えてよい範囲
+            changed = {f for f in set(i1[iid]) | set(i0.get(iid, {})) if i1[iid].get(f) != i0.get(iid, {}).get(f)}
+            if c1.scope is not None and iid in i0 and changed - set(c1.scope):
+                blocked.append((iid, "変えてよい範囲の外を変えた：" + "、".join(sorted(changed - set(c1.scope)))))
+        for key, r in k1.items():                                          # M12：人の判定は人の入口からだけ
+            if r["by"] == "人" and k0.get(key) != r:
+                blocked.append((key[0], f"AI の変更が人の判定の記録を書いた（rule {key[1]}）"))
+        k1 = {key: r for key, r in k1.items() if not (r["by"] == "人" and k0.get(key) != r)}
+    for iid in i1:                                                         # M13：消した ID は使い直さない
+        if iid in deleted_ids and iid not in i0:
+            blocked.append((iid, "消した ID を使い直した"))
     states, look, new = {}, [], {}
     for iid in i1:
         res, n = verify(c1, i1, k1, iid, validators)
@@ -135,4 +156,4 @@ def report(before, after, validators):
         states[iid] = state(c1, i1, k, iid, validators)
         look += [(iid, rid, v[0], v[1]) for rid, v in res.items() if v[0] in ("unverified", "unsupported")]
     changed = sorted(i for i in i1 if i in i0 and state(c0, i0, k0, i, validators) != states[i])
-    return {"states": states, "changed": changed, "look": look, "records": new}
+    return {"states": states, "changed": changed, "look": look, "records": new, "blocked": blocked}
