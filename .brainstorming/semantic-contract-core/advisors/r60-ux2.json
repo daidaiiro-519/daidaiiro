@@ -1,0 +1,285 @@
+{
+ "kind": "judgment",
+ "question": "ボード semantic-contract-core の Q1 の新しいドメインモデル（不変条件 I1〜I19 ・ 状態表2つ ・ ux_acceptance 5行）は、承認する人 ・ 判断する人 ・ 作者 ・ AI の Agent の体験を損なわないか。前回の4場面で回数を数え直し、前回の案の取り入れ方も反証する",
+ "premises": [
+  {
+   "name": "共通の仮定（前回と同じ）",
+   "value": "Concrete 1つあたり rule 10件（機械5 ・ 意味5）。AI の validator は1つ。人の入口は画面と CLI の明示の旗（I15）",
+   "source": "前回の ux.json の前置き"
+  },
+  {
+   "name": "場面 a の仮定",
+   "value": "既存ファイル300件 → Concrete 5つ（各60件）。どの Concrete もまだ公開していない。90件に violated ・ 未記入、意味の結果のうち150件が unverified（120件の instance）、180件は全 rule が verified",
+   "source": "前回と同じ"
+  },
+  {
+   "name": "場面 b の仮定",
+   "value": "検証済み200件 × 意味の rule 5件 = 1000件の結果。新しいモデルで値が変わる結果50件（25件が unverified へ、25件が violated へ）。前に人が判断した unverified の結果が100件あり、新しいモデルでも90件が unverified のまま",
+   "source": "前回の仮定に、新しいモデルで要る件数（前の判断の数 ・ 変わった先）を足した"
+  },
+  {
+   "name": "場面 d の仮定",
+   "value": "意味の rule 1件を変えた版。前の版に従う検証済み200件を移す。変えた rule の結果が unverified になる instance 20件、ほかの rule に効いている人の判断を持つ instance 40件",
+   "source": "前回と同じ"
+  },
+  {
+   "name": "validator のモデルの版が Concrete の版に入るか",
+   "value": "未判定。I4 は版に『validator の割り当て』を持たせるが、割り当てが validator の版まで含むかが書かれていない。含むなら b は版の承認と移すになり、含まないなら S2 の流れになる。b は両方で数えた",
+   "source": "domain-model.json の読み取り"
+  },
+  {
+   "name": "『原因』の定義",
+   "value": "未判定。ux_acceptance 2行目は判断の依頼を原因ごとに1件にするが、導入初日の unverified ・ 編集による入力の変化を何の原因として数えるかが、19行のどこにも無い",
+   "source": "domain-model.json の読み取り"
+  }
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "人の操作は前回の数百回から数回の版の承認と判断の件数だけに減ったが、I11 の入力に『3つの版 ・ validator の版』を入れたことと I14 で、内容も結果も同じ rule の人の判断が効かなくなり、同じ判断を何度も求めるので、判断の入力を rule の読む欄の値と rule の定義に限ることを条件に採る",
+  "because": "Recognition Rather than Recall はユーザーが覚えておかなければならない情報を減らせとし、内容も結果も変わらない判断の再依頼は、人に前の判断を思い出させるだけで新しい情報が無い。加えて Visibility of System Status に照らし、判断が効かなくなったことと、検証し直しのあいだの状態を知らせる行が ux_acceptance に無い。"
+ },
+ "figure": {
+  "caption": "新しいモデルで人へ出るもの（実線）と、人へ出ていないもの（破線）",
+  "nodes": [
+   {
+    "id": "draft",
+    "label": "AI が Concrete の版を書く",
+    "role": "AI"
+   },
+   {
+    "id": "approve",
+    "label": "人：版を承認する（I3 ・ I4）",
+    "role": "人"
+   },
+   {
+    "id": "verify",
+    "label": "検証する（入力が変わった rule だけ。I11 ・ I12）",
+    "role": "システム"
+   },
+   {
+    "id": "judge",
+    "label": "人：判断する（unverified ・ unsupported ・ 判定する者が人。I13）",
+    "role": "人"
+   },
+   {
+    "id": "invalid",
+    "label": "判断が効かなくなる（I14）",
+    "role": "システム"
+   },
+   {
+    "id": "violated",
+    "label": "violated：AI が直す",
+    "role": "AI"
+   },
+   {
+    "id": "import",
+    "label": "既存ファイルへの版の割り当て（能力に無い）",
+    "role": "抜け"
+   },
+   {
+    "id": "sample",
+    "label": "AI の verified の誤り（O2）",
+    "role": "抜け"
+   }
+  ],
+  "edges": [
+   {
+    "from": "draft",
+    "to": "approve",
+    "label": "版の承認を依頼する"
+   },
+   {
+    "from": "approve",
+    "to": "verify",
+    "label": "公開した版だけを使う"
+   },
+   {
+    "from": "verify",
+    "to": "judge",
+    "label": "判断待ち"
+   },
+   {
+    "from": "verify",
+    "to": "violated",
+    "label": "人を通らない",
+    "dashed": true
+   },
+   {
+    "from": "judge",
+    "to": "invalid",
+    "label": "入力（版を含む）が変わる"
+   },
+   {
+    "from": "invalid",
+    "to": "judge",
+    "label": "知らせの行が無いまま再依頼",
+    "dashed": true
+   },
+   {
+    "from": "import",
+    "to": "verify",
+    "dashed": true
+   },
+   {
+    "from": "sample",
+    "to": "judge",
+    "label": "人へ出ない",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "A：新しいモデルのまま（判断の入力に3つの版 ・ validator の版を含む。I14 で入力が変われば判断は効かない）",
+   "effect": "a 版の承認5回 ・ 判断150件。b（S2 の流れ）知らせ1件 ・ 判断115件（新しい unverified 25件 ＋ 内容も結果も同じなのに効かなくなった90件）。c 版の承認1回 ・ 判断250件、以後は編集のたびに instance あたり最大5件。d 版の承認1回 ・ 判断60件（変えていない rule の判断40件の再依頼を含む）",
+   "chosen": false
+  },
+  {
+   "option": "B：判断の入力を、その rule の読む欄の値 ・ rule の定義（本文と判定する者）・ 参照先のハッシュに限り、validator の版 ・ Concrete の版が変わっても前と同じ結果なら判断を効かせたままにする",
+   "effect": "a 版の承認5回 ・ 判断150件（変わらない）。b 知らせ1件 ・ 判断25件。c 版の承認1回 ・ 判断250件、以後は読む欄が変わった rule だけ。d 版の承認1回 ・ 判断20件",
+   "chosen": true
+  },
+  {
+   "option": "C：同じ結果（例：すべて unsupported）の instance へ判断を一括で足す操作をそのまま使って回数を減らす",
+   "effect": "c は5回の操作で250件に判断が付くが、unsupported は内容を見ていないという結果なので、一括の判断は中身を見ないまま検証済みを作り、U0 の『正しいと確かめた状態』が成り立たない",
+   "chosen": false
+  }
+ ],
+ "path": [
+  {
+   "ask": "a 導入初日（300件）：何回か",
+   "answer": "Concrete 5つを公開するまで instance は作れない（I3 ・ I7）ので、版の承認5回（I15）。I4 の差分は前の版が無いので rule 全体になる。instance の承認は無く、180件は人を通らず検証済み（I16）。unverified 150件の判断（I13）を25枚の rule ごとの画面で出す。依頼の件数は『原因』の定義が無いので1〜25件で決まらない。90件の violated は AI へ返る。既存ファイルに版を割り当てて instance にする操作は能力の表に無く、状態表の『基盤を通らずに書き換わる』で拾えるのは消した場所に置かれたファイルだけ（I18 ・ I19）"
+  },
+  {
+   "ask": "b AI のモデル更新（検証済み200件）：何回か",
+   "answer": "validator の版は I11 の入力なので、意味の結果1000件がいまの結果でなくなり（I12）、200件が検証待ちになる（状態表『入力が変わる』）。人が判断した100件も I14 で効かなくなる。S2 は『結果が同じ rule は人を通らない』とするが、I14 は判断の入力の変化で判断を外すので、新しいモデルでも unverified のままの90件は判断待ちに戻る。人へは知らせ1件 ・ 判断115件（25 ＋ 90）。violated へ変わった25件は人を通らず AI へ返り、AI は新しいモデルの判定に合わせて内容を直す。割り当てが validator の版を含む読み方なら、さらに版の承認1回と200件の移すが要る"
+  },
+  {
+   "ask": "c validator 無し ・ 意味の rule 5つ ・ 50件：何回か",
+   "answer": "版の承認1回。ux_acceptance 3行目で、承認のときに『意味の rule は人が判断することになる』が出る。判断は unsupported 250件（I13）を rule ごとの画面5枚で出す。『人が判断する』の能力は同じ結果の instance へまとめて足せるので、5回の操作で250件を埋められる。I5 は読む欄の無い rule に instance 全体を読ませるので、Agent が1つの欄を直すたびに、その instance の5件の判断が I14 で効かなくなる"
+  },
+  {
+   "ask": "d rule を1つ変えて公開：何回か",
+   "answer": "版の承認1回（I3）。I4 で差分と、移すと結果が変わる instance の数（20）が付く。移す（I7）と、I11 の入力の『3つの版』に Concrete の版があるので、変えていない9件の rule も含めて2000件がいまの結果でなくなり、200件が検証待ちになる。人の判断は I14 で効かなくなり、変えた rule の判断20件に加えて、変えていない rule の判断40件が再依頼になる。移さない instance は前の版のまま検証済みで残り、知らせが無い（O3）"
+  },
+  {
+   "ask": "前回の案の取り入れ方で、どこが崩れたか",
+   "answer": "前回の案は『前の承認と rule ごとの値が同じ instance は人を通さない』だった。新しいモデルは状態を記録から導く形（I16）にしてこれを取り入れたが、人の判断の側に I14 を置き、その入力に版を含めたので、値が同じでも判断が外れる。S2 の期待と I11 ・ I14 の文が食い違っている。もう1つ、前回の『原因1件を人が判断する』は、版の承認（I3）にだけ入り、validator の版の受け入れには入っていない"
+  },
+  {
+   "ask": "新しく生じた体験の問題は何か",
+   "answer": "①検証待ちの表示：入力が1つ変わるだけで instance が検証待ちになり、I17 は前の verified を示さない。b ・ d では200件が AI の検証の終わるまで検証済みでない表示になり、読み手（U12）は使ってよいかが分からない。②判断が効かなくなったことの知らせ：I14 で判断が外れても、知らせの行も ux_acceptance の行も無く、判断待ちの一覧に黙って戻る。③導入初日の割り当て：版を割り当てて instance にする能力が無い。④判断の画面の中身：前の版の N45（何が ・ なぜ ・ 差分 ・ 割れた答えと根拠 ・ 次の操作）と N51（見ている間に変わったときの差分）が ux_acceptance から落ち、判断の画面が何を持つかの行が無い。⑤作者の試し：I3 は検証に公開した版だけを使うので、作者と AI は下書きの版を instance に当てて試せず、試すたびに人の承認を待つ。I4 の『結果が変わる instance の数』は下書きで検証しないと出ないので、I3 と I4 の間で、下書きを試しに当てることを許すかが決まっていない"
+  },
+  {
+   "ask": "人の判断が要るのに出ていない箇所は",
+   "answer": "既存ファイルへの版の割り当て（a）。validator の新しい版を使い始めるか（b。割り当てが版を含まない読み方なら、誰も判断しない）。内容が変わらず validator の変化だけで violated になった結果（b の25件。人を通らず AI が内容を直す）。AI の verified の誤り（O2。人は verified を見ないので、誤りの率を見る機会が無い）。前の版のまま検証済みで残る instance（O3）。一括で判断するときに、中身を見ていない判断かどうか（c）"
+  },
+  {
+   "ask": "人の判断が要らないのに出ている箇所は",
+   "answer": "validator の版 ・ Concrete の版が変わっても、読む欄の値も結果も前と同じ rule の判断の再依頼（b の90件 ・ d の40件。I11 ・ I14）。読む欄を宣言していない rule が、関係の無い欄の編集で判断を外す（c。I5 ・ I14）"
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "recognition-rather-than-recall",
+   "quote": "対応：ユーザーが覚えておかなければならない情報を減らす"
+  },
+  {
+   "criterion": "visibility-of-system-status",
+   "quote": "対応：システムの状態を、はっきりした形でユーザーへ伝える"
+  },
+  {
+   "criterion": "visibility-of-system-status",
+   "quote": "対応：フィードバックは可能な限り早く返す。理想は即時である"
+  },
+  {
+   "criterion": "aesthetic-and-minimalist-design",
+   "quote": "対応：内容と機能の優先順位は、ユーザーの主な目的を支える順に決める"
+  },
+  {
+   "criterion": "error-prevention",
+   "quote": "対応：損失の大きいエラーを先に防ぎ、小さな不満はその後に回す"
+  },
+  {
+   "criterion": "flexibility-and-efficiency-of-use",
+   "quote": "手順が柔軟なら、進め方が複数あり、人はその中から自分に合う方法を選べる。"
+  },
+  {
+   "criterion": "task-flow-analysis",
+   "quote": "対応：タスクと判断点には、利用者の手順とシステムの手順の両方を入れる"
+  },
+  {
+   "criterion": "help-users-recognize-diagnose-and-recover-from-errors",
+   "quote": "対応：起きた問題を、ユーザーに通じる言葉で説明する"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "ユーザーに影響が及ぶ操作を、本人へ知らせないまま実行する（I14 で判断を外す）",
+   "risk": "人は判断し終えたつもりでいるのに、instance が判断待ちに戻り、使ってよい状態でなくなっている",
+   "alternative": "（推測）判断が外れたときは、原因ごとに1件で『どの欄が変わり、何件の判断が効かなくなったか』を知らせる行を ux_acceptance に足す"
+  },
+  {
+   "name": "（推測）中身を見ていない判断を一括で足せる",
+   "risk": "c で unsupported 250件を5回の操作で埋められ、検証済みが中身を見ないまま作られる",
+   "alternative": "（推測）一括で足せるのは、読む欄の値が同じ instance の組か、原因（validator の版の変化）で結果が変わった rule に限る。unsupported の初回の判断は instance ごとの値を画面に並べて1件ずつ付ける"
+  },
+  {
+   "name": "（推測）検証し直しのあいだ、前の結果を一切示さない",
+   "risk": "b ・ d で200件が検証待ちになり、読み手が使ってよいかを決められない",
+   "alternative": "（推測）『検証し直し中。前の結果は verified（前の validator の版）』を verified と別の値で示す。I17 の『いまの結果でない verified を verified として示さない』は破らない"
+  },
+  {
+   "name": "（推測）validator の変化で出た violated を AI に直させる",
+   "risk": "新しいモデルの誤りに合わせて、AI が正しい内容を書き換える",
+   "alternative": "（推測）内容が変わらず validator の版だけで violated になった結果は、AI へ返す前に原因1件として人へ出す"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "I11 ・ I14 の入力の定義（ddd-advisor ・ qa-advisor）",
+   "why": "rule ごとの入力に Concrete の版 ・ validator の版を入れるか、rule の定義のハッシュに限るかで、b ・ d の再判断の件数が130件変わる。S2 の期待とも食い違っている"
+  },
+  {
+   "suspect": "O2 の扱い（qa-advisor）",
+   "why": "人が verified を見なくなったので、AI の verified の誤りを抜き取りで確かめる行が無いと、U0 の『正しいと確かめた』が validator の正しさだけに依存する"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "判断の入力に validator の版 ・ Concrete の版を入れたまま実装する",
+   "check": "Test Stub で validator の版だけを上げて同じ unverified を返させ、前の人の判断が効いたままで、人への依頼が出ないことを確かめる"
+  },
+  {
+   "breaks": "読む欄の無い rule を、判定する者が人の rule として公開する",
+   "check": "版の承認を依頼するとき、判定する者が人の rule に読む欄の一覧が無ければ機械の検査で作者へ返すことを確かめる"
+  },
+  {
+   "breaks": "判断が外れたことを知らせずに判断待ちへ戻す",
+   "check": "人の判断を付けた instance の読む欄を変え、原因ごとに1件の知らせが出て、件数と欄のラベルが入ることを確かめる"
+  }
+ ],
+ "next": [
+  "I11 と I14 の入力を、rule の読む欄の値 ・ rule の定義 ・ 参照先のハッシュに限るかを決める",
+  "S2 の期待と I14 の食い違いを、どちらかの文に揃える",
+  "既存のファイルに Concrete の版を割り当てて instance にする能力を、能力の表に足す",
+  "判断が効かなくなったときの知らせと、判断の画面が持つもの（何が ・ なぜ ・ 割れた答えと根拠 ・ 次の操作）を ux_acceptance に足す",
+  "validator の版が変わって結果が変わったときに人へ出すか、AI へ返すかを決める",
+  "下書きの版を instance に試しに当てることを、I3 の例外として許すかを決める",
+  "AI の verified を抜き取りで人が確かめる件数と頻度を、O2 の答えとして決める"
+ ],
+ "related": [
+  {
+   "criterion": "user-control-and-freedom",
+   "relation": "版の承認の差し戻し（状態表の『差し戻す』）が、承認者の出口として在る"
+  },
+  {
+   "criterion": "metrics",
+   "relation": "人の判断の件数と、そのうち再依頼の件数を指標にして、I14 の入力の決め方を確かめる"
+  },
+  {
+   "criterion": "usability-testing",
+   "relation": "rule ごとに instance を並べた判断の画面で、中身を見て判断できるかを確かめる"
+  }
+ ]
+}

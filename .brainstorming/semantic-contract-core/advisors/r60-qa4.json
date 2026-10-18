@@ -1,0 +1,63 @@
+{
+  "kind": "judgment",
+  "question": "実行できるモデル（measured/model/model.py ・ tests.py ・ gen.py ・ tables.json と J1〜J27）の振る舞いは、U0（AI に書かせた成果物を、正しいと確かめた状態で使い続ける）に照らして誤っていないか。このモデルで Q1 を決着させてよいか",
+  "premises": [
+    {"name": "反証の範囲", "value": "表と文の食い違いは見ない。モデルの振る舞いが U0 を壊すか、出来事の漏れ、J の文とコードの振る舞いの違いだけを見る", "source": "コーディネーターの伝達"},
+    {"name": "確かめ方", "value": "tests.py の15本が通ることを確かめ（15/15）、指摘はそれぞれ gen.py の base ・ at を使った出来事の列をモデルに流して、振る舞いを実際に観測した", "source": "回答の側で実行した"},
+    {"name": "利用者の決定", "value": "AI が判定した violated は人が覆せる（機械の結果は覆せない）。抜き取りは承認の前の『試す』で、rule と割り当ての組ごとに決めた件数。validator の割り当ては Concrete に1つ", "source": "コーディネーターの伝達"}
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "このままでは Q1 を決着させない。U0 を壊す振る舞いが4つあり（抜き取りが強制されない、根拠の検査が検証の経路に無い、参照がモデルに無い、取り込むが無い）、この4つを直して試験を足し、それが通れば決着させてよい。",
+    "because": "4つのどれでも、15本の試験がすべて通ったまま、AI が誤って verified と答えた instance、または指す先が消えた instance が検証済みとして返る。AI の verified を支えると決めた抜き取りと根拠の検査が、モデルの上では一度も効かない経路がある。"
+  },
+  "comparison": [
+    {"option": "案A：いまのモデルで Q1 を決着させる", "effect": "モデルが検証済みと返すものに、抜き取りを一度も通していない AI の verified、根拠を持たない verified、消えた instance を指す instance が入る。U0 の『正しいと確かめた状態』が成り立たない", "chosen": false},
+    {"option": "案B：U0 を壊す4つを直し、記録案の4本の試験を tests.py に足し、通ったら決着させる", "effect": "抜き取り ・ 根拠 ・ 参照 ・ 取り込みが、それぞれ1本以上の出来事の列で確かめられる。残る未決（O1 ・ O3）は、U0 を壊すかどうかではなく値の選び方なので、決着のあとに回せる", "chosen": true}
+  ],
+  "path": [
+    {"ask": "U0 を壊す振る舞いはあるか", "answer": "ある。4つ。①request_assignment ・ request_version は samples を受け取って置くだけで、件数も人の判断も確かめない。抜き取りが0件でも承認でき、承認のあとに作った instance は誰にも見られずに検証済みになる。②J16 の根拠の検査は record(evidence_ok=False) を直接呼んだときだけ効く。verify は record(iid, rid, answer(rid)) を呼ぶので、根拠を持たない AI の verified がそのまま verified になる（S11 は record を直接呼ぶので、この経路を通らない）。③参照先は referents という名前の辞書で、instance とつながっていない。delete の referenced は呼ぶ側が渡す真偽値で、モデルは数えない。指されている instance を消しても、指す側は検証済みのまま。④取り込む（U17、J6 の取り込みの確定）がモデルに無い"},
+    {"ask": "表の出来事と試験に漏れている出来事は何か", "answer": "U0 に効くものだけを挙げる。参照先の instance が変わる ・ 消える（いまは辞書の書き換えで代わりにしている）、取り込む、抜き取りを人が判断する（承認の前）、承認のあとに AI の rule の誤りが見つかる（覆すのは1件ずつで、同じ割り当ての残りへ及ばない）、機械の validator の版が変わる（engine@1 で固定）"},
+    {"ask": "J の文とコードの振る舞いが違う箇所はどこか", "answer": "J5（依頼は抜き取りの判断を持つ）：コードは samples を確かめない。try_assignment は変わる rule だけを返し、instance を返さない。try_version は validator を動かさず、rule のハッシュの差だけを見る。J16：verify の経路に無い。J12：指されているかをモデルが数えず、呼ぶ側の申告に頼る。J1 ・ J2（term は変えない）：terms は辞書で書き換えられ、gen.py の出来事『term の定義が変わる』もそれを使う。J11（変えてよい範囲）：範囲は Concrete ではなく create の引数で、既定値 None では範囲の検査が働かない。J9 の後半（AI には読む欄 ・ term ・ 参照先の値だけを渡す）：answer(rid) は rid しか受け取らず、渡す値をモデルが持たない"},
+    {"ask": "このモデルで Q1 を決着させてよいか", "answer": "条件付きで採る。①〜④を直し、記録案の4本を tests.py に足して通ることを条件にする。J と違う残りの箇所（J1 ・ J2 ・ J11 ・ J9）は、同じ直しの中で J の文かコードのどちらかに揃える"}
+  ],
+  "grounds": [
+    {"criterion": "testing-principles", "quote": "原則：「テストは欠陥があることは示せるが、欠陥がないことは示せない」 ・ 内容：テストで未検出の欠陥の数は減らせる。欠陥が見つからなくても、テスト対象が正しいことの証明にはならない"},
+    {"criterion": "testing-principles", "quote": "条件：検証を実施した ・ 対応：検証に加えて、妥当性確認も実施する"},
+    {"criterion": "testing-principles", "quote": "原則：「欠陥の偏在」 ・ 内容：発見される欠陥と運用時の故障は、通常、その大部分が少数のシステムコンポーネントに集中する。パレートの法則を示す現象である。予測した偏在と、テスト中や運用中に観察した偏在は、リスクベースドテストの重要なインプットになる"},
+    {"criterion": "state-transition-testing", "quote": "状態遷移図や状態表から導いたテストケースは、通常、イベントの列として表し、その結果は状態変化の列（必要ならアクションも）になる。1つのテストケースで、通常、状態間の遷移をいくつかカバーできる。"},
+    {"criterion": "entry-exit-criteria", "quote": "終了基準：活動の完了を宣言するために、何を達成しなければならないかを定義する基準。"},
+    {"criterion": "acceptance-criteria", "quote": "使い方：ポジティブシナリオとネガティブシナリオの両方を説明する"}
+  ],
+  "records": [
+    {"target": "試験の案 U0-1：抜き取り0件の割り当て（J5）", "content": "列：base() → write_assignment({r: ai@2}) → request_assignment(try_assignment(), samples=[]) → approve_assignment(人) → create(k) → verify(k, 常に verified)。期待：依頼か承認が J5 で断られる。いまの振る舞い：承認が通り、k は検証済み（実行で確かめた）"},
+    {"target": "試験の案 U0-2：根拠の無い AI の verified（J16）", "content": "列：at(検証待ち) → verify(i, 答え＝verified、根拠＝読む欄に無い)。期待：r は unverified、instance は判断待ち。いまの振る舞い：verify に根拠を渡す道が無く、r は verified（実行で確かめた）"},
+    {"target": "試験の案 U0-3：指されている instance を消す（J12 ・ J15）", "content": "列：base(refs=[t]) で i が instance t を指す → delete(t)。期待：J12 で断られる。断る仕組みを入れない場合は、i の x-ref の rule が検証待ちになる。いまの振る舞い：t は消え、i は検証済みのまま（参照先は名前の辞書なので変わらない。実行で確かめた）"},
+    {"target": "試験の案 U0-4：取り込み（U17 ・ J6）", "content": "列：基盤の外のファイル → 取り込む（AI が版を割り当てる案）→ AI が確定しようとする / 人が確定する → verify。期待：AI の確定は J6 で断られ、人の確定のあとは全 rule が検証待ちから始まる。いまの振る舞い：モデルに取り込むが無く、試験を書けない"},
+    {"target": "試験の案 U0-5（優先度は下）：機械の rule を error で人の判断へ回す（J17 ・ J20）", "content": "列：base(by=機械) → verify(i, error) を3回 → 人が『合っている』と判断する。いまの振る舞い：r は verified（人）、instance は検証済み（実行で確かめた）。AI が機械の validator を落とす入力を書けば、機械の rule が人の判断に置き換わる。『機械の結果は覆せない』の決定と合うかを利用者に確かめる"}
+  ],
+  "cautions": [
+    {"name": "抜き取りを承認の前だけに置く", "risk": "承認のあとに作られる instance は、試した集まりと内容が違っても抜き取られない。承認の前の抜き取りが通っても、その後の AI の誤りは見つからない（欠陥がないことは示せない）。U0-1 の直しで件数を強制しても、この点は残る", "alternative": "（推測）承認のあとも、決めた件数ごとに AI の verified を人へ出す出来事を足すか、承認の前だけでよいとする理由を J5 に書く"},
+    {"name": "覆した誤りが1件に閉じる", "risk": "人が AI の verified を『合っていない』と覆しても、同じ割り当て ・ 同じ rule のほかの instance は検証済みのまま。欠陥の偏在の原則に照らすと、同じ原因の誤りが残りにも在る見込みが高い", "alternative": "（推測）AI の verified を人が覆したら、同じ割り当て ・ rule の verified を判断待ちへ戻すか、割り当ての見直しの依頼を出す"},
+    {"name": "モデルが判定を呼ぶ側の申告に頼る", "risk": "delete の referenced と record の evidence_ok は呼ぶ側の値で、モデルは事実を数えない。試験はモデルの決まりではなく、呼ぶ側の書き方を確かめることになる", "alternative": "参照と根拠をモデルの状態として持ち、モデルの中で判定する"}
+  ],
+  "referrals": [
+    {"suspect": "platform-advisor（O3）", "why": "同じ名前のまま外のモデルが替わることの検出は、U0-1 の直しでも閉じない。腐敗防止層での検出の仕方は非機能の判断である"}
+  ],
+  "next": [
+    "request_assignment と request_version で、rule と割り当ての組ごとに決めた件数の抜き取りが人の判断で揃っていることを確かめる",
+    "verify の validator の答えに根拠を持たせ、record の J16 の検査をその経路で効かせる",
+    "参照先を instance の ID とハッシュで持ち、delete が指されているかをモデルの中で数えるようにする",
+    "取り込むをモデルに足す",
+    "記録案の U0-1〜U0-4 を tests.py に足して通す",
+    "term ・ 変えてよい範囲 ・ AI へ渡す値（J1 ・ J2 ・ J11 ・ J9）を、J の文かコードのどちらかに揃える",
+    "U0-5 の扱い（機械の rule の error を人の判断で埋めてよいか）を利用者に確かめる"
+  ],
+  "related": [
+    {"criterion": "entry-exit-criteria", "relation": "決着の条件を、U0 を壊す4つの試験が通ることにする"}
+  ],
+  "ai_cautions": [
+    {"breaks": "モデルの関数が、判定に要る事実を呼ぶ側の引数（referenced ・ evidence_ok ・ samples）で受け取り、試験もその引数を都合よく渡す", "check": "model.py の public な関数の引数のうち、真偽値と既定値を持つものを一覧にし、それぞれを既定値のまま呼ぶ試験が tests.py にあるかを確かめる"},
+    {"breaks": "不変条件の検査を、試験が直接呼ぶ関数だけに入れ、本来の経路（verify など）に入れない", "check": "J ごとに Refused を投げる関数か結果を変える関数を挙げ、その関数が能力の入口（verify ・ create ・ change ・ approve_*）から呼ばれる経路を持つかを、呼び出しの関係から確かめる"}
+  ]
+}

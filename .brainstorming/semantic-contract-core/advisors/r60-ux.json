@@ -1,0 +1,273 @@
+{
+ "kind": "judgment",
+ "question": "ボード semantic-contract-core の Q1（domain-model.json の不変条件65行と状態表）は、承認する人 ・ Skill や Agent の作者 ・ AI の Agent の体験を損なわないか。4つの場面で人の判断の回数を数えて反証する",
+ "premises": [
+  {
+   "name": "共通の仮定",
+   "value": "Concrete 1つあたり rule 10件（機械5 ・ 意味5）。AI の validator は1つ。承認の画面と CLI の明示の旗が人の入口（N25b）",
+   "source": "仮定（依頼に件数の指定が無い）"
+  },
+  {
+   "name": "場面 a の仮定",
+   "value": "既存ファイル300件を Concrete 5つ（各60件）へ割り当てる。初回の検証で90件に violated ・ 未記入が出て AI が直す。意味の rule の結果1500件のうち10%（150件）が割れて unverified、それを持つ instance は120件、残り180件は全 rule が verified",
+   "source": "仮定"
+  },
+  {
+   "name": "場面 b の仮定",
+   "value": "承認済み200件 × 意味の rule 5件 = 1000件の結果。新しいモデルで値が変わる結果50件（45件の instance）、値は同じで根拠の引用の文字列が変わる instance 60件、値も根拠も同じ instance 95件。validator の版にモデルの版が入る",
+   "source": "仮定"
+  },
+  {
+   "name": "場面 d の仮定",
+   "value": "変えた rule は意味の rule 1件。前の版に従う承認済み instance 200件を新しい版へ移す。移したあと、変えた rule の結果が unverified か violated になる instance 20件、それ以外の rule の unverified を持つ instance 40件",
+   "source": "仮定"
+  },
+  {
+   "name": "承認せずに使い続けてよいか",
+   "value": "未判定。モデルは承認しないと使えないとは書いていない。U0 の成功（使っている instance がすべて承認後に古くなっていない）を目指す利用者は全件を承認する、として数えた",
+   "source": "usecase-scenarios.json の U0 ・ 判断基準の範囲外"
+  },
+  {
+   "name": "移すと N17a の関係",
+   "value": "未判定。承認済みの instance への『移す』が N17a（直接の変更を受けない）の例外かが、65行のどこにも無い。例外でなければ提案（N19d ・ N25e）、例外なら陳腐化（N27）になる。場面 d は両方で数えた",
+   "source": "domain-model.json の読み取り"
+  }
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "人の判断の回数が instance の件数に比例する行（N25 ・ N26 ・ N47 ・ N27 ・ N27b の状態表の注）が4場面のうち3つで数百回を生むので、人が判断する対象を instance から『変わった原因』と『結果が変わった rule』へ置き直すことを条件に採る",
+  "because": "Aesthetic and Minimalist Design の Tips は内容をユーザーの主な目的を支えるものに絞れとし、値も根拠も同じ結果を1件ずつ承認させる画面は、本当に判断が要る数十件を数百件の中に埋もれさせる。決まり（承認は人だけ ・ 記録は instance ごと ・ 未判定を残さない）は置き直しても緩まない。"
+ },
+ "figure": {
+  "caption": "置き直したあとの人の判断の流れ。原因ごとに1回判断し、結果が変わった rule だけを instance ごとに判断する",
+  "nodes": [
+   {
+    "id": "cause",
+    "label": "原因が起きる（validator の版 ・ Concrete の版 ・ 参照先 ・ 取り込み）",
+    "role": "出来事"
+   },
+   {
+    "id": "reverify",
+    "label": "基盤が影響のある instance を検証し直す",
+    "role": "システム"
+   },
+   {
+    "id": "diff",
+    "label": "前の承認の記録と rule ごとの値を比べる",
+    "role": "システム"
+   },
+   {
+    "id": "judgeCause",
+    "label": "人：原因1件を判断する（新しい validator ・ rule の差分を受け入れるか）",
+    "role": "人"
+   },
+   {
+    "id": "same",
+    "label": "値が同じ instance：原因の判断の記録を指す承認の記録を instance ごとに足す",
+    "role": "システム"
+   },
+   {
+    "id": "changed",
+    "label": "値が変わった rule ・ 新しい unverified：rule ごとに並べた画面で人が判断する",
+    "role": "人"
+   },
+   {
+    "id": "fix",
+    "label": "violated：AI へ断りと次の操作を返す（N46）",
+    "role": "AI"
+   }
+  ],
+  "edges": [
+   {
+    "from": "cause",
+    "to": "reverify"
+   },
+   {
+    "from": "reverify",
+    "to": "diff"
+   },
+   {
+    "from": "diff",
+    "to": "judgeCause",
+    "label": "知らせ1件（N48）"
+   },
+   {
+    "from": "judgeCause",
+    "to": "same",
+    "label": "受け入れる"
+   },
+   {
+    "from": "judgeCause",
+    "to": "changed",
+    "label": "受け入れる"
+   },
+   {
+    "from": "diff",
+    "to": "fix",
+    "label": "violated が在る",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "A：モデルのまま（承認も判断も instance ごと。まとめるのは確かめ直しの知らせと、値と根拠が同じ確かめ直しの承認だけ）",
+   "effect": "a 承認300回 ・ 判断150件 ・ 知らせ300件。b 知らせ1件 ・ まとめた承認1回 ・ 個別の承認105回 ・ 判断50件。c 承認50回 ・ 判断250件。d 公開の日は0回で、移すと承認200回 ・ 判断60件以上",
+   "chosen": false
+  },
+  {
+   "option": "B：判断の対象を置き直す（原因1件を人が判断し、値が変わった rule と新しい unverified だけを instance ごとに出す。全 rule が verified の instance は Concrete ごとに1回で承認する。記録は instance ごとに人の名で足す）",
+   "effect": "a 判断の起点1回 ・ まとめた承認5回 ・ 判断150件（rule ごとに並べた画面25枚）。b 原因の判断1回 ・ 判断50件。c 事前の判断1回 ・ 判断250件（画面5枚）。d rule の差分の判断1回 ・ 判断20件",
+   "chosen": true
+  },
+  {
+   "option": "C：決まりを緩める（AI の verified が多数なら自動で承認済みにする ・ unsupported を承認の条件から外す）",
+   "effect": "回数は0に近づくが、N25b（承認は人だけ）と N21 ・ N34（unsupported は verified でない）を破り、U0 の『正しいと確かめた状態』が成り立たない",
+   "chosen": false
+  }
+ ],
+ "path": [
+  {
+   "ask": "a 導入の初日（300件）：何回か",
+   "answer": "モデルのまま。N43 は消した場所のファイルしか扱わず、既存ファイルを取り込む出来事が状態表に無いので、N11 の $schema の割り当ては Agent が1件ずつ行う。検証（N20 ・ N40）で90件が下書きに残り AI へ断り（N46 ・ N47）。人へは N47 が instance ごとに承認の依頼を出し、N48 は確かめ直しと陳腐化しかまとめないので、依頼300件 → 承認の操作300回（N25 ・ N25d ・ N26）→ unverified 150件の判断（N25 ・ N25c ・ N39）。180件は判断する rule が無いのに1件ずつ承認の操作を求められる"
+  },
+  {
+   "ask": "b validator の AI のモデルが更新された日（承認済み200件）：何回か",
+   "answer": "N27b で200件が確かめ直し、N48 で知らせ1件。状態表『確かめ直し × 承認する』の注は値と根拠が同じものを1回でまとめるので、95件は承認1回。根拠の引用が変わった60件と値が変わった45件は個別の承認105回、値が変わった結果50件に判断（N25）。O16 が決まらず検証し直しが次の検証まで待つ形なら、その間200件すべてが N17a ・ N49 で直接の変更を受けず、AI の変更はすべて提案（N19d）→ 人の承認（N25e）になる"
+  },
+  {
+   "ask": "c validator をつながずに意味の rule 5つ × 50件を承認する：何回か",
+   "answer": "N34 で意味の rule がすべて unsupported、N25 で unsupported すべてに人の判断が要る。承認の依頼50件（N47）× 判断5件 = 判断250件、承認の操作50回。N50 は unverified を先に並べるが、50件の画面を1件ずつ開く形は変わらない。判断の数250は意味の判断として本当に要るので減らせないが、50枚の画面を5枚にできる"
+  },
+  {
+   "ask": "d Concrete の rule を1つ変えて新しい版を公開した日：何回か",
+   "answer": "公開の日の人の判断は0回。状態表『承認済み × 版が変わる』は承認済みのまま、N6 の影響の一覧は作者へ返るだけで、承認者への知らせが無い。移すと、N17a の例外でなければ提案200件 → 提案の承認200回（N19d ・ N25e）。例外なら N27（申告する版の違い）で陳腐化200件 → 知らせ1件（N48）→ 陳腐化には確かめ直しのまとめた承認が無いので承認200回。N25e ・ N25 は反映後の全 rule の unverified に判断を求めるので、変えていない rule の判断40件を含む60件以上"
+  },
+  {
+   "ask": "負担を生んでいる行はどれか",
+   "answer": "N25（未判定の rule すべてに instance ごとの判断）・ N26（記録が instance ごと）と N47（依頼が instance ごとで束ねる行が無い）が a ・ c の数百回を生む。N27b と状態表『確かめ直し × 承認する』の注の『根拠が同じ』の条件が b の105回を生む。N27 ・ N17a ・ N6 ・ N25e が d の200回を生む。N27 の参照先のハッシュと N26 の term のハッシュは、用語集の instance を1件直すだけで指している承認済みすべてを陳腐化にする。N24 は手元と CI で AI の答えが違うだけで unverified を作り、人の判断に回す"
+  },
+  {
+   "ask": "決まりを緩めずに回数を減らす置き方は何か",
+   "answer": "人が判断する対象を3つにする。①原因（validator の版 ・ Concrete の rule の差分 ・ term の差分 ・ 参照先の差分 ・ 取り込みの割り当て）を1件として判断する。②前の承認の記録と rule ごとの値が同じ instance は、①の判断の記録を指す承認の記録を instance ごとに人の名で足す（N25b ・ N26 は保つ）。③値が変わった rule ・ 新しく出た unverified ・ unsupported だけを、rule ごとに instance を並べた画面で判断する。根拠の比較は値と根拠の欄（JSON Pointer）で行い、引用の文字列の違いでは止めない"
+  },
+  {
+   "ask": "人の判断が要らないのに出している箇所は",
+   "answer": "a の全 rule が verified の180件への1件ずつの承認。b の値も根拠の欄も同じで引用の文字列だけが違う60件。d の、変えた rule の結果が前と同じ180件と、変えていない rule の unverified の再判断40件（N25e が反映後の全 rule を求める）。参照先の中身が変わっても x-ref の rule の結果が変わらない陳腐化（N27）。N41 の記録があるのに CI で答え直して割れた unverified（N24）"
+  },
+  {
+   "ask": "人の判断が要るのに出していない箇所は",
+   "answer": "Concrete の新しい版の公開そのもの（N5 ・ N6 に人の承認が無い。rule の意味を変えるのに、承認者は判断の機会も知らせも受けない）。validator の新しい版を使い始めること（版が変わると確かめ直しになるだけで、新しいモデルを受け入れるかを誰も判断しない）。validator を1つもつないでいないこと（N34 は黙って unsupported にし、250件の手の判断を選ぶか validator をつなぐかを先に聞かない）。既存ファイルにどの Concrete を割り当てるか（a。出来事が無い）。前の版のまま承認済みで残る instance があること（d。U0 の『いまの版に従い』を満たさないのに知らせが無い）。検証済み × 指す先が変わるが次の検証まで検証済みのまま承認の依頼に出ること（O13。N51 は instance の変化だけを見る）"
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "aesthetic-and-minimalist-design",
+   "quote": "対応：内容と機能の優先順位は、ユーザーの主な目的を支える順に決める"
+  },
+  {
+   "criterion": "aesthetic-and-minimalist-design",
+   "quote": "対応：UI に載せる内容と見た目を、欠かせないものだけに集中させる"
+  },
+  {
+   "criterion": "visibility-of-system-status",
+   "quote": "対応：システムの状態を、はっきりした形でユーザーへ伝える"
+  },
+  {
+   "criterion": "error-prevention",
+   "quote": "対応：損失の大きいエラーを先に防ぎ、小さな不満はその後に回す"
+  },
+  {
+   "criterion": "flexibility-and-efficiency-of-use",
+   "quote": "「Flexibility and Efficiency of Use」：初心者には見えないショートカットで熟練者の操作を速められる場合があり、それで両者に応えられる。よく行う操作は、ユーザーが自分に合わせて変えられるようにする、という原則である。"
+  },
+  {
+   "criterion": "recognition-rather-than-recall",
+   "quote": "対応：ユーザーが覚えておかなければならない情報を減らす"
+  },
+  {
+   "criterion": "user-control-and-freedom",
+   "quote": "対応：いまのインタラクションから出る手段を、はっきり示す（例：Cancel ボタン）"
+  },
+  {
+   "criterion": "task-flow-analysis",
+   "quote": "対応：タスクと判断点には、利用者の手順とシステムの手順の両方を入れる"
+  },
+  {
+   "criterion": "user-scenarios",
+   "quote": "同じ利用者でも文脈でニーズが変わりうること、同じシナリオでも多様な利用者のグループでニーズが違いうることを、チームが考えられる。"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "無関係な情報や、まれにしか使わない情報を画面に載せる（全 rule が verified の instance を1件ずつ承認の依頼に出す）",
+   "risk": "余分な情報の1つ1つが、本当に必要な情報と競い合い、そちらを相対的に目立たなくする。a では判断の要る120件が300件の依頼に混ざる",
+   "alternative": "（推測）全 rule が verified の instance は Concrete ごとに1件の依頼にまとめ、判断の要る rule を持つ instance だけを別に出す"
+  },
+  {
+   "name": "ユーザーに影響が及ぶ操作を、本人へ知らせないまま実行する（Concrete の新しい版の公開 ・ validator の版の差し替え）",
+   "risk": "rule と validator の意味が変わっても承認者は知らず、承認済みの表示が前の意味のまま残る",
+   "alternative": "（推測）Concrete の公開と validator の版の受け入れを、人が判断する原因1件として承認の依頼に出す"
+  },
+  {
+   "name": "（推測）引用の文字列の違いを結果の違いとして扱う",
+   "risk": "AI のモデルが変わるたびに、値が同じ結果まで人の承認に回る",
+   "alternative": "（推測）値と根拠の欄（JSON Pointer）が同じなら同じ結果とし、引用は N22 の検査（引用が欄の値に在る）だけに使う"
+  },
+  {
+   "name": "（推測）確かめ直しの間、承認済みの instance を止めたままにする",
+   "risk": "O16 が待つ形なら、版が上がってから人が承認するまで AI の変更がすべて提案になり、提案の承認の回数が増える",
+   "alternative": "（推測）版が変わった時点で基盤が検証し直し、値が同じものは原因の判断の記録へ結び付けて止める時間を短くする"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "能力の置き場（ddd-advisor ・ Q1 の能力の表）",
+   "why": "Concrete の公開と validator の版の受け入れに人の判断を置く能力が無い。原因を1件の集約（判断の記録）として持つかは集約の境界の判断になる"
+  },
+  {
+   "suspect": "テストの設計（qa-advisor）",
+   "why": "N24 と N39 の割れの判定が、手元と CI で同じ検証の記録（N41）を共有するかで、人へ回る unverified の数が変わる。O3 の回数と合わせて決める必要がある"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "置き直しを『AI の verified が揃えば承認済みにする』と実装し、N25b を破る",
+   "check": "MCP の道具の一覧に承認の道具が無いことと、原因の判断の記録が無いまま承認の記録が足されないことを試験で確かめる"
+  },
+  {
+   "breaks": "値が同じかの比較に、根拠の引用の文字列まで入れる",
+   "check": "Test Stub で値と JSON Pointer が同じで引用だけが違う答えを返させ、人への依頼が出ないことを確かめる"
+  },
+  {
+   "breaks": "人への依頼を instance ごとに出す実装に戻る",
+   "check": "承認済み200件で原因を1回起こし、人への知らせと依頼が合わせて1件で、値が変わった instance だけが判断の一覧に並ぶことを確かめる"
+  }
+ ],
+ "next": [
+  "Concrete の公開と validator の版の受け入れを、人が判断する原因として持つ行を不変条件に足す",
+  "前の承認の記録と rule ごとの値が同じ instance を原因の判断の記録へ結び付ける行を、N27b と N27 の後に足す",
+  "N47 に、全 rule が verified の instance を Concrete ごとに1件の依頼へまとめる条件を足す",
+  "承認済みの instance への『移す』が N17a の例外かを決める",
+  "validator を1つもつないでいないときに、手で判断する件数を先に示す知らせを N45〜N52 に足す",
+  "rule ごとに instance を並べた判断の画面を試作し、承認する人3人で判断にかかる時間を測る"
+ ],
+ "related": [
+  {
+   "criterion": "help-users-recognize-diagnose-and-recover-from-errors",
+   "relation": "N46 の断りの応答（断った決まり ・ 欄 ・ 次のコマンド）は、この基準の解決策を示す行に合っている"
+  },
+  {
+   "criterion": "usability-testing",
+   "relation": "rule ごとに並べた判断の画面が、instance ごとの画面より速く正しく判断できるかを確かめる"
+  },
+  {
+   "criterion": "metrics",
+   "relation": "人の判断の回数と、そのうち値が変わった rule の割合を指標にする"
+  },
+  {
+   "criterion": "consistency-and-standards",
+   "relation": "確かめ直しと陳腐化で、まとめて承認できる条件を揃える（いまは確かめ直しにだけある）"
+  }
+ ]
+}

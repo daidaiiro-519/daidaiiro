@@ -8,29 +8,29 @@ table, e = T['table'], T['e']
 def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
-o = ['<svg viewBox="0 0 960 640" style="min-width:860px" role="img" aria-label="Semantic Schema Core の概念と5つの集約">']
-o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員8つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
-o.append('<rect class="area" x="16" y="110" width="424" height="208"/><text class="title" x="30" y="134">Concrete スキーマの集約</text>')
-chip(o, 30, 150, 396, "Concrete スキーマ（集約のルート）", "box focus")
-chip(o, 30, 190, 396, "rule（id ・ rule ・ why ・ test）")
-chip(o, 30, 230, 396, "公開した版（値オブジェクト）")
+o = ['<svg viewBox="0 0 960 660" style="min-width:860px" role="img" aria-label="Semantic Schema Core の概念と4つの集約">']
+o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員7つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
+o.append('<rect class="area" x="16" y="110" width="424" height="248"/><text class="title" x="30" y="134">Concrete スキーマの集約（人が承認する）</text>')
+chip(o, 30, 150, 396, "Concrete の版（下書き → 承認待ち → 公開 → 引退）", "box focus")
+chip(o, 30, 190, 396, "rule（判定する者 ・ 読む欄 ・ why ・ test）")
+chip(o, 30, 230, 396, "validator の割り当て（Concrete に1つ）", "box focus")
 chip(o, 30, 270, 396, "term（terms@v1 の $defs。欄は $ref で指す）")
+o.append('<text class="note" x="30" y="342">承認は依頼の時点の中身のハッシュに結び付く</text>')
 o.append('<path class="flow" d="M250,110 V64"/><text class="note" x="262" y="92">$schema で申告する</text>')
-o.append('<rect class="area" x="16" y="370" width="424" height="120"/><text class="title" x="30" y="394">instance の集約</text>')
-chip(o, 30, 406, 396, "instance（集約のルート）", "box focus")
-o.append('<text class="note" x="30" y="472">承認の状態（値）：承認済み ・ 確かめ直し ・ 陳腐化</text>')
-o.append('<path class="flow" d="M250,370 V318"/><text class="note" x="262" y="350">$schema で指す</text>')
+o.append('<rect class="area" x="16" y="410" width="424" height="120"/><text class="title" x="30" y="434">instance の集約</text>')
+chip(o, 30, 446, 396, "instance（従う版1つ ・ 変えてよい範囲）", "box focus")
+o.append('<text class="note" x="30" y="512">状態は持たず、読むたびに決定表で導く</text>')
+o.append('<path class="flow" d="M250,410 V358"/><text class="note" x="262" y="390">$schema で指す</text>')
 o.append('<rect class="box" x="526" y="110" width="418" height="70"/><text class="label" x="540" y="132">view（値オブジェクト）</text><text class="note" x="540" y="152">ページテンプレート ・ カタログ ・ デザインシステム</text><text class="note" x="540" y="170">読むときに Semantic Abstract Schema で検証する</text>')
 o.append('<path class="flow" d="M526,165 H440"/><text class="note" x="483" y="157" text-anchor="middle">x-view を読む</text>')
-for (y, t, sub) in [(220, "承認の記録の集約", "承認の記録（人だけが足す）"), (318, "変更の提案の集約", "変更の提案（差分 ・ 理由 ・ 比べた案）"), (416, "検証の記録の集約", "検証の記録（rule ごとの結果）")]:
+for (y, t, sub) in [(220, "検証の記録の集約", "検証の記録（rule ごとの入力と結果）"), (318, "人の判断の集約（人だけが足す）", "人の判断（合っている ・ 合っていない）")]:
     o.append(f'<rect class="area" x="526" y="{y}" width="418" height="80"/><text class="title" x="540" y="{y + 24}">{t}</text>')
     chip(o, 540, y + 36, 390, sub, "box focus")
-o.append('<path class="flow" d="M526,260 H496 V410 H440"/>')
-o.append('<path class="flow" d="M526,372 H440"/>')
-o.append('<path class="flow" d="M526,456 H470 V448 H440"/>')
-o.append('<rect class="box" x="526" y="536" width="418" height="70"/><text class="label" x="540" y="558">検証結果（値オブジェクト）</text><text class="note" x="540" y="578">rule 1件ごとに、5つの値のどれか1つ</text><text class="note" x="540" y="596">verified ・ violated ・ unverified ・ unsupported ・ error</text>')
-o.append('<path class="flow" d="M735,536 V496"/>')
-o.append('<text class="note" x="16" y="630">集約は5つ。ほかの集約は ID とハッシュで指し、1回の保存で変える集約は1つにする</text>')
+o.append('<path class="flow" d="M526,260 H496 V470 H440"/>')
+o.append('<path class="flow" d="M526,372 H470 V490 H440"/>')
+o.append('<rect class="box" x="526" y="430" width="418" height="100"/><text class="label" x="540" y="452">状態を導く（ドメインサービス）</text><text class="note" x="540" y="472">rule の効いている結果：未記入 → 人の判断 → いまの結果</text><text class="note" x="540" y="492">いまの結果：入力がいまと一致する最後の記録</text><text class="note" x="540" y="512">instance の状態：決定表で導く（下書き ・ 判断待ち など）</text>')
+o.append('<rect class="box" x="526" y="560" width="418" height="56"/><text class="label" x="540" y="582">検証結果（値オブジェクト）</text><text class="note" x="540" y="602">verified ・ violated ・ unverified ・ unsupported ・ error</text>')
+o.append('<text class="note" x="16" y="648">集約は4つ。人が承認するのは Concrete の版と割り当てだけで、instance には承認を付けない</text>')
 o.append('</svg>')
 open('q1-domain.src.svg', 'w').write('\n'.join(o))
 
@@ -104,17 +104,16 @@ table('q1-capabilities', 'エンジンの能力11と、いまのコマンドと�
       ["能力", "いまのコマンド", "対象", "種別", "守る不変条件"], [110, 200, 270, 90, 170],
       [list(r) for r in CAP], emph=(0,), row_h=46)
 
-# ── 第52回：Semantic Abstract Schema の一員（第59回に記録の形を3つにして8つ）──
+# ── 第52回：Semantic Abstract Schema の一員（第60回に記録の形を検証と人の判断の2つにして7つ）──
 MEM = [
  ("メタスキーマ", ["x- キーワードの定義と、", "スキーマの書き方"], "定義する", "する", "一員ごとに名前@vN", "──"),
  ("ページテンプレートの形", ["kind ごとの節 ・ 部品 ・", "値を取る式"], "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
  ("部品のカタログの形", "部品の一覧の枠", "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
  ("デザインシステムの形", "トークンの形", "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
  ("公開の記録の形", ["公開した版の名前と指紋"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
- ("承認の記録の形", ["承認した instance の", "パスとハッシュ"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
- ("変更の提案の形", ["差分 ・ なぜ必要か ・", "比べた案 ・ 元のハッシュ"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
- ("検証の記録の形", ["rule ごとの結果 ・ 根拠 ・", "validator の版"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
+ ("検証の記録の形", ["rule ごとの入力 ・ 結果 ・", "根拠 ・ validator"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
+ ("人の判断の記録の形", ["示した入力 ・ 合っているか ・", "判断した人"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
 ]
-table('q6-abstract', 'Semantic Abstract Schema の一員8つ：基盤が持ち、基盤だけが変えるスキーマ',
+table('q6-abstract', 'Semantic Abstract Schema の一員7つ：基盤が持ち、基盤だけが変えるスキーマ',
       ["一員", "何の形か", "x- を", "公開するか", "版", "従う x- 定義の版"], [200, 220, 90, 190, 160, 160],
       [list(r) for r in MEM], emph=(0,), row_h=46)
