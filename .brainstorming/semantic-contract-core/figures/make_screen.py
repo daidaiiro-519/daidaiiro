@@ -35,7 +35,7 @@ ul{{list-style:none;margin:0;padding:0;display:grid;gap:6px}} li{{display:grid;g
 li .n{{grid-column:2;color:var(--sub);font-size:12px}}
 </style></head><body><div class="wrap">
 <section><h2>いま（check）</h2><p class="sub">ボード ai-driven-process（実物）</p>
-<p class="big">合格 ── 指摘 0件</p><p>形（JSON Schema）・ 参照 ・ 導出値だけを見て、承認できると返す。形の外の決まりは見ていないことも返さない。</p></section>
+<p class="big">合格 ── 指摘 0件</p><p>形（JSON Schema）・ 参照 ・ 導出値だけを見て、合格と返す。形の外の決まりは見ていないことも返さない。</p></section>
 <section><h2>足したあと（決まりごとの結果）</h2><p class="sub">同じボードに、実験で決まりを当てた結果</p>
 <p class="stop">全体：成功にしない（必須の決まりに違反がある）</p>
 <div class="counts"><span class="b ok">合格 {cnt["verified"]}</span><span class="b ng">違反 {cnt["violated"]}</span><span class="b na">担い手が無い {cnt["ai"] + cnt["unsupported"]}（うち AI の判断が要る {cnt["ai"]}）</span></div>
