@@ -2,7 +2,11 @@
 from lesson_visuals import text,rect,path,arrow,svg,person,circle,INK,DIM,LINE,PAPER,PANEL,ACCENT,W
 
 def cover(no):
-    if no in (0,1):
+    if no == 1:
+        # 「はじめに」は三教材共通の題材を扱うため、教材1専用の古い表紙注記を出さない。
+        from derived_visuals import t_cover
+        return t_cover(0)
+    if no == 0:
         from derived_visuals import t_cover
         return t_cover(no)
     a=''

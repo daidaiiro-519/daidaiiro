@@ -4,4 +4,12 @@
          alphabet="ipa" xml:lang="ja-JP">
   <lexeme><grapheme>Kiro</grapheme><alias>キロ</alias></lexeme>
   <lexeme><grapheme>成果物</grapheme><alias>せいかぶつ</alias></lexeme>
+  <lexeme><grapheme>一人</grapheme><alias>ひとり</alias></lexeme>
+  <lexeme><grapheme>PM</grapheme><alias>プロジェクトマネージャー</alias></lexeme>
+  <lexeme><grapheme>PL</grapheme><alias>プロジェクトリーダー</alias></lexeme>
+  <lexeme><grapheme>Agents</grapheme><alias>エージェント</alias></lexeme>
+  <lexeme><grapheme>Agent</grapheme><alias>エージェント</alias></lexeme>
+  <lexeme><grapheme>Skills</grapheme><alias>スキル</alias></lexeme>
+  <lexeme><grapheme>Skill</grapheme><alias>スキル</alias></lexeme>
+  <lexeme><grapheme>PR</grapheme><alias>プルリクエスト</alias></lexeme>
 </lexicon>
