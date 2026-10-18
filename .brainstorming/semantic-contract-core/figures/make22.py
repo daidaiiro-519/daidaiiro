@@ -8,7 +8,8 @@ G('q1-boundary', '境界：何を誰が持ち、誰が変えるか', ['', 'も�
 
 E = d['extension_contract']
 rows = [['責任', a, f'Core：{b} ／ Concrete：{c}'] for a, b, c in E['responsibility']] + [['作法（Q7 で詰める）', a, b] for a, b in E['manners']] + [['拡張の仕方', a, b] for a, b in E['parts']] + [['言語に依らない', str(n + 1), t] for n, t in enumerate(E['language'])] \
-     + [['外のツール', str(n + 1), t] for n, t in enumerate(E['external_tool'])]
+     + [['外のツール', str(n + 1), t] for n, t in enumerate(E['external_tool'])] \
+     + [['保存', str(n + 1), t] for n, t in enumerate(E.get('storage', []))]
 G('q1-extension', '拡張の契約：Core は作法だけを持ち、足した x- の意味の検証は Concrete が持つ', ['', '項目', '中身'], [140, 250, 560], rows, group_col=0)
 
 M = [['集約', a['name'], f"{a['holder']}。{a['members']}", a['subdomain']] for a in d['aggregates']] \
