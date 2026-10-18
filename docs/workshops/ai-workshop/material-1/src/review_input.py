@@ -19,7 +19,7 @@ import subprocess
 HERE = pathlib.Path(__file__).resolve().parent
 
 # 区切りの名前。区切りの識別子は、ファイル名の番号である
-NAMES = {'00': 'オリエンテーション', '01': '教材1のはじめに', '02': '1本目　原因を知る',
+NAMES = {'00': 'オリエンテーション', '01': '3教材共通のはじめに', '02': '1本目　原因を知る',
          '03': '2本目　意味を決める', '04': '3本目　範囲を決める', '05': '4本目　条件を決める',
          '06': '5本目　具体と抽象を振り返る', '07': '旧6本目（最終動画へ統合）', '08': '旧まとめ（最終動画へ統合）'}
 
@@ -30,7 +30,8 @@ def lessons(root):
 
 def slide_ids(lesson):
     """表紙を先頭に置いた、枚の識別子の並び。previews/ の番号と同じ順である。"""
-    return ['COVER'] + [s['id'] for s in json.loads(lesson.read_text())['slides']]
+    d = json.loads(lesson.read_text())
+    return (['COVER'] if d.get('include_cover', True) else []) + [s['id'] for s in d['slides']]
 
 
 def snapshot(dest, rev=''):
@@ -58,8 +59,8 @@ def side(root, img_of, out_dir):
         no = f.name.split('-')[1]
         cover_title, _, cover_sub = d.get('title', '').partition(' ── ')
         slides = [{'id': 'COVER', 'heading': cover_title, 'lede': cover_sub,
-                   'image': img_of(no, 'COVER', 1)}]
-        for i, s in enumerate(d['slides'], 2):
+                   'image': img_of(no, 'COVER', 1)}] if d.get('include_cover', True) else []
+        for i, s in enumerate(d['slides'], 2 if d.get('include_cover', True) else 1):
             one = {'id': s['id'], 'heading': s['heading'], 'narration': s['narration'],
                    'image': img_of(no, s['id'], i)}
             if s['id'] in ledes:

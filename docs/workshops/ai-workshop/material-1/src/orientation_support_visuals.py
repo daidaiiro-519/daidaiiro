@@ -29,5 +29,5 @@ def support():
     footer = V.rect(0, 368, 1112, 62, V.PAPER, 12, V.LINE)
     footer += V.icon(20, 381, 'screen', V.INK, .6)
     footer += V.text(72, 393, '実践の参加者15名には、KiroのアカウントとAWS環境を発行', 19, V.INK, 700)
-    footer += V.text(72, 417, '教材を見るためのポータルのアカウントとは別に用意します', 15, V.DIM)
+    footer += V.text(72, 417, '実践に使うAIツールと実行環境です。ポータルとは別に用意します', 15, V.DIM)
     return figure.replace('1112 350', '1112 438').replace('</svg>', footer + '</svg>')

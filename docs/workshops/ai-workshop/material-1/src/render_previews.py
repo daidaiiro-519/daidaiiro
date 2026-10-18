@@ -31,7 +31,8 @@ def main():
             no = f.name.split('-')[1]
             if a.numbers and no not in a.numbers:
                 continue
-            count = len(json.loads(f.read_text())['slides']) + 1   # 表紙を含む
+            data = json.loads(f.read_text())
+            count = len(data['slides']) + int(data.get('include_cover', True))   # 表紙を含む
             page = pathlib.Path(tmp) / f'{f.stem}.html'
             page.write_text((SLIDES / f'{f.stem}.html').read_text()
                             .replace('</style>', '.slide.on{animation:none!important}</style>', 1))

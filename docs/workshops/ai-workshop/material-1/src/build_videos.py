@@ -100,7 +100,7 @@ def decks():
     for p in sorted(HERE.glob('lesson-0*.json')):
         d = json.loads(p.read_text())
         stem = f'{d["no"]:02d}-{d["key"]}'
-        ids = [f'{d["key"].upper()}-COVER'] + [s['id'] for s in d['slides']]
+        ids = ([f'{d["key"].upper()}-COVER'] if d.get('include_cover', True) else []) + [s['id'] for s in d['slides']]
         yield stem, d['no'], ids
 
 

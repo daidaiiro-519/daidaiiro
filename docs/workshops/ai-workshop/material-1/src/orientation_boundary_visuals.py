@@ -38,4 +38,8 @@ def closing():
       '課題管理表を確認して改善する':'条件や手順を改善する',
     }
     for before,after in mapping.items():a=a.replace(before,after)
-    return a
+    a=a.replace('viewBox="0 0 1112 324"','viewBox="0 0 1112 430"')
+    footer=rect(0,344,1112,70,PAPER,12,LINE)
+    footer+=text(22,373,'次の動画「はじめに」',18,INK,700)
+    footer+=text(22,400,'共通の題材と、教材1〜3の学習の流れ',18,INK)
+    return a.replace('</svg>',footer+'</svg>')

@@ -28,6 +28,7 @@ import end_visuals as EV         # 終わりに
 import bridge_visuals as BV      # 動画のつなぎ（導入とまとめ）
 import v1_visuals as V1          # 1本目（組み直した図）
 
+import common_intro_visuals as CI
 import orientation_current_visuals as OV
 import summary_visuals as SM
 V.cover = SM.cover
@@ -47,8 +48,17 @@ FIG = {
  'I0-PORTAL': OV.FIG['I0-PORTAL'],
  'I0-SUPPORT': OV.FIG['I0-SUPPORT'],
  'I0-SUMMARY': OV.FIG['I0-SUMMARY'],
- # 教材1のはじめに
- 'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
+ # 三教材共通のはじめに
+ 'COMMON-INTRO-01': lambda: CI.figure(1),
+ 'COMMON-INTRO-02': lambda: CI.figure(2),
+ 'COMMON-INTRO-03': lambda: CI.figure(3),
+ 'COMMON-INTRO-04': lambda: CI.figure(4),
+ 'COMMON-INTRO-05': lambda: CI.figure(5),
+ 'COMMON-INTRO-06': lambda: CI.figure(6),
+ 'COMMON-INTRO-07': lambda: CI.figure(7),
+ 'COMMON-INTRO-08': lambda: CI.figure(8),
+ 'COMMON-INTRO-09': lambda: CI.figure(9),
+ 'COMMON-INTRO-10': lambda: CI.figure(10),
  'L1-S0': V1.ask, # 1本目　原因を知る
  'L1-S1': V1.symptoms, 'L1-S2': V1.ends,
  'L1-S3': V1.fit, 'T2-S3B': WV.t2_goal, 'L1-S4': V1.three, 'L1-S5': V1.order,
@@ -114,7 +124,7 @@ def build(lesson_path):
     no, title = d['no'], d['title']
     name, sub = (title.split(' ── ') + [''])[:2]
     slides = [dict(label='表紙', title=f'{no}本目　{name}', cls='ws-titlepage',
-                   intro=sub, body=V.cover(no), notes=d['slides'][0]['narration'])]
+                   intro=sub, body=V.cover(no), notes=d['slides'][0]['narration'])] if d.get('include_cover', True) else []
     for s in d['slides']:
         fig = FIG.get(s['id'])
         if fig is None:
@@ -135,14 +145,14 @@ def build(lesson_path):
                             '<style>' + BD.CSS + '</style></head><body>\n<div class="navzone prev"', 1)
     out = []
     for i, s in enumerate(slides, 1):
-        heading = 'h1' if i == 1 else 'h2'
+        heading = 'h1' if i == 1 and d.get('include_cover', True) else 'h2'
         title_html = esc(s['title'])
         if no == 0:
             title_html = title_html.replace('。仕事全体', '。<br>仕事全体')
         out.append(
             f'<section class="slide {s["cls"]}" aria-label="{i}: {esc(s["title"])}">\n'
             f'<div class="kicker"><span class="ws-mark" aria-hidden="true"></span>'
-            f'<span class="ws-kicker-label">{no}本目　{esc(name)}　／　{i if no == 0 else i - 1}／{len(slides) if no == 0 else len(slides) - 1}</span></div>\n'
+            f'<span class="ws-kicker-label">{no}本目　{esc(name)}　／　{i if no == 0 or not d.get('include_cover', True) else i - 1}／{len(slides) if no == 0 or not d.get('include_cover', True) else len(slides) - 1}</span></div>\n'
             f'<{heading}>{title_html}</{heading}>\n'
             f'<p class="ws-intro">{esc(s["intro"])}</p>\n'
             f'<div class="body">{s["body"]}</div>\n</section>')
@@ -157,9 +167,11 @@ def build(lesson_path):
     (SLIDES / f'{stem}.html').write_text(prefix + '\n'.join(out) + suffix)
 
     # 読み上げ原稿（narration Skill へ入力する入力のもと）
-    notes = [f'# {no}本目　{title}\n', f'枚数 {len(slides)}（表紙1・本編{len(slides)-1}）　'
-             f'読み上げ {sum(len(x["notes"]) for x in slides[1:])}字\n']
-    for i, s in enumerate(slides[1:], 1):
+    content = slides[1:] if d.get('include_cover', True) else slides
+    cover_count = int(d.get('include_cover', True))
+    notes = [f'# {no}本目　{title}\n', f'枚数 {len(slides)}（表紙{cover_count}・本編{len(content)}）　'
+             f'読み上げ {sum(len(x["notes"]) for x in content)}字\n']
+    for i, s in enumerate(content, 1):
         notes.append(f'## {i:02d}　{s["title"]}\n\n{s["notes"]}\n')
     (SCRIPTS / f'{stem}-script.md').write_text('\n'.join(notes))
     print(f'{stem}.html　{len(slides)}枚')
@@ -175,6 +187,8 @@ def retitle(no, stem):
         s = s.replace(f'<h1>{no}本目　', '<h1>')
         s = s.replace(f'{no}本目　', ENDS[no] + '　')
         s = s.replace('aria-label="6本の中での位置"', 'aria-label="6本の一覧"')
+        if no == 1:
+            s = s.replace('はじめに　はじめに　', '3教材共通　はじめに　')
     else:
         short, full = TITLES[no]
         s = s.replace(f'<h1>{no}本目　{short}</h1>', f'<h1>{full}</h1>')
