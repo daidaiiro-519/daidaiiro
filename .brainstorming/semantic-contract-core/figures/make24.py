@@ -18,7 +18,7 @@ entity(o, 30, 360, 250, "判定の記録", ["instance id ・ rule id", "判定�
 entity(o, 380, 360, 250, "instance（仕様の document）", ["id", "$schema（Concrete の $id）", "欄の値（JSON）"], "box")
 entity(o, 720, 360, 260, "Semantic Concrete Schema", ["$id", "rule ・ term ・ 文脈の語彙"], "box")
 o.append('<path class="flow" d="M320,60 H380"/><text class="note" x="326" y="52">1 ─ 1</text>')
-o.append('<path class="flow" d="M320,200 H380"/><text class="note" x="326" y="192">1 ─ N</text>')
+o.append('<path class="flow" d="M320,175 H380"/><text class="note" x="326" y="167">1 ─ N</text>')
 o.append('<path class="flow" d="M760,200 H660"/><text class="note" x="668" y="192">前後の値を導く</text>')
 o.append('<path class="flow" d="M500,256 V360"/>')
 o.append('<path class="flow" d="M420,256 V310 H155 V360"/>')
