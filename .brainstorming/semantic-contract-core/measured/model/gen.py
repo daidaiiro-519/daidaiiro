@@ -1,5 +1,5 @@
 # model.py に出来事を流して、状態表を生成する。マスの中身は手で書かない。
-# 出力：tables.json（状態表5つと決定表）。domain-model.json はこれを読み込む。
+# 出力：tables.json（状態表5つと決定表）。do統合先-model.json はこれを読み込む。
 import copy, json
 from model import Core, Refused, h, call
 

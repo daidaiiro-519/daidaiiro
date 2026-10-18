@@ -1,6 +1,6 @@
 # Semantic Schema Core のドメインモデルを、実行できる形で書いたもの。
 # 状態表と決定表はこのモデルに出来事を流して生成する（gen.py）。表を手で書かない。
-# 不変条件の id（J1〜J27）は domain-model.json が文を持ち、ここでは断る理由と、導いた根拠として記す。
+# 不変条件の id（J1〜J27）は do統合先-model.json が文を持ち、ここでは断る理由と、導いた根拠として記す。
 import hashlib, json, copy, inspect
 
 ERROR_LIMIT = 3   # AI の rule で、同じ入力で error が続いたら unverified にする回数（未決 O1 の仮の値）
@@ -32,7 +32,7 @@ class Core:
     """1つの Concrete（版の並びと、割り当て1つ）と、その instance と記録を持つ。"""
 
     def __init__(self, team=False):
-        self.team = team            # チームの使い方：効く記録は CI が書いたものだけ（J35）
+        self.team = team            # チームの使い方：効く記録は 信頼できる実行者が書いたものだけ（J35）
         self.today = 0
         self.revocations = []       # 判断の取り消しの記録（足すだけ）
         self.versions = []          # {id, rules, scope, state, request}
@@ -126,13 +126,13 @@ class Core:
         v["state"], v["request"] = "承認待ち", {"hash": self._content(v), "trial": trial, "mismatch": mismatch,
                                                "requester": requester, "parent": self.latest_hash()}
 
-    def _reviewed(self, review):
-        if self.team and not review:
-            raise Refused("PR で確かめたものでなければ効かない", "J35")
+    def _reviewed(self, in_changeset):
+        if self.team and not in_changeset:
+            raise Refused("変更セットの中で確かめたものでなければ効かない", "J35")
 
-    def approve_version(self, vid, actor, seen_hash, who=None, review=False):
+    def approve_version(self, vid, actor, seen_hash, who=None, in_changeset=False):
         self._human(actor)
-        self._reviewed(review)
+        self._reviewed(in_changeset)
         v = self.version(vid)
         if v["state"] != "承認待ち":
             raise Refused("依頼されていない", "J4")
@@ -197,9 +197,9 @@ class Core:
             raise Refused("依頼されていない", "J4")
         self.assignment["request"] = None
 
-    def approve_assignment(self, actor, seen_hash, who=None, review=False):
+    def approve_assignment(self, actor, seen_hash, who=None, in_changeset=False):
         self._human(actor)
-        self._reviewed(review)
+        self._reviewed(in_changeset)
         a = self.assignment
         if a["request"] is None:
             raise Refused("依頼されていない", "J4")
@@ -323,14 +323,14 @@ class Core:
             parts["validator"] = self.validator_of(rid, r)
         return h(parts)
 
-    def record(self, iid, rid, result, quote=None, place=None, by=None):
+    def record(self, iid, rid, result, quote=None, runner=None, by=None):
         r = self.rules(iid)[rid]
         if by is None and r["by"] == "AI" and result in ("verified", "violated"):
             vals = [str(v) for v in self.given(iid, rid)["fields"].values() if v]
             if not quote or not any(str(quote) in v for v in vals):
                 result = "unverified"  # J16：根拠が読む欄の値に無い
         self.records.append({"inst": iid, "rule": rid, "input": self.rule_input(iid, rid), "result": result,
-                             "by": by or self.validator_of(rid, r), "tampered": False, "writer": place or "手元",
+                             "by": by or self.validator_of(rid, r), "tampered": False, "writer": runner or "local",
                              "trusted": True, "day": self.today})
 
     def add_file(self, kind, obj):
@@ -341,21 +341,21 @@ class Core:
     def pending(self, iid):
         return [rid for rid in self.rules(iid) if self.current(iid, rid) == "検証待ち"]
 
-    def verify(self, iid, answer, place=None):
+    def verify(self, iid, answer, runner=None):
         """J18：検証待ちの rule だけを渡す。"""
         for rid in self.pending(iid):
             r = self.rules(iid)[rid]
             x = self.instances[iid]
             if any(x["fields"].get(f) and (x["fields"][f] not in self.instances or x["fields"][f] in self.deleted)
                    for f in r.get("refs", [])):
-                self.record(iid, rid, "violated", place=place, by=ENGINE)  # J12：参照先が無い（基盤が判定する）
+                self.record(iid, rid, "violated", runner=runner, by=ENGINE)  # J12：参照先が無い（基盤が判定する）
             elif r["by"] == "人":
-                self.record(iid, rid, "unverified", place=place)
+                self.record(iid, rid, "unverified", runner=runner)
             elif self.validator_of(rid, r) is None:
-                self.record(iid, rid, "unsupported", place=place)
+                self.record(iid, rid, "unsupported", runner=runner)
             else:
                 result, quote = call(answer, rid, self.given(iid, rid))
-                self.record(iid, rid, result, quote, place)
+                self.record(iid, rid, result, quote, runner)
 
     def rules(self, iid):
         return self.version(self.instances[iid]["version"])["rules"]
@@ -363,7 +363,7 @@ class Core:
     def _recs(self, iid, rid):
         inp = self.rule_input(iid, rid)
         return [r for r in self.records if r["inst"] == iid and r["rule"] == rid and r["input"] == inp and not r["tampered"]
-                and r.get("trusted", True) and (not self.team or r.get("writer") == "CI")]
+                and r.get("trusted", True) and (not self.team or r.get("writer") == "trusted")]
 
     def current(self, iid, rid):
         """J17 ・ J32：入力がいまと一致する記録の答えが1つにそろえば、その答え。記録の順番には頼らない。
@@ -391,10 +391,10 @@ class Core:
         """人に示す。示した時点の入力（validator を除く）を返し、判断はそれに結び付く（J21）。"""
         return self.rule_input(iid, rid, with_validator=False)
 
-    def judge(self, iid, rid, verdict, actor, shown, who=None, review=False):
+    def judge(self, iid, rid, verdict, actor, shown, who=None, in_changeset=False):
         self._human(actor)
         self._alive(iid)
-        self._reviewed(review)
+        self._reviewed(in_changeset)
         if shown != self.rule_input(iid, rid, with_validator=False):
             raise Refused("人に示した入力といまの入力が違う", "J21")
         if self.unfilled(iid, rid):
@@ -407,16 +407,16 @@ class Core:
             if j.get("who") == who:
                 self.revocations.append({"target": j["id"], "who": who, "trusted": True})  # 同じ人のし直し
         j = {"inst": iid, "rule": rid, "input": shown, "verdict": verdict, "tampered": False, "who": who,
-             "via": "review" if review else "手元", "trusted": True, "day": self.today}
+             "via": "changeset" if in_changeset else "local", "trusted": True, "day": self.today}
         j["id"] = h(j)
         self.judgments.append(j)
 
-    def judge_many(self, items, verdict, actor, who=None, review=False):
+    def judge_many(self, items, verdict, actor, who=None, in_changeset=False):
         """J22：instance ごとに別に保存し、断ったものの一覧を返す。"""
         refused = []
         for iid, rid, shown in items:
             try:
-                self.judge(iid, rid, verdict, actor, shown, who, review)
+                self.judge(iid, rid, verdict, actor, shown, who, in_changeset)
             except Refused as e:
                 refused.append((iid, rid, e.reason))
         return refused
@@ -450,13 +450,13 @@ class Core:
 
     def live_judgments(self, iid, rid):
         """効いている判断：取り消していない ・ 書き換えが見つかっていない ・ 示した入力がいまと同じ。
-        チームでは、PR で確かめたものだけ。順番には頼らない。"""
+        チームでは、変更セットの中で確かめたものだけ。順番には頼らない。"""
         inp = self.rule_input(iid, rid, with_validator=False)
         dead = self._revoked()
         return [j for j in self.judgments
                 if j["inst"] == iid and j["rule"] == rid and j.get("id") not in dead and not j["tampered"]
                 and j.get("trusted", True) and j["input"] == inp
-                and (not self.team or j.get("via") == "review")]
+                and (not self.team or j.get("via") == "changeset")]
 
     def effective(self, iid, rid):
         """J23 ・ J31：未記入 → 効いている判断（割れたら「割れた」）→ いまの結果 の順で決める。"""
@@ -492,7 +492,7 @@ class Core:
             return "前の版で検証済み"
         return "検証済み"
 
-    # ── PR に出すもの（J33）：変更の差分と、人が見るべきもの。誰が見るかはチームのやり方で、基盤は決めない ──
+    # ── 変更セットに出すもの（J33）：変更の差分と、人が見るべきもの。誰が見るかはチームのやり方で、基盤は決めない ──
     def report(self):
         out = []
         for v in self.versions:
@@ -516,9 +516,9 @@ class Core:
 
 
 def merge(base, ours, theirs):
-    """J34：main（theirs）の差分を自分のブランチ（ours）へ取り込む。ファイルの併合は Git が行い、
-    記録と判断は1件1ファイルなので合わせるだけ。取り込んだあとの中身は、CI がいつもの検証でもう一度確かめる。
-    同じ instance の同じ欄を両方で変えたときだけ、Git の衝突として人が中身を選ぶ。"""
+    """J34：統合先（theirs）の差分を自分の変更セット（ours）へ取り込む。ファイルの併合は Git が行い、
+    記録と判断は1件1ファイルなので合わせるだけ。取り込んだあとの中身は、信頼できる実行者がいつもの検証でもう一度確かめる。
+    同じ instance の同じ欄を両方で変えたときだけ、衝突として人が中身を選ぶ。"""
     m = copy.deepcopy(ours)
     for name in ("records", "judgments", "revocations"):
         have = {h(x) for x in getattr(m, name)}
@@ -527,8 +527,8 @@ def merge(base, ours, theirs):
                 getattr(m, name).append(copy.deepcopy(x)); have.add(h(x))
     for name, d in theirs.terms.items():
         m.publish_term(name, d)
-    # 版：先に main（theirs）が足した版を並べ、そのあとに自分のブランチ（ours）の版を並べる。
-    # 公開した版の親が、並べた時点のいまの版と違えば、試し直して PR で確かめる（J30）
+    # 版：先に 統合先（theirs）が足した版を並べ、そのあとに自分の変更セット（ours）の版を並べる。
+    # 公開した版の親が、並べた時点のいまの版と違えば、試し直して変更セットの中で確かめる（J30）
     m.versions = copy.deepcopy(base.versions)
     renum = {"ours": {}, "theirs": {}}
     for side, src in (("theirs", theirs), ("ours", ours)):
@@ -539,13 +539,13 @@ def merge(base, ours, theirs):
                 continue
             nv = copy.deepcopy(v); nv["id"] = len(m.versions) + 1; renum[side][v["id"]] = nv["id"]
             if v["state"] == "公開" and v["request"]["parent"] != m.latest_hash():
-                nv["state"], nv["note"] = "承認待ち", "取り込んだら親の版が変わった。試し直して PR で確かめる"
+                nv["state"], nv["note"] = "承認待ち", "取り込んだら親の版が変わった。試し直して変更セットの中で確かめる"
             m.versions.append(nv)
     for iid, x in m.instances.items():
         x["version"] = renum["ours"].get(x["version"], x["version"]); x["schema"] = renum["ours"].get(x["schema"], x["schema"])
     if theirs.assignment["published"] != base.assignment["published"]:
         if m.assignment["published"] not in (base.assignment["published"], theirs.assignment["published"]):
-            raise Refused("割り当てを両方で別々に変えた（Git の衝突）", "J34")
+            raise Refused("割り当てを両方で別々に変えた（衝突）", "J34")
         m.assignment = copy.deepcopy(theirs.assignment)
     for iid in set(base.instances) | set(ours.instances) | set(theirs.instances):
         b, o, t = (x.instances.get(iid) for x in (base, ours, theirs))
@@ -555,6 +555,6 @@ def merge(base, ours, theirs):
             nt = copy.deepcopy(t); nt["version"] = renum["theirs"].get(nt["version"], nt["version"]); nt["schema"] = renum["theirs"].get(nt["schema"], nt["schema"])
             m.instances[iid] = nt
             continue
-        raise Refused("同じ instance を両方で変えた（Git の衝突）。人が中身を選ぶ", "J34")
+        raise Refused("同じ instance を両方で変えた（衝突）。人が中身を選ぶ", "J34")
     m.deleted |= (theirs.deleted - base.deleted)
     return m
