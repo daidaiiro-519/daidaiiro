@@ -52,12 +52,12 @@ code{font-family:"JetBrains Mono",monospace;font-size:11px}
 <div class="grid">
  <div class="col"><h4>前の作り（第59回）</h4><div class="sub">人が記事を1件ずつ承認する</div>
   <div class="ops">人の操作 <b id="o59">0</b> 回 <span class="plus" id="p59"></span></div><div id="m59"></div></div>
- <div class="col"><h4>新しい作り（第66回）</h4><div class="sub">人が見るのは、変更の差分と理由と、AI が判定できなかったものだけ</div>
+ <div class="col"><h4>新しい作り（いまの案）</h4><div class="sub">人が見るのは、変更の差分と理由と、AI が判定できなかったものだけ</div>
   <div class="ops">人の操作 <b id="o60">0</b> 回 <span class="plus" id="p60"></span></div><div id="m60"></div></div>
 </div>
 <div class="why" id="why"></div>
 <details id="inside"><summary>新しい作りの中で、何をどう記録したか（開く）</summary>
- <div class="note">記事の状態は保存しない。残すのは「契約」「記事」「判定の記録（AI と人の判定。入力のハッシュに結び付く）」だけで、機械の rule は記録せず毎回計算し直す。記事を押すと計算の中身が出る。</div>
+ <div class="note">記事の状態は保存しない。残すのは「契約」「記事」「判定の記録（AI と人の判定。判定したときに読んだ値を残す）」だけで、機械の rule は記録せず毎回計算し直す。記事を押すと計算の中身が出る。</div>
  <div id="recs"></div><div class="arts" id="arts"></div><div id="calc"></div></details>
 <script>
 const $=s=>document.querySelector(s);
@@ -78,6 +78,7 @@ function runV(a,rid,asg){const r=S.c.rules[rid],f=a.f,v=r.by==='AI'?(asg||S.asg)
  if(f['要約'].includes('矛盾'))return['violated','要約「'+f['要約']+'」'];
  if(f['本文'].includes('曖昧'))return v==='ai@1'?['unverified','本文から判定できない']:['verified','本文から読み取れる'];
  return['verified','本文「'+f['本文']+'」'];}
+function valsOf(a,rid){return S.c.rules[rid].reads.map(k=>k+'「'+a.f[k]+'」').join(' ・ ');}
 function inputOf(a,rid,withV=true){const r=S.c.rules[rid];return H(JSON.stringify([rid,r,r.reads.map(k=>a.f[k]),withV?assignOf(rid):'']));}
 function current(a,rid){const inp=inputOf(a,rid);const rs=S.recs.filter(x=>x.inst===a.id&&x.rule===rid&&x.input===inp);return rs.length?rs[rs.length-1]:null;}
 function judgOf(a,rid){const js=S.judg.filter(j=>j.inst===a.id&&j.rule===rid);const j=js[js.length-1];if(!j)return null;return Object.assign({ok:j.shown===inputOf(a,rid,false)},j);}
@@ -86,7 +87,7 @@ function state(a){const e=Object.keys(S.c.rules).map(r=>eff(a,r));
  if(e.some(x=>x.startsWith('violated')))return'下書き';if(e.includes('確かめ中'))return'確かめ中';
  if(e.some(x=>x==='unverified'||x==='unsupported'))return'判断待ち';return'検証済み';}
 function verifyAll(){let n=0;for(const a of S.arts)for(const rid of Object.keys(S.c.rules)){if(current(a,rid))continue;const[res,ev]=runV(a,rid);
- S.recs.push({inst:a.id,rule:rid,input:inputOf(a,rid),result:res,by:assignOf(rid),evidence:ev});n++;}return n;}
+ S.recs.push({inst:a.id,rule:rid,input:inputOf(a,rid),vals:valsOf(a,rid),result:res,by:assignOf(rid),evidence:ev});n++;}return n;}
 function trial(apply){const keep=JSON.stringify(S);const before={};for(const a of S.arts)before[a.id]=state(a);apply();verifyAll();
  const changed=S.arts.filter(a=>state(a)!==before[a.id]).map(a=>a.id);S=JSON.parse(keep);return changed;}
 // 届いているもの
@@ -100,7 +101,7 @@ function answer(reject){if(S.mode==='r59'){for(const c of S.old.cards){S.ops++;c
    S.ops+=Object.keys(S.c.rules).filter(r=>runV(a,r)[0]==='unverified').length;S.old.state[c.id]='承認済み';}S.old.cards=[];return;}
  if(S.pv){S.ops++;if(!reject)S.c={v:S.c.v+1,rules:S.pv.rules};S.pv=null;verifyAll();}
  if(S.pa){S.ops++;S.asg.summary=S.pa.to;S.pa=null;verifyAll();}
- for(const a of S.arts)for(const rid of Object.keys(S.c.rules))if(['unverified','unsupported'].includes(eff(a,rid))){S.ops++;S.judg.push({inst:a.id,rule:rid,shown:inputOf(a,rid,false),verdict:'合っている'});}}
+ for(const a of S.arts)for(const rid of Object.keys(S.c.rules))if(['unverified','unsupported'].includes(eff(a,rid))){S.ops++;S.judg.push({inst:a.id,rule:rid,shown:inputOf(a,rid,false),vals:valsOf(a,rid),verdict:'合っている'});}}
 const card=(id,kind,f)=>{S.old.cards.push({id,kind,f});};
 const STEPS=[
  {t:'AI が記事を5件書く',d:'5件のうち、記事3はタイトルが長すぎ、記事5は要約が本文と矛盾している（規則違反）。記事4は本文が曖昧で、AI には判定できない。',
@@ -112,7 +113,7 @@ const STEPS=[
   why:'新しい作りでは、直した記事は基盤が検証し直し、問題が無ければ誰にも届かない。'},
  {t:'AI が、人の確かめた記事4の本文を直す',d:'AI が記事4の「場所は曖昧なまま」を「3階に移る」に直した。',
   act(){if(S.mode==='r59'){const f=clone(art('記事4').f);f['本文']='窓口は3階に移る。';card('記事4','変更の提案（承認済みなので直接は変えられない）',f);return;}art('記事4').f['本文']='窓口は3階に移る。';verifyAll();},
-  why:'新しい作りでは、人の判断は「判断したときの中身」に結び付いている。中身が変わると前の判断は効かなくなり、基盤が検証し直す。今回は AI が判定できたので、人には届かない。'},
+  why:'新しい作りでは、人の判定は「判断したときの中身」に結び付いている。中身が変わると前の判断は効かなくなり、基盤が検証し直す。今回は AI が判定できたので、人には届かない。'},
  {t:'誰かがファイルを直接書き換える',d:'基盤を通らずに、記事2の要約が書き換えられた。',
   act(){art('記事2').f['要約']='価格を5%上げる';if(S.mode==='r59'&&S.old.state['記事2']==='承認済み'){S.old.state['記事2']='陳腐化';card('記事2','陳腐化したので承認し直してください');}verifyAll();},
   why:'新しい作りは、読むたびに中身のハッシュを記録と照らすので、書き換えに気づいて検証し直す。結果が同じなら人には届かない。'},
@@ -143,13 +144,13 @@ function render(){$('#dots').innerHTML=STEPS.map((_,i)=>'<span class="'+(i<=step
   $('#m'+m).innerHTML='<div class="note">人に届いたもの</div>'+(r.got.length?r.got.map(g=>'<div class="mail">'+g+'</div>').join(''):'<div class="none">何も届かない</div>')+(m==='59'&&st.reject?'<div class="miss">規則が消えたが、人には何も届かない</div>':'')+(m==='60'&&st.reject?'<div class="note">人は差し戻した。規則は残る。</div>':'');}
  $('#why').textContent=st.why;renderInside();}
 function renderInside(){S=W.r60;const h=hist[Math.min(step,STEPS.length-1)].r60;
- const rows=h.newRecs.filter(r=>r.by!=='engine@1').map(r=>'<tr><td>'+r.inst+'</td><td>'+(S.c.rules[r.rule]?S.c.rules[r.rule].name:r.rule)+'</td><td><code>'+r.input+'</code></td><td>'+r.result+'</td><td>'+r.by+'</td></tr>').join('');
- const jr=h.newJ.map(j=>'<tr><td>'+j.inst+'</td><td>'+S.c.rules[j.rule].name+'</td><td><code>'+j.shown+'</code></td><td>'+j.verdict+'</td></tr>').join('');
- $('#recs').innerHTML=step>=STEPS.length?'<p class="note">契約：v'+S.c.v+'（規則 '+Object.keys(S.c.rules).length+'つ）／ validator：'+S.asg.summary+'</p>':'<p><b>この場面で足した判定の記録（AI）：'+h.newRecs.filter(r=>r.by!=='engine@1').length+'件</b>（機械の rule は記録せず毎回計算し直す）</p>'+(rows?'<div class="tw"><table><tr><th>記事</th><th>規則</th><th>入力のハッシュ</th><th>結果</th><th>判定した者</th></tr>'+rows+'</table></div>':'')+(jr?'<p><b>この場面で足した判定の記録（人）：'+h.newJ.length+'件</b></p><table><tr><th>記事</th><th>規則</th><th>見せた中身のハッシュ</th><th>判断</th></tr>'+jr+'</table>':'')+'<p class="note">契約：v'+S.c.v+'（規則 '+Object.keys(S.c.rules).length+'つ）／ validator：'+S.asg.summary+'</p>';
+ const rows=h.newRecs.filter(r=>r.by!=='engine@1').map(r=>'<tr><td>'+r.inst+'</td><td>'+(S.c.rules[r.rule]?S.c.rules[r.rule].name:r.rule)+'</td><td>'+r.vals+'</td><td>'+r.result+'</td><td>'+r.by+'</td></tr>').join('');
+ const jr=h.newJ.map(j=>'<tr><td>'+j.inst+'</td><td>'+S.c.rules[j.rule].name+'</td><td>'+j.vals+'</td><td>'+j.verdict+'</td></tr>').join('');
+ $('#recs').innerHTML=step>=STEPS.length?'<p class="note">契約：規則 '+Object.keys(S.c.rules).length+'つ ／ validator：'+S.asg.summary+'</p>':'<p><b>この場面で足した判定の記録（AI）：'+h.newRecs.filter(r=>r.by!=='engine@1').length+'件</b>（機械の rule は記録せず毎回計算し直す）</p>'+(rows?'<div class="tw"><table><tr><th>記事</th><th>規則</th><th>判定した値（読んだ欄）</th><th>結果</th><th>判定した者</th></tr>'+rows+'</table></div>':'')+(jr?'<p><b>この場面で足した判定の記録（人）：'+h.newJ.length+'件</b></p><table><tr><th>記事</th><th>規則</th><th>判定した値（見た欄）</th><th>判断</th></tr>'+jr+'</table>':'')+'<p class="note">契約：規則 '+Object.keys(S.c.rules).length+'つ ／ validator：'+S.asg.summary+'</p>';
  $('#arts').innerHTML=S.arts.map(a=>'<span class="art" aria-selected="'+(sel===a.id)+'" data-id="'+a.id+'">'+a.id+badge(state(a))+'</span>').join('');
  document.querySelectorAll('.art').forEach(e=>e.onclick=()=>{sel=e.dataset.id;renderInside();});
  const a=art(sel);if(!a){$('#calc').innerHTML='';return;}
- $('#calc').innerHTML='<p><b>'+a.id+' の状態の計算</b></p><table><tr><th>規則</th><th>① いまの中身のハッシュ</th><th>② 一致する検証の記録</th><th>③ 効いている人の判断</th><th>結果</th></tr>'+Object.keys(S.c.rules).map(rid=>{const c=current(a,rid),j=judgOf(a,rid);return'<tr><td>'+S.c.rules[rid].name+'</td><td><code>'+inputOf(a,rid)+'</code></td><td>'+(c?c.result+'（'+c.by+'）':'無い → 確かめ中')+'</td><td>'+(j?(j.ok?j.verdict:'中身が変わったので効かない'):'無い')+'</td><td>'+eff(a,rid)+'</td></tr>';}).join('')+'</table></div><p class="note">④ 結果を並べて、違反があれば下書き → 確かめ中があれば確かめ中 → 判断が要るものがあれば判断待ち → それ以外は検証済み。<b>'+a.id+' は '+state(a)+'</b>。</p>';}
+ $('#calc').innerHTML='<p><b>'+a.id+' の状態の計算</b></p><table><tr><th>規則</th><th>① いまの読む欄の値</th><th>② 値が等しい判定の記録</th><th>③ 効いている人の判定</th><th>結果</th></tr>'+Object.keys(S.c.rules).map(rid=>{const c=current(a,rid),j=judgOf(a,rid);return'<tr><td>'+S.c.rules[rid].name+'</td><td>'+valsOf(a,rid)+'</td><td>'+(c?c.result+'（'+c.by+'）':'無い → 確かめ中')+'</td><td>'+(j?(j.ok?j.verdict:'中身が変わったので効かない'):'無い')+'</td><td>'+eff(a,rid)+'</td></tr>';}).join('')+'</table></div><p class="note">④ 結果を並べて、違反があれば下書き → 確かめ中があれば確かめ中 → 判断が要るものがあれば判断待ち → それ以外は検証済み。<b>'+a.id+' は '+state(a)+'</b>。</p>';}
 $('#next').onclick=()=>{step++;if(step<STEPS.length)run(step);render();};
 $('#prev').onclick=()=>{step--;if(step>=0)run(Math.min(step,STEPS.length-1));render();};
 $('#again').onclick=()=>{step=-1;render();};
