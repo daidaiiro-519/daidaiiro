@@ -5,12 +5,13 @@ metadata:
   type: project
 ---
 
-## 現在地（2026-10-18、第59回）
+## 現在地（2026-10-18、第60回）
 
-- 決着：Q0 ・ Q5 ・ Q8（使う場面 U0〜U15）・ Q9（業務領域と文脈。事業領域はプロダクト、中核は意味の宣言 ・ 意味の検証 ・ 承認と陳腐化の管理 ・ 意味で探す、文脈の境界は1つ）。
-- 回答待ち：Q1（抽象のドメインモデル）。第59回で、使う場面から導いた集約5つ（Concrete スキーマ ・ instance ・ 承認の記録 ・ 変更の提案 ・ 検証の記録）・ 不変条件65行 ・ 能力18 ・ 承認の状態 × 出来事の状態表（6 × 10）で組み直した。材料は .brainstorming/semantic-contract-core/measured/domain-model.json、図は figures/make18.py と make14.py。
-- 前提待ち：Q6（一員8つ）・ Q7（$vocabulary を採ると書いた）・ Q2 ・ Q3（ポート7つ）・ Q4。Q1 が決着したら、Q7 ・ Q3 ・ Q6 の順に開く。
-- Q1 の未決（domain-model.json の open）：時間切れの値 ・ 答えが割れたかを見る回数 ・ 確かめ直しの検証のやり直しの時期 ・ まとめて承認し直す範囲 ・ 承認の依頼を出した instance を止めるか。
+- 決着：Q0 ・ Q5 ・ Q8 ・ Q9。第60回で Q8 ・ Q9 を利用者の判断で改めた（U0 の成功＝最新の公開した版で全 rule が verified、U9＝契約の承認、U16＝判定できなかった rule の判断、U17＝取り込み、U15 は外した。中核は「契約の承認と例外の判断」）。
+- 回答待ち：Q1。人が承認するのは Concrete の版と validator の割り当て（Concrete に1つ）だけ、人が判断するのは判定できなかった rule と AI の判定（覆す）だけ。状態の単位は rule の結果。集約4つ ・ 不変条件 J1〜J27。表 ・ 決定表 ・ 試験22本は measured/model/（model.py ・ gen.py ・ tests.py）から生成する。図は figures/make18.py。
+- 反証は、別の文脈の4つの advisor（meta ・ ddd ・ ux ・ qa）に4回かけた。回答は advisors/r60-*.json。
+- Q1 の未決：error を unverified にする回数 ・ 抜き取りの件数 ・ 外の AI が同じ名前でモデルを替えたことの検出（platform-advisor へ）・ 承認のあとに AI の誤りが見つかったときの残り（O5）。
+- 前提待ち：Q6（一員7つ）・ Q7（$vocabulary）・ Q2 ・ Q3（集約4つ ・ ポート6つ）・ Q4。
 
 ## 次にすること
 
