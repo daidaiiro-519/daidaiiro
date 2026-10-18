@@ -1,0 +1,106 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--page:#eef1ef;--block:#f8faf9;--head:#dfe7e4;--control:#eef1ef;--answer:#d5e6e3;--notice:#f8f3e8;--done:#e3f1df;--removed:#f6e0df;--literal:#eef1ef;--text:#111d1a;--sub:#3c4a46;--key:#0d5c55;--onkey:#f8faf9;--warn:#8f5410;--textdone:#2f6528;--textremoved:#a3262a;--line:#ccd8d4;--linectl:#5b6b66;--linenotice:#d9b77e;--linedone:#3e7b36;--source:#7a3b6d}
+@media (prefers-color-scheme:dark){:root{--page:#0e1614;--block:#16211e;--head:#22302d;--control:#22302d;--answer:#173330;--notice:#241d14;--done:#1c2b19;--removed:#3a1c1d;--literal:#0e1614;--text:#e6eeeb;--sub:#c2cec9;--key:#6cc9b8;--onkey:#16211e;--warn:#d9a35f;--textdone:#a6d69b;--textremoved:#f0a3a0;--line:#2a3936;--linectl:#93a29d;--linenotice:#6e5738;--linedone:#86c27a;--source:#d094c2}}
+*{box-sizing:border-box}
+body{margin:0;padding:12px 16px;background:var(--page);color:var(--text);font:14px/1.7 "Zen Kaku Gothic New", system-ui, sans-serif}
+button{font:inherit;cursor:pointer;border:1px solid var(--linectl);background:var(--control);color:var(--text);border-radius:6px;padding:4px 14px}
+button.key{background:var(--key);color:var(--onkey);border-color:var(--key)}
+button:disabled{opacity:.4;cursor:default}
+.lead{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.dots{display:flex;gap:4px}
+.dots span{width:22px;height:6px;border-radius:3px;background:var(--head);border:1px solid var(--line)}
+.dots span.on{background:var(--key);border-color:var(--key)}
+.story{background:var(--answer);border:1px solid var(--key);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.story .n{font-size:12px;color:var(--sub)}
+.story .t{font-size:16px;font-weight:700}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+.col{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.col h4{margin:0 0 2px;font-size:14px}
+.col .sub{font-size:12px;color:var(--sub);margin-bottom:6px}
+.f{border:1px solid var(--line);background:var(--literal);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:12px;overflow-x:auto}
+.f.new{outline:2px solid var(--key)}
+.f .p{font-weight:700}
+.sid{background:var(--notice);color:var(--warn);border:1px solid var(--linenotice);border-radius:10px;padding:0 6px;font-size:11px}
+.tag{border:1px solid var(--line);background:var(--head);border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
+.none{color:var(--sub);font-size:13px}
+.view{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px}
+.view h4{margin:0 0 6px;font-size:14px}
+.ex{border:1px solid var(--textremoved);background:var(--removed);color:var(--textremoved);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:13px}
+.why{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:10px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:12px;margin-top:4px}
+th,td{border:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
+th{background:var(--head)}
+code{font-family:"JetBrains Mono",monospace;font-size:11px}
+.note{color:var(--sub);font-size:12px}
+</style></head><body>
+<div class="lead">記事を書く Skill を例に、<b>1つのセッション（と子のセッション）で変えたものに同じセッション ID が付き、それは手元だけに残り、コミットにはセッション ID を外した記録が入る</b>流れを見る。「次へ」で1場面ずつ進む。<span class="sid">s-7f3a</span> の印は、セッション ID を持つデータ。</div>
+<div class="nav"><button id="prev">前へ</button><button id="next" class="key">次へ</button><div class="dots" id="dots"></div><button id="again">はじめから</button></div>
+<div class="story"><div class="n" id="no"></div><div class="t" id="title"></div><div id="detail"></div></div>
+<div class="grid">
+ <div class="col"><h4>手元（gitignore。コミットしない）</h4><div class="sub"><code>.ssc/sessions/</code> ── セッション ID を持つ記録</div><div id="local"></div></div>
+ <div class="col"><h4>リポジトリ（コミットする）</h4><div class="sub">中身の変更と、セッション ID を外した変更の記録</div><div id="repo"></div></div>
+</div>
+<div class="view" id="viewbox"><h4 id="vh"></h4><div id="view"></div></div>
+<div class="why" id="why"></div>
+<script>
+const $=s=>document.querySelector(s);
+const S=(id,sid,chain,who)=>({k:'s',id,sid,chain,who});
+const C=(id,sid,reason,purpose,items)=>({k:'c',id,sid,reason,purpose,items});
+const R=(path,what,st)=>({k:'r',path,what,st});
+const sess=s=>'<div class="f"><span class="p">'+s.sid+'.json</span> <span class="sid">'+s.sid+'</span><br>親までの id の並び：'+(s.chain.length?s.chain.join(' → '):'（無い。根のセッション）')+' ／ 作業した者：'+s.who+'</div>';
+const rec=(c,withSid)=>'<div class="f"><span class="p">'+(withSid?c.sid+'/'+c.id:'.changes/'+c.id)+'.json</span>'+(withSid?' <span class="sid">'+c.sid+'</span>':'')+'<br>理由：'+c.reason+'<br>目的の参照：'+c.purpose+'<br>項目：'+c.items.map(i=>'<code>'+i+'</code>').join(' ・ ')+'</div>';
+const file=r=>'<div class="f"><span class="p">'+r.path+'</span><span class="tag">'+r.st+'</span><br>'+r.what+'</div>';
+const s1=S('s1','s-7f3a',[],'AI の Agent（Claude Code）');
+const s2=S('s2','s-91c2',['s-7f3a'],'AI の Agent（子のセッション）');
+const c1=C('c-1','s-7f3a','価格改定を反映する（5% → 8%）','ACDR-0201',['記事2 /本文']);
+const c2=C('c-2','s-91c2','本文の改定に要約を合わせる','ACDR-0201',['記事2 /要約']);
+const c3=C('c-3','s-91c2','改定の告知を足す','ACDR-0201',['記事3 /本文']);
+const U=(id)=>({c1:'9b1e7c40',c2:'d04a2e91',c3:'51f7b0c3'})[id];
+const STEPS=[
+ {t:'セッションが始まる',d:'AI の Agent が作業を始める。基盤は、呼ぶ側（AI のツール ・ harness）からセッション ID s-7f3a を受け取る。',
+  local:[sess(s1)],repo:[],vh:'',view:'',
+  why:'セッション ID は、そのセッションで作ったもの ・ 変えたものすべてに付く。置くのは手元の .ssc/sessions/ だけで、ここは gitignore されている。'},
+ {t:'AI が記事2の本文を変える',d:'目的は ACDR-0201（価格改定）。AI は instance を書くときに、理由と目的の参照を一緒に渡す。',
+  local:[sess(s1),rec(c1,1)],repo:[file(R('articles/記事2.json','/本文：5% → 8%','変更あり（未コミット）'))],vh:'',view:'',
+  why:'変更の記録 c-1 は、まず手元にセッション ID 付きで残る。リポジトリ側には、まだ中身の変更しかない。',new:1},
+ {t:'子のセッションが要約と告知を直す',d:'Agent が子のセッション s-91c2 に任せ、記事2の要約と記事3の本文を直させた。',
+  local:[sess(s1),rec(c1,1),sess(s2),rec(c2,1),rec(c3,1)],repo:[file(R('articles/記事2.json','/本文 ・ /要約','変更あり（未コミット）')),file(R('articles/記事3.json','/本文：告知を足す','変更あり（未コミット）'))],vh:'',view:'',
+  why:'子のセッションの記録には、子の ID s-91c2 と、根から親までの id の並び（s-7f3a）が付く。何も変えなかった中間のセッションがあっても、つながりは切れない。'},
+ {t:'開発者が「このセッションで何を変えたか」を見る',d:'開発者が s-7f3a で引く。',
+  local:[sess(s1),rec(c1,1),sess(s2),rec(c2,1),rec(c3,1)],repo:[file(R('articles/記事2.json','/本文 ・ /要約','変更あり（未コミット）')),file(R('articles/記事3.json','/本文：告知を足す','変更あり（未コミット）'))],
+  vh:'手元で s-7f3a を引いた結果（子のセッションを含む）',view:'<div class="tw"><table><tr><th>セッション</th><th>対象 ・ 欄</th><th>理由</th></tr><tr><td>s-7f3a</td><td>記事2 /本文</td><td>価格改定を反映する（5% → 8%）</td></tr><tr><td>s-91c2（子）</td><td>記事2 /要約</td><td>本文の改定に要約を合わせる</td></tr><tr><td>s-91c2（子）</td><td>記事3 /本文</td><td>改定の告知を足す</td></tr></table></div><p class="note">セッションで引けるのは、セッション ID を持つ記録がある手元だけ。</p>',
+  why:'DB は使わない。手元の記録のファイルを、セッション ID と親までの id の並びで引く。'},
+ {t:'誰かが記事1を直接書き換える',d:'基盤を通らずに、エディタで記事1のタイトルが書き換えられた。',
+  local:[sess(s1),rec(c1,1),sess(s2),rec(c2,1),rec(c3,1)],repo:[file(R('articles/記事1.json','/タイトル','変更あり（未コミット）')),file(R('articles/記事2.json','/本文 ・ /要約','変更あり（未コミット）')),file(R('articles/記事3.json','/本文：告知を足す','変更あり（未コミット）'))],vh:'',view:'',
+  why:'基盤を通っていないので、変更の記録はどこにも無い。次の場面で、記録と実際の差分を突き合わせたときに見つかる。'},
+ {t:'コミットする',d:'コミットするときに、基盤が手元の記録からセッション ID を外した変更の記録を作り、中身の変更と一緒にコミットに入れる。',
+  local:[sess(s1),rec(c1,1),sess(s2),rec(c2,1),rec(c3,1)],
+  repo:[file(R('articles/記事1.json','/タイトル','コミット')),file(R('articles/記事2.json','/本文 ・ /要約','コミット')),file(R('articles/記事3.json','/本文','コミット')),rec(Object.assign({},c1,{id:U('c1')}),0),rec(Object.assign({},c2,{id:U('c2')}),0),rec(Object.assign({},c3,{id:U('c3')}),0)],
+  vh:'コミットの前に出る例外',view:'<div class="ex">記録に無い：記事1 /タイトル（基盤を通らない書き換え）</div><p class="note">コミットの中身：記事3件 ＋ .changes/ の記録3件。<code>.ssc/sessions/</code> は入らない。記録の id は、ほかの書き手と打ち合わせずに一意な値（9b1e7c40 など）。</p>',
+  why:'コミットに入る記録には、理由 ・ 目的の参照 ・ 変更の項目だけが残り、セッション ID は無い。誰が出したか ・ いつかは Git が持つ。'},
+ {t:'レビューする人が PR で見る',d:'別の人が、目的 ACDR-0201 で変更をまとめて見る。harness は、この出力を PR に載せる。',
+  local:[],repo:[],vh:'目的 ACDR-0201 で組み立てたまとまり（レビューする人の画面）',
+  view:'<div class="ex">例外 1件：記録に無い ── 記事1 /タイトル</div><div class="tw"><table><tr><th>対象</th><th>欄</th><th>理由</th><th>理由と変更が合っているか</th><th>変更後の検証</th></tr><tr><td>記事2</td><td>/本文</td><td>価格改定を反映する（5% → 8%）</td><td>verified</td><td>検証済み</td></tr><tr><td>記事2</td><td>/要約</td><td>本文の改定に要約を合わせる</td><td>verified</td><td>検証済み</td></tr><tr><td>記事3</td><td>/本文</td><td>改定の告知を足す</td><td>verified</td><td>検証済み</td></tr></table></div><p class="note">見ていないもの：ソースコード ・ テストのコード。セッション ID は出ない（レビューする人の手元には無い）。</p>',
+  why:'レビューする人はファイルの差分を1つずつ開かず、例外1件と3行の理由を見て判断する。セッション ID が無くても、目的の参照で引ける。'},
+ {t:'あとから監査する人が記事2の経緯を見る',d:'数か月後、別の人が「記事2はなぜ今の本文なのか」を記事2で引く。',
+  local:[],repo:[],vh:'記事2で引いた経緯（コミットされた記録から）',
+  view:'<div class="tw"><table><tr><th>欄</th><th>理由</th><th>目的</th><th>いつ ・ 誰が（Git から）</th></tr><tr><td>/本文</td><td>価格改定を反映する（5% → 8%）</td><td>ACDR-0201</td><td>コミットの時刻と出した者</td></tr><tr><td>/要約</td><td>本文の改定に要約を合わせる</td><td>ACDR-0201</td><td>コミットの時刻と出した者</td></tr></table></div><p class="note">セッションでは引けない（セッション ID はコミットされていない）。</p>',
+  why:'経緯（U13）は、コミットされた記録で対象 ・ 目的から引ける。セッションで引くのは、作業した本人の手元だけ。'},
+];
+let step=-1;
+function render(){$('#dots').innerHTML=STEPS.map((_,i)=>'<span class="'+(i<=step?'on':'')+'"></span>').join('');
+ $('#prev').disabled=step<0;$('#next').disabled=step>=STEPS.length-1;
+ if(step<0){$('#no').textContent='はじめに';$('#title').textContent='価格改定（ACDR-0201）を記事に反映する作業';$('#detail').textContent='AI の Agent が、子のセッションも使いながら記事を直し、最後にコミットして PR を出す。';
+  $('#local').innerHTML=$('#repo').innerHTML='<div class="none">まだ何も無い</div>';$('#viewbox').style.display='none';$('#why').textContent='左が手元だけに残るもの、右がコミットされて共有されるもの。';return;}
+ const s=STEPS[step];$('#no').textContent='場面 '+(step+1)+' / '+STEPS.length;$('#title').textContent=s.t;$('#detail').textContent=s.d;
+ const keep=step>=6?'<div class="none">（ほかの人の画面なので、書いた人の手元は見えない）</div>':'';
+ $('#local').innerHTML=s.local.length?s.local.join(''):keep||'<div class="none">無い</div>';
+ $('#repo').innerHTML=s.repo.length?s.repo.join(''):(step>=6?'<div class="none">前の場面でコミットしたもの（記事3件 ＋ .changes/ の記録3件）</div>':'<div class="none">変更なし</div>');
+ $('#viewbox').style.display=s.vh?'':'none';$('#vh').textContent=s.vh;$('#view').innerHTML=s.view;$('#why').textContent=s.why;}
+$('#next').onclick=()=>{step++;render();};$('#prev').onclick=()=>{step--;render();};$('#again').onclick=()=>{step=-1;render();};
+render();
+</script></body></html>
