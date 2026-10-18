@@ -1,0 +1,808 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-schema-core:semantic-abstract-schema:v1",
+ "$vocabulary": {
+  "https://json-schema.org/draft/2020-12/vocab/core": true,
+  "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+  "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+  "https://json-schema.org/draft/2020-12/vocab/validation": true,
+  "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+  "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+  "https://json-schema.org/draft/2020-12/vocab/content": true,
+  "urn:semantic-schema-core:vocab:v1": true
+ },
+ "title": "Semantic Abstract Schema v1 の本体",
+ "description": "Semantic Concrete Schema が従う契約の版 v1。Concrete は $schema にこの $id を書いて、使う版と作法の版を示す。Concrete が足す x- は x-definitions に作法どおりに定義する。検証役の名前は x- の定義と rule の validator に書き、x-validators はその名前から実体を引く表である。x-relationship と判定する者の形は annotations が、x-prompt ・ x-derive ・ x-view ・ rule ・ 変えてよい範囲 ・ 公開する部分の形はこの本体の $defs が持つ。",
+ "allOf": [
+  {
+   "$ref": "https://json-schema.org/draft/2020-12/schema"
+  }
+ ],
+ "x-prompt": {
+  "read": {
+   "means": "Concrete を書く人が従う契約で、従っていれば基盤が中身を知らずに使える。",
+   "when": "Concrete を書く前と、Concrete を照らした指摘を直すときに読む。"
+  },
+  "write": [
+   {
+    "id": "generates-kind",
+    "rule": "インスタンスを作るスキーマには x-generates を書き、根の properties に kind（const）を置く。",
+    "why": "基盤は kind でインスタンスの種類を判定し、描画のしかたを選ぶ。",
+    "test": "x-generates を持つスキーマの根に、kind の const があるかを見る。",
+    "by": "machine"
+   },
+   {
+    "id": "generates-schema-name",
+    "rule": "インスタンスを作るスキーマは、根の properties に $schema を置き、const にこのスキーマの $id を書く。",
+    "why": "インスタンスの $schema に、このスキーマの名前以外が書かれるのを、書いたその場で止める。",
+    "test": "properties.$schema.const が $id と同じかを見る。",
+    "by": "core"
+   },
+   {
+    "id": "prompt-per-unit",
+    "rule": "書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt を書く。",
+    "why": "Scaffold は、書く単位ごとの x-prompt を返す。",
+    "test": "書く単位のどれにも description と x-prompt があるかを見る。",
+    "by": "machine"
+   },
+   {
+    "id": "no-prompt-on-leaf",
+    "rule": "入れ子の奥の葉には x-prompt を書かない。",
+    "why": "親の x-prompt が葉まで案内するので、葉にも書くと同じ決まりが2か所に並ぶ。",
+    "test": "x-prompt を持つ葉の親が、同じ決まりを持っていないかを見る。",
+    "by": "ai",
+    "bad": "verification.passed[].option に x-prompt を書く。",
+    "good": "verification.passed の x-prompt に、option の書き方も書く。"
+   },
+   {
+    "id": "list-as-array",
+    "rule": "並びになる値は、文字列に詰めず配列の型にする。",
+    "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
+    "test": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。",
+    "by": "ai"
+   },
+   {
+    "id": "core-keywords-closed",
+    "rule": "x- で始まるキーは、Core の x- か、このスキーマの x-definitions にある名前だけを使う。",
+    "why": "知らない x- を通すと、検証されない宣言が合格に見え、Core に無い保存の形（DB ・ テーブル）の宣言も通る。",
+    "test": "x- で始まるキーが Core の x- の定義か x-definitions にあり、保存の形を宣言するキーでないかを見る。",
+    "by": "core"
+   },
+   {
+    "id": "term-by-ref",
+    "rule": "欄が glossary の term を指すときは、標準の $ref で glossary の URN と $anchor を指す。",
+    "why": "Semantic Schema Resolver は、$ref の指す先から欄の term を静的にたどる。",
+    "test": "term を指す $ref の先が、閉じた一覧の glossary の $anchor かを見る。",
+    "by": "core"
+   },
+   {
+    "id": "rule-validator",
+    "rule": "どの決まりにも by を書き、by が tool か ai なら validator に検証役の名前も書く。",
+    "why": "基盤は by で判定する者を選び、validator の名前を x-validators で引いて実体を起動する。",
+    "test": "決まりに by があり、by が tool か ai の決まりに validator があるかを見る。",
+    "by": "machine"
+   },
+   {
+    "id": "rule-reads",
+    "rule": "by が ai か human の決まりには、読む欄を reads に、使う term を terms に書く。",
+    "why": "基盤は AI に読む欄と term の値の写しだけを渡し、判定した値として残す。",
+    "test": "by が ai か human の決まりに reads があるかを見る。",
+    "by": "machine"
+   },
+   {
+    "id": "nested-fields",
+    "rule": "入れ子の欄（items ・ allOf ・ 入れ子の properties）にも、根の欄と同じく x- と rule の決まりを守る。",
+    "why": "本体は $dynamicAnchor を書かないので、入れ子の欄には本体の形の決まりが掛からず、Core が確かめる。",
+    "test": "入れ子の欄の x- が Core の x- か x-definitions にあり、rule が $defs/rule の形かを見る。",
+    "by": "core"
+   }
+  ]
+ },
+ "type": "object",
+ "required": [
+  "$schema",
+  "title",
+  "description"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string",
+   "format": "uri",
+   "description": "従う Abstract の版",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマが従う Abstract の版と作法の版で、閉じた一覧のどれかである。"
+    },
+    "write": [
+     {
+      "id": "closed-list",
+      "rule": "Abstract の版の $id を書く。",
+      "why": "基盤は閉じた一覧に無い $schema を取りに行かずに断る。",
+      "test": "値が閉じた一覧のどれかと同じかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "$id": {
+   "type": "string",
+   "pattern": "^urn:(?!x-)[a-z0-9][a-z0-9-]{0,30}[a-z0-9]:[a-z0-9][a-z0-9-]*:v[0-9]+$",
+   "description": "スキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "インスタンスが $schema で指す、このスキーマの名前である。",
+     "parse": "urn:<Skill か Agent の名前>:<種類>:v<版> の形で、版は v と数字である。"
+    },
+    "write": [
+     {
+      "id": "context-kind-version",
+      "rule": "urn:<Skill か Agent の名前>:<種類>:v<版> の形で書く。",
+      "why": "Semantic Schema Resolver は、Skill と Agent の置き場所から、この名前でスキーマを引く。",
+      "test": "名前空間が、このスキーマを持つ Skill か Agent のフォルダの名前かを見る。",
+      "by": "core"
+     },
+     {
+      "id": "nid-form",
+      "rule": "Skill か Agent の名前は、英数字で始まり英数字で終わる32文字までにし、x- で始めない。",
+      "why": "名前は URN の NID なので、RFC 8141 の NID の決まりに合わないと URN にならない。",
+      "test": "$id が pattern に合うかを見る。",
+      "by": "machine"
+     },
+     {
+      "id": "never-reuse",
+      "rule": "公開した版の中身を変えるときは、版を上げた新しい名前で足す。",
+      "why": "同じ名前で中身が変わると、前に書いたインスタンスが別のスキーマで検査される。",
+      "test": "公開した版の名前の中身が、公開した時と同じかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "title": {
+   "type": "string",
+   "minLength": 1,
+   "description": "スキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマが表すものの名前である。",
+     "shown": "描画したページの題と、Concrete を照らした結果に出る。"
+    },
+    "write": [
+     {
+      "id": "noun",
+      "rule": "インスタンスが何であるかを、名詞で書く。",
+      "why": "読む人は題だけで、何のインスタンスかを判断する。",
+      "test": "題が名詞で終わっているかを見る。",
+      "by": "ai",
+      "bad": "意思決定を記録するためのもの",
+      "good": "意思決定の記録"
+     }
+    ]
+   }
+  },
+  "description": {
+   "type": "string",
+   "minLength": 1,
+   "description": "スキーマの説明",
+   "x-prompt": {
+    "read": {
+     "means": "インスタンスが何で、何を書かないかの説明である。"
+    },
+    "write": [
+     {
+      "id": "what-and-not",
+      "rule": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を書く。",
+      "why": "書かないものが分からないと、ほかのスキーマと同じことを2か所に書く。",
+      "test": "説明に、書かないものが1つ以上あるかを見る。",
+      "by": "ai"
+     }
+    ]
+   }
+  },
+  "x-generates": {
+   "type": "string",
+   "minLength": 1,
+   "description": "このスキーマが作るインスタンスの置き場所",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマのインスタンスが作られる置き場所である。",
+     "parse": "<…> の部分は、番号や名前が入る場所である。"
+    },
+    "write": [
+     {
+      "id": "placeholder",
+      "rule": "番号や名前の部分を <…> にして、インスタンスのファイルの置き場所を書く。",
+      "why": "読む人とツールが、同じ置き場所に作る。",
+      "test": "<…> 以外の部分が、実際の置き場所と同じかを見る。",
+      "by": "core"
+     },
+     {
+      "id": "only-for-instances",
+      "rule": "インスタンスを作らない部品のスキーマには書かない。",
+      "why": "書くと、作られないインスタンスの kind を探すことになる。",
+      "test": "$defs だけを持つスキーマに x-generates が無いかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "x-definitions": {
+   "type": "object",
+   "description": "Concrete が足す x- の定義（作法の1）",
+   "propertyNames": {
+    "pattern": "^x-[a-z0-9-]+$"
+   },
+   "additionalProperties": {
+    "type": "object",
+    "required": [
+     "schema",
+     "description",
+     "x-prompt"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "schema": {
+      "$ref": "https://json-schema.org/draft/2020-12/schema",
+      "description": "x- の値の形（JSON Schema）。$ref の指す先にしない"
+     },
+     "description": {
+      "type": "string",
+      "minLength": 1
+     },
+     "x-prompt": {
+      "$ref": "#/$defs/prompt"
+     },
+     "by": {
+      "$ref": "urn:semantic-schema-core:annotations:v1#/$defs/judge",
+      "description": "この x- を判定する者。書かなければ、この x- の検証結果は unsupported になる"
+     },
+     "validator": {
+      "type": "string",
+      "minLength": 1,
+      "description": "任せる検証役の名前。実体は x-validators でこの名前から引く"
+     }
+    },
+    "if": {
+     "required": [
+      "by"
+     ],
+     "properties": {
+      "by": {
+       "enum": [
+        "tool",
+        "ai"
+       ]
+      }
+     }
+    },
+    "then": {
+     "required": [
+      "validator"
+     ]
+    }
+   },
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマが足した x- の、値の形 ・ 意味 ・ 判定する者 ・ 任せる検証役の名前である。"
+    },
+    "write": [
+     {
+      "id": "no-core-names",
+      "rule": "Core の x- と同じ名前を使わない。",
+      "why": "Core の x- とぶつかると、どちらの意味で読むかが決まらない。",
+      "test": "名前が Core の x- の定義と重なっていないかを見る。",
+      "by": "core"
+     },
+     {
+      "id": "validator-by-name",
+      "rule": "by が tool か ai なら、validator に検証役の名前を書く。",
+      "why": "検証役の名前を書く場所を x- の定義と rule の1か所にし、x-validators はその名前を引く表にする。",
+      "test": "by が tool か ai の定義に validator があるかを見る。",
+      "by": "machine"
+     },
+     {
+      "id": "no-ref-into-definitions",
+      "rule": "x-definitions の中の schema を、$ref の指す先にしない。",
+      "why": "知らないキーワードの中にある指す先は、JSON Schema の実装ごとに振る舞いが決まっていない。",
+      "test": "どの $ref も x-definitions の中を指していないかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "x-validators": {
+   "type": "object",
+   "description": "検証役の名前から実体への割り当て。名前は x- の定義と rule の validator に書いたもので、実体は AI ならモデルの名前、外のツールならコマンド",
+   "additionalProperties": {
+    "type": "string",
+    "minLength": 1
+   },
+   "x-prompt": {
+    "read": {
+     "means": "x- の定義と rule の validator に書いた名前を、どの実体で起動するかの表である。"
+    },
+    "write": [
+     {
+      "id": "every-delegated",
+      "rule": "validator に書いた名前のそれぞれに、実体を書く。AI はモデルの名前、外のツールはコマンドを書く。",
+      "why": "名前を引けないと、基盤は呼ぶ検証役を決められず unsupported と返す。",
+      "test": "x- の定義と rule の validator に書いた名前が、すべてここにあるかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "x-writable": {
+   "$ref": "#/$defs/writable",
+   "description": "変えてよい範囲。AI が書いてよい欄",
+   "x-prompt": {
+    "read": {
+     "means": "AI が出した変更が書いてよい欄の並びで、外を変えた変更は取り込めない。"
+    },
+    "write": [
+     {
+      "id": "pointer-exists",
+      "rule": "並べる JSON Pointer は、このスキーマの properties に在る欄を指す。",
+      "why": "在らない欄を指すと、AI が書いてよい欄が決まらない。",
+      "test": "どの JSON Pointer も、このスキーマの欄を指しているかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "x-published": {
+   "$ref": "#/$defs/published",
+   "description": "ほかの文脈へ見せる部分と、その版",
+   "x-prompt": {
+    "read": {
+     "means": "ほかの文脈が x-relationship で指してよい term ・ x- の定義 ・ 欄と、その版である。"
+    },
+    "write": [
+     {
+      "id": "version-in-id",
+      "rule": "version は、$id の v<版> と同じ数にする。",
+      "why": "ほかの文脈は $id の URN で公開された版を指すので、2つがずれると指した版が決まらない。",
+      "test": "version と $id の v<版> が同じ数かを見る。",
+      "by": "core"
+     },
+     {
+      "id": "only-own",
+      "rule": "並べる term ・ x- の定義 ・ 欄は、このスキーマの $id の範囲にあるものだけにする。",
+      "why": "ほかの文脈の言葉を公開すると、持ち主でない文脈が版を決めることになる。",
+      "test": "並べたものが、このスキーマの glossary ・ x-definitions ・ properties にあるかを見る。",
+      "by": "core"
+     }
+    ]
+   }
+  },
+  "x-prompt": {
+   "$ref": "#/$defs/prompt"
+  },
+  "properties": {
+   "$ref": "#/$defs/fields"
+  },
+  "$defs": {
+   "type": "object",
+   "additionalProperties": {
+    "$ref": "#/$defs/shape"
+   }
+  }
+ },
+ "if": {
+  "required": [
+   "x-generates"
+  ]
+ },
+ "then": {
+  "required": [
+   "properties",
+   "$id"
+  ],
+  "properties": {
+   "properties": {
+    "required": [
+     "kind",
+     "$schema"
+    ],
+    "properties": {
+     "kind": {
+      "required": [
+       "const"
+      ]
+     },
+     "$schema": {
+      "required": [
+       "const"
+      ]
+     }
+    }
+   }
+  }
+ },
+ "$defs": {
+  "shape": {
+   "type": "object",
+   "description": "$defs の形1つ。プロパティを持つなら、その書く単位に説明と案内を求める",
+   "properties": {
+    "properties": {
+     "$ref": "#/$defs/fields"
+    },
+    "x-view": {
+     "$ref": "#/$defs/view"
+    }
+   }
+  },
+  "fields": {
+   "type": "object",
+   "description": "書く単位の並び",
+   "properties": {
+    "$schema": true
+   },
+   "additionalProperties": {
+    "$ref": "#/$defs/field"
+   }
+  },
+  "field": {
+   "type": "object",
+   "description": "書く単位1つ。x-relationship の形は annotations が、x-derive と x-view の形はこの本体の $defs が持つ",
+   "required": [
+    "description",
+    "x-prompt"
+   ],
+   "properties": {
+    "description": {
+     "type": "string",
+     "minLength": 1
+    },
+    "x-prompt": {
+     "$ref": "#/$defs/prompt"
+    },
+    "x-relationship": {
+     "$ref": "urn:semantic-schema-core:annotations:v1#/$defs/relationship",
+     "description": "指す先の instance が在ることを検査する。to は指す先の種類（Concrete の $id の URN）、inverse は指される数の決まり（minItems ・ maxItems）"
+    },
+    "x-derive": {
+     "$ref": "#/$defs/derive"
+    },
+    "x-view": {
+     "$ref": "#/$defs/view"
+    }
+   }
+  },
+  "derive": {
+   "type": "object",
+   "description": "x-derive。オブジェクトの答えから、決まりに従って値を導く。declared があれば宣言した値と比べ、expect があればほかの場所との組み合わせを確かめる",
+   "required": [
+    "rules",
+    "otherwise"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "title": {
+     "type": "string",
+     "minLength": 1,
+     "description": "導出値の見出し。検査には使わない"
+    },
+    "rules": {
+     "type": "array",
+     "minItems": 1,
+     "description": "上から当て、最初に当たった決まりの then が導出値になる",
+     "items": {
+      "type": "object",
+      "required": [
+       "when",
+       "then"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "when": {
+        "type": "object",
+        "minProperties": 1
+       },
+       "then": {
+        "type": [
+         "string",
+         "number",
+         "boolean"
+        ]
+       }
+      }
+     }
+    },
+    "otherwise": {
+     "type": [
+      "string",
+      "number",
+      "boolean"
+     ],
+     "description": "どの決まりにも当たらないときの導出値"
+    },
+    "declared": {
+     "type": "string",
+     "minLength": 1,
+     "description": "導出値と比べる、同じオブジェクトの中のプロパティの名前"
+    },
+    "expect": {
+     "type": "array",
+     "description": "インスタンスのほかの場所の値との組み合わせの決まり"
+    }
+   },
+   "x-prompt": {
+    "read": {
+     "means": "オブジェクトの答えから値を導く決まりである。",
+     "parse": "rules を上から見て最初に当たった then を導出値とし、どれにも当たらなければ otherwise を導出値とする。"
+    },
+    "write": [
+     {
+      "id": "only-mechanical",
+      "rule": "オブジェクトの中の答えから、別の値を機械的に決める決まりがあるときに書く。",
+      "why": "人の判断が入る値は、決まりで導けない。",
+      "test": "答えの組み合わせから、値が1つに決まるかを見る。",
+      "by": "ai"
+     }
+    ]
+   }
+  },
+  "view": {
+   "type": "object",
+   "description": "x-view。値を人が読む文にする型と、参照されたときの名前。text ・ cases ・ parts ・ maps ・ label ・ hidden を持つ",
+   "additionalProperties": false,
+   "dependentSchemas": {
+    "hidden": {
+     "maxProperties": 1
+    }
+   },
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "どの cases にも当たらないときの文の型。{…} の中は JMESPath 式"
+    },
+    "cases": {
+     "type": "array",
+     "minItems": 1,
+     "description": "値によって言い方を変える。上から当て、最初に当たった text を使う"
+    },
+    "parts": {
+     "type": "object",
+     "description": "名前を付けた部分の文の型"
+    },
+    "maps": {
+     "type": "object",
+     "description": "値を文の中の語へ言い換える表"
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "description": "この形の値が参照されたときに、名前として出す JMESPath 式"
+    },
+    "hidden": {
+     "const": true,
+     "description": "描画に出さない。ほかのキーと一緒に書かない"
+    }
+   },
+   "x-prompt": {
+    "read": {
+     "means": "1つの形の値を、文にするか、名前として出すか、出さないかの決まりである。"
+    },
+    "write": [
+     {
+      "id": "hidden-alone",
+      "rule": "描画に出さないなら、hidden: true だけを書く。",
+      "why": "ほかのキーと一緒に書くと、出すのか出さないのかが決まらない。",
+      "test": "hidden がある x-view に、ほかのキーが無いかを見る。",
+      "by": "machine"
+     }
+    ]
+   }
+  },
+  "prompt": {
+   "type": "object",
+   "description": "x-prompt。read は値の読み方を観点ごとに、write は書くときの決まりを1件ずつ持つ",
+   "required": [
+    "read",
+    "write"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "read": {
+     "$ref": "#/$defs/reading"
+    },
+    "write": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/rule"
+     }
+    }
+   }
+  },
+  "reading": {
+   "type": "object",
+   "description": "値の読み方。観点ごとに1文",
+   "required": [
+    "means"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "means": {
+     "$ref": "#/$defs/sentence",
+     "description": "何を表すか"
+    },
+    "shown": {
+     "$ref": "#/$defs/sentence",
+     "description": "どこにどう出るか"
+    },
+    "parse": {
+     "$ref": "#/$defs/sentence",
+     "description": "値をどう解くか"
+    },
+    "when": {
+     "$ref": "#/$defs/sentence",
+     "description": "いつ、何のために読むか"
+    }
+   }
+  },
+  "rule": {
+   "type": "object",
+   "description": "書くときの決まり1件",
+   "required": [
+    "id",
+    "rule",
+    "why",
+    "test",
+    "by"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "rule": {
+     "$ref": "#/$defs/sentence"
+    },
+    "why": {
+     "$ref": "#/$defs/sentence"
+    },
+    "test": {
+     "$ref": "#/$defs/sentence"
+    },
+    "by": {
+     "$ref": "urn:semantic-schema-core:annotations:v1#/$defs/judge",
+     "description": "この決まりを判定する者。判定する者の5つのどれか"
+    },
+    "validator": {
+     "type": "string",
+     "minLength": 1,
+     "description": "任せる検証役の名前。実体は x-validators でこの名前から引く"
+    },
+    "reads": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "format": "json-pointer"
+     },
+     "description": "読む欄。instance の JSON Pointer の並び"
+    },
+    "terms": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "format": "uri-reference",
+      "pattern": "^urn:[^#]+:glossary:v[0-9]+#[A-Za-z_][-A-Za-z0-9._]*$"
+     },
+     "description": "使う term。値は、欄が term を指す $ref と同じ形（urn:<名前>:glossary:v<版>#<名前>）"
+    },
+    "required": {
+     "type": "boolean",
+     "description": "検証できなければ全体を成功にしない決まりか"
+    },
+    "bad": {
+     "type": "string",
+     "minLength": 1
+    },
+    "good": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "dependentRequired": {
+    "bad": [
+     "good"
+    ],
+    "good": [
+     "bad"
+    ]
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "by": {
+        "enum": [
+         "tool",
+         "ai"
+        ]
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "validator"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "by": {
+        "enum": [
+         "ai",
+         "human"
+        ]
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "reads"
+      ]
+     }
+    }
+   ]
+  },
+  "sentence": {
+   "type": "string",
+   "minLength": 1,
+   "maxLength": 120
+  },
+  "writable": {
+   "type": "array",
+   "description": "変えてよい範囲。AI が書いてよい欄を、instance の JSON Pointer で並べる",
+   "items": {
+    "type": "string",
+    "format": "json-pointer"
+   },
+   "uniqueItems": true
+  },
+  "published": {
+   "type": "object",
+   "description": "公開する部分。ほかの文脈へ見せる term ・ x- の定義 ・ 指される欄の形と、その版",
+   "required": [
+    "version"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "version": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "公開する部分の版。出した版は変えない"
+    },
+    "terms": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^urn:[^#]+:glossary:v[0-9]+#[A-Za-z_][-A-Za-z0-9._]*$"
+     },
+     "description": "公開する term。欄が term を指す $ref と同じ形で書く"
+    },
+    "definitions": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^x-[a-z0-9-]+$"
+     },
+     "description": "公開する x- の定義の名前"
+    },
+    "fields": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "format": "json-pointer"
+     },
+     "description": "ほかの文脈から x-relationship で指される欄の JSON Pointer"
+    }
+   }
+  }
+ }
+}

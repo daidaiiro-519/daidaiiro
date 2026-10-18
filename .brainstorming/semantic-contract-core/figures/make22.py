@@ -1,3 +1,4 @@
+# 注意（第93回）：第75回以降、Q1 の図はボード側で直接直している。このファイルを走らせると、その図を古いドメインモデルで上書きする。走らせない。
 # 第67回の図：使う場面と業務領域から導き直したドメインモデル（measured/domain-model-v2.json）。
 import json, runpy
 G = runpy.run_path('make18.py', run_name='lib')['grouped']

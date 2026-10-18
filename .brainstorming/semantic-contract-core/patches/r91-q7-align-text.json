@@ -1,0 +1,43 @@
+[
+ {"op": "test", "path": "/topics/7/id", "value": "Q7"},
+ {"op": "replace", "path": "/topics/7/depends", "value": ["Q1", "Q2", "Q6"]},
+ {"op": "replace", "path": "/topics/7/answer/text", "value": "Core の x- は annotations の1か所で定義し、1つごとに置く場所 ・ 形 ・ 検証の種類 ・ validator を持たせる。いま検証していないものは、機械的にする ・ AI の rule にする ・ unsupported と返す ・ 消す のどれかにする。rule には by ・ requires ・ required を足す。"},
+ {"op": "test", "path": "/topics/7/answer/details/0", "value": "abstract@v1 に足すもの：$defs/rule に by ・ requires ・ required"},
+ {"op": "replace", "path": "/topics/7/answer/details", "value": [
+  "semantic-abstract-schema@v1 に足すもの：$defs/rule に by ・ requires ・ required",
+  "Core の x- の形は annotations.schema.json が、glossary の形は glossary.schema.json が持つ（Q6）。validation result の形は本体に置かず、protocol が持つ",
+  "足すものはどれも description と x-prompt を持つ（prompt-per-unit）。rule の by ・ requires ・ required は葉なので、根の x-prompt の rule-validator が案内する",
+  "機械的：x-generates ・ x-relationship ・ x-derive ・ rule の by ・ requires ・ required",
+  "両方：x-prompt の write（rule ごとに by で決める）・ x-view ・ x-states",
+  "x-prompt の read は案内であって rule ではないので、中身は検証しない",
+  "いまの実装の x-abstract ・ x-annotations と、関係の label は持たない。版は $schema で指し、名前の出どころは x-view の label の1か所にする",
+  "どの rule も検証結果を1件返し、検証しなかったことを隠さない",
+  "$vocabulary を使う：本体が Core の x- の集まりを語彙の URI で宣言し、標準の7つの語彙も並べる。語彙に入る x- の形は annotations が持つ",
+  "語彙は2つに分ける。1文書の合否を変える x-derive は required: true、x-relationship や注釈だけの語は required: false にする",
+  "$schema は、Abstract と一緒にデータで出す $id の閉じた一覧だけを受け、一覧に無い URI は URL でも取りに行かずに断る",
+  "版は語彙の URI とメタスキーマの $id の両方に大きな版で入れる。出した版は変えず、新しい版を並べて出す",
+  "x- は2種類ある。Core の x-（x-relationship ・ x-derive ・ x-prompt ・ x-view など）は annotations で定義し、本体で閉じる",
+  "Concrete の x- は、Concrete の中の定義で開く",
+  "Concrete の x- の定義は、形 ・ 意味 ・ 検証の仕方 ・ 名前の範囲を持つ。範囲は Concrete の $id で決まり、Core の x- とぶつかれば違反",
+  "Concrete の x- の検証の仕方は、Core の x- の組み合わせ ・ AI と人の rule ・ 外のツール（x- の定義に名前を書いたもの）のどれか。書けなければ unsupported",
+  "Concrete は $schema で本体を指す。Concrete の x- は Concrete の文書の中に定義がある限り、本体の検査で断らない",
+  "責任：Core 自身の x- は Core が意味の検証まで持つ。Concrete が足した x- は、Core は作法に従うかだけを見て、検証役の結果をまとめる",
+  "作法の1 x- の定義の形：名前（範囲は Concrete の $id）・ 値の形（JSON Schema）・ 意味（description と x-prompt）・ 任せる検証役の名前",
+  "作法の2 検証役との受け渡し：渡すのはその x- の場所 ・ 値 ・ 読む欄の値。受け取るのは場所ごとの5つの値と根拠。プロセスと JSON で、言語は問わない",
+  "作法の3 検証役の宣言：検証役は x- の定義に名前で書く。AI に任せるときも Concrete が検証役を選び、Core は Agents 契約を通して呼ぶ",
+  "作法の4 作法の版：作法に版を付け、Concrete は従う版を申告する。出した作法の版は変えない",
+  "この論点で詰めること：作法の1〜4の形を JSON Schema で書き、時間切れ ・ 失敗 ・ 出力の上限の返し方を決める",
+  "データを指すキーワードは x-relationship と呼ぶ。x-relationship は instance のデータを指し、$ref はスキーマを指すので、名前で区別できる",
+  "x-relationship の description には「指す先の instance が在ることを検査する」と書く。名前だけでは存在の検査が読めないため",
+  "inverse の description には「指される数の決まりで、相手側の欄の名前ではない」と書く。ORM の mappedBy と読まれるため。2つの説明は x-prompt の rule で検査する",
+  "欄から glossary の term を指すのは標準の $ref で、x-term と x-vocabularies は持たない（Q2）"
+ ]},
+ {"op": "test", "path": "/topics/7/checks/0/target", "value": "x-vocabularies"},
+ {"op": "replace", "path": "/topics/7/checks", "value": [
+  {"target": "annotations の呼び名", "ask": "Core の x- の定義を置くファイルを、annotations の名前のままにしてよいか", "view": "そのままにする。JSON Schema の実装から見ると x- は注釈として集められる語である", "basis": ["Q2 の答え（x- は注釈として集められる）", "Q6 のファイルの組み方"], "why": "x-derive は合否を変えるので、注釈と読むと合否に入らないと誤解される"}
+ ]},
+ {"op": "add", "path": "/topics/7/grounds/-", "value": {"supports": "annotations の名前のままにすること", "basis": "x- は JSON Schema の実装からは知らないキーワードで、注釈として集められるだけで合否に入らない。", "tag": "primary", "source": "Q2 の答え（決着済み）"}},
+ {"op": "add", "path": "/topics/7/rejected/-", "value": {"option": "x- キーワードの表を、annotations と別に1か所持つ（第90回まで）", "reason": "Core の x- の定義が annotations と表の2か所になり、いまの実装で注釈の一覧が5と7で食い違った崩れを繰り返す"}},
+ {"op": "test", "path": "/topics/7/images/2/name", "value": "Zip の語彙の例"},
+ {"op": "replace", "path": "/topics/7/images/2", "value": {"kind": "code", "language": "json", "name": "glossary の例", "path": "zip/glossary.json（例）", "caption": "glossary の例：term を $defs に置き、$anchor で名前を付ける。欄は $ref で zip/glossary@v1#DurationSeconds を指す。", "text": "{\n  \"$schema\": \"semantic-schema-core/glossary@v1\",\n  \"$id\": \"zip/glossary@v1\",\n  \"title\": \"Zip の用語集\",\n  \"description\": \"Zip の文脈の term の定義。欄は $ref で term を指す\",\n  \"$defs\": {\n    \"DurationSeconds\": {\n      \"$anchor\": \"DurationSeconds\",\n      \"title\": \"経過時間（秒）\",\n      \"description\": \"秒で表す経過時間。単位は秒\",\n      \"type\": \"integer\",\n      \"minimum\": 0\n    }\n  }\n}"}}
+]

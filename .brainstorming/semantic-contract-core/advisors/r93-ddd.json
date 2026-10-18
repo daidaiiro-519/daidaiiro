@@ -1,0 +1,148 @@
+{
+  "kind": "judgment",
+  "question": "ボード semantic-contract-core の Q7（抽象スキーマの中身）の答え ・ 完成イメージ ・ checks は、決着した Q1 ・ Q2 ・ Q6 とドメインモデルの正本（domain-model-v2.json）に合っていて、このまま出してよいか",
+  "premises": [
+    {
+      "name": "照らした相手",
+      "value": "Q1 ・ Q2 ・ Q6 の answer（Q0 ・ Q5 ・ Q8 は参考）、domain-model-v2.json の value_objects ・ extension_contract ・ invariants ・ open、measured/xterm-vs-ref/README.md",
+      "source": "依頼"
+    },
+    {
+      "name": "x-relationship と判定する者の形",
+      "value": "Q7 の本体は urn:semantic-schema-core:annotations:v1#/$defs/relationship と #/$defs/judge を $ref で指すが、annotations の中身はボードにも proposals/ にも無い。未判定として扱う",
+      "source": "proposals/ の一覧（q7-semantic-abstract-schema.after.json ほか5件。annotations は無い）"
+    },
+    {
+      "name": "変えてよい範囲 ・ 保存の決まりの検査の手段",
+      "value": "rule にするか JSON Schema の形にするかは判断基準の範囲外で、ここでは置き場所が無いことだけを指摘する",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "Q7 は x- の名前と検証の振り分けでは Q1 ・ Q2 ・ Q6 に合っているが、検証役の名前の置き場所が Q1 と食い違い、rule に読む欄が無く、Q1 から回した未決の Q7-ref と Q7-judge に答えていないので、直してから出す。",
+    "because": "rule と拡張した x- の定義は値オブジェクトとして妥当性を自分で持つべきだが、Q7 の形は I4 ・ I14 ・ I29 が求める読む欄と、Q1 が決めた「検証役は x- の定義に名前で書く」を持たない。公開された言葉の版を指す書き方も無いので、下流が使う公開された言葉を維持できるかを確かめられない。"
+  },
+  "comparison": [
+    {
+      "option": "Q7 をいまの形のまま出す",
+      "effect": "検証役の名前が x-definitions と x-validators の2か所に分かれ、Q7 自身の details 35（x- の定義に名前で書く）とも食い違う。AI の validator に渡す読む欄が宣言できず、I14 ・ I29 を守れない。Q7-ref ・ Q7-judge は未決のまま残る",
+      "chosen": false
+    },
+    {
+      "option": "食い違いと穴を直し、未決2件に答えてから出す",
+      "effect": "Q1 の作法1〜4 と不変条件 I4 ・ I14 ・ I21 ・ I22 ・ I29 ・ I33 に担い手が付く。Q1 から Q7 へ回した open を閉じられる",
+      "chosen": true
+    }
+  ],
+  "path": [
+    {
+      "ask": "食い違い1：検証役の名前をどこに書くか",
+      "answer": "Q1 と domain-model-v2 の作法3 は「検証役は Concrete の x- の定義に名前で書く」。Q7 の details 35 も同じ文を持つ。しかし本体の x-definitions の validator は判定する者の種類（$defs/judge）だけで、名前は根の x-validators に別に書く。1つの決定が2か所に分かれ、Q7 の文と Q7 の形が食い違う"
+    },
+    {
+      "ask": "食い違い2：判定する者の語",
+      "answer": "Q7 は by を machine ・ core ・ tool ・ ai ・ human にそろえたが、完成イメージの「検証結果の例」は by に schema と engine を書いている（いまの実装の語）。I12 の判定した者の5つと合わない"
+    },
+    {
+      "ask": "食い違い3：by を省けるか",
+      "answer": "I4 は「rule は判定する者を持つ」。Q7 は by を任意にし、by の無い rule を unsupported にする。根の rule-validator も「意味の判断が要る決まりには by を書く」なので、機械で判定できる rule に by を書かなくても形の検査を通り、unsupported になる"
+    },
+    {
+      "ask": "食い違い4：検証役との受け渡しの時間切れ ・ 失敗 ・ 出力の上限をどこに書くか",
+      "answer": "domain-model-v2 の external_tool は「出力の形 ・ 終了コードと5つの値の対応 ・ 時間切れ ・ 出力の大きさの上限を作法に書く」。Q7 の details 39 は protocol に書くとする。作法の版（本体の版と同じ）と protocol の版のどちらが受け渡しを保証するかが2つに分かれる"
+    },
+    {
+      "ask": "食い違い5：正本と各論点の語のずれ",
+      "answer": "Q7 の x-relationship は Q1 ・ Q2 ・ Q6 の answer と合う。ずれているのは正本のほうで、domain-model-v2.json は value_objects ・ storage ・ I9 ・ I36 で x-ref、responsibility で x-term（Q2 で廃止）を使う。Q1 の details も名前を <Skill か Agent の名前>/<種類>@<版> と書き、Q6 ・ Q7 の URN と合わない。Q8 は「どの AI を使うか」を範囲の外にするが、x-validators は「AI はモデルの名前まで書く」（正本の値オブジェクトと同じ）"
+    },
+    {
+      "ask": "答えていない未決1：Q7-ref（公開された版を指す書き方 ・ kind の名前の範囲 ・ ほかの instance から指されているかを見る rule）",
+      "answer": "答えていない。x-relationship は名前と description の2文だけで、形（指す先 ・ inverse ・ 公開された版）は annotations に送られ、どこにも無い。kind の名前の範囲は Q1（I41）が決めたが、x-relationship の指す先の書き方には入っていない。集合への rule（集約ごとに担う使う場面が1つ以上ある、など）を Core の x- にするか、作法2で渡す値を広げるかも決めていない。作法2は「場所 ・ 値 ・ 読む欄の値」だけのままで、集合への rule は検証役に渡せない"
+    },
+    {
+      "ask": "答えていない未決2：Q7-judge（同じ instance ・ rule ・ 値への逆の判定）",
+      "answer": "答えていない。Q7 の answer ・ images ・ checks のどこにも決定表が無い。I22 は「衝突として人に出る」と決めているので、それを採るかを Q7 で書き、判定の記録の形に区別する欄（判定した値 ・ 判定した者 ・ 変更）を置くかを決める必要がある"
+    },
+    {
+      "ask": "穴1：rule と拡張した x- の定義に、読む欄が無い",
+      "answer": "正本の値オブジェクト rule は「id ・ rule ・ why ・ test ・ 判定する者 ・ 読む欄 ・ 使う term」。I4 は AI ・ 人の rule に読む欄を求め、I14 ・ I29 は AI に読む欄の値の写しだけを渡す。Q7 の $defs/rule と x-definitions には読む欄も使う term も無いので、Core は AI に何を渡すかを決められず、判定した値（I16）も残せない"
+    },
+    {
+      "ask": "穴2：Q6 が本体の $defs に置くと決めた「変えてよい範囲」が無い",
+      "answer": "Q6 の details は本体の $defs に変えてよい範囲を置く。Q7 の after には無い。I21（AI は変えてよい範囲の中だけを変える）の担い手が本体から消える"
+    },
+    {
+      "ask": "穴3：公開する部分の版の宣言が無い",
+      "answer": "Q1 は「ほかの文脈へ見せる部分（公開する term ・ x- の定義 ・ 指される欄の形）だけが版を持つ」、Q6 は値オブジェクト published を置く。Q7 の本体は Abstract 自身の版だけを扱い、Concrete がどこを公開するかを書く欄が無い（I7）"
+    },
+    {
+      "ask": "穴4：変更の記録の Core の rule と保存の決まりが本体の形に無い",
+      "answer": "Q1 は「理由と変更の項目が合っているかは Core の rule」（I33）と「保存の決まりは Concrete の契約に入れ、持ち主は Abstract」（I40）を決めた。Q7 の Core の rule は本体の書き方の rule だけで、変更の記録の rule も、Concrete が保存の形を宣言しないことを見る rule も無い。tool permissions を持たないこと ・ AI の validator が道具を持たないことは、Q7 の形に許可の欄が無いので合っている"
+    },
+    {
+      "ask": "いまの実装に引っ張られているところ",
+      "answer": "x-view を text ・ cases ・ parts ・ maps ・ label ・ hidden（いまの実装の文の型）で採ったが、正本の値オブジェクト view は「ページテンプレート ・ カタログ ・ デザインシステムの参照」である。Q7 の checks は「同じ項目で足りると確かめた」とするが、何の使う場面に照らして足りたのかが書かれていない。検証結果の例の by の語（schema ・ engine）も、いまの実装の語である"
+    },
+    {
+      "ask": "外せる：rule の requires",
+      "answer": "Q7 は tool と ai の validator を x-validators の名前で引くので、validator は名前で1つに決まる。requires（必要な capability）は2つ目の選び方になり、Q6 は capability の形を protocol に置く。名前で選んだ validator が capability を満たすかを確かめる用途が無ければ外せる"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "value-object",
+      "quote": "対応：妥当性を検証するロジックを、値オブジェクト自身に持たせる ・ 理由：値を設定するたびに、使う側で妥当性を検証する必要がなくなる"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：内部モデルを変更するときは、下流が使用中の公開された言葉を維持できるかを確認する ・ 理由：下流への影響を考慮せずに内部を変更できるのは、公開された言葉を維持できる場合だけである"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：外部に公開するインターフェースを、内部のモデルから分離する ・ 理由：上流のモデルを変更しても下流に影響しない。公開するモデルと内部の実装を、別々の時期に変更できる"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "対応：使い方が一貫しない用語を見つけたら、その理由を質問する ・ 理由：異なるモデルの混在なら意味を決める文脈を特定し、同義語なら共通の意味を表す1つの用語を提案できる"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "1つの決定を2か所に置く（検証役の種類は x-definitions、名前は x-validators）",
+      "risk": "片方だけ直すと、種類と名前が合わない validator が呼ばれる。Q1 の作法3とも食い違う",
+      "alternative": "（推測）x-definitions の1件に validator の種類と名前を一緒に置き、x-validators は rule の割り当てだけにする。または両方を x-validators に寄せ、Q1 の作法3の文を直す"
+    },
+    {
+      "name": "正本と論点の語が別のまま残る（x-ref ・ x-term ・ <名前>/<種類>@<版>）",
+      "risk": "次に正本から試作を起こすとき、廃止した名前が実装に入る",
+      "alternative": "（推測）Q7 の決着と同じ変更で domain-model-v2.json と Q1 の details を x-relationship ・ URN に直す"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "検証結果の例や試作で、by に schema ・ engine などいまの実装の語を書く",
+      "check": "by と判定した者の値が machine ・ core ・ tool ・ ai ・ human のどれかであることを、ボードと proposals/ の JSON を走査して確かめる"
+    },
+    {
+      "breaks": "x-ref ・ x-term の名前が正本や試作に残る",
+      "check": "domain-model-v2.json と proposals/ を x-ref と x-term で grep し、0件であることを確かめる（$ref は除く）"
+    }
+  ],
+  "next": [
+    "検証役の名前の置き場所を1か所に決め、Q7 の details 35 と本体の形を合わせる",
+    "$defs/rule と x-definitions に読む欄と使う term を足す",
+    "by を必須にするか、by の無い rule の扱いを I4 に合わせて書き直す",
+    "Q7-ref に答えて、annotations の relationship の形（指す先 ・ inverse ・ 公開された版）を完成イメージに出す",
+    "Q7-judge の決定表を書き、I22 を採るかを決める",
+    "本体の $defs に変えてよい範囲と公開する部分の版の宣言を足す",
+    "変更の記録の Core の rule と保存の決まりの rule を、どのファイルの rule にするかを書く",
+    "検証結果の例の by を判定する者の5つの語に直す",
+    "受け渡しの時間切れ ・ 失敗 ・ 上限を作法と protocol のどちらが持つかを決め、正本と Q7 をそろえる",
+    "domain-model-v2.json と Q1 の details の x-ref ・ x-term ・ 名前の形を直す"
+  ]
+}
