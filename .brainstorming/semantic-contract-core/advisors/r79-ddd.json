@@ -1,0 +1,91 @@
+{
+ "kind": "judgment",
+ "question": "Q6 の下書き（Semantic Abstract Schema を4群10個の一員で持ち、一員ごとに名前@vN を付け、準拠と所有を分けて境界の崩れを直す）は、Q1 のドメインモデル（Semantic Abstract Schema の members ・ boundary ・ I40）と Q2 ・ Q5 の決定に照らして、このまま採ってよいか",
+ "premises": [
+  {"name": "Q1 の Semantic Abstract Schema の members", "value": "版（識別子）・ Core の語彙 ・ Concrete の契約（形 ・ 拡張の契約 ・ 保存の決まり）・ 一員の形 ・ 閉じた一覧のデータ ・ Core の rule ・ セッションの参照の形 ・ 手元のセッションの索引の形 ・ 関係の索引の形", "source": "measured/domain-model-v2.json の aggregates"},
+  {"name": "記録を書く者", "value": "変更の記録を書くのは変更を出した作者か AI の Agent。人の判定は人が出した変更でだけ書く", "source": "domain-model-v2.json の boundary"},
+  {"name": "関係の索引を足す時期", "value": "全件を読むのが遅いと測れてから足す", "source": "Q1 の answer と extension_contract.storage"},
+  {"name": "いまの assets", "value": "abstract@v1 ・ annotations@v1 ・ view@v1 ・ page@v1 ・ catalog@v1 ・ design-system@v1 ・ published@v1 の7つ", "source": ".claude/skills/schema-driven/assets/"},
+  {"name": "公開の記録", "value": "Q1 の members と boundary のどちらにも無い。いまの published@v1 はスキーマのフォルダごとに置く形で、Core のフォルダにも Concrete のフォルダにも置ける", "source": "domain-model-v2.json と published.schema.json"},
+  {"name": "Q1 が Q6 へ回したもの", "value": "Agent へ広げること（名前の規則 ・ --skill ・ assets）と、公開する部分に instance の id を含めるか（open の Q6-pub）", "source": "Q1 の answer の details と domain-model-v2.json の open"}
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "4群の分け方と「形は Core、値は文脈 / 手元」は Q1 と合うので採る。ただし、一員の欠け1つ ・ 群に入れ違えたもの2つ ・ Q1 から回された論点2つの落ち ・ 版の対応の欠けを直すことを条件にする",
+  "because": "群の分け方は Q1 の boundary の持ち主の列と一致する。一方で、セッションの参照の形が無い、公開の記録の値の持ち主が群の見出しと合わない、Core の rule の置き場所が記録の形と分かれている、Abstract の版（I1 ・ I3 ・ I27）と一員ごとの版の対応が書かれていない、Q6-pub と Agent への拡張が答えに無い。どれも一員の組を確定する前に決まっていないと、Concrete がどの版に従うかを申告できない"
+ },
+ "comparison": [
+  {"option": "下書きのまま採る（4群10個、一員ごとに名前@vN）", "effect": "セッションの参照の形が無く I34 ・ I38 の担い手が消える。公開の記録の値の持ち主が Core の分で食い違う。Concrete が $schema で申告する「Abstract の版」と10個の版の対応が決まらない", "chosen": false},
+  {"option": "下書きの4群を残し、指摘した欠けと入れ違えを直してから採る", "effect": "Q1 の members と boundary の各行に一員が1つずつ対応し、Q7 ・ Q4 へ回すものの境目もはっきりする", "chosen": true},
+  {"option": "いまの Q6 の answer（7つに vocabulary@v1 と x-term の形を足す）に戻す", "effect": "記録の形 ・ 索引の形が無く、Q1 第77回以降の members（Core の rule ・ 索引）と合わない。vocabulary の名前は Q2 が退けた", "chosen": false}
+ ],
+ "path": [
+  {"ask": "4群は Q1 の boundary の持ち主の列と一致するか", "answer": "一致する。群1は「Core だけ」、群2 ・ 3は「文脈（形は Abstract の一員）」、群4は「手元 ・ コミットしない」の行に当たる"},
+  {"ask": "Q1 の members が漏れなく一員に入っているか", "answer": "セッションの参照の形が無い。I34 ・ I38 が入口に求める値の形で、手元のセッションの索引の形とは別の値オブジェクトである。annotations@v1 ・ view@v1 は「外したもの」にも「メタスキーマに含める」にも書かれていない"},
+  {"ask": "重なりは無いか", "answer": "Core の rule（理由と変更の項目が合っている）が群1、それが検査する変更の記録の形が群3にあり、同じ不変条件の置き場所が2つに分かれる。検証結果の5つの値は protocol（Q4）へ回したが、判定の記録の形（群3）も「結果」として同じ値を持つ"},
+  {"ask": "値の持ち方は I40 と食い違わないか", "answer": "instance ・ 変更の記録 ・ 判定の記録はコミットし、索引は手元でコミットしない点は I40 と合う。ただし公開の記録は Core の版も記録するので、Core の分の値は文脈ではなく Core がコミットする。群3の見出し「基盤が書く記録」も、boundary の「書くのは作者か AI の Agent」と合わない"},
+  {"ask": "版の扱いは I1 ・ I3 ・ I27 ・ I30 と合うか", "answer": "公開前は v1 に足すのは I1 と合う。ただし I3 は「Concrete は $schema で Abstract の版を1つ申告する」で、一員ごとの版とどう対応するか（メタスキーマの版が Abstract の版か、組み合わせの表か）が下書きに無い。いまの Q6 にあった「組み合わせの整合は rule で検査する」が落ちた。作法の版（I30）がメタスキーマの版と同じかも書かれていない"},
+  {"ask": "Q7 ・ Q4 へ正しく回したか", "answer": "x-term か $ref かを Q7 へ回したのは Q2 と合う。検証結果と capability を protocol へ回したのは Q4 と合う。ただし判定の記録の形がその値を参照する向き（記録の形が protocol の検証結果を指す）を書かないと、2か所で5つの値を定義することになる。Q7 の answer はまだ vocabulary@v1 ・ x-vocabularies と書いているので、Q7 側を glossary@v1 に揃える必要がある"},
+  {"ask": "外せるものは無いか", "answer": "関係の索引の形は、Q1 が「遅いと測れてから足す」としたので、いま一員として版を付けて出す必要が無い。索引の形（群4）は人も AI も書かないので、x-prompt を持たせる準拠の条件から外せる"}
+ ],
+ "figure": {
+  "caption": "Q1 の members と下書きの一員の対応（点線は欠け ・ 入れ違え）",
+  "nodes": [
+   {"id": "g1", "label": "群1 メタスキーマ abstract@v1", "role": "Core"},
+   {"id": "g2", "label": "群2 文脈が書くファイルの形", "role": "形は Core、値は文脈"},
+   {"id": "g3", "label": "群3 記録の形（判定 ・ 変更 ・ 公開）", "role": "形は Core、値は文脈"},
+   {"id": "g4", "label": "群4 索引の形", "role": "形は Core、値は手元"},
+   {"id": "sref", "label": "セッションの参照の形（欠け）"},
+   {"id": "crule", "label": "Core の rule（理由と変更の項目）"},
+   {"id": "vr", "label": "検証結果の5つの値（protocol Q4）"},
+   {"id": "pub", "label": "公開の記録（Q1 に無い）"}
+  ],
+  "edges": [
+   {"from": "crule", "to": "g1", "label": "下書きの置き場所"},
+   {"from": "crule", "to": "g3", "label": "検査する対象", "dashed": true},
+   {"from": "g3", "to": "vr", "label": "判定の記録の結果が参照する", "dashed": true},
+   {"from": "sref", "to": "g4", "label": "入れる先", "dashed": true},
+   {"from": "pub", "to": "g3", "label": "Core の分の値は Core", "dashed": true}
+  ]
+ },
+ "grounds": [
+  {"criterion": "bounded-context", "quote": "境界：所有権の境界 ・ 何を区切るか：1つの文脈の開発 ・ 変更 ・ 保守を担当するチーム。1つの文脈を複数のチームが担当してはいけない。逆に、1つのチームなら複数の文脈を持ってよい（関係は単方向） ・ 示す帰結：1つのソフトウェアに異なるモデルが無意識に混入することを防止できる。そのかわり、チーム間の連係の約束事（通信規約）を明示的に決定する必要がある"},
+  {"criterion": "aggregate", "quote": "対応：一貫性を保証する対象を、集約の業務ロジックが必要とするデータだけに限定し、集約をできるだけ小さく設計する ・ 理由：集約の全体が1つのトランザクションの単位なので、大きくすると不必要に複雑になり、性能やスケーラビリティが低下しやすい"},
+  {"criterion": "aggregate", "quote": "対応：他の集約は、オブジェクトそのものではなく ID で参照する ・ 理由：境界の外側であることを明確に表現し、集約ごとに固有のトランザクション境界を持たせる"},
+  {"criterion": "open-host-service", "quote": "得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる"},
+  {"criterion": "value-object", "quote": "性質：値による識別 ・ 内容：等しいかどうかを、値が同じかどうかで判定する。ID フィールドや参照ポインタでは判定しない"}
+ ],
+ "cautions": [
+  {"name": "同じ不変条件の置き場所を2つにする", "risk": "Core の rule をメタスキーマに、変更の記録の形を群3に置くと、変更の記録の形を変えたときに rule の側を直し忘れ、CI の判定と記録の形が食い違う", "alternative": "（推測）Core の rule を変更の記録の形（群3の一員）の rule として置き、メタスキーマからは外す"},
+  {"name": "5つの値を2か所で定義する", "risk": "protocol の検証結果と判定の記録の「結果」を別々に書くと、値を足したときに片方だけ変わる", "alternative": "（推測）値の定義は protocol（Q4）の1か所に置き、判定の記録の形はその $id と版を $ref で指す。Q6 の details にこの向きを1行書く"},
+  {"name": "版の並行提供の単位が決まらない", "risk": "一員ごとに版を出しても、Concrete が申告するのが abstract の版1つだけなら、page@v2 を出したときに Concrete がどちらに従うかを申告できない", "alternative": "（推測）Concrete が申告する版を「メタスキーマの版」とし、メタスキーマの版がほかの一員の版の組を指す表を持つ。または一員ごとに Concrete が申告する。どちらかを Q6 で1つに決める"}
+ ],
+ "referrals": [
+  {"suspect": "Q1 の Semantic Concrete Schema の members に、term がまだ残っている", "why": "Q2 は term を glossary（文脈が書くファイル）に置いた。Concrete の文書と glossary の両方に term があると、群2の glossary@v1 と重なる"},
+  {"suspect": "Q1 の members に公開の記録が無い", "why": "I1 ・ I7（出した版は変えない）を検出する担い手が公開の記録しか無い。Q1 に足すか、Git のタグなど外の変更の仕組みに任せて一員から外すかを決める必要がある"},
+  {"suspect": "Q7 の answer が vocabulary@v1 ・ x-vocabularies のまま", "why": "Q2 と下書きが glossary@v1 に改めたので、Q7 の details が古い名前を指している"}
+ ],
+ "records": [
+  {"target": "Q6 の details", "content": "穴：セッションの参照の形を群4に足す。annotations@v1 ・ view@v1 をメタスキーマに含めることを書く（Q7 の「x- キーワードの表1か所」と合わせる）。Q1 から回された Q6-pub（公開する部分に instance の id を含めるか）と Agent への拡張（名前の規則 ・ --skill ・ assets）に答える"},
+  {"target": "Q6 の details", "content": "境界と依存：Concrete の $schema が申告する Abstract の版と、一員ごとの版の対応を書く。作法の版（I30）がメタスキーマの版と同じかを書く。判定の記録の形が protocol の検証結果を指す向きを書く。公開の記録のうち Core の分の値は Core がコミットすると書く。群3の見出しを「記録の形」にする"},
+  {"target": "Q6 の details", "content": "重なり：Core の rule を変更の記録の形へ移す"},
+  {"target": "Q6 の details", "content": "外せる：関係の索引の形は、遅いと測れるまで一員にしない。索引の形は x-prompt を求める準拠の条件から外す"}
+ ],
+ "ai_cautions": [
+  {"breaks": "一員の組を書き直すたびに、Q1 の members の1項目が黙って消える（今回はセッションの参照の形）", "check": "Q1 の members を「 ・ 」で分けた各項目について、Q6 のどの一員か、どの論点へ回したかを1行ずつ対応表にし、空の行が無いかを見る"},
+  {"breaks": "いまの assets のファイル（annotations@v1 ・ view@v1）が、外したものにも含めたものにも書かれずに消える", "check": "schema-driven/assets の $id の一覧と、Q6 の一員 ・ 外したものの和を比べ、差が0件かを見る"}
+ ],
+ "next": [
+  "セッションの参照の形を群4に足す",
+  "Core の rule を変更の記録の形へ移す",
+  "Concrete が申告する版と一員ごとの版の対応を Q6 の details に書く",
+  "判定の記録の形が protocol の検証結果を指すと Q6 の details に書く",
+  "Q6-pub と Agent への拡張の答えを Q6 に足す",
+  "公開の記録を Q1 に足すか一員から外すかを利用者に確認する",
+  "関係の索引の形を、遅いと測れるまで一員から外す"
+ ],
+ "related": [
+  {"criterion": "bounded-context", "relation": "群の分け方の軸（持ち主）が所有権の境界に当たる"},
+  {"criterion": "open-host-service", "relation": "一員ごとの版を並べて出す根拠と、Concrete が申告する版の単位の問題"}
+ ]
+}
