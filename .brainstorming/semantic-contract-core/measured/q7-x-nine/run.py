@@ -38,11 +38,13 @@ cases=[
  ('B4 by が tool（3つ以外）', lambda d: K(d)[0].update(by='tool'),'否'),
  ('B5 by が core（3つ以外）', lambda d: K(d)[0].update(by='core'),'否'),
  ('B6 by が human で reads も agent も無し', lambda d: None,'合'),
- ('B7 x-extensions の定義の rule で by:ai の agent 抜け', lambda d: d['x-extensions']['x-unit']['x-prompt']['write'][0].pop('agent'),'否'),
+ ('B7 x-extensions の定義の rule で by:ai の agent 抜け', lambda d: d['x-extensions']['x-unit']['prompt']['write'][0].pop('agent'),'否'),
  ('B8 x-extensions の定義に by を書く', lambda d: d['x-extensions']['x-unit'].update(by='ai'),'否'),
  ('B9 x-delegates の concrete が URN でない（コマンド）', lambda d: d['x-delegates']['lint'].update(concrete='demo-lint --json'),'否'),
  ('B10 x-delegates の値に x- の項目', lambda d: d['x-delegates']['lint'].update({'x-model':'m'}),'否'),
  ('B11 rule に validator（外した項目）', lambda d: K(d)[1].update(validator='judge'),'否'),
+ ('B18 x-extensions の定義に x-prompt（x- を付けた項目）', lambda d: d['x-extensions']['x-unit'].update({'x-prompt': d['x-extensions']['x-unit']['prompt']}),'否'),
+ ('B19 x-derived-from に reads（外した項目）', lambda d: d['properties']['level']['x-derived-from'].update(reads=['/properties/risk']),'否'),
  ('B12 x-derived-from に expect（外した項目）', lambda d: d['properties']['level']['x-derived-from'].update(expect=[]),'否'),
  ('B13 $id の NID が semantic-schema-core でない', lambda d: d.update({'$id':'urn:qa-advisor:record:v1'}),'否'),
  ('B14 x-relationship の to が URN でない', lambda d: d['properties']['owner']['x-relationship'].update(to='person'),'否'),
@@ -95,3 +97,31 @@ reg2=reg.with_resource(good['$id'],Resource(contents=good,specification=DRAFT202
 CV=Draft202012Validator(good,registry=reg2)
 for inst,exp in [({'$schema':good['$id'],'kind':'record','id':'1','name':'a','elapsed':3},'合'),({'$schema':good['$id'],'kind':'record','elapsed':-1},'否')]:
     e=list(CV.iter_errors(inst)); print('I instance',json.dumps(inst,ensure_ascii=False),'期待',exp,'結果','合' if not e else '否',[x.message for x in e])
+
+# 本体が自分の rule（機械で見られるもの）に違反しないか
+import re
+CORE9={'x-instance-path','x-instance-label','x-delegates','x-extensions','x-prompt','x-relationship','x-derived-from','x-decided-by','x-published'}
+viol=[]
+URN=re.compile(r'^urn:semantic-schema-core:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$')
+own=body['$id'].split(':')[2]
+if not URN.match(body['$id']) or own not in ('core',): viol.append(('owner-kind-version',body['$id']))
+dele=set(body.get('x-delegates',{}))
+def w2(o,path,inside_x=False):
+    if isinstance(o,dict):
+        for k,v in o.items():
+            if k.startswith('x-') and k not in CORE9: viol.append(('core-keywords-closed',path+'/'+k))
+            if isinstance(v,dict) and v.get('by')=='ai' and 'rule' in v and v.get('agent') not in dele|{'reviewer'}: viol.append(('rule-agent',path+'/'+k))
+            w2(v,path+'/'+k)
+    elif isinstance(o,list):
+        for i,v in enumerate(o):
+            if isinstance(v,dict) and v.get('by')=='ai' and 'rule' in v and v.get('agent') not in dele|{'reviewer'}: viol.append(('rule-agent',path+'/'+str(i)))
+            w2(v,path+'/'+str(i))
+w2(body,'')
+ext=body['properties']['x-extensions']['additionalProperties']['properties']
+viol+= [('no-x-inside-values','x-extensions/'+k) for k in ext if k.startswith('x-')]
+viol+= [('no-x-inside-values','x-delegates/'+k) for k in body['properties']['x-delegates']['additionalProperties']['properties'] if k.startswith('x-')]
+print('本体の自己検査（owner-kind-version ・ core-keywords-closed ・ rule-agent ・ 値の中の x-）：違反',len(viol),viol)
+# prompt-per-unit：根の properties のうち、入れ物（x-prompt ・ properties ・ $defs）を除いた各項目
+units=[k for k in body['properties'] if k not in ('x-prompt','properties','$defs')]
+pv2=[k for k in units if not ('description' in body['properties'][k] and 'x-prompt' in body['properties'][k])]
+print('本体の自己検査（prompt-per-unit）：書く単位',len(units),'件、違反',len(pv2),pv2)

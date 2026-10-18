@@ -6,46 +6,229 @@
  "x-instance-path": ".demo/{id}.json",
  "x-instance-label": "記録 {id}「{name}」",
  "x-delegates": {
-  "reviewer": {"role": "review", "concrete": "urn:semantic-schema-core:qa-advisor:answer:v1", "model": "some-model"},
-  "lint": {"role": "review", "concrete": "urn:semantic-schema-core:lint-skill:report:v1"}
+  "reviewer": {
+   "role": "review",
+   "concrete": "urn:semantic-schema-core:qa-advisor:answer:v1",
+   "model": "some-model"
+  },
+  "lint": {
+   "role": "review",
+   "concrete": "urn:semantic-schema-core:lint-skill:report:v1"
+  }
  },
  "x-extensions": {
   "x-unit": {
-   "schema": {"type": "string"},
+   "schema": {
+    "type": "string"
+   },
    "description": "値の単位",
-   "x-prompt": {"read": {"means": "単位の指定である。"}, "write": [{"id": "known-unit", "rule": "単位を書く。", "why": "要る。", "test": "見る。", "by": "ai", "agent": "lint"}]},
-   "x-published": true
+   "prompt": {
+    "read": {
+     "means": "単位の指定である。"
+    },
+    "write": [
+     {
+      "id": "known-unit",
+      "rule": "単位を書く。",
+      "why": "要る。",
+      "test": "見る。",
+      "by": "ai",
+      "agent": "lint"
+     }
+    ]
+   },
+   "published": true
   }
  },
- "x-prompt": {"read": {"means": "記録である。"}, "write": [{"id": "root", "rule": "書く。", "why": "要る。", "test": "見る。", "by": "machine"}]},
+ "x-prompt": {
+  "read": {
+   "means": "記録である。"
+  },
+  "write": [
+   {
+    "id": "root",
+    "rule": "書く。",
+    "why": "要る。",
+    "test": "見る。",
+    "by": "machine"
+   }
+  ]
+ },
  "type": "object",
  "properties": {
-  "$schema": {"const": "urn:semantic-schema-core:demo-skill:record:v1"},
+  "$schema": {
+   "const": "urn:semantic-schema-core:demo-skill:record:v1"
+  },
   "kind": {
    "const": "record",
    "description": "種類",
-   "x-prompt": {"read": {"means": "種類である。"}, "write": [
-    {"id": "k1", "rule": "record と書く。", "why": "判定に使う。", "test": "値を見る。", "by": "machine"},
-    {"id": "k2", "rule": "意味が合う。", "why": "読む人のため。", "test": "読む。", "by": "ai", "agent": "reviewer", "reads": ["/properties/kind"]},
-    {"id": "k3", "rule": "人が見る。", "why": "承認のため。", "test": "読む。", "by": "human", "bad": "x", "good": "y"}
-   ]}
+   "x-prompt": {
+    "read": {
+     "means": "種類である。"
+    },
+    "write": [
+     {
+      "id": "k1",
+      "rule": "record と書く。",
+      "why": "判定に使う。",
+      "test": "値を見る。",
+      "by": "machine"
+     },
+     {
+      "id": "k2",
+      "rule": "意味が合う。",
+      "why": "読む人のため。",
+      "test": "読む。",
+      "by": "ai",
+      "agent": "reviewer",
+      "reads": [
+       "/properties/kind"
+      ]
+     },
+     {
+      "id": "k3",
+      "rule": "人が見る。",
+      "why": "承認のため。",
+      "test": "読む。",
+      "by": "human",
+      "bad": "x",
+      "good": "y"
+     }
+    ]
+   }
   },
-  "id": {"type": "string", "description": "番号", "x-prompt": {"read": {"means": "番号である。"}, "write": [{"id": "i", "rule": "書く。", "why": "要る。", "test": "見る。", "by": "machine"}]}},
-  "name": {"type": "string", "description": "名前", "x-decided-by": "human", "x-published": true,
-   "x-prompt": {"read": {"means": "名前である。"}, "write": [{"id": "n", "rule": "人が決める。", "why": "要る。", "test": "見る。", "by": "human"}]}},
-  "owner": {"type": "string", "description": "持ち主", "x-relationship": {"to": "urn:semantic-schema-core:demo-skill:person:v1"},
-   "x-prompt": {"read": {"means": "持ち主である。"}, "write": [{"id": "o", "rule": "書く。", "why": "要る。", "test": "見る。", "by": "machine"}]}},
-  "level": {"type": "string", "description": "水準",
-   "x-derived-from": {"rules": [{"when": {"risk": "high"}, "then": "A"}], "otherwise": "B", "declared": "level", "reads": ["/properties/risk"]},
-   "x-prompt": {"read": {"means": "水準である。"}, "write": [{"id": "l", "rule": "導く。", "why": "要る。", "test": "見る。", "by": "machine"}]}},
+  "id": {
+   "type": "string",
+   "description": "番号",
+   "x-prompt": {
+    "read": {
+     "means": "番号である。"
+    },
+    "write": [
+     {
+      "id": "i",
+      "rule": "書く。",
+      "why": "要る。",
+      "test": "見る。",
+      "by": "machine"
+     }
+    ]
+   }
+  },
+  "name": {
+   "type": "string",
+   "description": "名前",
+   "x-decided-by": "human",
+   "x-published": true,
+   "x-prompt": {
+    "read": {
+     "means": "名前である。"
+    },
+    "write": [
+     {
+      "id": "n",
+      "rule": "人が決める。",
+      "why": "要る。",
+      "test": "見る。",
+      "by": "human"
+     }
+    ]
+   }
+  },
+  "owner": {
+   "type": "string",
+   "description": "持ち主",
+   "x-relationship": {
+    "to": "urn:semantic-schema-core:demo-skill:person:v1"
+   },
+   "x-prompt": {
+    "read": {
+     "means": "持ち主である。"
+    },
+    "write": [
+     {
+      "id": "o",
+      "rule": "書く。",
+      "why": "要る。",
+      "test": "見る。",
+      "by": "machine"
+     }
+    ]
+   }
+  },
+  "level": {
+   "type": "string",
+   "description": "水準",
+   "x-derived-from": {
+    "rules": [
+     {
+      "when": {
+       "risk": "high"
+      },
+      "then": "A"
+     }
+    ],
+    "otherwise": "B",
+    "declared": "level"
+   },
+   "x-prompt": {
+    "read": {
+     "means": "水準である。"
+    },
+    "write": [
+     {
+      "id": "l",
+      "rule": "導く。",
+      "why": "要る。",
+      "test": "見る。",
+      "by": "machine"
+     }
+    ]
+   }
+  },
   "elapsed": {
    "$ref": "urn:semantic-schema-core:zip:glossary:v1#DurationSeconds",
    "description": "経過時間",
    "x-unit": "秒",
-   "x-prompt": {"read": {"means": "経過時間である。"}, "write": [{"id": "e", "rule": "秒で書く。", "why": "単位を揃える。", "test": "整数か見る。", "by": "machine"}]}
+   "x-prompt": {
+    "read": {
+     "means": "経過時間である。"
+    },
+    "write": [
+     {
+      "id": "e",
+      "rule": "秒で書く。",
+      "why": "単位を揃える。",
+      "test": "整数か見る。",
+      "by": "machine"
+     }
+    ]
+   }
   }
  },
  "$defs": {
-  "part": {"type": "object", "properties": {"name": {"type": "string", "description": "名前", "x-prompt": {"read": {"means": "名前である。"}, "write": [{"id": "n", "rule": "書く。", "why": "要る。", "test": "見る。", "by": "machine"}]}}}}
+  "part": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string",
+     "description": "名前",
+     "x-prompt": {
+      "read": {
+       "means": "名前である。"
+      },
+      "write": [
+       {
+        "id": "n",
+        "rule": "書く。",
+        "why": "要る。",
+        "test": "見る。",
+        "by": "machine"
+       }
+      ]
+     }
+    }
+   }
+  }
  }
 }

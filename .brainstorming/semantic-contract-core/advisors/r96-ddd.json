@@ -1,0 +1,41 @@
+{
+ "kind": "judgment",
+ "question": "Q7（抽象スキーマの中身）の書き直しと本体の案 q7-semantic-abstract-schema.after.json を、利用者と決めた設計 ・ Q1 ・ Q6 ・ ドメインモデルに照らして、出してよいか",
+ "premises": [
+  {"name": "前提の設計", "value": "Core の x- は9つ。x- の中の項目には x- を付けない。x-delegates は子のセッションに任せる先、x-decided-by は決定権、名前は urn:semantic-schema-core:<持ち主>:<種類>:v<版>", "source": "利用者の決定（依頼文）"},
+  {"name": "照らす相手", "value": "Q1 ・ Q6 ・ Q8 ・ Q10 の answer と measured/domain-model-v2.json", "source": "ボード"},
+  {"name": "JSON Schema の振る舞い", "value": "additionalProperties: false と pattern で弾けるものは、rule が無くても検証で落ちる", "source": "判断基準の範囲外（JSON Schema 2020-12 の仕様）"}
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "直さないと困る3件を直せば出してよい。足された rule 10件のうち4件と derived の reads は外せる。",
+  "because": "同じ言葉は意味が明確で一貫していなければならないが、本体は自分で決めた決まり（x- の中に x- を付けない ・ agent は x-delegates の名前 ・ 持ち主は core か文脈）に自分で違反している。外せるものは、JSON Schema の additionalProperties ・ pattern か、別の rule が同じことを既に確かめている。"
+ },
+ "comparison": [
+  {"option": "このまま出す", "effect": "x-extensions の中の x-prompt ・ x-published が Q7 の details の「中の項目には x- を付けない」と食い違い、Core 自身の検査（Q6：Core の一員も除外しない）で rule-agent と owner-kind-version が違反を返す", "chosen": false},
+  {"option": "3件を直し、重なる rule 4件と derived の reads を外して出す", "effect": "本体の rule は27件から23件になり、残る rule はどれもドメインモデルの不変条件か Scaffold ・ Resolver の動作に根拠を持つ", "chosen": true},
+  {"option": "3件だけ直し、足された rule はすべて残す", "effect": "動くが、JSON Schema と別の rule で既に決まることを rule でも書くので、同じ決まりが2か所になり、Q1 の「JSON Schema で検証できる部分は既存の実装に任せる」と合わない", "chosen": false}
+ ],
+ "path": [
+  {"ask": "9つの x- の書く場所と中身は、利用者の決定と Q1 ・ Q6 に合うか", "answer": "合う。根4つ ・ 根と欄の x-prompt ・ 欄4つ、URN の形、x-relationship の形を annotations に置くこと（Q6）も合う"},
+  {"ask": "x- の中の項目に x- を付けていないか", "answer": "付けている。x-extensions の定義の中に x-prompt と x-published がある（本体 ・ details ・ 図の3か所）。prompt ・ published に直す"},
+  {"ask": "Core 自身が自分の rule を満たすか", "answer": "満たさない。rule-agent は agent を x-delegates の名前にせよと言うが、本体は x-delegates を持たずに agent: reviewer を6件書く。owner-kind-version は持ち主を Skill か Agent の名前に限り、Q1 ・ Q6 の「Core の一員なら core」が抜けている"},
+  {"ask": "足された rule は、ほかの仕組みが既に確かめていないか", "answer": "judge-in-rule と combination-as-rule は additionalProperties: false が、tool-by-concrete は concrete の pattern が、version-in-id は $id の never-reuse が既に確かめている。derived の reads は rules の when のキーから引ける"},
+  {"ask": "残す rule には根拠があるか", "answer": "not-self ・ human-entry-only ・ target-exists はドメインモデルの不変条件、label-fields-exist ・ level1-template は名前と置き場所を作るための静的な検査、owner-kind-version は Resolver が引く条件で、どれも要る"},
+  {"ask": "9つの x- の中で役目が重なるものはあるか", "answer": "無い。x-published は欄 ・ term ・ x- の定義の3か所に付くが、どれもドメインモデルの「公開する部分（term ・ x- の定義 ・ 指される欄の形）」の1つずつで、重ならない"}
+ ],
+ "grounds": [
+  {"criterion": "ubiquitous-language", "quote": "設計を駆動するので、言葉の意味は明確で一貫していなければならない。そのために、同じ言葉からはあいまいさ ・ 暗黙の前提 ・ 見当外れな詳細を取り除く。"},
+  {"criterion": "bounded-context", "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"}
+ ],
+ "cautions": [
+  {"name": "（推測）Core が名前だけを決めて置き場所を書かない", "risk": "Core の AI の rule の agent 名 reviewer は本体のどこにも宣言が無く、Concrete を書く人は x-delegates に reviewer を置くべきことを知らないので、Core の AI の rule 6件がどの Concrete でも unsupported になる", "alternative": "x-delegates の x-prompt に「Core の AI の rule は agent: reviewer を使い、割り当てはこのスキーマの x-delegates が決める」と1件書き、rule-agent の文も「このスキーマの x-delegates の名前（Core の rule は reviewer）」に直す"}
+ ],
+ "next": [
+  "x-extensions の定義の中の x-prompt ・ x-published を prompt ・ published に改め、本体 ・ Q7 の details ・ 図の3か所をそろえる",
+  "x-delegates の x-prompt と rule-agent の文に、Core の AI の rule が使う名前 reviewer を書く",
+  "owner-kind-version の rule に「Core の一員なら core」を足す",
+  "judge-in-rule ・ combination-as-rule ・ tool-by-concrete ・ version-in-id の4件と、Q7 の details の対応する2行を外す",
+  "x-derived-from の reads を外し、依存は rules の when のキーから引くと description に書く"
+ ]
+}

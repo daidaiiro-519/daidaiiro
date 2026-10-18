@@ -40,9 +40,9 @@
    },
    {
     "id": "prompt-per-unit",
-    "rule": "書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt を書く。",
+    "rule": "書く単位（欄と x- のキーワード）だけに description と x-prompt を書く。入れ物（根の x-prompt ・ properties ・ $defs）には書かない。",
     "why": "Scaffold は、書く単位ごとの x-prompt を返す。",
-    "test": "書く単位のどれにも description と x-prompt があるかを見る。",
+    "test": "根の properties のうち、入れ物を除いた各項目に description と x-prompt があるかを見る。",
     "by": "machine"
    },
    {
@@ -79,9 +79,9 @@
    },
    {
     "id": "rule-agent",
-    "rule": "どの決まりにも by を書き、by が ai なら agent に x-delegates の名前を書く。",
-    "why": "基盤は by で判定する者を選び、agent の名前を x-delegates で引いて任せる。",
-    "test": "決まりに by があり、by が ai の決まりに agent があるかを見る。",
+    "rule": "どの決まりにも by を書き、by が ai なら agent に x-delegates の名前か、Core が予約した reviewer を書く。",
+    "why": "Core の AI の rule は reviewer を使い、どの Concrete に割り当てるかは各 Concrete の x-delegates が決める。割り当てが無ければ unsupported。",
+    "test": "by が ai の決まりの agent が、x-delegates の名前か reviewer かを見る。",
     "by": "machine"
    },
    {
@@ -131,9 +131,9 @@
     "write": [
      {
       "id": "owner-kind-version",
-      "rule": "urn:semantic-schema-core:<持ち主>:<種類>:v<版> の形で書き、持ち主はこのスキーマを持つ Skill か Agent の名前にする。",
+      "rule": "urn:semantic-schema-core:<持ち主>:<種類>:v<版> の形で書く。持ち主は Core の一員なら core、文脈なら Skill か Agent の名前にする。",
       "why": "Semantic Schema Resolver は、Skill と Agent の置き場所から、この名前でスキーマを引く。",
-      "test": "持ち主が、このスキーマを持つ Skill か Agent のフォルダの名前かを見る。",
+      "test": "持ち主が core（Core の一員）か、このスキーマを持つ Skill か Agent のフォルダの名前かを見る。",
       "by": "machine"
      },
      {
@@ -272,7 +272,8 @@
    },
    "x-prompt": {
     "read": {
-     "means": "このスキーマの rule が agent で指す名前と、その名前で任せる Concrete の一覧である。"
+     "means": "このスキーマの rule が agent で指す名前と、その名前で任せる Concrete の一覧である。",
+     "parse": "Core の AI の rule は reviewer を使い、どの Concrete に割り当てるかは各 Concrete の x-delegates が決める。割り当てが無ければ unsupported。"
     },
     "write": [
      {
@@ -281,20 +282,13 @@
       "why": "親は自分自身を任せる先に載せない。",
       "test": "どの concrete も、このスキーマの $id と違うかを見る。",
       "by": "machine"
-     },
-     {
-      "id": "tool-by-concrete",
-      "rule": "外のツールで確かめたいときは、そのツールを包む Concrete（Skill）をここに置く。",
-      "why": "by に tool を置かず、任せる先の1か所で呼ぶ相手を決める。",
-      "test": "concrete の値が Concrete の URN かを見る。",
-      "by": "machine"
      }
     ]
    }
   },
   "x-extensions": {
    "type": "object",
-   "description": "Concrete が足す x- の定義。名前から、値の形 ・ 説明 ・ x-prompt ・ 公開するかを引く",
+   "description": "Concrete が足す x- の定義。名前から、値の形 ・ 説明 ・ prompt ・ 公開するか（published）を引く",
    "propertyNames": {
     "pattern": "^x-[a-z0-9-]+$"
    },
@@ -303,7 +297,7 @@
     "required": [
      "schema",
      "description",
-     "x-prompt"
+     "prompt"
     ],
     "additionalProperties": false,
     "properties": {
@@ -315,10 +309,11 @@
       "type": "string",
       "minLength": 1
      },
-     "x-prompt": {
-      "$ref": "#/$defs/prompt"
+     "prompt": {
+      "$ref": "#/$defs/prompt",
+      "description": "この x- の読み方と書き方のプロンプト（x-prompt と同じ形）。判定はその write に rule として書く"
      },
-     "x-published": {
+     "published": {
       "type": "boolean",
       "description": "true のとき、この x- の定義を他の文脈へ見せる"
      }
@@ -334,13 +329,6 @@
       "rule": "Core の9つの x- と同じ名前を使わない。",
       "why": "Core の x- とぶつかると、どちらの意味で読むかが決まらない。",
       "test": "名前が Core の9つと重なっていないかを見る。",
-      "by": "machine"
-     },
-     {
-      "id": "judge-in-rule",
-      "rule": "その x- の判定は、定義の x-prompt の write に rule として書く。",
-      "why": "判定の項目を定義に持たせると、rule と2か所になる。",
-      "test": "定義に by ・ agent ・ reads が無いかを見る。",
       "by": "machine"
      },
      {
@@ -466,7 +454,7 @@
   },
   "derived": {
    "type": "object",
-   "description": "x-derived-from。この欄の値を、何からどう導くか（rules ・ otherwise ・ declared）と、その依存（reads）",
+   "description": "x-derived-from。この欄の値を、何からどう導くか（rules ・ otherwise ・ declared）。依存は rules の when のキーから引ける",
    "required": [
     "rules",
     "otherwise"
@@ -511,15 +499,6 @@
      "type": "string",
      "minLength": 1,
      "description": "導出値と比べる、同じオブジェクトの中のプロパティの名前"
-    },
-    "reads": {
-     "type": "array",
-     "items": {
-      "type": "string",
-      "format": "json-pointer"
-     },
-     "uniqueItems": true,
-     "description": "この導出の依存。読む欄の、スキーマの中の位置の JSON Pointer の配列"
     }
    },
    "x-prompt": {
@@ -535,13 +514,6 @@
       "test": "答えの組み合わせから、値が1つに決まるかを見る。",
       "by": "ai",
       "agent": "reviewer"
-     },
-     {
-      "id": "combination-as-rule",
-      "rule": "ほかの場所との組み合わせを確かめたいときは、by: machine の rule にする。",
-      "why": "組み合わせの確かめを導出に持たせると、rule と2か所になる。",
-      "test": "x-derived-from に rules ・ otherwise ・ declared ・ reads 以外が無いかを見る。",
-      "by": "machine"
      }
     ]
    }
@@ -567,21 +539,7 @@
   },
   "published": {
    "type": "boolean",
-   "description": "x-published。true のとき、この欄を他の文脈へ見せる。版は $id の v<版> が表す",
-   "x-prompt": {
-    "read": {
-     "means": "この欄を、他の文脈が x-relationship で指してよいかの宣言である。"
-    },
-    "write": [
-     {
-      "id": "version-in-id",
-      "rule": "公開した欄の形を変えるときは、$id の v<版> を上げる。",
-      "why": "他の文脈は $id の URN で公開された版を指すので、版を変えずに形を変えると指した先が変わる。",
-      "test": "公開した版の欄の形が、公開した時と同じかを見る。",
-      "by": "machine"
-     }
-    ]
-   }
+   "description": "x-published。true のとき、この欄を他の文脈へ見せる。版は $id の v<版> が表す"
   },
   "prompt": {
    "type": "object",
