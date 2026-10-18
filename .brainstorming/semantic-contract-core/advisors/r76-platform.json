@@ -1,0 +1,81 @@
+{
+  "kind": "judgment",
+  "question": "ボードの画面の AI（serve が Claude Code ・ Codex ・ Kiro を非対話で起動する）の許可を、自前の agents.json で持つか、各 AI ツールの許可の設定（.claude/settings.local.json など）をそのまま使うか。基盤の tool permissions は AI ツールの許可の契約で代えられるか。2つが同じ「許可」の語で混ざっていないか。",
+  "premises": [
+    {"name": "起動の仕方", "value": "Claude Code は cwd をリポジトリの根にし、-p ・ --permission-mode dontAsk ・ --allowedTools <agents.json の allow> で起動する。--setting-sources ・ --strict-mcp-config は渡していない。Codex は exec --sandbox <値>、Kiro は --trust-tools=<値>。", "source": "src/brainstorming/crates/core/src/domain/agent.rs の plan（実物を読んだ）"},
+    {"name": "Claude Code が個人の設定も読むか", "value": "未判定（推測）。--setting-sources を渡さない起動では、~/.claude/settings.json ・ .claude/settings.json ・ .claude/settings.local.json の allow ・ deny も効き、--allowedTools と合わさると推測する。ACDR 0197 の「settings.local.json に足しても効かない」は、この点の実測が書かれていない。", "source": "判断基準の範囲外（Claude Code の挙動。実測で確かめる）"},
+    {"name": "MCP の道具が見えるか", "value": "mcp__fact-check__fetch などが画面の AI に在るのは、プロジェクトの .mcp.json と、個人の .claude/settings.local.json の enabledMcpjsonServers を Claude Code が読むからだと推測する。", "source": "判断基準の範囲外（.mcp.json と settings.local.json を読んだ。効き方は推測）"},
+    {"name": "Codex ・ Kiro の個人の設定", "value": "推測：Codex は ~/.codex/config.toml（approval ・ sandbox ・ MCP）を読み、CLI の --sandbox が上書きする。Kiro は自分のエージェントの設定と trust の一覧を持つ。3つの許可の形は揃っていない（Claude はツールごとの規則、Codex は sandbox の段階、Kiro は信頼するツールの名前）。", "source": "判断基準の範囲外（各ツールの文書で確かめる）"},
+    {"name": "書き換えの検出", "value": "serve の範囲の検査は git status で変わったファイルを集める。.claude/settings.local.json は利用者の git の ignore（~/.config/git/ignore）に入っているので、変わっても検出されない。", "source": "chat.rs の fingerprint と git check-ignore の結果（実物を確かめた）"}
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "画面の AI の許可は agents.json を唯一の正本に残し（A）、各 AI ツールの個人の設定は「受け継がないように起動で切る」形で組み合わせる（C）のを採り、基盤の tool permissions は AI ツールの許可で代えない。",
+    "because": "画面の AI は利用者の対話のセッションとは別の、人が見ていないプリンシパルなので、その作業に要る最小の許可だけを持たせ、利用者の個人の許可を共有させない（sec-03 の最小特権 ・ 認証情報を共有しない）。ただしいまの起動は個人の設定を切っていない疑いがあり、それを実測で確かめて切るまでは、agents.json が上限として効いているとは言えないので条件付きとする。"
+  },
+  "figure": {
+    "caption": "許可は2層ある。基盤（Core）が起動してよい外のツールの一覧と、起動された AI がその中で使ってよいツールの一覧。画面の AI はいま、個人の設定からも許可を受け取っている疑いがある。",
+    "nodes": [
+      {"id": "user", "label": "利用者の個人の設定（settings.local.json ・ ~/.codex ・ Kiro）"},
+      {"id": "agents", "label": "agents.json（画面の AI の許可）"},
+      {"id": "serve", "label": "brainstorming の serve"},
+      {"id": "ai", "label": "画面の AI（Claude Code ・ Codex ・ Kiro）"},
+      {"id": "core", "label": "Core の検証のエンジン"},
+      {"id": "tp", "label": "tool permissions（Core が起動してよい外のツール）"},
+      {"id": "tool", "label": "検証役（外のツール ・ AI の CLI）"}
+    ],
+    "edges": [
+      {"from": "agents", "to": "serve", "label": "読む"},
+      {"from": "serve", "to": "ai", "label": "起動の引数で渡す"},
+      {"from": "user", "to": "ai", "label": "推測：いまも効いている"},
+      {"from": "tp", "to": "core", "label": "読む"},
+      {"from": "core", "to": "tool", "label": "名前があるものだけ起動"}
+    ]
+  },
+  "comparison": [
+    {"option": "(A) agents.json だけで持つ（いまの形）", "effect": "形は1つで、Claude ・ Codex ・ Kiro の値を同じファイルに並べられ、スキーマで危ない値を止め、Git でレビューできる。ただし起動で個人の設定を切っていなければ、agents.json は上限にならず、足すだけの一覧になる。", "chosen": false},
+    {"option": "(B) 各 AI ツールの許可の設定をそのまま使う", "effect": "Claude Code だけなら手間は減る。しかし利用者が対話で許した広い許可（人が見ている前提の許可）を、人が見ていない画面の AI が受け継ぐ。3つのツールで形が違い、設定は個人の手元にあり ignore されるので、CI ・ ほかの人 ・ serve の範囲の検査から見えない。bypass などの値を止める検査も置けない。Claude 専用にしない決まりにも合わない。", "chosen": false},
+    {"option": "(C) agents.json を唯一の正本にし、起動で個人の設定を切る。個人の設定からは、人が agents.json へ写す", "effect": "上限が agents.json 1つに決まり、スキーマの検査が実際の許可と一致する。利用者が settings.local.json に足した値を画面の AI にも使いたいときは、人が agents.json へ写す（自動では受け継がない）。各ツールの値の書き方（Claude の規則 ・ Codex の sandbox ・ Kiro の trust）はいまも各ツールの契約そのままなので、自前の部分は置き場所と検査だけである。", "chosen": true}
+  ],
+  "path": [
+    {"ask": "画面の AI は、利用者の対話のセッションと同じプリンシパルか", "answer": "違う。非対話で、dontAsk で動き、人が1件ずつ確認しない。同じ許可を共有すると、人の確認を前提にした許可が確認なしで使われる。"},
+    {"ask": "各 AI ツールの許可の契約は1つの形か", "answer": "違う（推測を含む）。Claude はツールごとの規則、Codex は sandbox の段階、Kiro は信頼するツールの名前。agents.json は既にこの3つの値をそのまま持っているので、自前で作っているのは置き場所 ・ 既定 ・ スキーマの検査だけである。"},
+    {"ask": "いまの起動で、agents.json は上限として効いているか", "answer": "未判定。--setting-sources を渡していないので、settings.local.json の allow も効いている疑いがある。MCP の道具が見えるのも個人の設定の enabledMcpjsonServers に依存している疑いがある。実測で確かめる。"},
+    {"ask": "AI が自分の許可を書き換えられるか", "answer": "Claude は Edit(./${board_dir}**) で絞られる。Codex の workspace-write はフォルダごとに絞れないので（推測）、agents.json と .claude/settings.local.json を書ける。agents.json の変更は serve の範囲の検査が見つけるが、settings.local.json は ignore されているので見つからない。"},
+    {"ask": "基盤の tool permissions を AI ツールの許可で代えられるか", "answer": "代えられない。起動する者が Core のエンジンで、AI ツールではない。CI のように AI ツールが無い所でも同じ結果を返し、無いツールを unsupported で返し（I39）、ツールの名前と版を判定の記録に残す必要があり、AI ツールの許可の契約はそのどれも持たない。"}
+  ],
+  "grounds": [
+    {"criterion": "sec-03", "quote": "認証情報はユーザーやシステムのあいだで共有しない。ユーザーのアクセス権は、パスワードの要件や MFA の強制などを守ったうえで最小特権で与える。API コールなどプログラムからのアクセスは、「AWS Security Token Service」が出すような一時的で範囲を絞った認証情報で行う。"},
+    {"criterion": "sec-03", "quote": "ベストプラクティス：「最小特権のアクセスを付与します」 ・ 何をするか：決まった条件で決まったリソースに決まったアクションをするのに必要な許可だけを与える。許可は個々の人ではなくグループと ID の属性で、規模に合わせて動的に決める。原典の例：デベロッパーのグループにプロジェクトのリソースだけの管理を許すと、プロジェクトを抜けた人のアクセスは、ポリシーを直さなくても自動で消える"},
+    {"criterion": "sec-03", "quote": "ベストプラクティス：「組織のアクセス許可ガードレールを定義する」 ・ メリット：ポリシーが与えようとしても、望まない許可は与えられないと確信できる。考えるべき許可の上限が縮むので、許可を決めて管理するのが簡単になる"}
+  ],
+  "cautions": [
+    {"name": "穴：個人の許可を画面の AI が受け継いでいる疑い", "risk": "（推測）--setting-sources を渡していないので、.claude/settings.local.json と ~/.claude/settings.json の allow が画面の AI にも効き、agents.json のスキーマの検査が実際の許可の上限にならない。ACDR 0197 の不採用の理由（settings.local.json に足しても効かない）が逆である可能性があり、いまの settings.local.json には 0197 と同じ8件が既に在る。", "alternative": "settings.local.json にだけ書いた道具で画面の AI が断られるかを実測する。効いていれば、Claude Code を個人の設定を読まない形（--setting-sources の指定、MCP は agents.json から作った --mcp-config と --strict-mcp-config）で起動する。Codex ・ Kiro も同じ点を実測する。"},
+    {"name": "穴：allow の値が起動の旗として読まれうる", "risk": "（推測）allow の値は --allowedTools の後ろに1つずつ並べて渡すので、- で始まる値（--permission-mode ・ --settings ・ --add-dir など）は旗として読まれうる。スキーマの pattern は dangerously と bypass の語しか止めない。", "alternative": "pattern で - で始まる値を通さない。または --allowedTools=値 の形で1つの引数にして渡す。"},
+    {"name": "穴：Codex が Claude の個人の設定を書き換えられ、検査に出ない", "risk": "（推測）Codex の workspace-write はリポジトリの中を書けるので、.claude/settings.local.json を書ける。この行は git の ignore に入っているので、serve の範囲の検査（git status）に出ない。個人の設定が画面の Claude にも効くなら、次の依頼で許可が広がる。", "alternative": "範囲の検査に、ignore されている許可の設定（.claude/settings*.json ・ .codex ・ .kiro など）の前後のハッシュを足す。個人の設定を受け継がない起動にすれば、この経路は小さくなる。"}
+  ],
+  "records": [
+    {"target": "語の分け方（ボード semantic-contract-core と ACDR 0188 の「形を基盤へ移す」）", "content": "いま tool permissions と agents.json が、(1) Core が検証役として起動してよい外のツールの一覧と、(2) 起動された AI がその中で使ってよいツールの一覧の、両方に使われている（boundary の行 ・ external_tool の1行目 ・ manners の3 ・ ports の「tool permissions を読む ・ 書く」の先が agents.json）。(1) は Core の allowlist、(2) は各 AI ツールの permissions（Claude Code の permission rules ・ Codex の sandbox ・ Kiro の trusted tools）と、既存の語で呼び分ける。tool permissions の語は Claude Code の文書で (2) の意味に使われるので（推測）、(1) に残すなら定義で起動する者が Core だと書く。"}
+  ],
+  "referrals": [
+    {"suspect": "ACDR 0197 の不採用の理由「settings.local.json に足しても効かない」", "why": "実測が書かれておらず、起動の引数（--setting-sources が無い）からは逆の可能性がある。この理由で (B) を退けると、退ける根拠が誤りになる。退ける理由は「人が見ていない AI に個人の許可を共有させない」に置き換える。"},
+    {"suspect": "ACDR 0188 の「設定に書いたものだけが、3つの AI の起動に渡ることを固定する」テスト", "why": "引数に渡る値を固定しているだけで、実際に効く許可（個人の設定と合わさった後）を固定していない。"},
+    {"suspect": "ドメインモデルの boundary の tool permissions の行と ports の「tool permissions を読む ・ 書く」", "why": "(1) Core の allowlist と (2) 画面の AI の許可を同じ語 ・ 同じファイル（agents.json）で指しており、形を基盤へ移すときに2つが1つの形にまとめられる疑いがある。"}
+  ],
+  "next": [
+    "settings.local.json にだけ在って agents.json に無い道具を、画面の Claude が使えるかを実測する。",
+    "同じ実測を Codex の ~/.codex/config.toml と Kiro の設定でも行う。",
+    "実測で効いていたら、個人の設定を読まない起動に serve を直す ACDR を起こす。",
+    "ACDR 0197 の不採用の理由を、実測の結果に合わせて書き直す。",
+    "agents.json のスキーマで、- で始まる値を通さないようにする。",
+    "serve の範囲の検査に、ignore されている許可の設定の前後のハッシュを足すかを決める。",
+    "ボード semantic-contract-core で、Core の allowlist と画面の AI の permissions を別の行に分ける。"
+  ],
+  "related": [
+    {"criterion": "sec-01", "relation": "環境をアカウントで分ける考え方。利用者の対話のセッションと画面の AI を別の許可の単位に分けることに当たる。"}
+  ],
+  "ai_cautions": [
+    {"breaks": "agents.json に足せば画面の AI の許可が決まる、と書いて、個人の設定が合わさることを確かめない。", "check": "settings.local.json にだけ在る道具を画面の AI に使わせ、permission_denied が出るかを stream-json の出来事で見る。"},
+    {"breaks": "基盤の Agents 契約を作るときに、Core の allowlist と AI の permissions を1つのスキーマにまとめる。", "check": "形を基盤へ移す差分で、起動する者（Core か AI か）を持たない許可の欄が無いかを見る。"}
+  ]
+}
