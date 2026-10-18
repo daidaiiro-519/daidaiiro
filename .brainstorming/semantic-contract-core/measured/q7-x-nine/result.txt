@@ -1,0 +1,42 @@
+python-jsonschema 4.19.2 referencing 0.36.2 （ネットワークに取りに行かせない Registry）
+T1 本体を 2020-12 のメタスキーマで検査：errors= 0 []
+G0 合う例	期待=合	結果=合	一致
+B1 rule の by 抜け	期待=否	結果=否	一致
+     /properties/kind/x-prompt/write/0 | 'by' is a required property
+     /properties/kind/x-prompt/write/0 | 'agent' is a required property
+B2 by が ai の rule で agent 抜け	期待=否	結果=否	一致
+     /properties/kind/x-prompt/write/1 | 'agent' is a required property
+B3 x-decided-by に human 以外（ai）	期待=否	結果=否	一致
+     /properties/name/x-decided-by | 'human' was expected
+B4 by が tool（3つ以外）	期待=否	結果=否	一致
+     /properties/kind/x-prompt/write/0/by | 'tool' is not one of ['machine', 'ai', 'human']
+B5 by が core（3つ以外）	期待=否	結果=否	一致
+     /properties/kind/x-prompt/write/0/by | 'core' is not one of ['machine', 'ai', 'human']
+B6 by が human で reads も agent も無し	期待=合	結果=合	一致
+B7 x-extensions の定義の rule で by:ai の agent 抜け	期待=否	結果=否	一致
+     /x-extensions/x-unit/x-prompt/write/0 | 'agent' is a required property
+B8 x-extensions の定義に by を書く	期待=否	結果=否	一致
+     /x-extensions/x-unit | Additional properties are not allowed ('by' was unexpected)
+B9 x-delegates の concrete が URN でない（コマンド）	期待=否	結果=否	一致
+     /x-delegates/lint/concrete | 'demo-lint --json' does not match '^urn:semantic-schema-core:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$'
+B10 x-delegates の値に x- の項目	期待=否	結果=否	一致
+     /x-delegates/lint | Additional properties are not allowed ('x-model' was unexpected)
+B11 rule に validator（外した項目）	期待=否	結果=否	一致
+     /properties/kind/x-prompt/write/1 | Additional properties are not allowed ('validator' was unexpected)
+B12 x-derived-from に expect（外した項目）	期待=否	結果=否	一致
+     /properties/level/x-derived-from | Additional properties are not allowed ('expect' was unexpected)
+B13 $id の NID が semantic-schema-core でない	期待=否	結果=否	一致
+     /$id | 'urn:qa-advisor:record:v1' does not match '^urn:semantic-schema-core:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$'
+B14 x-relationship の to が URN でない	期待=否	結果=否	一致
+     /properties/owner/x-relationship/to | 'person' does not match '^urn:semantic-schema-core:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$'
+B15 x-published が文字列	期待=否	結果=否	一致
+     /properties/name/x-published | 'yes' is not of type 'boolean'
+B16 bad だけで good なし	期待=否	結果=否	一致
+     /properties/kind/x-prompt/write/2 | 'good' is a dependency of 'bad'
+B17 x-instance-path があり kind が無い	期待=否	結果=否	一致
+     /properties | 'kind' is a required property
+不一致 0
+本体の中の rule：27件、形の違反 0件 ／ x-prompt の形の違反 0件 ／ by: ai の rule と agent：[('no-prompt-on-leaf', 'reviewer'), ('list-as-array', 'reviewer'), ('noun', 'reviewer'), ('what-and-not', 'reviewer'), ('only-mechanical', 'reviewer')]
+by の内訳 {'machine': 22, 'ai': 5}
+I instance {"$schema": "urn:semantic-schema-core:demo-skill:record:v1", "kind": "record", "id": "1", "name": "a", "elapsed": 3} 期待 合 結果 合 []
+I instance {"$schema": "urn:semantic-schema-core:demo-skill:record:v1", "kind": "record", "elapsed": -1} 期待 否 結果 否 ['-1 is less than the minimum of 0']
