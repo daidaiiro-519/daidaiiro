@@ -1,0 +1,119 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--page:#eef1ef;--block:#f8faf9;--head:#dfe7e4;--control:#eef1ef;--answer:#d5e6e3;--notice:#f8f3e8;--done:#e3f1df;--removed:#f6e0df;--literal:#eef1ef;--text:#111d1a;--sub:#3c4a46;--key:#0d5c55;--onkey:#f8faf9;--warn:#8f5410;--textdone:#2f6528;--textremoved:#a3262a;--line:#ccd8d4;--linectl:#5b6b66;--linenotice:#d9b77e;--linedone:#3e7b36;--source:#7a3b6d}
+@media (prefers-color-scheme:dark){:root{--page:#0e1614;--block:#16211e;--head:#22302d;--control:#22302d;--answer:#173330;--notice:#241d14;--done:#1c2b19;--removed:#3a1c1d;--literal:#0e1614;--text:#e6eeeb;--sub:#c2cec9;--key:#6cc9b8;--onkey:#16211e;--warn:#d9a35f;--textdone:#a6d69b;--textremoved:#f0a3a0;--line:#2a3936;--linectl:#93a29d;--linenotice:#6e5738;--linedone:#86c27a;--source:#d094c2}}
+*{box-sizing:border-box}
+body{margin:0;padding:12px 16px;background:var(--page);color:var(--text);font:14px/1.7 "Zen Kaku Gothic New", system-ui, sans-serif}
+button{font:inherit;cursor:pointer;border:1px solid var(--linectl);background:var(--control);color:var(--text);border-radius:6px;padding:4px 14px}
+button.key{background:var(--key);color:var(--onkey);border-color:var(--key)}
+button:disabled{opacity:.4;cursor:default}
+.lead{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.dots{display:flex;gap:4px}
+.dots span{width:22px;height:6px;border-radius:3px;background:var(--head);border:1px solid var(--line)}
+.dots span.on{background:var(--key);border-color:var(--key)}
+.story{background:var(--answer);border:1px solid var(--key);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.story .n{font-size:12px;color:var(--sub)}
+.story .t{font-size:16px;font-weight:700}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+.col{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.col h4{margin:0 0 2px;font-size:14px}
+.col .sub{font-size:12px;color:var(--sub);margin-bottom:6px}
+.ops{display:flex;gap:14px;align-items:baseline;margin:2px 0 8px;font-size:13px}
+.ops b{font-size:20px;color:var(--key)}
+.f{border:1px solid var(--line);background:var(--literal);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:12px;overflow-x:auto}
+.mono{font-family:"JetBrains Mono",monospace;font-size:11.5px;white-space:pre;line-height:1.5}
+.add{color:var(--textdone)}.del{color:var(--textremoved)}
+.ex{border:1px solid var(--textremoved);background:var(--removed);color:var(--textremoved);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:13px}
+.sec{font-weight:700;font-size:13px;margin:8px 0 2px}
+.row{border:1px solid var(--line);background:var(--literal);border-radius:6px;margin:4px 0;font-size:13px}
+.row>.h{display:flex;gap:6px;align-items:baseline;padding:4px 8px}
+.row>.h .c{margin-left:auto;font-size:12px;color:var(--sub);white-space:nowrap}
+.row.open{outline:2px solid var(--key)}
+.row .body{border-top:1px solid var(--line);padding:4px 8px}
+.kv{display:grid;grid-template-columns:auto 1fr 1fr;gap:2px 8px;font-size:12px}
+.kv .hd{color:var(--sub)}
+.under{padding-left:14px;color:var(--sub);font-size:12px}
+.tag{border:1px solid var(--line);background:var(--head);border-radius:10px;padding:0 6px;font-size:11px;white-space:nowrap}
+.tag.hu{background:var(--notice);color:var(--warn);border-color:var(--linenotice)}
+.st{display:flex;gap:6px;align-items:center;font-size:13px;margin:3px 0}
+.b-ok{white-space:nowrap;background:var(--done);color:var(--textdone);border:1px solid var(--linedone);border-radius:10px;padding:0 6px;font-size:12px}
+.b-wait{white-space:nowrap;background:var(--notice);color:var(--warn);border:1px solid var(--linenotice);border-radius:10px;padding:0 6px;font-size:12px}
+.b-ng{background:var(--removed);color:var(--textremoved);border-radius:10px;padding:0 6px;font-size:12px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card{border:1px solid var(--line);background:var(--page);border-radius:6px;padding:6px 8px;font-size:12.5px;min-width:0}
+.card .cap{font-size:11px;color:var(--sub)}
+.card h5{margin:2px 0;font-size:14px}
+.chg{background:var(--notice);border-radius:3px;padding:0 2px}
+.none{color:var(--sub);font-size:13px}
+.why{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:10px}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sum div{background:var(--block);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+
+.pur{border:2px solid var(--key);background:var(--answer);border-radius:8px;padding:8px 10px;margin:6px 0}
+.pur .t{font-weight:700}
+.pur .m{font-size:12px;color:var(--sub)}
+.acts{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.acts span{border:1px solid var(--linectl);background:var(--control);border-radius:6px;padding:1px 10px;font-size:12px}
+.acts span.on{background:var(--key);color:var(--onkey);border-color:var(--key)}
+.int{border:1px solid var(--line);background:var(--literal);border-radius:6px;margin:4px 0;font-size:13px;padding:4px 8px}
+.int.open{outline:2px solid var(--key)}
+.int.ret{border-color:var(--textremoved);background:var(--removed)}
+.int.same{opacity:.6}
+.int .c{float:right;font-size:12px;color:var(--sub)}
+.sub2{font-weight:700;font-size:12px;margin:6px 0 2px;color:var(--sub)}
+</style></head><body>
+<div class="lead">記事を書く Skill を例に、<b>目的で承認し、意図で確かめる</b>2段の見方を、Git の差分と並べて見る。途中で意図を1つ差し戻し、AI が直したあとにもう一度見る。「次へ」で1場面ずつ進む。</div>
+<div class="nav"><button id="prev">前へ</button><button id="next" class="key">次へ</button><div class="dots" id="dots"></div><button id="again">はじめから</button></div>
+<div class="story"><div class="n" id="no"></div><div class="t" id="title"></div><div id="detail"></div></div>
+<div class="grid">
+ <div class="col"><h4>Git の差分で見る</h4><div class="sub">PR のファイルの差分</div><div class="ops">人の判断 <b id="o1">0</b> 回</div><div id="left"></div></div>
+ <div class="col"><h4>Semantic Schema Core で見る</h4><div class="sub">目的（承認の単位）→ 意図（確かめる単位）→ 意味の差分</div><div class="ops">人の判断 <b id="o2">0</b> 回</div><div id="right"></div></div>
+</div>
+<div class="why" id="why"></div>
+<script>
+const $=s=>document.querySelector(s);
+const GIT='<div class="f mono">articles/記事01.json  <span class="add">+3</span> <span class="del">-3</span>\narticles/記事02.json  <span class="add">+5</span> <span class="del">-4</span>\n…（記事03〜20）\n.changes/…（変更の記録 12件）</div>';
+const EX='<div class="ex">例外 1件：記録に無い ── 記事07「新製品の発表」/タイトル</div>';
+const PUR=(st,w)=>'<div class="pur"><div class="t">目的：ACDR-0201 価格改定を記事に反映する</div><div class="m">意図 3件 ・ 対象 20件 ・ 判断待ち '+(w===0?0:1)+'件</div><div class="acts"><span'+(st==='ok'?' class="on"':'')+'>承認する</span><span'+(st==='ret'?' class="on"':'')+'>差し戻す</span></div></div>';
+const I1='本文の価格を 5% → 8% にする',I2='本文の改定に要約を合わせる',I3='改定の告知を記事の先頭に足す';
+const INTS=(o)=>'<div class="sec">意図（3件）</div>'+
+ '<div class="int'+(o.open===1?' open':'')+(o.same?' same':'')+'"><span class="c">記事 10件'+(o.same?' ・ 前回から変わっていない':'')+'</span>1. '+I1+'</div>'+
+ '<div class="int'+(o.same?' same':'')+'"><span class="c">記事 10件'+(o.same?' ・ 前回から変わっていない':'')+'</span>2. '+I2+'</div>'+
+ '<div class="int'+(o.open===3?' open':'')+(o.ret?' ret':'')+'"><span class="c">記事 20件'+(o.fixed?' ・ 直した':'')+'</span>3. '+(o.fixed?'改定の告知を記事の末尾に足す':I3)+'</div>';
+const D1='<div class="sub2">内容の差分</div><div class="kv"><span class="hd">対象</span><span class="hd">前</span><span class="hd">後</span><span>記事2「価格改定のお知らせ」本文</span><span>…5%上げる。</span><span>…8%上げる。</span></div><div class="under">↳ 一緒に変わった欄：文字数 412 → 413（本文から導く）</div><div class="none">ほか 9件（開くと見える）</div><div class="sub2">検証結果の差分</div><div class="st">記事5「採用情報」<span class="b-ok">検証済み</span> → <span class="b-wait">判断待ち</span></div><div class="none">ほか 9件は変わらず検証済み</div>';
+const D3=(fixed)=>'<div class="sub2">描画の差分</div><div class="pair"><div class="card"><div class="cap">変更前</div><h5>新製品の発表</h5>新製品を10月に出す。…</div><div class="card"><div class="cap">変更後</div><h5>新製品の発表</h5>'+(fixed?'新製品を10月に出す。…<br><span class="chg">※ 来月から価格を改定します</span>':'<span class="chg">【お知らせ】来月から価格を改定します</span><br>新製品を10月に出す。…')+'</div></div><div class="none">'+(fixed?'告知は末尾に入り、記事の本題が先に読める。':'価格と関係の無い記事の先頭にも告知が入り、本題が読みにくい。')+'</div>';
+const STEPS=[
+ {t:'AI が変更を出す',d:'目的「ACDR-0201 価格改定」で、AI が記事20件を変えた。変更の記録には、意図が3つある。ほかに、誰かが記事07のタイトルを手で書き換えた。',
+  L:GIT,R:'<div class="none">変更の記録には、目的の参照と意図（理由）が残っている。</div>',o:[0,0],
+  why:'変更の量はどちらも同じ。右は、記録に残った目的と意図で、変更を組み直して見せる。'},
+ {t:'PR を開く（目的が見える）',d:'人が、この変更を取り込むかを決めるために PR を開く。',
+  L:GIT,R:EX+PUR(''),o:[0,0],
+  why:'右は、まず承認の単位である目的が1つ見える。意図が3件、対象が20件、判断待ちが1件あることが、開く前に分かる。例外は目的の外に先に出る。'},
+ {t:'目的を開く（意図が並ぶ）',d:'目的の中で、どんな判断がされたかを見る。',
+  L:GIT,R:EX+PUR('')+INTS({}),o:[0,0],
+  why:'右は、意図が3行で並ぶ。20件の記事 ・ 80か所の欄ではなく、3つの判断を読めばよい。'},
+ {t:'意図1を確かめる',d:'「本文の価格を 5% → 8% にする」が、本当にそうなっているか。',
+  L:GIT+'<div class="f mono"><span class="del">-  "body": "…価格を5%上げる。"</span>\n<span class="add">+  "body": "…価格を8%上げる。"</span></div>',R:PUR('')+INTS({open:1})+D1,o:[0,0],
+  why:'右は、意図を開くと、その意図で変わった対象の内容の差分と検証結果の差分が出る。記事5が判断待ちになったことも、この意図の下で分かる。'},
+ {t:'意図3を確かめて、差し戻す',d:'「改定の告知を記事の先頭に足す」を、見た目で確かめる。',
+  L:GIT+'<div class="none">告知の行が20ファイルに入っているが、見た目は手元で描画しないと分からない。</div>',R:PUR('ret')+INTS({open:3,ret:true})+D3(false)+'<div class="ex">差し戻し：意図3 ──「価格と関係の無い記事では、告知は末尾にする」</div>',o:[20,2],
+  why:'右は、描画の差分で、価格と関係の無い記事の先頭にも告知が入ったと分かる。人は目的を差し戻し、どの意図がなぜだめかを1つ書く。判断は、意図3を見て差し戻すことと、記事5の判断待ちに答えることの2回。'},
+ {t:'AI が意図3だけを直す',d:'AI が差し戻しを読み、意図3だけを直した。人はもう一度 PR を見る。',
+  L:GIT+'<div class="none">また20ファイルの差分が並ぶ。前回と何が違うかは、自分で探す。</div>',R:'<div class="f">例外 0件（記事07 の手の書き換えは、書いた人が変更の記録を足したので消えた）</div>'+PUR('',0)+INTS({open:3,same:true,fixed:true})+D3(true),o:[40,3],
+  why:'右は、意図1と2は「前回から変わっていない」と出るので、見直さなくてよい。直った意図3だけを、描画の差分で確かめる。'},
+ {t:'目的を承認して取り込む',d:'人が目的を承認し、PR を取り込む。',
+  L:'<div class="none">PR を取り込む。何を承認したかは、ファイルの差分しか残らない。</div>',R:PUR('ok',0)+'<div class="none">目的を承認して取り込む。承認は Git が PR に残す。同じ変更の前後からは同じ目的 ・ 意図 ・ 意味の差分が出るので、何を承認したかを後から作り直せる。</div>',o:[41,4],
+  why:'左：判断 約41回（1回目に約20か所、直したあとにもう一度約20か所を見て、取り込みの1回）。右：判断4回（意図3の差し戻し ・ 判断待ち ・ 直った意図3 ・ 目的の承認）。仮定の数で、利用者で測ってはいない。'},
+];
+let step=-1;
+function render(){$('#dots').innerHTML=STEPS.map((_,i)=>'<span class="'+(i<=step?'on':'')+'"></span>').join('');
+ $('#prev').disabled=step<0;$('#next').disabled=step>=STEPS.length-1;
+ if(step<0){$('#no').textContent='はじめに';$('#title').textContent='目的で承認し、意図で確かめる';$('#detail').textContent='承認するのは目的（1回）。確かめるのは意図（目的の中の判断の1つずつ）。';
+  $('#left').innerHTML=$('#right').innerHTML='<div class="none">まだ何も起きていない</div>';$('#o1').textContent=0;$('#o2').textContent=0;$('#why').textContent='左右の「人の判断」の回数と、見ているものの単位を比べる。';return;}
+ const s=STEPS[step];$('#no').textContent='場面 '+(step+1)+' / '+STEPS.length;$('#title').textContent=s.t;$('#detail').textContent=s.d;
+ $('#left').innerHTML=s.L;$('#right').innerHTML=s.R;$('#o1').textContent=s.o[0];$('#o2').textContent=s.o[1];$('#why').textContent=s.why;}
+$('#next').onclick=()=>{step++;render();};$('#prev').onclick=()=>{step--;render();};$('#again').onclick=()=>{step=-1;render();};
+render();
+</script></body></html>
