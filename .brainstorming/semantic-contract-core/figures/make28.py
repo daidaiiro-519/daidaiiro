@@ -20,12 +20,12 @@ HTML = r'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name
 .int .c{float:right;font-size:12px;color:var(--sub)}
 .sub2{font-weight:700;font-size:12px;margin:6px 0 2px;color:var(--sub)}
 </style></head><body>
-<div class="lead">記事を書く Skill を例に、<b>目的で承認し、意図で確かめる</b>2段の見方を、Git の差分と並べて見る。途中で意図を1つ差し戻し、AI が直したあとにもう一度見る。「次へ」で1場面ずつ進む。</div>
+<div class="lead">記事を書く Skill を例に、<b>目的で承認し、意図ごとの「変更の意味」で確かめる</b>2段の見方を、Git の差分と並べて見る。途中で意図を1つ差し戻し、AI が直したあとにもう一度見る。「次へ」で1場面ずつ進む。</div>
 <div class="nav"><button id="prev">前へ</button><button id="next" class="key">次へ</button><div class="dots" id="dots"></div><button id="again">はじめから</button></div>
 <div class="story"><div class="n" id="no"></div><div class="t" id="title"></div><div id="detail"></div></div>
 <div class="grid">
  <div class="col"><h4>Git の差分で見る</h4><div class="sub">PR のファイルの差分</div><div class="ops">人の判断 <b id="o1">0</b> 回</div><div id="left"></div></div>
- <div class="col"><h4>Semantic Schema Core で見る</h4><div class="sub">目的（承認の単位）→ 意図（確かめる単位）→ 意味の差分</div><div class="ops">人の判断 <b id="o2">0</b> 回</div><div id="right"></div></div>
+ <div class="col"><h4>Semantic Schema Core で見る</h4><div class="sub">目的（承認の単位）→ 意図（確かめる単位）→ 意味の変更</div><div class="ops">人の判断 <b id="o2">0</b> 回</div><div id="right"></div></div>
 </div>
 <div class="why" id="why"></div>
 <script>
@@ -37,9 +37,10 @@ const I1='本文の価格を 5% → 8% にする',I2='本文の改定に要約�
 const INTS=(o)=>'<div class="sec">意図（3件）</div>'+
  '<div class="int'+(o.open===1?' open':'')+(o.same?' same':'')+'"><span class="c">記事 10件'+(o.same?' ・ 前回から変わっていない':'')+'</span>1. '+I1+'</div>'+
  '<div class="int'+(o.same?' same':'')+'"><span class="c">記事 10件'+(o.same?' ・ 前回から変わっていない':'')+'</span>2. '+I2+'</div>'+
- '<div class="int'+(o.open===3?' open':'')+(o.ret?' ret':'')+'"><span class="c">記事 20件'+(o.fixed?' ・ 直した':'')+'</span>3. '+(o.fixed?'改定の告知を記事の末尾に足す':I3)+'</div>';
-const D1='<div class="sub2">内容の差分</div><div class="kv"><span class="hd">対象</span><span class="hd">前</span><span class="hd">後</span><span>記事2「価格改定のお知らせ」本文</span><span>…5%上げる。</span><span>…8%上げる。</span></div><div class="under">↳ 一緒に変わった欄：文字数 412 → 413（本文から導く）</div><div class="none">ほか 9件（開くと見える）</div><div class="sub2">検証結果の差分</div><div class="st">記事5「採用情報」<span class="b-ok">検証済み</span> → <span class="b-wait">判断待ち</span></div><div class="none">ほか 9件は変わらず検証済み</div>';
-const D3=(fixed)=>'<div class="sub2">描画の差分</div><div class="pair"><div class="card"><div class="cap">変更前</div><h5>新製品の発表</h5>新製品を10月に出す。…</div><div class="card"><div class="cap">変更後</div><h5>新製品の発表</h5>'+(fixed?'新製品を10月に出す。…<br><span class="chg">※ 来月から価格を改定します</span>':'<span class="chg">【お知らせ】来月から価格を改定します</span><br>新製品を10月に出す。…')+'</div></div><div class="none">'+(fixed?'告知は末尾に入り、記事の本題が先に読める。':'価格と関係の無い記事の先頭にも告知が入り、本題が読みにくい。')+'</div>';
+ '<div class="int'+(o.open===3?' open':'')+(o.ret?' ret':'')+'"><span class="c">記事 '+(o.fixed?'8件 ・ 直した':'20件')+'</span>3. '+(o.fixed?'改定の告知を、価格に触れる記事の末尾に足す':I3)+'</div>';
+const D1='<div class="sub2">意図の意味（AI が x-prompt の読み方で読んだもの）</div><div class="f">価格に触れる記事 10件で、読者に示す値上げ幅が 5% から 8% に変わった。</div><div class="sub2">対象ごとの意味</div><div class="f">記事2「価格改定のお知らせ」：値上げ幅が 5% → 8%。対象は全商品のまま。</div><div class="f">記事9「よくある質問」：答えの中の値上げ幅が 5% → 8%。</div><div class="none">ほか 8件 ・ 欄の前後は開くと見える（本文 ・ 文字数）</div><div class="sub2">検証結果の差分</div><div class="st">記事5「採用情報」<span class="b-ok">検証済み</span> → <span class="b-wait">判断待ち</span></div><div class="none">ほか 9件は変わらず検証済み</div>';
+const M3=(fixed)=>'<div class="sub2">意図の意味</div><div class="f'+(fixed?'':' ex')+'">'+(fixed?'価格に触れる記事 8件だけで、本文の末尾に値上げの告知が加わった。':'価格に触れる記事 8件に加えて、価格と関係の無い記事 12件にも、冒頭に値上げの告知が加わった。')+'</div>';
+const D3=(fixed)=>M3(fixed)+'<div class="sub2">描画の差分</div><div class="pair"><div class="card"><div class="cap">変更前</div><h5>新製品の発表</h5>新製品を10月に出す。…</div><div class="card"><div class="cap">変更後</div><h5>新製品の発表</h5>'+(fixed?'新製品を10月に出す。…（告知なし）':'<span class="chg">【お知らせ】来月から価格を改定します</span><br>新製品を10月に出す。…')+'</div></div>';
 const STEPS=[
  {t:'AI が変更を出す',d:'目的「ACDR-0201 価格改定」で、AI が記事20件を変えた。変更の記録には、意図が3つある。ほかに、誰かが記事07のタイトルを手で書き換えた。',
   L:GIT,R:'<div class="none">変更の記録には、目的の参照と意図（理由）が残っている。</div>',o:[0,0],
@@ -52,13 +53,13 @@ const STEPS=[
   why:'右は、意図が3行で並ぶ。20件の記事 ・ 80か所の欄ではなく、3つの判断を読めばよい。'},
  {t:'意図1を確かめる',d:'「本文の価格を 5% → 8% にする」が、本当にそうなっているか。',
   L:GIT+'<div class="f mono"><span class="del">-  "body": "…価格を5%上げる。"</span>\n<span class="add">+  "body": "…価格を8%上げる。"</span></div>',R:PUR('')+INTS({open:1})+D1,o:[0,0],
-  why:'右は、意図を開くと、その意図で変わった対象の内容の差分と検証結果の差分が出る。記事5が判断待ちになったことも、この意図の下で分かる。'},
+  why:'右は、意図を開くと、欄の値ではなく「この変更が何を意味するか」が出る。AI が、各欄の x-prompt の読み方で値を読み、関係する instance もたどって書いたもの。欄の前後は、必要なときだけ開く。'},
  {t:'意図3を確かめて、差し戻す',d:'「改定の告知を記事の先頭に足す」を、見た目で確かめる。',
   L:GIT+'<div class="none">告知の行が20ファイルに入っているが、見た目は手元で描画しないと分からない。</div>',R:PUR('ret')+INTS({open:3,ret:true})+D3(false)+'<div class="ex">差し戻し：意図3 ──「価格と関係の無い記事では、告知は末尾にする」</div>',o:[20,2],
-  why:'右は、描画の差分で、価格と関係の無い記事の先頭にも告知が入ったと分かる。人は目的を差し戻し、どの意図がなぜだめかを1つ書く。判断は、意図3を見て差し戻すことと、記事5の判断待ちに答えることの2回。'},
+  why:'右は、意図の意味を読んだだけで「価格と関係の無い記事12件にも告知が入った」と分かる。描画の差分で見た目も確かめられる。人は目的を差し戻し、どの意図がなぜだめかを1つ書く。判断は、意図3の差し戻しと、記事5の判断待ちの2回。'},
  {t:'AI が意図3だけを直す',d:'AI が差し戻しを読み、意図3だけを直した。人はもう一度 PR を見る。',
   L:GIT+'<div class="none">また20ファイルの差分が並ぶ。前回と何が違うかは、自分で探す。</div>',R:'<div class="f">例外 0件（記事07 の手の書き換えは、書いた人が変更の記録を足したので消えた）</div>'+PUR('',0)+INTS({open:3,same:true,fixed:true})+D3(true),o:[40,3],
-  why:'右は、意図1と2は「前回から変わっていない」と出るので、見直さなくてよい。直った意図3だけを、描画の差分で確かめる。'},
+  why:'AI は記録を書き換えず、意図3を置き換える新しい変更の記録を足した。右は、意図1と2の意味の判定がそのまま効いているので「前回から変わっていない」と出る。直った意図3の意味だけを読めばよい。'},
  {t:'目的を承認して取り込む',d:'人が目的を承認し、PR を取り込む。',
   L:'<div class="none">PR を取り込む。何を承認したかは、ファイルの差分しか残らない。</div>',R:PUR('ok',0)+'<div class="none">目的を承認して取り込む。承認は Git が PR に残す。同じ変更の前後からは同じ目的 ・ 意図 ・ 意味の差分が出るので、何を承認したかを後から作り直せる。</div>',o:[41,4],
   why:'左：判断 約41回（1回目に約20か所、直したあとにもう一度約20か所を見て、取り込みの1回）。右：判断4回（意図3の差し戻し ・ 判断待ち ・ 直った意図3 ・ 目的の承認）。仮定の数で、利用者で測ってはいない。'},
