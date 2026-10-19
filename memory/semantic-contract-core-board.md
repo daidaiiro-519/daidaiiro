@@ -12,7 +12,7 @@ metadata:
 - 変更の記録を3人の反証の統合で足した（U25 変更を確かめて取り込むかを決める、I31〜I37）。置き場所はリポジトリのファイル（id で引く。第70回）。第71回：セッションを管理する役は外、セッション ID は手元の索引（SQLite、コミットしない）だけ、記録は書いた時に ID 無しで置く。まとまりは保存せず出すときに組み立てる・理由の合致は既存の AI の判定で確かめる（利用者の決定）。Q10 の「理由は変更の仕組みに任せる」を改めた。
 - 第77回：tool permissions を外した（Core は許可の境界を持たない。AI の許可は各 AI ツールの設定ファイル）。brainstorming の agents.json を廃止する ACDR が次。
 - 第93回：x- を利用者と9つに決めた（x-instance-path ・ x-instance-label ・ x-delegates ・ x-extensions ・ x-prompt ・ x-relationship ・ x-derived-from ・ x-decided-by ・ x-published）。URN は urn:semantic-schema-core:<持ち主>:<種類>:v<版>。Q1 は任せる先 ・ 決定権に改めた。
-- Q7 は 10-19 に承認（第94回）。回答待ちは Q10。Q3 は Q10 待ち、Q4 は Q3 待ち。Q10 は Q1 待ち。D6 は決着（unsupported で人が見る。人は Core から tool permissions に登録できる）。
+- Q7 は 10-19、Q10 は 10-20 に承認（変更のデータモデル：目的で承認し、意図ごとの意味の変更で確かめる。意味の変更は I33 の判定の記録）。利用者：「少し詰めないといけない部分はあるかも」。Q10 は Q1 待ち。D6 は決着（unsupported で人が見る。人は Core から tool permissions に登録できる）。
 - 実行できるモデル measured/model/ は第66回の形のままで、案と食い違う。作り直す。
 
 ## 次にすること
