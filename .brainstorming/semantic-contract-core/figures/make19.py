@@ -79,12 +79,12 @@ code{font-family:"JetBrains Mono",monospace;font-size:11px}
 <div class="grid">
  <div class="col"><h4>前の作り（第59回）</h4><div class="sub">人が記事を1件ずつ承認する</div>
   <div class="ops">人の操作 <b id="o59">0</b> 回 <span class="plus" id="p59"></span></div><div id="m59"></div></div>
- <div class="col"><h4>新しい作り（いまの案）</h4><div class="sub">人が見るのは、変更の差分と理由と、AI が判定できなかったものだけ</div>
+ <div class="col"><h4>新しい作り（いまの案）</h4><div class="sub">人が見るのは、目的 ・ 意図ごとの意味の変更と、AI が判定できなかったものだけ</div>
   <div class="ops">人の操作 <b id="o60">0</b> 回 <span class="plus" id="p60"></span></div><div id="m60"></div></div>
 </div>
 <div class="why" id="why"></div>
 <details id="inside"><summary>新しい作りの中で、何をどう記録したか（開く）</summary>
- <div class="note">記事の状態は保存しない。残すのは「契約」「記事」「判定の記録（AI と人の判定。判定したときに読んだ値を残す）」だけで、機械の rule は記録せず毎回計算し直す。記事を押すと計算の中身が出る。</div>
+ <div class="note">記事の状態は保存しない。残すのは「契約」「記事」「判定の記録（AI と人の判定。判定したときに読んだ値を残す）」「変更の記録（意図ごとに1件）」だけで、機械の rule は記録せず毎回計算し直す。記事を押すと計算の中身が出る。</div>
  <div id="recs"></div><div class="arts" id="arts"></div><div id="calc"></div></details>
 <script>
 const $=s=>document.querySelector(s);
@@ -143,14 +143,14 @@ const STEPS=[
   why:'新しい作りでは、人の判定は「判断したときの中身」に結び付いている。中身が変わると前の判断は効かなくなり、基盤が検証し直す。今回は AI が判定できたので、人には届かない。'},
  {t:'誰かがファイルを直接書き換える',d:'基盤を通らずに、記事2の要約が書き換えられた。',
   act(){art('記事2').f['要約']='価格を5%上げる';if(S.mode==='r59'&&S.old.state['記事2']==='承認済み'){S.old.state['記事2']='陳腐化';card('記事2','陳腐化したので承認し直してください');}verifyAll();},
-  why:'新しい作りは、読むたびに中身のハッシュを記録と照らすので、書き換えに気づいて検証し直す。結果が同じなら人には届かない。'},
+  why:'新しい作りは、判定の記録に残した判定した値と、いまの値を JSON Schema の等しさで比べるので、書き換えに気づいて検証し直す。変更の記録に無い書き換えは「記録に無い」として出る。'},
  {t:'AI のモデルを新しくする（validator を ai@2 に替える）',d:'記事の中身は変わっていない。判定する AI だけを新しくする。',
   act(){if(S.mode==='r59'){S.asg.summary='ai@2';for(const a of S.arts)if(S.old.state[a.id]==='承認済み'){S.old.state[a.id]='確かめ直し';card(a.id,'確かめ直してください');}return;}
    const ch=trial(()=>{S.asg.summary='ai@2';});S.pa={to:'ai@2',changed:ch,samples:['記事1','記事2']};},
   why:'前の作りは、承認済みの全件が承認し直しになる。新しい作りでは、AI の割り当ても契約の一部なので、替えるのはふつうの変更。基盤が全記事を検証し直して「状態が変わる記事」を出し、人はその変更を1回見て取り込む。人の判定は AI に依らないので効いたまま。'},
  {t:'AI が規則を弱めようとする',d:'AI が「要約は本文と矛盾しない」という規則を消そうとした。',reject:true,
   act(){if(S.mode==='r59'){delete S.c.rules.summary;S.missed++;return;}const rules=clone(S.c.rules);delete rules.summary;const ch=trial(()=>{S.c.rules=rules;});S.pv={rules,diff:'−「要約は本文と矛盾しない」を消す',changed:ch};},
-  why:'前の作りには契約の変更を見る場所が無く、規則が消えても人は気づけない。新しい作りでは、規則を消すのもふつうの変更で、差分と理由と影響が出る。人は見て取り込まない。'},
+  why:'前の作りには契約の変更を見る場所が無く、規則が消えても人は気づけない。新しい作りでは、規則を消すのもふつうの変更で、意図と意味の変更と検証結果の差分が出る。人は見て目的を差し戻す。'},
 ];
 let step=-1,W={},hist=[];
 function run(to){W={r59:fresh('r59'),r60:fresh('r60')};hist=[];for(let i=0;i<=to;i++){const rec={};
@@ -164,7 +164,7 @@ function render(){$('#dots').innerHTML=STEPS.map((_,i)=>'<span class="'+(i<=step
   for(const m of['59','60']){$('#o'+m).textContent=0;$('#p'+m).textContent='';$('#m'+m).innerHTML='<div class="none">まだ何も起きていない</div>';}$('#why').textContent='左右の「人の操作」の数と、届いたものの中身を比べる。';$('#inside').style.display='none';return;}
  $('#inside').style.display='';
  if(step>=STEPS.length){$('#no').textContent='まとめ';$('#title').textContent='6つの場面を通しての合計';$('#detail').textContent='';
-  const a=W.r59,b=W.r60;$('#why').innerHTML='<div class="sum"><div>前の作り：人の操作 <b>'+a.ops+'</b> 回 ／ 人が気づけなかった契約の変更 <b>'+a.missed+'</b> 件</div><div>新しい作り：人の操作 <b>'+b.ops+'</b> 回 ／ 気づけなかった変更 <b>0</b> 件</div></div><p class="note">新しい作りで人が見たのは、AI が判定できなかった記事と、契約（規則 ・ AI のモデル）を変える変更の差分だけだった。承認の仕組みは無く、ふつうの変更を見て取り込むだけ。</p>';
+  const a=W.r59,b=W.r60;$('#why').innerHTML='<div class="sum"><div>前の作り：人の操作 <b>'+a.ops+'</b> 回 ／ 人が気づけなかった契約の変更 <b>'+a.missed+'</b> 件</div><div>新しい作り：人の操作 <b>'+b.ops+'</b> 回 ／ 気づけなかった変更 <b>0</b> 件</div></div><p class="note">新しい作りで人が見たのは、AI が判定できなかった記事と、契約（規則 ・ AI のモデル）を変える変更の意図と意味の変更だけだった。承認は PR で目的ごとに1回で、Core は承認の記録を持たない。</p>';
   for(const m of['59','60']){$('#o'+m).textContent=W['r'+m].ops;$('#p'+m).textContent='';$('#m'+m).innerHTML='';}renderInside();return;}
  const st=STEPS[step],h=hist[step];$('#no').textContent='場面 '+(step+1)+' / '+STEPS.length;$('#title').textContent=st.t;$('#detail').textContent=st.d;
  for(const m of['59','60']){const r=h['r'+m];$('#o'+m).textContent=W['r'+m].ops;$('#p'+m).textContent=r.plus?'（この場面で +'+r.plus+'）':'（この場面で +0）';

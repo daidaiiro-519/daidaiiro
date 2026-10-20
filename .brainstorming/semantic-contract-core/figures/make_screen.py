@@ -15,8 +15,8 @@ def kind(r):
 rows = [(r["constraint"], kind(r)) for r in d["results"]]
 cnt = {k: sum(1 for _, x in rows if x == k) for k in ["verified", "violated", "ai", "unsupported"]}
 show = ["topics-3-to-5", "decisions-only", "one-decision", "html-standalone", "intro-one-sentence", "title-40", "sentence-120", "open-has-image"]
-W = {"verified": ("合格", "ok"), "violated": ("違反", "ng"), "ai": ("担い手が無い", "ai"), "unsupported": ("担い手が無い", "na")}
-NOTE = {"verified": "エンジン", "violated": "エンジン ・ /topics に6件", "ai": "AI の判断が要る。Agents 契約で AI を担い手にすれば確かめられる", "unsupported": "確かめる担い手がまだ無い"}
+W = {"verified": ("合格", "ok"), "violated": ("違反", "ng"), "ai": ("unsupported（validator が無い）", "ai"), "unsupported": ("unsupported（validator が無い）", "na")}
+NOTE = {"verified": "機械（machine）", "violated": "機械（machine）・ /topics に6件", "ai": "AI の判断が要る。x-delegates で AI の validator を割り当てれば確かめられる", "unsupported": "確かめる validator がまだ無い"}
 items = "".join(f'<li><span class="b {W[k][1]}">{W[k][0]}</span><span class="r">{html.escape(LABEL.get(c, c))}</span><span class="n">{NOTE[k]}</span></li>' for c, k in rows if c in show)
 page = f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>
 :root{{--bg:#eef1ef;--card:#f8faf9;--ink:#111d1a;--sub:#3c4a46;--line:#ccd8d4;--key:#0d5c55;--keybg:#d5e6e3;--ng:#9b2c2c;--ngbg:#f6dede;--warn:#8f5410;--warnbg:#f0e2cd}}
@@ -38,7 +38,7 @@ li .n{{grid-column:2;color:var(--sub);font-size:12px}}
 <p class="big">合格 ── 指摘 0件</p><p>形（JSON Schema）・ 参照 ・ 導出値だけを見て、合格と返す。形の外の決まりは見ていないことも返さない。</p></section>
 <section><h2>足したあと（決まりごとの結果）</h2><p class="sub">同じボードに、実験で決まりを当てた結果</p>
 <p class="stop">全体：成功にしない（必須の決まりに違反がある）</p>
-<div class="counts"><span class="b ok">合格 {cnt["verified"]}</span><span class="b ng">違反 {cnt["violated"]}</span><span class="b na">担い手が無い {cnt["ai"] + cnt["unsupported"]}（うち AI の判断が要る {cnt["ai"]}）</span></div>
+<div class="counts"><span class="b ok">合格 {cnt["verified"]}</span><span class="b ng">違反 {cnt["violated"]}</span><span class="b na">unsupported {cnt["ai"] + cnt["unsupported"]}（うち AI の判断が要る {cnt["ai"]}）</span></div>
 <ul>{items}</ul></section></div></body></html>'''
 (HERE / "q0-screen.html").write_text(page)
 print(cnt)
