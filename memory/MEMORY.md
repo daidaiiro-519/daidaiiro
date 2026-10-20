@@ -4,7 +4,7 @@
 それは、それが適用される Skill のガードレールか knowledge が保持する。
 
 - [ユースケース抽象設計モデリングと抽象コーディングのボード](usecase-modeling-coding-board.md) ── 9月のスキーマ駆動のボードと合わせて考える。20回目。Q8 の名前は use-case-driven-modeling ・ coding ・ development で承認。土台の決め直しは use-case-driven-development のボードへ
-- [AIワークショップの最新の共通導入](ai-workshop-current-intro.md) ── 2026年10月19日、作業と閲覧ページをリポジトリへ移行。新7枚のうち1・2枚目の図を反映。次は3枚目。最新は承認段階の取り違えとマージ後CI。過去の経緯は [旧記録](ai-workshop.md)。
+- [AIワークショップの最新の共通導入](ai-workshop-current-intro.md) ── 2026年10月19日、作業と閲覧ページをリポジトリへ移行。新7枚のうち1〜3枚目の図を反映。次は4枚目。最新は承認段階の取り違えとマージ後CI。過去の経緯は [旧記録](ai-workshop.md)。
 - [advisor の判断基準の漏れ](advisor-coverage-gaps.md) ── usecase ・ ddd ・ meta-thinking は原典の全頁から作り直して完了（0115 ・ 0119 ・ 0127）。qa ・ platform も完了（0131 ・ 0134）。design-svg の作り直しは完了（0157〜0160）。advisor-answer は論点4 承認済み。次は ACDR 1（雛形）
 - [advisor の作り直し](advisor-rebuild.md) ── usecase ・ ddd ・ qa ・ platform ・ ux の5つとも完了（ux は ACDR 0105 ・ 0106、push 済み）
 - [skills-creator を契約中心に作り直すボード](skills-creator-contract-board.md) ── ACDR 0096〜0100 まで承認・コミット済み（未 push）。次は platform ・ ux のブレストと qa の返事待ち3件
