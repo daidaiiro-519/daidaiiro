@@ -59,8 +59,8 @@ prior_one = json.loads((A / 'seven-slide-revision-20261019' / 'before' / 'slide-
 prior_svg_one = (A / 'seven-slide-revision-20261019' / 'before' / 'slide-01.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_one_section = ('<section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容1枚目（変更前）</span></div><h2>' + html.escape(prior_one['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_one['lede']) + '</p><div class="body">' + prior_svg_one + '</div></section>')
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[0], prior_one_section, 1)
-prior_four = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-04-growth-20261021' / 'slide-04.json').read_text())
-prior_svg_four = (A / 'seven-slide-revision-20261019' / 'before-slide-04-growth-20261021' / 'slide-04.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
+prior_four = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-04-design-premise-20261021' / 'slide-04.json').read_text())
+prior_svg_four = (A / 'seven-slide-revision-20261019' / 'before-slide-04-design-premise-20261021' / 'slide-04.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_four_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_four['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_four['lede']) + '</p><div class="body">' + prior_svg_four + '</div></section>'
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[3], prior_four_section, 1)
 prior_five = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-05-condition-set-20261021' / 'slide-05.json').read_text())
@@ -138,13 +138,14 @@ def publish():
     d['reasons']['6'] = '教材2の紹介へ変更。上長と経理が判断する内容と、証憑再提出時の承認維持・再確認を図と原稿で説明。変更前は旧構成の6枚目です。'
     d['reasons']['5'] = '複数の業務条件の中に意味の食い違いやすい条件もある関係を追加。必須項目・金額・承認の条件例を並べ、承認だけを一例として強調して教材2へつなぐ図と原稿に変更しました。変更前は直前の一つの条件だけを示した図です。'
     d['reasons']['7'] = '教材3の紹介へ変更。既存の共通参照情報・Agent・Skillの図を活かし、明確にした条件を実装・テスト・レビューで使い、人も根拠と実行結果を確認して改善する流れを示しました。変更前は旧構成の7枚目です。'
+    d['reasons']['4'] = '言葉の解釈の実装ギャップを直した後も、設計の前提を見直さず追加変更を重ねた問題へ焦点を修正。既存の図を活かし、個々の動作確認と、変更の影響を確かめる負担を区別しました。変更前は直前の4枚目です。'
     text = text[:m.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[m.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
     # Keep the existing cover and its links; replace only the explanatory notice.
     notice = text[start:end]
-    notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容7枚目</h2>', notice, count=1, flags=re.S)
-    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。今回は7枚目の図と原稿を教材3の紹介へ変更しました。1〜7枚を通して確認できます。旧8〜10枚目は新構成の表示対象から外し、元ファイルは保存しています。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容4枚目を再確認</h2>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。教材3を設計の考え方とAIの実行手順へつなぐ方針で再検討しています。まず4枚目を、設計の前提を見直さない追加変更と確認負担の展開へ修正しました。5〜7枚目は直前の版で、今回の方針に沿う修正はこれからです。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
     plan_html = markdown.markdown((A / 'seven-slide-revision-20261019' / 'slide-plan.md').read_text(), extensions=['tables'])
@@ -201,6 +202,7 @@ def publish():
     log.append(dict(slide=5, group='layout', change='左右の外枠を下に広げ、下段カードと外枠の間に同じ余白を確保。'))
     log.extend([dict(slide=6, group='figure', change='上長の支出承認と経理の証憑確認を別領域に配置。同じ証憑再提出に対する承認維持と再確認を対応させる。'), dict(slide=6, group='japanese', change='5枚目の複数条件の中の承認から、業務での意味と通用する範囲を考える教材2へ接続。AIが使う情報と手順を扱う教材3へのつながりを記載。')])
     log.extend([dict(slide=7, group='figure', change='共通の業務条件から実装・テスト・レビューのAgentとSkillへつながる既存図を再利用。条件とコード・実行結果の対応、人の確認と改善を示す。'), dict(slide=7, group='japanese', change='教材2で明確にした承認と証憑の条件を引き継ぎ、AIが使う情報と手順へ反映する教材3を紹介。最後は教材1の受講へ接続。'), dict(slide=7, group='story', change='比較と原稿の表示を新構成の7枚に限定。旧8〜10枚の元ファイルは履歴として残す。')])
+    log.extend([dict(slide=4, group='story', change='言葉の解釈による最初の不具合を修正した後も、設計の前提を見直さず追加変更を続けた問題を明示。既存仕様は最初から確認可能だった前提を原稿へ追加。'), dict(slide=4, group='figure', change='既存の業務判断と共通状態の図を維持し、設計の前提を見直さない追加を図の上部に明示。同じ大きさで重ねた資料と確認者で、複数の処理とテストを読み直す負担を示す。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
