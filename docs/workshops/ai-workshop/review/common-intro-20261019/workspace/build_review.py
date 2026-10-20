@@ -176,6 +176,7 @@ def publish():
     log.extend([dict(slide=5, group='story', change='追加変更で確認が複雑になる事例を受け、作業目的から必要な確認内容を考える教材1の紹介へ変更。'),dict(slide=5, group='figure', change='既存の縦方向の往復図を使用し、指摘確認からレビューの目的へ戻り、業務条件と実装・テスト結果の照合を考える流れを図示。'),dict(slide=5, group='japanese', change='目的が大きいほどよいとは説明せず、使いたい作業範囲に応じて考えると明記。条件の中身は仕様や業務を知る人に確かめると説明。')])
     log.append(dict(slide=5, group='figure', change='往復の番号と上下の経路をたどる図を外し、共通のレビュー目的の下に、確認対象と判断の違いを独立した領域で対比。業務条件と実装・テスト結果の対応を矢印で示す。'))
     log.extend([dict(slide=5, group='figure', change='目的に必要な条件の例を複数並べ、その一つの承認状態を強調。条件全体と教材2で取り上げる一例の包含関係を示す。'),dict(slide=5, group='japanese', change='承認は複数の業務条件の一例で、意味の食い違いが起きやすい条件も存在すると説明。全条件を承認の話として扱わない。')])
+    log.append(dict(slide=5, group='layout', change='左右の外枠を下に広げ、下段カードと外枠の間に同じ余白を確保。'))
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
