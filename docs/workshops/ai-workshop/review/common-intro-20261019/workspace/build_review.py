@@ -60,8 +60,8 @@ prior_four = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-04-
 prior_svg_four = (A / 'seven-slide-revision-20261019' / 'before-slide-04-growth-20261021' / 'slide-04.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_four_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_four['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_four['lede']) + '</p><div class="body">' + prior_svg_four + '</div></section>'
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[3], prior_four_section, 1)
-prior_five = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-05-redesign-20261021' / 'slide-05.json').read_text())
-prior_svg_five = (A / 'seven-slide-revision-20261019' / 'before-slide-05-redesign-20261021' / 'slide-05.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
+prior_five = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-05-condition-set-20261021' / 'slide-05.json').read_text())
+prior_svg_five = (A / 'seven-slide-revision-20261019' / 'before-slide-05-condition-set-20261021' / 'slide-05.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_five_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_five['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_five['lede']) + '</p><div class="body">' + prior_svg_five + '</div></section>'
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[4], prior_five_section, 1)
 (A / 'before.html').write_text(before)
@@ -115,6 +115,7 @@ def publish():
     d['reasons']['4'] = '最初の不具合を修正した後、差し戻し・再提出を追加する新しい展開へ変更。業務では別の判断だが実装では承認状態を共用し、複数の処理の条件を読み直すレビュー負担を示しています。変更前は直前の解釈とレビューの図です。'
     d['reasons']['5'] = '教材1の紹介へ変更。今行っていた指摘確認からレビューの目的へ戻り、目的に必要な業務条件と実装・テスト結果の確認へ進む図と原稿を作成しました。目的の大きさは用途に合わせると説明し、承認済みの意味を問う教材2への接続を残しました。変更前は旧構成の内容5枚目です。'
     d['reasons']['5'] = '以前の往復図の型を外し、レビューの目的を明示したうえで、AIの指摘確認と、目的から考えた業務条件・実装・テストの照合を直接比較する図へ変更。原稿も図の読み方の説明を減らしました。変更前は直前の往復図です。'
+    d['reasons']['5'] = '複数の業務条件の中に意味の食い違いやすい条件もある関係を追加。必須項目・金額・承認の条件例を並べ、承認だけを一例として強調して教材2へつなぐ図と原稿に変更しました。変更前は直前の一つの条件だけを示した図です。'
     text = text[:m.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[m.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
@@ -174,6 +175,7 @@ def publish():
     log.extend([dict(slide=4, group='story', change='最初の不具合を解消してから追加対応に進む。承認と証憑確認を区別しないまま修正を重ね、レビューの確認範囲が広がる新しい展開を反映。'),dict(slide=4, group='figure', change='業務上の別の判断と、実装で共用する状態を別領域に配置。共通の状態を参照する変更制限・差し戻し・再提出と、複数の処理を読み直すレビュー担当者を図示。'),dict(slide=4, group='japanese', change='証憑は領収書などと原稿で補足。フラグや条件分岐の数だけを問題にせず、何の判断をどの実装が守るか確認しにくい点を説明。')])
     log.extend([dict(slide=5, group='story', change='追加変更で確認が複雑になる事例を受け、作業目的から必要な確認内容を考える教材1の紹介へ変更。'),dict(slide=5, group='figure', change='既存の縦方向の往復図を使用し、指摘確認からレビューの目的へ戻り、業務条件と実装・テスト結果の照合を考える流れを図示。'),dict(slide=5, group='japanese', change='目的が大きいほどよいとは説明せず、使いたい作業範囲に応じて考えると明記。条件の中身は仕様や業務を知る人に確かめると説明。')])
     log.append(dict(slide=5, group='figure', change='往復の番号と上下の経路をたどる図を外し、共通のレビュー目的の下に、確認対象と判断の違いを独立した領域で対比。業務条件と実装・テスト結果の対応を矢印で示す。'))
+    log.extend([dict(slide=5, group='figure', change='目的に必要な条件の例を複数並べ、その一つの承認状態を強調。条件全体と教材2で取り上げる一例の包含関係を示す。'),dict(slide=5, group='japanese', change='承認は複数の業務条件の一例で、意味の食い違いが起きやすい条件も存在すると説明。全条件を承認の話として扱わない。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
