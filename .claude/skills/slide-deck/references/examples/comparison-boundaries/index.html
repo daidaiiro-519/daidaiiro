@@ -1,0 +1,111 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>比較図の設計原則の適用例</title><style>/* warm-paper ── 生成りの地に赤茶の強調。見出しも本文もサンセリフで統一する。
+   線画を多く置くデッキに向く。明るい地の上では、線幅2pxの線が持ちこたえる。
+   deck-template.html の :root へ、この中身をそのまま貼る。 */
+:root{
+  --ground:#f4f1e8;
+  --surface:#e9e5da;
+  --surface-2:#e1dfd3;
+  --paper:#fffaf2;
+  --on-paper:#252b29;
+  --on-paper-dim:#5b625c;
+  --mark:#f7e2bc;
+  --ink:#252b29;
+  --dim:#59605a;
+  --faint:#686f65;
+  --line:#d5d6c9;
+  --accent:#ae3f23;
+  --accent-dim:#873f2b;
+  --alert:#ae3f23;
+  --gold:#8a6a2f;
+  --canvas:#deded3;
+  --diagram-line:#6f7a63;
+  --on-accent:#fffaf2;
+  --on-accent-dim:#fff1e9;
+  --serif:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;
+  --sans:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;
+  --mono:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;
+}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);margin:24px;line-height:1.8}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{padding:12px;border:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;background:var(--paper)}img{width:100%;display:block}a{color:var(--accent)}</style><h1>比較対象の所属と、違いを直接読み取れる図</h1>
+<p>AIワークショップの共通導入3枚目を修正した実例である。利用者は、変更前の「本来の制限」と「今回の実装」の境界が分かりにくく、図の見方の説明が必要になる点を指摘した。変更後の左右の図を評価し、今後の設計でも使う原則として残すよう依頼した。</p>
+<h2>変更前と変更後</h2>
+<table>
+<thead>
+<tr>
+<th>変更前</th>
+<th>変更後</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="承認フローと制限を上下の位置で対応させた図" src="before.svg" /></td>
+<td><img alt="本来の制限と今回の実装を独立した左右の枠で比較した図" src="after.svg" /></td>
+</tr>
+<tr>
+<td>上の承認フローと、下の制限の位置関係を読んで範囲を判断する。</td>
+<td>それぞれの対象の中で、状態と変更結果を読める。</td>
+</tr>
+</tbody>
+</table>
+<h2>何を変え、なぜ読みやすくなったか</h2>
+<table>
+<thead>
+<tr>
+<th>変更したこと</th>
+<th>読み手が確認できること</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本来の制限と今回の実装を別の枠に入れる</td>
+<td>見出し、状態、結果がどちらに属するか分かる。</td>
+</tr>
+<tr>
+<td>同じ承認フローを同じ位置と形で置く</td>
+<td>上長承認後の変更可否を直接比較できる。</td>
+</tr>
+<tr>
+<td>異なる変更可否だけを強調する</td>
+<td>読み手が自分で差を探す必要がない。</td>
+</tr>
+<tr>
+<td>同じ金額変更に対する保存結果を示す</td>
+<td>条件の違いで何が起きるか分かる。</td>
+</tr>
+</tbody>
+</table>
+<h2>適用するときの判断</h2>
+<p>一般的な原則と確認項目は <code>document.json</code> の <code>design-rules</code>、§4「比較対象の所属と、違いを直接読み取れる図」にある。この実例が持つのは適用した内容であり、原則の正本はその節である。</p>
+<p>左右の配置や二つのカードを、すべての図に当てはめるための例ではない。一つの時間軸で連続性を示したい場合や、位置そのものに意味がある場合は、共通の軸を使う形も候補になる。枠を増やすこと自体を目的にせず、対象の所属と比較の対応を読み取れるかで判断する。</p>
+<p>共通部分の複製で情報量が増えすぎる場合は、比較する状態や操作を減らす。文字を小さくして二つの図を収める方法を既定にしない。</p>
+<h2>出典と確認範囲</h2>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>元の対象</td>
+<td><code>docs/workshops/ai-workshop/review/common-intro-20261019/workspace/slide-03.*</code></td>
+</tr>
+<tr>
+<td>変更前</td>
+<td>同じ作業場所の <code>seven-slide-revision-20261019/before-slide-03-boundaries-20261021/slide-03.*</code></td>
+</tr>
+<tr>
+<td>記録日</td>
+<td>2026年10月21日</td>
+</tr>
+<tr>
+<td>根拠</td>
+<td>利用者の指摘、変更前後の描画、変更後への利用者の評価</td>
+</tr>
+<tr>
+<td>限界</td>
+<td>この一例であらゆる比較図の理解しやすさを実証したわけではない。</td>
+</tr>
+</tbody>
+</table>
+<p>入力は <code>before.source.svg</code> と <code>after.source.svg</code>、解決済みの表示用ファイルは <code>before.svg</code> と <code>after.svg</code> である。資料の原稿や図を後から直しても、この実例は当時の比較を残すための保存用コピーとして扱う。</p></html>
