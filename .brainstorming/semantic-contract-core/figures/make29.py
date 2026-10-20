@@ -53,22 +53,28 @@ def wrap(text, w):
     return [l for l in lines if l]
 
 
-out, y = [], 32
-for u in dm['use_cases']:
-    cells = [wrap(c, w) for c, (_, w) in zip(u[1:5], COLS)]
-    n = max(len(c) for c in cells)
-    h = 24 + LINE * n
-    out.append(f'<rect class="box focus" x="16" y="{y}" width="60" height="{h}"/>')
-    out.append(f'<text class="title" x="26" y="{y + TOP}">{u[0]}</text>')
-    for lines, (x, w) in zip(cells, COLS):
-        out.append(f'<rect class="box" x="{x}" y="{y}" width="{w}" height="{h}"/>')
-        for i, l in enumerate(lines):
-            out.append(f'<text class="label" x="{x + 10}" y="{y + TOP + LINE * i}">{html.escape(l)}</text>')
-    y += h + GAP
 
-head = ''.join(f'<text class="note" x="{x}" y="22">{t}</text>\n' for x, t in HEAD)
-svg = (f'<svg viewBox="0 0 1104 {y + 10}" style="min-width:900px" role="img" '
-       f'aria-label="使う場面：主体 ・ 目的 ・ 成功したときの保証 ・ 最低限の保証">\n'
-       + head + '\n'.join(out) + '\n</svg>\n')
-open(os.path.join(H, 'q8-usecases.src.svg'), 'w').write(svg)
-print('rows', len(dm['use_cases']), 'height', y + 10)
+def main():
+    out, y = [], 32
+    for u in dm['use_cases']:
+        cells = [wrap(c, w) for c, (_, w) in zip(u[1:5], COLS)]
+        n = max(len(c) for c in cells)
+        h = 24 + LINE * n
+        out.append(f'<rect class="box focus" x="16" y="{y}" width="60" height="{h}"/>')
+        out.append(f'<text class="title" x="26" y="{y + TOP}">{u[0]}</text>')
+        for lines, (x, w) in zip(cells, COLS):
+            out.append(f'<rect class="box" x="{x}" y="{y}" width="{w}" height="{h}"/>')
+            for i, l in enumerate(lines):
+                out.append(f'<text class="label" x="{x + 10}" y="{y + TOP + LINE * i}">{html.escape(l)}</text>')
+        y += h + GAP
+
+    head = ''.join(f'<text class="note" x="{x}" y="22">{t}</text>\n' for x, t in HEAD)
+    svg = (f'<svg viewBox="0 0 1104 {y + 10}" style="min-width:900px" role="img" '
+           f'aria-label="使う場面：主体 ・ 目的 ・ 成功したときの保証 ・ 最低限の保証">\n'
+           + head + '\n'.join(out) + '\n</svg>\n')
+    open(os.path.join(H, 'q8-usecases.src.svg'), 'w').write(svg)
+    print('rows', len(dm['use_cases']), 'height', y + 10)
+
+
+if __name__ == '__main__':
+    main()
