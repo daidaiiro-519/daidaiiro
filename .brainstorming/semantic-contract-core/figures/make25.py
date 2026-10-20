@@ -54,7 +54,7 @@ code{font-family:"JetBrains Mono",monospace;font-size:11px}
 <div class="why" id="why"></div>
 <script>
 const $=s=>document.querySelector(s);
-const idx=rows=>'<div class="f"><span class="p">sessions.sqlite</span><span class="tag">手元の索引</span><div class="tw"><table><tr><th>セッション ID</th><th>根から親までの id</th><th>変更の記録の id</th></tr>'+(rows.length?rows.map(r=>'<tr><td><span class="sid">'+r[0]+'</span></td><td>'+(r[1]||'（根）')+'</td><td>'+r[2]+'</td></tr>').join(''):'<tr><td colspan="3">まだ無い</td></tr>')+'</table></div></div>';
+const idx=rows=>'<div class="f"><span class="p">sessions.sqlite</span><span class="tag">手元の索引</span><div class="tw"><table><tr><th>セッション ID</th><th>親のセッション ID</th><th>変更の記録の id</th></tr>'+(rows.length?rows.map(r=>'<tr><td><span class="sid">'+r[0]+'</span></td><td>'+(r[1]||'（根）')+'</td><td>'+r[2]+'</td></tr>').join(''):'<tr><td colspan="3">まだ無い</td></tr>')+'</table></div></div>';
 const rec=(id,reason,who,items,st)=>'<div class="f"><span class="p">.changes/'+id+'.json</span><span class="tag">'+st+'</span><br>意図：'+reason+'<br>目的の参照：ACDR-0201 ／ 書いた者の種類：'+who+'<br>項目：'+items.map(i=>'<code>'+i+'</code>').join(' ・ ')+'</div>';
 const file=(path,what,st)=>'<div class="f"><span class="p">'+path+'</span><span class="tag">'+st+'</span><br>'+what+'</div>';
 const r1=st=>rec('9b1e7c40','価格改定を反映する（5% → 8%）','AI の Agent',['記事2 /本文'],st);
@@ -63,15 +63,15 @@ const r3=st=>rec('51f7b0c3','改定の告知を足す','AI の Agent',['記事3 
 const I1=[['s-7f3a','','9b1e7c40']],I2=I1.concat([['s-91c2','s-7f3a','d04a2e91'],['s-91c2','s-7f3a','51f7b0c3']]);
 const U='変更あり（未コミット）';
 const STEPS=[
- {t:'セッションが始まる',d:'AI のツール（または harness）がセッションを始め、セッション ID s-7f3a を決める。Core は ID を発行しない。',
+ {t:'セッションが始まる',d:'AI のツール（または harness）がセッションを始め、セッション ID s-7f3a を決める。基盤は ID を発行しない。',
   local:[idx([])],repo:[],vh:'',view:'',
-  why:'セッションを管理する役（ID の発行 ・ 始まりと終わり ・ 子への受け渡し）は外が持つ。Core は、書き込みのたびに参照を受け取るだけ。'},
- {t:'AI が記事2の本文を変える',d:'目的は ACDR-0201（価格改定）。AI は instance を書くときに、セッションの参照 s-7f3a と意図と目的の参照を一緒に渡す。',
+  why:'セッションの発行は AI ツールが持つ。基盤は発行されたセッションを集約で管理し、書き込みのたびにセッション ID を受け取る。'},
+ {t:'AI が記事2の本文を変える',d:'目的は ACDR-0201（価格改定）。AI はインスタンスを書くときに、セッション ID s-7f3a と意図を一緒に渡す（目的の参照はセッションから写す）。',
   local:[idx(I1)],repo:[file('articles/記事2.json','/本文：5% → 8%',U),r1(U)],vh:'',view:'',
-  why:'Core は、変更の記録をその場でセッション ID の無い形で作業ツリーに置き、id（9b1e7c40）をここで1回だけ決める。セッション ID は手元の索引にだけ書く。'},
+  why:'基盤は、変更の記録をその場でセッション ID の無い形で作業ツリーに置き、id（9b1e7c40）をここで1回だけ決める。セッション ID は手元の索引にだけ書く。'},
  {t:'子のセッションが要約と告知を直す',d:'Agent が子のセッション s-91c2 に任せ、記事2の要約と記事3の本文を直させた。子のセッションには、外の役が親の id を渡す。',
   local:[idx(I2)],repo:[file('articles/記事2.json','/本文 ・ /要約',U),file('articles/記事3.json','/本文：告知を足す',U),r1(U),r2(U),r3(U)],vh:'',view:'',
-  why:'子の索引には、子の ID s-91c2 と、根から親までの id（s-7f3a）が付く。親の id で引けば、子の変更も出る。'},
+  why:'子のセッション s-91c2 は親 s-7f3a を持つ。親の ID で引けば、親をたどって子の変更も出る。'},
  {t:'開発者が「このセッションで何を変えたか」を見る',d:'開発者が s-7f3a で引く。',
   local:[idx(I2)],repo:[file('articles/記事2.json','/本文 ・ /要約',U),file('articles/記事3.json','/本文：告知を足す',U),r1(U),r2(U),r3(U)],
   vh:'手元で s-7f3a を引いた結果（子のセッションを含む）',view:'<div class="tw"><table><tr><th>セッション</th><th>対象 ・ 欄</th><th>意図</th></tr><tr><td>s-7f3a</td><td>記事2 /本文</td><td>価格改定を反映する（5% → 8%）</td></tr><tr><td>s-91c2（子）</td><td>記事2 /要約</td><td>本文の改定に要約を合わせる</td></tr><tr><td>s-91c2（子）</td><td>記事3 /本文</td><td>改定の告知を足す</td></tr></table></div><p class="note">手元の索引（SQLite）で記録の id を引き、意図は作業ツリーの記録から読む。セッションで引けるのは、索引を持つ本人だけ。</p>',

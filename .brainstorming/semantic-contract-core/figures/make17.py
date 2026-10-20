@@ -20,7 +20,7 @@ table('q9-subdomains', '業務領域：中核4 ・ 補完4 ・ 一般2',
 
 MAP = [
  ("Semantic Agent Schema", "基盤の内側は1つの文脈", ["中に業務領域ごとの論理的な境界を置く。", "外へは共用サービスと公開された言葉"]),
- ("Skill ・ Agent の各文脈", "Core の下流（従う）", ["Concrete スキーマと terms@v1 を持つ。", "Abstract の版に従う"]),
+ ("Skill ・ Agent の各文脈", "Core の下流（従う）", ["Semantic Concrete Schema と terms@v1 を持つ。", "Abstract の版に従う"]),
  ("harness ・ 開発基盤", "Core の下流（従う）", ["プロダクト。文脈の地図と", "instance だけを持つ"]),
  ("AI の validator（外）", "Core の上流", ["Agents 契約を腐敗防止層として", "Core の側に置き、中核のモデルを守る"]),
  ("Skill ・ Agent どうし", "互いに独立", ["ほかの Concrete を読むときは、", "読まれる側が公開された言葉になる"]),
@@ -39,7 +39,7 @@ BEL = [
  ("U10", "意味の検証（入力が変わった rule の検証し直し）"),
  ("U12", "描画"),
  ("U14", "AI と外のツールによる判定と腐敗防止層（validator の実装は harness の側）"),
- ("Concrete スキーマ（集約）", "意味の宣言"),
+ ("Semantic Concrete Schema（集約）", "意味の宣言"),
  ("Semantic Abstract Schema（集約）", "意味の宣言（拡張の契約を持つ）"),
  ("instance（集約）", "instance の作成と変更"),
  ("判定の記録（集約）", "変更の確かめと例外の判断"),

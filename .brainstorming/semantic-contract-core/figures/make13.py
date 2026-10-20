@@ -26,7 +26,7 @@ def table(name, label, heads, widths, rows, emph=(1,), row_h=40, note=None):
 def chip(o,x,y,w,t,cls="box"): o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+8}" y="{y+20}">{e(t)}</text>')
 o=['<svg viewBox="0 0 920 620" style="min-width:820px" role="img" aria-label="抽象の層の概念と、群どうしの関係">']
 groups=[("宣言（Abstract スキーマ）",20,["Abstract schema","domain schema","x- keyword","x- キーワードの定義","検証の種類","base contract schema"]),
-        ("使う側（Concrete スキーマ）",170,["Concrete schema","instance","prompt","rule","ubiquitous language ・ term","relation","derived value"]),
+        ("使う側（Semantic Concrete Schema）",170,["Concrete schema","instance","prompt","rule","ubiquitous language ・ term","relation","derived value"]),
         ("検証",320,["Semantic Schema Validator","Schema Validator","validator","Semantic Schema Resolver","capability","validation result"])]
 for title,y,items in groups:
     o.append(f'<rect class="area" x="16" y="{y}" width="888" height="130"/><text class="title" x="30" y="{y+24}">{e(title)}</text>')
@@ -50,7 +50,7 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("validation kind","検証の種類","機械的かセマンティックか","02:25 の2区分"),
 ("base contract schema","基盤の契約のスキーマ","抽象スキーマを組み立てるスキーマ","無い"),
 ("Concrete schema","具体スキーマ","文脈が書き、x- のまま使う","Concrete Schema"),
-("instance","インスタンス","Concrete スキーマに従う JSON の1件","Instance"),
+("instance","インスタンス","Semantic Concrete Schema に従う JSON の1件","Instance"),
 ("prompt","書き方の案内","読み方と書くときの rule","無い"),
 ("rule","ルール","スキーマに書く条件の1件","Constraint"),
 ("ubiquitous language","ユビキタス言語","文脈ごとの terms@v1 に置く語","Vocabulary"),
@@ -76,7 +76,7 @@ table('q1-concepts','抽象の層の概念27件の名前と持ち主と、構想
 # ── Q1 採らない構想 v0.3 の概念 ──
 N=[(["Semantic Model","（Entity ・ Property ・ Type）"],["docs 自身が Entity を必須にしない。抽象スキーマと","別にモデルを持つと、同じものに2つのモデルができる"]),
 ("Interpreter ・ Interpretation",["検証 ・ 調停 ・ 実行の3つの意味を1語に載せている","（Q5 で3つの語に分けた）"]),
-("Contract（examples の kind）",["Concrete スキーマと同じものを指す。名前を1つにする"]),
+("Contract（examples の kind）",["Semantic Concrete Schema と同じものを指す。名前を1つにする"]),
 (["Relation / Graph Engine と","Constraint Engine を分けること"],["Q3 で1つにまとめた。正本は JSON で、Graph は","Semantic Schema Resolver の中の作業の形"]),
 (["Projection","（JSON-LD ・ SHACL への投影）"],["Q2 で投影しないと決めた。概念だけを使う"]),
 (["検証の4つの側面と","capability の4区別"],["docs 自身が議論の視点としている。","機械的 ／ セマンティックの2つで足りる"]),
@@ -84,7 +84,7 @@ N=[(["Semantic Model","（Entity ・ Property ・ Type）"],["docs 自身が Ent
 table('q1-notadopted','構想 v0.3 から採らない概念と理由',["構想 v0.3 の概念","採らない理由"],[320,500],[[a,b] for a,b in N],emph=(),row_h=48)
 
 # ── Q6 スキーマの一覧 ──
-S=[("meta-schema.json","abstract@v1","Concrete スキーマの形","文脈"),
+S=[("meta-schema.json","abstract@v1","Semantic Concrete Schema の形","文脈"),
 ("annotations.schema.json","annotations@v1","x- キーワードの形","文脈（値）"),
 ("view.schema.json","view@v1","x- キーワードの形","文脈（値）"),
 ("（足す）x-term の形","（Q7 で決める）","x- キーワードの形","文脈（値）"),
@@ -96,7 +96,7 @@ S=[("meta-schema.json","abstract@v1","Concrete スキーマの形","文脈"),
 table('q6-schemas','基盤の契約のスキーマの一覧と、4つの群',["ファイル","$id（schema-driven/…）","群","インスタンスを書く人"],[250,190,220,160],[list(s) for s in S],emph=(0,),row_h=34,note="validation result と capability の形は抽象スキーマに置かず、protocol（Q4）に置く")
 
 # ── Q6 境界の直し ──
-B=[(["6つが、自分は Concrete スキーマ","として書かれている"],["準拠と所有を分ける。7つとも meta-schema に準拠し、","所有は基盤（名前の頭 schema-driven/）"]),
+B=[(["6つが、自分は Semantic Concrete Schema","として書かれている"],["準拠と所有を分ける。7つとも meta-schema に準拠し、","所有は基盤（名前の頭 schema-driven/）"]),
 ("自分の検査で13件の指摘",["除外の道を作らず、description と x-prompt を","足して0件にする"]),
 (["注釈の一覧がメタスキーマ（5）と","コード（7）で違う"],["x- キーワードの表の1か所にまとめる。","コードはこの表を読む"]),
 (["annotations ・ view と meta-schema を","つなぐのがコードだけ"],["x- キーワードの表が、定義のスキーマを","$ref で指す"]),

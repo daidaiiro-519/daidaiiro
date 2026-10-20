@@ -28,7 +28,7 @@ q1 = {
  "id": "Q1", "name": "抽象の概念モデル", "status": "open", "depends": ["Q0", "Q5"],
  "question": "Semantic Schema-Driven 基盤の抽象の層を、どの概念で組み立て、概念どうしはどう関係するか（いまの実装と構想 v0.3 の両方から）",
  "answer": {
-  "text": "抽象の層は、宣言 ・ 使う側 ・ 検証 ・ 描画の契約 ・ 版と記録の5つの群、27の概念で組み立てる。x- キーワードは Abstract スキーマだけが定義し、Concrete スキーマは値を書くだけにする。検証は Semantic Validator が rule ごとに validator を選んで行い、validation result で返す。",
+  "text": "抽象の層は、宣言 ・ 使う側 ・ 検証 ・ 描画の契約 ・ 版と記録の5つの群、27の概念で組み立てる。x- キーワードは Abstract スキーマだけが定義し、Semantic Concrete Schema は値を書くだけにする。検証は Semantic Validator が rule ごとに validator を選んで行い、validation result で返す。",
   "details": [
    "宣言：Abstract schema は、domain schema（JSON Schema）に x- キーワードの定義と検証の種類（機械的 ／ セマンティック）を足した契約。x- キーワードの表を1か所に持つ",
    "使う側：Concrete schema は Skill が書き、instance ・ prompt ・ rule ・ vocabulary と term ・ relation ・ derived value を使う。x- キーワードは定義しない",
@@ -67,7 +67,7 @@ q1 = {
   old_grounds["表現モデルを内部のモデルとすること"],
  ],
  "rejected": [
-  {"option": "Concrete スキーマが x- キーワードを定義できるようにする（x-annotations）", "reason": "利用者の枠組み（x- は Abstract が定義し、Concrete は使うだけ）と合わず、使っている Concrete は0件である"},
+  {"option": "Semantic Concrete Schema が x- キーワードを定義できるようにする（x-annotations）", "reason": "利用者の枠組み（x- は Abstract が定義し、Concrete は使うだけ）と合わず、使っている Concrete は0件である"},
   {"option": "構想 v0.3 の Semantic Model（Entity ・ Property ・ Type）を抽象の層の正本にする", "reason": "v0.3 の docs 自身が Entity を必須にせず、抽象スキーマと別のモデルを持つと同じものに2つのモデルができる"},
   next(r for r in old["rejected"] if r["option"].startswith("表現モデルと抽象の仕様を")),
   next(r for r in old["rejected"] if r["option"].startswith("構想 v0.3 の仕様の名前")),
@@ -91,7 +91,7 @@ q6 = {
  "answer": {
   "text": "基盤の契約のスキーマは4つの群に分け、いまの7つに vocabulary@v1 と x-term の形を足す。足すものは abstract@v1 に足し、まだ公開していないので版は上げない。境界の崩れ6件は、準拠と所有を分けて直す。",
   "details": [
-   "4つの群の1つ目と2つ目：Concrete スキーマの形（abstract@v1）と、x- キーワードの形（annotations@v1 ・ view@v1 ・ x-term の形）",
+   "4つの群の1つ目と2つ目：Semantic Concrete Schema の形（abstract@v1）と、x- キーワードの形（annotations@v1 ・ view@v1 ・ x-term の形）",
    "3つ目と4つ目：Skill が書くファイルの形（page ・ catalog ・ design-system ・ vocabulary）と、基盤の記録の形（published）",
    old_details[9],
    "7つとも meta-schema に準拠させ、所有は基盤（名前の頭 schema-driven/）で示す",

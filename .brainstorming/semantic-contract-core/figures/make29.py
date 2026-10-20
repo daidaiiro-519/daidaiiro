@@ -1,7 +1,7 @@
 # 図「使う場面」（q8-usecases.src.svg）を measured/domain-model-v2.json の use_cases から組む。
 # 列の位置と行の高さは前の図（make16.py ・ make22.py が作ったもの）に合わせる。
 # 実行：python3 make29.py（このフォルダで）。出た src.svg を design-svg resolve に通す。
-import json, os, html
+import json, os, html, re
 
 H = os.path.dirname(os.path.abspath(__file__))
 dm = json.load(open(os.path.join(H, '..', 'measured', 'domain-model-v2.json')))
@@ -27,9 +27,10 @@ def wrap(text, w):
         if cw + tw > lim and cur.strip():
             if tk[0] in NO_HEAD and len(tk) == 1:
                 # 行頭に来る記号は、前の1文字と一緒に次の行へ送る
-                last = cur[-1]
-                lines.append(cur[:-1])
-                cur, cw = last + tk, width(last) + tw
+                m = re.search(r'[A-Za-z0-9_$@#.\-]+$', cur)
+                last = cur[m.start():] if m else cur[-1]
+                lines.append(cur[:len(cur) - len(last)])
+                cur, cw = last + tk, sum(width(c) for c in last) + tw
                 continue
             lines.append(cur)
             cur, cw = '', 0.0
@@ -43,8 +44,11 @@ def wrap(text, w):
     # 行頭の禁則（・ 、 など）と行末の禁則（（ 「）を、前後の行と1文字ずつやり取りして直す
     for k in range(1, len(lines)):
         while lines[k] and lines[k][0] in NO_HEAD and lines[k - 1]:
-            lines[k] = lines[k - 1][-1] + lines[k]
-            lines[k - 1] = lines[k - 1][:-1].rstrip()
+            # 前の行の末尾が英数字の語なら、語ごと送る
+            m = re.search(r'[A-Za-z0-9_$@#.\-]+$', lines[k - 1])
+            cut = m.start() if m else len(lines[k - 1]) - 1
+            lines[k] = lines[k - 1][cut:] + lines[k]
+            lines[k - 1] = lines[k - 1][:cut].rstrip()
         lines[k] = lines[k].strip()
     for k in range(len(lines) - 1):
         while lines[k] and lines[k][-1] in '（「':

@@ -10,7 +10,7 @@ def chip(o, x, y, w, t, cls="box"):
 
 o = ['<svg viewBox="0 0 960 660" style="min-width:860px" role="img" aria-label="Semantic Agent Schema の概念と4つの集約">']
 o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員7つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
-o.append('<rect class="area" x="16" y="110" width="424" height="248"/><text class="title" x="30" y="134">Concrete スキーマの集約（人が承認する）</text>')
+o.append('<rect class="area" x="16" y="110" width="424" height="248"/><text class="title" x="30" y="134">Semantic Concrete Schema の集約（人が承認する）</text>')
 chip(o, 30, 150, 396, "Concrete の版（下書き → 承認待ち → 公開 → 引退）", "box focus")
 chip(o, 30, 190, 396, "rule（判定する者 ・ 読む欄 ・ why ・ test）")
 chip(o, 30, 230, 396, "validator の割り当て（Concrete に1つ）", "box focus")
@@ -37,14 +37,14 @@ open('q1-domain.src.svg', 'w').write('\n'.join(o))
 # ── 不変条件の表 ──
 INV = [
  ("1", "Abstract スキーマ", ["Abstract の版は名前で1つに決まり、", "公開した版は中身を変えない"], "S1 ・ S2", "check-schemas"),
- ("2", "Concrete スキーマ", ["1つの Abstract の版を申告し、", "その版の契約を満たす"], "M（版の行）", "check-schemas"),
- ("3", "Concrete スキーマ", ["$id は <名>/<種類>@v<n> で、", "文脈の中で一意で、変えない"], "M（$id）・ S11", "check-schemas"),
- ("4", "Concrete スキーマ", "title と description を持つ", "M", "check-schemas"),
- ("5", "Concrete スキーマ", ["instance を作る Concrete は、", "kind と $schema の const を持つ"], ["M ・ F7", "（F7 は未検査）"], "check-schemas"),
- ("6", "Concrete スキーマ", ["書く単位ごとに description と", "x-prompt を持ち、葉には書かない"], ["M ・ S4 ・ W7", "（W7 は未検査）"], "check-schemas"),
- ("7", "Concrete スキーマ", ["x- を定義できるのは Abstract だけで、", "文脈は x- を定義しない"], ["S3 ・ F9", "（F9 は未検査）"], "check-schemas"),
- ("8", "Concrete スキーマ", ["参照 ・ 導出 ・ 描画の宣言は、", "読める形である"], "S6〜S10", "check-schemas"),
- ("9", "Concrete スキーマ", "参照される種類は id を持つ", "S12", "check-schemas"),
+ ("2", "Semantic Concrete Schema", ["1つの Abstract の版を申告し、", "その版の契約を満たす"], "M（版の行）", "check-schemas"),
+ ("3", "Semantic Concrete Schema", ["$id は <名>/<種類>@v<n> で、", "文脈の中で一意で、変えない"], "M（$id）・ S11", "check-schemas"),
+ ("4", "Semantic Concrete Schema", "title と description を持つ", "M", "check-schemas"),
+ ("5", "Semantic Concrete Schema", ["instance を作る Concrete は、", "kind と $schema の const を持つ"], ["M ・ F7", "（F7 は未検査）"], "check-schemas"),
+ ("6", "Semantic Concrete Schema", ["書く単位ごとに description と", "x-prompt を持ち、葉には書かない"], ["M ・ S4 ・ W7", "（W7 は未検査）"], "check-schemas"),
+ ("7", "Semantic Concrete Schema", ["x- を定義できるのは Abstract だけで、", "文脈は x- を定義しない"], ["S3 ・ F9", "（F9 は未検査）"], "check-schemas"),
+ ("8", "Semantic Concrete Schema", ["参照 ・ 導出 ・ 描画の宣言は、", "読める形である"], "S6〜S10", "check-schemas"),
+ ("9", "Semantic Concrete Schema", "参照される種類は id を持つ", "S12", "check-schemas"),
  ("10", "rule", ["id ・ rule ・ why ・ test を持ち、", "id はスキーマの中で一意である"], "M22〜M26 ・ S5", "check-schemas"),
  ("11", "term", ["欄の意味は term への $ref で決まり、", "1つの term を2つの意味で使わない"], "いま無い", "（いま無い）"),
  ("12", "公開した版", ["書き換えない ・ 消さない ・", "末尾に足すだけ"], ["P1〜P5", "（P3〜P5 は未検査）"], "check-schemas"),

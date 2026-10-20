@@ -18,7 +18,7 @@ for k, t in enumerate(["create ・ get", "update ・ delete", "prompt", "check �
 o.append('<text class="note" x="244" y="420">読む → 集約のコマンド →</text><text class="note" x="244" y="438">保存する → 結果を返す</text>')
 o.append('<rect class="area" x="494" y="16" width="290" height="438"/><text class="title" x="508" y="40">ドメイン層</text>')
 o.append('<text class="note" x="508" y="62">集約</text>')
-chip(o, 508, 72, 262, "Concrete スキーマ", "box focus"); chip(o, 508, 108, 262, "instance", "box focus"); chip(o, 508, 144, 262, "承認の記録", "box focus")
+chip(o, 508, 72, 262, "Semantic Concrete Schema", "box focus"); chip(o, 508, 108, 262, "instance", "box focus"); chip(o, 508, 144, 262, "承認の記録", "box focus")
 o.append('<text class="note" x="508" y="196">ドメインサービス</text>')
 chip(o, 508, 206, 262, "Semantic Schema Validator"); chip(o, 508, 242, 262, "Semantic Schema Resolver"); chip(o, 508, 278, 262, "Semantic Schema Renderer")
 o.append('<text class="note" x="508" y="330">ポート（trait）</text>')
@@ -42,7 +42,7 @@ CMD = [
  ("check-schemas", "変えない", "──", "──（Concrete の集約の検査）", "ConcreteSchemaRepository（一覧 ・ 読む）"),
  ("approve", "変える", "承認の記録", "Validator ・ Resolver", ["check のポートと", "ApprovalRepository（読む ・ 保存する）"]),
  ("render", "変えない", "──", "Renderer ・ Resolver", ["ViewRepository ・ ConcreteSchemaRepository ・", "InstanceRepository（どれも読む）"]),
- ("publish（無い）", "変える", "Concrete スキーマ", "──", ["ConcreteSchemaRepository", "（読む ・ 公開の記録を足す）"]),
+ ("publish（無い）", "変える", "Semantic Concrete Schema", "──", ["ConcreteSchemaRepository", "（読む ・ 公開の記録を足す）"]),
  ("走査 ・ 索引（無い）", "変えない", "──", "Resolver", ["InstanceRepository（一覧 ・ 読む）・", "ConcreteSchemaRepository（読む）"]),
 ]
 table('q3-commands', 'command ごとの、状態を変えるかと、保存する集約 ・ 使うドメインサービス ・ 呼ぶポート',
@@ -64,7 +64,7 @@ table('q3-ports', 'ユースケースが呼ぶポート5つと、それを実装
 V = [
  ("Schema Validator", "Validator の中の JSON Schema の validator"),
  ("Vocabulary Resolver", "Resolver の $ref → term"),
- ("Contract Registry", "Concrete スキーマの集約（公開した版）と ConcreteSchemaRepository"),
+ ("Contract Registry", "Semantic Concrete Schema の集約（公開した版）と ConcreteSchemaRepository"),
  ("Relation/Graph Engine ・ Constraint Engine", "Resolver の x-ref と Validator の rule"),
  ("Semantic Interpreter", "Validator が RuleValidator のポートで呼ぶ AI の validator"),
  ("Verification Engine", "Validator の全体（検証結果の5つの値）"),
