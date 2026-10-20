@@ -16,7 +16,7 @@ G('q10-flow', 'チームでの1つの変更セットの流れ：誰が何をし�
   [list(r) for r in FLOW], group_col=1)
 
 d0 = json.load(open('../measured/domain-model.json'))
-G('q10-adapter', '守る契約は基盤が定義し、Git はそれを実現するアダプターの1つ', ['', 'Semantic Schema Core が守る契約', 'Git で実現するとき（アダプター）'], [40, 470, 400],
+G('q10-adapter', '守る契約は基盤が定義し、Git はそれを実現するアダプターの1つ', ['', 'Semantic Agent Schema が守る契約', 'Git で実現するとき（アダプター）'], [40, 470, 400],
   [[str(n + 1), a['contract'], a['git']] for n, a in enumerate(d0['adapters'])], group_col=0)
 
 d = json.load(open('../measured/domain-model.json'))

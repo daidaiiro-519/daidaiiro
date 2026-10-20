@@ -19,14 +19,14 @@ table('q9-subdomains', '業務領域：中核4 ・ 補完4 ・ 一般2',
       ["分類", "業務領域", "中身", "決め手"], [80, 190, 330, 300], [list(r) for r in SUB], emph=(0,), row_h=46)
 
 MAP = [
- ("Semantic Schema Core", "基盤の内側は1つの文脈", ["中に業務領域ごとの論理的な境界を置く。", "外へは共用サービスと公開された言葉"]),
+ ("Semantic Agent Schema", "基盤の内側は1つの文脈", ["中に業務領域ごとの論理的な境界を置く。", "外へは共用サービスと公開された言葉"]),
  ("Skill ・ Agent の各文脈", "Core の下流（従う）", ["Concrete スキーマと terms@v1 を持つ。", "Abstract の版に従う"]),
  ("harness ・ 開発基盤", "Core の下流（従う）", ["プロダクト。文脈の地図と", "instance だけを持つ"]),
  ("AI の validator（外）", "Core の上流", ["Agents 契約を腐敗防止層として", "Core の側に置き、中核のモデルを守る"]),
  ("Skill ・ Agent どうし", "互いに独立", ["ほかの Concrete を読むときは、", "読まれる側が公開された言葉になる"]),
  ("人", "文脈ではなくアクター", ["描画した view と、判定の", "command で境界を越える"]),
 ]
-table('q9-contextmap', '文脈の地図：Semantic Schema Core と、まわりの文脈との関係',
+table('q9-contextmap', '文脈の地図：Semantic Agent Schema と、まわりの文脈との関係',
       ["文脈", "Core との関係", "中身"], [220, 210, 380], [list(r) for r in MAP], emph=(0,), row_h=46)
 
 BEL = [
@@ -47,5 +47,5 @@ BEL = [
  ("意味で探す（能力）", "意味で探す"),
  ("Renderer", "描画"),
 ]
-table('q9-belong', '使う場面と集約 ・ ドメインサービスが属する業務領域（文脈はすべて Semantic Schema Core）',
+table('q9-belong', '使う場面と集約 ・ ドメインサービスが属する業務領域（文脈はすべて Semantic Agent Schema）',
       ["場面 ・ 集約 ・ 部品", "業務領域"], [300, 520], [list(r) for r in BEL], emph=(0,), row_h=34)

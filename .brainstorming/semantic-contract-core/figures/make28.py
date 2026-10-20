@@ -1,5 +1,5 @@
 # 第95回の案（Q10）：目的で承認し、意図で確かめる2段のシミュレーション（screen）。
-# 左は Git の差分、右は Semantic Schema Core が出す「目的 → 意図 → 意味の変更」。意図を1つ差し戻し、直したあとにもう一度見るところまで進む。
+# 左は Git の差分、右は Semantic Agent Schema が出す「目的 → 意図 → 意味の変更」。意図を1つ差し戻し、直したあとにもう一度見るところまで進む。
 import runpy
 L = runpy.run_path('make19.py', run_name='lib')
 light, dark, font = L['light'], L['dark'], L['font']
@@ -25,7 +25,7 @@ HTML = r'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name
 <div class="story"><div class="n" id="no"></div><div class="t" id="title"></div><div id="detail"></div></div>
 <div class="grid">
  <div class="col"><h4>Git の差分で見る</h4><div class="sub">PR のファイルの差分</div><div class="ops">人の判断 <b id="o1">0</b> 回</div><div id="left"></div></div>
- <div class="col"><h4>Semantic Schema Core で見る</h4><div class="sub">目的（承認の単位）→ 意図（確かめる単位）→ 意味の変更</div><div class="ops">人の判断 <b id="o2">0</b> 回</div><div id="right"></div></div>
+ <div class="col"><h4>Semantic Agent Schema で見る</h4><div class="sub">目的（承認の単位）→ 意図（確かめる単位）→ 意味の変更</div><div class="ops">人の判断 <b id="o2">0</b> 回</div><div id="right"></div></div>
 </div>
 <div class="why" id="why"></div>
 <script>

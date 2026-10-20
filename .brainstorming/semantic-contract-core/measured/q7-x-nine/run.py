@@ -46,7 +46,7 @@ cases=[
  ('B18 x-extensions の定義に x-prompt（x- を付けた項目）', lambda d: d['x-extensions']['x-unit'].update({'x-prompt': d['x-extensions']['x-unit']['prompt']}),'否'),
  ('B19 x-derived-from に reads（外した項目）', lambda d: d['properties']['level']['x-derived-from'].update(reads=['/properties/risk']),'否'),
  ('B12 x-derived-from に expect（外した項目）', lambda d: d['properties']['level']['x-derived-from'].update(expect=[]),'否'),
- ('B13 $id の NID が semantic-schema-core でない', lambda d: d.update({'$id':'urn:qa-advisor:record:v1'}),'否'),
+ ('B13 $id の NID が semantic-agent-schema でない', lambda d: d.update({'$id':'urn:qa-advisor:record:v1'}),'否'),
  ('B14 x-relationship の to が URN でない', lambda d: d['properties']['owner']['x-relationship'].update(to='person'),'否'),
  ('B15 x-published が文字列', lambda d: d['properties']['name'].update({'x-published':'yes'}),'否'),
  ('B16 bad だけで good なし', lambda d: K(d)[2].pop('good'),'否'),
@@ -102,7 +102,7 @@ for inst,exp in [({'$schema':good['$id'],'kind':'record','id':'1','name':'a','el
 import re
 CORE9={'x-instance-path','x-instance-label','x-delegates','x-extensions','x-prompt','x-relationship','x-derived-from','x-decided-by','x-published'}
 viol=[]
-URN=re.compile(r'^urn:semantic-schema-core:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$')
+URN=re.compile(r'^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$')
 own=body['$id'].split(':')[2]
 if not URN.match(body['$id']) or own not in ('core',): viol.append(('owner-kind-version',body['$id']))
 dele=set(body.get('x-delegates',{}))

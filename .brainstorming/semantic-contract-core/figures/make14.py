@@ -8,7 +8,7 @@ table, e = T['table'], T['e']
 def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
-o = ['<svg viewBox="0 0 960 660" style="min-width:860px" role="img" aria-label="Semantic Schema Core の概念と4つの集約">']
+o = ['<svg viewBox="0 0 960 660" style="min-width:860px" role="img" aria-label="Semantic Agent Schema の概念と4つの集約">']
 o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員7つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
 o.append('<rect class="area" x="16" y="110" width="424" height="248"/><text class="title" x="30" y="134">Concrete スキーマの集約（人が承認する）</text>')
 chip(o, 30, 150, 396, "Concrete の版（下書き → 承認待ち → 公開 → 引退）", "box focus")
@@ -82,7 +82,7 @@ def grouped(name, label, heads, widths, rows, row_h=46):
             else:
                 for k,l in enumerate(lines): o.append(f'<text class="label" x="{X[c]+10}" y="{y+row_h//2-4+16*k}">{e(l)}</text>')
     o.append('</svg>'); open(name+'.src.svg','w').write('\n'.join(o))
-grouped('q1-invariants', 'Semantic Schema Core の不変条件22行を概念ごとに固めた表と、守る command',
+grouped('q1-invariants', 'Semantic Agent Schema の不変条件22行を概念ごとに固めた表と、守る command',
       ["#", "概念", "不変条件", "command"], [40, 140, 420, 190],
       [[r[0], r[1], r[2], r[4]] for r in INV])
 

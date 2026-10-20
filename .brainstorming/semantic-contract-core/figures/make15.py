@@ -8,7 +8,7 @@ def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
 # ── 層の図 ──
-o = ['<svg viewBox="0 0 1014 470" style="min-width:900px" role="img" aria-label="Semantic Schema Core のエンジンの4つの層">']
+o = ['<svg viewBox="0 0 1014 470" style="min-width:900px" role="img" aria-label="Semantic Agent Schema のエンジンの4つの層">']
 o.append('<rect class="area" x="16" y="16" width="170" height="438"/><text class="title" x="30" y="40">inbound adapter</text>')
 chip(o, 30, 200, 142, "CLI"); chip(o, 30, 240, 142, "MCP")
 o.append('<rect class="area" x="230" y="16" width="220" height="438"/><text class="title" x="244" y="40">アプリケーション層</text>')
@@ -70,5 +70,5 @@ V = [
  ("Verification Engine", "Validator の全体（検証結果の5つの値）"),
  ("（無い）", "Semantic Schema Renderer"),
 ]
-table('q3-v03', '構想 v0.3 の部品と、Semantic Schema Core で受け持つもの',
-      ["構想 v0.3 の部品（参考）", "Semantic Schema Core で受け持つもの"], [360, 520], [list(r) for r in V], emph=(1,), row_h=34)
+table('q3-v03', '構想 v0.3 の部品と、Semantic Agent Schema で受け持つもの',
+      ["構想 v0.3 の部品（参考）", "Semantic Agent Schema で受け持つもの"], [360, 520], [list(r) for r in V], emph=(1,), row_h=34)

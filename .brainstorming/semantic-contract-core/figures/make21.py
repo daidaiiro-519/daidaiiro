@@ -23,5 +23,5 @@ FLOW = [
 ]
 G('q10-flow', 'チームでの1つの変更の流れ：基盤がするのは検証と、見るものを出すことだけ', ['#', '誰が', '何をする', '基盤が守ること'], [40, 90, 380, 430],
   [list(r) for r in FLOW], group_col=1)
-G('q10-adapter', '守る契約は基盤が定義し、Git はそれを実現するアダプターの1つ', ['', 'Semantic Schema Core が守る契約', 'Git で実現するとき（アダプター）'], [40, 470, 400],
+G('q10-adapter', '守る契約は基盤が定義し、Git はそれを実現するアダプターの1つ', ['', 'Semantic Agent Schema が守る契約', 'Git で実現するとき（アダプター）'], [40, 470, 400],
   [[str(n + 1), a['contract'], a['git']] for n, a in enumerate(d['adapters'])], group_col=0)

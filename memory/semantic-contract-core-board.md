@@ -1,6 +1,6 @@
 ---
 name: semantic-contract-core-board
-description: 基盤 Semantic Schema Core（Semantic Abstract Schema と Semantic Concrete Schema。いまの schema-driven を改める）を決めるボード semantic-contract-core の現在地
+description: 基盤 Semantic Agent Schema（旧称 Semantic Schema Core。Semantic Abstract Schema と Semantic Concrete Schema。いまの schema-driven を改める）を決めるボード semantic-contract-core の現在地
 metadata:
   type: project
 ---
