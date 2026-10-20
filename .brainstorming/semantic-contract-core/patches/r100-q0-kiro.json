@@ -1,0 +1,12 @@
+[
+ {
+  "op": "test",
+  "path": "/topics/0/id",
+  "value": "Q0"
+ },
+ {
+  "op": "replace",
+  "path": "/topics/0/images/3/text",
+  "value": "# 条件：① CLI でプロセスとして起動できる ② セッション ID で続けて呼べる ③ 答えの形を JSON Schema で縛れる\n# 返った答えは、どの AI でも基盤が answer.schema.json で検証する。満たさなければ error\n\n# Claude Code（① ② ③）\nclaude -p --output-format json --json-schema \"$(cat answer.schema.json)\" --session-id <新しい UUID> \"<依頼>\"\nclaude -p --output-format json --json-schema \"$(cat answer.schema.json)\" --resume <ID> \"<続き>\"\n\n# Codex（① ② ③）\ncodex exec --json --output-schema answer.schema.json \"<依頼>\"\ncodex exec resume --json --output-schema answer.schema.json <ID> \"<続き>\"\n\n# Kiro（① ②。③ の旗が無いので、答えから JSON を取り出して基盤が検証する。道具を許す旗を付けない。人のいない実行では、許していない道具は断られる）\nkiro-cli chat --output-format stream-json \"<依頼>\"\nkiro-cli chat --output-format stream-json --resume-id <ID> \"<続き>\"\n\n# GitHub Copilot（① ②。③ の旗が無いので、答えから JSON を取り出して基盤が検証する）\ncopilot -p \"<依頼>\" --output-format json --session-id <新しい UUID>\ncopilot -p \"<続き>\" --output-format json --resume <ID>"
+ }
+]
