@@ -113,7 +113,7 @@ def publish():
     # Keep the existing cover and its links; replace only the explanatory notice.
     notice = text[start:end]
     notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容4枚目</h2>', notice, count=1, flags=re.S)
-    notice = re.sub(r'<p>.*?</p>', '<p>新しい7枚構成の方針に沿って、内容1〜4枚目の図と原稿を修正しました。今回は4枚目が確認対象です。内容5枚目以降はまだ従来の10枚構成です。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。今回、スライドの図は変更していません。表示中の1〜4枚目は前の展開、5枚目以降は従来版です。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
     plan_html = markdown.markdown((A / 'seven-slide-revision-20261019' / 'slide-plan.md').read_text(), extensions=['tables'])
