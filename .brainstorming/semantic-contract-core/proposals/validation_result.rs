@@ -1,16 +1,16 @@
-//! ルール1件を検証した結果（案）。どの validator（エンジン ・ ルールごとの検査 ・ AI）も、この5つのどれかを返す。
+//! ルール1件を検証した結果（案）。どの validator（rule の by が machine ・ ai ・ human）も、この5つのどれかを返す。
 
 /// ルール1件の結果。
 pub enum ValidationResult {
     /// 合格。検証した validator の範囲での合格に限る
     Verified,
-    /// 違反。ルールの id ・ 場所 ・ 引用を、基盤が機械で検証したものだけ
+    /// 違反。場所と、根拠にした値の引用を持つ
     Violated { at: String, quote: String },
-    /// validator はあるが、合否を決められなかった。AI の「守れている」もここ
+    /// 合否を決められなかった。根拠が渡した値に無い AI の答えと、割れた答えもここ
     Unverified { reason: String },
-    /// validator が無い。必要な capability を返す
+    /// validator が無い（agent の割り当てが無いなど）。必要な capability を返す
     Unsupported { needs: Vec<String> },
-    /// 時間切れ ・ 読めない応答など、処理の失敗。記録を作らない
+    /// 時間切れ ・ 失敗 ・ 形を満たさない答えなど、処理の失敗
     Error { reason: String },
 }
 
