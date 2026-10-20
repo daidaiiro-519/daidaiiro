@@ -56,6 +56,10 @@ prior_one = json.loads((A / 'seven-slide-revision-20261019' / 'before' / 'slide-
 prior_svg_one = (A / 'seven-slide-revision-20261019' / 'before' / 'slide-01.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_one_section = ('<section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容1枚目（変更前）</span></div><h2>' + html.escape(prior_one['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_one['lede']) + '</p><div class="body">' + prior_svg_one + '</div></section>')
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[0], prior_one_section, 1)
+prior_four = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-04-20261021' / 'slide-04.json').read_text())
+prior_svg_four = (A / 'seven-slide-revision-20261019' / 'before-slide-04-20261021' / 'slide-04.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
+prior_four_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_four['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_four['lede']) + '</p><div class="body">' + prior_svg_four + '</div></section>'
+before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[3], prior_four_section, 1)
 (A / 'before.html').write_text(before)
 
 def notes(heading, lede, narration):
@@ -80,6 +84,7 @@ def publish():
         prior = json.loads((prior_dir / f'slide-{n:02}.json').read_text())
         oldnotes[n-1] = dict(number=n, title=prior['heading'], body=notes(prior['heading'], prior['lede'], prior['narration']))
     oldnotes[0] = dict(number=1, title=prior_one['heading'], body=notes(prior_one['heading'], prior_one['lede'], prior_one['narration']))
+    oldnotes[3] = dict(number=4, title=prior_four['heading'], body=notes(prior_four['heading'], prior_four['lede'], prior_four['narration']))
     newnotes = json.loads(json.dumps(oldnotes))
     for s in slides:
         newnotes[s['slide'] - 1] = dict(number=s['slide'], title=s['heading'], body=notes(s['heading'], s['lede'], s['narration']))
@@ -101,13 +106,14 @@ def publish():
     d['reasons']['2'] = '初級編の聞き手に合わせ、CI・マージを、変更の取り込み後に動く自動テストという説明へ変更。図の形と工程は維持しています。変更前は直前の版です。'
     d['reasons']['3'] = 'CIという名称を覚える必要がないよう、見出し・図・原稿を自動テストという説明へ変更。変更前は直前のCI表記の版です。'
     d['reasons']['3'] = '本来の制限と今回の実装を、独立した左右の枠へ変更。同じ承認フローと変更操作をそれぞれに置き、違いを直接比較できる図にしました。原稿も左右の図に対応しています。変更前は直前の範囲を上下で示した図です。'
+    d['reasons']['4'] = '新しい7枚構成の内容4枚目。本来の業務条件と作業で使った解釈を別の領域に置き、その解釈が実装・テスト・AIと人のレビューに残った過程を図示しました。3枚目の不具合発覚から教材1の目的の問いへつなぎます。変更前は旧構成の内容4枚目です。'
     text = text[:m.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[m.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
     # Keep the existing cover and its links; replace only the explanatory notice.
     notice = text[start:end]
-    notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容3枚目</h2>', notice, count=1, flags=re.S)
-    notice = re.sub(r'<p>.*?</p>', '<p>新しい7枚構成の方針に沿って、内容1〜3枚目の図と原稿を修正しました。今回は3枚目が確認対象です。内容4枚目以降はまだ従来の10枚構成です。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容4枚目</h2>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<p>.*?</p>', '<p>新しい7枚構成の方針に沿って、内容1〜4枚目の図と原稿を修正しました。今回は4枚目が確認対象です。内容5枚目以降はまだ従来の10枚構成です。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
     plan_html = markdown.markdown((A / 'seven-slide-revision-20261019' / 'slide-plan.md').read_text(), extensions=['tables'])
@@ -156,6 +162,7 @@ def publish():
     log.extend([dict(slide=3, group='story', change='マージ後CIで、上長承認後・経理承認前の申請変更を検出し、修正・再テスト・再レビューが必要になる新しい内容3枚目を作成。'), dict(slide=3, group='figure', change='既存の状態遷移・人物・書類・枠と矢印の部品を使用。本来と実装の制限を同じ承認段階に対応させ、変更できてしまう範囲を強調。期待する金額と実際の金額も対比。'), dict(slide=3, group='japanese', change='AIと人のレビュー承認からマージ後CIへつなぎ、作成した単体テストの通過と必要な条件の確認を区別。次の理解の取り違えの振り返りへ接続。')])
     log.extend([dict(slide=n, group='japanese', change='初級編の聞き手に合わせ、CI・マージを変更の取り込みと自動テストに置き換え、図と原稿の説明を対応。工程自体は維持。') for n in [2,3]])
     log.append(dict(slide=3, group='layout', change='本来の制限と今回の実装を左右の独立した枠に分け、同じ承認フローと変更結果を同じ位置で対比。範囲の読み方の説明を不要にする。'))
+    log.extend([dict(slide=4, group='story', change='開発者の承認段階の解釈がAIの実装とテストに使われ、AIと人のレビューでも元の業務条件との違いを見逃した過程へ変更。'),dict(slide=4, group='figure', change='本来の業務条件と作業で使った理解を別領域に配置。既存の同じ大きさの成果物・書類・人物を使い、実装とテスト、AIレビュー、人の承認を矢印で接続。'),dict(slide=4, group='japanese', change='図の左右と下の確認状況を原稿で説明。資料も人の確認もある前提を維持し、次の作業目的の問いへ接続。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
