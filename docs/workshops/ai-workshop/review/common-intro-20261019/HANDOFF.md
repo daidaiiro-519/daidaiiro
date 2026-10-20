@@ -199,7 +199,7 @@ python3 -m http.server 8772 --bind 127.0.0.1 --directory /home/daidaiiro/workspa
 
 承認記録がある枚を修正すると、ハッシュ検査が失敗します。利用者が今回の変更を承認したことを記録し、変更前のファイルとハッシュをその改訂のbeforeフォルダへ保存してから、新案の確認待ちとして扱ってください。単にハッシュを上書きし、新案を承認済みと扱わないでください。
 
-比較の変更前は、直前に確認していた版を固定してください。今の2・3枚目の変更前は `R/before-testing-terms-20261021/` です。1枚目は `R/before/`、旧8・9・10枚目は `A/full-review/before/` などをbuilderが参照しています。古いbeforeフォルダを上書きしないでください。
+比較の変更前は、直前に確認していた版を固定してください。今の2枚目の変更前は `R/before-testing-terms-20261021/`、3枚目は `R/before-slide-03-boundaries-20261021/` です。1枚目は `R/before/`、旧8・9・10枚目は `A/full-review/before/` などをbuilderが参照しています。古いbeforeフォルダを上書きしないでください。
 
 ## 7. デザイン・原稿と確認の範囲
 
