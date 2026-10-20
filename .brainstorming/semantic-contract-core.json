@@ -33,7 +33,7 @@
           "足すもの：AI を呼ぶポート（Agents 契約）。呼ぶ契約は1つで、利用者ごとに違う AI ツールはアダプターで差し替える",
           "描画も基盤の契約である。人は JSON だけでは判断できないので、Semantic Abstract Schema が描画の契約（ビューとデザインシステムの形）を持つ",
           "Concrete スキーマは描画の契約を使い、ビューとデザインシステム（部品のカタログ ・ デザイントークン）を用意すれば、基盤の render で描ける。いまの描き先は HTML で、Markdown は足す",
-          "Agents 契約で呼ぶ AI：Claude Code ・ Codex ・ Kiro ・ GitHub Copilot。CLI でプロセスとして起動し、セッション ID で同じセッションを続けて呼ぶ",
+          "Agents 契約で呼ぶ AI：Claude Code ・ Codex ・ Kiro ・ GitHub Copilot。CLI でプロセスとして起動する。作業させる AI は目的ごとのセッションを ID で続けて呼び、判定させる AI は判定ごとに新しいセッションで呼ぶ",
           "答えの形は JSON Schema で渡す。Claude Code は --json-schema、Codex は --output-schema で縛る。Kiro と GitHub Copilot は旗が無いので、答えから JSON を取り出す",
           "GitHub Copilot：-p で非対話に起動し、--session-id ・ --resume でセッションを続け、--output-format json で1行ずつ JSON を返す。答えの形を縛る旗は無い",
           "どの AI でも、返った答えは基盤が同じ JSON Schema で検証し、満たさなければ error にする。Claude Code と Codex は、そのうえで CLI の旗でも形を縛る"
@@ -3430,6 +3430,115 @@
             "利用者と決めた中身"
           ],
           "why": "同じ欄を2つの意図が変えたときは、意味を意図ごとに分けられない"
+        }
+      ]
+    },
+    {
+      "id": "Q11",
+      "name": "目的ごとのセッション",
+      "status": "settled",
+      "depends": [
+        "Q0",
+        "Q8",
+        "Q9",
+        "Q10"
+      ],
+      "question": "AI ツールが発行したセッションを、目的ごとにどう管理し、いつ再開していつ新しく立てるか",
+      "answer": {
+        "text": "セッションは1つが1つの集約で、ID ・ 目的の参照 ・ 親 ・ 役割 ・ 状態 ・ 最後に使った時刻の6つだけを持つ。目的 ・ 親 ・ 役割が同じで開いていて、キャッシュの有効時間内なら再開し、そうでなければ引き継ぎのプロンプトで新しく立てる。",
+        "details": [
+          "セッション ID は、AI ツールの種類と、そのツールが発行した文字列の組。Core は文字列を解釈しない",
+          "状態は「開いている」と「閉じた」の2つで、戻らない。閉じるのは、利用者か親が閉じると決めたときと、AI ツールが「そのセッションは無い」と答えたときだけ",
+          "規則：目的 ・ 親 ・ 役割が同じで開いていて、最後に使った時刻がキャッシュの有効時間内なら、その ID で再開する。そうでなければ新しく立てる",
+          "キャッシュが切れた大きなセッションを再開すると、全履歴を読み直す。圧縮して再開すると、さらに要約を作る分も払う。新しく立てて引き継ぐほうが安い",
+          "積みすぎへの対処は AI ツールの自動の圧縮に任せ、Core は仕組みを足さない",
+          "引き継ぎのプロンプトは、親のセッションが x-prompt に従い、コミットされた変更の記録（意図 ・ 意味の変更 ・ 判定）から作って子へ渡す。古い会話は読み直さない",
+          "反証の役のように前の結論を持ち込みたくない子は、終わったら親が閉じる。次は新しく立つ",
+          "判定させる AI は、判定ごとに新しいセッションで呼び、この集約には登録しない。前の判定の会話が結果に効かないようにするため",
+          "不変条件：① ID ・ 目的 ・ 親 ・ 役割は立てた時に決めて変えない。子の目的は親と同じ ② 閉じたセッションは開き直さない ③ 1つの手元で、目的 ・ 親 ・ 役割が同じで開いているセッションは1つまで",
+          "意図は欄に持たない。手元の索引から変更の記録の意図へつながる",
+          "置き場所は作業した人の手元の DB で、コミットしない。別のマシンでは手元に無いので、同じ規則が新しく立てる",
+          "どのセッションで進めるかは、起動の前に Core に問う。Core は再開する ID か「新しく立てる」を返すだけで、AI ツールを起動するのは外（人 ・ harness）"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "name": "2日間の流れ",
+          "caption": "1日目は温かいうちに再開し、2日目は引き継ぎのプロンプトで新しく立てる。反証の役は終わったら閉じる。",
+          "svg": "<svg viewBox=\"0 0 780 330\" style=\"min-width:640px\" role=\"img\" aria-label=\"目的ごとのセッション：温かいうちは再開し、冷えたら引き継ぎのプロンプトで新しく立てる\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-52a2d937-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-box-fill:#16211E}}:root[data-theme=\"dark\"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-box-fill:#16211E}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-52a2d937-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs><rect data-dsvg=\"canvas\" class=\"canvas\" x=\"0.0\" y=\"0.0\" width=\"780.0\" height=\"330.0\" fill=\"#FFFFFF\" rx=\"8\"/>\n<text class=\"note\" x=\"200\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">1日目（続けて作業）</text>\n<text class=\"note\" x=\"520\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">2日目（キャッシュは切れている）</text>\n<path class=\"link\" d=\"M440,30 V236\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"title\" x=\"16\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">親</text>\n<text class=\"note\" x=\"16\" y=\"80\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">目的 0071</text>\n<text class=\"title\" x=\"16\" y=\"132\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">子</text>\n<text class=\"note\" x=\"16\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">役割 ddd</text>\n<text class=\"title\" x=\"16\" y=\"202\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">子</text>\n<text class=\"note\" x=\"16\" y=\"220\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">役割 review</text>\n<rect class=\"box focus\" x=\"110\" y=\"46\" width=\"310\" height=\"40\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"122\" y=\"71\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">P：立てる → 温かいうちは P で再開</text>\n<rect class=\"box focus\" x=\"140\" y=\"116\" width=\"280\" height=\"40\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"152\" y=\"141\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">C1：立てる → 温かいうちは C1 で再開</text>\n<rect class=\"box\" x=\"160\" y=\"186\" width=\"200\" height=\"40\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"172\" y=\"211\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">C2：反証が終わって閉じる</text>\n<rect class=\"box focus\" x=\"460\" y=\"46\" width=\"300\" height=\"40\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"472\" y=\"71\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">P2：新しく立てる（引き継ぎ）</text>\n<rect class=\"box focus\" x=\"480\" y=\"116\" width=\"280\" height=\"40\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"492\" y=\"141\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">C4：新しく立てる（引き継ぎ）</text>\n<rect class=\"box focus\" x=\"500\" y=\"186\" width=\"260\" height=\"40\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"512\" y=\"211\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">C3：新しく立てる（前の結論を持たない）</text>\n<path class=\"flow\" d=\"M420,66 H460\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-52a2d937-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M420,136 H480\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-52a2d937-arrow-5B6B66)\"/>\n<rect class=\"box\" x=\"110\" y=\"252\" width=\"650\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"122\" y=\"276\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">引き継ぎのプロンプトは、親がコミットされた変更の記録（意図 ・ 意味の変更 ・ 判定）から作る。</text>\n<text class=\"label\" x=\"122\" y=\"294\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">古い会話を読み直さないので、冷えた大きなセッションを再開するより安い。</text>\n</svg>"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "同じ目的なら、時刻を問わずいつも再開する（前の案）",
+          "reason": "キャッシュが切れた大きなセッションは全履歴を読み直すので高い。利用者：「それって新規でやった方が安いのでは？？」"
+        },
+        {
+          "option": "積みすぎたら Core が圧縮（compact）させて続ける",
+          "reason": "何を残すかを AI ツールの中のモデルが決めるので、ブラックボックスになる。主な AI ツールは自動の圧縮を持つので、仕組みを足さない"
+        },
+        {
+          "option": "親の会話を写して子を始める（fork）",
+          "reason": "子は親の文脈を引き継がない、という Q0 の決定に反する"
+        },
+        {
+          "option": "判定させる AI のセッションも続けて呼び、この集約に登録する",
+          "reason": "前の判定の会話が結果に効き、同じ入力から同じ結果を返せない"
+        },
+        {
+          "option": "セッションを値オブジェクトの索引のままにする",
+          "reason": "ID を持ち状態が変わるので、値オブジェクトの「不変」と合わない"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "目的ごとに文脈を分けて使い続けること",
+          "basis": "その目的を達成するために建てたセッションは、その目的内においては使い続けたいコンテキストだということです。つまり文脈なんですよ。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-20）"
+        },
+        {
+          "supports": "冷えたら新しく立てること",
+          "basis": "かなりのトークンが積まれているようなセッションを圧縮して再開するのってどうなの？？ Compactionもただじゃないよね？？ … であればそれって新規でやった方が安いのでは？？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-21）"
+        },
+        {
+          "supports": "冷えた再開と圧縮が高いこと",
+          "basis": "After a break longer than the cache lifetime, there is no cache left to read, so the summarization request reprocesses the full history as uncached input. This is why `/compact` costs the most when you resume an old session",
+          "tag": "primary",
+          "source": "Claude Code の文書 prompt-caching（2026-10-20 取得、sources/code.claude.com_docs_en_prompt-caching.md:178）"
+        },
+        {
+          "supports": "キャッシュの料金",
+          "basis": "5-minute cache write tokens are 1.25 times the base input tokens price ／ Cache read tokens are 0.1 times the base input tokens price",
+          "tag": "primary",
+          "source": "Anthropic の文書 prompt caching（2026-10-20 取得、sources/docs.claude.com_en_docs_build-with-claude_prompt-caching.md:267〜269）"
+        },
+        {
+          "supports": "AI ツールが自動の圧縮を持つこと",
+          "basis": "Subagents support automatic compaction. Compaction triggers as the subagent's own context window fills",
+          "tag": "primary",
+          "source": "Claude Code の文書 sub-agents（2026-10-20 取得、sources/code.claude.com_docs_en_sub-agents.md:1167）。Kiro は chat.disableAutoCompaction（cli/headless.md:57）"
+        },
+        {
+          "supports": "セッションを集約にすること",
+          "basis": "セッションは ID を持ち状態が変わるので、値オブジェクトの「不変」と合わない。1セッション1集約にし、親は ID で参照する",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-21）。scratchpad r110/ddd-session.json と反証 r110/review.json"
+        }
+      ],
+      "checks": [
+        {
+          "target": "目的ごとのセッション",
+          "ask": "セッションを6つの欄の集約にし、温かいうちは再開、冷えたら引き継ぎのプロンプトで新しく立てる、でよいか",
+          "view": "採る。積みすぎは AI ツールの自動の圧縮に任せ、判定させる AI は判定ごとに新しいセッションで呼ぶ",
+          "basis": [
+            "利用者と決めた中身",
+            "ddd-advisor の回答と反証1回"
+          ],
+          "why": "キャッシュの有効時間を延ばす（1時間）かは、AI ツールごとのアダプターで決める"
         }
       ]
     }
