@@ -56,8 +56,8 @@ prior_one = json.loads((A / 'seven-slide-revision-20261019' / 'before' / 'slide-
 prior_svg_one = (A / 'seven-slide-revision-20261019' / 'before' / 'slide-01.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_one_section = ('<section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容1枚目（変更前）</span></div><h2>' + html.escape(prior_one['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_one['lede']) + '</p><div class="body">' + prior_svg_one + '</div></section>')
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[0], prior_one_section, 1)
-prior_four = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-04-20261021' / 'slide-04.json').read_text())
-prior_svg_four = (A / 'seven-slide-revision-20261019' / 'before-slide-04-20261021' / 'slide-04.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
+prior_four = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-04-growth-20261021' / 'slide-04.json').read_text())
+prior_svg_four = (A / 'seven-slide-revision-20261019' / 'before-slide-04-growth-20261021' / 'slide-04.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_four_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_four['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_four['lede']) + '</p><div class="body">' + prior_svg_four + '</div></section>'
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[3], prior_four_section, 1)
 (A / 'before.html').write_text(before)
@@ -107,13 +107,14 @@ def publish():
     d['reasons']['3'] = 'CIという名称を覚える必要がないよう、見出し・図・原稿を自動テストという説明へ変更。変更前は直前のCI表記の版です。'
     d['reasons']['3'] = '本来の制限と今回の実装を、独立した左右の枠へ変更。同じ承認フローと変更操作をそれぞれに置き、違いを直接比較できる図にしました。原稿も左右の図に対応しています。変更前は直前の範囲を上下で示した図です。'
     d['reasons']['4'] = '新しい7枚構成の内容4枚目。本来の業務条件と作業で使った解釈を別の領域に置き、その解釈が実装・テスト・AIと人のレビューに残った過程を図示しました。3枚目の不具合発覚から教材1の目的の問いへつなぎます。変更前は旧構成の内容4枚目です。'
+    d['reasons']['4'] = '最初の不具合を修正した後、差し戻し・再提出を追加する新しい展開へ変更。業務では別の判断だが実装では承認状態を共用し、複数の処理の条件を読み直すレビュー負担を示しています。変更前は直前の解釈とレビューの図です。'
     text = text[:m.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[m.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
     # Keep the existing cover and its links; replace only the explanatory notice.
     notice = text[start:end]
     notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容4枚目</h2>', notice, count=1, flags=re.S)
-    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。今回、スライドの図は変更していません。表示中の1〜4枚目は前の展開、5枚目以降は従来版です。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。今回は4枚目の図と原稿を新しい展開へ変更しました。1〜3枚目は先に作成した発端の事例、5枚目以降はまだ従来版です。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
     plan_html = markdown.markdown((A / 'seven-slide-revision-20261019' / 'slide-plan.md').read_text(), extensions=['tables'])
@@ -163,6 +164,7 @@ def publish():
     log.extend([dict(slide=n, group='japanese', change='初級編の聞き手に合わせ、CI・マージを変更の取り込みと自動テストに置き換え、図と原稿の説明を対応。工程自体は維持。') for n in [2,3]])
     log.append(dict(slide=3, group='layout', change='本来の制限と今回の実装を左右の独立した枠に分け、同じ承認フローと変更結果を同じ位置で対比。範囲の読み方の説明を不要にする。'))
     log.extend([dict(slide=4, group='story', change='開発者の承認段階の解釈がAIの実装とテストに使われ、AIと人のレビューでも元の業務条件との違いを見逃した過程へ変更。'),dict(slide=4, group='figure', change='本来の業務条件と作業で使った理解を別領域に配置。既存の同じ大きさの成果物・書類・人物を使い、実装とテスト、AIレビュー、人の承認を矢印で接続。'),dict(slide=4, group='japanese', change='図の左右と下の確認状況を原稿で説明。資料も人の確認もある前提を維持し、次の作業目的の問いへ接続。')])
+    log.extend([dict(slide=4, group='story', change='最初の不具合を解消してから追加対応に進む。承認と証憑確認を区別しないまま修正を重ね、レビューの確認範囲が広がる新しい展開を反映。'),dict(slide=4, group='figure', change='業務上の別の判断と、実装で共用する状態を別領域に配置。共通の状態を参照する変更制限・差し戻し・再提出と、複数の処理を読み直すレビュー担当者を図示。'),dict(slide=4, group='japanese', change='証憑は領収書などと原稿で補足。フラグや条件分岐の数だけを問題にせず、何の判断をどの実装が守るか確認しにくい点を説明。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
