@@ -1,20 +1,23 @@
 ---
 name: semantic-contract-core-board
-description: 基盤 Semantic Agent Schema（旧称 Semantic Schema Core。Semantic Abstract Schema と Semantic Concrete Schema）を決めるボード semantic-contract-core の現在地
+description: 基盤 Semantic Agent Schema（Semantic Abstract Schema と Semantic Concrete Schema）を決めるボード semantic-contract-core の現在地
 metadata:
   type: project
 ---
 
-## 現在地（2026-10-21）
+## 現在地（2026-10-23）
 
-- 土台を直した：Q0 の目的（構造の機械的な検証を意味の領域まで広げる。承認は2つ。子のセッションは親の文脈を引き継がない）・ Q8（U27 親のセッション、U16 本人の承認、U2 注意を x-prompt に上げる）・ Q9（中核に「目的ごとのセッションの管理」。オーケストレーター＝AGENTS.md ・ CLAUDE.md のような定義）。コミット e11197a1 ・ e9511b75 ・ 0663d847。
-- 名前は Semantic Agent Schema、URN は urn:semantic-agent-schema:…（122987dc）。今の実装（schema-driven）との比較はボードから外した。
-- ボードの Artifact は CdRCEdAdiSnUrBSc3svC5j。差分は毎回アーティファクトで出して承認を受けてから入れる。
+- ボードの Artifact は CdRCEdAdiSnUrBSc3svC5j。Q3 だけが開いていて、ほかは決着済み（Q11 セッション、Q1 の ER 図まで c1f48c9c）。
+- Q3（Agents 契約）の検討で、下流の Q3 から上流の決着済み（Q0 ・ Q1 ・ Q7 ・ Q11）を書き換えていたので、根幹 Q0 から整理し直した。整理のページ：LBLn1Jn6QcKXpq3LBkRWjA。シミュレーション第15版：Jhj2PvMe53KNCHVGHXWR5V。
+- 利用者と決めたこと：
+  - x-delegates は残す。基盤（Abstract）も Concrete も根に持つ「任せる先の一覧」で、中身は自分の agent の定義（ほかの Concrete の URN は書かない）。kind は judging ・ working ・ program。rule の by: ai → judging、by: machine → program（agent が無ければ基盤のエンジン）。
+  - Q0 #13（外から足す検査のプログラム）は残す。文脈の技術スタックの枯れた CLI（Rust なら cargo）を Concrete が program として置く。止めるのは x-prompt の文に特定の言語の道具を書くことだけ。
+  - 呼ぶのは親のセッション。呼ばれた子はほかの agent を呼ばず、決めきれない点は needs で親に返す。advisor の根拠は親がインスタンスの欄に書いてから検証し直す。
+  - 判定させる AI にも、親が渡すなら引き継ぎを渡す（Q0 #4 のまま）。親のセッションは人 ・ harness が立てても基盤が立ててもよい。
+- 差分第7版（UoM9gCcp6BAxTdvdpwNBNa）は、上の決定より前のもの。そのまま当てない。
 
 ## 次にすること（この順）
 
-1. 論点「目的ごとのセッション」を新しく立てる：セッションの集約の形（目的 ・ 意図 ・ 親子 ・ 再開の ID ・ 状態）、再開か新規かをデータで決める規則、手元だけに置くか、境界の表のセッションの行と I34 ・ I35 ・ I38 の直し
-2. 論点「信用の根拠」（人がレビューして承認した x-prompt）を立てるか、上の論点と Q0 で足りるかを決める
-3. Q1 に反映（集約9つ目、境界の表、不変条件）
-4. Q3：Agents 契約を Abstract の一員に。判定させる AI と作業させる AI、一般「AI と外のツールによる判定」の改名と範囲、Q3 の反証の直し（子のセッションの行は残す）
-5. Q4 ・ 実行できるモデルの作り直し
+1. 上流から開き直して直す：Q0（#13 の書き方）→ Q1 ・ Q7（x-delegates の中身と kind、by との対応、呼ばれた子は呼ばない）→ Q11（親のセッションの立て方、ID のでき方）→ Q3（層と部品、見出し、描いて起動する手順、返る値の形だけ）。論点ごとに差分をアーティファクトで出して承認を受ける。
+2. 未決：URN の持ち主 core の名前、Concrete の URN の「種類」の名前、Q1 #7 ・ #22 の例外。
+3. そのあと Q4 ・ 実行できるモデルの作り直し。
