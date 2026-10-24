@@ -1,0 +1,419 @@
+{
+  "kind": "design",
+  "question": "内作する「依存の向きの検査ツール」の下書き（draft.md Q1〜Q4）について、ツールの言葉（要素 ・ group ・ allow ・ グラフ ・ 辺の種類 ・ 違反）・ 判定の中心と言語ごとの読み取りの境目 ・ 最初の利用者（arch.html 4節の表）の書き写し ・ ツール自身の内部構成が、ドメイン駆動設計の判断基準で成り立つか",
+  "premises": [
+    {
+      "name": "利用者の言葉",
+      "value": "「今回の依存の向きを検査できるようなツールとしてこれも内作して、今回のアーキテクチャに寄らず、依存の向きなどを検査できる抽象レイヤーとして作成できないかな？？」",
+      "source": "利用者の発言（依頼文にそのまま記載）"
+    },
+    {
+      "name": "このツールの業務エキスパート",
+      "value": "規則を書く人（アーキテクチャを決める開発者と AI ツール）。扱う対象が依存グラフなので、node ・ edge ・ dependency などの技術用語がこの文脈の業務の言葉になる",
+      "source": "判断基準の範囲外（同じ言葉の条件「技術用語を入れない」は、業務が技術そのものである文脈を想定していない）"
+    },
+    {
+      "name": "最初の利用者の規則",
+      "value": "arch.html 4節の表（左の crate が依存してよい先。書いていない組はすべて禁止）と 6節（cargo metadata の辺を、種類つきで表と突き合わせる。表に無い外の crate も止める）",
+      "source": ".brainstorming/semantic-contract-core/measured/core/arch.html"
+    },
+    {
+      "name": "外の crate の許可の中身",
+      "value": "未判定。arch.html 5節は architecture.json が「crate ごとに許す外の crate」を持つと書くが、値の一覧は無い。分かっているのは validation → jsonschema（default-features = false）と sqlite → rusqlite の2件だけ",
+      "source": "arch/reviews/platform.md 34行「validation だけに許す外の crate」・ 62行「rusqlite は store-sqlite の中に閉じ込められ」"
+    },
+    {
+      "name": "architecture.json の「辺の種類」の欄の意味",
+      "value": "未判定。arch.html 5節は architecture.json が「許す辺 ・ 辺の種類 ・ crate ごとに許す外の crate」を持つと書くが、辺の種類で何を許し分けるかは書いていない。書き写しの判定のうち、この欄に依存する部分は未判定とする",
+      "source": "arch.html 5節（ディレクトリ構成の architecture.json の行）"
+    },
+    {
+      "name": "既存ツールの語",
+      "value": "research.md の7ツールの原文（引用 Q 番号つき。132件の引用と166件の識別子を fact-check で照合済み）だけを根拠にする。7ツールの外の語の使われ方は判断基準の範囲外",
+      "source": ".brainstorming/dependency-rules/research.md"
+    }
+  ],
+  "conclusion": {
+    "stance": "sound",
+    "headline": "1つの区切られた文脈・判定の中心と読み取りの境目・3部の構成は成り立つ。直すのは語の3点（同義語の「要素」と node をそろえる・group を component にする・違反の理由を既存の語にする）と、モデルに欠けた2つの決め事（node の id の決め方、1つの node が複数の集まりに当たるとき）と、公開された言葉を中心の内部の型から分けることである",
+    "because": "区切られた文脈は「同じ言葉の一貫性を維持するための境界」で、同義語を残さず1語1意味にすることが条件である。下書きの中心は cargo metadata の語を持たず、読み取りが変換を受け持つので、腐敗防止層（モデル変換装置）の配置は判断基準どおりだが、グラフの JSON を中心の内部の型のまま出すと「内部モデルをそのまま公開された言葉として外へ出す」誤りになる"
+  },
+  "figure": {
+    "caption": "ツールの中の区切られた文脈と、2つの公開された言葉（規則とグラフ）。cargo metadata の語は読み取りで止まり、中心に入らない。どの言語の読み取りも、同じグラフの JSON を出す",
+    "nodes": [
+      {
+        "id": "cargo",
+        "label": "Cargo（cargo metadata --format-version 1）",
+        "role": "外の文脈（上流）"
+      },
+      {
+        "id": "py",
+        "label": "ほかの言語の読み取り（例：Python の import）",
+        "role": "公開された言葉に従う"
+      },
+      {
+        "id": "reader",
+        "label": "Cargo の読み取り（packages ・ resolve ・ dep_kinds → node ・ edge ・ kind）",
+        "role": "モデル変換装置"
+      },
+      {
+        "id": "graph",
+        "label": "グラフの JSON（nodes ・ edges。版つき JSON Schema）",
+        "role": "公開された言葉"
+      },
+      {
+        "id": "rules",
+        "label": "規則の JSON（component ・ allow。版つき JSON Schema）",
+        "role": "公開された言葉"
+      },
+      {
+        "id": "cli",
+        "label": "入口（ファイルを読む ・ JSON を中心の型へ直す ・ 出力 ・ 終了コード）",
+        "role": "入口"
+      },
+      {
+        "id": "core",
+        "label": "判定の中心（node ・ edge ・ component ・ allow ・ violation。入出力をしない）",
+        "role": "中心"
+      }
+    ],
+    "edges": [
+      {
+        "from": "reader",
+        "to": "cargo",
+        "label": "起動して JSON を読む"
+      },
+      {
+        "from": "reader",
+        "to": "graph",
+        "label": "この形で出す"
+      },
+      {
+        "from": "py",
+        "to": "graph",
+        "label": "この形で出す"
+      },
+      {
+        "from": "cli",
+        "to": "graph",
+        "label": "読んで中心の型へ直す"
+      },
+      {
+        "from": "cli",
+        "to": "rules",
+        "label": "読んで中心の型へ直す"
+      },
+      {
+        "from": "cli",
+        "to": "reader",
+        "label": "--cargo のとき呼ぶ",
+        "dashed": true
+      },
+      {
+        "from": "cli",
+        "to": "core",
+        "label": "値を渡して違反の一覧を受け取る"
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "名前の付いた集まりを layer と呼ぶ（import-linter ・ ArchUnit ・ deptrac）",
+      "effect": "import-linter では「higher layers may depend on lower layers」（Q10）・「An ordered list」（Q11）と並びを含む。下書きの集まりは並びを持たない（Q1 で層の並びを採らなかった）。さらに最初の利用者は arch.html 5節で「フォルダの並びが依存の向きの層」と、domain ・ application ・ outbound ・ inbound を層と呼ぶ。書き写しでは集まりがほぼ crate 1つずつになるので、利用者の「層」と規則の layer が別のものを指し、1語2意味になる",
+      "chosen": false
+    },
+    {
+      "option": "tag と呼ぶ（Nx）",
+      "effect": "Nx の tag は project に付ける属性で、1つの project が複数を持ち、制約は「applied with **AND** logical operation」（Q116）。下書きは node をパターンで1つの集まりへ振り分ける形で、属性の AND を持たない。意味がずれる",
+      "chosen": false
+    },
+    {
+      "option": "group のまま",
+      "effect": "7ツールの原文のどれも、この意味で group を項目名に使っていない（research.md の表）。一般の英語なので造語ではないが、この分野で意味が確定した語が別にあるので、読み手は既存ツールの語との対応を毎回確かめることになる",
+      "chosen": false
+    },
+    {
+      "option": "component と呼ぶ（go-arch-lint）",
+      "effect": "go-arch-lint の原文「component is abstraction on go packages. One component = one or more go packages」（Q130）と、component の間に `mayDependOn` で許す辺を書く形（Q131）が、下書きの集まりと同じ意味である。並びも AND も含まない。go-arch-lint は外の依存を vendor として分ける（Q132）が、下書きは外の依存も node として同じ集まりに入れる。この差は node の `external` で持ち、集まりの語を2つにしない",
+      "chosen": true
+    },
+    {
+      "option": "規則の単位を contract と呼ぶ（import-linter）",
+      "effect": "import-linter の contract は `type` で5種類から選ぶ単位（Q23, Q1〜Q5）。下書きの規則は許可リスト型の1種類だけなので、contract という段を足しても中身が1種類しかなく、使わない段が増える",
+      "chosen": false
+    }
+  ],
+  "steps": [
+    {
+      "do": "タスク1：ツールの言葉を1つの区切られた文脈の同じ言葉として確かめ、語をそろえる",
+      "detail": "判定：おおむね過不足ない。ただし次の4点を直す。①同義語：下書きは本文で「要素」、グラフの JSON で `nodes` と書く。同じものなので node（Cargo「Array of nodes within the dependency graph」Q153、deptrac「Collectors decide if a node」Q101）にそろえ、本文もノードと書く。②集まりの名前：group を component にする（比較した案の表）。③違反の理由：`not-allowed` は dependency-cruiser の既存の語 `not-in-allowed`（Q31）に、`ungrouped` は group を改めると成り立たないので deptrac の uncovered（Q95「--fail-on-uncovered」）にする。④欠けている語：Q3 の「一度も使われなかった allow」に名前が無い。import-linter「unmatched expressions」（Q8）・ cargo-deny「no longer matches」（Q169）・ deptrac「was not matched」（Q96）がそろって使う unmatched にする。そのまま採る語：allow（dependency-cruiser `allowed` Q31 ・ cargo-deny `allow` Q162）・ from と to（Q33）・ edge と dependency graph（Q153）・ kind（Cargo `kind` Q150）・ violation（deptrac Q93 ・ ArchUnit Q67）。採らない語：layer ・ tag ・ contract（比較した案の表）"
+    },
+    {
+      "do": "タスク2：判定の中心と読み取りの境目を、腐敗防止層と公開された言葉として確かめる",
+      "detail": "判定：境目の切り方は正しい。①Cargo の読み取りは、上流（Cargo）のモデル packages ・ resolve ・ dep_kinds ・ workspace_members を node ・ edge ・ kind へ直すモデル変換装置で、変換は下流（このツール）の側に属する。Cargo は「It is recommended to include the --format-version flag to future-proof your code」（Q157）と出力の形の変わりうることを自分で書いており、「供給側の契約が頻繁に変更される」場合に当たる。②グラフの JSON を公開された言葉にする判断は適切。ほかの言語の読み取りは中心のモデルを変えずにこの形へ合わせる（中心から見ると、読み取りは公開された言葉に従う側）。③直すこと：公開された言葉を中心の内部の型と分ける。中心の型に serde を付けてそのまま JSON にすると、中心の型の変更がそのまま公開された言葉の変更になる。グラフと規則の JSON Schema に版（例：`\"version\": 1`）を持たせ、JSON から中心の型への変換は入口（または公開された言葉の型だけを持つ部品）で行う。④`kind` を中心が解釈しない決め方は、モデルを目的（許していない辺を止める）に絞る判断として適切。辺の種類で許し分ける規則を足す日が来たら、kind の値は読み取りごとの語なので、規則の側に読み取りの語が入る。足すときは、kind の値の一覧を読み取りごとに公開された言葉へ書いてから足す"
+    },
+    {
+      "do": "タスク2の続き：モデルに欠けた2つの決め事を足す",
+      "detail": "①node の id の決め方：規則のパターンは node の id と照合するので、id の付け方は読み取りと規則の両方が知る公開された言葉の一部になる。Cargo の読み取りは package の name を id にする（resolve.nodes の id は「path+file:///…#name@version」の形で、規則に書けない）。同じ name の外の crate が版違いで2つあれば1つの node にまとめる。id の決め方は読み取りごとに、グラフの JSON Schema の説明に書く。②1つの node が2つの component のパターンに当たるとき：下書きに決め事が無い。1語1意味にそろえるため、規則の誤り（終了コード 2）にする。deptrac は1つの要素を複数の layer に入れられる（Q90, Q101）が、最初の利用者に使う場面が無い"
+    },
+    {
+      "do": "タスク3：最初の利用者の表を規則の形へ書き写し、落ちる意味を挙げる",
+      "detail": "判定：4節の表の内側の辺は、意味を落とさず書ける（コードの例に実物）。outbound/agents-contract → ai-cli は、ai-cli を自分だけの component にすれば書ける（ai-cli を git ・ fs と同じ component に入れると agents-contract → fs まで許してしまう）。外の crate は、crate ごとに許す先が違う所で component を分ければ書ける（sqlite → rusqlite を許すと、sqlite を fs と同じ component に置けない）。書けない、または未判定の所は3つ。①辺の種類ごとの許可：「この外の crate は dev（または build）としてだけ許す」は、kind を区別しない規則では書けない。architecture.json の「辺の種類」の欄がこれを意味するかは未判定。②外の crate の許可の値：arch.html に一覧が無く、jsonschema と rusqlite 以外は書き写せない（規則の形の欠けではなく、利用者の側の値の欠け）。③パターンの末尾の `*`：package の name は全部 semantic-agent-schema- で始まるので、outbound/* のようなフォルダの層をパターンで書けず、name を全部並べる。意味は落ちない。なお dev の辺の循環は、どの種類の辺も allow に無ければ違反で、allow 自体の循環を規則の誤りにするので、kind を区別しなくても止まる"
+    },
+    {
+      "do": "タスク4：ツール自身の内部構成を、中心 ・ 公開された言葉 ・ 読み取り ・ 入口の4つに分ける",
+      "detail": "判定：下書きの3つ（中心 ・ 読み取り ・ 入口）は正しいが、公開された言葉の型を置く所が無い。読み取りが中心の型を使うと、Rust の読み取りだけが公開された言葉を通らずに中心へ入れるので、ほかの言語の読み取りと同じ条件で試されない。①core：node ・ edge ・ component ・ allow ・ violation の型と判定の関数。入出力をしない。外の crate に依存しない。判定はパターンの照合と許す辺の表引きと allow の循環の検査だけで、業務ルールは単純なので、集約もポート（trait）も作らない。②公開された言葉（グラフと規則の JSON の型と JSON Schema）：serde だけに依存する。③Cargo の読み取り：cargo metadata を起動し、②の形のグラフを返す。core に依存しない。④入口（CLI）：ファイルと標準入力を読み、②を core の型へ直して core を呼び、出力と終了コードを決める。ツール自身の規則ファイルでこの4つの辺（入口 → core ・ 公開された言葉 ・ 読み取り、読み取り → 公開された言葉）だけを許し、自分を検査する"
+    }
+  ],
+  "code": [
+    {
+      "kind": "para",
+      "text": "書き写しの実物（タスク3）。語は下書きのまま（group ・ allow）にして、下書きの形で書けるかを試した。group のキーの名前（name ・ members）は下書きに無いので仮に置いた。外の crate は arch に値がある2件だけを書いた。serde などそのほかの外の crate は未判定で、書かないとその辺は ungrouped の違反になる"
+    },
+    {
+      "kind": "code",
+      "text": "{\n  \"groups\": [\n    { \"name\": \"domain-declaration\", \"members\": [\"semantic-agent-schema-declaration\"] },\n    { \"name\": \"domain-change\", \"members\": [\"semantic-agent-schema-change\"] },\n    { \"name\": \"domain-validation\", \"members\": [\"semantic-agent-schema-validation\"] },\n    { \"name\": \"domain-render\", \"members\": [\"semantic-agent-schema-render\"] },\n    { \"name\": \"domain-search\", \"members\": [\"semantic-agent-schema-search\"] },\n    { \"name\": \"domain-instance\", \"members\": [\"semantic-agent-schema-instance\"] },\n    { \"name\": \"domain-migration-publish\", \"members\": [\"semantic-agent-schema-migration\", \"semantic-agent-schema-publish\"] },\n    { \"name\": \"domain-session\", \"members\": [\"semantic-agent-schema-session\"] },\n    { \"name\": \"application\", \"members\": [\"semantic-agent-schema-application\"] },\n    { \"name\": \"outbound-agents-contract\", \"members\": [\"semantic-agent-schema-agents-contract\"] },\n    { \"name\": \"outbound-ai-cli\", \"members\": [\"semantic-agent-schema-ai-cli\"] },\n    { \"name\": \"outbound-sqlite\", \"members\": [\"semantic-agent-schema-sqlite\"] },\n    { \"name\": \"outbound-adapters\", \"members\": [\"semantic-agent-schema-git\", \"semantic-agent-schema-fs\", \"semantic-agent-schema-tools\"] },\n    { \"name\": \"inbound-cli\", \"members\": [\"semantic-agent-schema-cli\"] },\n    { \"name\": \"ext-jsonschema\", \"members\": [\"jsonschema\"] },\n    { \"name\": \"ext-rusqlite\", \"members\": [\"rusqlite\"] }\n  ],\n  \"allow\": [\n    { \"from\": \"domain-change\", \"to\": [\"domain-declaration\"] },\n    { \"from\": \"domain-validation\", \"to\": [\"domain-change\", \"domain-declaration\", \"ext-jsonschema\"] },\n    { \"from\": \"domain-render\", \"to\": [\"domain-validation\", \"domain-change\", \"domain-declaration\"] },\n    { \"from\": \"domain-search\", \"to\": [\"domain-change\", \"domain-declaration\"] },\n    { \"from\": \"domain-instance\", \"to\": [\"domain-declaration\"] },\n    { \"from\": \"domain-migration-publish\", \"to\": [\"domain-declaration\"] },\n    { \"from\": \"application\", \"to\": [\"domain-declaration\", \"domain-change\", \"domain-validation\", \"domain-render\", \"domain-search\", \"domain-instance\", \"domain-migration-publish\", \"domain-session\"] },\n    { \"from\": \"outbound-agents-contract\", \"to\": [\"application\", \"outbound-ai-cli\"] },\n    { \"from\": \"outbound-ai-cli\", \"to\": [\"application\"] },\n    { \"from\": \"outbound-sqlite\", \"to\": [\"application\", \"ext-rusqlite\"] },\n    { \"from\": \"outbound-adapters\", \"to\": [\"application\"] },\n    { \"from\": \"inbound-cli\", \"to\": [\"application\", \"outbound-agents-contract\", \"outbound-ai-cli\", \"outbound-sqlite\", \"outbound-adapters\"] }\n  ]\n}"
+    },
+    {
+      "kind": "table",
+      "head": [
+        "arch.html 4節の行",
+        "書き写した先",
+        "意味は落ちたか"
+      ],
+      "rows": [
+        [
+          "domain/declaration →（無し）",
+          "domain-declaration を from とする allow を書かない",
+          "落ちない"
+        ],
+        [
+          "domain/change → declaration",
+          "allow domain-change → domain-declaration",
+          "落ちない"
+        ],
+        [
+          "domain/validation → change ・ declaration",
+          "allow domain-validation → domain-change ・ domain-declaration ・ ext-jsonschema",
+          "落ちない（jsonschema は platform.md の値を足した）"
+        ],
+        [
+          "domain/render → validation ・ change ・ declaration",
+          "allow domain-render → 3つ",
+          "落ちない"
+        ],
+        [
+          "domain/search → change ・ declaration",
+          "allow domain-search → 2つ",
+          "落ちない。search → validation は書かないので禁止のまま（層の並びでは書けなかった辺）"
+        ],
+        [
+          "domain/instance → declaration",
+          "allow domain-instance → domain-declaration",
+          "落ちない"
+        ],
+        [
+          "domain/migration ・ domain/publish → declaration",
+          "2つを1つの group にして allow → domain-declaration",
+          "落ちない。同じ group の中の辺は書かなければ禁止なので migration ↔ publish も禁止のまま"
+        ],
+        [
+          "domain/session →（無し）",
+          "allow を書かない",
+          "落ちない"
+        ],
+        [
+          "application → domain/ のすべて",
+          "allow application → domain の8つの group を並べる",
+          "落ちない。「すべて」を1語で書く手段は無く、domain の crate を足すたびにここにも足す"
+        ],
+        [
+          "outbound/agents-contract → application ・ outbound/ai-cli",
+          "ai-cli を自分だけの group にして allow → application ・ outbound-ai-cli",
+          "落ちない。ai-cli を git ・ fs と同じ group に入れると agents-contract → fs まで許すので分けた"
+        ],
+        [
+          "outbound/ai-cli ・ git ・ fs ・ tools ・ sqlite → application",
+          "ai-cli ・ sqlite ・ その他3つの3つの group に分けて、どれも allow → application",
+          "落ちない。sqlite だけが rusqlite を許されるので分けた"
+        ],
+        [
+          "inbound/cli → application ・ outbound/*",
+          "allow inbound-cli → application と outbound の4つの group",
+          "落ちない"
+        ],
+        [
+          "domain/ から application ・ outbound ・ inbound への辺は種類を問わず0件",
+          "書かないことで禁止。kind を区別しないので dev ・ build の辺も禁止",
+          "落ちない"
+        ],
+        [
+          "6節：表に無い外の crate を止める",
+          "外の crate の node はどの group にも入らなければ ungrouped の違反",
+          "落ちない。ただし許す外の crate の値は arch に一覧が無く未判定"
+        ],
+        [
+          "5節：architecture.json の「辺の種類」の欄",
+          "書く場所が無い",
+          "未判定。「dev としてだけ許す」の意味なら、この規則の形では書けない"
+        ]
+      ]
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "bounded-context",
+      "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。同義語は最初は問題に見えないが、言葉が違えば、ほとんどの場合、意図も違う"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"
+    },
+    {
+      "criterion": "anticorruption-layer",
+      "quote": "場合：供給側の契約が頻繁に変更される ・ 理由：頻繁な変更から自分のモデルを保護し、供給側の変更が影響する範囲を限定できる"
+    },
+    {
+      "criterion": "anticorruption-layer",
+      "quote": "モデルを作る観点では、変換によって、下流は自分の文脈に関係しない外部の概念を除外できる。その結果、下流の同じ言葉とモデルは単純で理解しやすくなる。"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：外部に公開するインターフェースを、内部のモデルから分離する ・ 理由：上流のモデルを変更しても下流に影響しない。公開するモデルと内部の実装を、別々の時期に変更できる"
+    },
+    {
+      "criterion": "model-translation",
+      "quote": "内部モデルのオブジェクトや業務イベントを、そのまま公開された言葉として外へ出すのはありがちな誤りである。区切られた文脈の内部モデルを外部に見せてしまう"
+    },
+    {
+      "criterion": "conformist",
+      "quote": "条件：上流の提供内容が、下流のニーズを十分に満たす ・ 対応：下流が上流のモデルを受け入れ、従属を選択できる"
+    },
+    {
+      "criterion": "model",
+      "quote": "対応：モデルで解決しようとしている課題、つまり目的を明確にする ・ 理由：役に立つモデルは、目的に合う内容だけを表す。目的の無いモデルは無い"
+    },
+    {
+      "criterion": "transaction-script",
+      "quote": "対応：外部システムと連係するアダプターとして使用する ・ 理由：一般的な業務領域で入れた外部サービスとつなぐときや、区切られた文脈どうしをつなぐモデル変換装置の一部として役立つ"
+    },
+    {
+      "criterion": "transaction-script",
+      "quote": "対応：業務ロジックが手続き的なデータ操作だけの、単純な問題に使用する ・ 理由：例は、データソースから抽出し、形式を変換し、出力先へ格納する ETL の操作である"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "条件：業務ロジックがトランザクションスクリプトかアクティブレコード ・ 対応：レイヤードアーキテクチャを選択する ・ 理由：業務ロジック層とデータアクセス層の依存関係が、これらの実装方法に適する"
+    },
+    {
+      "criterion": "subdomain",
+      "quote": "迷う組み合わせ：補完か一般か ・ 問い：外部のサービスを導入するより、自分たちで作るほうが簡単で費用も少ないか ・ 判定：そうであれば補完"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "内部モデルをそのまま公開された言葉にする",
+      "risk": "中心の型に serde を付けてグラフと規則の JSON にすると、中心の型の名前を変えただけで、ほかの言語の読み取りと利用者の規則ファイルが壊れる",
+      "alternative": "グラフと規則の JSON Schema に版を持たせ、JSON の型と中心の型を分けて、変換を入口（または公開された言葉の部品）に置く"
+    },
+    {
+      "name": "同義語（要素と node、group と layer）",
+      "risk": "下書きの本文は「要素」、JSON は `nodes`。読み手と AI ツールが、2つを別のものとして実装や文書に持ち込む",
+      "alternative": "node と component にそろえ、draft.md ・ JSON Schema ・ コードの識別子を同じ語で書く"
+    },
+    {
+      "name": "（推測）node の id の決め方を読み取りごとに暗黙で決める",
+      "risk": "規則のパターンを id と照合するので、読み取りが id の形を変えると規則が黙って一致しなくなり、全部が uncovered になるか、逆に一致すべき node が抜ける",
+      "alternative": "読み取りごとに id の決め方をグラフの JSON Schema の説明に書き（Cargo は package の name）、一致する node が0件の component を報告に載せる"
+    },
+    {
+      "name": "（推測）1つの node が複数の component に当たるときを決めない",
+      "risk": "実装ごとに「先に書いたほう」「全部」など振る舞いが分かれ、同じ規則で判定が変わる",
+      "alternative": "2つ以上に当たる node があれば規則の誤り（終了コード 2）にする"
+    }
+  ],
+  "records": [
+    {
+      "target": "draft.md Q1",
+      "content": "group を component、本文の「要素」を node にそろえる。1つの node が2つ以上の component に当たれば規則の誤り。最初の利用者の書き写し（この回答の実物）を完成イメージに置く。辺の種類ごとの許可が書けないことと、architecture.json の「辺の種類」の欄の意味が未判定であることを残す"
+    },
+    {
+      "target": "draft.md Q2",
+      "content": "グラフと規則の JSON を公開された言葉とし、版を持たせ、中心の型と分ける。node の id の決め方は読み取りごとに Schema の説明に書く（Cargo は package の name、版違いの同名は1つにまとめる）"
+    },
+    {
+      "target": "draft.md Q3",
+      "content": "違反の理由を `not-in-allowed` と `uncovered` に、一度も使われなかった allow を unmatched にする"
+    },
+    {
+      "target": "draft.md Q4",
+      "content": "中の構成を core ・ 公開された言葉 ・ Cargo の読み取り ・ 入口の4つにし、読み取りは core に依存しないことをツール自身の規則に書く"
+    }
+  ],
+  "next": [
+    "draft.md の Q1 〜 Q3 の語を node ・ component ・ not-in-allowed ・ uncovered ・ unmatched に直す",
+    "Q1 に「1つの node が2つ以上の component に当たれば規則の誤り」を足す",
+    "Q2 にグラフと規則の JSON Schema の版と、Cargo の読み取りの id の決め方を書く",
+    "cargo-deny の bans（deny ・ wrappers）で4節の表を書けるかを fact-check で原文と照合する",
+    "architecture.json の「辺の種類」の欄が「dev としてだけ許す」を意味するかを利用者に確かめる",
+    "最初の利用者が許す外の crate の一覧を、semantic-contract-core のボードで決める",
+    "この回答の書き写しをボードの Q1 の完成イメージに置き、fs → rusqlite の辺を1本足したときに not-in-allowed が出る例を並べる",
+    "Q4 の中の構成を4つに直し、ツール自身の規則ファイルの下書きを書く"
+  ],
+  "related": [
+    {
+      "criterion": "bounded-context",
+      "relation": "ツールの言葉が通用する範囲。Cargo と最初の利用者の語は、その外にある"
+    },
+    {
+      "criterion": "anticorruption-layer",
+      "relation": "Cargo の読み取りの位置づけ"
+    },
+    {
+      "criterion": "open-host-service",
+      "relation": "グラフと規則の JSON を公開された言葉にする判断"
+    },
+    {
+      "criterion": "model-translation",
+      "relation": "公開された言葉と中心の型を分ける理由"
+    },
+    {
+      "criterion": "conformist",
+      "relation": "ほかの言語の読み取りが、グラフの JSON に合わせる関係"
+    },
+    {
+      "criterion": "transaction-script",
+      "relation": "中心と読み取りの実装の重さ（集約もポートも作らない）"
+    },
+    {
+      "criterion": "subdomain",
+      "relation": "このツールは最初の利用者にとって補完の業務領域。内作は「自分たちで作るほうが簡単で費用も少ないか」の問いに答えてからにする（cargo-deny の bans の deny と wrappers で4節の表が書けるかは未確認）"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "core に Cargo の語や serde が入る（cargo metadata を直接読む、型に Serialize を付ける）",
+      "check": "ツール自身の規則で core を from とする allow を書かず、core の Cargo.toml の [dependencies] が空であることを検査する。core の src を `packages|resolve|dep_kinds|workspace_members` で grep して0件を確かめる"
+    },
+    {
+      "breaks": "Cargo の読み取りが core の型を使って、公開された言葉を通らずに中心へ入る",
+      "check": "ツール自身の規則で 読み取り → core を許さない。Cargo の読み取りの出力を、グラフの JSON Schema で validate する試験を置く"
+    },
+    {
+      "breaks": "書き写しで outbound の5つを1つの component にまとめ、agents-contract → fs と fs → rusqlite を許してしまう",
+      "check": "書き写した規則に、agents-contract → fs と fs → rusqlite の辺を1本ずつ足したグラフを与え、どちらも not-in-allowed が出る試験を置く"
+    },
+    {
+      "breaks": "draft ・ Schema ・ コードで group ・ layer ・ 要素 ・ ungrouped が残る",
+      "check": "dependency-rules/ の draft.md ・ JSON Schema ・ コードを `group|layer|ungrouped|要素` で grep し、research.md と reviews/ の引用以外で0件を確かめる"
+    }
+  ]
+}
