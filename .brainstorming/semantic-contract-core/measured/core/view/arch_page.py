@@ -38,7 +38,7 @@ s = between(s, '<h2>4　依存の向き</h2>', '<h2>5　', f'''<h2>4　依存の
 ])}
 ''')
 s = s.replace('<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から adapters ・ entry への辺は種類を問わず0件</td>', '<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から application ・ outbound ・ inbound への辺は種類を問わず0件</td>')
-s = s.replace('<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td>', '<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td></tr><tr><td>trait を通した入出力は clippy で止まらない</td><td>domain/ に trait のポートを置かない。ポートは application/src/ports/ だけに置き、domain/ の公開の関数が引数に dyn ・ impl の trait を取らないことを検査する')
+if 'trait を通した入出力は clippy で止まらない' not in s: s = s.replace('<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td>', '<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td></tr><tr><td>trait を通した入出力は clippy で止まらない</td><td>domain/ に trait のポートを置かない。ポートは application/src/ports/ だけに置き、domain/ の公開の関数が引数に dyn ・ impl の trait を取らないことを検査する')
 s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7　レビューで直したこと</h2>' + table(['下書き', '直した後', '指摘'], [
  ['contexts/', 'domain/', 'ddd ・ 反証：Q9 #11（文脈は1つ）と食い違う'],
  ['kernel → values（2つ以上の領域が使う値）', '無くす。値オブジェクトは、その語を持つ業務領域の crate へ', '反証（2回目）：Evans p.15 Modules「Give the modules names that become part of the ubiquitous language」'],
