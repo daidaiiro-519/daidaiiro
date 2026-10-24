@@ -1,0 +1,60 @@
+<title>AI ツールの調査</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+.q{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}.q b{font-size:16px}.links a{color:var(--accent)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.ask{border:2px solid var(--accent)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--card);font-weight:700;font-size:13px;flex:none}
+.ttl{display:flex;gap:8px;align-items:flex-start;font-weight:700;font-size:15px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.mini div{border-radius:8px;padding:6px 8px;font-size:13px}.mini .b{background:var(--bad-bg)}.mini .a{background:var(--add)}.mini b{display:block;font-size:11.5px;color:var(--sub)}
+.row{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px}@media (max-width:600px){.row{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column;gap:6px}
+.lab{font-size:12px;color:var(--sub)}
+.bars{display:flex;flex-direction:column;gap:6px;font-size:12.5px}.bar{display:grid;grid-template-columns:10em 1fr 4em;gap:8px;align-items:center}.bar i{display:block;height:12px;border-radius:6px;background:var(--accent)}.bar i.r{background:var(--bad)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.two{grid-template-columns:1fr}}
+.box{border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.box.c{background:var(--accent-bg)}.box.d{background:var(--hot-bg)}.box ul{margin:0;padding-left:1.2em;font-size:13.5px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.link{font-size:12px;word-break:break-all}
+.y{background:var(--add);color:var(--add-ink);font-weight:700}.p{background:var(--hot-bg);color:var(--hot);font-weight:700}.n{background:var(--bad-bg);color:var(--bad);font-weight:700}td.y,td.p,td.n{font-size:12.5px}
+</style>
+<main>
+<h1>ほかの AI ツールを原典で調べた結果</h1>
+<p class="meta">Codex CLI ・ GitHub Copilot CLI ・ Gemini CLI ・ Kiro を、公式の文書（と Codex ・ Gemini はリポジトリの commit）の原文で照合した。全文は core/research/*.md、原文は sources/ai-tools/</p>
+<div class="ans">費用の式で比べる案は、トークン課金のときにしか成り立たない。採らない。<br>5つのツールすべてで成り立つのは「再開できるか ・ 有効時間（不明もある）・ 最後に使った時刻」だけ。Q11 #3 の形のままにし、有効時間が不明なら新しく立てる（案 B）。</div>
+<h2>1　契約の入力が、ツールごとに取れるか</h2><div class="tw"><table><tr><th>契約の入力</th><th>Claude Code</th><th>Codex CLI</th><th>Copilot CLI</th><th>Gemini CLI</th><th>Kiro</th></tr><tr><td>再開（ID で、非対話でも）</td><td class="y">--resume ・ -p</td><td class="y">codex exec resume</td><td class="y">--resume ・ -p</td><td class="y">-r ・ -p</td><td class="y">--resume-id</td></tr><tr><td>料金の形</td><td class="p">定額の枠／API キーはトークン</td><td class="p">ChatGPT の枠／API キーはトークン</td><td class="p">トークン（2026-06 から）／年額の旧契約はリクエスト数</td><td class="p">Google アカウントは回数の上限／API キーはトークン</td><td class="n">定額＋クレジット</td></tr><tr><td>キャッシュの倍率（書く ・ 読む）</td><td class="y">1.25〜2 ・ 0.05〜0.1</td><td class="p">モデルで違う。枠の中では書く料金なし</td><td class="p">モデルごとの単価表から計算</td><td class="p">読むだけ記載。Google アカウントはキャッシュなし</td><td class="n">記載なし</td></tr><tr><td>有効時間</td><td class="y">会話1時間 ・ サブエージェント5分</td><td class="p">最小30分（保証は無い）</td><td class="p">1時間 ・ 24時間（手引きの記述。保証なし）</td><td class="n">implicit は記載なし</td><td class="n">記載なし</td></tr><tr><td>履歴の量</td><td class="y">使用量（トークン）</td><td class="y">トークン（セッションのファイル）</td><td class="y">トークン（OTel）</td><td class="y">トークン（セッションのファイル）</td><td class="p">割合（%）だけ</td></tr><tr><td>ターン数</td><td class="p">数える</td><td class="p">イベントを数える</td><td class="p">モデルの往復の回数だけ</td><td class="n">出す項目なし</td><td class="n">記載なし</td></tr></table></div>
+<p class="meta">緑：原典で取れる　黄：条件つき（料金の形やモデルで変わる、保証が無い）　赤：原典に無い</p>
+<h2>2　案の比べ</h2><div class="tw"><table><tr><th>案</th><th>アダプターが返すもの</th><th>成り立つツール</th><th>判定</th></tr><tr><td>前の案：費用の式で比べる</td><td>倍率3つ ・ 有効時間 ・ 履歴の量 ・ ターン数</td><td class="n">トークン課金のときだけ。Kiro ・ 定額の枠 ・ リクエスト数の課金では入力が取れない</td><td class="n">採らない</td></tr><tr><td>B　Q11 #3 のまま（有効時間内なら再開）</td><td>再開できるか ・ 有効時間（分からなければ「不明」）・ 最後に使った時刻</td><td class="y">5つとも。有効時間が「不明」のツールは毎回新しく立てて引き継ぐ</td><td class="y">私の見解</td></tr><tr><td>C　B ＋ 履歴が大きければ新規</td><td>B ＋ コンテキストの上限に対する履歴の割合</td><td class="y">5つとも（Kiro も % を返す）</td><td class="p">何%で切るかの根拠がまだ無い</td></tr></table></div>
+<h2>3　場面で比べる（30分後に続ける）</h2><div class="tw"><table><tr><th>場面：ACDR 0197 を30分後に続ける</th><th>前の案（費用の式）</th><th>B</th></tr><tr><td>Claude Code（サブスクリプション）</td><td class="p">定額の枠なので倍率の意味が変わる</td><td class="y">有効時間1時間の中 → 再開</td></tr><tr><td>Codex CLI（ChatGPT のプラン）</td><td class="p">書く料金が無く、枠の消費は取れない</td><td class="y">最小30分の中 → 再開</td></tr><tr><td>Copilot CLI（年額の旧契約）</td><td class="n">リクエスト数の課金で、倍率が無い</td><td class="y">1時間の中 → 再開（保証なし）</td></tr><tr><td>Gemini CLI（Google アカウント）</td><td class="n">キャッシュが無い</td><td class="y">有効時間「不明」→ 新しく立てて引き継ぐ</td></tr><tr><td>Kiro</td><td class="n">倍率も有効時間も無い</td><td class="y">有効時間「不明」→ 新しく立てて引き継ぐ</td></tr></table></div>
+<h2>4　案 B にしたときに外すもの</h2>
+<div class="tw"><table><tr><th>外すもの</th><th>理由</th></tr>
+<tr><td>費用の式 ・ 料金の倍率 ・ 見込みのターン数</td><td>5つのうち2つ以上で取れない</td></tr>
+<tr><td>手元の DB の turns の列</td><td>ターン数を返すツールが無い</td></tr>
+<tr><td>設定ファイル（Abstract の一員 settings）</td><td>置く値が無くなる。必要になったときに足す（足す前に引く）</td></tr>
+</table></div>
+<p class="meta">残るもの：アダプターの返す値は「再開できるか ・ 有効時間（期間か『不明』）・ 最後に使った時刻」。有効時間の値は AI ツールと料金の形で変わるので、アダプターが利用者の環境から決める</p>
+</main>
