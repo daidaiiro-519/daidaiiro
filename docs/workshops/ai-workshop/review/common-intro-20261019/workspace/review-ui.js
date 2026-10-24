@@ -64,6 +64,14 @@ function show(){
   el('after-narration').innerHTML=(current.afterNotes||current.notes)[n-1].body;
   el('heading').textContent=current.notes[n-1].title;el('notes').innerHTML=current.notes[n-1].body;
   el('current-title').textContent=current.notes[n-1].title;
+  const hasStructure=Array.isArray(current.structureAppliedSlides);
+  const structureApplied=hasStructure&&current.structureAppliedSlides.includes(n);
+  el('structure-status').hidden=!hasStructure;
+  el('structure-status').textContent=structureApplied
+    ?'今回の構成を図・原稿へ反映済みです。利用者確認待ちです。'
+    :'今回の構成案は図・原稿へ未反映です。上部の「改訂する8枚の構成」で案を確認できます。';
+  el('after-version-label').textContent=hasStructure
+    ?(structureApplied?'変更後（今回の構成を反映済み）':'変更後（今回の構成案は未反映）'):'変更後';
   el('slide-count').textContent=n+' / '+current.notes.length;
   el('bottom-count').textContent=n+' / '+current.notes.length;
   el('prev').disabled=n===1;el('next').disabled=n===current.notes.length;
@@ -75,7 +83,10 @@ function show(){
 function choose(initial=false){
   current=data.find(deck=>deck.id===el('deck').value)||data[0];
   el('slide').replaceChildren(...current.notes.map((note,index)=>{
-    const option=document.createElement('option');option.value=String(index+1);option.textContent=(index+1)+'　'+note.title;return option;
+    const option=document.createElement('option');option.value=String(index+1);
+    const status=Array.isArray(current.structureAppliedSlides)
+      ?(current.structureAppliedSlides.includes(index+1)?'［構成反映済み］':'［構成未反映］'):'';
+    option.textContent=(index+1)+'　'+status+note.title;return option;
   }));
   n=1;
   if(initial){

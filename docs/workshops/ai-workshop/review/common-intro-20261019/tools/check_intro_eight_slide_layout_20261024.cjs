@@ -17,6 +17,11 @@ const layout=JSON.parse(fs.readFileSync(path.join(root,'review-layout.json'),'ut
    await page.locator('#slide').selectOption(String(n));
    const expected=JSON.parse(fs.readFileSync(path.join(root,layout.sources[n-1]),'utf8'));
    assert.equal(await page.locator('#current-title').textContent(),expected.heading);
+   const applied=lead.structureAppliedSlides?.includes(n);
+   if(Array.isArray(lead.structureAppliedSlides)){
+    assert((await page.locator('#structure-status').textContent()).includes(applied?'反映済み':'未反映'));
+    assert((await page.locator('#after-version-label').textContent()).includes(applied?'反映済み':'未反映'));
+   }
    assert((await page.locator('#after-narration').textContent()).includes(expected.narration.split('\n\n')[0]));
    const source=layout.before_sources[n-1];
    if(source){
