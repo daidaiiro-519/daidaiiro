@@ -71,6 +71,12 @@ pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);
 
 <h2>4　場面ごとの状態</h2>
 <p class="meta">目的のセッション（ACDR 0197）の AI が、SAS で作っていないファイル（SKILL.md と agent.rs）を直す。意図は2つ。</p>
+<div class="tw"><table>
+<tr><th>値</th><th>だれが決めるか</th><th>例（26文字を先頭8文字に略す）</th></tr>
+<tr><td><span class="c">change_id</span>（変更の記録の id）</td><td>基盤が記録を作る時に1回だけ決める ULID。変更の仕組みに依らない</td><td class="c">01JBA0C1…</td></tr>
+<tr><td>セッションの id</td><td>AI ツールが発行する。基盤は解釈しない（I34）</td><td class="c">s-0197</td></tr>
+<tr><td>変更の単位の参照</td><td>変更の仕組みが発行する。基盤は持たず、表示とポートへの受け渡しだけに使う</td><td class="c">b51c0d2（Git なら commit）</td></tr>
+</table></div>
 <div class="legend"><span style="background:var(--add);color:var(--add-ink)">足された</span><span style="background:var(--mark);color:var(--mark-ink)">変わった</span><span style="background:var(--del);color:var(--del-ink)">消えた</span></div>
 <div class="step"><h3>場面0　始める前</h3><div class="uc"><b>事前</b><span>オーケストレーターのセッションと、目的のセッションが開いている</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><span class="none">無し</span></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span>単位 a7e44fb …</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">sessions</th><th>目的</th><th>親</th><th>state</th></tr><tr><td class="c">claude-code / s-orch</td><td>—</td><td>—</td><td>open</td></tr><tr><td class="c">claude-code / s-0197</td><td>ACDR 0197</td><td class="c">s-orch</td><td>open</td></tr></table></div><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr><td class="none" colspan="2">0行</td></tr></table></div></div></div></div>
 <div class="step"><h3>場面1　AI が書き、基盤が記録と判定を作る</h3><div class="uc"><b>アクター</b><span>目的のセッションの AI ・ 基盤 ・ judge</span><b>操作</b><span>AI がファイルを直す → 意図「許可の一覧を渡さない」を基盤へ言う → 基盤がポートから前後を受け取り、成型して judge に渡す</span><b>事後</b><span>記録と判定（verified）が、まだ確定していない変更に加わる</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><div class="file"><span class="m">docs/SKILL.md</span><span class="m">tool/agent.rs</span><span class="n">changes/01JBA0C1.json</span><span class="n">judgments/01JBA0J1.json（verified）</span></div></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span>単位 a7e44fb</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr class="add"><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr></table></div></div></div></div>
