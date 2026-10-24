@@ -17,3 +17,5 @@ metadata:
 比較は <http://127.0.0.1:8772/design-review.html?slide=5#lead>。2026年10月24日にサーバーを起動してHTTP 200を確認した。プロセスは後のセッションで停止している可能性がある。
 
 図と原稿の修正はレビュー用。正本・音声・動画は未変更。全編に対する最新のLunaレビューも未実施。過去の経緯は[旧記録](ai-workshop.md)とGit履歴、生成方法は[引き継ぎ](../docs/workshops/ai-workshop/review/common-intro-20261019/HANDOFF.md)を参照できる。古い引き継ぎに含まれる枚数や次の作業は、現在のprogress.jsonと異なる場合がある。
+
+2026年10月24日、利用者の依頼で比較HTMLの操作と差分表示を改善した。図は並列・重ね合わせ、原稿は文単位の追加・削除と全文並列を切替可能。変更理由は独立表示。生成元はworkspace/review_ui.pyとreview-ui-shell.html、review-ui.css、review-ui.js。スライド・原稿自体と5枚目の確認待ちは変更していない。確認画像と結果はworkspace/ui-review-20261024/。

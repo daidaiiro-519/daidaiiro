@@ -4,6 +4,7 @@ import html
 import json
 import re
 import markdown
+from review_ui import enhance
 
 A = Path(__file__).resolve().parent
 V = A.parent / 'viewer'
@@ -154,6 +155,7 @@ def publish():
     plan_html = markdown.markdown((A / 'seven-slide-revision-20261019' / 'slide-plan.md').read_text(), extensions=['tables'])
     notice += '<details id="seven-slide-plan"><summary>新しい7枚の構成・原稿案を開く</summary>' + plan_html + '</details>'
     text = text[:start] + notice + text[end:]
+    text = enhance(text)
     (V / 'design-review.html').write_text(text)
     (A / 'comparison.html').write_text(text)
     log = [dict(slide=1, group='story', change='資料とコードを確認する新規参画者を含む案件の前提を説明し、原因を先に断定しない原稿へ変更。'),

@@ -18,3 +18,9 @@ python3 -m http.server 8772 --bind 127.0.0.1 --directory docs/workshops/ai-works
 ```
 
 比較は <http://127.0.0.1:8772/design-review.html?slide=5#lead> です。スライドの編集元は `workspace/`、公開するファイルは `viewer/`、確認用スクリプトは `tools/` にあります。生成と閲覧に `/tmp` は使用しません。正本と音声・動画は今回更新していません。
+
+## 比較ページのUI
+
+図と原稿の内容を変えず、資料・枚の切替、重ね合わせ、原稿の文単位の追加・削除、変更理由を確認できます。UIの生成元はworkspace/review_ui.pyとreview-ui-shell.html、review-ui.css、review-ui.jsです。build_review.py --publishで同じ比較ページを再生成します。
+
+操作の確認は `node tools/check_review_ui_20261024.cjs`。確認画像と結果はworkspace/ui-review-20261024/に保存しています。旧原稿が保存されていない資料は、変更後のみ表示します。
