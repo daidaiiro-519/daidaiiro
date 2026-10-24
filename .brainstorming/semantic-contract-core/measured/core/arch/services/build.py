@@ -45,7 +45,7 @@ after = '''crates/domain/
   instance/     aggregates/ instance.rs
                 factories/ instance.rs（雛形から作る ・ 取り込む）
   session/      aggregates/ session.rs（立てる ・ 閉じる）
-                services/ resume_or_new.rs'''
+                services/ selector.rs（Session Selector）'''
 def pre(text, cls):
     return '<pre class="v diff">' + ''.join(f'<span class="{cls}">{l}</span>' for l in text.split('\n')) + '</pre>'
 body = f'''<main>
@@ -54,27 +54,40 @@ body = f'''<main>
 <p class="ans">ドメインサービスは13から4つ（Resolver ・ Validator ・ Renderer ・ 再開か新規かを決める）にする。残りの9つは、ファクトリ3 ・ 集約の操作 ・ 値オブジェクトの操作 ・ 使う場面へ移す。あなたの見立てどおりの数になった</p>
 <h2>1　13の行き先</h2>
 {table(['いまのドメインサービス', '分け直した後', 'どこへ', '理由'], rows)}
-<h2>2　domain の中のディレクトリ</h2>
+<h2>2　ドメインサービス4つの名前（英語と日本語の対）</h2>
+{table(['英語（型の名前）', '日本語', 'ファイル'], [
+ ['Semantic Schema Resolver（SemanticSchemaResolver）', 'セマンティックスキーマリゾルバー', 'validation/src/services/resolver.rs'],
+ ['Semantic Schema Validator（SemanticSchemaValidator）', 'セマンティックスキーマバリデーター', 'validation/src/services/validator.rs'],
+ ['Semantic Schema Renderer（SemanticSchemaRenderer）', 'セマンティックスキーマレンダラー', 'render/src/services/renderer.rs'],
+ ['Session Selector（SessionSelector）', 'セッションセレクター', 'session/src/services/selector.rs'],
+])}
+{table(['決めたこと', '理由'], [
+ ['日本語は英語の技術用語をそのままカタカナにする', 'Q5（決着）の日本語「解決器 ・ 検証器」の「器」は、あなたが使わないと決めた語（比喩）に入っている。技術用語に戻す'],
+ ['Renderer の英語は model.json のまま', 'Q5 には Renderer の名前が無い。Resolver ・ Validator と同じ形にそろえた'],
+ ['再開か新規かを決めるを Session Selector にする', 'いまの名前は処理を述べた文なので、ほかの3つと同じく役割の名詞にした。開いているセッションを再開するか新しく立てるかを選び、ID か「新しく立てる」を返す。「判定」は判定の記録の語と重なるので使わない'],
+])}
+<h2>3　domain の中のディレクトリ</h2>
 <div class="two"><div class="pane"><h3>変更前（ドメインサービス13 ・ crate 9）</h3>{pre(before, 'd')}</div><div class="pane on"><h3>変更後（ドメインサービス4 ・ crate 6）</h3>{pre(after, 'a')}</div></div>
 <p class="meta">migration ・ publish ・ search の crate は無くなる。移す ・ 版を出すは Concrete ・ Abstract の型と同じ crate にしか書けない（Rust Reference「An implementing type must be defined within the same crate as the original type definition.」）。探した範囲は term を持つ declaration に置く</p>
-<h2>3　2つのレビューが分かれたところと、この答え</h2>
+<h2>4　2つのレビューが分かれたところと、この答え</h2>
 {table(['処理', 'ddd-advisor', '反証役', 'この答え'], [
  ['再開か新規かを決める', '集約「セッション」の操作（読む ・ 変えるのは1つのセッション）', 'ドメインサービス（Q1 #37 が名前で決着。AI ツールの値と設定を合わせて決める）', 'ドメインサービス。決め方は AI ツールと設定の方針で、セッション自身の状態だけでは決まらない。閉じるはセッションのコマンドへ（2人とも同じ）'],
  ['変更を見せる の突き合わせ', '変更のまとまりのファクトリ', 'ドメインサービスに残す（I31 ・ I22 ・ I35）', 'ファクトリ。作るのは保存しない値「変更のまとまり」で、突き合わせはそれを作るときの不変条件'],
  ['意味で探して取り出す', '使う場面 ＋ 値オブジェクト', '条件付きで残す（中核「意味で探す」を持つものを必要とする）', '使う場面 ＋ 値オブジェクト。中核「意味で探す」の決まりは値オブジェクトが持つ'],
  ['Concrete を照らす', '集約 Concrete の操作', 'Validator に入れる', '両方。Concrete の中で閉じる不変条件は根、Abstract に従うかは Validator'],
 ])}
-<h2>4　直すことになる前提</h2>
+<h2>5　直すことになる前提</h2>
 {table(['前提', '変更前', '変更後'], [
  ['ボード Q1（決着）', '集約9つ ・ ドメインサービス13 ・ 2種類のポート ・ 不変条件46行', '集約9つ ・ ドメインサービス4 ・ ファクトリ3 ・ 2種類のポート ・ 不変条件46行（行は変えず、持ち主だけが移る）'],
  ['model.json', 'domain_services 13行。集約は操作を持たない', 'domain_services 4行。aggregates に commands、factories を新しく足す。value_objects に操作と、担う使う場面の欄を足す（状態を導くが担っていた U0 の行き先）'],
  ['arch.html 4節 ・ 5節', 'crate 9（migration ・ publish ・ search を含む）', 'crate 6。依存の表とディレクトリを直す'],
  ['model.json の 再開か新規か', '開いていたものを閉じて「新しく立てる」と返す（1つの操作）', '再開する ID か「新しく立てる（閉じる ID）」を返すだけ。閉じるのは application がセッションのコマンドで行う'],
 ])}
-<h2>5　確かめてほしいこと</h2>
+<h2>6　確かめてほしいこと</h2>
 {table(['確かめてほしいこと', '私の見解'], [
  ['ドメインサービスを4つにし、残りを上の表の行き先へ移す', '移す'],
  ['再開か新規かを決めるを、セッションの集約の操作ではなくドメインサービスにする', 'ドメインサービスにする（あなたの見立てと、反証役と同じ）'],
+ ['ドメインサービス4つの名前（2節の表）。日本語をカタカナの技術用語にし、Q5 の「解決器 ・ 検証器」も直す。再開か新規かを決めるは Session Selector', 'この名前にする'],
  ['search ・ migration ・ publish の crate を無くす', '無くす。中核「意味で探す」は crate ではなく値オブジェクトと使う場面が担う'],
 ])}
 <p class="meta">承認されたら、ACDR を起こして Q1 と model.json（changes.py に C61 以降）を直し、arch.html の4節 ・ 5節を直す</p>
