@@ -16,10 +16,10 @@ CREATE TABLE sessions (
   CHECK (role IS NULL OR parent_id IS NOT NULL)            -- 役割があれば親がある
 );
 
--- I46：目的 ・ 親 ・ 役割が同じで開いているのは1つまで。NULL どうしは SQLite では別の値になるので、空の文字列に寄せてから一意にする
+-- I46：目的の参照を持つセッションは、目的 ・ 親 ・ 役割が同じで開いているのを1つまで。オーケストレーターのセッション（目的なし）はいくつでもよい。NULL どうしは SQLite では別の値になるので、空の文字列に寄せてから一意にする
 CREATE UNIQUE INDEX one_open_per_purpose_parent_role
   ON sessions (COALESCE(purpose_ref,''), COALESCE(parent_tool,''), COALESCE(parent_id,''), COALESCE(role,''))
-  WHERE state = 'open';
+  WHERE state = 'open' AND purpose_ref IS NOT NULL;
 
 -- I45：閉じたセッションは開き直さない。ID ・ 目的 ・ 親 ・ 役割は立てた時に決めて変えない（Q11 の不変条件①）
 CREATE TRIGGER no_reopen BEFORE UPDATE OF state ON sessions
