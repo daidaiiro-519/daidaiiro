@@ -57,6 +57,13 @@ s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7
 s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決めてほしいこと</h2>' + table(['決めてほしいこと', '私の見解'], [
  ['スキーマの正本の置き場所を、Q6 #19 の src/semantic-agent-schema/schemas/ から semantic-agent-schema/schemas/v1/ へ', '移す。下の表のとおり、集約の型は crates/ の中、集約の中身（10ファイル）は crates/ の外に置く'],
  ['Q3 の答え（core と adapters の2つ）を、このページの構成に置き換える', '置き換える'],
+ ['behaviors/ の扱いを、下の表の変更後にする（qa-advisor の判定）', '変える。製品の機能ではなく基盤自身のテストデータなので、名前と持ち込む範囲を絞る'],
+]) + '<h3>behaviors/ は何か ・ 何を持ち込むか（qa-advisor ・ 全文 arch/reviews/qa-behaviors.html）</h3>' + table(['', '変更前（いまの5節）', '変更後', '根拠'], [
+ ['何か', '受け入れの場面', '基盤自身のシステムテストのテストケースとテストデータ。製品の機能ではない。利用者が行う受け入れテスト（UAT）でもない', 'qa-advisor：受け入れテストは「想定ユーザーが実施することが理想的」で、この場面は機械が操作の結果を比べる'],
+ ['なぜ持ち込むか', '──', '前提の「試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す」の実体だから。言語に依らないことはバイナリと protocol で満たすので、バイナリを外から起動して回す', 'premises/board-answers.json:162 ・ 164'],
+ ['置き場所と名前', 'behaviors/ に70場面', 'test-suite/ にインターフェースに依らない56場面（schema 24 ・ check_design 6 ・ 基盤の操作 26）。SQLite のアダプターだけを試験する sql の14場面は crates/outbound/sqlite/tests/ へ', 'Cargo「Integration tests go in the tests directory.」・ 判断基準の語「テストスイート」'],
+ ['回す側', 'crates/inbound/cli/tests/acceptance.rs', 'crates/inbound/cli/tests/test_suite.rs。CARGO_BIN_EXE でバイナリを起動する。模擬の判定と模擬の AI はバイナリの外から渡し、バイナリに切り替えの分岐を入れない', 'qa-advisor：Test Logic in Production'],
+ ['持ち込まないもの', 'coverage.json も移す', 'coverage.json ・ build.py ・ ref/（参照実装）はボードに残す。核の段の記録で、実装の段では使わない。場面の traces（使う場面と不変条件への結びつき）は残す', 'qa-advisor：traceability ・ 正本を2つにしない'],
 ]) + '<h3>スキーマは集約なのに、なぜ crates/ の外か</h3>' + table(['分けるもの', '置き場所', '前提'], [
  ['集約 Semantic Abstract Schema の型と不変条件（出した版は変えない ・ $id の形）', 'crates/domain/declaration/src/aggregates/abstract_schema.rs', 'model.json aggregates（意味の宣言）'],
  ['集約の中身：版ごとの10ファイル', 'semantic-agent-schema/schemas/v1/（版を足すときは v2/ を並べる）', 'Q9「Abstract の版（10ファイルの形）は公開された言葉である。版を並べて出す」・ Q6「最初の公開から出した版は変えない」'],

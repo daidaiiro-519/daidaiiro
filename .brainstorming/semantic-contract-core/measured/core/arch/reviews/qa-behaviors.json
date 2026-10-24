@@ -1,0 +1,94 @@
+{
+ "kind": "judgment",
+ "question": "核で作った期待する振る舞いの70場面（behaviors/*.json）を、Rust で作る基盤のリポジトリへ持ち込むべきか。持ち込むなら、どの形で、どこに、何という名前で置くか。対応表 coverage.json と各場面の traces も持ち込むか。受け入れテスト駆動の考え方が混ざっていて、基盤の側で作り込むものではないのではないか（利用者の問い）",
+ "premises": [
+  {"name": "前提 164（決着済み）", "value": "「試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す」", "source": "premises/board-answers.json:164"},
+  {"name": "70場面の中身", "value": "when.op で数えると、スキーマの静的な検査（schema）24 ・ SQLite の DDL へ SQL を直に流す（sql）14 ・ デザインの検査（check_design）6 ・ 基盤の操作（record_change ・ approve ・ change_view ・ decide_and_register など）26。Git とスナップショットの両方で回すのは14場面で、実行は84回", "source": "behaviors/*.json を数えた ・ report.json"},
+  {"name": "場面の作り方", "value": "behaviors/*.json は behaviors/build.py が Python の関数（GIVEN ・ REC ・ APP など）から書き出したもの。given には模擬の判定（judge）と模擬の AI ツール（ai）を入れる欄があり、ランナー run.py が参照の実装 ref/ の StubJudge ・ FakeAiSessions に渡す", "source": "behaviors/build.py ・ run.py の setup"},
+  {"name": "coverage.json の中身", "value": "model.json の使う場面 ×｛事後, 失敗時｝と不変条件の90行を区分した表。場面19 ・ 静的4 ・ 一部2 ・ 確かめない65。確かめない行の move_when は「その能力の参照の実装を足したら」で、参照の実装（ref/ の Python）の段の進み具合を書いている", "source": "coverage.json ・ report.json の classes"},
+  {"name": "いまの案（arch.html 5節）", "value": "リポジトリ直下に behaviors/ を置き「核で作った70場面…と対応表 coverage.json をそのまま移す」。crates/inbound/cli/tests/acceptance.rs を「受け入れの試験（behaviors/ の場面を全アダプターで回す）」とする。cli の crate は src/main.rs と compose.rs で、lib.rs を持たない", "source": "arch.html"},
+  {"name": "Cargo の慣習（原文で照合した）", "value": "Cargo Book「Integration tests go in the tests directory.」。Rust Book 11.3「If our project is a binary crate that only contains a src/main.rs file and doesn’t have a src/lib.rs file, we can’t create integration tests in the tests directory and bring functions defined in the src/main.rs file into scope with a use statement.」。Cargo の環境変数「CARGO_BIN_EXE_<name> — The absolute path to a binary target’s executable. This is only set when building an integration test or benchmark.」", "source": "doc.rust-lang.org/cargo/guide/project-layout.html ・ rust-lang/book ch11-03-test-organization.md ・ doc.rust-lang.org/cargo/reference/environment-variables.html（fact-check で取得）"},
+  {"name": "言語に依らない JSON の試験の先例（判断基準の範囲外）", "value": "JSON Schema Test Suite の README「It is meant to be language agnostic and should require only a JSON parser. The conversion of the JSON objects into tests within a specific language and test framework of choice is left to be done by the validator implementer.」。判定の根拠にはせず、前提 164 の形が既にある形であることの参考にだけ使う", "source": "json-schema-org/JSON-Schema-Test-Suite README.md（fact-check で取得）"},
+  {"name": "model.json を実装のリポジトリへ移すか", "value": "未判定。traces の U ・ I の id が指す先が、ボードに残るか実装へ移るかで、対応表を実装で回すかの答えが変わる", "source": "arch.html に記載が無い"}
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "70場面は基盤自身のシステムテストのテストケース（テストウェア）であり、前提 164 を守るために JSON のまま持ち込む。ただし、そのままは移さず、インターフェースに依らない56場面と SQLite のアダプターだけの14場面に分け、coverage.json ・ build.py ・ ref/ はボードに残し、受け入れテストの名前をやめる",
+  "because": "前提 164 が JSON の組を試験の形と決めているので、Rust のテストに書き直すとほかのインターフェースと言語の実装が同じ試験を通せなくなる。一方で、判断基準の受け入れテストは想定ユーザーがビジネスニーズを確かめるテストレベルであり、機械が基盤の操作を確かめるこの場面の集まりには当たらないので、名前と置き場所をシステムテストとして決め直す"
+ },
+ "figure": {
+  "caption": "核の成果物を、実装のリポジトリへ持ち込むものとボードに残すものに分ける",
+  "nodes": [
+   {"id": "core", "label": "核 measured/core/", "role": "source"},
+   {"id": "suite", "label": "test-suite/（56場面の JSON。traces を持つ）", "role": "carry"},
+   {"id": "sqlite", "label": "crates/outbound/sqlite/tests/（SQL の14場面）", "role": "carry"},
+   {"id": "runner", "label": "crates/inbound/cli/tests/（バイナリを起動して回す）", "role": "carry"},
+   {"id": "board", "label": "ボードに残す：coverage.json ・ build.py ・ ref/ ・ run.py ・ report.json", "role": "keep"}
+  ],
+  "edges": [
+   {"from": "core", "to": "suite", "label": "schema ・ check_design ・ 基盤の操作を移す"},
+   {"from": "core", "to": "sqlite", "label": "op が sql の場面を移す"},
+   {"from": "suite", "to": "runner", "label": "CARGO_BIN_EXE_<name> で起動して読む"},
+   {"from": "core", "to": "board", "label": "核の段の記録として残す", "dashed": true}
+  ]
+ },
+ "comparison": [
+  {"option": "いまの案：70場面と coverage.json を behaviors/ へそのまま移し、cli/tests/acceptance.rs で全アダプターに回す", "effect": "SQL を直に流す14場面は SQLite の DDL にしか当てられず、どのインターフェースでも同じ試験という前提 164 の形に合わない。coverage.json の65行は参照の実装（Python）の段の進み具合を書いており、Rust の実装では意味が変わる。受け入れの試験という名前は、想定ユーザーが行う受け入れテストと取り違えられる", "chosen": false},
+  {"option": "場面を持ち込まず、Rust の #[test] に書き直す", "effect": "前提 164 の「入力と期待結果の JSON の組」をやめることになり、MCP やほかの言語の実装が同じ試験を通せない。決着済みの前提を下流で書き換えることになる", "chosen": false},
+  {"option": "分けて持ち込む：インターフェースに依らない56場面を JSON のまま test-suite/ へ、SQL の14場面を SQLite のアダプターの crate の tests/ へ移し、traces は場面に残す。coverage.json ・ build.py ・ ref/ はボードに残す", "effect": "前提 164 を守り、場面と要件の対応（traces）も失わない。ボードに残すものは核の段の記録として残るので、実装のリポジトリに Python の生成元と JSON の2つの正本ができない", "chosen": true}
+ ],
+ "path": [
+  {"ask": "1. この場面の集まりは何か（製品の機能か、基盤自身の試験のデータか、設計の検証の材料か）", "answer": "製品の機能ではない（基盤が利用者へ出すものではない）。基盤自身の試験のテストケースとテストデータであり、判断基準のテストウェアに当たる。核の段では、ドメインモデル ・ スキーマ ・ DB が食い違わないことを参照の実装で回して確かめる設計の検証の材料も兼ねていた。実装の段では、前者の役目だけが残る"},
+  {"ask": "2. 受け入れテスト駆動の考え方が混ざっているか", "answer": "形は混ざっている。コードより先に、使う場面の事後条件 ・ 失敗時と不変条件から、題を自然言語で書いた Given/When/Then の場面を作っており、テストファーストで受け入れ基準のシナリオ指向の形式に当たる。しかし受け入れテスト（UAT）ではない。判断基準の受け入れテストは想定ユーザーがビジネスニーズを確かめるもので、この場面は機械がプロトコルの操作と結果の JSON ポインタを比べる。テストレベルとしてはシステムテスト（SQL の14場面はアダプター単体のテスト）に当たる。よって、利用者の「UAT を基盤で作り込むものではない」は正しく、直すのは名前（acceptance ・ 受け入れの試験）であって、場面を持つこと自体ではない"},
+  {"ask": "3. 実装で必要か", "answer": "必要。理由は2つ。前提 164 が「どのインターフェースとどの言語の実装も同じ試験を通す」と決めており、その試験の実体がこの JSON である。また、判断基準はテストファーストで作ったテストケースを自動テストとして維持し、リファクタリングのときのコード品質の確保に使うとしている。Rust のテストへ書き直す案は前提 164 を破るので採らない"},
+  {"ask": "4. coverage.json と traces は持ち込むか", "answer": "traces は持ち込む。判断基準は、トレーサビリティをテストプロセスの全期間で確立し維持し、変更の影響の判断に使うとしており、1場面に1行の id で済む。coverage.json は持ち込まない。中身が参照の実装の段の進み具合（確かめない65行の move_when）で、核の段のテスト完了の記録としてボードに残す。Rust の実装で対応表を回すかは、model.json を実装へ移すか（未判定）が決まってから、終了基準として決め直す"},
+  {"ask": "5. どこに、何という名前で置くか", "answer": "Cargo の慣習で決まるのは「統合テストは tests ディレクトリ」と「main.rs だけの binary crate は tests/ から use できない」まで。データの JSON の置き場所を Cargo は決めない。よって、(a) 56場面は複数の crate とほかの言語の実装が読むので、ワークスペースの根に置く。名前は、判断基準のテスト実装の作業成果物の語「テストスイート」から test-suite/ とする（推測：名前は判断基準も Cargo も決めていない。behaviors/ より中身が伝わる語として選んだ）。(b) 回す側は crates/inbound/cli/tests/ の統合テストにし、CARGO_BIN_EXE_<name> でバイナリを起動して標準入出力で回す。ファイル名は acceptance.rs をやめ、test_suite.rs などにする（推測）。(c) SQL の14場面は crates/outbound/sqlite/tests/ に移す（SQLite のアダプターだけが持つ約束なので、共通の test-suite/ に入れない）"}
+ ],
+ "examples": [
+  "S-REC-1「AI が Markdown とコードを直し、意図だけを渡して記録する」：when は record_change、then は /result/change/purpose_ref が ACDR 0197 であること。どのインターフェースでも同じ結果を期待するので test-suite/ へ移す",
+  "S-DB-1「オーケストレーターの入れ子を断る」：when は INSERT INTO sessions … の SQL を直に流す。SQLite の DDL の約束なので crates/outbound/sqlite/tests/ へ移す",
+  "S-ST-bad-2「argv のシェルの記号を断る」：Abstract に照らして ACDR の Concrete を検証し valid が false であること。検証器の振る舞いなのでインターフェースに依らず、test-suite/ へ移す"
+ ],
+ "grounds": [
+  {"criterion": "atdd", "quote": "受け入れテスト駆動開発（ATDD）：テストファーストのアプローチの1つ。ユーザーストーリーの実装に先立ち、顧客 ・ 開発担当者 ・ テスト担当者などのチームメンバーがテストケースを作成する。実行は手動の場合も自動の場合もある。"},
+  {"criterion": "acceptance-criteria", "quote": "形式：シナリオ指向 ・ 例：BDD で使用する Given/When/Then 形式"},
+  {"criterion": "test-levels", "quote": "テストレベル：受け入れテスト ・ 焦点：妥当性確認と、デプロイの準備が整ったことの実証。ユーザーのビジネスニーズをシステムが満たすことを指す ・ 特記事項：想定ユーザーが実施することが理想的である。主な形式は、ユーザー受け入れテスト（UAT）・ 運用受け入れテスト ・ 契約による受け入れテスト ・ 規制による受け入れテスト ・ アルファテスト ・ ベータテストである"},
+  {"criterion": "test-levels", "quote": "テストレベル：システムテスト ・ 焦点：システムやプロダクト全体の振る舞いと能力の全般。多くの場合、エンドツーエンドのタスクの機能テストと、品質特性の非機能テストである ・ 特記事項：一部の非機能品質特性（例：使用性）は、本番相当のテスト環境で、完全なシステムを対象にテストするのが望ましい。サブシステムのシミュレーションも使用できる。システムの仕様に関連し、独立したテストチームが実施することがある"},
+  {"criterion": "test-first-development", "quote": "どのアプローチでも、テストケースを自動テストとして維持し続けることがある。将来の適応やリファクタリングの際に、コード品質を確保するためである。"},
+  {"criterion": "test-first-development", "quote": "対応：テストレベルごとに、そのレベル特有の異なる目的を持たせる ・ 理由：冗長性を避けながら、適切に包括したテストを実施できる"},
+  {"criterion": "testware", "quote": "テスト活動：テスト実装 ・ 作業成果物：テストプロシジャー ・ 自動テストスクリプト ・ テストスイート ・ テストデータ ・ テスト実行スケジュール ・ テスト環境"},
+  {"criterion": "testware", "quote": "対応：テスト完了で、将来役立つかもしれないテストウェアをすべて識別し、保管か適切なチームへの引き渡しをする"},
+  {"criterion": "traceability", "quote": "対応：テストプロセスの全期間にわたって、トレーサビリティを確立し維持する ・ 理由：効果的なテストのモニタリングとコントロールの実装に重要である"},
+  {"criterion": "traceability", "quote": "価値：変更の影響を判断できる"},
+  {"criterion": "test-logic-in-production", "quote": "Test Logic in Production：本番に出すコードが、テストの間にだけ動かすべき処理を含んでいる臭い。Code Smells の1つである。"},
+  {"criterion": "obscure-test", "quote": "原因：Mystery Guest ・ 場面：ファイルなどの外部リソースを使わざるを得ない ・ 直し方：そのためだけのフォルダやディレクトリに置き、名前を見ればどんなデータが入っているかが分かるようにする"},
+  {"criterion": "test-automation", "quote": "条件：DevOps のように CI を使用するとき ・ 対応：自動化したリグレッションテストを含める。よい実践例とされる"}
+ ],
+ "cautions": [
+  {"name": "受け入れテストでないものを受け入れテストと呼ぶ（acceptance.rs ・ 受け入れの試験）", "risk": "利用者が感じたとおり、基盤が UAT を作り込んでいるように読める。テストレベルごとの目的が混ざり、本当に想定ユーザーが行う受け入れ（Concrete の作者が基盤を使って確かめること）を別に置く余地が見えなくなる", "alternative": "システムテストとして名前を付け直す（test-suite/ ・ test_suite.rs）。受け入れテストは、想定ユーザーが行うものとして別に扱う"},
+  {"name": "テスト用の差し替えを CLI のバイナリに入れる（Test Logic in Production）", "risk": "場面の given.judge ・ given.ai は模擬の判定と模擬の AI ツールを前提にしている。CLI を起動して回すために、本番のバイナリへ模擬へ切り替える引数や設定を足すと、テストと本番で違う動きをするシステムになる", "alternative": "（推測）模擬はバイナリの外からポートの正規の経路で渡す。例えば判定は、x-delegates の argv を持つ judging として、固定の答えを返す試験用のプログラムを指す。経路が無いものは、場面の側を直すか、その場面を application の crate の tests/ で回す"},
+  {"name": "生成元の build.py と生成物の JSON を両方の正本にする", "risk": "Python の関数（GIVEN ・ REC）を直すと JSON がずれ、JSON を直すと次の生成で上書きされる。実装のリポジトリに Python の依存も入る", "alternative": "持ち込む時点で JSON を正本にし、build.py はボードに残して以後は使わない"},
+  {"name": "すべての場面が同じ given（GIVEN の FILES ・ 2つのセッション ・ 3つの ULID）を使う（General Fixture）", "risk": "どの値が期待結果を左右するのかが場面から読み取りにくく、Tests as Documentation にならない", "alternative": "（推測）持ち込んだ後に、場面ごとに使わない given の欄を削る。今回の判定の条件にはしない"}
+ ],
+ "ai_cautions": [
+  {"breaks": "op が sql の場面を test-suite/ に入れたまま移す", "check": "test-suite/ の JSON で when.op が sql の場面が0件であることを、jq か Rust の試験で数える"},
+  {"breaks": "CLI の本番のコードに模擬へ切り替える分岐を入れる", "check": "crates/inbound/cli/src/ と crates/application/src/ に stub ・ fake ・ mock の語と cfg(test) 以外の試験用の分岐が無いことを grep する"},
+  {"breaks": "build.py ・ run.py ・ ref/ ・ coverage.json を実装のリポジトリへ一緒に写す", "check": "実装のリポジトリに .py ファイルと coverage.json が無いことを find で確かめる"},
+  {"breaks": "traces を落として JSON を写す", "check": "test-suite/ の全場面で traces が1件以上あることを数える"}
+ ],
+ "referrals": [
+  {"suspect": "arch.html 5節の決定（behaviors/ と coverage.json をそのまま移す ・ acceptance.rs）", "why": "テストレベルと前提 164 の範囲（インターフェースに依らない場面だけ）を分けずに置き場所を決めている疑い。ddd-advisor ・ platform-advisor のレビューでテストの観点を通していない可能性がある"},
+  {"suspect": "前提 164 の「どの言語の実装も」の範囲", "why": "ほかの言語の Concrete はバイナリを呼ぶ（Q9）ので、基盤をほかの言語で作り直すことを指すのか、ほかの言語からバイナリを呼ぶことを指すのかで、test-suite/ を公開された言葉と同じく配る必要があるかが変わる。利用者に確かめる"}
+ ],
+ "next": [
+  "behaviors/*.json を when.op で分け、sql の14場面と残りの56場面の一覧を作る",
+  "arch.html 5節の behaviors/ を test-suite/ に、acceptance.rs を test_suite.rs に改め、coverage.json を移す記述を消す",
+  "SQL の14場面の置き場所を crates/outbound/sqlite/tests/ として arch.html に足す",
+  "given.judge と given.ai を、バイナリの外からどの経路で渡すかを決める",
+  "model.json を実装のリポジトリへ移すかを利用者に確かめる"
+ ],
+ "related": [
+  {"criterion": "test-pyramid", "relation": "バイナリを起動して回す56場面は最上位のレイヤーに当たる。ドメインの crate のユニットテストは別に Rust で書く"},
+  {"criterion": "test-automation", "relation": "test-suite/ は CI で回すリグレッションテストになる"}
+ ]
+}
