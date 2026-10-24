@@ -1,0 +1,95 @@
+<title>変更の記録を基盤が持つ理由</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--sch:#3B5B8C;--sch-bg:#E3EAF5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--sch:#9DB8E8;--sch-bg:#1C2638;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--sch:#9DB8E8;--sch-bg:#1C2638;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+.snap{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:12.5px/1.6 var(--mono);background:var(--code);white-space:pre;overflow-x:auto}
+.res{font-weight:700;font-size:14px;padding:4px 10px;border-radius:8px;text-align:center}
+.res.ok{background:var(--add);color:var(--add-ink)} .res.q{background:var(--hot-bg);color:var(--hot)} .res.ng{background:var(--bad-bg);color:var(--bad)}
+.d .m{background:var(--del);color:var(--del-ink)} .d .p{background:var(--add);color:var(--add-ink)}
+.arrow{text-align:center;color:var(--sub);font-size:13px}
+.intent{background:var(--sch-bg);color:var(--sch);border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;align-items:stretch} @media (max-width:820px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;display:flex;flex-direction:column;gap:2px}
+.st b{color:var(--accent);font-size:13.5px} .st .w{color:var(--sub);font-size:12px}
+.layer{display:flex;flex-direction:column;gap:6px}
+.ly{border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:9em 1fr;gap:8px;align-items:center} @media (max-width:600px){.ly{grid-template-columns:1fr}}
+.ly.a{background:var(--sch-bg)} .ly.c{background:var(--accent-bg)} .ly.i{background:var(--card);border:1px solid var(--line)}
+.ly b{font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px} .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12.5px}
+</style>
+<main>
+<h1>変更の記録を基盤（Abstract）が持つ理由</h1>
+<p class="meta">決着済み：Q0 の答え（変更の確かめ）、Q9 の中核「変更の確かめと例外の判断」、I33（意図と変更が合っているか）、I38、I17、Q10</p>
+
+<h2>1　状態を見るだけでは分からないこと</h2>
+<section class="two">
+<div class="pane"><h3>JSON Schema（状態だけを見る）</h3>
+<div class="snap">ACDR 0197（変更後）
+{ "decision": "…各 AI ツールの設定ファイルで決める。",
+  "why": "…最小権限：sec-03 …" }</div>
+<div class="res ok">形は正しい</div>
+<p class="meta">でも、この変更が「何のために」「意図どおりか」は分からない</p></div>
+<div class="pane on"><h3>Semantic Agent Schema（変更と意図を見る）</h3>
+<div class="intent">意図：least-privilege の根拠を書く</div>
+<div class="snap d"><span class="m">- "why": "…各ツールの設定ファイルに合わせる。"</span>
+<span class="p">+ "why": "…合わせる。最小権限：sec-03 …"</span></div>
+<div class="res ok">意図と変更が合う（verified）</div>
+<p class="meta">意図は書いた瞬間にしか分からない。だから、書いた時に残す</p></div>
+</section>
+
+<h2>2　意図が残っていると、こういう誤りを止められる</h2>
+<section class="two">
+<div class="pane on"><h3>意図どおりの変更</h3>
+<div class="intent">意図：least-privilege の根拠を書く</div>
+<div class="snap d"><span class="p">+ why に sec-03 の根拠</span></div>
+<div class="res ok">verified</div></div>
+<div class="pane"><h3>意図に無い変更が混ざった</h3>
+<div class="intent">意図：least-privilege の根拠を書く</div>
+<div class="snap d"><span class="p">+ why に sec-03 の根拠</span>
+<span class="m">- decision：各 AI ツールの設定ファイルで決める</span>
+<span class="p">+ decision：基盤が許可を持つ</span></div>
+<div class="res ng">violated：意図が合わない（決定まで変えている）</div>
+<p class="meta">AI が頼まれていない欄まで書き換えたことが、PR を見る人に例外として出る</p></div>
+</section>
+
+<h2>3　流れ</h2>
+<section class="flow">
+<div class="st"><b>1 書く</b>目的のセッションの AI が ACDR 0197 を書き足す<span class="w">目的：ACDR 0197</span></div>
+<div class="st"><b>2 残す</b>基盤の入口が、変更の記録を作る<span class="w">目的 ・ 意図 ・ 変えた欄（I38）</span></div>
+<div class="st"><b>3 確かめる</b>I33：意図と変更が合っているかを AI（judge）が判定<span class="w">判定の記録に残す</span></div>
+<div class="st"><b>4 共有する</b>インスタンスと一緒にコミット<span class="w">セッション ID は入れない（I34）</span></div>
+<div class="st"><b>5 見せる</b>PR を見る人へ、目的 → 意図 → 意味の変更 → 例外の順にまとめる<span class="w">CI は記録から状態を導く（I17）</span></div>
+</section>
+
+<h2>4　なぜ Concrete ではなく Abstract か</h2>
+<section class="layer">
+<div class="ly a"><b>Abstract（基盤）</b><div><div class="chips"><span class="chip">変更の記録の形（change）</span><span class="chip">判定の記録の形（judgment）</span><span class="chip">I33：意図と変更が合っているか</span></div><p class="meta">どの文脈の変更でも同じ仕組みで確かめる。1か所に持つ</p></div></div>
+<div class="ly c"><b>Concrete（文脈）</b><div><div class="chips"><span class="chip">ACDR（決定の記録）</span><span class="chip">ボード（論点）</span><span class="chip">qa-advisor の判断基準</span><span class="chip">…</span></div><p class="meta">中身の形と、中身の決まり（x-prompt）だけを持つ。変更を確かめる仕組みは持たない</p></div></div>
+<div class="ly i"><b>インスタンスの変更</b><div><p>ACDR 0197 を書き換えても、ボードの論点を書き換えても、同じ形の変更の記録が付く</p></div></div>
+</section>
+
+<h2>5　ACDR との違い</h2>
+<section class="two">
+<div class="pane"><h3>ACDR（Concrete の1つ）</h3><div class="snap">決定1件
+ ・ 決めたこと ・ なぜ
+ ・ 比較した案
+ ・ 文書の差分と理由
+読む人：承認する人</div></div>
+<div class="pane"><h3>変更の記録（Abstract の一員）</h3><div class="snap">変更1つの意図
+ ・ 目的の参照 ・ 意図
+ ・ 変えた対象と欄
+ ・ 書いた者の種類
+読む人：基盤（まとめて見せる、確かめる）</div></div>
+</section>
+<p class="meta">ACDR 0197 を書き換えれば、その変更にも変更の記録が付く。ACDR は、変更の記録が付く対象の1つ</p>
+</main>

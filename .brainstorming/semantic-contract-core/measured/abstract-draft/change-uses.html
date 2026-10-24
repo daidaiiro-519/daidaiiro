@@ -1,0 +1,62 @@
+<title>変更の記録の活用パターン</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--sch:#3B5B8C;--sch-bg:#E3EAF5;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--sch:#9DB8E8;--sch-bg:#1C2638;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--sch:#9DB8E8;--sch-bg:#1C2638;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:22px;margin:0} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.big{border:2px solid var(--accent);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px} @media (max-width:760px){.big{grid-template-columns:1fr}}
+.big div{display:flex;flex-direction:column;gap:2px} .big b{color:var(--accent);font-size:15px} .big span{font-size:13.5px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px} @media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card h3{margin:0;font-size:15px} .uc{font-size:11.5px;color:var(--sub)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ba div{border-radius:8px;padding:6px 8px;font-size:12.5px} .ba .n{background:var(--bad-bg)} .ba .y{background:var(--accent-bg)} .ba b{display:block;font-size:11.5px;color:var(--sub)}
+.mono{font:12px/1.6 var(--mono);white-space:pre;overflow-x:auto;background:var(--code);border-radius:8px;padding:6px 8px}
+</style>
+<main>
+<h1>変更の記録の活用パターン</h1>
+<p class="meta">左＝変更の記録が無いとき、右＝あるとき。カードの右上は、決着済みの使う場面（Q1 の正本）</p>
+
+<section class="big">
+<div><b>新しい文脈にも、そのまま効く</b><span>Concrete を書くだけで、変更の記録 ・ 意図の照合 ・ 経緯 ・ 引き継ぎが付く。文脈ごとに作らない</span></div>
+<div><b>文脈をまたいで、目的で引ける</b><span>1つの目的が ACDR ・ ボード ・ Skill をまたいで変えても、目的の参照で全部がまとまる</span></div>
+<div><b>AI の書いたものを、人が意図で確かめられる</b><span>差分の行ではなく、意図ごとの意味の変更と例外で判断できる</span></div>
+</section>
+
+<section class="grid">
+<div class="card"><h3>1　PR を意図の単位で見る</h3><span class="uc">U25</span>
+<div class="ba"><div class="n"><b>無い</b>300行の差分を上から読む。どこが何のための変更か分からない</div><div class="y"><b>ある</b>目的 → 意図 → 意味の変更 → 例外の順に、まとめて出る</div></div>
+<div class="mono">ACDR 0197
+ ├ 意図：ACDR 0197 を起こす        verified
+ └ 意図：least-privilege の根拠を書く verified
+例外：0件</div></div>
+
+<div class="card"><h3>2　AI が頼まれていない欄を変えたら止まる</h3><span class="uc">U5 ・ U6、I33</span>
+<div class="ba"><div class="n"><b>無い</b>AI がついでに決定まで書き換えても、形が正しければ通る</div><div class="y"><b>ある</b>意図に無い欄の変更が「意図が合わない」として先頭に出る</div></div></div>
+
+<div class="card"><h3>3　次のセッションへ、会話でなく記録で引き継ぐ</h3><span class="uc">U27、Q11 #6</span>
+<div class="ba"><div class="n"><b>無い</b>長い会話を要約して渡す。要約で意図が変わる</div><div class="y"><b>ある</b>コミットされた変更の記録（意図 ・ 判定）から引き継ぎを作る。人が替わっても同じ</div></div></div>
+
+<div class="card"><h3>4　「なぜこの値なのか」を後から引く</h3><span class="uc">U13</span>
+<div class="ba"><div class="n"><b>無い</b>Git の差分とコミットメッセージから推測する</div><div class="y"><b>ある</b>欄ごとに、どの目的 ・ どの意図で変わり、だれが判定したかが出る</div></div>
+<div class="mono">/why ← 意図「least-privilege の根拠を書く」（目的 ACDR 0197）
+       判定：reviewer（opus）verified</div></div>
+
+<div class="card"><h3>5　繰り返す判断を、契約に上げる</h3><span class="uc">U16 → U2</span>
+<div class="ba"><div class="n"><b>無い</b>人が同じ指摘を毎回する</div><div class="y"><b>ある</b>意図に結び付いた人の判定がたまり、同じ判断を引ける。x-prompt の行に上げて、次からは AI と機械が判定する</div></div></div>
+
+<div class="card"><h3>6　契約を変えたあとの直しを追える</h3><span class="uc">U2 → U7</span>
+<div class="ba"><div class="n"><b>無い</b>Concrete を変えて violated になったインスタンスの直しが、ほかの変更に紛れる</div><div class="y"><b>ある</b>「契約の変更に合わせて直す」意図の記録として、どれを直したかがまとまる</div></div></div>
+
+<div class="card"><h3>7　CI が AI に聞き直さずに状態を出す</h3><span class="uc">U8、I17</span>
+<div class="ba"><div class="n"><b>無い</b>CI のたびに AI を呼ぶか、AI の判定を捨てる</div><div class="y"><b>ある</b>コミットされた判定の記録から状態を導く。手元と同じ結果になる</div></div></div>
+
+<div class="card"><h3>8　チームで、ほかの人の変更を取り込む</h3><span class="uc">U18、Q10</span>
+<div class="ba"><div class="n"><b>無い</b>取り込んだ変更が何のためのものか、本人に聞く</div><div class="y"><b>ある</b>記録がコミットと一緒に来るので、目的 ・ 意図ごとに分かる。セッション ID は来ない（本人だけが引ける）</div></div></div>
+</section>
+</main>

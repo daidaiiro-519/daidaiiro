@@ -1,0 +1,526 @@
+<title>変更の記録と判定の記録の完成イメージ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--code:#F3F6F5;--sch:#3B5B8C;--sch-bg:#E3EAF5;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--code:#121B18;--sch:#9DB8E8;--sch-bg:#1C2638;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--code:#121B18;--sch:#9DB8E8;--sch-bg:#1C2638;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:22px;margin:0} h2{font-size:18px;margin:12px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:760px){.two{grid-template-columns:1fr}}
+.col{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.col.after{border-color:var(--accent)} .col h3{margin:0;font-size:15px}
+pre{margin:0;background:var(--code);border-radius:8px;padding:8px 10px;font:12px/1.55 var(--mono);overflow-x:auto;white-space:pre}
+ul{margin:0;padding-left:1.2em;font-size:13.5px} .ng li{color:var(--bad)}
+details{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)} summary{padding:6px 10px;background:var(--sch-bg);color:var(--sch);font-weight:700;font-size:13.5px;cursor:pointer}
+details pre{border-radius:0;max-height:520px}
+.flow{display:flex;flex-direction:column;gap:4px;font-size:13.5px} .flow div{border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:var(--code)} .flow .x{border-color:var(--bad);background:var(--bad-bg)} .flow .o{border-color:var(--accent);background:var(--accent-bg)}
+</style>
+<main>
+<h1>変更の記録と判定の記録の完成イメージ</h1>
+<p class="meta">変更前＝いまのシミュレーション（私がそれらしく並べたもの）、変更後＝決着済みの Q1 の正本（集約と値オブジェクト）の言葉から書いた Abstract の一員 change ・ judgment に合わせた記録 ・ 変更後の記録は jsonschema でその形に合う（実測）。2つの形も本体の検査を通る</p>
+
+<h2>1　変更の記録</h2>
+<section class="two">
+<div class="col"><h3>変更前</h3><pre>{ &quot;id&quot;: &quot;c1&quot;,
+  &quot;目的&quot;: &quot;ACDR 0197&quot;,
+  &quot;意図&quot;: &quot;ACDR 0197 を起こす&quot;,
+  &quot;書いた者の種類&quot;: &quot;AI の Agent&quot;,
+  &quot;欄&quot;: [&quot;/no&quot;, &quot;/title&quot;, &quot;/status&quot;, &quot;/decision&quot;, &quot;/why&quot;, &quot;/shift&quot;, &quot;/alternatives&quot;] }</pre>
+<ul class="ng"><li>id が一意に決まる値でない</li><li>欄だけで、どの対象の欄かが無い</li><li>キーが日本語で、形が決まっていない</li></ul></div>
+<div class="col after"><h3>変更後</h3><pre>{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:change:v1&quot;,
+  &quot;kind&quot;: &quot;change&quot;,
+  &quot;id&quot;: &quot;01JB8ZK3Q4M6R2T9V5X7Y1A3C5&quot;,
+  &quot;purpose_ref&quot;: &quot;ACDR 0197&quot;,
+  &quot;intent&quot;: &quot;ACDR 0197 を起こす&quot;,
+  &quot;writer_kind&quot;: &quot;ai-agent&quot;,
+  &quot;items&quot;: [
+    {
+      &quot;target&quot;: &quot;.acdr/0197-…/acdr.json&quot;,
+      &quot;field&quot;: &quot;/decision&quot;
+    },
+    {
+      &quot;target&quot;: &quot;.acdr/0197-…/acdr.json&quot;,
+      &quot;field&quot;: &quot;/why&quot;
+    },
+    {
+      &quot;target&quot;: &quot;.acdr/0197-…/acdr.json&quot;,
+      &quot;field&quot;: &quot;/shift&quot;
+    }
+  ]
+}</pre>
+<ul><li>id は ULID（書いた時に1回だけ、打ち合わせずに一意。I37）</li><li>変更の項目は 対象（target）と 欄（field）の組（Q1 #30）</li><li>セッション ID は持たない。前後の値も持たず、変更の仕組みから導く</li></ul></div>
+</section>
+
+<h2>2　判定の記録</h2>
+<section class="two">
+<div class="col"><h3>変更前</h3><pre>{ &quot;対象&quot;: &quot;ACDR 0197&quot;,
+  &quot;rule&quot;: &quot;least-privilege&quot;,
+  &quot;結果&quot;: &quot;unverified&quot;,
+  &quot;判定した者&quot;: &quot;AI（reviewer）&quot;,
+  &quot;読んだ欄&quot;: [&quot;/decision&quot;, &quot;/why&quot;, &quot;/shift&quot;],
+  &quot;効いているか&quot;: true }</pre>
+<ul class="ng"><li>読んだ場所だけで、読んだ値が無い。値が変わったかを比べられない</li><li>根拠が無い</li><li>「効いているか」を記録に持っている（導くもので、持ってはいけない）</li></ul></div>
+<div class="col after"><h3>変更後</h3><pre>{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:judgment:v1&quot;,
+  &quot;kind&quot;: &quot;judgment&quot;,
+  &quot;id&quot;: &quot;01JB8ZQ1H8N4P6S2W9Z3B5D7F1&quot;,
+  &quot;target&quot;: &quot;.acdr/0197-…/acdr.json&quot;,
+  &quot;rule&quot;: &quot;urn:semantic-agent-schema:acdr:decision-record:v1#least-privilege&quot;,
+  &quot;result&quot;: &quot;unverified&quot;,
+  &quot;grounds&quot;: [
+    {
+      &quot;at&quot;: &quot;/why&quot;,
+      &quot;text&quot;: &quot;最小権限の根拠が無い&quot;
+    }
+  ],
+  &quot;judged_by&quot;: &quot;ai&quot;,
+  &quot;judged_values&quot;: {
+    &quot;reads&quot;: [
+      {
+        &quot;at&quot;: &quot;/decision&quot;,
+        &quot;value&quot;: &quot;ボードの画面の AI に何を許すかを、…&quot;
+      },
+      {
+        &quot;at&quot;: &quot;/why&quot;,
+        &quot;value&quot;: &quot;画面の AI は agents.json の一覧だけで起動され、…&quot;
+      },
+      {
+        &quot;at&quot;: &quot;/shift&quot;,
+        &quot;value&quot;: [
+          {
+            &quot;what&quot;: &quot;許可の置き場所&quot;,
+            &quot;from&quot;: &quot;agents.json&quot;,
+            &quot;to&quot;: &quot;各 AI ツールの設定ファイル&quot;
+          }
+        ]
+      }
+    ],
+    &quot;delegate&quot;: &quot;urn:semantic-agent-schema:acdr:decision-record:v1#reviewer&quot;,
+    &quot;model&quot;: &quot;opus&quot;
+  }
+}</pre>
+<ul><li>判定した値に、読んだ値そのものと、任せる先とモデルを残す（値オブジェクト「判定した値」）</li><li>根拠は、読んだ値の場所だけを指す（I14）</li><li>効いているかは持たない</li></ul></div>
+</section>
+
+<h2>3　場面8（why と shift を書き足す）の振る舞い</h2>
+<section class="two">
+<div class="col"><h3>変更前</h3><div class="flow">
+<div>親が why と shift を書き足す</div><div class="x">判定の記録のファイルが書き換わる（効いているか：false）</div><div>コミットに判定の記録の書き換えが混ざる</div></div></div>
+<div class="col after"><h3>変更後</h3><div class="flow">
+<div>親が why と shift を書き足す</div><div class="o">判定の記録のファイルは変わらない</div><div class="o">基盤が judged_values.reads と、いまの値を比べる</div><div class="o">/why と /shift が違うので、この判定は効かないと導いて出す（I16）</div></div></div>
+</section>
+
+<h2>4　Abstract の一員の形（変更後の2つ）</h2>
+<details><summary>change.schema.json（urn:semantic-agent-schema:base:change:v1）を開く</summary><pre>{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:change:v1&quot;,
+  &quot;title&quot;: &quot;変更の記録&quot;,
+  &quot;description&quot;: &quot;意図1つぶんの変更の記録。セッション ID と前後の値は持たない（前後は変更の仕組みから導く）&quot;,
+  &quot;x-instance-path&quot;: &quot;.semantic-agent-schema/changes/{id}.json&quot;,
+  &quot;x-instance-label&quot;: &quot;変更 {id}「{intent}」&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;$schema&quot;,
+    &quot;kind&quot;,
+    &quot;id&quot;,
+    &quot;purpose_ref&quot;,
+    &quot;intent&quot;,
+    &quot;writer_kind&quot;,
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;$schema&quot;: {
+      &quot;const&quot;: &quot;urn:semantic-agent-schema:base:change:v1&quot;
+    },
+    &quot;kind&quot;: {
+      &quot;const&quot;: &quot;change&quot;,
+      &quot;description&quot;: &quot;種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;変更の記録であること&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;fixed-kind&quot;,
+            &quot;rule&quot;: &quot;change のまま変えない&quot;,
+            &quot;why&quot;: &quot;基盤は kind で種類を判定する&quot;,
+            &quot;test&quot;: &quot;値が change かを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[0-9A-HJKMNP-TV-Z]{26}$&quot;,
+      &quot;description&quot;: &quot;記録の id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;書いた時に1回だけ決める、打ち合わせずに一意な値（ULID）&quot;,
+          &quot;parse&quot;: &quot;時刻の順に並ぶ26文字&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;never-change-id&quot;,
+            &quot;rule&quot;: &quot;あとから変えない&quot;,
+            &quot;why&quot;: &quot;取り込みで別の記録と衝突させない（I37）&quot;,
+            &quot;test&quot;: &quot;前の版と同じ id かを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;purpose_ref&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;description&quot;: &quot;目的の参照&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;何の目的の変更か（基盤の外の目的の id）&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;from-session&quot;,
+            &quot;rule&quot;: &quot;書いたセッションの目的の参照を写す&quot;,
+            &quot;why&quot;: &quot;目的ごとに変更を引けるようにする（I38）&quot;,
+            &quot;test&quot;: &quot;セッションの目的の参照と同じかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;intent&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;description&quot;: &quot;意図&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;この変更で何をしたかったか1つ&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;one-intent&quot;,
+            &quot;rule&quot;: &quot;意図を1つだけ書く&quot;,
+            &quot;why&quot;: &quot;意図ごとに変更と合っているかを判定する（I33）&quot;,
+            &quot;test&quot;: &quot;2つの意図が並んでいないかを見る&quot;,
+            &quot;by&quot;: &quot;ai&quot;,
+            &quot;agent&quot;: &quot;judge&quot;
+          }
+        ]
+      }
+    },
+    &quot;writer_kind&quot;: {
+      &quot;enum&quot;: [
+        &quot;human&quot;,
+        &quot;ai-agent&quot;
+      ],
+      &quot;description&quot;: &quot;書いた者の種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;人か AI の Agent か&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;kind-only&quot;,
+            &quot;rule&quot;: &quot;種類だけを書き、セッション ID や名前を書かない&quot;,
+            &quot;why&quot;: &quot;コミットする記録にセッション ID を入れない（I34）&quot;,
+            &quot;test&quot;: &quot;値が2つのどちらかかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;minItems&quot;: 1,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;target&quot;,
+          &quot;field&quot;
+        ],
+        &quot;additionalProperties&quot;: false,
+        &quot;properties&quot;: {
+          &quot;target&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;field&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        }
+      },
+      &quot;description&quot;: &quot;変更の項目&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;どの対象のどの欄を変えたかの並び&quot;,
+          &quot;parse&quot;: &quot;target は対象のファイル、field はその中の JSON Pointer&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;unit-field&quot;,
+            &quot;rule&quot;: &quot;欄は x-prompt を持つ書く単位までにし、配列の添字まで下げない&quot;,
+            &quot;why&quot;: &quot;変更の単位を、判定の単位にそろえる（Q1 #30）&quot;,
+            &quot;test&quot;: &quot;field が書く単位の JSON Pointer かを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;replaces&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[0-9A-HJKMNP-TV-Z]{26}$&quot;,
+      &quot;description&quot;: &quot;置き換える意図の id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;差し戻した意図を直すときに、前の記録を指す&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;no-rewrite&quot;,
+            &quot;rule&quot;: &quot;前の記録は書き換えず、この欄で指す&quot;,
+            &quot;why&quot;: &quot;書いた記録は書き換えない（I32）&quot;,
+            &quot;test&quot;: &quot;指す記録が在るかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    }
+  }
+}</pre></details>
+<details><summary>judgment.schema.json（urn:semantic-agent-schema:base:judgment:v1）を開く</summary><pre>{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:judgment:v1&quot;,
+  &quot;title&quot;: &quot;判定の記録&quot;,
+  &quot;description&quot;: &quot;対象 × 行（rule）1つの判定。効いているかは持たず、判定した値といまの値を比べて基盤が導く&quot;,
+  &quot;x-instance-path&quot;: &quot;.semantic-agent-schema/judgments/{id}.json&quot;,
+  &quot;x-instance-label&quot;: &quot;判定 {rule}&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;$schema&quot;,
+    &quot;kind&quot;,
+    &quot;id&quot;,
+    &quot;target&quot;,
+    &quot;rule&quot;,
+    &quot;result&quot;,
+    &quot;grounds&quot;,
+    &quot;judged_by&quot;,
+    &quot;judged_values&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;$schema&quot;: {
+      &quot;const&quot;: &quot;urn:semantic-agent-schema:base:judgment:v1&quot;
+    },
+    &quot;kind&quot;: {
+      &quot;const&quot;: &quot;judgment&quot;,
+      &quot;description&quot;: &quot;種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;判定の記録であること&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;fixed-kind&quot;,
+            &quot;rule&quot;: &quot;judgment のまま変えない&quot;,
+            &quot;why&quot;: &quot;基盤は kind で種類を判定する&quot;,
+            &quot;test&quot;: &quot;値が judgment かを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[0-9A-HJKMNP-TV-Z]{26}$&quot;,
+      &quot;description&quot;: &quot;記録の id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;書いた時に1回だけ決める一意な値（ULID）&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;never-change-id&quot;,
+            &quot;rule&quot;: &quot;あとから変えない&quot;,
+            &quot;why&quot;: &quot;取り込みで衝突させない&quot;,
+            &quot;test&quot;: &quot;前の版と同じ id かを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;target&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;対象&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;判定したインスタンスのファイル（I33 だけは変更の記録）&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;target-exists&quot;,
+            &quot;rule&quot;: &quot;在るファイルを指す&quot;,
+            &quot;why&quot;: &quot;無い対象の判定は意味を持たない&quot;,
+            &quot;test&quot;: &quot;ファイルが在るかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;rule&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;行&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;判定した行（スキーマの URN と行の id）&quot;,
+          &quot;parse&quot;: &quot;&lt;スキーマの URN&gt;#&lt;行の id&gt;&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;rule-exists&quot;,
+            &quot;rule&quot;: &quot;スキーマにある行を指す&quot;,
+            &quot;why&quot;: &quot;無い行の判定は引けない&quot;,
+            &quot;test&quot;: &quot;URN のスキーマに、その id の行があるかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;result&quot;: {
+      &quot;enum&quot;: [
+        &quot;verified&quot;,
+        &quot;violated&quot;,
+        &quot;unverified&quot;,
+        &quot;unsupported&quot;,
+        &quot;error&quot;
+      ],
+      &quot;description&quot;: &quot;結果&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;5つの値のどれか&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;five-values&quot;,
+            &quot;rule&quot;: &quot;5つの値のどれかを書く&quot;,
+            &quot;why&quot;: &quot;結果は必ず5つの値で返す（Q0）&quot;,
+            &quot;test&quot;: &quot;値が5つのどれかかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;grounds&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;at&quot;,
+          &quot;text&quot;
+        ],
+        &quot;properties&quot;: {
+          &quot;at&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;text&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        }
+      },
+      &quot;description&quot;: &quot;根拠&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;結果の根拠。読んだ値の場所と、その文&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;grounds-in-reads&quot;,
+            &quot;rule&quot;: &quot;根拠の場所は、判定した値の reads にある場所だけにする&quot;,
+            &quot;why&quot;: &quot;渡していない値を根拠にしない（I14）&quot;,
+            &quot;test&quot;: &quot;at が judged_values.reads にあるかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;judged_by&quot;: {
+      &quot;enum&quot;: [
+        &quot;machine&quot;,
+        &quot;base&quot;,
+        &quot;tool&quot;,
+        &quot;ai&quot;,
+        &quot;human&quot;
+      ],
+      &quot;description&quot;: &quot;判定した者&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;機械 ・ 基盤 ・ 外のツール ・ AI ・ 人のどれか&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;by-matches&quot;,
+            &quot;rule&quot;: &quot;行の by と、任せる先の起動のしかたに合わせる&quot;,
+            &quot;why&quot;: &quot;だれの判定かで、聞き直すかが決まる&quot;,
+            &quot;test&quot;: &quot;行の by と合っているかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;judged_values&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;required&quot;: [
+        &quot;reads&quot;
+      ],
+      &quot;properties&quot;: {
+        &quot;reads&quot;: {
+          &quot;type&quot;: &quot;array&quot;,
+          &quot;items&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;required&quot;: [
+              &quot;at&quot;,
+              &quot;value&quot;
+            ],
+            &quot;properties&quot;: {
+              &quot;at&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+              },
+              &quot;value&quot;: {}
+            }
+          }
+        },
+        &quot;delegate&quot;: {
+          &quot;type&quot;: &quot;string&quot;
+        },
+        &quot;model&quot;: {
+          &quot;type&quot;: &quot;string&quot;
+        },
+        &quot;tool_version&quot;: {
+          &quot;type&quot;: &quot;string&quot;
+        }
+      },
+      &quot;description&quot;: &quot;判定した値&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;判定したときに読んだ値と、だれがどのモデルで判定したか&quot;,
+          &quot;parse&quot;: &quot;reads は場所と値の組。いまの値と1つでも違えば、この判定は効かない&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;compare-later&quot;,
+            &quot;rule&quot;: &quot;読んだ値をそのまま残す&quot;,
+            &quot;why&quot;: &quot;いまの値と比べて、効いているかを基盤が導く（I16）&quot;,
+            &quot;test&quot;: &quot;reads の各値が、そのときの値と同じかを見る&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    }
+  }
+}</pre></details>
+<p class="meta">置き場所（x-instance-path の .semantic-agent-schema/…）は仮。I33 の判定の記録（意味と判定の理由を分ける）は、まだ入れていない</p>
+</main>

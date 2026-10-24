@@ -1,0 +1,230 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:judgment:v1",
+  "title": "判定の記録",
+  "description": "対象 × 行（rule）1つの判定。効いているかは持たず、判定した値といまの値を比べて基盤が導く",
+  "x-instance-path": ".semantic-agent-schema/judgments/{id}.json",
+  "x-instance-label": "判定 {rule}",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "target",
+    "rule",
+    "result",
+    "grounds",
+    "judged_by",
+    "judged_values"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:judgment:v1"
+    },
+    "kind": {
+      "const": "judgment",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "判定の記録であること"
+        },
+        "write": [
+          {
+            "id": "fixed-kind",
+            "rule": "judgment のまま変えない",
+            "why": "基盤は kind で種類を判定する",
+            "test": "値が judgment かを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "記録の id",
+      "x-prompt": {
+        "read": {
+          "means": "書いた時に1回だけ決める一意な値（ULID）"
+        },
+        "write": [
+          {
+            "id": "never-change-id",
+            "rule": "あとから変えない",
+            "why": "取り込みで衝突させない",
+            "test": "前の版と同じ id かを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "target": {
+      "type": "string",
+      "description": "対象",
+      "x-prompt": {
+        "read": {
+          "means": "判定したインスタンスのファイル（I33 だけは変更の記録）"
+        },
+        "write": [
+          {
+            "id": "target-exists",
+            "rule": "在るファイルを指す",
+            "why": "無い対象の判定は意味を持たない",
+            "test": "ファイルが在るかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "rule": {
+      "type": "string",
+      "description": "行",
+      "x-prompt": {
+        "read": {
+          "means": "判定した行（スキーマの URN と行の id）",
+          "parse": "<スキーマの URN>#<行の id>"
+        },
+        "write": [
+          {
+            "id": "rule-exists",
+            "rule": "スキーマにある行を指す",
+            "why": "無い行の判定は引けない",
+            "test": "URN のスキーマに、その id の行があるかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "result": {
+      "enum": [
+        "verified",
+        "violated",
+        "unverified",
+        "unsupported",
+        "error"
+      ],
+      "description": "結果",
+      "x-prompt": {
+        "read": {
+          "means": "5つの値のどれか"
+        },
+        "write": [
+          {
+            "id": "five-values",
+            "rule": "5つの値のどれかを書く",
+            "why": "結果は必ず5つの値で返す（Q0）",
+            "test": "値が5つのどれかかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "grounds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "text"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "根拠",
+      "x-prompt": {
+        "read": {
+          "means": "結果の根拠。読んだ値の場所と、その文"
+        },
+        "write": [
+          {
+            "id": "grounds-in-reads",
+            "rule": "根拠の場所は、判定した値の reads にある場所だけにする",
+            "why": "渡していない値を根拠にしない（I14）",
+            "test": "at が judged_values.reads にあるかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "judged_by": {
+      "enum": [
+        "machine",
+        "base",
+        "tool",
+        "ai",
+        "human"
+      ],
+      "description": "判定した者",
+      "x-prompt": {
+        "read": {
+          "means": "機械 ・ 基盤 ・ 外のツール ・ AI ・ 人のどれか"
+        },
+        "write": [
+          {
+            "id": "by-matches",
+            "rule": "行の by と、任せる先の起動のしかたに合わせる",
+            "why": "だれの判定かで、聞き直すかが決まる",
+            "test": "行の by と合っているかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "judged_values": {
+      "type": "object",
+      "required": [
+        "reads"
+      ],
+      "properties": {
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "at",
+              "value"
+            ],
+            "properties": {
+              "at": {
+                "type": "string"
+              },
+              "value": {}
+            }
+          }
+        },
+        "delegate": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "tool_version": {
+          "type": "string"
+        }
+      },
+      "description": "判定した値",
+      "x-prompt": {
+        "read": {
+          "means": "判定したときに読んだ値と、だれがどのモデルで判定したか",
+          "parse": "reads は場所と値の組。いまの値と1つでも違えば、この判定は効かない"
+        },
+        "write": [
+          {
+            "id": "compare-later",
+            "rule": "読んだ値をそのまま残す",
+            "why": "いまの値と比べて、効いているかを基盤が導く（I16）",
+            "test": "reads の各値が、そのときの値と同じかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    }
+  }
+}

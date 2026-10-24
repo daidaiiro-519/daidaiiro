@@ -1,0 +1,177 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:change:v1",
+  "title": "変更の記録",
+  "description": "意図1つぶんの変更の記録。セッション ID と前後の値は持たない（前後は変更の仕組みから導く）",
+  "x-instance-path": ".semantic-agent-schema/changes/{id}.json",
+  "x-instance-label": "変更 {id}「{intent}」",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "purpose_ref",
+    "intent",
+    "writer_kind",
+    "items"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:change:v1"
+    },
+    "kind": {
+      "const": "change",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "変更の記録であること"
+        },
+        "write": [
+          {
+            "id": "fixed-kind",
+            "rule": "change のまま変えない",
+            "why": "基盤は kind で種類を判定する",
+            "test": "値が change かを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "記録の id",
+      "x-prompt": {
+        "read": {
+          "means": "書いた時に1回だけ決める、打ち合わせずに一意な値（ULID）",
+          "parse": "時刻の順に並ぶ26文字"
+        },
+        "write": [
+          {
+            "id": "never-change-id",
+            "rule": "あとから変えない",
+            "why": "取り込みで別の記録と衝突させない（I37）",
+            "test": "前の版と同じ id かを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "purpose_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目的の参照",
+      "x-prompt": {
+        "read": {
+          "means": "何の目的の変更か（基盤の外の目的の id）"
+        },
+        "write": [
+          {
+            "id": "from-session",
+            "rule": "書いたセッションの目的の参照を写す",
+            "why": "目的ごとに変更を引けるようにする（I38）",
+            "test": "セッションの目的の参照と同じかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "description": "意図",
+      "x-prompt": {
+        "read": {
+          "means": "この変更で何をしたかったか1つ"
+        },
+        "write": [
+          {
+            "id": "one-intent",
+            "rule": "意図を1つだけ書く",
+            "why": "意図ごとに変更と合っているかを判定する（I33）",
+            "test": "2つの意図が並んでいないかを見る",
+            "by": "ai",
+            "agent": "judge"
+          }
+        ]
+      }
+    },
+    "writer_kind": {
+      "enum": [
+        "human",
+        "ai-agent"
+      ],
+      "description": "書いた者の種類",
+      "x-prompt": {
+        "read": {
+          "means": "人か AI の Agent か"
+        },
+        "write": [
+          {
+            "id": "kind-only",
+            "rule": "種類だけを書き、セッション ID や名前を書かない",
+            "why": "コミットする記録にセッション ID を入れない（I34）",
+            "test": "値が2つのどちらかかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "target",
+          "field"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "変更の項目",
+      "x-prompt": {
+        "read": {
+          "means": "どの対象のどの欄を変えたかの並び",
+          "parse": "target は対象のファイル、field はその中の JSON Pointer"
+        },
+        "write": [
+          {
+            "id": "unit-field",
+            "rule": "欄は x-prompt を持つ書く単位までにし、配列の添字まで下げない",
+            "why": "変更の単位を、判定の単位にそろえる（Q1 #30）",
+            "test": "field が書く単位の JSON Pointer かを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "replaces": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "置き換える意図の id",
+      "x-prompt": {
+        "read": {
+          "means": "差し戻した意図を直すときに、前の記録を指す"
+        },
+        "write": [
+          {
+            "id": "no-rewrite",
+            "rule": "前の記録は書き換えず、この欄で指す",
+            "why": "書いた記録は書き換えない（I32）",
+            "test": "指す記録が在るかを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    }
+  }
+}
