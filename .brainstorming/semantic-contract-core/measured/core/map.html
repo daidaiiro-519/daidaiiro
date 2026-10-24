@@ -1,0 +1,61 @@
+<title>基盤の核の地図</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>基盤の核：ドメインモデル ・ スキーマ ・ DB をそろえ、シミュレーションで振る舞いを確かめる</h1>
+<p class="meta">正本：domain-model-v2.json（Q1）。この会話の決定は memory と measured/abstract-draft にあり、正本にはまだ入っていない</p>
+
+<div class="ans">核は1つのフォルダ（measured/core/）にし、5つを同じ版でそろえる。<br>合意したら、シミュレーションが期待する振る舞いを全部実行して通ることを、核ができた印にする。</div>
+
+<h2>1　核の5つ</h2>
+<section class="flow">
+<div class="pane"><h3>ドメインモデル</h3><span class="meta">集約 ・ 値オブジェクト ・ ポート ・ 不変条件。v2 に決定を適用したもの</span></div>
+<div class="pane"><h3>スキーマ</h3><span class="meta">Abstract の本体と一員（変更の記録 ・ 判定の記録 ・ セッション ・ 索引の行 ・ 変更のまとまりの形）</span></div>
+<div class="pane"><h3>ポートの契約</h3><span class="meta">入出力を JSON Schema で書く。Git ・ SQLite の語を使わない</span></div>
+<div class="pane"><h3>DB</h3><span class="meta">SQLite のアダプターの DDL。スキーマの行の形から導く</span></div>
+<div class="pane on"><h3>期待する振る舞い</h3><span class="meta">使う場面の事後条件と不変条件を、実行できる場面にする。シミュレーションが全部通す</span></div>
+</section>
+
+<h2>2　v2 に適用するもの</h2>
+<div class="tw"><table>
+<tr><th>状態</th><th>どこ</th><th>中身</th><th>v2 との関係</th></tr>
+<tr><td><span class="st s1">合意済み</span></td><td>任せる先</td><td>x-delegates の中身は自分の任せる先の定義（role ・ answer ・ run）。ほかの Concrete の URN を書かない</td><td>v2 の「任せる先」は Concrete の URN とモデルを持つ</td></tr><tr><td><span class="st s1">合意済み</span></td><td>任せる先の種類</td><td>judging ・ working。argv があれば CLI のプロセス。by: ai は argv の無い judging、by: machine は argv の有る judging か基盤のエンジン</td><td>v2 に無い</td></tr><tr><td><span class="st s1">合意済み</span></td><td>基盤の任せる先</td><td>基盤自身も x-delegates に judge を持つ</td><td>v2 に無い</td></tr><tr><td><span class="st s1">合意済み</span></td><td>呼ぶ者</td><td>呼ぶのは親のセッション。呼ばれた子はほかを呼ばず、決めきれない点を needs で返す</td><td>v2 に無い</td></tr><tr><td><span class="st s1">合意済み</span></td><td>呼び出しの書式</td><td>protocol の call：delegate ・ target ・ rules ・ inputs ・ task ・ handoff。Abstract の $defs/agents は外した</td><td>Q4（protocol）へ</td></tr><tr><td><span class="st s1">合意済み</span></td><td>x-prompt の読み方</td><td>read は means ・ shown ・ parse ・ when、ほかに write。描き方は3つの型。ビューは任意</td><td>Q7 の形に足す</td></tr><tr><td><span class="st s1">合意済み</span></td><td>名前</td><td>URN の持ち主は base。Concrete の URN の種類はインスタンスの kind の名詞</td><td>v2 は core</td></tr><tr><td><span class="st s1">合意済み</span></td><td>Abstract の本体</td><td>$schema は自分の $id。9つの x- を x-extensions に登録</td><td>Q7 の形に足す</td></tr><tr><td><span class="st s1">合意済み</span></td><td>決まりの書き方</td><td>rule は状態で書く（read-perspectives）</td><td>v2 に無い</td></tr><tr><td><span class="st s1">合意済み</span></td><td>セッション</td><td>呼び名3つ。同じ目的は1つ、任せる先は目的 ・ 親 ・ 役割で1つ、オーケストレーターはリポジトリに1つで入れ子にしない。不変条件①は任せる先のセッションだけ</td><td>Q11 ・ I46 を直す</td></tr><tr><td><span class="st s1">合意済み</span></td><td>JSON Schema</td><td>能力をフルに使い、x-prompt には書けないものだけ残す</td><td>Q7 の方針に足す</td></tr><tr><td><span class="st s1">合意済み</span></td><td>外の CLI</td><td>文脈の技術スタックの CLI を任せる先として置く（Q0 #13 を残す）</td><td>変わらない</td></tr>
+<tr><td><span class="st s2">案</span></td><td>確定の単位</td><td>承認ごとに変更の仕組みで確定し、1単位＝1意図にする</td><td>v2 の I33 は1つの変更に意図が2つある場合を持つ</td></tr><tr><td><span class="st s2">案</span></td><td>変更の項目</td><td>変更の記録から「対象 ・ 欄」を外し、前後から導く</td><td>v2 は持つ（U13）</td></tr><tr><td><span class="st s2">案</span></td><td>ポート「変更の前後を受け取る」</td><td>入出力を target ・ before ・ after にし、決着の文から Git の語を外す</td><td>v2 は操作の名前だけ</td></tr><tr><td><span class="st s2">案</span></td><td>外れた判定</td><td>violated の判定は確定に入れない</td><td>v2 に無い</td></tr>
+<tr><td><span class="st s3">未決</span></td><td>セッションと索引の行の形</td><td>Abstract の一員として書き、DDL をそこから導く</td><td>—</td></tr><tr><td><span class="st s3">未決</span></td><td>確定しなかった変更の記録</td><td>手元の索引の行をどうするか</td><td>—</td></tr><tr><td><span class="st s3">未決</span></td><td>対象ごとの経緯</td><td>U13 が必要とする、変更の仕組みへの操作</td><td>—</td></tr><tr><td><span class="st s3">未決</span></td><td>単位がまとめられたとき</td><td>squash などで1単位に意図が2つ以上入ったときの扱い</td><td>—</td></tr><tr><td><span class="st s3">未決</span></td><td>例外の書き方</td><td>Q1 #7 ・ #22</td><td>—</td></tr>
+</table></div>
+<p class="meta">合意済み：この会話で利用者と決めた（正本に未反映）。案：この数ターンで出した（反証していない）。未決：答えがまだ無い</p>
+
+<h2>3　進め方</h2>
+<div class="tw"><table>
+<tr><th>順</th><th>すること</th><th>出すもの</th></tr>
+<tr><td>1</td><td>案と未決の9件に答えを書く</td><td>答えの下書き</td></tr>
+<tr><td>2</td><td>結論を渡さない反証役と、ddd ・ platform ・ qa ・ usecase の4つのアドバイザーに同時に依頼する</td><td>指摘の一覧（そろうまで答えを変えない）</td></tr>
+<tr><td>3</td><td>v2 に全部を適用して核の5つを書く</td><td>measured/core/</td></tr>
+<tr><td>4</td><td>参照の実装でシミュレーションを回す（Git とスナップショット、SQLite）</td><td>振る舞いごとの合否のページ</td></tr>
+<tr><td>5</td><td>核と合否を1つのページで出し、合意を取る。合意したらボードと正本へ ACDR で適用する</td><td>差分のページ</td></tr>
+</table></div>
+</main>
