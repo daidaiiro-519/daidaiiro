@@ -70,9 +70,9 @@ J1=[jr("title/noun","verified",["/title"]),jr("decision-no-means","verified",["/
 J2=copy.deepcopy(J1); J2[2]["効いているか"]=False; J2[3]["効いているか"]=False
 J3=copy.deepcopy(J1); J3[3]["結果"]="verified"
 J4=J3+[{"対象":"ACDR 0197","rule":"status/human-approves","結果":"verified","判定した者":"作業した本人（人）","読んだ欄":["/status"],"効いているか":True}]
-CH1=[{"id":"c1","目的":"ACDR 0197","意図":"ACDR 0197 を起こす","書いた者":"目的のセッション 7c1e…","欄":["/no","/title","/status","/decision","/why","/shift","/alternatives"]}]
-CH2=CH1+[{"id":"c2","目的":"ACDR 0197","意図":"least-privilege の根拠を書く","書いた者":"目的のセッション 7c1e…","欄":["/why","/shift/0/to"]}]
-CH3=CH2+[{"id":"c3","目的":"ACDR 0197","意図":"ACDR 0197 を承認する","書いた者":"作業した本人（人の入口）","欄":["/status"]}]
+CH1=[{"id":"c1","目的":"ACDR 0197","意図":"ACDR 0197 を起こす","書いた者の種類":"AI の Agent","欄":["/no","/title","/status","/decision","/why","/shift","/alternatives"]}]
+CH2=CH1+[{"id":"c2","目的":"ACDR 0197","意図":"least-privilege の根拠を書く","書いた者の種類":"AI の Agent","欄":["/why","/shift/0/to"]}]
+CH3=CH2+[{"id":"c3","目的":"ACDR 0197","意図":"ACDR 0197 を承認する","書いた者の種類":"人（人の入口）","欄":["/status"]}]
 SE1=[{"ID":"0a9d…","種類":"オーケストレーターのセッション","目的":None,"親":None,"役割":None,"状態":"開いている"},{"ID":"7c1e…","種類":"目的のセッション","目的":"ACDR 0197","親":"0a9d…","役割":None,"状態":"開いている"}]
 SE2=SE1+[{"ID":"b52a…","種類":"任せる先のセッション","目的":"ACDR 0197","親":"7c1e…","役割":"platform-advisor の advisor","状態":"閉じた"}]
 
@@ -82,9 +82,13 @@ F_INS='.acdr/0197-…/acdr.json（インスタンス）'
 F_JUD='判定の記録'
 F_CHG='変更の記録'
 F_SES='セッションの索引（手元の DB の表 sessions。コミットしない）'
-COLS=['ID','目的の参照','親','役割','状態','最後に使った時刻']
-ROWS1=[['0a9d…','—','—','—','開いている','10:02'],['7c1e…','ACDR 0197','0a9d…','—','開いている','10:05']]
-ROWS2=[['0a9d…','—','—','—','開いている','10:02'],['7c1e…','ACDR 0197','0a9d…','—','開いている','10:31'],['b52a…','ACDR 0197','7c1e…','platform-advisor の advisor','閉じた','10:29']]
+COLS=['tool','id','purpose_ref','parent','role','state','last_used_at']
+ROWS1=[['claude-code','0a9d…','—','—','—','open','10:02'],['claude-code','7c1e…','ACDR 0197','claude-code/0a9d…','—','open','10:05']]
+ROWS2=[['claude-code','0a9d…','—','—','—','open','10:02'],['claude-code','7c1e…','ACDR 0197','claude-code/0a9d…','—','open','10:31'],['claude-code','b52a…','ACDR 0197','claude-code/7c1e…','urn:…platform-advisor:judgment:v1#advisor','closed','10:29']]
+F_SCH='手元のセッションの索引（手元の DB の表 session_changes。セッション → 変更の記録）'
+SCOLS=['tool','id','change_id']
+SC1=[['claude-code','7c1e…','c1']]
+SC2=[['claude-code','7c1e…','c1'],['claude-code','7c1e…','c2']]
 
 S=[
  dict(a=[1],actor='目的のセッション（目的：ACDR の Concrete を作る。使う場面の「作者」）',op='Abstract の本体から、ACDR の Concrete の雛形を作る',
@@ -120,7 +124,7 @@ S=[
 ### なぜ（why）
 > 食い違った相手と、合わせた先の両方を書く
 .ここに書く''')],
-  files=[dict(f=F_INS,why='新しく書いた',before='',after=J(I1)),dict(f=F_CHG,why='書いた変更を意図と一緒に残した',before='[]',after=J(CH1))]),
+  files=[dict(f=F_INS,why='新しく書いた',before='',after=J(I1)),dict(f=F_CHG,why='書いた変更を意図と一緒に残した（セッション ID は持たない。I34）',before='[]',after=J(CH1)),dict(f=F_SCH,why='どのセッションで書いた変更かを、手元にだけ残した（I38）',table=True,cols=SCOLS,before=[],after=SC1)]),
  dict(a=[1,3,4],actor='目的のセッション（AI の Agent）',op='ACDR 0197 の検証を頼む',
   pre=['判定の記録は無い'],
   post=['JSON Schema の判定と machine の行はすべて verified（その場で出し、記録に残さない）','AI の行の判定の記録が4件残る。least-privilege は unverified で、何が分かれば決められるかが付く'],
@@ -161,7 +165,8 @@ ACDR の決定のレビュー役
   beh=['基盤は、判定した値（読んだ欄の値）がいまの値と違う判定を、効かないとして扱う'],
   files=[dict(f=F_INS,why='advisor の根拠を、判定させる AI が読む欄に書いた',before=J(I1),after=J(I2)),
          dict(f=F_JUD,why='読んだ欄（why ・ shift）の値が変わったので、その2件は効かない',before=J(J1),after=J(J2)),
-         dict(f=F_CHG,why='書き足した変更を残した',before=J(CH1),after=J(CH2))]),
+         dict(f=F_CHG,why='書き足した変更を残した',before=J(CH1),after=J(CH2)),
+         dict(f=F_SCH,why='書き足した変更も、同じ目的のセッションに結びつけた',table=True,cols=SCOLS,before=SC1,after=SC2)]),
  dict(a=[1,3,4],actor='目的のセッション（AI の Agent）',op='もう一度検証を頼む',
   pre=['判定2件が効かない'],
   post=['効かなかった2件だけ聞き直され、verified になる'],
