@@ -1,0 +1,72 @@
+<title>核のレビューの統合 第2回</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>核のレビューの統合（第2回）：前提の束を渡した5人の指摘</h1>
+<p class="meta">今回は指摘ごとに前提の行を引かせ、私が引用の原文を照らしてから採った（Q11 #2 ・ #3 ・ #9、Q1 #8 ・ #35 ・ #57、Q0 #3 を原文で確かめた）。全文は core/reviews2/*.md</p>
+
+<div class="ans">いまの3つ（ドメインモデル ・ JSON Schema ・ DB）は、そのままでは核にできない。直すものの多くは前提から答えが決まるので私が直す。<br>決めてほしいのは2つ：①基盤を通らずに書いたファイルの記録 ②再開できないセッションの扱い。</div>
+
+<h2>1　決めてほしいこと①：基盤を通らずに書いたファイルの変更を、どう記録するか</h2>
+<p class="meta">場面：目的のセッション（ACDR 0197）の AI が、自分の Edit ツールで docs/SKILL.md と tool/agent.rs を直す。基盤の入口は通らない。同じ worktree で、目的 ACDR 0198 の AI も CLAUDE.md を直している</p>
+<div class="tw"><table>
+<tr><th>案</th><th>どう記録するか</th><th>この場面で起きること</th></tr>
+<tr class="on"><td><b>宣言の入口を足す（私の見解）</b></td><td>変更の項目は残す。入口で書いた JSON は基盤が対象と欄を入れる。それ以外は AI が「意図と、書いたファイルの一覧」を宣言し、基盤が前後に出ているかを確かめて項目に入れる</td><td>SKILL.md ・ agent.rs は 0197 の意図に、CLAUDE.md は 0198 の意図に付く。どちらも宣言しなかった変更は「記録に無い」</td></tr>
+<tr><td>基盤が前後から自動で項目に入れる（ddd の案）</td><td>前後に出たファイルのうち、ほかの未確定の記録が持っていないものを、いま書いている記録に入れる</td><td class="ng">0198 の CLAUDE.md が、先に記録を書いた 0197 に入ることがある。並行の作業で取り違える</td></tr>
+<tr><td>変更の項目を外す（案 Y）</td><td>未確定の変更に入る意図は1つまで</td><td class="ng">0197 と 0198 が並んだ時点で破れる。U13（対象ごとの経緯）を担うものが無くなる</td></tr>
+</table></div>
+<p class="meta">5人とも案 Y は採らないと判定した（ddd ・ usecase ・ 反証 4-5 ・ 4-8）。案 X のままでは、入口を通らずに書いたファイルが全部「記録に無い」になる（反証 1-1 ・ 4-1）。宣言の入口は、前に私が出して答えをもらっていなかった「変更を記録する」と同じもの</p>
+
+<h2>2　決めてほしいこと②：再開できないセッションを、どうするか</h2>
+<p class="meta">場面：A　目的のセッション（ACDR 0197）がキャッシュの有効時間を過ぎて開いたまま。B　端末1で Claude Code のオーケストレーターが開いたまま、端末2で Codex を始める。C　オーケストレーターが閉じたあと、その子の目的のセッションが開いたまま</p>
+<div class="tw"><table>
+<tr><th></th><th>いまの決着（Q11 #2 ・ #3 ＋ この会話の I46）</th><th>私の見解：1つの規則にする</th></tr>
+<tr><td>規則</td><td>同じ目的 ・ 親 ・ 役割で開いていて有効時間内なら再開、そうでなければ新しく立てる。閉じるのは利用者か親が決めたときと、AI ツールが「無い」と答えたときだけ</td><td>同じ枠（オーケストレーター ・ 同じ目的 ・ 同じ親と役割の任せる先）に開いているものがあり、このツールで有効時間内に再開できるなら再開する。できないなら、それを閉じて新しく立てる（同じトランザクション）</td></tr>
+<tr><td>A</td><td class="ng">新しく立てようとして、一意の索引に断られて止まる（qa ・ platform が実測）</td><td>古い 0197 を閉じ、新しく立てる</td></tr>
+<tr><td>B</td><td class="ng">Codex は Claude Code の ID で再開できず、2つ目も立てられない</td><td>Claude Code のオーケストレーターを閉じ、Codex で新しく立てる（リポジトリに1つは保つ）</td></tr>
+<tr><td>C</td><td class="ng">新しいオーケストレーターから見ると親が違うので「新しく立てる」になり、同じ目的は1つで断られる</td><td>目的のセッションは親を問わず同じ目的なら再開する（親は立てた時のまま変えない）。有効時間を過ぎていれば A と同じ</td></tr>
+<tr><td>直す決着</td><td colspan="2">Q11 #2 の閉じる契機に「再開できないので新しく立てるとき」を足す。#3 の「親」を、目的のセッションでは比べない</td></tr>
+</table></div>
+
+<h2>3　私が直すもの（前提から答えが決まるもの）</h2>
+<div class="tw"><table>
+<tr><th>どこ</th><th>直し方</th><th>依拠した前提</th><th>指摘</th></tr>
+<tr><td>本人の承認の残し方</td><td>本人の承認は、変更の記録への I33（意図と変更が合っているか。AI の rule）に対する人の判定として残す。新しい形を作らない</td><td class="meta">Q0 #3「本人が承認するのは基盤の操作で、人の判定の記録として残す」／ Q1 #57「人が判定の記録に残すのは、判断待ちと AI の rule の結果だけ」</td><td class="meta">反証 1-6 ・ ddd F6</td></tr><tr><td>承認を呼ぶ入口</td><td>承認は人の入口（CLI ・ 画面）から。MCP には見せない。承認したら基盤がポートの「確定する」を呼ぶ</td><td class="meta">ports.inbound「判定する：人の操作の入口だけ（MCP には見せない）」</td><td class="meta">反証 1-4</td></tr><tr><td>ソースを読まない</td><td>Q1 #8 と I36 の「基盤はソースを読まない」を直す。Markdown ・ HTML ・ ソースの前後も受け取って成型する</td><td class="meta">利用者「ソースコードに対しても差分を記録できるように」が優先</td><td class="meta">反証 1-2 ・ G1、ddd F26</td></tr><tr><td>不変条件①の範囲</td><td>「ID ・ 目的 ・ 親 ・ 役割は変えない」はすべてのセッション。「目的は親と同じ」は任せる先のセッションだけ</td><td class="meta">Q11 #9 ①を2文に分ける</td><td class="meta">反証 G6 ・ platform</td></tr><tr><td>1件は id と kind</td><td>インスタンスは id を必ず持つ（ACDR にも足す）。判定の記録 ・ 変更の項目の対象は、インスタンスなら id と kind、それ以外のファイルはパス</td><td class="meta">Q1 #35「1件は id と kind」</td><td class="meta">反証 1-14 ・ 3-11、ddd F15</td></tr><tr><td>判定の記録の識別</td><td>対象 × rule で1件（ULID を外す）。同じ値で逆の答えが出たら、その1件を unverified（根拠「判定が割れた」）にする</td><td class="meta">A4 ／ Q7 #19 ・ I14</td><td class="meta">反証 1-13 ・ 2-4、ddd F9、usecase</td></tr><tr><td>判定した値</td><td>読んだ x-prompt の文 ・ 渡した引き継ぎ ・ I33 の前後の値 ・ 意味と判定の理由（別の欄）・ 問いを足す</td><td class="meta">Q0 #4 ／ Q1 #49 ・ #51</td><td class="meta">全員</td></tr><tr><td>JSON Schema</td><td>入れ子の欄にも本体の形が掛かるように $dynamicAnchor でメタスキーマを広げる。値だけで決まる行は if ・ then ・ pattern へ移し、x-prompt から外す。JSON Pointer の pattern を置く。write の最低1件をやめる</td><td class="meta">利用者「フルに活用したほうがいい」</td><td class="meta">反証 3-1〜3-14</td></tr><tr><td>DB</td><td>3つの種類の形を CHECK で閉じ、行の削除 ・ 同じ ID の入れ直し ・ 親の種類と目的をトリガーで断る（接続の設定に依らない）。登録は BEGIN IMMEDIATE。変えない列は値が変わったときだけ断る</td><td class="meta">A5 ／ I44 ・ I45 ・ I46</td><td class="meta">platform（実測）・ 反証 2-8 ・ 2-9 ・ qa R2〜R6</td></tr><tr><td>ポート</td><td>(1) 「無い（null）」と「届かない（探していない）」を分ける (2) 時刻にも出どころ (3) 探した範囲を返す (4) 一覧のファイルだけ確定し、「変わったものが無い」を失敗と分ける</td><td class="meta">A3 ／ I42「0件を無いと返さない」</td><td class="meta">platform（実測）</td></tr><tr><td>足すスキーマ</td><td>session ・ 変更のまとまりの形 ・ annotations。検証の出力の形は Q4（protocol）から核に必要な分だけ先に書く</td><td class="meta">Q1 #46 ・ Q6 ・ Q0 #6</td><td class="meta">qa N1〜N3 ・ ddd F16</td></tr><tr><td>ACDR</td><td>docs と acdr-inspect の Git の読み取りを外し、基盤の変更のまとまりの形を $ref で使って見せ方を足す</td><td class="meta">利用者「ACDRはこれをより拡張して見やすくしたもの」／ Q1 #46</td><td class="meta">反証 2-17 ・ 2-18</td></tr><tr><td>v2 の取り込み漏れ</td><td>core → base、reviewer → judge、ビューは0か1つ、I44 ・ I46 の新しい形、任せる先の形、確定する、マージなどの Git の語。核を書くときに全部適用する</td><td class="meta">decisions-in-session.md</td><td class="meta">反証 G3〜G6 ・ ddd F27 ・ F28</td></tr>
+</table></div>
+
+<h2>4　核ができた印（qa の完了基準）</h2>
+<div class="tw"><table>
+<tr><th>基準</th><th>合否</th></tr>
+<tr><td>K0 開始</td><td>上の2つの判断と3節が書き終わり、検証の出力 ・ 変更のまとまり ・ session のスキーマが在る</td></tr>
+<tr><td>K1 ・ K2</td><td>使う場面22件 ×｛事後条件 ・ 失敗時｝・ 不変条件46行 ・ 決定のすべてが「場面 ・ 静的 ・ アダプター ・ 確かめない（理由つき）」に区分され、場面の id はすべて場面から指される</td></tr>
+<tr><td>K3</td><td>インスタンスの状態の決定表と、セッションの状態表の有効 ・ 無効な遷移を、すべて場面が通る</td></tr>
+<tr><td>K4 ・ K5</td><td>全場面が全アダプターで合格し、Git とスナップショットで成型した JSON が一致する。不合格なら0以外で終わる</td></tr>
+<tr><td>K6</td><td>通常の順 ・ 逆順 ・ 手元 ・ CI（手元の DB 無し）の4回で結果が一致し、本物の AI を呼ばない</td></tr>
+<tr><td>K7 ・ K8</td><td>スキーマと記録の例がすべて検査を通り、machine の rule ごとに悪い例が検出される。SQLite のアダプターが断るべき行をすべて断る</td></tr>
+</table></div>
+<p class="meta">いまの selfcheck.py ・ dbcheck.py は終了コードが常に0で、machine の rule は8件中6件が素通りした（qa）。場面7の文と表の食い違い、CH2 の欄が配列の添字まで下がっている点もシミュレーションで直す</p>
+</main>
