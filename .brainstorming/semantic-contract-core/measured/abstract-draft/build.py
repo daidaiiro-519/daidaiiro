@@ -172,6 +172,7 @@ ACDR の決定のレビュー役
          dict(f=F_JUD,why='人の判定を残した',before=J(J3),after=J(J4)),
          dict(f=F_CHG,why='承認の変更を残した',before=J(CH2),after=J(CH3))]),
 ]
+for k,sc in enumerate(S): sc['ph']='make' if k<3 else 'use'
 tpl=open(os.path.join(D,'tpl.html')).read()
 open(os.path.join(D,'simulation.html'),'w').write(tpl.replace('/*DATA*/','const S='+json.dumps(S,ensure_ascii=False)+';'))
 print('ok',len(S))
