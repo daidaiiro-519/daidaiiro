@@ -18,10 +18,14 @@ CREATE TABLE sessions (
 
 -- I46：同じ目的の目的のセッションは、親が違っても開いているのは1つまで。
 --      任せる先のセッションは、目的 ・ 親 ・ 役割が同じで開いているのは1つまで。
---      オーケストレーターのセッション（目的なし）はいくつでもよい。
+--      オーケストレーターのセッション（目的も親も無い）は、この手元の DB（＝リポジトリ。worktree をまたいで1つ）で開いているのは1つまで。
+--      ほかのターミナルで使うときは、新しく立てずに同じ ID で再開する。
 CREATE UNIQUE INDEX one_open_purpose_session
   ON sessions (purpose_ref)
   WHERE state = 'open' AND purpose_ref IS NOT NULL AND role IS NULL;
+CREATE UNIQUE INDEX one_open_orchestrator_session
+  ON sessions ((1))
+  WHERE state = 'open' AND purpose_ref IS NULL AND parent_id IS NULL;
 CREATE UNIQUE INDEX one_open_delegate_session
   ON sessions (purpose_ref, parent_tool, parent_id, role)
   WHERE state = 'open' AND role IS NOT NULL;
