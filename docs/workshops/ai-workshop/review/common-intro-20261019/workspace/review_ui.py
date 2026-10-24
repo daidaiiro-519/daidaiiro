@@ -87,7 +87,7 @@ def enhance(text):
         rows = []
         old = deck.get('beforeNotes')
         for i, note in enumerate(deck.get('afterNotes', deck['notes'])):
-            if old is None or i >= len(old):
+            if old is None or i >= len(old) or old[i] is None:
                 rows.append(None)
             else:
                 before, after = fields(old[i]), fields(note)

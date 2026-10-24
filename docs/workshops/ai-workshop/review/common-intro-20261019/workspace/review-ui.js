@@ -14,7 +14,7 @@ function showDiff(){
     const p=document.createElement('p');
     p.textContent='この枚は変更前の原稿が保存されていないため、原稿差分を表示できません。変更後の全文を確認できます。';
     el('script-diff').append(p);
-    el('change-summary').textContent='原稿差分：変更前の記録なし';
+    el('change-summary').textContent=current.addedSlides?.includes(n)?'新規追加：変更前のスライド・原稿はありません':'原稿差分：変更前の記録なし';
     return;
   }
   const labels={heading:'見出し',lede:'導入文',narration:'原稿'};

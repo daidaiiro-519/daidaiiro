@@ -1,6 +1,6 @@
 const {chromium}=require('/home/daidaiiro/.npm/_npx/705bc6b22212b352/node_modules/playwright');
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation-review-20261024');
+const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation-review-eight-20261024');
 (async()=>{
  const browser=await chromium.launch({executablePath:'/home/daidaiiro/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome',headless:true,args:['--no-sandbox']});
  try{
@@ -14,8 +14,8 @@ const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation
   assert.equal(await page.locator('#deck').inputValue(),'lead');
   await page.locator('#reader-link').click();
   await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='5');
-  assert.equal(await page.locator('#page-number').textContent(),'5 / 7');
-  const expected=JSON.parse(fs.readFileSync(path.join(root,'slide-05.json'),'utf8'));
+  assert.equal(await page.locator('#page-number').textContent(),'5 / 8');
+  const expected=JSON.parse(fs.readFileSync(path.join(root,'slide-05-growth.json'),'utf8'));
   assert.equal(await page.locator('#script-title').textContent(),expected.heading);
   assert((await page.locator('#script-body').textContent()).includes(expected.narration.split('\n\n')[0]));
   await page.waitForTimeout(600);
@@ -36,7 +36,7 @@ const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation
   assert((await page.locator('#video-content video source').getAttribute('src')).includes('00-start.mp4'));
   await page.goto('http://127.0.0.1:8772/workflow.html');
   assert((await page.locator('#tracks').textContent()).includes('5枚目を確認待ち'));
-  assert((await page.locator('#direction').textContent()).includes('2026-10-24-01'));
+  assert((await page.locator('#direction').textContent()).includes('2026-10-24-03'));
   await page.screenshot({path:path.join(out,'workflow-desktop.png'),animations:'disabled'});
   await page.goto('http://127.0.0.1:8772/navigation.html');
   assert.equal(await page.locator('svg a').count(),4);

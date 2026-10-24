@@ -16,6 +16,10 @@
 
 メイン画面には、比較、通しの閲覧、制作情報の三つの入口がある。企画書・オリエンテーション・共通の「はじめに」の資料名からも移動できる。以前のルートの#lead、#orientation、#brief、#detailは、移動後の資料閲覧画面へ進む。
 
+2026年10月24日、共通の「はじめに」は確認用の8枚構成になった。表示順はworkspace/review-layout.jsonが持ち、review_deck.pyを比較と閲覧の生成処理が共通で使う。新5枚目はslide-05-growth.json、6〜8枚目の入力名は従来のslide-05.json〜slide-07.jsonである。ファイル名の番号だけで表示位置を判断しない。
+
+新規追加の枚には変更前の図と原稿が存在しない。比較ではその旨を表示し、原稿差分を作らない。移動した枚は、対応する旧版を同じ位置に表示して比較する。
+
 ## 比較と閲覧の往復
 
 比較画面の「この資料を通して見る」から、選択した資料と枚を引き継いで閲覧できる。閲覧画面の「この資料の変更を確認」で、同じ資料と枚の比較へ戻る。各画面にはメイン画面へのリンクがある。
@@ -28,7 +32,7 @@
 
 | 対象 | 編集する入力・生成元 | 生成先 |
 |---|---|---|
-| 比較する図・原稿・変更理由 | workspace/slide-NN.json、SVG、build_review.py、保存した変更前とログ | viewer/common-intro-review/、viewer/design-review.html |
+| 比較する図・原稿・変更理由 | workspace/review-layout.json、各JSONとSVG、build_review.py、保存した変更前とログ | viewer/common-intro-review/、viewer/design-review.html |
 | 比較ページのUI | workspace/review_ui.py、review-ui-shell.html、review-ui.css、review-ui.js | viewer/design-review.html |
 | メイン、閲覧、制作情報の導線 | workspace/review_navigation.py、review-navigation.css | viewer/index.html、materials.html、workflow.html、review-navigation.css |
 | 通しの閲覧の元 | workspace/materials-source.html。はじめにの図・原稿は現在の制作元から反映 | viewer/materials.html |
@@ -71,6 +75,6 @@ node docs/workshops/ai-workshop/review/common-intro-20261019/tools/check_review_
 node docs/workshops/ai-workshop/review/common-intro-20261019/tools/check_review_navigation_20261024.cjs
 ```
 
-現在の確認スクリプトは、共有した時点のはじめに5枚目を対象とする。対象を移した場合は入力も見直す。スクリプトの通過だけで判断せず、生成した画面と図の画像を確認する。既存の確認画像と結果はworkspace/ui-review-20261024/とworkspace/navigation-review-20261024/にある。
+原稿差分の確認スクリプトは教材1の紹介がある6枚目、導線の確認スクリプトは新規追加の5枚目を対象とする。8枚全体の対応はtools/check_intro_eight_slide_layout_20261024.cjsで確認する。対象を移した場合は入力も見直す。スクリプトの通過だけで判断せず、生成した画面と図の画像を確認する。既存の確認画像と結果はworkspace/ui-review-20261024/とworkspace/navigation-review-20261024/にある。
 
 サーバーが停止していた場合の起動方法は[共通導入のREADME](../common-intro-20261019/README.md)にある。作業用のデータを/tmpだけに保存しない。

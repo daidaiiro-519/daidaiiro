@@ -4,6 +4,7 @@ import html
 import json
 import re
 import markdown
+from review_deck import load_deck
 
 
 def build_navigation(here, viewer):
@@ -15,7 +16,7 @@ def build_navigation(here, viewer):
     number = awaiting if isinstance(awaiting, int) else 1
     review = f'design-review.html?deck=lead&slide={number}#lead'
     reader = f'materials.html?slide={number}#lead'
-    pending = [str(n) for n in (6, 7) if n not in progress.get('story_reconsideration_applied_slides', [])]
+    pending = [str(n) for n in progress.get('unrevised_slides', [])]
     pending_note = '・'.join(pending) + '枚目は再構成方針への修正前です。' if pending else ''
     theme = (repo / '.claude/skills/slide-deck/references/themes/warm-paper.css').read_text()
     css = theme + '\n' + (here / 'review-navigation.css').read_text()
@@ -49,10 +50,10 @@ def build_navigation(here, viewer):
     match = re.search(r'(<script type="application/json" id="data">)(.*?)(</script>)', material, re.S)
     decks = json.loads(match[2])
     lead = next(deck for deck in decks if deck['id'] == 'lead')
-    slides = [json.loads((here / f'slide-{n:02}.json').read_text()) for n in range(1, 8)]
+    slides, layout = load_deck(here)
     version = hashlib.sha256((here / 'after.html').read_bytes()).hexdigest()[:12]
     lead.update(slides='common-intro-review/after.html?v=' + version, script='common-intro-review/script.md', draft=True,
-                summary='確認用の7枚構成です。' + status + '。' + pending_note + '動画・音声は変更前の版です。',
+                summary=f'確認用の{len(slides)}枚構成です。' + status + '。' + pending_note + '動画・音声は変更前の版です。',
                 notes=[dict(number=s['slide'], title=s['heading'], body=markdown.markdown(s['narration'])) for s in slides])
     lead.pop('pdf', None)
     material = material[:match.start(2)] + json.dumps(decks, ensure_ascii=False).replace('</', '<\\/') + material[match.end(2):]
