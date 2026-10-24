@@ -1,0 +1,48 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0199",
+ "title": "依存の向きの検査ツールを内作する",
+ "date": "2026-10-25",
+ "status": "proposed",
+ "decision": "許していない依存の辺を検出して止める検査ツール dependency-rules を、アーキテクチャに寄らない形で内作し、リポジトリ直下に CLI として置く。",
+ "why": "Cargo は書いていない crate の使用と通常の依存の循環は止めるが、その辺を Cargo.toml に書いてよいかは知らない。semantic-agent-schema のアーキテクチャは許す辺の表を持つと決めたので、表と依存を突き合わせる検査が必要になった。第三者の cargo-deny も候補だったが、利用者が内作を選んだ。",
+ "shift": [
+  {
+   "what": "依存の向きを止めるもの",
+   "from": "Cargo だけ。許していない辺はビルドを通る",
+   "to": "Cargo と dependency-rules check。規則に無い辺は終了コード 1 で止まる"
+  },
+  {
+   "what": "規則の形",
+   "from": "無い（アーキテクチャの頁の表を人が読むだけ）",
+   "to": "component と allow（任意の kinds ・ description）の許可リスト型。rules.schema.json（版つき）で公開する"
+  },
+  {
+   "what": "言語との境目",
+   "from": "無い",
+   "to": "判定の中心は node と edge のグラフだけを受け取る。グラフの JSON は graph.schema.json（版つき）で公開し、cargo の読み取りもこれを通る"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は Cargo が止めない辺がビルドを通る。変更後は dependency-rules が規則に無い辺を止める。",
+ "alternatives": [
+  {
+   "option": "cargo-deny の bans の wrappers で書く",
+   "why_not": "第三者のツールで、利用者が公式でないことを理由に内作を選んだ。ワークスペースの中の crate と dev の辺に効くかも確かめていなかった"
+  },
+  {
+   "option": "cargo metadata と表を突き合わせる小さなスクリプトを semantic-agent-schema の中に書く",
+   "why_not": "アーキテクチャに寄らない検査にならず、ほかの利用者が使えない"
+  },
+  {
+   "option": "層の並びだけで規則を書く（import-linter layers ・ ArchUnit layeredArchitecture）",
+   "why_not": "semantic-agent-schema の domain の中は並びにならず、search → validation を許してしまう"
+  },
+  {
+   "option": "グラフの JSON を受け付けず、2つ目の言語が現れてから形を決める",
+   "why_not": "利用者が公開する前提で設計と実装をすると決めた"
+  }
+ ],
+ "supersedes": "",
+ "docs": []
+}
