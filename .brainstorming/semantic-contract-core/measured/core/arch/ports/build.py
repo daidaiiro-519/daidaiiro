@@ -14,7 +14,8 @@ body = f'''<main>
 {fig('ports.svg')}
 <h2>1　決め手</h2>
 {table(['前提（原文）', '出どころ', 'この答えへの帰結'], [
- ['「outbound adapter：いまはファイル。クラウドでは保存先のアダプターを足す。core は入出力に触らないので変えない（Q3）」', 'ボードの決着（premises/board-answers.json:160）', 'trait を通しても、ドメインサービスが計算の途中で入出力を起こすなら「触らない」にならない'],
+ ['「同じ入力から同じ結果を返し、別の言語の実装が使える適合の試験を持つ」', 'ボードの決着 Q0 #14（premises/board-answers.json）', 'ドメインサービスが計算の途中で trait を通して入出力を起こすと、結果がアダプターの振る舞いに依る'],
+ ['「outbound adapter：いまはファイル。クラウドでは保存先のアダプターを足す。core は入出力に触らないので変えない（Q3）」', 'Q4 の下書き（待ち。premises/board-answers.json:160）。はじめはボードの決着と書いていたが誤り', '待ちの論点でも、同じ向きを書いている'],
  ['「there is an application on the inside communicating over some number of ports with things on the outside」', 'Cockburn hexagonal-architecture:1498-1500', 'ポートは内側の六角形の境界に在る。この記事は domain と application を分けていない'],
  ['「eliminate any dependency on infrastructure, user interface, or even application logic that is not business logic」', 'Evans DDD Reference p.10 Layered Architecture', '読む ・ 書くの順序を持つのは application。domain は業務の計算だけを持つ'],
 ])}
@@ -33,7 +34,7 @@ body = f'''<main>
 ])}
 <h2>4　比べた案</h2>
 {table(['案', '判定', '理由'], [
- ['いまの案：各 domain の crate に ports.rs', '採らない', 'trait を通した入出力が domain の中で起きる。clippy の forbid は std の入出力しか止めない。Q3 の1行と食い違う'],
+ ['いまの案：各 domain の crate に ports.rs', '採らない', 'trait を通した入出力が domain の中で起きる。clippy の forbid は std の入出力しか止めない。Q0 #14 と、Q4 の下書きの1行と食い違う'],
  ['混在：読むポート3つ（契約 ・ インスタンス ・ 判定の記録を読む）だけ domain（ddd-advisor の案）', '採らない', '読む先が中身で決まる読み出しを途中で行う理由は、全部を先に読むと遅いことだけ。前提は「関係の索引は、遅いと測れてから」なので、それまでは先に読んで渡せる。遅いと測れたら、そのときに置き場所を決め直す'],
  ['application の ports/（この答え）', '採る', 'domain は値の関数だけになり、Q0 #14「同じ入力から同じ結果」を型の上で守れる'],
 ])}

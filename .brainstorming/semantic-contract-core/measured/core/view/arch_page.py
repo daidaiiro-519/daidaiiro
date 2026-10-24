@@ -10,7 +10,7 @@ s = between(s, '<p class="meta">核（ドメインモデル', '<h2>1　', '''<p 
 <div class="ans">ポートとアダプター。コードを crates/ にまとめ、業務領域ごとの crate（crates/domain/）・ 使う場面とポートの application ・ 駆動される側の outbound ・ 入口の inbound に分け、許す辺を1つの表に持つ。<br>domain は値を受け取って値を返す関数だけを持ち、入出力は application がポートを通して行う。依存の向きは Cargo の辺と循環の禁止で止め、Cargo が止めない書き方（dev の辺 ・ feature の統合 ・ pub use ・ allow）は検査で止める。</div>
 ''')
 s = s.replace('<td>業務の側がポート（trait）を持ち、外の技術の側が実装する。依存は外から中への1方向</td>', '<td>application がポート（trait）を持ち、outbound が実装する。依存は外から中への1方向</td>')
-s = s.replace('<td>同じ入力から同じ結果（Q0 #14）</td><td>業務の側は入出力をしない。時刻と id もポートか値で受け取る</td>', '<td>同じ入力から同じ結果（Q0 #14）・「core は入出力に触らないので変えない（Q3）」</td><td>domain は値を受け取って値を返す。読む ・ 書く ・ AI への依頼は application がポートで行い、時刻と id は inbound から値で渡す</td>')
+s = s.replace('<td>同じ入力から同じ結果（Q0 #14）</td><td>業務の側は入出力をしない。時刻と id もポートか値で受け取る</td>', '<td>同じ入力から同じ結果（Q0 #14、決着）。待ちの Q4 の下書きにも「core は入出力に触らないので変えない」</td><td>domain は値を受け取って値を返す。読む ・ 書く ・ AI への依頼は application がポートで行い、時刻と id は inbound から値で渡す</td>')
 s = s.replace('<td>補完（描画 ・ 移す ・ 公開）は形と参照の検査が中心（Q1 #23）</td><td>同じ crate の形のまま、中は関数で書く。集約とリポジトリの作りを持ち込まない</td>', '<td>補完（描画 ・ 移す ・ 公開）は形と参照の検査が中心（Q1 #23）</td><td>移す ・ 公開は集約を持たず、ドメインサービスの関数だけ。描画とインスタンスは、モデルの集約（ビュー ・ デザインシステム ・ インスタンス）だけを持つ</td>')
 svg = open(os.path.join(H, 'arch.svg')).read()
 dep = table(['crate', '依存してよい先', '理由'], [
@@ -43,7 +43,7 @@ s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7
  ['contexts/', 'domain/', 'ddd ・ 反証：Q9 #11（文脈は1つ）と食い違う'],
  ['kernel → values（2つ以上の領域が使う値）', '無くす。値オブジェクトは、その語を持つ業務領域の crate へ', '反証（2回目）：Evans p.15 Modules「Give the modules names that become part of the ubiquitous language」'],
  ['workflow', 'application', 'ddd：層の語にそろえる'],
- ['ポートは domain の各 crate の ports.rs', 'application の ports/。domain は値の関数', '利用者「私はportsはよくapplication層に置いてるんだよね」・ ddd ・ 反証（2回目）：Q3「core は入出力に触らない」'],
+ ['ポートは domain の各 crate の ports.rs', 'application の ports/。domain は値の関数', '利用者「私はportsはよくapplication層に置いてるんだよね」・ ddd ・ 反証（2回目）：Q0 #14「同じ入力から同じ結果」と Q4 の下書き「core は入出力に触らない」'],
  ['判定の記録を validation へ移す', 'change のまま。validation → change の向きにする', '反証（2回目）：Q9 #6 と食い違う'],
  ['render は declaration ・ values だけ', 'validation ・ change ・ declaration', '反証（2回目）：Q5 #1（Resolver は描画も使う）'],
  ['instance → validation', '外す（application が順に呼ぶ）', '反証（2回目）：処理の順序は domain の辺ではない'],
@@ -60,7 +60,7 @@ s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決�
  ['behaviors/ の扱いを、下の表の変更後にする（qa-advisor の判定）', '変える。製品の機能ではなく基盤自身のテストデータなので、名前と持ち込む範囲を絞る'],
 ]) + '<h3>behaviors/ は何か ・ 何を持ち込むか（qa-advisor ・ 全文 arch/reviews/qa-behaviors.html）</h3>' + table(['', '変更前（いまの5節）', '変更後', '根拠'], [
  ['何か', '受け入れの場面', '基盤自身のシステムテストのテストケースとテストデータ。製品の機能ではない。利用者が行う受け入れテスト（UAT）でもない', 'qa-advisor：受け入れテストは「想定ユーザーが実施することが理想的」で、この場面は機械が操作の結果を比べる'],
- ['なぜ持ち込むか', '──', '前提の「試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す」の実体だから。言語に依らないことはバイナリと protocol で満たすので、バイナリを外から起動して回す', 'premises/board-answers.json:162 ・ 164'],
+ ['なぜ持ち込むか', '──', '前提の「試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す」の実体だから。言語に依らないことはバイナリと protocol で満たすので、バイナリを外から起動して回す', 'Q4 の下書き（待ち。premises/board-answers.json:162 ・ 164）と Q0 #14（決着）「別の言語の実装が使える適合の試験を持つ」'],
  ['置き場所と名前', 'behaviors/ に70場面', 'test-suite/ にインターフェースに依らない56場面（schema 24 ・ check_design 6 ・ 基盤の操作 26）。SQLite のアダプターだけを試験する sql の14場面は crates/outbound/sqlite/tests/ へ', 'Cargo「Integration tests go in the tests directory.」・ 判断基準の語「テストスイート」'],
  ['回す側', 'crates/inbound/cli/tests/acceptance.rs', 'crates/inbound/cli/tests/test_suite.rs。CARGO_BIN_EXE でバイナリを起動する。模擬の判定と模擬の AI はバイナリの外から渡し、バイナリに切り替えの分岐を入れない', 'qa-advisor：Test Logic in Production'],
  ['持ち込まないもの', 'coverage.json も移す', 'coverage.json ・ build.py ・ ref/（参照実装）はボードに残す。核の段の記録で、実装の段では使わない。場面の traces（使う場面と不変条件への結びつき）は残す', 'qa-advisor：traceability ・ 正本を2つにしない'],
@@ -69,6 +69,6 @@ s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決�
  ['集約の中身：版ごとの10ファイル', 'semantic-agent-schema/schemas/v1/（版を足すときは v2/ を並べる）', 'Q9「Abstract の版（10ファイルの形）は公開された言葉である。版を並べて出す」・ Q6「最初の公開から出した版は変えない」'],
  ['基盤が読む方法', 'ポートを通さず、declaration の build.rs がビルドのときに取り込む', 'model.json ports.not_ports「Abstract（基盤の中）」'],
  ['crates/ の中に置かない理由', '公開された言葉の読み手は Rust の外にもいる（Concrete の作者の $schema ・ ほかの言語の Concrete ・ behaviors/ の試験）。crate の並びを直すたびに公開された言葉の場所が動くことになる', 'boundary「検証のエンジンと protocol … 実装の言語は契約に出さない」'],
- ['条件', 'crate を crates.io へ出さない（cargo package は crate の外のファイルを含めない）。配るのはバイナリ', 'Q9「ほかの言語の Concrete も、バイナリを呼んで基盤を使う」'],
+ ['条件', 'crate を crates.io へ出さない（cargo package は crate の外のファイルを含めない）。配るのはバイナリ', 'Q4 の下書き（待ち）「ほかの言語の Concrete も、バイナリを呼んで基盤を使う」'],
 ]) + '<p class="meta">判定の記録の業務領域を移す問いは取り下げた（Q9 #6 のまま）。Validator の定義の文は承認どおり2段に直した（model.json C60）</p>\n')
 open(p, 'w').write(s); print('ok')

@@ -1,0 +1,493 @@
+{
+ "kind": "design",
+ "question": "Semantic Agent Schema の基盤を Rust で実装するとき、どのテストレベルで何を確かめ、テストピラミッドとしてどう配分し、テストの規約・完了基準・CI をどうするか（利用者の問い「ちょっとテスト計画としてはどのようなテストをする予定ですかね？？テスト規約はどうなるんだろうか。テストピラミッド的に何をどうするのがいいでしょうか。」）",
+ "premises": [
+  {
+   "name": "試験の形（決着済み）",
+   "value": "「試験は、入力と期待結果の JSON の組で持ち、どのインターフェースとどの言語の実装も同じ試験を通す」",
+   "source": "premises/board-answers.json:164（Q4）"
+  },
+  {
+   "name": "言語に依らない手段（決着済み）",
+   "value": "「ほかの言語の Concrete も、バイナリを呼んで基盤を使う。言語に依らないことは、バイナリと protocol で満たす」",
+   "source": "premises/board-answers.json:162（Q4）"
+  },
+  {
+   "name": "core は入出力に触らない（決着済み）",
+   "value": "「outbound adapter：いまはファイル。クラウドでは保存先のアダプターを足す。core は入出力に触らないので変えない（Q3）」。arch.html 1節は「domain は値を受け取って値を返す。読む ・ 書く ・ AI への依頼は application がポートで行い、時刻と id は inbound から値で渡す」とする",
+   "source": "premises/board-answers.json:160 ・ arch.html 1節"
+  },
+  {
+   "name": "同じ入力から同じ結果（根幹）",
+   "value": "Q0 原則5「同じ入力から同じ結果を返し、別の言語の実装が使える適合の試験を持つ」。不変条件 I13「機械の検証と、決定的な外のツールは、同じ値から同じ結果を返し、手元と CI で同じになる」",
+   "source": "premises/board-answers.json:24 ・ model/model.json invariants I13"
+  },
+  {
+   "name": "前回の判定（qa-advisor）",
+   "value": "70場面は基盤自身のシステムテストのテストデータ。インターフェースに依らない56場面を test-suite/、op が sql の14場面を crates/outbound/sqlite/tests/、coverage.json ・ build.py ・ ref/ はボードに残す。回す側は crates/inbound/cli/tests/test_suite.rs で、バイナリを起動する",
+   "source": "arch/reviews/qa-behaviors.json"
+  },
+  {
+   "name": "テストする対象の大きさ",
+   "value": "集約9 ・ ドメインサービス13 ・ 不変条件46（I1〜I46）・ 駆動される側のポート12（ports.json が入出力を JSON Schema で持つ）・ 状態はインスタンスの4つとセッションの2つ。インスタンスの状態は決定表で導く（I19）。場面70の op は schema 24 ・ sql 14 ・ decide_and_register 9 ・ check_design 6 ・ change_view 6 ・ record_change 4 ・ そのほか7。Git とスナップショットの両方で回すのは14場面",
+   "source": "model/model.json ・ ports.json ・ behaviors/*.json を数えた"
+  },
+  {
+   "name": "coverage.json の現状",
+   "value": "使う場面 ×｛事後, 失敗時｝と不変条件の90行のうち、場面19 ・ 静的4 ・ 一部2 ・ 確かめない65。確かめない行は参照の実装（Python）の範囲外の行である",
+   "source": "coverage.json"
+  },
+  {
+   "name": "Rust の慣習（fact-check で原文を取得して照合した）",
+   "value": "Rust Book 11.3「You’ll put unit tests in the src directory in each file with the code that they’re testing. The convention is to create a module named tests in each file to contain the test functions and to annotate the module with cfg(test).」・「Each file in the tests directory is a separate crate」・ tests/common/mod.rs に共通の準備を置く ・「If our project is a binary crate that only contains a src/main.rs file and doesn’t have a src/lib.rs file, we can’t create integration tests in the tests directory and bring functions defined in the src/main.rs file into scope with a use statement.」・「that small amount of code doesn’t need to be tested.」。Cargo「Dev-dependencies are not used when compiling a package for building, but are used for compiling tests, examples, and benchmarks.」・「CARGO_BIN_EXE_<name> — The absolute path to a binary target’s executable. This is only set when building an integration test or benchmark.」・ harness「If set to false, then you are responsible for defining a main() function to run tests and benchmarks.」・ libtest は #[test] を「executing them in parallel」",
+   "source": "sources/rust/raw.githubusercontent.com_rust-lang_book_main_src_ch11-03-test-organization.md ・ doc.rust-lang.org_cargo_reference_specifying-dependencies.html ・ environment-variables.html ・ cargo-targets.html"
+  },
+  {
+   "name": "照合していない Rust の慣習（推測）",
+   "value": "テスト関数の名前を「振る舞い_when_条件」の snake_case にすること、git のアダプターのテストで作者と日時を環境変数で固定すること、doctest を使わないことは、原文で照合していない。この回答では（推測）と印を付ける",
+   "source": "判断基準の範囲外"
+  },
+  {
+   "name": "未判定1：模擬の判定と模擬の AI をバイナリの外から渡す経路",
+   "value": "未判定。前回の判定で「given.judge と given.ai を、バイナリの外からどの経路で渡すかを決める」が残っている。経路が決まるまで、given.judge ・ given.ai を使う場面をシステムテストで回せるかは決まらない",
+   "source": "arch/reviews/qa-behaviors.json の next"
+  },
+  {
+   "name": "未判定2：基盤が作る値（ULID ・ 時刻）を場面がどう期待するか",
+   "value": "未判定。S-REC-1 の E4 は /state/index/0/change_id が given.ids の1つめと等しいことを期待する。本番のバイナリは ULID と時刻を自分で作るので、この期待をシステムテストで満たすには、バイナリが外から id を受け取る経路が必要になる。その経路がテストのためだけなら Test Logic in Production に当たる",
+   "source": "behaviors/changes.json S-REC-1 ・ arch.html 5節 compose.rs「時刻と id もここから値で渡す」"
+  },
+  {
+   "name": "未判定3：model.json を実装のリポジトリへ移すか",
+   "value": "未判定（前回から持ち越し）。移さないなら、不変条件とテストの結びつきは場面の traces とテスト関数の名前で持つ",
+   "source": "arch/reviews/qa-behaviors.json"
+  }
+ ],
+ "conclusion": {
+  "stance": "adopt",
+  "headline": "domain の値の関数の単体テストを最も厚くし、application はポートの Test Double で失敗の経路だけを、outbound は本物の外の技術を一時ディレクトリで、システムテストは test-suite/ の56場面をバイナリの外から回す適合の試験として持ち、arch.html 6節の検査を静的テストとして CI の先頭に置く",
+  "because": "判断基準はテストレベルごとに異なる目的を持たせて冗長性を避けるとし、最下位のレイヤーは数が多く速く、最上位はほんの数個とする。domain が値を受け取り値を返す関数なので、不変条件46と決定表の組み合わせは Test Double 無しで最下位で確かめられ、56場面は前提 164 の適合の試験という別の目的で最上位に残る"
+ },
+ "figure": {
+  "caption": "テストのレイヤーと、CI で実行する順（下のレイヤーほど数が多く速い。静的テストは実行せずに先に止める）",
+  "nodes": [
+   {
+    "id": "static",
+    "label": "静的テスト：arch.html 6節の検査 ・ fmt ・ clippy ・ test-suite/ の JSON を Schema で検査 ・ 本番のコードに Test Double が無いかの grep",
+    "role": "static"
+   },
+   {
+    "id": "unit",
+    "label": "単体（コンポーネント）テスト：crates/domain/*（集約 ・ ドメインサービス ・ 値オブジェクト）と agents-contract ・ ai-cli の値の関数。#[cfg(test)] mod tests。Test Double 無し。最も多い",
+    "role": "base"
+   },
+   {
+    "id": "app",
+    "label": "コンポーネント統合テスト（application）：crates/application/tests/。ポート12を Fake ・ Test Stub に替え、ポートの失敗の経路と書く順を確かめる",
+    "role": "middle"
+   },
+   {
+    "id": "adapter",
+    "label": "コンポーネント統合テスト（outbound）：crates/outbound/*/tests/。fs ・ git ・ sqlite ・ tools を本物で、一時ディレクトリに。ports.json の out を満たすか。sqlite は SQL の14場面も",
+    "role": "middle"
+   },
+   {
+    "id": "system",
+    "label": "システムテスト：crates/inbound/cli/tests/test_suite.rs が test-suite/ の56場面でバイナリを起動。場面ごとに1件、2回実行して出力が同じか",
+    "role": "top"
+   },
+   {
+    "id": "manual",
+    "label": "CI の外：本物の AI ツールを呼ぶ確かめ（AI ツールの版を上げたときに手で実行し、出力を記録して単体テストの入力に足す）",
+    "role": "outside"
+   }
+  ],
+  "edges": [
+   {
+    "from": "static",
+    "to": "unit",
+    "label": "通ったら"
+   },
+   {
+    "from": "unit",
+    "to": "app",
+    "label": "通ったら"
+   },
+   {
+    "from": "unit",
+    "to": "adapter",
+    "label": "通ったら"
+   },
+   {
+    "from": "app",
+    "to": "system",
+    "label": "通ったら"
+   },
+   {
+    "from": "adapter",
+    "to": "system",
+    "label": "通ったら"
+   },
+   {
+    "from": "manual",
+    "to": "unit",
+    "label": "記録した出力を足す",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "A：70場面のシステムテストだけで確かめ、Rust の単体テストはほとんど書かない",
+   "effect": "不変条件46のうち場面が触れない行（coverage.json で確かめない65行の多く）が残り、決定表の列 ・ 状態遷移の無効な遷移を場面で全部並べると最上位が太る。落ちたときにどの集約の欠陥かが分からず、プロセスの起動が場面の数だけ必要になる",
+   "chosen": false
+  },
+  {
+   "option": "B：domain の単体テストを厚く、application と outbound を中くらい、56場面を適合の試験として最上位に置き、レベルごとに目的を分ける",
+   "effect": "組み合わせは最下位で速く確かめ、場面は前提 164 の「どのインターフェースとどの言語の実装も同じ試験」として外から見える結果だけを確かめる。同じ事後条件を2つのレベルで確かめる重なりを規約で止められる",
+   "chosen": true
+  },
+  {
+   "option": "C：application の使う場面10すべてに、Mock Object でポートの呼び出しの順と引数を確かめる単体テストを書く",
+   "effect": "読む → ドメインサービス → 書く の内部の順にテストが結び付き、ポートの呼び方を直すたびに落ちる（Overspecified Software）。事後条件は56場面と重なる",
+   "chosen": false
+  },
+  {
+   "option": "D：56場面を Rust の #[test] に書き直し、JSON をやめる",
+   "effect": "前提 164 の JSON の組をやめることになり、ほかのインターフェースと言語の実装が同じ試験を通せない（前回の判定のとおり）",
+   "chosen": false
+  }
+ ],
+ "path": [
+  {
+   "ask": "タスク1. テストレベルごとに、どの crate の何を、どのテストダブルで確かめるか",
+   "answer": "静的テスト＝ワークスペース全体（arch.html 6節 ・ fmt ・ clippy ・ JSON の検査）。単体テスト＝crates/domain/* の集約 ・ ドメインサービス ・ 値オブジェクトと、agents-contract の形の変換 ・ ai-cli の argv の生成と出力の読み取り（値の関数の部分）。Test Double は使わない。コンポーネント統合テスト＝crates/application（ポート12を Fake ・ Test Stub に替える）と crates/outbound/*（本物の fs ・ git ・ sqlite ・ 外のツールを一時ディレクトリで。Test Double は使わない）。システムテスト＝crates/inbound/cli/tests/test_suite.rs が test-suite/ の56場面でバイナリを起動する。inbound/cli の main.rs ・ compose.rs には単体テストを書かない。詳細は「設計の手順」の1〜4"
+  },
+  {
+   "ask": "タスク2. ピラミッドの配分と、56場面との重なりをどう扱うか",
+   "answer": "採るのは案 B。厚い順に 単体（domain）＞ コンポーネント統合（application の失敗の経路 ・ outbound のポートの op ごと）＞ システム（56場面）。重なりの決まりは1つ：使う場面の事後 ・ 失敗時のうち、protocol の外から見える結果は test-suite/ の場面が持ち、単体テストは同じ結果をもう一度確かめず、場面が並べない組み合わせ（決定表の列 ・ 無効な遷移 ・ 不変条件の境目）だけを持つ。application のテストは、場面で起こせないポートの失敗（届かない ・ 起動できない ・ 変わったものが無い）だけを持つ"
+  },
+  {
+   "ask": "タスク3. テストの規約",
+   "answer": "置き場所 ・ 名前 ・ 1テストに1つのテスト条件 ・ 分岐の無いテスト本体 ・ Test Double の置き場所 ・ 決定性 ・ テストデータの正本 ・ AI ツールを呼ぶアダプターの試し方の8つを CODING.md のテストの節に持つ。中身は「記録案」の CODING.md の行"
+  },
+  {
+   "ask": "タスク4. 完了基準と CI",
+   "answer": "完了基準は5つ：静的テストが全部通る ／ cargo test --workspace が全部通る ／ crate ごとに -p で単独に test が通る ／ 不変条件46と使う場面の事後 ・ 失敗時の全行が、少なくとも1つのテストに結び付いている（確かめない行が0件か、残す行を利用者が承認している）／ 56場面を2回実行して出力が同じ。CI は 静的テスト → 単体とコンポーネント統合 → システムテスト の順に、毎回の push で全部回す。arch.html 6節の検査は CI の静的テストの段そのものであり、動的テストの代わりにはしない"
+  },
+  {
+   "ask": "タスク5. 外せるもの",
+   "answer": "inbound/cli の単体テスト ・ application の使う場面ごとの Mock Object によるテスト ・ 場面と同じ事後条件を確かめる単体テスト ・ 本物の AI ツールを CI で呼ぶテスト ・ ports の trait の定義だけを確かめるテスト ・ 行のカバレッジの数値目標 ・ coverage.json を実装のリポジトリで回す仕組み ・ doctest（推測：crates.io へ出さないため）。どれも外しても前提 162 ・ 164 ・ Q0 原則5 は満たされる。詳細は「設計の手順」の5"
+  }
+ ],
+ "steps": [
+  {
+   "do": "1. 静的テストの段を決める（ワークスペース全体）",
+   "detail": "arch.html 6節の6つ（辺の種類ごとの突き合わせ ・ feature の統合 ・ pub use ・ clippy forbid ・ domain に trait のポートを置かない ・ 外の crate の許可）に、テストのための4つを足す：(a) test-suite/*.json を場面の JSON Schema（test-suite/scenario.schema.json。推測：名前は未決）で検査する、(b) test-suite/ に when.op が sql の場面が0件、traces が全場面で1件以上、(c) crates/*/src/ の #[cfg(test)] mod tests の外に Fake ・ Stub ・ Mock の型と cfg(test) の分岐が0件、(d) crates/domain/ と crates/application/src/ に SystemTime::now ・ ULID の生成 ・ 乱数の呼び出しが0件（時刻と id は inbound から値で渡す）。arch.html 6節は dev の辺も数えるので、application の dev-dependencies に outbound/* を足すことも止まる"
+  },
+  {
+   "do": "2. 単体（コンポーネント）テスト：crates/domain/* と、アダプターの値の関数",
+   "detail": "対象：集約9の不変条件 ・ ドメインサービス13 ・ 値オブジェクト（URN ・ target ・ change_id ・ session_id など）。Test Double は使わない（domain は値の関数で、ポートを持たない）。技法：状態を導く（I19）は決定表の実行可能な列をすべて1テストずつ、セッションの開いている → 閉じた（I45）とインスタンスの4状態は状態遷移で、無効な遷移を1テストに1つ。Semantic Schema Validator は「依頼の一覧を返す」と「答えを5つの値にまとめる」を別々に、割れた答え ・ 根拠の無い答え → unverified（I14）を1テストずつ。Resolver は渡された材料に無い $id を断ること（I2）。agents-contract の呼び出しの形への変換 ・ 答えの形の読み取りと、ai-cli の argv の生成 ・ 出力の読み取りも、値の関数に切り出してここで確かめる。schemas/v1 は本物を build.rs で取り込んだまま使い、替えない"
+  },
+  {
+   "do": "3. コンポーネント統合テスト：crates/application と crates/outbound/*",
+   "detail": "application/tests/：ポート12を tests/common/mod.rs に置く Test Double に替える。保存のポート（contracts ・ instances ・ judgments ・ change_records ・ sessions ・ rendered）は Vec や HashMap に読み書きする Fake、judge ・ ai_sessions ・ tools ・ settings ・ published ・ changes は決まった答えを返す Test Stub。確かめるのは、場面で起こせない失敗の経路（changes が unreachable を返す ・ 確定で変わったものが無い ・ judge が起動できない → unsupported（I15 ・ I39）・ 書き込みの途中の失敗で何も書かない）と、Fake の中身で見える状態（呼び出しの順と回数は確かめない）。outbound/*/tests/：Test Double を使わず、本物の外の技術を一時ディレクトリで動かす。ports.json の op ごとに、out の oneOf の各分岐（items と unreachable など）を1テストずつ出し、出力を ports.json の Schema で検査する。changes を実装する git と fs/snapshot には同じテスト関数を当てる。sqlite/tests/ は SQL の14場面（一意の索引とトリガーで I46 を断る）を DDL に直に実行する。tools は固定の答えを返す小さなプログラムを起動して確かめる"
+  },
+  {
+   "do": "4. システムテスト：test-suite/ の56場面を、本番と同じバイナリで回す",
+   "detail": "crates/inbound/cli/tests/test_suite.rs を [[test]] harness = false のデータ駆動テストにし、CARGO_BIN_EXE_<name> のバイナリを場面ごとに起動して標準入出力で回す。1場面 × 1アダプターを1件として報告し、落ちたら場面の id ・ アダプター ・ then の id と message を出す（message が Assertion Message の役をする）。同じ場面を2回実行し、出力が同じことを確かめる（Q0 原則5 ・ I13）。場面ごとに新しい一時ディレクトリを作り（Fresh Fixture）、並列に実行してよい形にする。未判定1 ・ 2 が決まるまで、given.judge ・ given.ai と基盤が作る値の literal の期待（S-REC-1 E4 など）を持つ場面は、バイナリにテスト用の入口を足して通さない。期待を「ULID の形で、記録と索引で同じ値」のような関係に書き直すか、その条件だけを application のテストへ移すかを先に決める"
+  },
+  {
+   "do": "5. 外せるものを外す",
+   "detail": "(a) inbound/cli の main.rs ・ compose.rs の単体テスト：lib.rs が無く tests/ から use できない。結びつけの誤りは56場面が落ちるので見つかる。(b) application の使う場面10ごとの Mock Object による呼び出しの順のテスト：内部の順に結び付き Fragile Test になる。事後条件は場面が持つ。(c) 場面と同じ事後条件を確かめる単体テスト：レベルの目的が重なる。(d) 本物の AI ツールを CI で呼ぶテスト：答えが毎回変わり、CI の環境に AI ツールの認証が必要になる（Erratic Test の Nondeterministic Test と Resource Optimism）。AI ツールの版を上げたときに手で実行し、得た出力を ai-cli の単体テストの入力ファイルに足す。(e) ports の trait の定義そのもののテスト（処理を持たない）。(f) 行のカバレッジの数値目標：前提が求めるのは不変条件と使う場面への結び付きで、行の割合ではない。(g) coverage.json を実装で回す仕組み：前回の判定どおりボードに残す。(h) doctest（推測：crates.io へ出さないので、公開の API の文書の例を確かめる必要が無い）"
+  },
+  {
+   "do": "6. 完了基準と CI を、テスト計画書として CODING.md と CI の設定に書く",
+   "detail": "完了基準：①静的テストの段が全部通る ②cargo test --workspace が通る ③crate ごとに cargo test -p が単独で通る（feature の統合に頼っていないこと）④不変条件 I1〜I46 と使う場面の事後 ・ 失敗時の全行が、場面の traces かテスト関数の名前で少なくとも1つのテストに結び付く。結び付かない行が残るなら、行ごとに残す理由を利用者が承認する ⑤56場面を2回実行して出力が同じ。CI：毎回の push で 静的テスト（数秒）→ 単体 ・ コンポーネント統合（cargo test --workspace）→ システムテスト（test_suite）の順に全部回す。テストの数が増えて遅くなっても、どのテストも定期的に回ることを守る"
+  }
+ ],
+ "code": [
+  {
+   "kind": "para",
+   "text": "良い例1：domain の単体テスト。値を渡して値を比べる。Test Double を必要としない"
+  },
+  {
+   "kind": "code",
+   "text": "// crates/domain/change/src/services/derive_state.rs の末尾（単体テスト）\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    // 決定表の1列に1つのテスト。入力はすべて値で渡す（時刻 ・ id ・ 乱数を関数の中で作らない）\n    #[test]\n    fn unverified_rule_makes_instance_wait_for_human() {\n        let results = vec![verdict(\"r1\", Verdict::Verified), verdict(\"r2\", Verdict::Unverified)];\n        assert_eq!(derive_state(&results, &[]), InstanceState::AwaitingJudgment);\n    }\n\n    // Creation Method：このテストに効かない欄は既定の値で埋め、読む人に見せない\n    fn verdict(rule: &str, value: Verdict) -> RuleResult { RuleResult::machine(rule, value) }\n}"
+  },
+  {
+   "kind": "para",
+   "text": "良い例2：application のコンポーネント統合テスト。Test Double は tests/common/mod.rs に置き、失敗の経路だけを確かめる"
+  },
+  {
+   "kind": "code",
+   "text": "// crates/application/tests/common/mod.rs（Test Double はここだけに置く。本番のバイナリに入らない）\npub struct InMemoryChangeRecords { pub written: std::cell::RefCell<Vec<ChangeRecord>> } // Fake\nimpl ChangeRecords for InMemoryChangeRecords { /* Vec に読み書きするだけ */ }\n\npub struct UnreachableChanges; // Test Stub：before_after がいつも unreachable を返す\nimpl Changes for UnreachableChanges { /* … */ }\n\n// crates/application/tests/record_change.rs\nmod common;\n#[test]\nfn record_change_reports_unreachable_and_writes_nothing() {\n    let records = common::InMemoryChangeRecords::default();\n    let out = record_change(&common::UnreachableChanges, &records, input(FIXED_NOW, FIXED_ID));\n    assert!(out.is_unreachable(), \"届かないを 0件として返した\");\n    assert!(records.written.borrow().is_empty(), \"届かないのに記録を書いた\");\n}"
+  },
+  {
+   "kind": "para",
+   "text": "良い例3：システムテストのデータ駆動テスト（harness = false と CARGO_BIN_EXE_<name> は原文で照合した。main() の中身は推測）"
+  },
+  {
+   "kind": "code",
+   "text": "# crates/inbound/cli/Cargo.toml\n[[test]]\nname = \"test_suite\"\nharness = false        # 場面1つを1件として数えて報告する main() を自分で書く\n\n// crates/inbound/cli/tests/test_suite.rs（データ駆動テスト）\nfn main() {\n    let exe = env!(\"CARGO_BIN_EXE_semantic-agent-schema\");   // 本番と同じバイナリを起動する\n    // test-suite/*.json を読み、場面ごと × アダプターごとに1件として実行し、\n    // 落ちたら「S-REC-1 [git] E3 セッションの目的が写されていない（I38）」の形で出す。\n    // 同じ場面を2回実行し、標準出力が1バイトも違わないことも確かめる（同じ入力から同じ結果）\n}"
+  },
+  {
+   "kind": "para",
+   "text": "避ける例：本番のコードのテスト用の切り替えと、1つの #[test] で56場面を回すこと"
+  },
+  {
+   "kind": "code",
+   "text": "// 避ける例1：本番のコードにテスト用の切り替えを入れる（Test Hook）\n// crates/inbound/cli/src/compose.rs\nlet judge: Box<dyn Judge> = if std::env::var(\"SAS_TEST_JUDGE\").is_ok() {\n    Box::new(FixedJudge)            // テストの間だけ動くはずの処理が本番のバイナリに入る\n} else {\n    Box::new(AgentsContractJudge::new(ai_cli))\n};\n\n// 避ける例2：56場面を1つの #[test] の for 文で回す（Multiple Test Conditions ・ Assertion Roulette）\n#[test]\nfn all_scenarios() {\n    for s in load_all(\"test-suite\") { assert!(run(&s).passed()); } // どの場面のどの期待で落ちたか出ない\n}"
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "test-first-development",
+   "quote": "対応：テストレベルごとに、そのレベル特有の異なる目的を持たせる ・ 理由：冗長性を避けながら、適切に包括したテストを実施できる"
+  },
+  {
+   "criterion": "test-pyramid",
+   "quote": "観点：妥当なカバレッジに必要なテストの数 ・ 最下位のレイヤー：通常、多い ・ 最上位のレイヤー：通常、ほんの数個"
+  },
+  {
+   "criterion": "test-pyramid",
+   "quote": "条件：レイヤーが高くなる ・ 対応：テストの粒度は粗くなり、テストの分離は少なくなり、テスト実行時間は遅くなる"
+  },
+  {
+   "criterion": "test-pyramid",
+   "quote": "モデル：一般的なモデル ・ 定義するレイヤー：ユニット（コンポーネント）テスト ・ 統合（コンポーネント統合）テスト ・ エンドツーエンドテスト"
+  },
+  {
+   "criterion": "test-levels",
+   "quote": "テストレベル：コンポーネントテスト（ユニットテスト） ・ 焦点：コンポーネントを単独でテストすること ・ 特記事項：テストハーネスやユニットテストフレームワークなどの特定のサポートを必要とする場合が多い。実施するのは、通常、開発担当者で、場所は開発環境である"
+  },
+  {
+   "criterion": "test-levels",
+   "quote": "テストレベル：コンポーネント統合テスト（ユニット統合テスト） ・ 焦点：コンポーネント間のインターフェースと相互処理 ・ 特記事項：ボトムアップ ・ トップダウン ・ ビッグバンなどの統合戦略のアプローチに大きく依存する"
+  },
+  {
+   "criterion": "test-levels",
+   "quote": "テストレベル：システムテスト ・ 焦点：システムやプロダクト全体の振る舞いと能力の全般。多くの場合、エンドツーエンドのタスクの機能テストと、品質特性の非機能テストである ・ 特記事項：一部の非機能品質特性（例：使用性）は、本番相当のテスト環境で、完全なシステムを対象にテストするのが望ましい。サブシステムのシミュレーションも使用できる。システムの仕様に関連し、独立したテストチームが実施することがある"
+  },
+  {
+   "criterion": "hard-to-test-code",
+   "quote": "原因：Highly Coupled Code ・ 場面：テストのために結合を断つ ・ 直し方：Test Double を使う。より具体的には Test Stubs や Mock Objects である"
+  },
+  {
+   "criterion": "hard-to-test-code",
+   "quote": "原因：Asynchronous Code ・ 場面：どの場合も ・ 直し方：処理（logic）を、非同期のアクセスの仕組みから分ける"
+  },
+  {
+   "criterion": "test-logic-in-production",
+   "quote": "原因：Test Hook ・ 場面：どの場合も ・ 直し方：テストのための処理を製品のコードに書き込まず、差し替えのきく依存（substitutable dependency）の側へ移す"
+  },
+  {
+   "criterion": "test-logic-in-production",
+   "quote": "原因：Test Dependency in Production ・ 場面：どの場合も ・ 直し方：型の定義のように害の無さそうなものでも、製品のコードがテストコードを当てにしないよう、依存を気を付けて管理しなければならない"
+  },
+  {
+   "criterion": "fragile-test",
+   "quote": "敏感さ：Context Sensitivity ・ 直し方：テストを決定的にするため、SUT のすべての入力を制御する。"
+  },
+  {
+   "criterion": "fragile-test",
+   "quote": "原因：Overspecified Software（別名 Overcoupled Test） ・ 何か：ソフトウェアをどう構成し、どう振る舞うべきかについて、テストが言いすぎている。Test Double で部分を切り離す unit test に慣れていないことが、この形で出ることもある ・ Fragile Test や敏感さとの関係：Behavior Sensitivity の一形態で、Mock Object を多用して layer-crossing test を作る Behavior Verification の流儀にともなう"
+  },
+  {
+   "criterion": "erratic-test",
+   "quote": "原因：Nondeterministic Test ・ 直し方：Conditional Test Logic を取り除き、ランダムな値を決定的な値に置き換える（下の手順）"
+  },
+  {
+   "criterion": "conditional-test-logic",
+   "quote": "原因：Multiple Test Conditions ・ 場面：値の組が大量にある ・ 直し方：Data-Driven Test に切り替えるほうが、よりよい解決になるかもしれない"
+  },
+  {
+   "criterion": "conditional-test-logic",
+   "quote": "原因：Multiple Test Conditions ・ 場面：Defect Localization が得られない ・ 直し方：テスト条件ごとに別々の Test Methods を作り、そこから Parameterized Test を呼ぶ"
+  },
+  {
+   "criterion": "assertion-roulette",
+   "quote": "条件：1つのテストで同じ種類の Assertion Method を2回以上呼ぶ ・ 対応：最小限でよいので Assertion Message を付ける"
+  },
+  {
+   "criterion": "obscure-test",
+   "quote": "原因：Mystery Guest ・ 場面：ファイルなどの外部リソースを使わざるを得ない ・ 直し方：そのためだけのフォルダやディレクトリに置き、名前を見ればどんなデータが入っているかが分かるようにする"
+  },
+  {
+   "criterion": "decision-table-testing",
+   "quote": "項目：100%の条件 ・ 内容：これらの列を、テストケースですべて通過する"
+  },
+  {
+   "criterion": "state-transition-testing",
+   "quote": "条件：全遷移カバレッジで無効な遷移をテストする ・ 対応：1つのテストケースで無効な遷移を1つだけテストし、欠陥のマスキングを回避する"
+  },
+  {
+   "criterion": "testware",
+   "quote": "対応：適切な構成管理で、作業成果物の一貫性と整合性を確保する"
+  },
+  {
+   "criterion": "test-automation",
+   "quote": "条件：第一象限（コンポーネントテスト ・ コンポーネント統合テスト） ・ 対応：自動化して CI プロセスに含めるべきである"
+  },
+  {
+   "criterion": "static-testing",
+   "quote": "場面：シフトレフト ・ 静的テストの扱い：仕様書をテストの観点でレビューする。ソースコードの静的解析は、動的テストより前か、自動化したプロセスの中で完了させる"
+  },
+  {
+   "criterion": "entry-exit-criteria",
+   "quote": "対応：開始基準と終了基準を、テストレベルごとに定義するべきである"
+  },
+  {
+   "criterion": "entry-exit-criteria",
+   "quote": "区分：終了基準 ・ 基準：完了基準 ・ 例：計画したテストの実行 ・ 静的テストの実行 ・ 発見したすべての欠陥のレポート ・ すべてのリグレッションテストの自動化"
+  },
+  {
+   "criterion": "confirmation-and-regression-testing",
+   "quote": "対応：リグレッションテストケースの自動化を、プロジェクトの早期に開始する"
+  },
+  {
+   "criterion": "slow-tests",
+   "quote": "原因：Too Many Tests ・ 見え方：テストがとても多く、1つ1つがいくら速くても、実行に長くかかるのは避けられない ・ 根本の原因：明らかな原因はテストの数そのもので、システムが本当に大きいか、テストの重なりが多すぎるかのどちらかである。見えにくい原因は、多すぎるテストを頻繁に実行しすぎていることである ・ 直し方：テストを毎回すべて実行しなくてよい。大事なのは、どのテストも定期的に実行されるようにすることである（下の規則）"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "Test Logic in Production（Test Hook）：compose.rs に環境変数 ・ 引数 ・ feature で模擬の判定や固定の時刻 ・ id へ切り替える分岐を足す",
+   "risk": "テストと本番で違う動きをするバイナリになり、56場面が通っても本番の結びつけを確かめていないことになる。誤った設定1つで本番でも固定の値が使われうる",
+   "alternative": "模擬は本番と同じ経路（Concrete の x-delegates の argv など、利用者も使う設定）でだけ渡す。経路が無い期待は、場面の期待を値の関係に書き直すか、application のテストへ移す（未判定1 ・ 2）"
+  },
+  {
+   "name": "Test Dependency in Production：Test Double を置く crate を作り、本番の crate の [dependencies] から使う",
+   "risk": "本番のバイナリにテストのコードが入る。arch.html 6節の辺の検査に無い crate が増える",
+   "alternative": "Test Double は使う crate の tests/common/mod.rs に置く。2つ以上の crate が同じ Test Double を使うようになったら、（推測）publish = false のテスト用 crate を作り、architecture.json に dev の辺だけを許す行として足す"
+  },
+  {
+   "name": "Overspecified Software：application のテストで Mock Object に呼び出しの順と回数を期待する",
+   "risk": "使う場面の中の順（読む → ドメインサービス → 書く）を直すたびに、振る舞いが同じでもテストが落ちる（Fragile Test）",
+   "alternative": "Fake に書かれた中身と戻り値で確かめる。呼ばれたこと自体が外から見える結果のとき（確定を呼ばないことなど）だけ、呼ばれた回数を確かめる"
+  },
+  {
+   "name": "Multiple Test Conditions ・ Assertion Roulette：56場面を1つの #[test] のループで回す",
+   "risk": "最初に落ちた場面で止まり、どの場面 ・ どのアダプター ・ どの期待で落ちたかが出ない",
+   "alternative": "harness = false のデータ駆動テストで場面 × アダプターごとに1件として報告し、then の id と message を失敗の文に出す"
+  },
+  {
+   "name": "Erratic Test（Interacting Tests ・ Nondeterministic Test）：libtest が並列に実行するテストが、同じ一時ディレクトリ ・ 同じ SQLite のファイル ・ 実時刻を共有する",
+   "risk": "実行の順と時刻によって落ちたり通ったりする。I46 の concurrent_register の場面は特に、実時刻と実行の順に左右されやすい",
+   "alternative": "テストごとに新しい一時ディレクトリと DB のファイルを作り（Fresh Fixture）、時刻と id はテストが値で決める。git のアダプターのテストは作者と日時を固定する（推測：GIT_AUTHOR_DATE などの環境変数で固定できるかは原文で照合していない）"
+  },
+  {
+   "name": "（推測）レベルの目的の重なり：場面の事後条件を単体テストへ写し、さらに場面にも組み合わせを足す",
+   "risk": "同じ欠陥で2つのレベルが落ち、場面を直すたびに単体テストも直すことになる。最上位が太ってピラミッドが逆になる",
+   "alternative": "外から見える結果は場面、組み合わせは単体、ポートの失敗は application、と行き先を1つに決め、レビューで確かめる"
+  }
+ ],
+ "records": [
+  {
+   "target": "CODING.md のテストの節：置き場所",
+   "content": "単体テストは対象のファイルの末尾の #[cfg(test)] mod tests に置く。コンポーネント統合テストは crates/<crate>/tests/<ポートか使う場面の名前>.rs、共通の準備と Test Double は tests/common/mod.rs。システムテストは crates/inbound/cli/tests/test_suite.rs と根の test-suite/。SQL の場面は crates/outbound/sqlite/tests/"
+  },
+  {
+   "target": "CODING.md のテストの節：名前",
+   "content": "（推測）テスト関数は英語の snake_case で「確かめる振る舞い_when_条件」。不変条件に結び付くテストは i45_closed_session_is_not_reopened のように、id と中身の語を一緒に書く。場面の id（S-REC-1）は test-suite/ の JSON の中だけに置く"
+  },
+  {
+   "target": "CODING.md のテストの節：1テストに1つ",
+   "content": "1つのテスト関数は1つのテスト条件を確かめる。同じ種類の assert を2回以上書くときは、それぞれ違う Assertion Message を付ける。テスト関数の本体に if ・ for ・ match を書かない。値の組が多いときは、名前付きの組の表を Parameterized Test で回し、組の名前を失敗の文に出す"
+  },
+  {
+   "target": "CODING.md のテストの節：Test Double",
+   "content": "Test Double は #[cfg(test)] mod tests の中か tests/ の下にだけ置く。domain では使わない。application では保存のポートに Fake、外の答えのポートに Test Stub を使い、Mock Object で呼び出しの順を確かめない。outbound では使わず本物の外の技術を一時ディレクトリで動かす。本番のコードに cfg(test) の分岐 ・ テストのためだけの pub ・ テストのための環境変数を置かない"
+  },
+  {
+   "target": "CODING.md のテストの節：決定性",
+   "content": "時刻 ・ id（ULID）・ 乱数は inbound が作って値で渡し、domain と application は自分で作らない。テストは固定の値を渡す。テストの中で sleep ・ ネットワーク ・ 実時刻を使わない。テストごとに新しい一時ディレクトリと DB のファイルを作り、並列に実行して通る形にする"
+  },
+  {
+   "target": "CODING.md のテストの節：テストデータの正本",
+   "content": "システムテストの正本は test-suite/*.json（手で直す。生成元を持たない）。場面の形は JSON Schema で持ち、CI で検査する。単体テストの値はテストの中に最小限だけ書き、効かない欄は Creation Method の既定の値で埋める。ファイルで持つ入力（AI ツールの出力の記録など）は tests/fixtures/<何のデータか>/ に置き、名前で中身が分かるようにする"
+  },
+  {
+   "target": "CODING.md のテストの節：AI ツールを呼ぶアダプター",
+   "content": "argv の生成 ・ 出力の読み取り ・ Agents 契約の形への変換は値の関数に切り出し、記録した実際の出力（tests/fixtures/<ツール>/<ツールの版>/）で単体テストする。プロセスを起動する部分は起動するだけの薄い関数にする。本物の AI ツールは CI で呼ばず、AI ツールの版を上げたときに手で呼び、得た出力を fixtures に足す"
+  },
+  {
+   "target": "CI の設定",
+   "content": "毎回の push で 静的テスト（arch.html 6節 ＋ fmt ＋ clippy ＋ test-suite/ の Schema 検査 ＋ 本番のコードの Test Double と実時刻の grep）→ cargo test --workspace ＋ crate ごとの cargo test -p → test_suite（56場面 × アダプター、2回実行して出力を比べる）の順に全部回す"
+  },
+  {
+   "target": "arch.html 5節 ・ 8節",
+   "content": "test-suite/ の場面の Schema（scenario.schema.json）を根に足す。テストの規約は CODING.md に持つと書く。未判定1 ・ 2（模擬の渡し方 ・ 基盤が作る値の期待）を決めてほしいことに足す"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "場面の期待の書き方（behaviors/build.py で作った then の equals）",
+   "why": "S-REC-1 E4 などは基盤が作る ULID を literal で期待しており、参照の実装では given.ids を渡せたが、本番のバイナリで同じ期待を満たすにはテストのためだけの入口が必要になる疑いがある。前提 164 の「どのインターフェースも同じ試験」を守るなら、期待を値の関係（形と、記録と索引で同じ値）に直す必要があるかもしれない"
+  },
+  {
+   "suspect": "ports.json と arch.html 5節のポート12（AI ツールの起動と時刻 ・ id の作り方）",
+   "why": "時刻と id は compose.rs が作る、としているが、それを外から決める正規の経路が protocol に無い。システムテストの決定性をどこで担うかは、platform-advisor ・ ddd-advisor の判断（protocol に入れるか、入れないか）に依る疑いがある"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "テストを通すために、compose.rs や application に環境変数 ・ 引数 ・ feature による模擬への切り替えを足す",
+   "check": "crates/*/src/ を grep し、#[cfg(test)] mod tests の外に cfg(test) ・ Fake ・ Stub ・ Mock ・ test_ で始まる環境変数の読み取りが0件であることを CI の静的テストで確かめる"
+  },
+  {
+   "breaks": "domain や application の中で SystemTime::now ・ ULID の生成 ・ 乱数を呼ぶ",
+   "check": "crates/domain/ と crates/application/src/ に SystemTime ・ Ulid::new ・ rand の呼び出しが0件であることを grep する（arch.html 6節の外の crate の許可表で rand ・ ulid の生成の feature を domain に許さないことでも止める）"
+  },
+  {
+   "breaks": "場面と同じ事後条件を単体テストに写す、または 56場面を Rust の #[test] に書き直す",
+   "check": "test-suite/ の場面の数と traces を CI で数え、56件と、全場面の traces が1件以上であることを確かめる。単体テストに場面の id（S-…）の文字列が無いことを grep する"
+  },
+  {
+   "breaks": "56場面を1つの #[test] でループして回す",
+   "check": "crates/inbound/cli/Cargo.toml の [[test]] name = \"test_suite\" に harness = false があり、出力の件数が場面 × アダプターの数と一致することを CI で確かめる"
+  },
+  {
+   "breaks": "本物の AI ツールを呼ぶテストを CI に入れる、または #[ignore] のテストを黙って増やす",
+   "check": "CI の設定に AI ツールの認証の秘密が無いことと、#[ignore] の件数を CI で数えて、増えたら落とす"
+  }
+ ],
+ "next": [
+  "未判定2（基盤が作る ULID と時刻を場面がどう期待するか）を利用者に確かめる",
+  "未判定1（模擬の判定と模擬の AI をバイナリの外から渡す経路）を、未判定2 と一緒に決める",
+  "test-suite/ の場面の JSON Schema を書く",
+  "CODING.md にテストの節（置き場所 ・ 名前 ・ 1テストに1つ ・ Test Double ・ 決定性 ・ テストデータの正本 ・ AI ツールのアダプター）を書く",
+  "不変条件 I1〜I46 と使う場面の事後 ・ 失敗時の各行を、単体 ・ application ・ outbound ・ 場面のどれが持つかの表に割り当てる",
+  "CI の設定に、静的テスト → cargo test --workspace と -p ごと → test_suite の3段を書く"
+ ],
+ "related": [
+  {
+   "criterion": "test-levels",
+   "relation": "4つのレベル（コンポーネント ・ コンポーネント統合 ・ システム）の焦点で、crate ごとの置き場所を決めた。受け入れテストは基盤の側に置かない（前回の判定）"
+  },
+  {
+   "criterion": "test-pyramid",
+   "relation": "最上位の56場面は「ほんの数個」より多いが、前提 164 の適合の試験として残す。重なりを止めて最下位を最も厚くする"
+  },
+  {
+   "criterion": "test-logic-in-production",
+   "relation": "模擬の渡し方と基盤が作る値の期待（未判定1 ・ 2）を決めるときの判定の基準になる"
+  },
+  {
+   "criterion": "erratic-test",
+   "relation": "並列に実行する libtest と、SQLite ・ git の一時ディレクトリの扱いを決めた"
+  },
+  {
+   "criterion": "decision-table-testing",
+   "relation": "状態を導く（I19）の単体テストの数を、決定表の実行可能な列の数で決める"
+  },
+  {
+   "criterion": "state-transition-testing",
+   "relation": "セッションとインスタンスの状態の単体テストで、無効な遷移を1テストに1つにする"
+  },
+  {
+   "criterion": "entry-exit-criteria",
+   "relation": "完了基準を、テストレベルごとの終了基準と全体の完了基準に分けて置いた"
+  }
+ ]
+}
