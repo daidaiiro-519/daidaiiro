@@ -188,6 +188,9 @@ dict(id='C58', path=('entities', '任せる先', 1), op='text', before='名前�
 dict(id='C59', path=('value_objects', '変更のまとまりの形', 1), op='text', before='Abstract が持つ出力の形。',
      after='Abstract のファイル change の $defs が持つ出力の形。',
      why='保存しない値の形は、持ち主の集約のファイルの $defs に置く', source='board Q6 #6'),
+dict(id='C60', path=('domain_services', 'Semantic Schema Validator', 1), op='set', before='Abstract の x- と rule は自分で検証し、Concrete が足した x- は、rule の agent が指す任せる先に任せて結果をまとめる。判定した値がいまと同じ判定の記録は使い直す。意図と変更が合っているか（I33）は Abstract の rule として、変更の記録ごとに変更の中でだけ判定する',
+     after='Abstract の x- と rule は自分で検証する。Concrete が足した x- は2段で扱う ── ① rule の agent が指す任せる先への依頼の一覧（呼び出し call）を値で返す ② 使う場面が依頼して受け取った答えを、5つの値にまとめる（割れた答えと根拠の無い答えは unverified）。判定した値がいまと同じ判定の記録は使い直す。意図と変更が合っているか（I33）は Abstract の rule として、変更の記録ごとに変更の中でだけ判定する',
+     why='ドメインサービスは入出力をしない（core は入出力に触らない）。任せる先を呼ぶのは使う場面で、Validator は依頼の一覧を返すことと答えをまとめることだけを持つ', source='board Q3 ・ 利用者「いいと思いますね。いったんそれでお願いできますか？」（arch/ports の承認）'),
 ]
 
 # ボードにだけ在り、v2 に無い決着の直し（ACDR でボードへ適用する）
