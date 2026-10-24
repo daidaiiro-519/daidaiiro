@@ -1,7 +1,7 @@
 """変更の記録の契約の試作：1つのコミットの差分を、変更の記録の場所で意図に振り分けて、ファイルの全体に印を付けて描く。
 
 使い方：python3 changeview.py <git の作業ツリー> [コミット（既定 HEAD）] > out.html
-記録は .semantic-agent-schema/changes/*.json。場所は find（後の本文に現れる文字列）か pointer（JSON の欄）。
+記録は .semantic-agent-schema/changes/*.json。items が無い記録は、そのコミットの変更すべての意図である（1コミット＝1意図）。
 """
 import difflib, html, json, subprocess, sys
 
@@ -54,6 +54,10 @@ def main(repo, rev='HEAD'):
         rows, hs = hunks(before, after)
         owner = {}
         for rid, r in recs.items():
+            if 'items' not in r:
+                for k in range(len(hs)):
+                    owner.setdefault(k, []).append(r['intent'])
+                continue
             for it in r['items']:
                 if it['target'] != f:
                     continue

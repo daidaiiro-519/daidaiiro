@@ -21,14 +21,56 @@ pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);
 .hl{background:var(--mark);color:var(--mark-ink)}
 .flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
 .st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
 </style>
 <main>
-<h1>変更の場所を、find で指せるか</h1>
-<p class="meta">試作 changeview.py をデモのリポジトリで実行した結果（実測）。照らした根幹：同じ入力から同じ結果になること</p>
+<h1>変更の場所の指し方</h1>
+<p class="meta">試作 changeview.py をデモのリポジトリで実行した結果（実測）。照らした根幹：同じ入力から同じ結果になること ／ 足す前に引く</p>
 
-<div class="ans">結論：find は柔軟ではない。消しただけの変更を指せず、同じ文字列が2つあると当て推量になる。<br>場所は「差分のまとまりの中身」で持ち、基盤が差分から写す。</div>
+<div class="ans">結論：承認したらコミットする。1コミット＝1意図なので、場所を指す欄（find ・ hunk）を持たない。<br>意図に無い変更は、意図と差分が合っているかの判定（I33）が出す。</div>
 
-<h2>1　試した3つの場面</h2>
+<h2>1　変更の記録（3つの案）</h2>
+<section class="two" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+<div class="pane"><h3>find</h3>
+<pre><span>{ "intent": "…",</span><span>  "items": [ { "target": "tool/agent.rs",</span><span class="hl">    "at": { "find": "…" } } ] }</span></pre>
+<p class="meta">消した行を指せない。同じ文字列で外れる</p></div>
+<div class="pane"><h3>hunk</h3>
+<pre><span>{ "intent": "…",</span><span>  "items": [ { "target": "tool/agent.rs",</span><span class="hl">    "at": { "hunk": { "del": […],</span><span class="hl">                      "add": […] } } } ] }</span></pre>
+<p class="meta">指せるが、差分の中身を記録へ写し直している</p></div>
+<div class="pane on"><h3>採る：場所を持たない</h3>
+<pre><span>{ "purpose_ref": "ACDR 0197",</span><span>  "intent": "止める順番を注記する",</span><span>  "writer_kind": "ai-agent" }</span></pre>
+<p class="meta">どのファイルのどこが変わったかは、そのコミットの差分が持つ</p></div>
+</section>
+
+<h2>2　描いた結果（1コミット＝1意図）</h2>
+<pre><span>  /// 画面の AI を止める</span><span>  fn stop_agent(child: &amp;mut Child) {</span><span class="d">-     let _ = child.kill();</span><span class="a">+     let _ = child.kill(); // 先に止める</span><span class="m">↑ 意図：止める順番を注記する</span><span>      let _ = child.wait();</span><span>  }</span></pre>
+<p class="meta">記録が1件で items を持たないとき、コミットの差分すべてにその意図を付ける。例外：0件</p>
+
+<h2>3　流れ</h2>
+<section class="flow">
+<div class="st"><b>1　AI が書く</b>ファイルを直接直してよい<span class="w">SAS で作っていない Markdown ・ HTML ・ コードも同じ</span></div>
+<div class="st"><b>2　人が承認する</b>意図と差分を見て承認する</div>
+<div class="st"><b>3　基盤がコミットする</b>変更の記録を作り、変更と一緒に1コミットにする<span class="w">記録はコミットの中に在るので、コミット ID を記録に書かない</span></div>
+</section>
+
+<h2>4　意図に無い変更は、どこで出るか</h2>
+<div class="tw"><table>
+<tr><th></th><th>変更前（場所を持つ）</th><th>変更後（場所を持たない）</th></tr>
+<tr><td>出すもの</td><td>記録の場所に重ならないまとまりを、例外として出す</td><td>意図と差分が合っているかの判定（I33）が、合わないまとまりを出す</td></tr>
+<tr><td>例</td><td>child.wait() を足したが記録に無い → 例外</td><td>意図「止める順番を注記する」に child.wait() の追加が混ざる → violated：意図が合わない</td></tr>
+<tr><td>仕組みの数</td><td>場所の照合と、意図の判定の2つ</td><td><b>意図の判定の1つ</b>（もともと在る）</td></tr>
+</table></div>
+
+<h2>5　残ること（私の見解）</h2>
+<div class="tw"><table>
+<tr><th>残ること</th><th>扱い</th></tr>
+<tr><td>1回の承認に、意図が2つ在る</td><td>コミットを2つに分ける。意図ごとに承認する形にそろえる</td></tr>
+<tr><td>SAS の JSON で、どの欄が変わったかを見たい</td><td>コミットの前後の JSON を比べれば出る。記録には持たない</td></tr>
+<tr><td>作業ツリーに、承認前の別の変更が残っている</td><td>承認した意図の変更だけをコミットへ入れる。残りは次の承認を待つ</td></tr>
+</table></div>
+
+<details><summary>裏づけ：find と hunk を試した結果</summary>
+
 <div class="tw"><table>
 <tr><th>場面</th><th>find（AI が選ぶ文字列を、変更後の本文で探す）</th><th>差分のまとまりの中身（消えた行 ・ 足した行）</th></tr>
 <tr><td>行を書き換えた</td><td class="ok">当たる</td><td class="ok">当たる</td></tr>
@@ -37,32 +79,5 @@ pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);
 <tr><td>記録の無い変更が混ざった</td><td class="ok">例外に出る</td><td class="ok">例外に出る</td></tr>
 </table></div>
 
-<h2>2　変更の記録（変更前 → 変更後）</h2>
-<section class="two">
-<div class="pane"><h3>変更前：find</h3>
-<pre><span>{ "intent": "止める関数の説明を消す",</span><span>  "items": [ { "target": "tool/agent.rs",</span><span class="hl">    "at": { "find": "/// 画面の AI を止める" } } ] }</span></pre>
-<p class="meta">AI が文字列を選ぶ。選び方で結果が変わる</p></div>
-<div class="pane on"><h3>変更後：差分のまとまりの中身</h3>
-<pre><span>{ "intent": "止める関数の説明を消す",</span><span>  "items": [ { "target": "tool/agent.rs",</span><span class="hl">    "at": { "hunk": { "del": ["/// 画面の AI を止める"],</span><span class="hl">                      "add": [] } } } ] }</span></pre>
-<p class="meta">基盤が差分から写す。AI は選ばない</p></div>
-</section>
-
-<h2>3　描いた結果（ファイルの全体に印）</h2>
-<pre><span>  use crate::config::AgentCfg;</span><span>  use std::process::{Child, Command};</span><span>  </span><span>  /// 画面の AI を起動する。許可は各 AI ツールの設定ファイルが決める</span><span>  fn spawn_agent(cfg: &amp;AgentCfg) -&gt; Child {</span><span>      let mut cmd = Command::new(&amp;cfg.bin);</span><span>      cmd.args(&amp;cfg.args);</span><span class="a">+     cmd.args(&amp;cfg.args);</span><span class="m">↑ 意図：引数を2回渡す（試し）</span><span>      cmd.arg("--permission-mode").arg("dontAsk");</span><span>      cmd.spawn().expect("AI ツールを起動できない")</span><span>  }</span><span>  </span><span class="d">- /// 画面の AI を止める</span><span class="m">↑ 意図：止める関数の説明を消す</span><span>  fn stop_agent(child: &amp;mut Child) {</span><span>      let _ = child.kill();</span><span>      let _ = child.wait();</span><span>  }</span></pre>
-<p class="meta">例外：0件。find では、消した行が「記録に無い変更」として出ていた</p>
-
-<h2>4　だれが何をするか</h2>
-<section class="flow">
-<div class="st"><b>1　AI が書く</b>ファイルを直接直してよい（SAS で作っていない Markdown ・ HTML ・ コードも）</div>
-<div class="st"><b>2　基盤が差分を出す</b>作業ツリーと HEAD の差を、まとまりに割る<span class="w">Git の差分そのもの</span></div>
-<div class="st"><b>3　AI が意図を付ける</b>まとまりごとに、どの意図かだけを言う。基盤が中身を記録へ写す<span class="w">付かないまとまりは、例外のまま残る</span></div>
-</section>
-
-<h2>5　残ること（私の見解）</h2>
-<div class="tw"><table>
-<tr><th>残ること</th><th>扱い</th></tr>
-<tr><td>同じ中身のまとまりが、1つのコミットに2つある</td><td>何番目かを持たせる。中身と順番で1つに決まる</td></tr>
-<tr><td>記録を作ったあと、コミットまでにさらに直した</td><td>記録の中身とコミットの差分が合わなくなる。合わないまとまりは例外に出るので、隠れない</td></tr>
-<tr><td>JSON の欄（pointer）</td><td>SAS で作ったものは、欄の単位で意図を見たい。pointer は残し、それ以外のファイルはまとまりの中身で指す</td></tr>
-</table></div>
+</details>
 </main>
