@@ -36,6 +36,17 @@
       "run": {
         "kind": "judging"
       }
+    },
+    "acdr-inspect": {
+      "role": "ACDR の変更の印の検査（Git の差分を読む）",
+      "run": {
+        "kind": "judging",
+        "argv": [
+          "acdr",
+          "inspect",
+          "--json"
+        ]
+      }
     }
   },
   "type": "object",
@@ -318,6 +329,78 @@
         "to": "urn:semantic-agent-schema:acdr:decision-record:v1"
       }
     },
+    "docs": {
+      "type": "array",
+      "description": "変えた文書と、変更1件ごとのどこ ・ 変更前 ・ なぜ",
+      "x-prompt": {
+        "read": {
+          "means": "この決定で変えた文書と、その印"
+        },
+        "write": [
+          {
+            "id": "why-per-change",
+            "rule": "変更の印ごとに、なぜを書く",
+            "why": "理由の無い変更は記録に含めない",
+            "test": "git の差分のまとまりごとに理由があるかを見る（Git を読むので acdr の CLI）",
+            "by": "machine",
+            "agent": "acdr-inspect"
+          }
+        ]
+      },
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "tab",
+          "file"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "tab": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rev": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "marks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "find",
+                "why"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "find": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "before": {
+                  "type": "string"
+                },
+                "why": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "id": {
       "type": "string",
       "pattern": "^[0-9]{4}-[a-z0-9]+(-[a-z0-9]+)*$",
@@ -334,32 +417,6 @@
             "rule": "id の先頭の4桁は no と同じである。",
             "why": "番号と id が食い違うと、置き場所と題がずれる。",
             "test": "id の先頭4桁と no を比べる。",
-            "by": "machine"
-          }
-        ]
-      }
-    },
-    "changes": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
-        "x-relationship": {
-          "to": "urn:semantic-agent-schema:base:change:v1"
-        }
-      },
-      "description": "この決定の変更の記録",
-      "x-prompt": {
-        "read": {
-          "means": "この決定のために書いた変更の記録の id の並びである。",
-          "shown": "ACDR のビューが、基盤の変更のまとまりを、決定の下に意図ごとに出す。"
-        },
-        "write": [
-          {
-            "id": "purpose-matches",
-            "rule": "並べた変更の記録の目的の参照は、この記録（ACDR の番号）である。",
-            "why": "ほかの目的の変更が混ざると、決定の差分を取り違える。",
-            "test": "各変更の記録の purpose_ref が ACDR {no} かを見る。",
             "by": "machine"
           }
         ]
@@ -391,13 +448,8 @@
       },
       "then": {
         "required": [
-          "changes"
-        ],
-        "properties": {
-          "changes": {
-            "minItems": 1
-          }
-        }
+          "docs"
+        ]
       }
     }
   ],

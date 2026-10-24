@@ -1,0 +1,491 @@
+<title>ACDR の Concrete スキーマ</title><style>:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--bad:#9B2C2C;--bad-bg:#F8E1E1;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--bad:#F09A9A;--bad-bg:#3A1E1E;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--bad:#F09A9A;--bad-bg:#3A1E1E;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:14px/1.65 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+h1{font-size:22px;margin:0}h2{font-size:19px;margin:22px 0 0;padding-top:8px;border-top:2px solid var(--accent)}h3{font-size:15.5px;margin:12px 0 0}h4{font-size:13.5px;margin:10px 0 0;font-weight:700}
+p{margin:0}.meta{color:var(--sub);font-size:12.5px;font-weight:400}
+nav{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);display:flex;flex-wrap:wrap;gap:6px;padding:6px 0;z-index:2}nav a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:2px 12px;color:var(--accent);text-decoration:none;font-size:13px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;background:var(--card);font-size:12.5px}th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--code);font-size:12px;white-space:nowrap}
+table.wide td:nth-child(2){min-width:12em}table.wide td:nth-child(4),table.wide td:nth-child(5){min-width:16em}
+code{font:11.5px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
+pre.code{margin:0;font:11.5px/1.5 var(--mono);background:var(--code);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-x:auto;max-height:480px}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}summary{cursor:pointer;color:var(--accent);font-size:13px}
+.chg{display:inline-block;background:var(--hot-bg);color:var(--hot);border-radius:6px;padding:0 6px;font-size:11px;font-weight:700}
+.req{display:inline-block;background:var(--accent-bg);color:var(--accent);border-radius:6px;padding:0 5px;font-size:10.5px}
+.rid{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}.fig svg{max-width:none}
+
+pre.json{font:12px/1.55 "JetBrains Mono",ui-monospace,monospace;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto;white-space:pre;max-height:none}
+.k.std{color:var(--sub)}.k.x{background:var(--hot-bg);color:var(--hot);font-weight:700;border-radius:4px}.k.field{background:var(--accent-bg);color:var(--accent);font-weight:700;border-radius:4px}.k.name{color:var(--accent);font-weight:700}.k.inx{color:var(--hot)}.v{color:var(--ink)}
+.lg span{border-radius:6px;padding:1px 8px;font-size:12.5px;margin-right:6px}
+</style><main>
+<h1>ACDR の Concrete スキーマ（全文）</h1>
+<p class="meta">正本 examples/acdr.concrete.json。docs と acdr-inspect を戻し、docs の形をいまの acdr Skill に合わせた版（本体の検査と58の場面は合格）</p>
+<div class="ans">欄を拡張するのは x- ではなく、JSON Schema の properties。x- は、JSON Schema で書けない意味（読み方 ・ 決まり ・ 任せる先 ・ 置き場所など）だけを持つ。</div>
+<h2>キーの種類と役割</h2><div class="tw"><table><tr><th>種類</th><th>何を書くか</th><th>この Concrete での例</th></tr>
+<tr><td><span class="k field">欄</span>（properties の中）</td><td>インスタンスが持つデータの形。拡張したい欄はここに足す。形は JSON Schema の標準のキーワード（type ・ pattern ・ items ・ required ・ if/then など）で書く</td><td><code>$schema</code> ・ <code>kind</code> ・ <code>no</code> ・ <code>title</code> ・ <code>status</code> ・ <code>decision</code> ・ <code>why</code> ・ <code>shift</code> ・ <code>alternatives</code> ・ <code>supersedes</code> ・ <code>docs</code> ・ <code>id</code></td></tr>
+<tr><td><span class="k x">x-</span>（Abstract の9つ）</td><td>JSON Schema では書けない意味だけ：読み方と書くときの決まり（x-prompt）・ 任せる先（x-delegates）・ 置き場所（x-instance-path）・ 名前の型（x-instance-label）・ 人が決める欄（x-decided-by）・ ほかを指す（x-relationship）など</td><td><code>x-instance-path</code> ・ <code>x-instance-label</code> ・ <code>x-delegates</code>、欄の中の <code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-relationship</code></td></tr>
+<tr><td>Concrete が足す x-（x-extensions で定義）</td><td>9つで足りない新しい意味のキーワードを必要とするときだけ。名前 ・ 値の形 ・ 説明 ・ 書くときの決まりを x-extensions に書いてから使う</td><td>いまは無い。acdr Skill のスキーマにある <code>x-view</code>（描画で隠す）を移すなら、ここで定義する</td></tr>
+</table></div>
+<h2>全文（色：キーの種類）</h2>
+<p class="lg"><span class="k field">欄の名前</span><span class="k x">Abstract の x-</span><span class="k inx">x- の中の項目</span><span class="k std">JSON Schema の標準のキーワード</span><span class="k name">任せる先 ・ 部品の名前</span></p>
+<pre class="json">{
+  <span class="k std">"$schema"</span>: <span class="v">&quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;</span>,
+  <span class="k std">"$id"</span>: <span class="v">&quot;urn:semantic-agent-schema:acdr:decision-record:v1&quot;</span>,
+  <span class="k std">"title"</span>: <span class="v">&quot;意思決定の記録&quot;</span>,
+  <span class="k std">"description"</span>: <span class="v">&quot;決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない&quot;</span>,
+  <span class="k x">"x-instance-path"</span>: <span class="v">&quot;.acdr/{id}/acdr.json&quot;</span>,
+  <span class="k x">"x-instance-label"</span>: <span class="v">&quot;ACDR {no}「{title}」&quot;</span>,
+  <span class="k x">"x-delegates"</span>: {
+    <span class="k name">"reviewer"</span>: {
+      <span class="k inx">"role"</span>: <span class="v">&quot;ACDR の決定のレビュー役&quot;</span>,
+      <span class="k inx">"answer"</span>: {
+        <span class="k inx">"type"</span>: <span class="v">&quot;object&quot;</span>,
+        <span class="k inx">"properties"</span>: {
+          <span class="k field">"findings"</span>: {
+            <span class="k inx">"type"</span>: <span class="v">&quot;array&quot;</span>,
+            <span class="k inx">"description"</span>: <span class="v">&quot;直す箇所の並び&quot;</span>,
+            <span class="k x">"x-prompt"</span>: {
+              <span class="k inx">"read"</span>: {
+                <span class="k inx">"means"</span>: <span class="v">&quot;レビューで見つけた、直す箇所の並び&quot;</span>,
+                <span class="k inx">"parse"</span>: <span class="v">&quot;各項目は at（場所）・ rule（どの行か）・ problem（何が問題か）・ fix（直し方）&quot;</span>
+              },
+              <span class="k inx">"write"</span>: [
+                {
+                  <span class="k inx">"id"</span>: <span class="v">&quot;fix-per-finding&quot;</span>,
+                  <span class="k inx">"rule"</span>: <span class="v">&quot;指摘ごとに直し方を1つ書く&quot;</span>,
+                  <span class="k inx">"why"</span>: <span class="v">&quot;差し戻すだけでは直せない&quot;</span>,
+                  <span class="k inx">"test"</span>: <span class="v">&quot;各項目に fix があるかを見る&quot;</span>,
+                  <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+                  <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+                }
+              ]
+            }
+          }
+        }
+      },
+      <span class="k inx">"run"</span>: {
+        <span class="k inx">"kind"</span>: <span class="v">&quot;judging&quot;</span>
+      }
+    },
+    <span class="k name">"acdr-inspect"</span>: {
+      <span class="k inx">"role"</span>: <span class="v">&quot;ACDR の変更の印の検査（Git の差分を読む）&quot;</span>,
+      <span class="k inx">"run"</span>: {
+        <span class="k inx">"kind"</span>: <span class="v">&quot;judging&quot;</span>,
+        <span class="k inx">"argv"</span>: [
+          <span class="v">&quot;acdr&quot;</span>,
+          <span class="v">&quot;inspect&quot;</span>,
+          <span class="v">&quot;--json&quot;</span>
+        ]
+      }
+    }
+  },
+  <span class="k std">"type"</span>: <span class="v">&quot;object&quot;</span>,
+  <span class="k std">"required"</span>: [
+    <span class="v">&quot;$schema&quot;</span>,
+    <span class="v">&quot;kind&quot;</span>,
+    <span class="v">&quot;id&quot;</span>,
+    <span class="v">&quot;no&quot;</span>,
+    <span class="v">&quot;title&quot;</span>,
+    <span class="v">&quot;status&quot;</span>,
+    <span class="v">&quot;decision&quot;</span>,
+    <span class="v">&quot;why&quot;</span>,
+    <span class="v">&quot;shift&quot;</span>,
+    <span class="v">&quot;alternatives&quot;</span>
+  ],
+  <span class="k std">"properties"</span>: {
+    <span class="k field">"$schema"</span>: {
+      <span class="k std">"const"</span>: <span class="v">&quot;urn:semantic-agent-schema:acdr:decision-record:v1&quot;</span>
+    },
+    <span class="k field">"kind"</span>: {
+      <span class="k std">"const"</span>: <span class="v">&quot;decision-record&quot;</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;インスタンスの種類&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;このインスタンスが決定の記録であること&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;fixed-kind&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;decision-record のまま変えない&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;基盤は kind で種類を判定する&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;値が decision-record かを見る&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;machine&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"no"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+      <span class="k std">"pattern"</span>: <span class="v">&quot;^[0-9]{4}$&quot;</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;記録の番号&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;記録の通し番号&quot;</span>,
+          <span class="k inx">"parse"</span>: <span class="v">&quot;4桁の数字の文字列。先頭の 0 も番号の一部で、数として読まない。置き場所の {no} に入る&quot;</span>,
+          <span class="k inx">"shown"</span>: <span class="v">&quot;題の前に「ACDR 0197」として出る&quot;</span>,
+          <span class="k inx">"when"</span>: <span class="v">&quot;書く前に、次の番号を決めるために読む&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;unique-no&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;ほかの記録と番号を重ねない&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;番号で置き場所が決まる&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;同じ番号の記録がほかに無いかを見る（記録をまたぐので基盤のエンジン）&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;machine&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"title"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+      <span class="k std">"minLength"</span>: <span class="v">1</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;題&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;決めたことの名前&quot;</span>,
+          <span class="k inx">"shown"</span>: <span class="v">&quot;一覧と、ほかの記録から指されたときに「ACDR 0197「…」」として出る&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;noun&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;決めたことを名詞句で書く&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;題だけで何の決定かが分かる&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;名詞で終わるかを見る&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+            <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"status"</span>: {
+      <span class="k std">"oneOf"</span>: [
+        {
+          <span class="k std">"const"</span>: <span class="v">&quot;proposed&quot;</span>,
+          <span class="k std">"title"</span>: <span class="v">&quot;提案。承認前で、正本に適用してはならない&quot;</span>
+        },
+        {
+          <span class="k std">"const"</span>: <span class="v">&quot;accepted&quot;</span>,
+          <span class="k std">"title"</span>: <span class="v">&quot;承認済み&quot;</span>
+        },
+        {
+          <span class="k std">"const"</span>: <span class="v">&quot;superseded&quot;</span>,
+          <span class="k std">"title"</span>: <span class="v">&quot;後の記録に置き換えられた&quot;</span>
+        }
+      ],
+      <span class="k std">"default"</span>: <span class="v">&quot;proposed&quot;</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;状態&quot;</span>,
+      <span class="k x">"x-decided-by"</span>: <span class="v">&quot;human&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;承認の状態&quot;</span>,
+          <span class="k inx">"when"</span>: <span class="v">&quot;正本に適用してよいかを決めるときに読む&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;human-approves&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;accepted にするのは人の入口からだけ&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;承認は人が決める&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;変更の記録で、人の入口を通ったかを見る（変更をまたぐので基盤のエンジン）&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;machine&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"decision"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+      <span class="k std">"minLength"</span>: <span class="v">1</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;決めたこと&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;この記録で決めたこと1件&quot;</span>,
+          <span class="k inx">"parse"</span>: <span class="v">&quot;何を採るかの1文として読む。コマンドや旗の名前があっても、手段ではなく決定の対象の名前として読む&quot;</span>,
+          <span class="k inx">"shown"</span>: <span class="v">&quot;記録の一番上に大きく出る&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;decision-no-means&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;決定の文に手段（コマンド ・ 旗 ・ ファイル名）を混ぜない&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;決定は何を採るかで、手段は変更の印が示す&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;決定の文を読む&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+            <span class="k inx">"reads"</span>: [
+              <span class="v">&quot;/decision&quot;</span>
+            ],
+            <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+          },
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;least-privilege&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;決定が AI の許可を動かすなら、最小限だけを与える形にし、その根拠を書く&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;許可を広げる決定は、あとから狭めにくい&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;なぜ と どう変わる の節で、許可の置き場所と根拠を見る&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+            <span class="k inx">"reads"</span>: [
+              <span class="v">&quot;/decision&quot;</span>,
+              <span class="v">&quot;/why&quot;</span>,
+              <span class="v">&quot;/shift&quot;</span>
+            ],
+            <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"why"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+      <span class="k std">"minLength"</span>: <span class="v">1</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;なぜ&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;何と食い違っていて、何に合わせたか&quot;</span>,
+          <span class="k inx">"parse"</span>: <span class="v">&quot;食い違った相手と、合わせた先の2つを読み取る。根拠の引用があれば、出どころと一緒に読む&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;names-both&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;食い違った相手と、合わせた先の両方を書く&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;片方だけでは、なぜ変えたかが分からない&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;2つが書かれているかを見る&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+            <span class="k inx">"reads"</span>: [
+              <span class="v">&quot;/why&quot;</span>
+            ],
+            <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"shift"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;array&quot;</span>,
+      <span class="k std">"minItems"</span>: <span class="v">1</span>,
+      <span class="k std">"items"</span>: {
+        <span class="k std">"type"</span>: <span class="v">&quot;object&quot;</span>,
+        <span class="k std">"required"</span>: [
+          <span class="v">&quot;what&quot;</span>,
+          <span class="v">&quot;from&quot;</span>,
+          <span class="v">&quot;to&quot;</span>
+        ],
+        <span class="k std">"properties"</span>: {
+          <span class="k field">"what"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>
+          },
+          <span class="k field">"from"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>
+          },
+          <span class="k field">"to"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>
+          }
+        }
+      },
+      <span class="k std">"description"</span>: <span class="v">&quot;どう変わるか&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;抽象の側の変更前と変更後&quot;</span>,
+          <span class="k inx">"shown"</span>: <span class="v">&quot;変更前と変更後を並べた表として出る&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;abstract-side&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;what には、ファイル名ではなく抽象の側の名前を書く&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;具体の差分は変更の印が示す&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;what がファイル名やコマンドでないかを見る&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+            <span class="k inx">"reads"</span>: [
+              <span class="v">&quot;/shift&quot;</span>
+            ],
+            <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"alternatives"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;array&quot;</span>,
+      <span class="k std">"minItems"</span>: <span class="v">1</span>,
+      <span class="k std">"items"</span>: {
+        <span class="k std">"type"</span>: <span class="v">&quot;object&quot;</span>,
+        <span class="k std">"required"</span>: [
+          <span class="v">&quot;option&quot;</span>,
+          <span class="v">&quot;why_not&quot;</span>
+        ],
+        <span class="k std">"properties"</span>: {
+          <span class="k field">"option"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+            <span class="k std">"minLength"</span>: <span class="v">1</span>
+          },
+          <span class="k field">"why_not"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+            <span class="k std">"minLength"</span>: <span class="v">1</span>
+          }
+        }
+      },
+      <span class="k std">"description"</span>: <span class="v">&quot;比較した案&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;案ごとに、採らなかった理由&quot;</span>,
+          <span class="k inx">"parse"</span>: <span class="v">&quot;どれも反証を通らなかった案で、残っている懸念ではない&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;refuted-only&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;反証を通らなかった案だけを書き、未解決の懸念を混ぜない&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;懸念が混ざると、承認する人が判断を止める&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;why_not が「通らなかった理由」になっているかを見る&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;ai&quot;</span>,
+            <span class="k inx">"reads"</span>: [
+              <span class="v">&quot;/alternatives&quot;</span>
+            ],
+            <span class="k inx">"agent"</span>: <span class="v">&quot;reviewer&quot;</span>
+          }
+        ]
+      }
+    },
+    <span class="k field">"supersedes"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+      <span class="k std">"pattern"</span>: <span class="v">&quot;^[0-9]{4}-[a-z0-9]+(-[a-z0-9]+)*$&quot;</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;置き換えた記録の番号&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;この記録が置き換えた、前の記録の番号&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;target-exists&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;置き換えた記録が在る番号を書く&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;無い記録は置き換えられない&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;その番号の記録が在るかを見る（記録をまたぐので基盤のエンジン）&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;machine&quot;</span>
+          }
+        ]
+      },
+      <span class="k x">"x-relationship"</span>: {
+        <span class="k inx">"to"</span>: <span class="v">&quot;urn:semantic-agent-schema:acdr:decision-record:v1&quot;</span>
+      }
+    },
+    <span class="k field">"docs"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;array&quot;</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;変えた文書と、変更1件ごとのどこ ・ 変更前 ・ なぜ&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;この決定で変えた文書と、その印&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;why-per-change&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;変更の印ごとに、なぜを書く&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;理由の無い変更は記録に含めない&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;git の差分のまとまりごとに理由があるかを見る（Git を読むので acdr の CLI）&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;machine&quot;</span>,
+            <span class="k inx">"agent"</span>: <span class="v">&quot;acdr-inspect&quot;</span>
+          }
+        ]
+      },
+      <span class="k std">"items"</span>: {
+        <span class="k std">"type"</span>: <span class="v">&quot;object&quot;</span>,
+        <span class="k std">"required"</span>: [
+          <span class="v">&quot;key&quot;</span>,
+          <span class="v">&quot;tab&quot;</span>,
+          <span class="v">&quot;file&quot;</span>
+        ],
+        <span class="k std">"additionalProperties"</span>: <span class="v">false</span>,
+        <span class="k std">"properties"</span>: {
+          <span class="k field">"key"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+            <span class="k std">"pattern"</span>: <span class="v">&quot;^[a-z0-9-]+$&quot;</span>
+          },
+          <span class="k field">"tab"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+            <span class="k std">"minLength"</span>: <span class="v">1</span>
+          },
+          <span class="k field">"file"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+            <span class="k std">"minLength"</span>: <span class="v">1</span>
+          },
+          <span class="k field">"rev"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>
+          },
+          <span class="k field">"before"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>
+          },
+          <span class="k field">"marks"</span>: {
+            <span class="k std">"type"</span>: <span class="v">&quot;array&quot;</span>,
+            <span class="k std">"items"</span>: {
+              <span class="k std">"type"</span>: <span class="v">&quot;object&quot;</span>,
+              <span class="k std">"required"</span>: [
+                <span class="v">&quot;find&quot;</span>,
+                <span class="v">&quot;why&quot;</span>
+              ],
+              <span class="k std">"additionalProperties"</span>: <span class="v">false</span>,
+              <span class="k std">"properties"</span>: {
+                <span class="k field">"find"</span>: {
+                  <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+                  <span class="k std">"minLength"</span>: <span class="v">1</span>
+                },
+                <span class="k field">"before"</span>: {
+                  <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>
+                },
+                <span class="k field">"why"</span>: {
+                  <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+                  <span class="k std">"minLength"</span>: <span class="v">1</span>
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    <span class="k field">"id"</span>: {
+      <span class="k std">"type"</span>: <span class="v">&quot;string&quot;</span>,
+      <span class="k std">"pattern"</span>: <span class="v">&quot;^[0-9]{4}-[a-z0-9]+(-[a-z0-9]+)*$&quot;</span>,
+      <span class="k std">"readOnly"</span>: <span class="v">true</span>,
+      <span class="k std">"description"</span>: <span class="v">&quot;記録の id&quot;</span>,
+      <span class="k x">"x-prompt"</span>: {
+        <span class="k inx">"read"</span>: {
+          <span class="k inx">"means"</span>: <span class="v">&quot;番号と短い名詞句（英小文字）をつないだ、記録の id である。&quot;</span>,
+          <span class="k inx">"parse"</span>: <span class="v">&quot;先頭の4桁が no と同じ。置き場所の {id} に入る。&quot;</span>
+        },
+        <span class="k inx">"write"</span>: [
+          {
+            <span class="k inx">"id"</span>: <span class="v">&quot;id-starts-with-no&quot;</span>,
+            <span class="k inx">"rule"</span>: <span class="v">&quot;id の先頭の4桁は no と同じである。&quot;</span>,
+            <span class="k inx">"why"</span>: <span class="v">&quot;番号と id が食い違うと、置き場所と題がずれる。&quot;</span>,
+            <span class="k inx">"test"</span>: <span class="v">&quot;id の先頭4桁と no を比べる。&quot;</span>,
+            <span class="k inx">"by"</span>: <span class="v">&quot;machine&quot;</span>
+          }
+        ]
+      }
+    }
+  },
+  <span class="k std">"allOf"</span>: [
+    {
+      <span class="k std">"if"</span>: {
+        <span class="k std">"properties"</span>: {
+          <span class="k field">"status"</span>: {
+            <span class="k std">"const"</span>: <span class="v">&quot;superseded&quot;</span>
+          }
+        }
+      },
+      <span class="k std">"then"</span>: {
+        <span class="k std">"required"</span>: [
+          <span class="v">&quot;supersedes&quot;</span>
+        ]
+      }
+    },
+    {
+      <span class="k std">"if"</span>: {
+        <span class="k std">"properties"</span>: {
+          <span class="k field">"status"</span>: {
+            <span class="k std">"const"</span>: <span class="v">&quot;accepted&quot;</span>
+          }
+        }
+      },
+      <span class="k std">"then"</span>: {
+        <span class="k std">"required"</span>: [
+          <span class="v">&quot;docs&quot;</span>
+        ]
+      }
+    }
+  ],
+  <span class="k std">"$defs"</span>: {}
+}</pre>
+</main>

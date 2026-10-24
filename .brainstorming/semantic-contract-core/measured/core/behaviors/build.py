@@ -163,7 +163,7 @@ static = [sch(f'S-ST-{n}', f'{n} は本体に従う', ['I3'], BODY, f'schemas/{n
      {'session': {'tool': 'claude-code', 'id': 'X'}, 'purpose_ref': 'ACDR 0197', 'state': 'open', 'last_used_at': '2026-10-24T10:00:00Z'}, False),
  sch('S-ST-bad-9', '設定に知らない欄があれば断る（許可などを持たない）', ['I40'], 'urn:semantic-agent-schema:base:settings:v1',
      {'$schema': 'urn:semantic-agent-schema:base:settings:v1', 'kind': 'settings', 'id': 'project', 'permissions': {}}, False),
- sch('S-ST-bad-10', 'accepted の ACDR に変更の記録が無ければ断る', ['I3'], 'urn:semantic-agent-schema:acdr:decision-record:v1', {k: v for k, v in json.load(open(os.path.join(HERE, '..', 'examples', 'acdr.instances.json')))['I3'].items() if k != 'changes'}, False, [], 'examples/acdr.concrete.json'),
+ sch('S-ST-bad-10', 'accepted の ACDR に docs が無ければ断る', ['I3'], 'urn:semantic-agent-schema:acdr:decision-record:v1', {k: v for k, v in json.load(open(os.path.join(HERE, '..', 'examples', 'acdr.instances.json')))['I3'].items() if k != 'docs'}, False, [], 'examples/acdr.concrete.json'),
 ]
 for name, xs in [('changes', changes), ('sessions', sessions), ('sqlite', adapter), ('static', static)]:
     json.dump(xs, open(os.path.join(HERE, f'{name}.json'), 'w'), ensure_ascii=False, indent=1)

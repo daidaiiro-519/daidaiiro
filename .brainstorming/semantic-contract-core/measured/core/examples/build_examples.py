@@ -13,15 +13,14 @@ c['x-instance-path'] = '.acdr/{id}/acdr.json'
 c['required'] = ['$schema', 'kind', 'id'] + [k for k in c['required'] if k not in ('$schema', 'kind')]
 log('E01', 'id 欄を足し、置き場所を .acdr/{id}/acdr.json にする', '1件は id と kind。{slug} が欄に無かった', 'board Q1 #35 ・ reviews2/adversarial 3-10 3-11 ・ ddd F15')
 
-P.pop('docs'); c['x-delegates'].pop('acdr-inspect')
-P['changes'] = {"type": "array", "items": {"type": "string", "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$", "x-relationship": {"to": "urn:semantic-agent-schema:base:change:v1"}},
-  "description": "この決定の変更の記録",
-  "x-prompt": {"read": {"means": "この決定のために書いた変更の記録の id の並びである。", "shown": "ACDR のビューが、基盤の変更のまとまりを、決定の下に意図ごとに出す。"},
-               "write": [{"id": "purpose-matches", "rule": "並べた変更の記録の目的の参照は、この記録（ACDR の番号）である。", "why": "ほかの目的の変更が混ざると、決定の差分を取り違える。", "test": "各変更の記録の purpose_ref が ACDR {no} かを見る。", "by": "machine"}]}}
-for cond in c['allOf']:
-    if cond['then'].get('required') == ['docs']:
-        cond['then'] = {"required": ["changes"], "properties": {"changes": {"minItems": 1}}}
-log('E02', 'docs と acdr-inspect（Git の差分を読む）を外し、変更の記録の id の並び changes を足す', 'ACDR は基盤の変更のまとまりを広げて見やすくしたもの。Git を自分で読まない', 'user-instructions「ACDRはこれをより拡張して見やすくしたもの」 ・ reviews2/adversarial 2-17 2-18')
+log('E02', '（取り下げ）docs と acdr-inspect は外さない', 'ACDR は基盤の差分を、より分かりやすく見せることに特化した Concrete。docs（変更1件ごとのどこ ・ 変更前 ・ なぜ）と acdr-inspect はその拡張の部分で、基盤と重ならない', 'user-instructions「ACDRはこれをより拡張して見やすくしたもの」 ・ 利用者「これははずさないよ？」')
+
+mark = {"type": "object", "required": ["find", "why"], "additionalProperties": False, "properties": {
+  "find": {"type": "string", "minLength": 1}, "before": {"type": "string"}, "why": {"type": "string", "minLength": 1}}}
+P['docs'].update({"description": "変えた文書と、変更1件ごとのどこ ・ 変更前 ・ なぜ", "items": {"type": "object", "required": ["key", "tab", "file"], "additionalProperties": False, "properties": {
+  "key": {"type": "string", "pattern": "^[a-z0-9-]+$"}, "tab": {"type": "string", "minLength": 1}, "file": {"type": "string", "minLength": 1},
+  "rev": {"type": "string"}, "before": {"type": "string"}, "marks": {"type": "array", "items": mark}}}})
+log('E05', 'docs の項目の形を、いまの acdr Skill のスキーマ（key ・ tab ・ file ・ rev ・ before ・ marks の3つ組）に合わせる', '下書きは docs の形を省いていた', '.claude/skills/acdr/references/acdr.schema.json')
 
 body = c['$defs'].pop('review-body', None)
 if body is not None:
@@ -38,9 +37,10 @@ json.dump(c, open(os.path.join(HERE, 'acdr.concrete.json'), 'w'), ensure_ascii=F
 ins = json.load(open(os.path.join(DRAFT, 'instances.json')))
 out = {}
 for k, v in ins.items():
-    v = copy.deepcopy(v); v.pop('docs', None)
+    v = copy.deepcopy(v)
+    v['docs'] = [{'key': 'tool', 'tab': '画面の AI の起動', 'file': 'brainstorming/tool/agent.rs', 'rev': 'HEAD',
+                  'marks': [{'find': 'fn spawn_agent(cfg: &AgentCfg)', 'before': 'fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool])', 'why': '許可の一覧を渡さず、各 AI ツールの設定ファイルに合わせる。'}]}]
     v = {'$schema': v.pop('$schema'), 'kind': v.pop('kind'), 'id': '0197-ai-permissions', **v}
-    v['changes'] = ['01JBA0C1Q4M6R2T9V5X7Y1A3C5']
     out[k] = v
 json.dump(out, open(os.path.join(HERE, 'acdr.instances.json'), 'w'), ensure_ascii=False, indent=2)
 json.dump(E, open(os.path.join(HERE, 'acdr.changes.json'), 'w'), ensure_ascii=False, indent=1)
