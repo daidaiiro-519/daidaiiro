@@ -5,6 +5,7 @@ import json
 import re
 import markdown
 from review_ui import enhance
+from review_navigation import build_navigation
 
 A = Path(__file__).resolve().parent
 V = A.parent / 'viewer'
@@ -158,6 +159,7 @@ def publish():
     text = enhance(text)
     (V / 'design-review.html').write_text(text)
     (A / 'comparison.html').write_text(text)
+    build_navigation(A, V)
     log = [dict(slide=1, group='story', change='資料とコードを確認する新規参画者を含む案件の前提を説明し、原因を先に断定しない原稿へ変更。'),
            dict(slide=1, group='figure', change='既存の人物・資料の部品を使用し、業務担当者と既存コードを追加。新しく加わった開発者は枠線だけを強調し、背景はpaper色に変更。'),
            dict(slide=2, group='story', change='案件の前提を受け、既存の申請変更機能を刷新する担当作業を説明。原因の説明は後の枚へ移動。'),

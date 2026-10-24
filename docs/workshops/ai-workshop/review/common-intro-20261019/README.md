@@ -24,3 +24,11 @@ python3 -m http.server 8772 --bind 127.0.0.1 --directory docs/workshops/ai-works
 図と原稿の内容を変えず、資料・枚の切替、重ね合わせ、原稿の文単位の追加・削除、変更理由を確認できます。UIの生成元はworkspace/review_ui.pyとreview-ui-shell.html、review-ui.css、review-ui.jsです。build_review.py --publishで同じ比較ページを再生成します。
 
 操作の確認は `node tools/check_review_ui_20261024.cjs`。確認画像と結果はworkspace/ui-review-20261024/に保存しています。旧原稿が保存されていない資料は、変更後のみ表示します。
+
+## メイン画面と画面遷移
+
+8772番ポートのルートは作業の入口です。比較はdesign-review.html、通しの閲覧はmaterials.html、共通方針と進捗はworkflow.html、画面遷移図はnavigation.htmlで確認できます。従来のルートの資料リンクも閲覧画面へ移動します。
+
+生成元はworkspace/review_navigation.pyとreview-navigation.css。materials-source.htmlは以前の閲覧画面の元の入力です。はじめにの図と原稿は現在の制作元から反映し、古い動画は変更前と表示します。build_review.py --publishで同時に生成するため、公開HTMLだけを直接編集しないでください。
+
+確認は `node tools/check_review_navigation_20261024.cjs`。画面遷移図の入力はworkspace/navigation.source.svgとnavigation.mmd、確認画像と結果はworkspace/navigation-review-20261024/です。

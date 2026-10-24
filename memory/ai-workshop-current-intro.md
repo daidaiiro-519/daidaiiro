@@ -19,3 +19,5 @@ metadata:
 図と原稿の修正はレビュー用。正本・音声・動画は未変更。全編に対する最新のLunaレビューも未実施。過去の経緯は[旧記録](ai-workshop.md)とGit履歴、生成方法は[引き継ぎ](../docs/workshops/ai-workshop/review/common-intro-20261019/HANDOFF.md)を参照できる。古い引き継ぎに含まれる枚数や次の作業は、現在のprogress.jsonと異なる場合がある。
 
 2026年10月24日、利用者の依頼で比較HTMLの操作と差分表示を改善した。図は並列・重ね合わせ、原稿は文単位の追加・削除と全文並列を切替可能。変更理由は独立表示。生成元はworkspace/review_ui.pyとreview-ui-shell.html、review-ui.css、review-ui.js。スライド・原稿自体と5枚目の確認待ちは変更していない。確認画像と結果はworkspace/ui-review-20261024/。
+
+2026年10月24日、利用者の依頼で画面遷移図を作成し、メイン画面から比較・閲覧・制作情報へ進む導線を整理した。ルートはメイン、閲覧はmaterials.html、方針と進捗はworkflow.html、図はnavigation.html。build_review.pyがreview_navigation.pyから生成する。比較と閲覧は資料と枚を維持して往復できる。古いルートの資料リンクは閲覧へ移動する。図・原稿の入力は未変更で、5枚目の確認待ちは変わらない。

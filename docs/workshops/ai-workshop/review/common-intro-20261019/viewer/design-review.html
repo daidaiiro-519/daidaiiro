@@ -35,6 +35,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,su
 .skip-link{position:fixed;top:-100px;left:20px;background:var(--paper);padding:12px;z-index:20}.skip-link:focus{top:12px}
 .review-header h1{margin:3px 0;font-size:clamp(23px,3vw,30px)}.review-header>p{margin:5px 0}
 .eyebrow,.muted{color:var(--dim);font-size:13px}.eyebrow{letter-spacing:.1em}
+.page-nav{display:flex;gap:10px 20px;flex-wrap:wrap;margin:15px 0;font-size:14px}
 .task-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 22px}.task-nav a{display:block;border:1px solid var(--line);border-radius:9px;background:var(--paper);padding:8px 14px;text-decoration:none}.task-nav a:hover{border-color:var(--accent)}
 .review-controls{position:sticky;top:0;z-index:5;padding:14px 16px 10px;background:var(--paper);border:1px solid var(--diagram-line);border-radius:12px;box-shadow:0 5px 0 var(--ground)}
 .review-selectors{display:flex;gap:14px;align-items:end;flex-wrap:wrap}.review-selectors label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--dim);min-width:0;flex:1}.review-selectors .slide-select{flex:2}.review-selectors select{width:100%;min-width:0;font-size:14px;padding:9px}.pager{display:flex;gap:8px;align-items:center}.pager button{white-space:nowrap;min-height:43px}.pager output{min-width:48px;text-align:center;font-size:14px}.current-title{margin:9px 0 0;font-size:14px;font-weight:700;overflow-wrap:anywhere}
@@ -48,13 +49,18 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,su
 .diff-panels{margin-top:14px}.diff-side{border:1px solid var(--line);border-radius:9px;padding:14px;background:var(--paper)}.diff-side h3{font-size:14px;color:var(--dim);margin:0 0 8px}.diff-side .diff-content{margin-top:0}.diff-side del,.diff-side ins{padding:0}
 @media(max-width:850px){.pair{grid-template-columns:1fr}.review-selectors label{flex-basis:100%}.review-selectors .slide-select{flex-basis:100%}.review-controls{position:static;padding:12px}.pager{width:100%;justify-content:space-between}.current-title{font-size:13px}html{scroll-padding-top:16px}.section-heading{align-items:start}.preview-card,.diff-field,.overlay-panel{padding:12px}.task-nav a{padding:7px 10px;font-size:13px}.reference-group{padding:12px}.reason-card{padding:12px}.diff-content{font-size:15px}.review-selectors select{font-size:16px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+#review-workspace:focus{outline:none}
 </style><a class="skip-link" href="#review-workspace">比較へ移動</a>
 <header class="review-header">
   <p class="eyebrow">AIワークショップ · 制作レビュー</p>
   <h1>スライドと原稿の変更を確認</h1>
   <p>資料とスライドを選び、図・原稿の差分と変更理由を確認できます。</p>
-  <nav class="task-nav" aria-label="確認する内容">
-    <a href="#slide-comparison">スライド比較</a><a href="#script-comparison">原稿差分</a><a href="#change-reason">変更理由</a><a href="#review-context">構成・進捗</a><a href="/">資料の閲覧ページ</a>
+  <nav class="page-nav" aria-label="画面の移動">
+    <a href="./">← メイン画面</a><a id="reader-link" href="materials.html#lead">この資料を通して見る</a><a href="workflow.html">制作方針・進捗</a><a href="navigation.html">画面遷移図</a>
+  </nav>
+  <nav class="task-nav" aria-label="この比較で確認する内容">
+    <a href="#slide-comparison">スライド比較</a><a href="#script-comparison">原稿差分</a><a href="#change-reason">変更理由</a><a href="#review-context">この資料の構成</a>
   </nav>
 </header>
 <main id="review-workspace" tabindex="-1">
@@ -402,6 +408,7 @@ function show(){
   n=Math.max(1,Math.min(n,current.notes.length));el('slide').value=String(n);
   frameSource('before',current.before);frameSource('after',current.after);
   el('before-open').href=current.before+'#'+n;el('after-open').href=current.after+'#'+n;
+  el('reader-link').href='materials.html?slide='+n+'#'+encodeURIComponent(current.id);
   el('design-reason').textContent=current.reasons?.[String(n)]||'この枚の変更理由は未記録です。';
   el('before-narration').innerHTML=current.beforeNotes?.[n-1]?.body||'';
   el('after-narration').innerHTML=(current.afterNotes||current.notes)[n-1].body;
@@ -451,6 +458,7 @@ document.addEventListener('keydown',event=>{
   if(event.key==='ArrowLeft'&&n>1){event.preventDefault();n--;show();}
 });
 for(const link of document.querySelectorAll('.task-nav a'))link.addEventListener('click',()=>{
+  if(!link.getAttribute('href').startsWith('#'))return;
   const id=link.getAttribute('href').slice(1),target=document.getElementById(id);
   if(target?.tagName==='DETAILS')target.open=true;
 });

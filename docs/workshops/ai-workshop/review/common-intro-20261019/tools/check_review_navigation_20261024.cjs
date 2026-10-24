@@ -1,0 +1,62 @@
+const {chromium}=require('/home/daidaiiro/.npm/_npx/705bc6b22212b352/node_modules/playwright');
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation-review-20261024');
+(async()=>{
+ const browser=await chromium.launch({executablePath:'/home/daidaiiro/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome',headless:true,args:['--no-sandbox']});
+ try{
+  const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'}),errors=[];
+  page.on('pageerror',e=>errors.push(String(e)));fs.mkdirSync(out,{recursive:true});
+  await page.goto('http://127.0.0.1:8772/');
+  assert.equal(await page.locator('#main-tasks > section').count(),3);
+  await page.screenshot({path:path.join(out,'home-desktop.png'),animations:'disabled'});
+  await page.locator('#resume-review').click();
+  await page.waitForFunction(()=>document.querySelector('#slide')?.value==='5');
+  assert.equal(await page.locator('#deck').inputValue(),'lead');
+  await page.locator('#reader-link').click();
+  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='5');
+  assert.equal(await page.locator('#page-number').textContent(),'5 / 7');
+  const expected=JSON.parse(fs.readFileSync(path.join(root,'slide-05.json'),'utf8'));
+  assert.equal(await page.locator('#script-title').textContent(),expected.heading);
+  assert((await page.locator('#script-body').textContent()).includes(expected.narration.split('\n\n')[0]));
+  await page.waitForTimeout(600);
+  const frame=page.frames().find(f=>f.url().includes('common-intro-review/after.html'));
+  assert(frame);assert.equal(await frame.locator('.slide.on h2').textContent(),expected.heading);
+  assert((await page.locator('[data-mode="video"]').textContent()).includes('変更前'));
+  await page.locator('#slide-select').selectOption('6');await page.reload();
+  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='6');
+  await page.locator('#slide-select').selectOption('5');
+  await page.screenshot({path:path.join(out,'reader-desktop.png'),animations:'disabled'});
+  await page.locator('#compare-current').click();
+  await page.waitForFunction(()=>document.querySelector('#slide')?.value==='5');
+  assert.equal(await page.locator('#deck').inputValue(),'lead');
+  await page.screenshot({path:path.join(out,'compare-desktop.png'),animations:'disabled'});
+  await page.locator('.page-nav a[href="./"]').click();
+  await page.locator('a[href="materials.html?mode=video#orientation"]').click();
+  await page.waitForFunction(()=>document.querySelector('#video-panel')&&!document.querySelector('#video-panel').hidden);
+  assert((await page.locator('#video-content video source').getAttribute('src')).includes('00-start.mp4'));
+  await page.goto('http://127.0.0.1:8772/workflow.html');
+  assert((await page.locator('#tracks').textContent()).includes('5枚目を確認待ち'));
+  assert((await page.locator('#direction').textContent()).includes('2026-10-24-01'));
+  await page.screenshot({path:path.join(out,'workflow-desktop.png'),animations:'disabled'});
+  await page.goto('http://127.0.0.1:8772/navigation.html');
+  assert.equal(await page.locator('svg a').count(),4);
+  await page.evaluate(()=>document.fonts.ready);
+  await page.screenshot({path:path.join(out,'navigation-desktop.png'),animations:'disabled'});
+  await page.emulateMedia({colorScheme:'dark'});
+  await page.screenshot({path:path.join(out,'navigation-dark.png'),animations:'disabled'});
+  await page.emulateMedia({colorScheme:'light'});
+  for(const file of ['','navigation.html','workflow.html','materials.html?slide=5#lead']){
+   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:8772/'+file);
+   await page.waitForTimeout(200);
+   assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)),file+' overflow');
+   if(file==='')await page.screenshot({path:path.join(out,'home-mobile.png'),animations:'disabled'});
+   if(file==='navigation.html')await page.screenshot({path:path.join(out,'navigation-mobile.png'),animations:'disabled'});
+  }
+  await page.goto('http://127.0.0.1:8772/?slide=5#lead');
+  await page.waitForURL(url=>url.pathname.endsWith('/materials.html')&&url.searchParams.get('slide')==='5'&&url.hash==='#lead');
+  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='5');
+  assert.deepEqual(errors,[]);
+  const result={homeTasks:true,homeToComparison:true,comparisonReaderRoundTrip:true,selectionAndNarrationPreserved:true,oldVideoLabeled:true,orientationVideoLink:true,workflow:true,diagram:true,legacyRootLinks:true,mobileOverflow:false,errors};
+  fs.writeFileSync(path.join(out,'browser-check.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1)});
