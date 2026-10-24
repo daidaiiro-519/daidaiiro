@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dependency-rules:rules:v1",
+  "title": "dependency-rules の規則",
+  "description": "node の名前を component にまとめ、component の間で許す辺だけを allow に書く。書いていない辺はすべて禁止する。node の名前の付け方と kinds に書ける値は、グラフの読み取りが決める（graph.schema.json の説明を見る）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "components", "allow"],
+  "properties": {
+    "version": { "const": 1, "description": "形の版。欄を足すだけなら同じ版、意味を変えるなら上げる" },
+    "description": { "type": "string", "description": "この規則が何を守るか" },
+    "components": {
+      "type": "array",
+      "description": "node の集まり。1つの node が2つ以上の component に当たると規則の誤り",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "nodes"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "nodes": {
+            "type": "array",
+            "minItems": 1,
+            "description": "node の名前のパターン。完全一致か、末尾の * で前方一致",
+            "items": { "type": "string", "minLength": 1, "not": { "const": "*" } }
+          },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "allow": {
+      "type": "array",
+      "description": "許す辺。同じ component の中の辺も、書かなければ禁止",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1, "description": "辺の元の component" },
+          "to": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "辺の先の component" },
+          "kinds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "許す辺の種類。省けばすべての種類を許す" },
+          "description": { "type": "string", "description": "なぜ許すか" }
+        }
+      }
+    }
+  }
+}

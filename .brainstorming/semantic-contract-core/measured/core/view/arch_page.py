@@ -39,10 +39,10 @@ s = between(s, '<h2>4　依存の向き</h2>', '<h2>5　', f'''<h2>4　依存の
 ''')
 s = s.replace('<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から adapters ・ entry への辺は種類を問わず0件</td>', '<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から application ・ outbound ・ inbound への辺は種類を問わず0件</td>')
 if False: s = s.replace('<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td>', '<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td></tr><tr><td>trait を通した入出力は clippy で止まらない</td><td>domain/ に trait のポートを置かない。ポートは application/src/ports/ だけに置き、domain/ の公開の関数が引数に dyn ・ impl の trait を取らないことを検査する')
-s = between(s, '<h2>6　', '<h2>7　', '<h2>6　決定的にする検査</h2><p class="meta">依存の検証の大半は Cargo がする。足すのは、Cargo が知らない「どの辺を許すか」の表1つと、Cargo の外の2つだけ。どれも cargo のコマンドで回す</p>' + table(['何を止めるか', '誰が止めるか', 'コマンド'], [
+s = between(s, '<h2>6　', '<h2>7　', '<h2>6　決定的にする検査</h2><p class="meta">依存の検証の大半は Cargo がする。足すのは、Cargo が知らない「どの辺を許すか」の規則1つと、Cargo の外の2つだけ。規則はリポジトリ直下の dependency-rules で検査する</p>' + table(['何を止めるか', '誰が止めるか', 'コマンド'], [
  ['Cargo.toml に書いていない crate を使う', 'Cargo（コンパイルが止まる）', 'cargo build'],
  ['通常の依存の循環', 'Cargo（resolver が止める）', 'cargo build'],
- ['許していない辺を Cargo.toml に書く（例：domain/change → outbound/fs）。dev ・ build の辺の循環と、表に無い外の crate も同じ', 'architecture.json の許す辺の表。Cargo はこの向きを知らないので、これだけは表を持つ', 'cargo metadata の辺（種類つき）を表と突き合わせる'],
+ ['許していない辺を Cargo.toml に書く（例：domain/change → outbound/fs）。dev ・ build の辺の循環と、表に無い外の crate も同じ', 'architecture.json（component と allow の規則）。Cargo はこの向きを知らないので、これだけは規則を持つ。検査は内作の dependency-rules（ACDR 0199）', 'dependency-rules check --rules architecture.json --cargo .'],
  ['domain が std の入出力 ・ 時刻 ・ 乱数を使う', 'clippy の disallowed（forbid にして #[allow] で外せなくする）', 'cargo clippy --workspace'],
  ['workspace でまとめてビルドしたときだけ feature が足される（jsonschema の取りに行く機能など）', 'crate を1つずつ単独にビルドする', 'cargo build -p &lt;crate&gt; ・ cargo tree -e features'],
 ]) + '<p class="meta">外したもの：外の crate の pub use の grep（コードレビューで足りる）・ domain の関数が trait を引数に取らないかの検査（outbound は application にしか依存できないので、domain の trait を実装できない。上の表の検査で足りる）</p>\n')

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dependency-rules:graph:v1",
+  "title": "dependency-rules のグラフ",
+  "description": "判定の中心が受け取る依存のグラフ。どの言語の読み取りもこの形で渡す（check --graph）。Rust の読み取り（check --cargo ・ graph --cargo）は cargo metadata --no-deps から作り、node の名前は package の name、kind は dependencies の kind（normal ・ dev ・ build）。外の node は内の node の直接の依存だけ",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "nodes", "edges"],
+  "properties": {
+    "version": { "const": 1, "description": "形の版。欄を足すだけなら同じ版、意味を変えるなら上げる" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "external"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "規則の component のパターンと照らす名前。付け方は読み取りごとに決める" },
+          "external": { "type": "boolean", "description": "検査する範囲の外の node（外の依存）なら true" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "kind"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1, "description": "辺の種類。値は読み取りごとに決め、規則の kinds と照らす。判定の中心は意味を解釈しない" }
+        }
+      }
+    }
+  }
+}

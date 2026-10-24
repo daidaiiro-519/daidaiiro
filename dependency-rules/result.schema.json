@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dependency-rules:result:v1",
+  "title": "dependency-rules の結果（check --json）",
+  "description": "違反の一覧。終了コードは 0 違反なし ／ 1 違反あり ／ 2 規則かグラフが読めない（このときは結果を出さず、標準エラーに理由を出す）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "ok", "violations"],
+  "properties": {
+    "version": { "const": 1 },
+    "ok": { "type": "boolean", "description": "違反が0件なら true" },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reason", "from", "to", "kind", "from_component", "to_component"],
+        "properties": {
+          "reason": { "enum": ["not-in-allowed", "uncovered"], "description": "not-in-allowed は allow に無い辺、uncovered はどの component にも入らない node" },
+          "from": { "type": "string" },
+          "to": { "type": ["string", "null"], "description": "辺を持たない node の uncovered なら null" },
+          "kind": { "type": ["string", "null"] },
+          "from_component": { "type": ["string", "null"] },
+          "to_component": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

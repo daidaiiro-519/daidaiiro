@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "description": "semantic-agent-schema のアーキテクチャ（arch.html 4節の依存の表）",
+  "components": [
+    {"name": "declaration", "nodes": ["semantic-agent-schema-declaration"]},
+    {"name": "change", "nodes": ["semantic-agent-schema-change"]},
+    {"name": "validation", "nodes": ["semantic-agent-schema-validation"]},
+    {"name": "render", "nodes": ["semantic-agent-schema-render"]},
+    {"name": "search", "nodes": ["semantic-agent-schema-search"]},
+    {"name": "instance", "nodes": ["semantic-agent-schema-instance"]},
+    {"name": "migration-publish", "nodes": ["semantic-agent-schema-migration", "semantic-agent-schema-publish"]},
+    {"name": "session", "nodes": ["semantic-agent-schema-session"]},
+    {"name": "application", "nodes": ["semantic-agent-schema-application"]},
+    {"name": "agents-contract", "nodes": ["semantic-agent-schema-agents-contract"]},
+    {"name": "ai-cli", "nodes": ["semantic-agent-schema-ai-cli"]},
+    {"name": "sqlite", "nodes": ["semantic-agent-schema-sqlite"]},
+    {"name": "outbound", "nodes": ["semantic-agent-schema-git", "semantic-agent-schema-fs", "semantic-agent-schema-tools"]},
+    {"name": "cli", "nodes": ["semantic-agent-schema-cli"]},
+    {"name": "jsonschema", "nodes": ["jsonschema"]},
+    {"name": "rusqlite", "nodes": ["rusqlite"]},
+    {"name": "tempfile", "nodes": ["tempfile"]}
+  ],
+  "allow": [
+    {"from": "change", "to": ["declaration"]},
+    {"from": "validation", "to": ["change", "declaration", "jsonschema"], "description": "Validator は判定の記録と I33 に change の型を使う"},
+    {"from": "render", "to": ["validation", "change", "declaration"], "description": "Resolver を描画も使う（Q5 #1）"},
+    {"from": "search", "to": ["change", "declaration"]},
+    {"from": "instance", "to": ["declaration"]},
+    {"from": "migration-publish", "to": ["declaration"]},
+    {"from": "application", "to": ["declaration", "change", "validation", "render", "search", "instance", "migration-publish", "session"]},
+    {"from": "agents-contract", "to": ["application", "ai-cli"]},
+    {"from": "ai-cli", "to": ["application"]},
+    {"from": "sqlite", "to": ["application", "rusqlite"]},
+    {"from": "sqlite", "to": ["tempfile"], "kinds": ["dev"], "description": "テストの一時ディレクトリだけ"},
+    {"from": "outbound", "to": ["application"]},
+    {"from": "cli", "to": ["application", "agents-contract", "ai-cli", "sqlite", "outbound"]}
+  ]
+}
