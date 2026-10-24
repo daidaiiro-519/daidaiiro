@@ -1,0 +1,1415 @@
+[
+ {
+  "id": "S-REC-1",
+  "title": "AI が Markdown とコードを直し、意図だけを渡して記録する",
+  "traces": [
+   "U5:事後",
+   "U6:事後",
+   "I38",
+   "I37",
+   "I34"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "pending": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+   }
+  },
+  "when": {
+   "op": "record_change",
+   "args": {
+    "intent": "許可の一覧を渡さない",
+    "session": {
+     "tool": "claude-code",
+     "id": "P1"
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/change/items",
+    "message": "前後に出た2つのファイルが変更の項目に入っていない",
+    "count": 2
+   },
+   {
+    "id": "E2",
+    "at": "/result/change/items/0/target/path",
+    "message": "対象がパスで入っていない",
+    "equals": "docs/SKILL.md"
+   },
+   {
+    "id": "E3",
+    "at": "/result/change/purpose_ref",
+    "message": "セッションの目的が写されていない（I38）",
+    "equals": "ACDR 0197"
+   },
+   {
+    "id": "E4",
+    "at": "/state/index/0/change_id",
+    "message": "手元の索引に足されていない",
+    "equals": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+   },
+   {
+    "id": "E5",
+    "at": "/result/change/session",
+    "message": "変更の記録にセッション ID が入っている（I34）",
+    "exists": false
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:change:v1",
+  "result_schema_at": "/change"
+ },
+ {
+  "id": "S-REC-2",
+  "title": "JSON のインスタンスは id と kind と欄で記録する",
+  "traces": [
+   "U6:事後",
+   "I31"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "pending": {
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。最小権限。\"\n}"
+   }
+  },
+  "when": {
+   "op": "record_change",
+   "args": {
+    "intent": "least-privilege の根拠を書く",
+    "session": {
+     "tool": "claude-code",
+     "id": "P1"
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/change/items",
+    "message": "欄の単位で1件になっていない",
+    "count": 1
+   },
+   {
+    "id": "E2",
+    "at": "/result/change/items/0/target",
+    "message": "対象が id と kind になっていない",
+    "equals": {
+     "id": "0197-ai-permissions",
+     "kind": "urn:semantic-agent-schema:acdr:decision-record:v1"
+    }
+   },
+   {
+    "id": "E3",
+    "at": "/result/change/items/0/field",
+    "message": "欄が /why になっていない",
+    "equals": "/why"
+   }
+  ]
+ },
+ {
+  "id": "S-REC-3",
+  "title": "変わったものが無ければ記録を作らない",
+  "traces": [
+   "I31"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ]
+  },
+  "when": {
+   "op": "record_change",
+   "args": {
+    "intent": "許可の一覧を渡さない",
+    "session": {
+     "tool": "claude-code",
+     "id": "P1"
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/refused",
+    "message": "変更の無い記録を作った",
+    "equals": "nothing-changed"
+   }
+  ],
+  "unchanged": [
+   "records",
+   "index"
+  ]
+ },
+ {
+  "id": "S-REC-4",
+  "title": "目的を持たないオーケストレーターは、呼ぶ側から目的を受け取り、索引には足さない",
+  "traces": [
+   "I38"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "pending": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+   }
+  },
+  "when": {
+   "op": "record_change",
+   "args": {
+    "intent": "CLAUDE.md を直す",
+    "session": {
+     "tool": "claude-code",
+     "id": "O1"
+    },
+    "purpose_ref": "ACDR 0190"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/change/purpose_ref",
+    "message": "呼ぶ側の目的が使われていない",
+    "equals": "ACDR 0190"
+   },
+   {
+    "id": "E2",
+    "at": "/state/index",
+    "message": "目的の無いセッションの索引を足した",
+    "count": 0
+   }
+  ]
+ },
+ {
+  "id": "S-PEND-1",
+  "title": "作業を始める前に、意図に入らない未確定の変更を見せる",
+  "traces": [
+   "U25:失敗時"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "pending": {
+    "CLAUDE.md": "# 運用ルール\n"
+   }
+  },
+  "when": {
+   "op": "check_pending"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions/0/type",
+    "message": "例外の種類が違う",
+    "equals": "unconfirmed-outside-intent"
+   },
+   {
+    "id": "E2",
+    "at": "/result/exceptions/0/items/0/path",
+    "message": "対象が違う",
+    "equals": "CLAUDE.md"
+   }
+  ]
+ },
+ {
+  "id": "S-PEND-2",
+  "title": "その変更を先に確定すれば、未確定の変更は空になる",
+  "traces": [
+   "U16:事後"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "CLAUDE.md": "# 運用ルール\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "運用ルールを足す",
+      "purpose_ref": "ACDR 0190",
+      "writer_kind": "human"
+     }
+    },
+    {
+     "op": "approve",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "check_pending"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions",
+    "message": "先に確定したのに残っている",
+    "count": 0
+   },
+   {
+    "id": "E2",
+    "at": "/state/pending",
+    "message": "未確定の変更が残っている",
+    "count": 0
+   }
+  ]
+ },
+ {
+  "id": "S-APP-1",
+  "title": "本人が承認したら、記録 ・ 判定 ・ 変更を1つの単位で確定する",
+  "traces": [
+   "U16:事後",
+   "I16"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "judge_intent",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "approve",
+   "args": {
+    "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/ref",
+    "message": "確定の単位の参照が返らない",
+    "exists": true
+   },
+   {
+    "id": "E2",
+    "at": "/state/pending",
+    "message": "確定したのに未確定の変更が残る",
+    "count": 0
+   }
+  ]
+ },
+ {
+  "id": "S-APP-2",
+  "title": "同じ承認をもう一度しても、失敗ではなく「変わったものが無い」と返る",
+  "traces": [
+   "U16:失敗時"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "judge_intent",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    },
+    {
+     "op": "approve",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     },
+     "save_ref": "after1"
+    }
+   ]
+  },
+  "when": {
+   "op": "approve",
+   "args": {
+    "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/nothing_changed",
+    "message": "確定し直しを失敗と取り違えた",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-VIEW-1",
+  "title": "確定した範囲の変更を、目的 → 意図 → 対象（欄 ・ 行）で見せる",
+  "traces": [
+   "U25:事後",
+   "I35",
+   "I36"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "judge_intent",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    },
+    {
+     "op": "approve",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     },
+     "save_ref": "after1"
+    }
+   ]
+  },
+  "when": {
+   "op": "change_view",
+   "args": {
+    "before": "$ref:start",
+    "after": "$ref:after1"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions",
+    "message": "例外が出た",
+    "count": 0
+   },
+   {
+    "id": "E2",
+    "at": "/result/purposes/0/purpose_ref",
+    "message": "目的が先頭に出ない",
+    "equals": "ACDR 0197"
+   },
+   {
+    "id": "E3",
+    "at": "/result/purposes/0/intents/0/judgment",
+    "message": "本人の承認が出ない",
+    "equals": "verified"
+   },
+   {
+    "id": "E4",
+    "at": "/result/purposes/0/intents/0/targets/0/kind",
+    "message": "Markdown が行で成型されていない",
+    "equals": "lines"
+   },
+   {
+    "id": "E5",
+    "at": "/result/purposes/0/intents/0/targets/0/lines",
+    "message": "ファイルの全体が出ていない",
+    "count": 4
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:change-view:v1#/$defs/view"
+ },
+ {
+  "id": "S-VIEW-2",
+  "title": "記録に入っていない変更は「記録に無い」と出る",
+  "traces": [
+   "I31",
+   "U25:失敗時"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "edit",
+     "args": {
+      "README.md": "使い方\n"
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "change_view",
+   "args": {
+    "before": "$ref:start"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions/0/type",
+    "message": "例外の種類が違う",
+    "equals": "unrecorded"
+   },
+   {
+    "id": "E2",
+    "at": "/result/exceptions/0/items/0/target/path",
+    "message": "対象が違う",
+    "equals": "README.md"
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:change-view:v1#/$defs/view"
+ },
+ {
+  "id": "S-VIEW-3",
+  "title": "書き換えの無い記録は「変更の無い記録」と出る",
+  "traces": [
+   "I31"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "edit",
+     "args": {
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n"
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "change_view",
+   "args": {
+    "before": "$ref:start"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions/0/type",
+    "message": "例外の種類が違う",
+    "equals": "no-change"
+   },
+   {
+    "id": "E2",
+    "at": "/result/exceptions/0/items/0/target/path",
+    "message": "対象が違う",
+    "equals": "tool/agent.rs"
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:change-view:v1#/$defs/view"
+ },
+ {
+  "id": "S-VIEW-4",
+  "title": "I33 が violated なら「意図が合わない」と出る",
+  "traces": [
+   "I33",
+   "U25:失敗時"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "judge": {
+    "許可の一覧を渡さない": "violated"
+   },
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "judge_intent",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "change_view",
+   "args": {
+    "before": "$ref:start"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions/0/type",
+    "message": "例外の種類が違う",
+    "equals": "intent-mismatch"
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:change-view:v1#/$defs/view"
+ },
+ {
+  "id": "S-VIEW-5",
+  "title": "手元の索引にあって、この前後に無い記録は「この前後には無い」と出る",
+  "traces": [
+   "U25:失敗時"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "index": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "change_id": "01JBA0C9Q4M6R2T9V5X7Y1A3C5"
+    }
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "change_view",
+   "args": {
+    "before": "$ref:start",
+    "session": {
+     "tool": "claude-code",
+     "id": "P1"
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/exceptions/0/type",
+    "message": "例外の種類が違う",
+    "equals": "not-in-range"
+   },
+   {
+    "id": "E2",
+    "at": "/result/exceptions/0/items/0/change_id",
+    "message": "記録が違う",
+    "equals": "01JBA0C9Q4M6R2T9V5X7Y1A3C5"
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:change-view:v1#/$defs/view"
+ },
+ {
+  "id": "S-VIEW-6",
+  "title": "参照に届かなければ、見せたことにしない",
+  "traces": [
+   "U25:失敗時",
+   "I42"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ]
+  },
+  "when": {
+   "op": "change_view",
+   "args": {
+    "before": "no-such-ref"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/not_shown",
+    "message": "届かない参照で0件を返した",
+    "equals": "unreachable"
+   }
+  ]
+ },
+ {
+  "id": "S-JUD-1",
+  "title": "判定の記録は対象 × rule で1件。判定し直すと上書きされる",
+  "traces": [
+   "I16"
+  ],
+  "adapters": [
+   "git",
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "judge": {
+    "許可の一覧を渡さない": "unverified"
+   },
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "judge_intent",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "judge_intent",
+   "args": {
+    "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/state/judgments",
+    "message": "同じ対象 × rule の記録が2件ある",
+    "count": 1
+   },
+   {
+    "id": "E2",
+    "at": "/result/judgment/question",
+    "message": "unverified に問いが無い",
+    "exists": true
+   }
+  ],
+  "result_schema": "urn:semantic-agent-schema:base:judgment:v1",
+  "result_schema_at": "/judgment"
+ },
+ {
+  "id": "S-JUD-2",
+  "title": "判定した値といまの値が違えば、その判定は効かない",
+  "traces": [
+   "I16"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {
+    "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n",
+    "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n",
+    ".acdr/0197-ai-permissions/acdr.json": "{\n \"$schema\": \"urn:semantic-agent-schema:acdr:decision-record:v1\",\n \"kind\": \"decision-record\",\n \"id\": \"0197-ai-permissions\",\n \"no\": \"0197\",\n \"title\": \"画面の AI の許可\",\n \"status\": \"proposed\",\n \"why\": \"食い違っていた。\"\n}"
+   },
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ids": [
+    "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C2Q4M6R2T9V5X7Y1A3C5",
+    "01JBA0C3Q4M6R2T9V5X7Y1A3C5"
+   ],
+   "steps": [
+    {
+     "op": "edit",
+     "args": {
+      "docs/SKILL.md": "# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n",
+      "tool/agent.rs": "fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n"
+     }
+    },
+    {
+     "op": "record_change",
+     "args": {
+      "intent": "許可の一覧を渡さない",
+      "session": {
+       "tool": "claude-code",
+       "id": "P1"
+      }
+     }
+    },
+    {
+     "op": "judge_intent",
+     "args": {
+      "change_id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5"
+     }
+    },
+    {
+     "op": "edit",
+     "args": {
+      ".semantic-agent-schema/changes/01JBA0C1Q4M6R2T9V5X7Y1A3C5.json": {
+       "$schema": "urn:semantic-agent-schema:base:change:v1",
+       "kind": "change",
+       "id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+       "purpose_ref": "ACDR 0197",
+       "intent": "別の意図に書き換えた",
+       "writer_kind": "ai-agent",
+       "items": [
+        {
+         "target": {
+          "path": "docs/SKILL.md"
+         }
+        }
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "judgment_effective",
+   "args": {
+    "key": "change/01JBA0C1Q4M6R2T9V5X7Y1A3C5/intent-matches-change"
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/effective",
+    "message": "値が変わったのに効いている",
+    "equals": false
+   }
+  ]
+ }
+]

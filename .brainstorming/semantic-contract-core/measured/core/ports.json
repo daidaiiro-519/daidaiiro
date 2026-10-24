@@ -1,0 +1,52 @@
+{
+  "about": "基盤が外に求めるポート（駆動される側）の入出力の契約。参照（ref）はすべて基盤が解釈しない文字列。アダプターはこの形で答える。",
+  "ports": {
+    "changes": {
+      "description": "変更の仕組みとやりとりする。Git ・ スナップショット（前と後のディレクトリ）などが満たす",
+      "ops": {
+        "last_confirmed": {"in": {}, "out": {"type": "object", "required": ["ref"], "properties": {"ref": {"type": "string"}}}},
+        "before_after": {
+          "in": {"type": "object", "required": ["before"], "properties": {"before": {"type": "string"}, "after": {"type": ["string", "null"], "description": "null は未確定の変更（まだ変更の仕組みに載っていない新しいファイルを含む）"}}},
+          "out": {"oneOf": [
+            {"type": "object", "required": ["items"], "properties": {"items": {"type": "array", "items": {"type": "object", "required": ["target", "before", "after"], "properties": {"target": {"type": "string"}, "before": {"type": ["string", "null"]}, "after": {"type": ["string", "null"]}}}}}},
+            {"type": "object", "required": ["unreachable"], "properties": {"unreachable": {"type": "string", "description": "参照に届かない（探していない）。0件とは返さない"}}}]}},
+        "unit": {
+          "in": {"type": "object", "required": ["ref"], "properties": {"ref": {"type": "string"}}},
+          "out": {"type": "object", "required": ["before", "after", "author", "time"], "properties": {"before": {"type": ["string", "null"]}, "after": {"type": "string"},
+            "author": {"type": "object", "required": ["value", "source"], "properties": {"value": {"type": "string"}, "source": {"enum": ["signed", "self-declared", "none"]}}},
+            "time": {"type": "object", "required": ["value", "source"], "properties": {"value": {"type": "string"}, "source": {"enum": ["signed", "self-declared", "none"]}}}}}},
+        "deleted_ids": {"in": {}, "out": {"type": "object", "required": ["ids", "searched"], "properties": {"ids": {"type": "array", "items": {"type": "string"}}, "searched": {"type": "string", "description": "探した範囲（どの単位まで）"}}}},
+        "confirm": {
+          "in": {"type": "object", "required": ["paths", "message"], "properties": {"paths": {"type": "array", "items": {"type": "string"}}, "message": {"type": "string"}}},
+          "out": {"oneOf": [{"type": "object", "required": ["ref"], "properties": {"ref": {"type": "string"}}},
+                            {"type": "object", "required": ["nothing_changed"], "properties": {"nothing_changed": {"const": true}}}]}}
+      }
+    },
+    "ai_session": {
+      "description": "AI ツールのセッションを問う。Claude Code ・ Codex ・ Copilot ・ Gemini ・ Kiro などの CLI のアダプターが満たす",
+      "ops": {
+        "inspect": {
+          "in": {"type": "object", "required": ["tool", "id"], "properties": {"tool": {"type": "string"}, "id": {"type": "string"}}},
+          "out": {"type": "object", "required": ["resumable", "cacheLifetime", "lastUsedAt", "historyPercent"], "properties": {
+            "resumable": {"type": "boolean"}, "cacheLifetime": {"oneOf": [{"type": "string", "pattern": "^PT"}, {"const": "unknown"}]},
+            "lastUsedAt": {"type": "string"}, "historyPercent": {"type": "number", "minimum": 0, "maximum": 100}}}}
+      }
+    },
+    "sessions_store": {
+      "description": "セッションと手元のセッションの索引を読む ・ 書く。SQLite のアダプター（adapters/sqlite.sql）が満たす",
+      "ops": {
+        "open_in_slot": {"in": {"description": "枠：オーケストレーター ・ 目的 ・ 親と役割"}, "out": {"description": "開いている行か null"}},
+        "register": {"in": {"description": "新しい行 ・ 閉じる行 ・ 決めたときに見た開いている行"}, "out": {"description": "登録した行か、いま開いている行（再開に切り替え）"}},
+        "close": {}, "touch": {}, "add_index": {}, "index_of": {}
+      }
+    },
+    "settings": {
+      "description": "設定を読む（利用者 ・ プロジェクト ・ 手元）。ファイルのアダプターが満たす",
+      "ops": {"read": {"out": {"description": "手元 ＞ プロジェクト ＞ 利用者 の順に重ねた session の値"}}}
+    },
+    "judge": {
+      "description": "rule の判定を頼む（AI）。protocol の call の形で呼び、rule ごとの5つの値と根拠と問いを受け取る。形の正本は Q4（protocol）",
+      "ops": {"ask": {"in": {"description": "call：delegate ・ target ・ rules ・ inputs ・ task ・ handoff"}, "out": {"description": "rule ごとの result ・ grounds ・ meaning ・ question、needs"}}}
+    }
+  }
+}

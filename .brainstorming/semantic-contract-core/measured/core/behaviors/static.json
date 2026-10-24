@@ -1,0 +1,534 @@
+[
+ {
+  "id": "S-ST-abstract",
+  "title": "abstract は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/abstract.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-change",
+  "title": "change は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/change.schema.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-judgment",
+  "title": "judgment は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/judgment.schema.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-session",
+  "title": "session は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/session.schema.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-settings",
+  "title": "settings は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/settings.schema.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-change-view",
+  "title": "change-view は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/change-view.schema.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-annotations",
+  "title": "annotations は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "schemas/annotations.schema.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-acdr",
+  "title": "ACDR の Concrete は本体に従う",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "examples/acdr.concrete.json",
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": true
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-1",
+  "title": "入れ子の欄の壊れた x-prompt を断る",
+  "traces": [
+   "I4"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "examples/acdr.concrete.json",
+   "patch": [
+    {
+     "at": "/properties/shift/items/properties/what/x-prompt",
+     "value": {
+      "oops": 1
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-2",
+  "title": "argv のシェルの記号を断る",
+  "traces": [
+   "I4"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "examples/acdr.concrete.json",
+   "patch": [
+    {
+     "at": "/x-delegates/x",
+     "value": {
+      "role": "r",
+      "run": {
+       "kind": "judging",
+       "argv": [
+        "a|b"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-3",
+  "title": "argv を持つ任せる先の answer を断る",
+  "traces": [
+   "I4"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "examples/acdr.concrete.json",
+   "patch": [
+    {
+     "at": "/x-delegates/x",
+     "value": {
+      "role": "r",
+      "answer": {},
+      "run": {
+       "kind": "judging",
+       "argv": [
+        "t"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-4",
+  "title": "インスタンスを作る Concrete に id が無ければ断る",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "examples/acdr.concrete.json",
+   "patch": [
+    {
+     "at": "/properties/id",
+     "remove": true
+    }
+   ]
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-5",
+  "title": "by が ai の行に agent が無ければ断る",
+  "traces": [
+   "I4"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "doc": "examples/acdr.concrete.json",
+   "patch": [
+    {
+     "at": "/properties/decision/x-prompt/write/0/agent",
+     "remove": true
+    }
+   ]
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-6",
+  "title": "Markdown の対象に欄を書いた変更の記録を断る",
+  "traces": [
+   "I31"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:change:v1",
+   "doc": {
+    "$schema": "urn:semantic-agent-schema:base:change:v1",
+    "kind": "change",
+    "id": "01JBA0C1Q4M6R2T9V5X7Y1A3C5",
+    "purpose_ref": "ACDR 0197",
+    "intent": "x",
+    "writer_kind": "ai-agent",
+    "items": [
+     {
+      "target": {
+       "path": "docs/SKILL.md"
+      },
+      "field": "/why"
+     }
+    ]
+   },
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-7",
+  "title": "AI の判定にモデルが無ければ断る",
+  "traces": [
+   "I14"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:judgment:v1",
+   "doc": {
+    "$schema": "urn:semantic-agent-schema:base:judgment:v1",
+    "kind": "judgment",
+    "id": "k",
+    "key": "k",
+    "target": {
+     "path": "a"
+    },
+    "rule": "urn:semantic-agent-schema:acdr:decision-record:v1#x",
+    "result": "verified",
+    "grounds": [],
+    "judged_by": "ai",
+    "judged_values": {
+     "reads": []
+    }
+   },
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-8",
+  "title": "4つ目の種類のセッション（目的があって親が無い）を断る",
+  "traces": [
+   "I44"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:session:v1#/$defs/session",
+   "doc": {
+    "session": {
+     "tool": "claude-code",
+     "id": "X"
+    },
+    "purpose_ref": "ACDR 0197",
+    "state": "open",
+    "last_used_at": "2026-10-24T10:00:00Z"
+   },
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-9",
+  "title": "設定に知らない欄があれば断る（許可などを持たない）",
+  "traces": [
+   "I40"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:base:settings:v1",
+   "doc": {
+    "$schema": "urn:semantic-agent-schema:base:settings:v1",
+    "kind": "settings",
+    "id": "project",
+    "permissions": {}
+   },
+   "patch": []
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ },
+ {
+  "id": "S-ST-bad-10",
+  "title": "accepted の ACDR に変更の記録が無ければ断る",
+  "traces": [
+   "I3"
+  ],
+  "given": {
+   "schema": "urn:semantic-agent-schema:acdr:decision-record:v1",
+   "doc": {
+    "$schema": "urn:semantic-agent-schema:acdr:decision-record:v1",
+    "kind": "decision-record",
+    "id": "0197-ai-permissions",
+    "no": "0197",
+    "title": "画面の AI の許可を、各 AI ツールの設定ファイルに任せる",
+    "status": "accepted",
+    "decision": "ボードの画面の AI に何を許すかを、各 AI ツール自身の設定ファイルで決める。",
+    "why": "画面の AI は agents.json の一覧だけで起動され、各ツールの設定と食い違っていた。各ツールの設定ファイルに合わせる。最小権限：判定させる AI は道具なしで起動し、作業させる AI の許可は各ツールの設定ファイルに置く（platform-advisor sec-03「意図したタスクに必要な最小限だけを与える」）。",
+    "shift": [
+     {
+      "what": "許可の置き場所",
+      "from": "agents.json",
+      "to": "各 AI ツールの設定ファイル。共有する許可は .claude/settings.json、settings.local.json は個人の追加だけ"
+     }
+    ],
+    "alternatives": [
+     {
+      "option": "agents.json に許可も書く",
+      "why_not": "ツールの設定と2か所になる"
+     },
+     {
+      "option": "基盤が許可を持つ",
+      "why_not": "基盤は許可の契約を持たない"
+     },
+     {
+      "option": "許可を書かない",
+      "why_not": "何を許すかが決まらない"
+     }
+    ]
+   },
+   "patch": [],
+   "concrete": "examples/acdr.concrete.json"
+  },
+  "when": {
+   "op": "schema"
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/valid",
+    "message": "合否が期待と違う",
+    "equals": false
+   }
+  ]
+ }
+]

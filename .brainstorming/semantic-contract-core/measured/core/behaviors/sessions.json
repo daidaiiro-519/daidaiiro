@@ -1,0 +1,733 @@
+[
+ {
+  "id": "S-SES-1",
+  "title": "開いているものが無ければ新しく立てる",
+  "traces": [
+   "U27:事後",
+   "I46"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    }
+   ]
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "新しく立てない",
+    "equals": "new"
+   },
+   {
+    "id": "E2",
+    "at": "/result/register/registered/session/id",
+    "message": "登録されない",
+    "equals": "NEW"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-2",
+  "title": "オーケストレーターがリポジトリに開いていれば、ほかのターミナルも同じ ID で再開する",
+  "traces": [
+   "I46",
+   "U27:事後"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    }
+   ],
+   "ai": {
+    "claude-code/O1": {
+     "resumable": true,
+     "cacheLifetime": "PT1H",
+     "lastUsedAt": "2026-10-24T09:58:00Z",
+     "historyPercent": 30
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code"
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {}
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "再開しない",
+    "equals": "resume"
+   },
+   {
+    "id": "E2",
+    "at": "/result/decision/session/id",
+    "message": "別の ID",
+    "equals": "O1"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-3",
+  "title": "有効時間が切れたら、古いほうを閉じて新しく立てる",
+  "traces": [
+   "I46",
+   "I45"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ai": {
+    "claude-code/P1": {
+     "resumable": true,
+     "cacheLifetime": "PT1H",
+     "lastUsedAt": "2026-10-24T08:00:00Z",
+     "historyPercent": 30
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "新しく立てない",
+    "equals": "new"
+   },
+   {
+    "id": "E2",
+    "at": "/state/sessions/2/state",
+    "message": "古いほうの P1 が閉じない",
+    "equals": "closed"
+   },
+   {
+    "id": "E3",
+    "at": "/state/sessions/0/state",
+    "message": "新しいほうが開かない",
+    "equals": "open"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-4",
+  "title": "有効時間が分からない AI ツールは新しく立てる",
+  "traces": [
+   "I46"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "kiro",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ai": {
+    "kiro/P1": {
+     "resumable": true,
+     "cacheLifetime": "unknown",
+     "lastUsedAt": "2026-10-24T09:50:00Z",
+     "historyPercent": 30
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "kiro",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "new": {
+     "tool": "kiro",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "分からないのに再開した",
+    "equals": "new"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-5",
+  "title": "履歴の割合が設定の値を超えたら、有効時間内でも新しく立てる",
+  "traces": [
+   "U27:事後"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ai": {
+    "claude-code/P1": {
+     "resumable": true,
+     "cacheLifetime": "PT1H",
+     "lastUsedAt": "2026-10-24T09:50:00Z",
+     "historyPercent": 70
+    }
+   },
+   "settings": {
+    "project": {
+     "newWhenHistoryAbovePercent": 60
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/why",
+    "message": "設定で新規にならない",
+    "equals": "history-above-setting"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-6",
+  "title": "設定が無ければ、履歴が大きくても有効時間内なら再開する",
+  "traces": [
+   "U27:事後"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ai": {
+    "claude-code/P1": {
+     "resumable": true,
+     "cacheLifetime": "PT1H",
+     "lastUsedAt": "2026-10-24T09:50:00Z",
+     "historyPercent": 70
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "既定の値が置かれている",
+    "equals": "resume"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-7",
+  "title": "手元の設定がプロジェクトの設定より強い",
+  "traces": [
+   "U27:事後"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ai": {
+    "claude-code/P1": {
+     "resumable": true,
+     "cacheLifetime": "PT1H",
+     "lastUsedAt": "2026-10-24T09:50:00Z",
+     "historyPercent": 70
+    }
+   },
+   "settings": {
+    "user": {
+     "newWhenHistoryAbovePercent": 90
+    },
+    "project": {
+     "newWhenHistoryAbovePercent": 60
+    },
+    "local": {
+     "newWhenHistoryAbovePercent": 80
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "手元の 80 が効いていない",
+    "equals": "resume"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-8",
+  "title": "親が替わっても、同じ目的のセッションを再開する",
+  "traces": [
+   "I46",
+   "U27:事後"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "closed",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O2"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:59:00Z"
+    },
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "P1"
+     },
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:50:00Z"
+    }
+   ],
+   "ai": {
+    "claude-code/P1": {
+     "resumable": true,
+     "cacheLifetime": "PT1H",
+     "lastUsedAt": "2026-10-24T09:50:00Z",
+     "historyPercent": 30
+    }
+   }
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O2"
+     }
+    },
+    "new": {
+     "tool": "claude-code",
+     "id": "NEW"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O2"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "再開しない",
+    "equals": "resume"
+   },
+   {
+    "id": "E2",
+    "at": "/result/decision/session/id",
+    "message": "別の ID",
+    "equals": "P1"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-9",
+  "title": "ほかの AI ツールで同じ枠が開いていれば断る",
+  "traces": [
+   "I46"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    }
+   ],
+   "ai": {}
+  },
+  "when": {
+   "op": "decide_and_register",
+   "args": {
+    "decide": {
+     "tool": "codex"
+    },
+    "new": {
+     "tool": "codex",
+     "id": "NEW"
+    },
+    "slot": {}
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/decision/action",
+    "message": "同時に開こうとした",
+    "equals": "refuse"
+   }
+  ]
+ },
+ {
+  "id": "S-SES-10",
+  "title": "2つの端末が同時に新しく立てると、後の側は先の ID に切り替わる",
+  "traces": [
+   "I46"
+  ],
+  "adapters": [
+   "snapshot"
+  ],
+  "given": {
+   "files": {},
+   "sessions": [
+    {
+     "session": {
+      "tool": "claude-code",
+      "id": "O1"
+     },
+     "state": "open",
+     "last_used_at": "2026-10-24T09:00:00Z"
+    }
+   ]
+  },
+  "when": {
+   "op": "concurrent_register",
+   "args": {
+    "decide": {
+     "tool": "claude-code",
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    },
+    "first": {
+     "tool": "claude-code",
+     "id": "A"
+    },
+    "second": {
+     "tool": "claude-code",
+     "id": "B"
+    },
+    "slot": {
+     "purpose_ref": "ACDR 0197",
+     "parent": {
+      "tool": "claude-code",
+      "id": "O1"
+     }
+    }
+   }
+  },
+  "then": [
+   {
+    "id": "E1",
+    "at": "/result/first/registered/session/id",
+    "message": "先の側が登録されない",
+    "equals": "A"
+   },
+   {
+    "id": "E2",
+    "at": "/result/second/switched_to/session/id",
+    "message": "後の側が切り替わらない",
+    "equals": "A"
+   }
+  ]
+ }
+]
