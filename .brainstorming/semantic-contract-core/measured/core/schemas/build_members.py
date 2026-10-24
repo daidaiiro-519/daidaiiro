@@ -203,7 +203,7 @@ gl.update({"type": "object", "required": ["$schema", "$id", "kind", "id", "$defs
       w('anchor-is-name', '$anchor は $defs のキーと同じ名前である。', '名前と指し先がずれると、欄が別の term を指す。', 'キーと $anchor を比べる。')])}})
 
 # ---------------- published（公開された言葉の版。値オブジェクト）
-pb = head('published', '公開された言葉の版', 'Concrete の公開する部分（x-published が true の欄と x- の定義）の版。出した版は変えない。インスタンスのファイルは作らず、Concrete と一緒に基盤が組む。')
+pb = head('published', '公開された言葉の版', 'Concrete の公開する部分（x-published が true の欄と x- の定義）の版。出した版は変えない。インスタンスのファイルは作らず、Concrete と一緒に基盤が作る。')
 pb['$defs'] = {"version": {"type": "object", "required": ["of", "version", "fields"], "additionalProperties": False, "properties": {
   "of": f({"type": "string", "pattern": "^urn:semantic-agent-schema:"}, '公開した Concrete', 'この版を出した Concrete の URN である。'),
   "version": f({"type": "string", "pattern": "^v[0-9]+$"}, '版', '公開された言葉の版である。', [
