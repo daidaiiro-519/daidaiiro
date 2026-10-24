@@ -1,0 +1,648 @@
+{
+ "kind": "judgment",
+ "question": "Semantic Agent Schema の核のモデルが持つドメインサービス13は、本当にドメインサービスか。集約 ・ エンティティ ・ 値オブジェクトの操作、ファクトリ、使う場面（application）の処理のどれに分け直すか。利用者の見立て「4つ（Semantic Schema Resolver ・ Validator ・ Renderer ・ 再開か新規かを決める）」は正しいか",
+ "premises": [
+  {
+   "name": "Services の定義（原文）",
+   "value": "「Sometimes, it just isn’t a thing.」「Some concepts from the domain aren’t natural to model as objects.」「When a significant process or transformation in the domain is not a natural responsibility of an entity or value object, add an operation to the model as a standalone interface declared as a service.」「Give the service a name, which also becomes part of the ubiquitous language.」",
+   "source": "Evans『Domain-Driven Design Reference』2015-03（sources/arch/ の PDF。原文の文字列で照合した） p.14 Services"
+  },
+  {
+   "name": "エンティティの責務（原文）",
+   "value": "「An entity is responsible for tracking its state and the rules regulating its lifecycle.」（p.13 Domain Events の冒頭）・「Keep the class definition simple and focused on life cycle continuity and identity.」（p.11 Entities）",
+   "source": "Evans『Domain-Driven Design Reference』2015-03（sources/arch/ の PDF。原文の文字列で照合した） p.11 ・ p.13"
+  },
+  {
+   "name": "集約の不変条件（原文）",
+   "value": "「Define properties and invariants for the aggregate as a whole and give enforcement responsibility to the root or some designated framework mechanism.」",
+   "source": "Evans『Domain-Driven Design Reference』2015-03（sources/arch/ の PDF。原文の文字列で照合した） p.16 Aggregates"
+  },
+  {
+   "name": "値オブジェクト（原文）",
+   "value": "「When you care only about the attributes and logic of an element of the model, classify it as a value object.」「Make it express the meaning of the attributes it conveys and give it related functionality.」",
+   "source": "Evans『Domain-Driven Design Reference』2015-03（sources/arch/ の PDF。原文の文字列で照合した） p.12 Value Objects"
+  },
+  {
+   "name": "ファクトリ（原文）",
+   "value": "「Shift the responsibility for creating instances of complex objects and aggregates to a separate object, which may itself have no responsibility in the domain model but is still part of the domain design.」「Create an entire aggregate as a piece, enforcing its invariants.」「Create a complex value object as a piece, possibly after assembling the elements with a builder.」",
+   "source": "Evans『Domain-Driven Design Reference』2015-03（sources/arch/ の PDF。原文の文字列で照合した） p.18 Factories"
+  },
+  {
+   "name": "条件で選ぶ問い合わせ（原文）",
+   "value": "「Provide methods that select objects based on criteria meaningful to domain experts.」",
+   "source": "Evans『Domain-Driven Design Reference』2015-03（sources/arch/ の PDF。原文の文字列で照合した） p.17 Repositories"
+  },
+  {
+   "name": "ファクトリは判断基準に無い",
+   "value": "ddd-advisor の判断基準（criteria）にファクトリの項は無い。ファクトリへの分類は Evans の原文だけを拠りどころにし、判断基準の根拠には数えない",
+   "source": "判断基準の範囲外"
+  },
+  {
+   "name": "domain と application の分け方",
+   "value": "domain は値を受け取って値を返す関数だけを持ち、入出力は application がポートを通して行う。時刻と id は inbound から値で渡す。ポート（trait）は application の ports/ に置く",
+   "source": "core/arch.html 1節 ・ 4節 ・ arch/ports（承認済み）"
+  },
+  {
+   "name": "集約9つ",
+   "value": "Semantic Abstract Schema ・ Semantic Concrete Schema ・ glossary ・ インスタンス ・ 判定の記録 ・ 変更の記録 ・ ビュー ・ デザインシステム ・ セッション。エンティティは rule と任せる先の2つで、どちらも Semantic Concrete Schema の中にある",
+   "source": "model/model.json aggregates ・ entities"
+  },
+  {
+   "name": "セッションをまたぐ一意性（I46）",
+   "value": "「同じ枠に開いているのは1つまで」は複数のセッションの集約をまたぐ決まりで、手元の DB が一意の索引とトリガーで断る（どの集約のコマンドでもない）",
+   "source": "model/model.json invariants I46 ・ ports.outbound「セッションと手元のセッションの索引を読む ・ 書く」"
+  },
+  {
+   "name": "Rust の inherent impl の規則",
+   "value": "「An implementing type must be defined within the same crate as the original type definition.」── ある型のメソッド（inherent impl）は、その型を定義した crate の中にしか書けない。集約のコマンドは、集約の型と同じ crate に置くことになる",
+   "source": "Rust Reference items/implementations r[items.impl.inherent.coherence]（sources/rust/ の原文で照合した）。判断基準の範囲外"
+  },
+  {
+   "name": "Q1 の決着",
+   "value": "「集約9つ ・ ドメインサービス13 ・ 2種類のポート ・ 不変条件46行」。model.json は apply.py が changes.py から作るので、手で直さない",
+   "source": "ボード Q1 ・ model/model.json about"
+  }
+ ],
+ "conclusion": {
+  "stance": "adopt",
+  "headline": "ドメインサービスは3つ（Semantic Schema Resolver ・ Validator ・ Renderer）である。再開か新規かを決めるはセッションの集約の操作で、利用者の「4つ」は1つ多い。残りの10は、集約の操作4 ・ 値オブジェクトの操作2 ・ ファクトリ3 ・ 使う場面（application）1に分かれる。",
+  "because": "Evans は、エンティティにも値オブジェクトにも自然に属さない処理だけをサービスにする。判断基準（domain-service）も、集約や値オブジェクトで表現しにくいとき、または複数の集約を参照して計算するときに業務サービスに書くとする。13のうち、2つ以上の集約を読み、どの集約も変えず、どの集約の不変条件にも属さない計算は、Resolver ・ Validator ・ Renderer の3つだけである。ほかの10は、変える集約が1つ（その集約のコマンド）、作る物が1つ（ファクトリ）、1種類の値から計算する（値オブジェクト）、読む ・ 並べる ・ 書くの順序を決める（使う場面）のどれかに当たる。再開か新規かを決めるが読む ・ 変える集約はセッション1つだけで、AI ツールの答えと設定は値として渡る。原文の「An entity is responsible for tracking its state and the rules regulating its lifecycle.」のとおり、開いたまま続けるか閉じるかはセッション自身のライフサイクルの決まりである。"
+ },
+ "figure": {
+  "caption": "13のドメインサービスを、分け直した先へつなぐ",
+  "nodes": [
+   {
+    "id": "s0",
+    "label": "作成する"
+   },
+   {
+    "id": "s1",
+    "label": "Concrete を照らす"
+   },
+   {
+    "id": "s2",
+    "label": "Semantic Schema Resolver"
+   },
+   {
+    "id": "s3",
+    "label": "Semantic Schema Validator"
+   },
+   {
+    "id": "s4",
+    "label": "状態を導く"
+   },
+   {
+    "id": "s5",
+    "label": "変更を見せる"
+   },
+   {
+    "id": "s6",
+    "label": "例外をまとめる"
+   },
+   {
+    "id": "s7",
+    "label": "意味で探して取り出す"
+   },
+   {
+    "id": "s8",
+    "label": "Semantic Schema Renderer"
+   },
+   {
+    "id": "s9",
+    "label": "移す"
+   },
+   {
+    "id": "s10",
+    "label": "取り込む"
+   },
+   {
+    "id": "s11",
+    "label": "公開された言葉の版を出す"
+   },
+   {
+    "id": "s12",
+    "label": "再開か新規かを決める"
+   },
+   {
+    "id": "DS",
+    "label": "ドメインサービス（3）",
+    "role": "accent"
+   },
+   {
+    "id": "AG",
+    "label": "集約の操作（4）"
+   },
+   {
+    "id": "VO",
+    "label": "値オブジェクトの操作（2）"
+   },
+   {
+    "id": "FA",
+    "label": "ファクトリ（3）"
+   },
+   {
+    "id": "AP",
+    "label": "使う場面（1）"
+   }
+  ],
+  "edges": [
+   {
+    "from": "s0",
+    "to": "FA"
+   },
+   {
+    "from": "s1",
+    "to": "AG"
+   },
+   {
+    "from": "s2",
+    "to": "DS"
+   },
+   {
+    "from": "s3",
+    "to": "DS"
+   },
+   {
+    "from": "s4",
+    "to": "VO"
+   },
+   {
+    "from": "s5",
+    "to": "FA"
+   },
+   {
+    "from": "s6",
+    "to": "VO"
+   },
+   {
+    "from": "s7",
+    "to": "AP"
+   },
+   {
+    "from": "s8",
+    "to": "DS"
+   },
+   {
+    "from": "s9",
+    "to": "AG"
+   },
+   {
+    "from": "s10",
+    "to": "FA"
+   },
+   {
+    "from": "s11",
+    "to": "AG"
+   },
+   {
+    "from": "s12",
+    "to": "AG"
+   },
+   {
+    "from": "s5",
+    "to": "AP",
+    "label": "前半",
+    "dashed": true
+   },
+   {
+    "from": "s10",
+    "to": "AP",
+    "label": "一覧",
+    "dashed": true
+   },
+   {
+    "from": "s7",
+    "to": "VO",
+    "label": "一致の決まり",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "いまのまま13",
+   "effect": "10の処理が、その不変条件を持つ集約 ・ 値オブジェクトの外に置かれる。集約はデータだけになり、Concrete の I3 や セッションの I45 を、集約の外の関数が守る形になる",
+   "chosen": false
+  },
+  {
+   "option": "利用者の見立て 4つ（A と B を合わせる）",
+   "effect": "Resolver ・ Validator ・ Renderer は正しい。再開か新規かを決めるは、読む ・ 変える集約がセッション1つだけなので、ドメインサービスに置くとセッションの集約からライフサイクルの決まりが外へ出る",
+   "chosen": false
+  },
+  {
+   "option": "利用者の見立て B の3つ（Resolver ・ Validator ・ 再開か新規かを決める）",
+   "effect": "Renderer はインスタンス ・ ビュー ・ デザインシステム ・ Concrete ・ 検証結果を読み、ビューが無い kind も描くので、どの1つの集約にも属さない。外すと置き場所が無くなる",
+   "chosen": false
+  },
+  {
+   "option": "3つ（Resolver ・ Validator ・ Renderer）。残りを集約の操作4 ・ 値オブジェクトの操作2 ・ ファクトリ3 ・ 使う場面1へ",
+   "effect": "不変条件46行のそれぞれに、守る集約 ・ 値オブジェクト ・ ファクトリが1つずつ決まる。migration と publish の crate が消え、search の crate は値オブジェクト1つになる",
+   "chosen": true
+  }
+ ],
+ "path": [
+  {
+   "ask": "その処理は集約を変えるか。変えるなら、いくつか",
+   "answer": "1つだけを変えるなら、その集約のコマンドにする（Concrete を照らす ・ 移す ・ 公開された言葉の版を出す ・ 再開か新規かを決める）。2つ以上を1回で変える処理は13の中に無い"
+  },
+  {
+   "ask": "集約か複雑な値を丸ごと1つ作るか",
+   "answer": "作るならファクトリにする（作成する ・ 取り込む ・ 変更を見せるの後半）"
+  },
+  {
+   "ask": "1種類の値だけから計算するか",
+   "answer": "そうなら値オブジェクトの操作にする（状態を導く ・ 例外をまとめる）"
+  },
+  {
+   "ask": "読む ・ 問い合わせる ・ 書くの順序を決めているだけか",
+   "answer": "そうなら使う場面にする（意味で探して取り出す。変更を見せるの前半と取り込むの一覧も）"
+  },
+  {
+   "ask": "残ったものは、2つ以上の集約を読み、どの集約の不変条件にも属さない計算か",
+   "answer": "Resolver ・ Validator ・ Renderer の3つが当たる。これがドメインサービスである"
+  },
+  {
+   "ask": "再開か新規かを決めるは、エンティティにも値オブジェクトにも自然に属さないか",
+   "answer": "属する。読む集約はセッション1つ（I46 で枠に1つまで）で、AI ツールの答え ・ 設定 ・ 時刻は値で渡る。閉じる（I45）もセッションのコマンドである"
+  }
+ ],
+ "steps": [
+  {
+   "do": "13を分類する",
+   "detail": "下の表「13の分類」のとおり。各行に、読む ・ 変える集約と、守る不変条件を書いた"
+  },
+  {
+   "do": "domain の各 crate の中を組み直す",
+   "detail": "aggregates/ に集約のコマンドを、factories/ にファクトリを、src/ の直下に値オブジェクトを置き、services/ は validation と render だけに残す。migration と publish の crate は消し、search の crate は値オブジェクト（探した範囲）だけにする"
+  },
+  {
+   "do": "model.json の書き換え案を changes.py に足す",
+   "detail": "下の表「model.json の書き換え案」を C61 以降の変更として書き、apply.py で model.json を作り直す"
+  }
+ ],
+ "code": [
+  {
+   "kind": "para",
+   "text": "13の分類"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "ドメインサービス（いま）",
+    "分類",
+    "読む ・ 変える集約",
+    "守る不変条件",
+    "理由"
+   ],
+   "rows": [
+    [
+     "作成する",
+     "ファクトリ",
+     "読む：Abstract（1段目）か Concrete（2段目）。作る：Semantic Concrete Schema かインスタンスを1つ。変える集約は無い",
+     "I3 ・ I8",
+     "原文「Create an entire aggregate as a piece, enforcing its invariants.」。作る物ごとに2つのファクトリ（Concrete の雛形 ・ インスタンスの雛形）に分かれる"
+    ],
+    [
+     "Concrete を照らす",
+     "集約の操作（Semantic Concrete Schema が自分の不変条件を検査する）",
+     "読む：Concrete と、Abstract の版1つ（出した版は変わらない。I1）。変える：無し",
+     "I3 ・ I4 ・ I5（作法の部分）・ I6 ・ I30",
+     "I3 は Concrete の集約自身の不変条件である。原文「give enforcement responsibility to the root」のとおり、ルートが Abstract の版を値として受け取って検査する"
+    ],
+    [
+     "Semantic Schema Resolver",
+     "ドメインサービス",
+     "読む：インスタンス ・ Concrete ・ glossary ・ ほかの文脈の公開された言葉の版（4種類の集約）。変える：無し",
+     "I2 ・ I8 ・ I25 ・ I41",
+     "$schema → Concrete → $ref → glossary とたどる解決は、どの1つの集約の不変条件でもない。複数の集約を参照する計算である"
+    ],
+    [
+     "Semantic Schema Validator",
+     "ドメインサービス（一部を値オブジェクトと集約へ移す）",
+     "読む：インスタンス ・ Concrete（rule）・ glossary ・ 判定の記録 ・ Resolver の結果。変える：無し（検証結果は保存しない値）",
+     "I9 ・ I10 ・ I12 ・ I13 ・ I14 ・ I15 ・ I16 ・ I33 ・ I39",
+     "rule × インスタンスの組で決まり、どの集約にも属さない。②の「答えを5つの値にまとめる（I14）」は検証結果の値オブジェクトが作り、「いまの値と等しければ使い直す（I16）」は判定の記録の集約に問う"
+    ],
+    [
+     "状態を導く",
+     "値オブジェクトの操作（インスタンスの状態）",
+     "読む：1つのインスタンスの検証結果の並び（値）。変える：無し",
+     "I17 ・ I19",
+     "状態は保存せず、検証結果の値だけから決定表で決まる。インスタンスの状態（4つ）を値オブジェクトにし、検証結果の並びから作る"
+    ],
+    [
+     "変更を見せる",
+     "ファクトリ（変更のまとまり）＋ 使う場面",
+     "前半：変更後の姿で全インスタンスを検証する並べ方は application。後半：変更の記録 ・ I33 の判定の記録 ・ 検証結果の前後 ・ 描画の差分（値）から変更のまとまりを1つ作る",
+     "I20 ・ I35 ・ I36",
+     "変更のまとまりは保存せず、同じ前後から毎回同じ形に作る複雑な値である。原文「Create a complex value object as a piece」。描画の差分は application が Renderer を呼んで値で渡す"
+    ],
+    [
+     "例外をまとめる",
+     "値オブジェクトの操作（検証結果の並び）",
+     "読む：判定できなかった検証結果と判定した値。変える：無し",
+     "I23",
+     "1種類の値（検証結果）を原因（rule ・ 入力の変化 ・ validator）ごとにまとめる計算で、ほかの集約を読まない"
+    ],
+    [
+     "意味で探して取り出す",
+     "使う場面（リポジトリへの問い合わせ）＋ 値オブジェクトの操作",
+     "読む：関係の索引（インスタンスのポートの後ろ）・ 判定の記録 ・ 状態（導く）。変える：無し",
+     "I24 ・ I25 ・ I41 ・ I42",
+     "原文「Provide methods that select objects based on criteria meaningful to domain experts.」は問い合わせの口の役目である。一致の決まりは term（I25）・ kind の名前の範囲（I41）の値オブジェクト、探した範囲（I42）も値オブジェクトが持つ"
+    ],
+    [
+     "Semantic Schema Renderer",
+     "ドメインサービス（前の検査を集約へ移す）",
+     "読む：インスタンス ・ ビュー ・ デザインシステム ・ Concrete（既定の描き方）・ 検証結果と状態。変える：無し",
+     "I26",
+     "ビューが無い kind は Concrete の x-prompt で描くので、ビューの集約の操作にはならない。描く前の検査（トークンが在るか ・ 式が指す欄が在るか）はデザインシステムとビューの集約が持つ。1ページも書かないのは application が書く前に止める"
+    ],
+    [
+     "移す",
+     "集約の操作（Semantic Concrete Schema のコマンド）",
+     "読む：Abstract の新しい版が持つ移し方（値）。変える：Concrete 1つ",
+     "I27 ・ I30",
+     "変える集約は1つで、移せない箇所を返して自分は壊れない（I27）。移し方は Abstract の版が持つ"
+    ],
+    [
+     "取り込む",
+     "ファクトリ（インスタンス）＋ 使う場面",
+     "読む：既存のファイルの値と、Resolver が1つに決めた Concrete。作る：インスタンス1つ。下書きの一覧は application が並べる",
+     "I2 ・ I8",
+     "既存の値からインスタンスの集約を丸ごと作る。ファイルを読むのと一覧にするのは application"
+    ],
+    [
+     "公開された言葉の版を出す",
+     "集約の操作（Semantic Concrete Schema と Semantic Abstract Schema のコマンド）",
+     "変える：Concrete の公開する部分の版、または Abstract の版。どちらも1回に1つ。配るのは application が outbound で行う",
+     "I1 ・ I7",
+     "「出した版は変えず並べて出す」は、それぞれの集約の不変条件である"
+    ],
+    [
+     "再開か新規かを決める",
+     "集約の操作（セッションのコマンド）",
+     "読む：同じ枠の開いているセッション1つ（I46 で1つまで）。値：AI ツールの答え ・ 設定 ・ 時刻。変える：そのセッション1つ（閉じる）",
+     "I44 ・ I45",
+     "読む ・ 変える集約は1つだけで、続けるか閉じるかはそのセッションのライフサイクルの決まりである。枠でセッションを探すのと、新しく立てたセッションの登録と、I46 の一意性は application と手元の DB が持つ"
+    ]
+   ]
+  },
+  {
+   "kind": "para",
+   "text": "分類ごとの数"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "分類",
+    "数",
+    "どれか"
+   ],
+   "rows": [
+    [
+     "ドメインサービス",
+     "3",
+     "Semantic Schema Resolver ・ Semantic Schema Validator ・ Semantic Schema Renderer"
+    ],
+    [
+     "集約の操作",
+     "4",
+     "Concrete を照らす ・ 移す ・ 公開された言葉の版を出す ・ 再開か新規かを決める"
+    ],
+    [
+     "値オブジェクトの操作",
+     "2",
+     "状態を導く ・ 例外をまとめる"
+    ],
+    [
+     "ファクトリ",
+     "3",
+     "作成する ・ 変更を見せる（後半）・ 取り込む"
+    ],
+    [
+     "使う場面（application）",
+     "1",
+     "意味で探して取り出す（変更を見せるの前半 ・ 取り込むの一覧も application）"
+    ]
+   ]
+  },
+  {
+   "kind": "para",
+   "text": "分け直した後の domain の crate の中（arch.html 5節の差分）"
+  },
+  {
+   "kind": "code",
+   "text": "crates/domain/\n  declaration/src/\n    lib.rs ・ urn.rs ・ target.rs ・ term.rs          値オブジェクト（term は版付きの id で一致を決める。I25）\n    aggregates/\n      abstract_schema.rs   集約 Semantic Abstract Schema：版を出す（I1）・ 移し方を持つ（I27）\n      concrete_schema.rs   集約 Semantic Concrete Schema：照らす（I3 ・ I4 ・ I6 ・ I30）・ 移す（I27）・ 公開する部分の版を出す（I7）\n      glossary.rs          集約 glossary\n    factories/\n      concrete.rs          ファクトリ：Abstract の版から Concrete の雛形を作る\n    （services/ は無い）\n  change/src/\n    verdict.rs           値オブジェクト 検証結果：答えから作る（I14）・ 原因ごとにまとめる（I23。例外をまとめる）\n    instance_state.rs    値オブジェクト インスタンスの状態：検証結果の並びから決定表で導く（I17 ・ I19。状態を導く）\n    change_id.rs\n    aggregates/\n      judgment.rs          集約 判定の記録：いまの値と等しいか（I16）\n      change_record.rs     集約 変更の記録\n    factories/\n      change_set.rs        ファクトリ：変更のまとまりを作る（I20 ・ I35 ・ I36。変更を見せるの後半）\n    （services/ は無い）\n  validation/src/\n    call.rs\n    services/\n      resolver.rs          ドメインサービス Semantic Schema Resolver\n      validator.rs         ドメインサービス Semantic Schema Validator\n  render/src/\n    aggregates/\n      view.rs              集約 ビュー：式が指す欄が Concrete に在るか（I26）\n      design_system.rs     集約 デザインシステム：カタログのトークンが在るか（I26）\n    services/\n      renderer.rs          ドメインサービス Semantic Schema Renderer\n  search/src/\n    search_scope.rs      値オブジェクト 探した範囲（I42）。集約もドメインサービスも無い\n  instance/src/\n    aggregates/\n      instance.rs          集約 インスタンス\n    factories/\n      instance.rs          ファクトリ：Concrete の雛形から作る（作成するの2段目）・ 既存のファイルから作る（取り込む）\n  session/src/\n    session_id.rs ・ role.rs ・ session_kind.rs  値オブジェクト（セッション ID ・ 役割 ・ セッションの種類）\n    aggregates/\n      session.rs           集約 セッション：再開か新規かを決める（閉じるを含む。I44 ・ I45）\n    （services/ は無い）\n  （migration/ ・ publish/ は消す。移す ・ 公開する部分の版を出すは Concrete と Abstract の型のメソッドなので、型と同じ declaration に置く）\n\ncrates/application/src/use_cases/\n  validate.rs   検証する ・ 変更を見せる：全インスタンスを Resolver → Validator → 状態の順に回し、Renderer の前後を値にして、変更のまとまりのファクトリへ渡す\n  search.rs     探して取り出す：関係の索引と判定の記録をポートで問い合わせ、状態で絞り、探した範囲を付ける（意味で探して取り出す）\n  write_instance.rs  取り込む：ファイルを読む → Resolver で $schema を1つに決める → インスタンスのファクトリ。決まらないものを下書きの一覧に並べる\n  session.rs    セッションを決める：枠で開いているセッションを読む → セッションのコマンド → 書く。無ければ「新しく立てる」を返す\n  release.rs    Abstract の版を出す ・ 移す：Abstract と Concrete の集約のコマンドを呼ぶ"
+  },
+  {
+   "kind": "para",
+   "text": "model.json の書き換え案"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "model.json の場所",
+    "いま",
+    "書き換え案"
+   ],
+   "rows": [
+    [
+     "domain_services",
+     "13行",
+     "3行にする（Semantic Schema Resolver ・ Semantic Schema Validator ・ Semantic Schema Renderer）。残りの10行は下の行へ移して消す。apply.py に行を消す op が無いので、消す op を足す"
+    ],
+    [
+     "domain_services[Semantic Schema Validator]",
+     "「② 使う場面が依頼して受け取った答えを、5つの値にまとめる（割れた答えと根拠の無い答えは unverified）。判定した値がいまと同じ判定の記録は使い直す」",
+     "「② 使う場面が依頼して受け取った答えを、検証結果の値オブジェクトで5つの値にする（割れた答えと根拠の無い答えは unverified）。判定した値がいまと同じかは判定の記録の集約に問い、同じなら使い直す」"
+    ],
+    [
+     "domain_services[Semantic Schema Renderer]",
+     "「インスタンスを、状態と rule ごとの結果と一緒に人が読む形にする」",
+     "末尾に「描く前の検査（I26）は、ビューとデザインシステムの集約が持つ」を足す"
+    ],
+    [
+     "aggregates の各行",
+     "name ・ holder ・ root ・ members ・ subdomain ・ u",
+     "欄 commands（[操作, 中身, 不変条件]の並び）を足す"
+    ],
+    [
+     "aggregates[Semantic Abstract Schema].commands",
+     "（無し）",
+     "[版を出す, 出した版は変えず新しい版を並べる（もとの「公開された言葉の版を出す」の Abstract の側）, I1 ・ I2] ・ [移し方を持つ, 新しい版は前の版からの移し方を持つ, I27 ・ I30]"
+    ],
+    [
+     "aggregates[Semantic Concrete Schema].commands",
+     "（無し）",
+     "[照らす, もとの「Concrete を照らす」, I3 ・ I4 ・ I5 ・ I6 ・ I30] ・ [移す, もとの「移す」。Abstract の版の移し方を値で受け取る, I27] ・ [公開する部分の版を出す, もとの「公開された言葉の版を出す」の Concrete の側, I7]"
+    ],
+    [
+     "aggregates[判定の記録].commands",
+     "（無し）",
+     "[いまの値と等しいか, Validator が使い直すかを問う, I16 ・ I11]"
+    ],
+    [
+     "aggregates[ビュー] ・ aggregates[デザインシステム].commands",
+     "（無し）",
+     "ビュー：[指す欄を検査する, 式が指す欄が Concrete に在るか, I26] ／ デザインシステム：[トークンを検査する, カタログのトークンがデザイントークンに在るか, I26]"
+    ],
+    [
+     "aggregates[セッション].commands",
+     "members に「コマンドは立てる ・ 閉じる」",
+     "[再開か新規かを決める, もとの同名のドメインサービスの文をそのまま移す。枠で探すのは使う場面, I44 ・ I45] を足す"
+    ],
+    [
+     "factories（新しい欄）",
+     "（無し）",
+     "[Concrete の雛形, Abstract の版から, I3] ・ [インスタンス, Concrete の雛形から（作成するの2段目）・ 既存のファイルから（取り込む）, I2 ・ I8] ・ [変更のまとまり, もとの「変更を見せる」のまとまりを作る部分, I20 ・ I35 ・ I36]"
+    ],
+    [
+     "value_objects[検証結果]",
+     "「5つの値のどれか1つ ・ 根拠 ・ 判定した者（…）」",
+     "末尾に「答えから作る（割れた答えと根拠の無い答えは unverified。I14）。判定できなかったものを原因ごとにまとめる（もとの「例外をまとめる」。I23）」を足す"
+    ],
+    [
+     "value_objects（行を足す）",
+     "states.instance にだけ在る",
+     "[インスタンスの状態, 4つのどれか。検証結果の並びから決定表で導き、保存しない（もとの「状態を導く」。I17 ・ I19）] ・ [探した範囲, 文脈の一覧と、索引を作った正本の版（I42）]"
+    ],
+    [
+     "ports.inbound[検証する ・ 変更を見せる]",
+     "（使う場面の中身は書いていない）",
+     "「変更後の姿で全インスタンスを検証する並べ方（もとの「変更を見せる」の前半）」を足す"
+    ],
+    [
+     "ports.inbound[探して取り出す ・ 案内する]",
+     "（同上）",
+     "「関係の索引と判定の記録をポートで問い合わせ、状態で絞り、探した範囲を付ける（もとの「意味で探して取り出す」）」を足す"
+    ],
+    [
+     "Q1 の答えの文",
+     "集約9つ ・ ドメインサービス13 ・ 2種類のポート ・ 不変条件46行",
+     "集約9つ ・ ドメインサービス3 ・ ファクトリ3 ・ 2種類のポート ・ 不変条件46行（不変条件の行は変えず、持ち主を集約 ・ 値オブジェクト ・ ファクトリへ移す）"
+    ]
+   ]
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "domain-service",
+   "quote": "業務サービス（英語は Services）：業務ロジックだけを書き、自分の状態は持たないステートレスなオブジェクト。集約や値オブジェクトの中では不自然になる業務ロジックの置き場所で、ほとんどの場合、いろいろなコンポーネントの呼び出しをまとめて何かの計算や分析をする。"
+  },
+  {
+   "criterion": "domain-service",
+   "quote": "問い：その業務ロジックは、集約や値オブジェクトでは表現しにくいか ・ 「はい」なら：業務サービスに記述する"
+  },
+  {
+   "criterion": "domain-service",
+   "quote": "問い：複数の集約を参照する計算のロジックか ・ 「はい」なら：業務サービスで記述すると、わかりやすくなる"
+  },
+  {
+   "criterion": "domain-service",
+   "quote": "業務サービスが有効なのは、いくつもの集約を参照して計算するロジックである。集約の変更とデータベーストランザクションの関係は、常に意識する"
+  },
+  {
+   "criterion": "aggregate",
+   "quote": "構成するもの：コマンド ・ 役割：集約が公開する状態変更のメソッド。外部から渡された内容を検証し、業務ルールと不変条件に違反した状態になることを防ぐ。集約の状態は、コマンドを実行したときにだけ変わる"
+  },
+  {
+   "criterion": "aggregate",
+   "quote": "対応：集約の状態は集約内部の業務ロジックだけが変更できるようにし、外部には参照だけを許可する ・ 理由：関連する業務ロジックを、すべて集約自身の1か所に実装できる"
+  },
+  {
+   "criterion": "aggregate",
+   "quote": "業務ロジックを集約に集めると、アプリケーション層の役割は、集約の生成 ・ 操作の実行 ・ 永続化 ・ 結果の返却だけになる。"
+  },
+  {
+   "criterion": "value-object",
+   "quote": "性質：データとロジック ・ 内容：メソッドは値を操作し、その結果を新しい値オブジェクトとして返す"
+  },
+  {
+   "criterion": "value-object",
+   "quote": "性質：業務の概念の表現 ・ 内容：値の妥当性の検査にとどまらず、その値を使う業務ロジックを1箇所に集め、ソースコードに同じ言葉を語らせる"
+  },
+  {
+   "criterion": "entity",
+   "quote": "対応：エンティティを単独で実装せず、集約の実装の一部にする"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "要求事項に出てくる名詞をすべて集約として表現し、業務ロジックを巨大なサービス層に書く（いまの13はこの形に近い）",
+   "risk": "トランザクションの境界とずれ、業務ロジックもほぼ持たない、名前だけの「集約」になる。業務ロジックはすべて巨大なサービス層に書かれる",
+   "alternative": "サービス層のクラスを減らして業務ロジックを適切な集約へ移動する。ここでは10の処理を、集約のコマンド ・ 値オブジェクト ・ ファクトリ ・ 使う場面へ移す"
+  },
+  {
+   "name": "業務サービスを使って、複数の集約のインスタンスを1つのデータベーストランザクションで変更する",
+   "risk": "集約のインスタンス1つにトランザクション1つ、という原則に反する。業務サービスは、この原則の例外にはならない",
+   "alternative": "再開か新規かを決めるは、開いていたセッションを閉じるだけ（1つ）にし、新しいセッションの登録は AI ツールが ID を発行したあとの別の操作にする。どちらも application が1回ずつコミットする"
+  },
+  {
+   "name": "（推測）集約のコマンドを、集約の型と別の crate（migration ・ publish）に置こうとする",
+   "risk": "Rust はある型のメソッドを、その型を定義した crate の外に書けない。別の crate に置くには trait を足すか自由な関数にすることになり、コマンドが集約の外に出る",
+   "alternative": "移す ・ 公開する部分の版を出すは declaration の集約の型に置き、migration と publish の crate を消す。使う場面（release.rs）は application に残す"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "業務領域の区分と crate の対応（ボード Q1 の業務領域11 ・ arch.html 1節「crate は業務領域の論理的な境界をビルドで守る手段」）",
+   "why": "分け直すと、マイグレーション ・ スキーマの保存と公開（補完）は crate を持たず、意味で探す（中核）は値オブジェクト1つだけになる。中核とした業務領域が自分の集約もドメインサービスも持たないのは、中核の区分か、関係の索引と term をどの集約が持つかの判断を見直す疑いである"
+  },
+  {
+   "suspect": "Semantic Abstract Schema を集約とする判断（Q1）",
+   "why": "出した版は変えず（I1）、基盤はポートを通さずビルドのときに取り込む（ports.not_ports）。コマンドが「版を出す」だけなら、版ごとの値として扱える疑いがある。この回答では集約のまま扱った"
+  }
+ ],
+ "next": [
+  "ACDR を起こし、Q1 の「ドメインサービス13」を「ドメインサービス3 ・ ファクトリ3」に変える決定と、model.json と arch.html 5節の差分を提示する",
+  "apply.py に行を消す op を足し、changes.py に書き換え案を C61 以降として書く",
+  "arch.html 5節の「ドメインサービス13の置き場所」の表を、13の分類の表に置き換える",
+  "architecture.json と 4節の依存の表から domain/migration と domain/publish の行を消す",
+  "behaviors/ の70場面のうち、再開か新規かを決めるに関わる場面を、セッションの集約のコマンドの単体試験として coverage.json に結び直す"
+ ],
+ "related": [
+  {
+   "criterion": "domain-service",
+   "relation": "ドメインサービスに残す3つを決める問い"
+  },
+  {
+   "criterion": "aggregate",
+   "relation": "10のうち4つを集約のコマンドへ移す拠りどころ"
+  },
+  {
+   "criterion": "value-object",
+   "relation": "状態を導く ・ 例外をまとめるを値オブジェクトへ移す拠りどころ"
+  },
+  {
+   "criterion": "entity",
+   "relation": "rule と任せる先は Semantic Concrete Schema の中に置き、単独の操作を持たせない"
+  },
+  {
+   "criterion": "ports-and-adapters",
+   "relation": "問い合わせと入出力を application とポートに置く前提"
+  },
+  {
+   "criterion": "layered-architecture",
+   "relation": "application（サービス層）が集約の生成 ・ 操作 ・ 永続化を並べる役目"
+  },
+  {
+   "criterion": "domain-model",
+   "relation": "集約 ・ 値オブジェクト ・ 業務サービスを部品として組み立てる"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "名前に Resolver ・ Service が付く処理や、もとのモデルで domain_services にあった処理を、そのまま services/ に置く",
+   "check": "services/ の各関数の引数に、2つ以上の集約の型（か、その値）があり、戻り値に集約が無いことを、シグネチャの一覧で確かめる。満たさないものは aggregates/ か factories/ へ移す"
+  },
+  {
+   "breaks": "集約のコマンドを application の use_cases/ に書き、集約がデータだけになる",
+   "check": "model.json の aggregates[].commands の各操作が、aggregates/ の型の pub fn として1回ずつ在ることを、名前の対訳表（CODING.md）と突き合わせて確かめる"
+  },
+  {
+   "breaks": "model.json を手で直す",
+   "check": "model.json の applied_changes に C61 以降の id が在り、apply.py を走らせ直して差分が出ないことを確かめる"
+  }
+ ]
+}
