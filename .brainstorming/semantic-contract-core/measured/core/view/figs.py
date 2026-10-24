@@ -53,7 +53,7 @@ def refs():
          '<rect class="area" x="10" y="62" width="380" height="300"/><text class="note small" x="20" y="78">Semantic Abstract Schema（基盤）</text>',
          '<rect class="area" x="420" y="62" width="570" height="300"/><text class="note small" x="430" y="78">文脈（Skill ・ Agent のリポジトリ）</text>',
          b(30, 92, 330, '本体', ['Concrete の契約 ・ 9つの x- の定義', '$schema は自分自身'], 'schema'),
-         b(30, 222, 330, 'ほかのファイル（形）', ['change ・ judgment ・ settings ・ session', 'view ・ catalog ・ design-tokens ・ glossary', 'annotations ・ published'], 'schema'),
+         b(30, 222, 330, 'ほかのファイル（形）', ['change ・ judgment ・ settings ・ session', 'view ・ catalog ・ design-tokens ・ glossary', 'published'], 'schema'),
          b(450, 92, 260, 'Concrete（ACDR など）', ['欄 ・ x- ・ 任せる先'], 'schema'),
          b(740, 92, 230, 'インスタンス', ['ACDR 0197'], 'data'),
          b(450, 222, 230, '記録と設定', ['変更の記録 ・ 判定の記録 ・ 設定'], 'data'),
@@ -67,7 +67,7 @@ def refs():
          '<path class="flow" d="M450,262 H362"/>',
          '<path class="flow" d="M845,288 V322 H362"/><text class="label small" x="560" y="316">$schema</text>',
          '<path class="link" d="M195,418 V332"/><text class="label small" x="202" y="374">形（session）から表を作る（SQLite のアダプター）</text>',
-         '<path class="link" d="M480,158 V192 H300 V222"/><text class="label small" x="490" y="212">$ref（annotations ・ 変更のまとまり）</text>',
+         '<path class="link" d="M480,158 V192 H300 V222"/><text class="label small" x="490" y="212">$ref（変更のまとまり）</text>',
          '<path class="link" d="M650,158 V202 H820 V222"/><text class="label small" x="700" y="174">$ref（glossary の term）・ ビューの kind が指す</text>',
          '<text class="note" x="10" y="560">矢印：$schema（自分が何に従うか）。線：$ref（部品を借りる）と、ビューの kind が Concrete を指すつながり。処理は基盤のコードが持つ（Q6 #7）</text>', '</svg>']
     return '\n'.join(P)

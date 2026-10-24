@@ -28,13 +28,6 @@ target = {"oneOf": [
   {"title": "それ以外のファイル", "type": "object", "required": ["path"], "additionalProperties": False,
    "properties": {"path": {"type": "string", "minLength": 1, "pattern": "^[^/]"}}}]}
 
-# ---------------- annotations
-ann = head('annotations', '複数のスキーマで使う注釈の形', 'x-relationship の値の形など、本体とほかのファイルが共有する形。インスタンスは作らない。')
-ann['$defs'] = {"relationship": {"type": "object", "required": ["to"], "additionalProperties": False, "properties": {
-  "to": f({"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$"}, '指す先の種類', '指す先のインスタンスが従う Concrete の URN である。'),
-  "version": f({"type": "string", "pattern": "^v[0-9]+$"}, '公開された版', 'ほかの文脈の公開された言葉を指すときの版である。', when='ほかの文脈を指すときだけ読む。')}},
-  "target": target}
-
 # ---------------- change
 ch = head('change', '変更の記録', '意図1つぶんの変更の記録。セッション ID ・ 前後の値 ・ 変更の仕組みの値（commit など）は持たない。前後は変更の仕組みからポートで受け取る。',
           '.semantic-agent-schema/changes/{id}.json', '変更 {id}「{intent}」')
@@ -48,7 +41,7 @@ ch.update({"type": "object", "required": ["$schema", "kind", "id", "purpose_ref"
       shown='変更を見せるときの見出しになる。'),
   "writer_kind": f({"enum": ["human", "ai-agent"]}, '書いた者の種類', '人か AI の Agent かである。'),
   "items": f({"type": "array", "minItems": 1, "readOnly": True, "items": {"type": "object", "required": ["target"], "additionalProperties": False,
-      "properties": {"target": {"$ref": U('annotations') + "#/$defs/target"}, "field": JP},
+      "properties": {"target": {"$ref": "#/$defs/target"}, "field": JP},
       "allOf": [{"if": {"properties": {"target": {"required": ["path"], "properties": {"path": {"not": {"pattern": "\\.json$"}}}}}}, "then": {"not": {"required": ["field"]}}}]}},
       '変更の項目', 'どの対象のどの欄が変わったかの並びで、基盤が最後に確定した姿 → いまの前後から入れる。',
       [w('unit-field', '欄は x-prompt を持つ書く単位の JSON Pointer で、配列の添字まで下げない。', '変更の単位を判定の単位にそろえる（Q1 #30）。', 'field が対象の Concrete の書く単位を指すかを見る。')],
@@ -63,7 +56,7 @@ jr.update({"type": "object", "required": ["$schema", "kind", "id", "key", "targe
   "kind": const_field('judgment', '種類', '判定の記録であること。'),
   "id": f({"type": "string", "minLength": 1, "readOnly": True}, '記録の id', '対象 × rule から基盤が決める名前で、key と同じ値である。'),
   "key": f({"type": "string", "pattern": "^[A-Za-z0-9._~-]+(/[A-Za-z0-9._~-]+)*$", "readOnly": True}, '対象 × rule の識別', '対象と rule から基盤が作る、ファイルの名前にもなる識別である。', parse='<対象>/<rule の id> の形。同じ対象 × rule は上書きされ、最後の1件だけが残る。'),
-  "target": f({"$ref": U('annotations') + "#/$defs/target"}, '対象', '判定したインスタンス（id と kind）か、I33 なら変更の記録である。'),
+  "target": f({"$ref": U('change') + "#/$defs/target"}, '対象', '判定したインスタンス（id と kind）か、I33 なら変更の記録である。'),
   "rule": f({"type": "string", "pattern": "^urn:semantic-agent-schema:.+#[a-z0-9]+(-[a-z0-9]+)*$"}, '判定した rule', '判定した決まりで、スキーマの URN と rule の id である。'),
   "result": f({"enum": ["verified", "violated", "unverified", "unsupported", "error"]}, '結果', '5つの値のどれか1つである。', shown='状態の導出と、変更を見せるときの例外に出る。'),
   "grounds": f({"type": "array", "items": {"type": "object", "required": ["at", "text"], "additionalProperties": False, "properties": {"at": JP, "text": {"type": "string", "minLength": 1}}}},
@@ -71,7 +64,7 @@ jr.update({"type": "object", "required": ["$schema", "kind", "id", "key", "targe
       [w('grounds-in-reads', '理由の場所は、判定した値で読んだ場所のどれかである。', '読んでいない値を理由にした答えは unverified にする（I14）。', 'at が judged_values.reads の at にあるかを見る。')]),
   "meaning": f({"type": "object", "required": ["whole", "per_target"], "additionalProperties": False, "properties": {
       "whole": {"type": "string", "minLength": 1}, "per_target": {"type": "array", "items": {"type": "object", "required": ["target", "text", "at"], "additionalProperties": False, "properties": {
-        "target": {"$ref": U('annotations') + "#/$defs/target"}, "text": {"type": "string", "minLength": 1}, "at": {"type": "array", "items": JP}}}}}},
+        "target": {"$ref": U('change') + "#/$defs/target"}, "text": {"type": "string", "minLength": 1}, "at": {"type": "array", "items": JP}}}}}},
       '意味（I33）', '意図全体の意味の1文と、対象ごとの意味の1文である。', when='I33 の判定の記録だけが持つ。変更を見せるとき、意図の下に出る。'),
   "question": f({"type": "string", "minLength": 1}, '問い', '何が分かれば決められるかの1文である。', when='結果が unverified のときに書く。'),
   "judged_by": f({"enum": ["machine", "tool", "ai", "human"]}, '判定した者', '機械 ・ 外のツール ・ AI ・ 人のどれかである。'),
@@ -132,7 +125,7 @@ st.update({"type": "object", "required": ["$schema", "kind", "id"], "additionalP
 # ---------------- change-view（変更のまとまりの形。保存しない出力）
 EXC = ["intent-missing", "intent-mismatch", "unrecorded", "no-change", "record-rewritten", "human-field-changed", "state-changed", "unconfirmed-outside-intent", "not-in-range", "unreadable"]
 # 変更のまとまり（保存しない出力の形）は、持ち主 change の $defs に置く（Q6 #6）
-ch['$defs'] = {"view": {"type": "object", "required": ["range", "exceptions", "purposes", "unreadable"], "additionalProperties": False, "properties": {
+ch['$defs'] = {"target": target, "view": {"type": "object", "required": ["range", "exceptions", "purposes", "unreadable"], "additionalProperties": False, "properties": {
   "range": f({"type": "object", "required": ["before", "after"], "properties": {"before": {"type": "string"}, "after": {"type": "string"}}}, '前後の参照', 'ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。'),
   "exceptions": f({"type": "array", "items": {"type": "object", "required": ["type", "count", "items"], "additionalProperties": False, "properties": {
       "type": {"enum": EXC}, "count": {"type": "integer", "minimum": 1}, "items": {"type": "array", "items": {"type": "object"}}}}},
@@ -141,7 +134,7 @@ ch['$defs'] = {"view": {"type": "object", "required": ["range", "exceptions", "p
       "purpose_ref": {"type": "string"}, "intents": {"type": "array", "items": {"type": "object", "required": ["change_id", "intent", "targets"], "properties": {
         "change_id": {"type": "string"}, "intent": {"type": "string"}, "judgment": {"enum": ["verified", "violated", "unverified", "unsupported", "error", "none"]},
         "meaning": {"type": "object"}, "targets": {"type": "array", "items": {"type": "object", "required": ["target", "kind"], "properties": {
-          "target": {"$ref": U('annotations') + "#/$defs/target"}, "kind": {"enum": ["fields", "lines"]},
+          "target": {"$ref": "#/$defs/target"}, "kind": {"enum": ["fields", "lines"]},
           "fields": {"type": "array", "items": {"type": "object", "required": ["at"], "properties": {"at": JP, "before": True, "after": True}}},
           "lines": {"type": "array", "items": {"type": "object", "required": ["mark", "text"], "properties": {"mark": {"enum": [" ", "-", "+"]}, "text": {"type": "string"}}}}}}}}}}}}},
       '目的 → 意図', '目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。'),
@@ -218,6 +211,6 @@ pb['$defs'] = {"version": {"type": "object", "required": ["of", "version", "fiel
   "fields": f({"type": "array", "items": JP}, '見せる欄', 'x-published が true の欄の場所の並びである。'),
   "extensions": f({"type": "array", "items": {"type": "string", "pattern": "^x-"}}, '見せる x- の定義', 'published が true の x- の名前の並びである。')}}}
 
-for name, s in [('annotations', ann), ('change', ch), ('judgment', jr), ('session', sess), ('settings', st), ('view', vw), ('catalog', ca), ('design-tokens', dt), ('glossary', gl), ('published', pb)]:
+for name, s in [('change', ch), ('judgment', jr), ('session', sess), ('settings', st), ('view', vw), ('catalog', ca), ('design-tokens', dt), ('glossary', gl), ('published', pb)]:
     json.dump(s, open(os.path.join(HERE, f'{name}.schema.json'), 'w'), ensure_ascii=False, indent=2)
 print('ok')

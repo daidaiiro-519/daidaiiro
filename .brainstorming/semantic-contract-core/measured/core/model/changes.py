@@ -198,4 +198,5 @@ BOARD = [
  ('Q11 #9 ①', '子の目的は親と同じ', '任せる先のセッションの目的は親と同じ'),
  ('Q7 #17', 'Abstract の AI の rule は agent に予約した reviewer を使い', '基盤自身の x-delegates の judge を使い'),
  ('Q6 ・ Q1 #9 ・ #19 ・ #20', 'core', 'base'),
+ ('Q6 #4', 'annotations（複数のファイルで使う。x-relationship ・ 判定する者）', '外す。x-relationship の形と判定する者は本体の $defs、変更の対象の形は change の $defs（judgment は change から借りる）。ファイルは決着の10から annotations を外し settings を足した10'),
 ]

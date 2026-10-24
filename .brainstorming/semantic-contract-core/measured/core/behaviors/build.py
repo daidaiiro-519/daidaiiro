@@ -148,7 +148,7 @@ def sch(sid, title, traces, schema, doc, valid, patch=(), concrete=None):
     if concrete: g['concrete'] = concrete
     return dict(id=sid, title=title, traces=traces, given=g, when={'op': 'schema'}, then=[T('E1', '/result/valid', '合否が期待と違う', equals=valid)])
 static = [sch(f'S-ST-{n}', f'{n} は本体に従う', ['I3'], BODY, f'schemas/{n}.schema.json' if n != 'abstract' else 'schemas/abstract.json', True)
-          for n in ['abstract', 'change', 'judgment', 'session', 'settings', 'change-view', 'annotations']] + [
+          for n in ['abstract', 'change', 'judgment', 'session', 'settings']] + [
  sch('S-ST-acdr', 'ACDR の Concrete は本体に従う', ['I3'], BODY, 'examples/acdr.concrete.json', True),
  sch('S-ST-bad-1', '入れ子の欄の壊れた x-prompt を断る', ['I4'], BODY, 'examples/acdr.concrete.json', False, [{'at': '/properties/shift/items/properties/what/x-prompt', 'value': {'oops': 1}}]),
  sch('S-ST-bad-2', 'argv のシェルの記号を断る', ['I4'], BODY, 'examples/acdr.concrete.json', False, [{'at': '/x-delegates/x', 'value': {'role': 'r', 'run': {'kind': 'judging', 'argv': ['a|b']}}}]),

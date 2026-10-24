@@ -124,6 +124,14 @@ def words(o):
 a.update(words(a))
 log('S13', '本体の文の廃語（要る）と、伝わらない語（一員）を直す', '利用者が廃語と決めた語が本体の文に残っていた', '.doc-writing/retired-words.json')
 
+# S14 annotations をやめ、x-relationship の値の形を本体の $defs に置く
+a['$defs']['relationship'] = {"type": "object", "required": ["to"], "additionalProperties": False, "description": "x-relationship の値の形。to は指す先のインスタンスが従う Concrete の URN",
+  "properties": {"to": {"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$", "description": "指す先の種類",
+      "x-prompt": {"read": {"means": "指す先のインスタンスが従う Concrete の URN である。"}, "write": []}},
+    "version": {"type": "string", "pattern": "^v[0-9]+$", "description": "公開された版",
+      "x-prompt": {"read": {"means": "ほかの文脈の公開された言葉を指すときの版である。", "when": "ほかの文脈を指すときだけ読む。"}, "write": []}}}}
+log('S14', 'x-relationship の値の形を annotations から本体の $defs/relationship へ移し、annotations をやめる', '9つの x- を本体の x-extensions に登録したので、x- の値の形は本体が持つ。annotations に残る役が無くなった', '利用者「アノテーションのスキーマってもう使わないんじゃ？」')
+
 log('S12', 'x-delegates と $defs/delegate の説明から（案）を外す', 'この会話で決めた', 'decisions「x-delegates は残す」')
 
 a['description'] = src['description']

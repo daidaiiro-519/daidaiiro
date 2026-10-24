@@ -102,7 +102,7 @@
         "additionalProperties": false,
         "properties": {
           "target": {
-            "$ref": "urn:semantic-agent-schema:base:annotations:v1#/$defs/target"
+            "$ref": "#/$defs/target"
           },
           "field": {
             "$ref": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer"
@@ -171,6 +171,44 @@
     }
   },
   "$defs": {
+    "target": {
+      "oneOf": [
+        {
+          "title": "インスタンス",
+          "type": "object",
+          "required": [
+            "id",
+            "kind"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "pattern": "^urn:semantic-agent-schema:"
+            }
+          }
+        },
+        {
+          "title": "それ以外のファイル",
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^/]"
+            }
+          }
+        }
+      ]
+    },
     "view": {
       "type": "object",
       "required": [
@@ -299,7 +337,7 @@
                         ],
                         "properties": {
                           "target": {
-                            "$ref": "urn:semantic-agent-schema:base:annotations:v1#/$defs/target"
+                            "$ref": "#/$defs/target"
                           },
                           "kind": {
                             "enum": [
