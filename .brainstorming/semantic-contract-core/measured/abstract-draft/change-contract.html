@@ -26,6 +26,7 @@ pre{margin:0;background:var(--code);padding:8px 10px;font:11.5px/1.55 var(--mono
 .tabs{display:flex;gap:4px;flex-wrap:wrap} .tab{font-size:12.5px;padding:2px 10px;border-radius:6px;background:var(--code);border:1px solid var(--line)} .tab.on{background:var(--accent);color:var(--card);border-color:var(--accent)}
 .diff{font:12px/1.6 var(--mono);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .diff div{padding:0 10px;white-space:pre;overflow-x:auto} .diff .d{background:var(--del);color:var(--del-ink)} .diff .a{background:var(--add);color:var(--add-ink)}
+.diff.full{max-height:none}.fw{grid-template-columns:1fr 1fr}@media (max-width:760px){.fw{grid-template-columns:1fr !important}}
 .mark{background:var(--mk);color:var(--ink);border-radius:8px;padding:6px 10px;font-size:13px}
 .mark b{font-size:12px;color:var(--sub);margin-right:6px}
 .time{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} @media (max-width:700px){.time{grid-template-columns:1fr}}
@@ -102,16 +103,24 @@ table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--card
 <tr><td>許可を各 AI ツールの設定ファイルに置く</td><td>verified</td><td>settings.json ・ config.toml</td></tr>
 <tr><td>Skill の説明を新しい許可の置き場所に合わせる</td><td>verified</td><td>SKILL.md</td></tr>
 </table></div>
-<div class="two" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<div><p class="meta">x-prompt の無いファイル（コード）：差分と意図</p>
-<div class="diff"><div class="d">- fn spawn_agent(cfg: &amp;AgentCfg, allowed: &amp;[Tool]) -&gt; Child {</div><div class="a">+ fn spawn_agent(cfg: &amp;AgentCfg) -&gt; Child {</div></div>
-<div class="mark"><b>意図</b>画面の AI に許可の一覧を渡さないようにする</div></div>
-<div><p class="meta">Semantic Agent Schema のインスタンス（JSON）：欄ごとの意味の変更も出る</p>
-<div class="diff"><div class="d">- "why": "…各ツールの設定ファイルに合わせる。"</div><div class="a">+ "why": "…合わせる。最小権限：sec-03 …"</div></div>
-<div class="mark"><b>意味の変更</b>なぜ（why）に、最小権限の根拠（sec-03）が加わった</div></div>
+<p class="meta">決まりの描き方は、<b>ファイルの全体</b>を出し、変わった所に色と意図の印を付ける（変わった所だけに縮めるのは、読む人が選んだとき）</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" class="fw">
+<div><p class="meta">brainstorming/tool/agent.rs（全体。x-prompt の無いファイル）</p>
+<div class="diff full"><div>use crate::config::AgentCfg;</div><div>use std::process::{Child, Command};</div><div> </div><div>/// 画面の AI を起動する。許可は各 AI ツールの設定ファイルが決める</div><div class="d">- fn spawn_agent(cfg: &amp;AgentCfg, allowed: &amp;[Tool]) -&gt; Child {</div><div class="a">+ fn spawn_agent(cfg: &amp;AgentCfg) -&gt; Child {</div><div>      let mut cmd = Command::new(&amp;cfg.bin);</div><div>      cmd.args(&amp;cfg.args);</div><div class="d">-     for t in allowed { cmd.arg("--allowedTools").arg(t.name()); }</div><div class="a">+     cmd.arg("--permission-mode").arg("dontAsk");</div><div>      cmd.spawn().expect("AI ツールを起動できない")</div><div>  }</div></div>
+<div class="mark"><b>意図（01JB…A1）</b>画面の AI に許可の一覧を渡さないようにする</div></div>
+<div><p class="meta">.acdr/0197-…/acdr.json（全体。Semantic Agent Schema のインスタンス）</p>
+<div class="diff full"><div>{ "$schema": "urn:semantic-agent-schema:acdr:decision-record:v1",</div><div>  "kind": "decision-record", "no": "0197",</div><div>  "title": "画面の AI の許可を、各 AI ツールの設定ファイルに任せる",</div><div>  "status": "proposed",</div><div>  "decision": "ボードの画面の AI に何を許すかを、…で決める。",</div><div class="d">- "why": "…各ツールの設定ファイルに合わせる。",</div><div class="a">+ "why": "…合わせる。最小権限：sec-03「…最小限だけを与える」",</div><div>  "shift": [ { "what": "許可の置き場所", … } ],</div><div>  "alternatives": [ … ] }</div></div>
+<div class="mark"><b>意図（01JB…D4）</b>least-privilege の根拠を書く</div>
+<div class="mark" style="background:var(--accent-bg)"><b>意味の変更</b>なぜ（why）に、最小権限の根拠（sec-03）が加わった</div></div>
 </div>
 </section>
 <p class="meta">ACDR は、この画面に決定 ・ なぜ ・ 比較した案を足し、承認する人のために見やすくしたビュー（2節の画面）</p>
+<h2>手元の DB に入るもの（索引だけ）</h2>
+<div class="tw"><table><tr><th>DB の表</th><th>役目</th><th>失ったら</th></tr>
+<tr><td>セッションと、セッション → 変更の記録の id</td><td>作業した本人が、セッションで変更を引く</td><td>作り直せない（コミットした記録は失わない）</td></tr>
+<tr><td>変更の記録の索引（遅いと測れてから）</td><td>目的 ・ 対象 ・ 意図で速く引く</td><td>ファイルから作り直せる</td></tr>
+<tr><td>関係の索引</td><td>x-relationship をたどる</td><td>ファイルから作り直せる</td></tr></table></div>
+<p class="meta">画面（全体 ・ 差分 ・ 意図の印）は、毎回ファイルと Git から描く。DB は引くための索引で、形は引けて描ければよい</p>
 <h2>3　find を「記録を足したコミット」の中で探す理由</h2>
 <section class="time">
 <div class="tm on"><b>コミット X</b><br>変更の記録 A1 を足す。agent.rs に fn spawn_agent がある</div>
