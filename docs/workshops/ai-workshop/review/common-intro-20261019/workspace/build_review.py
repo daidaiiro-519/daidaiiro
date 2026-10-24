@@ -79,6 +79,7 @@ def publish():
     if structure_path.exists():
         structure = json.loads(structure_path.read_text())
         lead['structureAppliedSlides'] = structure.get('applied_slides', [])
+        lead['structureApprovedSlides'] = structure.get('approved_slides', [])
     text = text[:match.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[match.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
@@ -103,7 +104,9 @@ def publish():
                 dict(slide=1, group='story', change='AIを要件の整理と設計から活用する設定に変更し、必要な品質と確認・修正を含む開発全体の時間を目標として原稿へ反映。'),
                 dict(slide=1, group='figure', change='人物・チーム・参照資料を維持し、要件・設計からのAI活用と確認・修正を含む目標を図へ表示。warm-paperを指定して解決。'),
                 dict(slide=6, group='story', change='主体・対象が不明な設計実装の目的という表現を修正。申請者の目的の大きさ、目的を満たす要件、AIへ任せる開発作業を区別。'),
-                dict(slide=6, group='figure', change='申請者の目的、具体的な要件、開発者の目的とAI作業を別の所属へ配置。人物・申請書・証憑・承認の維持と再確認・コード・レビューのアイコンで対象と動作を視覚化。')])
+                dict(slide=6, group='figure', change='申請者の目的、具体的な要件、開発者の目的とAI作業を別の所属へ配置。人物・申請書・証憑・承認の維持と再確認・コード・レビューのアイコンで対象と動作を視覚化。'),
+                dict(slide=2, group='story', change='改訂構成の見出し・導入文・原稿を反映。既存資料を確認し、AIに伝えた条件をもとに実装・レビューが速く進む流れと、次の結合テストへの接続を明示。'),
+                dict(slide=2, group='figure', change='資料・開発者・AI・重ねた成果物・テスト・人のレビュー・承認を既存の線画で示し、重複する説明文を短縮。warm-paperを指定して描画。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 
