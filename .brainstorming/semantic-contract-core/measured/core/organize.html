@@ -78,9 +78,68 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 <tr><td>x-view</td><td>ACDR の x-extensions に足す例として出した</td><td>取り下げ。見せ方はビューが持ち、Concrete は持たない</td></tr>
 <tr><td>view ・ catalog ・ design-tokens ・ glossary</td><td>描画は範囲外として、形も書かなかった</td><td>Abstract の一員として形を書く（描画の参照の実装はまだ作らない）</td></tr>
 </table></div>
-<h2>4　次にすること</h2>
+<h2>4　スキーマのファイルの分け方（Q6）</h2>
+<div class="tw"><table><tr><th>決まり</th><th>中身</th></tr>
+<tr><td>Q6 の答え</td><td>「基盤のドメインモデルと同じ名前と粒度で、保存の単位1つを1ファイルにした10個で組む」</td></tr>
+<tr><td>#6 組み方</td><td>ファイル名と $defs の名前をドメインモデルにそろえる。保存の単位（集約）1つを1ファイル</td></tr>
+<tr><td>#6 値オブジェクト</td><td>持ち主の集約のファイルの $defs に置く。複数で使うものは annotations</td></tr>
+<tr><td>#5 デザインシステム</td><td>1つの集約だが、保存の単位がカタログとトークンに分かれるので2ファイル</td></tr>
+<tr><td>#7 ファイルが持つもの</td><td>データの側（形と宣言）だけ。振る舞い（コマンドと、ファイルで書けない不変条件の検査）は基盤のコード（集約とドメインサービス）</td></tr>
+</table></div>
+<p class="meta">ドメインモデルの集約1つ ＝ 保存の単位1つ ＝ スキーマのファイル1つ。x- 項目は、その中の本体（Concrete の契約）に書くキーワード。x- もファイルも「形と宣言」で、処理は基盤のコードが持つ</p>
+
+<h2>5　参照のつながり</h2>
+<div class="fig" style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto"><svg viewBox="0 0 1000 520" style="min-width:900px" role="img" aria-label="スキーマのファイルの参照のつながり" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg #dsvg-7e4f97d3-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-7e4f97d3-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="520.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">スキーマのファイルの参照のつながり</text>
+<rect class="area" x="10" y="40" width="380" height="300" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="20" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Semantic Abstract Schema（基盤）</text>
+<rect class="area" x="420" y="40" width="570" height="300" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="430" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">文脈（Skill ・ Agent のリポジトリ）</text>
+<rect class="box" x="30" y="70" width="330" height="78" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="42" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">本体</text><text class="note small" x="42" y="114" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Concrete の契約 ・ 9つの x- の定義</text><text class="note small" x="42" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">$schema は自分自身</text>
+<rect class="box" x="30" y="200" width="330" height="96" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="42" y="223" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">ほかのファイル（形）</text><text class="note small" x="42" y="244" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">change ・ judgment ・ settings ・ session</text><text class="note small" x="42" y="262" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">view ・ catalog ・ design-tokens ・ glossary</text><text class="note small" x="42" y="280" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">annotations ・ published</text>
+<rect class="box" x="450" y="70" width="240" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="462" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">Concrete（ACDR など）</text><text class="note small" x="462" y="114" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">欄 ・ x- ・ 任せる先</text>
+<rect class="box" x="740" y="70" width="230" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="752" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">インスタンス</text><text class="note small" x="752" y="114" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ACDR 0197</text>
+<rect class="box" x="450" y="200" width="230" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="462" y="223" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">記録と設定</text><text class="note small" x="462" y="244" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">変更の記録 ・ 判定の記録 ・ 設定</text>
+<rect class="box" x="720" y="200" width="250" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="732" y="223" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">描画と辞書</text><text class="note small" x="732" y="244" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ビュー ・ デザインシステム ・ glossary</text>
+<rect class="box" x="30" y="400" width="330" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="42" y="423" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">手元の DB の行</text><text class="note small" x="42" y="444" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">セッション ・ 手元の索引（確定しない）</text>
+<path class="flow" d="M195,200 V146" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7e4f97d3-arrow-5B6B66)"/><text class="label small" x="202" y="178" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">$schema</text>
+<path class="flow" d="M450,98 H362" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7e4f97d3-arrow-5B6B66)"/>
+<path class="flow" d="M740,98 H692" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7e4f97d3-arrow-5B6B66)"/><text class="label small" x="694" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">$schema</text>
+<path class="flow" d="M450,240 H362" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7e4f97d3-arrow-5B6B66)"/>
+<path class="flow" d="M845,260 V300 H362" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7e4f97d3-arrow-5B6B66)"/><text class="label small" x="560" y="294" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">$schema</text>
+<path class="link" d="M195,400 V310" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="202" y="360" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">形から表を作る（SQLite のアダプター）</text>
+<path class="link" d="M480,124 V170 H300 V200" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="490" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">$ref（annotations ・ 変更のまとまり）</text>
+<path class="link" d="M650,124 V180 H820 V200" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="700" y="152" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">$ref（glossary の term）・ ビューの kind が指す</text>
+<text class="note" x="10" y="500" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">矢印：$schema（自分が何に従うか）。線：$ref（部品を借りる）と、ビューの kind が Concrete を指すつながり。処理（指す先が在るか ・ 描画など）は基盤のコードが持つ（Q6 #7）</text>
+</svg></div>
+<h3>$schema：自分が何に従うか</h3>
+<div class="tw"><table><tr><th>ファイル</th><th>$schema の先</th><th>誰が検査するか</th></tr>
+<tr><td>Abstract の本体</td><td>自分自身</td><td>本体が自分を検査する</td></tr>
+<tr><td>Abstract のほかのファイル</td><td>本体</td><td>本体（書く単位ごとの説明と案内など。Q6 #10）</td></tr>
+<tr><td>Concrete（ACDR など）</td><td>本体</td><td>本体が Concrete の契約を検査する</td></tr>
+<tr><td>インスタンス（ACDR 0197）</td><td>その Concrete</td><td>Concrete が欄の形を検査する</td></tr>
+<tr><td>変更の記録 ・ 判定の記録 ・ 設定</td><td>Abstract の change ・ judgment ・ settings</td><td>Concrete を通さず、Abstract のファイルが直接</td></tr>
+<tr><td>ビュー ・ デザインシステム ・ glossary</td><td>Abstract の view ・ catalog ・ design-tokens ・ glossary</td><td>同上。ビューの kind が描く Concrete を指す</td></tr>
+<tr><td>手元の DB の行</td><td>（ファイルではない）</td><td>SQLite のアダプターが session の形から表を作り、基盤が行を検査する</td></tr>
+</table></div>
+<h3>$ref：部品を借りる</h3>
+<div class="tw"><table><tr><th>借りる側</th><th>借りる先</th><th>何のために</th></tr>
+<tr><td>Concrete の欄</td><td>文脈の glossary の term</td><td>欄の意味を辞書の語に結ぶ</td></tr>
+<tr><td>Concrete の欄の x-relationship</td><td>Abstract の annotations</td><td>「ほかのインスタンスを指す」宣言の形をそろえる</td></tr>
+<tr><td>Concrete（ACDR など）</td><td>Abstract の変更のまとまりの形</td><td>基盤の差分の形をそのまま使い、見せ方を足す（Q10 #9）</td></tr>
+<tr><td>Abstract のファイルどうし</td><td>annotations</td><td>複数で使う部品を1か所に置く</td></tr>
+</table></div>
+
+<h2>6　Q6 の基準で照らした、核のスキーマのファイル</h2>
+<div class="tw"><table><tr><th>ファイル</th><th>核の今</th><th>直すこと</th></tr>
+<tr><td>本体 ・ change ・ judgment ・ annotations ・ session</td><td>ある</td><td>—</td></tr>
+<tr><td>glossary ・ view ・ catalog ・ design-tokens</td><td class="meta">無い</td><td>形を足す</td></tr>
+<tr><td>published（公開された言葉の版。値オブジェクト）</td><td class="meta">無い</td><td>形を足す</td></tr>
+<tr><td>settings</td><td>ある（この会話で足した）</td><td>保存の単位なのでファイルのまま</td></tr>
+<tr><td>change-view（変更のまとまり）</td><td>独立したファイル</td><td>保存しない値の形なので、change の $defs へ移す</td></tr>
+</table></div>
+<p class="meta">直したあとは、決着の10ファイル ＋ settings ＝ 11ファイル</p>
+<h2>7　次にすること</h2>
 <div class="tw"><table><tr><th>順</th><th>こと</th></tr>
-<tr><td>1</td><td>Abstract の一員 view ・ catalog ・ design-tokens ・ glossary の形を核に足す（形と、Q1 #23 の形 ・ 参照の検査まで）</td></tr>
+<tr><td>1</td><td>6節のとおりスキーマのファイルを組み直す（glossary ・ view ・ catalog ・ design-tokens ・ published を足し、change-view を change の $defs へ。描画は形と Q1 #23 の検査まで）</td></tr>
 <tr><td>2</td><td>セッションの「役割」を「親が呼んだ相手の名前」に直す（ドメインモデルと session）</td></tr>
 <tr><td>3</td><td>場面を回し直し、シミュレーションを核の出力から作り直す</td></tr></table></div>
 </main>
