@@ -1,0 +1,46 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0200",
+ "title": "依存の向きの検査ツールの名前を architecture-lint にする",
+ "date": "2026-10-25",
+ "status": "accepted",
+ "decision": "許していない依存の辺を規則で検出して止める検査ツールを architecture-lint という名前で作り、リポジトリ直下の architecture-lint/ に CLI として置く。",
+ "why": "ACDR 0199 の名前 dependency-rules は、何をするツールかが名前から分からなかった。利用者は、アーキテクチャとしての依存の規則という線で、何をするかが分かり呼びやすい名前を求め、architecture-lint を選んだ。決定の中身（規則の形 ・ グラフの公開 ・ 出力 ・ 置き場所）は 0199 から変えない。",
+ "shift": [
+  {
+   "what": "ツールの名前",
+   "from": "dependency-rules（フォルダ ・ crate ・ 実行ファイル ・ スキーマの $id urn:dependency-rules:…）",
+   "to": "architecture-lint（フォルダ ・ crate ・ 実行ファイル ・ スキーマの $id urn:architecture-lint:…）"
+  },
+  {
+   "what": "呼び出し",
+   "from": "dependency-rules check --rules architecture.json --cargo .",
+   "to": "architecture-lint check --rules architecture.json --cargo ."
+  }
+ ],
+ "alternatives": [
+  {
+   "option": "dependency-rules のまま",
+   "why_not": "何をするツールかが名前から分からない"
+  },
+  {
+   "option": "dependency-lang-rules",
+   "why_not": "言語ごとの規則と読める。規則の形は言語に依らず、言語ごとに替わるのは読み取りだけ"
+  },
+  {
+   "option": "dependency-architecture-rules ・ architecture-dependency-rules",
+   "why_not": "長く、何をするか（検査する）が名前に入っていない"
+  },
+  {
+   "option": "arch-deps",
+   "why_not": "何をするかが名前から分からない。arch は CPU のアーキテクチャとも読める"
+  },
+  {
+   "option": "component-dependency-rules",
+   "why_not": "アーキテクチャの語が入らず、利用者の求めた線から外れる"
+  }
+ ],
+ "supersedes": "ACDR 0199",
+ "docs": [],
+ "seal": {}
+}

@@ -1,24 +1,24 @@
-# dependency-rules
+# architecture-lint
 
 許していない依存の辺を、規則で検出して止める CLI。アーキテクチャに寄らない。
 
-Cargo は「Cargo.toml に書いていない crate を使う」と「通常の依存の循環」を止める。ただし、その辺を Cargo.toml に書いてよいかは知らない。dependency-rules は、規則（component と allow）に無い辺を見つけ、終了コード 1 で CI を止める。
+Cargo は「Cargo.toml に書いていない crate を使う」と「通常の依存の循環」を止める。ただし、その辺を Cargo.toml に書いてよいかは知らない。architecture-lint は、規則（component と allow）に無い辺を見つけ、終了コード 1 で CI を止める。
 
-決めた経緯はブレストボード `.brainstorming/dependency-rules.json` と ACDR 0199 にある。
+決めた経緯はブレストボード `.brainstorming/dependency-rules.json` と ACDR 0199 と 0200（名前）にある。
 
 ## 入れ方
 
 ```
-cargo install --path dependency-rules
+cargo install --path architecture-lint
 ```
 
 ## 使い方
 
 ```
-dependency-rules check --rules <規則.json> (--cargo <workspace の根> | --graph <ファイル|->) [--json]
-dependency-rules graph --cargo <workspace の根>
-dependency-rules --help
-dependency-rules --version
+architecture-lint check --rules <規則.json> (--cargo <workspace の根> | --graph <ファイル|->) [--json]
+architecture-lint graph --cargo <workspace の根>
+architecture-lint --help
+architecture-lint --version
 ```
 
 | 操作 | すること |

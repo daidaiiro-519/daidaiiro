@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-const BIN: &str = env!("CARGO_BIN_EXE_dependency-rules");
+const BIN: &str = env!("CARGO_BIN_EXE_architecture-lint");
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 /// crate の名前と、Cargo.toml の [dependencies] ・ [dev-dependencies] に書く行
@@ -18,7 +18,7 @@ struct Krate<'a> {
 
 fn workspace(tag: &str, krates: &[Krate]) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
-        "dependency-rules-test-{tag}-{}",
+        "architecture-lint-test-{tag}-{}",
         std::process::id()
     ));
     let _ = fs::remove_dir_all(&dir);
@@ -220,7 +220,7 @@ fn 規則の例は_rules_schema_に合う() {
 fn 読めない規則と使い方の誤りは終了コード_2() {
     let ws = workspace("err", &good());
     let bad =
-        std::env::temp_dir().join(format!("dependency-rules-bad-{}.json", std::process::id()));
+        std::env::temp_dir().join(format!("architecture-lint-bad-{}.json", std::process::id()));
     fs::write(
         &bad,
         r#"{"version":1,"components":[],"allow":[{"from":"x","to":["y"]}]}"#,
@@ -275,5 +275,5 @@ fn 読めない規則と使い方の誤りは終了コード_2() {
 #[test]
 fn help_と_version() {
     assert_eq!(run(&["--help"]).status.code(), Some(0));
-    assert!(String::from_utf8_lossy(&run(&["--version"]).stdout).starts_with("dependency-rules "));
+    assert!(String::from_utf8_lossy(&run(&["--version"]).stdout).starts_with("architecture-lint "));
 }

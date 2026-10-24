@@ -1,4 +1,4 @@
-//! 依存の向きの検査ツール dependency-rules の入口。
+//! 依存の向きの検査ツール architecture-lint の入口。
 //! 引数を読み、規則とグラフを公開の形から core の型へ直して判定し、出力と終了コードを決める。
 //! 終了コード：0 違反なし ／ 1 違反あり ／ 2 規則かグラフが読めない ・ 使い方の誤り
 
@@ -13,10 +13,10 @@ use std::process::ExitCode;
 const HELP: &str = "依存の向きの検査ツール
 
 使い方:
-  dependency-rules check --rules <規則.json> (--cargo <workspace の根> | --graph <ファイル|->) [--json]
-  dependency-rules graph --cargo <workspace の根>
-  dependency-rules --help
-  dependency-rules --version
+  architecture-lint check --rules <規則.json> (--cargo <workspace の根> | --graph <ファイル|->) [--json]
+  architecture-lint graph --cargo <workspace の根>
+  architecture-lint --help
+  architecture-lint --version
 
 終了コード: 0 違反なし ／ 1 違反あり ／ 2 規則かグラフが読めない ・ 使い方の誤り";
 
@@ -123,7 +123,7 @@ fn run(argv: &[String]) -> Result<ExitCode, String> {
         return Ok(ExitCode::SUCCESS);
     }
     if argv.first().map(String::as_str) == Some("--version") {
-        println!("dependency-rules {}", env!("CARGO_PKG_VERSION"));
+        println!("architecture-lint {}", env!("CARGO_PKG_VERSION"));
         return Ok(ExitCode::SUCCESS);
     }
     let a = parse(argv)?;
