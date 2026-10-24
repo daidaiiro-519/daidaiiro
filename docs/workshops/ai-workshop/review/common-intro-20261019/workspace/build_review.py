@@ -7,6 +7,7 @@ import markdown
 from review_ui import enhance
 from review_navigation import build_navigation
 from review_deck import load_deck
+from review_structure import add_structure
 
 A = Path(__file__).resolve().parent
 V = A.parent / 'viewer'
@@ -78,13 +79,13 @@ def publish():
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
     notice = text[start:end]
-    notice = re.sub(r'<h2>.*?</h2>', '<h2>共通の「はじめに」：8枚構成／想定される展開を5枚目に追加</h2>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<h2>.*?</h2>', '<h2>共通の「はじめに」：要件と設計を軸に8枚の構成を改訂中</h2>', notice, count=1, flags=re.S)
     notice = re.sub(r'<p>.*?</p>', '<p>1〜4枚目は架空案件で起きた出来事、5枚目はその設計のまま変更を続けた場合に想定される展開です。教材1〜3の紹介は6〜8枚目へ移動しています。新しい5枚目には変更前のスライドと原稿はありません。動画・音声と正本は更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
     plan = '# 現在の8枚構成\n\n' + '\n\n'.join('## ' + str(s['slide']) + ' ' + s['heading'] + '\n\n' + s['lede'] for s in slides)
     notice += '<details id="seven-slide-plan"><summary>現在の8枚構成を開く</summary>' + markdown.markdown(plan) + '</details>'
-    text = enhance(text[:start] + notice + text[end:])
+    text = add_structure(enhance(text[:start] + notice + text[end:]), A)
     (V / 'design-review.html').write_text(text)
     (A / 'comparison.html').write_text(text)
     build_navigation(A, V)
@@ -94,7 +95,9 @@ def publish():
     log.extend([dict(slide=5, group='story', change='事例の事実と想定される展開を分け、条件や処理の分散から確認範囲が増える可能性を説明するスライドを追加。'),
                 dict(slide=5, group='figure', change='担当者による追加、ルールの分散、照合対象の増加を人物・コード・同じ大きさで重ねた資料で図示。'),
                 dict(slide=5, group='japanese', change='起こり得る一例として説明。AI使用や類似コードだけを悪い設計の根拠にせず、途中の見直しで防げると明記。'),
-                dict(slide=6, group='story', change='以前の教材1の紹介を移動。新しい前枚の想定例を受けた導入へ変更。')])
+                dict(slide=6, group='story', change='以前の教材1の紹介を移動。新しい前枚の想定例を受けた導入へ変更。'),
+                dict(slide=1, group='story', change='AIを要件の整理と設計から活用する設定に変更し、必要な品質と確認・修正を含む開発全体の時間を目標として原稿へ反映。'),
+                dict(slide=1, group='figure', change='人物・チーム・参照資料を維持し、要件・設計からのAI活用と確認・修正を含む目標を図へ表示。warm-paperを指定して解決。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 
