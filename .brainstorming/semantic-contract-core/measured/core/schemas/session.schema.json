@@ -1,0 +1,249 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:session:v1",
+  "title": "セッションと手元のセッションの索引の行",
+  "description": "手元の DB に置く行の形。確定しない。インスタンスのファイルは作らない。DDL は SQLite のアダプターがこの形から書く。",
+  "$defs": {
+    "session-id": {
+      "type": "object",
+      "required": [
+        "tool",
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "AI ツールの種類",
+          "x-prompt": {
+            "read": {
+              "means": "セッションを発行した AI ツールの名前（claude-code ・ codex など）である。"
+            },
+            "write": []
+          }
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ツールが発行した文字列",
+          "x-prompt": {
+            "read": {
+              "means": "AI ツールが発行したセッションの文字列で、基盤は解釈しない。"
+            },
+            "write": []
+          }
+        }
+      },
+      "description": "セッション ID",
+      "x-prompt": {
+        "read": {
+          "means": "AI ツールの種類と、そのツールが発行した文字列の組である。基盤は文字列を解釈しない。"
+        },
+        "write": []
+      }
+    },
+    "session": {
+      "type": "object",
+      "required": [
+        "session",
+        "state",
+        "last_used_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/session-id",
+          "description": "セッション ID",
+          "x-prompt": {
+            "read": {
+              "means": "この行のセッションである。"
+            },
+            "write": []
+          }
+        },
+        "purpose_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "目的の参照",
+          "x-prompt": {
+            "read": {
+              "means": "このセッションが進める目的である。"
+            },
+            "write": []
+          }
+        },
+        "parent": {
+          "$ref": "#/$defs/session-id",
+          "description": "親のセッション",
+          "x-prompt": {
+            "read": {
+              "means": "このセッションを立てた親である。"
+            },
+            "write": []
+          }
+        },
+        "role": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "役割",
+          "x-prompt": {
+            "read": {
+              "means": "親の Concrete の x-delegates にある任せる先の名前である。"
+            },
+            "write": []
+          }
+        },
+        "state": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "description": "状態",
+          "x-prompt": {
+            "read": {
+              "means": "開いている（再開できる）か閉じたかである。"
+            },
+            "write": [
+              {
+                "id": "no-reopen",
+                "rule": "閉じた行は open に戻らない。",
+                "why": "閉じたセッションを開き直すと、前の結論が持ち込まれる（I45）。",
+                "test": "前の値が closed で今の値が open の行が無いかを見る。",
+                "by": "machine"
+              }
+            ]
+          }
+        },
+        "last_used_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+          "description": "最後に使った時刻",
+          "x-prompt": {
+            "read": {
+              "means": "このセッションを最後に使った UTC の時刻である。"
+            },
+            "write": []
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "title": "オーケストレーターのセッション",
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "purpose_ref"
+                ]
+              },
+              {
+                "required": [
+                  "parent"
+                ]
+              },
+              {
+                "required": [
+                  "role"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "title": "目的のセッション",
+          "required": [
+            "purpose_ref",
+            "parent"
+          ],
+          "not": {
+            "required": [
+              "role"
+            ]
+          }
+        },
+        {
+          "title": "任せる先のセッション",
+          "required": [
+            "purpose_ref",
+            "parent",
+            "role"
+          ]
+        }
+      ],
+      "x-prompt": {
+        "read": {
+          "means": "セッション1つの行で、種類は目的 ・ 親 ・ 役割の組で決まる。"
+        },
+        "write": [
+          {
+            "id": "fixed-at-creation",
+            "rule": "セッション ID ・ 目的 ・ 親 ・ 役割は、立てた時の値と同じである。",
+            "why": "変えると、索引と記録の結び付きが崩れる（I44）。",
+            "test": "前の値と今の値で4つが同じかを見る。",
+            "by": "machine"
+          },
+          {
+            "id": "parent-kind",
+            "rule": "目的のセッションの親はオーケストレーターのセッションで、任せる先のセッションの親は目的のセッションで、目的は親と同じである。",
+            "why": "入れ子と、子が呼ぶことを止める（I44）。",
+            "test": "親の行の種類と目的を見る。",
+            "by": "machine"
+          },
+          {
+            "id": "one-open",
+            "rule": "1つの手元で、開いているオーケストレーターは1つ、同じ目的の目的のセッションは1つ、目的 ・ 親 ・ 役割が同じ任せる先は1つである。",
+            "why": "同じ目的に紐づくセッションを同時に開くと競合する（I46）。",
+            "test": "開いている行を枠ごとに数える。",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "session-change": {
+      "type": "object",
+      "required": [
+        "session",
+        "change_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/session-id",
+          "description": "セッション ID",
+          "x-prompt": {
+            "read": {
+              "means": "変更の記録を書いたセッションである。"
+            },
+            "write": []
+          }
+        },
+        "change_id": {
+          "type": "string",
+          "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+          "description": "変更の記録の id",
+          "x-prompt": {
+            "read": {
+              "means": "そのセッションで書いた変更の記録である。"
+            },
+            "write": [
+              {
+                "id": "session-exists",
+                "rule": "行のセッションは手元の DB に在る。",
+                "why": "無いセッションの行は、セッションで引けない。",
+                "test": "session が sessions の行にあるかを見る。",
+                "by": "machine"
+              }
+            ]
+          }
+        }
+      },
+      "x-prompt": {
+        "read": {
+          "means": "手元のセッションの索引の1行で、作業した本人だけが引ける。"
+        },
+        "write": []
+      }
+    }
+  }
+}

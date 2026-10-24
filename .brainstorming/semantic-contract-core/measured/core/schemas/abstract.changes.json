@@ -1,0 +1,74 @@
+[
+ {
+  "id": "S01",
+  "what": "$defs/subschema を足し、$defs/field から再帰で掛ける。行 nested-fields を外す",
+  "why": "入れ子の欄の x- が検査されず、壊れた x-prompt が通った",
+  "source": "reviews2/adversarial 3-1"
+ },
+ {
+  "id": "S02",
+  "what": "answer-for-ai ・ argv-no-shell を if ・ then と pattern にし、by が human なら agent を書かない を足す",
+  "why": "値だけで決まるのに行に残り、壊した入力が通った",
+  "source": "reviews2/adversarial 3-4 ・ 利用者「フルに活用したほうがいい」"
+ },
+ {
+  "id": "S03",
+  "what": "$defs/json-pointer を足し、reads に使う",
+  "why": "format は注釈なので検査されず「why のこと」が通った",
+  "source": "reviews2/adversarial 3-3"
+ },
+ {
+  "id": "S04",
+  "what": "write を任意で0件可にし、means-first ・ read-and-write を外す",
+  "why": "required と同じことを行に重ね、値だけで決まる欄にも行を書かされた",
+  "source": "reviews2/adversarial 3-5"
+ },
+ {
+  "id": "S05",
+  "what": "（採らない）$defs/fields の除外はこの会話の決定のまま",
+  "why": "本体の自己検査で、本体の properties のキー（x- ・ properties ・ $defs）が欄として扱われ、説明と案内を求められて落ちた（実測）",
+  "source": "decisions「$defs/fields は $schema ・ 入れ物 ・ x- のキーを除く」 ・ reviews2/adversarial 3-7 は採らない"
+ },
+ {
+  "id": "S06",
+  "what": "no-abstract-names を本体の外に限る",
+  "why": "本体は自分を検査するので、本体に当てると violated になった",
+  "source": "reviews2/adversarial 3-6"
+ },
+ {
+  "id": "S07",
+  "what": "answer の中で $ref を使わない行を足す",
+  "why": "x-extensions と同じ理由が x-delegates にもあった",
+  "source": "reviews2/adversarial 3-13"
+ },
+ {
+  "id": "S08",
+  "what": "x-extensions の1件の4欄と run.kind ・ run.argv に description と x-prompt を足す",
+  "why": "本体の部品の欄はすべて説明と案内を持つ、と決めたのに抜けていた",
+  "source": "decisions「本体の部品の欄はすべて description と x-prompt を持つ」 ・ reviews2/adversarial 3-14"
+ },
+ {
+  "id": "S09",
+  "what": "インスタンスを作るスキーマの根に id を求める",
+  "why": "1件は id と kind が共通の契約なのに、ACDR は id を持たず x-relationship で指せなかった",
+  "source": "board Q1 #35 ・ reviews2/adversarial 3-11"
+ },
+ {
+  "id": "S10",
+  "what": "human-entry-only を「本人の承認があるか」で確かめる形にし、作成時の default を除く",
+  "why": "① で誰が書いたかを区別しなくなった。作成時の既定値で毎回「人が決める欄の書き換え」が出た",
+  "source": "two-decisions ① ・ reviews2/adversarial 1-5"
+ },
+ {
+  "id": "S11",
+  "what": "agent-exists を「このスキーマか本体の x-delegates」にする",
+  "why": "一員のスキーマが本体の judge を指すと violated になった",
+  "source": "reviews2/adversarial 2-15"
+ },
+ {
+  "id": "S12",
+  "what": "x-delegates と $defs/delegate の説明から（案）を外す",
+  "why": "この会話で決めた",
+  "source": "decisions「x-delegates は残す」"
+ }
+]

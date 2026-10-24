@@ -1,0 +1,173 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:change:v1",
+  "title": "変更の記録",
+  "description": "意図1つぶんの変更の記録。セッション ID ・ 前後の値 ・ 変更の仕組みの値（commit など）は持たない。前後は変更の仕組みからポートで受け取る。",
+  "x-instance-path": ".semantic-agent-schema/changes/{id}.json",
+  "x-instance-label": "変更 {id}「{intent}」",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "purpose_ref",
+    "intent",
+    "writer_kind",
+    "items"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:change:v1"
+    },
+    "kind": {
+      "const": "change",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "変更の記録であること。"
+        },
+        "write": []
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+      "readOnly": true,
+      "description": "記録の id",
+      "x-prompt": {
+        "read": {
+          "means": "基盤が書いた時に1回だけ決める、打ち合わせずに一意な値（ULID）である。",
+          "parse": "時刻の順に並ぶ26文字。"
+        },
+        "write": []
+      }
+    },
+    "purpose_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目的の参照",
+      "x-prompt": {
+        "read": {
+          "means": "何の目的の変更か（ACDR の番号 ・ ボードの論点など）。基盤は指す先を解釈しない。",
+          "shown": "変更を見せるとき、目的 → 意図の順の先頭に出る。"
+        },
+        "write": []
+      }
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "意図",
+      "x-prompt": {
+        "read": {
+          "means": "この変更で何をしたかったかの1文である。",
+          "shown": "変更を見せるときの見出しになる。"
+        },
+        "write": [
+          {
+            "id": "one-intent",
+            "rule": "意図は1つで、変更の項目のすべてがその意図のための変更である。",
+            "why": "意図が2つあると、意図と変更が合っているか（I33）を判定できない。",
+            "test": "文に2つの目的が並んでいないかと、項目に意図の外の変更が無いかを見る。",
+            "by": "ai",
+            "agent": "judge"
+          }
+        ]
+      }
+    },
+    "writer_kind": {
+      "enum": [
+        "human",
+        "ai-agent"
+      ],
+      "description": "書いた者の種類",
+      "x-prompt": {
+        "read": {
+          "means": "人か AI の Agent かである。"
+        },
+        "write": []
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "readOnly": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "$ref": "urn:semantic-agent-schema:base:annotations:v1#/$defs/target"
+          },
+          "field": {
+            "$ref": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "target": {
+                  "required": [
+                    "path"
+                  ],
+                  "properties": {
+                    "path": {
+                      "not": {
+                        "pattern": "\\.json$"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "field"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "description": "変更の項目",
+      "x-prompt": {
+        "read": {
+          "means": "どの対象のどの欄が変わったかの並びで、基盤が最後に確定した姿 → いまの前後から入れる。",
+          "parse": "対象はインスタンスなら id と kind、それ以外はパス。欄は JSON の対象だけが持つ。",
+          "when": "AI は書かない。基盤が「変更を記録する」で入れる。"
+        },
+        "write": [
+          {
+            "id": "unit-field",
+            "rule": "欄は x-prompt を持つ書く単位の JSON Pointer で、配列の添字まで下げない。",
+            "why": "変更の単位を判定の単位にそろえる（Q1 #30）。",
+            "test": "field が対象の Concrete の書く単位を指すかを見る。",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "replaces": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+      "x-relationship": {
+        "to": "urn:semantic-agent-schema:base:change:v1"
+      },
+      "description": "置き換える意図の id",
+      "x-prompt": {
+        "read": {
+          "means": "差し戻した意図を直すときに、前の変更の記録を指す。",
+          "when": "差し戻しを直すときだけ書く。"
+        },
+        "write": []
+      }
+    }
+  }
+}

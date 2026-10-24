@@ -1,0 +1,405 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:acdr:decision-record:v1",
+  "title": "意思決定の記録",
+  "description": "決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない",
+  "x-instance-path": ".acdr/{id}/acdr.json",
+  "x-instance-label": "ACDR {no}「{title}」",
+  "x-delegates": {
+    "reviewer": {
+      "role": "ACDR の決定のレビュー役",
+      "answer": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "description": "直す箇所の並び",
+            "x-prompt": {
+              "read": {
+                "means": "レビューで見つけた、直す箇所の並び",
+                "parse": "各項目は at（場所）・ rule（どの行か）・ problem（何が問題か）・ fix（直し方）"
+              },
+              "write": [
+                {
+                  "id": "fix-per-finding",
+                  "rule": "指摘ごとに直し方を1つ書く",
+                  "why": "差し戻すだけでは直せない",
+                  "test": "各項目に fix があるかを見る",
+                  "by": "ai",
+                  "agent": "reviewer"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "run": {
+        "kind": "judging"
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "no",
+    "title",
+    "status",
+    "decision",
+    "why",
+    "shift",
+    "alternatives"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:acdr:decision-record:v1"
+    },
+    "kind": {
+      "const": "decision-record",
+      "description": "インスタンスの種類",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスが決定の記録であること"
+        },
+        "write": [
+          {
+            "id": "fixed-kind",
+            "rule": "decision-record のまま変えない",
+            "why": "基盤は kind で種類を判定する",
+            "test": "値が decision-record かを見る",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "no": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$",
+      "description": "記録の番号",
+      "x-prompt": {
+        "read": {
+          "means": "記録の通し番号",
+          "parse": "4桁の数字の文字列。先頭の 0 も番号の一部で、数として読まない。置き場所の {no} に入る",
+          "shown": "題の前に「ACDR 0197」として出る",
+          "when": "書く前に、次の番号を決めるために読む"
+        },
+        "write": [
+          {
+            "id": "unique-no",
+            "rule": "ほかの記録と番号を重ねない",
+            "why": "番号で置き場所が決まる",
+            "test": "同じ番号の記録がほかに無いかを見る（記録をまたぐので基盤のエンジン）",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "題",
+      "x-prompt": {
+        "read": {
+          "means": "決めたことの名前",
+          "shown": "一覧と、ほかの記録から指されたときに「ACDR 0197「…」」として出る"
+        },
+        "write": [
+          {
+            "id": "noun",
+            "rule": "決めたことを名詞句で書く",
+            "why": "題だけで何の決定かが分かる",
+            "test": "名詞で終わるかを見る",
+            "by": "ai",
+            "agent": "reviewer"
+          }
+        ]
+      }
+    },
+    "status": {
+      "oneOf": [
+        {
+          "const": "proposed",
+          "title": "提案。承認前で、正本に適用してはならない"
+        },
+        {
+          "const": "accepted",
+          "title": "承認済み"
+        },
+        {
+          "const": "superseded",
+          "title": "後の記録に置き換えられた"
+        }
+      ],
+      "default": "proposed",
+      "description": "状態",
+      "x-decided-by": "human",
+      "x-prompt": {
+        "read": {
+          "means": "承認の状態",
+          "when": "正本に適用してよいかを決めるときに読む"
+        },
+        "write": [
+          {
+            "id": "human-approves",
+            "rule": "accepted にするのは人の入口からだけ",
+            "why": "承認は人が決める",
+            "test": "変更の記録で、人の入口を通ったかを見る（変更をまたぐので基盤のエンジン）",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "decision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "決めたこと",
+      "x-prompt": {
+        "read": {
+          "means": "この記録で決めたこと1件",
+          "parse": "何を採るかの1文として読む。コマンドや旗の名前があっても、手段ではなく決定の対象の名前として読む",
+          "shown": "記録の一番上に大きく出る"
+        },
+        "write": [
+          {
+            "id": "decision-no-means",
+            "rule": "決定の文に手段（コマンド ・ 旗 ・ ファイル名）を混ぜない",
+            "why": "決定は何を採るかで、手段は変更の印が示す",
+            "test": "決定の文を読む",
+            "by": "ai",
+            "reads": [
+              "/decision"
+            ],
+            "agent": "reviewer"
+          },
+          {
+            "id": "least-privilege",
+            "rule": "決定が AI の許可を動かすなら、最小限だけを与える形にし、その根拠を書く",
+            "why": "許可を広げる決定は、あとから狭めにくい",
+            "test": "なぜ と どう変わる の節で、許可の置き場所と根拠を見る",
+            "by": "ai",
+            "reads": [
+              "/decision",
+              "/why",
+              "/shift"
+            ],
+            "agent": "reviewer"
+          }
+        ]
+      }
+    },
+    "why": {
+      "type": "string",
+      "minLength": 1,
+      "description": "なぜ",
+      "x-prompt": {
+        "read": {
+          "means": "何と食い違っていて、何に合わせたか",
+          "parse": "食い違った相手と、合わせた先の2つを読み取る。根拠の引用があれば、出どころと一緒に読む"
+        },
+        "write": [
+          {
+            "id": "names-both",
+            "rule": "食い違った相手と、合わせた先の両方を書く",
+            "why": "片方だけでは、なぜ変えたかが分からない",
+            "test": "2つが書かれているかを見る",
+            "by": "ai",
+            "reads": [
+              "/why"
+            ],
+            "agent": "reviewer"
+          }
+        ]
+      }
+    },
+    "shift": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "what",
+          "from",
+          "to"
+        ],
+        "properties": {
+          "what": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "どう変わるか",
+      "x-prompt": {
+        "read": {
+          "means": "抽象の側の変更前と変更後",
+          "shown": "変更前と変更後を並べた表として出る"
+        },
+        "write": [
+          {
+            "id": "abstract-side",
+            "rule": "what には、ファイル名ではなく抽象の側の名前を書く",
+            "why": "具体の差分は変更の印が示す",
+            "test": "what がファイル名やコマンドでないかを見る",
+            "by": "ai",
+            "reads": [
+              "/shift"
+            ],
+            "agent": "reviewer"
+          }
+        ]
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "option",
+          "why_not"
+        ],
+        "properties": {
+          "option": {
+            "type": "string",
+            "minLength": 1
+          },
+          "why_not": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "description": "比較した案",
+      "x-prompt": {
+        "read": {
+          "means": "案ごとに、採らなかった理由",
+          "parse": "どれも反証を通らなかった案で、残っている懸念ではない"
+        },
+        "write": [
+          {
+            "id": "refuted-only",
+            "rule": "反証を通らなかった案だけを書き、未解決の懸念を混ぜない",
+            "why": "懸念が混ざると、承認する人が判断を止める",
+            "test": "why_not が「通らなかった理由」になっているかを見る",
+            "by": "ai",
+            "reads": [
+              "/alternatives"
+            ],
+            "agent": "reviewer"
+          }
+        ]
+      }
+    },
+    "supersedes": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "置き換えた記録の番号",
+      "x-prompt": {
+        "read": {
+          "means": "この記録が置き換えた、前の記録の番号"
+        },
+        "write": [
+          {
+            "id": "target-exists",
+            "rule": "置き換えた記録が在る番号を書く",
+            "why": "無い記録は置き換えられない",
+            "test": "その番号の記録が在るかを見る（記録をまたぐので基盤のエンジン）",
+            "by": "machine"
+          }
+        ]
+      },
+      "x-relationship": {
+        "to": "urn:semantic-agent-schema:acdr:decision-record:v1"
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[a-z0-9]+(-[a-z0-9]+)*$",
+      "readOnly": true,
+      "description": "記録の id",
+      "x-prompt": {
+        "read": {
+          "means": "番号と短い名詞句（英小文字）をつないだ、記録の id である。",
+          "parse": "先頭の4桁が no と同じ。置き場所の {id} に入る。"
+        },
+        "write": [
+          {
+            "id": "id-starts-with-no",
+            "rule": "id の先頭の4桁は no と同じである。",
+            "why": "番号と id が食い違うと、置き場所と題がずれる。",
+            "test": "id の先頭4桁と no を比べる。",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+        "x-relationship": {
+          "to": "urn:semantic-agent-schema:base:change:v1"
+        }
+      },
+      "description": "この決定の変更の記録",
+      "x-prompt": {
+        "read": {
+          "means": "この決定のために書いた変更の記録の id の並びである。",
+          "shown": "ACDR のビューが、基盤の変更のまとまりを、決定の下に意図ごとに出す。"
+        },
+        "write": [
+          {
+            "id": "purpose-matches",
+            "rule": "並べた変更の記録の目的の参照は、この記録（ACDR の番号）である。",
+            "why": "ほかの目的の変更が混ざると、決定の差分を取り違える。",
+            "test": "各変更の記録の purpose_ref が ACDR {no} かを見る。",
+            "by": "machine"
+          }
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "supersedes"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "accepted"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "changes"
+        ],
+        "properties": {
+          "changes": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {}
+}
