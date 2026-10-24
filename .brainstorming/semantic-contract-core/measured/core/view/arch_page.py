@@ -7,7 +7,7 @@ def between(s, a, b, new):
 def table(head, rows):
     return '<div class="tw"><table><tr>' + ''.join(f'<th>{h}</th>' for h in head) + '</tr>' + ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>' for r in rows) + '</table></div>'
 s = between(s, '<p class="meta">核（ドメインモデル', '<h2>1　', '''<p class="meta">核（ドメインモデル ・ ポート）と Rust の原典から決め、ddd ・ platform ・ 反証役のレビュー（前提の束つき）を統合した。ポートの置き場所は、利用者の問いを受けて ddd ・ 反証役にもう一度通し、承認を得た（arch/ports/）。schema-driven と ctxtrace の実装は手本にしていない。全文 arch/reviews/</p>
-<div class="ans">ポートとアダプター。コードを crates/ にまとめ、業務領域ごとの crate（crates/domain/）・ 使う場面とポートの application ・ 駆動される側の outbound ・ 入口の inbound に分け、許す辺を1つの表に持つ。<br>domain は値を受け取って値を返す関数だけを持ち、入出力は application がポートを通して行う。依存の向きは Cargo の辺と循環の禁止で止め、Cargo が止めない書き方（dev の辺 ・ feature の統合 ・ pub use ・ allow）は検査で止める。</div>
+<div class="ans">ポートとアダプター。コードを crates/ にまとめ、業務領域ごとの crate（crates/domain/）・ 使う場面とポートの application ・ 駆動される側の outbound ・ 入口の inbound に分け、許す辺を1つの表に持つ。<br>domain は値を受け取って値を返す関数だけを持ち、入出力は application がポートを通して行う。依存の向きは Cargo の辺と循環の禁止で止め、Cargo が知らない「どの辺を許すか」は表1つで持ち、cargo metadata ・ cargo clippy ・ cargo build -p で確かめる。</div>
 ''')
 s = s.replace('<td>業務の側がポート（trait）を持ち、外の技術の側が実装する。依存は外から中への1方向</td>', '<td>application がポート（trait）を持ち、outbound が実装する。依存は外から中への1方向</td>')
 s = s.replace('<td>同じ入力から同じ結果（Q0 #14）</td><td>業務の側は入出力をしない。時刻と id もポートか値で受け取る</td>', '<td>同じ入力から同じ結果（Q0 #14、決着）。待ちの Q4 の下書きにも「core は入出力に触らないので変えない」</td><td>domain は値を受け取って値を返す。読む ・ 書く ・ AI への依頼は application がポートで行い、時刻と id は inbound から値で渡す</td>')
@@ -38,7 +38,14 @@ s = between(s, '<h2>4　依存の向き</h2>', '<h2>5　', f'''<h2>4　依存の
 ])}
 ''')
 s = s.replace('<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から adapters ・ entry への辺は種類を問わず0件</td>', '<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から application ・ outbound ・ inbound への辺は種類を問わず0件</td>')
-if 'trait を通した入出力は clippy で止まらない' not in s: s = s.replace('<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td>', '<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td></tr><tr><td>trait を通した入出力は clippy で止まらない</td><td>domain/ に trait のポートを置かない。ポートは application/src/ports/ だけに置き、domain/ の公開の関数が引数に dyn ・ impl の trait を取らないことを検査する')
+if False: s = s.replace('<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td>', '<td>clippy の disallowed は #[allow] で外せる</td><td>domain/ の clippy を forbid にする（E0453 で止まることを実測）。主な守りは、crate ごとに許す外の crate の表</td></tr><tr><td>trait を通した入出力は clippy で止まらない</td><td>domain/ に trait のポートを置かない。ポートは application/src/ports/ だけに置き、domain/ の公開の関数が引数に dyn ・ impl の trait を取らないことを検査する')
+s = between(s, '<h2>6　', '<h2>7　', '<h2>6　決定的にする検査</h2><p class="meta">依存の検証の大半は Cargo がする。足すのは、Cargo が知らない「どの辺を許すか」の表1つと、Cargo の外の2つだけ。どれも cargo のコマンドで回す</p>' + table(['何を止めるか', '誰が止めるか', 'コマンド'], [
+ ['Cargo.toml に書いていない crate を使う', 'Cargo（コンパイルが止まる）', 'cargo build'],
+ ['通常の依存の循環', 'Cargo（resolver が止める）', 'cargo build'],
+ ['許していない辺を Cargo.toml に書く（例：domain/change → outbound/fs）。dev ・ build の辺の循環と、表に無い外の crate も同じ', 'architecture.json の許す辺の表。Cargo はこの向きを知らないので、これだけは表を持つ', 'cargo metadata の辺（種類つき）を表と突き合わせる'],
+ ['domain が std の入出力 ・ 時刻 ・ 乱数を使う', 'clippy の disallowed（forbid にして #[allow] で外せなくする）', 'cargo clippy --workspace'],
+ ['workspace でまとめてビルドしたときだけ feature が足される（jsonschema の取りに行く機能など）', 'crate を1つずつ単独にビルドする', 'cargo build -p &lt;crate&gt; ・ cargo tree -e features'],
+]) + '<p class="meta">外したもの：外の crate の pub use の grep（コードレビューで足りる）・ domain の関数が trait を引数に取らないかの検査（outbound は application にしか依存できないので、domain の trait を実装できない。上の表の検査で足りる）</p>\n')
 s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7　レビューで直したこと</h2>' + table(['下書き', '直した後', '指摘'], [
  ['contexts/', 'domain/', 'ddd ・ 反証：Q9 #11（文脈は1つ）と食い違う'],
  ['kernel → values（2つ以上の領域が使う値）', '無くす。値オブジェクトは、その語を持つ業務領域の crate へ', '反証（2回目）：Evans p.15 Modules「Give the modules names that become part of the ubiquitous language」'],
@@ -52,7 +59,7 @@ s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7
  ['実装の無いポート3つ', 'fs/published.rs ・ fs/rendered.rs ・ tools', '反証（2回目）'],
  ['AI ツールごとに5 crate', 'agents-contract（腐敗防止層）1つ ＋ ai-cli 1つ（ツールはモジュール）', '3人とも'],
  ['compose の crate', 'inbound/cli の中（実行ファイルが2つになったら分ける）', 'ddd ・ platform'],
- ['検査は Cargo.toml の辺と clippy', '辺の種類 ・ 外の crate ・ feature ・ 単独ビルド ・ pub use ・ forbid ・ domain に trait を置かない', 'platform（Cargo が止めない書き方4つを実測）・ 反証（2回目）'],
+ ['検査は Cargo.toml の辺と clippy', '許す辺の表（種類と外の crate を含む）・ clippy の forbid ・ 単独ビルド。pub use の grep と trait の検査は外した', 'platform（Cargo が止めない書き方4つを実測）・ 利用者「crateである程度依存の検証はできるよね？？」'],
 ]))
 s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決めてほしいこと</h2>' + table(['決めてほしいこと', '私の見解'], [
  ['スキーマの正本の置き場所を、Q6 #19 の src/semantic-agent-schema/schemas/ から semantic-agent-schema/schemas/v1/ へ', '移す。下の表のとおり、集約の型は crates/ の中、集約の中身（10ファイル）は crates/ の外に置く'],
