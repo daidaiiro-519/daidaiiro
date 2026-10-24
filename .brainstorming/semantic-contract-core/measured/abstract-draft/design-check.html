@@ -1,0 +1,56 @@
+<title>変更と DB の設計の点検</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+</style>
+<main>
+<h1>変更と DB の設計を、決着済みのドメインモデルで点検した</h1>
+<p class="meta">照らしたもの：domain-model-v2.json（Q1 の正本。集約 ・ 値オブジェクト ・ ポート ・ 使う場面）。照らしたのは私の直近の案（状態のページ ・ 場所の指し方のページ ・ db.sql）</p>
+
+<div class="ans">確定していない。抽象設計もできていない。<br>直近の案は決着済みのドメインモデルを読み直さずに作ったので、決着に反する所が4つ、Git の語が残る所が2つ、未決が3つある。</div>
+
+<h2>1　点検の結果</h2>
+<div class="tw"><table>
+<tr><th>どこ</th><th>決着済みのドメインモデル</th><th>私の直近の案</th><th>判定</th></tr>
+<tr><td>変更の記録の「変更の項目」（対象 ・ 欄）</td><td>持つ。U13「どの欄を変えたか」を記録から引く</td><td>外した</td><td class="ng">決着に反する</td></tr><tr><td>変更の前後の受け取り方</td><td>まとめ方：前の姿の参照と後の姿の参照の組（PR なら範囲）</td><td>変更の単位1つの参照</td><td class="ng">狭めた</td></tr><tr><td>1つの変更に入る意図の数</td><td>I33 の意味は「同じ欄を2つの意図が変えた」場合を持つ</td><td>1単位＝1意図</td><td class="q">新しい制約。決め直しを必要とする</td></tr><tr><td>判定した値の「前の値」</td><td>「変更の記録を足したコミットの親（コミット前の手元なら HEAD）から取る」</td><td>—</td><td class="ng">決着の文そのものが Git の語</td></tr><tr><td>変更の記録の置き方</td><td>「作業ツリーに置き、インスタンスと同じ変更でコミットされる」</td><td>同じ</td><td class="ng">決着の文そのものが Git の語</td></tr><tr><td>ポート「変更の前後を受け取る」の操作</td><td>前の姿 ・ 後の姿 ・ 出した者 ・ 消した ID の履歴</td><td>前後だけ</td><td class="q">「対象ごと」の経緯（U13）が必要とする操作が未決</td></tr><tr><td>セッション ・ 手元のセッションの索引の行の形</td><td>「行の形は Abstract の一員」</td><td>DDL（SQLite）だけ。一員のスキーマが無い</td><td class="ng">抽象が無く、アダプターだけある</td></tr><tr><td>確定しなかった変更の記録</td><td>—</td><td>session_changes の行が残る</td><td class="q">未決</td></tr><tr><td>change_commits</td><td>無い（索引は遅いと測れてから）</td><td>足して、外した</td><td class="ok">決着どおりに戻った</td></tr>
+</table></div>
+
+<h2>2　抽象設計としての穴</h2>
+<div class="tw"><table>
+<tr><th>層</th><th>在るべきもの</th><th>いま</th></tr>
+<tr><td>ドメイン（Abstract の一員）</td><td>変更の記録 ・ 判定の記録 ・ セッション ・ 手元のセッションの索引の行の形</td><td>変更の記録と判定の記録の下書きだけ。セッションと索引の行の形が無い</td></tr>
+<tr><td>駆動される側のポート</td><td>変更の仕組みに求める操作を、変更の仕組みの語を使わずに書く</td><td>操作の名前だけ。入出力の形が無く、決着の文に「コミット」「HEAD」「作業ツリー」が残る</td></tr>
+<tr><td>アダプター</td><td>Git ・ SQLite がポートを満たす</td><td>SQLite の DDL と、Git を直接読む試作が先にできている</td></tr>
+</table></div>
+<p class="meta">順番が逆になっていた：アダプター（DDL ・ 試作）を先に作り、ドメインとポートを後から合わせようとしていた</p>
+
+<h2>3　次にすること（私の見解）</h2>
+<div class="tw"><table>
+<tr><th>順</th><th>すること</th></tr>
+<tr><td>1</td><td>ボードに論点を1つ立てる：「変更の仕組みのポートと、変更の記録 ・ セッションの行の形」</td></tr>
+<tr><td>2</td><td>決着済みの文から Git の語を外し、ポートの入出力の形を書く（前の姿 ・ 後の姿 ・ 出した者 ・ 履歴）</td></tr>
+<tr><td>3</td><td>「変更の項目」を外すか残すかと、1単位＝1意図を、使う場面（U5 ・ U6 ・ U7 ・ U13 ・ U16 ・ U18 ・ U25）× 能力の対応表で決める</td></tr>
+<tr><td>4</td><td>セッション ・ 手元のセッションの索引の行の形を Abstract の一員として書く。DDL はそこから導く</td></tr>
+<tr><td>5</td><td>結論を渡さない別の文脈の反証役と ddd-advisor に当て、そろってから完成イメージとして出す</td></tr>
+</table></div>
+</main>
