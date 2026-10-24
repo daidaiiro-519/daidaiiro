@@ -97,7 +97,9 @@ def publish():
                 dict(slide=5, group='japanese', change='起こり得る一例として説明。AI使用や類似コードだけを悪い設計の根拠にせず、途中の見直しで防げると明記。'),
                 dict(slide=6, group='story', change='以前の教材1の紹介を移動。新しい前枚の想定例を受けた導入へ変更。'),
                 dict(slide=1, group='story', change='AIを要件の整理と設計から活用する設定に変更し、必要な品質と確認・修正を含む開発全体の時間を目標として原稿へ反映。'),
-                dict(slide=1, group='figure', change='人物・チーム・参照資料を維持し、要件・設計からのAI活用と確認・修正を含む目標を図へ表示。warm-paperを指定して解決。')])
+                dict(slide=1, group='figure', change='人物・チーム・参照資料を維持し、要件・設計からのAI活用と確認・修正を含む目標を図へ表示。warm-paperを指定して解決。'),
+                dict(slide=6, group='story', change='主体・対象が不明な設計実装の目的という表現を修正。申請者の目的の大きさ、目的を満たす要件、AIへ任せる開発作業を区別。'),
+                dict(slide=6, group='figure', change='申請者の要約とユーザー目的を左、具体的な要件を右、AIの開発作業を下段の別枠へ配置。目的・要件・確認観点の混同を修正。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 

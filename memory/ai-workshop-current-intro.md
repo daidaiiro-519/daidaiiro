@@ -1,6 +1,6 @@
 ---
 name: ai-workshop-current-intro
-description: 三教材共通のはじめに。要件と設計を軸に8枚の構成を改訂。1枚目を図・原稿へ反映し確認待ち。
+description: 三教材共通のはじめに。要件と設計を軸に8枚構成。1・6枚目の図と原稿を反映し確認待ち。
 metadata:
   node_type: memory
   type: project
@@ -12,7 +12,7 @@ metadata:
 
 2026年10月24日、企画書・オリエンテーションの別担当との共有を開始した。[共同制作のメモリ](ai-workshop-shared.md)と[担当情報](../docs/workshops/ai-workshop/review/shared/tracks/intro.json)を追加した。
 
-現在は、要件と設計を軸に8枚の構成を改訂した段階。workspace/slide-structure.jsonが見出し・導入文・原稿案・図の役割と改訂前を持つ。review_structure.pyが同じ比較HTMLへ表示する。1枚目は図と原稿へ反映済みで利用者確認待ち。2〜8枚目は構成案で、図の改修は一枚ずつ進める。
+現在は、要件と設計を軸に8枚の構成を改訂した段階。workspace/slide-structure.jsonが見出し・導入文・原稿案・図の役割と改訂前を持つ。review_structure.pyが同じ比較HTMLへ表示する。1・6枚目は図と原稿へ反映済みで利用者確認待ち。2〜5・7〜8枚目は構成案で、図の改修は一枚ずつ進める。
 
 比較は <http://127.0.0.1:8772/design-review.html?slide=5#lead>。2026年10月24日にサーバーを起動してHTTP 200を確認した。プロセスは後のセッションで停止している可能性がある。
 
@@ -44,3 +44,6 @@ metadata:
 
 
 2026年10月24日、利用者の依頼で要件と設計を軸に8枚の構成を改訂。比較HTMLの上部に構成案を表示し、各枚の見出し・導入文・原稿案・図の役割を改訂前と比較できる。表示URLは <http://127.0.0.1:8772/design-review.html?deck=lead&structure=1#lead>。1枚目の図と原稿にも反映し、warm-paperで描画確認した。独立した確認者の指摘で、既存仕様がある設定、7枚目の重複、状態数を設計の正誤と同一視する説明を修正した。これは全編Lunaレビューではない。次は利用者確認後に2枚目。
+
+
+2026年10月24日、利用者が6枚目の「設計・実装の目的」の主体・対象・目的レベルと要件の欠落を指摘。旧句は目的の説明として不十分で、条件や確認観点に近かった。表示6のslide-05.json/source.svgを修正し、申請者／経費精算システムの要約・ユーザー目的と要件、別主体の開発者の作業目的とAI作業を図と原稿に示した。構成案も同期。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=6#lead>。反映済みは1・6枚目。確認待ち。詳細は[共有記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-24-16-intro-purpose-scope.md)。

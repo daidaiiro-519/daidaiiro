@@ -29,10 +29,11 @@ def add_structure(text, root):
             f'<p><a href="?deck=lead&amp;slide={n}#lead">図と原稿をスライド比較で確認 →</a></p></article>')
     nav = '<nav class="task-nav" aria-label="構成案の枚を選ぶ">' + ''.join(
         f'<a href="#structure-slide-{n}">{n}枚目</a>' for n in range(1, len(cards) + 1)) + '</nav>'
+    applied = '、'.join(str(n) for n in plan.get('applied_slides', []))
     panel = ('<details id="intro-structure" class="reference-group"><summary>要件と設計を軸に改訂する8枚の構成</summary>'
              '<p>' + esc(plan['purpose']) + '</p>'
              '<p class="muted">ここで確認するのは、8枚の見出し・導入文・原稿案と図の修正方針です。'
-             '1枚目は図と原稿へ反映済みです。2〜8枚目は構成案で、図とスライド本体を一枚ずつ修正・確認します。</p>'
+             + applied + '枚目は図と原稿へ反映済みです。ほかの枚は構成案で、図とスライド本体を一枚ずつ修正・確認します。</p>'
              + nav + ''.join(cards) + '</details>')
     text = text.replace('<div class="review-controls">', panel + '<div class="review-controls">', 1)
     text = text.replace('<nav class="task-nav" aria-label="この比較で確認する内容">',
