@@ -1,0 +1,101 @@
+<title>レビュー agent と advisor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* 第20版。場面＝アクターの操作1つ。事前と事後の状態、基盤の振る舞い、ファイルごとの差分（変わった所だけ。開くと全体）を並べる */
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;
+--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--md-bg:#FBF4E4;--md:#6B4E16;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--md-bg:#2A2416;--md:#E7C98A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--md-bg:#2A2416;--md:#E7C98A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-size:21px;margin:0} h2{font-size:15px;margin:4px 0 0;color:var(--sub)} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.lanes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:700px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lane{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:6px 8px;font-size:12.5px;font-weight:700;min-width:0;text-align:center}
+.lane.sys{border-style:dashed}.lane.on{border-color:var(--hot);background:var(--hot-bg)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.uc{display:grid;grid-template-columns:6em 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.uc>div{padding:6px 10px;border-top:1px solid var(--line);min-width:0} .uc>div:nth-child(-n+2){border-top:0}
+.uc .k{background:var(--code);color:var(--sub);font-size:13px}
+.uc .op{font-weight:700;font-size:16px}
+.uc ul{margin:0;padding-left:1.1em}
+.post{background:var(--accent-bg)}
+.beh{margin:0;padding-left:1.2em}
+details.md{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+details.md summary{background:var(--md-bg);color:var(--md);padding:6px 10px;font-weight:700;font-size:13.5px;cursor:pointer}
+.doc{padding:10px 14px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.doc h3{margin:6px 0 0;font-size:15px;border-bottom:1px solid var(--line)} .doc h4{margin:4px 0 0;font-size:14px}
+.doc blockquote{margin:0;border-left:3px solid var(--md);padding:1px 8px;color:var(--sub);font-size:13px}
+.doc ul{margin:0;padding-left:1.2em} .doc .ph{color:var(--sub);font-style:italic}
+.file{border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0}
+.fh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:7px 10px;background:var(--code);font-size:13.5px}
+.fh b{font-family:var(--mono);font-size:12.5px}
+.bd{font-size:11px;padding:1px 7px;border-radius:5px;font-weight:700}
+.bd.new{background:var(--add);color:var(--add-ink)} .bd.mod{background:var(--hot-bg);color:var(--hot)} .bd.ref{background:var(--line);color:var(--ink)}
+.why{padding:5px 10px;font-size:13.5px;border-top:1px solid var(--line)} .why span{color:var(--sub)}
+.diff{margin:0;font:12px/1.55 var(--mono);overflow-x:auto;background:var(--card);border-top:1px solid var(--line)}
+.diff div{white-space:pre;padding:0 10px;min-width:max-content}
+.diff .a{background:var(--add);color:var(--add-ink)} .diff .d{background:var(--del);color:var(--del-ink)} .diff .h{color:var(--sub);background:var(--code)}
+.tg{display:flex;gap:6px;padding:6px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
+.tg button{font-size:12.5px;padding:2px 10px}
+.nav{display:flex;gap:8px;align-items:center;position:sticky;bottom:0;background:var(--bg);padding-block:8px}
+button{font:inherit;padding:6px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer}
+button.p{background:var(--accent);color:var(--card)} button.on{background:var(--accent-bg)} button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+.dots{display:flex;gap:4px;flex:1} .dot{height:6px;flex:1;border-radius:3px;background:var(--line)} .dot.on{background:var(--accent)}
+</style>
+<main>
+<header><h1>レビュー agent と advisor</h1><p class="meta">第23版（URN の持ち主は base、Concrete の種類は decision-record。JSON Schema の能力で書ける決まりは JSON Schema で書いた） ・ 実線の枠がアクター（使う場面の主語）、点線の枠がシステムの側（基盤と任せる先） ・ 題材は実物の ACDR 0197 ・ x-delegates の中身と agents は案 ・ キーの名前は仮</p></header>
+<section class="lanes">
+  <div class="lane" id="l0">オーケストレーターのセッション</div><div class="lane" id="l1">目的のセッション</div><div class="lane" id="l2">作業した本人（人）</div>
+  <div class="lane sys" id="l3">基盤</div><div class="lane sys" id="l4">任せる先：レビュー agent</div><div class="lane sys" id="l5">任せる先：advisor</div>
+</section>
+<section class="card" id="sc"></section>
+<div class="nav"><button id="pv">前へ</button><div class="dots" id="ds"></div><button class="p" id="nx">次へ</button></div>
+</main>
+<script>
+/*DATA*/
+function esc(t){return String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function md(t){return t.split('\n').map(l=>{
+ if(l.startsWith('#### '))return '<h4>'+esc(l.slice(5))+'</h4>';
+ if(l.startsWith('### '))return '<h3>'+esc(l.slice(4))+'</h3>';
+ if(l.startsWith('> '))return '<blockquote>'+esc(l.slice(2))+'</blockquote>';
+ if(l.startsWith('- '))return '<ul><li>'+esc(l.slice(2))+'</li></ul>';
+ if(l.startsWith('.'))return '<p class="ph">（'+esc(l.slice(1))+'）</p>';
+ return '<p>'+esc(l)+'</p>'}).join('')}
+function lcs(a,b){const n=a.length,m=b.length,t=Array.from({length:n+1},()=>new Int32Array(m+1));
+ for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)t[i][j]=a[i]===b[j]?t[i+1][j+1]+1:Math.max(t[i+1][j],t[i][j+1]);
+ const o=[];let i=0,j=0;while(i<n&&j<m){if(a[i]===b[j]){o.push([' ',a[i]]);i++;j++}else if(t[i+1][j]>=t[i][j+1]){o.push(['-',a[i]]);i++}else{o.push(['+',b[j]]);j++}}
+ while(i<n)o.push(['-',a[i++]]);while(j<m)o.push(['+',b[j++]]);return o}
+function render(ops,ctx){const keep=ops.map((o,k)=>o[0]!==' ');const show=ops.map((o,k)=>{for(let d=-ctx;d<=ctx;d++)if(keep[k+d])return true;return false});
+ let h='',gap=false;ops.forEach((o,k)=>{if(ctx>=0&&!show[k]){if(!gap){h+='<div class="h">⋯ 変わっていない行</div>';gap=true}return}gap=false;
+  const c=o[0]==='+'?'a':o[0]==='-'?'d':'';h+='<div class="'+c+'">'+esc(o[0]+' '+o[1])+'</div>'});return h}
+function file(f,idx){const a=f.before?f.before.split('\n'):[],b=f.after.split('\n');
+ const kind=f.ref?'ref':(f.before?'mod':'new'),lab={ref:'参照（変わらない）',new:'新しく作る',mod:'変わる'}[kind];
+ const ops=f.ref?b.map(l=>[' ',l]):lcs(a,b);
+ const body=f.ref?'':render(ops,2);
+ const btns=f.ref?'<button data-v="after">全体を見る</button>':(f.before?'<button data-v="diff" class="on">変わった所だけ</button><button data-v="all">全体（差分つき）</button><button data-v="before">変更前の全体</button><button data-v="after">変更後の全体</button>':'<button data-v="after">全体を見る</button>');
+ return '<div class="file" data-i="'+idx+'"><div class="fh"><b>'+esc(f.f)+'</b><span class="bd '+kind+'">'+lab+'</span></div><div class="why"><span>理由：</span>'+esc(f.why)+'</div>'+
+  (body?'<div class="diff">'+body+'</div>':'<div class="diff" hidden></div>')+'<div class="tg">'+btns+'</div></div>'}
+let i=0;const $=s=>document.querySelector(s);
+S.forEach(()=>{const e=document.createElement('div');e.className='dot';$('#ds').appendChild(e)});
+function r(){const s=S[i];for(let k=0;k<6;k++)$('#l'+k).classList.toggle('on',s.a.includes(k));
+ let h='<p class="meta">場面 '+(i+1)+' / '+S.length+'</p>';
+ h+='<div class="uc"><div class="k">アクター</div><div>'+esc(s.actor)+'</div><div class="k">操作</div><div class="op">'+esc(s.op)+'</div>'+
+  '<div class="k">事前の状態</div><div><ul>'+s.pre.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'+
+  '<div class="k post">事後の状態</div><div class="post"><ul>'+s.post.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div></div>';
+ h+='<h2>基盤の振る舞い</h2><ul class="beh">'+s.beh.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+ (s.md||[]).forEach(m=>{h+='<details class="md"><summary>'+esc(m[0])+'（押すと開く）</summary><div class="doc">'+md(m[1])+'</div></details>'});
+ h+='<h2>変わったファイル（'+s.files.filter(f=>!f.ref).length+'）</h2>'+s.files.map(file).join('');
+ $('#sc').innerHTML=h;
+ [...$('#ds').children].forEach((e,k)=>e.classList.toggle('on',k<=i));$('#pv').disabled=i==0;$('#nx').disabled=i==S.length-1;window.scrollTo(0,0)}
+$('#sc').addEventListener('click',e=>{const bt=e.target.closest('.tg button');if(!bt)return;const fe=bt.closest('.file'),f=S[i].files[+fe.dataset.i],v=bt.dataset.v,d=fe.querySelector('.diff');
+ const a=f.before?f.before.split('\n'):[],b=f.after.split('\n');
+ if(bt.classList.contains('on')&&(v==='after'||v==='before')&&(f.ref||!f.before)){d.hidden=!d.hidden;bt.classList.toggle('on');return}
+ fe.querySelectorAll('.tg button').forEach(x=>x.classList.remove('on'));bt.classList.add('on');d.hidden=false;
+ if(v==='diff')d.innerHTML=render(lcs(a,b),2);else if(v==='all')d.innerHTML=render(lcs(a,b),-1);
+ else if(v==='before')d.innerHTML=a.map(l=>'<div>'+esc('  '+l)+'</div>').join('');
+ else d.innerHTML=(f.before||f.ref?b.map(l=>'<div>'+esc('  '+l)+'</div>'):b.map(l=>'<div class="a">'+esc('+ '+l)+'</div>')).join('')});
+$('#pv').onclick=()=>{if(i>0){i--;r()}};$('#nx').onclick=()=>{if(i<S.length-1){i++;r()}};r();
+</script>
