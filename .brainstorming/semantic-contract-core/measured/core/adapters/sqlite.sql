@@ -58,9 +58,9 @@ CREATE TRIGGER parent_kind BEFORE INSERT ON sessions WHEN NEW.parent_id IS NOT N
 
 -- 手元のセッションの索引（I38）。変更の記録はセッション ID を持たない（I34）。
 CREATE TABLE session_changes (
-  tool      TEXT NOT NULL,
-  id        TEXT NOT NULL,
-  change_id TEXT NOT NULL CHECK (change_id GLOB '[0-7][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z]*' AND length(change_id) = 26),
+  tool      TEXT NOT NULL,                    -- 変更の記録を書いたセッションの AI ツールの種類
+  id        TEXT NOT NULL,                    -- そのセッションの ID
+  change_id TEXT NOT NULL CHECK (change_id GLOB '[0-7][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z]*' AND length(change_id) = 26),  -- 変更の記録の id（ULID。正本はファイル）
   PRIMARY KEY (tool, id, change_id),
   FOREIGN KEY (tool, id) REFERENCES sessions (tool, id)
 );

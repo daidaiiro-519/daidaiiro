@@ -38,7 +38,7 @@ def cols(table):
     out, rest = [], []
     for ln in body.split('\n'):
         s = ln.strip().rstrip(',')
-        m2 = re.match(r'^([a-z_]+)\s+(TEXT[^-]*?)(?:,)?\s*(?:--\s*(.*))?$', s)
+        m2 = re.match(r'^([a-z_]+)\s+(TEXT.*?)\s*(?:--\s*(.*))?$', s)
         if m2 and m2.group(1) not in ('PRIMARY', 'FOREIGN', 'CHECK'): out.append([f'<code>{m2.group(1)}</code>', e(m2.group(2).strip().rstrip(',')), e(m2.group(3) or '')])
         elif s and not s.startswith('--'): rest.append(e(s))
     return T(['列', '型と制約', '意味'], out) + ('<pre class="code">' + '\n'.join(rest) + '</pre>' if rest else '')
