@@ -1,0 +1,99 @@
+<title>核のレビューの統合</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>核のレビューの統合：5人の指摘と、直した答え</h1>
+<p class="meta">反証役（結論を渡していない）・ ddd ・ platform ・ qa ・ usecase。全文は core/reviews/*.md。答えの下書き answers.json はまだ変えていない</p>
+
+<div class="ans">決めてほしいことは1つ：変更の記録に「変更の項目（対象 ・ 欄）」を残すか。<br>私の見解：残す。前の私の案（外す）を取り下げる。根拠は v2 の U25 の失敗時と I31 で、反証役の意見に合わせたからではない。</div>
+
+<h2>1　変更の項目を残すか（同じ場面で比べる）</h2>
+<p class="meta">場面：目的のセッションの AI が、意図「least-privilege の根拠を書く」で ACDR 0197 の /why を直す。ついでに、基盤を通らずにエディタで /decision も書き換えた。同じ確定の単位に入る</p>
+<section class="two">
+<div class="pane"><h3>外す（前の案）</h3>
+<pre><span>{ "intent": "least-privilege の根拠を書く" }</span></pre>
+<div class="tw"><table><tr><th>欄</th><th>出るもの</th></tr>
+<tr><td>/why</td><td>意図：least-privilege の根拠を書く</td></tr>
+<tr><td>/decision</td><td class="ng">意図：least-privilege の根拠を書く（同じ単位なので、区別できない）</td></tr></table></div>
+<p class="meta">I33 の AI が気づけば violated。AI の validator が無い文脈では、何も出ない</p></div>
+<div class="pane on"><h3>残す（私の見解）</h3>
+<pre><span>{ "intent": "least-privilege の根拠を書く",</span><span>  "items": [ { "target": ".acdr/0197/acdr.json", "field": "/why" } ] }</span></pre>
+<div class="tw"><table><tr><th>欄</th><th>出るもの</th></tr>
+<tr><td>/why</td><td>意図：least-privilege の根拠を書く</td></tr>
+<tr><td>/decision</td><td class="ok">例外：記録に無い（基盤を通らずに変えた）</td></tr></table></div>
+<p class="meta">機械だけで出る。v2 の U25 の失敗時「基盤を通らずに変えた欄は、そうだと分かる」と I31 を守る</p></div>
+</section>
+<div class="tw"><table>
+<tr><th></th><th>外す</th><th>残す</th></tr>
+<tr><td>項目が持つもの</td><td>—</td><td>入口がその呼び出しで書いた対象と欄（前後の値は持たない。前後はポートから）</td></tr>
+<tr><td>Markdown ・ HTML ・ コード</td><td>扱える</td><td>扱える。項目は対象だけ（欄を持たない）。中のどの行かは前後から成型する</td></tr>
+<tr><td>確定の単位に意図が2つ（squash ・ 未確定の変更に2つ）</td><td>意図ごとに分けられない</td><td>項目で分かる。例外にしない</td></tr>
+<tr><td>確定の仕方への制約</td><td>1単位＝1意図が必須</td><td>無い。1承認＝1確定は勧める使い方</td></tr>
+<tr><td>find の問題</td><td>—</td><td>起きない。欄は JSON Pointer、それ以外はファイルの単位で、文字列を探さない</td></tr>
+</table></div>
+
+<h2>2　直した答え（9件）</h2>
+<div class="tw"><table>
+<tr><th>件</th><th>前の答え</th><th>直した答え</th><th>だれの指摘か</th></tr>
+<tr><td>A1 確定の単位</td><td>人が承認した意図1つぶんを1単位で確定（1単位＝1意図）</td><td>外す。確定は基盤の外（人が変更の仕組みで行う）。「1承認＝1確定」は勧める使い方として書き、不変条件にしない</td><td class="meta">反証 ・ ddd ・ usecase：v2「承認の仕組みは持たない」に反する</td></tr><tr><td>A2 変更の項目</td><td>外し、前後から導く</td><td><b>残す</b>（下の1節で判断をお願いします）。対象は必須、欄（JSON Pointer）は JSON の対象だけ</td><td class="meta">ddd：基盤を通らずに変えた欄を検出するのは項目だけ ／ 反証：未確定の変更に意図が2つあると分けられない</td></tr><tr><td>A3 ポート</td><td>4操作（前後 ・ 出した者 ・ 対象の履歴 ・ 消した ID）</td><td>3操作：①前後（前の姿の参照 ・ 後の姿の参照）②単位の中身（前の姿 ・ 後の姿 ・ 出した者と、その出どころ）③消した ID の履歴。「対象の履歴」は外す。答えられない範囲は「探していない」と返す</td><td class="meta">反証 ・ platform：スナップショットは履歴に答えられない／浅い clone は0件で黙って通る</td></tr><tr><td>A3 未確定の後の姿</td><td>—</td><td>まだ変更の仕組みに載っていない新しいファイルも含める</td><td class="meta">platform：実測で新しい記録が返らなかった</td></tr><tr><td>A4 外れた判定</td><td>violated の判定は確定に入れない</td><td>独立の規則にしない。判定の記録を「対象 × rule」で識別すれば、上書きで最後の1件だけが残る（判定の記録の ULID を外す）</td><td class="meta">ddd ・ 反証：v2 の集約の根から導ける</td></tr><tr><td>A5 セッションの行</td><td>一員2つ ＋ rule ＋ DDL</td><td>一員2つ（session ・ session-change）。I44 ・ I45 ・ I46 ・ オーケストレーターは1つを rule に。書き込みを断るのはアダプターの一意の索引と明記。I44 を「任せる先の目的は親と同じ」に直す</td><td class="meta">反証 ・ ddd ・ platform ・ qa</td></tr><tr><td>A5 登録の競合</td><td>—</td><td>「決める」と「登録」の間に2つ目が立ったら、断られた側は勝った側の ID で再開し直す（基盤が勝った ID を返す）</td><td class="meta">platform ・ qa：実測で負けた側が登録されないまま動く</td></tr><tr><td>A5 DB の迂回</td><td>—</td><td>アダプターが外部キーを必ず有効にし、閉じた行の削除も断る</td><td class="meta">platform：実測で I45 を迂回できた</td></tr><tr><td>A6 確定しなかった記録</td><td>基盤を通る捨て方 ＋ 見せる時の検出</td><td>見せる時の検出だけ。出す文は「この前後には無い」（別の worktree にある場合と区別できないため）</td><td class="meta">全員</td></tr><tr><td>A7 対象ごとの経緯</td><td>ポートの「対象の履歴」</td><td>確定した変更の記録を対象で引く（項目を残すので記録だけで引ける）。いつ ・ 誰がは②単位の中身から</td><td class="meta">A2 ・ A3 から</td></tr><tr><td>A8 単位がまとめられた</td><td>意図すべての変更として見せ、例外に出す</td><td>項目を残すので、意図ごとの欄は項目で分かる。例外にしない。I33 の判定は確定したあとに取り直さない</td><td class="meta">反証：squash のたびに例外が増える</td></tr><tr><td>A9 例外の書き方</td><td>#7 ・ #22 に1文ずつ</td><td>#7 はそのまま。#22 は「1つの kind に向くビューは0か1つ。無ければ基盤の既定の描き方で描き、描画の差分も出す」</td><td class="meta">ddd ・ 反証</td></tr>
+</table></div>
+
+<h2>3　v2 から外す Git の語</h2>
+<div class="tw"><table>
+<tr><th>どこ</th><th>v2 の語</th><th>直した語</th></tr>
+<tr><td>I40 ・ 保存の決まり</td><td>コミットするファイル ／ コミットしない</td><td>変更の仕組みで確定するファイル ／ 確定しない（Git のアダプターならコミット）</td></tr>
+<tr><td>I20</td><td>変更の仕組みの単位。Git ではブランチと PR</td><td>確定の単位の並び（Git の例はアダプターの説明へ）</td></tr>
+<tr><td>I34</td><td>コミットされる記録</td><td>確定する記録</td></tr>
+<tr><td>判定した値</td><td>コミットの親（コミット前の手元なら HEAD）</td><td>その記録が入った単位の前の姿（未確定なら、いま確定している姿）</td></tr>
+<tr><td>まとめ方</td><td>Git ならブランチの合流点と先端のコミット。作業ツリー</td><td>前の姿の参照 ・ 後の姿の参照。後は未確定でもよい</td></tr>
+<tr><td>集約「変更の記録」</td><td>作業ツリーに置き、インスタンスと同じ変更でコミット</td><td>未確定の変更に置き、変更と同じ単位で確定する</td></tr>
+<tr><td>U25 のアクター</td><td>PR で承認する人</td><td>変更の仕組みで取り込みを承認する人</td></tr>
+</table></div>
+<p class="meta">使う場面の事後条件 ・ 失敗時の直しは21対（usecase の記録案）。「残る」を「未確定の変更に置かれる」にし、変更の仕組みが答えない場合の拡張を足す。U27 は要約レベルにする</p>
+
+<h2>4　シミュレーションの形と、核ができた印</h2>
+<div class="tw"><table>
+<tr><th>決めたこと</th><th>中身</th></tr>
+<tr><td>1場面の書式</td><td>JSON 1つ：id ・ traces（U ・ I ・ A の id）・ adapters ・ given ・ when（操作1つ）・ then（期待値ごとに id と失敗の文）・ unchanged</td></tr>
+<tr><td>経路</td><td>使う場面の主シナリオ1本と、拡張ごとに1本。各回は自分で事前の状態を用意する</td></tr>
+<tr><td>アダプター</td><td>同じ経路を Git とスナップショットで流し、成型した出力が一致すること</td></tr>
+<tr><td>AI</td><td>模擬に替えるのは CLI のプロセスだけ。渡す値と答えの確かめは本物</td></tr>
+<tr><td>比べるもの</td><td>基盤が成型した JSON。HTML は比べない</td></tr>
+<tr><td>核ができた印（C1〜C9）</td><td>v2 の使う場面22件 × 事後条件 ・ 失敗時と不変条件46行がすべて区分され、場面の行はすべて否定の場面を持ち、全アダプター ・ 4通りの回し方で一致し、不合格なら0以外で終わる</td></tr>
+<tr><td>確かめない行</td><td>U3 ・ U4（Abstract の新しい版が無い）・ U24（公開の版が未決）・ I7 ・ I27 ・ I30。理由と「場面へ移る条件」を持つ</td></tr>
+</table></div>
+<p class="meta">いまの dbcheck.py ・ selfcheck.py は終了コードが常に0で、dbcheck.py の「閉じたあとに新しく開く」は場面を作っていなかった（qa ・ platform）。ランナーに置き換える</p>
+
+<h2>5　次にすること</h2>
+<div class="tw"><table>
+<tr><th>順</th><th>すること</th></tr>
+<tr><td>1</td><td>1節の判断をもらう</td></tr>
+<tr><td>2</td><td>answers.json を直した答えにし、v2 に合意済み12件と9件と Git の語の直しを適用して、核の5つ（ドメインモデル ・ スキーマ ・ ポートの契約 ・ DB ・ 期待する振る舞い）を書く</td></tr>
+<tr><td>3</td><td>参照の実装とランナーを作り、C1〜C9 を1回の実行で判定する</td></tr>
+<tr><td>4</td><td>核と合否を1ページで出して合意をもらい、ACDR で正本へ</td></tr>
+</table></div>
+</main>
