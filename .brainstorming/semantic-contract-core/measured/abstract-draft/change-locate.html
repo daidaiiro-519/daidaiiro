@@ -1,0 +1,68 @@
+<title>変更の場所の指し方</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+</style>
+<main>
+<h1>変更の場所を、find で指せるか</h1>
+<p class="meta">試作 changeview.py をデモのリポジトリで実行した結果（実測）。照らした根幹：同じ入力から同じ結果になること</p>
+
+<div class="ans">結論：find は柔軟ではない。消しただけの変更を指せず、同じ文字列が2つあると当て推量になる。<br>場所は「差分のまとまりの中身」で持ち、基盤が差分から写す。</div>
+
+<h2>1　試した3つの場面</h2>
+<div class="tw"><table>
+<tr><th>場面</th><th>find（AI が選ぶ文字列を、変更後の本文で探す）</th><th>差分のまとまりの中身（消えた行 ・ 足した行）</th></tr>
+<tr><td>行を書き換えた</td><td class="ok">当たる</td><td class="ok">当たる</td></tr>
+<tr><td>行を消しただけ<br><span class="meta">/// 画面の AI を止める</span></td><td class="ng">当たらない ── 変更後の本文に、その文字列が無い。「記録に無い変更」と出た</td><td class="ok">当たる</td></tr>
+<tr><td>同じ行が2つになった<br><span class="meta">cmd.args(&amp;cfg.args); を2回</span></td><td class="q">たまたま当たる ── 2つが隣り合っていたから。離れていれば、別の行に印が付く</td><td class="ok">当たる</td></tr>
+<tr><td>記録の無い変更が混ざった</td><td class="ok">例外に出る</td><td class="ok">例外に出る</td></tr>
+</table></div>
+
+<h2>2　変更の記録（変更前 → 変更後）</h2>
+<section class="two">
+<div class="pane"><h3>変更前：find</h3>
+<pre><span>{ "intent": "止める関数の説明を消す",</span><span>  "items": [ { "target": "tool/agent.rs",</span><span class="hl">    "at": { "find": "/// 画面の AI を止める" } } ] }</span></pre>
+<p class="meta">AI が文字列を選ぶ。選び方で結果が変わる</p></div>
+<div class="pane on"><h3>変更後：差分のまとまりの中身</h3>
+<pre><span>{ "intent": "止める関数の説明を消す",</span><span>  "items": [ { "target": "tool/agent.rs",</span><span class="hl">    "at": { "hunk": { "del": ["/// 画面の AI を止める"],</span><span class="hl">                      "add": [] } } } ] }</span></pre>
+<p class="meta">基盤が差分から写す。AI は選ばない</p></div>
+</section>
+
+<h2>3　描いた結果（ファイルの全体に印）</h2>
+<pre><span>  use crate::config::AgentCfg;</span><span>  use std::process::{Child, Command};</span><span>  </span><span>  /// 画面の AI を起動する。許可は各 AI ツールの設定ファイルが決める</span><span>  fn spawn_agent(cfg: &amp;AgentCfg) -&gt; Child {</span><span>      let mut cmd = Command::new(&amp;cfg.bin);</span><span>      cmd.args(&amp;cfg.args);</span><span class="a">+     cmd.args(&amp;cfg.args);</span><span class="m">↑ 意図：引数を2回渡す（試し）</span><span>      cmd.arg("--permission-mode").arg("dontAsk");</span><span>      cmd.spawn().expect("AI ツールを起動できない")</span><span>  }</span><span>  </span><span class="d">- /// 画面の AI を止める</span><span class="m">↑ 意図：止める関数の説明を消す</span><span>  fn stop_agent(child: &amp;mut Child) {</span><span>      let _ = child.kill();</span><span>      let _ = child.wait();</span><span>  }</span></pre>
+<p class="meta">例外：0件。find では、消した行が「記録に無い変更」として出ていた</p>
+
+<h2>4　だれが何をするか</h2>
+<section class="flow">
+<div class="st"><b>1　AI が書く</b>ファイルを直接直してよい（SAS で作っていない Markdown ・ HTML ・ コードも）</div>
+<div class="st"><b>2　基盤が差分を出す</b>作業ツリーと HEAD の差を、まとまりに割る<span class="w">Git の差分そのもの</span></div>
+<div class="st"><b>3　AI が意図を付ける</b>まとまりごとに、どの意図かだけを言う。基盤が中身を記録へ写す<span class="w">付かないまとまりは、例外のまま残る</span></div>
+</section>
+
+<h2>5　残ること（私の見解）</h2>
+<div class="tw"><table>
+<tr><th>残ること</th><th>扱い</th></tr>
+<tr><td>同じ中身のまとまりが、1つのコミットに2つある</td><td>何番目かを持たせる。中身と順番で1つに決まる</td></tr>
+<tr><td>記録を作ったあと、コミットまでにさらに直した</td><td>記録の中身とコミットの差分が合わなくなる。合わないまとまりは例外に出るので、隠れない</td></tr>
+<tr><td>JSON の欄（pointer）</td><td>SAS で作ったものは、欄の単位で意図を見たい。pointer は残し、それ以外のファイルはまとまりの中身で指す</td></tr>
+</table></div>
+</main>

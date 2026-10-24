@@ -26,7 +26,7 @@ def hunks(before, after):
             rows += [(' ', l, j1 + k) for k, l in enumerate(b[j1:j2])]
         else:
             rows += [('-', l, j1) for l in a[i1:i2]] + [('+', l, j1 + k) for k, l in enumerate(b[j1:j2])]
-            out.append((j1, max(j2, j1 + 1)))
+            out.append((j1, max(j2, j1 + 1), a[i1:i2], b[j1:j2]))
     return rows, out
 
 
@@ -39,7 +39,7 @@ def locate(after, at):
 
 def main(repo, rev='HEAD'):
     parent = rev + '^'
-    names = [n for n in git(repo, 'diff', '--name-only', parent, rev).split('\n') if n]
+    names = [n for n in git(repo, 'diff', '--name-only', parent, rev).split('\n') if n and not n.endswith('.html')]
     recs = {n: json.loads(show(repo, rev, n)) for n in names if n.startswith(REC_DIR)}
     files = [n for n in names if not n.startswith(REC_DIR)]
     out = ['<meta charset="utf-8"><title>変更を見せる（試作）</title><style>body{font:14px/1.6 sans-serif;margin:16px;max-width:980px}'
@@ -57,8 +57,13 @@ def main(repo, rev='HEAD'):
             for it in r['items']:
                 if it['target'] != f:
                     continue
+                if 'hunk' in it['at']:
+                    for k, h in enumerate(hs):
+                        if h[2] == it['at']['hunk'].get('del', []) and h[3] == it['at']['hunk'].get('add', []):
+                            owner.setdefault(k, []).append(r['intent'])
+                    continue
                 for ln in locate(after, it['at']):
-                    for k, (s, e) in enumerate(hs):
+                    for k, (s, e, *_r) in enumerate(hs):
                         if s - 1 <= ln <= e:
                             owner.setdefault(k, []).append(r['intent'])
         def label(k):
@@ -66,12 +71,12 @@ def main(repo, rev='HEAD'):
                 return f'<span class="l m">↑ 意図：{html.escape(" ・ ".join(sorted(set(owner[k]))))}</span>'
             return '<span class="l e">↑ 記録に無い変更</span>'
         body.append(f'<h2>{html.escape(f)}</h2><pre>')
-        for k, (s, e) in enumerate(hs):
+        for k, (s, e, *_r) in enumerate(hs):
             if k not in owner:
                 exceptions.append(f'{f} の {s + 1} 行目付近：どの記録の場所にも重ならない（記録に無い）')
         pre, last = [], None
         for mark, line, j in rows:
-            k = None if mark == ' ' else next((k for k, (s, e) in enumerate(hs) if s <= j < e or j == s), None)
+            k = None if mark == ' ' else next((k for k, (s, e, *_r) in enumerate(hs) if s <= j < e or j == s), None)
             if last is not None and k != last:
                 pre.append(label(last))
             last = k
