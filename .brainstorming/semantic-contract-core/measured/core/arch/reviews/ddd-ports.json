@@ -1,0 +1,244 @@
+{
+  "kind": "judgment",
+  "question": "Semantic Agent Schema の Rust 実装で、駆動される側のポート12の trait を、domain の crate に置くか、application の crate に置くか",
+  "premises": [
+    {
+      "name": "いまの案",
+      "value": "駆動される側のポートを domain の各 crate の ports.rs に置く（declaration ・ validation ・ change ・ session ・ render ・ instance）。application の ports.rs には「時刻と id を受け取る」だけがある。つまり、いまの案もすでに混在である",
+      "source": "core/arch.html 5節（ディレクトリ構成）"
+    },
+    {
+      "name": "いまの案の中の食い違い",
+      "value": "4節の表は「session | values | 再開か新規かは、枠 ・ AI ツールの答え ・ 設定の値だけで決まる」と書く。値だけで決まるなら、ドメインサービスはポートを呼ばない。一方で5節は session/ports.rs に「AI ツールのセッションを問う ・ 設定を読む」を置いている",
+      "source": "core/arch.html 4節と5節"
+    },
+    {
+      "name": "同じ入力から同じ結果",
+      "value": "「同じ入力から同じ結果を返し、別の言語の実装が使える適合の試験を持つ」",
+      "source": "premises/board-answers.json Q0 #14"
+    },
+    {
+      "name": "検証の途中で取りに行かない",
+      "value": "「検証の途中で、$ref が指す外のスキーマを取りに行かない（同じ入力から同じ結果を返すため）」",
+      "source": "premises/board-answers.json Q4 #9"
+    },
+    {
+      "name": "公開された言葉は閉じた一覧で確かめる",
+      "value": "「glossary は閉じた一覧（$id の一覧のデータ）に載せ、一覧に無いものは取りに行かずに断る。ほかの文脈の公開された言葉は、ポート「公開された言葉を取りに行く」で取り、閉じた一覧で確かめる」",
+      "source": "premises/board-answers.json Q2 #14"
+    },
+    {
+      "name": "関係の索引は同じポートの後ろ",
+      "value": "インスタンスを読む ・ 書くポートの説明に「関係の索引は、遅いと測れてから、ファイルから作り直せる手元の DB を同じポートの後ろに置く」とある。Resolver と意味で探すは、インスタンスをまたいだ関係の問い合わせを持つ（Q2 #7）",
+      "source": "model/model.json ports.outbound[1] ・ premises/board-answers.json Q2 #7"
+    },
+    {
+      "name": "セッションの登録はトランザクションの中で読む",
+      "value": "「登録は書き込みのトランザクションを先に取ってから読む」。開いているセッションは、1つの枠に1つまで",
+      "source": "model/model.json ports.outbound[4] ・ premises/board-answers.json Q11 #9 ③"
+    },
+    {
+      "name": "AI の判定は rule ごとに独立",
+      "value": "未判定。モデルには、ある AI の rule の答えによって別の rule を AI に聞くかが変わる、という連鎖は書かれていない。連鎖が無いことを前提に判定した。連鎖があると、Validator は計算の途中で判定の依頼を呼ぶ必要が出る",
+      "source": "model/model.json domain_services ・ invariants を読んだ範囲（推測）"
+    },
+    {
+      "name": "x-relationship を何段たどるか",
+      "value": "未判定。「たどった先も読んだ欄だけ」（Q1 #51）までは決まっているが、何段までかは決まっていない。インスタンスを読むポートを domain に置く判定は、段数に依存しない",
+      "source": "premises/board-answers.json Q1 #51"
+    },
+    {
+      "name": "原典の引用の位置",
+      "value": "Evans はリファレンスに印刷された頁番号（PDF の頁は +7）。Cockburn は sources/arch/alistair.cockburn.us_hexagonal-architecture の行番号（タグを除いた文字列で照合）",
+      "source": "sources/arch/ の2つのファイル"
+    },
+    {
+      "name": "application に置く理由の出所",
+      "value": "判断基準は「ポートは業務ロジック層が定義する」と書き、application 層だけが呼ぶポートについては何も書かない。application に置くことの根拠は、判断基準の DIP と、Cockburn の原文と Evans の Layered Architecture の原文である。判断基準の範囲外の部分を含む",
+      "source": "判断基準の範囲外（原典の原文で補った）"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "混在にする。ドメインサービスが計算の途中で、自分の計算の結果を引数にして呼ぶ3つの読む口（契約を読む ・ インスタンスを読む ・ 判定の記録を読む）だけを domain に置き、残り9つと3つの書く口は application に置く。",
+    "because": "trait は呼ぶ側から見える crate に置かなければならず、Rust の依存は application → domain の1方向なので、domain が呼ぶものだけが domain に要る。判断基準の業務サービスの例も Cockburn の Discounter も、計算の途中でリポジトリを呼んでおり、そうでないもの（取りに行く ・ AI に聞く ・ 書く ・ 確定する）は application が前後で呼べば、ドメインサービスは値だけを受け取る関数になり、同じ入力から同じ結果（Q0 #14）を守れる。"
+  },
+  "figure": {
+    "caption": "判定の後の置き場所。domain の crate には、ドメインサービスが計算の途中で呼ぶ読む口だけが残る。application は前後で残りのポートを呼び、値を domain へ渡す",
+    "nodes": [
+      { "id": "entry", "label": "entry/cli（結びつけ）", "role": "入口" },
+      { "id": "app", "label": "application：use_cases ・ ports.rs（書く口3 ・ 変更の記録 ・ セッションの索引 ・ 変更の仕組み ・ 公開された言葉 ・ 判定の依頼 ・ 外のツール ・ 書き出し ・ AI セッション ・ 設定 ・ 時刻と id）", "role": "application" },
+      { "id": "decl", "label": "domain/declaration：契約を読む（読む口）", "role": "domain" },
+      { "id": "val", "label": "domain/validation：インスタンスを読む ・ 判定の記録を読む（読む口）", "role": "domain" },
+      { "id": "other", "label": "domain/change ・ session ・ render ・ search ほか：ポートを持たない（値を受け取る）", "role": "domain" },
+      { "id": "ad", "label": "adapters/*（fs ・ git ・ sqlite ・ ai-cli ・ agents-contract）", "role": "アダプター" }
+    ],
+    "edges": [
+      { "from": "entry", "to": "app", "label": "使う場面を呼ぶ" },
+      { "from": "app", "to": "other", "label": "値を渡してドメインサービスを呼ぶ" },
+      { "from": "app", "to": "val", "label": "ドメインサービスを呼ぶ" },
+      { "from": "other", "to": "val", "label": "依存" },
+      { "from": "val", "to": "decl", "label": "依存" },
+      { "from": "ad", "to": "app", "label": "application のポートを実装", "dashed": true },
+      { "from": "ad", "to": "decl", "label": "読む口を実装", "dashed": true },
+      { "from": "ad", "to": "val", "label": "読む口を実装", "dashed": true }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "案1 全部 domain（いまの案）",
+      "effect": "ドメインサービスから、AI ・ 外のツール ・ 公開された言葉の取得 ・ AI ツールのセッションを直接呼べる形になる。Q4 #9（検証の途中で取りに行かない）を型で止められず、ドメインサービスの結果が AI の答えの揺れで変わり、同じ入力から同じ結果（Q0 #14）を domain の試験で確かめられない。session の crate は4節で「値だけで決まる」と言いながら5節でポートを持つ食い違いが残る",
+      "chosen": false
+    },
+    {
+      "option": "案2 全部 application（domain は値だけを受け取る関数）",
+      "effect": "Resolver と意味で探すが、x-relationship ・ $ref ・ glossary を計算の途中でたどれない。application が先に文脈の全部を読み込むか、何を読むかを application が決めることになる。後者は x-relationship の意味を application が知ることで、業務ロジックが2か所に分かれる。前者は、model.json が「関係の索引を同じポートの後ろに置く」と書いた索引の置き場所を失う",
+      "chosen": false
+    },
+    {
+      "option": "案3 混在：計算の途中で呼ぶ読む口3つは domain、ほかは application",
+      "effect": "domain の crate が呼べる外は、文脈のファイルを条件で読む3つだけになる（Evans の Repositories の問い合わせの役）。取りに行く ・ AI に聞く ・ 外のツール ・ AI ツールのセッション ・ 確定する ・ 書くは、application が前後で呼び、結果を値で渡す。ドメインサービスは、読む口が同じ姿を返す限り、同じ入力から同じ結果を返す",
+      "chosen": true
+    }
+  ],
+  "path": [
+    {
+      "ask": "ドメインサービスとは何か（Evans の原文）",
+      "answer": "Evans p.14 Services：「When a significant process or transformation in the domain is not a natural responsibility of an entity or value object, add an operation to the model as a standalone interface declared as a service.」「State these assertions in the ubiquitous language of a specific bounded context. Give the service a name, which also becomes part of the ubiquitous language.」。判断基準では「業務ロジックだけを書き、自分の状態は持たないステートレスなオブジェクト」で、「いろいろなコンポーネントの呼び出しをまとめて何かの計算や分析をする」"
+    },
+    {
+      "ask": "ポートの trait をどこに置くかを、何で決めるか",
+      "answer": "呼ぶ側で決める。Rust の crate は依存する先の項目しか使えず、許す辺は application → domain なので、ドメインサービスが呼ぶ trait は domain（呼ぶ crate か、その crate が依存する crate）に要る。問いは1つ ──「ドメインサービスが、自分の計算の途中で得た値を引数にして呼ぶ必要があるか」。はいなら domain、いいえなら application が前後で呼び、ドメインサービスには値で渡す"
+    },
+    {
+      "ask": "判断基準の例は、ドメインサービスが計算の途中でポートを呼ぶことを認めるか",
+      "answer": "認める。業務サービスの例は、部門の方針を取り出し、その方針の最大応答時間を範囲にして勤務予定を取り出す。2回目の呼び出しの引数が1回目の結果で決まる。Cockburn の Discounter も「double rate = rateRepository.getRate( amount ); return amount * rate;」（1923〜1926行）と、計算の途中で RateRepository を呼ぶ"
+    },
+    {
+      "ask": "ポート12それぞれは、誰が呼ぶ必要があるか",
+      "answer": "下の「コードの例」の表に12行で示す。domain が呼ぶ必要があるのは、契約を読む ・ インスタンスを読む ・ 判定の記録を読むの読む側だけで、残り9つと3つの書く側は application が前後で呼べば足りる"
+    },
+    {
+      "ask": "判断基準の「ポートは業務ロジック層が定義する」と、Cockburn の「application の境界にポート」は食い違うか",
+      "answer": "食い違わない。Cockburn の application は内側の六角形の全体である ──「the use cases should generally be written at the application boundary (the inner hexagon)」（2025〜2026行）・「there is an application on the inside communicating over some number of ports with things on the outside」（1498〜1500行）。判断基準のアプリケーション層は、その内側の中の業務ロジック層のファサードである。どちらも「内側が定義し、外側（アダプター）が実装する」ことを言い、内側の中のどの crate に置くかは決めていない。Cockburn の例も RateRepository を package repository に置き、Discounter が import する（1910行）だけである"
+    },
+    {
+      "ask": "application に置くことは、判断基準に違反しないか",
+      "answer": "判断基準の文面（ポートは業務ロジック層が定義する）は、application だけが呼ぶポートについて触れていないので、ここは判断基準の範囲外である。判断基準の DIP（上位のモジュールを下位のモジュールに依存させない）は、アダプターが application と domain に依存する向きである限り守られる。Evans の Layered Architecture（p.10）は「eliminate any dependency on infrastructure, user interface, or even application logic that is not business logic」と書く。AI に聞く ・ 取りに行く ・ 確定する順番は application logic なので、domain から外すほうが原文に沿う"
+    },
+    {
+      "ask": "ドメインサービスは業務領域に属するのか、区切られた文脈に属するのか",
+      "answer": "区切られた文脈に属する。Evans p.14 は service contract を「the ubiquitous language of a specific bounded context」で書けと言い、業務領域（subdomain）には触れない。業務領域は文脈の中を分ける単位で、Evans p.15 Modules は「Choose modules that tell the story of the system and contain a cohesive set of concepts.」、p.41 Generic Subdomains は「Identify cohesive subdomains that are not the motivation for your project. Factor out generic models of these subdomains and place them in separate modules.」と書く。ドメインサービスを業務領域のモジュールに置くのは、文脈の中の置き場所の決定である"
+    },
+    {
+      "ask": "いまの「業務領域ごとに crate」は適切か",
+      "answer": "適切である。基盤は1つの区切られた文脈（Q9 #11）で、判断基準は「内部には業務領域ごとの論理的な境界（名前空間 ・ モジュール ・ パッケージ）が存在する」とする。crate はその論理的な境界をビルドで守る手段で、文脈を分けていない。ただし、一般の業務領域2つ（AI と外のツールによる判定 ・ 保存と版の管理）は domain の crate を持たず、ポートとアダプターだけで表れる。model.json はポートごとに業務領域を付けているので、ポートを中核の crate の ports.rs に置くと、一般の業務領域の口が中核の crate の中に入る。application に移すと、この混ざりも消える"
+    }
+  ],
+  "code": [
+    {
+      "kind": "table",
+      "head": ["駆動される側のポート（model.json）", "呼ぶ必要があるのは", "理由", "trait を置く crate"],
+      "rows": [
+        ["1 契約を読む ・ 書く", "読む：domain（Resolver ・ Concrete を照らす ・ 意味で探す）／書く：application", "Resolver は $schema → Concrete → $ref → glossary とたどり、次に読む URN は読んだ中身で決まる。書くのは、作成 ・ 照らすが返したあとでよい", "読む：domain/declaration（Concrete と glossary の集約の持ち主）／書く：application"],
+        ["2 インスタンスを読む ・ 書く", "読む：domain（Resolver ・ Validator ・ 意味で探す）／書く：application", "x-relationship の指す先の有無と、関係するインスタンスの読んだ欄（Q3 #5）は、検証中のインスタンスの値で決まる。model.json は関係の索引を「同じポートの後ろ」に置くとしており、条件で問い合わせる口である。書くのは集約1つを1回に変えたあと", "読む：domain/validation（呼ぶ crate のうち一番下）。Instance の集約の型は instance の crate にあり validation より上なので、読む口は values の型（id ・ kind ・ 値）で返す／書く：application"],
+        ["3 判定の記録を読む ・ 書く", "読む：domain（意味で探すが判定の結果で探す。Validator の使い直しも同じ口を使える）／書く：application", "Validator の使い直しだけなら、鍵（対象 × rule）は計算の前に分かり、application が先に読める。意味で探すは条件で問い合わせる。書くのは判定が返ったあと", "読む：domain/validation（判定の記録の集約と同じ crate）／書く：application"],
+        ["4 変更の記録を読む ・ 書く", "application", "変更を見せる ・ 変更を記録するが使う記録は、まとめ方の前後から決まり、計算の前に読める。記録を作るのはドメインサービスで、書くのはそのあと", "application"],
+        ["5 セッションと手元のセッションの索引を読む ・ 書く", "application", "読む鍵は枠（目的 ・ 親 ・ 役割）で、計算の前に分かる。開いているのは1つの枠に1つまで。「書き込みのトランザクションを先に取ってから読む」ので、読む ・ 決める ・ 書くを1つのトランザクションで囲む必要があり、トランザクションを制御するのは application", "application"],
+        ["6 変更の仕組みとやりとりする（前後 ・ 単位の中身 ・ 消した ID ・ 確定する）", "application", "前後はまとめ方から、単位の中身と消した ID は前後に現れた変更の記録から決まり、どれもドメインサービスの計算の前に集められる。確定するのは本人の承認のあと。変更のまとまりは「同じ変更の前後からは毎回同じ形に組み立て」る（Q1 #46）ので、前後を値で受け取るのが合う", "application"],
+        ["7 公開された言葉を取りに行く", "application", "検証の途中で取りに行かない（Q4 #9）。取りに行く先は閉じた一覧（Q2 #14）で計算の前に分かる。Resolver は取ってきた版を値で受け取り、一覧に無いものを断るのは Resolver が一覧の値で決める", "application"],
+        ["8 rule の判定を依頼する（AI）", "application", "Validator を2段に分ける：①依頼の一覧（protocol の call：delegate ・ target ・ rules ・ inputs ・ task ・ handoff）を値で返す ②application が依頼し、腐敗防止層が5つの値に直す ③Validator がまとめる（割れたら unverified）。rule どうしの答えに連鎖が無い限り、途中で呼ぶ必要は無い", "application"],
+        ["9 描画したものを書き出す", "application", "Renderer が返した文字列を、あとで書き出すだけ", "application"],
+        ["10 外のツールを呼ぶ（Concrete が宣言した validator）", "application", "8と同じ2段。argv の有る判定として、依頼の一覧に入る", "application"],
+        ["11 AI ツールのセッションを問う", "application", "問う相手は、枠に開いている1つの ID で、計算の前に分かる。再開か新規かを決めるは、その答え ・ 設定の値 ・ 時刻を値で受け取る（arch.html 4節が書くとおり）", "application"],
+        ["12 設定を読む", "application", "使う場面の前に読み、値で渡す", "application"]
+      ]
+    },
+    {
+      "kind": "para",
+      "text": "再開か新規かを決めるの流れ（application の use_cases/session.rs）：トランザクションを取る → 索引から枠の開いているセッションを読む（5）→ あれば AI ツールに問う（11）→ 設定を読む（12）・ 時刻を受け取る → ドメインサービス「再開か新規かを決める」に値を渡す → 返った決定（再開する ID ／ 閉じて新しく立てる）を索引へ書く（5）→ コミット。ドメインサービスは入出力をしない関数になる"
+    },
+    {
+      "kind": "code",
+      "text": "// domain/validation/src/ports.rs ── 計算の途中で、自分の計算の結果を引数にして呼ぶ読む口だけ\npub trait InstanceReader {\n    fn get(&self, target: &Target) -> Option<InstanceView>;      // x-relationship の指す先\n    fn find(&self, q: &RelationQuery) -> Vec<InstanceView>;      // 関係の索引は同じ口の後ろ\n}\n\n// domain/validation/src/services/validator.rs ── AI を呼ばない\npub fn plan(/* 解決済みの Concrete ・ インスタンス ・ 判定の記録 */) -> Plan { /* 機械の rule は判定し、残りを依頼の一覧にする */ }\npub fn merge(plan: Plan, answers: Vec<Answer>) -> Verdicts { /* 5つの値へまとめる。割れたら unverified */ }\n\n// application/src/ports.rs ── 前後で呼ぶもの\npub trait JudgeRequester { fn request(&self, call: &Call) -> Answer; }   // AI ・ 外のツール\npub trait PublishedFetcher { fn fetch(&self, id: &Urn) -> Result<Published, FetchError>; }\npub trait AiSessionProbe { fn probe(&self, id: &SessionId) -> ToolAnswer; }\n\n// 避ける例：domain のドメインサービスの中で AI を呼ぶ\n// fn validate(&self, ai: &dyn JudgeRequester, ...) { ... ai.request(..) ... }"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "domain-service",
+      "quote": "業務サービス（英語は Services）：業務ロジックだけを書き、自分の状態は持たないステートレスなオブジェクト。集約や値オブジェクトの中では不自然になる業務ロジックの置き場所で、ほとんどの場合、いろいろなコンポーネントの呼び出しをまとめて何かの計算や分析をする。"
+    },
+    {
+      "criterion": "domain-service",
+      "quote": "処理の流れは、担当者の部門の方針を取り出す → 優先度に応じた最大の対応時間を得る → エスカレートしていれば方針の係数を掛ける → 方針の最大応答時間の範囲で担当者の今後の勤務予定を取り出す → 対応時間と勤務予定から目標時刻を計算する、である。"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "ポート：業務ロジック層が定義する抽象的なインターフェースで、インフラストラクチャ層が実装する。業務ロジック層は、基盤のコンポーネントを直接には参照せず、ポートを介して連係する。"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "依存関係逆転の原則（DIP）：業務ロジックを実装する上位のモジュールを、下位のモジュールに依存させないとする原則。従来のレイヤードアーキテクチャでは、業務ロジック層がインフラストラクチャ層に依存しており、この原則に反する。"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "ポート（インターフェース）は業務ロジック層に、アダプター（実装）はインフラストラクチャ層に属する。"
+    },
+    {
+      "criterion": "layered-architecture",
+      "quote": "サービス層：プレゼンテーション層と業務ロジック層を仲介する追加の層。ファウラーは、アプリケーションの境界を定め、使える操作と各操作の応答をまとめる層とする。下位の層の振る舞いをカプセル化する。別の呼び方はアプリケーション層である。"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：1つのトランザクションで変更する集約は1つにし、複数の集約の状態は集約ごとに別々にコミットする ・ 理由：一貫性を維持する境界の定義が、正しいことを保証する"
+    },
+    {
+      "criterion": "subdomain",
+      "quote": "業務領域は事業方針から決まり、発見するものである。区切られた文脈はソフトウェア技術者が設計するものである。両者を一対一に限定しない"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "物理的な境界は1つだが、内部には業務領域ごとの論理的な境界（名前空間 ・ モジュール ・ パッケージ）が存在する"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "ドメインサービスの中で AI ・ 外のツール ・ 公開された言葉の取得を呼ぶ（いまの validation/ports.rs の形）",
+      "risk": "検証の途中で外へ取りに行くことを型で止められず、Q4 #9 に違反できる。ドメインサービスの結果が AI の答えの揺れで変わり、domain の試験で同じ入力から同じ結果を確かめられない",
+      "alternative": "（推測）Validator を「依頼の一覧を返す」と「答えをまとめる」の2つの関数に分け、AI と外のツールは application が間で呼ぶ。公開された言葉は application が閉じた一覧で先に取り、値で渡す"
+    },
+    {
+      "name": "ドメインサービスが値だけで決まると書きながら、その crate にポートを置く（session の crate）",
+      "risk": "4節の依存の表と5節のディレクトリが別のことを言い、どちらが正しいかを毎回確かめることになる。トランザクションの中で読む ・ 決める ・ 書くを、domain と application のどちらが囲むかが決まらない",
+      "alternative": "（推測）session の crate からポートを外し、application の use_cases/session.rs がトランザクションを取り、索引 ・ AI ツール ・ 設定を呼んで値を渡す"
+    },
+    {
+      "name": "読む口を domain に置くとき、書く口も一緒に domain に置く",
+      "risk": "ドメインサービスから書けるようになり、1回に変える集約は1つという決まりを application の外で破れる",
+      "alternative": "（推測）Rust の trait を読む口と書く口に分け、domain には読む口だけを置く。書く口は application に置く"
+    }
+  ],
+  "next": [
+    "arch.html 5節の ports.rs の中身を、上の12行の表に合わせて書き直す。",
+    "arch.html 4節の session の行と5節の session/ports.rs の食い違いを消す。",
+    "Validator を「依頼の一覧を返す」と「答えをまとめる」に分けた形を、model.json の domain_services の説明へ書き足すかを利用者に聞く。",
+    "rule どうしの答えに連鎖が無いことを、invariants と behaviors で確かめる。",
+    "architecture.json に「domain の ports.rs に置いてよいのは読む口だけ」を検査として足す。"
+  ],
+  "related": [
+    { "criterion": "layered-architecture", "relation": "Evans の Layered Architecture と同じく、業務ロジックから application logic を外す根拠" },
+    { "criterion": "aggregate", "relation": "書く口を application に置く根拠（1回に変える集約は1つ）" },
+    { "criterion": "subdomain", "relation": "業務領域ごとの crate は文脈の中の論理的な境界であることの根拠" },
+    { "criterion": "bounded-context", "relation": "ドメインサービスは区切られた文脈の同じ言葉に属する" }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "AI が domain の crate の Cargo.toml や ports.rs に、AI ・ 外のツール ・ 取りに行く ・ セッションのポートを足し直す",
+      "check": "crates/domain/*/src/ports.rs に定義された trait の名前を architecture.json の「domain に置いてよい読む口」の一覧と突き合わせ、一覧に無い trait が0件であることを CI で確かめる"
+    },
+    {
+      "breaks": "AI がドメインサービスの関数の引数に application のポートの trait（&dyn JudgeRequester など）を渡す形で書く",
+      "check": "domain の crate が application の crate に依存する辺が0件であることを cargo metadata で確かめる（依存が無ければ trait を参照できずビルドが止まる）"
+    }
+  ]
+}
