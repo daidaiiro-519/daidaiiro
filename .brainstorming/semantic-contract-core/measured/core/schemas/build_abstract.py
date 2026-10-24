@@ -110,7 +110,7 @@ for w in r['properties']['agent']['x-prompt']['write']:
     if w['id'] == 'agent-exists':
         w['rule'] = 'このスキーマか本体の x-delegates にある名前を書く。'
         w['test'] = '名前が、このスキーマか本体の x-delegates にあるかを見る。'
-log('S11', 'agent-exists を「このスキーマか本体の x-delegates」にする', '一員のスキーマが本体の judge を指すと violated になった', 'reviews2/adversarial 2-15')
+log('S11', 'agent-exists を「このスキーマか本体の x-delegates」にする', '本体以外のファイルが本体の judge を指すと violated になった', 'reviews2/adversarial 2-15')
 
 # S12 x-delegates の説明から（案）を外す
 X['x-delegates']['description'] = '任せる先。名前から、その任せる先の定義（立場 ・ 答えの形 ・ 起動のしかた）を引く'
@@ -119,10 +119,10 @@ dlg['description'] = '任せる先1件。目的（kind）と起動のしかた�
 def words(o):
     if isinstance(o, dict): return {k: words(v) for k, v in o.items()}
     if isinstance(o, list): return [words(v) for v in o]
-    if isinstance(o, str): return o.replace('判定に要る欄', '判定に必要な欄').replace('要る点が埋もれる', '必要な点が埋もれる').replace('が要る）', 'を必要とする）').replace('要るのに無い欄', '必要なのに無い欄').replace('AI もエンジンも要らず', 'AI もエンジンも使わず')
+    if isinstance(o, str): return o.replace('判定に要る欄', '判定に必要な欄').replace('要る点が埋もれる', '必要な点が埋もれる').replace('が要る）', 'を必要とする）').replace('要るのに無い欄', '必要なのに無い欄').replace('AI もエンジンも要らず', 'AI もエンジンも使わず').replace('基盤の一員なら base', '基盤のファイルなら base').replace('base（基盤の一員）', 'base（基盤のファイル）')
     return o
 a.update(words(a))
-log('S13', '本体の文の廃語（要る）を直す', '利用者が廃語と決めた語が本体の文に残っていた', '.doc-writing/retired-words.json')
+log('S13', '本体の文の廃語（要る）と、伝わらない語（一員）を直す', '利用者が廃語と決めた語が本体の文に残っていた', '.doc-writing/retired-words.json')
 
 log('S12', 'x-delegates と $defs/delegate の説明から（案）を外す', 'この会話で決めた', 'decisions「x-delegates は残す」')
 

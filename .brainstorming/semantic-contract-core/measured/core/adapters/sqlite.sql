@@ -1,4 +1,4 @@
--- 手元の DB（SQLite）のアダプター。行の形は Abstract の一員 session（schemas/session.schema.json）から書く。確定しない。
+-- 手元の DB（SQLite）のアダプター。行の形は Abstract のファイル session（schemas/session.schema.json）から書く。確定しない。
 -- 不変条件は、接続の設定（foreign_keys ・ recursive_triggers）に依らずに断れるよう、CHECK と一意の索引とトリガーで書く。
 -- 登録は BEGIN IMMEDIATE で始め、「決める」が見た開いている行といまの開いている行を比べてから書く（アダプターのコード）。
 

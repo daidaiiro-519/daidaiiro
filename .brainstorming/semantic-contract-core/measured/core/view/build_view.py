@@ -1,4 +1,4 @@
-"""核の全容を1枚に描く：ドメインモデル ・ ER 図 ・ DB スキーマ ・ Abstract（本体と一員）・ Concrete（ACDR）。正本のファイルから作る。"""
+"""核の全容を1枚に描く：ドメインモデル ・ ER 図 ・ DB スキーマ ・ Abstract（本体とほかのファイル）・ Concrete（ACDR）。正本のファイルから作る。"""
 import html, json, os, re
 H = os.path.dirname(os.path.abspath(__file__)); C = os.path.dirname(H)
 e = lambda s: html.escape(str(s))
@@ -44,7 +44,7 @@ def cols(table):
     return T(['列', '型と制約', '意味'], out) + ('<pre class="code">' + '\n'.join(rest) + '</pre>' if rest else '')
 idx = [[f'<code>{a}</code>', e(b), e(c)] for a, b, c in re.findall(r'CREATE UNIQUE INDEX (\w+) ON (\w+ \([^)]*\)+)\s*WHERE ([^;]+);', ddl)]
 trg = [[f'<code>{a}</code>', e(b.strip()), e(c)] for a, b, c in re.findall(r"CREATE TRIGGER (\w+) (BEFORE [^\n]+(?:\n  WHEN[^\n]+(?:\n    OR[^\n]+)*)?)\s*BEGIN.*?RAISE\(ABORT, '([^']+)'", ddl, re.S)]
-db = ('<h2 id="db">3　DB スキーマ（手元の SQLite のアダプター）</h2><p class="meta">正本 adapters/sqlite.sql。行の形は Abstract の一員 session から書く。不変条件は接続の設定に依らずに断る</p>'
+db = ('<h2 id="db">3　DB スキーマ（手元の SQLite のアダプター）</h2><p class="meta">正本 adapters/sqlite.sql。行の形は Abstract のファイル session から書く。不変条件は接続の設定に依らずに断る</p>'
       + '<h3>sessions</h3>' + cols('sessions') + '<h3>session_changes</h3>' + cols('session_changes')
       + '<h3>一意の索引（I46）</h3>' + T(['名前', '対象', '条件（開いている行の範囲）'], idx)
       + '<h3>トリガー</h3>' + T(['名前', 'いつ', '断る理由'], trg))
@@ -95,7 +95,7 @@ for k, v in ab['$defs'].items():
     if isinstance(v, dict) and isinstance(v.get('properties'), dict) and k not in ('fields',): x += fields(v['properties'], v.get('required', [])) + conds(v)
     else: x += f'<pre class="code">{e(json.dumps(v, ensure_ascii=False, indent=1))}</pre>'
 x += rawjson(ab, 'abstract.json')
-mem = '<h2 id="mem">5　Abstract の一員</h2><p class="meta">本体に従うスキーマ。インスタンスのファイル（変更の記録 ・ 判定の記録 ・ 設定）と、手元の DB の行（session）と、出力の形（change-view）</p>'
+mem = '<h2 id="mem">5　Abstract のほかのファイル</h2><p class="meta">本体に従うスキーマ。インスタンスのファイル（変更の記録 ・ 判定の記録 ・ 設定）と、手元の DB の行（session）と、出力の形（change-view）</p>'
 for n in ['change', 'judgment', 'settings', 'session', 'change-view', 'annotations']:
     s = json.load(open(os.path.join(C, 'schemas', f'{n}.schema.json')))
     mem += f'<h3 id="m-{n}">{e(s["title"])}（{n}）</h3>' + head(s)
@@ -115,7 +115,7 @@ if cc.get('$defs'): co += '<h3>部品（$defs）</h3>' + ''.join(f'<h4><code>$de
 co += '<h3>インスタンスの例（accepted の姿）</h3><pre class="code">' + e(json.dumps(ins['I3'], ensure_ascii=False, indent=2)) + '</pre>' + rawjson(cc, 'acdr.concrete.json')
 
 css = open(os.path.join(H, 'view.css')).read()
-nav = '<nav>' + ''.join(f'<a href="#{i}">{t}</a>' for i, t in [('dm', 'ドメインモデル'), ('er', 'ER 図'), ('db', 'DB'), ('abs', 'Abstract'), ('mem', '一員'), ('con', 'Concrete')]) + '</nav>'
+nav = '<nav>' + ''.join(f'<a href="#{i}">{t}</a>' for i, t in [('dm', 'ドメインモデル'), ('er', 'ER 図'), ('db', 'DB'), ('abs', 'Abstract'), ('mem', 'ほかのファイル'), ('con', 'Concrete')]) + '</nav>'
 page = f'<title>基盤の核の全容</title><style>{css}</style><main><h1>基盤の核の全容</h1><p class="meta">measured/core/ の正本から view/build_view.py が作る。手で直さない</p>{nav}{dm}{er}{db}{x}{mem}{co}</main>'
 open(os.path.join(H, 'core-view.html'), 'w').write(page)
 print('ok', len(page))

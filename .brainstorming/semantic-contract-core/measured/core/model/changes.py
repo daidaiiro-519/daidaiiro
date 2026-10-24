@@ -175,6 +175,10 @@ dict(id='C54', path=('value_objects', '関係の索引', 1), op='text', before='
 dict(id='C55', path=(), op='words', pairs=[('同じ形に組み立てる', '同じ形に作る'), ('出すときに組み立てる', '出すときに作る'), ('変更のまとまりを組み立て、', '変更のまとまりを作り、'), ('同じ形に組み立て、', '同じ形に作り、'),
      ('要る部分だけを返す', '必要な部分だけを返す'), ('rule の判定を頼む（AI）', 'rule の判定を依頼する（AI）'), ('validator は道具を持たせずに', 'validator はツールを持たせずに')],
      why='利用者が廃語と決めた語（組み立てる ・ 要る ・ 頼む ・ 道具）が決着の文に残っていた', source='.doc-writing/retired-words.json ・ doc-writing-skills ゲート1'),
+dict(id='C56', path=(), op='words', pairs=[('・ 一員の形（文脈が書くファイル', '・ ほかのファイルの形（文脈が書くファイル'), ('・ 一員の形 ・', '・ ほかのファイルの形 ・'),
+     ('行の形は Abstract の一員、', '行の形は Abstract のファイル session、'), ('Abstract の一員の出力の形', 'Abstract が持つ出力の形'), ('Abstract の一員 settings', 'Abstract のファイル settings'),
+     ('形は Abstract の一員）', '形は Abstract のファイル）'), ('持ち主は基盤の一員なら', '持ち主は基盤のファイルなら')],
+     why='「一員」は意味が伝わらない語', source='利用者「一員って言い方まじでやめて 意味不明なんだ」'),
 ]
 
 # ボードにだけ在り、v2 に無い決着の直し（ACDR でボードへ適用する）

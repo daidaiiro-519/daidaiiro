@@ -114,7 +114,7 @@ def check(sc, res, st0, st1):
     if 'result_schema' in sc and isinstance(res, dict) and not ({'not_shown', 'exception', 'refused'} & set(res)):
         reg = SC.registry(DOCS); sch = {'$ref': sc['result_schema']}
         errs = list(Draft202012Validator(sch, registry=reg).iter_errors(ptr(res, sc.get('result_schema_at', ''))))
-        if errs: fails.append({'id': 'result-schema', 'message': '出力が一員の形に合わない', 'got': errs[0].message[:200]})
+        if errs: fails.append({'id': 'result-schema', 'message': '出力が Abstract のファイルの形に合わない', 'got': errs[0].message[:200]})
     return fails
 
 

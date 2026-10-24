@@ -1,4 +1,4 @@
-"""静的の検査：本体を本体で、一員を本体で、例を一員で検査する。不合格なら0以外で終わる。"""
+"""静的の検査：本体を本体で、ほかのファイルを本体で、例をそのファイルで検査する。不合格なら0以外で終わる。"""
 import json, glob, os, sys
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource

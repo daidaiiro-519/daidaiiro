@@ -1,4 +1,4 @@
-"""Abstract の一員のスキーマを書く。各欄は description と x-prompt を持つ（本体の prompt-per-unit）。
+"""Abstract のほかのファイル（本体以外のスキーマ）を書く。各欄は description と x-prompt を持つ（本体の prompt-per-unit）。
 値だけで決まる決まりは JSON Schema で書き、x-prompt の write には書けないものだけを置く。"""
 import json, os
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +29,7 @@ target = {"oneOf": [
    "properties": {"path": {"type": "string", "minLength": 1, "pattern": "^[^/]"}}}]}
 
 # ---------------- annotations
-ann = head('annotations', '複数のスキーマで使う注釈の形', 'x-relationship の値の形など、本体と一員が共有する形。インスタンスは作らない。')
+ann = head('annotations', '複数のスキーマで使う注釈の形', 'x-relationship の値の形など、本体とほかのファイルが共有する形。インスタンスは作らない。')
 ann['$defs'] = {"relationship": {"type": "object", "required": ["to"], "additionalProperties": False, "properties": {
   "to": f({"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$"}, '指す先の種類', '指す先のインスタンスが従う Concrete の URN である。'),
   "version": f({"type": "string", "pattern": "^v[0-9]+$"}, '公開された版', 'ほかの文脈の公開された言葉を指すときの版である。', when='ほかの文脈を指すときだけ読む。')}},
