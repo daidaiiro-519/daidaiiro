@@ -28,104 +28,56 @@ pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);
 .file span{padding:0 6px;border-radius:4px} .file .n{background:var(--add);color:var(--add-ink)} .file .m{background:var(--mark);color:var(--mark-ink)} .file .x{background:var(--del);color:var(--del-ink);text-decoration:line-through}
 .none{color:var(--sub);font-size:12.5px}
 .legend{display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px} .legend span{padding:0 8px;border-radius:6px}
+.layer{display:flex;flex-direction:column;gap:6px}.ly{border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:11em 1fr;gap:8px;align-items:start;background:var(--card);border:1px solid var(--line)}@media (max-width:640px){.ly{grid-template-columns:1fr}}.ly.p{border:2px solid var(--accent)}.ly b{font-size:14px}.arrow{text-align:center;color:var(--sub);font-size:12.5px}
 </style>
 <main>
-<h1>承認ごとにコミットしたときの、ファイルと DB の状態</h1>
-<p class="meta">前提：I40（記録はコミットするファイル、セッションと索引は手元の DB）、I34（記録にセッション ID を入れない）、I33（意図と変更が合っているか）、1承認＝1コミット＝1意図</p>
+<h1>差分を受け取り、成型して扱う</h1>
+<p class="meta">決着済みの行：駆動される側のポート「変更の前後を受け取る（前の姿 ・ 後の姿 ・ 出した者 ・ 消した ID の履歴）」／「差分 ・ 履歴 ・ 出した者 ・ 時刻 ・ 承認 ・ 取り込みは変更の仕組みが持つ。基盤は差分を作らず受け取るだけ」／ I40 ・ I34 ・ I33</p>
 
-<div class="ans">ファイル：変更の記録は「目的 ・ 意図 ・ 書いた者」だけになり、変更と同じコミットに入る。<br>DB：テーブルの形は変わらない。変わるのは、関係の索引が「記録 → コミット」を持つことだけで、Git から作り直せる。</div>
+<div class="ans">基盤が変更の仕組みに求めるのは「変更の単位ごとに、対象の前の姿と後の姿を返す」ことだけ。<br>Git は、このポートを満たすアダプターの1つ。基盤は受け取った前後を成型し、コミット ・ 履歴 ・ 承認を作り直さない。</div>
 
-<h2>1　形の変更前 → 変更後</h2>
-<section class="two">
-<div class="pane"><h3>変更の記録（ファイル）変更前</h3>
-<pre><span>{ "$schema": "urn:…:base:change:v1",</span><span>  "kind": "change",</span><span>  "id": "01JBA0C1…",</span><span>  "purpose_ref": "ACDR 0197",</span><span>  "intent": "許可の一覧を渡さない",</span><span>  "writer_kind": "ai-agent",</span><span class="d">  "items": [ { "target": "tool/agent.rs",</span><span class="d">              "field": "…" } ] }</span></pre></div>
-<div class="pane on"><h3>変更後</h3>
-<pre><span>{ "$schema": "urn:…:base:change:v1",</span><span>  "kind": "change",</span><span>  "id": "01JBA0C1…",</span><span>  "purpose_ref": "ACDR 0197",</span><span>  "intent": "許可の一覧を渡さない",</span><span>  "writer_kind": "ai-agent" }</span></pre>
-<p class="meta">どのファイルのどこを変えたかは、この記録が入ったコミットの差分が持つ</p></div>
+<h2>1　境界</h2>
+<section class="layer">
+<div class="ly"><b>基盤（成型する）</b><div>受け取った前後から、行のまとまり ・ ファイルの全体の印 ・ JSON の欄ごとの前後を作る。同じ単位に入った変更の記録の意図を付ける。I33 の判定へ渡す</div></div>
+<div class="arrow">↓ 呼ぶ　／　↑ 前の姿と後の姿</div>
+<div class="ly p"><b>ポート：変更の前後を受け取る</b><div><pre><span>入力：変更の単位の参照（基盤は解釈しない文字列）</span><span>出力：[ { "target": "tool/agent.rs",</span><span>          "before": "…前の本文…（無ければ null）",</span><span>          "after":  "…後の本文…（無ければ null）" }, … ]</span></pre></div></div>
+<div class="arrow">↑ 満たす</div>
+<div class="ly"><b>アダプター</b><div><div class="tw"><table><tr><th>アダプター</th><th>変更の単位の参照</th><th>前の姿 ・ 後の姿</th><th>試作で動かしたか</th></tr>
+<tr><td>Git</td><td>commit</td><td>親の commit の中身 ・ その commit の中身</td><td>動かした</td></tr>
+<tr><td>スナップショット（変更の仕組みが無い場所）</td><td>前と後のディレクトリの組</td><td>2つのディレクトリのファイル</td><td>動かした。Git と同じ画面が出た</td></tr>
+<tr><td>ほかの変更の仕組み</td><td>その仕組みの変更の id</td><td>その仕組みが返すもの</td><td>アダプターを足すだけ。基盤は変えない</td></tr>
+</table></div></div></div>
 </section>
 
+<h2>2　基盤が成型すること</h2>
+<div class="tw"><table>
+<tr><th>成型</th><th>受け取るもの</th><th>どの対象に</th></tr>
+<tr><td>行のまとまりと、ファイルの全体に印</td><td>前の本文 ・ 後の本文</td><td>すべて（Markdown ・ HTML ・ コード ・ JSON）</td></tr>
+<tr><td>欄ごとの前後（<span class="c">/why</span>：前 → 後）</td><td>同じ。JSON として読む</td><td>JSON（SAS で作ったもの）</td></tr>
+<tr><td>意図を付ける</td><td>同じ単位に入った変更の記録</td><td>その単位の変更すべて（1単位＝1意図）</td></tr>
+<tr><td>意図と変更が合っているか（I33）</td><td>意図と、上の成型の結果</td><td>その単位の変更すべて</td></tr>
+</table></div>
+<p class="meta">基盤は Git の差分の書式を読まない。前と後の本文から自分で成型するので、アダプターが替わっても同じ画面になる</p>
+
+<h2>3　ファイルと DB（変更前 → 変更後）</h2>
 <div class="tw"><table>
 <tr><th>置き場所</th><th>中身</th><th>変更前</th><th>変更後</th></tr>
-<tr><td>ファイル（コミット）</td><td>変更の記録 <span class="c">changes/{id}.json</span></td><td>意図 ＋ 変えた場所（items）</td><td><b>意図だけ</b>。変えた場所はコミットの差分</td></tr>
-<tr><td>ファイル（コミット）</td><td>判定の記録 <span class="c">judgments/{id}.json</span></td><td>対象はインスタンスのファイル</td><td>I33 の判定は、対象が変更の記録になる</td></tr>
-<tr><td>手元の DB</td><td><span class="c">sessions</span></td><td colspan="2">変わらない</td></tr>
-<tr><td>手元の DB</td><td><span class="c">session_changes</span>（セッション → 記録の id）</td><td colspan="2">変わらない</td></tr>
-<tr><td>手元の DB</td><td>関係の索引 <span class="c">change_commits</span>（私の案）</td><td>無い</td><td>記録の id → コミット ・ 目的。Git から作り直せるので、消えても困らない</td></tr>
+<tr><td>ファイル</td><td>変更の記録</td><td>意図 ＋ 変えた場所（items）</td><td><b>目的 ・ 意図 ・ 書いた者だけ</b>。変えた場所はポートが返す前後</td></tr>
+<tr><td>ファイル</td><td>判定の記録</td><td>対象はインスタンスのファイル</td><td>I33 の判定は、対象が変更の記録になる</td></tr>
+<tr><td>手元の DB</td><td><span class="c">sessions</span> ・ <span class="c">session_changes</span></td><td colspan="2">変わらない</td></tr>
+<tr class="gone"><td>手元の DB</td><td><span class="c">change_commits</span></td><td>前の版で足した</td><td>外した</td></tr>
 </table></div>
+<p class="meta">change_commits を外した理由：commit を基盤の DB に写すのは、変更の仕組みの履歴を作り直すこと。どの単位に記録が入ったかは、ポートの「消した ID の履歴」と同じく変更の仕組みに聞く。索引は「遅いと測れてから」（決着済み）</p>
 
-<h2>2　場面ごとの状態</h2>
+<h2>4　場面ごとの状態</h2>
 <p class="meta">目的のセッション（ACDR 0197）の AI が、SAS で作っていないファイル（SKILL.md と agent.rs）を直す。意図は2つ。</p>
 <div class="legend"><span style="background:var(--add);color:var(--add-ink)">足された</span><span style="background:var(--mark);color:var(--mark-ink)">変わった</span><span style="background:var(--del);color:var(--del-ink)">消えた</span></div>
+<div class="step"><h3>場面0　始める前</h3><div class="uc"><b>事前</b><span>オーケストレーターのセッションと、目的のセッションが開いている</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><span class="none">無し</span></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span>単位 a7e44fb …</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">sessions</th><th>目的</th><th>親</th><th>state</th></tr><tr><td class="c">claude-code / s-orch</td><td>—</td><td>—</td><td>open</td></tr><tr><td class="c">claude-code / s-0197</td><td>ACDR 0197</td><td class="c">s-orch</td><td>open</td></tr></table></div><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr><td class="none" colspan="2">0行</td></tr></table></div></div></div></div>
+<div class="step"><h3>場面1　AI が書き、基盤が記録と判定を作る</h3><div class="uc"><b>アクター</b><span>目的のセッションの AI ・ 基盤 ・ judge</span><b>操作</b><span>AI がファイルを直す → 意図「許可の一覧を渡さない」を基盤へ言う → 基盤がポートから前後を受け取り、成型して judge に渡す</span><b>事後</b><span>記録と判定（verified）が、まだ確定していない変更に加わる</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><div class="file"><span class="m">docs/SKILL.md</span><span class="m">tool/agent.rs</span><span class="n">changes/01JBA0C1.json</span><span class="n">judgments/01JBA0J1.json（verified）</span></div></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span>単位 a7e44fb</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr class="add"><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr></table></div></div></div></div>
+<div class="step"><h3>場面2　人が承認し、変更の仕組みで確定する</h3><div class="uc"><b>アクター</b><span>人 ・ 変更の仕組み</span><b>操作</b><span>人が意図と成型した差分を見て承認 → 変更の仕組みで1単位に確定する（Git のアダプターなら commit）</span><b>事後</b><span>変更 ・ 記録 ・ 判定が同じ単位に入る。基盤の DB は何も増えない</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><span class="none">無し</span></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span class="n">単位 b51c0d2</span><span class="n">  docs/SKILL.md ・ tool/agent.rs</span><span class="n">  changes/01JBA0C1.json</span><span class="n">  judgments/01JBA0J1.json</span><span>単位 a7e44fb</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr class=""><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr></table></div></div></div></div>
+<div class="step"><h3>場面3　次の意図に、意図に無い変更が混ざる</h3><div class="uc"><b>アクター</b><span>目的のセッションの AI ・ 基盤 ・ judge</span><b>操作</b><span>意図「止める順番を注記する」で直すが、child.wait() の追加も混ざる → judge が violated</span><b>事後</b><span>確定しない。人には「意図が合わない：child.wait() の追加」と出る</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><div class="file"><span class="m">tool/agent.rs</span><span class="n">changes/01JBA0C2.json</span><span class="n">judgments/01JBA0J2.json（violated）</span></div></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span>単位 b51c0d2</span><span>単位 a7e44fb</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr class=""><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr><tr class="add"><td class="c">claude-code / s-0197</td><td class="c">01JBA0C2</td></tr></table></div></div></div></div>
+<div class="step"><h3>場面4　AI が混ざった変更を外し、判定し直して確定</h3><div class="uc"><b>アクター</b><span>目的のセッションの AI ・ judge ・ 人 ・ 変更の仕組み</span><b>操作</b><span>AI が child.wait() を外す → judge が verified → 人が承認 → 変更の仕組みで確定</span><b>事後</b><span>violated の判定は確定に入れない。最後の判定だけが残る（私の案）</span></div><div class="lane"><div class="col"><b>まだ確定していない変更</b><span class="none">無し</span></div><div class="col"><b>確定した変更の単位（変更の仕組みが持つ）</b><div class="file"><span class="n">単位 c7e1a90</span><span class="n">  tool/agent.rs</span><span class="n">  changes/01JBA0C2.json</span><span class="n">  judgments/01JBA0J3.json（verified）</span><span>単位 b51c0d2</span><span>単位 a7e44fb</span></div><div class="file"><span class="x">judgments/01JBA0J2.json（violated）</span></div></div><div class="col"><b>手元の DB</b><div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr><tr class=""><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr><tr class=""><td class="c">claude-code / s-0197</td><td class="c">01JBA0C2</td></tr></table></div></div></div></div>
 
-<div class="step"><h3>場面0　始める前</h3>
-<div class="lane">
-<div class="col"><b>作業ツリー（未コミット）</b><span class="none">変更なし</span></div>
-<div class="col"><b>コミット</b><div class="file"><span>a7e44fb  …（前からあるもの）</span></div></div>
-<div class="col"><b>手元の DB</b>
-<div class="tw"><table><tr><th class="c">sessions</th><th>目的</th><th>親</th><th>state</th></tr>
-<tr><td class="c">claude-code / s-orch</td><td>—</td><td>—</td><td>open</td></tr>
-<tr><td class="c">claude-code / s-0197</td><td>ACDR 0197</td><td class="c">s-orch</td><td>open</td></tr></table></div>
-<div class="tw"><table><tr><th class="c">session_changes</th></tr><tr><td class="none">0行</td></tr></table></div>
-<div class="tw"><table><tr><th class="c">change_commits</th></tr><tr><td class="none">0行</td></tr></table></div></div>
-</div></div>
-
-<div class="step"><h3>場面1　AI が書き、基盤が記録と判定を作る</h3>
-<div class="uc"><b>アクター</b><span>目的のセッションの AI ・ 基盤 ・ 判定する AI（judge）</span><b>操作</b><span>AI が2つのファイルを直接直す → 意図「許可の一覧を渡さない」を基盤へ言う → 基盤が記録を作り、judge が意図と差分を照らす</span><b>事後</b><span>記録と判定が作業ツリーに在る。まだコミットしない</span></div>
-<div class="lane">
-<div class="col"><b>作業ツリー（未コミット）</b><div class="file"><span class="m">M docs/SKILL.md</span><span class="m">M tool/agent.rs</span><span class="n">A changes/01JBA0C1.json</span><span class="n">A judgments/01JBA0J1.json</span></div>
-<pre><span>judgments/01JBA0J1.json</span><span>{ "target": "changes/01JBA0C1.json",</span><span>  "rule": "urn:…:base:change:v1#intent-matches-diff",</span><span>  "result": "verified",</span><span>  "judged_by": "ai" }</span></pre></div>
-<div class="col"><b>コミット</b><div class="file"><span>a7e44fb</span></div></div>
-<div class="col"><b>手元の DB</b>
-<div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr>
-<tr class="add"><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr></table></div>
-<div class="tw"><table><tr><th class="c">change_commits</th></tr><tr><td class="none">0行（まだコミットが無い）</td></tr></table></div></div>
-</div></div>
-
-<div class="step"><h3>場面2　人が承認し、基盤がコミットする</h3>
-<div class="uc"><b>アクター</b><span>人 ・ 基盤</span><b>操作</b><span>人が意図と差分（ファイルの全体に印）を見て承認 → 基盤が4ファイルを1コミットにする</span><b>事後</b><span>作業ツリーは空。コミットに変更 ・ 記録 ・ 判定がそろう</span></div>
-<div class="lane">
-<div class="col"><b>作業ツリー（未コミット）</b><span class="none">変更なし</span></div>
-<div class="col"><b>コミット</b><div class="file"><span class="n">b51c0d2  許可の一覧を渡さない</span><span class="n">  M docs/SKILL.md</span><span class="n">  M tool/agent.rs</span><span class="n">  A changes/01JBA0C1.json</span><span class="n">  A judgments/01JBA0J1.json</span><span>a7e44fb</span></div></div>
-<div class="col"><b>手元の DB</b>
-<div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr>
-<tr><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr></table></div>
-<div class="tw"><table><tr><th class="c">change_commits</th><th class="c">commit</th><th>目的</th></tr>
-<tr class="add"><td class="c">01JBA0C1</td><td class="c">b51c0d2</td><td>ACDR 0197</td></tr></table></div></div>
-</div></div>
-
-<div class="step"><h3>場面3　次の意図に、意図に無い変更が混ざる</h3>
-<div class="uc"><b>アクター</b><span>目的のセッションの AI ・ 基盤 ・ judge</span><b>操作</b><span>意図「止める順番を注記する」で agent.rs を直すが、child.wait() の追加も混ざる → judge が violated</span><b>事後</b><span>コミットしない。人には「意図が合わない：child.wait() の追加」と出る</span></div>
-<div class="lane">
-<div class="col"><b>作業ツリー（未コミット）</b><div class="file"><span class="m">M tool/agent.rs</span><span class="n">A changes/01JBA0C2.json</span><span class="n">A judgments/01JBA0J2.json</span></div>
-<pre><span>judgments/01JBA0J2.json</span><span>{ "target": "changes/01JBA0C2.json",</span><span class="d">  "result": "violated",</span><span>  "grounds": [ { "at": "tool/agent.rs",</span><span>    "text": "child.wait() の追加は意図に無い" } ] }</span></pre></div>
-<div class="col"><b>コミット</b><div class="file"><span>b51c0d2</span><span>a7e44fb</span></div></div>
-<div class="col"><b>手元の DB</b>
-<div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr>
-<tr><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr>
-<tr class="add"><td class="c">claude-code / s-0197</td><td class="c">01JBA0C2</td></tr></table></div>
-<div class="tw"><table><tr><th class="c">change_commits</th><th class="c">commit</th></tr>
-<tr><td class="c">01JBA0C1</td><td class="c">b51c0d2</td></tr></table></div></div>
-</div></div>
-
-<div class="step"><h3>場面4　AI が混ざった変更を外し、判定し直して、承認 ・ コミット</h3>
-<div class="uc"><b>アクター</b><span>目的のセッションの AI ・ judge ・ 人 ・ 基盤</span><b>操作</b><span>AI が child.wait() を外す → judge が verified → 人が承認 → 基盤がコミット</span><b>事後</b><span>violated の判定はコミットしない。最後の判定だけが残る（私の案）</span></div>
-<div class="lane">
-<div class="col"><b>作業ツリー（未コミット）</b><span class="none">変更なし</span></div>
-<div class="col"><b>コミット</b><div class="file"><span class="n">c7e1a90  止める順番を注記する</span><span class="n">  M tool/agent.rs</span><span class="n">  A changes/01JBA0C2.json</span><span class="n">  A judgments/01JBA0J3.json（verified）</span><span>b51c0d2</span><span>a7e44fb</span></div>
-<div class="file"><span class="x">judgments/01JBA0J2.json（violated）</span></div></div>
-<div class="col"><b>手元の DB</b>
-<div class="tw"><table><tr><th class="c">session_changes</th><th class="c">change_id</th></tr>
-<tr><td class="c">claude-code / s-0197</td><td class="c">01JBA0C1</td></tr>
-<tr><td class="c">claude-code / s-0197</td><td class="c">01JBA0C2</td></tr></table></div>
-<div class="tw"><table><tr><th class="c">change_commits</th><th class="c">commit</th></tr>
-<tr><td class="c">01JBA0C1</td><td class="c">b51c0d2</td></tr>
-<tr class="add"><td class="c">01JBA0C2</td><td class="c">c7e1a90</td></tr></table></div></div>
-</div></div>
-
-<h2>3　DB が消えたとき（作り直し）</h2>
-<div class="tw"><table>
-<tr><th>テーブル</th><th>作り直せるか</th><th>どこから</th></tr>
-<tr><td class="c">change_commits</td><td>作り直せる</td><td>記録のファイルを足したコミットを Git の履歴から引く（rebase でコミットが変わっても、引き直せば合う）</td></tr>
-<tr><td class="c">sessions ・ session_changes</td><td>作り直せない</td><td>手元だけのもの。消えると、だれのどのセッションかが分からなくなるだけで、記録 ・ 判定 ・ 差分は残る</td></tr>
-</table></div>
+<h2>5　DB が消えたとき</h2>
+<p><span class="c">sessions</span> ・ <span class="c">session_changes</span> は手元だけのもので、作り直せない。消えても分からなくなるのは「だれのどのセッションか」だけで、記録 ・ 判定 ・ 前後は変更の仕組みに残る。</p>
 </main>

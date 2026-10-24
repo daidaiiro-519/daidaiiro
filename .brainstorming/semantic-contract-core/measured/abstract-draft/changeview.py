@@ -1,99 +1,110 @@
-"""変更の記録の契約の試作：1つのコミットの差分を、変更の記録の場所で意図に振り分けて、ファイルの全体に印を付けて描く。
+"""変更を見せる（試作）。基盤は「変更の前後を受け取る」ポートだけを通して差分を受け取り、成型して描く。
 
-使い方：python3 changeview.py <git の作業ツリー> [コミット（既定 HEAD）] > out.html
-記録は .semantic-agent-schema/changes/*.json。items が無い記録は、そのコミットの変更すべての意図である（1コミット＝1意図）。
+使い方：
+  python3 changeview.py git <作業ツリー> [変更の単位（既定 HEAD）] > out.html
+  python3 changeview.py snapshot <前のディレクトリ> <後のディレクトリ> > out.html
+変更の記録は .semantic-agent-schema/changes/*.json。同じ変更の単位に入った記録の意図を、その単位の変更すべてに付ける（1単位＝1意図）。
 """
-import difflib, html, json, subprocess, sys
+import difflib, html, json, os, subprocess, sys
 
 REC_DIR = '.semantic-agent-schema/changes/'
 
 
-def git(repo, *a):
-    return subprocess.run(['git', '-C', repo, *a], capture_output=True, text=True, check=True).stdout
+# ── 駆動される側のポート：変更の前後を受け取る ──────────────────────
+# before(ref) は変更の単位 ref の、対象ごとの前の姿と後の姿を返す。ref は基盤が解釈しない文字列。
+# 返す形：[{'target': パス, 'before': 本文 or None, 'after': 本文 or None}]（None は「無い」）
+
+class GitAdapter:
+    def __init__(self, repo):
+        self.repo = repo
+
+    def _git(self, *a, ok=False):
+        r = subprocess.run(['git', '-C', self.repo, *a], capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else (None if ok else sys.exit(r.stderr))
+
+    def changes(self, ref):
+        names = [n for n in self._git('diff', '--name-only', ref + '^', ref).split('\n') if n]
+        return [{'target': n, 'before': self._git('show', f'{ref}^:{n}', ok=True),
+                 'after': self._git('show', f'{ref}:{n}', ok=True)} for n in names]
 
 
-def show(repo, rev, path):
-    r = subprocess.run(['git', '-C', repo, 'show', f'{rev}:{path}'], capture_output=True, text=True)
-    return r.stdout if r.returncode == 0 else ''
+class SnapshotAdapter:
+    """変更の仕組みを持たない場所：前と後のディレクトリを比べる"""
+    def __init__(self, before_dir, after_dir):
+        self.dirs = (before_dir, after_dir)
+
+    def _files(self, d):
+        return {os.path.relpath(os.path.join(r, f), d) for r, _, fs in os.walk(d) for f in fs}
+
+    def _read(self, d, n):
+        p = os.path.join(d, n)
+        return open(p, encoding='utf-8').read() if os.path.exists(p) else None
+
+    def changes(self, ref):
+        b, a = self.dirs
+        out = []
+        for n in sorted(self._files(b) | self._files(a)):
+            before, after = self._read(b, n), self._read(a, n)
+            if before != after:
+                out.append({'target': n, 'before': before, 'after': after})
+        return out
 
 
-def hunks(before, after):
-    """差分のまとまり：(後の本文での行の範囲, 行の並び[(印, 本文)])。印は ' ' '-' '+'"""
-    a, b = before.splitlines(), after.splitlines()
-    rows, out = [], []
+# ── 基盤：受け取った前後を成型する（アダプターを知らない） ─────────────
+
+def text_rows(before, after):
+    """行の並び [(印, 本文)] と、まとまりの数"""
+    a, b = (before or '').splitlines(), (after or '').splitlines()
+    rows, n = [], 0
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b).get_opcodes():
         if tag == 'equal':
-            rows += [(' ', l, j1 + k) for k, l in enumerate(b[j1:j2])]
+            rows += [(' ', l) for l in b[j1:j2]]
         else:
-            rows += [('-', l, j1) for l in a[i1:i2]] + [('+', l, j1 + k) for k, l in enumerate(b[j1:j2])]
-            out.append((j1, max(j2, j1 + 1), a[i1:i2], b[j1:j2]))
-    return rows, out
+            rows += [('-', l) for l in a[i1:i2]] + [('+', l) for l in b[j1:j2]] + [('@', None)]
+            n += 1
+    return rows, n
 
 
-def locate(after, at):
-    """記録の場所を、後の本文の行番号にする"""
-    lines = after.splitlines()
-    key = at.get('find') or ('"' + at['pointer'].strip('/').split('/')[-1] + '"' if 'pointer' in at else None)
-    return [i for i, l in enumerate(lines) if key and key in l]
+def json_fields(before, after, at=''):
+    """JSON の欄の単位の変更 [(pointer, 前, 後)]"""
+    if isinstance(before, dict) and isinstance(after, dict):
+        out = []
+        for k in list(before) + [k for k in after if k not in before]:
+            out += json_fields(before.get(k), after.get(k), f'{at}/{k}')
+        return out
+    return [] if before == after else [(at or '/', before, after)]
 
 
-def main(repo, rev='HEAD'):
-    parent = rev + '^'
-    names = [n for n in git(repo, 'diff', '--name-only', parent, rev).split('\n') if n and not n.endswith('.html')]
-    recs = {n: json.loads(show(repo, rev, n)) for n in names if n.startswith(REC_DIR)}
-    files = [n for n in names if not n.startswith(REC_DIR)]
-    out = ['<meta charset="utf-8"><title>変更を見せる（試作）</title><style>body{font:14px/1.6 sans-serif;margin:16px;max-width:980px}'
-           'pre{font:12px/1.5 monospace;border:1px solid #ccc;border-radius:8px;padding:6px 0;overflow-x:auto}'
-           '.l{display:block;padding:0 10px;white-space:pre}.d{background:#fbe3e3}.a{background:#ddf3e4}.h{border-left:4px solid #0d5c55}.x{border-left:4px solid #9b2c2c}'
-           '.m{background:#fff1a8;font-family:sans-serif}.e{background:#f8e1e1;font-family:sans-serif;border-radius:6px;padding:4px 8px}</style>']
-    out.append(f'<h1>変更を見せる（試作）</h1><p>コミット {html.escape(git(repo, "rev-parse", "--short", rev).strip())} ・ 変更の記録 {len(recs)} 件 ・ ファイル {len(files)} 件</p>')
-    exceptions = []
-    body = []
-    for f in files:
-        before, after = show(repo, parent, f), show(repo, rev, f)
-        rows, hs = hunks(before, after)
-        owner = {}
-        for rid, r in recs.items():
-            if 'items' not in r:
-                for k in range(len(hs)):
-                    owner.setdefault(k, []).append(r['intent'])
-                continue
-            for it in r['items']:
-                if it['target'] != f:
-                    continue
-                if 'hunk' in it['at']:
-                    for k, h in enumerate(hs):
-                        if h[2] == it['at']['hunk'].get('del', []) and h[3] == it['at']['hunk'].get('add', []):
-                            owner.setdefault(k, []).append(r['intent'])
-                    continue
-                for ln in locate(after, it['at']):
-                    for k, (s, e, *_r) in enumerate(hs):
-                        if s - 1 <= ln <= e:
-                            owner.setdefault(k, []).append(r['intent'])
-        def label(k):
-            if k in owner:
-                return f'<span class="l m">↑ 意図：{html.escape(" ・ ".join(sorted(set(owner[k]))))}</span>'
-            return '<span class="l e">↑ 記録に無い変更</span>'
-        body.append(f'<h2>{html.escape(f)}</h2><pre>')
-        for k, (s, e, *_r) in enumerate(hs):
-            if k not in owner:
-                exceptions.append(f'{f} の {s + 1} 行目付近：どの記録の場所にも重ならない（記録に無い）')
-        pre, last = [], None
-        for mark, line, j in rows:
-            k = None if mark == ' ' else next((k for k, (s, e, *_r) in enumerate(hs) if s <= j < e or j == s), None)
-            if last is not None and k != last:
-                pre.append(label(last))
-            last = k
-            cls = {'-': 'd', '+': 'a', ' ': ''}[mark] + ('' if mark == ' ' else (' h' if k in owner else ' x'))
-            pre.append(f'<span class="l {cls}">{html.escape(mark + " " + line)}</span>')
-        if last is not None:
-            pre.append(label(last))
-        body.append(''.join(pre) + '</pre>')
-    out.append('<h2>例外</h2>' + (''.join(f'<div class="e">{html.escape(x)}</div>' for x in exceptions) or '<p>0件</p>'))
-    out.append('<h2>目的 → 意図</h2><ul>' + ''.join(f'<li>{html.escape(r["purpose_ref"])} → {html.escape(r["intent"])}</li>' for r in recs.values()) + '</ul>')
-    out += body
+def shape(changes):
+    recs = [json.loads(c['after']) for c in changes if c['target'].startswith(REC_DIR) and c['after']]
+    targets = [c for c in changes if not c['target'].startswith(REC_DIR) and not c['target'].endswith('.html')]
+    intent = ' ・ '.join(r['intent'] for r in recs) or None
+    return recs, targets, intent
+
+
+def render(port, ref):
+    recs, targets, intent = shape(port.changes(ref))
+    css = ('body{font:14px/1.6 sans-serif;margin:16px;max-width:980px}pre{font:12px/1.5 monospace;border:1px solid #ccc;border-radius:8px;padding:6px 0;overflow-x:auto}'
+           '.l{display:block;padding:0 10px;white-space:pre}.d{background:#fbe3e3}.a{background:#ddf3e4}.m{background:#fff1a8;font-family:sans-serif}'
+           '.e{background:#f8e1e1;font-family:sans-serif}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:2px 8px;font:12px monospace}')
+    out = [f'<meta charset="utf-8"><title>変更を見せる（試作）</title><style>{css}</style>',
+           f'<h1>変更を見せる（試作）</h1><p>アダプター {type(port).__name__} ・ 変更の単位 {html.escape(ref)} ・ 記録 {len(recs)} 件 ・ 対象 {len(targets)} 件</p>',
+           '<h2>目的 → 意図</h2><ul>' + ''.join(f'<li>{html.escape(r["purpose_ref"])} → {html.escape(r["intent"])}</li>' for r in recs) + '</ul>']
+    label = (f'<span class="l m">↑ 意図：{html.escape(intent)}</span>' if intent else '<span class="l e">↑ 記録に無い変更</span>')
+    for c in targets:
+        out.append(f'<h2>{html.escape(c["target"])}</h2>')
+        if c['target'].endswith('.json') and c['before'] and c['after']:
+            rows = json_fields(json.loads(c['before']), json.loads(c['after']))
+            out.append('<table><tr><th>欄</th><th>前</th><th>後</th></tr>' + ''.join(
+                f'<tr><td>{html.escape(p)}</td><td class="d">{html.escape(json.dumps(b, ensure_ascii=False))}</td><td class="a">{html.escape(json.dumps(a, ensure_ascii=False))}</td></tr>' for p, b, a in rows) + '</table>' + label)
+        rows, _ = text_rows(c['before'], c['after'])
+        out.append('<pre>' + ''.join(label if m == '@' else f'<span class="l {dict(zip(" -+", ["", "d", "a"]))[m]}">{html.escape(m + " " + l)}</span>' for m, l in rows) + '</pre>')
     print('\n'.join(out))
 
 
 if __name__ == '__main__':
-    main(*sys.argv[1:])
+    kind, *args = sys.argv[1:]
+    if kind == 'git':
+        render(GitAdapter(args[0]), args[1] if len(args) > 1 else 'HEAD')
+    else:
+        render(SnapshotAdapter(*args), 'snapshot')
