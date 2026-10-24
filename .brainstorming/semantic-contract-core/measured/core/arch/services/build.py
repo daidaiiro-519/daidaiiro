@@ -10,7 +10,7 @@ SV = '<span class="ok">ドメインサービス</span>'
 rows = [
  ['作成する', 'ファクトリ', 'Concrete の雛形（Abstract から）は declaration、インスタンスの雛形（Concrete から）は instance のファクトリ', '集約を1つ丸ごと作る。Evans「Create an entire aggregate as a piece, enforcing its invariants.」'],
  ['Concrete を照らす', '集約の操作 ＋ Validator', 'Concrete の中で閉じる不変条件（I4 rule の id が一意）は集約 Concrete の根。Abstract に従うか（I3 ・ I6）は、Abstract を schema として Concrete を検証する Validator', 'Concrete は Abstract のインスタンスでもある（Q1 #6）ので、従うかの検査は検証と同じ処理'],
- ['Semantic Schema Resolver', SV, 'validation', 'Concrete ・ glossary ・ 公開された言葉の版 ・ 指す先のインスタンスを読み、どの集約にも属さない'],
+ ['Semantic Schema Resolver', SV, 'resolver（自分の crate）', 'Concrete ・ glossary ・ 公開された言葉の版 ・ 指す先のインスタンスを読み、どの集約にも属さない'],
  ['Semantic Schema Validator', SV, 'validation。答えを5つの値にまとめる規則（I14）は値オブジェクト「検証結果」、使い直すかの判定（I16）は集約「判定の記録」へ移す', 'rule × インスタンスの組で決まり、どの集約にも属さない'],
  ['状態を導く', '値オブジェクトの操作', '「インスタンスの状態」を検証結果の並びから決定表で作る（I19）', 'Evans「moving complex logic into value objects when a concept fitting the responsibility presents itself」'],
  ['変更を見せる', 'ファクトリ ＋ 使う場面', '変更のまとまり（保存しない値）を、変更の記録と変更の前後から作るファクトリ（I31 ・ I35 ・ I36）は change。全インスタンスの検証と描画を呼ぶ順は application', 'change は検証も描画も呼ばない（4節の依存の向き）'],
@@ -25,7 +25,8 @@ rows = [
 before = '''crates/domain/
   declaration/  services/ create.rs ・ conform.rs
   change/       services/ derive_state.rs ・ show_changes.rs ・ exceptions.rs
-  validation/   services/ resolver.rs ・ validator.rs
+  resolver/     services/ resolver.rs
+  validation/   services/ validator.rs
   search/       services/ search.rs
   session/      services/ resume_or_new.rs
   render/       services/ renderer.rs
@@ -39,7 +40,8 @@ after = '''crates/domain/
   change/       aggregates/ judgment.rs（使い直すか）・ change_record.rs
                 factories/ change_set.rs（変更のまとまり）
                 verdict.rs（検証結果：5つの値へまとめる ・ 原因ごとにまとめる）・ instance_state.rs（決定表）
-  validation/   services/ resolver.rs ・ validator.rs
+  resolver/     services/ resolver.rs
+  validation/   services/ validator.rs
   render/       aggregates/ view.rs ・ design_system.rs（描く前の検査）
                 services/ renderer.rs
   instance/     aggregates/ instance.rs
@@ -56,7 +58,7 @@ body = f'''<main>
 {table(['いまのドメインサービス', '分け直した後', 'どこへ', '理由'], rows)}
 <h2>2　ドメインサービス4つの名前（英語と日本語の対）</h2>
 {table(['英語（型の名前）', '日本語', 'ファイル'], [
- ['Semantic Schema Resolver（SemanticSchemaResolver）', 'セマンティックスキーマリゾルバー', 'validation/src/services/resolver.rs'],
+ ['Semantic Schema Resolver（SemanticSchemaResolver）', 'セマンティックスキーマリゾルバー', 'resolver/src/services/resolver.rs'],
  ['Semantic Schema Validator（SemanticSchemaValidator）', 'セマンティックスキーマバリデーター', 'validation/src/services/validator.rs'],
  ['Semantic Schema Renderer（SemanticSchemaRenderer）', 'セマンティックスキーマレンダラー', 'render/src/services/renderer.rs'],
  ['Session Selector（SessionSelector）', 'セッションセレクター', 'session/src/services/selector.rs'],
@@ -67,7 +69,18 @@ body = f'''<main>
  ['再開か新規かを決めるを Session Selector にする', 'いまの名前は処理を述べた文なので、ほかの3つと同じく役割の名詞にした。開いているセッションを再開するか新しく立てるかを選び、ID か「新しく立てる」を返す。「判定」は判定の記録の語と重なるので使わない'],
 ])}
 <h2>3　domain の中のディレクトリ</h2>
-<div class="two"><div class="pane"><h3>変更前（ドメインサービス13 ・ crate 9）</h3>{pre(before, 'd')}</div><div class="pane on"><h3>変更後（ドメインサービス4 ・ crate 6）</h3>{pre(after, 'a')}</div></div>
+<div class="two"><div class="pane"><h3>変更前（ドメインサービス13 ・ crate 9）</h3>{pre(before, 'd')}</div><div class="pane on"><h3>変更後（ドメインサービス4 ・ crate 7）</h3>{pre(after, 'a')}</div></div>
+<h3>依存の向き（変更後）</h3>
+{table(['crate', '依存してよい先', '理由'], [
+ ['declaration', '（無し）', 'Abstract ・ Concrete ・ glossary と、Abstract が決める値の型'],
+ ['instance', 'declaration', 'インスタンスは Concrete に従う'],
+ ['change', 'declaration', '判定の記録 ・ 変更の記録 ・ 検証結果 ・ 状態。対象の型は declaration'],
+ ['resolver', 'instance ・ declaration', '$ref ・ glossary ・ 公開された言葉の版を解決し、x-relationship の指す先のインスタンスをたどる'],
+ ['validation', 'resolver ・ change ・ instance ・ declaration', 'インスタンスを検証する。解決は resolver に任せ、判定の記録の使い直しと I33 に change の型を使う'],
+ ['render', 'resolver ・ change ・ instance ・ declaration', 'インスタンスを状態と rule ごとの結果と一緒に描く。Resolver を使い（Q5 #1）、Validator は見ない'],
+ ['session', '（無し）', 'セッションと Session Selector。渡された値だけで決まる'],
+])}
+<p class="meta">resolver を自分の crate にしたので、render は Validator を見ずに Resolver だけを使える。これまでの表には validation → instance と render → instance が無かった（Validator と Renderer はインスタンスを読むのに、型を使えなかった）ので足した。resolver を validation から分けるのは、ボード Q5 #2「1つのドメインの中のモジュールにする」を変えることになる（利用者「正しいディレクトリ構成を優先してください」）</p>
 <p class="meta">migration ・ publish ・ search の crate は無くなる。移す ・ 版を出すは Concrete ・ Abstract の型と同じ crate にしか書けない（Rust Reference「An implementing type must be defined within the same crate as the original type definition.」）。探した範囲は term を持つ declaration に置く</p>
 <h2>4　2つのレビューが分かれたところと、この答え</h2>
 {table(['処理', 'ddd-advisor', '反証役', 'この答え'], [
@@ -80,7 +93,8 @@ body = f'''<main>
 {table(['前提', '変更前', '変更後'], [
  ['ボード Q1（決着）', '集約9つ ・ ドメインサービス13 ・ 2種類のポート ・ 不変条件46行', '集約9つ ・ ドメインサービス4 ・ ファクトリ3 ・ 2種類のポート ・ 不変条件46行（行は変えず、持ち主だけが移る）'],
  ['model.json', 'domain_services 13行。集約は操作を持たない', 'domain_services 4行。aggregates に commands、factories を新しく足す。value_objects に操作と、担う使う場面の欄を足す（状態を導くが担っていた U0 の行き先）'],
- ['arch.html 4節 ・ 5節', 'crate 9（migration ・ publish ・ search を含む）', 'crate 6。依存の表とディレクトリを直す'],
+ ['arch.html 4節 ・ 5節', 'crate 9（migration ・ publish ・ search を含む）。validation が Resolver と Validator を持つ', 'crate 7（resolver を分け、migration ・ publish ・ search を無くす）。依存の表とディレクトリを直す'],
+ ['ボード Q5 #2（決着）', '解決と検証は役割として分けるが、1つのドメインの中のモジュールにする', '解決と検証は別の crate にする。描画は解決だけを使い、検証を見ない'],
  ['model.json の 再開か新規か', '開いていたものを閉じて「新しく立てる」と返す（1つの操作）', '再開する ID か「新しく立てる（閉じる ID）」を返すだけ。閉じるのは application がセッションのコマンドで行う'],
 ])}
 <h2>6　確かめてほしいこと</h2>
@@ -88,6 +102,7 @@ body = f'''<main>
  ['ドメインサービスを4つにし、残りを上の表の行き先へ移す', '移す'],
  ['再開か新規かを決めるを、セッションの集約の操作ではなくドメインサービスにする', 'ドメインサービスにする（あなたの見立てと、反証役と同じ）'],
  ['ドメインサービス4つの名前（2節の表）。日本語をカタカナの技術用語にし、Q5 の「解決器 ・ 検証器」も直す。再開か新規かを決めるは Session Selector', 'この名前にする'],
+ ['Resolver を validation から分けて resolver の crate にする（Q5 #2 を変える）', '分ける。render の依存が Resolver だけで済む'],
  ['search ・ migration ・ publish の crate を無くす', '無くす。中核「意味で探す」は crate ではなく値オブジェクトと使う場面が担う'],
 ])}
 <p class="meta">承認されたら、ACDR を起こして Q1 と model.json（changes.py に C61 以降）を直し、arch.html の4節 ・ 5節を直す</p>
