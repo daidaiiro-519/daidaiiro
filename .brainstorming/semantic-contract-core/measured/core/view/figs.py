@@ -48,7 +48,7 @@ def er():
 
 def refs():
     def b(x, y, w, title, lines, kind): return box(x, y, w, title, [N(t) for t in lines], kind)
-    P = ['<svg viewBox="0 0 1000 560" style="min-width:900px" role="img" aria-label="スキーマのファイルの参照のつながり">',
+    P = ['<svg viewBox="0 0 1000 580" style="min-width:900px" role="img" aria-label="スキーマのファイルの参照のつながり">',
          '<text class="title" x="10" y="24">スキーマのファイルの参照のつながり</text>', legend(34),
          '<rect class="area" x="10" y="62" width="380" height="300"/><text class="note small" x="20" y="78">Semantic Abstract Schema（基盤）</text>',
          '<rect class="area" x="420" y="62" width="570" height="300"/><text class="note small" x="430" y="78">文脈（Skill ・ Agent のリポジトリ）</text>',
@@ -58,15 +58,18 @@ def refs():
          b(740, 92, 230, 'インスタンス', ['ACDR 0197'], 'data'),
          b(450, 222, 230, '記録と設定', ['変更の記録 ・ 判定の記録 ・ 設定'], 'data'),
          b(720, 222, 250, '描画と辞書', ['ビュー ・ デザインシステム ・ glossary'], 'data'),
-         b(30, 422, 330, '手元の DB の行', ['セッション ・ 手元の索引（確定しない）'], 'db'),
+         '<rect class="area" x="10" y="392" width="740" height="110"/><text class="note small" x="20" y="408">手元の DB（SQLite。確定しない）</text>',
+         b(30, 418, 330, 'sessions', ['セッション（3種類）'], 'db'),
+         b(400, 418, 330, 'session_changes（変更の DB）', ['セッション → 変更の記録の id'], 'db'),
+         '<path class="link" d="M360,448 H400"/>',
          '<path class="flow" d="M195,222 V168"/><text class="label small" x="202" y="200">$schema</text>',
          '<path class="flow" d="M450,120 H362"/>', '<path class="flow" d="M740,120 H712"/>',
          '<path class="flow" d="M450,262 H362"/>',
          '<path class="flow" d="M845,288 V322 H362"/><text class="label small" x="560" y="316">$schema</text>',
-         '<path class="link" d="M195,422 V332"/><text class="label small" x="202" y="382">形から表を作る（SQLite のアダプター）</text>',
+         '<path class="link" d="M195,418 V332"/><text class="label small" x="202" y="374">形（session）から表を作る（SQLite のアダプター）</text>',
          '<path class="link" d="M480,158 V192 H300 V222"/><text class="label small" x="490" y="212">$ref（annotations ・ 変更のまとまり）</text>',
          '<path class="link" d="M650,158 V202 H820 V222"/><text class="label small" x="700" y="174">$ref（glossary の term）・ ビューの kind が指す</text>',
-         '<text class="note" x="10" y="540">矢印：$schema（自分が何に従うか）。線：$ref（部品を借りる）と、ビューの kind が Concrete を指すつながり。処理は基盤のコードが持つ（Q6 #7）</text>', '</svg>']
+         '<text class="note" x="10" y="560">矢印：$schema（自分が何に従うか）。線：$ref（部品を借りる）と、ビューの kind が Concrete を指すつながり。処理は基盤のコードが持つ（Q6 #7）</text>', '</svg>']
     return '\n'.join(P)
 
 for name, f in [('er', er), ('refs', refs)]:
