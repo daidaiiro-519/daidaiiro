@@ -172,6 +172,9 @@ dict(id='C51', path=('ports', 'inbound', '判定する'), op='set_row',
 dict(id='C52', path=('boundary',), op='text_all_rows', before='コミットしない', after='確定しない', why='Git の語を外す', source=U),
 dict(id='C53', path=('value_objects', '手元のセッションの索引', 1), op='text', before='コミットしない', after='確定しない', why='Git の語を外す', source=U),
 dict(id='C54', path=('value_objects', '関係の索引', 1), op='text', before='コミットしない', after='確定しない', why='Git の語を外す', source=U),
+dict(id='C55', path=(), op='words', pairs=[('同じ形に組み立てる', '同じ形に作る'), ('出すときに組み立てる', '出すときに作る'), ('変更のまとまりを組み立て、', '変更のまとまりを作り、'), ('同じ形に組み立て、', '同じ形に作り、'),
+     ('要る部分だけを返す', '必要な部分だけを返す'), ('rule の判定を頼む（AI）', 'rule の判定を依頼する（AI）'), ('validator は道具を持たせずに', 'validator はツールを持たせずに')],
+     why='利用者が廃語と決めた語（組み立てる ・ 要る ・ 頼む ・ 道具）が決着の文に残っていた', source='.doc-writing/retired-words.json ・ doc-writing-skills ゲート1'),
 ]
 
 # ボードにだけ在り、v2 に無い決着の直し（ACDR でボードへ適用する）

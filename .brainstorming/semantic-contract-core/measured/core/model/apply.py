@@ -47,6 +47,13 @@ def apply(doc, ch):
         n = sum(x.count(ch['before']) for x in lst)
         if n == 0: raise SystemExit(f"{ch['id']}: 変更前の語が無い")
         c[i] = [x.replace(ch['before'], ch['after']) for x in lst]; ch['count'] = n; return
+    if op == 'words':
+        s = json.dumps(doc, ensure_ascii=False); n = 0
+        for b, af in ch['pairs']:
+            k = s.count(b)
+            if k == 0: raise SystemExit(f"{ch['id']}: 変更前の語が無い {b}")
+            n += k; s = s.replace(b, af)
+        doc.clear(); doc.update(json.loads(s)); ch['count'] = n; return
     if op == 'text_all_rows':
         c, i = locate(doc, ch['path']); n = 0
         for row in c[i]:

@@ -131,7 +131,7 @@ st.update({"type": "object", "required": ["$schema", "kind", "id"], "additionalP
 
 # ---------------- change-view（変更のまとまりの形。保存しない出力）
 EXC = ["intent-missing", "intent-mismatch", "unrecorded", "no-change", "record-rewritten", "human-field-changed", "state-changed", "unconfirmed-outside-intent", "not-in-range", "unreadable"]
-cv = head('change-view', '変更のまとまり', '変更を見せるときの出力の形。保存せず、同じ前後と記録からは毎回同じ形に組み立てる。Concrete はこの形を $ref で使い、見せ方を足す。')
+cv = head('change-view', '変更のまとまり', '変更を見せるときの出力の形。保存せず、同じ前後と記録からは毎回同じ形に作る。Concrete はこの形を $ref で使い、見せ方を足す。')
 cv['$defs'] = {"view": {"type": "object", "required": ["range", "exceptions", "purposes", "unreadable"], "additionalProperties": False, "properties": {
   "range": f({"type": "object", "required": ["before", "after"], "properties": {"before": {"type": "string"}, "after": {"type": "string"}}}, '前後の参照', 'ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。'),
   "exceptions": f({"type": "array", "items": {"type": "object", "required": ["type", "count", "items"], "additionalProperties": False, "properties": {

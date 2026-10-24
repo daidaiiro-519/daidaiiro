@@ -115,6 +115,15 @@ log('S11', 'agent-exists を「このスキーマか本体の x-delegates」に�
 # S12 x-delegates の説明から（案）を外す
 X['x-delegates']['description'] = '任せる先。名前から、その任せる先の定義（立場 ・ 答えの形 ・ 起動のしかた）を引く'
 dlg['description'] = '任せる先1件。目的（kind）と起動のしかた（argv の有無）を持つ'
+# S13 廃語を直す（本体の文）
+def words(o):
+    if isinstance(o, dict): return {k: words(v) for k, v in o.items()}
+    if isinstance(o, list): return [words(v) for v in o]
+    if isinstance(o, str): return o.replace('判定に要る欄', '判定に必要な欄').replace('要る点が埋もれる', '必要な点が埋もれる').replace('が要る）', 'を必要とする）').replace('要るのに無い欄', '必要なのに無い欄').replace('AI もエンジンも要らず', 'AI もエンジンも使わず')
+    return o
+a.update(words(a))
+log('S13', '本体の文の廃語（要る）を直す', '利用者が廃語と決めた語が本体の文に残っていた', '.doc-writing/retired-words.json')
+
 log('S12', 'x-delegates と $defs/delegate の説明から（案）を外す', 'この会話で決めた', 'decisions「x-delegates は残す」')
 
 a['description'] = src['description']
