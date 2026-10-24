@@ -96,7 +96,7 @@ for k, v in ab['$defs'].items():
     else: x += f'<pre class="code">{e(json.dumps(v, ensure_ascii=False, indent=1))}</pre>'
 x += rawjson(ab, 'abstract.json')
 mem = '<h2 id="mem">5　Abstract のほかのファイル</h2><p class="meta">本体に従うスキーマ。インスタンスのファイル（変更の記録 ・ 判定の記録 ・ 設定）と、手元の DB の行（session）と、出力の形（change-view）</p>'
-for n in ['change', 'judgment', 'settings', 'session', 'change-view', 'annotations']:
+for n in ['change', 'judgment', 'settings', 'session', 'view', 'catalog', 'design-tokens', 'glossary', 'published', 'annotations']:
     s = json.load(open(os.path.join(C, 'schemas', f'{n}.schema.json')))
     mem += f'<h3 id="m-{n}">{e(s["title"])}（{n}）</h3>' + head(s)
     if 'properties' in s: mem += fields(s['properties'], s.get('required', [])) + conds(s)

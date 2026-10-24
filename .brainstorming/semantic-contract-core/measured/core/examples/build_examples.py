@@ -13,6 +13,12 @@ c['x-instance-path'] = '.acdr/{id}/acdr.json'
 c['required'] = ['$schema', 'kind', 'id'] + [k for k in c['required'] if k not in ('$schema', 'kind')]
 log('E01', 'id 欄を足し、置き場所を .acdr/{id}/acdr.json にする', '1件は id と kind。{slug} が欄に無かった', 'board Q1 #35 ・ reviews2/adversarial 3-10 3-11 ・ ddd F15')
 
+c['x-delegates']['acdr-inspect']['role'] = 'ACDR の変更の印の検査（基盤の変更のまとまりを受け取る）'
+for w in P['docs']['x-prompt']['write']:
+    if w['id'] == 'why-per-change':
+        w['test'] = '基盤の変更のまとまり（最後に確定した姿からの差分）の変更ごとに、docs の marks に why があるかを見る'
+        w['agent'] = 'acdr-inspect'
+log('E06', 'acdr-inspect は Git を読まず、基盤の変更のまとまりを受け取って、変更ごとに why があるかを見る', 'ACDR は基盤の差分を広げる Concrete なので、変更の仕組みに直接依存しない', '利用者「少なくとも基盤の変更差分を使用するから直接的に依存しない」')
 log('E02', '（取り下げ）docs と acdr-inspect は外さない', 'ACDR は基盤の差分を、より分かりやすく見せることに特化した Concrete。docs（変更1件ごとのどこ ・ 変更前 ・ なぜ）と acdr-inspect はその拡張の部分で、基盤と重ならない', 'user-instructions「ACDRはこれをより拡張して見やすくしたもの」 ・ 利用者「これははずさないよ？」')
 
 mark = {"type": "object", "required": ["find", "why"], "additionalProperties": False, "properties": {

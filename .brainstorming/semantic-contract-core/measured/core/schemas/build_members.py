@@ -99,7 +99,7 @@ sess['$defs'] = {
      "session": f({"$ref": "#/$defs/session-id"}, 'セッション ID', 'この行のセッションである。'),
      "purpose_ref": f({"type": "string", "minLength": 1}, '目的の参照', 'このセッションが進める目的である。'),
      "parent": f({"$ref": "#/$defs/session-id"}, '親のセッション', 'このセッションを立てた親である。'),
-     "role": f({"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"}, '役割', '親の Concrete の x-delegates にある任せる先の名前である。'),
+     "role": f({"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"}, '役割', '親のセッションが呼んだ相手の名前（Skill ・ Agent の名前、または Concrete の x-delegates の名前）である。'),
      "state": f({"enum": ["open", "closed"]}, '状態', '開いている（再開できる）か閉じたかである。', [
         w('no-reopen', '閉じた行は open に戻らない。', '閉じたセッションを開き直すと、前の結論が持ち込まれる（I45）。', '前の値が closed で今の値が open の行が無いかを見る。')]),
      "last_used_at": f({"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$"}, '最後に使った時刻', 'このセッションを最後に使った UTC の時刻である。')},
@@ -131,8 +131,8 @@ st.update({"type": "object", "required": ["$schema", "kind", "id"], "additionalP
 
 # ---------------- change-view（変更のまとまりの形。保存しない出力）
 EXC = ["intent-missing", "intent-mismatch", "unrecorded", "no-change", "record-rewritten", "human-field-changed", "state-changed", "unconfirmed-outside-intent", "not-in-range", "unreadable"]
-cv = head('change-view', '変更のまとまり', '変更を見せるときの出力の形。保存せず、同じ前後と記録からは毎回同じ形に作る。Concrete はこの形を $ref で使い、見せ方を足す。')
-cv['$defs'] = {"view": {"type": "object", "required": ["range", "exceptions", "purposes", "unreadable"], "additionalProperties": False, "properties": {
+# 変更のまとまり（保存しない出力の形）は、持ち主 change の $defs に置く（Q6 #6）
+ch['$defs'] = {"view": {"type": "object", "required": ["range", "exceptions", "purposes", "unreadable"], "additionalProperties": False, "properties": {
   "range": f({"type": "object", "required": ["before", "after"], "properties": {"before": {"type": "string"}, "after": {"type": "string"}}}, '前後の参照', 'ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。'),
   "exceptions": f({"type": "array", "items": {"type": "object", "required": ["type", "count", "items"], "additionalProperties": False, "properties": {
       "type": {"enum": EXC}, "count": {"type": "integer", "minimum": 1}, "items": {"type": "array", "items": {"type": "object"}}}}},
@@ -147,6 +147,77 @@ cv['$defs'] = {"view": {"type": "object", "required": ["range", "exceptions", "p
       '目的 → 意図', '目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。'),
   "unreadable": f({"type": "array", "items": {"type": "string"}}, '成型できなかった対象', '文字として読めないなどで成型できなかった対象のパスである。')}}}
 
-for name, s in [('annotations', ann), ('change', ch), ('judgment', jr), ('session', sess), ('settings', st), ('change-view', cv)]:
+
+# ---------------- view（ビュー：kind ごとの見せ方。文脈のファイル）
+PTR_EXPR = {"type": "string", "pattern": "^(/([^~/]|~[01])*)+$"}
+vw = head('view', 'ビュー', 'ある kind（Concrete）のインスタンスをどう見せるかの定義。文脈ごと ・ kind ごとに0か1つ。見せ方だけを持ち、データの形と意味は持たない（Concrete が持つ）。',
+          '.semantic-agent-schema/views/{id}.json', 'ビュー {id}')
+vw.update({"type": "object", "required": ["$schema", "kind", "id", "for", "sections"], "additionalProperties": False, "properties": {
+  "$schema": {"const": U('view')},
+  "kind": const_field('view', '種類', 'ビューであること。'),
+  "id": f({"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"}, 'ビューの id', 'このビューの名前である。'),
+  "for": f({"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$"}, '描く kind', 'このビューが描く Concrete の URN である。', [
+      w('one-view-per-kind', '同じ文脈で、同じ kind を描くビューは1つまでである。', '2つあると、どちらで描くかが決まらない（I26）。', '同じ for を持つビューの数を数える。'),
+      w('for-exists', 'for の Concrete は、閉じた一覧か公開された版にある。', '無い kind は描けない。', 'for の URN が引けるかを見る。')]),
+  "sections": f({"type": "array", "minItems": 1, "items": {"type": "object", "required": ["title", "parts"], "additionalProperties": False, "properties": {
+      "title": {"type": "string", "minLength": 1},
+      "parts": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["part", "value"], "additionalProperties": False, "properties": {
+        "part": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"}, "value": PTR_EXPR, "label": {"type": "string"}}}}}}},
+      '節の並び', '見出しと、部品で値を見せる並びである。', [
+      w('value-in-concrete', '部品の value（JSON Pointer）は、for の Concrete の欄を指す。', '無い欄を指すと、描けない（Q1 #23）。', 'value の先頭の欄が for の Concrete の properties にあるかを見る。'),
+      w('part-in-catalog', '部品の part は、文脈の部品のカタログにある名前である。', '無い部品は描けない（Q1 #23）。', 'part の名前がカタログの parts にあるかを見る。')],
+      parse='部品の value は、インスタンスの中の場所（JSON Pointer）として読む。')}})
+
+# ---------------- catalog（部品のカタログ。デザインシステムの1つ目のファイル）
+TOKEN = {"type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)*$"}
+ca = head('catalog', '部品のカタログ', 'ビューが使う部品の一覧と、部品が使うデザイントークンの名前。色や寸法の値は持たない（デザイントークンが持つ）。文脈に1つ。',
+          '.semantic-agent-schema/design/catalog.json', '部品のカタログ')
+ca.update({"type": "object", "required": ["$schema", "kind", "id", "parts"], "additionalProperties": False, "properties": {
+  "$schema": {"const": U('catalog')},
+  "kind": const_field('catalog', '種類', '部品のカタログであること。'),
+  "id": f({"const": "catalog"}, 'id', '文脈に1つのカタログであること。'),
+  "parts": f({"type": "object", "minProperties": 1, "propertyNames": {"pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"}, "additionalProperties": {"type": "object", "required": ["description", "tokens"], "additionalProperties": False, "properties": {
+      "description": {"type": "string", "minLength": 1}, "tokens": {"type": "array", "items": TOKEN}}}},
+      '部品', '部品の名前から、その説明と、使うデザイントークンの名前を引く。', [
+      w('tokens-exist', '部品が使うトークンの名前は、デザイントークンにある。', '無いトークンを使う部品は描けない（Q1 #23）。', 'tokens の各名前がデザイントークンの tokens にあるかを見る。')])}})
+
+# ---------------- design-tokens（デザイントークン。デザインシステムの2つ目のファイル）
+COLOR = {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"}
+dt = head('design-tokens', 'デザイントークン', '色などの値を、明るい表示と暗い表示の両方で持つ。どこに使うかは持たない（カタログが持つ）。文脈に1つ。',
+          '.semantic-agent-schema/design/tokens.json', 'デザイントークン')
+dt.update({"type": "object", "required": ["$schema", "kind", "id", "tokens"], "additionalProperties": False, "properties": {
+  "$schema": {"const": U('design-tokens')},
+  "kind": const_field('design-tokens', '種類', 'デザイントークンであること。'),
+  "id": f({"const": "tokens"}, 'id', '文脈に1つのデザイントークンであること。'),
+  "tokens": f({"type": "object", "minProperties": 1, "propertyNames": TOKEN, "additionalProperties": {"type": "object", "required": ["light", "dark"], "additionalProperties": False, "properties": {"light": COLOR, "dark": COLOR}}},
+      'トークン', 'トークンの名前から、明るい表示と暗い表示の値を引く。'),
+  "contrast": f({"type": "array", "items": {"type": "object", "required": ["fg", "bg", "min"], "additionalProperties": False, "properties": {"fg": TOKEN, "bg": TOKEN, "min": {"type": "number", "minimum": 1}}}},
+      'コントラストの組', '文字と地にするトークンの組と、必要なコントラスト比である。', [
+      w('contrast-meets', '組ごとに、明るい表示と暗い表示の両方でコントラスト比が min 以上である。', '読めない組み合わせが描かれる。', 'WCAG の式で両方の比を計算する。')])}})
+
+# ---------------- glossary（term の辞書。文脈に1つ。欄から $ref で指される）
+gl = head('glossary', 'glossary', '文脈の term の辞書。$defs の各 term が $anchor を持ち、Concrete の欄は urn:…:glossary:v<版>#<名前> で指す。出した版の term は変えない。',
+          '.semantic-agent-schema/glossary.json', 'glossary')
+gl.update({"type": "object", "required": ["$schema", "$id", "kind", "id", "$defs"], "properties": {
+  "$schema": {"const": U('glossary')},
+  "$id": f({"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:glossary:v[0-9]+$"}, 'glossary の名前と版', 'Concrete の欄が $ref で指す、この辞書の URN と版である。', [
+      w('never-change-published', '出した版の term の中身は、出した時と同じである。', '指している Concrete の意味が黙って変わる（I25）。', '同じ版の term が前と同じかを見る。')]),
+  "kind": const_field('glossary', '種類', 'glossary であること。'),
+  "id": f({"const": "glossary"}, 'id', '文脈に1つの glossary であること。'),
+  "$defs": f({"type": "object", "minProperties": 1, "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}, "additionalProperties": {"type": "object", "required": ["$anchor", "description"], "properties": {
+      "$anchor": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}, "description": {"type": "string", "minLength": 1}, "x-unit": {"type": "string"}}}},
+      'term の並び', 'term の名前から、意味（description）・ 値の形（JSON Schema）・ 単位を引く。', [
+      w('anchor-is-name', '$anchor は $defs のキーと同じ名前である。', '名前と指し先がずれると、欄が別の term を指す。', 'キーと $anchor を比べる。')])}})
+
+# ---------------- published（公開された言葉の版。値オブジェクト）
+pb = head('published', '公開された言葉の版', 'Concrete の公開する部分（x-published が true の欄と x- の定義）の版。出した版は変えない。インスタンスのファイルは作らず、Concrete と一緒に基盤が組む。')
+pb['$defs'] = {"version": {"type": "object", "required": ["of", "version", "fields"], "additionalProperties": False, "properties": {
+  "of": f({"type": "string", "pattern": "^urn:semantic-agent-schema:"}, '公開した Concrete', 'この版を出した Concrete の URN である。'),
+  "version": f({"type": "string", "pattern": "^v[0-9]+$"}, '版', '公開された言葉の版である。', [
+      w('never-change', '出した版の中身は、出した時と同じである。', '読む側が黙って壊れる（I7）。', '同じ版の fields と extensions が前と同じかを見る。')]),
+  "fields": f({"type": "array", "items": JP}, '見せる欄', 'x-published が true の欄の場所の並びである。'),
+  "extensions": f({"type": "array", "items": {"type": "string", "pattern": "^x-"}}, '見せる x- の定義', 'published が true の x- の名前の並びである。')}}}
+
+for name, s in [('annotations', ann), ('change', ch), ('judgment', jr), ('session', sess), ('settings', st), ('view', vw), ('catalog', ca), ('design-tokens', dt), ('glossary', gl), ('published', pb)]:
     json.dump(s, open(os.path.join(HERE, f'{name}.schema.json'), 'w'), ensure_ascii=False, indent=2)
 print('ok')

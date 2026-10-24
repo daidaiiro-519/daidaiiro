@@ -209,3 +209,58 @@ def _duration(s):
         if ch.isdigit(): num += ch
         else: n += int(num) * {'H': 3600, 'M': 60, 'S': 1}[ch]; num = ''
     return n
+
+
+# ---------- 描画の前の形と参照の検査（Q1 #23 ・ I26）。描画そのものはまだ作らない
+def _lum(hex_):
+    def ch(c):
+        c = int(c, 16) / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = hex_[1:3], hex_[3:5], hex_[5:7]
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def _contrast(a, b):
+    la, lb = sorted([_lum(a), _lum(b)], reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def check_design(self, concretes):
+    """文脈のビュー ・ カタログ ・ デザイントークン ・ glossary を、Abstract のファイルの rule（machine）で検査する"""
+    W = self.w; out = []
+    load = lambda rel: json.load(open(os.path.join(W, rel))) if os.path.exists(os.path.join(W, rel)) else None
+    cons = {}
+    for rel in concretes:
+        c = load(rel); cons[c['$id']] = c
+    cat = load('.semantic-agent-schema/design/catalog.json') or {'parts': {}}
+    tok = load('.semantic-agent-schema/design/tokens.json') or {'tokens': {}, 'contrast': []}
+    vdir = os.path.join(W, '.semantic-agent-schema/views')
+    views = [json.load(open(os.path.join(vdir, f))) for f in sorted(os.listdir(vdir))] if os.path.isdir(vdir) else []
+    seen = {}
+    for v in views:
+        seen.setdefault(v['for'], []).append(v['id'])
+        c = cons.get(v['for'])
+        if c is None: out.append({'rule': 'for-exists', 'at': v['id'], 'detail': v['for']}); continue
+        for sec in v['sections']:
+            for p in sec['parts']:
+                head = p['value'].lstrip('/').split('/')[0]
+                if head not in c.get('properties', {}): out.append({'rule': 'value-in-concrete', 'at': v['id'], 'detail': p['value']})
+                if p['part'] not in cat['parts']: out.append({'rule': 'part-in-catalog', 'at': v['id'], 'detail': p['part']})
+    for k, ids in seen.items():
+        if len(ids) > 1: out.append({'rule': 'one-view-per-kind', 'at': k, 'detail': ids})
+    for name, part in cat['parts'].items():
+        for t in part['tokens']:
+            if t not in tok['tokens']: out.append({'rule': 'tokens-exist', 'at': name, 'detail': t})
+    for pair in tok.get('contrast', []):
+        for mode in ('light', 'dark'):
+            fg, bg = tok['tokens'].get(pair['fg']), tok['tokens'].get(pair['bg'])
+            if fg and bg and _contrast(fg[mode], bg[mode]) < pair['min']:
+                out.append({'rule': 'contrast-meets', 'at': f"{pair['fg']}/{pair['bg']}", 'detail': mode})
+    g = load('.semantic-agent-schema/glossary.json')
+    if g:
+        for k, d in g['$defs'].items():
+            if d.get('$anchor') != k: out.append({'rule': 'anchor-is-name', 'at': k, 'detail': d.get('$anchor')})
+    return {'violations': out}
+
+
+Base.check_design = check_design

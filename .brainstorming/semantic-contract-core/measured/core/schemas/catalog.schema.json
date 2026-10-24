@@ -1,0 +1,84 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:catalog:v1",
+  "title": "部品のカタログ",
+  "description": "ビューが使う部品の一覧と、部品が使うデザイントークンの名前。色や寸法の値は持たない（デザイントークンが持つ）。文脈に1つ。",
+  "x-instance-path": ".semantic-agent-schema/design/catalog.json",
+  "x-instance-label": "部品のカタログ",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "parts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:catalog:v1"
+    },
+    "kind": {
+      "const": "catalog",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "部品のカタログであること。"
+        },
+        "write": []
+      }
+    },
+    "id": {
+      "const": "catalog",
+      "description": "id",
+      "x-prompt": {
+        "read": {
+          "means": "文脈に1つのカタログであること。"
+        },
+        "write": []
+      }
+    },
+    "parts": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "description",
+          "tokens"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)*$"
+            }
+          }
+        }
+      },
+      "description": "部品",
+      "x-prompt": {
+        "read": {
+          "means": "部品の名前から、その説明と、使うデザイントークンの名前を引く。"
+        },
+        "write": [
+          {
+            "id": "tokens-exist",
+            "rule": "部品が使うトークンの名前は、デザイントークンにある。",
+            "why": "無いトークンを使う部品は描けない（Q1 #23）。",
+            "test": "tokens の各名前がデザイントークンの tokens にあるかを見る。",
+            "by": "machine"
+          }
+        ]
+      }
+    }
+  }
+}

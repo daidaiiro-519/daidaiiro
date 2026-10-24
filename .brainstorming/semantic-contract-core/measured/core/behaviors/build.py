@@ -13,7 +13,7 @@ EDIT = {'docs/SKILL.md': '# brainstorming\n\n画面の AI に何を許すかは�
         'tool/agent.rs': 'fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n'}
 GIVEN = lambda **kw: dict(files=FILES, sessions=[S_O1, S_P1], ids=[U(1), U(2), U(3)], **kw)
 BOTH = ['git', 'snapshot']
-CV = 'urn:semantic-agent-schema:base:change-view:v1#/$defs/view'
+CV = 'urn:semantic-agent-schema:base:change:v1#/$defs/view'
 REC = lambda intent='許可の一覧を渡さない', **kw: {'op': 'record_change', 'args': dict(intent=intent, session=P1, **kw)}
 JUD = lambda i=1: {'op': 'judge_intent', 'args': {'change_id': U(i)}}
 APP = lambda i=1, ref='after1': {'op': 'approve', 'args': {'change_id': U(i)}, 'save_ref': ref}
@@ -165,6 +165,35 @@ static = [sch(f'S-ST-{n}', f'{n} は本体に従う', ['I3'], BODY, f'schemas/{n
      {'$schema': 'urn:semantic-agent-schema:base:settings:v1', 'kind': 'settings', 'id': 'project', 'permissions': {}}, False),
  sch('S-ST-bad-10', 'accepted の ACDR に docs が無ければ断る', ['I3'], 'urn:semantic-agent-schema:acdr:decision-record:v1', {k: v for k, v in json.load(open(os.path.join(HERE, '..', 'examples', 'acdr.instances.json')))['I3'].items() if k != 'docs'}, False, [], 'examples/acdr.concrete.json'),
 ]
-for name, xs in [('changes', changes), ('sessions', sessions), ('sqlite', adapter), ('static', static)]:
+CON = json.load(open(os.path.join(HERE, '..', 'examples', 'acdr.concrete.json')))
+VIEW = {'$schema': 'urn:semantic-agent-schema:base:view:v1', 'kind': 'view', 'id': 'acdr', 'for': ACDR, 'sections': [{'title': '決定', 'parts': [{'part': 'heading', 'value': '/title'}, {'part': 'text', 'value': '/decision'}]}, {'title': '差分', 'parts': [{'part': 'table', 'value': '/docs'}]}]}
+CAT = {'$schema': 'urn:semantic-agent-schema:base:catalog:v1', 'kind': 'catalog', 'id': 'catalog', 'parts': {'heading': {'description': '見出し', 'tokens': ['color.ink']}, 'text': {'description': '本文', 'tokens': ['color.ink', 'color.bg']}, 'table': {'description': '表', 'tokens': ['color.line']}}}
+TOK = {'$schema': 'urn:semantic-agent-schema:base:design-tokens:v1', 'kind': 'design-tokens', 'id': 'tokens', 'tokens': {'color.ink': {'light': '#13201D', 'dark': '#E6EEEB'}, 'color.bg': {'light': '#F4F7F6', 'dark': '#101816'}, 'color.line': {'light': '#C9D6D2', 'dark': '#2C3B37'}}, 'contrast': [{'fg': 'color.ink', 'bg': 'color.bg', 'min': 4.5}]}
+GLO = {'$schema': 'urn:semantic-agent-schema:base:glossary:v1', '$id': 'urn:semantic-agent-schema:acdr:glossary:v1', 'kind': 'glossary', 'id': 'glossary', '$defs': {'decision': {'$anchor': 'decision', 'description': '決めたこと1件'}}}
+J = lambda o: json.dumps(o, ensure_ascii=False, indent=1)
+def dfiles(view=VIEW, cat=CAT, tok=TOK, glo=GLO, extra=None):
+    f = {'concrete/acdr.json': J(CON), '.semantic-agent-schema/views/acdr.json': J(view), '.semantic-agent-schema/design/catalog.json': J(cat), '.semantic-agent-schema/design/tokens.json': J(tok), '.semantic-agent-schema/glossary.json': J(glo)}
+    f.update(extra or {}); return f
+def des(sid, title, traces, files, then):
+    return dict(id=sid, title=title, traces=traces, adapters=['snapshot'], given={'files': files}, when={'op': 'check_design', 'args': {'concretes': ['concrete/acdr.json']}}, then=then)
+import copy
+v2 = copy.deepcopy(VIEW); v2['sections'][0]['parts'][1]['value'] = '/no-such-field'
+c2 = copy.deepcopy(CAT); c2['parts']['heading']['tokens'] = ['color.nope']
+t2 = copy.deepcopy(TOK); t2['tokens']['color.ink']['dark'] = '#1A2420'
+g2 = copy.deepcopy(GLO); g2['$defs']['decision']['$anchor'] = 'decided'
+design = [
+ des('S-DES-1', 'ビュー ・ カタログ ・ トークン ・ glossary が合っていれば違反は無い', ['I26'], dfiles(), [T('E1', '/result/violations', '違反が出た', count=0)]),
+ des('S-DES-2', 'ビューが Concrete に無い欄を指せば違反', ['I26'], dfiles(view=v2), [T('E1', '/result/violations/0/rule', '検出されない', equals='value-in-concrete')]),
+ des('S-DES-3', 'カタログがデザイントークンに無いトークンを使えば違反', ['I26'], dfiles(cat=c2), [T('E1', '/result/violations/0/rule', '検出されない', equals='tokens-exist')]),
+ des('S-DES-4', '暗い表示でコントラストが足りなければ違反', ['I26'], dfiles(tok=t2), [T('E1', '/result/violations/0/detail', '暗い表示の不足が出ない', equals='dark')]),
+ des('S-DES-5', '同じ kind にビューが2つあれば違反', ['I26'], dfiles(extra={'.semantic-agent-schema/views/acdr2.json': J({**VIEW, 'id': 'acdr2'})}), [T('E1', '/result/violations/0/rule', '検出されない', equals='one-view-per-kind')]),
+ des('S-DES-6', 'glossary の $anchor がキーと違えば違反', ['I25'], dfiles(glo=g2), [T('E1', '/result/violations/0/rule', '検出されない', equals='anchor-is-name')]),
+]
+static += [sch(f'S-ST-{n}', f'{n} は本体に従う', ['I3'], BODY, f'schemas/{n}.schema.json', True) for n in ['view', 'catalog', 'design-tokens', 'glossary', 'published']] + [
+ sch('S-ST-view', 'ACDR のビューは view に従う', ['I26'], 'urn:semantic-agent-schema:base:view:v1', VIEW, True),
+ sch('S-ST-tokens', 'デザイントークンは design-tokens に従う', ['I26'], 'urn:semantic-agent-schema:base:design-tokens:v1', TOK, True),
+ sch('S-ST-bad-11', '色の値でないトークンを断る', ['I26'], 'urn:semantic-agent-schema:base:design-tokens:v1', {**TOK, 'tokens': {'color.ink': {'light': 'red', 'dark': '#000000'}}}, False)]
+static = [x for x in static if x['id'] != 'S-ST-change-view']
+for name, xs in [('changes', changes), ('sessions', sessions), ('sqlite', adapter), ('static', static), ('design', design)]:
     json.dump(xs, open(os.path.join(HERE, f'{name}.json'), 'w'), ensure_ascii=False, indent=1)
 print(sum(map(len, [changes, sessions, adapter, static])), '場面')

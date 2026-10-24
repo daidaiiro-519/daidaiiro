@@ -1,0 +1,115 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:design-tokens:v1",
+  "title": "デザイントークン",
+  "description": "色などの値を、明るい表示と暗い表示の両方で持つ。どこに使うかは持たない（カタログが持つ）。文脈に1つ。",
+  "x-instance-path": ".semantic-agent-schema/design/tokens.json",
+  "x-instance-label": "デザイントークン",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "tokens"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:design-tokens:v1"
+    },
+    "kind": {
+      "const": "design-tokens",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "デザイントークンであること。"
+        },
+        "write": []
+      }
+    },
+    "id": {
+      "const": "tokens",
+      "description": "id",
+      "x-prompt": {
+        "read": {
+          "means": "文脈に1つのデザイントークンであること。"
+        },
+        "write": []
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "light",
+          "dark"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "light": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          },
+          "dark": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          }
+        }
+      },
+      "description": "トークン",
+      "x-prompt": {
+        "read": {
+          "means": "トークンの名前から、明るい表示と暗い表示の値を引く。"
+        },
+        "write": []
+      }
+    },
+    "contrast": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fg",
+          "bg",
+          "min"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fg": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)*$"
+          },
+          "bg": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)*$"
+          },
+          "min": {
+            "type": "number",
+            "minimum": 1
+          }
+        }
+      },
+      "description": "コントラストの組",
+      "x-prompt": {
+        "read": {
+          "means": "文字と地にするトークンの組と、必要なコントラスト比である。"
+        },
+        "write": [
+          {
+            "id": "contrast-meets",
+            "rule": "組ごとに、明るい表示と暗い表示の両方でコントラスト比が min 以上である。",
+            "why": "読めない組み合わせが描かれる。",
+            "test": "WCAG の式で両方の比を計算する。",
+            "by": "machine"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -16,7 +16,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:8px;pa
 .req{display:inline-block;background:var(--accent-bg);color:var(--accent);border-radius:6px;padding:0 5px;font-size:10.5px}
 .rid{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
 .fig{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}.fig svg{max-width:none}
-</style><main><h1>基盤の核の全容</h1><p class="meta">measured/core/ の正本から view/build_view.py が作る。手で直さない</p><nav><a href="#dm">ドメインモデル</a><a href="#er">ER 図</a><a href="#db">DB</a><a href="#abs">Abstract</a><a href="#mem">ほかのファイル</a><a href="#con">Concrete</a></nav><h2 id="dm">1　ドメインモデル</h2><p class="meta">正本 model/model.json（v2 に changes.py の56件を適用）。<span class="chg">C01</span> のような印は、v2 から変えた行と変更の番号</p><h3>業務領域</h3><div class="tw"><table class=""><tr><th>業務領域</th><th>区分</th></tr><tr><td>意味の宣言</td><td>中核</td></tr><tr><td>意味の検証</td><td>中核</td></tr><tr><td>変更の確かめと例外の判断</td><td>中核</td></tr><tr><td>意味で探す</td><td>中核</td></tr><tr><td>目的ごとのセッションの管理</td><td>中核</td></tr><tr><td>スキーマの保存と公開</td><td>補完</td></tr><tr><td>instance の作成と変更</td><td>補完</td></tr><tr><td>マイグレーション</td><td>補完</td></tr><tr><td>描画</td><td>補完</td></tr><tr><td>AI と外のツールによる判定</td><td>一般</td></tr><tr><td>保存と版の管理</td><td>一般</td></tr></table></div><h3>集約（9）</h3><div class="tw"><table class=""><tr><th>集約</th><th>持ち主</th><th>ルート</th><th>中身</th><th>使う場面</th></tr><tr><td>Semantic Abstract Schema <span class="chg">C10</span></td><td>基盤</td><td>メタスキーマ</td><td>版（識別子）・ Abstract の拡張項目 ・ Concrete の契約（形 ・ 拡張の契約 ・ 保存の決まり）・ ほかのファイルの形（文脈が書くファイル ・ 変更の記録 ・ 判定の記録 ・ セッション ・ 手元のセッションの索引の行 ・ 設定 ・ 変更のまとまりの形）。本体の $schema は自分の $id で、9つの x- を根の x-extensions に Concrete と同じ形で登録し、本体の部品の欄も description と x-prompt を持つ・ 閉じた一覧のデータ</td><td>U1 U3 U4 U23</td></tr><tr><td>Semantic Concrete Schema</td><td>文脈</td><td>Semantic Concrete Schema</td><td>欄 ・ rule ・ glossary の term を指す欄 ・ Concrete の拡張項目 ・ 任せる先 ・ 決定権 ・ x-prompt ・ 公開する部分の版</td><td>U1 U2 U3 U14 U23 U24</td></tr><tr><td>glossary</td><td>文脈（文脈に1つ）</td><td>glossary</td><td>term（版付きの id ・ 意味 ・ 値の形 ・ 単位）。出した版の term は変えない。複数の Concrete が版付きの id で指す。term を出してから Concrete を出す2回に分けられる</td><td>U1 U23 U24</td></tr><tr><td>インスタンス <span class="chg">C12</span></td><td>文脈</td><td>インスタンス</td><td>id ・ kind ・ 欄の値 ・ 従う Concrete（$schema）</td><td>U5 U6 U7 U11 U17</td></tr><tr><td>判定の記録 <span class="chg">C45</span></td><td>文脈（形は Abstract）</td><td>対象 × rule の記録（対象はインスタンス。rule I33 だけは変更の記録）</td><td>判定した値 ・ 結果 ・ 根拠 ・ 判定した者。I33 の記録は、根拠を意味と判定の理由の2つの欄に分けて持つ。対象 × rule で1件に識別し、上書きで最後の1件だけが残る。同じ値で逆の答えが出たら unverified（根拠「判定が割れた」）。本人のセッションの中の承認は、変更の記録への I33 に対する人の判定として残す</td><td>U8 U10 U11 U13 U16 U18</td></tr><tr><td>変更の記録 <span class="chg">C13</span></td><td>文脈（形は Abstract）</td><td>変更の記録</td><td>id（書いた時に1回だけ決める、打ち合わせずに一意な値）・ 目的の参照 ・ 意図（1件に1つ）・ 書いた者の種類（人 ・ AI の Agent）・ 変更の項目の並び（基盤が、最後に確定した姿 → いまの前後から入れる）・ 置き換える意図の id（任意）。セッション ID は持たない。書いた時に未確定の変更に置き、変更と同じ単位で確定する</td><td>U2 U5 U6 U7 U13 U18 U25</td></tr><tr><td>ビュー <span class="chg">C07</span></td><td>文脈（kind ごと）</td><td>ビュー</td><td>kind ごとの見せ方の定義。描く kind（Concrete の URN）・ 節 ・ 部品 ・ 値を取る式。1つの kind に向くビューは0か1つで、無ければ基盤の既定の描き方（x-prompt の見出し）で描く。指す先が無ければ違反。形と参照の検査だけを持つ</td><td>U12</td></tr><tr><td>デザインシステム</td><td>文脈</td><td>部品のカタログ</td><td>部品のカタログとデザイントークン。トークン名とコントラストの組で結びつくので一緒に変える。形と参照の検査だけを持つ</td><td>U12</td></tr><tr><td>セッション <span class="chg">C38</span></td><td>作業した人の手元（形は Abstract）</td><td>セッション</td><td>セッション ID ・ 目的の参照（オーケストレーターは持たない）・ 親のセッション ID（任意）・ 役割（任意）・ 状態 ・ 最後に使った時刻。種類は3つ（セッションの種類）。コマンドは立てる ・ 閉じる。手元の DB（同じリポジトリのどの作業ディレクトリからも1つ）に置き、確定しない</td><td>U27 U13</td></tr></table></div><h3>エンティティ</h3><div class="tw"><table class=""><tr><th>名前</th><th>中身</th><th>置き場所</th></tr><tr><td>rule</td><td>id ・ rule ・ why ・ test ・ 判定する者 ・ 読む欄 ・ 使う term</td><td>集約 Semantic Concrete Schema の中のエンティティ（idで引く）</td></tr><tr><td>任せる先 <span class="chg">C02</span></td><td>Concrete と基盤が根の x-delegates に持つ、自分の任せる先の定義（名前 ・ role ・ answer ・ run）。ほかの Concrete の URN を書かない。種類は judging ・ working で、run に argv があれば CLI のプロセスとして動かす。名前が任せる先のセッションの役割になる。基盤自身も judge を持つ。モデルは起動したアダプターが返す</td><td>集約 Semantic Concrete Schema の中のエンティティ（名前で引く）</td></tr></table></div><h3>値オブジェクト（28）</h3><div class="tw"><table class=""><tr><th>名前</th><th>中身</th></tr><tr><td>term</td><td>glossary の term を、版付きの id で指す。欄からは標準の $ref（urn:semantic-agent-schema:&lt;持ち主&gt;:glossary:v&lt;版&gt;#&lt;名前&gt;）で指す。名前は英字か _ で始まる英数字</td></tr><tr><td>拡張した x- の定義</td><td>名前（範囲は $id）・ 値の形 ・ 意味（description と x-prompt）。判定は x-prompt の rule が持つ</td></tr><tr><td>公開された言葉の版</td><td>Concrete の公開する部分の版。出した版は変えない</td></tr><tr><td>検証結果</td><td>5つの値のどれか1つ ・ 根拠 ・ 判定した者（機械 ・ 基盤・ 外のツール ・ AI ・ 人）</td></tr><tr><td>判定した値 <span class="chg">C16 ・ C17</span></td><td>判定したときに読んだ値と渡したもの（読む欄 ・ term ・ 参照先の値 ・ 読んだ x-prompt の文 ・ 渡した引き継ぎのプロンプト。AI は任せる先の名前とモデル、外のツールは名前と版も）。I33 は前の値 ・ 後の値 ・ 読んだ欄の値（たどった先も読んだ欄だけ）・ 読んだ x-prompt の文そのもの ・ 任せる先とモデルで、意図の文は入れない。前の値は、その記録が入った単位の前の姿（未確定なら最後に確定した姿）から取る。いまの値との比べ方は JSON Schema の等しさの定義に従う</td></tr><tr><td>意味（I33）</td><td>意図全体の意味を1文と、対象ごとの意味を1文ずつ。各文に読んだ値の位置（JSON Pointer）と意図の id を付ける。同じ欄を2つの意図が変えたときは、その1文に両方の id を付ける</td></tr><tr><td>決定権</td><td>欄ごとの、その欄の値を決めるのは人である、という宣言。AI が書き写すのはよいが、値は人の入口から来たものでなければならない</td></tr><tr><td>x-prompt <span class="chg">C05</span></td><td>書く単位ごとの案内。項目を見出しにし、read（means ・ shown ・ parse ・ when）と write（rule）を持つ。描き方は3つの型（目的のセッションが書く ・ 任せる先が書く ・ 任せる先が判定する）。rule は状態で書く</td></tr><tr><td>参照（x-relationship）</td><td>ほかのインスタンス、またはほかの文脈の公開された言葉の版を指す。データを指すので、スキーマを指す $ref と名前で分ける</td></tr><tr><td>導出（x-derived-from）</td><td>ほかの欄から決まる値の宣言と、その依存</td></tr><tr><td>取り込めない理由</td><td>変更を取り込む前に人が見るべき違反（人が決める欄の書き換え ・ 参照の壊れ ・ 指されたものを消す ・ ID の使い直し ・ AI が書いた人の判定）</td></tr><tr><td>セッション ID</td><td>AI ツールの種類と、そのツールが発行した文字列の組。基盤は文字列を解釈しない。変更の記録と判定の記録には入れない。根から親までの並びは持たず、親をたどって作る。判定させる AI の呼び出しの ID はこの集約に登録しない</td></tr><tr><td>手元のセッションの索引 <span class="chg">C53</span></td><td>セッション ID → 変更の記録の id の並び。作業した本人の手元だけに置き、確定しない</td></tr><tr><td>役割</td><td>親の任せる先の名前。親のセッションには無い</td></tr><tr><td>セッションの状態</td><td>開いている ・ 閉じた。閉じたものは開いているへ戻らない</td></tr><tr><td>関係の索引 <span class="chg">C54</span></td><td>インスタンスの id ・ kind（範囲は Concrete の $id）・ x-relationship（指す側 → 指される側 ・ 公開された版）。正本のファイルから作り直せ、確定しない。形は遅いと測れてから Abstract に足す</td></tr><tr><td>変更の項目 <span class="chg">C14</span></td><td>対象（インスタンスなら id と kind、それ以外はパス。Semantic Agent Schema で作っていない Markdown ・ HTML ・ ソースコードも含む）・ 欄（JSON の対象だけ。x-prompt を持つ書く単位の JSON Pointer。配列の添字までは下げない）。AI は書かず、基盤が記録するときに、最後に確定した姿 → いまの前後から入れる。前後の値は持たない</td></tr><tr><td>目的の参照</td><td>目的を指す id（ACDR の番号 ・ ボードの論点など）。基盤は指す先を解釈しない</td></tr><tr><td>まとめ方 <span class="chg">C18 ・ C19</span></td><td>目的の参照 ・ 対象の条件（確定した記録で引く）・ セッション（手元の索引で引く。作業した本人だけ）・ 変更の前後（前の姿 ・ 後の姿の参照）。変更の前後は変更の仕組みからポートで受け取る（参照は基盤が解釈しない文字列）。後の姿には未確定の変更も許す。基盤は中身を解釈しない。保存せず、出すときに作る</td></tr><tr><td>変更の例外</td><td>意図が無い ・ 意図が合わない（I33 の violated）・ 記録に無い ・ 変更の無い記録 ・ 記録の書き換え ・ 人が決める欄の書き換え ・ 状態が変わった。人が判定の記録に残すのは、判断待ちと AI の rule の結果だけ。機械の例外は、変更の記録を足すか直して消す</td></tr><tr><td>変更のまとまりの形</td><td>Abstract が持つ出力の形。保存せず、同じ変更の前後からは毎回同じ形に作る。Concrete はこの形を $ref で使い、見せ方を足す。差分は3種類：意味の変更 ・ 検証結果の差分（rule の判定の結果と状態の前後）・ 描画の差分（前後とも後の姿のビューとデザインシステムで描く）</td></tr><tr><td>置き場所の型</td><td>x-instance-path の値。インスタンスを置く場所の型（名前の入る所は {id} のように書く）</td></tr><tr><td>名前の型</td><td>x-instance-label の値。指されたときと変更を見せるときのインスタンスの名前の型</td></tr><tr><td>公開の印</td><td>x-published の値。true の欄をほかの文脈へ見せる</td></tr><tr><td>呼び出し（call） <span class="chg">C04</span></td><td>親のセッションが任せる先を呼ぶ形：delegate（名前）・ target ・ rules ・ inputs ・ task ・ handoff。呼ばれた子はほかを呼ばず、決めきれない点を needs で親に返す。形は protocol（Q4）が持つ</td></tr><tr><td>最後に確定した姿 <span class="chg">C15</span></td><td>変更の仕組みで最後に確定した姿。変更の記録の前の姿で、ポートから受け取る。意図に入らない未確定の変更があれば、先にそれを確定してから、今回の意図の差分を取る</td></tr><tr><td>セッションの種類 <span class="chg">C39</span></td><td>オーケストレーターのセッション（目的も親も役割も無い。リポジトリに1つ）・ 目的のセッション（目的を持ち、親はオーケストレーター、役割は無い）・ 任せる先のセッション（親は目的のセッション、目的は親と同じ、役割を持つ）。目的 ・ 親 ・ 役割の組で決まり、ほかの組は無い</td></tr><tr><td>設定 <span class="chg">C43</span></td><td>基盤の振る舞いの値。Abstract のファイル settings に従うファイルで、利用者 ・ プロジェクト（確定する）・ 手元（確定しない）の3段を、手元 ＞ プロジェクト ＞ 利用者の順で重ねる。いまの欄は session.newWhenHistoryAbovePercent だけで、既定は置かない。許可 ・ キャッシュの有効時間 ・ 料金は持たない</td></tr></table></div><h3>ドメインサービス（13）</h3><div class="tw"><table class=""><tr><th>名前</th><th>中身</th><th>業務領域</th><th>使う場面</th></tr><tr><td>作成する</td><td>Abstract から Concrete の雛形、Concrete からインスタンスの雛形を作る（2段）</td><td>意味の宣言</td><td>U1 U5</td></tr><tr><td>Concrete を照らす</td><td>Concrete が Abstract の版 ・ Concrete の契約 ・ 拡張の作法に従うかを検査する（足した x- の定義が作法に従うかを含む。意味は見ない）</td><td>意味の宣言</td><td>U1 U2 U3 U23</td></tr><tr><td>Semantic Schema Resolver</td><td>$schema ・ $ref ・ x-relationship ・ x-derived-from ・ glossary ・ Concrete の拡張項目 ・ 公開された言葉の版を解決する</td><td>意味の検証</td><td>U6 U8 U11 U12 U24</td></tr><tr><td>Semantic Schema Validator</td><td>Abstract の x- と rule は自分で検証し、Concrete が足した x- は、rule の agent が指す任せる先に任せて結果をまとめる。判定した値がいまと同じ判定の記録は使い直す。意図と変更が合っているか（I33）は Abstract の rule として、変更の記録ごとに変更の中でだけ判定する</td><td>意味の検証</td><td>U5 U6 U8 U10 U14 U23 U25</td></tr><tr><td>状態を導く</td><td>検証結果と判定の記録から、インスタンスの状態を決定表で導く。I33 の判定の記録は使わない</td><td>変更の確かめと例外の判断</td><td>U0 U10 U12</td></tr><tr><td>変更を見せる <span class="chg">C09</span></td><td>変更（取り込みを含む）の後の姿で全インスタンスを検証し、状態 ・ 変わったもの ・ 人が見るもの ・ 取り込めない理由を出す。まとめ方を渡すと、変更の前後 ・ 紐づく変更の記録 ・ I33 の判定の記録から変更のまとまりを作り、例外（件数つき）→ 目的 → 意図 → 意図の意味と対象ごとの意味 → 検証結果の差分 → 描画の差分（ビューが無い kind は既定の描き方で）の順で出す</td><td>変更の確かめと例外の判断</td><td>U2 U6 U7 U8 U10 U11 U18 U13 U25</td></tr><tr><td>例外をまとめる</td><td>判定できなかった rule を原因（rule ・ 入力の変化 ・ validator）ごとにまとめ、人が判断できる形にする</td><td>変更の確かめと例外の判断</td><td>U16</td></tr><tr><td>意味で探して取り出す</td><td>term ・ x-relationship ・ glossary ・ Concrete の拡張項目 ・ 判定の結果 ・ 状態で探し、必要な部分だけを返す。探した結果に探した範囲を付ける</td><td>意味で探す</td><td>U5 U6 U10 U12 U24 U26</td></tr><tr><td>Semantic Schema Renderer</td><td>インスタンスを、状態と rule ごとの結果と一緒に人が読む形にする</td><td>描画</td><td>U12 U16</td></tr><tr><td>移す</td><td>Abstract の新しい版へ Concrete を合わせる。機械で直せるものは直し、残りは案内を返す</td><td>マイグレーション</td><td>U3 U4</td></tr><tr><td>取り込む</td><td>既存のファイルに $schema を当ててインスタンスにし、決まらないものを下書きの一覧に出す</td><td>インスタンスの作成と変更</td><td>U17</td></tr><tr><td>公開された言葉の版を出す</td><td>Concrete の公開する部分と Abstract の版を、版を並べて出す。出した版は変えない</td><td>スキーマの保存と公開</td><td>U4 U24</td></tr><tr><td>再開か新規かを決める <span class="chg">C42</span></td><td>同じ枠（オーケストレーター ・ 同じ目的 ・ 同じ親と役割の任せる先）に開いているセッションがあり、そのツールで再開でき、最後に使った時刻がキャッシュの有効時間内で、履歴の割合が設定の値を超えていなければ、その ID で再開すると返す。そうでなければ、開いていたものを閉じて「新しく立てる」と返す（1つの操作）。再開できるか ・ 有効時間（分からなければ不明）・ 履歴の割合は AI ツールのアダプターが返す</td><td>目的ごとのセッションの管理</td><td>U27</td></tr></table></div><h3>ポート</h3><div class="tw"><table class=""><tr><th>駆動する側（入口）</th><th>使う場面</th><th>アダプター</th></tr><tr><td>意味を宣言する（作成 ・ Concrete を照らす ・ glossary と Concrete の拡張項目を定義する ・ 公開する部分の版を出す。セッション ID と意図を一緒に受け取る）</td><td>U1 U2 U3 U23 U24</td><td>CLI ・ MCP</td></tr><tr><td>インスタンスを書く（作成 ・ 更新 ・ 削除 ・ 取り込む。セッション ID と意図を一緒に受け取る）</td><td>U5 U6 U7 U11 U17</td><td>CLI ・ MCP</td></tr><tr><td>検証する ・ 変更を見せる（まとめ方と変更の前後を受け取る）</td><td>U8 U10 U18 U25</td><td>CLI ・ MCP ・ CI</td></tr><tr><td>判定する（本人が意図を承認したら、基盤がポートで確定する）</td><td>U16</td><td>人の操作の入口だけ（MCP には見せない）</td></tr><tr><td>探して取り出す ・ 案内する</td><td>U1 U5 U6 U12 U24 U26</td><td>CLI ・ MCP</td></tr><tr><td>描画する</td><td>U12 U16</td><td>CLI ・ 画面</td></tr><tr><td>Abstract の版を出す ・ 移す</td><td>U3 U4</td><td>基盤を作る側の CLI だけ</td></tr><tr><td>経緯をたどる（対象ごと ・ 目的ごと。作業した本人の手元ではセッションごと）</td><td>U13</td><td>CLI</td></tr><tr><td>セッションを決める ・ 立てる ・ 閉じる（目的の参照 ・ 親 ・ 役割を受け取り、AI ツールの起動の前に、再開する ID か「新しく立てる」を返す。新しく立てたら、AI ツールが発行した ID を受け取って登録する）</td><td>U27</td><td>CLI ・ MCP</td></tr><tr><td>変更を記録する（意図と目的の参照を受け取り、最後に確定した姿 → いまの前後から変更の記録を作る）</td><td>U2 U5 U6 U7</td><td>CLI ・ MCP</td></tr></table></div><div class="tw"><table class=""><tr><th>駆動される側（外に求める）</th><th>アダプター</th><th>業務領域</th></tr><tr><td>契約を読む ・ 書く（Concrete の文書 ・ glossary ・ ビュー ・ デザインシステム。公開する部分を含む）</td><td>文脈のリポジトリのファイル</td><td>保存と版の管理</td></tr><tr><td>インスタンスを読む ・ 書く</td><td>文脈のリポジトリのファイル（正本。関係の索引は、遅いと測れてから、ファイルから作り直せる手元の DB を同じポートの後ろに置く）</td><td>保存と版の管理</td></tr><tr><td>判定の記録を読む ・ 書く</td><td>文脈のリポジトリのファイル（最初のアダプターは1件1ファイル）</td><td>保存と版の管理</td></tr><tr><td>変更の記録を読む ・ 書く</td><td>文脈のリポジトリのファイル（最初のアダプターは1件1ファイル。索引は遅いと測れてから、ファイルから作り直せるものを同じポートの後ろに置く）</td><td>保存と版の管理</td></tr><tr><td>セッションと手元のセッションの索引を読む ・ 書く</td><td>作業した人の手元（最初のアダプターは SQLite 1ファイル。置き場所は起動の設定で渡し、Git のアダプターを使うときの既定はすべての worktree が共有する場所。確定しない。不変条件は一意の索引とトリガーで断り、接続の設定に依らない。登録は書き込みのトランザクションを先に取ってから読む）</td><td>保存と版の管理</td></tr><tr><td>変更の仕組みとやりとりする（①前後：前の姿の参照と後の姿の参照から対象ごとの前後。無いと届かないを分ける ②単位の中身：前の姿 ・ 後の姿 ・ 出した者と時刻（出どころ付き）③消した ID の履歴（探した範囲付き）④確定する：対象のファイルの一覧と説明から単位の参照。変わったものが無いことを失敗と分ける）</td><td>Git ・ スナップショット（前と後のディレクトリ）など。参照は基盤が解釈しない文字列</td><td>保存と版の管理</td></tr><tr><td>公開された言葉を取りに行く（ほかの文脈の公開する部分の版）</td><td>ほかのリポジトリ ・ 配布の仕組み（$id の閉じた一覧で確かめる）</td><td>スキーマの保存と公開</td></tr><tr><td>rule の判定を依頼する（AI）</td><td>Claude Code ・ Codex などの CLI</td><td>AI と外のツールによる判定</td></tr><tr><td>描画したものを書き出す</td><td>HTML ・ Markdown のファイル</td><td>描画</td></tr><tr><td>外のツールを呼ぶ（Concrete が宣言した validator）</td><td>Concrete の x- の定義に名前がある外のツール</td><td>AI と外のツールによる判定</td></tr><tr><td>AI ツールのセッションを問う（再開できるか ・ キャッシュの有効時間（不明もある）・ 最後に使った時刻 ・ 履歴の割合）</td><td>Claude Code ・ Codex ・ Copilot ・ Gemini ・ Kiro などの CLI</td><td>目的ごとのセッションの管理</td></tr><tr><td>設定を読む（利用者 ・ プロジェクト ・ 手元）</td><td>ファイル</td><td>保存と版の管理</td></tr></table></div><h3>状態</h3><div class="tw"><table class=""><tr><th>対象</th><th>状態</th></tr><tr><td>instance</td><td>下書き（violated がある。直すのは書く側） → 確かめ直しを待つ（error がある） → 判断待ち（unverified ・ unsupported がある。人が見る） → 検証済み</td></tr><tr><td>セッション</td><td>開いている（再開できる） → 閉じた（再開しない。開いているへは戻らない）</td></tr></table></div><h3>不変条件（46）</h3><div class="tw"><table class=""><tr><th>id</th><th>対象</th><th>中身</th></tr><tr><td>I1</td><td>Abstract</td><td>Abstract の拡張項目 ・ Concrete の契約 ・ 拡張の契約は Abstract だけが持つ。出した Abstract の版は変えず、新しい版を並べて出す。</td></tr><tr><td>I2</td><td>Abstract</td><td>閉じた一覧は $id の一覧のデータで、一覧に無い $schema は取りに行かずに断る。</td></tr><tr><td>I3</td><td>Concrete</td><td>Concrete は $schema で Abstract の版を1つ申告し、その版の Concrete の契約と拡張の契約に従う。</td></tr><tr><td>I4</td><td>Concrete</td><td>rule は判定する者と（AI ・ 人なら）読む欄を持ち、id は Concrete の中で一意。使う term と x- には定義がある。</td></tr><tr><td>I5</td><td>Concrete</td><td>Concrete が足した x- の定義は作法に従う。基盤は意味を解釈せず、宣言された validator の結果を5つの値と根拠でまとめる。</td></tr><tr><td>I6</td><td>Concrete</td><td>Concrete の拡張項目の範囲は Concrete の $id で決まり、Abstract の拡張項目とぶつかる定義は違反になる。</td></tr><tr><td>I7</td><td>Concrete</td><td>公開する部分は版を並べて出し、出した版は変えない。読む側は指した版で検証される。</td></tr><tr><td>I8</td><td>インスタンス</td><td>インスタンスは Concrete 1つに従う。$schema が解決できないインスタンスは下書きとして返る。</td></tr><tr><td>I9</td><td>インスタンス</td><td>x-relationship の参照先が無ければ基盤が violated にする。参照を壊す変更と、指されたものを消す変更は取り込めない理由に出る。</td></tr><tr><td>I10</td><td>インスタンス</td><td>x-derived-from の宣言値は導出値と一致し、合わない変更は violated として取り込めない理由に出る。</td></tr><tr><td>I11</td><td>インスタンス</td><td>消した ID は使い直さない。消したインスタンスに結び付いた判定の記録は効かない。変更の記録は経緯として残る。</td></tr><tr><td>I12</td><td>検証結果</td><td>検証結果は rule と拡張した x- ごとに、5つの値のどれか1つ ・ 根拠 ・ 判定した者を持つ。必須の欄が空なら機械の violated。</td></tr><tr><td>I13</td><td>検証結果</td><td>機械の検証と、決定的な外のツールは、同じ値から同じ結果を返し、手元と CI で同じになる。</td></tr><tr><td>I14</td><td>検証結果</td><td>AI には読む欄 ・ term ・ 参照先の値の写しだけを渡す。根拠が空か読んだ値に無い答えと、割れた答えは unverified。</td></tr><tr><td>I15</td><td>検証結果</td><td>validator が無い ・ 起動できない ・ 答えないときは、隠さず決めた値で返し、手元と CI で同じになる。</td></tr><tr><td>I16</td><td>判定の記録</td><td>AI と人の判定は判定の記録として変更に入れ、判定した値を残す。いまの値と等しければ聞き直さず、違えば効かない。</td></tr><tr><td>I17</td><td>判定の記録</td><td>状態は、変更に入れた判定の記録だけから導く。CI は AI に聞き直さず、記録が無ければ無いと返す。</td></tr><tr><td>I18</td><td>判定の記録</td><td>人が覆せるのは AI と人の rule の結果だけ。人の判定は、変更の仕組みが人と約束した変更でだけ足せる。</td></tr><tr><td>I19</td><td>状態</td><td>インスタンスの状態は保存せず、検証結果と判定の記録から決定表で導く。</td></tr><tr><td>I20 <span class="chg">C20</span></td><td>変更</td><td>変更（確定の単位の並び。取り込みを含む）には、変更後の全インスタンスの状態 ・ 変わったもの ・ 人が見るもの ・ 取り込めない理由を出す。</td></tr><tr><td>I21</td><td>変更</td><td>決定権が人の欄を、人の入口を通らずに変えた変更は、取り込めない理由に出る。</td></tr><tr><td>I22</td><td>変更</td><td>同じインスタンス × rule の判定、または同じ対象の同じ欄を両方で変えた取り込みは、基盤が片方を選ばず、衝突として人に出る。</td></tr><tr><td>I23</td><td>例外</td><td>判定できなかった rule は、原因ごとにまとめて人が見るものに出る。判断されないものは unverified のまま。</td></tr><tr><td>I24</td><td>探す</td><td>探すは、いまの入力に対する判定の結果と状態だけを使い、効かなくなった判定を verified として返さない。</td></tr><tr><td>I25</td><td>探す</td><td>term は glossary の版付きの id で一致を決め、出した版の term は変えない。別の版の term は別の語として探す。公開された言葉は読む側の指した版で探す。</td></tr><tr><td>I26 <span class="chg">C08</span></td><td>描画</td><td>描画は状態と rule ごとの結果を内容と一緒に示し、失敗したら1ページも書かない。render の前に、カタログのトークンがデザイントークンに在るかと、ビューの式が指す欄が Concrete に在るかを検査する。1つの kind に向くビューは0か1つで、無ければ既定の描き方で描く。指す先の無いビューは違反になる。</td></tr><tr><td>I27</td><td>移す</td><td>Abstract の新しい版は移し方を持つ。移せない箇所は理由と一緒に返り、いまの Concrete は壊れない。</td></tr><tr><td>I28</td><td>経緯</td><td>判定の記録（判定した者 ・ 入力 ・ 根拠）と変更の記録（意図 ・ 目的 ・ 欄）と変更の仕組みの履歴から、誰がいつ何を変え、何を判定したかが分かる。</td></tr><tr><td>I29</td><td>外のツール</td><td>validator に渡すのは、その x- の場所 ・ 値 ・ 読む欄の値だけ。AI の validator はツールを持たせずに起動する。</td></tr><tr><td>I30</td><td>作法</td><td>作法には版があり、Concrete は従う版を申告する。出した作法の版は変えず、基盤を更新しても作法を保つ。</td></tr><tr><td>I31 <span class="chg">C25</span></td><td>変更の記録</td><td>変更の記録は意図1つと変更の項目を持ち、インスタンスとは別の集約で、一致は結果整合にする。取り込みの時点で記録と変更の前後を両方向で突き合わせ、記録の無い書き換えは「記録に無い」、書き換えの無い記録は「変更の無い記録」として出る。基盤が書く判定の記録と、変更の記録のファイルそのものは、突き合わせから外す。</td></tr><tr><td>I32</td><td>変更の記録</td><td>意図の無い変更も保存は断らず、「意図が無い」変更の例外として出る。書いた記録は書き換えず、書き換え ・ 削除は「記録の書き換え」として出る。差し戻した意図を直すときは新しい変更の記録を足し、置き換える意図の id で前の記録を指す。</td></tr><tr><td>I33</td><td>変更の記録</td><td>意図と変更が合っているかは Abstract の rule で、判定の対象は変更の記録である。変更の中でだけ判定し、取り込んだあとのインスタンスの状態の導出には使わない。violated は「意図が合わない」、unverified は判断待ちとして変更の例外に出る。</td></tr><tr><td>I34 <span class="chg">C21</span></td><td>変更の記録</td><td>セッション ID は AI ツールが発行した値で、基盤は中身を解釈しない。セッションと手元の索引にだけ置き、確定する変更の記録と判定の記録には入れず、I18 の権限の判定に使わない。</td></tr><tr><td>I35</td><td>まとめ方</td><td>意味の変更は I33 の判定の記録に残り、まとまりは保存しない。出すたびに目的の参照 ・ 対象の id ・ 変更の前後で記録を引いて同じ形に作り、1つの変更の記録は1回の出力で1回だけ出る。セッションで引けるのは手元の索引を持つ本人だけで、親のセッション ID で引くと、セッションの親をたどって子孫のセッションも含む。同じ欄を2つの意図が変えたときは分けず、その1文に両方の意図の id を付ける。</td></tr><tr><td>I36 <span class="chg">C26</span></td><td>変更を見せる</td><td>変更の例外を件数と一緒に先頭に出し、目的 → 意図 → 意図の意味と対象ごとの意味 → 検証結果の差分 → 描画の差分の順に出す。意図ごとの判定の記録がそのまま効いていれば「前回から変わっていない」と出す。前後を成型できなかった対象（文字として読めないファイルなど）を示す。x-relationship ・ x-derived-from で一緒に変わった欄は原因の変更の下へまとめる。</td></tr><tr><td>I37</td><td>変更の記録</td><td>変更の記録の id は書いた時に1回だけ、ほかの書き手と打ち合わせずに一意に決まる値にし、あとから変えない。別の変更で足した記録どうしが取り込みで衝突しない。</td></tr><tr><td>I38 <span class="chg">C27</span></td><td>変更の記録</td><td>入口はセッション ID を受け取ったら、そのセッションの目的の参照を、その呼び出しで書くすべての変更の記録に写し、索引に同じセッション ID を付ける。手元に無いセッション ID は受け取らない。セッション ID を受け取らないとき、または目的を持たないセッション（オーケストレーター）のときは、目的の参照を呼ぶ側から受け取り、索引には足さない。</td></tr><tr><td>I39</td><td>外のツール</td><td>実行できない検証の仕方（validator が無い ・ 起動できないなど）は unsupported で返し、人が見るものに出す。</td></tr><tr><td>I40 <span class="chg">C22</span></td><td>保存</td><td>インスタンス ・ glossary ・ ビュー ・ デザインシステム ・ 変更の記録 ・ 判定の記録の正本は確定するファイルで、Concrete は保存の形を宣言しない。セッションと索引は基盤が持つ手元の DB に置き、確定しない。関係の索引は正本から作り直せる。セッションと手元のセッションの索引は作り直せず、失ったら同じ目的でも新しく立てる（確定した記録は失わない）。</td></tr><tr><td>I41</td><td>探す</td><td>種類（kind）の名前の範囲は Concrete の $id で決まり、別の文脈の同じ名前の種類は別の種類として扱う。</td></tr><tr><td>I42</td><td>探す</td><td>探した結果には探した範囲（文脈の一覧と、索引を作った正本の版）を付け、範囲の外は探していないと返す。0件を「無い」と返さない。</td></tr><tr><td>I43</td><td>インスタンス</td><td>ほかの文脈から指されているインスタンスを消しても、消した側では止められない。指している側の次の検証で violated になり、黙って壊れない。</td></tr><tr><td>I44 <span class="chg">C40</span></td><td>セッション</td><td>セッション ID ・ 目的の参照 ・ 親 ・ 役割は立てた時に決めて変えない。任せる先のセッションの目的の参照は親と同じにする。オーケストレーターは入れ子にせず、任せる先のセッションは親にならない。</td></tr><tr><td>I45</td><td>セッション</td><td>閉じたセッションは開き直さない。</td></tr><tr><td>I46 <span class="chg">C41</span></td><td>セッション</td><td>1つの手元で、開いているオーケストレーターのセッションは1つまで。目的のセッションは、AI ツールと親に関係なく、同じ目的で開いているのは1つまで。任せる先のセッションは、目的 ・ 親 ・ 役割が同じで開いているのは1つまで。</td></tr></table></div><h3>境界</h3><div class="tw"><table class=""><tr><th>もの</th><th>持ち主</th><th>変えてよい者</th></tr><tr><td>Semantic Abstract Schema（版で識別する。メタスキーマ ・ Abstract の拡張項目 ・ Concrete の契約 ・ 拡張の契約 ・ ほかのファイルの形 ・ 閉じた一覧のデータ）</td><td>基盤</td><td>基盤だけ</td></tr><tr><td>個々の Semantic Concrete Schema の文書（欄 ・ rule ・ glossary の term を指す $ref ・ Concrete の拡張項目 ・ 任せる先 ・ 決定権 ・ 公開する部分）</td><td>文脈</td><td>その文脈だけ</td></tr><tr><td>Concrete の公開する部分の版（公開する term ・ x- の定義 ・ x-relationship で指される欄の形）</td><td>文脈（公開された言葉として出す）</td><td>その文脈だけ。版は並べて出し、出した版は変えない</td></tr><tr><td>glossary ・ インスタンス ・ 判定の記録（記録の形は Abstract のファイル）</td><td>文脈</td><td>文脈。人の判定は人が出した変更でだけ</td></tr><tr><td>検証のエンジンと protocol</td><td>基盤</td><td>基盤だけ（実装の言語は契約に出さない）</td></tr><tr><td>Concrete が足した x- の意味の検証と、その依存</td><td>Concrete（文脈）</td><td>その文脈。基盤は作法だけを持つ</td></tr><tr><td>変更の記録（意図 ・ 目的の参照 ・ 書いた者の種類 ・ 変更の項目 ・ 置き換える意図の id。セッション ID は持たない。形は Abstract のファイル）</td><td>文脈</td><td>その文脈。書くのは変更を出した作者か AI の Agent</td></tr><tr><td>目的（ACDR ・ 論点など）</td><td>外</td><td>外。基盤は目的の参照（id）だけを持つ</td></tr><tr><td>ファイルの差分（前後の値）・ 履歴 ・ 出した者 ・ 時刻 ・ 承認 ・ 取り込み ・ 衝突 <span class="chg">C24</span></td><td>外（AI のツール ・ harness ・ Git などの変更の仕組み）</td><td>外。基盤は差分を作らず、ポートで前後を受け取って成型する。変更の全体を他人が承認した記録は持たない（本人がセッションの中で承認するのは基盤の操作で、人の判定の記録に残す）</td></tr><tr><td>セッションの中身（会話の記録）</td><td>外（手元の AI のツール）</td><td>外。リポジトリに入れない。セッション ID はセッションの集約と手元のセッションの索引にだけ置き、変更の記録には入れない</td></tr><tr><td>セッションの発行と会話の中身 ・ AI ツールの起動</td><td>外（AI ツール ・ 人 ・ harness）</td><td>外。基盤は起動の前に問われて、再開する ID か「新しく立てる」を返すだけ</td></tr><tr><td>セッション（6つの欄。形は Abstract のファイル）</td><td>基盤（作業した人の手元、確定しない）</td><td>基盤のコマンド（立てる ・ 閉じる）だけ</td></tr><tr><td>任せた範囲（親が子に任せるときの約束。任せるたびに決まる）</td><td>外（親のセッション。引き継ぎのプロンプトに書く）</td><td>外。基盤は持たない。変わった欄は、変更の記録で出す</td></tr><tr><td>手元のセッションの索引（セッション ID → 変更の記録の id。形は Abstract のファイル）</td><td>作業した人の手元（確定しない）</td><td>作業した本人だけ</td></tr><tr><td>関係の索引（インスタンスと x-relationship。正本のファイルから作り直せる）</td><td>基盤（手元の DB。確定しない）</td><td>基盤だけ。Concrete は保存の形を宣言しない</td></tr><tr><td>AI の Agent に何を許すか（各 AI ツールの許可）</td><td>各 AI ツールの設定ファイル（Claude Code の .claude/settings.json など）</td><td>外。基盤は許可の契約を持たない</td></tr><tr><td>設定（基盤の振る舞いの値。形は Abstract のファイル）</td><td>利用者 ・ 文脈（プロジェクトは確定する）・ 作業した人の手元</td><td>それぞれの持ち主。許可は持たない（各 AI ツールの設定ファイル）</td></tr></table></div><h3>ボードにだけ在る直し（ACDR でボードへ適用する）</h3><div class="tw"><table class=""><tr><th>どこ</th><th>変更前</th><th>変更後</th></tr><tr><td>Q1 #8</td><td>基盤はソースを読まず、テストが走ったときに書く記録（JSON）でつながる</td><td>ソースコードの前後も受け取って成型する（利用者の指示）</td></tr><tr><td>Q11 #2</td><td>閉じるのは、利用者か親が閉じると決めたときと、AI ツールが「そのセッションは無い」と答えたときだけ</td><td>…と答えたとき、と、再開か新規かで新しく立てるとき（同じ枠で開いていたものを閉じる）</td></tr><tr><td>Q11 #3</td><td>目的 ・ 親 ・ 役割が同じで開いていて、最後に使った時刻がキャッシュの有効時間内なら、その ID で再開する。そうでなければ新しく立てる</td><td>C42 の文</td></tr><tr><td>Q11 #9 ①</td><td>子の目的は親と同じ</td><td>任せる先のセッションの目的は親と同じ</td></tr><tr><td>Q7 #17</td><td>Abstract の AI の rule は agent に予約した reviewer を使い</td><td>基盤自身の x-delegates の judge を使い</td></tr><tr><td>Q6 ・ Q1 #9 ・ #19 ・ #20</td><td>core</td><td>base</td></tr></table></div><h2 id="er">2　ER 図</h2><p class="meta">確定するファイル（共有する）と、手元の DB（確定しない）の関係。目的と確定の単位の参照は外</p><div class="fig"><svg viewBox="0 0 1000 720" style="min-width:900px" role="img" aria-label="基盤のデータの関係（ER 図）" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .badge.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.kind-1.small{fill:var(--dsvg-kind-1,#7A3B6D);font-size:10px}.dsvg .badge.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .label.kind-2.small{fill:var(--dsvg-kind-2,#2F5B80);font-size:10px}.dsvg .badge.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .label.kind-3.small{fill:var(--dsvg-kind-3,#566318);font-size:10px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .title.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:13px;font-weight:700}.dsvg .grid{stroke:var(--dsvg-line,#7C8C86)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}</style><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="720.0" fill="#FFFFFF" rx="8"/>
+</style><main><h1>基盤の核の全容</h1><p class="meta">measured/core/ の正本から view/build_view.py が作る。手で直さない</p><nav><a href="#dm">ドメインモデル</a><a href="#er">ER 図</a><a href="#db">DB</a><a href="#abs">Abstract</a><a href="#mem">ほかのファイル</a><a href="#con">Concrete</a></nav><h2 id="dm">1　ドメインモデル</h2><p class="meta">正本 model/model.json（v2 に changes.py の59件を適用）。<span class="chg">C01</span> のような印は、v2 から変えた行と変更の番号</p><h3>業務領域</h3><div class="tw"><table class=""><tr><th>業務領域</th><th>区分</th></tr><tr><td>意味の宣言</td><td>中核</td></tr><tr><td>意味の検証</td><td>中核</td></tr><tr><td>変更の確かめと例外の判断</td><td>中核</td></tr><tr><td>意味で探す</td><td>中核</td></tr><tr><td>目的ごとのセッションの管理</td><td>中核</td></tr><tr><td>スキーマの保存と公開</td><td>補完</td></tr><tr><td>instance の作成と変更</td><td>補完</td></tr><tr><td>マイグレーション</td><td>補完</td></tr><tr><td>描画</td><td>補完</td></tr><tr><td>AI と外のツールによる判定</td><td>一般</td></tr><tr><td>保存と版の管理</td><td>一般</td></tr></table></div><h3>集約（9）</h3><div class="tw"><table class=""><tr><th>集約</th><th>持ち主</th><th>ルート</th><th>中身</th><th>使う場面</th></tr><tr><td>Semantic Abstract Schema <span class="chg">C10</span></td><td>基盤</td><td>メタスキーマ</td><td>版（識別子）・ Abstract の拡張項目 ・ Concrete の契約（形 ・ 拡張の契約 ・ 保存の決まり）・ ほかのファイルの形（文脈が書くファイル ・ 変更の記録 ・ 判定の記録 ・ セッション ・ 手元のセッションの索引の行 ・ 設定 ・ 変更のまとまりの形）。本体の $schema は自分の $id で、9つの x- を根の x-extensions に Concrete と同じ形で登録し、本体の部品の欄も description と x-prompt を持つ・ 閉じた一覧のデータ</td><td>U1 U3 U4 U23</td></tr><tr><td>Semantic Concrete Schema</td><td>文脈</td><td>Semantic Concrete Schema</td><td>欄 ・ rule ・ glossary の term を指す欄 ・ Concrete の拡張項目 ・ 任せる先 ・ 決定権 ・ x-prompt ・ 公開する部分の版</td><td>U1 U2 U3 U14 U23 U24</td></tr><tr><td>glossary</td><td>文脈（文脈に1つ）</td><td>glossary</td><td>term（版付きの id ・ 意味 ・ 値の形 ・ 単位）。出した版の term は変えない。複数の Concrete が版付きの id で指す。term を出してから Concrete を出す2回に分けられる</td><td>U1 U23 U24</td></tr><tr><td>インスタンス <span class="chg">C12</span></td><td>文脈</td><td>インスタンス</td><td>id ・ kind ・ 欄の値 ・ 従う Concrete（$schema）</td><td>U5 U6 U7 U11 U17</td></tr><tr><td>判定の記録 <span class="chg">C45</span></td><td>文脈（形は Abstract）</td><td>対象 × rule の記録（対象はインスタンス。rule I33 だけは変更の記録）</td><td>判定した値 ・ 結果 ・ 根拠 ・ 判定した者。I33 の記録は、根拠を意味と判定の理由の2つの欄に分けて持つ。対象 × rule で1件に識別し、上書きで最後の1件だけが残る。同じ値で逆の答えが出たら unverified（根拠「判定が割れた」）。本人のセッションの中の承認は、変更の記録への I33 に対する人の判定として残す</td><td>U8 U10 U11 U13 U16 U18</td></tr><tr><td>変更の記録 <span class="chg">C13</span></td><td>文脈（形は Abstract）</td><td>変更の記録</td><td>id（書いた時に1回だけ決める、打ち合わせずに一意な値）・ 目的の参照 ・ 意図（1件に1つ）・ 書いた者の種類（人 ・ AI の Agent）・ 変更の項目の並び（基盤が、最後に確定した姿 → いまの前後から入れる）・ 置き換える意図の id（任意）。セッション ID は持たない。書いた時に未確定の変更に置き、変更と同じ単位で確定する</td><td>U2 U5 U6 U7 U13 U18 U25</td></tr><tr><td>ビュー <span class="chg">C07</span></td><td>文脈（kind ごと）</td><td>ビュー</td><td>kind ごとの見せ方の定義。描く kind（Concrete の URN）・ 節 ・ 部品 ・ 値を取る式。1つの kind に向くビューは0か1つで、無ければ基盤の既定の描き方（x-prompt の見出し）で描く。指す先が無ければ違反。形と参照の検査だけを持つ</td><td>U12</td></tr><tr><td>デザインシステム</td><td>文脈</td><td>部品のカタログ</td><td>部品のカタログとデザイントークン。トークン名とコントラストの組で結びつくので一緒に変える。形と参照の検査だけを持つ</td><td>U12</td></tr><tr><td>セッション <span class="chg">C38</span></td><td>作業した人の手元（形は Abstract）</td><td>セッション</td><td>セッション ID ・ 目的の参照（オーケストレーターは持たない）・ 親のセッション ID（任意）・ 役割（任意）・ 状態 ・ 最後に使った時刻。種類は3つ（セッションの種類）。コマンドは立てる ・ 閉じる。手元の DB（同じリポジトリのどの作業ディレクトリからも1つ）に置き、確定しない</td><td>U27 U13</td></tr></table></div><h3>エンティティ</h3><div class="tw"><table class=""><tr><th>名前</th><th>中身</th><th>置き場所</th></tr><tr><td>rule</td><td>id ・ rule ・ why ・ test ・ 判定する者 ・ 読む欄 ・ 使う term</td><td>集約 Semantic Concrete Schema の中のエンティティ（idで引く）</td></tr><tr><td>任せる先 <span class="chg">C02 ・ C58</span></td><td>Concrete と基盤が根の x-delegates に持つ、自分の任せる先の定義（名前 ・ role ・ answer ・ run）。ほかの Concrete の URN を書かない。種類は judging ・ working で、run に argv があれば CLI のプロセスとして動かす。基盤が rule を判定させる ・ 作業させる相手だけを書き、親のセッションが進め方として呼ぶ相手（advisor など）は書かない。基盤自身も judge を持つ。モデルは起動したアダプターが返す</td><td>集約 Semantic Concrete Schema の中のエンティティ（名前で引く）</td></tr></table></div><h3>値オブジェクト（28）</h3><div class="tw"><table class=""><tr><th>名前</th><th>中身</th></tr><tr><td>term</td><td>glossary の term を、版付きの id で指す。欄からは標準の $ref（urn:semantic-agent-schema:&lt;持ち主&gt;:glossary:v&lt;版&gt;#&lt;名前&gt;）で指す。名前は英字か _ で始まる英数字</td></tr><tr><td>拡張した x- の定義</td><td>名前（範囲は $id）・ 値の形 ・ 意味（description と x-prompt）。判定は x-prompt の rule が持つ</td></tr><tr><td>公開された言葉の版</td><td>Concrete の公開する部分の版。出した版は変えない</td></tr><tr><td>検証結果</td><td>5つの値のどれか1つ ・ 根拠 ・ 判定した者（機械 ・ 基盤・ 外のツール ・ AI ・ 人）</td></tr><tr><td>判定した値 <span class="chg">C16 ・ C17</span></td><td>判定したときに読んだ値と渡したもの（読む欄 ・ term ・ 参照先の値 ・ 読んだ x-prompt の文 ・ 渡した引き継ぎのプロンプト。AI は任せる先の名前とモデル、外のツールは名前と版も）。I33 は前の値 ・ 後の値 ・ 読んだ欄の値（たどった先も読んだ欄だけ）・ 読んだ x-prompt の文そのもの ・ 任せる先とモデルで、意図の文は入れない。前の値は、その記録が入った単位の前の姿（未確定なら最後に確定した姿）から取る。いまの値との比べ方は JSON Schema の等しさの定義に従う</td></tr><tr><td>意味（I33）</td><td>意図全体の意味を1文と、対象ごとの意味を1文ずつ。各文に読んだ値の位置（JSON Pointer）と意図の id を付ける。同じ欄を2つの意図が変えたときは、その1文に両方の id を付ける</td></tr><tr><td>決定権</td><td>欄ごとの、その欄の値を決めるのは人である、という宣言。AI が書き写すのはよいが、値は人の入口から来たものでなければならない</td></tr><tr><td>x-prompt <span class="chg">C05</span></td><td>書く単位ごとの案内。項目を見出しにし、read（means ・ shown ・ parse ・ when）と write（rule）を持つ。描き方は3つの型（目的のセッションが書く ・ 任せる先が書く ・ 任せる先が判定する）。rule は状態で書く</td></tr><tr><td>参照（x-relationship）</td><td>ほかのインスタンス、またはほかの文脈の公開された言葉の版を指す。データを指すので、スキーマを指す $ref と名前で分ける</td></tr><tr><td>導出（x-derived-from）</td><td>ほかの欄から決まる値の宣言と、その依存</td></tr><tr><td>取り込めない理由</td><td>変更を取り込む前に人が見るべき違反（人が決める欄の書き換え ・ 参照の壊れ ・ 指されたものを消す ・ ID の使い直し ・ AI が書いた人の判定）</td></tr><tr><td>セッション ID</td><td>AI ツールの種類と、そのツールが発行した文字列の組。基盤は文字列を解釈しない。変更の記録と判定の記録には入れない。根から親までの並びは持たず、親をたどって作る。判定させる AI の呼び出しの ID はこの集約に登録しない</td></tr><tr><td>手元のセッションの索引 <span class="chg">C53</span></td><td>セッション ID → 変更の記録の id の並び。作業した本人の手元だけに置き、確定しない</td></tr><tr><td>役割 <span class="chg">C57</span></td><td>親のセッションが呼んだ相手の名前（Skill ・ Agent の名前、または Concrete の x-delegates の名前）。任せる先のセッションだけが持つ</td></tr><tr><td>セッションの状態</td><td>開いている ・ 閉じた。閉じたものは開いているへ戻らない</td></tr><tr><td>関係の索引 <span class="chg">C54</span></td><td>インスタンスの id ・ kind（範囲は Concrete の $id）・ x-relationship（指す側 → 指される側 ・ 公開された版）。正本のファイルから作り直せ、確定しない。形は遅いと測れてから Abstract に足す</td></tr><tr><td>変更の項目 <span class="chg">C14</span></td><td>対象（インスタンスなら id と kind、それ以外はパス。Semantic Agent Schema で作っていない Markdown ・ HTML ・ ソースコードも含む）・ 欄（JSON の対象だけ。x-prompt を持つ書く単位の JSON Pointer。配列の添字までは下げない）。AI は書かず、基盤が記録するときに、最後に確定した姿 → いまの前後から入れる。前後の値は持たない</td></tr><tr><td>目的の参照</td><td>目的を指す id（ACDR の番号 ・ ボードの論点など）。基盤は指す先を解釈しない</td></tr><tr><td>まとめ方 <span class="chg">C18 ・ C19</span></td><td>目的の参照 ・ 対象の条件（確定した記録で引く）・ セッション（手元の索引で引く。作業した本人だけ）・ 変更の前後（前の姿 ・ 後の姿の参照）。変更の前後は変更の仕組みからポートで受け取る（参照は基盤が解釈しない文字列）。後の姿には未確定の変更も許す。基盤は中身を解釈しない。保存せず、出すときに作る</td></tr><tr><td>変更の例外</td><td>意図が無い ・ 意図が合わない（I33 の violated）・ 記録に無い ・ 変更の無い記録 ・ 記録の書き換え ・ 人が決める欄の書き換え ・ 状態が変わった。人が判定の記録に残すのは、判断待ちと AI の rule の結果だけ。機械の例外は、変更の記録を足すか直して消す</td></tr><tr><td>変更のまとまりの形 <span class="chg">C59</span></td><td>Abstract のファイル change の $defs が持つ出力の形。保存せず、同じ変更の前後からは毎回同じ形に作る。Concrete はこの形を $ref で使い、見せ方を足す。差分は3種類：意味の変更 ・ 検証結果の差分（rule の判定の結果と状態の前後）・ 描画の差分（前後とも後の姿のビューとデザインシステムで描く）</td></tr><tr><td>置き場所の型</td><td>x-instance-path の値。インスタンスを置く場所の型（名前の入る所は {id} のように書く）</td></tr><tr><td>名前の型</td><td>x-instance-label の値。指されたときと変更を見せるときのインスタンスの名前の型</td></tr><tr><td>公開の印</td><td>x-published の値。true の欄をほかの文脈へ見せる</td></tr><tr><td>呼び出し（call） <span class="chg">C04</span></td><td>親のセッションが任せる先を呼ぶ形：delegate（名前）・ target ・ rules ・ inputs ・ task ・ handoff。呼ばれた子はほかを呼ばず、決めきれない点を needs で親に返す。形は protocol（Q4）が持つ</td></tr><tr><td>最後に確定した姿 <span class="chg">C15</span></td><td>変更の仕組みで最後に確定した姿。変更の記録の前の姿で、ポートから受け取る。意図に入らない未確定の変更があれば、先にそれを確定してから、今回の意図の差分を取る</td></tr><tr><td>セッションの種類 <span class="chg">C39</span></td><td>オーケストレーターのセッション（目的も親も役割も無い。リポジトリに1つ）・ 目的のセッション（目的を持ち、親はオーケストレーター、役割は無い）・ 任せる先のセッション（親は目的のセッション、目的は親と同じ、役割を持つ）。目的 ・ 親 ・ 役割の組で決まり、ほかの組は無い</td></tr><tr><td>設定 <span class="chg">C43</span></td><td>基盤の振る舞いの値。Abstract のファイル settings に従うファイルで、利用者 ・ プロジェクト（確定する）・ 手元（確定しない）の3段を、手元 ＞ プロジェクト ＞ 利用者の順で重ねる。いまの欄は session.newWhenHistoryAbovePercent だけで、既定は置かない。許可 ・ キャッシュの有効時間 ・ 料金は持たない</td></tr></table></div><h3>ドメインサービス（13）</h3><div class="tw"><table class=""><tr><th>名前</th><th>中身</th><th>業務領域</th><th>使う場面</th></tr><tr><td>作成する</td><td>Abstract から Concrete の雛形、Concrete からインスタンスの雛形を作る（2段）</td><td>意味の宣言</td><td>U1 U5</td></tr><tr><td>Concrete を照らす</td><td>Concrete が Abstract の版 ・ Concrete の契約 ・ 拡張の作法に従うかを検査する（足した x- の定義が作法に従うかを含む。意味は見ない）</td><td>意味の宣言</td><td>U1 U2 U3 U23</td></tr><tr><td>Semantic Schema Resolver</td><td>$schema ・ $ref ・ x-relationship ・ x-derived-from ・ glossary ・ Concrete の拡張項目 ・ 公開された言葉の版を解決する</td><td>意味の検証</td><td>U6 U8 U11 U12 U24</td></tr><tr><td>Semantic Schema Validator</td><td>Abstract の x- と rule は自分で検証し、Concrete が足した x- は、rule の agent が指す任せる先に任せて結果をまとめる。判定した値がいまと同じ判定の記録は使い直す。意図と変更が合っているか（I33）は Abstract の rule として、変更の記録ごとに変更の中でだけ判定する</td><td>意味の検証</td><td>U5 U6 U8 U10 U14 U23 U25</td></tr><tr><td>状態を導く</td><td>検証結果と判定の記録から、インスタンスの状態を決定表で導く。I33 の判定の記録は使わない</td><td>変更の確かめと例外の判断</td><td>U0 U10 U12</td></tr><tr><td>変更を見せる <span class="chg">C09</span></td><td>変更（取り込みを含む）の後の姿で全インスタンスを検証し、状態 ・ 変わったもの ・ 人が見るもの ・ 取り込めない理由を出す。まとめ方を渡すと、変更の前後 ・ 紐づく変更の記録 ・ I33 の判定の記録から変更のまとまりを作り、例外（件数つき）→ 目的 → 意図 → 意図の意味と対象ごとの意味 → 検証結果の差分 → 描画の差分（ビューが無い kind は既定の描き方で）の順で出す</td><td>変更の確かめと例外の判断</td><td>U2 U6 U7 U8 U10 U11 U18 U13 U25</td></tr><tr><td>例外をまとめる</td><td>判定できなかった rule を原因（rule ・ 入力の変化 ・ validator）ごとにまとめ、人が判断できる形にする</td><td>変更の確かめと例外の判断</td><td>U16</td></tr><tr><td>意味で探して取り出す</td><td>term ・ x-relationship ・ glossary ・ Concrete の拡張項目 ・ 判定の結果 ・ 状態で探し、必要な部分だけを返す。探した結果に探した範囲を付ける</td><td>意味で探す</td><td>U5 U6 U10 U12 U24 U26</td></tr><tr><td>Semantic Schema Renderer</td><td>インスタンスを、状態と rule ごとの結果と一緒に人が読む形にする</td><td>描画</td><td>U12 U16</td></tr><tr><td>移す</td><td>Abstract の新しい版へ Concrete を合わせる。機械で直せるものは直し、残りは案内を返す</td><td>マイグレーション</td><td>U3 U4</td></tr><tr><td>取り込む</td><td>既存のファイルに $schema を当ててインスタンスにし、決まらないものを下書きの一覧に出す</td><td>インスタンスの作成と変更</td><td>U17</td></tr><tr><td>公開された言葉の版を出す</td><td>Concrete の公開する部分と Abstract の版を、版を並べて出す。出した版は変えない</td><td>スキーマの保存と公開</td><td>U4 U24</td></tr><tr><td>再開か新規かを決める <span class="chg">C42</span></td><td>同じ枠（オーケストレーター ・ 同じ目的 ・ 同じ親と役割の任せる先）に開いているセッションがあり、そのツールで再開でき、最後に使った時刻がキャッシュの有効時間内で、履歴の割合が設定の値を超えていなければ、その ID で再開すると返す。そうでなければ、開いていたものを閉じて「新しく立てる」と返す（1つの操作）。再開できるか ・ 有効時間（分からなければ不明）・ 履歴の割合は AI ツールのアダプターが返す</td><td>目的ごとのセッションの管理</td><td>U27</td></tr></table></div><h3>ポート</h3><div class="tw"><table class=""><tr><th>駆動する側（入口）</th><th>使う場面</th><th>アダプター</th></tr><tr><td>意味を宣言する（作成 ・ Concrete を照らす ・ glossary と Concrete の拡張項目を定義する ・ 公開する部分の版を出す。セッション ID と意図を一緒に受け取る）</td><td>U1 U2 U3 U23 U24</td><td>CLI ・ MCP</td></tr><tr><td>インスタンスを書く（作成 ・ 更新 ・ 削除 ・ 取り込む。セッション ID と意図を一緒に受け取る）</td><td>U5 U6 U7 U11 U17</td><td>CLI ・ MCP</td></tr><tr><td>検証する ・ 変更を見せる（まとめ方と変更の前後を受け取る）</td><td>U8 U10 U18 U25</td><td>CLI ・ MCP ・ CI</td></tr><tr><td>判定する（本人が意図を承認したら、基盤がポートで確定する）</td><td>U16</td><td>人の操作の入口だけ（MCP には見せない）</td></tr><tr><td>探して取り出す ・ 案内する</td><td>U1 U5 U6 U12 U24 U26</td><td>CLI ・ MCP</td></tr><tr><td>描画する</td><td>U12 U16</td><td>CLI ・ 画面</td></tr><tr><td>Abstract の版を出す ・ 移す</td><td>U3 U4</td><td>基盤を作る側の CLI だけ</td></tr><tr><td>経緯をたどる（対象ごと ・ 目的ごと。作業した本人の手元ではセッションごと）</td><td>U13</td><td>CLI</td></tr><tr><td>セッションを決める ・ 立てる ・ 閉じる（目的の参照 ・ 親 ・ 役割を受け取り、AI ツールの起動の前に、再開する ID か「新しく立てる」を返す。新しく立てたら、AI ツールが発行した ID を受け取って登録する）</td><td>U27</td><td>CLI ・ MCP</td></tr><tr><td>変更を記録する（意図と目的の参照を受け取り、最後に確定した姿 → いまの前後から変更の記録を作る）</td><td>U2 U5 U6 U7</td><td>CLI ・ MCP</td></tr></table></div><div class="tw"><table class=""><tr><th>駆動される側（外に求める）</th><th>アダプター</th><th>業務領域</th></tr><tr><td>契約を読む ・ 書く（Concrete の文書 ・ glossary ・ ビュー ・ デザインシステム。公開する部分を含む）</td><td>文脈のリポジトリのファイル</td><td>保存と版の管理</td></tr><tr><td>インスタンスを読む ・ 書く</td><td>文脈のリポジトリのファイル（正本。関係の索引は、遅いと測れてから、ファイルから作り直せる手元の DB を同じポートの後ろに置く）</td><td>保存と版の管理</td></tr><tr><td>判定の記録を読む ・ 書く</td><td>文脈のリポジトリのファイル（最初のアダプターは1件1ファイル）</td><td>保存と版の管理</td></tr><tr><td>変更の記録を読む ・ 書く</td><td>文脈のリポジトリのファイル（最初のアダプターは1件1ファイル。索引は遅いと測れてから、ファイルから作り直せるものを同じポートの後ろに置く）</td><td>保存と版の管理</td></tr><tr><td>セッションと手元のセッションの索引を読む ・ 書く</td><td>作業した人の手元（最初のアダプターは SQLite 1ファイル。置き場所は起動の設定で渡し、Git のアダプターを使うときの既定はすべての worktree が共有する場所。確定しない。不変条件は一意の索引とトリガーで断り、接続の設定に依らない。登録は書き込みのトランザクションを先に取ってから読む）</td><td>保存と版の管理</td></tr><tr><td>変更の仕組みとやりとりする（①前後：前の姿の参照と後の姿の参照から対象ごとの前後。無いと届かないを分ける ②単位の中身：前の姿 ・ 後の姿 ・ 出した者と時刻（出どころ付き）③消した ID の履歴（探した範囲付き）④確定する：対象のファイルの一覧と説明から単位の参照。変わったものが無いことを失敗と分ける）</td><td>Git ・ スナップショット（前と後のディレクトリ）など。参照は基盤が解釈しない文字列</td><td>保存と版の管理</td></tr><tr><td>公開された言葉を取りに行く（ほかの文脈の公開する部分の版）</td><td>ほかのリポジトリ ・ 配布の仕組み（$id の閉じた一覧で確かめる）</td><td>スキーマの保存と公開</td></tr><tr><td>rule の判定を依頼する（AI）</td><td>Claude Code ・ Codex などの CLI</td><td>AI と外のツールによる判定</td></tr><tr><td>描画したものを書き出す</td><td>HTML ・ Markdown のファイル</td><td>描画</td></tr><tr><td>外のツールを呼ぶ（Concrete が宣言した validator）</td><td>Concrete の x- の定義に名前がある外のツール</td><td>AI と外のツールによる判定</td></tr><tr><td>AI ツールのセッションを問う（再開できるか ・ キャッシュの有効時間（不明もある）・ 最後に使った時刻 ・ 履歴の割合）</td><td>Claude Code ・ Codex ・ Copilot ・ Gemini ・ Kiro などの CLI</td><td>目的ごとのセッションの管理</td></tr><tr><td>設定を読む（利用者 ・ プロジェクト ・ 手元）</td><td>ファイル</td><td>保存と版の管理</td></tr></table></div><h3>状態</h3><div class="tw"><table class=""><tr><th>対象</th><th>状態</th></tr><tr><td>instance</td><td>下書き（violated がある。直すのは書く側） → 確かめ直しを待つ（error がある） → 判断待ち（unverified ・ unsupported がある。人が見る） → 検証済み</td></tr><tr><td>セッション</td><td>開いている（再開できる） → 閉じた（再開しない。開いているへは戻らない）</td></tr></table></div><h3>不変条件（46）</h3><div class="tw"><table class=""><tr><th>id</th><th>対象</th><th>中身</th></tr><tr><td>I1</td><td>Abstract</td><td>Abstract の拡張項目 ・ Concrete の契約 ・ 拡張の契約は Abstract だけが持つ。出した Abstract の版は変えず、新しい版を並べて出す。</td></tr><tr><td>I2</td><td>Abstract</td><td>閉じた一覧は $id の一覧のデータで、一覧に無い $schema は取りに行かずに断る。</td></tr><tr><td>I3</td><td>Concrete</td><td>Concrete は $schema で Abstract の版を1つ申告し、その版の Concrete の契約と拡張の契約に従う。</td></tr><tr><td>I4</td><td>Concrete</td><td>rule は判定する者と（AI ・ 人なら）読む欄を持ち、id は Concrete の中で一意。使う term と x- には定義がある。</td></tr><tr><td>I5</td><td>Concrete</td><td>Concrete が足した x- の定義は作法に従う。基盤は意味を解釈せず、宣言された validator の結果を5つの値と根拠でまとめる。</td></tr><tr><td>I6</td><td>Concrete</td><td>Concrete の拡張項目の範囲は Concrete の $id で決まり、Abstract の拡張項目とぶつかる定義は違反になる。</td></tr><tr><td>I7</td><td>Concrete</td><td>公開する部分は版を並べて出し、出した版は変えない。読む側は指した版で検証される。</td></tr><tr><td>I8</td><td>インスタンス</td><td>インスタンスは Concrete 1つに従う。$schema が解決できないインスタンスは下書きとして返る。</td></tr><tr><td>I9</td><td>インスタンス</td><td>x-relationship の参照先が無ければ基盤が violated にする。参照を壊す変更と、指されたものを消す変更は取り込めない理由に出る。</td></tr><tr><td>I10</td><td>インスタンス</td><td>x-derived-from の宣言値は導出値と一致し、合わない変更は violated として取り込めない理由に出る。</td></tr><tr><td>I11</td><td>インスタンス</td><td>消した ID は使い直さない。消したインスタンスに結び付いた判定の記録は効かない。変更の記録は経緯として残る。</td></tr><tr><td>I12</td><td>検証結果</td><td>検証結果は rule と拡張した x- ごとに、5つの値のどれか1つ ・ 根拠 ・ 判定した者を持つ。必須の欄が空なら機械の violated。</td></tr><tr><td>I13</td><td>検証結果</td><td>機械の検証と、決定的な外のツールは、同じ値から同じ結果を返し、手元と CI で同じになる。</td></tr><tr><td>I14</td><td>検証結果</td><td>AI には読む欄 ・ term ・ 参照先の値の写しだけを渡す。根拠が空か読んだ値に無い答えと、割れた答えは unverified。</td></tr><tr><td>I15</td><td>検証結果</td><td>validator が無い ・ 起動できない ・ 答えないときは、隠さず決めた値で返し、手元と CI で同じになる。</td></tr><tr><td>I16</td><td>判定の記録</td><td>AI と人の判定は判定の記録として変更に入れ、判定した値を残す。いまの値と等しければ聞き直さず、違えば効かない。</td></tr><tr><td>I17</td><td>判定の記録</td><td>状態は、変更に入れた判定の記録だけから導く。CI は AI に聞き直さず、記録が無ければ無いと返す。</td></tr><tr><td>I18</td><td>判定の記録</td><td>人が覆せるのは AI と人の rule の結果だけ。人の判定は、変更の仕組みが人と約束した変更でだけ足せる。</td></tr><tr><td>I19</td><td>状態</td><td>インスタンスの状態は保存せず、検証結果と判定の記録から決定表で導く。</td></tr><tr><td>I20 <span class="chg">C20</span></td><td>変更</td><td>変更（確定の単位の並び。取り込みを含む）には、変更後の全インスタンスの状態 ・ 変わったもの ・ 人が見るもの ・ 取り込めない理由を出す。</td></tr><tr><td>I21</td><td>変更</td><td>決定権が人の欄を、人の入口を通らずに変えた変更は、取り込めない理由に出る。</td></tr><tr><td>I22</td><td>変更</td><td>同じインスタンス × rule の判定、または同じ対象の同じ欄を両方で変えた取り込みは、基盤が片方を選ばず、衝突として人に出る。</td></tr><tr><td>I23</td><td>例外</td><td>判定できなかった rule は、原因ごとにまとめて人が見るものに出る。判断されないものは unverified のまま。</td></tr><tr><td>I24</td><td>探す</td><td>探すは、いまの入力に対する判定の結果と状態だけを使い、効かなくなった判定を verified として返さない。</td></tr><tr><td>I25</td><td>探す</td><td>term は glossary の版付きの id で一致を決め、出した版の term は変えない。別の版の term は別の語として探す。公開された言葉は読む側の指した版で探す。</td></tr><tr><td>I26 <span class="chg">C08</span></td><td>描画</td><td>描画は状態と rule ごとの結果を内容と一緒に示し、失敗したら1ページも書かない。render の前に、カタログのトークンがデザイントークンに在るかと、ビューの式が指す欄が Concrete に在るかを検査する。1つの kind に向くビューは0か1つで、無ければ既定の描き方で描く。指す先の無いビューは違反になる。</td></tr><tr><td>I27</td><td>移す</td><td>Abstract の新しい版は移し方を持つ。移せない箇所は理由と一緒に返り、いまの Concrete は壊れない。</td></tr><tr><td>I28</td><td>経緯</td><td>判定の記録（判定した者 ・ 入力 ・ 根拠）と変更の記録（意図 ・ 目的 ・ 欄）と変更の仕組みの履歴から、誰がいつ何を変え、何を判定したかが分かる。</td></tr><tr><td>I29</td><td>外のツール</td><td>validator に渡すのは、その x- の場所 ・ 値 ・ 読む欄の値だけ。AI の validator はツールを持たせずに起動する。</td></tr><tr><td>I30</td><td>作法</td><td>作法には版があり、Concrete は従う版を申告する。出した作法の版は変えず、基盤を更新しても作法を保つ。</td></tr><tr><td>I31 <span class="chg">C25</span></td><td>変更の記録</td><td>変更の記録は意図1つと変更の項目を持ち、インスタンスとは別の集約で、一致は結果整合にする。取り込みの時点で記録と変更の前後を両方向で突き合わせ、記録の無い書き換えは「記録に無い」、書き換えの無い記録は「変更の無い記録」として出る。基盤が書く判定の記録と、変更の記録のファイルそのものは、突き合わせから外す。</td></tr><tr><td>I32</td><td>変更の記録</td><td>意図の無い変更も保存は断らず、「意図が無い」変更の例外として出る。書いた記録は書き換えず、書き換え ・ 削除は「記録の書き換え」として出る。差し戻した意図を直すときは新しい変更の記録を足し、置き換える意図の id で前の記録を指す。</td></tr><tr><td>I33</td><td>変更の記録</td><td>意図と変更が合っているかは Abstract の rule で、判定の対象は変更の記録である。変更の中でだけ判定し、取り込んだあとのインスタンスの状態の導出には使わない。violated は「意図が合わない」、unverified は判断待ちとして変更の例外に出る。</td></tr><tr><td>I34 <span class="chg">C21</span></td><td>変更の記録</td><td>セッション ID は AI ツールが発行した値で、基盤は中身を解釈しない。セッションと手元の索引にだけ置き、確定する変更の記録と判定の記録には入れず、I18 の権限の判定に使わない。</td></tr><tr><td>I35</td><td>まとめ方</td><td>意味の変更は I33 の判定の記録に残り、まとまりは保存しない。出すたびに目的の参照 ・ 対象の id ・ 変更の前後で記録を引いて同じ形に作り、1つの変更の記録は1回の出力で1回だけ出る。セッションで引けるのは手元の索引を持つ本人だけで、親のセッション ID で引くと、セッションの親をたどって子孫のセッションも含む。同じ欄を2つの意図が変えたときは分けず、その1文に両方の意図の id を付ける。</td></tr><tr><td>I36 <span class="chg">C26</span></td><td>変更を見せる</td><td>変更の例外を件数と一緒に先頭に出し、目的 → 意図 → 意図の意味と対象ごとの意味 → 検証結果の差分 → 描画の差分の順に出す。意図ごとの判定の記録がそのまま効いていれば「前回から変わっていない」と出す。前後を成型できなかった対象（文字として読めないファイルなど）を示す。x-relationship ・ x-derived-from で一緒に変わった欄は原因の変更の下へまとめる。</td></tr><tr><td>I37</td><td>変更の記録</td><td>変更の記録の id は書いた時に1回だけ、ほかの書き手と打ち合わせずに一意に決まる値にし、あとから変えない。別の変更で足した記録どうしが取り込みで衝突しない。</td></tr><tr><td>I38 <span class="chg">C27</span></td><td>変更の記録</td><td>入口はセッション ID を受け取ったら、そのセッションの目的の参照を、その呼び出しで書くすべての変更の記録に写し、索引に同じセッション ID を付ける。手元に無いセッション ID は受け取らない。セッション ID を受け取らないとき、または目的を持たないセッション（オーケストレーター）のときは、目的の参照を呼ぶ側から受け取り、索引には足さない。</td></tr><tr><td>I39</td><td>外のツール</td><td>実行できない検証の仕方（validator が無い ・ 起動できないなど）は unsupported で返し、人が見るものに出す。</td></tr><tr><td>I40 <span class="chg">C22</span></td><td>保存</td><td>インスタンス ・ glossary ・ ビュー ・ デザインシステム ・ 変更の記録 ・ 判定の記録の正本は確定するファイルで、Concrete は保存の形を宣言しない。セッションと索引は基盤が持つ手元の DB に置き、確定しない。関係の索引は正本から作り直せる。セッションと手元のセッションの索引は作り直せず、失ったら同じ目的でも新しく立てる（確定した記録は失わない）。</td></tr><tr><td>I41</td><td>探す</td><td>種類（kind）の名前の範囲は Concrete の $id で決まり、別の文脈の同じ名前の種類は別の種類として扱う。</td></tr><tr><td>I42</td><td>探す</td><td>探した結果には探した範囲（文脈の一覧と、索引を作った正本の版）を付け、範囲の外は探していないと返す。0件を「無い」と返さない。</td></tr><tr><td>I43</td><td>インスタンス</td><td>ほかの文脈から指されているインスタンスを消しても、消した側では止められない。指している側の次の検証で violated になり、黙って壊れない。</td></tr><tr><td>I44 <span class="chg">C40</span></td><td>セッション</td><td>セッション ID ・ 目的の参照 ・ 親 ・ 役割は立てた時に決めて変えない。任せる先のセッションの目的の参照は親と同じにする。オーケストレーターは入れ子にせず、任せる先のセッションは親にならない。</td></tr><tr><td>I45</td><td>セッション</td><td>閉じたセッションは開き直さない。</td></tr><tr><td>I46 <span class="chg">C41</span></td><td>セッション</td><td>1つの手元で、開いているオーケストレーターのセッションは1つまで。目的のセッションは、AI ツールと親に関係なく、同じ目的で開いているのは1つまで。任せる先のセッションは、目的 ・ 親 ・ 役割が同じで開いているのは1つまで。</td></tr></table></div><h3>境界</h3><div class="tw"><table class=""><tr><th>もの</th><th>持ち主</th><th>変えてよい者</th></tr><tr><td>Semantic Abstract Schema（版で識別する。メタスキーマ ・ Abstract の拡張項目 ・ Concrete の契約 ・ 拡張の契約 ・ ほかのファイルの形 ・ 閉じた一覧のデータ）</td><td>基盤</td><td>基盤だけ</td></tr><tr><td>個々の Semantic Concrete Schema の文書（欄 ・ rule ・ glossary の term を指す $ref ・ Concrete の拡張項目 ・ 任せる先 ・ 決定権 ・ 公開する部分）</td><td>文脈</td><td>その文脈だけ</td></tr><tr><td>Concrete の公開する部分の版（公開する term ・ x- の定義 ・ x-relationship で指される欄の形）</td><td>文脈（公開された言葉として出す）</td><td>その文脈だけ。版は並べて出し、出した版は変えない</td></tr><tr><td>glossary ・ インスタンス ・ 判定の記録（記録の形は Abstract のファイル）</td><td>文脈</td><td>文脈。人の判定は人が出した変更でだけ</td></tr><tr><td>検証のエンジンと protocol</td><td>基盤</td><td>基盤だけ（実装の言語は契約に出さない）</td></tr><tr><td>Concrete が足した x- の意味の検証と、その依存</td><td>Concrete（文脈）</td><td>その文脈。基盤は作法だけを持つ</td></tr><tr><td>変更の記録（意図 ・ 目的の参照 ・ 書いた者の種類 ・ 変更の項目 ・ 置き換える意図の id。セッション ID は持たない。形は Abstract のファイル）</td><td>文脈</td><td>その文脈。書くのは変更を出した作者か AI の Agent</td></tr><tr><td>目的（ACDR ・ 論点など）</td><td>外</td><td>外。基盤は目的の参照（id）だけを持つ</td></tr><tr><td>ファイルの差分（前後の値）・ 履歴 ・ 出した者 ・ 時刻 ・ 承認 ・ 取り込み ・ 衝突 <span class="chg">C24</span></td><td>外（AI のツール ・ harness ・ Git などの変更の仕組み）</td><td>外。基盤は差分を作らず、ポートで前後を受け取って成型する。変更の全体を他人が承認した記録は持たない（本人がセッションの中で承認するのは基盤の操作で、人の判定の記録に残す）</td></tr><tr><td>セッションの中身（会話の記録）</td><td>外（手元の AI のツール）</td><td>外。リポジトリに入れない。セッション ID はセッションの集約と手元のセッションの索引にだけ置き、変更の記録には入れない</td></tr><tr><td>セッションの発行と会話の中身 ・ AI ツールの起動</td><td>外（AI ツール ・ 人 ・ harness）</td><td>外。基盤は起動の前に問われて、再開する ID か「新しく立てる」を返すだけ</td></tr><tr><td>セッション（6つの欄。形は Abstract のファイル）</td><td>基盤（作業した人の手元、確定しない）</td><td>基盤のコマンド（立てる ・ 閉じる）だけ</td></tr><tr><td>任せた範囲（親が子に任せるときの約束。任せるたびに決まる）</td><td>外（親のセッション。引き継ぎのプロンプトに書く）</td><td>外。基盤は持たない。変わった欄は、変更の記録で出す</td></tr><tr><td>手元のセッションの索引（セッション ID → 変更の記録の id。形は Abstract のファイル）</td><td>作業した人の手元（確定しない）</td><td>作業した本人だけ</td></tr><tr><td>関係の索引（インスタンスと x-relationship。正本のファイルから作り直せる）</td><td>基盤（手元の DB。確定しない）</td><td>基盤だけ。Concrete は保存の形を宣言しない</td></tr><tr><td>AI の Agent に何を許すか（各 AI ツールの許可）</td><td>各 AI ツールの設定ファイル（Claude Code の .claude/settings.json など）</td><td>外。基盤は許可の契約を持たない</td></tr><tr><td>設定（基盤の振る舞いの値。形は Abstract のファイル）</td><td>利用者 ・ 文脈（プロジェクトは確定する）・ 作業した人の手元</td><td>それぞれの持ち主。許可は持たない（各 AI ツールの設定ファイル）</td></tr></table></div><h3>ボードにだけ在る直し（ACDR でボードへ適用する）</h3><div class="tw"><table class=""><tr><th>どこ</th><th>変更前</th><th>変更後</th></tr><tr><td>Q1 #8</td><td>基盤はソースを読まず、テストが走ったときに書く記録（JSON）でつながる</td><td>ソースコードの前後も受け取って成型する（利用者の指示）</td></tr><tr><td>Q11 #2</td><td>閉じるのは、利用者か親が閉じると決めたときと、AI ツールが「そのセッションは無い」と答えたときだけ</td><td>…と答えたとき、と、再開か新規かで新しく立てるとき（同じ枠で開いていたものを閉じる）</td></tr><tr><td>Q11 #3</td><td>目的 ・ 親 ・ 役割が同じで開いていて、最後に使った時刻がキャッシュの有効時間内なら、その ID で再開する。そうでなければ新しく立てる</td><td>C42 の文</td></tr><tr><td>Q11 #9 ①</td><td>子の目的は親と同じ</td><td>任せる先のセッションの目的は親と同じ</td></tr><tr><td>Q7 #17</td><td>Abstract の AI の rule は agent に予約した reviewer を使い</td><td>基盤自身の x-delegates の judge を使い</td></tr><tr><td>Q6 ・ Q1 #9 ・ #19 ・ #20</td><td>core</td><td>base</td></tr></table></div><h2 id="er">2　ER 図</h2><p class="meta">確定するファイル（共有する）と、手元の DB（確定しない）の関係。目的と確定の単位の参照は外</p><div class="fig"><svg viewBox="0 0 1000 720" style="min-width:900px" role="img" aria-label="基盤のデータの関係（ER 図）" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .badge.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.kind-1.small{fill:var(--dsvg-kind-1,#7A3B6D);font-size:10px}.dsvg .badge.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .label.kind-2.small{fill:var(--dsvg-kind-2,#2F5B80);font-size:10px}.dsvg .badge.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .label.kind-3.small{fill:var(--dsvg-kind-3,#566318);font-size:10px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .title.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:13px;font-weight:700}.dsvg .grid{stroke:var(--dsvg-line,#7C8C86)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}</style><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="720.0" fill="#FFFFFF" rx="8"/>
 <text class="title" x="10" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">基盤のデータの関係（ER 図）</text>
 <rect class="badge kind-1" x="10" y="34" width="66" height="18" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1" rx="3"/><text class="label small kind-1" x="43" y="47" font-weight="700" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#7A3B6D">スキーマ</text><rect class="badge kind-2" x="86" y="34" width="66" height="18" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1" rx="3"/><text class="label small kind-2" x="119" y="47" font-weight="700" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#2F5B80">データ</text><rect class="badge kind-3" x="162" y="34" width="66" height="18" fill="#E8ECD3" stroke="#566318" stroke-width="1" rx="3"/><text class="label small kind-3" x="195" y="47" font-weight="700" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#566318">DB の表</text><text class="note small" x="244" y="47" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">スキーマ：形を決めるファイル　データ：スキーマに従うファイル（確定して共有）　DB の表：手元の SQLite（確定しない）</text>
 <rect class="area" x="10" y="62" width="980" height="370" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="20" y="78" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">リポジトリのファイル（変更の仕組みで確定して共有する）</text>
@@ -1598,7 +1598,11 @@ minItems: 1
 readOnly: true
 items: &quot;object&quot;</code></td><td>変更の項目</td><td><b>means</b> どの対象のどの欄が変わったかの並びで、基盤が最後に確定した姿 → いまの前後から入れる。<br><b>parse</b> 対象はインスタンスなら id と kind、それ以外はパス。欄は JSON の対象だけが持つ。<br><b>when</b> AI は書かない。基盤が「変更を記録する」で入れる。</td><td><span class="rid">unit-field</span>（machine）欄は x-prompt を持つ書く単位の JSON Pointer で、配列の添字まで下げない。</td></tr><tr><td><code>replaces</code></td><td><code>type: &quot;string&quot;
 pattern: &quot;^[0-7][0-9A-HJKMNP-TV-Z]{25}$&quot;
-x-relationship: {&quot;to&quot;: &quot;urn:semantic-agent-schema:base:change:v1&quot;}</code></td><td>置き換える意図の id</td><td><b>means</b> 差し戻した意図を直すときに、前の変更の記録を指す。<br><b>when</b> 差し戻しを直すときだけ書く。</td><td></td></tr></table></div><details><summary>change.schema.json の JSON 全文</summary><pre class="code">{
+x-relationship: {&quot;to&quot;: &quot;urn:semantic-agent-schema:base:change:v1&quot;}</code></td><td>置き換える意図の id</td><td><b>means</b> 差し戻した意図を直すときに、前の変更の記録を指す。<br><b>when</b> 差し戻しを直すときだけ書く。</td><td></td></tr></table></div><h4><code>$defs/view</code> <span class="meta"></span></h4><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>range</code> <span class="req">必須</span></td><td><code>type: &quot;object&quot;
+欄: before ・ after</code></td><td>前後の参照</td><td><b>means</b> ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。</td><td></td></tr><tr><td><code>exceptions</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
+items: &quot;object&quot;</code></td><td>例外</td><td><b>means</b> 例外の種類ごとの件数と中身で、先頭に出る。</td><td></td></tr><tr><td><code>purposes</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
+items: &quot;object&quot;</code></td><td>目的 → 意図</td><td><b>means</b> 目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。</td><td></td></tr><tr><td><code>unreadable</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
+items: &quot;string&quot;</code></td><td>成型できなかった対象</td><td><b>means</b> 文字として読めないなどで成型できなかった対象のパスである。</td><td></td></tr></table></div><details><summary>change.schema.json の JSON 全文</summary><pre class="code">{
   &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
   &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:change:v1&quot;,
   &quot;title&quot;: &quot;変更の記録&quot;,
@@ -1767,6 +1771,213 @@ x-relationship: {&quot;to&quot;: &quot;urn:semantic-agent-schema:base:change:v1&
           &quot;when&quot;: &quot;差し戻しを直すときだけ書く。&quot;
         },
         &quot;write&quot;: []
+      }
+    }
+  },
+  &quot;$defs&quot;: {
+    &quot;view&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;required&quot;: [
+        &quot;range&quot;,
+        &quot;exceptions&quot;,
+        &quot;purposes&quot;,
+        &quot;unreadable&quot;
+      ],
+      &quot;additionalProperties&quot;: false,
+      &quot;properties&quot;: {
+        &quot;range&quot;: {
+          &quot;type&quot;: &quot;object&quot;,
+          &quot;required&quot;: [
+            &quot;before&quot;,
+            &quot;after&quot;
+          ],
+          &quot;properties&quot;: {
+            &quot;before&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            },
+            &quot;after&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          },
+          &quot;description&quot;: &quot;前後の参照&quot;,
+          &quot;x-prompt&quot;: {
+            &quot;read&quot;: {
+              &quot;means&quot;: &quot;ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。&quot;
+            },
+            &quot;write&quot;: []
+          }
+        },
+        &quot;exceptions&quot;: {
+          &quot;type&quot;: &quot;array&quot;,
+          &quot;items&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;required&quot;: [
+              &quot;type&quot;,
+              &quot;count&quot;,
+              &quot;items&quot;
+            ],
+            &quot;additionalProperties&quot;: false,
+            &quot;properties&quot;: {
+              &quot;type&quot;: {
+                &quot;enum&quot;: [
+                  &quot;intent-missing&quot;,
+                  &quot;intent-mismatch&quot;,
+                  &quot;unrecorded&quot;,
+                  &quot;no-change&quot;,
+                  &quot;record-rewritten&quot;,
+                  &quot;human-field-changed&quot;,
+                  &quot;state-changed&quot;,
+                  &quot;unconfirmed-outside-intent&quot;,
+                  &quot;not-in-range&quot;,
+                  &quot;unreadable&quot;
+                ]
+              },
+              &quot;count&quot;: {
+                &quot;type&quot;: &quot;integer&quot;,
+                &quot;minimum&quot;: 1
+              },
+              &quot;items&quot;: {
+                &quot;type&quot;: &quot;array&quot;,
+                &quot;items&quot;: {
+                  &quot;type&quot;: &quot;object&quot;
+                }
+              }
+            }
+          },
+          &quot;description&quot;: &quot;例外&quot;,
+          &quot;x-prompt&quot;: {
+            &quot;read&quot;: {
+              &quot;means&quot;: &quot;例外の種類ごとの件数と中身で、先頭に出る。&quot;
+            },
+            &quot;write&quot;: []
+          }
+        },
+        &quot;purposes&quot;: {
+          &quot;type&quot;: &quot;array&quot;,
+          &quot;items&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;required&quot;: [
+              &quot;purpose_ref&quot;,
+              &quot;intents&quot;
+            ],
+            &quot;properties&quot;: {
+              &quot;purpose_ref&quot;: {
+                &quot;type&quot;: &quot;string&quot;
+              },
+              &quot;intents&quot;: {
+                &quot;type&quot;: &quot;array&quot;,
+                &quot;items&quot;: {
+                  &quot;type&quot;: &quot;object&quot;,
+                  &quot;required&quot;: [
+                    &quot;change_id&quot;,
+                    &quot;intent&quot;,
+                    &quot;targets&quot;
+                  ],
+                  &quot;properties&quot;: {
+                    &quot;change_id&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;intent&quot;: {
+                      &quot;type&quot;: &quot;string&quot;
+                    },
+                    &quot;judgment&quot;: {
+                      &quot;enum&quot;: [
+                        &quot;verified&quot;,
+                        &quot;violated&quot;,
+                        &quot;unverified&quot;,
+                        &quot;unsupported&quot;,
+                        &quot;error&quot;,
+                        &quot;none&quot;
+                      ]
+                    },
+                    &quot;meaning&quot;: {
+                      &quot;type&quot;: &quot;object&quot;
+                    },
+                    &quot;targets&quot;: {
+                      &quot;type&quot;: &quot;array&quot;,
+                      &quot;items&quot;: {
+                        &quot;type&quot;: &quot;object&quot;,
+                        &quot;required&quot;: [
+                          &quot;target&quot;,
+                          &quot;kind&quot;
+                        ],
+                        &quot;properties&quot;: {
+                          &quot;target&quot;: {
+                            &quot;$ref&quot;: &quot;urn:semantic-agent-schema:base:annotations:v1#/$defs/target&quot;
+                          },
+                          &quot;kind&quot;: {
+                            &quot;enum&quot;: [
+                              &quot;fields&quot;,
+                              &quot;lines&quot;
+                            ]
+                          },
+                          &quot;fields&quot;: {
+                            &quot;type&quot;: &quot;array&quot;,
+                            &quot;items&quot;: {
+                              &quot;type&quot;: &quot;object&quot;,
+                              &quot;required&quot;: [
+                                &quot;at&quot;
+                              ],
+                              &quot;properties&quot;: {
+                                &quot;at&quot;: {
+                                  &quot;$ref&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer&quot;
+                                },
+                                &quot;before&quot;: true,
+                                &quot;after&quot;: true
+                              }
+                            }
+                          },
+                          &quot;lines&quot;: {
+                            &quot;type&quot;: &quot;array&quot;,
+                            &quot;items&quot;: {
+                              &quot;type&quot;: &quot;object&quot;,
+                              &quot;required&quot;: [
+                                &quot;mark&quot;,
+                                &quot;text&quot;
+                              ],
+                              &quot;properties&quot;: {
+                                &quot;mark&quot;: {
+                                  &quot;enum&quot;: [
+                                    &quot; &quot;,
+                                    &quot;-&quot;,
+                                    &quot;+&quot;
+                                  ]
+                                },
+                                &quot;text&quot;: {
+                                  &quot;type&quot;: &quot;string&quot;
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          &quot;description&quot;: &quot;目的 → 意図&quot;,
+          &quot;x-prompt&quot;: {
+            &quot;read&quot;: {
+              &quot;means&quot;: &quot;目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。&quot;
+            },
+            &quot;write&quot;: []
+          }
+        },
+        &quot;unreadable&quot;: {
+          &quot;type&quot;: &quot;array&quot;,
+          &quot;items&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;description&quot;: &quot;成型できなかった対象&quot;,
+          &quot;x-prompt&quot;: {
+            &quot;read&quot;: {
+              &quot;means&quot;: &quot;文字として読めないなどで成型できなかった対象のパスである。&quot;
+            },
+            &quot;write&quot;: []
+          }
+        }
       }
     }
   }
@@ -2184,7 +2395,7 @@ minLength: 1</code></td><td>問い</td><td><b>means</b> 何が分かれば決め
 pattern: &quot;^[a-z0-9][a-z0-9-]*$&quot;</code></td><td>AI ツールの種類</td><td><b>means</b> セッションを発行した AI ツールの名前（claude-code ・ codex など）である。</td><td></td></tr><tr><td><code>id</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
 minLength: 1</code></td><td>ツールが発行した文字列</td><td><b>means</b> AI ツールが発行したセッションの文字列で、基盤は解釈しない。</td><td></td></tr></table></div><div class="tw"><table class="wide"><tr><th>読み方</th><th>書くときの決まり</th></tr><tr><td><b>means</b> AI ツールの種類と、そのツールが発行した文字列の組である。基盤は文字列を解釈しない。</td><td></td></tr></table></div><h4><code>$defs/session</code> <span class="meta"></span></h4><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>session</code> <span class="req">必須</span></td><td><code>$ref: &quot;#/$defs/session-id&quot;</code></td><td>セッション ID</td><td><b>means</b> この行のセッションである。</td><td></td></tr><tr><td><code>purpose_ref</code></td><td><code>type: &quot;string&quot;
 minLength: 1</code></td><td>目的の参照</td><td><b>means</b> このセッションが進める目的である。</td><td></td></tr><tr><td><code>parent</code></td><td><code>$ref: &quot;#/$defs/session-id&quot;</code></td><td>親のセッション</td><td><b>means</b> このセッションを立てた親である。</td><td></td></tr><tr><td><code>role</code></td><td><code>type: &quot;string&quot;
-pattern: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;</code></td><td>役割</td><td><b>means</b> 親の Concrete の x-delegates にある任せる先の名前である。</td><td></td></tr><tr><td><code>state</code> <span class="req">必須</span></td><td><code>enum: [&quot;open&quot;, &quot;closed&quot;]</code></td><td>状態</td><td><b>means</b> 開いている（再開できる）か閉じたかである。</td><td><span class="rid">no-reopen</span>（machine）閉じた行は open に戻らない。</td></tr><tr><td><code>last_used_at</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+pattern: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;</code></td><td>役割</td><td><b>means</b> 親のセッションが呼んだ相手の名前（Skill ・ Agent の名前、または Concrete の x-delegates の名前）である。</td><td></td></tr><tr><td><code>state</code> <span class="req">必須</span></td><td><code>enum: [&quot;open&quot;, &quot;closed&quot;]</code></td><td>状態</td><td><b>means</b> 開いている（再開できる）か閉じたかである。</td><td><span class="rid">no-reopen</span>（machine）閉じた行は open に戻らない。</td></tr><tr><td><code>last_used_at</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
 pattern: &quot;^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$&quot;</code></td><td>最後に使った時刻</td><td><b>means</b> このセッションを最後に使った UTC の時刻である。</td><td></td></tr></table></div><div class="tw"><table class=""><tr><th>種類（oneOf）</th><th>条件</th></tr><tr><td>オーケストレーターのセッション</td><td><code>{&quot;not&quot;: {&quot;anyOf&quot;: [{&quot;required&quot;: [&quot;purpose_ref&quot;]}, {&quot;required&quot;: [&quot;parent&quot;]}, {&quot;required&quot;: [&quot;role&quot;]}]}}</code></td></tr><tr><td>目的のセッション</td><td><code>{&quot;required&quot;: [&quot;purpose_ref&quot;, &quot;parent&quot;], &quot;not&quot;: {&quot;required&quot;: [&quot;role&quot;]}}</code></td></tr><tr><td>任せる先のセッション</td><td><code>{&quot;required&quot;: [&quot;purpose_ref&quot;, &quot;parent&quot;, &quot;role&quot;]}</code></td></tr></table></div><div class="tw"><table class="wide"><tr><th>読み方</th><th>書くときの決まり</th></tr><tr><td><b>means</b> セッション1つの行で、種類は目的 ・ 親 ・ 役割の組で決まる。</td><td><span class="rid">fixed-at-creation</span>（machine）セッション ID ・ 目的 ・ 親 ・ 役割は、立てた時の値と同じである。<br><span class="rid">parent-kind</span>（machine）目的のセッションの親はオーケストレーターのセッションで、任せる先のセッションの親は目的のセッションで、目的は親と同じである。<br><span class="rid">one-open</span>（machine）1つの手元で、開いているオーケストレーターは1つ、同じ目的の目的のセッションは1つ、目的 ・ 親 ・ 役割が同じ任せる先は1つである。</td></tr></table></div><h4><code>$defs/session-change</code> <span class="meta"></span></h4><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>session</code> <span class="req">必須</span></td><td><code>$ref: &quot;#/$defs/session-id&quot;</code></td><td>セッション ID</td><td><b>means</b> 変更の記録を書いたセッションである。</td><td></td></tr><tr><td><code>change_id</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
 pattern: &quot;^[0-7][0-9A-HJKMNP-TV-Z]{25}$&quot;</code></td><td>変更の記録の id</td><td><b>means</b> そのセッションで書いた変更の記録である。</td><td><span class="rid">session-exists</span>（machine）行のセッションは手元の DB に在る。</td></tr></table></div><div class="tw"><table class="wide"><tr><th>読み方</th><th>書くときの決まり</th></tr><tr><td><b>means</b> 手元のセッションの索引の1行で、作業した本人だけが引ける。</td><td></td></tr></table></div><details><summary>session.schema.json の JSON 全文</summary><pre class="code">{
   &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
@@ -2277,7 +2488,7 @@ pattern: &quot;^[0-7][0-9A-HJKMNP-TV-Z]{25}$&quot;</code></td><td>変更の記�
           &quot;description&quot;: &quot;役割&quot;,
           &quot;x-prompt&quot;: {
             &quot;read&quot;: {
-              &quot;means&quot;: &quot;親の Concrete の x-delegates にある任せる先の名前である。&quot;
+              &quot;means&quot;: &quot;親のセッションが呼んだ相手の名前（Skill ・ Agent の名前、または Concrete の x-delegates の名前）である。&quot;
             },
             &quot;write&quot;: []
           }
@@ -2434,215 +2645,516 @@ pattern: &quot;^[0-7][0-9A-HJKMNP-TV-Z]{25}$&quot;</code></td><td>変更の記�
       }
     }
   }
-}</pre></details><h3 id="m-change-view">変更のまとまり（change-view）</h3><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:base:change-view:v1</td></tr><tr><td><code>title</code></td><td>変更のまとまり</td></tr><tr><td><code>description</code></td><td>変更を見せるときの出力の形。保存せず、同じ前後と記録からは毎回同じ形に作る。Concrete はこの形を $ref で使い、見せ方を足す。</td></tr></table></div><h4><code>$defs/view</code> <span class="meta"></span></h4><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>range</code> <span class="req">必須</span></td><td><code>type: &quot;object&quot;
-欄: before ・ after</code></td><td>前後の参照</td><td><b>means</b> ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。</td><td></td></tr><tr><td><code>exceptions</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
-items: &quot;object&quot;</code></td><td>例外</td><td><b>means</b> 例外の種類ごとの件数と中身で、先頭に出る。</td><td></td></tr><tr><td><code>purposes</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
-items: &quot;object&quot;</code></td><td>目的 → 意図</td><td><b>means</b> 目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。</td><td></td></tr><tr><td><code>unreadable</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
-items: &quot;string&quot;</code></td><td>成型できなかった対象</td><td><b>means</b> 文字として読めないなどで成型できなかった対象のパスである。</td><td></td></tr></table></div><details><summary>change-view.schema.json の JSON 全文</summary><pre class="code">{
+}</pre></details><h3 id="m-view">ビュー（view）</h3><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:base:view:v1</td></tr><tr><td><code>title</code></td><td>ビュー</td></tr><tr><td><code>description</code></td><td>ある kind（Concrete）のインスタンスをどう見せるかの定義。文脈ごと ・ kind ごとに0か1つ。見せ方だけを持ち、データの形と意味は持たない（Concrete が持つ）。</td></tr><tr><td><code>x-instance-path</code></td><td>.semantic-agent-schema/views/{id}.json</td></tr><tr><td><code>x-instance-label</code></td><td>ビュー {id}</td></tr></table></div><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>$schema</code> <span class="req">必須</span></td><td><code>const: &quot;urn:semantic-agent-schema:base:view:v1&quot;</code></td><td></td><td></td><td></td></tr><tr><td><code>kind</code> <span class="req">必須</span></td><td><code>const: &quot;view&quot;</code></td><td>種類</td><td><b>means</b> ビューであること。</td><td></td></tr><tr><td><code>id</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+pattern: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;</code></td><td>ビューの id</td><td><b>means</b> このビューの名前である。</td><td></td></tr><tr><td><code>for</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+pattern: &quot;^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$&quot;</code></td><td>描く kind</td><td><b>means</b> このビューが描く Concrete の URN である。</td><td><span class="rid">one-view-per-kind</span>（machine）同じ文脈で、同じ kind を描くビューは1つまでである。<br><span class="rid">for-exists</span>（machine）for の Concrete は、閉じた一覧か公開された版にある。</td></tr><tr><td><code>sections</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
+minItems: 1
+items: &quot;object&quot;</code></td><td>節の並び</td><td><b>means</b> 見出しと、部品で値を見せる並びである。<br><b>parse</b> 部品の value は、インスタンスの中の場所（JSON Pointer）として読む。</td><td><span class="rid">value-in-concrete</span>（machine）部品の value（JSON Pointer）は、for の Concrete の欄を指す。<br><span class="rid">part-in-catalog</span>（machine）部品の part は、文脈の部品のカタログにある名前である。</td></tr></table></div><details><summary>view.schema.json の JSON 全文</summary><pre class="code">{
   &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
-  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:change-view:v1&quot;,
-  &quot;title&quot;: &quot;変更のまとまり&quot;,
-  &quot;description&quot;: &quot;変更を見せるときの出力の形。保存せず、同じ前後と記録からは毎回同じ形に作る。Concrete はこの形を $ref で使い、見せ方を足す。&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:view:v1&quot;,
+  &quot;title&quot;: &quot;ビュー&quot;,
+  &quot;description&quot;: &quot;ある kind（Concrete）のインスタンスをどう見せるかの定義。文脈ごと ・ kind ごとに0か1つ。見せ方だけを持ち、データの形と意味は持たない（Concrete が持つ）。&quot;,
+  &quot;x-instance-path&quot;: &quot;.semantic-agent-schema/views/{id}.json&quot;,
+  &quot;x-instance-label&quot;: &quot;ビュー {id}&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;$schema&quot;,
+    &quot;kind&quot;,
+    &quot;id&quot;,
+    &quot;for&quot;,
+    &quot;sections&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;$schema&quot;: {
+      &quot;const&quot;: &quot;urn:semantic-agent-schema:base:view:v1&quot;
+    },
+    &quot;kind&quot;: {
+      &quot;const&quot;: &quot;view&quot;,
+      &quot;description&quot;: &quot;種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;ビューであること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;,
+      &quot;description&quot;: &quot;ビューの id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;このビューの名前である。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;for&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$&quot;,
+      &quot;description&quot;: &quot;描く kind&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;このビューが描く Concrete の URN である。&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;one-view-per-kind&quot;,
+            &quot;rule&quot;: &quot;同じ文脈で、同じ kind を描くビューは1つまでである。&quot;,
+            &quot;why&quot;: &quot;2つあると、どちらで描くかが決まらない（I26）。&quot;,
+            &quot;test&quot;: &quot;同じ for を持つビューの数を数える。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          },
+          {
+            &quot;id&quot;: &quot;for-exists&quot;,
+            &quot;rule&quot;: &quot;for の Concrete は、閉じた一覧か公開された版にある。&quot;,
+            &quot;why&quot;: &quot;無い kind は描けない。&quot;,
+            &quot;test&quot;: &quot;for の URN が引けるかを見る。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;sections&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;minItems&quot;: 1,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;title&quot;,
+          &quot;parts&quot;
+        ],
+        &quot;additionalProperties&quot;: false,
+        &quot;properties&quot;: {
+          &quot;title&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;minLength&quot;: 1
+          },
+          &quot;parts&quot;: {
+            &quot;type&quot;: &quot;array&quot;,
+            &quot;minItems&quot;: 1,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;object&quot;,
+              &quot;required&quot;: [
+                &quot;part&quot;,
+                &quot;value&quot;
+              ],
+              &quot;additionalProperties&quot;: false,
+              &quot;properties&quot;: {
+                &quot;part&quot;: {
+                  &quot;type&quot;: &quot;string&quot;,
+                  &quot;pattern&quot;: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;
+                },
+                &quot;value&quot;: {
+                  &quot;type&quot;: &quot;string&quot;,
+                  &quot;pattern&quot;: &quot;^(/([^~/]|~[01])*)+$&quot;
+                },
+                &quot;label&quot;: {
+                  &quot;type&quot;: &quot;string&quot;
+                }
+              }
+            }
+          }
+        }
+      },
+      &quot;description&quot;: &quot;節の並び&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;見出しと、部品で値を見せる並びである。&quot;,
+          &quot;parse&quot;: &quot;部品の value は、インスタンスの中の場所（JSON Pointer）として読む。&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;value-in-concrete&quot;,
+            &quot;rule&quot;: &quot;部品の value（JSON Pointer）は、for の Concrete の欄を指す。&quot;,
+            &quot;why&quot;: &quot;無い欄を指すと、描けない（Q1 #23）。&quot;,
+            &quot;test&quot;: &quot;value の先頭の欄が for の Concrete の properties にあるかを見る。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          },
+          {
+            &quot;id&quot;: &quot;part-in-catalog&quot;,
+            &quot;rule&quot;: &quot;部品の part は、文脈の部品のカタログにある名前である。&quot;,
+            &quot;why&quot;: &quot;無い部品は描けない（Q1 #23）。&quot;,
+            &quot;test&quot;: &quot;part の名前がカタログの parts にあるかを見る。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    }
+  }
+}</pre></details><h3 id="m-catalog">部品のカタログ（catalog）</h3><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:base:catalog:v1</td></tr><tr><td><code>title</code></td><td>部品のカタログ</td></tr><tr><td><code>description</code></td><td>ビューが使う部品の一覧と、部品が使うデザイントークンの名前。色や寸法の値は持たない（デザイントークンが持つ）。文脈に1つ。</td></tr><tr><td><code>x-instance-path</code></td><td>.semantic-agent-schema/design/catalog.json</td></tr><tr><td><code>x-instance-label</code></td><td>部品のカタログ</td></tr></table></div><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>$schema</code> <span class="req">必須</span></td><td><code>const: &quot;urn:semantic-agent-schema:base:catalog:v1&quot;</code></td><td></td><td></td><td></td></tr><tr><td><code>kind</code> <span class="req">必須</span></td><td><code>const: &quot;catalog&quot;</code></td><td>種類</td><td><b>means</b> 部品のカタログであること。</td><td></td></tr><tr><td><code>id</code> <span class="req">必須</span></td><td><code>const: &quot;catalog&quot;</code></td><td>id</td><td><b>means</b> 文脈に1つのカタログであること。</td><td></td></tr><tr><td><code>parts</code> <span class="req">必須</span></td><td><code>type: &quot;object&quot;</code></td><td>部品</td><td><b>means</b> 部品の名前から、その説明と、使うデザイントークンの名前を引く。</td><td><span class="rid">tokens-exist</span>（machine）部品が使うトークンの名前は、デザイントークンにある。</td></tr></table></div><details><summary>catalog.schema.json の JSON 全文</summary><pre class="code">{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:catalog:v1&quot;,
+  &quot;title&quot;: &quot;部品のカタログ&quot;,
+  &quot;description&quot;: &quot;ビューが使う部品の一覧と、部品が使うデザイントークンの名前。色や寸法の値は持たない（デザイントークンが持つ）。文脈に1つ。&quot;,
+  &quot;x-instance-path&quot;: &quot;.semantic-agent-schema/design/catalog.json&quot;,
+  &quot;x-instance-label&quot;: &quot;部品のカタログ&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;$schema&quot;,
+    &quot;kind&quot;,
+    &quot;id&quot;,
+    &quot;parts&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;$schema&quot;: {
+      &quot;const&quot;: &quot;urn:semantic-agent-schema:base:catalog:v1&quot;
+    },
+    &quot;kind&quot;: {
+      &quot;const&quot;: &quot;catalog&quot;,
+      &quot;description&quot;: &quot;種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;部品のカタログであること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;id&quot;: {
+      &quot;const&quot;: &quot;catalog&quot;,
+      &quot;description&quot;: &quot;id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;文脈に1つのカタログであること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;parts&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;minProperties&quot;: 1,
+      &quot;propertyNames&quot;: {
+        &quot;pattern&quot;: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;description&quot;,
+          &quot;tokens&quot;
+        ],
+        &quot;additionalProperties&quot;: false,
+        &quot;properties&quot;: {
+          &quot;description&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;minLength&quot;: 1
+          },
+          &quot;tokens&quot;: {
+            &quot;type&quot;: &quot;array&quot;,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;string&quot;,
+              &quot;pattern&quot;: &quot;^[a-z0-9]+(\\.[a-z0-9-]+)*$&quot;
+            }
+          }
+        }
+      },
+      &quot;description&quot;: &quot;部品&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;部品の名前から、その説明と、使うデザイントークンの名前を引く。&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;tokens-exist&quot;,
+            &quot;rule&quot;: &quot;部品が使うトークンの名前は、デザイントークンにある。&quot;,
+            &quot;why&quot;: &quot;無いトークンを使う部品は描けない（Q1 #23）。&quot;,
+            &quot;test&quot;: &quot;tokens の各名前がデザイントークンの tokens にあるかを見る。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    }
+  }
+}</pre></details><h3 id="m-design-tokens">デザイントークン（design-tokens）</h3><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:base:design-tokens:v1</td></tr><tr><td><code>title</code></td><td>デザイントークン</td></tr><tr><td><code>description</code></td><td>色などの値を、明るい表示と暗い表示の両方で持つ。どこに使うかは持たない（カタログが持つ）。文脈に1つ。</td></tr><tr><td><code>x-instance-path</code></td><td>.semantic-agent-schema/design/tokens.json</td></tr><tr><td><code>x-instance-label</code></td><td>デザイントークン</td></tr></table></div><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>$schema</code> <span class="req">必須</span></td><td><code>const: &quot;urn:semantic-agent-schema:base:design-tokens:v1&quot;</code></td><td></td><td></td><td></td></tr><tr><td><code>kind</code> <span class="req">必須</span></td><td><code>const: &quot;design-tokens&quot;</code></td><td>種類</td><td><b>means</b> デザイントークンであること。</td><td></td></tr><tr><td><code>id</code> <span class="req">必須</span></td><td><code>const: &quot;tokens&quot;</code></td><td>id</td><td><b>means</b> 文脈に1つのデザイントークンであること。</td><td></td></tr><tr><td><code>tokens</code> <span class="req">必須</span></td><td><code>type: &quot;object&quot;</code></td><td>トークン</td><td><b>means</b> トークンの名前から、明るい表示と暗い表示の値を引く。</td><td></td></tr><tr><td><code>contrast</code></td><td><code>type: &quot;array&quot;
+items: &quot;object&quot;</code></td><td>コントラストの組</td><td><b>means</b> 文字と地にするトークンの組と、必要なコントラスト比である。</td><td><span class="rid">contrast-meets</span>（machine）組ごとに、明るい表示と暗い表示の両方でコントラスト比が min 以上である。</td></tr></table></div><details><summary>design-tokens.schema.json の JSON 全文</summary><pre class="code">{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:design-tokens:v1&quot;,
+  &quot;title&quot;: &quot;デザイントークン&quot;,
+  &quot;description&quot;: &quot;色などの値を、明るい表示と暗い表示の両方で持つ。どこに使うかは持たない（カタログが持つ）。文脈に1つ。&quot;,
+  &quot;x-instance-path&quot;: &quot;.semantic-agent-schema/design/tokens.json&quot;,
+  &quot;x-instance-label&quot;: &quot;デザイントークン&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;$schema&quot;,
+    &quot;kind&quot;,
+    &quot;id&quot;,
+    &quot;tokens&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;$schema&quot;: {
+      &quot;const&quot;: &quot;urn:semantic-agent-schema:base:design-tokens:v1&quot;
+    },
+    &quot;kind&quot;: {
+      &quot;const&quot;: &quot;design-tokens&quot;,
+      &quot;description&quot;: &quot;種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;デザイントークンであること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;id&quot;: {
+      &quot;const&quot;: &quot;tokens&quot;,
+      &quot;description&quot;: &quot;id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;文脈に1つのデザイントークンであること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;tokens&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;minProperties&quot;: 1,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;pattern&quot;: &quot;^[a-z0-9]+(\\.[a-z0-9-]+)*$&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;light&quot;,
+          &quot;dark&quot;
+        ],
+        &quot;additionalProperties&quot;: false,
+        &quot;properties&quot;: {
+          &quot;light&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;pattern&quot;: &quot;^#[0-9A-Fa-f]{6}$&quot;
+          },
+          &quot;dark&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;pattern&quot;: &quot;^#[0-9A-Fa-f]{6}$&quot;
+          }
+        }
+      },
+      &quot;description&quot;: &quot;トークン&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;トークンの名前から、明るい表示と暗い表示の値を引く。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;contrast&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;fg&quot;,
+          &quot;bg&quot;,
+          &quot;min&quot;
+        ],
+        &quot;additionalProperties&quot;: false,
+        &quot;properties&quot;: {
+          &quot;fg&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;pattern&quot;: &quot;^[a-z0-9]+(\\.[a-z0-9-]+)*$&quot;
+          },
+          &quot;bg&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;pattern&quot;: &quot;^[a-z0-9]+(\\.[a-z0-9-]+)*$&quot;
+          },
+          &quot;min&quot;: {
+            &quot;type&quot;: &quot;number&quot;,
+            &quot;minimum&quot;: 1
+          }
+        }
+      },
+      &quot;description&quot;: &quot;コントラストの組&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;文字と地にするトークンの組と、必要なコントラスト比である。&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;contrast-meets&quot;,
+            &quot;rule&quot;: &quot;組ごとに、明るい表示と暗い表示の両方でコントラスト比が min 以上である。&quot;,
+            &quot;why&quot;: &quot;読めない組み合わせが描かれる。&quot;,
+            &quot;test&quot;: &quot;WCAG の式で両方の比を計算する。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    }
+  }
+}</pre></details><h3 id="m-glossary">glossary（glossary）</h3><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:base:glossary:v1</td></tr><tr><td><code>title</code></td><td>glossary</td></tr><tr><td><code>description</code></td><td>文脈の term の辞書。$defs の各 term が $anchor を持ち、Concrete の欄は urn:…:glossary:v&lt;版&gt;#&lt;名前&gt; で指す。出した版の term は変えない。</td></tr><tr><td><code>x-instance-path</code></td><td>.semantic-agent-schema/glossary.json</td></tr><tr><td><code>x-instance-label</code></td><td>glossary</td></tr></table></div><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>$schema</code> <span class="req">必須</span></td><td><code>const: &quot;urn:semantic-agent-schema:base:glossary:v1&quot;</code></td><td></td><td></td><td></td></tr><tr><td><code>$id</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+pattern: &quot;^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:glossary:v[0-9]+$&quot;</code></td><td>glossary の名前と版</td><td><b>means</b> Concrete の欄が $ref で指す、この辞書の URN と版である。</td><td><span class="rid">never-change-published</span>（machine）出した版の term の中身は、出した時と同じである。</td></tr><tr><td><code>kind</code> <span class="req">必須</span></td><td><code>const: &quot;glossary&quot;</code></td><td>種類</td><td><b>means</b> glossary であること。</td><td></td></tr><tr><td><code>id</code> <span class="req">必須</span></td><td><code>const: &quot;glossary&quot;</code></td><td>id</td><td><b>means</b> 文脈に1つの glossary であること。</td><td></td></tr><tr><td><code>$defs</code> <span class="req">必須</span></td><td><code>type: &quot;object&quot;</code></td><td>term の並び</td><td><b>means</b> term の名前から、意味（description）・ 値の形（JSON Schema）・ 単位を引く。</td><td><span class="rid">anchor-is-name</span>（machine）$anchor は $defs のキーと同じ名前である。</td></tr></table></div><details><summary>glossary.schema.json の JSON 全文</summary><pre class="code">{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:glossary:v1&quot;,
+  &quot;title&quot;: &quot;glossary&quot;,
+  &quot;description&quot;: &quot;文脈の term の辞書。$defs の各 term が $anchor を持ち、Concrete の欄は urn:…:glossary:v&lt;版&gt;#&lt;名前&gt; で指す。出した版の term は変えない。&quot;,
+  &quot;x-instance-path&quot;: &quot;.semantic-agent-schema/glossary.json&quot;,
+  &quot;x-instance-label&quot;: &quot;glossary&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;$schema&quot;,
+    &quot;$id&quot;,
+    &quot;kind&quot;,
+    &quot;id&quot;,
+    &quot;$defs&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;$schema&quot;: {
+      &quot;const&quot;: &quot;urn:semantic-agent-schema:base:glossary:v1&quot;
+    },
+    &quot;$id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:glossary:v[0-9]+$&quot;,
+      &quot;description&quot;: &quot;glossary の名前と版&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;Concrete の欄が $ref で指す、この辞書の URN と版である。&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;never-change-published&quot;,
+            &quot;rule&quot;: &quot;出した版の term の中身は、出した時と同じである。&quot;,
+            &quot;why&quot;: &quot;指している Concrete の意味が黙って変わる（I25）。&quot;,
+            &quot;test&quot;: &quot;同じ版の term が前と同じかを見る。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    },
+    &quot;kind&quot;: {
+      &quot;const&quot;: &quot;glossary&quot;,
+      &quot;description&quot;: &quot;種類&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;glossary であること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;id&quot;: {
+      &quot;const&quot;: &quot;glossary&quot;,
+      &quot;description&quot;: &quot;id&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;文脈に1つの glossary であること。&quot;
+        },
+        &quot;write&quot;: []
+      }
+    },
+    &quot;$defs&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;minProperties&quot;: 1,
+      &quot;propertyNames&quot;: {
+        &quot;pattern&quot;: &quot;^[A-Za-z_][A-Za-z0-9_]*$&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;required&quot;: [
+          &quot;$anchor&quot;,
+          &quot;description&quot;
+        ],
+        &quot;properties&quot;: {
+          &quot;$anchor&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;pattern&quot;: &quot;^[A-Za-z_][A-Za-z0-9_]*$&quot;
+          },
+          &quot;description&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;minLength&quot;: 1
+          },
+          &quot;x-unit&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        }
+      },
+      &quot;description&quot;: &quot;term の並び&quot;,
+      &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+          &quot;means&quot;: &quot;term の名前から、意味（description）・ 値の形（JSON Schema）・ 単位を引く。&quot;
+        },
+        &quot;write&quot;: [
+          {
+            &quot;id&quot;: &quot;anchor-is-name&quot;,
+            &quot;rule&quot;: &quot;$anchor は $defs のキーと同じ名前である。&quot;,
+            &quot;why&quot;: &quot;名前と指し先がずれると、欄が別の term を指す。&quot;,
+            &quot;test&quot;: &quot;キーと $anchor を比べる。&quot;,
+            &quot;by&quot;: &quot;machine&quot;
+          }
+        ]
+      }
+    }
+  }
+}</pre></details><h3 id="m-published">公開された言葉の版（published）</h3><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:base:published:v1</td></tr><tr><td><code>title</code></td><td>公開された言葉の版</td></tr><tr><td><code>description</code></td><td>Concrete の公開する部分（x-published が true の欄と x- の定義）の版。出した版は変えない。インスタンスのファイルは作らず、Concrete と一緒に基盤が組む。</td></tr></table></div><h4><code>$defs/version</code> <span class="meta"></span></h4><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>of</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+pattern: &quot;^urn:semantic-agent-schema:&quot;</code></td><td>公開した Concrete</td><td><b>means</b> この版を出した Concrete の URN である。</td><td></td></tr><tr><td><code>version</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+pattern: &quot;^v[0-9]+$&quot;</code></td><td>版</td><td><b>means</b> 公開された言葉の版である。</td><td><span class="rid">never-change</span>（machine）出した版の中身は、出した時と同じである。</td></tr><tr><td><code>fields</code> <span class="req">必須</span></td><td><code>type: &quot;array&quot;
+items: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer&quot;</code></td><td>見せる欄</td><td><b>means</b> x-published が true の欄の場所の並びである。</td><td></td></tr><tr><td><code>extensions</code></td><td><code>type: &quot;array&quot;
+items: &quot;string&quot;</code></td><td>見せる x- の定義</td><td><b>means</b> published が true の x- の名前の並びである。</td><td></td></tr></table></div><details><summary>published.schema.json の JSON 全文</summary><pre class="code">{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1&quot;,
+  &quot;$id&quot;: &quot;urn:semantic-agent-schema:base:published:v1&quot;,
+  &quot;title&quot;: &quot;公開された言葉の版&quot;,
+  &quot;description&quot;: &quot;Concrete の公開する部分（x-published が true の欄と x- の定義）の版。出した版は変えない。インスタンスのファイルは作らず、Concrete と一緒に基盤が組む。&quot;,
   &quot;$defs&quot;: {
-    &quot;view&quot;: {
+    &quot;version&quot;: {
       &quot;type&quot;: &quot;object&quot;,
       &quot;required&quot;: [
-        &quot;range&quot;,
-        &quot;exceptions&quot;,
-        &quot;purposes&quot;,
-        &quot;unreadable&quot;
+        &quot;of&quot;,
+        &quot;version&quot;,
+        &quot;fields&quot;
       ],
       &quot;additionalProperties&quot;: false,
       &quot;properties&quot;: {
-        &quot;range&quot;: {
-          &quot;type&quot;: &quot;object&quot;,
-          &quot;required&quot;: [
-            &quot;before&quot;,
-            &quot;after&quot;
-          ],
-          &quot;properties&quot;: {
-            &quot;before&quot;: {
-              &quot;type&quot;: &quot;string&quot;
-            },
-            &quot;after&quot;: {
-              &quot;type&quot;: &quot;string&quot;
-            }
-          },
-          &quot;description&quot;: &quot;前後の参照&quot;,
+        &quot;of&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;pattern&quot;: &quot;^urn:semantic-agent-schema:&quot;,
+          &quot;description&quot;: &quot;公開した Concrete&quot;,
           &quot;x-prompt&quot;: {
             &quot;read&quot;: {
-              &quot;means&quot;: &quot;ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。&quot;
+              &quot;means&quot;: &quot;この版を出した Concrete の URN である。&quot;
             },
             &quot;write&quot;: []
           }
         },
-        &quot;exceptions&quot;: {
-          &quot;type&quot;: &quot;array&quot;,
-          &quot;items&quot;: {
-            &quot;type&quot;: &quot;object&quot;,
-            &quot;required&quot;: [
-              &quot;type&quot;,
-              &quot;count&quot;,
-              &quot;items&quot;
-            ],
-            &quot;additionalProperties&quot;: false,
-            &quot;properties&quot;: {
-              &quot;type&quot;: {
-                &quot;enum&quot;: [
-                  &quot;intent-missing&quot;,
-                  &quot;intent-mismatch&quot;,
-                  &quot;unrecorded&quot;,
-                  &quot;no-change&quot;,
-                  &quot;record-rewritten&quot;,
-                  &quot;human-field-changed&quot;,
-                  &quot;state-changed&quot;,
-                  &quot;unconfirmed-outside-intent&quot;,
-                  &quot;not-in-range&quot;,
-                  &quot;unreadable&quot;
-                ]
-              },
-              &quot;count&quot;: {
-                &quot;type&quot;: &quot;integer&quot;,
-                &quot;minimum&quot;: 1
-              },
-              &quot;items&quot;: {
-                &quot;type&quot;: &quot;array&quot;,
-                &quot;items&quot;: {
-                  &quot;type&quot;: &quot;object&quot;
-                }
+        &quot;version&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;pattern&quot;: &quot;^v[0-9]+$&quot;,
+          &quot;description&quot;: &quot;版&quot;,
+          &quot;x-prompt&quot;: {
+            &quot;read&quot;: {
+              &quot;means&quot;: &quot;公開された言葉の版である。&quot;
+            },
+            &quot;write&quot;: [
+              {
+                &quot;id&quot;: &quot;never-change&quot;,
+                &quot;rule&quot;: &quot;出した版の中身は、出した時と同じである。&quot;,
+                &quot;why&quot;: &quot;読む側が黙って壊れる（I7）。&quot;,
+                &quot;test&quot;: &quot;同じ版の fields と extensions が前と同じかを見る。&quot;,
+                &quot;by&quot;: &quot;machine&quot;
               }
-            }
+            ]
+          }
+        },
+        &quot;fields&quot;: {
+          &quot;type&quot;: &quot;array&quot;,
+          &quot;items&quot;: {
+            &quot;$ref&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer&quot;
           },
-          &quot;description&quot;: &quot;例外&quot;,
+          &quot;description&quot;: &quot;見せる欄&quot;,
           &quot;x-prompt&quot;: {
             &quot;read&quot;: {
-              &quot;means&quot;: &quot;例外の種類ごとの件数と中身で、先頭に出る。&quot;
+              &quot;means&quot;: &quot;x-published が true の欄の場所の並びである。&quot;
             },
             &quot;write&quot;: []
           }
         },
-        &quot;purposes&quot;: {
+        &quot;extensions&quot;: {
           &quot;type&quot;: &quot;array&quot;,
           &quot;items&quot;: {
-            &quot;type&quot;: &quot;object&quot;,
-            &quot;required&quot;: [
-              &quot;purpose_ref&quot;,
-              &quot;intents&quot;
-            ],
-            &quot;properties&quot;: {
-              &quot;purpose_ref&quot;: {
-                &quot;type&quot;: &quot;string&quot;
-              },
-              &quot;intents&quot;: {
-                &quot;type&quot;: &quot;array&quot;,
-                &quot;items&quot;: {
-                  &quot;type&quot;: &quot;object&quot;,
-                  &quot;required&quot;: [
-                    &quot;change_id&quot;,
-                    &quot;intent&quot;,
-                    &quot;targets&quot;
-                  ],
-                  &quot;properties&quot;: {
-                    &quot;change_id&quot;: {
-                      &quot;type&quot;: &quot;string&quot;
-                    },
-                    &quot;intent&quot;: {
-                      &quot;type&quot;: &quot;string&quot;
-                    },
-                    &quot;judgment&quot;: {
-                      &quot;enum&quot;: [
-                        &quot;verified&quot;,
-                        &quot;violated&quot;,
-                        &quot;unverified&quot;,
-                        &quot;unsupported&quot;,
-                        &quot;error&quot;,
-                        &quot;none&quot;
-                      ]
-                    },
-                    &quot;meaning&quot;: {
-                      &quot;type&quot;: &quot;object&quot;
-                    },
-                    &quot;targets&quot;: {
-                      &quot;type&quot;: &quot;array&quot;,
-                      &quot;items&quot;: {
-                        &quot;type&quot;: &quot;object&quot;,
-                        &quot;required&quot;: [
-                          &quot;target&quot;,
-                          &quot;kind&quot;
-                        ],
-                        &quot;properties&quot;: {
-                          &quot;target&quot;: {
-                            &quot;$ref&quot;: &quot;urn:semantic-agent-schema:base:annotations:v1#/$defs/target&quot;
-                          },
-                          &quot;kind&quot;: {
-                            &quot;enum&quot;: [
-                              &quot;fields&quot;,
-                              &quot;lines&quot;
-                            ]
-                          },
-                          &quot;fields&quot;: {
-                            &quot;type&quot;: &quot;array&quot;,
-                            &quot;items&quot;: {
-                              &quot;type&quot;: &quot;object&quot;,
-                              &quot;required&quot;: [
-                                &quot;at&quot;
-                              ],
-                              &quot;properties&quot;: {
-                                &quot;at&quot;: {
-                                  &quot;$ref&quot;: &quot;urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer&quot;
-                                },
-                                &quot;before&quot;: true,
-                                &quot;after&quot;: true
-                              }
-                            }
-                          },
-                          &quot;lines&quot;: {
-                            &quot;type&quot;: &quot;array&quot;,
-                            &quot;items&quot;: {
-                              &quot;type&quot;: &quot;object&quot;,
-                              &quot;required&quot;: [
-                                &quot;mark&quot;,
-                                &quot;text&quot;
-                              ],
-                              &quot;properties&quot;: {
-                                &quot;mark&quot;: {
-                                  &quot;enum&quot;: [
-                                    &quot; &quot;,
-                                    &quot;-&quot;,
-                                    &quot;+&quot;
-                                  ]
-                                },
-                                &quot;text&quot;: {
-                                  &quot;type&quot;: &quot;string&quot;
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;pattern&quot;: &quot;^x-&quot;
           },
-          &quot;description&quot;: &quot;目的 → 意図&quot;,
+          &quot;description&quot;: &quot;見せる x- の定義&quot;,
           &quot;x-prompt&quot;: {
             &quot;read&quot;: {
-              &quot;means&quot;: &quot;目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。&quot;
-            },
-            &quot;write&quot;: []
-          }
-        },
-        &quot;unreadable&quot;: {
-          &quot;type&quot;: &quot;array&quot;,
-          &quot;items&quot;: {
-            &quot;type&quot;: &quot;string&quot;
-          },
-          &quot;description&quot;: &quot;成型できなかった対象&quot;,
-          &quot;x-prompt&quot;: {
-            &quot;read&quot;: {
-              &quot;means&quot;: &quot;文字として読めないなどで成型できなかった対象のパスである。&quot;
+              &quot;means&quot;: &quot;published が true の x- の名前の並びである。&quot;
             },
             &quot;write&quot;: []
           }
@@ -2730,7 +3242,7 @@ pattern: &quot;^v[0-9]+$&quot;</code></td><td>公開された版</td><td><b>mean
     }
   }
 }</pre></details><h2 id="con">6　Concrete スキーマ（ACDR）の全容</h2><p class="meta">正本 examples/acdr.concrete.json（本体に従う例）。ACDR は基盤の変更の記録を広げて見やすくする文脈</p><div class="tw"><table class=""><tr><th>キー</th><th>値</th></tr><tr><td><code>$schema</code></td><td>urn:semantic-agent-schema:base:semantic-abstract-schema:v1</td></tr><tr><td><code>$id</code></td><td>urn:semantic-agent-schema:acdr:decision-record:v1</td></tr><tr><td><code>title</code></td><td>意思決定の記録</td></tr><tr><td><code>description</code></td><td>決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない</td></tr><tr><td><code>x-instance-path</code></td><td>.acdr/{id}/acdr.json</td></tr><tr><td><code>x-instance-label</code></td><td>ACDR {no}「{title}」</td></tr></table></div><h3>任せる先（x-delegates）</h3><div class="tw"><table class=""><tr><th>名前</th><th>立場</th><th>目的</th><th>起動</th><th>答えの形</th></tr><tr><td><code>reviewer</code></td><td>ACDR の決定のレビュー役</td><td>judging</td><td>AI ツール</td><td><code>type: &quot;object&quot;
-欄: findings</code></td></tr><tr><td><code>acdr-inspect</code></td><td>ACDR の変更の印の検査（Git の差分を読む）</td><td>judging</td><td>acdr inspect --json</td><td><code></code></td></tr></table></div><h3>欄（properties）</h3><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>$schema</code> <span class="req">必須</span></td><td><code>const: &quot;urn:semantic-agent-schema:acdr:decision-record:v1&quot;</code></td><td></td><td></td><td></td></tr><tr><td><code>kind</code> <span class="req">必須</span></td><td><code>const: &quot;decision-record&quot;</code></td><td>インスタンスの種類</td><td><b>means</b> このインスタンスが決定の記録であること</td><td><span class="rid">fixed-kind</span>（machine）decision-record のまま変えない</td></tr><tr><td><code>no</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
+欄: findings</code></td></tr><tr><td><code>acdr-inspect</code></td><td>ACDR の変更の印の検査（基盤の変更のまとまりを受け取る）</td><td>judging</td><td>acdr inspect --json</td><td><code></code></td></tr></table></div><h3>欄（properties）</h3><div class="tw"><table class="wide"><tr><th>欄</th><th>型と制約</th><th>説明</th><th>読み方（read）</th><th>書くときの決まり（write）</th></tr><tr><td><code>$schema</code> <span class="req">必須</span></td><td><code>const: &quot;urn:semantic-agent-schema:acdr:decision-record:v1&quot;</code></td><td></td><td></td><td></td></tr><tr><td><code>kind</code> <span class="req">必須</span></td><td><code>const: &quot;decision-record&quot;</code></td><td>インスタンスの種類</td><td><b>means</b> このインスタンスが決定の記録であること</td><td><span class="rid">fixed-kind</span>（machine）decision-record のまま変えない</td></tr><tr><td><code>no</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
 pattern: &quot;^[0-9]{4}$&quot;</code></td><td>記録の番号</td><td><b>means</b> 記録の通し番号<br><b>parse</b> 4桁の数字の文字列。先頭の 0 も番号の一部で、数として読まない。置き場所の {no} に入る<br><b>shown</b> 題の前に「ACDR 0197」として出る<br><b>when</b> 書く前に、次の番号を決めるために読む</td><td><span class="rid">unique-no</span>（machine）ほかの記録と番号を重ねない</td></tr><tr><td><code>title</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
 minLength: 1</code></td><td>題</td><td><b>means</b> 決めたことの名前<br><b>shown</b> 一覧と、ほかの記録から指されたときに「ACDR 0197「…」」として出る</td><td><span class="rid">noun</span>（ai ・ reviewer）決めたことを名詞句で書く</td></tr><tr><td><code>status</code> <span class="req">必須</span></td><td><code>x-decided-by: &quot;human&quot;
 default: &quot;proposed&quot;</code></td><td>状態</td><td><b>means</b> 承認の状態<br><b>when</b> 正本に適用してよいかを決めるときに読む</td><td><span class="rid">human-approves</span>（machine）accepted にするのは人の入口からだけ</td></tr><tr><td><code>decision</code> <span class="req">必須</span></td><td><code>type: &quot;string&quot;
@@ -2829,7 +3341,7 @@ readOnly: true</code></td><td>記録の id</td><td><b>means</b> 番号と短い�
       }
     },
     &quot;acdr-inspect&quot;: {
-      &quot;role&quot;: &quot;ACDR の変更の印の検査（Git の差分を読む）&quot;,
+      &quot;role&quot;: &quot;ACDR の変更の印の検査（基盤の変更のまとまりを受け取る）&quot;,
       &quot;run&quot;: {
         &quot;kind&quot;: &quot;judging&quot;,
         &quot;argv&quot;: [
@@ -3132,7 +3644,7 @@ readOnly: true</code></td><td>記録の id</td><td><b>means</b> 番号と短い�
             &quot;id&quot;: &quot;why-per-change&quot;,
             &quot;rule&quot;: &quot;変更の印ごとに、なぜを書く&quot;,
             &quot;why&quot;: &quot;理由の無い変更は記録に含めない&quot;,
-            &quot;test&quot;: &quot;git の差分のまとまりごとに理由があるかを見る（Git を読むので acdr の CLI）&quot;,
+            &quot;test&quot;: &quot;基盤の変更のまとまり（最後に確定した姿からの差分）の変更ごとに、docs の marks に why があるかを見る&quot;,
             &quot;by&quot;: &quot;machine&quot;,
             &quot;agent&quot;: &quot;acdr-inspect&quot;
           }

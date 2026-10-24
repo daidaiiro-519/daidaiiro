@@ -179,6 +179,15 @@ dict(id='C56', path=(), op='words', pairs=[('・ 一員の形（文脈が書く�
      ('行の形は Abstract の一員、', '行の形は Abstract のファイル session、'), ('Abstract の一員の出力の形', 'Abstract が持つ出力の形'), ('Abstract の一員 settings', 'Abstract のファイル settings'),
      ('形は Abstract の一員）', '形は Abstract のファイル）'), ('持ち主は基盤の一員なら', '持ち主は基盤のファイルなら')],
      why='「一員」は意味が伝わらない語', source='利用者「一員って言い方まじでやめて 意味不明なんだ」'),
+dict(id='C57', path=('value_objects', '役割', 1), op='set', before='親の任せる先の名前。親のセッションには無い',
+     after='親のセッションが呼んだ相手の名前（Skill ・ Agent の名前、または Concrete の x-delegates の名前）。任せる先のセッションだけが持つ',
+     why='advisor は親のセッションが進め方として呼ぶもので、Concrete の x-delegates に書かない', source='利用者「ACDRのx-delegatesとして定義はしてほしくないな」'),
+dict(id='C58', path=('entities', '任せる先', 1), op='text', before='名前が任せる先のセッションの役割になる。',
+     after='基盤が rule を判定させる ・ 作業させる相手だけを書き、親のセッションが進め方として呼ぶ相手（advisor など）は書かない。',
+     why='C57 と同じ', source='利用者「これって親sessionが呼ぶものですよね？」'),
+dict(id='C59', path=('value_objects', '変更のまとまりの形', 1), op='text', before='Abstract が持つ出力の形。',
+     after='Abstract のファイル change の $defs が持つ出力の形。',
+     why='保存しない値の形は、持ち主の集約のファイルの $defs に置く', source='board Q6 #6'),
 ]
 
 # ボードにだけ在り、v2 に無い決着の直し（ACDR でボードへ適用する）
