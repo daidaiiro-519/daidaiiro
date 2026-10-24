@@ -34,10 +34,10 @@ for section in parts[7:]:
 after = re.sub(r'const LABELS = .*?;', lambda _: 'const LABELS = ' + json.dumps(labels[:7], ensure_ascii=False) + ';', after)
 (A / 'after.html').write_text(after)
 (A / 'script.md').write_text('# 三教材共通のはじめに：確認用の原稿\n\n' + '\n\n'.join('## ' + str(x['slide']) + ' ' + x['heading'] + '\n\n' + x['narration'] for x in slides) + '\n')
-prior_deck = (A / 'seven-slide-revision-20261019' / 'before-testing-terms-20261021' / 'slide-02.json')
+prior_deck = (A / 'seven-slide-revision-20261019' / 'before-integration-test-20261024' / 'slide-02.json')
 prior_slide = json.loads(prior_deck.read_text())
 # The saved deck predates the second slide; use its approved shell for this revision's baseline.
-prior_svg = (A / 'seven-slide-revision-20261019' / 'before-testing-terms-20261021' / 'slide-02.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
+prior_svg = (A / 'seven-slide-revision-20261019' / 'before-integration-test-20261024' / 'slide-02.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_section = ('<section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span>'
                  '<span class="ws-kicker-label">3教材共通 はじめに ／ 内容2枚目（変更前）</span></div>'
                  '<h2>' + html.escape(prior_slide['heading']) + '</h2><p class="ws-intro">'
@@ -51,7 +51,7 @@ review_prior_section = ('<section class="slide ws-diagram"><div class="kicker"><
                         + html.escape(review_prior['lede']) + '</p><div class="body">' + review_prior_svg + '</div></section>')
 before = before.replace(parts[2], review_prior_section, 1)
 for n in [3,8,9,10]:
-    prior_dir = A / 'seven-slide-revision-20261019' / 'before-slide-03-04-connection-20261021' if n == 3 else A / 'full-review' / 'before'
+    prior_dir = A / 'seven-slide-revision-20261019' / 'before-integration-test-20261024' if n == 3 else A / 'full-review' / 'before'
     prior = json.loads((prior_dir / f'slide-{n:02}.json').read_text())
     svg = (prior_dir / f'slide-{n:02}.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
     current = re.findall(r'<section\b.*?</section>', before, re.S)[n-1]
@@ -102,7 +102,7 @@ def publish():
     oldnotes[1] = dict(number=2, title=prior_slide['heading'], body=notes(prior_slide['heading'], prior_slide['lede'], prior_slide['narration']))
     oldnotes[2] = dict(number=3, title=review_prior['heading'], body=notes(review_prior['heading'], review_prior['lede'], review_prior['narration']))
     for n in [3,8,9,10]:
-        prior_dir = A / 'seven-slide-revision-20261019' / 'before-slide-03-04-connection-20261021' if n == 3 else A / 'full-review' / 'before'
+        prior_dir = A / 'seven-slide-revision-20261019' / 'before-integration-test-20261024' if n == 3 else A / 'full-review' / 'before'
         prior = json.loads((prior_dir / f'slide-{n:02}.json').read_text())
         oldnotes[n-1] = dict(number=n, title=prior['heading'], body=notes(prior['heading'], prior['lede'], prior['narration']))
     oldnotes[0] = dict(number=1, title=prior_one['heading'], body=notes(prior_one['heading'], prior_one['lede'], prior_one['narration']))
@@ -147,6 +147,8 @@ def publish():
     d['reasons']['6'] = '5枚目の目的と必要な作業から、業務の判断の違いを設計へ反映する教材2へ接続。上長承認と経理確認の対比図を維持し、状態・変更ルール・確認項目への反映を追加しました。文脈の境界と整合性を守る範囲を区別し、教材3を判断手順の実行へつなぐ原稿に修正。変更前は直前の6枚目です。'
     for n in [4,5,6,7]:
         d['reasons'][str(n)] = '事例の設計の複雑化と各教材の学びを対応。目的から任せる範囲、業務の意味から設計、判断手順をAIで実行する流れへ修正。変更前は今回の直前の版です。'
+    for n in [2,3]:
+        d['reasons'][str(n)] = 'マージ前の単体・既存の自動テストと、その後の業務シナリオを確認する結合テストを区別しました。上長承認後・経理確認前の変更ケースが前段のテストに含まれず、結合テストで発覚する設定に対応。変更前は直前の版です。'
     text = text[:m.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[m.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
@@ -219,6 +221,7 @@ def publish():
     log.extend([dict(slide=6, group='story', change='5枚目の承認は業務ルールの一例という結びを受け、異なる業務判断を設計で区別する教材2へ接続。教材3を判断手順の実行へつなぐ。'),dict(slide=6, group='figure', change='上長承認と経理確認、証憑再提出時の結果の対比を維持し、状態・変更ルール・確認項目に反映する関係を追加。'),dict(slide=6, group='japanese', change='承認維持を前枚の主題とする古い導入を修正。文脈と整合性の範囲を区別し、分割方法は断定しない。')])
     log.extend([dict(slide=n,group='story',change='設計の前提を見直さず変更を重ねた問題と、目的・業務の意味・AIの判断手順の三教材を対応させた。') for n in [4,5,6,7]])
     log.append(dict(slide=7,group='figure',change='条件の共有を中心とする図から、設計・実装とテスト・レビューで判断手順を使い、人が理由と結果を確認する図へ修正。既存のSkill・Agent部品を維持。'))
+    log.extend([dict(slide=n,group='story',change='マージ前の単体・既存の自動テストと、取り込み後に業務シナリオを確認する結合テストを区別。不具合は結合テストで発覚するが、単体とレビューでも検出可能と説明。') for n in [2,3]])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
