@@ -106,7 +106,9 @@ def publish():
                 dict(slide=6, group='story', change='主体・対象が不明な設計実装の目的という表現を修正。申請者の目的の大きさ、目的を満たす要件、AIへ任せる開発作業を区別。'),
                 dict(slide=6, group='figure', change='申請者の目的、具体的な要件、開発者の目的とAI作業を別の所属へ配置。人物・申請書・証憑・承認の維持と再確認・コード・レビューのアイコンで対象と動作を視覚化。'),
                 dict(slide=2, group='story', change='改訂構成の見出し・導入文・原稿を反映。刷新で構成と仕様・設計資料も更新する設定を追加。業務を知る人が差分・AIの説明・テスト結果を確認し、要件と確認結果の対応を追う必要があった進め方と、次の結合テストへの接続を示す。'),
-                dict(slide=2, group='figure', change='資料・開発者・AI・重ねた成果物・テスト・人のレビュー・承認を既存の線画で示し、重複する説明文を短縮。warm-paperを指定して描画。')])
+                dict(slide=2, group='figure', change='資料・開発者・AI・重ねた成果物・テスト・人のレビュー・承認を既存の線画で示し、重複する説明文を短縮。warm-paperを指定して描画。'),
+                dict(slide=3, group='story', change='レビュー通過後に結合テストで承認段階の取り違えが発覚した流れを改訂構成へ反映。AIと人が要件と確認結果の対応を見逃した過程、修正と再確認、残った設計を見る次の枚へ接続。'),
+                dict(slide=3, group='figure', change='本来と今回の実装の左右比較を維持。同じ申請変更を人物・ペン・鍵・金額で対応させ、取り込み前の未確認ケースと再作業の順序を線画で追加。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 
