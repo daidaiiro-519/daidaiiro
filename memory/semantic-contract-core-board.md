@@ -24,6 +24,13 @@ metadata:
 - 案の正本は .brainstorming/semantic-contract-core/measured/abstract-draft/（README に組み直しと検査の手順）。シミュレーション Jhj2PvMe53KNCHVGHXWR5V、完成イメージ GRqKKpvcij9JmhC26VczG1。JSON Schema の読み方 BH7hvc6RCqEzvLT7ru86Fh、能力の一覧 XSP4EXyAP9bKRBr6DyGrKv。
 - 差分第7版（UoM9gCcp6BAxTdvdpwNBNa）は、上の決定より前のもの。そのまま当てない。
 
+## 現在地（2026-10-24 追記）
+
+- 利用者の方針：ドメインモデル ・ スキーマ ・ ポートの契約 ・ DB ・ 期待する振る舞いを1つの「核」（measured/core/）にそろえて合意し、シミュレーションで期待する振る舞いを全部実行して通すことを核ができた印にする。地図 S1m24U6u8LhsU5QR1BJXch（core/map.html）。
+- 変更の仕組み（Git）は「対象の変更の前後を受け取る」ポートのアダプターの1つにすぎない。基盤は Git と同じことをしない（利用者の指摘）。change_id は基盤が決める ULID。
+- core/agreed.json（合意済み12件）・ core/answers.json（案と未決の9件の答えの下書き）。ddd ・ platform ・ qa ・ usecase の4アドバイザーと反証役に依頼中。結果は core/reviews/*.md。
+- 次：指摘を統合して答えを直す → v2 に全部を適用して核の5つを書く → 参照の実装でシミュレーション → 合否と核を1ページで出して合意 → ACDR で正本へ。
+
 ## 次にすること（この順）
 
 1. 上流から開き直して直す：Q0（#13 の書き方）→ Q1 ・ Q7（x-delegates の中身と kind、by との対応、呼ばれた子は呼ばない）→ Q11（親のセッションの立て方、ID のでき方）→ Q3（層と部品、見出し、描いて起動する手順、返る値の形だけ）。論点ごとに差分をアーティファクトで出して承認を受ける。
