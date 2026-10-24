@@ -121,13 +121,21 @@ table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--card
 <tr><td>変更の記録の索引（遅いと測れてから）</td><td>目的 ・ 対象 ・ 意図で速く引く</td><td>ファイルから作り直せる</td></tr>
 <tr><td>関係の索引</td><td>x-relationship をたどる</td><td>ファイルから作り直せる</td></tr></table></div>
 <p class="meta">画面（全体 ・ 差分 ・ 意図の印）は、毎回ファイルと Git から描く。DB は引くための索引で、形は引けて描ければよい</p>
-<h2>3　find を「記録を足したコミット」の中で探す理由</h2>
-<section class="time">
-<div class="tm on"><b>コミット X</b><br>変更の記録 A1 を足す。agent.rs に fn spawn_agent がある</div>
-<div class="tm"><b>コミット Y（あと）</b><br>別の変更で fn spawn_agent が fn launch に名前を変える</div>
-<div class="tm"><b>あとで A1 を見る</b><br>X の親と X の agent.rs で find を探す → 見つかる。Y の名前変えに左右されない</div>
+<h2>3　差分の取り方</h2>
+<p class="meta">記録1つにコミット1つ、ではない。1つのコミット（や PR）に意図の違う変更がいくつ入っていてもよい</p>
+<section class="time" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+<div class="tm"><b>1 コミット X を見る</b><br>X には、変更の記録 A1 ・ B2 ・ C3 と、5つのファイルの変更が入っている</div>
+<div class="tm"><b>2 前と後を Git から取る</b><br>前＝X の親のファイル、後＝X のファイル（Q1 #52）。git diff で差分のまとまりが出る</div>
+<div class="tm on"><b>3 差分を意図に振り分ける</b><br>各記録の場所（find は後の本文で探す、pointer は JSON の欄）に重なる差分のまとまりを、その記録の意図に結び付ける</div>
+<div class="tm"><b>4 余りは例外</b><br>どの記録の場所にも重ならない差分は「記録に無い」として先頭に出る（変更の例外）</div>
 </section>
-
+<div class="tw"><table>
+<tr><th>場合</th><th>どうなるか</th></tr>
+<tr><td>1つのファイルを、2つの意図が別の場所で変えた</td><td>場所で分かれるので、それぞれの意図に結び付く</td></tr>
+<tr><td>同じ場所を2つの意図が変えた</td><td>分けずに、両方の意図に結び付ける（I35）</td></tr>
+<tr><td>PR 全体を見る</td><td>記録ごとに、その記録を足したコミットで前と後を取る。ブランチの合流点と先端（Q1 #47）は、PR に入る記録を集める範囲</td></tr>
+<tr><td>あとで本文が変わった（別のコミット Y で関数名が変わった）</td><td>記録 A1 は X の前と後で探すので、Y に左右されない</td></tr>
+</table></div>
 <h2>4　決着済みで変わるところ</h2>
 <div class="tw"><table>
 <tr><th>行</th><th>今</th><th>変わること</th></tr>
