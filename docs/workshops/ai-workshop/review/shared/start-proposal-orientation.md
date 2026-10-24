@@ -18,6 +18,7 @@
 6. `docs/workshops/ai-workshop/review/shared/changes/` の変更記録
 7. `docs/workshops/ai-workshop/review/shared/viewer-guide.md`
 8. `docs/workshops/ai-workshop/review/shared/tracks/proposal-orientation.json`
+9. `docs/workshops/ai-workshop/review/shared/material-references.md` と、今回の論点に該当するアドバイザーのSKILL.md・判断基準
 
 各資料の役割は分かれています。企画書は部長向けに組織の効果、工数、評価、判断事項を説明します。オリエンテーションは部内メンバー向けに、仕事上の疑問から興味を持ち、受講後の姿と学ぶ内容を想像できるようにします。詳細な案件の説明を、共通の「はじめに」からオリエンテーションへ戻さないでください。
 

@@ -5,10 +5,11 @@
 ## 最初に読むもの
 
 1. [共通方針](direction.md)：伝える目的、教材1〜3の役割、題材の前提。
-2. [共通制作ガイド](../../../../../.claude/skills/slide-deck/references/ai-workshop-production.md)：図・原稿・ストーリーの作り方と確認手順。
-3. [方針の変更記録](changes/)：最後に確認してから変わった点。
-4. [閲覧画面・画面遷移・生成元](viewer-guide.md)：メイン画面からの作業の選び方と、表示を更新する方法。
-5. 自分の[担当情報](tracks/)と、そこから参照する最新の進捗・入力ファイル。
+2. [教材内容の主要な参照先](material-references.md)：DDD、具体と抽象、ユースケースの判断基準。
+3. [共通制作ガイド](../../../../../.claude/skills/slide-deck/references/ai-workshop-production.md)：図・原稿・ストーリーの作り方と確認手順。
+4. [方針の変更記録](changes/)：最後に確認してから変わった点。
+5. [閲覧画面・画面遷移・生成元](viewer-guide.md)：メイン画面からの作業の選び方と、表示を更新する方法。
+6. 自分の[担当情報](tracks/)と、そこから参照する最新の進捗・入力ファイル。
 
 メモリの入口は [memory/ai-workshop-shared.md](../../../../../memory/ai-workshop-shared.md)。メモリは現在地と参照先を持ち、制作の規則を複製しない。
 

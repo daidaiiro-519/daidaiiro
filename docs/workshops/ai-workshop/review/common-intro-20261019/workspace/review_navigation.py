@@ -75,6 +75,7 @@ def build_navigation(here, viewer):
                 (shared / 'tracks').resolve(): '#tracks', (shared / 'changes').resolve(): '#changes',
                 (shared / 'start-proposal-orientation.md').resolve(): '#session-start',
                 (shared / 'viewer-guide.md').resolve(): '#viewer-guide',
+                (shared / 'material-references.md').resolve(): '#material-references',
                 (repo / '.claude/skills/slide-deck/references/ai-workshop-production.md').resolve(): '#production' }
     def doc(path):
         source = path.read_text()
@@ -96,6 +97,7 @@ def build_navigation(here, viewer):
     workflow += '<tr><td>企画書・オリエンテーション</td><td>' + html.escape(other_status) + '</td><td>' + html.escape(other.get('next', '未記録')) + '</td></tr></tbody></table><p class="source-note">' + html.escape(progress.get('note', '')) + '</p></article>'
     workflow += '<article id="direction">' + doc(shared / 'direction.md') + '</article>'
     workflow += '<details id="viewer-guide"><summary>共同制作で使う画面・生成元・更新方法</summary>' + doc(shared / 'viewer-guide.md') + '</details>'
+    workflow += '<details id="material-references"><summary>教材内容の主要な参照先：DDD・具体と抽象・ユースケース</summary>' + doc(shared / 'material-references.md') + '</details>'
     workflow += '<details id="production"><summary>共通の制作手順と原稿・図の注意点</summary>' + doc(repo / '.claude/skills/slide-deck/references/ai-workshop-production.md') + '</details>'
     workflow += '<details id="operation"><summary>共同制作の進め方</summary>' + doc(shared / 'README.md') + '</details>'
     workflow += '<details id="changes"><summary>方針と共同作業の変更記録</summary>' + ''.join(doc(p) for p in sorted((shared / 'changes').glob('*.md'), reverse=True)) + '</details>'
