@@ -29,7 +29,7 @@ assert sorted(got_s) == sorted(svcs), (set(svcs) ^ set(got_s))
 line('semantic-agent-schema/', 'リポジトリ直下。ワークスペースの根')
 line('  Cargo.toml', 'ワークスペース。members は crates/domain/* ・ crates/application ・ crates/outbound/* ・ crates/inbound/*')
 line('  Cargo.lock'); line('  CODING.md', 'この構成と検査の規則'); line('  architecture.json', '許す辺 ・ 辺の種類 ・ crate ごとに許す外の crate（検査の正本）')
-line('  schemas/', 'Abstract の10ファイル（declaration が build.rs で取り込む）'); line('  spec/', '受け入れの場面 behaviors/ と対応表 coverage.json')
+line('  schemas/', '公開された言葉。集約 Semantic Abstract Schema の中身'); line('    v1/', 'Abstract の10ファイル（出した版は変えない。declaration が build.rs で取り込む）'); line('  spec/', '受け入れの場面 behaviors/ と対応表 coverage.json')
 line('  crates/', 'コード（crate）だけを置く。下のフォルダが依存の向きの層')
 line('    domain/', '業務領域ごとの crate。値を受け取り値を返す。入出力をしない ・ ポートを持たない')
 for name, desc, A, S, V, port in DOMAIN:

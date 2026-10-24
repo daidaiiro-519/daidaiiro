@@ -55,7 +55,13 @@ s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7
  ['検査は Cargo.toml の辺と clippy', '辺の種類 ・ 外の crate ・ feature ・ 単独ビルド ・ pub use ・ forbid ・ domain に trait を置かない', 'platform（Cargo が止めない書き方4つを実測）・ 反証（2回目）'],
 ]))
 s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決めてほしいこと</h2>' + table(['決めてほしいこと', '私の見解'], [
- ['スキーマの正本の置き場所を、Q6 #19 の src/semantic-agent-schema/schemas/ から semantic-agent-schema/schemas/ へ', '移す（あなたの「ctxtrace のように」）'],
+ ['スキーマの正本の置き場所を、Q6 #19 の src/semantic-agent-schema/schemas/ から semantic-agent-schema/schemas/v1/ へ', '移す。下の表のとおり、集約の型は crates/ の中、集約の中身（10ファイル）は crates/ の外に置く'],
  ['Q3 の答え（core と adapters の2つ）を、このページの構成に置き換える', '置き換える'],
+]) + '<h3>スキーマは集約なのに、なぜ crates/ の外か</h3>' + table(['分けるもの', '置き場所', '前提'], [
+ ['集約 Semantic Abstract Schema の型と不変条件（出した版は変えない ・ $id の形）', 'crates/domain/declaration/src/aggregates/abstract_schema.rs', 'model.json aggregates（意味の宣言）'],
+ ['集約の中身：版ごとの10ファイル', 'semantic-agent-schema/schemas/v1/（版を足すときは v2/ を並べる）', 'Q9「Abstract の版（10ファイルの形）は公開された言葉である。版を並べて出す」・ Q6「最初の公開から出した版は変えない」'],
+ ['基盤が読む方法', 'ポートを通さず、declaration の build.rs がビルドのときに取り込む', 'model.json ports.not_ports「Abstract（基盤の中）」'],
+ ['crates/ の中に置かない理由', '公開された言葉の読み手は Rust の外にもいる（Concrete の作者の $schema ・ ほかの言語の Concrete ・ spec/ の試験）。crate の並びを直すたびに公開された言葉の場所が動くことになる', 'boundary「検証のエンジンと protocol … 実装の言語は契約に出さない」'],
+ ['条件', 'crate を crates.io へ出さない（cargo package は crate の外のファイルを含めない）。配るのはバイナリ', 'Q9「ほかの言語の Concrete も、バイナリを呼んで基盤を使う」'],
 ]) + '<p class="meta">判定の記録の業務領域を移す問いは取り下げた（Q9 #6 のまま）。Validator の定義の文は承認どおり2段に直した（model.json C60）</p>\n')
 open(p, 'w').write(s); print('ok')
