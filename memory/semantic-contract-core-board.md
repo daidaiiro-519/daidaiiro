@@ -20,7 +20,7 @@ metadata:
   - advisor の答えは親が本文に書き足してから再検証。AI の答えは rule ごとの5つの値と問い（外枠は protocol）。AI を呼ぶ書式は見出し7つを Abstract の $defs/agents に。
   - URN の持ち主は core をやめて base。Concrete の URN の種類はインスタンスの kind と同じ名詞（ACDR は urn:semantic-agent-schema:acdr:decision-record:v1）。
   - TLA+ ・ Z3 から採るのは「決まりは状態で書く」。Abstract の根の write に read-perspectives を足す案。
-- シミュレーション第23版（Jhj2PvMe53KNCHVGHXWR5V、元は scratchpad/sim20/build.py）。JSON Schema の読み方 BH7hvc6RCqEzvLT7ru86Fh、能力の一覧 XSP4EXyAP9bKRBr6DyGrKv。
+- 案の正本は .brainstorming/semantic-contract-core/measured/abstract-draft/（README に組み直しと検査の手順）。シミュレーション Jhj2PvMe53KNCHVGHXWR5V、完成イメージ GRqKKpvcij9JmhC26VczG1。JSON Schema の読み方 BH7hvc6RCqEzvLT7ru86Fh、能力の一覧 XSP4EXyAP9bKRBr6DyGrKv。
 - 差分第7版（UoM9gCcp6BAxTdvdpwNBNa）は、上の決定より前のもの。そのまま当てない。
 
 ## 次にすること（この順）
