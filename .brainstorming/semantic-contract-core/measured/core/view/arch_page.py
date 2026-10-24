@@ -61,7 +61,7 @@ s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決�
  ['集約 Semantic Abstract Schema の型と不変条件（出した版は変えない ・ $id の形）', 'crates/domain/declaration/src/aggregates/abstract_schema.rs', 'model.json aggregates（意味の宣言）'],
  ['集約の中身：版ごとの10ファイル', 'semantic-agent-schema/schemas/v1/（版を足すときは v2/ を並べる）', 'Q9「Abstract の版（10ファイルの形）は公開された言葉である。版を並べて出す」・ Q6「最初の公開から出した版は変えない」'],
  ['基盤が読む方法', 'ポートを通さず、declaration の build.rs がビルドのときに取り込む', 'model.json ports.not_ports「Abstract（基盤の中）」'],
- ['crates/ の中に置かない理由', '公開された言葉の読み手は Rust の外にもいる（Concrete の作者の $schema ・ ほかの言語の Concrete ・ spec/ の試験）。crate の並びを直すたびに公開された言葉の場所が動くことになる', 'boundary「検証のエンジンと protocol … 実装の言語は契約に出さない」'],
+ ['crates/ の中に置かない理由', '公開された言葉の読み手は Rust の外にもいる（Concrete の作者の $schema ・ ほかの言語の Concrete ・ behaviors/ の試験）。crate の並びを直すたびに公開された言葉の場所が動くことになる', 'boundary「検証のエンジンと protocol … 実装の言語は契約に出さない」'],
  ['条件', 'crate を crates.io へ出さない（cargo package は crate の外のファイルを含めない）。配るのはバイナリ', 'Q9「ほかの言語の Concrete も、バイナリを呼んで基盤を使う」'],
 ]) + '<p class="meta">判定の記録の業務領域を移す問いは取り下げた（Q9 #6 のまま）。Validator の定義の文は承認どおり2段に直した（model.json C60）</p>\n')
 open(p, 'w').write(s); print('ok')

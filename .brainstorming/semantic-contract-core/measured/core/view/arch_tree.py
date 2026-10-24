@@ -29,7 +29,7 @@ assert sorted(got_s) == sorted(svcs), (set(svcs) ^ set(got_s))
 line('semantic-agent-schema/', 'リポジトリ直下。ワークスペースの根')
 line('  Cargo.toml', 'ワークスペース。members は crates/domain/* ・ crates/application ・ crates/outbound/* ・ crates/inbound/*')
 line('  Cargo.lock'); line('  CODING.md', 'この構成と検査の規則'); line('  architecture.json', '許す辺 ・ 辺の種類 ・ crate ごとに許す外の crate（検査の正本）')
-line('  schemas/', '公開された言葉。集約 Semantic Abstract Schema の中身'); line('    v1/', 'Abstract の10ファイル（出した版は変えない。declaration が build.rs で取り込む）'); line('  spec/', '受け入れの場面 behaviors/ と対応表 coverage.json')
+line('  schemas/', '公開された言葉。集約 Semantic Abstract Schema の中身'); line('    v1/', 'Abstract の10ファイル（出した版は変えない。declaration が build.rs で取り込む）'); line('  behaviors/', '期待する振る舞い。核で作った70場面（入力と期待結果の JSON の組）と対応表 coverage.json をそのまま移す')
 line('  crates/', 'コード（crate）だけを置く。下のフォルダが依存の向きの層')
 line('    domain/', '業務領域ごとの crate。値を受け取り値を返す。入出力をしない ・ ポートを持たない')
 for name, desc, A, S, V, port in DOMAIN:
@@ -66,7 +66,7 @@ for n, d, fs in AD:
     line(f'      {n}/', f'{P(n)}　{d}', 'cr'); line('        Cargo.toml'); line('        src/'); line('          lib.rs')
     for f, dd in fs: line(f'          {f}', dd)
 line('    inbound/', '駆動する側のアダプター（入口）'); line('      cli/', f'{P("cli")}　入口', 'cr'); line('        Cargo.toml'); line('        src/')
-line('          main.rs', '起動するだけ'); line('          compose.rs', 'outbound を application へ渡す1か所。時刻と id もここから値で渡す'); line('        tests/acceptance.rs', '受け入れの試験（spec/behaviors を全アダプターで回す）')
+line('          main.rs', '起動するだけ'); line('          compose.rs', 'outbound を application へ渡す1か所。時刻と id もここから値で渡す'); line('        tests/acceptance.rs', '受け入れの試験（behaviors/ の場面を全アダプターで回す）')
 rows = ''.join(f'<span class="{c}">{p}{"  <i>" + d + "</i>" if d else ""}</span>' for p, d, c in L)
 svc_rows = ''.join(f'<tr><td>{n}</td><td>crates/domain/{name}/src/services/{f}</td></tr>' for name, _, _, S, _, _ in DOMAIN for f, n in S)
 sec = f'''<h2>5　ディレクトリ構成（crate と、その中のモジュール）</h2>
@@ -76,7 +76,7 @@ sec = f'''<h2>5　ディレクトリ構成（crate と、その中のモジュ�
 <h3>ドメインサービス13の置き場所</h3>
 <div class="tw"><table><tr><th>ドメインサービス（モデル）</th><th>ファイル</th></tr>{svc_rows}</table></div>
 <div class="tw"><table><tr><th>決まり</th><th>中身</th></tr>
-<tr><td>根</td><td>コード（crates/）と、契約 ・ 場面 ・ 規則（schemas/ ・ spec/ ・ CODING.md ・ architecture.json）を分ける</td></tr>
+<tr><td>根</td><td>コード（crates/）と、契約 ・ 場面 ・ 規則（schemas/ ・ behaviors/ ・ CODING.md ・ architecture.json）を分ける</td></tr>
 <tr><td>crate ＝ フォルダ</td><td>crates/domain/ ・ crates/outbound/ ・ crates/inbound/ の下のフォルダと crates/application/ が、crate 1つずつ。フォルダの並びが依存の向きの層。inbound ・ outbound の名前は Q5 #9</td></tr>
 <tr><td>domain の crate の中</td><td>aggregates/（集約1つに1ファイル）・ services/（ドメインサービス1つに1ファイル）・ 値オブジェクトは src/ の直下。ポートを持たない。値オブジェクトは、その語を持つ業務領域の crate に置く</td></tr>
 <tr><td>application の中</td><td>use_cases/（駆動する側のポート1つに1ファイル。読む → ドメインサービス → 書く）・ ports/（駆動される側のポート1つに1ファイル）</td></tr>
