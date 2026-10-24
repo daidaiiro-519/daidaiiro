@@ -81,7 +81,10 @@ F_CON='acdr の Semantic Concrete Schema'
 F_INS='.acdr/0197-…/acdr.json（インスタンス）'
 F_JUD='判定の記録'
 F_CHG='変更の記録'
-F_SES='セッションの索引（手元の DB）'
+F_SES='セッションの索引（手元の DB の表 sessions。コミットしない）'
+COLS=['ID','目的の参照','親','役割','状態','最後に使った時刻']
+ROWS1=[['0a9d…','—','—','—','開いている','10:02'],['7c1e…','ACDR 0197','0a9d…','—','開いている','10:05']]
+ROWS2=[['0a9d…','—','—','—','開いている','10:02'],['7c1e…','ACDR 0197','0a9d…','—','開いている','10:31'],['b52a…','ACDR 0197','7c1e…','platform-advisor の advisor','閉じた','10:29']]
 
 S=[
  dict(a=[1],actor='目的のセッション（目的：ACDR の Concrete を作る。使う場面の「作者」）',op='Abstract の本体から、ACDR の Concrete の雛形を作る',
@@ -105,7 +108,7 @@ S=[
   pre=['セッションの索引は空（このチャットのような最上位のセッションだけがある）'],
   post=['オーケストレーターのセッション 0a9d… と、目的のセッション 7c1e… が登録される','目的のセッションの親は 0a9d…（目的は別なので、目的は親と同じでなくてよい）'],
   beh=['入口「セッションを決める ・ 立てる」が、オーケストレーターのセッションを登録する','基盤は、依頼元が役割を持たないことを確かめ、目的のセッションを起動して登録する'],
-  files=[dict(f=F_SES,why='オーケストレーターのセッションと、目的のセッションを登録した',before='[]',after=J(SE1))]),
+  files=[dict(f=F_SES,why='オーケストレーターのセッションと、目的のセッションを登録した',table=True,cols=COLS,before=[],after=ROWS1)]),
  dict(a=[1,3],actor='目的のセッション（AI の Agent）',op='基盤から書き方を受け取り、ACDR 0197 を書く（型1）',
   pre=['ACDR 0197 はまだ無い'],
   post=['ACDR 0197 が proposed でできる','変更の記録 c1 が残る'],
@@ -151,7 +154,7 @@ ACDR の決定のレビュー役
 > 書き方：採るか採らないかと、その1文
 #### 根拠（grounds）
 > 書き方：判断基準の原文をそのまま引く''')],
-  files=[dict(f=F_SES,why='任せる先のセッションを登録し、答えのあと閉じた',before=J(SE1),after=J(SE2))]),
+  files=[dict(f=F_SES,why='任せる先のセッションを登録し、答えのあと閉じた',table=True,cols=COLS,before=ROWS1,after=ROWS2)]),
  dict(a=[1],actor='目的のセッション（AI の Agent）',op='advisor の根拠を ACDR 0197 の本文に書き足す',
   pre=['ACDR 0197 の why に最小権限の根拠が無い'],
   post=['why と shift が変わる','その欄を読んでいた判定2件が効かなくなる。decision だけを読んだ判定は効いたまま','変更の記録 c2 が残る'],

@@ -41,6 +41,7 @@ details.md summary{background:var(--md-bg);color:var(--md);padding:6px 10px;font
 .diff .a{background:var(--add);color:var(--add-ink)} .diff .d{background:var(--del);color:var(--del-ink)} .diff .h{color:var(--sub);background:var(--code)}
 .tg{display:flex;gap:6px;padding:6px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
 .tg button{font-size:12.5px;padding:2px 10px}
+table.db{border-collapse:collapse;width:100%;font-size:13px}.db th,.db td{border:1px solid var(--line);padding:4px 8px;text-align:left;white-space:nowrap}.db th{background:var(--code);color:var(--sub);font-weight:400}.db tr.ra td{background:var(--add);color:var(--add-ink)}.db td.rc{background:#FFF1A8;color:#13201D}.db tr.rd td{background:var(--del);color:var(--del-ink);text-decoration:line-through}.db .was{font-size:11px;color:var(--sub);margin-left:4px}.tblv{padding:8px 10px}.tw{overflow-x:auto}
 .nav{display:flex;gap:8px;align-items:center;position:sticky;bottom:0;background:var(--bg);padding-block:8px}
 button{font:inherit;padding:6px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer}
 button.p{background:var(--accent);color:var(--card)} button.on{background:var(--accent-bg)} button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
@@ -73,7 +74,14 @@ function lcs(a,b){const n=a.length,m=b.length,t=Array.from({length:n+1},()=>new 
 function render(ops,ctx){const keep=ops.map((o,k)=>o[0]!==' ');const show=ops.map((o,k)=>{for(let d=-ctx;d<=ctx;d++)if(keep[k+d])return true;return false});
  let h='',gap=false;ops.forEach((o,k)=>{if(ctx>=0&&!show[k]){if(!gap){h+='<div class="h">⋯ 変わっていない行</div>';gap=true}return}gap=false;
   const c=o[0]==='+'?'a':o[0]==='-'?'d':'';h+='<div class="'+c+'">'+esc(o[0]+' '+o[1])+'</div>'});return h}
-function file(f,idx){const a=f.before?f.before.split('\n'):[],b=f.after.split('\n');
+function tbl(f,mode){const bm={};(f.before||[]).forEach(r=>bm[r[0]]=r);const am={};f.after.forEach(r=>am[r[0]]=r);
+ const rows=mode==='before'?(f.before||[]):f.after;
+ let h='<div class="tw"><table class="db"><tr>'+f.cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>';
+ rows.forEach(r=>{const old=bm[r[0]];const add=mode!=='before'&&!old;h+='<tr class="'+(add?'ra':'')+'">'+r.map((c,k)=>'<td class="'+(mode!=='before'&&old&&old[k]!==c?'rc':'')+'">'+esc(c)+(mode!=='before'&&old&&old[k]!==c?'<span class="was">（前：'+esc(old[k])+'）</span>':'')+'</td>').join('')+'</tr>'});
+ if(mode!=='before')(f.before||[]).forEach(r=>{if(!am[r[0]])h+='<tr class="rd">'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>'});
+ if(!rows.length)h+='<tr><td colspan="'+f.cols.length+'" class="was">（行が無い）</td></tr>';
+ return h+'</table></div>'}
+function file(f,idx){if(f.table){return '<div class="file" data-i="'+idx+'"><div class="fh"><b>'+esc(f.f)+'</b><span class="bd '+((f.before&&f.before.length)?'mod':'new')+'">'+((f.before&&f.before.length)?'行が変わる':'行ができる')+'</span></div><div class="why"><span>理由：</span>'+esc(f.why)+'</div><div class="diff tblv">'+tbl(f,'after')+'</div><div class="tg"><button data-v="t-after" class="on">変更後の表（変わった行に色）</button><button data-v="t-before">変更前の表</button></div></div>'}const a=f.before?f.before.split('\n'):[],b=f.after.split('\n');
  const kind=f.ref?'ref':(f.before?'mod':'new'),lab={ref:'参照（変わらない）',new:'新しく作る',mod:'変わる'}[kind];
  const ops=f.ref?b.map(l=>[' ',l]):lcs(a,b);
  const body=f.ref?'':render(ops,2);
@@ -93,6 +101,7 @@ function r(){const s=S[i];document.getElementById('p-make').classList.toggle('on
  $('#sc').innerHTML=h;
  [...$('#ds').children].forEach((e,k)=>e.classList.toggle('on',k<=i));$('#pv').disabled=i==0;$('#nx').disabled=i==S.length-1;window.scrollTo(0,0)}
 $('#sc').addEventListener('click',e=>{const bt=e.target.closest('.tg button');if(!bt)return;const fe=bt.closest('.file'),f=S[i].files[+fe.dataset.i],v=bt.dataset.v,d=fe.querySelector('.diff');
+ if(f.table){fe.querySelectorAll('.tg button').forEach(x=>x.classList.remove('on'));bt.classList.add('on');d.innerHTML=tbl(f,v==='t-before'?'before':'after');return}
  const a=f.before?f.before.split('\n'):[],b=f.after.split('\n');
  if(bt.classList.contains('on')&&(v==='after'||v==='before')&&(f.ref||!f.before)){d.hidden=!d.hidden;bt.classList.toggle('on');return}
  fe.querySelectorAll('.tg button').forEach(x=>x.classList.remove('on'));bt.classList.add('on');d.hidden=false;
