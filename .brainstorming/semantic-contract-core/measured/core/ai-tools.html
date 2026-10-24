@@ -57,4 +57,14 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 <tr><td>設定ファイル（Abstract の一員 settings）</td><td>置く値が無くなる。必要になったときに足す（足す前に引く）</td></tr>
 </table></div>
 <p class="meta">残るもの：アダプターの返す値は「再開できるか ・ 有効時間（期間か『不明』）・ 最後に使った時刻」。有効時間の値は AI ツールと料金の形で変わるので、アダプターが利用者の環境から決める</p>
+<h2>5　採る形（案 C の割合を設定ファイルで持つ）</h2>
+<p class="meta">利用者：「何%は正直設定ファイルで持てるなら調節できるしあってもいい」。既定は置かない（根拠の無い数を基盤に書かない）。設定が無ければ案 B と同じ</p>
+<section class="two"><div class="pane"><pre><span>.semantic-agent-schema/settings.json（プロジェクト）</span><span>{ "$schema": "urn:semantic-agent-schema:base:settings:v1",</span><span class="a">  "session": { "newWhenHistoryAbovePercent": 60 } }</span></pre></div>
+<div class="pane"><pre><span>アダプターが返す値（5つのツールで取れる）</span><span>{ "resumable": true,</span><span>  "cacheLifetime": "PT1H" | "unknown",</span><span>  "lastUsedAt": "…",</span><span class="a">  "historyPercent": 70 }</span></pre></div></section>
+<div class="tw"><table><tr><th>場面：ACDR 0197 を30分後に続ける</th><th>設定なし</th><th>設定 60%</th></tr><tr><td>Claude Code、履歴がコンテキストの 30%</td><td class="y">有効時間内 → 再開</td><td class="y">60% 以下 ・ 有効時間内 → 再開</td></tr><tr><td>Claude Code、履歴が 70%</td><td class="y">有効時間内 → 再開</td><td class="p">60% を超える → 新しく立てて引き継ぐ</td></tr><tr><td>Kiro、履歴が 30%</td><td class="y">有効時間が不明 → 新しく立てる</td><td class="y">有効時間が不明 → 新しく立てる</td></tr></table></div>
+<div class="tw"><table><tr><th>決まり</th><th>中身</th></tr>
+<tr><td>判定の順</td><td>①再開できない ・ 有効時間が切れた ・ 不明 → 新規　②設定があり、履歴の割合がそれを超える → 新規　③それ以外 → 再開。新規にするときは古いほうを閉じる</td></tr>
+<tr><td>設定ファイル</td><td>Abstract の一員 settings。利用者 ・ プロジェクト ・ 手元の3段で、手元 ＞ プロジェクト ＞ 利用者。いまの欄は session.newWhenHistoryAbovePercent の1つ</td></tr>
+<tr><td>外すもの</td><td>費用の式 ・ 料金の倍率 ・ 見込みのターン数 ・ DB の turns の列</td></tr>
+</table></div>
 </main>
