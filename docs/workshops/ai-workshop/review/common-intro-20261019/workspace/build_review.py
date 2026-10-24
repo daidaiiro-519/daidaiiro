@@ -69,8 +69,8 @@ prior_five = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-05-
 prior_svg_five = (A / 'seven-slide-revision-20261019' / 'before-slide-05-design-purpose-20261021' / 'slide-05.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_five_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_five['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_five['lede']) + '</p><div class="body">' + prior_svg_five + '</div></section>'
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[4], prior_five_section, 1)
-prior_six = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-06-meaning-20261021' / 'slide-06.json').read_text())
-prior_svg_six = (A / 'seven-slide-revision-20261019' / 'before-slide-06-meaning-20261021' / 'slide-06.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
+prior_six = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-06-design-judgment-20261024' / 'slide-06.json').read_text())
+prior_svg_six = (A / 'seven-slide-revision-20261019' / 'before-slide-06-design-judgment-20261024' / 'slide-06.svg').read_text().replace('<svg ', '<svg class="ws-visual" ', 1)
 prior_six_section = '<section class="slide ws-diagram"><h2>' + html.escape(prior_six['heading']) + '</h2><p class="ws-intro">' + html.escape(prior_six['lede']) + '</p><div class="body">' + prior_svg_six + '</div></section>'
 before = before.replace(re.findall(r'<section\b.*?</section>', before, re.S)[5], prior_six_section, 1)
 prior_seven = json.loads((A / 'seven-slide-revision-20261019' / 'before-slide-07-mechanism-20261021' / 'slide-07.json').read_text())
@@ -144,13 +144,14 @@ def publish():
     d['reasons']['3'] = '結びの予告を、解釈の振り返りから修正後の追加開発へ変更。図の下でも変更制限を修正したことを明示。変更前は直前の3枚目です。'
     d['reasons']['4'] = '上段で修正した動作と残った設計を区別し、その設計のままの追加対応、確認負担へ順に接続。3枚目との出来事の順序を図と原稿で対応。変更前は直前の4枚目です。'
     d['reasons']['5'] = 'レビュー中心の説明を、設計・実装の目的から必要な作業を考える説明へ変更。個々の機能追加と動作確認に偏った作業から、業務ルール・変更影響・設計の前提を検討する作業へ対比しました。目的は大きいほどよいとは説明しません。変更前は直前の5枚目です。'
+    d['reasons']['6'] = '5枚目の目的と必要な作業から、業務の判断の違いを設計へ反映する教材2へ接続。上長承認と経理確認の対比図を維持し、状態・変更ルール・確認項目への反映を追加しました。文脈の境界と整合性を守る範囲を区別し、教材3を判断手順の実行へつなぐ原稿に修正。変更前は直前の6枚目です。'
     text = text[:m.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[m.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
     # Keep the existing cover and its links; replace only the explanatory notice.
     notice = text[start:end]
-    notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容5枚目を再修正</h2>', notice, count=1, flags=re.S)
-    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。教材3を設計の考え方とAIの実行手順へつなぐ方針で再検討しています。3〜4枚目の接続に続き、5枚目を設計・実装の目的から必要な作業を考える説明へ修正しました。6〜7枚目は直前の版で、今回の方針に沿う修正はこれからです。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<h2>.*?</h2>', '<h2>三教材共通の「はじめに」：7枚構成へ修正中／今回は内容6枚目を修正</h2>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<p>.*?</p>', '<p>業務の判断の混同が追加対応と確認負担に広がる構成・原稿案へ更新しました。下の構成案で確認できます。教材3を設計の考え方とAIの実行手順へつなぐ方針で再検討しています。3〜4枚目の接続に続き、5枚目を設計・実装の目的から必要な作業を考える説明へ修正しました。6枚目は業務の判断の違いを設計へ反映する説明に修正しました。7枚目は以前の説明が残っており、次に修正します。承認の段階を取り違える設定に更新した構成案・原稿案を下で確認できます。表紙とオリエンテーション、動画・音声は今回更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
     plan_html = markdown.markdown((A / 'seven-slide-revision-20261019' / 'slide-plan.md').read_text(), extensions=['tables'])
@@ -213,6 +214,7 @@ def publish():
     log.extend([dict(slide=3, group='story', change='原稿の最後の予告を修正後の追加開発へ変更。図の下で上長承認後の変更制限を修正したことを明示。'), dict(slide=4, group='figure', change='修正した動作と残った設計を上段の別領域で示し、追加対応、複数の処理とテストを読む確認負担へ順に接続。'), dict(slide=4, group='japanese', change='前の不具合の修正から始め、何を変え何を見直さなかったかを説明。後半で3枚目と4枚目の問題の違いを確認する。')])
     log.append(dict(slide=4, group='figure', change='別の確認者が図だけでは維持する判断とやり直す判断の違いが不足すると指摘。証憑だけの再提出では上長承認を維持し経理確認をやり直す条件を図に追加。'))
     log.extend([dict(slide=5, group='story', change='4枚目の設計前提を見直さない追加開発を受け、レビューだけでなく設計・実装を何のために行うかを問い直す教材1の紹介へ変更。'),dict(slide=5, group='figure', change='既存の目的と左右比較の枠・人物・資料部品・下段の余白を維持。個々の機能追加と動作確認に偏った作業と、業務ルール・変更影響・判断の違いを検討する作業を対比。'),dict(slide=5, group='japanese', change='業務仕様は初めから確認すべき内容と説明。目的が大きいほどよいとはせず、目的だけで設計の答えが決まるとも説明しない。複数の業務ルールの中の承認を教材2へつなぐ。')])
+    log.extend([dict(slide=6, group='story', change='5枚目の承認は業務ルールの一例という結びを受け、異なる業務判断を設計で区別する教材2へ接続。教材3を判断手順の実行へつなぐ。'),dict(slide=6, group='figure', change='上長承認と経理確認、証憑再提出時の結果の対比を維持し、状態・変更ルール・確認項目に反映する関係を追加。'),dict(slide=6, group='japanese', change='承認維持を前枚の主題とする古い導入を修正。文脈と整合性の範囲を区別し、分割方法は断定しない。')])
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 if __name__ == '__main__':
