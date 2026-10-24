@@ -16,7 +16,8 @@
 4. `docs/workshops/ai-workshop/review/shared/direction.md`
 5. `.claude/skills/slide-deck/references/ai-workshop-production.md` と、そこで参照しているSkillの規則
 6. `docs/workshops/ai-workshop/review/shared/changes/` の変更記録
-7. `docs/workshops/ai-workshop/review/shared/tracks/proposal-orientation.json`
+7. `docs/workshops/ai-workshop/review/shared/viewer-guide.md`
+8. `docs/workshops/ai-workshop/review/shared/tracks/proposal-orientation.json`
 
 各資料の役割は分かれています。企画書は部長向けに組織の効果、工数、評価、判断事項を説明します。オリエンテーションは部内メンバー向けに、仕事上の疑問から興味を持ち、受講後の姿と学ぶ内容を想像できるようにします。詳細な案件の説明を、共通の「はじめに」からオリエンテーションへ戻さないでください。
 
@@ -26,7 +27,9 @@
 
 修正用の作業コピーは `docs/workshops/ai-workshop/review/proposal-orientation-20261024/` に作り、編集する入力、生成方法、比較の公開先を自分の担当情報に記録してください。この時点で正本や音声・動画を変更しないでください。
 
-「はじめに」の図・原稿・生成処理と、`common-intro-20261019/viewer/design-review.html` は別担当が更新します。このHTMLを直接編集すると再生成で失われます。自分の比較は自分の入力と生成元から作り、共通の閲覧ページへの導線を追加する場合は公開先と生成元を確認してください。同じ比較HTMLで一枚ずつ変更前後を提示し、利用者の確認後に次の枚へ進んでください。
+「はじめに」の図・原稿・生成処理と、共通のメイン・比較・閲覧・制作情報の公開HTMLは別担当が更新します。メイン画面は `http://127.0.0.1:8772/`、画面遷移図は `http://127.0.0.1:8772/navigation.html` です。生成後のHTMLを直接編集すると再生成で失われます。自分の比較は自分の入力と生成元から作り、担当情報に公開URLと生成方法を記録してください。共通のメイン画面への導線追加は、変更記録へ元ファイルと公開先を記載して共有してください。詳しい入力と生成処理はviewer-guide.mdにあります。
+
+同じ比較HTMLで一枚ずつ変更前後の図・原稿・変更理由を提示し、利用者の確認後に次の枚へ進んでください。原稿の旧版や変更理由がない場合は、未記録と明示し、差分を推測しないでください。
 
 作業開始時、利用者の方針修正後、比較を提示する前に共通方針と変更記録を読み直してください。読んだrevisionと、自分の反映状況・確認待ち・次の作業を担当情報に記録してください。他の資料に影響する変更は、新しい変更記録として保存してください。他担当の進捗や承認状態を変更しないでください。
 
