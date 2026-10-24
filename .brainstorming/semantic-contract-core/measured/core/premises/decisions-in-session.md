@@ -1,0 +1,41 @@
+# この会話で利用者と決めたこと（記録の原文。正本 domain-model-v2.json にはまだ入っていない）
+
+## 現在地（2026-10-23）
+
+- ボードの Artifact は CdRCEdAdiSnUrBSc3svC5j。Q3 だけが開いていて、ほかは決着済み（Q11 セッション、Q1 の ER 図まで c1f48c9c）。
+- Q3（Agents 契約）の検討で、下流の Q3 から上流の決着済み（Q0 ・ Q1 ・ Q7 ・ Q11）を書き換えていたので、根幹 Q0 から整理し直した。整理のページ：LBLn1Jn6QcKXpq3LBkRWjA。シミュレーション第15版：Jhj2PvMe53KNCHVGHXWR5V。
+- 利用者と決めたこと：
+  - x-delegates は残す。基盤（Abstract）も Concrete も根に持つ「任せる先の一覧」で、中身は自分の agent の定義（ほかの Concrete の URN は書かない）。kind は judging ・ working ・ program。rule の by: ai → judging、by: machine → program（agent が無ければ基盤のエンジン）。
+  - Q0 #13（外から足す検査のプログラム）は残す。文脈の技術スタックの枯れた CLI（Rust なら cargo）を Concrete が program として置く。止めるのは x-prompt の文に特定の言語の道具を書くことだけ。
+  - 呼ぶのは親のセッション。呼ばれた子はほかの agent を呼ばず、決めきれない点は needs で親に返す。advisor の根拠は親がインスタンスの欄に書いてから検証し直す。
+  - 判定させる AI にも、親が渡すなら引き継ぎを渡す（Q0 #4 のまま）。親のセッションは人 ・ harness が立てても基盤が立ててもよい。
+  - x-prompt は、項目を見出しにし、read（means ・ shown ・ parse ・ when）と write を添えて描く。描き方の3つの型（目的のセッションが書く ・ 任せる先が書く ・ 任せる先が判定する）。ビューは任意。
+  - セッションの呼び名：オーケストレーターのセッション ・ 目的のセッション（親はオーケストレーターのセッション）・ 任せる先のセッション。Q11 の不変条件①は任せる先のセッションにだけ当てる。
+  - JSON Schema の能力はフルに使う。値だけで決まる決まりは if ・ then ・ dependentRequired ・ contains ・ oneOf ・ readOnly などで書き、x-prompt には書けないもの（記録をまたぐ ・ Git を読む ・ 意味の判定）だけを残す。
+  - advisor の答えは親が本文に書き足してから再検証。AI の答えは rule ごとの5つの値と問い（外枠は protocol）。AI を呼ぶ書式は見出し7つを Abstract の $defs/agents に。
+  - URN の持ち主は core をやめて base。Concrete の URN の種類はインスタンスの kind と同じ名詞（ACDR は urn:semantic-agent-schema:acdr:decision-record:v1）。
+  - 手元の DB の案は measured/abstract-draft/db.sql（sessions と session_changes）。I46：同じ目的の目的のセッションは親が違っても1つまで、任せる先のセッションは目的 ・ 親 ・ 役割が同じで1つまで、オーケストレーターのセッションはリポジトリ（手元の DB）で開いているのは1つで、ほかのターミナルは同じ ID で再開する。オーケストレーターは入れ子にしない（決めた）。
+  - TLA+ ・ Z3 から採るのは「決まりは状態で書く」。Abstract の根の write に read-perspectives を足す案。
+- 案の正本は .brainstorming/semantic-contract-core/measured/abstract-draft/（README に組み直しと検査の手順）。シミュレーション Jhj2PvMe53KNCHVGHXWR5V、完成イメージ GRqKKpvcij9JmhC26VczG1。JSON Schema の読み方 BH7hvc6RCqEzvLT7ru86Fh、能力の一覧 XSP4EXyAP9bKRBr6DyGrKv。
+- 差分第7版（UoM9gCcp6BAxTdvdpwNBNa）は、上の決定より前のもの。そのまま当てない。
+
+## 現在地（2026-10-24 追記）
+
+- 利用者の方針：ドメインモデル ・ スキーマ ・ ポートの契約 ・ DB ・ 期待する振る舞いを1つの「核」（measured/core/）にそろえて合意し、シミュレーションで期待する振る舞いを全部実行して通すことを核ができた印にする。地図 S1m24U6u8LhsU5QR1BJXch（core/map.html）。
+- 変更の仕組み（Git）は「対象の変更の前後を受け取る」ポートのアダプターの1つにすぎない。基盤は Git と同じことをしない（利用者の指摘）。change_id は基盤が決める ULID。
+- core/agreed.json（合意済み12件）・ core/answers.json（案と未決の9件の答えの下書き）。ddd ・ platform ・ qa ・ usecase の4アドバイザーと反証役に依頼中。結果は core/reviews/*.md。
+- 次：指摘を統合して答えを直す → v2 に全部を適用して核の5つを書く → 参照の実装でシミュレーション → 合否と核を1ページで出して合意 → ACDR で正本へ。
+
+## 次にすること（この順）
+
+## その後に決めたこと（上の記録より新しい。食い違うときはこちら）
+
+- 任せる先の種類は judging ・ working の2つ（目的の種類）。program は種類にしない。argv があれば CLI のプロセスとして動かす。rule の by: ai は argv の無い judging、by: machine は argv の有る judging か、agent が無ければ基盤のエンジン。
+- AI を呼ぶ書式は Abstract の $defs/agents に置かない（外した）。呼び出しは protocol の call：{delegate（名前）, target, rules, inputs, task, handoff}。role ・ answer ・ run を写さない。
+- 基盤自身も x-delegates に judge を持つ。
+- Abstract の本体：$schema は自分の $id。9つの x- を根の x-extensions に、Concrete と同じ形で登録する。本体の部品の欄はすべて description と x-prompt を持つ。$defs/fields は $schema ・ 入れ物（properties ・ $defs）・ x- のキーを除く。read-perspectives の rule（judge）を足した。
+- オーケストレーターのセッションは、手元の DB（＝リポジトリ。worktree をまたいで1つ）で開いているのは1つ。入れ子にしない。同じ目的は親が違っても1つ。任せる先のセッションは目的 ・ 親 ・ 役割が同じで1つ。
+- 変更の記録の id（change_id）は、基盤が書いた時に1回だけ決める ULID。変更の仕組みの値（commit など）ではない。
+- 本人がセッションの中で承認するのは基盤の操作（人の判定の記録に残す）。承認したら確定しなければならない。確定のやり方は変更の仕組みのアダプターが決める（利用者の指摘「承認するのは人間かもしれないけど、確定はしないといけないでしょ？」）。
+- 変更の場所を find（AI が選ぶ文字列）で指すのはやめる（利用者「findで探すのはなんか変だよね」）。
+- 変更の仕組み（Git）は「対象の変更の前後を受け取る」ポートのアダプターの1つにすぎない。基盤は Git と同じこと（履歴 ・ 取り込みの作り直し）をしない。
