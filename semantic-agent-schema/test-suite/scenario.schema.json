@@ -1,0 +1,32 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:base:test-scenario:v1",
+ "title": "システムテストの場面",
+ "description": "1つの場面を1つのファイルに書く。given の手順を順に実行し、when を1回実行して、then の期待と unchanged を確かめる",
+ "type": "object",
+ "required": ["id", "title", "traces", "when", "then"],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {"type": "string"},
+  "id": {"type": "string", "pattern": "^S-[A-Z0-9-]+$", "description": "場面の id"},
+  "title": {"type": "string", "description": "何を確かめる場面か"},
+  "traces": {"type": "array", "items": {"type": "string", "pattern": "^(I\\d+|U\\d+:(事後|失敗時))$"}, "minItems": 1, "description": "確かめる不変条件と使う場面の id"},
+  "given": {"type": "object", "additionalProperties": false, "properties": {
+    "files": {"type": "object", "additionalProperties": {"type": "string"}, "description": "作業ディレクトリに置くファイル（相対の経路 → 中身。test-suite/fixtures/ を指すときは @fixtures/…）"},
+    "steps": {"type": "array", "items": {"$ref": "#/$defs/command"}, "description": "前提のコマンド。どれも終了コード 0 で終わる必要がある"}}},
+  "when": {"$ref": "#/$defs/command"},
+  "after": {"type": "array", "items": {"$ref": "#/$defs/command"}, "description": "状態を読むコマンド。then の after[n] で参照する"},
+  "then": {"type": "array", "items": {"$ref": "#/$defs/expect"}, "minItems": 1},
+  "unchanged": {"type": "array", "items": {"type": "string"}, "description": "when の前と後で中身が変わらないファイル"}
+ },
+ "$defs": {
+  "command": {"type": "object", "required": ["args"], "additionalProperties": false, "properties": {
+    "args": {"type": "array", "items": {"type": "string"}, "description": "semantic-agent-schema に渡す引数"},
+    "stdin": {"type": "string"}}},
+  "expect": {"type": "object", "required": ["of"], "additionalProperties": false, "properties": {
+    "of": {"type": "string", "pattern": "^(when|after\\[\\d+\\])$", "description": "どのコマンドの結果か"},
+    "exit": {"type": "integer", "enum": [0, 1, 2]},
+    "pointer": {"type": "string", "description": "--json の出力の中の JSON Pointer"},
+    "equals": {}, "contains": {"type": "string"}, "count": {"type": "integer", "minimum": 0}, "exists": {"type": "boolean"}}}
+ }
+}

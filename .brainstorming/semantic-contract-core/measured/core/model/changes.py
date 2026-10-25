@@ -233,6 +233,9 @@ dict(id='C98', path=('open', 1, 'why'), op='text', before='文脈をまたぐ削
      why='消すを無くし、不要なものは superseded にして残す（C80 ・ C81）。未決の論点の文も置き換えの形にそろえる', source='利用者「上記も直して私に確認してほしいものをまとめてください」 ・ arch/command-sim'),
 dict(id='C99', path=('boundary', 11, 0), op='text', before='セッション（6つの欄。', after='セッション（7つの欄。',
      why='セッションに親の文脈（context）を足して7つの欄にした（C69）。境界の表の数をそろえる', source='arch/child-sessions ・ ボード Q11'),
+dict(id='C100', path=('states', 'instance'), op='set', before=['下書き（violated がある。直すのは書く側）', '確かめ直しを待つ（error がある）', '判断待ち（unverified ・ unsupported がある。人が見る）', '検証済み'],
+     after=['下書き：rule の結果に violated が1つでもある（ほかの結果に関わらず。直すのは書く側）', '確かめ直しを待つ：violated が無く、error が1つでもある（検証の仕方を直して確かめ直す）', '判断待ち：violated と error が無く、unverified か unsupported が1つでもある（人が見る）', '検証済み：すべての rule が verified（形の rule だけのときも、形が合えば検証済み）。superseded のインスタンスは状態を導かない（I11）'],
+     why='状態を、rule の結果の5つの値から上の行ほど先に当てはめる決定表にする。単体テストの決定表の列になる。書く側が直す violated を先に出し、確かめ直しの error、人が見る unverified ・ unsupported の順にする', source='実装計画の段0 ・ qa-advisor（model.json の states に決定表の列が無い）'),
 ]
 
 # ボードにだけ在り、v2 に無い決着の直し（ACDR でボードへ適用する）

@@ -1,0 +1,199 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0203",
+ "title": "段0：検査の土台（システムテストの走らせ方 ・ 追跡の検査 ・ 状態の決定表 ・ コマンドの最小の形）",
+ "date": "2026-10-25",
+ "status": "accepted",
+ "decision": "実装計画の段0として、システムテストの走らせ方と追跡の検査を置き、インスタンスの状態の決定表とコマンドの最小の形を決める。",
+ "why": "段1 からは試験を先に書いて実装する。そのためには、場面を走らせる仕組みと、不変条件 ・ 使う場面の漏れを落とす検査を先に必要とする。状態の決定表が model.json に無く、単体テストの決定表の列を決められなかった。コマンドの形はボードの Q4 で回答待ちのままで、受け入れで利用者が何を打つかが決まっていなかった。",
+ "shift": [
+  {
+   "what": "システムテスト",
+   "from": "空の main.rs",
+   "to": "場面1つを1件のテストとして、一時ディレクトリで実行ファイルを動かす。場面の形は scenario.schema.json"
+  },
+  {
+   "what": "追跡の検査",
+   "from": "空の trace.rs",
+   "to": "trace.json と untested.json とコードの traces を突き合わせ、CODING.md の grep で見る規則を確かめる"
+  },
+  {
+   "what": "インスタンスの状態",
+   "from": "4つの状態の名前と短い説明",
+   "to": "rule の結果の5つの値から、上の行ほど先に当てはめる決定表"
+  },
+  {
+   "what": "コマンドの形",
+   "from": "回答待ち（Q4）",
+   "to": "<コマンド> <対象> [旗]、--json で {ok, findings, data}、終了コード 0 ・ 1 ・ 2"
+  }
+ ],
+ "alternatives": [
+  {
+   "option": "libtest-mimic などの外の crate で場面を登録する",
+   "why_not": "原典で確かめていない外の crate を増やす。いまの場面の数なら、1つの main で1件ずつ走らせて足りる"
+  },
+  {
+   "option": "追跡の検査を xtask にする",
+   "why_not": "ツールを増やす。CODING.md のとおり system テストの1モジュールにする"
+  },
+  {
+   "option": "violated と error が同時のとき、確かめ直しを先にする",
+   "why_not": "violated は書く側が直すもので、確かめ直しても消えない。直すものを先に出す"
+  },
+  {
+   "option": "コマンドの出力の形を新しく決める",
+   "why_not": "このリポジトリのツールがすでに {ok, findings, data} と終了コード 0 ・ 1 ・ 2 の契約を持つ。そろえる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "model",
+   "tab": "状態の決定表（C100）",
+   "file": ".brainstorming/semantic-contract-core/measured/core/model/changes.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "dict(id='C100', path=('states', 'instanc",
+     "before": "（無い。足した行）",
+     "why": "インスタンスの状態を、rule の結果の5つの値から上の行ほど先に当てはめる決定表にした。violated → error → unverified ・ unsupported → すべて verified の順。superseded のインスタンスは状態を導かない（I11）。単体テストの決定表の列になる"
+    }
+   ]
+  },
+  {
+   "key": "board",
+   "tab": "ボード Q4",
+   "file": ".brainstorming/semantic-contract-core.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"測り方：公開した版を書き換えないと書けないルール ・ 検証結果の値へ対応させら",
+     "before": "\"測り方：公開した版を書き換えないと書けないルール ・ 検証結果の値へ対応させられないもの ・ 検証できないのに合格と返したもの ・ 足す前と後で結果が変わったものが、どれも0件\"",
+     "why": "コマンドの最小の形と、システムテストの場面の形を足した。このリポジトリのツールと同じ契約（--json で {ok, findings, data}、終了コード 0 ・ 1 ・ 2）にそろえる。各コマンドの引数は、その段で決める"
+    }
+   ]
+  },
+  {
+   "key": "ws",
+   "tab": "Cargo.toml（根）",
+   "file": "semantic-agent-schema/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "[workspace.dependencies]",
+     "before": "（無い。足した行）",
+     "why": "システムテストが JSON を読むための serde_json を、依存の版の1か所（[workspace.dependencies]）に置いた"
+    }
+   ]
+  },
+  {
+   "key": "clitoml",
+   "tab": "cli の Cargo.toml",
+   "file": "semantic-agent-schema/crates/inbound/cli/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "[dev-dependencies]",
+     "before": "（無い。足した行）",
+     "why": "システムテストだけが使う依存（dev）として serde_json を足した"
+    }
+   ]
+  },
+  {
+   "key": "clilib",
+   "tab": "cli の lib.rs",
+   "file": "semantic-agent-schema/crates/inbound/cli/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use semantic_agent_schema_application;",
+     "before": "pub use semantic_agent_schema_agents_contract;",
+     "why": "outbound の crate の再公開を外した。CODING.md 1節「cli の中で outbound の crate を使うのは compose.rs だけ」に雛形が違反していたのを、追跡の検査が見つけた"
+    }
+   ]
+  },
+  {
+   "key": "sysmain",
+   "tab": "システムテストの走らせ方",
+   "file": "semantic-agent-schema/crates/inbound/cli/tests/system/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! システムテスト：追跡の検査を通したあと、test-suite/scena",
+     "before": "//! システムテスト：test-suite の場面を1件ずつ走らせる（中身はこれから書く）",
+     "why": "追跡の検査を通したあと、test-suite/scenarios/ の場面を1件ずつ、一時ディレクトリ（HOME と XDG も下に向ける）で実行ファイルを動かして確かめる。期待は終了コード ・ JSON Pointer の equals ・ contains ・ count ・ exists と、変わってはいけないファイル（unchanged）"
+    }
+   ]
+  },
+  {
+   "key": "trace",
+   "tab": "追跡の検査",
+   "file": "semantic-agent-schema/crates/inbound/cli/tests/system/trace.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 追跡の検査：test-suite/trace.json と untest",
+     "before": "//! 追跡の検査：trace.json ・ syn ・ grep（中身はこれから書く）",
+     "why": "CODING.md の grep で見る規則を確かめる。見るのは、traces と untested.json の重なり ・ 漏れ ・ 知らない id、題材の語、mod.rs、共有の crate、ファイルの一覧、outbound を使う場所。syn で型を見る検査は段1で足す"
+    }
+   ]
+  },
+  {
+   "key": "arch",
+   "tab": "architecture.json",
+   "file": "semantic-agent-schema/architecture.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"name\": \"serde_json\"",
+     "before": "（無い。足した行）",
+     "why": "外の crate serde_json を規則の component に足した"
+    },
+    {
+     "find": "\"from\": \"cli\"",
+     "before": "（無い。足した行）",
+     "why": "cli から serde_json への辺を、試験だけ（dev）として許した。規則に無い依存は uncovered として止まる（実測）"
+    }
+   ]
+  },
+  {
+   "key": "scen",
+   "tab": "場面の形",
+   "file": "semantic-agent-schema/test-suite/scenario.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:semantic-agent-schema:base:test-scenario:v1",
+     "before": "（無い。新しく作るファイル）",
+     "why": "システムテストの場面1つの形（id ・ traces ・ given ・ when ・ after ・ then ・ unchanged）を JSON Schema で決めた"
+    }
+   ]
+  },
+  {
+   "key": "fix",
+   "tab": "題材の置き場所",
+   "file": "semantic-agent-schema/test-suite/fixtures/acdr/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "題材：ACDR",
+     "before": "（無い。新しく作るファイル）",
+     "why": "題材 ACDR の置き場所を決めた。題材の語は crates/ に入れない（追跡の検査が見る）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "model": "70266cd57136833ee06348c86f7882426c9226c7dcad2ac5cede310a8a52b20a",
+  "board": "bf1f831e4dae487ad447182258973b27935d666ddf04f52981db631bb09134cc",
+  "ws": "7923fddf1a698541e19dfc92731ada31eebeca92312f4ffbd1f3feaf1de2ac10",
+  "clitoml": "a8c55d56667736b00f9c2b3b7c72f210226a31b1115758574d4228d8a0ae4217",
+  "clilib": "da1d05e4d4c71fe1510072065f74a046dbb8a88fd6b7d3690086f12b046ec7e9",
+  "sysmain": "a3814034311f5f721bfed25347fbdf7305600f31a6035c1c50e91c2e0e822822",
+  "trace": "1e2e3888356ad669fc58162bd91f11fc238a6a16d379beef3f996990431d7cdd",
+  "arch": "498715d56f42563120bc9f080e099860e30942a2dc6eed1e11e62492dd19c6ff",
+  "scen": "3eb1179cc839e1660842c2b4016f80289f2faf8e848c12e971d8fd6321756f63",
+  "fix": "c7682e86904ffd143917978fc3b459a786455c18cbcb8dcf19e0af5a915088c0"
+ }
+}

@@ -5,6 +5,8 @@ H = os.path.dirname(os.path.abspath(__file__)); C = os.path.dirname(os.path.dirn
 sys.path.insert(0, H)
 from tree import TREE, EDGES, OUTBOUND, P, APP, PORTS
 repo = sys.argv[1]; root = os.path.join(repo, 'semantic-agent-schema')
+if os.path.exists(os.path.join(root, 'Cargo.toml')):
+    sys.exit('semantic-agent-schema/ は既にある。雛形は最初の1回だけ作る道具なので、上書きしない')
 m = json.load(open(os.path.join(C, 'model', 'model.json')))
 SKIP_EXT = ('.json', '.sql', '.md', '.toml', '.lock')
 def write(path, text, keep=False):
@@ -75,7 +77,8 @@ for c, path in crates.items():
                 names.append(mod)
         return names
     top = gen(src, [])
-    uses = ''.join(f'pub use {(P + x).replace("-", "_")};\n' for x in deps_of(c))
+    # cli は outbound を compose.rs の中だけで使うので、lib.rs で再公開しない（CODING.md 1節）
+    uses = ''.join(f'pub use {(P + x).replace("-", "_")};\n' for x in deps_of(c) if not (c == 'cli' and x in OUTBOUND))
     write(os.path.join(src, 'lib.rs'), f'//! {P}{c}：{desc.get(path, "")}\n' + ''.join(f'pub mod {t};\n' for t in top) + uses)
     if c == 'cli':
         write(os.path.join(src, 'compose.rs'), '//! 起動時の結合（outbound を application へ渡す1か所）\n\n/// 起動する（中身はこれから書く）\npub fn run() {}\n')
@@ -124,6 +127,8 @@ disallowed-types = [
 ''')
 comp = [{"name": c, "nodes": [P + c]} for c in sorted(crates)]
 allow = [{"from": c, "to": deps_of(c)} for c in sorted(crates) if deps_of(c)]
+comp.append({"name": "serde_json", "nodes": ["serde_json"]})
+allow.append({"from": "cli", "to": ["serde_json"], "kinds": ["dev"], "description": "システムテストが場面の JSON と --json の出力を読む"})
 write(os.path.join(root, 'architecture.json'), json.dumps({"version": 1, "description": "semantic-agent-schema の crate の間で許す依存の辺（arch.html 4節）", "components": comp, "allow": allow}, ensure_ascii=False, indent=1) + '\n')
 # 追跡の一覧
 inv = [{"id": r[0], "name": r[2]} for r in m['invariants']]
