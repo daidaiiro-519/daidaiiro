@@ -14,7 +14,7 @@
 |---|---|---|
 | crate の依存は `architecture.json` が許す辺だけにする | 依存の向きが外から中心へ揃っていないと、中心の変更理由が外の技術に引きずられる | `architecture-lint check --rules architecture.json --cargo .` が0件 |
 | domain の crate は値を受け取り値を返す。ファイル ・ 通信 ・ プロセス ・ 時刻に触らない | 中心が入出力に触ると、代役なしの単体テストで確かめられなくなる | `crates/domain/clippy.toml` の `disallowed-methods` ・ `disallowed-types`（`std::fs` ・ `std::net` ・ `std::process` ・ `std::time::SystemTime`）に clippy が0件 |
-| 基盤は AI を起動しない。AI が判定する rule は Semantic Schema Validator が依頼の一覧（needs）として返し、使う場面がポート（rule の判定を依頼する）で依頼して、答えを Validator の2段目に渡す | AI の起動が domain や Validator の中に入ると、判定の入力と出力が値として残らず、決定的な試験ができない | domain の crate に outbound の crate への辺が無い（architecture-lint）。Validator の公開関数が値だけを受け取る（単体テスト） |
+| domain（Semantic Schema Validator を含む）は AI を起動しない。AI が判定する rule は Validator が依頼の一覧（needs）として返し、application の使う場面がポート（rule の判定を依頼する）で依頼する。判定させる AI を起動するのは、そのポートのアダプター（outbound/ai-cli）で、判定ごとに新しいセッションで起動する。答えは Validator の2段目に渡す | AI の起動が domain や Validator の中に入ると、判定の入力と出力が値として残らず、決定的な試験ができない | domain の crate に outbound の crate への辺が無い（architecture-lint）。Validator の公開関数が値だけを受け取る（単体テスト） |
 | 起動時の結合は `crates/inbound/cli/src/compose.rs` の1か所に置く。`main.rs`（CLI）と `src/bin/mcp.rs`（MCP）は、引数を受け取って compose を呼ぶだけにする | 結合が2か所にあると、片方だけ直したときに振る舞いが食い違う。原典：「Rust projects that provide a binary have a straightforward _src/main.rs_ file that calls logic that lives in the _src/lib.rs_ file」（The Rust Programming Language 11.3） | ① outbound の外から outbound の crate に依存するのは cli だけ。outbound どうしの辺は architecture.json のとおり（architecture-lint）② cli の中で outbound の crate を `use` するのは compose.rs だけ（追跡の検査の grep） |
 
 ## 2. ワークスペースと crate
