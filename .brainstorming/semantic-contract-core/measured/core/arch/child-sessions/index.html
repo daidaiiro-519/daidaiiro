@@ -47,18 +47,25 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
 </style>
 <main>
 <h1>子のセッションの型</h1>
-<p class="meta">利用者「forkでいいものやsessionとして別の文脈としてその目的と意図の間は継続している必要がある子セッションの区別も契約として持っていた方がいい」「ClaudeCodeとCodexとCopilotとKiroで抽象できる契約として整理できること、キャッシュを利かすことができること」「A,Bも両方あるイメージ」を受けた整理。実測は 2026-10-25、約4万トークンの資料を読ませた親から各1回</p>
-<p class="ans">子は3つの型を持つ。継続する子 A は4つの AI ツールすべてで再開のキャッシュが効く。分岐でキャッシュが効くのは Claude Code と Codex。継続する子 B を作るときに親のキャッシュが効くのは Claude Code だけ。契約は型ごとに AI ツールの能力を持ち、できない ・ 効かないツールでは代わりの型にする</p>
-<h2>1　3つの型</h2>
-<div class="tw"><table><tr><th>型</th><th>親の文脈</th><th>続くか</th><th>向いている仕事</th><th>寿命</th></tr><tr><td>分岐</td><td>持って始まる</td><td>1回で終わる。残さない</td><td>反証、Semantic Search の整形</td><td>1回の呼び出し</td></tr><tr><td>継続する子 A（既定）</td><td>持たずに始まる（仕事の指示だけ）</td><td>続く。役割ごとに再開する</td><td>指示だけで進められる長い仕事</td><td>役割の仕事が終わるか、目的が閉じるまで</td></tr><tr><td>継続する子 B</td><td>持って始まる</td><td>続く。役割ごとに再開する</td><td>会話の意図を知らないと外れる長い仕事</td><td>同上</td></tr></table></div>
-<h2>2　AI ツールごとの能力（キャッシュが効くか）</h2>
-<div class="tw"><table><tr><th>型</th><th>Claude Code 2.1.305</th><th>Codex 0.164.0</th><th>Copilot 1.0.103</th><th>Kiro 2.21.1</th></tr><tr><td>分岐（親の文脈を引き継ぐ）</td><td><span class="y">効く</span> 96%（実測）<br>--resume ID --fork-session --no-session-persistence</td><td><span class="y">効く</span> 64%（実測。親の再開と同じ）<br>exec fork --ephemeral ID</td><td><span class="u">不明</span> 対話の中の /fork だけ。コマンドでは作れない</td><td><span class="n">効かない</span> クレジットが親と同じ（推測）<br>v3 の ACP の session/fork</td></tr><tr><td>継続する子 A：作る</td><td>新しいセッション（親のキャッシュは無い）</td><td>同左</td><td>同左</td><td>同左</td></tr><tr><td>継続する子 A ・ B：2回目からの再開</td><td><span class="y">効く</span> 100%（実測）<br>--resume ID</td><td><span class="y">効く</span> 64%（実測）<br>exec resume ID</td><td><span class="y">効く</span> 96%（実測）<br>--resume ID</td><td><span class="y">効く</span> クレジットが約半分（推測）<br>--resume-id ID</td></tr><tr><td>継続する子 B：作る（親の文脈を持たせる）</td><td><span class="y">効く</span> 87%（実測）<br>--resume ID --fork-session</td><td><span class="n">効かない</span> 29%（実測。共通の前置きの分だけ）<br>exec fork ID</td><td><span class="u">不明</span> 対話の中の /fork だけ</td><td><span class="n">効かない</span> 分岐と同じ（推測）</td></tr></table></div>
-<p class="meta">Copilot Free はモデルが自動選択（auto）で、呼ぶたびにモデルが変わることがある。キャッシュはモデルをまたいで使えない（Copilot の文書「A different model can't reuse another model's cache」）。今回の再開は同じモデル（gpt-6-luna）で測れた。Kiro はトークン数を返さないので、クレジットからの推測</p>
-<h2>3　ツールでできない ・ 効かないときの代わり</h2>
-<div class="tw"><table><tr><th>型</th><th>代わり</th></tr><tr><td>分岐</td><td>いまのセッションの中で行う（Copilot ・ Kiro）</td></tr><tr><td>継続する子 B</td><td>親の文脈の分を1回払って作る（Codex ・ Kiro）。それが重いなら A にし、親が意図を指示に書いて渡す</td></tr></table></div>
-<h2>4　契約に持つもの</h2>
-<div class="tw"><table><tr><th>持つもの</th><th>中身</th></tr><tr><td>セッションの種類</td><td>いまの3つ（オーケストレーター ・ 目的 ・ 任せる先）に、任せる先の型として 分岐 ・ 継続 A ・ 継続 B を足す。分岐は残さないので、セッションの集約に登録しない（判定させる AI と同じ）</td></tr><tr><td>AI ツールのアダプターが返す能力</td><td>型ごとに「コマンドで作れるか（できる ・ できない）」と「親のキャッシュが効くか ・ 再開でキャッシュが効くか（効く ・ 効かない ・ 不明）」</td></tr><tr><td>選び方</td><td>使う場面が型を求め、ツールができない ・ 効かないときは3節の代わりにする</td></tr></table></div>
-
+<p class="meta">セッションの構造 ・ 子の4つの型 ・ 型ごとの手段（AI ツールの中と、外からのコマンド）・ 用途を1枚にまとめた。数字は 2026-10-25 の実測（約4万トークンの親から各1回）。「原典」は公式の文書、「推測」はクレジットなどからの見立て</p>
+<p class="ans">目的のセッションが要件 ・ 設計 ・ 実装を通して受け持ち、横の仕事だけを子にする。子は「親の文脈を持つか」と「続くか」で4つの型に分かれる。契約は型を持ち、AI ツールごとに手段とキャッシュが効くかを持つ。できない ・ 効かないツールでは、代わりの型か、いまのセッションで行う</p>
+<h2>1　セッションの構造</h2>
+<div class="tree" style="font:12.5px/1.7 var(--mono);background:var(--code);border-radius:8px;padding:10px 12px;white-space:pre;overflow-x:auto">オーケストレーター（リポジトリに1つ。CLAUDE.md などの作業の進め方。目的 ・ 親 ・ 役割を持たない）
+└─ 目的のセッション（目的1つに1つ。要件整理 → 設計 → 実装 を全部この中で）
+    ├─ 分岐        親の文脈を持つ ・ 1回で終わる ・ 残さない
+    ├─ 単発        親の文脈を持たない ・ 1回で終わる ・ 残さない
+    ├─ 継続する子 A  親の文脈を持たない ・ 続く ・ 役割ごとに1つ
+    └─ 継続する子 B  親の文脈を持つ ・ 続く ・ 役割ごとに1つ</div>
+<p class="meta">工程（要件 ・ 設計 ・ 実装）でセッションを分けない。分けると目的の文脈が散らばり発散する。子にするのは横の仕事だけ</p>
+<h2>2　4つの型と寿命</h2>
+<div class="tw"><table><tr><th>型</th><th>親の文脈</th><th>続くか</th><th>寿命</th><th>セッションの集約</th></tr><tr><td>分岐</td><td>持って始まる</td><td>1回で終わる</td><td>1回の呼び出し</td><td>登録しない</td></tr><tr><td>単発</td><td>持たない（指示だけ）</td><td>1回で終わる</td><td>1回の呼び出し</td><td>登録しない（判定させる AI と同じ）</td></tr><tr><td>継続する子 A（既定）</td><td>持たない（指示だけ）</td><td>続く</td><td>役割の仕事が終わるか、目的が閉じるまで</td><td>登録する（目的 ・ 親 ・ 役割の組で1つ）</td></tr><tr><td>継続する子 B</td><td>持って始まる</td><td>続く</td><td>同上</td><td>登録する</td></tr></table></div>
+<h2>3　用途と型</h2>
+<div class="tw"><table><tr><th>用途</th><th>型</th><th>なぜその型か</th></tr><tr><td>要件整理 ・ 設計 ・ 実装（目的そのもの）</td><td>目的のセッションの中で行う</td><td>子にすると目的の文脈が散らばる</td></tr><tr><td>反証（答えを出す前の穴探し）</td><td>分岐</td><td>会話の意図を必要とする。結果は reviews/ に残るので、セッションは残さない</td></tr><tr><td>Semantic Search の整形</td><td>分岐、またはいまのセッション</td><td>問いの文脈を必要とする。1回で終わる</td></tr><tr><td>原文の調査 ・ 下書き ・ 試作</td><td>単発</td><td>会話の文脈を必要としない。メインの文脈を汚さない</td></tr><tr><td>判定させる AI（AI の rule）</td><td>単発（ツールを持たせない）</td><td>判定ごとに新しく呼ぶ（決着済み）。前の判定の会話を結果に混ぜない</td></tr><tr><td>指示で進められる長い仕事（決まった設計どおりに作る）</td><td>継続する子 A</td><td>文脈がきれい。再開でキャッシュが効く</td></tr><tr><td>会話の意図を知らないと外れる長い仕事</td><td>継続する子 B</td><td>意図を取りこぼさない。作るときの費用はツールによる</td></tr></table></div>
+<h2>4　型ごとの手段（AI ツールの中から ／ 外からのコマンド）</h2>
+<div class="tw"><table><tr><th>型</th><th>Claude Code 2.1.305</th><th>Codex 0.164.0</th><th>Copilot 1.0.103</th><th>Kiro 2.21.1</th></tr><tr><td>分岐：AI の中から</td><td><span class="y">効く</span> fork のサブエージェント（原典）</td><td><span class="y">効く</span> spawn_agent fork_turns all：94%（実測）</td><td><span class="n">できない</span> 無い。サブエージェントは親の会話を引き継がない（原典）</td><td><span class="n">できない</span> 無い。sub-agents は文脈を分ける（原典）</td></tr><tr><td>分岐：人が対話で</td><td>/fork（別のセッション）</td><td>/side（残さない）・ /fork</td><td>/fork ・ /ask（ツールを使えない）</td><td>/tangent ・ /rewind</td></tr><tr><td>分岐：外からコマンドで</td><td><span class="y">効く</span> --resume P --fork-session --no-session-persistence：96%（実測）</td><td><span class="y">効く</span> exec fork --ephemeral P：64%（実測。親の再開と同じ）</td><td><span class="n">できない</span> 無い（/fork は対話だけ）</td><td><span class="n">効かない</span> ACP の session/fork：クレジットが親と同じ（推測）</td></tr><tr><td>単発</td><td>通常のサブエージェント ／ claude -p</td><td>spawn_agent（履歴なし）／ codex exec --ephemeral</td><td>task のサブエージェント ／ copilot -p</td><td>sub-agents ／ kiro-cli chat --no-interactive</td></tr><tr><td>継続 A：作る</td><td>通常のサブエージェント ／ claude -p</td><td>spawn_agent（履歴なし）／ codex exec</td><td>task のサブエージェント ／ copilot -p</td><td>sub-agents ／ kiro-cli chat --no-interactive</td></tr><tr><td>継続 A ・ B：再開</td><td><span class="y">効く</span> --resume I：100%（実測）。サブエージェントの再開も効く（原典）</td><td><span class="y">効く</span> exec resume I：64%（実測）</td><td><span class="y">効く</span> --resume I：96%（実測）</td><td><span class="y">効く</span> --resume-id I：クレジットが約半分（推測）</td></tr><tr><td>継続 B：作る</td><td><span class="y">効く</span> --resume P --fork-session：87%（実測）</td><td><span class="y">効く</span> AI の中：spawn_agent fork_turns all（94%。その子に send_input で続ける）<br><span class="n">効かない</span> 外から：exec fork P：29%（実測）</td><td><span class="n">できない</span> 外からは作れない（/fork は対話だけ）</td><td><span class="n">効かない</span> ACP の session/fork：効かない（推測）</td></tr></table></div>
+<p class="meta">Copilot Free はモデルが自動選択で、モデルが変わるとキャッシュは効かない（原典「A different model can't reuse another model's cache」）。Codex のサブエージェントは親と同じキャッシュキーを使う（ソースの試験）</p>
+<h2>5　できない ・ 効かないときの代わり</h2>
+<div class="tw"><table><tr><th>型</th><th>ツール</th><th>代わり</th></tr><tr><td>分岐</td><td>Copilot ・ Kiro</td><td>いまのセッションの中で行う（再開と同じくキャッシュが効く）。やりとりは親の会話に残る</td></tr><tr><td>継続 B</td><td>Copilot</td><td>継続 A にし、親が会話の意図を指示に書いて渡す</td></tr><tr><td>継続 B</td><td>Codex（外から）・ Kiro</td><td>作るときに親の文脈の分を1回払う。重ければ A にして意図を指示に書く</td></tr></table></div>
 
 <h2>6　シミュレーション：同じ契約を4つのツールで動かす</h2>
 <p class="meta">目的のセッション「ACDR 0199 依存の向きの検査ツール」が、約4万トークンの会話を積んだところから、3つの仕事を依頼する。呼び出し（契約）はどのツールでも同じで、ツールが返す能力で実際の動きが変わる。上のボタンでツールを切り替える</p>
@@ -131,6 +138,6 @@ render('claude');
 })();
 </script>
 
-<h2>7　確かめてほしいこと</h2>
-<div class="tw"><table><tr><th>確かめてほしいこと</th><th>私の見解</th></tr><tr><td>子の3つの型（分岐 ・ 継続 A ・ 継続 B）を契約に持つ</td><td>持つ。既定は A</td></tr><tr><td>AI ツールのアダプターが、型ごとに「作れるか」と「キャッシュが効くか」を返す</td><td>そうする</td></tr><tr><td>Copilot の分岐 ・ B は、対話の中の /fork だけなので「コマンドでは作れない」とする</td><td>そうする。必要なら対話で /fork して測る</td></tr></table></div>
+<h2>7　契約に持つもの</h2>
+<div class="tw"><table><tr><th>持つもの</th><th>中身</th></tr><tr><td>セッションの種類</td><td>オーケストレーター ・ 目的 ・ 任せる先。任せる先は 分岐 ・ 単発 ・ 継続 A ・ 継続 B の型を持つ。分岐と単発は集約に登録しない</td></tr><tr><td>AI ツールのアダプターが返す能力</td><td>型ごとに「外からのコマンドで作れるか」と「親のキャッシュが効くか ・ 再開で効くか（効く ・ 効かない ・ 不明）」</td></tr><tr><td>選び方</td><td>使う場面が型を求め、ツールができない ・ 効かないときは5節の代わりにする</td></tr><tr><td>基盤が関わる範囲</td><td>基盤は AI を起動しない。外からのコマンドの手段はアダプターの能力として持つだけで、AI の中の手段（サブエージェント ・ 対話のコマンド）は呼ぶ側の AI ツールの機能</td></tr></table></div>
 </main>
