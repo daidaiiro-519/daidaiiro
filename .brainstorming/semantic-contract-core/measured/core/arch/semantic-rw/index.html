@@ -1,0 +1,166 @@
+<title>Semantic Read と Write</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+.q{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}.q b{font-size:16px}.links a{color:var(--accent)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.ask{border:2px solid var(--accent)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--card);font-weight:700;font-size:13px;flex:none}
+.ttl{display:flex;gap:8px;align-items:flex-start;font-weight:700;font-size:15px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.mini div{border-radius:8px;padding:6px 8px;font-size:13px}.mini .b{background:var(--bad-bg)}.mini .a{background:var(--add)}.mini b{display:block;font-size:11.5px;color:var(--sub)}
+.row{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px}@media (max-width:600px){.row{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column;gap:6px}
+.lab{font-size:12px;color:var(--sub)}
+.bars{display:flex;flex-direction:column;gap:6px;font-size:12.5px}.bar{display:grid;grid-template-columns:10em 1fr 4em;gap:8px;align-items:center}.bar i{display:block;height:12px;border-radius:6px;background:var(--accent)}.bar i.r{background:var(--bad)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.two{grid-template-columns:1fr}}
+.box{border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.box.c{background:var(--accent-bg)}.box.d{background:var(--hot-bg)}.box ul{margin:0;padding-left:1.2em;font-size:13.5px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.link{font-size:12px;word-break:break-all}
+pre.v{margin:0;font:12.5px/1.6 "JetBrains Mono",ui-monospace,monospace;background:var(--code);border-radius:8px;padding:8px 0;overflow-x:auto}pre.v span{display:block;padding:0 12px;white-space:pre}
+pre.v .cr{background:var(--accent-bg);color:var(--accent);font-weight:700}pre.v i{font-style:normal;color:var(--sub)}
+pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--code);color:var(--accent)}pre.v .pt{color:var(--bad)}.lg span{border-radius:6px;padding:1px 8px;margin-right:6px;font-size:12px}.lg .cr{background:var(--accent-bg);color:var(--accent)}.lg .ag{background:var(--hot-bg);color:var(--hot)}.lg .sv{background:var(--code);color:var(--accent)}.lg .pt{color:var(--bad)}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}.ex{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.ex{grid-template-columns:1fr}}.ex pre{white-space:pre;overflow-x:auto;padding:8px 12px}
+</style>
+<main>
+<h1>Semantic Read と Semantic Write</h1>
+<p class="meta">利用者「Semantic Read と Semantic Write というのはx-promptを読み、aiが読み書きを人間の都度の指示がなくてもループ的にできるようにしたものだと思ってください」「x-prompt自体への更新や削除、新規作成にも使用できるなどが必要です。そのときはJsonPatchなども使用できると思います」を、ddd-advisor（arch/reviews/ddd-semantic-rw.html）と、結論を渡さない反証役に通し、前提に照らして1つにした。例の名前は架空。入出力の形は protocol（Q4、待ち）が決まるまで案</p>
+<p class="ans">Semantic Read は欄の x-prompt と値と検証の結果を返し、Semantic Write は JSON Patch を適用して検証の結果と「止めてよいか」を返す。繰り返すのは AI で、基盤は1回ずつ答える。x-prompt 自体の編集も、Concrete への Semantic Write で行う</p>
+<div class="fig"><svg viewBox="0 0 1000 420" style="min-width:880px" role="img" aria-label="Semantic Read と Semantic Write の繰り返し" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg #dsvg-ef4b14f6-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-ef4b14f6-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="420.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">繰り返すのは AI（目的のセッション）。基盤は1回ずつの Read と Write に答える</text>
+<rect class="area" x="10" y="40" width="300" height="330" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="22" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">AI（目的のセッション ・ 任せる先）</text>
+<rect class="area" x="400" y="40" width="590" height="330" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="412" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">基盤</text>
+<rect class="box kind-3" x="30" y="76" width="260" height="56" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">① 読む</text><text class="note small" x="42" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">欄を JSON Pointer で指す</text>
+<rect class="box kind-3" x="30" y="176" width="260" height="56" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="198" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">② JSON Patch を作る</text><text class="note small" x="42" y="218" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">x-prompt の rule に合わせて書く</text>
+<rect class="box kind-3" x="30" y="290" width="260" height="56" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="312" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">④ 止めてよいか見る</text><text class="note small" x="42" y="332" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">止めない → ① へ ／ needs → 親へ</text>
+<rect class="box kind-2" x="420" y="76" width="550" height="56" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="432" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">Semantic Read</text><text class="note small" x="432" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">x-prompt（read と write の rule）・ いまの値 ・ reads の値 ・ rule ごとの結果 ・ 版</text>
+<rect class="box kind-2" x="420" y="176" width="550" height="96" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="432" y="198" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">③ Semantic Write</text><text class="note small" x="432" y="218" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Patch を全部適用するか、何も適用しない（版の不一致 ・ id と $schema ・ 文書全体は断る）</text><text class="note small" x="432" y="238" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">保存する → 機械の rule と JSON Schema で検証する（violated は断らずに返す）</text><text class="note small" x="432" y="258" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">rule ごとの結果と「止めてよいか」・ needs を返す</text>
+<rect class="box" x="420" y="296" width="550" height="56" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="432" y="318" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">変更を記録する（止めたあとに1回）</text><text class="note small" x="432" y="338" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">意図と目的の参照で、最後に確定した姿 → いまの前後から作る</text>
+<path class="flow" d="M290,104 H418" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-ef4b14f6-arrow-5B6B66)"/>
+<path class="flow" d="M160,132 V174" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-ef4b14f6-arrow-5B6B66)"/>
+<path class="flow" d="M290,204 H418" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-ef4b14f6-arrow-5B6B66)"/>
+<path class="flow" d="M418,250 H350 V318 H292" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-ef4b14f6-arrow-5B6B66)"/>
+<path class="flow" d="M290,330 H418" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-ef4b14f6-arrow-5B6B66)"/>
+<path class="flow" d="M30,318 H20 V104 H28" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-ef4b14f6-arrow-5B6B66)"/>
+<text class="note" x="10" y="398" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">止める条件：機械の rule の violated が0。error ・ unverified ・ 人が決める欄 ・ AI の rule は needs として返し、繰り返しでは消そうとしない</text>
+</svg></div>
+<h2>1　送る JSON と返る JSON</h2>
+<h3>Semantic Read：欄 owner を読む</h3><p class="meta">まだインスタンスが無いとき（作る前）は、種類とスキーマの中の位置だけで呼べる。返る x-prompt には write の rule も入る</p><div class="ex"><div class="pane"><b>送る</b><pre>{
+  &quot;kind&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;,
+  &quot;id&quot;: &quot;r-12&quot;,
+  &quot;keywordLocation&quot;: &quot;/properties/owner&quot;
+}</pre></div><div class="pane on"><b>返る</b><pre>{
+  &quot;x-prompt&quot;: {
+    &quot;read&quot;: {
+      &quot;means&quot;: &quot;この記録の決定に責任を持つ人&quot;,
+      &quot;when&quot;: &quot;記録を作るとき&quot;
+    },
+    &quot;write&quot;: [
+      {
+        &quot;id&quot;: &quot;owner-is-person&quot;,
+        &quot;rule&quot;: &quot;人の名前を書く。チーム名は書かない&quot;,
+        &quot;by&quot;: &quot;ai&quot;
+      }
+    ]
+  },
+  &quot;instanceLocation&quot;: &quot;/owner&quot;,
+  &quot;value&quot;: &quot;team-a&quot;,
+  &quot;results&quot;: [
+    {
+      &quot;rule&quot;: &quot;owner-is-person&quot;,
+      &quot;value&quot;: &quot;violated&quot;,
+      &quot;why&quot;: &quot;チーム名が入っている&quot;
+    }
+  ],
+  &quot;version&quot;: &quot;&lt;読んだ版&gt;&quot;
+}</pre></div></div><h3>Semantic Write：owner を直す</h3><p class="meta">test で読んだときの値と版を確かめてから replace する。使える op は test ・ add ・ replace ・ remove の4つ</p><div class="ex"><div class="pane"><b>送る</b><pre>{
+  &quot;kind&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;,
+  &quot;id&quot;: &quot;r-12&quot;,
+  &quot;version&quot;: &quot;&lt;読んだ版&gt;&quot;,
+  &quot;patch&quot;: [
+    {
+      &quot;op&quot;: &quot;test&quot;,
+      &quot;path&quot;: &quot;/owner&quot;,
+      &quot;value&quot;: &quot;team-a&quot;
+    },
+    {
+      &quot;op&quot;: &quot;replace&quot;,
+      &quot;path&quot;: &quot;/owner&quot;,
+      &quot;value&quot;: &quot;yamada&quot;
+    }
+  ]
+}</pre></div><div class="pane on"><b>返る</b><pre>{
+  &quot;applied&quot;: true,
+  &quot;state&quot;: &quot;判断待ち&quot;,
+  &quot;results&quot;: [
+    {
+      &quot;rule&quot;: &quot;owner-is-person&quot;,
+      &quot;value&quot;: &quot;unverified&quot;,
+      &quot;why&quot;: &quot;AI の rule は判定を依頼する&quot;
+    }
+  ],
+  &quot;stop&quot;: true,
+  &quot;needs&quot;: [
+    {
+      &quot;rule&quot;: &quot;owner-is-person&quot;,
+      &quot;why&quot;: &quot;AI の判定を親が依頼する&quot;
+    }
+  ]
+}</pre></div></div><h3>Semantic Write：x-prompt 自体を直す（Concrete への Write）</h3><p class="meta">Concrete は Abstract のインスタンスなので、同じ Semantic Write で x-prompt の rule を足す ・ 変える ・ 消す。rule は添字ではなく test で id を確かめてから指す</p><div class="ex"><div class="pane"><b>送る</b><pre>{
+  &quot;kind&quot;: &quot;urn:semantic-agent-schema:core:abstract:v1&quot;,
+  &quot;id&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;,
+  &quot;version&quot;: &quot;&lt;読んだ版&gt;&quot;,
+  &quot;patch&quot;: [
+    {
+      &quot;op&quot;: &quot;test&quot;,
+      &quot;path&quot;: &quot;/properties/owner/x-prompt/write/0/id&quot;,
+      &quot;value&quot;: &quot;owner-is-person&quot;
+    },
+    {
+      &quot;op&quot;: &quot;replace&quot;,
+      &quot;path&quot;: &quot;/properties/owner/x-prompt/write/0/rule&quot;,
+      &quot;value&quot;: &quot;人の名前を書く。チーム名と役職名は書かない&quot;
+    }
+  ]
+}</pre></div><div class="pane on"><b>返る</b><pre>{
+  &quot;applied&quot;: true,
+  &quot;results&quot;: [],
+  &quot;stop&quot;: true,
+  &quot;note&quot;: &quot;x-prompt を変えた変更は、インスタンスの繰り返しの止める条件に数えない。この欄の前の AI の判定は効かなくなる（U2）&quot;
+}</pre></div></div>
+<h2>2　Write で断るもの ・ 断らないもの</h2>
+<div class="tw"><table><tr><th>Patch の中身</th><th>扱い</th><th>前提</th></tr><tr><td>op が1つでも当たらない</td><td>断る。何も適用しない</td><td>RFC 6902「application of the entire patch document SHALL NOT be deemed successful」</td></tr><tr><td>読んだ版といまの版が違う</td><td>断る（ほかの書き手と重ならないように）</td><td>同じ目的で役割の違う任せる先が同じインスタンスを書ける（I46）</td></tr><tr><td>id ・ $schema ・ 文書全体（path が空）を変える</td><td>断る</td><td>id は使い直さない（I11）。種類を変えるのは作り直し</td></tr><tr><td>move ・ copy</td><td>断る（使える op は test ・ add ・ replace ・ remove）</td><td>remove と add で書ける。人が決めた欄から move すると、人の値を消す</td></tr><tr><td>rule に違反する値</td><td>断らずに保存し、violated を返す。インスタンスは下書きになる</td><td>Q8「基盤は保存を断らず、検証して「取り込めない理由」を出す」</td></tr><tr><td>人が決める欄を AI が変える</td><td>断らずに保存し、rule human-entry-only の結果を返す。needs に出す</td><td>Q7「AI が書き写すのはよいが、値は人の入口から来たものに限る」・ I21</td></tr></table></div>
+<h2>3　止める条件</h2>
+<div class="tw"><table><tr><th>結果</th><th>繰り返しの中での扱い</th></tr><tr><td>機械の rule の violated</td><td>0 になるまで AI が直す</td></tr><tr><td>error（validator が答えない など）</td><td>止めて needs で返す。書く操作は再試行しない（Q3）</td></tr><tr><td>AI の rule（by: ai）</td><td>止めて needs で返す。判定を依頼するのは親（Validator の2段）。機械の rule が0になってから依頼する</td></tr><tr><td>人が決める欄</td><td>止めて needs で返す。人の入口で直す</td></tr><tr><td>前の回と同じ姿になった</td><td>止めて needs で返す（同じ状態のくり返し）</td></tr><tr><td>オーケストレーターのセッション（親がいない）</td><td>needs の代わりに、判断待ちのまま止める</td></tr></table></div>
+<h2>4　駆動する側のポート（変更前 → 変更後）</h2>
+<div class="tw"><table><tr><th>変更前</th><th>変更後</th></tr><tr><td>探して取り出す ・ 案内する</td><td>search と Semantic Read の2つに分ける</td></tr><tr><td>インスタンスを書く（作成 ・ 更新 ・ 削除 ・ 取り込む）</td><td>更新は Semantic Write（対象にインスタンスと Concrete）。作成（ファクトリ）・ 削除 ・ 取り込むは別のコマンドに残す</td></tr><tr><td>意味を宣言する（x-prompt の定義を含む）</td><td>x-prompt の作成 ・ 変更 ・ 削除は Semantic Write へ。Concrete を作る ・ 照らす ・ 版を出すは残す</td></tr><tr><td>インスタンスを書くが意図を受け取る</td><td>Write は意図を受け取らない。止めたあと「変更を記録する」が意図1つにつき1件を作る（I32 で記録は書き換えない）</td></tr></table></div>
+<p class="meta">名前は英語と日本語の対で持つ（Q5）：Semantic Read（セマンティックリード）・ Semantic Write（セマンティックライト）。x-prompt の read ・ write のキーと紛れないよう、単独の Read ・ Write とは呼ばない。位置の欄は JSON Schema の出力と同じ keywordLocation（スキーマの中）と instanceLocation（インスタンスの中）にする</p>
+<h2>5　search で欄の値を探すか（決めてほしいこと）</h2>
+<div class="tw"><table><tr><th>案</th><th>中身</th><th>前提との関係</th></tr><tr><td>A　値では探さない（いまの5つの単位のまま）</td><td>値の条件は Concrete の rule にして、search は状態と判定の結果で探す</td><td>ボードで外した D2「宣言的な式の言語 …もともとの範囲に無い追加だった」と、Q9「意味で探すは、語 ・ 参照 ・ rule の結果で探すので中核」に合う</td></tr><tr><td>B　JMESPath を選ぶ条件にだけ使う</td><td>where の式をインスタンス1件ずつに評価し、真になったものを返す。返す形は基盤が決め、形を変える用途（projection ・ multiselect）には使わない</td><td>値で探したいという要望に応える。D2 を戻すことになる</td></tr></table></div>
+<p class="meta">JSON Schema で値を探す案はやめた（当たった位置が出力から取れない ・ x- が黙って無視される ・ 保守しにくい）</p>
+<h2>6　確かめてほしいこと</h2>
+<div class="tw"><table><tr><th>確かめてほしいこと</th><th>私の見解</th></tr><tr><td>Semantic Read ・ Semantic Write を使う場面の名前にし、ポートを上の表のとおり分け直す</td><td>そうする</td></tr><tr><td>繰り返すのは AI で、基盤は1回ずつ答え、「止めてよいか」と needs を返す</td><td>そうする。ボード Q8 で「直すループを回す」は基盤の外</td></tr><tr><td>Write の断るもの ・ 断らないもの（2節）</td><td>そうする</td></tr><tr><td>search で欄の値を探すか（5節の A か B）</td><td>あなたが決めること。範囲を広げるかどうかの判断なので</td></tr></table></div>
+</main>

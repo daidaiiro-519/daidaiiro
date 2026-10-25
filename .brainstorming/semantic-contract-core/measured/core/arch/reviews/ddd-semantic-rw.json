@@ -1,0 +1,371 @@
+{
+  "kind": "judgment",
+  "question": "Semantic Read ・ Semantic Write ・ x-prompt の編集 ・ search の下書き（arch/semantic-rw/draft.md）は、ドメインモデル（model.json）と前提に照らして、この案でよいか。①2つの語は同じ言葉として成り立つか、駆動する側のポート10とどう対応させるか ②Read → Write → 検証の繰り返しを基盤のどこが持つか、決定権と I33 との関係 ③JSON Patch を集約 インスタンスと集約 Concrete のコマンドの入力にしてよいか ④search の欄の値の条件を JSON Schema で書いてよいか ⑤足りない決め事は何か",
+  "premises": [
+    {
+      "name": "語を出した人",
+      "value": "Semantic Read ・ Semantic Write は利用者（この基盤の業務エキスパート）の語である。意味は「x-prompt を読み、AI が人の都度の指示なしに読み書きを繰り返せるようにしたもの」",
+      "source": "arch/semantic-rw/draft.md の利用者の言葉"
+    },
+    {
+      "name": "x-prompt の編集も Write に入る",
+      "value": "利用者は、Read と Write が欄のインスタンスの値の操作に加えて、x-prompt 自体の作成 ・ 更新 ・ 削除にも使えることを求めている。下書きの3節は x-prompt の編集を「意味を宣言する」へ分けており、利用者の言葉とずれている",
+      "source": "draft.md の利用者の言葉と、下書きの3節 ・ 6節"
+    },
+    {
+      "name": "Concrete は Abstract のインスタンスでもある",
+      "value": "作成は2段で、x-prompt は Abstract の根（Concrete の書き方）と Concrete の各欄（インスタンスの書き方）の2か所に書き、形（$defs/prompt）だけを共有する",
+      "source": "board-answers.json Q1（決着）"
+    },
+    {
+      "name": "violated があっても保存する",
+      "value": "インスタンスの状態「下書き」は violated があるもので、直すのは書く側である。U5 は violated ・ error を根拠付きで返す。書く時点で断るのは、根が守る不変条件だけと読める",
+      "source": "model.json の states ・ use_cases U5"
+    },
+    {
+      "name": "決定権の定義",
+      "value": "値オブジェクト「決定権」は「AI が書き写すのはよいが、値は人の入口から来たものでなければならない」。下書きの「決定権が人の欄は、AI の Patch を断る」は、この定義の前半と食い違う",
+      "source": "model.json の value_objects「決定権」と draft.md の2節"
+    },
+    {
+      "name": "変更の記録は書き換えない",
+      "value": "変更の項目は基盤が最後に確定した姿 → いまの前後から入れる（I31）。書いた記録は書き換えない（I32）。欄は x-prompt を持つ書く単位の JSON Pointer で、配列の添字までは下げない（値オブジェクト「変更の項目」）",
+      "source": "model.json の invariants I31 ・ I32 と value_objects"
+    },
+    {
+      "name": "AI の rule の検証は2段",
+      "value": "Validator は ① 任せる先への依頼の一覧（call）を値で返し ② 使う場面が受け取った答えを5つの値にまとめる。依頼するのは使う場面である",
+      "source": "model.json の domain_services「Semantic Schema Validator」"
+    },
+    {
+      "name": "原文で確かめたこと",
+      "value": "RFC 6902 の5節は、op が1つでも成功しなければ文書全体の適用を成功としない（test の例で、変更が1つも入らない）。RFC 6901 は配列の「-」の扱いを使う側が決めるとする。JSON Schema 2020-12 の出力の位置のキーは keywordLocation ・ absoluteKeywordLocation ・ instanceLocation で、schemaLocation というキーは無い。知らないキーワードは注釈として扱うのは SHOULD である",
+      "source": "sources/query/www.rfc-editor.org_rfc_rfc6902.txt 5節 ・ rfc6901.txt 4節 ・ json-schema.org_draft_2020-12_json-schema-core 12.3節と6.5節付近（判断基準の範囲外。fact の確認だけに使う）"
+    },
+    {
+      "name": "判断基準の範囲外",
+      "value": "JSON Patch ・ JSON Pointer ・ JSON Schema の仕様の中身は判断基準に無い。判定の根拠には使わず、集約 ・ 同じ言葉 ・ ポートとアダプター ・ CQRS の判断基準で判定する",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "Semantic Read ・ Semantic Write は、駆動する側のポートの操作（使う場面）の名前として採り、JSON Patch は「1つの文書を1回で変える」コマンドの入力として採る。ただし、根が断る条件 ・ 決定権の定義 ・ 変更の記録を書く時点 ・ search の値の条件の付け先の4つを先に決める。",
+    "because": "集約の状態はコマンドでだけ変わり、コマンドは不変条件に違反した状態を防ぐ。汎用の Patch でもこの2つは成り立つが、根が断る条件を決めないと、Patch は外から状態を直接書き換える入口になる。2つの語は複数の集約と Resolver ・ Validator をまとめるので、ドメインの操作ではなく使う場面の名前である。"
+  },
+  "figure": {
+    "caption": "Read → Write → 検証の繰り返し。繰り返しを持つのは目的のセッション（AI）で、基盤は1回ずつの Read と Write を持つ",
+    "nodes": [
+      { "id": "ai", "label": "目的のセッション（AI の Agent）", "role": "accent" },
+      { "id": "read", "label": "Semantic Read（使う場面）" },
+      { "id": "write", "label": "Semantic Write（使う場面）" },
+      { "id": "resolver", "label": "Semantic Schema Resolver" },
+      { "id": "root", "label": "集約の根（インスタンス か Concrete）のコマンド：Patch を当てる" },
+      { "id": "validator", "label": "Semantic Schema Validator" },
+      { "id": "judge", "label": "任せる先（judging）" },
+      { "id": "store", "label": "駆動される側のポート：読む ・ 書く" },
+      { "id": "parent", "label": "親のセッション ・ 人の入口（判定する）" },
+      { "id": "record", "label": "変更を記録する（意図1つにつき1回）" }
+    ],
+    "edges": [
+      { "from": "ai", "to": "read", "label": "文書の id と欄の位置" },
+      { "from": "read", "to": "resolver", "label": "x-prompt ・ reads の値を解決" },
+      { "from": "read", "to": "ai", "label": "x-prompt ・ いまの値 ・ 版 ・ rule ごとの結果" },
+      { "from": "ai", "to": "write", "label": "Patch ・ 読んだ版" },
+      { "from": "write", "to": "root", "label": "1文書に1回" },
+      { "from": "root", "to": "store", "label": "断らなければ保存" },
+      { "from": "write", "to": "validator", "label": "保存した姿を検証" },
+      { "from": "validator", "to": "judge", "label": "AI の rule の call（使う場面が依頼）", "dashed": true },
+      { "from": "write", "to": "ai", "label": "rule ごとの5つの値" },
+      { "from": "ai", "to": "parent", "label": "unverified ・ unsupported ・ 決定権の欄は needs", "dashed": true },
+      { "from": "ai", "to": "record", "label": "violated ・ error が無くなったら意図を渡す" }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "問1-A：Semantic Read ・ Semantic Write を、駆動する側のポートの操作（使う場面）の名前にする。対象はインスタンスと Concrete の両方（Concrete は Abstract の x-prompt で書く）",
+      "effect": "利用者の言葉どおり、x-prompt の編集も同じ Write で扱える。集約ごとのコマンドは別のままで、ドメインの中に「Semantic Write」という型は作らない",
+      "chosen": true
+    },
+    {
+      "option": "問1-B：Semantic Read ・ Semantic Write をドメインの操作（集約のコマンドかドメインサービス）にする",
+      "effect": "Read は Concrete ・ インスタンス ・ 判定の記録 ・ Resolver を、Write は集約のコマンドと Validator をまとめる。どちらも1つの集約に収まらず、状態も持たないので、集約のコマンドにならない。ドメインサービスにすると、使う場面の手順（読む → 当てる → 保存 → 検証）がドメインに入る",
+      "chosen": false
+    },
+    {
+      "option": "問1-C：下書きの6節どおり、x-prompt の編集を「意味を宣言する」に残し、Write はインスタンスだけにする",
+      "effect": "利用者の「x-prompt 自体への更新や削除、新規作成にも使用できる」と食い違う。Concrete を書く入口が2つになり、同じことを2つの語で呼ぶ",
+      "chosen": false
+    },
+    {
+      "option": "問2-A：繰り返しは目的のセッション（AI）が持ち、基盤は1回の Read と1回の Write だけを持つ",
+      "effect": "「呼ぶのは親のセッション」「子は決めきれない点を needs で親に返す」と合う。基盤は止める条件を返すだけで、AI ツールを繰り返し起動しない",
+      "chosen": true
+    },
+    {
+      "option": "問2-B：基盤（使う場面）が、violated が無くなるまで任せる先（working）を呼び続ける",
+      "effect": "繰り返しの回数 ・ 打ち切り ・ 費用を基盤が持つことになる。セッションを立てるのは親で、基盤は再開か新規かを返すだけという決定と食い違う",
+      "chosen": false
+    },
+    {
+      "option": "問3-A：JSON Patch を、集約の根のコマンド「Patch を当てる」のパラメーターオブジェクトにする。根は、全部当てるか何も当てないか ・ 守る位置 ・ 読んだ版を検査して断る",
+      "effect": "1回の Write は1つの文書（1つの集約）だけを変え、1つのトランザクションに収まる。rule の violated は断らずに結果として返し、インスタンスは下書きになる",
+      "chosen": true
+    },
+    {
+      "option": "問3-B：JSON Patch をそのまま当て、保存してから Validator がすべてを violated として返す（根は何も断らない）",
+      "effect": "id ・ $schema ・ 決定権の欄も Patch で変わり、ファイルに書かれてから見つかる。集約のコマンドが不変条件を守る形にならない",
+      "chosen": false
+    },
+    {
+      "option": "問3-C：欄ごとに意図を表すコマンド（rule を足す ・ x-prompt の read を変える など）を型で並べる",
+      "effect": "Concrete が足した欄は文脈ごとに違うので、型を事前に並べられない。業務ルールはデータ（JSON Schema と x-prompt）にあるので、型を並べても検査は増えない",
+      "chosen": false
+    },
+    {
+      "option": "問4-A：値の条件を JSON Schema で書き、必ず意味の単位（種類 ＋ Concrete の欄の位置、または term）に付ける。結果の位置は、付けた欄の位置から決める",
+      "effect": "標準は JSON Schema だけ（原則2）を守り、I41（種類の範囲）・ I25（term の版）も外れない。式の言語を持たずに済む",
+      "chosen": true
+    },
+    {
+      "option": "問4-B：インスタンスの全体に当てる JSON Schema を書き、合ったものを返す。位置は出力の instanceLocation から取る",
+      "effect": "種類や term を通らずに引けるので、search が「意味の単位で探す」から外れる。合った（valid）ときの出力は、どこが合ったかを1つに決めない",
+      "chosen": false
+    }
+  ],
+  "path": [
+    {
+      "ask": "問1：2つの語は同じ言葉として成り立つか",
+      "answer": "成り立つ。業務エキスパート（利用者）の語で、意味も1つに書ける。ただし「Read ・ Write」は、駆動される側のポートの「読む ・ 書く」と、x-prompt の read ・ write のキーの2つと重なる。Semantic Read が x-prompt の write（rule の並び）も返すことを用語の定義に書き、「案内する」「インスタンスを書く」は同義語になるので使わなくする"
+    },
+    {
+      "ask": "問1：使う場面の名前か、ドメインの操作か",
+      "answer": "使う場面の名前である。Read は複数の集約と Resolver の結果をまとめて返す問い合わせ、Write は1つの集約のコマンドと Validator の呼び出しを並べる手順で、どちらも1つの集約の中で閉じない"
+    },
+    {
+      "ask": "問1：駆動する側のポート10とどう対応させるか",
+      "answer": "「探して取り出す ・ 案内する」を「search」と「Semantic Read」に分ける。「インスタンスを書く」の更新を「Semantic Write」にし、対象を Concrete にも広げる（x-prompt の作成 ・ 更新 ・ 削除はここ）。作成（雛形のファクトリ）・ 削除 ・ 取り込むは別のコマンドに残す。「意味を宣言する」は 照らす ・ 公開する部分の版を出す などに縮める。ポートは11になる"
+    },
+    {
+      "ask": "問2：繰り返しは誰が持つか",
+      "answer": "目的のセッション（AI）が持つ。基盤の Semantic Write は1回ごとに、根のコマンド → 保存 → Validator → 結果の返却 だけをする（集約の判断基準のアプリケーション層の役割と同じ）。止める条件は「violated と error が0」で、unverified ・ unsupported と決定権の欄は needs で親に返す"
+    },
+    {
+      "ask": "問2：AI の rule の判定は繰り返しのどこで動くか",
+      "answer": "Validator は AI の rule では call を返し、依頼するのは使う場面である。毎回の Write で AI に判定させると費用が繰り返しの回数だけ増えるので、機械の rule の violated が0になってから依頼する順にする案を決める。判定した値がいまと同じなら使い直す（I16）"
+    },
+    {
+      "ask": "問2：決定権との関係",
+      "answer": "Semantic Write（MCP の入口）からは、決定権が人の欄を変える op を根が断る。人の入口（CLI ・ 画面）からの同じコマンドは通す。入口の種類は呼ぶ側の引数ではなくアダプターが決める。これを採るなら、値オブジェクト「決定権」の「AI が書き写すのはよい」を直す。I21 は基盤を通らない書き換えを見つける検査として残る"
+    },
+    {
+      "ask": "問2：I33 との関係",
+      "answer": "I33 の判定の対象は変更の記録で、変更の中でだけ判定する。インスタンスの rule ではないので、繰り返しの止める条件に入れない。変更の記録は書き換えない（I32）ので、Write のたびに記録を書くと意図1つに記録が何件もできる。変更の記録は、繰り返しが止まってから「変更を記録する」で意図1つにつき1回書く案を採る"
+    },
+    {
+      "ask": "問3：JSON Patch で根は不変条件を守れるか",
+      "answer": "根が断る条件を決めれば守れる。断るのは ① 1つでも op が失敗したら何も当てない ② id ・ $schema（移すは別のコマンド）・ 決定権が人の欄を path か from に含む op ③ 文書全体（path が空文字）を指す op ④ 読んだ版といまの版が違う、の4つ。rule の違反は断らず、結果として返す（状態「下書き」）"
+    },
+    {
+      "ask": "問3：Concrete に当てるときに増えること",
+      "answer": "Concrete の中で閉じる不変条件（I4 rule の id が一意）を根が見る。公開した版の中身を変える op（$id の never-reuse）も断る。Concrete を変えたあとの全インスタンスの検証（U2）は Write の返り値に含めず、「検証する ・ 変更を見せる」で出す。x-prompt を変えた欄の AI の判定は、判定した値に読んだ x-prompt の文があるので I16 で効かなくなる"
+    },
+    {
+      "ask": "問4：search の欄の値の条件を JSON Schema で書いてよいか",
+      "answer": "条件付きで採る。値の条件は、種類と Concrete の欄の位置（または term）に付けた先の値にだけ当てる。結果の位置は、付けた欄の位置をインスタンスの中の位置に解いたもので、JSON Schema の出力からは取らない。索引は id ・ kind ・ x-relationship だけなので、値の条件は全件を読む。遅いと測れてから索引を足す"
+    },
+    {
+      "ask": "問4：位置の名前",
+      "answer": "下書きの「schemaLocation」は JSON Schema 2020-12 のキーに無い。出力の keywordLocation は $ref を通った keyword の道筋で、Concrete の文書の中の欄の位置とは別物である。「Concrete の中の欄の位置（JSON Pointer）」と名前で書き、出力のキーの名前を借りない"
+    }
+  ],
+  "code": [
+    {
+      "kind": "para",
+      "text": "良い例：Semantic Write の入力。版は Semantic Read が返したもの。1回の Patch は1つの文書だけを指す"
+    },
+    {
+      "kind": "code",
+      "text": "{\n  \"target\": { \"id\": \"r-12\", \"kind\": \"urn:semantic-agent-schema:sample:record:v1\" },\n  \"read_version\": \"<Semantic Read が返した版>\",\n  \"patch\": [\n    { \"op\": \"replace\", \"path\": \"/summary\", \"value\": \"…\" },\n    { \"op\": \"add\", \"path\": \"/items/-\", \"value\": { \"name\": \"…\" } }\n  ]\n}"
+    },
+    {
+      "kind": "para",
+      "text": "避ける例：根が断る op。① 文書全体を指す ② id を変える ③ 決定権が人の欄（/owner）へ写す。③ は path だけでなく from も見ないと通ってしまう"
+    },
+    {
+      "kind": "code",
+      "text": "[\n  { \"op\": \"replace\", \"path\": \"\", \"value\": { … } },\n  { \"op\": \"replace\", \"path\": \"/id\", \"value\": \"r-99\" },\n  { \"op\": \"copy\", \"from\": \"/draft_owner\", \"path\": \"/owner\" }\n]"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。同義語は最初は問題に見えないが、言葉が違えば、ほとんどの場合、意図も違う"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "構成するもの：コマンド ・ 役割：集約が公開する状態変更のメソッド。外部から渡された内容を検証し、業務ルールと不変条件に違反した状態になることを防ぐ。集約の状態は、コマンドを実行したときにだけ変わる"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：コマンドは、通常の公開メソッドか、パラメーターオブジェクトを受け取るメソッドとして実装する ・ 理由：どちらで表すかは考え方しだいである。著者は、コマンドの型ごとに Execute を多重定義するほうが、意図が明確で好ましいとする"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：1つのトランザクションで変更する集約は1つにし、複数の集約の状態は集約ごとに別々にコミットする ・ 理由：一貫性を維持する境界の定義が、正しいことを保証する"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：集約にバージョン番号を持たせ、書き込むときに、読み込んだときの番号と一致するかを検査する ・ 理由：集約の状態を記録するデータベースは並行処理を管理しなければならない。バージョン番号は更新のたびに増やす、単純なやり方である"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：後から更新するプロセスは、元の状態が既に変わったことを検知したら、最新の状態を取得し直して再実行する ・ 理由：複数のプロセスが同じ集約を変更するとき、先に更新したプロセスの変更を、後のプロセスが上書きしないようにする"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "業務ロジックを集約に集めると、アプリケーション層の役割は、集約の生成 ・ 操作の実行 ・ 永続化 ・ 結果の返却だけになる。"
+    },
+    {
+      "criterion": "domain-service",
+      "quote": "問い：その業務ロジックは、集約や値オブジェクトでは表現しにくいか ・ 「はい」なら：業務サービスに記述する"
+    },
+    {
+      "criterion": "domain-model",
+      "quote": "対応：アクティブレコードの setter をすべてプライベートにする ・ 理由：コンパイルエラーの箇所から、外部で状態を変更している場所を特定できる"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "ポート：業務ロジック層が定義する抽象的なインターフェースで、インフラストラクチャ層が実装する。業務ロジック層は、基盤のコンポーネントを直接には参照せず、ポートを介して連係する。"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "対応：アプリケーション層を追加する ・ 理由：レイヤードアーキテクチャのサービス層と同じく業務ロジック層のファサードとなり、公開するインターフェースを定義して業務ロジック層の詳細をカプセル化する"
+    },
+    {
+      "criterion": "cqrs",
+      "quote": "対応：クエリは、読み取りモデルもコマンド実行モデルも変更しない ・ 理由：クエリは、永続化された状態を変更できない"
+    },
+    {
+      "criterion": "cqrs",
+      "quote": "対応：コマンドは、成功したか失敗したかを常に呼び出し側へ知らせ、失敗ならその理由も返す ・ 理由：呼び出し側は、妥当性の検証の失敗か技術的な問題かを知り、コマンドを直す方法を知る必要がある"
+    },
+    {
+      "criterion": "cqrs",
+      "quote": "条件：永続化モデルが一つで、上のどちらでもない ・ 対応：実装方法に応じてレイヤードアーキテクチャかポートとアダプターを選択する ・ 理由：CQRS などの複雑な手段は、本当に必要なときの最後の手段とする"
+    },
+    {
+      "criterion": "entity",
+      "quote": "対応：よほど特殊な場合を除き、識別する値を、その個体が存在する間は変更しない"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "汎用の setter としての Patch（判断基準の setter をプライベートにする手順が避けるもの）",
+      "risk": "根が断る条件が無いと、Patch は id ・ $schema ・ 決定権の欄を外から直接書き換える入口になる。どこで状態が変わったかを根の1か所で追えない",
+      "alternative": "（推測）根のコマンド「Patch を当てる」に、断る4条件（全部か無しか ・ 守る位置 ・ 文書全体 ・ 読んだ版）を持たせる。守る位置は、Resolver が Concrete からインスタンスの中の位置へ解いて求める"
+    },
+    {
+      "name": "同じ言葉の同義語（Semantic Write と インスタンスを書く、Semantic Read と 案内する）",
+      "risk": "同じ操作に語が2つ残ると、利用者と AI が別の操作だと読み、ポートやコマンドが2つ作られる",
+      "alternative": "（推測）model.json の ports と use_cases の文から「案内する」「インスタンスを書く」を消し、語を1つにそろえる。定義を naming か用語の表に足す"
+    },
+    {
+      "name": "1つの語に2つの意味（Read ・ Write）",
+      "risk": "駆動される側のポート「インスタンスを読む ・ 書く」（保存）と、x-prompt の read ・ write（読み方と書き方の決まり）と、Semantic Read ・ Write（AI の読み書き）の3つが同じ語になる。Semantic Read が x-prompt の write も返すことが読み違えられる",
+      "alternative": "（推測）語は Semantic Read ・ Semantic Write の全体でだけ使い、単独の Read ・ Write を使わない。定義に「Semantic Read は x-prompt の read と write の両方を返す」と書く"
+    },
+    {
+      "name": "1つのトランザクションで複数の集約を変える",
+      "risk": "U7（契約の変更で violated になったインスタンスを直す）を1つの Patch で複数の文書に当てると、1つのトランザクションで複数の集約を変えることになる",
+      "alternative": "1回の Semantic Write は1つの文書に限る。複数のインスタンスは文書ごとに書き、x-relationship の整合はそれまで violated として見える（結果整合）"
+    },
+    {
+      "name": "必要になる前の CQRS",
+      "risk": "search の値の条件の速さのために、読み取り用の索引を先に作ると、永続化モデルが2つになる",
+      "alternative": "値の条件は全件を読む。関係の索引と同じく、遅いと測れてから、正本のファイルから作り直せる索引を同じポートの後ろに置く"
+    }
+  ],
+  "records": [
+    {
+      "target": "model.json の ports.inbound（changes.py に足す）",
+      "content": "「探して取り出す ・ 案内する」を「search」と「Semantic Read」に分ける。「インスタンスを書く」の更新を「Semantic Write」にし、対象をインスタンスと Concrete にする。作成 ・ 削除 ・ 取り込むは別の行に残す。「意味を宣言する」から Concrete の欄と x-prompt の編集を外す"
+    },
+    {
+      "target": "model.json の aggregates（インスタンス ・ Semantic Concrete Schema の commands）",
+      "content": "コマンド「Patch を当てる」：入力は JSON Patch と読んだ版と入口の種類。断る条件は4つ（全部か無しか ・ 守る位置 ・ 文書全体を指す op ・ 版の不一致）。rule の違反は断らずに結果で返す"
+    },
+    {
+      "target": "model.json の value_objects「決定権」",
+      "content": "「AI が書き写すのはよい」を直すかを決める。直すなら「決定権が人の欄は、人の入口から来たコマンドでだけ変わる。AI は値の案を needs で親に返す」"
+    },
+    {
+      "target": "model.json の invariants（新しい行）",
+      "content": "「1回の Semantic Write は1つの文書だけを変え、1つでも op が成り立たなければ何も変えない」「Semantic Read は状態を変えない（判定の記録も書かない）」"
+    },
+    {
+      "target": "用語（naming か glossary）",
+      "content": "Semantic Read：文書の id と欄の位置から、その欄の x-prompt（read と write）・ いまの値 ・ 版 ・ reads が指す欄の値 ・ rule ごとのいまの結果を返す操作。Semantic Write：読んだ版と JSON Patch を受け取り、1つの文書を変えて rule ごとの結果を返す操作"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "ボード Q1（決着）の値オブジェクト「決定権」",
+      "why": "「AI が書き写すのはよい」は、書いた者が AI のときに値の出どころを基盤が確かめる方法を持たない。下書きの「断る」と両立せず、どちらかを上流で決め直す必要がある疑い"
+    },
+    {
+      "suspect": "Q4（protocol、待ち）",
+      "why": "Semantic Read ・ Write の入出力の形（版 ・ rule ごとの結果 ・ call の返し方）は protocol が持つ。ここで形を決めると、待っている Q4 を下流から決めることになる疑い"
+    }
+  ],
+  "next": [
+    "決定権の定義（AI が書き写すのはよいか）を利用者に確かめる",
+    "根が断る条件と、断らずに violated として返す条件の表を、インスタンスと Concrete の2つの集約について作る",
+    "Semantic Write のたびに変更の記録を書くか、意図1つにつき1回書くかを決める",
+    "AI の rule の判定を繰り返しのどこで依頼するか（機械の rule の violated が0になってから）を決める",
+    "版（Semantic Read が返す値）を何から作るかを決める",
+    "search の値の条件を、種類と欄の位置か term に付ける形で、search の完成イメージの頁に足す",
+    "下書きの「schemaLocation」を「Concrete の中の欄の位置」に直す",
+    "ports.inbound の対応表を changes.py に足して model.json を作り直す"
+  ],
+  "related": [
+    {
+      "criterion": "bounded-context",
+      "relation": "Concrete ごとに種類の名前の範囲が決まる（I41）。search の値の条件を種類に付けるのは、文脈の内側で語の意味を1つにするため"
+    },
+    {
+      "criterion": "value-object",
+      "relation": "Patch ・ 版 ・ 欄の位置は値オブジェクトで、断る条件の一部（文書全体を指すか、守る位置を含むか）は Patch の値オブジェクトが自分で判定できる"
+    },
+    {
+      "criterion": "layered-architecture",
+      "relation": "サービス層（アプリケーション層）が使える操作と応答をまとめる。Semantic Read ・ Write はこの層の操作である"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "Patch の path だけを見て、move ・ copy の from を見ずに決定権の欄の検査を通す",
+      "check": "根のコマンドの単体テストに、from が守る位置を指す move と、path が守る位置へ写す copy の2件を入れ、どちらも断られることを確かめる"
+    },
+    {
+      "breaks": "rule の violated を理由に Semantic Write を断り、下書きを保存しない",
+      "check": "violated になる Patch を当てたテストで、ファイルが書かれ、結果に violated と根拠が返り、状態が「下書き」になることを確かめる"
+    },
+    {
+      "breaks": "Write のたびに変更の記録を書き、意図1つに記録が何件もできる",
+      "check": "同じ意図で Write を3回したあとの変更の記録の件数が、決めた数（意図1つにつき1件なら1）と同じかを数える"
+    },
+    {
+      "breaks": "search の結果の位置を JSON Schema の出力の instanceLocation から取る",
+      "check": "contains を使う値の条件で、結果の位置が条件を付けた欄の位置と同じかを確かめる"
+    },
+    {
+      "breaks": "MCP の入口から、入口の種類を引数で「人」と渡して決定権の欄を書く",
+      "check": "MCP のアダプターのテストで、入口の種類の引数を受け付けない（スキーマに無い）ことを確かめる"
+    }
+  ]
+}
