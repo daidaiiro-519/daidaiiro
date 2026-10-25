@@ -1,0 +1,125 @@
+<title>Semantic Search と用語</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+.q{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}.q b{font-size:16px}.links a{color:var(--accent)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.ask{border:2px solid var(--accent)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--card);font-weight:700;font-size:13px;flex:none}
+.ttl{display:flex;gap:8px;align-items:flex-start;font-weight:700;font-size:15px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.mini div{border-radius:8px;padding:6px 8px;font-size:13px}.mini .b{background:var(--bad-bg)}.mini .a{background:var(--add)}.mini b{display:block;font-size:11.5px;color:var(--sub)}
+.row{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px}@media (max-width:600px){.row{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column;gap:6px}
+.lab{font-size:12px;color:var(--sub)}
+.bars{display:flex;flex-direction:column;gap:6px;font-size:12.5px}.bar{display:grid;grid-template-columns:10em 1fr 4em;gap:8px;align-items:center}.bar i{display:block;height:12px;border-radius:6px;background:var(--accent)}.bar i.r{background:var(--bad)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.two{grid-template-columns:1fr}}
+.box{border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.box.c{background:var(--accent-bg)}.box.d{background:var(--hot-bg)}.box ul{margin:0;padding-left:1.2em;font-size:13.5px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.link{font-size:12px;word-break:break-all}
+pre.v{margin:0;font:12.5px/1.6 "JetBrains Mono",ui-monospace,monospace;background:var(--code);border-radius:8px;padding:8px 0;overflow-x:auto}pre.v span{display:block;padding:0 12px;white-space:pre}
+pre.v .cr{background:var(--accent-bg);color:var(--accent);font-weight:700}pre.v i{font-style:normal;color:var(--sub)}
+pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--code);color:var(--accent)}pre.v .pt{color:var(--bad)}.lg span{border-radius:6px;padding:1px 8px;margin-right:6px;font-size:12px}.lg .cr{background:var(--accent-bg);color:var(--accent)}.lg .ag{background:var(--hot-bg);color:var(--hot)}.lg .sv{background:var(--code);color:var(--accent)}.lg .pt{color:var(--bad)}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}.ex{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.ex{grid-template-columns:1fr}}.ex pre{white-space:pre;overflow-x:auto;padding:8px 12px}
+</style>
+<main>
+<h1>Semantic Search と用語</h1>
+<p class="meta">利用者「自然な言語からそれに該当するようなドキュメントjsonを探し、必要な情報を取得してある形式の回答用のスキーマに当てはめて返す…それはセマンティックな検索といえますか？…必要なんじゃないでしょうか？」「それぞれの呼称はちゃんと用語としてまとめておきたい」「今そこを見直してるって話だから…どうするべきかって言う形で返して欲しい」を受け、usecase-advisor ・ ddd-advisor ・ 結論を渡さない反証役を統合した。例の名前は架空</p>
+<p class="ans">自然な言葉の問いに答えのスキーマで答える Semantic Search を、使う場面 U28 として足す。作業する AI は問う者のセッションで、基盤の機械的な操作（Search ・ Semantic Read の読み取り ・ 渡した値の検証）を組み合わせる。基盤が起動するのは、答えが出どころに支えられているかを判定させる AI だけ</p>
+<div class="fig"><svg viewBox="0 0 1000 380" style="min-width:880px" role="img" aria-label="Semantic Search の流れ" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg #dsvg-b3117f42-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-b3117f42-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="380.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">Semantic Search（U28）：AI のセッションが基盤の機械的な操作を組み合わせる</text>
+<rect class="area" x="10" y="40" width="330" height="300" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="22" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">AI（問う者のセッション）・ セマンティック</text>
+<rect class="area" x="420" y="40" width="570" height="300" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="432" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">基盤 ・ 機械的</text>
+<rect class="box kind-3" x="30" y="72" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">① 問いを解釈する</text><text class="note small" x="42" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">自然な言葉 → 種類 ・ term ・ 状態の条件</text>
+<rect class="box kind-3" x="30" y="142" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">③ 読んで選ぶ</text><text class="note small" x="42" y="182" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">x-prompt の means で意味を確かめる</text>
+<rect class="box kind-3" x="30" y="212" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="233" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">⑤ 答えを作る</text><text class="note small" x="42" y="252" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">答えのスキーマの形で書き、出どころを付ける</text>
+<rect class="box kind-2" x="440" y="72" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">② Search（サーチ）</text><text class="note small" x="452" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">候補の位置の一覧と、探した範囲を返す</text>
+<rect class="box kind-2" x="440" y="142" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">④ Semantic Read の読み取り</text><text class="note small" x="452" y="182" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">候補の欄の x-prompt と値と版を返す</text>
+<rect class="box kind-2" x="440" y="212" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="233" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">⑥ 渡した値を検証する（保存しない）</text><text class="note small" x="452" y="252" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">機械の rule ・ 出どころが実在し版が合うか → 結果と、AI に依頼する rule の一覧</text>
+<rect class="box" x="440" y="276" width="530" height="50" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="452" y="297" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">⑦ 根拠の判定（AI の rule）</text><text class="note small" x="452" y="316" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">答えの値が出どころに支えられているか。親が Agents 契約で依頼する</text>
+<path class="flow" d="M320,97 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
+<path class="flow" d="M175,122 V140" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
+<path class="flow" d="M320,167 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
+<path class="flow" d="M175,192 V210" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
+<path class="flow" d="M320,237 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
+<path class="flow" d="M380,237 V301 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
+<text class="note" x="10" y="362" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">基盤が起動するのは ⑦ の判定させる AI だけ。作業する AI（①③⑤）は問う者のセッションで、何も保存しない</text>
+</svg></div>
+<h2>1　用語（セマンティックか機械的か）</h2>
+<div class="tw"><table><tr><th>英語</th><th>日本語</th><th>種類</th><th>中身</th></tr><tr><td>Search</td><td>サーチ</td><td>機械的</td><td>種類 ・ term ・ x-relationship ・ 状態と判定の結果 ・ 拡張項目で探し、位置の一覧と探した範囲を返す。使う場面の中から呼ぶ部品</td></tr><tr><td>Semantic Search</td><td>セマンティックサーチ</td><td>セマンティック</td><td>使う場面 U28。自然な言葉の問いに、答えのスキーマで、出どころ付きで答える</td></tr><tr><td>Semantic Read</td><td>セマンティックリード</td><td>セマンティック</td><td>AI が x-prompt を読む。基盤の読み取りのコマンドの部分は機械的</td></tr><tr><td>Semantic Write</td><td>セマンティックライト</td><td>セマンティック</td><td>AI が x-prompt に従って書く。JSON Patch の適用と検証は機械的</td></tr><tr><td>Semantic Schema Resolver</td><td>セマンティックスキーマリゾルバー</td><td>機械的</td><td>指す先と版を解決する</td></tr><tr><td>Semantic Schema Validator</td><td>セマンティックスキーマバリデーター</td><td>両方</td><td>機械の rule は自分で検証し、AI の rule は依頼の一覧を返して答えをまとめる</td></tr><tr><td>Semantic Schema Renderer</td><td>セマンティックスキーマレンダラー</td><td>機械的</td><td>人が読む形にする</td></tr><tr><td>Session Selector</td><td>セッションセレクター</td><td>機械的</td><td>再開する ID か「新しく立てる」を返す</td></tr></table></div>
+<div class="tw"><table><tr><th>名前の決まり</th><th>中身</th></tr><tr><td>操作の名前の先頭の Semantic</td><td>AI が伴う操作（Semantic Search ・ Read ・ Write）。あなたの定義「AI が伴うか、コマンドだけで完結するか」</td></tr><tr><td>Semantic Schema</td><td>この基盤のスキーマの名前（Semantic Abstract Schema ・ Semantic Concrete Schema）。Semantic Schema Resolver ・ Validator ・ Renderer の Semantic は、操作ではなく「どのスキーマを扱うか」を表す</td></tr></table></div>
+<h2>2　送る JSON と返る JSON</h2>
+<div class="ex"><div class="pane"><b>問う（AI のセッションが受け取る問い）</b><pre>{
+  &quot;question&quot;: &quot;AI に何を許すかを決めた記録と、その責任者は？&quot;,
+  &quot;answer_schema&quot;: &quot;urn:semantic-agent-schema:sample:answer-owner:v1&quot;,
+  &quot;contexts&quot;: [
+    &quot;sample&quot;
+  ]
+}</pre></div><div class="pane on"><b>返る（検証された答え。保存しない）</b><pre>{
+  &quot;answer&quot;: {
+    &quot;$schema&quot;: &quot;urn:semantic-agent-schema:sample:answer-owner:v1&quot;,
+    &quot;items&quot;: [
+      {
+        &quot;record&quot;: &quot;r-12&quot;,
+        &quot;owner&quot;: &quot;yamada&quot;,
+        &quot;provenance&quot;: [
+          {
+            &quot;id&quot;: &quot;r-12&quot;,
+            &quot;kind&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;,
+            &quot;instanceLocation&quot;: &quot;/owner&quot;,
+            &quot;version&quot;: &quot;&lt;読んだ版&gt;&quot;
+          }
+        ]
+      }
+    ]
+  },
+  &quot;results&quot;: [
+    {
+      &quot;rule&quot;: &quot;provenance-exists&quot;,
+      &quot;by&quot;: &quot;machine&quot;,
+      &quot;value&quot;: &quot;verified&quot;
+    },
+    {
+      &quot;rule&quot;: &quot;answer-supported&quot;,
+      &quot;by&quot;: &quot;ai&quot;,
+      &quot;value&quot;: &quot;unverified&quot;,
+      &quot;why&quot;: &quot;親が判定を依頼する&quot;
+    }
+  ],
+  &quot;scope&quot;: {
+    &quot;contexts&quot;: [
+      &quot;sample&quot;
+    ],
+    &quot;index_of&quot;: &quot;&lt;正本の版&gt;&quot;
+  }
+}</pre></div></div>
+<p class="meta">出どころが実在し版が合うかは機械の rule で決定論的に確かめる。答えの値が出どころに支えられているか（写した値でない要約 ・ 組み合わせを含む）は AI の rule で、結果が出るまで unverified として見える</p>
+<h2>3　あるべき形と、書き換える前提</h2>
+<div class="tw"><table><tr><th>あるべき形</th><th>変更前</th><th>変更後</th></tr><tr><td>セマンティックな検索を使う場面として持つ</td><td>使う場面に無い（U0〜U27）</td><td>U28 Semantic Search を足す。行為者は問う者（目的のセッションの AI）。業務領域は中核「意味で探す」</td></tr><tr><td>機械的な検索の名前を、AI が伴わないと分かるものにする</td><td>Q5 ・ Q9 と model.json の「意味で探す」「意味で探して取り出す」が、AI の伴わない検索を指している</td><td>Search（サーチ）。業務領域「意味で探す」には Search と Semantic Search の両方が入る</td></tr><tr><td>作業する AI を起動するのは外（呼ぶ側）にそろえる</td><td>decisions-in-session.md に「親のセッションを基盤が立ててもよい」、boundary に「AI ツールの起動は外」が並んでいる</td><td>「AI ツールの起動は外」にそろえる。基盤が起動するのは、ツールを持たせない判定の AI だけ（I29）</td></tr><tr><td>保存しない値を検証できるようにする</td><td>駆動する側のポート「検証する」は変更の前後を受け取る形だけ</td><td>「渡した値を検証する（保存しない）」を足す。Semantic Search の答えの検証に使う</td></tr><tr><td>出どころを持つ</td><td>無い</td><td>Abstract の $defs に値オブジェクト「出どころ」（id ・ kind ・ instanceLocation ・ 読んだ版）と、rule 2つ（実在と版 ＝ 機械、支えられているか ＝ AI）を足す。型は instance の crate</td></tr><tr><td>Semantic Read ・ Write の頁の言い方</td><td>「抽象のレベルでは外れない」</td><td>「機械の rule では外れない。AI の rule は判定の結果として残る」</td></tr><tr><td>答えを作る操作</td><td>Semantic Write で答えを書く（下書き）</td><td>答えはファクトリで作る。Semantic Write は既にある文書の更新に限る</td></tr></table></div>
+<p class="meta">crate は8つのまま、依存の向きも変わらない。Semantic Search はアプリケーション層の使う場面。Q3（Agents 契約）に「作業の任せる先に Search や Semantic Read を渡す契約が要るか」の論点を足す</p>
+<h2>4　確かめてほしいこと</h2>
+<div class="tw"><table><tr><th>確かめてほしいこと</th><th>私の見解</th></tr><tr><td>U28 Semantic Search を足し、作業する AI は問う者のセッションにする</td><td>そうする。問いの文脈を持つのはそのセッションだけ</td></tr><tr><td>用語の表（1節）と、名前の決まり（操作の Semantic と Semantic Schema の違い）</td><td>そうする</td></tr><tr><td>3節の書き換え</td><td>そうする</td></tr></table></div>
+</main>
