@@ -66,7 +66,7 @@ body = f'''<main>
  ['インスタンスを書くが意図を受け取る', 'Write は意図を受け取らない。止めたあと「変更を記録する」が意図1つにつき1件を作る（I32 で記録は書き換えない）'],
 ])}
 <p class="meta">名前は英語と日本語の対で持つ（Q5）：Semantic Read（セマンティックリード）・ Semantic Write（セマンティックライト）。x-prompt の read ・ write のキーと紛れないよう、単独の Read ・ Write とは呼ばない。位置の欄は JSON Schema の出力と同じ keywordLocation（スキーマの中）と instanceLocation（インスタンスの中）にする</p>
-<h2>5　search で欄の値を探すか（決めてほしいこと）</h2>
+<h2>5　search で欄の値を探すか（Semantic Search の頁で決着：B の形）</h2>
 {table(['案', '中身', '前提との関係'], [
  ['A　値では探さない（いまの5つの単位のまま）', '値の条件は Concrete の rule にして、search は状態と判定の結果で探す', 'ボードで外した D2「宣言的な式の言語 …もともとの範囲に無い追加だった」と、Q9「意味で探すは、語 ・ 参照 ・ rule の結果で探すので中核」に合う'],
  ['B　JMESPath を選ぶ条件にだけ使う', 'where の式をインスタンス1件ずつに評価し、真になったものを返す。返す形は基盤が決め、形を変える用途（projection ・ multiselect）には使わない', '値で探したいという要望に応える。D2 を戻すことになる'],
@@ -77,7 +77,6 @@ body = f'''<main>
  ['Semantic Read ・ Semantic Write を使う場面の名前にし、ポートを上の表のとおり分け直す', 'そうする'],
  ['繰り返すのは AI で、基盤は1回ずつ答え、「止めてよいか」と needs を返す', 'そうする。ボード Q8 で「直すループを回す」は基盤の外'],
  ['Write の断るもの ・ 断らないもの（2節）', 'そうする'],
- ['search で欄の値を探すか（5節の A か B）', 'あなたが決めること。範囲を広げるかどうかの判断なので'],
 ])}
 </main>'''
 open(os.path.join(H, 'index.html'), 'w').write(head + '\n' + body); print('ok')
