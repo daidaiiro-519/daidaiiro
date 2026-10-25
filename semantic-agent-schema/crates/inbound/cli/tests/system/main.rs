@@ -159,6 +159,15 @@ fn run_scenario(root: &Path, path: &Path) -> Result<(), String> {
 }
 
 fn run_in(root: &Path, work: &Path, s: &Value) -> Result<(), String> {
+    if s.pointer("/given/repo").and_then(Value::as_bool) == Some(true) {
+        let r = run(
+            work,
+            &serde_json::json!({"git": ["init", "-q", "-b", "main"]}),
+        )?;
+        if r.exit != 0 {
+            return Err("準備の git init が失敗した".into());
+        }
+    }
     if let Some(files) = s.pointer("/given/files").and_then(Value::as_object) {
         for (rel, body) in files {
             let body = body.as_str().ok_or("given.files の中身が文字列でない")?;
