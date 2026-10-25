@@ -41,7 +41,7 @@ fn record(n: u128) -> Result<ChangeRecord, String> {
 #[test]
 fn record_is_found_by_its_target() {
     let db = db("touching").unwrap();
-    db.add(&record(1).unwrap(), None).unwrap();
+    db.add(&record(1).unwrap(), None, None).unwrap();
     assert_eq!(db.touching(&target()).unwrap(), vec![record(1).unwrap()]);
 }
 
@@ -49,15 +49,15 @@ fn record_is_found_by_its_target() {
 #[test]
 fn same_id_twice_is_refused() {
     let db = db("twice").unwrap();
-    db.add(&record(2).unwrap(), None).unwrap();
-    assert!(db.add(&record(2).unwrap(), None).is_err());
+    db.add(&record(2).unwrap(), None, None).unwrap();
+    assert!(db.add(&record(2).unwrap(), None, None).is_err());
 }
 
 /// traces: U16:事後
 #[test]
 fn later_intent_judgment_replaces_the_earlier() {
     let db = db("judge").unwrap();
-    db.add(&record(3).unwrap(), None).unwrap();
+    db.add(&record(3).unwrap(), None, None).unwrap();
     let id = record(3).unwrap().id().clone();
     db.put_intent(
         &IntentJudgment::new(id.clone(), By::Human, Verdict::Violated, "意味", "違う").unwrap(),
@@ -74,12 +74,12 @@ fn later_intent_judgment_replaces_the_earlier() {
 #[test]
 fn record_goes_into_only_one_summary() {
     let db = db("summary").unwrap();
-    db.add(&record(4).unwrap(), None).unwrap();
+    db.add(&record(4).unwrap(), None, None).unwrap();
     let id = record(4).unwrap().id().clone();
     db.summarized(std::slice::from_ref(&id), "s-1").unwrap();
     assert_eq!(
         (
-            db.pending().unwrap().len(),
+            db.pending(None).unwrap().len(),
             db.summarized(&[id], "s-2").is_err()
         ),
         (0, true)
@@ -92,7 +92,7 @@ fn written_record_is_not_rewritten() {
     let p = std::env::temp_dir().join(format!("sas-sqlite-rewrite-{}.db", std::process::id()));
     let _ = std::fs::remove_file(&p);
     let db = LocalDb::open(&p).unwrap();
-    db.add(&record(5).unwrap(), None).unwrap();
+    db.add(&record(5).unwrap(), None, None).unwrap();
     let conn = rusqlite::Connection::open(&p).unwrap();
     let id = record(5).unwrap().id().as_str().to_string();
     assert!(
@@ -108,4 +108,21 @@ fn written_record_is_not_rewritten() {
                 )
                 .is_err()
     );
+}
+
+/// traces: I35
+#[test]
+fn pending_is_only_of_the_same_workspace() {
+    let db = db("workspace").unwrap();
+    db.add(&record(6).unwrap(), Some("worktrees/a"), None)
+        .unwrap();
+    db.add(&record(7).unwrap(), Some("worktrees/b"), None)
+        .unwrap();
+    let ids: Vec<_> = db
+        .pending(Some("worktrees/a"))
+        .unwrap()
+        .iter()
+        .map(|r| r.id().clone())
+        .collect();
+    assert_eq!(ids, vec![record(6).unwrap().id().clone()]);
 }

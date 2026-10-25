@@ -211,6 +211,7 @@ fn record_status(w: &World, id: &str) {
             replaces: None,
             id,
             session: None,
+            workspace: None,
         },
     );
 }

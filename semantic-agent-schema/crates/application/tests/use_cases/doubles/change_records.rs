@@ -15,7 +15,12 @@ pub struct FakeChangeRecords {
 }
 
 impl ChangeRecords for FakeChangeRecords {
-    fn add(&self, record: &ChangeRecord, _session: Option<&SessionRef>) -> Result<(), String> {
+    fn add(
+        &self,
+        record: &ChangeRecord,
+        _workspace: Option<&str>,
+        _session: Option<&SessionRef>,
+    ) -> Result<(), String> {
         self.records.borrow_mut().push(record.clone());
         Ok(())
     }
@@ -34,7 +39,7 @@ impl ChangeRecords for FakeChangeRecords {
             .collect())
     }
 
-    fn pending(&self) -> Result<Vec<ChangeRecord>, String> {
+    fn pending(&self, _workspace: Option<&str>) -> Result<Vec<ChangeRecord>, String> {
         let done = self.summarized.borrow();
         Ok(self
             .records

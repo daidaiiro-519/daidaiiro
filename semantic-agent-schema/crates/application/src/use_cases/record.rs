@@ -31,6 +31,8 @@ pub struct RecordRequest<'a> {
     pub id: &'a str,
     /// 手元のセッション
     pub session: Option<&'a str>,
+    /// 書いた作業場所の名札（変更の仕組みから受け取る。基盤は解釈しない）
+    pub workspace: Option<&'a str>,
 }
 
 /// 意図1つぶんの変更を、手元の DB に記録する。セッション ID は記録に入れず、手元の索引にだけ結ぶ（不変条件 I34）
@@ -67,7 +69,7 @@ pub fn record(ports: &Ports<'_>, r: &RecordRequest<'_>) -> Outcome {
         Ok(m) => m,
         Err(e) => return Outcome::refused("", &e),
     };
-    if let Err(e) = ports.records.add(&change, session.as_ref()) {
+    if let Err(e) = ports.records.add(&change, r.workspace, session.as_ref()) {
         return Outcome::refused("", &e);
     }
     Outcome::checked(
@@ -128,7 +130,8 @@ fn make_summary(
         files.push(FileState::new(&f.path, target, f.before, f.after, decided));
     }
     let mut records = Vec::new();
-    for r in ports.records.pending()? {
+    let workspace = changes.workspace()?;
+    for r in ports.records.pending(workspace.as_deref())? {
         let j = ports.judgments.intent_of(r.id())?;
         records.push((r, j));
     }

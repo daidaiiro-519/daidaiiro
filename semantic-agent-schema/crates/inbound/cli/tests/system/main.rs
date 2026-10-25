@@ -123,9 +123,13 @@ fn run(work: &Path, cmd: &Value) -> Result<Ran, String> {
         Some(g) => ("git", args_of(&serde_json::json!({ "args": g }))?),
         None => (env!("CARGO_BIN_EXE_semantic-agent-schema"), args_of(cmd)?),
     };
+    let dir = match cmd.get("cwd").and_then(Value::as_str) {
+        Some(c) => work.join(c),
+        None => work.to_path_buf(),
+    };
     let out = Command::new(program)
         .args(&args)
-        .current_dir(work)
+        .current_dir(&dir)
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_AUTHOR_NAME", "t")
         .env("GIT_AUTHOR_EMAIL", "t@example.com")

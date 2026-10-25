@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS changes (
   writer_kind        TEXT NOT NULL CHECK (writer_kind IN ('human','ai-agent')),
   replaces_intent_id TEXT,
   summary_id         TEXT,
+  workspace          TEXT,
   created_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE TABLE IF NOT EXISTS change_items (
@@ -49,7 +50,7 @@ CREATE TRIGGER IF NOT EXISTS no_delete_change_items BEFORE DELETE ON change_item
 CREATE TRIGGER IF NOT EXISTS no_update_changes BEFORE UPDATE ON changes
   WHEN NOT (OLD.summary_id IS NULL AND NEW.summary_id IS NOT NULL AND NEW.id = OLD.id AND NEW.purpose_ref = OLD.purpose_ref
             AND NEW.intent = OLD.intent AND NEW.writer_kind = OLD.writer_kind AND NEW.replaces_intent_id IS OLD.replaces_intent_id
-            AND NEW.created_at = OLD.created_at)
+            AND NEW.created_at = OLD.created_at AND NEW.workspace IS OLD.workspace)
   BEGIN SELECT RAISE(ABORT, '変更の記録は書き換えない（まとめの id を1回入れるだけ）'); END;
 CREATE TRIGGER IF NOT EXISTS no_update_change_items BEFORE UPDATE ON change_items BEGIN SELECT RAISE(ABORT, '変更の項目は書き換えない'); END;
 ";
@@ -119,14 +120,19 @@ impl LocalDb {
 }
 
 impl ChangeRecords for LocalDb {
-    fn add(&self, record: &ChangeRecord, session: Option<&SessionRef>) -> Result<(), String> {
+    fn add(
+        &self,
+        record: &ChangeRecord,
+        workspace: Option<&str>,
+        session: Option<&SessionRef>,
+    ) -> Result<(), String> {
         let tx = self
             .conn
             .unchecked_transaction()
             .map_err(|e| e.to_string())?;
         tx.execute(
-            "INSERT INTO changes (id, purpose_ref, intent, writer_kind, replaces_intent_id) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![record.id().as_str(), record.purpose_ref(), record.intent(), record.writer().as_str(), record.replaces().map(ChangeId::as_str)],
+            "INSERT INTO changes (id, purpose_ref, intent, writer_kind, replaces_intent_id, workspace) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![record.id().as_str(), record.purpose_ref(), record.intent(), record.writer().as_str(), record.replaces().map(ChangeId::as_str), workspace],
         )
         .map_err(|e| format!("変更の記録を書けない：{e}"))?;
         for item in record.items() {
@@ -169,13 +175,13 @@ impl ChangeRecords for LocalDb {
             .collect()
     }
 
-    fn pending(&self) -> Result<Vec<ChangeRecord>, String> {
+    fn pending(&self, workspace: Option<&str>) -> Result<Vec<ChangeRecord>, String> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id FROM changes WHERE summary_id IS NULL ORDER BY created_at, id")
+            .prepare("SELECT id FROM changes WHERE summary_id IS NULL AND workspace IS ?1 ORDER BY created_at, id")
             .map_err(|e| e.to_string())?;
         let ids = stmt
-            .query_map([], |r| r.get::<_, String>(0))
+            .query_map(params![workspace], |r| r.get::<_, String>(0))
             .map_err(|e| e.to_string())?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;

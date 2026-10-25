@@ -27,6 +27,12 @@ pub trait Changes {
     /// 変更の仕組みを呼べないとき
     fn changed(&self) -> Result<Vec<FileChange>, String>;
 
+    /// いまの作業場所の名札（Git ならワークツリーの識別子）。手元の DB の記録を、書いた作業場所で絞るのに使う。変更の仕組みの外なら None
+    ///
+    /// # Errors
+    /// 変更の仕組みを呼べないとき
+    fn workspace(&self) -> Result<Option<String>, String>;
+
     /// すべての作業ツリーが共有する置き場所（手元の DB の既定の置き場所に使う）。変更の仕組みの外なら None
     fn shared_dir(&self) -> Option<PathBuf>;
 }

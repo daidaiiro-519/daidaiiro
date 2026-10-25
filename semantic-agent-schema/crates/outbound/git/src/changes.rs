@@ -79,6 +79,21 @@ impl Changes for Git {
         Ok(out)
     }
 
+    fn workspace(&self) -> Result<Option<String>, String> {
+        let (Some(own), Some(common)) = (
+            self.text(&["rev-parse", "--absolute-git-dir"])?,
+            self.text(&["rev-parse", "--path-format=absolute", "--git-common-dir"])?,
+        ) else {
+            return Ok(None);
+        };
+        // メインのワークツリーは「main」、追加したワークツリーは共有の置き場所からの相対（worktrees/<名前>）
+        Ok(Some(match Path::new(&own).strip_prefix(&common) {
+            Ok(rel) if rel.as_os_str().is_empty() => "main".to_string(),
+            Ok(rel) => rel.to_string_lossy().replace('\\', "/"),
+            Err(_) => own,
+        }))
+    }
+
     fn shared_dir(&self) -> Option<PathBuf> {
         let dir = self.text(&["rev-parse", "--git-common-dir"]).ok()??;
         let p = Path::new(&dir);
