@@ -4,11 +4,15 @@
   "id": "semantic-contract-core",
   "title": "Semantic Agent Schema ── Semantic Abstract Schema と Semantic Concrete Schema の基盤（構想 v0.3 から）",
   "intro": "Semantic Agent Schema は、AI 時代のスキーマの新しい形として、ドメインスキーマ（JSON Schema）に意味の宣言と検証を足した基盤である。基盤が持つ Semantic Abstract Schema と、文脈（Skill ・ Agent）が持つ Semantic Concrete Schema に分ける。この基盤が何を持ち、どう検証するかを、構想 v0.3 から、依存の順に決める。開発基盤はこの基盤の上に載る側で、このボードでは決めない。",
-  "round": 95,
+  "round": 96,
   "queue": [
     {
       "topic": "Q3",
-      "why": "前提（Q0 ・ Q1 ・ Q11）がそろったので開く。いまの答えは書き直す前のもので、Agents 契約を Abstract の一員として書き直してから出し直す"
+      "why": "4人の回答と反証で、だれが AI を起動するかの食い違いを解いた。ステップ4 の前に決める"
+    },
+    {
+      "topic": "Q12",
+      "why": "目的ごとにワークツリーを立てるシナリオで、記録の混ざりが見つかった。目的のセッション（Q11）の続きとして、置き場所と片付け方を決める"
     }
   ],
   "topics": [
@@ -32,13 +36,13 @@
           "原則3 言語非依存の意味モデル（実装は Rust）：採る。CLI ・ MCP ・ JSON で返し、出力の形を JSON Schema で公開する",
           "原則4 拡張可能な表現モデル：採る。x- で足した範囲は基盤の契約で、基盤のコマンドが検証し、結果を検証結果の5つの値 で返す",
           "原則4 の続き：JSON Schema の実装は、知らないキーワードを注釈として集めるだけで検証しない。そのため x- は基盤が検証し、検証しなかったことも返す",
-          "原則4 の拡張には、外から足す検査のプログラムも含める。それは、包む Concrete（Skill）を任せる先（x-delegates）に置き、Agents 契約と同じくプロセスとして呼ぶ。構想は登録と実行の権限を管理するとしているが、基盤は許可の契約を持たず、各 AI ツールの設定ファイルに任せる",
+          "原則4 の拡張には、外から足す検査のプログラムも含める。それは、包む Concrete（Skill）を任せる先（x-delegates）に置き、基盤が引数の配列でプロセスとして呼ぶ。構想は登録と実行の権限を管理するとしているが、基盤は許可の契約を持たず、各 AI ツールの設定ファイルに任せる",
           "原則5 検証可能で実用に耐える（再現性 ・ 適合性 ・ 可搬性）：採る。同じ入力から同じ結果を返し、別の言語の実装が使える適合の試験を持つ",
           "従属させないための方針も採る。正本は Semantic Abstract Schema（JSON Schema に x- の拡張を足した私たちの契約）で、JSON Schema には形の検証だけを任せる",
           "足すもの：AI を呼ぶポート（Agents 契約）。呼ぶ契約は1つで、利用者ごとに違う AI ツールはアダプターで差し替える",
           "描画も基盤の契約である。人は JSON だけでは判断できないので、Semantic Abstract Schema が描画の契約（ビューとデザインシステムの形）を持つ",
           "Semantic Concrete Schema は描画の契約を使い、ビューとデザインシステム（部品のカタログ ・ デザイントークン）を用意すれば、基盤の render で描ける。いまの描き先は HTML で、Markdown は足す",
-          "Agents 契約で呼ぶ AI：Claude Code ・ Codex ・ Kiro ・ GitHub Copilot。CLI でプロセスとして起動する。作業させる AI は目的ごとのセッションを ID で続けて呼び、判定させる AI は判定ごとに新しいセッションで呼ぶ",
+          "Agents 契約で答える AI：Claude Code ・ Codex ・ Kiro ・ GitHub Copilot。作業させる AI は目的ごとのセッションを ID で続けて呼び、判定させる AI は判定ごとに新しい子のセッションで呼ぶ。起動するのは作業側（harness）で、基盤は起動しない（Q3）",
           "答えの形は JSON Schema で渡す。Claude Code は --json-schema、Codex は --output-schema で縛る。Kiro と GitHub Copilot は旗が無いので、答えから JSON を取り出す",
           "GitHub Copilot：-p で非対話に起動し、--session-id ・ --resume でセッションを続け、--output-format json で1行ずつ JSON を返す。答えの形を縛る旗は無い",
           "どの AI でも、返った答えは基盤が同じ JSON Schema で検証し、満たさなければ error にする。Claude Code と Codex は、そのうえで CLI の旗でも形を縛る"
@@ -1538,14 +1542,15 @@
         "Q1",
         "Q5",
         "Q7",
-        "Q10"
+        "Q10",
+        "Q11"
       ],
-      "question": "Semantic Agent Schema のエンジンを、どの層とどの部品で組み、AI を入れる Agents 契約は何を約束するか",
+      "question": "Semantic Agent Schema のエンジンを、どの層とどの部品で組み、AI の判定はだれが起動して、何を判定の記録として残すか",
       "answer": {
-        "text": "エンジンはポートとアダプターで組み、crate は domain の8つ ・ application ・ outbound ・ inbound に分け、AI は Agents 契約で値の写しを渡して、5つの値と根拠を受け取る。",
+        "text": "エンジンはポートとアダプターで組み、基盤は AI を起動せず、作業側が判定ごとに新しい子のセッションで答えさせた答えを、基盤が根拠を確かめて判定の記録にまとめる。",
         "details": [
           "層：ドメイン層 ・ アプリケーション層 ・ 駆動する側のアダプター ・ 駆動される側のアダプター。集約 ・ ドメインサービス ・ ポートは Q1 のとおり。domain は値を受け取って値を返し、ポートは application の ports/ に置く",
-          "アダプター：駆動する側は CLI ・ MCP ・ 人の操作の入口、駆動される側はファイル ・ Git などの変更の仕組み ・ AI の CLI ・ 手元の DB の SQLite（セッション ・ 手元の索引 ・ 変更の記録 ・ 意図の判定）",
+          "アダプター：駆動する側は CLI ・ MCP ・ 人の操作の入口、駆動される側はファイル ・ Git ・ AI ツールのセッションを問う CLI ・ 手元の DB の SQLite",
           "crate は crates/domain/ の8つ ・ application ・ outbound/ ・ inbound/cli に分ける。domain は declaration ・ instance ・ change ・ resolver ・ validation ・ render ・ search ・ session。許す辺は architecture.json に持ち、architecture-lint で検査する",
           "ポートは trait、検証結果の5つの値は enum にし、match の書き忘れをビルドで止める",
           "Agents 契約（腐敗防止層）で基盤が渡すもの：rule ・ その rule の reads が指す欄の値の写し ・ 使う x-prompt の read の文 ・ 関係するインスタンスの読んだ欄の値",
@@ -1554,13 +1559,21 @@
           "I33 のときは、意図全体の意味の1文と対象ごとの意味の1文を、判定の理由とは別に返す。各文に読んだ値の位置と意図の id を付ける",
           "だれに聞くか：rule の agent が x-delegates の名前を指し、x-delegates が任せる先の Concrete とモデルを決める",
           "基盤自身の AI の rule は基盤自身の x-delegates の judge を使い、割り当てが無ければ unsupported を返す",
-          "起動：判定させる AI に道具を持たせない。AI ツールごとの起動の違いはアダプターが吸収し、契約は AI ツールごとに分けない",
+          "起動：基盤は AI を起動しない。validate は AI の rule ごとに呼び出し（call）を needs で返し、作業側（harness）が判定ごとに新しい子のセッション（Q11 の単発 ・ 引き継がない）で答えさせる",
           "許可：AI に何を許すかは各 AI ツールの設定ファイルが決め、基盤は許可を持たない",
-          "任せる先に作業を任せるとき（子のセッション）は、セッションの参照（id と、根から親までの id の並び）を渡す",
-          "時間切れ ・ 失敗 ・ 出力の上限で何を error にするかは作法の2、受け渡しの JSON の形は protocol が持つ。書く操作は再試行しない",
+          "任せる先に作業を任せるとき（継続の子のセッション）は、セッションの参照（id と、根から親までの id の並び）を渡す。起動するのは作業側である",
+          "受け渡しの形（call と答え）は Abstract のファイルに置き、版は Abstract と一緒に並べて出す。protocol は運び方だけを持つ。書く操作は再試行しない",
           "入口のコマンド：セマンティック7つ（search ・ read ・ create ・ write ・ judge ・ import ・ migrate）は procedure を返し、処理はしない。処理は機械的なコマンドがする",
           "機械的なコマンドは search ・ get ・ create ・ patch ・ import ・ validate ・ judge（人だけ）・ render。ほかに history ・ record ・ release ・ migrate ・ session",
-          "検査は2回：適用する前に入力を入力のスキーマで、適用した後の姿を形と rule で見る。①で外れた入力は断る。②は、この書き込みが新しく持ち込んだ機械の violated があれば断り、findings を返す。前からある violated ・ 書き込みの外で起きた violated ・ AI と人の rule は断らず、状態として返す"
+          "検査は2回：適用する前に入力を入力のスキーマで、適用した後の姿を形と rule で見る。①で外れた入力は断る。②は、この書き込みが新しく持ち込んだ機械の violated があれば断り、findings を返す。前からある violated ・ 書き込みの外で起きた violated ・ AI と人の rule は断らず、状態として返す",
+          "まとめる：作業側が答えを validate に渡すと、validate が5つの値にまとめ、判定の記録を書く。AI がいない場面（人が CLI だけで使うとき ・ CI）は unverified のまま返す",
+          "verified の支え①：根拠が call に写した値を指していない答えは unverified にする（I14）。基盤が機械で確かめられる",
+          "verified の支え②：判定したセッションが、その変更を書いたセッションと同じなら答えを断る。手元の索引で比べ、確定するものにセッション ID は入れない（I34）",
+          "verified の支え③：答えに任せる先 ・ モデル ・ 道具の有無を申告させ、判定の記録に残す。申告は信頼の支えにしない",
+          "AI の CLI で判定したい Concrete は、x-delegates の program（引数の配列）で自分の起動を宣言してよい。そのときは by を ai と書き、model を記録し、決定的な外のツールとして扱わない（I13）",
+          "意図の判定は、変更の記録とは別の集約にする。判定は書き足すだけで、効くのは最新の1件。判定したときの値といまの値が違えば効かない（I16）",
+          "変更のまとめの意図には、意図の判定の並び全部（判定した者 ・ 結果 ・ 意味 ・ 時刻）を入れ、覆された判定もコミットに残す",
+          "rule の判定の記録は、インスタンス × rule の最後の1件のまま、覆した前の判定（判定した者 ・ 結果 ・ 理由）を overrides に残す"
         ]
       },
       "images": [
@@ -1571,10 +1584,29 @@
           "svg": "<svg viewBox=\"0 0 958 264\" style=\"min-width:900px\" role=\"img\" aria-label=\"エンジンの層と crate：依存は adapters から core への向きだけ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E}}:root[data-theme=\"dark\"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E}</style><rect data-dsvg=\"canvas\" class=\"canvas\" x=\"0.0\" y=\"0.0\" width=\"958.0\" height=\"264.0\" fill=\"#FFFFFF\" rx=\"8\"/>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">crate</text>\n<text class=\"note\" x=\"158\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">層</text>\n<text class=\"note\" x=\"386\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">置くもの</text>\n<rect class=\"box focus\" x=\"16\" y=\"32\" width=\"130\" height=\"41\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"title\" x=\"26\" y=\"57\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">adapters</text>\n<rect class=\"box focus\" x=\"16\" y=\"79\" width=\"130\" height=\"105\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"title\" x=\"26\" y=\"104\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">core</text>\n<rect class=\"box focus\" x=\"16\" y=\"190\" width=\"130\" height=\"58\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"title\" x=\"26\" y=\"215\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">adapters</text>\n<rect class=\"box\" x=\"154\" y=\"32\" width=\"220\" height=\"41\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"164\" y=\"57\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">駆動する側のアダプター</text>\n<rect class=\"box\" x=\"382\" y=\"32\" width=\"560\" height=\"41\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"392\" y=\"57\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">CLI ・ MCP ・ 人の操作の入口。駆動する側のポートを呼ぶ</text>\n<rect class=\"box\" x=\"154\" y=\"79\" width=\"220\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"164\" y=\"104\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">アプリケーション層</text>\n<rect class=\"box\" x=\"382\" y=\"79\" width=\"560\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"392\" y=\"104\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">駆動する側のポートの処理。集約を読み、ドメインサービスを使い、</text>\n<text class=\"label\" x=\"392\" y=\"121\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">駆動される側のポートを呼ぶ</text>\n<rect class=\"box\" x=\"154\" y=\"143\" width=\"220\" height=\"41\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"164\" y=\"168\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ドメイン層</text>\n<rect class=\"box\" x=\"382\" y=\"143\" width=\"560\" height=\"41\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"392\" y=\"168\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">集約 ・ ドメインサービス ・ ポート（trait）・ Agents 契約。一覧は Q1 のとおり</text>\n<rect class=\"box\" x=\"154\" y=\"190\" width=\"220\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"164\" y=\"215\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">駆動される側のアダプター</text>\n<rect class=\"box\" x=\"382\" y=\"190\" width=\"560\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"392\" y=\"215\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ファイル ・ Git などの変更の仕組み ・ AI の CLI ・ 手元の索引の SQLite。trait</text>\n<text class=\"label\" x=\"392\" y=\"232\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">を実物で満たす</text>\n</svg>"
         },
         {
-          "kind": "figure",
-          "name": "Agents 契約",
-          "caption": "基盤が AI を呼ぶときに渡すもの ・ 返るもの ・ 返った答えの扱いを並べた流れ。",
-          "svg": "<svg viewBox=\"0 0 1058 508\" style=\"min-width:900px\" role=\"img\" aria-label=\"Agents 契約：基盤は値の写しを渡し、5つの値と根拠を受け取って確かめる\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-e6cad46f-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme=\"dark\"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-e6cad46f-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs><rect data-dsvg=\"canvas\" class=\"canvas\" x=\"0.0\" y=\"0.0\" width=\"1058.0\" height=\"508.0\" fill=\"#FFFFFF\" rx=\"8\"/>\n<text class=\"note\" x=\"20\" y=\"24\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">core（Agents 契約）</text>\n<text class=\"note\" x=\"420\" y=\"24\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">adapters（AI のアダプター）</text>\n<text class=\"note\" x=\"726\" y=\"24\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI ツールの CLI（外）</text>\n<rect class=\"box\" x=\"16\" y=\"40\" width=\"360\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"65\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">だれに聞くか：rule の agent が x-delegates</text>\n<text class=\"label\" x=\"26\" y=\"82\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">の名前を指し、任せる先の Concrete とモデルが決まる</text>\n<rect class=\"box\" x=\"16\" y=\"106\" width=\"360\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"131\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">割り当てが無ければ、AI を呼ばずに unsupported</text>\n<text class=\"label\" x=\"26\" y=\"148\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">を返す</text>\n<rect class=\"box focus\" x=\"16\" y=\"188\" width=\"360\" height=\"75\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"213\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">渡すもの：rule ・ reads が指す欄の値の写し ・</text>\n<text class=\"label\" x=\"26\" y=\"230\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">x-prompt の read の文 ・ 関係するインスタンス</text>\n<text class=\"label\" x=\"26\" y=\"247\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">の読んだ欄の値。I33 は変更の前後の値と意図も渡す</text>\n<rect class=\"box\" x=\"416\" y=\"188\" width=\"250\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"426\" y=\"213\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">AI ツールごとの起動の違いを吸収し、</text>\n<text class=\"label\" x=\"426\" y=\"230\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">道具を持たせずに起動する</text>\n<rect class=\"boundary\" x=\"722\" y=\"188\" width=\"320\" height=\"58\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/>\n<text class=\"label\" x=\"732\" y=\"213\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">判定する。AI ツールごとの設定ファイルが、</text>\n<text class=\"label\" x=\"732\" y=\"230\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">何を許すかを決める</text>\n<rect class=\"boundary\" x=\"722\" y=\"287\" width=\"320\" height=\"75\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/>\n<text class=\"label\" x=\"732\" y=\"312\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">返すもの：5つの値のどれかと根拠。I33 は、</text>\n<text class=\"label\" x=\"732\" y=\"329\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">意図全体の意味の1文と対象ごとの意味の1文も返す</text>\n<text class=\"label\" x=\"732\" y=\"346\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（読んだ値の位置と意図の id つき）</text>\n<rect class=\"box\" x=\"416\" y=\"287\" width=\"250\" height=\"75\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"426\" y=\"312\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Claude Code ・ Codex ・ Kiro ・</text>\n<text class=\"label\" x=\"426\" y=\"329\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\"> GitHub Copilot の答えから</text>\n<text class=\"label\" x=\"426\" y=\"346\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON を受け取り、基盤へ返す</text>\n<rect class=\"box focus\" x=\"16\" y=\"287\" width=\"360\" height=\"41\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"312\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">受け取った答えを、基盤が確かめる</text>\n<rect class=\"box warn\" x=\"16\" y=\"336\" width=\"360\" height=\"41\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"361\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">形を満たさない答え → error</text>\n<rect class=\"box\" x=\"16\" y=\"385\" width=\"360\" height=\"58\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"410\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">根拠が渡した値に無い答え ・ 割れた答え →</text>\n<text class=\"label\" x=\"26\" y=\"427\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">unverified</text>\n<rect class=\"box\" x=\"16\" y=\"451\" width=\"360\" height=\"41\" fill=\"#F3F7F5\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"26\" y=\"476\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">それ以外 → 返った値と根拠</text>\n<path class=\"flow\" d=\"M376,212 H414\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-e6cad46f-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M666,212 H720\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-e6cad46f-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M722,311 H668\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-e6cad46f-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M416,311 H378\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-e6cad46f-arrow-5B6B66)\"/>\n</svg>"
+          "kind": "run",
+          "name": "判定の流れ",
+          "caption": "validate が needs を返し、作業側が新しい子のセッションで答えさせ、validate が答えをまとめて判定の記録を書く。",
+          "cwd": "リポジトリの根",
+          "command": "semantic-agent-schema validate .acdr/0199-依存の向き/acdr.json --json\n# → 作業側：needs の call ごとに、新しい子のセッション（道具なし）で答えを作る\nsemantic-agent-schema validate .acdr/0199-依存の向き/acdr.json --answers answers.json --json",
+          "output": "① {\"ok\": true, \"data\": {\"state\": {\"name\": \"waiting\"}, \"needs\": [{\"delegate\": \"reviewer\", \"rules\": [\"why-explains-decision\"], \"inputs\": [{\"at\": \"/why\", \"value\": \"cargo-deny では…\"}]}]}}\n② {\"ok\": true, \"data\": {\"results\": [{\"rule\": \"why-explains-decision\", \"result\": \"verified\", \"by\": \"ai\", \"reason\": \"/why が /decision の理由を述べている\"}], \"state\": {\"name\": \"verified\"}, \"judgments\": [\".semantic-agent-schema/judgments/…/why-explains-decision.json\"]}}",
+          "exit": 0
+        },
+        {
+          "kind": "code",
+          "name": "覆された判定",
+          "caption": "人が AI の判定を覆したあとの rule の判定の記録：最後の1件と、覆した前の判定（overrides）。",
+          "language": "json",
+          "text": "{\n \"$schema\": \"urn:semantic-agent-schema:base:judgment:v1\",\n \"kind\": \"judgment\",\n \"key\": \"0199/why-explains-decision\",\n \"rule\": \"why-explains-decision\",\n \"result\": \"violated\",\n \"judged_by\": \"human\",\n \"grounds\": \"なぜが決定ではなく手段を説明している\",\n \"overrides\": [\n  {\n   \"judged_by\": \"ai\",\n   \"result\": \"verified\",\n   \"reason\": \"/why が /decision の理由を述べている\",\n   \"model\": \"（申告された値）\"\n  }\n ]\n}",
+          "highlight": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
         },
         {
           "kind": "figure",
@@ -1599,24 +1631,35 @@
       ],
       "checks": [
         {
-          "target": "層と crate",
-          "ask": "エンジンを4つの層で組み、crate を core と adapters の2つにして、依存の向きをビルドで守ってよいか",
-          "view": "採る。部品の一覧は Q1 に任せ、ここでは置き場所だけを決める",
+          "target": "AI を起動するのはだれか",
+          "ask": "基盤は AI を起動せず、作業側が判定ごとに新しい子のセッションで答えさせる形でよいか",
+          "view": "採る。道具を全部外せることを原文で確かめられたのは Claude Code だけ",
           "basis": [
-            "ddd-advisor の回答（エンジンの層）",
-            "The Rust Programming Language"
+            "AI の CLI の原文の調査",
+            "platform-advisor の回答",
+            "Q11 の子のセッションの型"
           ],
-          "why": "crate をさらに分けたいかで変わる"
+          "why": "起動まで基盤が保証したいかで変わる"
         },
         {
-          "target": "Agents 契約の約束",
-          "ask": "基盤が値の写しを渡し、5つの値と根拠を受け取って確かめ、許可は持たない約束でよいか",
-          "view": "採る。AI ツールごとの違いはアダプターが吸収する",
+          "target": "verified の支え",
+          "ask": "根拠の検査と、変更を書いたセッションでの判定を断ることで、基盤が見えない起動の仕方を補ってよいか",
+          "view": "採る。どちらも基盤が機械で確かめられる",
           "basis": [
-            "Q1 の I14",
-            "ACDR 0197"
+            "Q1 の I14 ・ I34",
+            "反証（fork）"
           ],
-          "why": "AI に道具を持たせて自分で値を読ませたいかで変わる"
+          "why": "答えの申告だけを信じる形を許すかで変わる"
+        },
+        {
+          "target": "覆された判定を残す",
+          "ask": "意図の判定は書き足してまとめに並び全部を入れ、rule の判定は覆した前の判定を overrides に残してよいか",
+          "view": "採る。利用者が決めた「覆された判定も残す」を両方の判定に通す",
+          "basis": [
+            "利用者の決定（2026-10-26）",
+            "ddd-advisor の回答"
+          ],
+          "why": "rule の判定まで残すかで変わる"
         }
       ],
       "grounds": [
@@ -1715,6 +1758,42 @@
           "basis": "意味は、意図全体の1文と対象ごとの1文。各文に読んだ値の位置（JSON Pointer）と意図の id を付ける。AI が x-prompt.read と x-relationship で読んで作る",
           "tag": "primary",
           "source": "Q1 の答え（決着済み）"
+        },
+        {
+          "supports": "案 a（基盤が起動する）が Claude Code でしか素直に成り立たないこと",
+          "basis": "道具を全部外すこととスキーマに沿った JSON を受け取ることの両方を原文で確かめられたのは Claude Code だけ（--tools \"\" ・ --json-schema）。Codex は read-only のサンドボックスまで、Copilot ・ Kiro ・ Gemini は答えの形をスキーマで指定できない",
+          "tag": "primary",
+          "source": "AI の CLI の原文の調査（2026-10-26、38件を fact-check の quote で照合）。advisors/r96-ai-cli-facts.json"
+        },
+        {
+          "supports": "基盤は起動しないこと",
+          "basis": "案 a ・ c を採ると、AI ツールごとの道具を切るフラグを基盤が組むことになり、許可を基盤が持たない決め事（ACDR 0197）と衝突する。AI がいない場面は unverified のまま返す（グレースフルデグラデーション）",
+          "tag": "primary",
+          "source": "platform-advisor の回答（2026-10-26、sec-03 ・ sec-02 ・ rel-05）。advisors/r96-platform.json"
+        },
+        {
+          "supports": "Agents 契約を Abstract のファイルに置くこと ・ 意図の判定を別の集約にすること",
+          "basis": "公開された言葉の版は Abstract が並べて出す（形を protocol にも置くと版の軸が2本になる）。意図の判定は「変更の記録の id × I33」を根とする追記だけの集約で、効くのは最新の1件",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-26、open-host-service ・ aggregate ・ value-object）。advisors/q3-ddd.json"
+        },
+        {
+          "supports": "問いを「判定の記録をだれが作り、何を信頼の根拠にするか」へ上げること",
+          "basis": "「だれが起動するか」は手段の問い。起動する者は、判定の記録が信頼の根拠を満たすかで選ぶ",
+          "tag": "primary",
+          "source": "meta-thinking-advisor の回答（2026-10-26、means-and-ends ・ two-whys）。advisors/r96-meta.json"
+        },
+        {
+          "supports": "verified の支え②と、program で AI を包むときの by",
+          "basis": "作業した AI が同じ会話で自分の変更を判定した答えも、申告だけでは見分けられない。AI を包んだ program を外のツールとして扱うと、決定的に見えて結果が変わる（I13）",
+          "tag": "primary",
+          "source": "反証（fork、2026-10-26）"
+        },
+        {
+          "supports": "覆された判定を残すこと",
+          "basis": "Dは残す方向で進めてください",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-26）"
         }
       ],
       "rejected": [
@@ -1813,8 +1892,52 @@
         {
           "option": "コード「許可の設定（いま）」を残す",
           "reason": "ACDR 0197 で agents.json を廃止し、Core は許可の契約を持たない"
+        },
+        {
+          "option": "基盤が AI の CLI を道具なしで起動する（前の答え ・ 実装計画のステップ4）",
+          "reason": "道具を全部外してスキーマどおりの答えを受け取れるのは原文で Claude Code だけで、Claude 専用にしない決まりに反する。道具を切るフラグを基盤が組むと、許可を持たない ACDR 0197 に反する"
+        },
+        {
+          "option": "作業側が答える形と、基盤が起動する形の両方を置き、既定は基盤が起動する（ddd-advisor の推奨）",
+          "reason": "許可を持たない ACDR 0197 に反するうえ、起動と子のセッションの型は Q11 で作業側の責務と決まっていて、基盤にも置くと2か所になる"
+        },
+        {
+          "option": "答えの申告（道具なし ・ 新しいセッション）だけを信じる",
+          "reason": "作業した AI が同じ会話で自分の変更を判定しても verified になり、基盤は見分けられない"
+        },
+        {
+          "option": "rule の判定は最後の1件だけを残し、覆された判定は Git の履歴に任せる",
+          "reason": "コミットの前に人が AI の判定を覆すと、AI の判定は Git の履歴にも残らない"
         }
-      ]
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "基盤は起動せず、作業側が子のセッションで答えさせる",
+            "cost": "起動の仕方を基盤は確かめられず、根拠の検査と書いたセッションでの判定を断ることで補う"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "Copilot ・ Kiro ・ Gemini で道具を全部外せるか（原文で確かめられていない）",
+            "treatment": "out",
+            "note": "基盤は起動しないので、この答えを覆さない"
+          },
+          {
+            "item": "model.json ・ 実装計画 ・ 実装（ports/judge.rs ・ outbound/agents-contract ・ trace.json ・ architecture.json）を、この答えに合わせて直す",
+            "treatment": "later",
+            "note": "承認のあと、ステップ4 の前に直す"
+          },
+          {
+            "item": "Q4 の protocol の中身（運び方）",
+            "treatment": "later",
+            "note": "Q4 で決める。形は Abstract に置くので、この答えを覆さない"
+          }
+        ],
+        "history": [
+          "2026-10-26：4人の回答（AI の CLI の原文 ・ ddd ・ platform ・ meta）と反証（fork）を通し、前の答え（基盤が起動）から書き直した"
+        ]
+      }
     },
     {
       "id": "Q4",
@@ -3585,9 +3708,110 @@
           "why": "キャッシュの有効時間を延ばす（1時間）かは、AI ツールごとのアダプターで決める"
         }
       ]
+    },
+    {
+      "id": "Q12",
+      "name": "目的ごとの作業場所",
+      "status": "open",
+      "depends": [
+        "Q10",
+        "Q11"
+      ],
+      "question": "親のセッションが目的ごとに作業場所（ブランチとワークツリー）を分けて並行に進めるとき、だれがどこに立て、変更の記録とまとめをどう分け、いつ片付けるか",
+      "answer": {
+        "text": "作業側がブランチとワークツリーをリポジトリの隣に立て、変更の記録は書いたワークツリーとブランチを持ち、まとめはいまの作業場所の記録で作り、閉じる前にまとめてコミットしてから片付ける。",
+        "details": [
+          "目的ごとに作業場所を分けるときは、作業側がブランチとワークツリーを1つのコマンドで立てる（git worktree add -b <ブランチ> <場所>）。基盤は立てない",
+          "ワークツリーはリポジトリの隣に置き、名前はブランチから作る（../<リポジトリ>-<ブランチ>）。目的の参照は自由文なので名前に使わない。置き場所は設定で変えられる",
+          "セッションの集約はワークツリーを持たない。変更の記録が worktree ・ branch を持ち、まとめはいまのワークツリーとブランチの記録で作る",
+          "目的のセッションを閉じる前に、まとめを作ってコミットし、そのあと git worktree remove で片付ける",
+          "書いたブランチが無くなった記録は、記録したときのコミットがいまのブランチの履歴にあるときだけ拾う。消したワークツリーの名前を Git が使い直しても、別の目的の記録が混ざらない"
+        ]
+      },
+      "images": [
+        {
+          "kind": "run",
+          "name": "目的ごとの作業場所",
+          "caption": "親のセッションが目的ごとにワークツリーを立て、目的を閉じる前にまとめてコミットし、片付ける。",
+          "cwd": "リポジトリの根（../sas）",
+          "command": "git worktree add -b purpose-0199 ../sas-purpose-0199\n# 目的 0199 の子のセッションが ../sas-purpose-0199 で作業し、記録する\n(cd ../sas-purpose-0199 && semantic-agent-schema record --summary --json && git add -A && git commit -m '0199')\ngit worktree remove ../sas-purpose-0199",
+          "output": "{\"ok\": true, \"data\": {\"path\": \".semantic-agent-schema/changes/01JB….json\", \"records\": 3, \"exceptions\": 0}}",
+          "exit": 0
+        }
+      ],
+      "checks": [
+        {
+          "target": "目的ごとの作業場所",
+          "ask": "ワークツリーは作業側がリポジトリの隣に立て、セッションは持たず、閉じる前にまとめてコミットしてから片付ける、でよいか",
+          "view": "採る。リポジトリの中に置くとメインのまとめに出て、外すと git clean で消える",
+          "basis": [
+            "platform-advisor の回答と実測",
+            "ddd-advisor の回答"
+          ],
+          "why": "置き場所を基盤の設定で持つかで変わる"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "ワークツリーをリポジトリの隣に置くこと",
+          "basis": "リポジトリの中に置くと、メインのワークツリーの status に「?? .worktrees/x/」が出る。.git/info/exclude で外すと、git clean -ndxff が「Would remove .worktrees/」になる",
+          "tag": "measured",
+          "source": "platform-advisor の実測（git 2.53.0、2026-10-26）。advisors/r96-platform.json"
+        },
+        {
+          "supports": "セッションの集約がワークツリーを持たないこと",
+          "basis": "セッションの不変条件（I44〜I46）はワークツリーを使わない。一貫性に要るデータだけを集約に置く",
+          "tag": "primary",
+          "source": "ddd-advisor の回答（2026-10-26、aggregate）。advisors/q3-ddd.json"
+        },
+        {
+          "supports": "目的ごとにワークツリーを立てるシナリオ",
+          "basis": "親のセッションがあってそれが別々の目的の作業をするってなったときはそれぞれで別のワークツリーを立てる契約を決めた場所においてやるようなシナリオです",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-26）"
+        },
+        {
+          "supports": "記録したときのコミットで拾う記録を絞ること",
+          "basis": "Git は消したワークツリーの名前を使い直すので、名前だけで拾うと別の目的の記録が混ざる",
+          "tag": "primary",
+          "source": "反証（fork、2026-10-26）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "ワークツリーをリポジトリの中（.worktrees/）に置く",
+          "reason": "メインのワークツリーのまとめに記録の無い書き換えとして出る。exclude で外すと git clean で消える"
+        },
+        {
+          "option": "ワークツリーの置き場所を Q10 に置き、Git のアダプターとチームに任せる（meta-thinking-advisor）",
+          "reason": "利用者が、目的のセッションを立てる契約として Q11 で決めると決めた"
+        },
+        {
+          "option": "目的のセッションの集約にワークツリーを持たせる",
+          "reason": "セッションの不変条件がワークツリーを使わない。作業場所は変更の記録の worktree ・ branch でつながる"
+        }
+      ],
+      "verification": {
+        "out_of_scope": [
+          {
+            "item": "Git でない変更の仕組みでの作業場所",
+            "treatment": "later",
+            "note": "そのアダプターが worktree ・ branch に当たる値を返す。この答えを覆さない"
+          },
+          {
+            "item": "外の作業：semantic-agent-schema のシナリオ（ワークツリーごとのまとめ ・ stash してほかのブランチへ ・ ブランチ名の変更）と、記録したときのコミットで拾う記録を絞る実装で試す",
+            "treatment": "later",
+            "note": "承認のあと、実装に入れてシナリオで確かめる"
+          }
+        ]
+      }
     }
   ],
   "log": [
+    {
+      "date": "2026-10-25",
+      "text": "ボードを更新した（変わったところ 55か所）"
+    },
     {
       "date": "2026-10-19",
       "text": "ボードを更新した（変わったところ 16か所）"
@@ -4085,87 +4309,282 @@
       "text": "構想 v0.3 を受けて、原典の照合 ・ 4つのアドバイザー ・ 実験の結果から論点を5つ立てた"
     }
   ],
-  "opened": "2026-10-19",
+  "opened": "2026-10-25",
   "changes": [
     {
-      "topic": "Q1",
-      "part": "details",
-      "summary": "詳しい決まりを21件足して8件消した"
+      "topic": "Q0",
+      "part": "question",
+      "summary": "問いを書き直した"
     },
     {
-      "topic": "Q1",
-      "part": "images",
-      "summary": "完成イメージを6件書き直した"
-    },
-    {
-      "topic": "Q1",
-      "part": "checks",
-      "summary": "確かめてほしい箇所を1件書き直した"
-    },
-    {
-      "topic": "Q1",
-      "part": "grounds",
-      "summary": "根拠を5件足した"
-    },
-    {
-      "topic": "Q1",
-      "part": "rejected",
-      "summary": "採らなかった案を6件足した"
-    },
-    {
-      "topic": "Q6",
-      "part": "details",
-      "summary": "詳しい決まりを3件書き直した"
-    },
-    {
-      "topic": "Q6",
-      "part": "images",
-      "summary": "完成イメージを2件書き直した"
-    },
-    {
-      "topic": "Q6",
-      "part": "checks",
-      "summary": "確かめてほしい箇所を1件書き直した"
-    },
-    {
-      "topic": "Q6",
-      "part": "grounds",
-      "summary": "根拠を1件足した"
-    },
-    {
-      "topic": "Q10",
+      "topic": "Q0",
       "part": "answer",
       "summary": "答えの1文を書き直した"
     },
     {
-      "topic": "Q10",
+      "topic": "Q0",
       "part": "details",
-      "summary": "詳しい決まりを13件足して9件消した"
+      "summary": "詳しい決まりを12件足して9件消した"
     },
     {
-      "topic": "Q10",
+      "topic": "Q0",
       "part": "images",
-      "summary": "完成イメージを3件足して2件消した"
+      "summary": "完成イメージを2件足して4件消した"
     },
     {
-      "topic": "Q10",
+      "topic": "Q0",
+      "part": "rejected",
+      "summary": "採らなかった案を1件足した"
+    },
+    {
+      "topic": "Q1",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "details",
+      "summary": "詳しい決まりを42件足して35件消した"
+    },
+    {
+      "topic": "Q1",
+      "part": "images",
+      "summary": "完成イメージを14件足して12件消した"
+    },
+    {
+      "topic": "Q1",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を2件書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "grounds",
+      "summary": "根拠を15件書き直した"
+    },
+    {
+      "topic": "Q1",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "details",
+      "summary": "詳しい決まりを6件書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q2",
+      "part": "grounds",
+      "summary": "根拠を1件書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "details",
+      "summary": "詳しい決まりを25件足して26件消した"
+    },
+    {
+      "topic": "Q3",
+      "part": "images",
+      "summary": "完成イメージを6件足して8件消した"
+    },
+    {
+      "topic": "Q3",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を3件足して2件消した"
+    },
+    {
+      "topic": "Q3",
+      "part": "grounds",
+      "summary": "根拠を13件足して14件消した"
+    },
+    {
+      "topic": "Q3",
+      "part": "rejected",
+      "summary": "採らなかった案を書き直した"
+    },
+    {
+      "topic": "Q3",
+      "part": "status",
+      "summary": "回答待ちにした"
+    },
+    {
+      "topic": "Q4",
+      "part": "details",
+      "summary": "詳しい決まりを3件足した"
+    },
+    {
+      "topic": "Q5",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q5",
+      "part": "details",
+      "summary": "詳しい決まりを13件足して7件消した"
+    },
+    {
+      "topic": "Q5",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
+    },
+    {
+      "topic": "Q6",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q6",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q6",
+      "part": "details",
+      "summary": "詳しい決まりを16件書き直した"
+    },
+    {
+      "topic": "Q6",
+      "part": "images",
+      "summary": "完成イメージを3件足して4件消した"
+    },
+    {
+      "topic": "Q6",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を2件書き直した"
+    },
+    {
+      "topic": "Q6",
+      "part": "grounds",
+      "summary": "根拠を4件書き直した"
+    },
+    {
+      "topic": "Q7",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q7",
+      "part": "details",
+      "summary": "詳しい決まりを9件書き直した"
+    },
+    {
+      "topic": "Q7",
+      "part": "images",
+      "summary": "完成イメージを3件書き直した"
+    },
+    {
+      "topic": "Q7",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件書き直した"
+    },
+    {
+      "topic": "Q7",
+      "part": "grounds",
+      "summary": "根拠を1件書き直した"
+    },
+    {
+      "topic": "Q8",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q8",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q8",
+      "part": "details",
+      "summary": "詳しい決まりを10件足して7件消した"
+    },
+    {
+      "topic": "Q8",
+      "part": "images",
+      "summary": "完成イメージを4件書き直した"
+    },
+    {
+      "topic": "Q8",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を2件書き直した"
+    },
+    {
+      "topic": "Q9",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q9",
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
+    },
+    {
+      "topic": "Q9",
+      "part": "details",
+      "summary": "詳しい決まりを11件足して6件消した"
+    },
+    {
+      "topic": "Q9",
+      "part": "images",
+      "summary": "完成イメージを3件書き直した"
+    },
+    {
+      "topic": "Q9",
       "part": "checks",
       "summary": "確かめてほしい箇所を1件書き直した"
     },
     {
       "topic": "Q10",
+      "part": "question",
+      "summary": "問いを書き直した"
+    },
+    {
+      "topic": "Q10",
+      "part": "details",
+      "summary": "詳しい決まりを5件書き直した"
+    },
+    {
+      "topic": "Q10",
+      "part": "images",
+      "summary": "完成イメージを3件書き直した"
+    },
+    {
+      "topic": "Q10",
       "part": "grounds",
-      "summary": "根拠を4件足した"
+      "summary": "根拠を1件書き直した"
     },
     {
-      "topic": "Q10",
-      "part": "rejected",
-      "summary": "採らなかった案を1件足した"
+      "topic": "Q11",
+      "part": "added",
+      "summary": "論点を足した"
     },
     {
-      "topic": "Q10",
-      "part": "status",
-      "summary": "承認されて決着した"
+      "topic": "Q12",
+      "part": "added",
+      "summary": "論点を足した"
     }
   ]
 }

@@ -1,0 +1,305 @@
+{
+  "date": "2026-10-26",
+  "tools": [
+    {
+      "tool": "Claude Code",
+      "points": [
+        {
+          "point": "1",
+          "answer": "`-p`（`--print`）で対話なしに1回実行して終わる。",
+          "quote": "Print response without interactive mode",
+          "source": "code.claude.com_docs_en_cli-reference.md:118",
+          "verified": "quote 一致・identifier 一致（--print）"
+        },
+        {
+          "point": "2",
+          "answer": "`--tools \"\"` で組み込みの道具をすべて外せる。ただしこのフラグは MCP の道具に効かない。",
+          "quote": "Use `\"\"` to disable all, `\"default\"` for the default set",
+          "source": "code.claude.com_docs_en_cli-reference.md:138",
+          "verified": "quote 一致・identifier 一致（--tools）"
+        },
+        {
+          "point": "2",
+          "answer": "MCP の道具まで外すには `--disallowedTools \"*\"`（すべて）か `\"mcp__*\"` を使う。",
+          "quote": "A bare tool name removes the matching tools from Claude's context: `\"Edit\"` removes Edit, `\"*\"` removes every tool, and `\"mcp__*\"` removes every MCP tool.",
+          "source": "code.claude.com_docs_en_cli-reference.md:87",
+          "verified": "quote 一致・identifier 一致（--disallowedTools）"
+        },
+        {
+          "point": "2",
+          "answer": "`--bare` を付けないと、hooks ・ MCP ・ CLAUDE.md などを対話のときと同じように読み込む。",
+          "quote": "Without it, `claude -p` discovers and loads them as an interactive session would, including anything configured in the working directory or `~/.claude`.",
+          "source": "code.claude.com_docs_en_headless.md:37",
+          "verified": "quote 一致・identifier 一致（--bare）"
+        },
+        {
+          "point": "3",
+          "answer": "`--output-format json` と `--json-schema` で、スキーマに沿った答えを `structured_output` の欄で受け取れる。",
+          "quote": "To get output conforming to a specific schema, use `--output-format json` with `--json-schema` and a [JSON Schema](https://json-schema.org/) definition.",
+          "source": "code.claude.com_docs_en_headless.md:159",
+          "verified": "quote 一致・identifier 一致（--output-format, --json-schema, structured_output）"
+        },
+        {
+          "point": "4",
+          "answer": "前の会話を持ち込むのは `--continue` か `--resume` を付けたときである。付けなければ持ち込まない（推測：「既定で新しいセッション」とは書いていない）。",
+          "quote": "Use `--continue` to continue the most recent conversation, or `--resume` with a session ID to continue a specific conversation.",
+          "source": "code.claude.com_docs_en_headless.md:379",
+          "verified": "quote 一致・identifier 一致（--continue, --resume）"
+        },
+        {
+          "point": "4",
+          "answer": "`--no-session-persistence` で、セッションをディスクへ保存せず、あとから再開もできなくなる。",
+          "quote": "Disable session persistence so sessions are not saved to disk and cannot be resumed.",
+          "source": "code.claude.com_docs_en_cli-reference.md:111",
+          "verified": "quote 一致・identifier 一致（--no-session-persistence）"
+        },
+        {
+          "point": "5",
+          "answer": "`--model` で別名かモデルの正式名を渡せる。",
+          "quote": "Sets the model for the current session with a [model alias](/docs/en/model-config#model-aliases) such as `sonnet`, `opus`, `haiku`, or `fable`, or a model's full name.",
+          "source": "code.claude.com_docs_en_cli-reference.md:108",
+          "verified": "quote 一致・identifier 一致（--model）"
+        },
+        {
+          "point": "auth",
+          "answer": "`--bare` では利用者のログインを使わない。`ANTHROPIC_API_KEY` を環境変数で渡すので CI で動かせる。",
+          "quote": "Set `ANTHROPIC_API_KEY` before running it, because bare mode doesn't use your subscription login",
+          "source": "code.claude.com_docs_en_headless.md:43",
+          "verified": "quote 一致・identifier 一致（ANTHROPIC_API_KEY）"
+        }
+      ]
+    },
+    {
+      "tool": "Codex CLI",
+      "points": [
+        {
+          "point": "1",
+          "answer": "`codex exec`（短い形は `codex e`）で、人の操作なしに終わる実行になる。",
+          "quote": "Use `codex exec` (or the short form `codex e`) for scripted or CI-style runs that should finish without human interaction.",
+          "source": "developers.openai.com_codex_cli_reference.md:218",
+          "verified": "quote 一致"
+        },
+        {
+          "point": "2",
+          "answer": "できない（取得した範囲では、シェルとファイル読み取りの道具を外すフラグ・設定は無い）。既定は read-only のサンドボックスで、書き込みは止まる。",
+          "quote": "By default, `codex exec` runs in a read-only sandbox.",
+          "source": "developers.openai.com_codex_noninteractive.md:53",
+          "verified": "quote 一致・identifier 一致（read-only）"
+        },
+        {
+          "point": "2",
+          "answer": "`sandbox_mode` はコマンド実行時のファイルとネットワークへのアクセスを決める。",
+          "quote": "Sandbox policy for filesystem and network access during command execution.",
+          "source": "developers.openai.com_codex_config-reference.md:218",
+          "verified": "quote 一致・identifier 一致（sandbox_mode）"
+        },
+        {
+          "point": "2",
+          "answer": "Web 検索の道具は `web_search = \"disabled\"` で外せる。",
+          "quote": "or `\"disabled\"` to remove the tool.",
+          "source": "developers.openai.com_codex_config-reference.md:1687",
+          "verified": "quote 一致・identifier 一致（web_search）"
+        },
+        {
+          "point": "3",
+          "answer": "`--output-schema` で、JSON Schema に沿った最後の答えを求められる。`-o` でそれをファイルへ書ける。",
+          "quote": "use `--output-schema` to request a final response that conforms to a JSON Schema.",
+          "source": "developers.openai.com_codex_noninteractive.md:94",
+          "verified": "quote 一致・identifier 一致（--output-schema, --output-last-message）"
+        },
+        {
+          "point": "4",
+          "answer": "前の実行を続けるのは `resume` サブコマンドを使ったときである。`--ephemeral` で保存もしない。",
+          "quote": "Use `--ephemeral` when you don't want to persist session rollout files to disk",
+          "source": "developers.openai.com_codex_noninteractive.md:33",
+          "verified": "quote 一致・identifier 一致（--ephemeral, resume）"
+        },
+        {
+          "point": "4",
+          "answer": "`--ignore-user-config` で、利用者の `config.toml` を読まない実行にできる。",
+          "quote": "Use `--ignore-user-config` when you need a run that doesn't load `$CODEX_HOME/config.toml`",
+          "source": "developers.openai.com_codex_noninteractive.md:64",
+          "verified": "quote 一致・identifier 一致（--ignore-user-config）"
+        },
+        {
+          "point": "5",
+          "answer": "`--model`（`-m`）で、設定のモデルをその実行だけ上書きできる。",
+          "quote": "Override the configured model for this run.",
+          "source": "learn.chatgpt.com_docs_developer-commands_surface_cli.md:1239",
+          "verified": "quote 一致・identifier 一致（--model）"
+        },
+        {
+          "point": "auth",
+          "answer": "既定では保存した CLI の認証を使う。CI では `CODEX_API_KEY` などで認証情報を渡す。",
+          "quote": "`codex exec` reuses saved CLI authentication by default. In CI, it's common to provide credentials explicitly:",
+          "source": "developers.openai.com_codex_noninteractive.md:133",
+          "verified": "quote 一致・identifier 一致（CODEX_API_KEY）"
+        }
+      ]
+    },
+    {
+      "tool": "GitHub Copilot CLI",
+      "points": [
+        {
+          "point": "1",
+          "answer": "`-p PROMPT` で対話なしに実行し、終われば抜ける。",
+          "quote": "Execute a prompt in non-interactive mode. The CLI runs the prompt and exits when done.",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_copilot-cli-reference_cli-programmatic-reference:21",
+          "verified": "quote 一致"
+        },
+        {
+          "point": "2",
+          "answer": "`--available-tools` に挙げた道具だけを使わせられる。空の一覧で全部外せるかは書いていない。",
+          "quote": "Only these tools will be available to the model.",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_cli-command-reference:669",
+          "verified": "quote 一致・identifier 一致（--available-tools）"
+        },
+        {
+          "point": "2",
+          "answer": "組み込みの MCP サーバーは `--disable-builtin-mcps` で外せる。",
+          "quote": "Disable all built-in MCP servers (currently: `github-mcp-server`).",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_cli-command-reference:679",
+          "verified": "quote 一致・identifier 一致（--disable-builtin-mcps）"
+        },
+        {
+          "point": "3",
+          "answer": "`--output-format json` で JSONL のイベントを受け取れる。答えの形をスキーマで指定するフラグは取得した範囲に無い。",
+          "quote": "FORMAT can be `text` (default) or `json` (outputs JSONL: one JSON object per line).",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_cli-command-reference:711",
+          "verified": "quote 一致・identifier 一致（--output-format）"
+        },
+        {
+          "point": "4",
+          "answer": "`-p` は新しいセッションで動き、続けるときだけ `--resume` を使う。",
+          "quote": "for one new non-interactive session (`-p` or piped standard input)",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_cli-command-reference:723",
+          "verified": "quote 一致・identifier 一致（--resume, --trust-folder）"
+        },
+        {
+          "point": "5",
+          "answer": "`--model` でモデルを選べる。",
+          "quote": "Choose the AI model (for example, `gpt-6-astra` or `claude-haiku-4.5`).",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_copilot-cli-reference_cli-programmatic-reference:37",
+          "verified": "quote 一致・identifier 一致（--model）"
+        },
+        {
+          "point": "auth",
+          "answer": "`COPILOT_GITHUB_TOKEN` などのトークンを環境変数で渡せるので、CI で動かせる。",
+          "quote": "Authentication token (highest precedence)",
+          "source": "docs.github.com_api_article_body_pathname_en_copilot_reference_copilot-cli-reference_cli-programmatic-reference:138",
+          "verified": "quote 一致・identifier 一致（COPILOT_GITHUB_TOKEN, GH_TOKEN）"
+        }
+      ]
+    },
+    {
+      "tool": "Kiro CLI",
+      "points": [
+        {
+          "point": "1",
+          "answer": "`kiro-cli chat --no-interactive` で対話なしに実行する。",
+          "quote": "Pass `--no-interactive` with your initial instruction.",
+          "source": "kiro.dev_docs_cli_headless.md:23",
+          "verified": "quote 一致・identifier 一致（--no-interactive）"
+        },
+        {
+          "point": "2",
+          "answer": "カスタムエージェントの `tools` で使える道具を列挙する。空の配列で全部外せるかは書いていない（推測）。",
+          "quote": "The `tools` field lists all tools that the agent can potentially use.",
+          "source": "kiro.dev_docs_custom-agents_configuration-reference.md:216",
+          "verified": "quote 一致・identifier 一致（tools）"
+        },
+        {
+          "point": "2",
+          "answer": "V3 の非対話の実行は、knowledge と code intelligence の道具を既定で有効にする。設定で外す。",
+          "quote": "V3 non-interactive runs enable knowledge and code intelligence by default.",
+          "source": "kiro.dev_docs_cli_headless.md:59",
+          "verified": "quote 一致・identifier 一致（chat.enableKnowledge）"
+        },
+        {
+          "point": "3",
+          "answer": "`--output-format stream-json` で、実行のイベントを JSON Lines で受け取れる。スキーマで答えの形を指定するフラグは取得した範囲に無い。",
+          "quote": "Pass `--output-format stream-json` to receive run events as [JSON Lines](https://jsonlines.org/) on stdout.",
+          "source": "kiro.dev_docs_cli_headless.md:150",
+          "verified": "quote 一致・identifier 一致（--output-format）"
+        },
+        {
+          "point": "4",
+          "answer": "セッションは毎ターン自動で保存される。前の会話を続けるのは `--resume` ・ `--resume-id` を付けたときである（推測：既定で新しいセッションとは明記していない）。",
+          "quote": "Kiro CLI automatically saves all chat sessions on every conversation turn.",
+          "source": "kiro.dev_docs_cli_chat_session-management.md:9",
+          "verified": "quote 一致・identifier 一致（--resume, --resume-id）"
+        },
+        {
+          "point": "5",
+          "answer": "`--model <id>` で実行のモデルを固定できる。",
+          "quote": "Pass `--model <id>` to pin the model for a run.",
+          "source": "kiro.dev_docs_cli_headless.md:142",
+          "verified": "quote 一致・identifier 一致（--model）"
+        },
+        {
+          "point": "auth",
+          "answer": "非対話の実行には `KIRO_API_KEY` の環境変数が要るので、CI で動かせる。",
+          "quote": "Headless mode requires an API key set as the `KIRO_API_KEY` environment variable.",
+          "source": "kiro.dev_docs_cli_headless.md:13",
+          "verified": "quote 一致・identifier 一致（KIRO_API_KEY）"
+        },
+        {
+          "point": "auth",
+          "answer": "API キーの認証は Pro ・ Pro+ ・ Pro Max ・ Power の契約者だけが使える。",
+          "quote": "API key authentication is only available for Kiro Pro, Pro+, Pro Max, and Power subscribers.",
+          "source": "kiro.dev_docs_cli_headless.md:15",
+          "verified": "quote 一致"
+        }
+      ]
+    },
+    {
+      "tool": "Gemini CLI",
+      "points": [
+        {
+          "point": "1",
+          "answer": "`-p`（`--prompt`）で非対話になる。",
+          "quote": "Prompt text. Appended to stdin input if provided. Forces non-interactive mode.",
+          "source": "raw.githubusercontent.com_google-gemini_gemini-cli_cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005_docs_cli_cli-reference.md:52",
+          "verified": "quote 一致・identifier 一致（--prompt）"
+        },
+        {
+          "point": "2",
+          "answer": "取得した範囲には、道具をすべて外す設定は無い。道具の許可は Policy Engine と `--approval-mode` が持つ（Policy Engine の頁は未取得）。",
+          "quote": "Approval mode for tool execution. Choices: `default`, `auto_edit`, `yolo`, `plan`",
+          "source": "raw.githubusercontent.com_google-gemini_gemini-cli_cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005_docs_cli_cli-reference.md:57",
+          "verified": "quote 一致・identifier 一致（--approval-mode）"
+        },
+        {
+          "point": "3",
+          "answer": "`--output-format json` で、答えを `response` の文字列に入れた JSON を1つ受け取れる。スキーマで答えの形を指定するフラグは取得した範囲に無い。",
+          "quote": "Returns a single JSON object containing the response and usage statistics.",
+          "source": "raw.githubusercontent.com_google-gemini_gemini-cli_cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005_docs_cli_headless.md:17",
+          "verified": "quote 一致・identifier 一致（--output-format, response）"
+        },
+        {
+          "point": "4",
+          "answer": "履歴は自動で記録され、`--resume` を付けたときに前のセッションを続ける。",
+          "quote": "Resume a previous session. Use `\"latest\"` for most recent or index number",
+          "source": "raw.githubusercontent.com_google-gemini_gemini-cli_cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005_docs_cli_cli-reference.md:65",
+          "verified": "quote 一致・identifier 一致（--resume）"
+        },
+        {
+          "point": "5",
+          "answer": "`--model`（`-m`）でモデルを指定できる。",
+          "quote": "Model to use. See [Model Selection](#model-selection) for available values.",
+          "source": "raw.githubusercontent.com_google-gemini_gemini-cli_cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005_docs_cli_cli-reference.md:51",
+          "verified": "quote 一致・identifier 一致（--model）"
+        }
+      ]
+    }
+  ],
+  "unreadable": [
+    "Gemini CLI の Policy Engine の頁（docs/reference/policy-engine.md）：未取得。道具をすべて外せるかは未確認",
+    "Gemini CLI の認証（GEMINI_API_KEY など）：取得した頁に記述が無く未確認",
+    "Codex CLI のフラグ表：cli_reference.md では表が ConfigTable の部品で本文に無いため、learn.chatgpt.com/docs/developer-commands?surface=cli の HTML を取り直して照合した",
+    "Codex CLI でシェル・ファイル読み取りの道具そのものを外す設定：config-reference に見当たらない（読めた範囲には無い）",
+    "Copilot CLI ・ Kiro CLI で、道具の一覧を空にして全部外せるか：原文に明記なし（推測でしか言えない）",
+    "Copilot CLI ・ Kiro CLI ・ Gemini CLI で、スキーマを渡して答えの形を指定するフラグ：読めた範囲には無い"
+  ],
+  "summary": "非対話の1回実行 ・ モデルの指定 ・ API キーやトークンによる CI での認証は、5つのツールすべてで原文に書いてある。道具をすべて外し、かつスキーマに沿った JSON を受け取る、の両方が原文で言えるのは Claude Code（`--tools \"\"` ・ `--disallowedTools \"*\"` ・ `--json-schema`）だけで、Codex はスキーマ（`--output-schema`）は取れるがシェルとファイル読み取りを外す設定が無く read-only のサンドボックス止まりである。Copilot ・ Kiro ・ Gemini はイベントや包みの JSON までで答えの形をスキーマで縛れず、道具を全部外せるかも未確認のため、案 a は「Claude Code では成り立つ、Codex は条件付き、ほかは基盤の側で答えを検証し直す前提でしか成り立たない」範囲になる。"
+}

@@ -1,0 +1,407 @@
+{
+ "kind": "judgment",
+ "question": "Semantic Agent Schema の基盤が AI の CLI を自分で起動するか（案 a：基盤が AI の CLI を道具なしで起動する ・ 案 b：基盤は起動せず、作業中の AI が答えを渡す ・ 案 c：b を既定にし、判定する AI がいない場面だけ基盤が起動する）を、最小権限 ・ 失敗の扱い ・ 再現性 ・ コスト ・ 運用で比べると、どれを採るべきか。a か c を採るなら、基盤が守る非機能の約束は何か。あわせて、目的ごとに立てるワークツリーを、リポジトリの中 ・ リポジトリの隣 ・ 利用者の状態のフォルダのどこに置くべきか。",
+ "premises": [
+  {
+   "name": "対象の規模と社会的影響",
+   "value": "1人で使う開発の基盤で、手元のマシンで動く。モデルシステムは「社会的影響が殆ど無いシステム」に近いと仮定する。ただし基盤は Claude 専用にせず、ほかの利用者の手元と CI でも動く前提を残す（前の回答 advisors/platform.json ・ platform-adapters.json と同じ仮定）",
+   "source": "CLAUDE.md（1人作業）・ brief の制約（Claude 専用にしない）"
+  },
+  {
+   "name": "決まっている制約（brief）",
+   "value": "CI は AI に聞き直さない（I17：状態はコミットした判定の記録だけから導く）。判定させる AI は判定ごとに新しいセッションで呼ぶ。AI には読む欄 ・ term ・ 参照先の値の写しだけを渡し、道具を持たせない（I14 ・ I29）。許可は各 AI ツールの設定ファイルが持ち、基盤は持たない（ACDR 0197）。基盤は Claude 専用にしない",
+   "source": "scratchpad/q3/brief.md"
+  },
+  {
+   "name": "原本どうしの食い違い",
+   "value": "model.json の ports.outbound は「rule の判定を依頼する（AI）」を「Claude Code ・ Codex などの CLI」で持つ。一方で同じ model.json の入口は semantic-* を「処理はせず、AI を起動しない」とし、Q11 は「AI ツールを起動するのは外（人 ・ harness）」とする",
+   "source": ".brainstorming/semantic-contract-core/measured/core/model/model.json ・ Q11"
+  },
+  {
+   "name": "基盤はすでに外のプロセスを起動する約束を持つ",
+   "value": "model.json の extension_contract.external_tool：「起動はシェルを通さず、引数の配列と作業のディレクトリを決めて渡す。秘密情報を渡さない」「出力の形 ・ 終了コードと5つの値の対応 ・ 時間切れ ・ 出力の大きさの上限を作法に書く」「Concrete はリポジトリでレビューされるので、別の許可の一覧を持たない（Makefile と同じくリポジトリを信頼する）」。x-delegates の run に argv があれば CLI のプロセスとして動かす",
+   "source": "model.json（extension_contract.external_tool ・ 任せる先の用語）"
+  },
+  {
+   "name": "AI の CLI の事実：道具と設定の読み込み",
+   "value": "Claude Code：「Without `--bare`, a `-p` session runs the hooks in a project's `.claude/settings.json` and connects the servers in its `.mcp.json`, even in a folder you've never trusted.」「In bare mode Claude has access to the Bash, file read, and file edit tools.」（sources/code.claude.com_docs_en_headless.md）。`--tools` は「Use `\"\"` to disable all」（sources/code.claude.com_docs_en_cli-reference.md）。Codex：「By default, `codex exec` runs in a read-only sandbox.」（sources/developers.openai.com_codex_noninteractive.md）。Kiro：「V3 non-interactive runs enable knowledge and code intelligence by default.」「when no interactive client is available, every `ask` is treated as a deny」（sources/kiro.dev_docs_cli_headless.md ・ sources/kiro.dev_docs_permissions.md）。道具を切るフラグの名前と既定は AI ツールごとに違う",
+   "source": "sources/code.claude.com_docs_en_headless.md ・ sources/developers.openai.com_codex_noninteractive.md ・ sources/kiro.dev_docs_cli_headless.md ・ sources/kiro.dev_docs_permissions.md"
+  },
+  {
+   "name": "AI の CLI の事実：認証",
+   "value": "Claude Code：「Set `ANTHROPIC_API_KEY` before running it, because bare mode doesn't use your subscription login」「In bare mode, Claude Code never reads OAuth credentials or the system keychain.」。Codex：「`codex exec` reuses saved CLI authentication by default.」「set `CODEX_API_KEY` only for the Codex invocation that needs it」。Kiro：「Headless mode requires an API key set as the `KIRO_API_KEY` environment variable.」「API key authentication is only available for Kiro Pro, Pro+, Pro Max, and Power subscribers.」。基盤が起動すると、どの資格情報で動くかが AI ツールとフラグの組で変わる",
+   "source": "sources/code.claude.com_docs_en_headless.md ・ sources/developers.openai.com_codex_noninteractive.md ・ sources/kiro.dev_docs_cli_headless.md"
+  },
+  {
+   "name": "AI の CLI の事実：停止と時間切れ",
+   "value": "Claude Code：「If you stop a `claude -p` run with SIGTERM, for example with `kill` or from a process supervisor, Claude Code exits with code 143.」「On SIGTERM, Claude Code terminates the process tree of any Bash command that is still running.」。Kiro：「The default timeout is six hours.」（ワークフローの待ち）、`--agent` が無いと「the run exits with code 4」。時間切れの既定と終了コードの意味は AI ツールごとに違う",
+   "source": "sources/code.claude.com_docs_en_headless.md ・ sources/kiro.dev_docs_cli_headless.md"
+  },
+  {
+   "name": "ワークツリーの実測（git 2.53.0、使い捨てのリポジトリ）",
+   "value": "`git worktree add -b x .worktrees/x` のあと、メインのワークツリーで `git status --porcelain --untracked-files=all` は「?? .worktrees/x/」を返した。`.git/info/exclude` に `.worktrees/` を足すと何も返さなくなった。そのうえで `git clean -ndx` は「Would skip repository .worktrees/x」、`git clean -ndxff` は「Would remove .worktrees/」を返した。基盤の変更のまとめは Git のアダプターが `--untracked-files=all` で書き換えを集める（crates/outbound/git/src/changes.rs）",
+   "source": "scratchpad/wt での実測 ・ semantic-agent-schema/crates/outbound/git/src/changes.rs"
+  },
+  {
+   "name": "手元の DB の置き場所（実装）",
+   "value": "手元の DB は、Git のすべての worktree が共有する git common dir の下（semantic-agent-schema/local.db）に置き、Git の外なら $XDG_STATE_HOME（無ければ ~/.local/state）の下に置く。変更の記録は worktree と branch の列を持ち、まとめはいまのワークツリーの記録で作る。ワークツリーをどこに置いても DB は1つで共有される",
+   "source": "semantic-agent-schema/crates/inbound/cli/src/compose.rs（db_path）・ crates/outbound/sqlite/src/change_store.rs"
+  },
+  {
+   "name": "判断基準の範囲外",
+   "value": "XDG Base Directory の仕様が $XDG_STATE_HOME に何を置くとしているか、git worktree の公式文書の推奨、AI のモデルの出力がどれだけ決定的かは、判断基準にも水準にも無く、原典も取得していない。ここでは判定の根拠にせず、実測と sources/ の原文だけを事実として使う。基盤の validate . がワークツリーの中まで歩くか（.git/info/exclude を見るか）は確かめていない（未判定）",
+   "source": "判断基準の範囲外"
+  }
+ ],
+ "conclusion": {
+  "stance": "adopt",
+  "headline": "案 b（基盤は AI の CLI を起動せず、validate は needs を返し、作業中の AI の答えを受け取って5つの値にまとめる）を採り、AI がいない場面は unverified のまま返し、ワークツリーはリポジトリの隣（../<repo>-<目的>）に置く。",
+  "because": "判断基準は、マシンにも必要な許可だけを与えること、一時的な認証情報を使うこと、タイムアウトと再試行を自分で決めて確かめること、依存関係が使えないときにコア機能を続けること（グレースフルデグラデーション）を求める。案 a ・ c は、AI ツールごとに違う道具の切り方 ・ 認証 ・ 停止の仕方を基盤が持つことになり ACDR 0197（許可は基盤が持たない）と食い違うが、案 b は AI をソフトな依存にして、その全部を基盤の外に置ける。"
+ },
+ "figure": {
+  "caption": "案 b の受け渡し。基盤は needs を返すだけで AI を起動しない。作業中の AI（harness）が判定ごとに新しいセッションで判定役を呼び、答えを validate に渡す。CI は記録だけを読む。案 c を後で足すときは、AI 専用のポートではなく、既にある外のツールの起動（argv の任せる先）に載せる（破線）。",
+  "nodes": [
+   {
+    "id": "base",
+    "label": "基盤（validate）",
+    "role": "境界"
+   },
+   {
+    "id": "needs",
+    "label": "needs（呼び出し call の並び）",
+    "role": "出力"
+   },
+   {
+    "id": "harness",
+    "label": "作業中の AI と harness（認証 ・ 許可を持つ）",
+    "role": "外"
+   },
+   {
+    "id": "judge",
+    "label": "判定役（判定ごとに新しいセッション ・ 道具なし）",
+    "role": "外"
+   },
+   {
+    "id": "answer",
+    "label": "答え（5つの値と根拠）",
+    "role": "入力"
+   },
+   {
+    "id": "record",
+    "label": "判定の記録（コミットするファイル）",
+    "role": "データ"
+   },
+   {
+    "id": "ci",
+    "label": "CI（AI に聞き直さない）",
+    "role": "外"
+   },
+   {
+    "id": "argv",
+    "label": "外のツールの起動（argv ・ 時間切れ ・ 上限）",
+    "role": "部品（後で決める）"
+   }
+  ],
+  "edges": [
+   {
+    "from": "base",
+    "to": "needs",
+    "label": "返す"
+   },
+   {
+    "from": "needs",
+    "to": "harness",
+    "label": "読む"
+   },
+   {
+    "from": "harness",
+    "to": "judge",
+    "label": "起動する（fork ・ subagent ・ CLI）"
+   },
+   {
+    "from": "judge",
+    "to": "answer",
+    "label": "返す"
+   },
+   {
+    "from": "answer",
+    "to": "base",
+    "label": "渡す（形と根拠を検査）"
+   },
+   {
+    "from": "base",
+    "to": "record",
+    "label": "書く"
+   },
+   {
+    "from": "ci",
+    "to": "record",
+    "label": "読むだけ"
+   },
+   {
+    "from": "base",
+    "to": "argv",
+    "label": "AI がいない場面だけ（案 c）",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "Q1 案 a：基盤が AI の CLI を道具なしで起動する（outbound のアダプター ai-cli）",
+   "effect": "最小権限：道具を切るフラグ（Claude の --tools \"\" と --bare、Codex の sandbox、Kiro の --trust-tools と knowledge の設定）を基盤が AI ツールごとに組むことになり、許可を基盤が持つ形になる（ACDR 0197 と衝突）。--bare を付け忘れると、Claude はリポジトリの hooks と .mcp.json を信頼の確認なしに動かす。失敗の扱い：時間切れ ・ 子孫の停止 ・ 出力の上限 ・ 終了コードの読み替えを基盤が AI ツールごとに持つ。再現性：CI に CLI と鍵があれば聞き直す道が開くので、禁止を別に作る必要がある。コスト：判定ごとに新しいプロセスでコールドスタート。運用：Claude の bare は API キーが要り、Codex は保存したログインを使い、Kiro は有料の API キーだけで、動くかどうかが利用者の手元の認証で変わる。採らない",
+   "chosen": false
+  },
+  {
+   "option": "Q1 案 b：基盤は AI を起動せず、needs を返し、作業中の AI の答えを受け取る",
+   "effect": "最小権限：基盤は子プロセスも資格情報も持たず、AI の許可は AI ツールの設定と harness が持つ（ACDR 0197 ・ Q11 と一致）。失敗の扱い：基盤に時間切れも子孫の停止も要らない。答えが来なければ AI の rule は unverified のままで、機械の rule は検証される（AI がソフトな依存になる）。再現性：AI の答えは判定の記録としてコミットされ、CI は記録だけを読む（I17）。コスト：判定した値が記録と同じなら needs に出さないことで聞き直しを省ける。新しいセッションで呼ぶ役目は harness（fork ・ subagent）が持つ。代わりに、答えが渡した値の写しだけから出たことを基盤は確かめられないので、根拠が渡した値にあるかの検査（I14）が唯一の防壁になる。採る",
+   "chosen": true
+  },
+  {
+   "option": "Q1 案 c：b を既定にし、判定する AI がいない場面だけ基盤が AI の CLI を起動する",
+   "effect": "a の非機能の負担（AI ツールごとの道具の切り方 ・ 認証 ・ 停止 ・ 時間切れ）をそのまま持ち、使われる場面がまれなので試験されにくい経路になる（障害のときだけ通る経路を増やす）。人が CLI から validate する場面は、b でも needs を自分の AI ツールに渡せば済む。いまは採らない。要る場面が出たら、AI 専用のアダプターではなく、既にある外のツールの起動（Concrete が argv で書く任せる先）に載せ、下の約束を守ることを条件に後で決める",
+   "chosen": false
+  },
+  {
+   "option": "Q3 ワークツリーをリポジトリの中（.worktrees/<目的>、.git/info/exclude で外す）",
+   "effect": "外さないと、メインのワークツリーの git status に「?? .worktrees/x/」が出て、変更のまとめに記録の無い書き換えとして入る。exclude で外すと消えるが、外したことはそのクローンの手元だけで、ほかの手元では毎回足す必要がある。git clean -dxff はワークツリーごと消す（実測）。リポジトリの根から歩く道具（基盤の validate . ・ AI ツールの検索 ・ ビルド）が別のワークツリーの中を二重に読む恐れが残る（未判定）。採らない",
+   "chosen": false
+  },
+  {
+   "option": "Q3 ワークツリーをリポジトリの隣（../<repo>-<目的>）",
+   "effect": "メインのワークツリーの status にも、根から歩く道具にも出ない。exclude の設定が要らない。目的のセッションはそのフォルダを作業のディレクトリにして起動するので、AI ツールのプロジェクトの設定（.claude/settings.json など追跡されているもの）はそのまま効く。手元だけの設定（settings.local.json など）は付いて来ない。親のセッションから中を触るには追加のディレクトリの指定が要る。名前は <repo>-<目的> で、同じ親フォルダのほかのリポジトリと衝突しないようにする。git worktree list で一覧でき、目的が終わったら git worktree remove で片付ける。採る",
+   "chosen": true
+  },
+  {
+   "option": "Q3 ワークツリーを利用者の状態のフォルダ（$XDG_STATE_HOME/semantic-agent-schema/<repo>/<目的>）",
+   "effect": "リポジトリにも隣にも出ず、事故は起きにくい。代わりに、コミット前の作業という利用者の成果物が、利用者が開かない隠れたフォルダに置かれ、エディタで開く ・ 片付けるのを忘れやすい（終わった目的のワークツリーが残り続ける）。$XDG_STATE_HOME に何を置くべきかは判断基準の範囲外で、ここでは使い勝手の面だけで判定した。採らない",
+   "chosen": false
+  }
+ ],
+ "path": [
+  {
+   "ask": "AI に何を許すかを、誰が持つことになるか（最小権限）",
+   "answer": "案 a ・ c では、道具を持たせないためのフラグを基盤が AI ツールごとに組む。Claude は --bare でも Bash と読み書きの道具を持ち、--tools \"\" で初めて0になる。Kiro の非対話は knowledge と code intelligence を既定で有効にする。これらを基盤が知ると許可を基盤が持つことになり、ACDR 0197 と衝突する。案 b では許可は AI ツールの設定と harness に残る"
+  },
+  {
+   "ask": "認証が利用者の手元のログインに依存するか（運用 ・ セキュリティ）",
+   "answer": "依存する。Claude の bare は API キーを要り、bare でなければ購読のログインで動くがリポジトリの hooks も動く。Codex は保存したログインを使う。Kiro は有料の API キーだけ。案 a ・ c は、基盤のどの起動がどの資格情報で動くかを利用者ごとに変え、鍵を子プロセスの環境に渡す。案 b では、作業中の AI がすでに認証済みで、基盤は資格情報に触れない"
+  },
+  {
+   "ask": "時間切れと子プロセスの停止を誰が持つか（信頼性）",
+   "answer": "案 a ・ c では基盤が持つ。時間切れの既定は AI ツールで違い（Kiro のワークフロー待ちは6時間）、既定に頼らず自分で決める必要がある。SIGTERM の扱いと終了コードも違う。案 b では基盤は子プロセスを持たず、答えが来なければ unverified で返す（ハードな依存をソフトな依存にする形）"
+  },
+  {
+   "ask": "同じ入力から同じ結果になり、CI で AI に聞き直さないか（再現性）",
+   "answer": "AI の答えはどの案でも決定的ではないので、再現性は判定の記録をコミットして読むことでしか得られない。案 b は CI で AI を起動する道がそもそも無い。案 a ・ c は CI に CLI と鍵があると起動しうるので、CI で起動しない約束を別に足す必要がある"
+  },
+  {
+   "ask": "コストをどう抑えるか（キャッシュ）",
+   "answer": "どの案でも、判定した値（judged_values）がいまの値と同じ記録があれば聞き直さないことが一番効く。これは記録をキャッシュとして使う形で、案に依らない。案 a は判定ごとのコールドスタートを払う。案 b は harness の fork ・ subagent を使え、親の文脈を引き継がない新しいセッションでも呼べる"
+  },
+  {
+   "ask": "以上から Q1 はどれか",
+   "answer": "案 b を採る。案 c は、AI がいない場面で unverified では足りないという具体の場面が出てから、外のツールの起動（argv の任せる先）に載せる形で決める。そのときの約束は「設計の手順」に列挙した"
+  },
+  {
+   "ask": "ワークツリーをリポジトリの中に置くと何が起きるか（Q3 の事故）",
+   "answer": "実測で、外さないと status に出て変更のまとめに入り、外すと git clean -dxff で消える。外す設定はクローンごとの手元にしか無く、別の手元で忘れやすい。根から歩く道具が別のワークツリーを読む恐れも残る"
+  },
+  {
+   "ask": "隣と状態のフォルダのどちらがよいか",
+   "answer": "どちらもリポジトリの外で、変更のまとめと git clean の事故は起きない。違いは見つけやすさと片付けやすさで、隣は利用者がふだん開く場所にあり、git worktree list と remove で一覧と片付けができる。状態のフォルダは成果物を隠れた場所に置くので、片付け忘れが起きやすい。隣を採る"
+  }
+ ],
+ "steps": [
+  {
+   "do": "（案 a ・ c を採るときの約束1）起動は外のツールの作法に載せ、シェルを通さず argv で起動する",
+   "detail": "AI 専用のアダプターを作らず、Concrete の x-delegates の run の argv で起動する。AI ツールごとのフラグは基盤ではなく、レビューされる Concrete が書く（model.json の external_tool と同じ扱い）"
+  },
+  {
+   "do": "（約束2）作業のディレクトリをリポジトリの外の空の一時ディレクトリにする",
+   "detail": "Claude は --bare でなければ作業のディレクトリの .claude/settings.json の hooks と .mcp.json を信頼の確認なしに動かす。読む値の写しは基盤が渡すので、リポジトリを作業のディレクトリにする理由が無い"
+  },
+  {
+   "do": "（約束3）道具が0であることを起動のあとに確かめ、0でなければ error で止める",
+   "detail": "Claude は stream-json の最初の system/init が tools と MCP servers を返す。道具が残っていたら判定を使わず error にする（fail-closed）。確かめられない AI ツールは unsupported にする"
+  },
+  {
+   "do": "（約束4）環境変数は許したものだけを渡し、資格情報はその起動だけに渡す",
+   "detail": "子プロセスの環境を空にしてから、AI ツールが認証に要る変数だけを足す。Codex の原文は「set `CODEX_API_KEY` only for the Codex invocation that needs it」とする。資格情報を判定の記録やログに書かない"
+  },
+  {
+   "do": "（約束5）時間切れを基盤の側で明示し、切れたら error にする",
+   "detail": "AI ツールの既定（Kiro は6時間）に頼らない。時間切れの長さは作法に書き、判定の記録に残す。時間切れは verified にも violated にもせず error で返す"
+  },
+  {
+   "do": "（約束6）子孫まで止める",
+   "detail": "新しいプロセスグループ（Windows では Job Object）で起動し、時間切れや中断ではグループ全体に SIGTERM、猶予のあと SIGKILL を送る。AI ツール自身が子を止めること（Claude の SIGTERM の扱い）に頼らない"
+  },
+  {
+   "do": "（約束7）出力の大きさに上限を置き、超えたら読むのをやめて error にする",
+   "detail": "stdout と stderr を上限まで読み、超えたら止める。答えは出力のスキーマで検査し（Claude の --json-schema、Codex の --output-schema が使えれば併用）、形を満たさなければ error、根拠が渡した値に無ければ unverified（I14）"
+  },
+  {
+   "do": "（約束8）自動で再試行しない",
+   "detail": "rate_limit ・ overloaded ・ 時間切れでも基盤は聞き直さず error で返し、聞き直すかは人か親のセッションが決める。聞き直すと費用が増え、割れた答え（unverified）を隠す"
+  },
+  {
+   "do": "（約束9）セッションを残さず、判定ごとに新しいプロセスで呼ぶ",
+   "detail": "Claude は --no-session-persistence、Codex は --ephemeral のように、再開できるセッションを残さない。前の判定の会話が結果に効かないようにする（Q11 の規則）"
+  },
+  {
+   "do": "（約束10）CI では起動しない",
+   "detail": "CI では AI の起動を既定で禁じ、状態はコミットした判定の記録だけから導く（I17）。CLI と鍵が CI にあっても起動しない"
+  },
+  {
+   "do": "（約束11）同じ判定した値の記録があれば起動しない",
+   "detail": "judged_values がいまの値と等しい記録があれば、その結果を使う（記録をキャッシュとして使う）。起動するときは任せる先 ・ モデル ・ CLI の名前と版 ・ かかった費用（Claude の json の total_cost_usd などが取れれば）を記録に残す"
+  },
+  {
+   "do": "（約束12）同時に起動する数に上限を置く",
+   "detail": "rule の数だけ並べて起動しない。上限を超えた分は待たせるか unverified で返し、AI ツールのレート制限に当たって全部が失敗するのを避ける"
+  }
+ ],
+ "examples": [
+  "案 b で人が CLI から validate したとき：機械の rule は verified か violated、AI の rule は needs として並び unverified。人は needs を自分の AI ツールに渡して答えを得てから、もう一度 validate に答えを渡す",
+  "ワークツリーの置き方：/home/u/workspace/daidaiiro をメインにし、目的 q3 のワークツリーを /home/u/workspace/daidaiiro-q3（ブランチ q3）に作る。目的のセッションは daidaiiro-q3 を作業のディレクトリにして起動し、マージしたら git worktree remove ../daidaiiro-q3 で片付ける"
+ ],
+ "grounds": [
+  {
+   "criterion": "sec-03",
+   "quote": "ベストプラクティス：「最小特権のアクセスを付与します」 ・ 何をするか：決まった条件で決まったリソースに決まったアクションをするのに必要な許可だけを与える。許可は個々の人ではなくグループと ID の属性で、規模に合わせて動的に決める。原典の例：デベロッパーのグループにプロジェクトのリソースだけの管理を許すと、プロジェクトを抜けた人のアクセスは、ポリシーを直さなくても自動で消える ・ 期待される成果：職務に必要な最低限の許可だけがユーザーにある。デベロッパーと本番環境はアカウントで分け、本番での作業が必要なときはその期間だけ、管理された限定的な許可を与えて、終われば取り消す。許可を定期的に見直し、役割の変更や離職で不要になればすぐ取り消す。管理者の権限は、信頼できる少人数に限る。マシンやシステムのアカウントにも、意図したタスクに必要な最小限だけを与える"
+  },
+  {
+   "criterion": "sec-02",
+   "quote": "ベストプラクティス：「一時的な認証情報を使用する」 ・ 何をするか：認証では、長期的な認証情報より一時的な認証情報を使い、誤って開示 ・ 共有 ・ 盗まれるリスクを減らすか無くす ・ 期待される成果：人的 ID と機械の ID の両方に、できる限り一時的な認証情報を使う。長期の認証情報には、公開リポジトリに上げてしまう漏えいなど多くのリスクがあり、一時的なものにすると侵害のリスクが大きく下がる"
+  },
+  {
+   "criterion": "sec-02",
+   "quote": "ベストプラクティス：「シークレットを安全に保存して使用する」 ・ 何をするか：ワークロードがデータベース ・ リソース ・ サードパーティーのサービスに自分を証明するのに使うシークレット（OAuth トークン、パスワード、API アクセスキーなど）を、保存 ・ 管理 ・ ローテーション専用のサービスで扱い、侵害の見込みを下げる"
+  },
+  {
+   "criterion": "rel-05",
+   "quote": "ベストプラクティス：「該当するハードな依存関係をソフトな依存関係に変換するため、グレースフルデグラデーションを実装する」 ・ 何をするか：依存関係が使えなくなっても、アプリケーションコンポーネントがコア機能を果たし続けるようにする。そのとき返すのは、少し古いデータ、代わりのデータ、またはデータ無しでもよい。局所的な障害がシステム全体の機能へ響くのを最小にしつつ、中心のビジネス価値を出し続ける"
+  },
+  {
+   "criterion": "rel-05",
+   "quote": "ベストプラクティス：「クライアントタイムアウトを設定する」 ・ 何をするか：接続とリクエストのタイムアウトをきちんと決め、筋道立てて確かめる。最初から入っている値を当てにしない。その値は、ワークロードの事情を何も知らずに決められているからである"
+  },
+  {
+   "criterion": "rel-05",
+   "quote": "ベストプラクティス：「再試行呼び出しを制御および制限する」 ・ 何をするか：エクスポネンシャルバックオフで再試行の間隔をだんだん延ばし、ジッターで間隔をばらし、再試行の回数に上限を設ける"
+  },
+  {
+   "criterion": "rel-05",
+   "quote": "ベストプラクティス：「フェイルファストとキューの制限」 ・ 何をするか：リクエストに正しく応えられないときは、すぐに失敗させる。リクエストに結び付いたリソースが手放され、リソースが足りないときにサービスが立ち直れる。フェイルファストは確立したソフトウェア設計パターンである。キューイングも確立したエンタープライズ統合パターンである。負荷を平らにし、非同期でかまわない処理ならクライアントにリソースを手放させる。普段は正しく応えるのにリクエストが速く来すぎると失敗するサービスでは、キューにリクエストをためておく。ただしキューに長いバックログをためない。クライアントがもう待っていない古いリクエストを処理することになりうるからである"
+  },
+  {
+   "criterion": "rel-04",
+   "quote": "ベストプラクティス：「変更操作をべき等にする」 ・ 何をするか：べき等なサービスは、各リクエストを1回だけ処理すると約束する。同じリクエストが何度届いても、効き目は1回分だけである。間違って二重三重に処理されるおそれが無いので、クライアントは気軽に再試行できる"
+  },
+  {
+   "criterion": "perf-03",
+   "quote": "ベストプラクティス：「キャッシュを利用するデータアクセスパターンを実装する」 ・ 目指す姿：よく使うデータを速く取り出せるよう、データをキャッシュするアクセスパターンを入れる"
+  },
+  {
+   "criterion": "rel-10",
+   "quote": "ベストプラクティス：「バルクヘッドアーキテクチャを使用して影響範囲を制限する」 ・ 何をするか：バルクヘッドアーキテクチャ（別名はセルベースアーキテクチャ）を入れて、ワークロード内で起きた障害の影響を、限られた数のコンポーネントに収める"
+  },
+  {
+   "criterion": "cost-04",
+   "quote": "ベストプラクティス：「ライフタイム全体にわたってリソースを追跡する」 ・ 何をするか：リソースと、リソースとシステムのつながりをライフタイム全体で追う方法を決めて入れる。タグでリソースのワークロードや機能が分かる"
+  },
+  {
+   "criterion": "cost-04",
+   "quote": "ベストプラクティス：「廃止プロセスを実装する」 ・ 何をするか：使っていないリソースを見つけて廃止するプロセスを入れる"
+  }
+ ],
+ "grade_grounds": [
+  {
+   "grade": "e-5",
+   "quote": "項番：E.5.2.1 ・ メトリクス：システム上の対策における操作制限度 ・ モデルシステム：社会的影響が殆ど無いシステム ・ 選択レベル：1：必要最小限のプログラムの実行、コマンドの操作、ファイルへのアクセスのみを許可 ・ 選択時の条件：不正なソフトウェアがインストールされる、不要なアクセス経路（ポート等）を利用可能にしている等により、情報漏洩の脅威が現実のものとなってしまうため、これらの情報等への不要なアクセス方法を制限する必要がある。（操作を制限することにより利便性や、可用性に影響する可能性がある）[-] 重要情報等への攻撃の拠点とならない端末等に関しては、運用による対策で対処する場合"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "AI の CLI を既定のフラグのまま起動する",
+   "risk": "Claude は --bare でなければリポジトリの hooks と .mcp.json を信頼の確認なしに動かし、--bare でも Bash と読み書きの道具を持つ。Kiro は knowledge と code intelligence を既定で有効にする。「道具なし」のつもりで道具を持った判定役が動く",
+   "alternative": "（推測）案 b を採って基盤が起動しない。起動するなら、作業のディレクトリをリポジトリの外にし、起動のあとに道具が0かを確かめて、0でなければ error にする"
+  },
+  {
+   "name": "タイムアウトを AI ツールの既定に任せる",
+   "risk": "Kiro の非対話のワークフロー待ちは既定で6時間で、基盤の validate が何時間も返らない。判断基準も、既定の値はワークロードの事情を知らずに決められていると注意する",
+   "alternative": "（推測）時間切れを作法に書いて基盤が持ち、切れたらプロセスグループごと止めて error にする"
+  },
+  {
+   "name": "失敗した判定を自動で聞き直す",
+   "risk": "判断基準は、どんなエラーも再試行すること、いくつものレイヤーで再試行することを誤りとして挙げる。AI の判定では費用が増え、聞き直して得た答えで割れた答えが隠れる",
+   "alternative": "（推測）基盤は再試行を0回にし、error を返して、聞き直すかは人か親のセッションが決める"
+  },
+  {
+   "name": "ワークツリーをリポジトリの中に置き、外す設定を手元に頼る",
+   "risk": ".git/info/exclude はクローンごとの手元の設定で、別の手元で忘れると変更のまとめに記録の無い書き換えとして出る。外したあとは git clean -dxff でワークツリーごと消える",
+   "alternative": "（推測）ワークツリーをリポジトリの隣に置き、基盤がワークツリーを作るときの既定の場所もそこにする"
+  },
+  {
+   "name": "終わった目的のワークツリーを残し続ける",
+   "risk": "判断基準は、使っていないリソースを見つけて廃止するプロセスを求める。残ったワークツリーはブランチを掴んだままになり、手元の DB の記録も worktree の列で残り続ける",
+   "alternative": "（推測）目的のセッションを閉じるときに git worktree list で残りを示し、マージ済みのものは git worktree remove で片付ける"
+  }
+ ],
+ "related": [
+  {
+   "criterion": "rel-11",
+   "relation": "障害のときだけ通る経路を増やさない（静的安定性 ・ バイモーダル動作）。案 c のまれにしか通らない起動の経路の評価に関わる"
+  },
+  {
+   "criterion": "ops-06",
+   "relation": "ワークツリーとブランチで変更を小さく分け、失敗した変更を戻せるようにする"
+  },
+  {
+   "criterion": "ops-05",
+   "relation": "バージョン管理を使い、目的ごとのブランチの変更を消さずにまとめる"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "案 b を採ったのに、AI の rule の判定のために application や outbound から AI の CLI を std::process で起動するコードを足す",
+   "check": "architecture-lint と grep で、outbound に ai-cli のクレートが無いこと、claude ・ codex ・ kiro-cli の名前を argv に組むコードが crates の下に0件であることを CI で確かめる"
+  },
+  {
+   "breaks": "CI の validate が needs を AI に渡して聞き直す手順をワークフローに書く",
+   "check": "CI のワークフローに AI ツールの鍵（ANTHROPIC_API_KEY ・ CODEX_API_KEY ・ KIRO_API_KEY）と AI の CLI の呼び出しが無いことを grep で確かめ、validate の結果がコミットした判定の記録だけから決まる試験（記録を消すと unverified になる）を置く"
+  },
+  {
+   "breaks": "ワークツリーを作る手順をリポジトリの中（.worktrees/ など）に書き、変更のまとめに記録の無い書き換えが出る",
+   "check": "目的のワークツリーを作ったあと、メインのワークツリーで git status --porcelain --untracked-files=all が空であることをシステム試験で確かめる"
+  },
+  {
+   "breaks": "案 c を後で足すとき、時間切れ ・ 子孫の停止 ・ 出力の上限のどれかを省く",
+   "check": "眠り続ける子を持つ偽の CLI ・ 上限を超えて書き続ける偽の CLI ・ 道具を残したと申告する偽の CLI の3つを試験に置き、どれも error で返り、子孫のプロセスが残らないことを確かめる"
+  }
+ ],
+ "records": [
+  {
+   "target": "ボードの Q3（エンジンの部品と Agents 契約）",
+   "content": "だれが AI を起動するか：基盤は起動しない（案 b）。validate は needs を返し、作業中の AI の答えを受け取る。model.json の outbound ポート「rule の判定を依頼する（AI）」とアダプター ai-cli を外す。AI がいない場面は unverified で返す"
+  },
+  {
+   "target": "ボードの Q11（目的ごとのセッション）",
+   "content": "目的ごとのワークツリーはリポジトリの隣（../<repo>-<目的>）に置き、目的のセッションはそこを作業のディレクトリにして起動する。目的を閉じるときに git worktree remove で片付ける"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "model.json の ports.outbound「rule の判定を依頼する（AI）」と I29「AI の validator はツールを持たせずに起動する」",
+   "why": "入口の「AI を起動しない」・ Q11 ・ ACDR 0201 と食い違う。どちらが正本かは platform-advisor の範囲外（層の配置）で、ドメインモデルの判断として ddd-advisor に確かめる余地がある"
+  }
+ ],
+ "next": [
+  "Q3 の答えの「起動」の行を、基盤は AI を起動せず needs を返す形に書き換える",
+  "model.json から outbound ポート「rule の判定を依頼する（AI）」を外す差分を ACDR に起こす",
+  "I29 の「AI の validator はツールを持たせずに起動する」を、harness が起動するときの約束として言い直す",
+  "Q11 に、目的のワークツリーをリポジトリの隣に置く行を足す",
+  "基盤の validate . が別のワークツリーの中まで歩かないかを試験で確かめる"
+ ]
+}
