@@ -124,6 +124,9 @@ def publish():
         notice = re.sub(r'<p>.*?</p>', '<p>全10枚の図と原稿を利用者が確認し、ACDR 0205で正本へ正式反映しました。音声・動画は改訂前です。変更前後の比較と旧版の保存は引き続き利用できます。</p>', notice, count=1, flags=re.S)
     elif not progress.get('unrevised_slides'):
         notice = notice.replace('教材1〜3の紹介は本文7〜9へ移動し、その内容の見直しはこれからです。', '教材1〜3の紹介も最新の内容へ反映しています。')
+    if progress.get('audio_video_updated'):
+        notice = notice.replace('音声・動画は改訂前です。', '音声・動画も最新の全10枚へ更新しました。')
+        notice = notice.replace('現行の動画・音声（今回の修正は未反映）', '最新の動画・音声（全10枚）')
     if cover:
         notice += ('<details id="intro-cover" open><summary>追加した表紙と原稿</summary><p>新規追加のため変更前はありません。本文1〜8の比較番号は維持しています。通し閲覧は表紙と本文の全9枚です。</p>'
                    + '<iframe src="common-intro-review/cover.html#1" title="はじめにの表紙" style="width:100%;aspect-ratio:16/9;border:0"></iframe>'
@@ -158,6 +161,8 @@ def publish():
         (official / 'script.md').write_bytes((source_out / 'scripts/lesson-01-lead-script.md').read_bytes())
         (V / 'decisions').mkdir(exist_ok=True)
         (V / 'decisions/0205.html').write_bytes((repo / '.acdr/0205-三教材共通導入の正式版改訂/index.html').read_bytes())
+        if progress.get('audio_video_updated'):
+            (V / 'decisions/0206.html').write_bytes((repo / '.acdr/0206-共通導入の音声動画更新/index.html').read_bytes())
     (V / 'design-review.html').write_text(text)
     (A / 'comparison.html').write_text(text)
     build_navigation(A, V)

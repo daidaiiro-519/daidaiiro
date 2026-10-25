@@ -92,3 +92,5 @@ node docs/workshops/ai-workshop/review/common-intro-20261019/tools/check_review_
 2026年10月25日、本文6はPM・PL入力案を差し戻し、三つの問題から教材への接続へ再構成。比較の変更前は直前のPM・PL案、変更後はslide-learning-bridge.json。本文5は末尾の予告のみ修正したslide-05-growth-transition.jsonを使用する。新規追加扱いから、変更前後の原稿差分を表示する扱いへ切り替えた。枚数と画面間の移動先は変えていない。
 
 2026年10月25日、共通導入をACDR0205で正本化。メイン画面の正式版欄からofficial/common-intro/slides.html、同script.md、decisions/0205.htmlへ進める。編集元はmaterial-1/src/lesson-01-lead.json、ledes.json、figures/common-intro/とbuild_lessons.py。共通の公開ページはworkspace/build_review.py --publishが正本の生成物とACDRから複製する。公開HTMLを直接編集しない。音声と動画は改訂前。
+
+2026年10月25日、共通導入の動画と音声も更新。materials.html?mode=video#leadで最新の全10枚を再生できる。動画と音声の参照先には内容ハッシュを付け、旧キャッシュと区別する。progress.jsonのaudio_video_updatedとmedia_releaseを基にreview_navigation.pyが枚数・長さ・更新状態を生成する。動画の本体はworkshop/material-1/out/videos/01-lead.mp4、音声は同out/audio/01-lead.mp3。

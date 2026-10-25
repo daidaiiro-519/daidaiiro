@@ -1,0 +1,482 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>共通導入の音声動画更新</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code td.cd code{background:none;padding:0;border-radius:0;font-size:inherit;font-family:inherit;white-space:inherit}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper);overflow-x:auto}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0206 ・ 2026-10-25 ・ <span class="tag">承認</span></p><h1>共通導入の音声動画更新</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">正本化した共通導入の全10枚で、音声と字幕付き動画を更新する。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>旧音声と旧動画を、ACDR0205で確認した最新のスライドと原稿へ合わせる。</p></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>音声と動画</td><td>正本化前のスライドと原稿による音声・動画。</td><td>表紙1枚と本文9枚の最新原稿による音声・字幕付き動画。</td></tr><tr><td>枚の切替</td><td>共通導入の切替の間を個別に記録していない。</td><td>各枚の前後の間と短いフェードを記録し再生成できる。</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>旧音声と動画を残して最新として案内する。</td><td>最新のスライドと原稿に一致しない。</td></tr><tr><td>原稿を短縮して動画を作る。</td><td>確認済みの内容を変えずに音声化する。</td></tr></tbody></table></div></section></div><p class="bridge">ここから下は、この決定で<b>変わるファイルごとの差分</b>である。タブでファイルを切り替える。</p>
+<p class="lede"></p>
+
+<section class="diffs">
+<div id="bar"><b>変更 4 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="pacing">切替の間<span class="n">1</span></button><button class="tab" role="tab" data-t="playback">再生ページ<span class="n">1</span></button><button class="tab" role="tab" data-t="readme">制作状況<span class="n">2</span></button></div>
+<section class="pane code-pane" data-k="pacing" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">共通導入の各枚の間と短いフェードを再生成できる設定に記録する。</div><div class="at"><span class="lbl">場所</span><code>&quot;01-lead&quot;: {</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 59 ／ 新 59 @@</td></tr><tr class="r"><td class="ln">59</td><td class="ln">59</td><td class="mk"> </td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">450</span></code></td></tr><tr class="r"><td class="ln">60</td><td class="ln">60</td><td class="mk"> </td><td class="cd"><code>      }</code></td></tr><tr class="r"><td class="ln">61</td><td class="ln">61</td><td class="mk"> </td><td class="cd"><code>    }</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">62</td><td class="mk">+</td><td class="cd"><code>  },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">63</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（共通導入の設定は未記録）" data-w="共通導入の各枚の間と短いフェードを再生成できる設定に記録する。">  &quot;<span class="t-n">01</span>-lead&quot;: {</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">64</td><td class="mk">+</td><td class="cd"><code>    &quot;transitionMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">65</td><td class="mk">+</td><td class="cd"><code>    &quot;slides&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">66</td><td class="mk">+</td><td class="cd"><code>      &quot;LEAD-COVER&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">67</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">0</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">68</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">69</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">70</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">01</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">71</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">72</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">73</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">74</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">02</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">75</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">76</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">77</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">78</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">03</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">79</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">80</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">81</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">82</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">04</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">83</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">84</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">85</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">86</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">05</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">87</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">88</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">89</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">90</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">06</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">91</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">92</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">93</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">94</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">07</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">95</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">96</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">97</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">98</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">08</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">99</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">100</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">101</td><td class="mk">+</td><td class="cd"><code>      },</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">102</td><td class="mk">+</td><td class="cd"><code>      &quot;COMMON-INTRO-<span class="t-n">09</span>&quot;: {</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">103</td><td class="mk">+</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">200</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">104</td><td class="mk">+</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">0</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">105</td><td class="mk">+</td><td class="cd"><code>      }</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">106</td><td class="mk">+</td><td class="cd"><code>    }</code></td></tr><tr class="r"><td class="ln">62</td><td class="ln">107</td><td class="mk"> </td><td class="cd"><code>  }</code></td></tr><tr class="r"><td class="ln">63</td><td class="ln">108</td><td class="mk"> </td><td class="cd"><code>}</code></td></tr><tr class="r"><td class="ln">64</td><td class="ln">109</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane html" data-k="playback" data-tab="再生ページ" hidden><div class="lane"><b>HTML（そのままの見た目）</b><span class="how">経路を確認している…</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">最新の全10枚の音声と動画を案内し、旧版のキャッシュと区別する。</div><div class="at"><span class="lbl">場所</span><code>はじめに：題材と学びの流れ — 22分39秒・全10枚（2026-10-25改訂</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><template data-shadowcss=":host{--ground:#f4f1e8;--surface:#e9e5da;--paper:#fffaf2;--on-paper:#252b29;--on-paper-dim:#5b625c;--mark:#f7e2bc;--ink:#252b29;--dim:#59605a;--faint:#686f65;--line:#d5d6c9;--accent:#ae3f23;--accent-dim:#873f2b;--alert:#ae3f23;--gold:#8a6a2f;--canvas:#deded3;--diagram-line:#6f7a63;--on-accent:#fffaf2;--on-accent-dim:#fff1e9;--serif:&#x27;Noto Sans JP&#x27;,&#x27;Hiragino Sans&#x27;,&#x27;Yu Gothic&#x27;,sans-serif;--sans:&#x27;Noto Sans JP&#x27;,&#x27;Hiragino Sans&#x27;,&#x27;Yu Gothic&#x27;,sans-serif;--mono:&#x27;Noto Sans JP&#x27;,&#x27;Hiragino Sans&#x27;,&#x27;Yu Gothic&#x27;,sans-serif;}body{margin:0;background:var(--paper);color:var(--ink);font-family:&quot;Noto Sans JP&quot;,sans-serif;line-height:1.7}main{max-width:1040px;margin:auto;padding:32px 20px}h1{font-size:28px}a{color:var(--accent)}details{margin:20px 0;border:1px solid var(--line);background:var(--surface);padding:16px;border-radius:8px}summary{cursor:pointer;font-weight:600}video{display:block;width:100%;margin-top:16px;background:var(--ink)}audio{max-width:100%;width:480px}p{margin:12px 0}nav{display:flex;gap:12px;flex-wrap:wrap}"><style>:root{--ground:#f4f1e8;--surface:#e9e5da;--paper:#fffaf2;--on-paper:#252b29;--on-paper-dim:#5b625c;--mark:#f7e2bc;--ink:#252b29;--dim:#59605a;--faint:#686f65;--line:#d5d6c9;--accent:#ae3f23;--accent-dim:#873f2b;--alert:#ae3f23;--gold:#8a6a2f;--canvas:#deded3;--diagram-line:#6f7a63;--on-accent:#fffaf2;--on-accent-dim:#fff1e9;--serif:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--sans:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--mono:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans JP",sans-serif;line-height:1.7}main{max-width:1040px;margin:auto;padding:32px 20px}h1{font-size:28px}a{color:var(--accent)}details{margin:20px 0;border:1px solid var(--line);background:var(--surface);padding:16px;border-radius:8px}summary{cursor:pointer;font-weight:600}video{display:block;width:100%;margin-top:16px;background:var(--ink)}audio{max-width:100%;width:480px}p{margin:12px 0}nav{display:flex;gap:12px;flex-wrap:wrap}</style><!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>オリエンテーションと教材1の動画</title>
+
+<main><h1>オリエンテーションと教材1</h1>
+<p>オリエンテーション、はじめに、本編5本を順に再生できます。動画には字幕が表示されます。音声だけでも再生できます。</p>
+<nav>
+<a href="#00-start">オリエンテーション</a>
+<a href="#01-lead">はじめに：題材と学びの流れ</a>
+<a href="#02-intro">原因を知る</a>
+<a href="#03-word">意味を決める</a>
+<a href="#04-scope">範囲を決める</a>
+<a href="#05-rule">条件を決める</a>
+<a href="#06-summary">具体と抽象を振り返る</a>
+</nav>
+<details id="00-start"><summary>オリエンテーション — 16分27秒</summary>
+<video controls preload="none" playsinline poster="videos/posters/00-start.png"><source src="videos/00-start.mp4" type="video/mp4"></video>
+<p><a href="videos/00-start.mp4">動画（MP4）</a> ／ <a href="videos/00-start.vtt">字幕（WebVTT）</a> ／ <a href="audio/00-start.mp3">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/00-start.mp3"></audio></details>
+<details id="01-lead"><summary><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="はじめに：題材と学びの流れ — 動画・音声は改訂前（19分54秒）" data-w="最新の全10枚の音声と動画を案内し、旧版のキャッシュと区別する。">はじめに：題材と学びの流れ — 22分39秒・全10枚（2026-10-25改訂）</mark></summary>
+<p>スライド・原稿・動画・音声は2026年10月25日版（全10枚）です。<a href="slides/lesson-01-lead.html">最新スライド</a> ／ <a href="scripts/lesson-01-lead-script.md">最新原稿</a></p>
+<video controls preload="none" playsinline poster="videos/posters/01-lead.png?v=5dc9bf08ebe2"><source src="videos/01-lead.mp4?v=5dc9bf08ebe2" type="video/mp4"></video>
+<p><a href="videos/01-lead.mp4?v=5dc9bf08ebe2">動画（MP4）</a> ／ <a href="videos/01-lead.vtt?v=5dc9bf08ebe2">字幕（WebVTT）</a> ／ <a href="audio/01-lead.mp3?v=5dc9bf08ebe2">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/01-lead.mp3?v=5dc9bf08ebe2"></audio></details>
+<details id="02-intro"><summary>原因を知る — 7分58秒</summary>
+<video controls preload="none" playsinline poster="videos/posters/02-intro.png"><source src="videos/02-intro.mp4" type="video/mp4"></video>
+<p><a href="videos/02-intro.mp4">動画（MP4）</a> ／ <a href="videos/02-intro.vtt">字幕（WebVTT）</a> ／ <a href="audio/02-intro.mp3">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/02-intro.mp3"></audio></details>
+<details id="03-word"><summary>意味を決める — 9分45秒</summary>
+<video controls preload="none" playsinline poster="videos/posters/03-word.png"><source src="videos/03-word.mp4" type="video/mp4"></video>
+<p><a href="videos/03-word.mp4">動画（MP4）</a> ／ <a href="videos/03-word.vtt">字幕（WebVTT）</a> ／ <a href="audio/03-word.mp3">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/03-word.mp3"></audio></details>
+<details id="04-scope"><summary>範囲を決める — 9分59秒</summary>
+<video controls preload="none" playsinline poster="videos/posters/04-scope.png"><source src="videos/04-scope.mp4" type="video/mp4"></video>
+<p><a href="videos/04-scope.mp4">動画（MP4）</a> ／ <a href="videos/04-scope.vtt">字幕（WebVTT）</a> ／ <a href="audio/04-scope.mp3">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/04-scope.mp3"></audio></details>
+<details id="05-rule"><summary>条件を決める — 7分48秒</summary>
+<video controls preload="none" playsinline poster="videos/posters/05-rule.png"><source src="videos/05-rule.mp4" type="video/mp4"></video>
+<p><a href="videos/05-rule.mp4">動画（MP4）</a> ／ <a href="videos/05-rule.vtt">字幕（WebVTT）</a> ／ <a href="audio/05-rule.mp3">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/05-rule.mp3"></audio></details>
+<details id="06-summary"><summary>具体と抽象を振り返る — 6分10秒</summary>
+<video controls preload="none" playsinline poster="videos/posters/06-summary.png"><source src="videos/06-summary.mp4" type="video/mp4"></video>
+<p><a href="videos/06-summary.mp4">動画（MP4）</a> ／ <a href="videos/06-summary.vtt">字幕（WebVTT）</a> ／ <a href="audio/06-summary.mp3">音声（MP3）</a></p>
+<audio controls preload="none" src="audio/06-summary.mp3"></audio></details>
+</main><script>document.querySelectorAll("nav a").forEach(a=>a.addEventListener("click",()=>{document.getElementById(a.getAttribute("href").slice(1)).open=true}));</script>
+</template></section><section class="pane md" data-k="readme" hidden><div class="lane"><b>Markdown を描画した文書</b><span class="how">変更箇所 2 件</span></div><details class="idx" open><summary>このファイルの変更 2 件</summary><ol><li><div class="w">音声と動画の更新完了、枚数と長さを明示する。</div><div class="at"><span class="lbl">場所</span><code>音声・字幕付き動画も同じ原稿で更新した（全10枚、約22分39秒）。</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">使用した音声と字幕の生成方法を記録する。</div><div class="at"><span class="lbl">場所</span><code>音声・動画の生成はACDR 0206に記録した。</code><button class="go" data-i="1">その箇所へ移動</button></div></li></ol></details><div class="doc"><h1>教材1 ── オリエンテーションと目的の把握</h1>
+<p>受講者向けの動画教材。オリエンテーション1本、三教材共通のはじめに1本、本編5本の計7本である。</p>
+<p>2026年10月17日に、説明文と表の境界、図の中の情報のまとまりを見直した。既存の配色とカードの形に合わせ、スライド・PDF・オリエンテーションの動画へ反映した。決定はACDR 0184に記録した。</p>
+<p>2026年10月17日に、オリエンテーションの原稿の重複と予告の食い違いを修正し、動画の切り替えに間と短いフェードを加えた。決定はACDR 0185に記録した。</p>
+<h2>見るもの（<code>out/</code>）</h2>
+<p><code>out/index.html</code> から、7本の動画と音声を順に再生できる。</p>
+<div class="scroll"><table><tr><th>フォルダ</th><th>中身</th></tr><tr><td><code>out/audio/</code></td><td>本ごとの音声（MP3）</td></tr><tr><td><code>out/videos/</code></td><td>本ごとの動画（mp4）と字幕（WebVTT）。動画は枚ごとの画像と読み上げの音声を結合し、スライドの下の帯に字幕を焼き込む（1280×816）。mp4 だけで、どのプレーヤーでも字幕が出る</td></tr><tr><td><code>out/slides/</code></td><td>本ごとのスライド（HTML）。ブラウザで開き、矢印キーでめくる</td></tr><tr><td><code>out/scripts/</code></td><td>本ごとの読み上げの原稿（Markdown）</td></tr><tr><td><code>out/pdf/</code></td><td>全枚を縦に並べたスライド（HTML）と、そのPDF。配る・印刷するときに使う</td></tr></table></div>
+<div class="scroll"><table><tr><th>本</th><th>題</th></tr><tr><td>00</td><td>オリエンテーション ── AIを、自分の仕事で使い続けるために</td></tr><tr><td>01</td><td>はじめに：三教材共通の題材と学習の流れ</td></tr><tr><td>02〜06</td><td>原因を知る ／ 意味を決める ／ 範囲を決める ／ 条件を決める ／ 具体と抽象を振り返る</td></tr></table></div>
+<p>2026年10月11日のスライドと原稿から、オリエンテーション、はじめに、本編5本の音声と動画を作成した。音声はTakumiの日本語ニューラル音声を使用した。</p>
+<p>2026年10月13日に、比較ページで確認したオリエンテーションを正式版へ反映した。仕事の目的をAIで達成できるようになる開催目的を示し、仕事の変化、教材、応用、書籍、学習と実践の進め方を説明する。表紙1枚＋本編13枚。2026年10月17日の教材の閲覧と支援の案内の追加後は約16分27秒。決定は [ACDR 0178](../../../../.acdr/0178-オリエンテーションの正式版改訂/index.html) に記録した。</p>
+<p>書籍の表紙を含むスライドHTML、PDF、動画と該当するプレビュー画像は、ローカルで生成して確認する。公開リポジトリへのコミットには含めない。</p>
+<h2>作るための材料（<code>src/</code>）</h2>
+<div class="scroll"><table><tr><th>もの</th><th>役割</th></tr><tr><td><code>lesson-0N-*.json</code></td><td>本ごとの枚と原稿の正本</td></tr><tr><td><code>ledes.json</code></td><td>枚ごとの導入文</td></tr><tr><td><code>words.json</code></td><td>同じものを指す語と、使用しない語</td></tr><tr><td><code>orientation_current_visuals.py</code></td><td>正式版の枚と図の対応</td></tr><tr><td><code>*_visuals.py</code></td><td>枚ごとの図</td></tr><tr><td><code>examples/</code></td><td>図と原稿が使う議事録の例</td></tr><tr><td><code>narration/</code></td><td>読み上げの入力と、合成した音声（<code>cache/</code>）</td></tr><tr><td><code>previews/</code></td><td>描画したスライドの画像。動画と照合の入力が使う</td></tr><tr><td><code>review-log.json</code></td><td>1枚ずつ照合したときの、観点の群ごとの確認の結果</td></tr><tr><td><code>promotion-table.md</code></td><td>教材1の語と、ドメイン駆動設計の用語の対応</td></tr><tr><td><code>work/</code></td><td>動画を作る途中の区間ファイル。追跡しない</td></tr></table></div>
+<h2>作り直す手順</h2>
+<p><code>src/</code> で実行する。</p>
+<div class="scroll"><table><tr><th>手順</th><th>コマンド</th><th>出すもの</th></tr><tr><td>1. スライドを作る</td><td><code>python3 build_lessons.py</code></td><td><code>out/slides/</code> ・ <code>out/scripts/</code>。語と図の検査も実行する</td></tr><tr><td>2. 図を検査する</td><td><code>python3 check_figures.py</code></td><td>文字の重なり ・ はみ出しの検出</td></tr><tr><td>3. 画像にする</td><td><code>python3 render_previews.py --browser &lt;ブラウザ&gt; [本の番号…]</code></td><td><code>previews/</code></td></tr><tr><td>3b. PDFにする</td><td><code>python3 export_pdf.py --browser &lt;ブラウザ&gt; [本の番号…]</code>（既定は 00）</td><td><code>out/pdf/</code></td></tr><tr><td>4. 読み上げの入力を作る</td><td><code>python3 build_narration.py [00-start …]</code></td><td><code>narration/narration.json</code></td></tr><tr><td>5. 音声を合成する</td><td><code>slide-deck-speech synth narration</code>（slide-deck-speech Skill、<code>AWS_PROFILE=dev</code>）。読みの辞書 <code>narration/lexicon.pls</code> は、変えたときに <code>slide-deck-speech lexicon narration/lexicon.pls aiworkshop</code> で登録し直す</td><td><code>narration/narration.out.json</code> と音声</td></tr><tr><td>6. 動画にする</td><td><code>python3 build_videos.py [00-start …]</code></td><td><code>out/videos/</code> の動画と字幕。字幕は音声の文の時刻から組み、Noto Sans JP で焼き込む。書体の置き場は <code>SUB_FONTS</code>（既定は <code>~/.local/share/fonts</code>）</td></tr></table></div>
+<p>原稿を持つデッキを1枚ずつ照合するときは、slide-deck Skill の照合の工程に従う。<br><code>python3 review_input.py build &lt;変更前&gt; &lt;review.json&gt; --log review-log.json</code> で照合の入力を作り、<br><code>slide-deck review</code> で比較ページを、<code>slide-deck export</code> で台本 ・ 確認記録 ・ 観点ごとの結果を出す。</p>
+<p>決定と根拠は <code>.brainstorming-board/material-abstraction/</code> と <code>.acdr/</code> が保持する。</p>
+<p>2026年10月17日に、教材の閲覧方法と実践中の支援を独立した2枚として追加した。企画書の図を使用し、ポータル、日程、サポート体制の順に説明する。決定はACDR 0187に記録した。</p>
+<p>2026年10月25日、三教材共通の「はじめに」を表紙1枚と本文9枚へ改訂した。最新のスライドと原稿はout/slides/lesson-01-lead.htmlとout/scripts/lesson-01-lead-script.md。目的・要件、業務モデル・設計、AgentがSkillsを使う作業と確認の手順へつなぐ。表紙の見出し・導入文・原稿はlesson-01-lead.jsonのcoverが持つ。図はfigures/common-intro/を使用する。<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="音声・動画は改訂前の版であり、今回は更新していない。" data-w="音声と動画の更新完了、枚数と長さを明示する。">音声・字幕付き動画も同じ原稿で更新した（全10枚、約22分39秒）。</mark>決定はACDR 0205に記録する。</p>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（追記）" data-w="使用した音声と字幕の生成方法を記録する。">音声・動画の生成はACDR 0206に記録した。</mark>Takumiの日本語ニューラル音声と読み辞書を使用し、253件の字幕を下の専用帯へ表示する。</p></div></section>
+</section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 対象の文書も、同じ名前の変数（--move など）を持っていることがある。
+     印と欄にだけ、この道具の値を直に持たせる ── 文書の側の見た目は変えない */
+  var VARS = (MARKCSS.match(/--[\w-]+(?=:)/g) || []).filter(function(v, i, a){ return a.indexOf(v) === i; });
+  function ownVars(el){
+    var cs = getComputedStyle(document.documentElement);
+    VARS.forEach(function(v){ var x = cs.getPropertyValue(v); if (x) el.style.setProperty(v, x.trim()); });
+  }
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く。
+     **この道具が付けた印（data-acdr）だけを扱う。** 対象の文書が自分の印を
+     同じ class で持っていることがある（brainstorming-board のボード） */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-acdr]").forEach(function(m){
+      var p = doc.createElement("div");
+      /* **初めから開いて出す。** 閉じて出すと、どこが変わったかを1件ずつ押して探すことになる */
+      p.className = "pop"; p.hidden = false;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        /* 表のセルの中の印は、セルの中へ置く。<td> の隣へ置くと、列が1つ増えて見える */
+        var cell = m.closest("td,th");
+        if (cell) cell.appendChild(p);
+        else {
+          var host = m.closest("li") || m.parentNode;
+          if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+          else host.parentNode.appendChild(p);
+        }
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      /* 対象の文書の script も、同じ印に開閉を付けていることがある。
+         捕捉の段で受けて止め、この道具の開閉だけを動かす */
+      m.addEventListener("click", function(e){ e.stopImmediatePropagation(); tg(); }, true);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+      m.setAttribute("aria-expanded", "true");
+      if (doc !== document) { ownVars(m); ownVars(p); }
+      /* 印を囲む畳まれた節も開く。タブ（hidden）は開かない ── 面の切り替えが壊れる */
+      for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+        if (e.tagName === "DETAILS") e.open = true;
+      }
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  /* **見えているかを offsetParent で判定しない。**
+     閉じた <details> の中でも、Chromium は offsetParent を返す。
+     checkVisibility が在ればそれを使う */
+  function shown(m){
+    return m.checkVisibility ? m.checkVisibility() : !!m.offsetParent;
+  }
+
+  function reveal(m){
+    if (shown(m)) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (shown(m)) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (shown(m)) return true;
+      ins[i].checked = was;
+    }
+    return shown(m);
+  }
+
+  /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg[data-acdr]")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その箇所へ移動" : "表示されていない箇所";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンのファイル */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>

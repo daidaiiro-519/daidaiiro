@@ -24,7 +24,7 @@ const resume=String(progress.next_slide||1);
   await page.waitForTimeout(600);
   const frame=page.frames().find(f=>f.url().includes('common-intro-review/presentation.html'));
   assert(frame);assert.equal(await frame.locator('.slide.on h2').textContent(),expected.heading);
-  assert((await page.locator('[data-mode="video"]').textContent()).includes('変更前'));
+  assert.equal((await page.locator('[data-mode="video"]').textContent()).includes('変更前'),!progress.audio_video_updated);
   await page.locator('#slide-select').selectOption('6');await page.reload();
   await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='6');
   await page.locator('#slide-select').selectOption('6');

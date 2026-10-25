@@ -17,6 +17,8 @@ def build_navigation(here, viewer):
     review = f'design-review.html?deck=lead&slide={number}#lead'
     reader = 'materials.html?slide=1#lead'
     pending = [str(n) for n in progress.get('unrevised_slides', [])]
+    media_current = progress.get('audio_video_updated', False)
+    media_note = '動画・音声も最新の全10枚へ更新済みです。' if media_current else '動画・音声は変更前の版です。'
     pending_note = '・'.join(pending) + '枚目は再構成方針への修正前です。' if pending else ''
     theme = (repo / '.claude/skills/slide-deck/references/themes/warm-paper.css').read_text()
     css = theme + '\n' + (here / 'review-navigation.css').read_text()
@@ -32,7 +34,7 @@ def build_navigation(here, viewer):
 
     status = ('・'.join(map(str, awaiting)) + '枚目を確認待ち') if isinstance(awaiting, list) and awaiting else (f'{awaiting}枚目を確認待ち' if isinstance(awaiting, int) else '通し確認済み')
     if progress.get('source_updated'):
-        status = '正式反映済み（音声・動画は改訂前）'
+        status = '正式反映済み（音声・動画も更新済み）' if media_current else '正式反映済み（音声・動画は改訂前）'
     home = f'''<p>何を確認するかを選んでください。修正の比較、通しの閲覧、制作方針と進捗を分けています。</p>
 <div class="task-grid" id="main-tasks">
 <section class="card"><p class="task-index">01 · REVIEW</p><h2>変更を確認する</h2><p>図・原稿の変更前後と、その変更理由を確認します。</p><span class="status">はじめに：{html.escape(status)}</span><div class="actions"><a class="primary" id="resume-review" href="{review}">確認中のスライドを開く</a></div></section>
@@ -45,10 +47,13 @@ def build_navigation(here, viewer):
 <section class="card"><h3>共通の「はじめに」</h3><p>三教材に入る前の題材説明。{html.escape(status)}。{pending_note}</p><div class="actions"><a href="{review}">修正を確認</a><a href="materials.html#lead">最初から読む</a></div></section>
 </div><details><summary>参考資料と画面の見方</summary><div class="actions"><a href="navigation.html">画面遷移図</a><a href="asset-gallery/">過去の画像・SVG一覧</a><a href="design-review.html?deck=lead&slide={number}#reference-materials">過去の案・デザインの参考</a><a href="handoff.html">技術的な引き継ぎ</a></div></details>'''
     redirect = '<script>function legacyRoute(){if(["brief","detail","orientation","lead"].includes(location.hash.slice(1)))location.replace("materials.html"+location.search+location.hash);}addEventListener("hashchange",legacyRoute);legacyRoute();</script>'
+    if media_current:
+        home = home.replace('はじめにの動画・音声は変更前です。', media_note)
+        home = home.replace('<a href="materials.html#lead">最初から読む</a>', '<a href="materials.html#lead">最初から読む</a><a href="materials.html?mode=video#lead">最新の動画・音声</a>')
     release = progress.get('canonical_release')
     if release:
         home += ('<section class="card"><h2>正式版：三教材共通のはじめに</h2>'
-                 '<p>表紙と本文の全10枚。音声・動画は改訂前です。</p><div class="actions">'
+                 '<p>表紙と本文の全10枚。' + media_note + '</p><div class="actions">'
                  '<a href="' + html.escape(release['slides_url']) + '">正式版スライド</a>'
                  '<a href="' + html.escape(release['script_url']) + '">正式版原稿</a>'
                  '<a href="' + html.escape(release['acdr_url']) + '">ACDR 0205：反映の差分と理由</a></div></section>')
@@ -63,9 +68,16 @@ def build_navigation(here, viewer):
     cover = json.loads((here / 'cover.json').read_text()) if (here / 'cover.json').exists() else None
     viewing_file = 'presentation.html' if cover else 'after.html'
     version = hashlib.sha256((here / viewing_file).read_bytes()).hexdigest()[:12]
-    lead.update(slides='common-intro-review/' + viewing_file + '?v=' + version, script='common-intro-review/script.md', draft=True,
-                summary=(f'表紙＋本文{len(slides)}枚（全{len(slides)+1}枚）です。' if cover else f'確認用の{len(slides)}枚構成です。') + status + '。' + pending_note + '動画・音声は変更前の版です。',
+    lead.update(slides='common-intro-review/' + viewing_file + '?v=' + version, script='common-intro-review/script.md', draft=not media_current,
+                summary=(f'表紙＋本文{len(slides)}枚（全{len(slides)+1}枚）です。' if cover else f'確認用の{len(slides)}枚構成です。') + status + '。' + pending_note + media_note,
                 notes=([dict(number=1, title='表紙：はじめに', body=markdown.markdown(cover['narration']))] if cover else []) + [dict(number=s['slide'] + (1 if cover else 0), title='本文' + str(s['slide']) + '：' + s['heading'] if cover else s['heading'], body=markdown.markdown(s['narration'])) for s in slides])
+    if media_current:
+        media = progress['media_release']
+        version = media['video_sha256'][:12]
+        lead.update(video='workshop/material-1/out/videos/01-lead.mp4?v='+version,
+                    audio='workshop/material-1/out/audio/01-lead.mp3?v='+version,
+                    poster='workshop/material-1/out/videos/posters/01-lead.png?v='+version,
+                    seconds=media['seconds'], videoSlides=10)
     lead.pop('pdf', None)
     material = material[:match.start(2)] + json.dumps(decks, ensure_ascii=False).replace('</', '<\\/') + material[match.end(2):]
     material = material.replace('<body>', '<body><nav class="reader-nav" aria-label="制作画面への移動"><a href="./">← メイン画面</a><a id="compare-current" href="' + review + '">この資料の変更を確認</a><a href="workflow.html">制作方針・進捗</a><a href="navigation.html">画面遷移図</a></nav>', 1)

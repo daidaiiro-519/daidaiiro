@@ -53,3 +53,5 @@ metadata:
 2026年10月25日、最新共通導入の全10枚を受講者Lunaが確認。話の大筋は理解でき、経理承認と経理確認の表記揺れを必須指摘。本文3の図と原稿を経理確認へ修正して再確認待ち。正本・音声動画は未変更。[変更記録36](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-36-intro-final-luna-terms.md)を参照。
 
 2026年10月25日、利用者の正本化指示を受け、共通のはじめにをACDR0205で正本へ反映。表紙1枚＋本文9枚のスライドと原稿を再生成。表紙の専用原稿も入力へ記録。音声・動画は改訂前。[変更記録37](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-37-intro-canonical-release.md)を参照。
+
+2026年10月25日、共通のはじめにの音声・字幕付き動画をACDR0206で更新。表紙＋本文9枚、約22分39秒、字幕253cue。スライドと原稿に一致することを照合し、ブラウザー再生も確認。[変更記録38](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-38-intro-video-release.md)を参照。
