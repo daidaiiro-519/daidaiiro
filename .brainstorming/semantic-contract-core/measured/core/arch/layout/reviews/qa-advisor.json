@@ -1,0 +1,408 @@
+{
+  "kind": "design",
+  "question": "semantic-agent-schema/ の CODING.md に書くテストの規則（置き場所 ・ 命名 ・ テストダブル ・ システムテストの形 ・ 完了基準と CI の順 ・ 観点の抜け）をどう設計するか",
+  "premises": [
+    {
+      "name": "テスト計画",
+      "value": "承認済み。単体が最も厚い ・ コンポーネント統合（application はポートをテストダブル、outbound は本物を一時ディレクトリ、schemas/v1）・ システム（バイナリを protocol のコマンドで動かす約21場面）・ 静的（architecture-lint ・ clippy の forbid ・ 単独ビルド）",
+      "source": "arch/test-plan/index.html"
+    },
+    {
+      "name": "構成",
+      "value": "crates/domain の8つ ・ application（use_cases/ と ports/ 13）・ outbound（agents-contract ・ ai-cli ・ git ・ fs ・ tools ・ sqlite）・ inbound/cli（tests/system.rs）。識別子は英語（ASCII）",
+      "source": "arch.html 4〜6節"
+    },
+    {
+      "name": "追跡の元",
+      "value": "model.json の使う場面23 ×｛事後, 失敗時｝と不変条件46。核の coverage.json は 場面19 ・ 静的4 ・ 一部2 ・ 確かめない67 に分け、run.py が traces で突き合わせている",
+      "source": "model.json ・ coverage.json ・ run.py"
+    },
+    {
+      "name": "needs と検査①②",
+      "value": "validate は AI の rule を needs で返し、semantic-judge の答えを validate がまとめる。検査①は入力が入力のスキーマに合うか（外れたら断り、状態に触れない）、②は適用した後の出力（外れても保存し violated で返す）",
+      "source": "model.json ports.inbound"
+    },
+    {
+      "name": "Rust と Cargo の仕組み",
+      "value": "#[cfg(test)] ・ tests/ ・ dev-dependencies ・ harness = false ・ CARGO_BIN_EXE_<名前> ・ cargo test --lib / --test '*'、および libtest-mimic（場面ごとに1件のテストとして登録する外の crate）は判断基準の範囲外。fact-check で原文と照合してから CODING.md に書く",
+      "source": "判断基準の範囲外"
+    },
+    {
+      "name": "システムテストの形",
+      "value": "protocol（Q4）が待ちのため、コマンドの名前と引数の形は未判定。下の JSON の形は「1場面＝前提のコマンド列 ・ 操作1つ ・ 期待」の骨組みだけを決める",
+      "source": "test-plan 1節「形は protocol（Q4）が決まってから決める」"
+    }
+  ],
+  "conclusion": {
+    "stance": "adopt",
+    "headline": "テストを置く場所でテストレベルを決め、使う場面と不変条件への追跡はテストの側に1か所だけ書き、区分は書かずに置いた場所から導き、CI は静的 → 単体 → 統合 → システムの順で、どの段でも0件で止める。",
+    "because": "トレーサビリティはテストプロセスの全期間で確立し維持してカバレッジの評価に使うものであり、終了基準はテストレベルごとに定義するべきとされる。置き場所＝レベルにすると、追跡と終了基準の両方を機械で判定できる。"
+  },
+  "figure": {
+    "caption": "1つの変更を終えるまでに通る段。前の段が0件で通らなければ次へ進まない。追跡の検査は model.json とテストの両方を読む",
+    "nodes": [
+      {
+        "id": "fmt",
+        "label": "1 cargo fmt --check",
+        "role": "静的"
+      },
+      {
+        "id": "lint",
+        "label": "2 architecture-lint",
+        "role": "静的"
+      },
+      {
+        "id": "clippy",
+        "label": "3 clippy -D warnings（forbid）",
+        "role": "静的"
+      },
+      {
+        "id": "solo",
+        "label": "4 crate ごとの単独ビルド",
+        "role": "静的"
+      },
+      {
+        "id": "trace",
+        "label": "5 追跡の検査（model.json ⇔ traces）と test-suite の形",
+        "role": "静的"
+      },
+      {
+        "id": "unit",
+        "label": "6 単体 cargo test --lib",
+        "role": "動的"
+      },
+      {
+        "id": "integ",
+        "label": "7 コンポーネント統合 --test '*'（cli を除く）",
+        "role": "動的"
+      },
+      {
+        "id": "sys",
+        "label": "8 システム -p cli --test system",
+        "role": "動的"
+      },
+      {
+        "id": "model",
+        "label": "model.json（U ・ I）",
+        "role": "正本"
+      }
+    ],
+    "edges": [
+      {
+        "from": "fmt",
+        "to": "lint"
+      },
+      {
+        "from": "lint",
+        "to": "clippy"
+      },
+      {
+        "from": "clippy",
+        "to": "solo"
+      },
+      {
+        "from": "solo",
+        "to": "trace"
+      },
+      {
+        "from": "trace",
+        "to": "unit"
+      },
+      {
+        "from": "unit",
+        "to": "integ"
+      },
+      {
+        "from": "integ",
+        "to": "sys"
+      },
+      {
+        "from": "model",
+        "to": "trace",
+        "label": "行の一覧",
+        "dashed": true
+      }
+    ]
+  },
+  "steps": [
+    {
+      "do": "1-a 単体テストを、確かめるコードと同じファイルの #[cfg(test)] mod tests に置く",
+      "detail": "domain の集約の操作 ・ ファクトリ ・ ドメインサービス ・ 値オブジェクトはすべてここ。テストダブルは使わない（値を渡して値を比べる）。#[cfg(test)] は mod tests にだけ付け、製品のコードにテストのためだけの関数 ・ 分岐 ・ pub を足さない。application の use_cases の単体テストも置かない（ポートを使うのでコンポーネント統合へ）"
+    },
+    {
+      "do": "1-b コンポーネント統合テストを、crate ごとに tests/<crate の短い名前>/main.rs の1つのテストのターゲットにまとめ、中をモジュールに分ける",
+      "detail": "application：tests/use_cases/main.rs と、src/use_cases/ と同じ名前のモジュール（patch.rs ・ validate.rs ・ record.rs …）。outbound：tests/sqlite/main.rs ・ tests/git/main.rs のように crate ごと。git と snapshot は同じモジュールの同じテストを両方の実装に当てる（K5）。schemas：declaration の tests/schemas/main.rs で schemas/v1 の13ファイルに正しいインスタンスと誤ったインスタンスを通す"
+    },
+    {
+      "do": "1-c テストダブルを、application の tests/use_cases/doubles/ にポート1つ1ファイルで置き、型の名前で種類を示す",
+      "detail": "保存のポート（contracts ・ instances ・ judgments ・ change_records ・ sessions ・ change_summaries）は FakeXxx（メモリ上で本当に保存する）、外から答えを受け取るポート（judge ・ ai_sessions ・ tools ・ settings ・ published）は StubXxx（テストが値を決めて返す）。Mock Object で呼び出しの順は確かめない。前提の状態を作る Creation Method は tests/use_cases/support.rs の1か所にまとめる。dev 専用の crate は作らない（使うのが application だけで、architecture.json に辺が増えるため）"
+    },
+    {
+      "do": "1-d テストの関数の名前を、英語の snake_case で「条件_期待」の形にする",
+      "detail": "例：closed_session_is_not_reopened ・ input_outside_schema_is_refused_without_state_change ・ split_answers_become_unverified。決定表の列なら列の条件を名前にし、1列に1つのテスト。状態遷移は1テストに無効な遷移1つ。テストの本体に if ・ for ・ while ・ match を書かず、同じ種類の assert を2回以上書くときは assert_eq!(…, \"何を確かめたか\") を付ける"
+    },
+    {
+      "do": "2-a 使う場面と不変条件への追跡を、テストの関数の doc コメントの1行 `/// traces: I45, U27:事後` に書く（システムテストは test-suite の traces）",
+      "detail": "テスト計画は「単体テストのモジュールの説明」としていたが、モジュール単位ではどのテストが落ちたらどの行のリスクが残るかを引けないので、関数に寄せる。書く場所は1テストにつき1か所で、ほかに対応表を持たない"
+    },
+    {
+      "do": "2-b coverage.json の区分は持ち込まず、traces が見つかった場所から区分を導く",
+      "detail": "src/ の mod tests → 単体、crates/*/tests/ → 統合、test-suite/ → システム、architecture.json ・ clippy.toml ・ schemas の検査 → 静的（静的は test-suite/static.json に「どの検査が守るか」を traces 付きで1行ずつ書く）。まだテストが無い行だけを test-suite/untested.json に why ・ move_when 付きで置く。同じ行が traces と untested の両方にある ・ どちらにも無い ・ model.json に無い id を traces に書いた、の3つを追跡の検査が落とす"
+    },
+    {
+      "do": "2-c model.json を semantic-agent-schema/ に置き、追跡の検査を inbound/cli の tests/system/ の中のモジュール traces に1つ置く",
+      "detail": "検査は model.json の use_cases ×｛事後, 失敗時｝と invariants の id を並べ、test-suite/*.json の traces と crates/**/*.rs の `/// traces:` 行を集めて突き合わせる。件数は固定しない（テスト計画の「場面の件数を固定する検査」を外した理由と同じ）。xtask の crate は足さない"
+    },
+    {
+      "do": "3-a test-suite/<区分>.json を、場面の配列にし、1場面＝前提のコマンド列 ・ 操作1つ ・ 期待にする",
+      "detail": "欄：id（S-REC-1 の形）・ title ・ traces ・ given.files（作業の木に置くファイル）・ given.steps（前提を作る protocol のコマンドの列。手元の DB を直接書かない）・ when（コマンド1つ：args ・ stdin）・ then（id ・ at（JSON Pointer。/exit ・ /stdout/… ・ /after/<名前>/…）・ message ・ 期待の種類1つ）・ after（操作の後に状態を読む protocol のコマンド。名前付き）・ unchanged（操作の前後で同じであるべき after の名前）。期待の種類は equals ・ contains ・ count ・ exists ・ matches（ULID の形などの正規表現）・ same_as（別の at と同じ値）。ULID ・ コミットの参照 ・ 時刻を equals で書かない。形は test-suite/scenario.schema.json が持ち、段5で検査する"
+    },
+    {
+      "do": "3-b system テストを harness = false のテストのターゲットにし、場面1つを1件のテストとして登録して走らせる",
+      "detail": "crates/inbound/cli/tests/system/main.rs が test-suite/*.json を読み、場面ごとに一時ディレクトリを作り（git init ・ HOME と XDG の各ディレクトリもその下に向ける）、CARGO_BIN_EXE_<名前> のバイナリを Command で起動する。1つの #[test] の中で全場面をループしない。`cargo test -p semantic-agent-schema-cli --test system S-REC-1` で1場面だけ走らせられるようにする。本物の AI ツールは呼ばず、needs への答えは場面の steps がコマンドで渡す"
+    },
+    {
+      "do": "4-a 1つの変更の完了基準を、図の1〜8がすべて0件で通ることにする",
+      "detail": "加えて：追跡の検査で untested.json の行が増えていない（減るのはよい）・ 欠陥を直した変更は、直す前に落ちる確認テストを1件足してある ・ 直した使う場面 ・ 不変条件の行に traces がある。行のカバレッジの数値は基準にしない"
+    },
+    {
+      "do": "4-b CI を毎回の push で、図の順に別々の段として回す",
+      "detail": "fmt → architecture-lint → clippy --workspace --all-targets --locked -D warnings → cargo build -p <crate>（全 crate）と cargo tree -e features → 追跡と test-suite の形 → cargo test --workspace --lib --locked → cargo test --workspace --test '*' --exclude semantic-agent-schema-cli --locked → cargo test -p semantic-agent-schema-cli --test system --locked。段を分けるのは、落ちた段でレベルが分かるようにするため。夜間に、system の場面を逆順で走らせる段を1つ足す（核の run.py の --reverse を引き継ぐ）"
+    },
+    {
+      "do": "5-a needs の往復をシステムテストに入れる",
+      "detail": "validate → needs（AI の rule ごとの依頼）が出る → 場面が semantic-judge の答えをコマンドで渡す → validate が5つの値にまとめる、を1場面にする。単体（validator の②）では、割れた答え ・ 根拠が空 ・ 読んだ値に無い根拠 → unverified（I14）を決定表の列で1つずつ。needs の各項目が procedure の出力のスキーマに合うかを then の1つにする"
+    },
+    {
+      "do": "5-b 検査①②を、境界の両側の組で確かめる",
+      "detail": "①：入力のスキーマに合わない入力 → 断る ・ unchanged（作業の木 ・ 変更の記録 ・ セッションの索引）を after のコマンドで読んで前後同じ。②：機械の rule に外れた出力 → 保存し violated、AI の rule → needs。①が外れたら②まで進まないことも1場面。セマンティックの7コマンドが返す procedure が schemas/v1 の procedure に合い、AI を起動しないことは統合（application）で確かめる"
+    },
+    {
+      "do": "5-c 手元の DB とまとめのコミットに、抜けている観点を足す",
+      "detail": "sqlite の統合：schema.sql の一意の索引 ・ トリガー（14場面）に加えて、前の版のバイナリが作った DB を開ける（メンテナンステスト）・ DB が無い ・ 壊れているときの振る舞い。同時の登録（S-SES-10）は2つの接続を順に使って決定的に書き、sleep で待たない。まとめ：record で記録と変更の前後を両方向に突き合わせ（I31）、記録の無い書き換えが例外に出る ・ 同じ記録から作ったまとめが ULID とコミットの参照を除いて同じ ・ git と snapshot で一致 ・ コミットごとに1件（I35）"
+    },
+    {
+      "do": "5-d ai-cli の記録した出力を、本物の AI ツールの出力の変化と別に管理する",
+      "detail": "記録は crates/outbound/ai-cli/tests/ai_cli/recorded/ に置き、CI では本物を呼ばない。本物の出力の形が変わったことは CI で見つからないので、記録を取り直す手順と頻度を CODING.md に書く（手動の確認として残す）"
+    }
+  ],
+  "code": [
+    {
+      "kind": "para",
+      "text": "良い例：追跡を関数に1行で持つ単体テスト（決定表の1列に1つ）"
+    },
+    {
+      "kind": "code",
+      "text": "// crates/domain/session/src/aggregates/session.rs の末尾\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    /// traces: I45\n    #[test]\n    fn closed_session_is_not_reopened() {\n        let closed = closed_session(\"P1\");\n        assert_eq!(closed.reopen(), Err(SessionError::Closed));\n    }\n\n    // Creation Method：このテストに効かない欄は既定の値で埋める\n    fn closed_session(id: &str) -> Session { Session::open(sid(id), purpose(\"ACDR 0197\")).close() }\n}"
+    },
+    {
+      "kind": "para",
+      "text": "良い例：test-suite の1場面（検査①。断って状態に触れない）"
+    },
+    {
+      "kind": "code",
+      "text": "{\n  \"id\": \"S-PATCH-1\",\n  \"title\": \"入力のスキーマに合わない patch は断り、何も書かない\",\n  \"traces\": [\"U6:失敗時\"],\n  \"given\": {\"steps\": [{\"cmd\": \"session\", \"args\": {\"open\": \"ACDR 0197\"}}]},\n  \"when\": {\"cmd\": \"patch\", \"stdin\": {\"ops\": \"not-an-array\"}},\n  \"after\": {\"history\": {\"cmd\": \"history\", \"args\": {}}},\n  \"then\": [\n    {\"id\": \"E1\", \"at\": \"/exit\", \"message\": \"断っていない\", \"equals\": 2},\n    {\"id\": \"E2\", \"at\": \"/stdout/refused/at\", \"message\": \"どこが合わないかを返していない\", \"exists\": true}\n  ],\n  \"unchanged\": [\"history\"]\n}"
+    },
+    {
+      "kind": "para",
+      "text": "避ける例：1つの #[test] で全場面を回す（どの場面が落ちたかが分からず、最初の失敗で止まる）"
+    },
+    {
+      "kind": "code",
+      "text": "#[test]\nfn all_scenarios() {\n    for sc in load(\"test-suite\") {          // ループ\n        let out = run(&sc);\n        if sc.then.is_empty() { continue; }  // 分岐\n        assert!(check(&sc, &out));          // メッセージなし\n    }\n}"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "traceability",
+      "quote": "対応：テストプロセスの全期間にわたって、トレーサビリティを確立し維持する ・ 理由：効果的なテストのモニタリングとコントロールの実装に重要である"
+    },
+    {
+      "criterion": "traceability",
+      "quote": "トレーサビリティ：テストケースと要件 ・ 評価できること：要件がテストケースでカバーされていること"
+    },
+    {
+      "criterion": "test-levels",
+      "quote": "テストレベル：コンポーネント統合テスト（ユニット統合テスト） ・ 焦点：コンポーネント間のインターフェースと相互処理"
+    },
+    {
+      "criterion": "test-pyramid",
+      "quote": "条件：レイヤーが高くなる ・ 対応：テストの粒度は粗くなり、テストの分離は少なくなり、テスト実行時間は遅くなる"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "対応：開始基準と終了基準を、テストレベルごとに定義するべきである"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "区分：終了基準 ・ 基準：完了基準 ・ 例：計画したテストの実行 ・ 静的テストの実行 ・ 発見したすべての欠陥のレポート ・ すべてのリグレッションテストの自動化"
+    },
+    {
+      "criterion": "static-testing",
+      "quote": "場面：シフトレフト ・ 静的テストの扱い：仕様書をテストの観点でレビューする。ソースコードの静的解析は、動的テストより前か、自動化したプロセスの中で完了させる"
+    },
+    {
+      "criterion": "devops-and-testing",
+      "quote": "テスト活動：静的解析 ・ CI ・ DevOps パイプラインとの関係：CI フレームワークへ組み込む例が多い"
+    },
+    {
+      "criterion": "test-automation",
+      "quote": "条件：第一象限（コンポーネントテスト ・ コンポーネント統合テスト） ・ 対応：自動化して CI プロセスに含めるべきである"
+    },
+    {
+      "criterion": "decision-table-testing",
+      "quote": "項目：カバレッジアイテム ・ 内容：実行可能な条件の組み合わせを含む列"
+    },
+    {
+      "criterion": "state-transition-testing",
+      "quote": "条件：全遷移カバレッジで無効な遷移をテストする ・ 対応：1つのテストケースで無効な遷移を1つだけテストし、欠陥のマスキングを回避する"
+    },
+    {
+      "criterion": "conditional-test-logic",
+      "quote": "原因：Multiple Test Conditions ・ 場面：Defect Localization が得られない ・ 直し方：テスト条件ごとに別々の Test Methods を作り、そこから Parameterized Test を呼ぶ"
+    },
+    {
+      "criterion": "conditional-test-logic",
+      "quote": "原因：Multiple Test Conditions ・ 場面：値の組が大量にある ・ 直し方：Data-Driven Test に切り替えるほうが、よりよい解決になるかもしれない"
+    },
+    {
+      "criterion": "assertion-roulette",
+      "quote": "条件：1つのテストで同じ種類の Assertion Method を2回以上呼ぶ ・ 対応：最小限でよいので Assertion Message を付ける ・ 理由：Equality Assertion は期待値と実際の値の両方を表示するのがふつうだが、似た期待値が並ぶか表示が分かりにくいと、失敗したものを見分けにくい"
+    },
+    {
+      "criterion": "test-logic-in-production",
+      "quote": "原因：For Tests Only ・ 何が起きているか：SUT の中に、テストだけが使うためのコードがある ・ 見え方：SUT のメソッドのうち、テストからしか呼ばれないものがある。private のはずの属性のいくつかが public になっている"
+    },
+    {
+      "criterion": "test-code-duplication",
+      "quote": "原因：Cut-and-Paste Code Reuse ・ 場面：重複がフィクスチャの準備の処理 ・ 直し方：取り出した結果は、Creation Methods か Finder Methods（Test Utility Method の一種）になる"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "原因：Resource Optimism ・ 直し方：できれば fixture setup の段階でリソースを作り、Fresh Fixture にする。これでどこで実行してもリソースがある。SUT をどこで動かしてもファイルシステムの決まった場所があるように、ファイルを相対的な場所で指すことになるかもしれない。外部のリソースを使わざるを得ないなら、ソースコードの Repository に登録し、すべての Test Runner を同じ環境で実行させる"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "条件：互いに依存するテストがあるか確かめたい ・ 対応：ふだんと違う順でテストを実行する。スイート全体を逆順に実行するとよく見つかる ・ 理由：これを定期的にすれば、Interacting Tests を気付かずに作り込むことを防ぎやすい"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "条件：データベースに保存するオブジェクトの一意のキー ・ 対応：Distinct Generated Value を使ってよい ・ 理由：これが、実行ごとに違う値を使う正当な使い方である"
+    },
+    {
+      "criterion": "fragile-test",
+      "quote": "敏感さ：Context Sensitivity ・ 直し方：テストを決定的にするため、SUT のすべての入力を制御する。ほかのシステムからの入力は、テストが値を決めて差し込む Test Stub で制御する。時刻か日付に固有の処理があれば、システムクロックを Virtual Clock に差し替え、テストが開始の時刻か日付を決め、ことによると時間の経過もまねられるようにする"
+    },
+    {
+      "criterion": "slow-tests",
+      "quote": "原因：Asynchronous Test ・ 直し方：処理を同期的にテストし、テストの非同期性を避ける。そのために Extract Testable Component のリファクタリングで Humble Executible を作る必要があるかもしれない"
+    },
+    {
+      "criterion": "confirmation-and-regression-testing",
+      "quote": "確認テスト：元の欠陥が、正常に修正されたことを確認するテスト。デバッグで原因を修正した後に、修正によって問題が解決されたかを確認する。"
+    },
+    {
+      "criterion": "testware",
+      "quote": "対応：適切な構成管理で、作業成果物の一貫性と整合性を確保する"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "Conditional Test Logic（1つの #[test] で全場面をループ）",
+      "risk": "どの場面が落ちたかが出力から分からず、最初の失敗で残りが走らない（Defect Localization が得られない）",
+      "alternative": "harness = false で場面1つを1件のテストとして登録する（Data-Driven Test）。単体は決定表の1列に1つの #[test]"
+    },
+    {
+      "name": "Erratic Test（Resource Optimism）：システムテストが利用者の HOME の設定や手元の DB を読む",
+      "risk": "settings の3段のうち user の段が開発者ごとに違い、手元と CI で結果が変わる",
+      "alternative": "場面ごとに一時ディレクトリを作り、HOME ・ XDG の各ディレクトリ ・ 作業の木 ・ DB をすべてその下に向けて子のプロセスに渡す（Fresh Fixture）"
+    },
+    {
+      "name": "Fragile Test（Context Sensitivity）：ULID ・ コミットの参照 ・ 時刻を equals で期待する",
+      "risk": "実行のたびに値が変わり、毎回落ちるか、期待を書き換え続けることになる",
+      "alternative": "単体では時刻と id を値で渡す。システムでは matches（形）と same_as（記録と索引で同じ値）で値の関係を期待する"
+    },
+    {
+      "name": "（推測）追跡を2か所に持つ（coverage.json の区分とテストの traces）",
+      "risk": "片方だけ直したときに食い違い、どちらが正しいかを毎回確かめることになる",
+      "alternative": "traces はテストの側だけに書き、区分は置いた場所から導く。テストの無い行だけ untested.json に理由付きで置く"
+    },
+    {
+      "name": "Slow Tests（Asynchronous Test）：同時の登録やセッションの再開を sleep で待つ",
+      "risk": "待ちの時間が場面の数だけ積み上がり、時間の足りない CI では時々落ちる",
+      "alternative": "2つの接続を順に使うなど同期的に書く。待ちが要る処理は、処理を非同期の仕組みから分けて単体で確かめる"
+    },
+    {
+      "name": "Test Logic in Production（For Tests Only）：テストのために domain の型にコンストラクタや pub を足す",
+      "risk": "テストだけが使う公開 API が配る実行ファイルに入り、本当の呼び出し側を迷わせる",
+      "alternative": "テストは公開のファクトリと集約の操作で前提を作り、Creation Method はテストのモジュールの中に置く"
+    }
+  ],
+  "records": [
+    {
+      "target": "CODING.md「テスト」節の表1（レベルと置き場所）",
+      "content": "単体＝同じファイルの #[cfg(test)] mod tests ／ コンポーネント統合＝crates/<層>/<crate>/tests/<短い名前>/main.rs（1つ）とモジュール ／ システム＝crates/inbound/cli/tests/system/main.rs（harness = false）と test-suite/*.json ／ 静的＝architecture-lint ・ clippy ・ 単独ビルド ・ 追跡の検査"
+    },
+    {
+      "target": "CODING.md「テスト」節の表2（規則・なぜ・検査）",
+      "content": "名前は「条件_期待」の snake_case ／ 本体に if ・ for ・ while ・ match を書かない ／ 同じ種類の assert が2回以上ならメッセージを付ける ／ #[cfg(test)] は mod tests にだけ ／ テストダブルは application の tests/use_cases/doubles/ に Fake ・ Stub の接頭辞で、ポート1つ1ファイル ／ 時刻 ・ id ・ 乱数は値で渡す ／ ULID と参照は形と関係で期待する ／ 追跡は `/// traces:` の1行"
+    },
+    {
+      "target": "CODING.md「完了基準」節",
+      "content": "図の1〜8が0件 ・ untested.json の行が増えない ・ 欠陥の修正には直す前に落ちる確認テストを1件 ・ CI は push ごとに同じ順で段を分けて回す ・ 夜間に system を逆順で1回"
+    },
+    {
+      "target": "test-suite/scenario.schema.json",
+      "content": "id ・ title ・ traces ・ given（files ・ steps）・ when ・ after ・ then（at ・ message ・ equals | contains | count | exists | matches | same_as のどれか1つ）・ unchanged"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "model.json の states（ドメインモデル）",
+      "why": "インスタンスの状態を導く決定表の列（violated と error が同時にあるときの優先など）がまだモデルに無く、単体テストの列を決められない（テスト計画の6節と同じ指摘）"
+    },
+    {
+      "suspect": "protocol（Q4）",
+      "why": "システムテストの given.steps ・ when ・ after に書くコマンドの名前と引数、終了コードの値が決まっていない。needs への答えをどのコマンドで渡すかもここが決める"
+    },
+    {
+      "suspect": "アーキテクチャの judge ポートと needs の2つの経路",
+      "why": "validate が needs を返す経路と、agents-contract が ai-cli で AI を起動する judge ポートの経路のどちらを、いつ使うかがテストから決められない。経路ごとにどのレベルで確かめるかを先に決める必要があるかもしれない"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "場面を足すときに traces を書き忘れる、または model.json に無い id を書く",
+      "check": "段5の追跡の検査が、traces の無い場面 ・ model.json に無い id ・ traces と untested の両方にある行を0件で通すかを見る"
+    },
+    {
+      "breaks": "テストを通すために #[cfg(test)] の関数や pub を製品のコードに足す",
+      "check": "rg '#\\[cfg\\(test\\)\\]' crates -A1 の結果が mod tests の行だけであることを確かめる"
+    },
+    {
+      "breaks": "システムテストで手元の DB や作業の木のファイルを直接読んで期待する",
+      "check": "crates/inbound/cli/tests/system/ に rusqlite ・ std::fs::read の呼び出しが0件（前提のファイル置きを除く）であることを確かめる"
+    },
+    {
+      "breaks": "needs に答えるために本物の AI ツールを CI で起動する",
+      "check": "CI の環境から AI ツールの実行ファイルを外した状態で、段8が通ることを確かめる"
+    }
+  ],
+  "next": [
+    "model.json の states にインスタンスの状態を導く決定表の列を足す",
+    "Cargo の harness = false ・ CARGO_BIN_EXE ・ --test '*' と libtest-mimic の原文を fact-check で照合する",
+    "test-suite/scenario.schema.json の骨組みを書き、核の behaviors/changes.json の1場面を写して形を試す",
+    "CODING.md のテストの節と完了基準の節を、記録案の4行で起こす",
+    "judge ポートと needs のどちらの経路をどのレベルで確かめるかを、アーキテクチャの論点として出す"
+  ],
+  "related": [
+    {
+      "criterion": "hard-to-test-code",
+      "relation": "非同期の処理を分けて単体で確かめる（同時の登録 ・ セッションの再開）"
+    },
+    {
+      "criterion": "test-pyramid",
+      "relation": "単体を厚くし、システムは約21場面に絞る配分"
+    }
+  ]
+}

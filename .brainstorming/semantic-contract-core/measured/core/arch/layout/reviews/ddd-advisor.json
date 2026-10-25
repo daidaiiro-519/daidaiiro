@@ -1,0 +1,423 @@
+{
+  "kind": "design",
+  "question": "Rust のワークスペース semantic-agent-schema/ で、承認済みのドメインモデル（model.json：集約9 ・ ドメインサービス4 ・ ファクトリ3 ・ 値オブジェクト32 ・ 不変条件46 ・ ポート）を、domain の8つの crate と application の中のモジュールとファイルへどう置くか。①型の種類で分けるか集約ごとに分けるか ②2つ以上の crate で使う値オブジェクトの置き場所 ③application の使う場面とポートのファイルの分け方 ④英語の型名の決め方と対応表の置き場所 ⑤置き方の誤りを機械で検査する方法",
+  "premises": [
+    {
+      "name": "決まっていること",
+      "value": "ポートとアダプター。domain の crate 8つ（declaration ・ instance ・ change ・ resolver ・ validation ・ render ・ search ・ session）・ application（使う場面と ports/ に駆動される側のポート13）・ outbound/* ・ inbound/cli。domain は入出力をせず、ポートを持たない。crate の間の辺は arch.html 4節の表が持つ（session と declaration は依存先が無い）",
+      "source": "ACDR 0201 ・ arch.html 4節 ・ 5節"
+    },
+    {
+      "name": "区切られた文脈の数",
+      "value": "基盤（Semantic Agent Schema）の8つの crate は、1つの区切られた文脈の中の業務領域ごとの分け方として扱う。crate の境目は文脈の境目ではない",
+      "source": "model.json の boundary（持ち主が「基盤」）。仮定であり、文脈を分けるなら②の答えが変わる"
+    },
+    {
+      "name": "ポートの置き場所",
+      "value": "ポートを application に置くことは ACDR 0201 で決まっている。この回答は見直さない",
+      "source": "ACDR 0201"
+    },
+    {
+      "name": "ファクトリ",
+      "value": "ファクトリの置き方は判断基準に無い。この回答では「作る型と同じモジュールに置く」を Rust の可視性の都合から決め、判断基準の根拠にはしない",
+      "source": "判断基準の範囲外"
+    },
+    {
+      "name": "Rust の可視性",
+      "value": "Rust の private はモジュール単位で効く。同じモジュール（とその子）の外からは private の欄を読めず書けない。集約のルートとエンティティを別のモジュールに置くと、欄を pub(crate) にしないと組めない",
+      "source": "判断基準の範囲外（Rust の言語仕様）"
+    },
+    {
+      "name": "現在の下書き",
+      "value": "arch_tree.py（arch.html 5節）は、domain の crate の中を aggregates/ ・ factories/ ・ services/ と値オブジェクトの直置きに分け、対訳を CODING.md の表に置く案である",
+      "source": ".brainstorming/semantic-contract-core/measured/core/view/arch_tree.py"
+    }
+  ],
+  "conclusion": {
+    "stance": "adopt",
+    "headline": "domain の crate の中は型の種類ではなく集約ごとのモジュールで分け、値オブジェクトはその語を持つ業務領域の crate に置いて共有の crate を作らず、application は model.json のポートの行と1対1のファイルにし、英語名は model.json に1か所だけ持たせて、コードとの食い違いを architecture-lint ・ clippy ・ model.json を読む試験の3つで止める。",
+    "because": "判断基準は、集約の状態を集約内部の業務ロジックだけが変えられること、エンティティを集約の実装の一部にすること、妥当性の検証を値オブジェクト自身に持たせることを求める。Rust ではこれをモジュールの可視性で強制できるので、モジュールの境目を集約の境目に合わせると、コンパイラがそのまま検査になる。"
+  },
+  "figure": {
+    "caption": "domain の crate 1つの中の置き方と、application ・ model.json とのつながり",
+    "nodes": [
+      {
+        "id": "crate",
+        "label": "domain の crate（lib.rs は pub use だけ）",
+        "role": "crate"
+      },
+      {
+        "id": "agg",
+        "label": "集約のモジュール（ルート ・ コマンド）",
+        "role": "集約"
+      },
+      {
+        "id": "ent",
+        "label": "エンティティ ・ その集約だけの値オブジェクト ・ ファクトリ",
+        "role": "集約の中"
+      },
+      {
+        "id": "vo",
+        "label": "crate 直下の値オブジェクト（集約の外でも名前で使う）",
+        "role": "値オブジェクト"
+      },
+      {
+        "id": "svc",
+        "label": "ドメインサービス（1つ1ファイル）",
+        "role": "ドメインサービス"
+      },
+      {
+        "id": "inv",
+        "label": "不変条件 I番号（守る関数の doc と試験の名前）",
+        "role": "不変条件"
+      },
+      {
+        "id": "uc",
+        "label": "application/use_cases（駆動する側のポート12行に1ファイル）",
+        "role": "使う場面"
+      },
+      {
+        "id": "port",
+        "label": "application/ports（駆動される側のポート13行に1ファイル）",
+        "role": "ポート"
+      },
+      {
+        "id": "model",
+        "label": "model.json（日本語名と英語名の正本）",
+        "role": "正本"
+      }
+    ],
+    "edges": [
+      {
+        "from": "crate",
+        "to": "agg",
+        "label": "持つ"
+      },
+      {
+        "from": "agg",
+        "to": "ent",
+        "label": "中に置く"
+      },
+      {
+        "from": "crate",
+        "to": "vo",
+        "label": "持つ"
+      },
+      {
+        "from": "crate",
+        "to": "svc",
+        "label": "持つ"
+      },
+      {
+        "from": "agg",
+        "to": "inv",
+        "label": "コマンドで守る"
+      },
+      {
+        "from": "vo",
+        "to": "inv",
+        "label": "作るときに守る"
+      },
+      {
+        "from": "uc",
+        "to": "agg",
+        "label": "読む → コマンド → 書く"
+      },
+      {
+        "from": "uc",
+        "to": "port",
+        "label": "使う"
+      },
+      {
+        "from": "model",
+        "to": "agg",
+        "label": "名前を決める",
+        "dashed": true
+      },
+      {
+        "from": "model",
+        "to": "uc",
+        "label": "行と1対1",
+        "dashed": true
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "A：型の種類で分ける（aggregates/ ・ factories/ ・ services/ ・ 値オブジェクトの直置き。いまの下書き）",
+      "effect": "Concrete の rule と任せる先（エンティティ）がルートと別のモジュールになり、組むために欄を pub(crate) にする。crate の中のどこからでも集約の状態を書けるようになり、不変条件を集約の外の関数で守るコードが書けてしまう。ファクトリも別モジュールなので同じことが起きる",
+      "chosen": false
+    },
+    {
+      "option": "B：集約ごとのモジュールで分ける（集約1つに1モジュール。エンティティ ・ その集約だけの値オブジェクト ・ ファクトリはその中）",
+      "effect": "欄を private のまま、ルートのコマンドとファクトリだけが状態を作り変えられる。集約の外から状態を書くコードはコンパイルが止める。集約の一覧と crate の中のモジュールの一覧が1対1になり、model.json と突き合わせられる",
+      "chosen": true
+    },
+    {
+      "option": "C：2つ以上の crate で使う値オブジェクトを、共有の crate（common など）に集める",
+      "effect": "検証結果 ・ 状態 ・ 出どころ ・ procedure の持ち主の業務領域が消え、それを使う規則が共有の crate と持ち主の crate に分かれる。共有の crate はどの crate からも依存されるので、変更のたびに8つ全部が作り直しになる",
+      "chosen": false
+    },
+    {
+      "option": "D：値オブジェクトを、その語の規則を持つ業務領域の crate に置き、使う側はいまの辺で依存する。辺の無い組だけを個別に解く",
+      "effect": "32のうち30はいまの辺のまま置ける。残る2つ（目的の参照 ・ 手元のセッションの索引）と、出どころを validate が確かめる1件だけを、辺を1本足すか application に置くかで解く",
+      "chosen": true
+    }
+  ],
+  "steps": [
+    {
+      "do": "domain の各 crate の src を、集約1つにモジュール1つで組む",
+      "detail": "集約がエンティティか専用の値オブジェクトを持つならフォルダ（例：declaration/src/concrete_schema/mod.rs ・ rule.rs ・ delegate.rs ・ template.rs）、持たないなら1ファイル（例：declaration/src/glossary.rs）。ルートの構造体は pub、欄は private、読むのは pub fn、状態を変えるのはコマンドの pub fn だけ。エンティティ（rule ・ 任せる先）の欄も private にし、変えるのはルートのコマンドから。aggregates/ ・ factories/ ・ services/ のフォルダは作らない"
+    },
+    {
+      "do": "ファクトリを、作る型のモジュールの中に置く",
+      "detail": "Concrete の雛形 → declaration/src/concrete_schema/template.rs、インスタンス（作る ・ 取り込む）→ instance/src/instance/factory.rs（または instance.rs の関連関数）、変更のまとめ → change/src/summary/ の中。private の欄を組めるのは同じモジュールだけなので、ファクトリが集約のコマンドを迂回する道を作らない"
+    },
+    {
+      "do": "値オブジェクトの置き場所を、使う範囲で決める",
+      "detail": "1つの集約の中だけで使うなら、その集約のモジュールの中。集約の外（同じ crate のほかの集約 ・ ドメインサービス ・ ほかの crate ・ application）から型の名前で使うなら、crate の直下に1型1ファイル。どちらも欄は private で、作る関数が妥当性を検証する"
+    },
+    {
+      "do": "ドメインサービスを、1つ1ファイルで crate の直下に置く",
+      "detail": "resolver/src/resolver.rs（Semantic Schema Resolver）・ validation/src/validator.rs（Semantic Schema Validator）・ render/src/renderer.rs（Semantic Schema Renderer）・ session/src/selector.rs（Session Selector）。状態を持たない構造体か自由関数にし、集約を変えるコマンドを呼ばない（値を読んで値を返すだけ）"
+    },
+    {
+      "do": "値オブジェクト32を、その語の規則を持つ crate に割り当てる",
+      "detail": "割り当ては下の「コードの例」の表。いまの辺で置けないのは3件：①目的の参照（session と change の両方が持ち、2つの間に辺が無い）→ declaration に置き、session → declaration の辺を1本足す ②手元のセッションの索引（セッション ID と変更の記録の id の組）→ domain のどの crate にも置けないので application/ports/sessions.rs の型にする ③出どころを validate が評価し直す → validation から search への辺は足さず、application の validate の使う場面が search の関数で評価し直し、結果を値で Validator に渡す"
+    },
+    {
+      "do": "ほかの集約は ID の値オブジェクトで指す",
+      "detail": "変更の記録 ・ 判定の記録はインスタンスを、declaration の「対象」（id と kind、またはパス）で指す。change は instance の crate に依存しない（4節の辺のまま）。インスタンスの id の型は declaration の対象の中に置き、instance はそれを使う"
+    },
+    {
+      "do": "不変条件を、それを守る関数に I 番号で結びつける",
+      "detail": "守るのが集約のコマンドなら集約のモジュール、値の制約なら値オブジェクトの作る関数、集約をまたぐ計算ならドメインサービス、手元の DB の一意 ・ トリガー（I46 など）なら outbound/sqlite、入口の受け付け（I38 など）なら application。守る関数の doc コメントに「不変条件 I44」を書き、単体試験の名前を i44_… で始める。46行の置き場所の表は別に作らず、コードの印を正本にして試験で数える"
+    },
+    {
+      "do": "application を model.json のポートの行と1対1のファイルにする",
+      "detail": "use_cases/ は ports.inbound の12行に1ファイルずつ（意味を宣言する ・ インスタンスを書く ・ 検証する ・ 判定する ・ 探して取り出す ・ 描画する ・ 版を出す ・ 経緯 ・ セッション ・ 変更を記録する ・ まとめを作る ・ セマンティックの手順を返す）。1つの関数は、読む → 集約1つのコマンドかドメインサービス → 書く、で終え、2つの集約を1回で書かない。ports/ は ports.outbound の13行に1ファイルずつ trait を1つ。ポートの引数と戻り値に出る domain の型は application が pub use し、outbound は application だけに依存したまま使う"
+    },
+    {
+      "do": "英語の型名を model.json に足し、それを唯一の対応表にする",
+      "detail": "changes.py に行を足して、aggregates ・ entities ・ value_objects ・ domain_services ・ ファクトリ ・ ports の各項目に en（型名 ・ モジュール名 ・ crate 名）を持たせる。決まっている英語名（Semantic Schema Resolver など）はそのまま使う。型の doc コメントの1行目に model.json の日本語名を書く。CODING.md には対応表を写さず、model.json の場所だけを書く"
+    },
+    {
+      "do": "置き方の誤りを3つの道具で止める",
+      "detail": "①architecture-lint check --rules architecture.json --cargo .：crate の辺（session → declaration を足すならここにも足す）②clippy：domain の crate で入出力 ・ 時刻 ・ 乱数を禁じる（4節のまま）③model.json を読む試験（xtask の検査。製品の crate には入れない）：en の型が割り当てた crate に pub で1回だけ定義されている ・ 集約とエンティティの構造体に pub の欄が0件 ・ I1〜I46 の印がどれも1回以上あり、model.json に無い I 番号が0件 ・ use_cases/ と ports/ のファイルの数と名前が ports の行と一致"
+    }
+  ],
+  "code": [
+    {
+      "kind": "para",
+      "text": "値オブジェクト32の割り当て（model.json の value_objects の名前のまま）"
+    },
+    {
+      "kind": "table",
+      "head": [
+        "crate",
+        "置く値オブジェクト",
+        "いまの辺で足りるか"
+      ],
+      "rows": [
+        [
+          "declaration",
+          "term ・ 拡張した x- の定義 ・ 公開された言葉の版 ・ 決定権 ・ x-prompt ・ 参照（x-relationship）・ 導出（x-derived-from）・ 置き場所の型 ・ 名前の型 ・ 公開の印 ・ procedure ・ 目的の参照（足す）",
+          "足りる。目的の参照だけ session → declaration の辺が要る"
+        ],
+        [
+          "change",
+          "検証結果 ・ 判定した値 ・ 意味（I33）・ 取り込めない理由 ・ 変更の項目 ・ まとめ方 ・ 変更の例外 ・ 変更のまとまりの形 ・ 最後に確定した姿（ほかに model.json の states のインスタンスの状態の4つ）",
+          "足りる。validation ・ render ・ search は change に依存してよい。まとめ方の「セッションで引く」は、application が索引で変更の記録の id の並びに直してから渡す"
+        ],
+        [
+          "search",
+          "探す条件 ・ 出どころ ・ 関係の索引",
+          "足りる。validate が出どころを評価し直すのは application が search の関数で行う"
+        ],
+        [
+          "validation",
+          "呼び出し（call）",
+          "足りる"
+        ],
+        [
+          "session",
+          "セッション ID ・ 役割 ・ セッションの状態 ・ セッションの種類 ・ 子のセッションの型 ・ 設定（いまの欄は session.newWhenHistoryAbovePercent だけなので、使うのは Session Selector だけ）",
+          "足りる"
+        ],
+        [
+          "application（ports/sessions.rs）",
+          "手元のセッションの索引",
+          "domain に置けない（session と change の両方の id を持つ）。domain の規則を持たない組なので application の型にする"
+        ]
+      ]
+    },
+    {
+      "kind": "para",
+      "text": "良い例：change の crate（集約ごとのモジュール。ルートとエンティティが同じモジュールにあり、欄は private）"
+    },
+    {
+      "kind": "code",
+      "text": "crates/domain/change/src/\n  lib.rs                 pub use だけ\n  verdict.rs             値オブジェクト 検証結果（validation ・ render ・ search も使う）\n  instance_state.rs      インスタンスの状態の4つ（I19：保存せず、検証結果と判定の記録から導く）\n  change_item.rs         値オブジェクト 変更の項目\n  judgment/              集約 判定の記録\n    mod.rs               ルートとコマンド（使い直すか I16）\n    judged_values.rs     値オブジェクト 判定した値（この集約だけが使う）\n  change_record/         集約 変更の記録\n    mod.rs               ルートとコマンド（書き換えない I32）\n    meaning.rs           値オブジェクト 意味（I33）\n  summary/               変更のまとまりの形と、そのファクトリ（記録から機械的に作る I35）\n    mod.rs\n\n// change_record/mod.rs\npub struct ChangeRecord {\n    id: ChangeRecordId,      // private：外からは読むだけ\n    intent: Intent,\n    items: Vec<ChangeItem>,\n}\nimpl ChangeRecord {\n    /// 不変条件 I37：id は書いた時に1回だけ決め、あとから変えない\n    pub fn record(id: ChangeRecordId, intent: Intent, items: Vec<ChangeItem>) -> Self { /* … */ }\n    pub fn items(&self) -> &[ChangeItem] { &self.items }\n}"
+    },
+    {
+      "kind": "para",
+      "text": "避ける例：型の種類で分け、組むために欄を pub(crate) にする"
+    },
+    {
+      "kind": "code",
+      "text": "crates/domain/declaration/src/\n  aggregates/concrete_schema.rs   pub struct ConcreteSchema { pub(crate) rules: Vec<Rule>, … }\n  entities/rule.rs                pub struct Rule { pub(crate) id: RuleId, … }\n  factories/concrete_template.rs  ConcreteSchema { rules: vec![…], … } を直に組む\n\n// 同じ crate のどこからでも schema.rules.push(…) と書け、\n// rule の id が Concrete の中で一意（I4）であることを集約が守れない"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "aggregate",
+      "quote": "対応：集約の状態は集約内部の業務ロジックだけが変更できるようにし、外部には参照だけを許可する ・ 理由：関連する業務ロジックを、すべて集約自身の1か所に実装できる"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "構成するもの：集約のルート ・ 役割：外部に公開するインターフェース役のエンティティ。1つにする。内部のエンティティの状態は、ルートを経由してだけ変更できる"
+    },
+    {
+      "criterion": "entity",
+      "quote": "対応：エンティティを単独で実装せず、集約の実装の一部にする"
+    },
+    {
+      "criterion": "value-object",
+      "quote": "対応：妥当性を検証するロジックを、値オブジェクト自身に持たせる ・ 理由：値を設定するたびに、使う側で妥当性を検証する必要がなくなる"
+    },
+    {
+      "criterion": "value-object",
+      "quote": "対応：状態区分やパスワードなど、対象領域に固有の概念を値オブジェクトで表す ・ 理由：同一性を値の比較で判定でき、明示的な ID フィールドを必要としない"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：他の集約は、オブジェクトそのものではなく ID で参照する ・ 理由：境界の外側であることを明確に表現し、集約ごとに固有のトランザクション境界を持たせる"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：1つのトランザクションで変更する集約は1つにし、複数の集約の状態は集約ごとに別々にコミットする ・ 理由：一貫性を維持する境界の定義が、正しいことを保証する"
+    },
+    {
+      "criterion": "domain-service",
+      "quote": "業務サービス（英語は Services）：業務ロジックだけを書き、自分の状態は持たないステートレスなオブジェクト。集約や値オブジェクトの中では不自然になる業務ロジックの置き場所で、ほとんどの場合、いろいろなコンポーネントの呼び出しをまとめて何かの計算や分析をする。"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "物理的な境界は1つだが、内部には業務領域ごとの論理的な境界（名前空間 ・ モジュール ・ パッケージ）が存在する"
+    },
+    {
+      "criterion": "domain-model",
+      "quote": "対応：データベースの操作や外部との通信といった技術的な関心事を、ドメインモデルから完全に分離する ・ 理由：業務ロジックは本質的に複雑なので、それ以上の不必要な複雑さを持ち込まない"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "ポートとアダプターの結びつけは、依存性注入か、アプリケーションの起動時の設定で実施する。"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：集約 ・ フィールド ・ メソッド ・ 業務イベントの名前を、区切られた文脈の同じ言葉で命名する ・ 理由：ソースコードは、開発者どうしや業務エキスパートとの会話で使う同じ言葉に基づいて書く。複雑な業務ロジックでは特に重要である"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "カスタマーやオーダーのようなカタカナの用語なら、対応する英単語をソースコードに使える。業務エキスパートが「顧客」「注文」と言うなら、同じ言葉は本来それに合わせる。次善の策は、クラス名を英単語にして、日本語名をドキュメンテーションコメントに書き添えることである"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "対応：用語がソースコードで正しく使われているかは、NDepend のような道具で検査できる ・ 理由：NDepend は C# のソースコードを解析し、記述の一貫性や依存の複雑さを報告する。ただし補助手段である"
+    },
+    {
+      "criterion": "testing-strategy",
+      "quote": "方針：ピラミッド形 ・ 最も適する実装方法：ドメインモデル、イベント履歴式ドメインモデル ・ 理由：集約と値オブジェクトの単体テストが、業務ロジックのテストとして最も効果的である"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "ドメインモデルを作るつもりで、業務ロジックをほとんど持たない「集約」を置き、業務ロジックを巨大なサービス層に記述する（貧血ドメインモデル）",
+      "risk": "型の種類で分けて欄を pub(crate) にすると、不変条件のチェックが application の使う場面に書かれ、集約はデータ構造だけになる。結局はアクティブレコードになる",
+      "alternative": "集約ごとのモジュールにして欄を private にし、不変条件の I 番号を集約のコマンドか値オブジェクトの作る関数に付ける。application の関数は、読む → コマンド → 書く だけにする"
+    },
+    {
+      "name": "業務サービスを使って、複数の集約のインスタンスを1つのデータベーストランザクションで変更する",
+      "risk": "集約のインスタンス1つにトランザクション1つ、という原則に反する。Session Selector の決定を索引へ書くときや、まとめを作るときに、セッションと変更の記録を1回で書くと起きる",
+      "alternative": "ドメインサービスは値を返すだけにし、書くのは application の使う場面が集約ごとに行う"
+    },
+    {
+      "name": "（推測）2つ以上の crate で使う値オブジェクトを、共有の crate（common ・ shared など）に集める",
+      "risk": "値オブジェクトの持ち主の業務領域が消え、その値の規則が共有の crate と使う側に分かれる。すべての crate が共有の crate に依存し、4節の辺の表が意味を失う",
+      "alternative": "その語の規則を持つ crate に置き、使う側はいまの辺で依存する。辺の無い組だけを、辺を1本足すか application に置くかで個別に解く"
+    },
+    {
+      "name": "顧客管理のように、補完的な業務領域をドメインモデルで実装する",
+      "risk": "instance（インスタンスの作成と変更）と render（描画）は model.json で補完である。集約ごとのモジュールの形を守るために、ここで型や層を増やすと無駄な努力になる",
+      "alternative": "instance と render の crate は、集約1つを1ファイルにした最小の形に留め、モジュールを分けるのは中核の crate（declaration ・ change ・ validation ・ search ・ session）から始める"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "組むのが面倒なときに、集約やエンティティの欄を pub か pub(crate) にする",
+      "check": "model.json を読む試験で、aggregates と entities の en の構造体に pub ・ pub(crate) の欄が0件であることを確かめる"
+    },
+    {
+      "breaks": "出どころの評価し直しのために、validation の Cargo.toml に search を足す",
+      "check": "architecture-lint check --rules architecture.json --cargo . が not-in-allowed で止める（architecture.json に validation → search を書かない）"
+    },
+    {
+      "breaks": "同じ日本語名に、ファイルごとに別の英語名を付ける（例：判定の記録を Judgment と Verdict で書き分ける）",
+      "check": "model.json を読む試験で、en の型名が workspace 全体で1回だけ定義されていること、model.json に無い pub の型が domain の crate の直下に無いことを確かめる"
+    },
+    {
+      "breaks": "不変条件を application の使う場面の if で書き、集約に I 番号を付けない",
+      "check": "model.json を読む試験で、I1〜I46 の印の数を crate ごとに数え、domain の crate に印が1件も無い不変条件を一覧で出す（outbound ・ application に置くと決めた番号だけを許す）"
+    }
+  ],
+  "records": [
+    {
+      "target": "model.json（changes.py に行を足して apply.py で作る）",
+      "content": "aggregates ・ entities ・ value_objects ・ domain_services ・ ファクトリ ・ ports の各項目に en（型名 ・ モジュール名）と crate を足す"
+    },
+    {
+      "target": "architecture.json と arch.html 4節",
+      "content": "session → declaration の辺（目的の参照のため）を足すかどうかの決定"
+    },
+    {
+      "target": "semantic-agent-schema/CODING.md",
+      "content": "集約ごとのモジュール ・ 欄は private ・ 値オブジェクトの置き場所の決まり（使う範囲で決める）・ 不変条件の印の書き方 ・ use_cases と ports はポートの行と1対1 ・ 対応表は model.json（場所だけ書く）・ 検査の3つ"
+    },
+    {
+      "target": "arch.html 5節（arch_tree.py）",
+      "content": "aggregates/ ・ factories/ ・ services/ を集約ごとのモジュールに直し、値オブジェクト32の割り当ての表を足す"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "ACDR 0201 の crate の辺（arch.html 4節）",
+      "why": "目的の参照を session と change の両方が持つのに2つの間に辺が無く、出どころを validate が確かめるのに validation から search への辺が無い。辺の表を作ったときに、値オブジェクトの持ち主までは突き合わせていない疑いがある"
+    }
+  ],
+  "next": [
+    "session → declaration の辺を足して目的の参照を declaration に置くか、application で変換するかを利用者に決めてもらう。",
+    "changes.py に、各項目へ en と crate を足す行を書き、apply.py で model.json に適用する。",
+    "arch_tree.py の DOMAIN を集約ごとのモジュールの形に書き直し、arch.html 5節を作り直す。",
+    "不変条件46行それぞれを、守る型（集約 ・ 値オブジェクト ・ ドメインサービス ・ application ・ outbound）に振り分けた表を下書きし、試験が許す例外の番号を決める。",
+    "model.json を読む xtask の検査の項目（型の定義 ・ pub の欄 ・ I 番号 ・ ポートの行）を CODING.md の規則の案として書く。",
+    "以上の決定と差分を ACDR に起こし、承認を得る。"
+  ],
+  "related": [
+    {
+      "criterion": "shared-kernel",
+      "relation": "区切られた文脈どうしでモデルを共有する連係方法。1つの文脈の中の crate どうしには当てはめず、共有の crate を作る根拠にしない"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "relation": "ポートの定義と、起動時の結びつけ（inbound/cli の compose）の置き場所を決める"
+    },
+    {
+      "criterion": "testing-strategy",
+      "relation": "集約と値オブジェクトの単体試験を最も厚くし、不変条件の I 番号を試験の名前に付ける根拠"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "relation": "英語の型名と日本語名の対応を1か所に持ち、コードで同じ言葉を使う根拠"
+    }
+  ]
+}

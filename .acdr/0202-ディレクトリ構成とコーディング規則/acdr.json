@@ -1,0 +1,141 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0202",
+ "title": "semantic-agent-schema のディレクトリ構成とコーディング規則",
+ "date": "2026-10-25",
+ "status": "accepted",
+ "decision": "domain の crate の中を values/ ・ aggregates/ ・ services/ に分け、集約の欄をその集約のフォルダの中にだけ見せ、コーディング規則を CODING.md に置く。",
+ "why": "ACDR 0201 の構成は、ファクトリを crate の直下の factories/ に置いていた。Rust の private はモジュールの親子で効くので、その位置からは集約の欄を pub(crate) にしないと作れず、crate のどこからでも欄を書き換えられた（実測 E0451）。集約のフォルダの中にだけ見せる形なら、別の集約や services/ からの書き換えをコンパイラが止める（実測 E0616 ・ E0624）。あわせて、ボード Q3 の MCP の入口と、目的の参照による session の依存を足し、実装の前に規則を決める。",
+ "shift": [
+  {
+   "what": "domain の crate の中",
+   "from": "値は crate の直下、aggregates/ ・ factories/ ・ services/",
+   "to": "values/ ・ aggregates/ ・ services/。エンティティかファクトリを持つ集約は aggregates/<集約>/ に entities/ ・ factories/。欄は pub(in crate::aggregates::<集約>)"
+  },
+  {
+   "what": "session の依存",
+   "from": "どこにも依存しない",
+   "to": "session → declaration（目的の参照）"
+  },
+  {
+   "what": "入口",
+   "from": "inbound/cli の実行ファイル1つ",
+   "to": "inbound/cli の lib と実行ファイル2つ（CLI ・ MCP）。compose.rs は1か所"
+  },
+  {
+   "what": "コーディング規則",
+   "from": "無い",
+   "to": "CODING.md（規則ごとに なぜ と 検査。1つの変更は8段の検査を通して終える）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更後のアーキテクチャ：入口（CLI と MCP）→ outbound → application → domain の8つの crate。session → declaration の線を足した",
+ "alternatives": [
+  {
+   "option": "0201 のまま（crate の直下の factories/）",
+   "why_not": "集約の欄を pub(crate) にするしかなく、crate のどこからでも書き換えられる（実測）"
+  },
+  {
+   "option": "ファクトリを集約のファイルの中に置く",
+   "why_not": "欄は守れるが、利用者はエンティティ ・ ファクトリをフォルダで分けるほうが分かりやすいとした"
+  },
+  {
+   "option": "aggregates/entities/ ・ aggregates/factories/ をまとめて置く",
+   "why_not": "欄を見せる範囲が aggregates/ 全体になり、別の集約からの書き換えを止められない（実測）"
+  },
+  {
+   "option": "集約ごとに crate を分ける",
+   "why_not": "crate が増え、依存の表と単独ビルドが重くなる。モジュールの見せる範囲で足りる"
+  },
+  {
+   "option": "ドメインモデル（model.json）を製品のリポジトリへ移す",
+   "why_not": "製品の利用者は読まず、設計の記録とコードの2か所を保守することになる。試験の側に id の一覧（trace.json）だけを置く"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "coding",
+   "tab": "CODING.md",
+   "file": "semantic-agent-schema/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "semantic-agent-schema のコーディング規則",
+     "before": "（無い。新しく作るファイル）",
+     "why": "規則ごとに「なぜ」と「検査」を持つ。原典の引用は原文と照合した。ddd-advisor ・ qa-advisor の回答と、コンパイルの実測に沿う"
+    }
+   ]
+  },
+  {
+   "key": "atree",
+   "tab": "アーキテクチャの頁（5節の木）",
+   "file": ".brainstorming/semantic-contract-core/measured/core/view/arch_tree.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"\"\"アーキテクチャのページ（arch.html）の5節：ディレクトリ構成を作る",
+     "before": "\"\"\"アーキテクチャのページ（arch.html）の5節：ディレクトリ構成を作る。",
+     "why": "5節の木を、domain の crate の中が values/ ・ aggregates/（集約のフォルダに entities/ ・ factories/）・ services/ の形になるように直した"
+    },
+    {
+     "find": "<tr><td>domain の crate の中</td><td>values",
+     "before": "<tr><td>domain の crate の中</td><td>aggregates/（集約1つに1ファイル。集約の操作もここ）・ factories/（ファクトリ1つに1ファイル）・ services/（ドメインサービス1つに1ファイル）・ 値オブジェクトは src/ の直下。ポートを持たない。値オブジェクトは、その語を持つ業務領域の crate に置く</td></tr>",
+     "why": "決めたことの表の domain の crate の中を、確定した形の説明に直した"
+    }
+   ]
+  },
+  {
+   "key": "apage",
+   "tab": "アーキテクチャの頁（4節の辺）",
+   "file": ".brainstorming/semantic-contract-core/measured/core/view/arch_page.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "['domain/declaration', '（無し）', 'Abstract",
+     "before": "['domain/declaration', '（無し）', 'Abstract ・ Concrete ・ glossary と、Abstract が決める値の型（名前の型 ・ 対象 ・ procedure）。ファクトリ Concrete の雛形。Concrete の操作（照らす ・ 移す ・ 公開する部分の版）と Abstract の操作（版を出す ・ 移し方）は集約が持つ'],",
+     "why": "session → declaration の辺を足した（目的の参照 purpose_ref.rs を declaration の values/ に置く）。declaration のファクトリを aggregates/concrete_schema/factories/ にした。入口に MCP（src/bin/mcp.rs）を足した"
+    },
+    {
+     "find": "['compose の crate', 'inbound/cli の lib の",
+     "before": "['compose の crate', 'inbound/cli の中（実行ファイルが2つになったら分ける）', 'ddd ・ platform'],",
+     "why": "compose を cli の lib に置き、CLI と MCP の2つの実行ファイルが同じ compose.rs を使う形にした"
+    },
+    {
+     "find": "['domain の crate の中', 'values/（値オブジェクト）・",
+     "before": "（無い。足した行）",
+     "why": "決めたことに、domain の crate の中と入口の2行を足した"
+    }
+   ]
+  },
+  {
+   "key": "afig",
+   "tab": "アーキテクチャの図",
+   "file": ".brainstorming/semantic-contract-core/measured/core/view/arch_fig.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "box(250, 58, 400, 'crates/inbound/cli', ",
+     "before": "box(250, 58, 400, 'crates/inbound/cli', 'コマンド：セマンティック7つ ・ 機械的 ・ compose', 'kind-3'),",
+     "why": "入口の箱を CLI と MCP にした"
+    },
+    {
+     "find": "box(760, 320, 140, 'session', '目的の参照を使う'",
+     "before": "box(760, 320, 140, 'session', 'どこにも依存しない'),",
+     "why": "session の箱を「目的の参照を使う」にした"
+    },
+    {
+     "find": "down(885, 370, 590),",
+     "before": "（無い。足した行）",
+     "why": "session → declaration の線を、ほかの線と交わらない右端に足した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "coding": "0b591d9c6a10bdf6add8bae27be4ca2a8909711ab922792a3fdb5dd76d079771",
+  "atree": "a24e213269aacfa3a5ee2da262844a771578b25b66c4a0a3317929c374e63b75",
+  "apage": "5896516199bd5bcc26113146d2bb185ffcba9d13e49ffd7bc29464d411b42537",
+  "afig": "b158dc342da65d9584e1b1d9cab634dbc355c517c58165035d56fa641cecf0c2"
+ }
+}
