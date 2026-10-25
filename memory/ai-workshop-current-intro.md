@@ -8,6 +8,8 @@ metadata:
 
 # 共通の「はじめに」の現在地
 
+正式反映のコミット：5508d113（main、ACDR0205）。
+
 最新：利用者の正本化指示を受けACDR0205を承認済みとし、material-1/src/lesson-01-lead.json、ledes.json、figures/common-intro/と表紙の生成処理へ正式反映。表紙1枚＋本文9枚。表紙の専用原稿はcoverに記録し、台本と次回の音声入力へ反映。out/slides/lesson-01-lead.htmlとout/scripts/lesson-01-lead-script.mdを再生成済み。音声動画は更新しておらず、out/index.htmlにも改訂前と明記。正式版は <http://127.0.0.1:8772/official/common-intro/slides.html#1>。ACDRは <http://127.0.0.1:8772/decisions/0205.html>。
 
 最新：全10枚のLunaレビューはwhole-project-story-20261025/final-review/luna-feedback.md。大筋を理解でき、必須指摘は経理承認と経理確認の揺れ。本文3のみafter/slide-03-accounting-term.json/source.svgへ切替えて経理確認に修正。直前の承認済み入力はbefore-slide03-accounting-term/へ保存。本文3の用語修正は利用者再確認待ち。正本・音声動画は未実施。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=3&rev=20261025am#lead>。
