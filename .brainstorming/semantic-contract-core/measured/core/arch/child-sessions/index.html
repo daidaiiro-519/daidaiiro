@@ -1,0 +1,63 @@
+<title>子のセッションの型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#F4F7F6;--card:#FFFFFF;--ink:#13201D;--sub:#5B6B66;--line:#C9D6D2;--accent:#0D5C55;--accent-bg:#D5E6E3;--bad:#9B2C2C;--bad-bg:#F8E1E1;--hot:#8A4B00;--hot-bg:#FBEBD9;--code:#F3F6F5;--add:#DDF3E4;--add-ink:#14532D;--del:#FBE3E3;--del-ink:#7F1D1D;--mark:#FFF1A8;--mark-ink:#5A4A00;
+--font:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--card:#17211E;--ink:#E6EEEB;--sub:#9DADA8;--line:#2C3B37;--accent:#6CC9B8;--accent-bg:#173330;--bad:#F09A9A;--bad-bg:#3A1E1E;--hot:#F2B47A;--hot-bg:#3A2A1A;--code:#121B18;--add:#14341F;--add-ink:#A7E8BC;--del:#3A1A1A;--del-ink:#F5B5B5;--mark:#3D3610;--mark-ink:#F3E28A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;text-wrap:balance} h2{font-size:18px;margin:8px 0 0} p{margin:0} .meta{color:var(--sub);font-size:13px}
+.ans{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;background:var(--card);font-weight:700}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top} th{background:var(--code);font-size:13px}
+.ok{color:var(--add-ink);background:var(--add);font-weight:700} .ng{color:var(--bad);background:var(--bad-bg);font-weight:700} .q{color:var(--hot);background:var(--hot-bg);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:740px){.two{grid-template-columns:1fr}}
+.pane{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane.on{border-color:var(--accent)} .pane h3{margin:0;font-size:15px}
+pre{margin:0;font:12.5px/1.6 var(--mono);background:var(--code);border-radius:8px;padding:6px 0;overflow-x:auto}
+pre span{display:block;padding:0 10px;white-space:pre} .d{background:var(--del);color:var(--del-ink)} .a{background:var(--add);color:var(--add-ink)} .m{background:var(--mark);color:var(--mark-ink);font-family:var(--font);font-size:12.5px}
+.hl{background:var(--mark);color:var(--mark-ink)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} @media (max-width:740px){.flow{grid-template-columns:1fr}}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:2px} .st b{color:var(--accent)} .st .w{color:var(--sub);font-size:12.5px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px} summary{cursor:pointer;font-weight:700}
+.st{font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;white-space:nowrap}.s1{background:var(--add);color:var(--add-ink)}.s2{background:var(--hot-bg);color:var(--hot)}.s3{background:var(--bad-bg);color:var(--bad)}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media (max-width:820px){.flow{grid-template-columns:1fr}}
+.q{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}.q b{font-size:16px}.links a{color:var(--accent)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.ask{border:2px solid var(--accent)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--card);font-weight:700;font-size:13px;flex:none}
+.ttl{display:flex;gap:8px;align-items:flex-start;font-weight:700;font-size:15px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.mini div{border-radius:8px;padding:6px 8px;font-size:13px}.mini .b{background:var(--bad-bg)}.mini .a{background:var(--add)}.mini b{display:block;font-size:11.5px;color:var(--sub)}
+.row{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px}@media (max-width:600px){.row{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column;gap:6px}
+.lab{font-size:12px;color:var(--sub)}
+.bars{display:flex;flex-direction:column;gap:6px;font-size:12.5px}.bar{display:grid;grid-template-columns:10em 1fr 4em;gap:8px;align-items:center}.bar i{display:block;height:12px;border-radius:6px;background:var(--accent)}.bar i.r{background:var(--bad)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.two{grid-template-columns:1fr}}
+.box{border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.box.c{background:var(--accent-bg)}.box.d{background:var(--hot-bg)}.box ul{margin:0;padding-left:1.2em;font-size:13.5px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.link{font-size:12px;word-break:break-all}
+pre.v{margin:0;font:12.5px/1.6 "JetBrains Mono",ui-monospace,monospace;background:var(--code);border-radius:8px;padding:8px 0;overflow-x:auto}pre.v span{display:block;padding:0 12px;white-space:pre}
+pre.v .cr{background:var(--accent-bg);color:var(--accent);font-weight:700}pre.v i{font-style:normal;color:var(--sub)}
+pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--code);color:var(--accent)}pre.v .pt{color:var(--bad)}.lg span{border-radius:6px;padding:1px 8px;margin-right:6px;font-size:12px}.lg .cr{background:var(--accent-bg);color:var(--accent)}.lg .ag{background:var(--hot-bg);color:var(--hot)}.lg .sv{background:var(--code);color:var(--accent)}.lg .pt{color:var(--bad)}
+.y{color:var(--add-ink);background:var(--add);font-weight:700;padding:0 4px;border-radius:4px}.n{color:var(--bad);background:var(--bad-bg);font-weight:700;padding:0 4px;border-radius:4px}.u{color:var(--hot);background:var(--hot-bg);font-weight:700;padding:0 4px;border-radius:4px}
+</style>
+<main>
+<h1>子のセッションの型</h1>
+<p class="meta">利用者「forkでいいものやsessionとして別の文脈としてその目的と意図の間は継続している必要がある子セッションの区別も契約として持っていた方がいい」「ClaudeCodeとCodexとCopilotとKiroで抽象できる契約として整理できること、キャッシュを利かすことができること」「A,Bも両方あるイメージ」を受けた整理。実測は 2026-10-25、約4万トークンの資料を読ませた親から各1回</p>
+<p class="ans">子は3つの型を持つ。継続する子 A は4つの AI ツールすべてで再開のキャッシュが効く。分岐でキャッシュが効くのは Claude Code と Codex。継続する子 B を作るときに親のキャッシュが効くのは Claude Code だけ。契約は型ごとに AI ツールの能力を持ち、できない ・ 効かないツールでは代わりの型にする</p>
+<h2>1　3つの型</h2>
+<div class="tw"><table><tr><th>型</th><th>親の文脈</th><th>続くか</th><th>向いている仕事</th><th>寿命</th></tr><tr><td>分岐</td><td>持って始まる</td><td>1回で終わる。残さない</td><td>反証、Semantic Search の整形</td><td>1回の呼び出し</td></tr><tr><td>継続する子 A（既定）</td><td>持たずに始まる（仕事の指示だけ）</td><td>続く。役割ごとに再開する</td><td>指示だけで進められる長い仕事</td><td>役割の仕事が終わるか、目的が閉じるまで</td></tr><tr><td>継続する子 B</td><td>持って始まる</td><td>続く。役割ごとに再開する</td><td>会話の意図を知らないと外れる長い仕事</td><td>同上</td></tr></table></div>
+<h2>2　AI ツールごとの能力（キャッシュが効くか）</h2>
+<div class="tw"><table><tr><th>型</th><th>Claude Code 2.1.305</th><th>Codex 0.164.0</th><th>Copilot 1.0.103</th><th>Kiro 2.21.1</th></tr><tr><td>分岐（親の文脈を引き継ぐ）</td><td><span class="y">効く</span> 96%（実測）<br>--resume ID --fork-session --no-session-persistence</td><td><span class="y">効く</span> 64%（実測。親の再開と同じ）<br>exec fork --ephemeral ID</td><td><span class="u">不明</span> 対話の中の /fork だけ。コマンドでは作れない</td><td><span class="n">効かない</span> クレジットが親と同じ（推測）<br>v3 の ACP の session/fork</td></tr><tr><td>継続する子 A：作る</td><td>新しいセッション（親のキャッシュは無い）</td><td>同左</td><td>同左</td><td>同左</td></tr><tr><td>継続する子 A ・ B：2回目からの再開</td><td><span class="y">効く</span> 100%（実測）<br>--resume ID</td><td><span class="y">効く</span> 64%（実測）<br>exec resume ID</td><td><span class="y">効く</span> 96%（実測）<br>--resume ID</td><td><span class="y">効く</span> クレジットが約半分（推測）<br>--resume-id ID</td></tr><tr><td>継続する子 B：作る（親の文脈を持たせる）</td><td><span class="y">効く</span> 87%（実測）<br>--resume ID --fork-session</td><td><span class="n">効かない</span> 29%（実測。共通の前置きの分だけ）<br>exec fork ID</td><td><span class="u">不明</span> 対話の中の /fork だけ</td><td><span class="n">効かない</span> 分岐と同じ（推測）</td></tr></table></div>
+<p class="meta">Copilot Free はモデルが自動選択（auto）で、呼ぶたびにモデルが変わることがある。キャッシュはモデルをまたいで使えない（Copilot の文書「A different model can't reuse another model's cache」）。今回の再開は同じモデル（gpt-6-luna）で測れた。Kiro はトークン数を返さないので、クレジットからの推測</p>
+<h2>3　ツールでできない ・ 効かないときの代わり</h2>
+<div class="tw"><table><tr><th>型</th><th>代わり</th></tr><tr><td>分岐</td><td>いまのセッションの中で行う（Copilot ・ Kiro）</td></tr><tr><td>継続する子 B</td><td>親の文脈の分を1回払って作る（Codex ・ Kiro）。それが重いなら A にし、親が意図を指示に書いて渡す</td></tr></table></div>
+<h2>4　契約に持つもの</h2>
+<div class="tw"><table><tr><th>持つもの</th><th>中身</th></tr><tr><td>セッションの種類</td><td>いまの3つ（オーケストレーター ・ 目的 ・ 任せる先）に、任せる先の型として 分岐 ・ 継続 A ・ 継続 B を足す。分岐は残さないので、セッションの集約に登録しない（判定させる AI と同じ）</td></tr><tr><td>AI ツールのアダプターが返す能力</td><td>型ごとに「コマンドで作れるか（できる ・ できない）」と「親のキャッシュが効くか ・ 再開でキャッシュが効くか（効く ・ 効かない ・ 不明）」</td></tr><tr><td>選び方</td><td>使う場面が型を求め、ツールができない ・ 効かないときは3節の代わりにする</td></tr></table></div>
+<h2>5　確かめてほしいこと</h2>
+<div class="tw"><table><tr><th>確かめてほしいこと</th><th>私の見解</th></tr><tr><td>子の3つの型（分岐 ・ 継続 A ・ 継続 B）を契約に持つ</td><td>持つ。既定は A</td></tr><tr><td>AI ツールのアダプターが、型ごとに「作れるか」と「キャッシュが効くか」を返す</td><td>そうする</td></tr><tr><td>Copilot の分岐 ・ B は、対話の中の /fork だけなので「コマンドでは作れない」とする</td><td>そうする。必要なら対話で /fork して測る</td></tr></table></div>
+</main>
