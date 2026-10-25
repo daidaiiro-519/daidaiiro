@@ -79,6 +79,27 @@ def build_navigation(here, viewer):
                     poster='workshop/material-1/out/videos/posters/01-lead.png?v='+version,
                     seconds=media['seconds'], videoSlides=10)
     lead.pop('pdf', None)
+    # オリエンテーションも、固定の写しではなく正本の出力を指す。動画は検証の記録が今の原稿と一致するときだけ更新する。
+    orientation = next(deck for deck in decks if deck['id'] == 'orientation')
+    material_root = here.parents[2] / 'material-1'
+    short = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    lesson0_path = material_root / 'src/lesson-00-start.json'
+    lesson0 = json.loads(lesson0_path.read_text())
+    release_path = material_root / 'out/videos/00-start-release.json'
+    release = json.loads(release_path.read_text()) if release_path.exists() else {}
+    orientation_media = release.get('source_sha256') == hashlib.sha256(lesson0_path.read_bytes()).hexdigest()
+    orientation.update(
+        summary='表紙と本文13枚（全14枚）です。2026年10月26日にACDR 0207で改訂しました。' + ('字幕付き動画と音声も同じ版です。' if orientation_media else '動画・音声は改訂前の版です。'),
+        slides='workshop/material-1/out/slides/lesson-00-start.html?v=' + short(material_root / 'out/slides/lesson-00-start.html'),
+        script='workshop/material-1/out/scripts/lesson-00-start-script.md?v=' + short(material_root / 'out/scripts/lesson-00-start-script.md'),
+        notes=[dict(number=1, title='表紙：' + lesson0['cover']['heading'], body=markdown.markdown(lesson0['cover']['narration']))]
+              + [dict(number=i + 2, title=s['heading'], body=markdown.markdown(s['narration'])) for i, s in enumerate(lesson0['slides'])])
+    if orientation_media:
+        version = release['video_sha256'][:12]
+        orientation.update(video='workshop/material-1/out/videos/00-start.mp4?v=' + version,
+                           audio='workshop/material-1/out/audio/00-start.mp3?v=' + version,
+                           poster='workshop/material-1/out/videos/posters/00-start.png?v=' + version,
+                           seconds=release['seconds'], videoSlides=release['slides'])
     material = material[:match.start(2)] + json.dumps(decks, ensure_ascii=False).replace('</', '<\\/') + material[match.end(2):]
     material = material.replace('<body>', '<body><nav class="reader-nav" aria-label="制作画面への移動"><a href="./">← メイン画面</a><a id="compare-current" href="' + review + '">この資料の変更を確認</a><a href="workflow.html">制作方針・進捗</a><a href="navigation.html">画面遷移図</a></nav>', 1)
     material = re.sub(r'<p><a href="handoff.html">.*?</a></p>', '', material, count=1)

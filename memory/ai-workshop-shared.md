@@ -59,3 +59,5 @@ metadata:
 2026年10月25日、オリエンテーションを先に見直すことに同意。現行14枚のLunaレビューと助言を受け、既存図を活かす構成案を同じ比較HTMLへ提示。構成案は確認待ちで、図と原稿は未修正。正本と音声動画は変更していない。[変更記録39](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-39-orientation-story-assessment.md)を参照。
 
 2026年10月26日、オリエンテーション全14枚を作業コピーで修正し、利用者が1枚ずつ確認。受講者（Haiku 5.5）のレビューを反映し、ACDR 0207の承認を受けて正本へ反映した。定員は先着15〜20名に変更。音声・動画と企画書の見直しは未着手。[変更記録26](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-26-orientation-canonical-release.md)を参照。
+
+2026年10月26日、オリエンテーションの音声・字幕付き動画をACDR 0208で更新（全14枚、約16分26秒、字幕187件）。共通の閲覧ページもオリエンテーションの正本を指すよう生成元を修正。[変更記録27](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-27-orientation-video-release.md)を参照。

@@ -85,3 +85,7 @@ metadata:
 2026-10-26：作業記録をfa721f56でコミット。ACDR 0207（オリエンテーションの正式版改訂）を提案中。正本material-1/srcの15ファイルと出力2ファイルへ作業ツリー上で反映済み・未コミット（承認後にコミット、差し戻しならgit checkoutで戻す）。公開 http://127.0.0.1:8772/decisions/0207.html 。acdrのiframeが画面高さ基準のHTMLで伸び続ける不具合あり（0205も同じ）、別件。
 
 2026-10-26：利用者がACDR 0207を承認。オリエンテーション全14枚のスライドと原稿を正本へ反映しコミット。音声・動画は未作成。次は音声・動画、企画書の見直し。[変更記録26](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-26-orientation-canonical-release.md)。
+
+2026-10-26：オリエンテーションの音声・字幕付き動画を生成（Takumi neural、AWS_PROFILE=dev、全14枚、986.344秒、字幕187件、検証通過）。共通の閲覧ページの生成元review_navigation.pyを、オリエンテーションも正本の出力を指すよう修正。ACDR 0208を提案中、出力は未コミット。
+
+2026-10-26：利用者の「コミットしてプッシュ」でACDR 0208を承認として反映。オリエンテーションのスライド・原稿・音声・動画がすべて正式版。次は企画書の見直し。[変更記録27](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-27-orientation-video-release.md)。
