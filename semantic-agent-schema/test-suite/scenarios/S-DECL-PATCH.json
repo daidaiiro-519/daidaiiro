@@ -1,0 +1,5 @@
+{"$schema":"../scenario.schema.json","id":"S-DECL-PATCH","title":"patch で欄に x-prompt を足すと保存され、検証が通る","traces":["U1:事後"],
+ "given":{"steps":[{"args":["create","spec/record.schema.json","--owner","acdr","--kind","record"]}]},
+ "when":{"args":["patch","spec/record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/properties\",\"value\":{\"why\":{\"type\":\"string\",\"x-prompt\":{\"write\":[{\"id\":\"why-explains-decision\",\"rule\":\"理由は食い違いと一致させた先を述べる\",\"why\":\"改めてよいかを判定できない\",\"test\":\"理由に相手と先がある\",\"by\":\"human\"}]}}}}]","--json"]},
+ "after":[{"args":["get","spec/record.schema.json","--pointer","/properties/why/x-prompt/write/0/id","--json"]}],
+ "then":[{"of":"when","exit":0,"pointer":"/ok","equals":true},{"of":"after[0]","pointer":"/data/value","equals":"why-explains-decision"}]}

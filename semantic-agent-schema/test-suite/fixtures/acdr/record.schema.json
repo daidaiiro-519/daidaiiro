@@ -1,0 +1,27 @@
+{
+ "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+ "$id": "urn:semantic-agent-schema:acdr:record:v1",
+ "title": "ACDR の記録",
+ "description": "決定1件を、決めたこと ・ なぜ ・ 比較した案と一緒に残す記録",
+ "x-instance-path": ".acdr/{id}/acdr.json",
+ "x-instance-label": "ACDR {no}「{title}」",
+ "x-delegates": {
+  "judge": {"kind": "judging", "role": "決定の理由を読んで判定する"}
+ },
+ "type": "object",
+ "required": ["no", "title", "status", "decision", "why"],
+ "properties": {
+  "no": {"type": "string", "pattern": "^ACDR [0-9]{4}$", "description": "記録の番号",
+   "x-prompt": {"read": {"means": "記録を一意に指す番号"}}},
+  "title": {"type": "string", "minLength": 1, "description": "短い名詞句の題",
+   "x-prompt": {"write": [{"id": "title-noun", "rule": "題は名詞句で、述部を持たない", "why": "一覧で並べたときに決定の対象が読める", "test": "題が名詞で終わる", "by": "machine"}]}},
+  "status": {"enum": ["proposed", "accepted", "superseded"], "description": "状態"},
+  "decision": {"type": "string", "minLength": 1, "description": "決めたこと",
+   "x-decided-by": "human",
+   "x-prompt": {"read": {"means": "決めてほしいこと1件"}, "write": [{"id": "decision-no-means", "rule": "決定は何を採るかだけを書き、手段を書かない", "why": "手段は差分が示す", "test": "決定の文に手段の語が無い", "by": "ai", "agent": "judge"}]}},
+  "why": {"type": "string", "minLength": 1, "description": "なぜ決める必要があるか",
+   "x-prompt": {"write": [{"id": "why-explains-decision", "rule": "理由は、何と食い違っていて何に一致させたかを述べる", "why": "理由が言い換えだと、あとで決定を改めてよいかを判定できない", "test": "理由に食い違いの相手と一致させた先が書かれている", "by": "ai", "agent": "judge", "reads": ["/decision", "/why"]}]}},
+  "supersedes": {"type": "string", "description": "置き換えた記録の番号",
+   "x-relationship": {"to": "urn:semantic-agent-schema:acdr:record:v1"}}
+ }
+}

@@ -1,5 +1,5 @@
 //! 追跡の検査：test-suite/trace.json と untested.json と、コードと場面に書いた traces を突き合わせ、
-//! CODING.md の grep で見る規則を確かめる。syn で型を見る検査は、集約を書く段1で足す。
+//! CODING.md の grep で見る規則と、syn で見る欄の見せ方の規則を確かめる。
 
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -19,7 +19,24 @@ pub fn check(root: &Path) -> Vec<String> {
     };
     let rs = files(&root.join("crates"), "rs");
 
-    // 1. 不変条件と使う場面：試験の traces と untested.json の、重なり ・ 漏れ ・ 知らない id
+    // 1. 不変条件と使う場面：一覧の中の重なり、試験の traces と untested.json の、重なり ・ 漏れ ・ 知らない id
+    for (name, list) in [
+        ("trace.json の invariants", &trace["invariants"]),
+        ("trace.json の use_cases", &trace["use_cases"]),
+        ("untested.json", &untested),
+    ] {
+        let mut seen = BTreeSet::new();
+        for id in list
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|x| x["id"].as_str())
+        {
+            if !seen.insert(id) {
+                out.push(format!("{name} に {id} が2回ある"));
+            }
+        }
+    }
     let mut known = BTreeSet::new();
     for i in trace["invariants"].as_array().into_iter().flatten() {
         if let Some(id) = i["id"].as_str() {
@@ -40,7 +57,18 @@ pub fn check(root: &Path) -> Vec<String> {
         .collect();
     let mut traced = BTreeSet::new();
     for f in &rs {
-        for line in fs::read_to_string(f).unwrap_or_default().lines() {
+        let text = fs::read_to_string(f).unwrap_or_default();
+        let lines: Vec<&str> = text.lines().map(str::trim).collect();
+        for (n, line) in lines.iter().enumerate() {
+            if *line == "#[test]" && !(n > 0 && lines[n - 1].starts_with("/// traces:")) {
+                out.push(format!(
+                    "{}:{} の試験に /// traces: の行が無い",
+                    rel(root, f),
+                    n + 1
+                ));
+            }
+        }
+        for line in text.lines() {
             if let Some(rest) = line.trim().strip_prefix("/// traces:") {
                 traced.extend(
                     rest.split(',')
@@ -153,6 +181,107 @@ pub fn check(root: &Path) -> Vec<String> {
             }
         }
     }
+
+    // 6. domain の欄の見せ方：集約とエンティティは集約のフォルダの中だけ、値オブジェクトは private
+    for f in &rs {
+        let path = rel(root, f).replace('\\', "/");
+        let Some(inner) = path.strip_prefix("crates/domain/") else {
+            continue;
+        };
+        let Some((_, in_src)) = inner.split_once("/src/") else {
+            continue;
+        };
+        let allowed: &[&str] = if in_src.starts_with("values/") {
+            &[]
+        } else if in_src.starts_with("aggregates/entities/") {
+            &["crate::aggregates"]
+        } else if let Some(rest) = in_src.strip_prefix("aggregates/") {
+            let name = rest
+                .trim_end_matches(".rs")
+                .split('/')
+                .next()
+                .unwrap_or_default();
+            if name == "entities" {
+                continue;
+            }
+            &[]
+        } else {
+            continue;
+        };
+        let aggregate = in_src.strip_prefix("aggregates/").map(|r| {
+            r.trim_end_matches(".rs")
+                .split('/')
+                .next()
+                .unwrap_or_default()
+                .to_string()
+        });
+        for (ty, field, vis) in field_visibilities(f) {
+            let ok = match vis.as_deref() {
+                None => true,
+                Some(v) => {
+                    allowed.contains(&v)
+                        || aggregate.as_deref().is_some_and(|a| {
+                            a != "entities" && v == format!("crate::aggregates::{a}")
+                        })
+                }
+            };
+            if !ok {
+                out.push(format!(
+                    "{path} の {ty}.{field} の見せ方が {}（CODING.md 3節）",
+                    vis.unwrap_or_default()
+                ));
+            }
+        }
+    }
+    out
+}
+
+/// struct の欄ごとの（型 ・ 欄 ・ 見せ方）。見せ方は private なら None、pub は "pub"、pub(crate) は "crate"、pub(in p) は "p"
+fn field_visibilities(f: &Path) -> Vec<(String, String, Option<String>)> {
+    let mut out = Vec::new();
+    let Ok(text) = fs::read_to_string(f) else {
+        return out;
+    };
+    let Ok(file) = syn::parse_file(&text) else {
+        return out;
+    };
+    fn walk(items: &[syn::Item], out: &mut Vec<(String, String, Option<String>)>) {
+        for item in items {
+            match item {
+                syn::Item::Struct(s) => {
+                    for (n, field) in s.fields.iter().enumerate() {
+                        let name = field
+                            .ident
+                            .as_ref()
+                            .map(ToString::to_string)
+                            .unwrap_or_else(|| n.to_string());
+                        let vis = match &field.vis {
+                            syn::Visibility::Inherited => None,
+                            syn::Visibility::Public(_) => Some("pub".to_string()),
+                            syn::Visibility::Restricted(r) => Some(
+                                r.path
+                                    .segments
+                                    .iter()
+                                    .map(|s| s.ident.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join("::"),
+                            ),
+                        };
+                        out.push((s.ident.to_string(), name, vis));
+                    }
+                }
+                syn::Item::Mod(m) => {
+                    if let Some((_, inner)) = &m.content
+                        && !m.attrs.iter().any(|a| a.path().is_ident("cfg"))
+                    {
+                        walk(inner, out);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    walk(&file.items, &mut out);
     out
 }
 

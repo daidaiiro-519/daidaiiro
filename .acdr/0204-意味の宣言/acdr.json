@@ -1,0 +1,927 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0204",
+ "title": "段1：意味の宣言（Abstract ・ Concrete ・ glossary と、create ・ get ・ patch ・ validate）",
+ "date": "2026-10-25",
+ "status": "accepted",
+ "decision": "段1として、Concrete と glossary を Abstract の版に照らして宣言できるようにし、create ・ get ・ patch ・ validate で作る ・ 読む ・ 変える ・ 検証するを行えるようにする。",
+ "why": "段0 で場面を走らせる仕組みはできたが、実行ファイルは何もしなかった。計画の段1（U1 ・ U23）は、利用者が ACDR の Concrete を雛形から作り、x-prompt を書き、Abstract に照らして検証が通ることを受け入れにしている。段2 のインスタンスの検証は、Concrete を宣言できることを前提にする。",
+ "shift": [
+  {
+   "what": "コマンド",
+   "from": "実行ファイルは何もしない",
+   "to": "create ・ get ・ patch ・ validate。--json で {ok, findings, data}、終了コード 0 ・ 1 ・ 2"
+  },
+  {
+   "what": "検査①（patch）",
+   "from": "無い",
+   "to": "$id と $schema の書き換え ・ 使えない op ・ 根の置き換え ・ 無い場所 ・ 作業の根の外のパスは refused で断り、ファイルに触れない"
+  },
+  {
+   "what": "検査②（Concrete と glossary）",
+   "from": "無い",
+   "to": "Abstract の形に加え、rule の id の重なり ・ 宣言の無い任せる先 ・ 定義の無い x- と term ・ 種類 glossary の Concrete を violated にする。violated でも保存は残す"
+  },
+  {
+   "what": "閉じた一覧",
+   "from": "無い",
+   "to": "実行ファイルに入れた Abstract v1 と glossary v1。一覧に無い $schema は取りに行かずに断る"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "段1 の前は何を打っても何もせず終わった。後は4つのコマンドが動き、patch は検査①で断るか保存してから検査②を通す。",
+ "alternatives": [
+  {
+   "option": "build.rs で schemas/v1/ を読み、取り込む",
+   "why_not": "2つのファイルなら include_str! で足りる。build.rs は std::fs を使い、domain の入出力の禁止に例外を作ることになる"
+  },
+  {
+   "option": "JSON Patch の crate（json-patch）を使う",
+   "why_not": "move と copy を断る規則と、$id と $schema を書き換えさせない規則は、その外で書くことになる。4つの op なら依存を増やさずに書ける"
+  },
+  {
+   "option": "glossary を $id で引くための索引を持つ",
+   "why_not": "手元の DB は段3a で作る。いまは作業の根の .json を名前の順に読み、同じ $id が2つなら誤りにする方法で足りる"
+  },
+  {
+   "option": "glossary を別のコマンドで作る",
+   "why_not": "コマンドが増える。glossary は $id の種類が glossary と決まっているので、create --kind glossary で区別できる"
+  },
+  {
+   "option": "検査②で外れたら保存しない",
+   "why_not": "Q8（保存は断らない）に反する。書きかけの Concrete を AI が直すときの手がかりが残らない"
+  },
+  {
+   "option": "AI ・ 人が判定する rule では reads を必須にする",
+   "why_not": "JSON Schema の節で、reads を書かなければインスタンスの全体を読むと決めてある。不変条件 I4 の「読む欄を持つ」は、書かなかったときの全体で満たす"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "abs",
+   "tab": "Abstract（形）",
+   "file": "semantic-agent-schema/schemas/v1/semantic-abstract-schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Concrete が $schema に書くメタスキーマの v1 を置いた。JSON Schema 2020-12 の形に、Abstract の9つの x- と rule ・ 任せる先 ・ 拡張の定義を足す。任せる先の形はモデルの C02（名前 ・ role ・ answer ・ run）に合わせた。by が ai のときだけ agent を必須にし、by が無い rule は by の欠けだけを理由に出す"
+    }
+   ]
+  },
+  {
+   "key": "glo",
+   "tab": "glossary（形）",
+   "file": "semantic-agent-schema/schemas/v1/glossary.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:semantic-agent-schema:base:glossary:v1",
+     "before": "（無い。新しく作るファイル）",
+     "why": "glossary の形を置いた。term は $defs に置き、$anchor で名前を付ける。欄は $ref の URN と #名前 で term を指す（モデルの値オブジェクト term）"
+    }
+   ]
+  },
+  {
+   "key": "urn",
+   "tab": "名前の型",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/values/urn.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Urn {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "名前の型 urn:semantic-agent-schema:<持ち主>:<種類>:v<版> を値オブジェクトにした。持ち主と種類は英小文字 ・ 数字 ・ ハイフン、版は1から"
+    }
+   ]
+  },
+  {
+   "key": "patch",
+   "tab": "JSON Patch",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/values/patch.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn apply(",
+     "before": "（無い。新しく作るファイル）",
+     "why": "検査①を値の関数にした。op は test ・ add ・ replace ・ remove だけを受け、$id と $schema の書き換え ・ 根の置き換え ・ 無い場所は断る。断ったら元の文書を変えない"
+    }
+   ]
+  },
+  {
+   "key": "term",
+   "tab": "term",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/values/term.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Term {",
+     "before": "（無い。新しく作るファイル）",
+     "why": "欄の $ref が glossary の term を指すときの値オブジェクト。種類が glossary の URN と #名前 で読み、ほかの $ref は term として扱わない"
+    }
+   ]
+  },
+  {
+   "key": "breach",
+   "tab": "宣言の誤り",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/values/breach.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Breach {",
+     "before": "（無い。新しく作るファイル）",
+     "why": "宣言の誤り（場所と理由）を値オブジェクトとして values/ に置いた（CODING.md 3節）"
+    }
+   ]
+  },
+  {
+   "key": "by",
+   "tab": "判定する者",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/values/by.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub enum By {",
+     "before": "（無い。新しく作るファイル）",
+     "why": "判定する者を値オブジェクトにし、rule と検証結果の両方がこの型を使う。同じものを文字列と型の2つで持たない"
+    }
+   ]
+  },
+  {
+   "key": "vals",
+   "tab": "values.rs",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod breach;",
+     "before": "（無い。足した行）",
+     "why": "値オブジェクト breach ・ by ・ patch ・ term を足した"
+    }
+   ]
+  },
+  {
+   "key": "absagg",
+   "tab": "Abstract（集約）",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/aggregates/abstract_schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const SHIPPED: [&str; 2] = [",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "閉じた一覧を、実行ファイルに入れた2つの版（Abstract v1 ・ glossary v1）のデータにした（不変条件 I2）。include_str! で取り込むので、雛形の build.rs は消した"
+    }
+   ]
+  },
+  {
+   "key": "con",
+   "tab": "Concrete（集約）",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/aggregates/concrete_schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn breaches(&self) -> Vec<Breach> {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "形では見られない宣言の誤りを集約が返す。種類 glossary の Concrete ・ rule の id の重なり ・ 任せる先が x-delegates に無い ・ 定義の無い x- の4つ（I4 ・ I6）。欄のたどり方は Abstract の field と同じにした"
+    }
+   ]
+  },
+  {
+   "key": "rule",
+   "tab": "rule",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/aggregates/concrete_schema/entities/rule.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Rule {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "rule をエンティティにした。欄は集約のフォルダの中だけに見せ、読むのはメソッドで行う（CODING.md 3節）"
+    }
+   ]
+  },
+  {
+   "key": "tpl",
+   "tab": "Concrete の雛形",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/aggregates/concrete_schema/factories/concrete_template.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn concrete_template(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "雛形は Abstract の必須の欄だけを持ち、作った直後に検証が通る形にした（場面 S-DECL-CREATE）"
+    }
+   ]
+  },
+  {
+   "key": "del",
+   "tab": "任せる先",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/aggregates/entities/delegate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Delegate {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "任せる先を、2つの集約が持つエンティティにした。段1 では名前と種類だけを読み、rule の agent の照合に使う"
+    }
+   ]
+  },
+  {
+   "key": "gagg",
+   "tab": "glossary（集約）",
+   "file": "semantic-agent-schema/crates/domain/declaration/src/aggregates/glossary.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Glossary {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "glossary を集約にした。種類が glossary の URN だけを受け、$anchor の名前で term の有無を答える"
+    }
+   ]
+  },
+  {
+   "key": "dcar",
+   "tab": "declaration の Cargo.toml",
+   "file": "semantic-agent-schema/crates/domain/declaration/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "serde_json.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "文書を JSON の値で扱うため"
+    }
+   ]
+  },
+  {
+   "key": "verd",
+   "tab": "検証結果",
+   "file": "semantic-agent-schema/crates/domain/change/src/values/verdict.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub enum Verdict {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "検証結果を5つの値 ・ 場所 ・ 根拠 ・ 判定した者にした（I12）。段1 は機械の判定だけを作る"
+    }
+   ]
+  },
+  {
+   "key": "ccar",
+   "tab": "change の Cargo.toml",
+   "file": "semantic-agent-schema/crates/domain/change/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "serde_json.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "検証結果を JSON の値と並べて扱うため"
+    }
+   ]
+  },
+  {
+   "key": "res",
+   "tab": "Resolver",
+   "file": "semantic-agent-schema/crates/domain/resolver/src/services/resolver.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn resolve_abstract<'a>(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "$schema を閉じた一覧から引き、無ければ取りに行かずに断る（I2）。term は版付きの id で glossary を引き、別の版は別の語にする（I4 ・ I25）"
+    }
+   ]
+  },
+  {
+   "key": "rcar",
+   "tab": "resolver の Cargo.toml",
+   "file": "semantic-agent-schema/crates/domain/resolver/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "serde_json.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "文書の $schema を読むため"
+    }
+   ]
+  },
+  {
+   "key": "val",
+   "tab": "Validator",
+   "file": "semantic-agent-schema/crates/domain/validation/src/services/validator.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn validate_declaration(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "検査②。Abstract の形を jsonschema で見て、Concrete なら集約の宣言の誤りと term の定義を足す。結果は場所の順に並べ、同じ入力から同じ結果を返す（I13）"
+    }
+   ]
+  },
+  {
+   "key": "vcar",
+   "tab": "validation の Cargo.toml",
+   "file": "semantic-agent-schema/crates/domain/validation/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "jsonschema.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "JSON Schema 2020-12 の検証に jsonschema を使う。既定の機能を外し、http とファイルの参照を取りに行かない"
+    }
+   ]
+  },
+  {
+   "key": "port",
+   "tab": "ポート contracts",
+   "file": "semantic-agent-schema/crates/application/src/ports/contracts.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub trait Contracts {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "契約を置き場所で読む ・ 書く、$id で引くの3つにした。$id で引くのは、欄が指す glossary を探すため"
+    }
+   ]
+  },
+  {
+   "key": "out",
+   "tab": "結果の形",
+   "file": "semantic-agent-schema/crates/application/src/use_cases.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Outcome {",
+     "before": "（無い。足した行）",
+     "why": "コマンドの結果 {ok, findings, data} を使う場面の側に置いた。断ったら refused、violated か error があれば ok でない"
+    }
+   ]
+  },
+  {
+   "key": "create",
+   "tab": "create",
+   "file": "semantic-agent-schema/crates/application/src/use_cases/create.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn create(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "既にあれば断る。種類が glossary なら term の無い glossary を、ほかは Concrete の雛形を作り、作った直後に検証する"
+    }
+   ]
+  },
+  {
+   "key": "pat",
+   "tab": "patch",
+   "file": "semantic-agent-schema/crates/application/src/use_cases/patch.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn patch(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "検査①で外れたら書かずに refused を返す。適用したあとの検査②は外れても保存し、violated を返す（Q8）"
+    }
+   ]
+  },
+  {
+   "key": "get",
+   "tab": "get",
+   "file": "semantic-agent-schema/crates/application/src/use_cases/search.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn get(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "文書の1つの場所の値を返す。場面が保存された中身を確かめるために使う"
+    }
+   ]
+  },
+  {
+   "key": "valuc",
+   "tab": "validate",
+   "file": "semantic-agent-schema/crates/application/src/use_cases/validate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub(crate) fn findings_of(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "$schema を引けなければ refused。保存したあとに glossary を読めなかったときは、断りではなくその欄の error にする（refused は状態に触れていないことを示すため）"
+    }
+   ]
+  },
+  {
+   "key": "acar",
+   "tab": "application の Cargo.toml",
+   "file": "semantic-agent-schema/crates/application/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "serde_json.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "結果の data を JSON の値で返すため"
+    }
+   ]
+  },
+  {
+   "key": "uct",
+   "tab": "使う場面の試験",
+   "file": "semantic-agent-schema/crates/application/tests/use_cases/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn patch_breaking_the_abstract_is_saved_and_violated()",
+     "before": "//! 結合テスト（中身はこれから書く）",
+     "why": "refused と violated の線引きを使う場面で確かめる。既存は断り、$id の書き換えは断って不変、Abstract に反しても保存して violated、保存したあとに読めない glossary は error"
+    }
+   ]
+  },
+  {
+   "key": "ucdm",
+   "tab": "代役の一覧",
+   "file": "semantic-agent-schema/crates/application/tests/use_cases/doubles.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod contracts;",
+     "before": "（無い。新しく作るファイル）",
+     "why": "代役をポート1つに1ファイルで置く"
+    }
+   ]
+  },
+  {
+   "key": "ucd",
+   "tab": "代役 FakeContracts",
+   "file": "semantic-agent-schema/crates/application/tests/use_cases/doubles/contracts.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct FakeContracts {",
+     "before": "（無い。新しく作るファイル）",
+     "why": "契約のポートの代役。メモリの上に置き、$id で引くときの誤りを入れられる（CODING.md 7節の Fake）"
+    }
+   ]
+  },
+  {
+   "key": "files",
+   "tab": "Files",
+   "file": "semantic-agent-schema/crates/outbound/fs/src/files.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn find(&self, id: &str)",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "$id で引くときは作業の根の .json を名前の順に読み、.git ・ target ・ node_modules は見ない。同じ $id が2つ、または $id を含むのに読めないファイルは誤りにする。絶対パスと .. は断り、根の外を読み書きしない"
+    }
+   ]
+  },
+  {
+   "key": "fst",
+   "tab": "fs の結合テスト",
+   "file": "semantic-agent-schema/crates/outbound/fs/tests/fs/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn document_is_found_by_its_id()",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "書いて読み戻す ・ 無ければ None ・ $id で引ける ・ 同じ $id が2つなら誤り、の4つを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "fcar",
+   "tab": "fs の Cargo.toml",
+   "file": "semantic-agent-schema/crates/outbound/fs/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "serde_json.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "文書を JSON で読み書きするため"
+    }
+   ]
+  },
+  {
+   "key": "mech",
+   "tab": "引数",
+   "file": "semantic-agent-schema/crates/inbound/cli/src/commands/mechanical.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn parse(",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "create は --owner と --kind、get は --pointer、patch は --patch、validate は対象だけを受ける。一覧に無い旗とコマンドは使い方の誤り（終了コード 2）"
+    }
+   ]
+  },
+  {
+   "key": "comp",
+   "tab": "compose",
+   "file": "semantic-agent-schema/crates/inbound/cli/src/compose.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn run(args: &[String]) -> ExitCode {",
+     "before": "（雛形の doc コメント1行だけ）",
+     "why": "Files を使う場面へ渡す1か所。ok なら 0、そうでなければ 1 を返す。MCP の面は段5 で書くので、いまは使い方の誤りを返す"
+    }
+   ]
+  },
+  {
+   "key": "main",
+   "tab": "main.rs",
+   "file": "semantic-agent-schema/crates/inbound/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "semantic_agent_schema_cli::compose::run(&args)",
+     "before": "semantic_agent_schema_cli::compose::run();",
+     "why": "引数を compose に渡し、終了コードを返す"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": "mcp.rs",
+   "file": "semantic-agent-schema/crates/inbound/cli/src/bin/mcp.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "semantic_agent_schema_cli::compose::run_mcp()",
+     "before": "semantic_agent_schema_cli::compose::run();",
+     "why": "MCP の入口を CLI と分けた。中身は段5"
+    }
+   ]
+  },
+  {
+   "key": "trace",
+   "tab": "追跡の検査",
+   "file": "semantic-agent-schema/crates/inbound/cli/tests/system/trace.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! CODING.md の grep で見る規則と、syn で見る欄の見せ方の規則を確かめる。",
+     "before": "//! CODING.md の grep で見る規則を確かめる。syn で型を見る検査は、集約を書く段1で足す。",
+     "why": "段0 で後に回した syn の検査を足した"
+    },
+    {
+     "find": "一覧の中の重なり",
+     "before": "// 1. 不変条件と使う場面：試験の traces と untested.json の、重なり ・ 漏れ ・ 知らない id",
+     "why": "trace.json と untested.json の中の id の重なりを落とすようにした。trace.json に U28 が2行あったのを、この検査が見つける"
+    },
+    {
+     "find": "// 6. domain の欄の見せ方",
+     "before": "（無い。足した行）",
+     "why": "集約とエンティティの欄は集約のフォルダの中だけ、共有のエンティティは aggregates の中だけ、値オブジェクトは private であることを syn で見る。わざと欄を開いた3件を落とすことを確かめた"
+    },
+    {
+     "find": "の試験に /// traces: の行が無い",
+     "before": "（無い。足した行）",
+     "why": "traces の行が無い試験を落とすようにした。段1 の patch の試験に traces が無かったのを、この検査で見つけた"
+    }
+   ]
+  },
+  {
+   "key": "clicar",
+   "tab": "cli の Cargo.toml",
+   "file": "semantic-agent-schema/crates/inbound/cli/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "serde_json.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "--json の出力を作るため"
+    },
+    {
+     "find": "syn.workspace = true",
+     "before": "（無い。足した行）",
+     "why": "追跡の検査がソースを解析するため（試験だけ）"
+    }
+   ]
+  },
+  {
+   "key": "ws",
+   "tab": "Cargo.toml（根）",
+   "file": "semantic-agent-schema/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "jsonschema = { version = \"=0.58.6\", default-features = false }",
+     "before": "（無い。足した行）",
+     "why": "jsonschema と syn を依存の版の1か所に置いた。jsonschema は版を固定する"
+    }
+   ]
+  },
+  {
+   "key": "arch",
+   "tab": "architecture.json",
+   "file": "semantic-agent-schema/architecture.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"name\": \"syn\"",
+     "before": "（無い。足した行）",
+     "why": "外の crate jsonschema と syn を規則の component に足した"
+    },
+    {
+     "find": "\"from\": \"change\"",
+     "before": "（無い。足した行）",
+     "why": "application と change から serde_json への辺を許した"
+    },
+    {
+     "find": "\"from\": \"fs\"",
+     "before": "（無い。足した行）",
+     "why": "cli と fs から serde_json への辺を許した"
+    },
+    {
+     "find": "\"from\": \"resolver\"",
+     "before": "（無い。足した行）",
+     "why": "resolver から serde_json への辺を許した"
+    },
+    {
+     "find": "追跡の検査が syn でソースの欄の見せ方を見る",
+     "before": "\"description\": \"システムテストが場面の JSON と --json の出力を読む\"",
+     "why": "validation から jsonschema、cli の試験から syn、declaration から serde_json への辺を許した"
+    }
+   ]
+  },
+  {
+   "key": "tj",
+   "tab": "trace.json",
+   "file": "semantic-agent-schema/test-suite/trace.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"name\": \"問いに、出どころ付きの答えを返す（Semantic Search）\"",
+     "before": "\"name\": \"Semantic Search\"",
+     "why": "同じ U28 が2行あったので1行にした。名前は使う場面の文のほうを残した"
+    }
+   ]
+  },
+  {
+   "key": "ut",
+   "tab": "untested.json",
+   "file": "semantic-agent-schema/test-suite/untested.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\": \"I5\"",
+     "before": "（無い。足した行）",
+     "why": "I2 ・ I3 ・ I4 ・ I6 は単体テストの traces に移した"
+    },
+    {
+     "find": "段1 で作るのは検証結果の形だけで",
+     "before": "（無い。足した行）",
+     "why": "I13 は単体テストの traces に移した。I12 は「必須の欄が空なら機械の violated」がインスタンスの話なので、段2 まで残す"
+    },
+    {
+     "find": "段1 で確かめるのは別の版の term を別の語にすることだけで",
+     "before": "（無い。足した行）",
+     "why": "I25 は、出した版の term を変えないこと（段7b）を確かめるまで残し、理由を書き直した"
+    },
+    {
+     "find": "\"id\": \"U0:失敗時\"",
+     "before": "（無い。足した行）",
+     "why": "U1 は場面の traces に移した"
+    },
+    {
+     "find": "\"id\": \"U24:事後\"",
+     "before": "（無い。足した行）",
+     "why": "U23 は場面の traces に移した"
+    },
+    {
+     "find": "\"id\": \"U28:失敗時\"",
+     "before": "（無い。足した行）",
+     "why": "U28 の重なっていた2行を消した"
+    }
+   ]
+  },
+  {
+   "key": "frec",
+   "tab": "題材：記録の Concrete",
+   "file": "semantic-agent-schema/test-suite/fixtures/acdr/record.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:semantic-agent-schema:acdr:record:v1",
+     "before": "（無い。新しく作るファイル）",
+     "why": "題材 ACDR の Concrete の名前を acdr:record にした。決定は人が決め（x-decided-by）、理由は AI の rule を judge に任せる"
+    }
+   ]
+  },
+  {
+   "key": "fbad",
+   "tab": "題材：誤った rule",
+   "file": "semantic-agent-schema/test-suite/fixtures/acdr/bad-rule.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "rule の必須の欄 by が無い Concrete。場所が x-prompt を指して violated になることを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "fglo",
+   "tab": "題材：glossary",
+   "file": "semantic-agent-schema/test-suite/fixtures/acdr/glossary.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:semantic-agent-schema:acdr:glossary:v1",
+     "before": "（無い。新しく作るファイル）",
+     "why": "term Decision を1つ持つ glossary。欄が term を指す場面で使う"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-badrule",
+   "tab": "場面 S-DECL-BADRULE",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-BADRULE.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-BADRULE\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "rule の必須の欄 by が無い Concrete は violated で、場所が x-prompt を指す"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-create",
+   "tab": "場面 S-DECL-CREATE",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-CREATE.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-CREATE\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Abstract から Concrete の雛形を作り、そのまま Abstract に照らして検証が通る"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-ext-clash",
+   "tab": "場面 S-DECL-EXT-CLASH",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-EXT-CLASH.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-EXT-CLASH\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Abstract の x- とぶつかる名前を足すと、保存はされるが violated になる（Q8：保存は断らない）"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-ext",
+   "tab": "場面 S-DECL-EXT",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-EXT.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-EXT\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Concrete が x- を足せる（x-extensions）"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-glossary",
+   "tab": "場面 S-DECL-GLOSSARY",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-GLOSSARY.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-GLOSSARY\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "種類 glossary で作ると term の無い glossary ができ、glossary の Abstract に照らして検証が通る"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-patch",
+   "tab": "場面 S-DECL-PATCH",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-PATCH.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-PATCH\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "patch で欄に x-prompt を足すと保存され、検証が通る"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-refuse-id",
+   "tab": "場面 S-DECL-REFUSE-ID",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-REFUSE-ID.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-REFUSE-ID\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "$id を変える patch は検査①で断られ、ファイルは変わらない"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-term-missing",
+   "tab": "場面 S-DECL-TERM-MISSING",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-TERM-MISSING.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-TERM-MISSING\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "欄が定義の無い term を指すと、保存はされるが violated で、場所がその $ref を指す"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-term",
+   "tab": "場面 S-DECL-TERM",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-TERM.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-TERM\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "欄が glossary の term を $ref で指し、term に定義があれば検証が通る"
+    }
+   ]
+  },
+  {
+   "key": "s-decl-valid",
+   "tab": "場面 S-DECL-VALID",
+   "file": "semantic-agent-schema/test-suite/scenarios/S-DECL-VALID.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\":\"S-DECL-VALID\"",
+     "before": "（無い。新しく作るファイル）",
+     "why": "x-prompt と rule を書いた Concrete が Abstract に照らして検証を通る"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "abs": "5463b3b7b657785259ef2fc31b2901a3389cafa906f331f2bf447cafb329d3f7",
+  "glo": "dabd7cedb798f18d0d481cbe612f44f44e091872142ea4e5532d74a766464973",
+  "urn": "83fe64c8634229efdc22786ee80de3aee21e2f3c2693109634d4cfc6a5f0da5e",
+  "patch": "09882e1ea32a9728d36d553bf9e72d966c94ba866a3bbe87f5ba642605c1abc8",
+  "term": "2c2de0bab504cc74589b23ec5542f56293063d6d34072f76099a6af64c382e9d",
+  "breach": "dffcdf1871e613c921fd41bc60409cde4c42fcafa23233ba21a228d1410a8a7c",
+  "by": "40781612082ffa97550b847da8fe59b6d10362629a9a1d2960bb465391bb0c3e",
+  "vals": "7970ec503c3568d90451d14cd18ede07b47c2d9d9193547c5488522b4b6699d3",
+  "absagg": "c0fa2e64e84cfbddceb50f8bc39487352e9d099ec4d19bb99003234d5c26176b",
+  "con": "ff2654f81c0765f88fee79cf43df18fe4dcb2f14137542083a292f8dcc29ef70",
+  "rule": "981de8c08d2ec3a45b0b938c346d6995fdc6534d1bf7465bb7646157cd348f36",
+  "tpl": "9e64c0d75040ce16e1d6f12c651e9f615b61eb1b5121cee8518ed2606e72dcba",
+  "del": "ea0006f88711613e1457a7376329cd208c3c43381e82a58ce816fbdf5f2ec96d",
+  "gagg": "41cdf6e3a143490530b32273e954892cab30d9047ba63c7c5973d33296ed0cb1",
+  "dcar": "f1c9389d0bd7c1b62cf28e59932a2751fa7c476a8d0f647ee943a50399cfac2b",
+  "verd": "9828617f2c19ce87ce13abb3303bcf646ac4179791eb393b10da74755bc8f964",
+  "ccar": "dea17f99fdc1ac3ab8053f6303469bc23a22d03a515b522afaf2692b7f86fdcf",
+  "res": "d762374bb296785dab4ed8f4760b3ae1f448d0435d64d1a35f1331cd7c938bae",
+  "rcar": "aaf03c6e64f7ad1666a3883b05e1d74d6e1accdff32cad2d8bf7bc22992ee19e",
+  "val": "f74fa0b24933de8145297ca6b4bca627e248875d0f5af0ed0a28d1e20f39aae6",
+  "vcar": "88c93b1db62c5342a7532f58aa41984ff4a9454da872dead2cb4e19b4a84eff9",
+  "port": "0d316bbcdd77aeaa25899cc89fe107eeba9446b828702f9dd4f08275266a8460",
+  "out": "55a8f02bcde0cda4ca7c8a032458387729c1e242c59be21f792489366d0f38c1",
+  "create": "595ea3e68a509df1482fbfddc39b8e54f7db121f28da18ee23ed988c2babc906",
+  "pat": "870a5d143fc63ce7c9b6df6a00dcd7e057f5c3751031ed83616d83993acfbd19",
+  "get": "b3e297f2ea1839dab79b98f22a22be3a096e5a7a70341fd3c0c59661f5735116",
+  "valuc": "47819eb5621749a61dd98f0e7df5b3830fee25e8dab7b4efac43e23da3686916",
+  "acar": "48bfc5f0e40b27d4590b822a047d5a1abccecf54fcc95f170de395557c8a4b3c",
+  "uct": "e941b18ea26771bac012652b8d6696f8bbae5422c4cd99641d5e7d818b2fc639",
+  "ucdm": "bc3dc009b0a242230a41655750032fd8755d714b5794d58df1dc20e2cfd71693",
+  "ucd": "60bc6b1aa18a2bbdcae1e7b86e37c5047b791f4704d7cf63ff98bae690e037f1",
+  "files": "ce6bde6c2c09c5a5d0e81d83a9260e9e4ee3c4ffd1504681e9ecb5d36c802f7f",
+  "fst": "e54d8a0e6deb53957a8dd8284da71da2d88000c0ab901500599f20fd5a90be48",
+  "fcar": "b9b72e7352ded889c769b9444ec9fa6e88cd03569e940b0705d0b64430fa43b4",
+  "mech": "e26e13486ec01dfff072bbbd4efbb2288cc1dc61b06e52840d5bb005b4603930",
+  "comp": "6b42a2c28bd6d04d082484f67312b7bc67226c4c0c47032589e7c7e40830d82c",
+  "main": "5a49c2d2881c527366a167f6dc82f020877755e29c0d30f7149d7e05ea57a02c",
+  "mcp": "888e40eadd6809cec6db6c448d3a63b88bf1dd83c20e124b215c0cc3c1da3d3c",
+  "trace": "c259f68061fc728f227b579835a68a9ff35844918c2683ca64f8645ffe6bbfa5",
+  "clicar": "63c1ea7b7e33450f435f09efb209cfa703f3e4aef15490576ef58f07927f90f6",
+  "ws": "367714bcb473620f11608eca6b679b523b5aaefe3408be606d1081d37dbf1864",
+  "arch": "9b3a70919ad8f9db65720c2e9ccf1c01c1016e3e728faab82a426f8ba5d3b926",
+  "tj": "d4db47d4977a7dca862f98e391a40c4c8dee983893d94e9a5e1bd6c99fbb4e59",
+  "ut": "25a02cad3139d7ff6bca9d757d72cffc6aff675d578df7cf857d15d403b73ab8",
+  "frec": "49c5f02c0b3e9d4258c5a40bf1436e3395cb338a8622d688b7a6480393308058",
+  "fbad": "29d6d33fcf386394c8c0418a78172540d666b7c6d0d61567a2b842e39254ddbb",
+  "fglo": "718302e1e7f7df0b1d6fdeb4c3da39d6c5ef002d74781732d72ca42a4c5307fa",
+  "s-decl-badrule": "4a2b8b52a9cd356c2fae0aa4f0cfe828490fba58aac5286fdf3d69122448876e",
+  "s-decl-create": "e23517ab8f07d957af09a2593816d6bcfe7f30d48882c44ad46b0a34a41e799a",
+  "s-decl-ext-clash": "947c6e66874a9ee17ddcdbfc53255a5ba811ba9eace8ac793f5568a51e6f91a2",
+  "s-decl-ext": "9939f2c3e6d693118e6133336082852478801d5c08437ddf9c78e2b40ee01189",
+  "s-decl-glossary": "0d98c5c6629e28f1b84828d03204fa50e5081edf5d43aab5ec20f1b508e28c97",
+  "s-decl-patch": "d73c492ef3baa3ae190af54d14e7265cf9ccf73ef64f1c6336ba17a1f9c51941",
+  "s-decl-refuse-id": "baeb6a40ddf37ef96cd06f9ae9c62ad49416b23368da93262cfcc911e4261c6f",
+  "s-decl-term-missing": "51e5d16276cff64d7f7952ce09e6c98d021b3920f109f165a1e129563ca2ace8",
+  "s-decl-term": "bc8c495688c8dd03162ab4cc9f7b2cd086d6d4329ed2792b5ea36fdd39ec3251",
+  "s-decl-valid": "2a56a0a4648b791df4b55c80a5ebff8d16f89c4d1de17e8b0f21b4d1e8c88805"
+ }
+}

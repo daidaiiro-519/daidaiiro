@@ -1,0 +1,5 @@
+{"$schema":"../scenario.schema.json","id":"S-DECL-EXT-CLASH","title":"Abstract の x- とぶつかる名前を足すと、保存はされるが violated になる（Q8：保存は断らない）","traces":["U23:失敗時"],
+ "given":{"steps":[{"args":["create","spec/record.schema.json","--owner","acdr","--kind","record"]}]},
+ "when":{"args":["patch","spec/record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/x-extensions\",\"value\":{\"x-prompt\":{\"schema\":{\"type\":\"string\"},\"description\":\"ぶつかる名前\"}}}]","--json"]},
+ "after":[{"args":["get","spec/record.schema.json","--pointer","/x-extensions/x-prompt/description","--json"]}],
+ "then":[{"of":"when","exit":1,"pointer":"/findings/0/result","equals":"violated"},{"of":"after[0]","pointer":"/data/value","equals":"ぶつかる名前"}]}

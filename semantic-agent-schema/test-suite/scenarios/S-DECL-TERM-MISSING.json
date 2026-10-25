@@ -1,0 +1,5 @@
+{"$schema":"../scenario.schema.json","id":"S-DECL-TERM-MISSING","title":"欄が定義の無い term を指すと、保存はされるが violated で、場所がその $ref を指す","traces":["U1:失敗時"],
+ "given":{"files":{"spec/glossary.schema.json":"@fixtures/acdr/glossary.schema.json"},"steps":[{"args":["create","spec/record.schema.json","--owner","acdr","--kind","record"]}]},
+ "when":{"args":["patch","spec/record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/properties/why\",\"value\":{\"$ref\":\"urn:semantic-agent-schema:acdr:glossary:v1#Reason\"}}]","--json"]},
+ "after":[{"args":["get","spec/record.schema.json","--pointer","/properties/why/$ref","--json"]}],
+ "then":[{"of":"when","exit":1,"pointer":"/findings/0/result","equals":"violated"},{"of":"when","pointer":"/findings/0/pointer","equals":"/properties/why/$ref"},{"of":"after[0]","pointer":"/data/value","equals":"urn:semantic-agent-schema:acdr:glossary:v1#Reason"}]}

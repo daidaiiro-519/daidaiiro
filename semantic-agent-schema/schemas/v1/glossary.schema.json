@@ -1,0 +1,25 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:base:glossary:v1",
+ "title": "glossary",
+ "description": "文脈の言葉（term）の用語集の形。glossary は JSON Schema の文書で、term を $defs に置き、$anchor で名前を付ける。名詞の定義だけを持ち、振る舞いは x-prompt の rule が持つ",
+ "type": "object",
+ "required": ["$schema", "$id", "title", "$defs"],
+ "properties": {
+  "$schema": {"const": "urn:semantic-agent-schema:base:glossary:v1"},
+  "$id": {"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:glossary:v[1-9][0-9]*$"},
+  "title": {"type": "string"},
+  "$defs": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "object",
+    "required": ["$anchor", "title", "description"],
+    "properties": {
+     "$anchor": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+     "title": {"type": "string", "minLength": 1, "description": "term の名前"},
+     "description": {"type": "string", "minLength": 1, "description": "term の意味"}
+    }
+   }
+  }
+ }
+}
