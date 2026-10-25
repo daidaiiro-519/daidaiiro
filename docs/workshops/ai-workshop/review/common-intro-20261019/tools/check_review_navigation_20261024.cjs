@@ -1,6 +1,9 @@
 const {chromium}=require('/home/daidaiiro/.npm/_npx/705bc6b22212b352/node_modules/playwright');
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation-review-eight-20261024');
+const progress=JSON.parse(fs.readFileSync(path.join(root,'progress.json'),'utf8'));
+const layout=JSON.parse(fs.readFileSync(path.join(root,'review-layout.json'),'utf8'));
+const resume=String(progress.next_slide||1);
 (async()=>{
  const browser=await chromium.launch({executablePath:'/home/daidaiiro/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome',headless:true,args:['--no-sandbox']});
  try{
@@ -10,21 +13,21 @@ const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation
   assert.equal(await page.locator('#main-tasks > section').count(),3);
   await page.screenshot({path:path.join(out,'home-desktop.png'),animations:'disabled'});
   await page.locator('#resume-review').click();
-  await page.waitForFunction(()=>document.querySelector('#slide')?.value==='5');
+  await page.waitForFunction(n=>document.querySelector('#slide')?.value===n,resume);
   assert.equal(await page.locator('#deck').inputValue(),'lead');
   await page.locator('#reader-link').click();
-  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='5');
-  assert.equal(await page.locator('#page-number').textContent(),'5 / 8');
-  const expected=JSON.parse(fs.readFileSync(path.join(root,'slide-05-growth.json'),'utf8'));
-  assert.equal(await page.locator('#script-title').textContent(),expected.heading);
+  await page.waitForFunction(n=>document.querySelector('#slide-select')?.value===n,String(Number(resume)+1));
+  assert.equal(await page.locator('#page-number').textContent(),String(Number(resume)+1)+' / '+(layout.count+1));
+  const expected=JSON.parse(fs.readFileSync(path.join(root,layout.sources[Number(resume)-1]),'utf8'));
+  assert.equal(await page.locator('#script-title').textContent(),'本文'+resume+'：'+expected.heading);
   assert((await page.locator('#script-body').textContent()).includes(expected.narration.split('\n\n')[0]));
   await page.waitForTimeout(600);
-  const frame=page.frames().find(f=>f.url().includes('common-intro-review/after.html'));
+  const frame=page.frames().find(f=>f.url().includes('common-intro-review/presentation.html'));
   assert(frame);assert.equal(await frame.locator('.slide.on h2').textContent(),expected.heading);
   assert((await page.locator('[data-mode="video"]').textContent()).includes('変更前'));
   await page.locator('#slide-select').selectOption('6');await page.reload();
   await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='6');
-  await page.locator('#slide-select').selectOption('5');
+  await page.locator('#slide-select').selectOption('6');
   await page.screenshot({path:path.join(out,'reader-desktop.png'),animations:'disabled'});
   await page.locator('#compare-current').click();
   await page.waitForFunction(()=>document.querySelector('#slide')?.value==='5');
@@ -35,8 +38,9 @@ const root=path.resolve(__dirname,'../workspace'),out=path.join(root,'navigation
   await page.waitForFunction(()=>document.querySelector('#video-panel')&&!document.querySelector('#video-panel').hidden);
   assert((await page.locator('#video-content video source').getAttribute('src')).includes('00-start.mp4'));
   await page.goto('http://127.0.0.1:8772/workflow.html');
-  assert((await page.locator('#tracks').textContent()).includes('5枚目を確認待ち'));
-  assert((await page.locator('#direction').textContent()).includes('2026-10-24-03'));
+  const trackStatus=progress.source_updated?'正式反映済み':progress.awaiting_user_review.length?progress.awaiting_user_review.join('・')+'枚目を確認待ち':'通し確認済み';
+  assert((await page.locator('#tracks').textContent()).includes(trackStatus));
+  assert((await page.locator('#direction').textContent()).includes(progress.direction_revision));
   await page.screenshot({path:path.join(out,'workflow-desktop.png'),animations:'disabled'});
   await page.goto('http://127.0.0.1:8772/navigation.html');
   assert.equal(await page.locator('svg a').count(),4);

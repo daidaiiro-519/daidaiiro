@@ -8,12 +8,11 @@ const layout=JSON.parse(fs.readFileSync(path.join(root,'review-layout.json'),'ut
   const page=await browser.newPage({viewport:{width:1440,height:1100}}),errors=[];
   page.on('pageerror',e=>errors.push(String(e)));
   await page.goto('http://127.0.0.1:8772/design-review.html?deck=lead&slide=5#lead');
-  assert.equal(await page.locator('#slide option').count(),8);
-  assert((await page.locator('#change-summary').textContent()).includes('新規追加'));
-  assert(await page.locator('[data-script-mode="diff"]').isDisabled());
+  assert.equal(await page.locator('#slide option').count(),layout.count);
+  assert((await page.locator('#design-reason').textContent()).includes(layout.reasons['5']));
   const data=await page.locator('#data').textContent();const lead=JSON.parse(data).find(d=>d.id==='lead');
-  assert.equal(lead.beforeNotes[4],null);assert.equal(lead.notes.length,8);
-  for(let n=1;n<=8;n++){
+  assert.equal(lead.notes.length,layout.count);assert.equal(lead.beforeNotes.length,layout.count);
+  for(let n=1;n<=layout.count;n++){
    await page.locator('#slide').selectOption(String(n));
    const expected=JSON.parse(fs.readFileSync(path.join(root,layout.sources[n-1]),'utf8'));
    assert.equal(await page.locator('#current-title').textContent(),expected.heading);
@@ -23,29 +22,34 @@ const layout=JSON.parse(fs.readFileSync(path.join(root,'review-layout.json'),'ut
     assert((await page.locator('#after-version-label').textContent()).includes(applied?'反映済み':'未反映'));
    }
    assert((await page.locator('#after-narration').textContent()).includes(expected.narration.split('\n\n')[0]));
-   const source=layout.before_sources[n-1];
+   const override=layout.before_overrides?.[String(n)];
+   const source=override?path.basename(layout.sources[n-1]):layout.before_sources[n-1];
    if(source){
-    const before=JSON.parse(fs.readFileSync(path.join(root,layout.baseline,source),'utf8'));
+    const before=JSON.parse(fs.readFileSync(path.join(root,override||layout.baseline,source),'utf8'));
     assert(lead.beforeNotes[n-1].body.includes(before.heading));
+   } else {
+    assert.equal(lead.beforeNotes[n-1],null);
+    assert(await page.locator('[data-script-mode="diff"]').isDisabled());
+    assert((await page.locator('#change-summary').textContent()).includes('新規追加'));
    }
   }
   await page.locator('#slide').selectOption('5');await page.locator('#reader-link').click();
-  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='5');
-  assert.equal(await page.locator('#page-number').textContent(),'5 / 8');
-  assert.equal(await page.locator('#script-title').textContent(),lead.notes[4].title);
-  await page.locator('#slide-select').selectOption('8');await page.reload();
-  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='8');
-  assert.equal(await page.locator('#script-title').textContent(),lead.notes[7].title);
+  await page.waitForFunction(()=>document.querySelector('#slide-select')?.value==='6');
+  assert.equal(await page.locator('#page-number').textContent(),'6 / '+(layout.count+1));
+  assert.equal(await page.locator('#script-title').textContent(),'本文5：'+lead.notes[4].title);
+  await page.locator('#slide-select').selectOption(String(layout.count+1));await page.reload();
+  await page.waitForFunction(n=>document.querySelector('#slide-select')?.value===String(n),layout.count+1);
+  assert.equal(await page.locator('#script-title').textContent(),'本文'+layout.count+'：'+lead.notes[layout.count-1].title);
   await page.locator('#compare-current').click();
-  await page.waitForFunction(()=>document.querySelector('#slide')?.value==='8');
-  assert.equal(await page.locator('#current-title').textContent(),lead.notes[7].title);
+  await page.waitForFunction(n=>document.querySelector('#slide')?.value===String(n),layout.count);
+  assert.equal(await page.locator('#current-title').textContent(),lead.notes[layout.count-1].title);
   await page.setViewportSize({width:390,height:844});
   for(const url of ['design-review.html?deck=lead&slide=5#lead','materials.html?slide=5#lead']){
    await page.goto('http://127.0.0.1:8772/'+url);
    assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)));
   }
   assert.deepEqual(errors,[]);
-  const result={slides:8,addedSlideHasNoInventedBefore:true,beforeMapping:true,narrationMapping:true,readerRoundTrip:true,mobileOverflow:false,errors};
+  const result={slides:layout.count,beforeSnapshotsMatchInputs:true,beforeMapping:true,narrationMapping:true,readerRoundTrip:true,mobileOverflow:false,errors};
   fs.writeFileSync(path.join(root,'seven-slide-revision-20261019/eight-slide-layout-check.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

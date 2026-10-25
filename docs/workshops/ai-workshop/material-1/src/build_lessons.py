@@ -58,7 +58,6 @@ FIG = {
  'COMMON-INTRO-07': lambda: CI.figure(7),
  'COMMON-INTRO-08': lambda: CI.figure(8),
  'COMMON-INTRO-09': lambda: CI.figure(9),
- 'COMMON-INTRO-10': lambda: CI.figure(10),
  'L1-S0': V1.ask, # 1本目　原因を知る
  'L1-S1': V1.symptoms, 'L1-S2': V1.ends,
  'L1-S3': V1.fit, 'T2-S3B': WV.t2_goal, 'L1-S4': V1.three, 'L1-S5': V1.order,
@@ -123,8 +122,10 @@ def build(lesson_path):
     d = json.loads(Path(lesson_path).read_text())
     no, title = d['no'], d['title']
     name, sub = (title.split(' ── ') + [''])[:2]
-    slides = [dict(label='表紙', title=f'{no}本目　{name}', cls='ws-titlepage',
-                   intro=sub, body=V.cover(no), notes=d['slides'][0]['narration'])] if d.get('include_cover', True) else []
+    cover = d.get('cover', {})
+    slides = [dict(label='表紙', title=cover.get('heading', f'{no}本目　{name}'), cls='ws-titlepage',
+                   intro=cover.get('lede', sub), body=CI.cover() if no == 1 and cover else V.cover(no),
+                   notes=cover.get('narration', d['slides'][0]['narration']))] if d.get('include_cover', True) else []
     for s in d['slides']:
         fig = FIG.get(s['id'])
         if fig is None:
@@ -170,7 +171,9 @@ def build(lesson_path):
     content = slides[1:] if d.get('include_cover', True) else slides
     cover_count = int(d.get('include_cover', True))
     notes = [f'# {no}本目　{title}\n', f'枚数 {len(slides)}（表紙{cover_count}・本編{len(content)}）　'
-             f'読み上げ {sum(len(x["notes"]) for x in content)}字\n']
+             f'読み上げ {sum(len(x["notes"]) for x in (slides if cover else content))}字\n']
+    if cover and d.get('include_cover', True):
+        notes.append(f'## 表紙　{cover["heading"]}\n\n{cover["narration"]}\n')
     for i, s in enumerate(content, 1):
         notes.append(f'## {i:02d}　{s["title"]}\n\n{s["notes"]}\n')
     (SCRIPTS / f'{stem}-script.md').write_text('\n'.join(notes))

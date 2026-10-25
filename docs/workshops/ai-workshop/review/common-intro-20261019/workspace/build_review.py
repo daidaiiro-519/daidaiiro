@@ -15,6 +15,11 @@ slides, layout = load_deck(A)
 for approval in sorted(A.glob('approved-slide-*-hashes.json')):
     for name, expected in json.loads(approval.read_text()).items():
         assert hashlib.sha256((A / name).read_bytes()).hexdigest() == expected, '承認済みの枚が変わっています: ' + name
+if layout.get('snapshot_manifest'):
+    saved_manifest = A / layout['snapshot_manifest']
+    for entry in json.loads(saved_manifest.read_text())['files']:
+        saved = saved_manifest.parent / entry['path']
+        assert hashlib.sha256(saved.read_bytes()).hexdigest() == entry['sha256'], '保存した変更前が変わっています: ' + entry['path']
 base = (A / 'baseline-after.html').read_text()
 parts = re.findall(r'<section\b.*?</section>', base, re.S)
 
@@ -44,18 +49,35 @@ def notes(slide, number):
 
 after = deck([section(s, figure(s['source_file']), '確認用') for s in slides], [s['heading'] for s in slides])
 (A / 'after.html').write_text(after)
+cover = json.loads((A / 'cover.json').read_text()) if (A / 'cover.json').exists() else None
+if cover:
+    cover_section = ('<section class="slide ws-titlepage"><h1>' + html.escape(cover['heading'])
+                     + '</h1><p class="ws-intro">' + html.escape(cover['lede']) + '</p><div class="body">'
+                     + (A / 'cover.svg').read_text() + '</div></section>')
+    (A / 'cover.html').write_text(deck([cover_section], ['表紙：はじめに']))
+    (A / 'presentation.html').write_text(deck([cover_section] + [section(s, figure(s['source_file']), '確認用') for s in slides], ['表紙：はじめに'] + ['本文' + str(s['slide']) + '：' + s['heading'] for s in slides]))
+
 (A / 'script.md').write_text('# 三教材共通のはじめに：確認用の原稿\n\n' + '\n\n'.join('## ' + str(s['slide']) + ' ' + s['heading'] + '\n\n' + s['narration'] for s in slides) + '\n')
+if cover:
+    script = (A / 'script.md').read_text()
+    (A / 'script.md').write_text(script.replace('確認用の原稿\n\n', '確認用の原稿\n\n## 表紙：はじめに\n\n' + cover['narration'] + '\n\n', 1))
 before_sections, before_labels, oldnotes = [], [], []
 for n, source in enumerate(layout['before_sources'], 1):
+    prior_root = A / layout['baseline']
+    override = layout.get('before_overrides', {}).get(str(n))
+    if override:
+        prior_root = A / override
+        source = Path(layout['sources'][n - 1]).name
     if source is None:
-        missing = dict(slide=n, heading='新規追加：変更前のスライドはありません', lede='この位置に、想定される展開を説明するスライドを追加しました。')
-        before_sections.append(section(missing, '<p>以前の教材紹介は、変更後の6〜8枚目へ移動しています。</p>', '追加前'))
+        description = layout.get('added_slide_descriptions', {}).get(str(n), {})
+        missing = dict(slide=n, heading='新規追加：変更前のスライドはありません', lede=description.get('lede', '新しいスライドを追加しました。'))
+        before_sections.append(section(missing, '<p>' + html.escape(description.get('body', '変更前の図と原稿はありません。')) + '</p>', '追加前'))
         before_labels.append(missing['heading'])
         oldnotes.append(None)
     else:
-        prior = json.loads((A / layout['baseline'] / source).read_text())
+        prior = json.loads((prior_root / source).read_text())
         prior['slide'] = n
-        before_sections.append(section(prior, figure(source, A / layout['baseline']), '変更前'))
+        before_sections.append(section(prior, figure(source, prior_root), '変更前'))
         before_labels.append(prior['heading'])
         oldnotes.append(notes(prior, n))
 (A / 'before.html').write_text(deck(before_sections, before_labels))
@@ -63,7 +85,7 @@ for n, source in enumerate(layout['before_sources'], 1):
 
 def publish():
     (V / 'common-intro-review').mkdir(parents=True, exist_ok=True)
-    for filename in ['before.html', 'after.html', 'script.md']:
+    for filename in ['before.html', 'after.html', 'script.md', 'cover.html', 'presentation.html']:
         (V / 'common-intro-review' / filename).write_bytes((A / filename).read_bytes())
     def version(side):
         return hashlib.sha256((A / (side + '.html')).read_bytes()).hexdigest()[:12]
@@ -74,7 +96,7 @@ def publish():
     newnotes = [notes(s, s['slide']) for s in slides]
     lead.update(name=f'3教材共通 · はじめに（1〜{len(slides)}枚目）',
                 before='common-intro-review/before.html?v=' + version('before'), after='common-intro-review/after.html?v=' + version('after'),
-                notes=newnotes, beforeNotes=oldnotes, afterNotes=newnotes, reasons=layout['reasons'], addedSlides=layout['added_slides'])
+                readerSlideOffset=1 if cover else 0, notes=newnotes, beforeNotes=oldnotes, afterNotes=newnotes, reasons=layout['reasons'], addedSlides=layout['added_slides'])
     structure_path = A / 'slide-structure.json'
     if structure_path.exists():
         structure = json.loads(structure_path.read_text())
@@ -85,16 +107,61 @@ def publish():
     end = text.index('</article>', start)
     notice = text[start:end]
     notice = re.sub(r'<h2>.*?</h2>', '<h2>共通の「はじめに」：要件と設計を軸に8枚の構成を改訂中</h2>', notice, count=1, flags=re.S)
-    notice = re.sub(r'<p>.*?</p>', '<p>1〜4枚目は架空案件で起きた出来事、5枚目はその設計のまま変更を続けた場合に想定される展開です。教材1〜3の紹介は6〜8枚目へ移動しています。新しい5枚目には変更前のスライドと原稿はありません。動画・音声と正本は更新していません。</p>', notice, count=1, flags=re.S)
+    notice = re.sub(r'<p>.*?</p>', '<p>1〜4枚目は架空案件で起きた出来事、5枚目はその設計のまま変更を続けた場合に想定される展開です。教材1〜3の紹介は6〜8枚目へ移動しています。5〜8枚目の変更前は、今回の見直し前の作業案です。動画・音声と正本は更新していません。</p>', notice, count=1, flags=re.S)
     notice = re.sub(r'<section><h3>表紙の次：共通の題材を説明</h3>.*?</section>', '', notice, flags=re.S)
     notice = notice.replace('更新した動画・音声の再生ページ', '現行の動画・音声（今回の修正は未反映）')
-    plan = '# 現在の8枚構成\n\n' + '\n\n'.join('## ' + str(s['slide']) + ' ' + s['heading'] + '\n\n' + s['lede'] for s in slides)
-    notice += '<details id="seven-slide-plan"><summary>現在の8枚構成を開く</summary>' + markdown.markdown(plan) + '</details>'
+    progress = json.loads((A / 'progress.json').read_text())
+    new_story = A / 'whole-project-story-20261025'
+    if layout.get('story_revision'):
+        archived_public = V / 'whole-project-before-20261025'
+        archived_public.mkdir(exist_ok=True)
+        for name in ['presentation.html', 'cover.html', 'after.html', 'script.md']:
+            (archived_public / name).write_bytes((new_story / 'before' / name).read_bytes())
+        notice = re.sub(r'<h2>.*?</h2>', '<h2>開発全体の生産性・品質を軸に改訂：本文' + '・'.join(map(str, layout.get('story_applied_slides', [1]))) + 'を反映</h2>', notice, count=1, flags=re.S)
+        notice = re.sub(r'<p>.*?</p>', '<p>変更前は、今回の改訂直前の表紙と本文8枚を保存した版です。変更後は本文1から一枚ずつ確認しています。本文6は直前のPM・PL入力案を変更前に保存し、三つの問題と教材の学びを対応させる内容へ再構成しました。本文5は末尾の予告だけを変更しています。教材1〜3の紹介は本文7〜9へ移動し、その内容の見直しはこれからです。正本・音声・動画は未変更です。</p>', notice, count=1, flags=re.S)
+        notice += '<details id="whole-project-story-plan"><summary>今回の改訂構成と反映状況</summary>' + markdown.markdown((new_story / 'plan.md').read_text(), extensions=['tables']) + '<p><a href="whole-project-before-20261025/presentation.html#1" target="_blank">保存した旧版を表紙から見る</a> ／ <a href="whole-project-before-20261025/script.md">旧版の原稿</a></p></details>'
+    if progress.get('source_updated'):
+        notice = re.sub(r'<p>.*?</p>', '<p>全10枚の図と原稿を利用者が確認し、ACDR 0205で正本へ正式反映しました。音声・動画は改訂前です。変更前後の比較と旧版の保存は引き続き利用できます。</p>', notice, count=1, flags=re.S)
+    elif not progress.get('unrevised_slides'):
+        notice = notice.replace('教材1〜3の紹介は本文7〜9へ移動し、その内容の見直しはこれからです。', '教材1〜3の紹介も最新の内容へ反映しています。')
+    if cover:
+        notice += ('<details id="intro-cover" open><summary>追加した表紙と原稿</summary><p>新規追加のため変更前はありません。本文1〜8の比較番号は維持しています。通し閲覧は表紙と本文の全9枚です。</p>'
+                   + '<iframe src="common-intro-review/cover.html#1" title="はじめにの表紙" style="width:100%;aspect-ratio:16/9;border:0"></iframe>'
+                   + '<h3>表紙の原稿</h3>' + markdown.markdown(cover['narration'])
+                   + '<p><a href="materials.html?slide=1#lead">表紙から図と原稿を通して見る</a></p></details>')
+    if layout.get('story_revision'):
+        notice = notice.replace('新規追加のため変更前はありません。本文1〜8の比較番号は維持しています。通し閲覧は表紙と本文の全9枚です。', '表紙は保存した旧版から変更していません。現在は本文' + str(len(slides)) + '枚、表紙を含む全' + str(len(slides)+1) + '枚です。新本文6を追加し、旧教材紹介6〜8を7〜9へ移動しました。')
+    plan = '# 現在の本文' + str(len(slides)) + '枚構成\n\n' + '\n\n'.join('## ' + str(s['slide']) + ' ' + s['heading'] + '\n\n' + s['lede'] for s in slides)
+    notice += '<details id="seven-slide-plan"><summary>現在の本文' + str(len(slides)) + '枚構成を開く</summary>' + markdown.markdown(plan) + '</details>'
+    final_review = A / 'final-sequence-review-20261025'
+    if (final_review / 'summary.md').exists():
+        public_review = V / 'final-sequence-review'
+        public_review.mkdir(exist_ok=True)
+        for report in final_review.glob('*.md'):
+            (public_review / report.name).write_text(report.read_text())
+        notice += '<details id="final-sequence-review"><summary>以前の8枚案の通し確認結果を開く</summary>' + markdown.markdown((final_review / 'summary.md').read_text(), extensions=['tables']) + '</details>'
+    roles_feedback = A / 'roles-luna-review-20261025' / 'feedback.md'
+    if roles_feedback.exists():
+        roles_public = V / 'roles-luna-review'
+        roles_public.mkdir(exist_ok=True)
+        (roles_public / 'feedback.md').write_text(roles_feedback.read_text())
+        notice += ('<details id="roles-luna-feedback"><summary>受講者Lunaのフィードバック：各役割のAI活用</summary>'
+                   + '<p>改訂前の表紙と本文8枚に対する受講者役の感想と提案です。今回の改訂の参考にしていますが、現在の変更後を評価したものではありません。</p>'
+                   + markdown.markdown(roles_feedback.read_text(), extensions=['tables']) + '</details>')
     text = add_structure(enhance(text[:start] + notice + text[end:]), A)
+    if progress.get('source_updated'):
+        repo = A.parents[5]
+        official = V / 'official/common-intro'
+        official.mkdir(parents=True, exist_ok=True)
+        source_out = repo / 'docs/workshops/ai-workshop/material-1/out'
+        (official / 'slides.html').write_bytes((source_out / 'slides/lesson-01-lead.html').read_bytes())
+        (official / 'script.md').write_bytes((source_out / 'scripts/lesson-01-lead-script.md').read_bytes())
+        (V / 'decisions').mkdir(exist_ok=True)
+        (V / 'decisions/0205.html').write_bytes((repo / '.acdr/0205-三教材共通導入の正式版改訂/index.html').read_bytes())
     (V / 'design-review.html').write_text(text)
     (A / 'comparison.html').write_text(text)
     build_navigation(A, V)
-    history = json.loads((A / layout['baseline'] / 'log-course.json').read_text())
+    history = json.loads((A / layout.get('history_baseline', layout['baseline']) / 'log-course.json').read_text())
     # Historical slide numbers refer to the preceding seven-slide layout.
     log = [dict(entry, layout='以前の7枚構成') for entry in history]
     log.extend([dict(slide=5, group='story', change='事例の事実と想定される展開を分け、条件や処理の分散から確認範囲が増える可能性を説明するスライドを追加。'),
@@ -111,6 +178,9 @@ def publish():
                 dict(slide=3, group='figure', change='本来と今回の実装の左右比較を維持。同じ申請変更を人物・ペン・鍵・金額で対応させ、取り込み前の未確認ケースと再作業の順序を線画で追加。'),
                 dict(slide=4, group='story', change='不具合の動作は修正したが、業務判断の有効性を表せない設計が残り、差し戻しと再提出を個別に追加して確認が複雑になった経緯を反映。'),
                 dict(slide=4, group='figure', change='修正した動作と残った設計を上段で区別し、人物・支出書類・証憑で意味の違いを表示。再提出の要件と三つの条件追加、レビュー時に照合する対象の増加を線画で接続。')])
+    additions = A / 'log-course-additions.json'
+    if additions.exists():
+        log.extend(json.loads(additions.read_text()))
     (A / 'log-course.json').write_text(json.dumps(log, ensure_ascii=False, indent=2) + '\n')
 
 

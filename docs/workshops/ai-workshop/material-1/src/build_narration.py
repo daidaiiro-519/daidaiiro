@@ -21,7 +21,7 @@ def items_of(path):
     d = json.loads(path.read_text())
     stem = f'{d["no"]:02d}-{d["key"]}'
     title = '。'.join(p for p in d.get('title', '').split(' ── ') if p) + '。'
-    out = [{'id': f'{d["key"].upper()}-COVER', 'text': title}] if d.get('include_cover', True) else []
+    out = [{'id': f'{d["key"].upper()}-COVER', 'text': d.get('cover', {}).get('narration', title)}] if d.get('include_cover', True) else []
     out += [{'id': s['id'], 'text': s['narration']} for s in d['slides']]
     return stem, out
 

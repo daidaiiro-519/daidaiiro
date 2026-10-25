@@ -80,3 +80,15 @@ node docs/workshops/ai-workshop/review/common-intro-20261019/tools/check_review_
 サーバーが停止していた場合の起動方法は[共通導入のREADME](../common-intro-20261019/README.md)にある。作業用のデータを/tmpだけに保存しない。
 
 比較画面には、各枚の選択欄と現在の枚の説明、変更後の見出しに、今回の構成が図・原稿へ反映済みか未反映かを表示する。構成案を更新しただけの枚も、構成案が未反映と明記する。反映対象はworkspace/slide-structure.jsonのapplied_slidesから生成し、担当のprogress.jsonと合わせて確認する。
+
+## 2026年10月25日追加：共通導入の表紙
+
+通し閲覧は表紙＋本文8枚の全9枚。workspace/cover.jsonとcover.source.svgを表紙の入力とし、build_review.pyがcover.htmlとpresentation.htmlを生成する。通し閲覧はpresentation.html、本文比較はafter.htmlを使用する。比較画面の本文1〜8と過去の比較URLは維持し、表紙は同じ比較ページのintro-cover欄へ新規追加として表示する。
+
+比較の本文Nは通し閲覧のN+1枚目に対応する。review-ui.jsが閲覧への位置を変換し、review_navigation.pyが閲覧から比較へ戻る位置を変換する。表紙から比較へ戻るとintro-cover欄を表示する。検査はtools/check_intro_cover_20261025.cjsが持つ。本文番号と通し閲覧の枚数を混同しない。
+
+2026年10月25日、はじめにへ新本文6（PM・PLのAI利用）を追加。表紙＋本文9枚の全10枚。比較の本文6は通読の7枚目に対応する。旧教材紹介6〜8は7〜9へ移動し、内容は新案未反映。新本文6の変更前は存在しないため、新規追加と表示する。
+
+2026年10月25日、本文6はPM・PL入力案を差し戻し、三つの問題から教材への接続へ再構成。比較の変更前は直前のPM・PL案、変更後はslide-learning-bridge.json。本文5は末尾の予告のみ修正したslide-05-growth-transition.jsonを使用する。新規追加扱いから、変更前後の原稿差分を表示する扱いへ切り替えた。枚数と画面間の移動先は変えていない。
+
+2026年10月25日、共通導入をACDR0205で正本化。メイン画面の正式版欄からofficial/common-intro/slides.html、同script.md、decisions/0205.htmlへ進める。編集元はmaterial-1/src/lesson-01-lead.json、ledes.json、figures/common-intro/とbuild_lessons.py。共通の公開ページはworkspace/build_review.py --publishが正本の生成物とACDRから複製する。公開HTMLを直接編集しない。音声と動画は改訂前。

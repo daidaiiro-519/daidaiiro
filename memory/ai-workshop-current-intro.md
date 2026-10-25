@@ -1,6 +1,6 @@
 ---
 name: ai-workshop-current-intro
-description: 三教材共通のはじめに。1・2・3・6枚目を反映。1・2・6枚目確認済み、3枚目確認待ち。
+description: 共通のはじめに。ACDR0205で正本化済み。表紙＋本文9枚のスライドと原稿を再生成済み。音声・動画は改訂前で再制作は次の工程。
 metadata:
   node_type: memory
   type: project
@@ -8,15 +8,55 @@ metadata:
 
 # 共通の「はじめに」の現在地
 
+最新：利用者の正本化指示を受けACDR0205を承認済みとし、material-1/src/lesson-01-lead.json、ledes.json、figures/common-intro/と表紙の生成処理へ正式反映。表紙1枚＋本文9枚。表紙の専用原稿はcoverに記録し、台本と次回の音声入力へ反映。out/slides/lesson-01-lead.htmlとout/scripts/lesson-01-lead-script.mdを再生成済み。音声動画は更新しておらず、out/index.htmlにも改訂前と明記。正式版は <http://127.0.0.1:8772/official/common-intro/slides.html#1>。ACDRは <http://127.0.0.1:8772/decisions/0205.html>。
+
+最新：全10枚のLunaレビューはwhole-project-story-20261025/final-review/luna-feedback.md。大筋を理解でき、必須指摘は経理承認と経理確認の揺れ。本文3のみafter/slide-03-accounting-term.json/source.svgへ切替えて経理確認に修正。直前の承認済み入力はbefore-slide03-accounting-term/へ保存。本文3の用語修正は利用者再確認待ち。正本・音声動画は未実施。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=3&rev=20261025am#lead>。
+
+最新：利用者が本文9へOK。approved-slide-09-skills-hashes.jsonへ確認済み入力のハッシュを保存。最新全編の入力と画像をwhole-project-story-20261025/final-review/へ固定し、受講者Lunaレビュー中。図と原稿の個別確認は本文1〜9済み。全編のレビュー結果と、正本への正式反映は別の工程。
+
+最新：利用者の本文9への進行指示を受け、本文8を確認済みとしてハッシュ固定。本文9の編集元はwhole-project-story-20261025/after/slide-07.json/source.svg。直前の図と原稿はbefore-slide09-skills/へ保存し比較前へ設定。一つのAgentが各工程でSkillsを使用する構図を維持し、判断観点と確認手順の具体化を説明。本文9確認待ち。全編の最終確認・正式反映・音声動画制作は未実施。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=9&rev=20261025al#lead>。
+
+最新：利用者の本文8への進行指示を受け、本文7を確認済みとしてハッシュ固定。本文8の編集元はwhole-project-story-20261025/after/slide-06.json/source.svg。直前の図と原稿はbefore-slide08-model/へ保存し比較前へ設定。本文8確認待ち、9は未改訂。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=8&rev=20261025ak#lead>。
+
+最新：利用者の本文7への進行指示を受け、本文6と本文5末尾を確認済みとしてハッシュ固定。本文7の編集元はwhole-project-story-20261025/after/slide-05.json/source.svg。直前の図と原稿はbefore-slide07-purpose/へ保存し比較前へ設定。本文7確認待ち、8〜9は未改訂。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=7&rev=20261025aj#lead>。
+
+2026年10月25日の最新状態：PM・PLへ開発情報の入力と照合を割り当てた本文6は差し戻し。利用者が三つの問題から教材へつなぐ方向に同意。共通方針revision 2026-10-25-13。編集元はwhole-project-story-20261025/after/slide-learning-bridge.json/source.svg。旧PM・PL版はbefore-slide06-learning-bridge/へ保存し比較の変更前へ設定。本文5は元入力を固定したまま、末尾の予告のみ直したslide-05-growth-transition.jsonへ切替。本文6と前後の接続は確認待ち。
+
 最新の作業コピーは `docs/workshops/ai-workshop/review/common-intro-20261019/workspace/`。進捗の記録は [progress.json](../docs/workshops/ai-workshop/review/common-intro-20261019/workspace/progress.json)にある。
 
 2026年10月24日、企画書・オリエンテーションの別担当との共有を開始した。[共同制作のメモリ](ai-workshop-shared.md)と[担当情報](../docs/workshops/ai-workshop/review/shared/tracks/intro.json)を追加した。
 
-現在は、要件と設計を軸に8枚の構成を改訂した段階。workspace/slide-structure.jsonが見出し・導入文・原稿案・図の役割と改訂前を持つ。review_structure.pyが同じ比較HTMLへ表示する。1・2・3・4・6枚目は図と原稿へ反映済み。1・2・3・6枚目は利用者確認済みで、4枚目の確認待ち。5・7・8枚目は構成案で、図の改修は一枚ずつ進める。
+2026年10月25日、新本文6を追加。PM・PLが同じ案件の要件・変更・確認結果をAgentに入力し、Skillsで根拠と未確認を整理して、人が残作業と完了見通しを判断する例。入力はwhole-project-story-20261025/after/slide-pm-status.json/source.svg。出力は説明用イメージ、未確認＝未実施と断定しない。本文1〜5は確認済み（5をハッシュで固定）、6は確認待ち。旧教材紹介6〜8を7〜9へ移動し、全10枚（表紙＋本文9枚）。7〜9の内容改訂はこれから。本文6に変更前の図・原稿はない。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=6&rev=20261025ah#lead>。
 
-比較は <http://127.0.0.1:8772/design-review.html?slide=5#lead>。2026年10月24日にサーバーを起動してHTTP 200を確認した。プロセスは後のセッションで停止している可能性がある。
+2026年10月25日、利用者の本文5への依頼を受け、新構図の本文4をapproved-slide-04-whole-project-hashes.jsonで固定。本文5は三段図を活かし、別担当のAI実装、同じルールの分散、照合対象増加から、変更影響・残作業・確認根拠の把握へ接続。新本文1〜4確認済み、本文5確認待ち。次はPM・PL自身がAIで状況を整理する新本文6を追加する。現行閲覧の6枚目はまだ旧教材1紹介であり、予告先の新枚は未追加。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=5&rev=20261025ag#lead>。
 
-図と原稿の修正はレビュー用。正本・音声・動画は未変更。全編に対する最新のLunaレビューも未実施。過去の経緯は[旧記録](ai-workshop.md)とGit履歴、生成方法は[引き継ぎ](../docs/workshops/ai-workshop/review/common-intro-20261019/HANDOFF.md)を参照できる。古い引き継ぎに含まれる枚数や次の作業は、現在のprogress.jsonと異なる場合がある。
+2026年10月25日、利用者の本文4への進行依頼を受け、本文4の構図を再設計。上段に修正済み動作と再テスト再レビューの確認、下段に残った設計→条件追加→確認負担を配置。見出し・導入文・原稿は維持。直前はwhole-project-story-20261025/before-slide04-layout-redesign/へ保存し本文4の比較前へ設定。本文1〜3確認済み、本文4確認待ち。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025af#lead>。
+
+2026年10月25日、利用者が本文2のPR配置をOK。新しい構図を確認済みとして再固定。本文1〜3確認済み。利用者の「3枚目はどうか」を受け本文3の図を再点検し、比較図は維持して下段の追加対応の表現に補強余地ありと判断。本文3自体はまだ変更していない。
+
+2026年10月25日、利用者が本文2・4の構図の見直しを承認。まず本文2を再設計。設計実装テスト→AI人レビュー→承認を「短時間で進んだ範囲」として囲み、取り込み後の結合テストを別段へ配置。原稿は維持。直前の本文2と承認記録はwhole-project-story-20261025/before-slide02-layout-redesign/に保存し、その版を比較の変更前へ設定。利用者の追加指摘で、次工程への矢印を赤枠中央へ移動済み。さらにPR内容を上段からレビュー承認欄の書類へ移動し、承認対象と記載不足を同じ欄に表示。原稿は維持。本文2は再確認待ち、次は本文4の修正済み動作と残った設計を図で分ける。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=2&rev=20261025ae#lead>。
+
+2026年10月25日、本文4への進行依頼を受け新本文3を確認済みとしてapproved-slide-03-whole-project-hashes.jsonで固定。本文4を、動作を直しても残った設計と、設計を見直さない条件追加による確認負担へ整理。通常の直接変更禁止と差し戻し後の証憑編集を図・原稿で区別。新本文1〜3確認済み、本文4確認待ち。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025ab#lead>。
+
+2026年10月25日、利用者の本文3への進行依頼を受け、本文2を確認済みとしてapproved-slide-02-whole-project-hashes.jsonで固定。本文3を不具合と再作業の発生として図と原稿へ反映。左右の比較は維持、結合テストでの発覚と修正・再テスト・再レビューを明示。新案反映は本文1〜3、本文1・2確認済み、本文3確認待ち。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=3&rev=20261025aa#lead>。
+
+2026年10月25日、新案の本文1を利用者がOK。入力をapproved-slide-01-whole-project-hashes.jsonで固定。次の本文2の図と原稿へ、実装から取り込み前のレビュー承認までが速く進んだ範囲であることを明示し、確認待ち。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=2&rev=20261025z#lead>。新案反映は本文1・2、本文3〜8と新本文6追加は未実施。
+
+2026年10月25日、利用者が開発全体の生産性・品質を問う本文9枚案を承認し、旧版を残して新案へ反映するよう依頼。旧版の表紙＋本文8枚の入力・図・原稿・HTML・生成元はworkspace/whole-project-story-20261025/before/にハッシュ付きで固定。新入力はafter/。今回変更したのは本文1のみ。新本文6のPM・PLがAIで変更影響・残作業を整理する例は未追加、本文2〜8も新案未反映。本文1の通常・ダーク・スマートフォン描画と独立確認済みで利用者確認待ち。共通方針revision12と共有記録23を参照。比較は <http://127.0.0.1:8772/design-review.html?deck=lead&slide=1&rev=20261025y#lead>。
+
+2026年10月25日、利用者の依頼で、新しいgpt-6-lunaの受講者役が最新版の表紙＋本文8枚と全原稿を確認。記録はworkspace/roles-luna-review-20261025/feedback.md。PM・PL自身のAI利用が表紙原稿から本文へつながらないこと、役割ごとの学ぶ重点が不明なことが主要指摘。本文2〜3の条件対応と本文7〜8の情報量にも指摘。採否未決定で、このレビューを受けた図・原稿の変更は未実施。同じ比較ページのroles-luna-feedback欄に全文を掲載。共有変更記録22を参照。
+
+2026年10月25日、今回の学びに合わせて表紙教材名を「目的と要件の明確化」「業務のモデル化と設計」「AI活用の実践と改善」へ更新。表紙原稿にPM・PLが対応範囲・変更影響・完了根拠を見る立場と、自身がAIで要件や進捗を整理する応用先を補足。役割別の具体実践は本編改訂への依存であり、完成扱いにはしない。共通方針revision11、変更記録21を参照。
+
+2026年10月25日、利用者の指摘で表紙を追加。その後、表紙の教材名を正式な目的の把握・言葉の定義・仕組みの構築へ戻し、学ぶ内容の補足を分けた。直前版はcover-review-20261025/before-material-titles/。入力はworkspace/cover.jsonとcover.source.svg。通し閲覧はpresentation.htmlの表紙＋本文8枚で全9枚。比較は本文1〜8とafter.htmlを維持し、同じ比較内のintro-cover欄で追加表紙と原稿を提示する。比較と閲覧の往復は位置を一枚分変換。表紙は描画・独立確認済みで利用者確認待ち。通し閲覧は <http://127.0.0.1:8772/materials.html?slide=1#lead>。詳しくは共有変更記録19。
+
+2026年10月25日、オリエンテーション→はじめに→教材1最初の動画を通し確認し、受講者Lunaと開発案件の観点での独立確認を完了。はじめに単体に必須矛盾なし。2枚目の図と原稿へ「どの承認段階かは、PRに記載なし」を追加し、取り込み後の結合テストという時系列も明確化。Lunaへ再確認済み。4〜7枚目は利用者確認済みで入力の固定を維持。2・3・8枚目は利用者最終確認待ち。
+
+比較：<http://127.0.0.1:8772/design-review.html?deck=lead&slide=2&rev=20261025v#lead>。同じ比較ページに通し確認結果を追加。記録と確認画像はworkspace/final-sequence-review-20261025/。共通方針revision 2026-10-25-10を確認済み。
+
+単体の最終確認へ提示できるが、現行教材1本編は議事録の課題整理という旧題材のまま。共通の経費精算刷新題材へ本編を見直す必要がある。オリエンテーション8・10・11・14枚目の教材2紹介も言葉の定義中心のため、別担当へ変更記録18で共有。旧題材へ短い橋渡しを足す案は採用していない。
+
+図と原稿の修正はレビュー用。正本・音声・動画は未変更。全編に対する最新のLunaレビューは上記の記録を参照。過去の経緯は[旧記録](ai-workshop.md)とGit履歴、生成方法は[引き継ぎ](../docs/workshops/ai-workshop/review/common-intro-20261019/HANDOFF.md)を参照できる。古い引き継ぎに含まれる枚数や次の作業は、現在のprogress.jsonと異なる場合がある。
 
 2026年10月24日、利用者の依頼で比較HTMLの操作と差分表示を改善した。図は並列・重ね合わせ、原稿は文単位の追加・削除と全文並列を切替可能。変更理由は独立表示。生成元はworkspace/review_ui.pyとreview-ui-shell.html、review-ui.css、review-ui.js。スライド・原稿自体と5枚目の確認待ちは変更していない。確認画像と結果はworkspace/ui-review-20261024/。
 
@@ -101,3 +141,20 @@ metadata:
 
 
 2026年10月24日、利用者の指摘を受け4枚目で主メッセージを拡大。左右に、現行設計の共通「承認済み」状態と、再提出時に必要な上長承認維持・経理確認やり直しを大きく対比。三処理の時系列フローは下段へ移した。通常・スマートフォン幅を目視。比較URLは <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261024d#lead>。
+
+2026年10月24日、利用者が4枚目について「何が悪い設計か」「なぜ確認箇所が増えるか」が図から伝わりにくいと指摘。見出しを「上長承認と経理確認を一つにしたため、処理ごとに条件を足しました」へ変更。証憑再提出時に必要な状態の対比から、三処理への個別条件追加、三処理それぞれのテスト照合までを図で接続した。通常画像と比較ページを確認し、ブラウザー検査は通過。4枚目は利用者確認待ち。比較 <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261024e#lead>。詳細は[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-24-34-intro-slide-04-causal-chain.md)と[担当情報](../docs/workshops/ai-workshop/review/shared/tracks/intro.json)。
+
+
+2026年10月25日、前日の4枚目案では一状態から処理別の条件追加へ進む理由が図から十分に読めないため再構成。一状態を維持した場合は経理確認が再開せず、戻した場合は上長承認まで未完了になる不都合を示した。差し戻し・変更制限・再提出の三処理へ条件が分かれ、それぞれのテストを確認する関係を表示。画像と比較を確認し、4枚目は利用者確認待ち。比較 <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025a#lead>。詳細は[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-01-intro-slide-04-causal-clarity.md)と[担当情報](../docs/workshops/ai-workshop/review/shared/tracks/intro.json)。
+
+
+2026年10月25日、利用者の依頼で4枚目をゼロから再構成。旧案はworkspace/slide-04-previous-proposal-20261025/へ保存。新案は証憑再提出の業務フローを上長承認・経理確認の二つの状態遷移で示し、現行設計の一状態への集約、三処理への条件追加、それぞれのテスト照合につなぐ。ブラウザー描画画像と比較切替を確認。4枚目は利用者確認待ち。比較 <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025b#lead>。詳細は[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-02-intro-slide-04-redesign.md)。
+
+
+2026年10月25日、利用者が前案は主張が見えず情報過多と指摘。業務フロー中心案を別フォルダへ保存し、4枚目は二つの業務判断を一状態にまとめる設計、不一致、三処理への条件追加、各処理のテスト照合という因果に絞って再設計。前案はworkspace/slide-04-previous-proposal-20261025/とworkspace/slide-04-timeline-proposal-20261025/。新案の比較 <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025c#lead>。4枚目は利用者確認待ち。詳細は[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-03-intro-slide-04-simplified-cause.md)。
+
+
+2026年10月25日、4枚目で三処理をつなぐ矢印とテスト確認へ下ろす線が崩れているとの指摘。三処理は順番ではなく並列の確認箇所として表示し、処理間の矢印を削除。処理群から各テスト確認へ一本で接続した。描画と比較表示を確認。4枚目は利用者確認待ち。比較 <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025d#lead>。詳細は[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-04-intro-slide-04-arrows.md)。
+
+
+2026年10月25日、利用者の指摘を受け4枚目の再提出要件を角丸枠で囲んだ。見出しと二条件を一つの意味上のまとまりとして背景から区別し、warm-paperテーマclassを使用。描画画像と比較表示を確認。4枚目は利用者確認待ち。比較 <http://127.0.0.1:8772/design-review.html?deck=lead&slide=4&rev=20261025e#lead>。詳細は[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-05-intro-slide-04-boundary.md)。

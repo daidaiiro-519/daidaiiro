@@ -58,7 +58,7 @@ function show(){
   n=Math.max(1,Math.min(n,current.notes.length));el('slide').value=String(n);
   frameSource('before',current.before);frameSource('after',current.after);
   el('before-open').href=current.before+'#'+n;el('after-open').href=current.after+'#'+n;
-  el('reader-link').href='materials.html?slide='+n+'#'+encodeURIComponent(current.id);
+  el('reader-link').href='materials.html?slide='+(n+(current.readerSlideOffset||0))+'#'+encodeURIComponent(current.id);
   el('design-reason').textContent=current.reasons?.[String(n)]||'この枚の変更理由は未記録です。';
   el('before-narration').innerHTML=current.beforeNotes?.[n-1]?.body||'';
   el('after-narration').innerHTML=(current.afterNotes||current.notes)[n-1].body;

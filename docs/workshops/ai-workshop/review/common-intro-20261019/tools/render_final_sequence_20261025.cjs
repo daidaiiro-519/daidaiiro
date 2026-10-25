@@ -1,0 +1,6 @@
+const {chromium}=require('/home/daidaiiro/.npm/_npx/705bc6b22212b352/node_modules/playwright');
+const fs=require('fs'),path=require('path');
+const base=path.resolve(__dirname,'..');
+const out=path.join(base,'workspace/final-sequence-review-20261025');
+const sets=[['orientation',path.join(base,'viewer/workshop/material-1/out/slides/lesson-00-start.html')],['intro',path.join(base,'workspace/after.html')],['material1',path.join(base,'viewer/workshop/material-1/out/slides/lesson-02-intro.html')]];
+(async()=>{const b=await chromium.launch({executablePath:'/home/daidaiiro/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome',headless:true,args:['--no-sandbox']});let p=await b.newPage({viewport:{width:1280,height:720}});const results=[];for(const [id,file] of sets){await p.goto('file://'+file);await p.evaluate(()=>document.fonts.ready);const count=await p.locator('section.slide').count();fs.mkdirSync(path.join(out,id),{recursive:true});for(let n=1;n<=count;n++){await p.goto('file://'+file+'#'+n);await p.waitForTimeout(650);await p.screenshot({path:path.join(out,id,String(n).padStart(2,'0')+'.png')});}results.push({id,count,file});}fs.writeFileSync(path.join(out,'rendered.json'),JSON.stringify(results,null,2)+'\n');await b.close();console.log(JSON.stringify(results));})().catch(e=>{console.error(e);process.exit(1)});
