@@ -3,6 +3,7 @@ import os
 H = os.path.dirname(os.path.abspath(__file__)); C = os.path.dirname(os.path.dirname(H))
 src = open(os.path.join(C, 'arch.html')).read()
 head = src[:src.index('</style>')] + '.y{color:var(--add-ink);background:var(--add);font-weight:700;padding:0 4px;border-radius:4px}.n{color:var(--bad);background:var(--bad-bg);font-weight:700;padding:0 4px;border-radius:4px}.u{color:var(--hot);background:var(--hot-bg);font-weight:700;padding:0 4px;border-radius:4px}\n</style>'
+FIG = lambda n: '<div class="fig" style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto">' + open(os.path.join(H, n)).read() + '</div>'
 head = head.replace('<title>基盤のアーキテクチャ</title>', '<title>子のセッションの型</title>')
 def table(h, rows):
     return '<div class="tw"><table><tr>' + ''.join(f'<th>{x}</th>' for x in h) + '</tr>' + ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>' for r in rows) + '</table></div>'
@@ -11,7 +12,7 @@ N = lambda t: f'<span class="n">効かない</span> {t}'
 U = lambda t: f'<span class="u">不明</span> {t}'
 X = lambda t: f'<span class="n">できない</span> {t}'
 SIM = r'''
-<h2>6　シミュレーション：同じ契約を4つのツールで動かす</h2>
+<h2>5　シミュレーション：同じ契約を4つのツールで動かす</h2>
 <p class="meta">目的のセッション「ACDR 0199 依存の向きの検査ツール」が、約4万トークンの会話を積んだところから、3つの仕事を依頼する。呼び出し（契約）はどのツールでも同じで、ツールが返す能力で実際の動きが変わる。上のボタンでツールを切り替える</p>
 <div class="sim">
 <div class="tabs" role="tablist">
@@ -85,21 +86,12 @@ render('claude');
 body = f'''<main>
 <h1>子のセッションの型</h1>
 <p class="meta">利用者と整理した観点：起点は目的、その中で作業が出てくる。作業ごとに「寿命（単発か継続か）」と「親の文脈（引き継ぐか引き継がないか）」を決める。数字は 2026-10-25 の実測（約4万トークンの親から各1回）</p>
-<p class="ans">作業は「単発か継続か」と「親の文脈を引き継ぐか」の2つの軸で4つの型になる。単発はサブエージェントで済ませる（引き継ぐなら fork）。継続は別のセッションを役割ごとに再開する。既定は引き継がない側で、会話の意図を必要とするときだけ引き継ぐ</p>
-<h2>1　起点は目的、その中で作業</h2>
-<div style="font:12.5px/1.7 var(--mono);background:var(--code);border-radius:8px;padding:10px 12px;white-space:pre;overflow-x:auto">目的のセッション（目的1つに1つ。要件整理 → 設計 → 実装 はこの中で進める）
- │
- ├─ 作業：反証            → 単発 ・ 引き継ぐ
- ├─ 作業：原文の調査      → 単発 ・ 引き継がない
- ├─ 作業：AI の rule の判定 → 単発 ・ 引き継がない（会話を見せない）
- ├─ 作業：決まった設計どおりの実装 → 継続 ・ 引き継がない
- └─ 作業：議論の意図を踏まえた実装 → 継続 ・ 引き継ぐ</div>
-<h2>2　2つの軸と4つの型</h2>
-{table(['', '親の文脈を引き継ぐ', '親の文脈を引き継がない'], [
- ['<b>単発</b>（1回で終わる。残さない）', '反証、Semantic Search の整形<br><span class="meta">手段：fork のサブエージェント</span>', '原文の調査、AI の rule の判定<br><span class="meta">手段：通常のサブエージェント</span>'],
- ['<b>継続</b>（目的を達成するまで続ける）', '議論の意図を踏まえた長い作業<br><span class="meta">手段：親から分けたセッションを、役割ごとに再開する</span>', '指示で進められる長い作業（既定）<br><span class="meta">手段：新しいセッションを、役割ごとに再開する</span>'],
-])}
-<h2>3　どちらに決めるか</h2>
+<p class="ans">作業は「単発か継続か」×「親の文脈を引き継ぐか」で4つの型。単発はサブエージェント、継続は別のセッションを再開する。既定は引き継がない側</p>
+<h2>1　2つの軸と4つの型</h2>
+{FIG('quad.svg')}
+<h2>2　型の決め方</h2>
+{FIG('decide.svg')}
+<details><summary>決め方の理由（表）</summary>
 {table(['軸', '決め方'], [
  ['単発か継続か', '1回の答えで終わるなら単発。何度もやりとりして積み上げるなら継続'],
  ['単発で引き継ぐか', '良し悪しが、この会話の意図で決まるなら引き継ぐ（反証は「利用者の言葉から外れていないか」を見る）'],
@@ -107,7 +99,10 @@ body = f'''<main>
  ['継続で引き継ぐか', '意図を指示に書き切れず、会話そのものを持たせないと外れるときだけ。続けるあいだ親の会話（横道も含む）を背負うので、文脈が二重になり発散しやすい'],
  ['継続で引き継がないか', '意図を指示に書き切れるとき。既定'],
 ])}
-<h2>4　型ごとの手段（AI ツールの中から ／ 外からのコマンド）</h2>
+</details>
+<h2>3　AI ツールごとの手段とキャッシュ</h2>
+{FIG('matrix.svg')}
+<details><summary>全部の手段とコマンド（表）</summary>
 {table(['型', 'Claude Code 2.1.305', 'Codex 0.164.0', 'Copilot 1.0.103', 'Kiro 2.21.1'], [
  ['単発 ・ 引き継ぐ：AI の中から', Y('fork のサブエージェント（原典）'), Y('spawn_agent fork_turns all：94%（実測）'), X('無い。サブエージェントは親の会話を引き継がない（原典）'), X('無い。sub-agents は文脈を分ける（原典）')],
  ['単発 ・ 引き継ぐ：外からコマンドで', Y('--resume P --fork-session --no-session-persistence：96%（実測）'), Y('exec fork --ephemeral P：64%（実測。親の再開と同じ）'), X('無い（/fork は対話だけ）'), N('ACP の session/fork：クレジットが親と同じ（推測）')],
@@ -118,18 +113,19 @@ body = f'''<main>
  ['人が対話で使う手段（参考）', '/fork', '/side ・ /fork', '/fork ・ /ask', '/tangent ・ /rewind'],
 ])}
 <p class="meta">Copilot Free はモデルが自動選択で、モデルが変わるとキャッシュは効かない（原典「A different model can't reuse another model's cache」）。Codex のサブエージェントは親と同じキャッシュキーを使う（ソースの試験）</p>
-<h2>5　できない ・ 効かないときの代わり</h2>
+</details>
+<h2>4　できない ・ 効かないときの代わり</h2>
 {table(['型', 'ツール', '代わり'], [
  ['単発 ・ 引き継ぐ', 'Copilot ・ Kiro', 'いまのセッションの中で行う（再開と同じくキャッシュが効く）。やりとりは親の会話に残る'],
  ['継続 ・ 引き継ぐ', 'Copilot', '継続 ・ 引き継がない にし、親が会話の意図を指示に書いて渡す'],
  ['継続 ・ 引き継ぐ', 'Codex（外から）・ Kiro', '作るときに親の文脈の分を1回払う。重ければ 引き継がない にして意図を指示に書く'],
 ])}
 {SIM}
-<h2>7　契約に持つもの</h2>
+<h2>6　契約に持つもの</h2>
 {table(['持つもの', '中身'], [
  ['作業の型', '寿命（単発 ・ 継続）と親の文脈（引き継ぐ ・ 引き継がない）。単発はセッションの集約に登録しない。継続は目的 ・ 親 ・ 役割の組で1つ'],
  ['AI ツールのアダプターが返す能力', '型ごとに「外からのコマンドで作れるか」と「親のキャッシュが効くか ・ 再開で効くか（効く ・ 効かない ・ 不明）」'],
- ['選び方', '使う場面が型を求め、ツールができない ・ 効かないときは5節の代わりにする'],
+ ['選び方', '使う場面が型を求め、ツールができない ・ 効かないときは4節の代わりにする'],
  ['基盤が関わる範囲', '基盤は AI を起動しない。外からのコマンドの手段はアダプターの能力として持つだけで、AI の中の手段（サブエージェント ・ 対話のコマンド）は呼ぶ側の AI ツールの機能'],
 ])}
 </main>'''
