@@ -46,6 +46,11 @@ pub enum Mechanical {
         /// 手元のセッション（tool:id）
         session: Option<String>,
     },
+    /// 前回のコミットからの変更をまとめ、まとめを1件置く（record --summary）
+    Summarize {
+        /// まとめの id（無ければ作るときに決める）
+        id: Option<String>,
+    },
     /// 人が意図を判定する
     Judge {
         /// 変更の記録の id
@@ -102,6 +107,22 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
     let (name, rest) = args.split_first().ok_or(
         "コマンドが無い（create ・ get ・ patch ・ validate ・ record ・ judge ・ history）",
     )?;
+    if name == "record" && rest.first().map(String::as_str) == Some("--summary") {
+        let mut json = false;
+        let mut id = None;
+        let mut it = rest[1..].iter();
+        while let Some(flag) = it.next() {
+            match flag.as_str() {
+                "--json" => json = true,
+                "--id" => id = Some(it.next().ok_or("--id の値が無い")?.clone()),
+                _ => return Err(format!("record --summary は旗「{flag}」を受け取らない")),
+            }
+        }
+        return Ok(Parsed {
+            command: Mechanical::Summarize { id },
+            json,
+        });
+    }
     let (path, flags) = rest
         .split_first()
         .ok_or_else(|| format!("{name} の対象が無い"))?;
@@ -246,6 +267,21 @@ mod tests {
         ]))
         .unwrap();
         assert!(matches!(p.command, Mechanical::CreateInstance { .. }));
+    }
+
+    /// traces: U25:事後
+    #[test]
+    fn record_summary_reads_the_id() {
+        let p = parse(&args(&["record", "--summary", "--id", "X", "--json"])).unwrap();
+        assert_eq!(
+            (p.command, p.json),
+            (
+                Mechanical::Summarize {
+                    id: Some("X".into())
+                },
+                true
+            )
+        );
     }
 
     /// traces: U1:失敗時

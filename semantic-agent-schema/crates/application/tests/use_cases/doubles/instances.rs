@@ -13,4 +13,18 @@ impl Instances for FakeContracts {
     fn write(&self, path: &str, document: &Value) -> Result<(), String> {
         Contracts::write(self, path, document)
     }
+
+    fn all(&self) -> Result<Vec<String>, String> {
+        Ok(self
+            .files
+            .borrow()
+            .iter()
+            .filter(|(_, d)| {
+                d.get("$schema")
+                    .and_then(Value::as_str)
+                    .is_some_and(|s| s.starts_with("urn:semantic-agent-schema:"))
+            })
+            .map(|(p, _)| p.clone())
+            .collect())
+    }
 }

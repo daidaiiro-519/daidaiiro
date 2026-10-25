@@ -18,11 +18,12 @@ pub const X_KEYWORDS: [&str; 9] = [
 ];
 
 /// 実行ファイルに入れて出す Abstract の版（閉じた一覧の中身）
-const SHIPPED: [&str; 4] = [
+const SHIPPED: [&str; 5] = [
     include_str!("../../../../../schemas/v1/semantic-abstract-schema.json"),
     include_str!("../../../../../schemas/v1/glossary.schema.json"),
     include_str!("../../../../../schemas/v1/change.schema.json"),
     include_str!("../../../../../schemas/v1/judgment.schema.json"),
+    include_str!("../../../../../schemas/v1/change-summary.schema.json"),
 ];
 
 /// Semantic Abstract Schema（セマンティックアブストラクトスキーマ）：Concrete が $schema に書くメタスキーマの1つの版

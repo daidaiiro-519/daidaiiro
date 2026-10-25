@@ -1,0 +1,92 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:change-summary:v1",
+  "title": "変更のまとめ",
+  "description": "コミットごとに1件の変更のまとめ。前回のコミットからの差し引きと例外を、基盤が手元の変更の記録から機械的に作る（AI は書かない）。セッション ID は持たない。",
+  "x-instance-path": ".semantic-agent-schema/changes/{id}.json",
+  "x-instance-label": "まとめ {id}",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "range",
+    "exceptions",
+    "purposes",
+    "unreadable"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:change-summary:v1"
+    },
+    "kind": {
+      "const": "change-summary",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "変更のまとめであること。"
+        },
+        "write": []
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+      "readOnly": true,
+      "description": "まとめの id",
+      "x-prompt": {
+        "read": {
+          "means": "基盤がまとめを作った時に1回だけ決める、打ち合わせずに一意な値（ULID）である。2人が同じ目的でコミットしても名前が衝突しない。",
+          "parse": "時刻の順に並ぶ26文字。"
+        },
+        "write": []
+      }
+    },
+    "range": {
+      "$ref": "urn:semantic-agent-schema:base:change:v1#/$defs/view/properties/range",
+      "readOnly": true,
+      "description": "前後の参照",
+      "x-prompt": {
+        "read": {
+          "means": "前の姿（前回のコミット）と後の姿（いまの作業ツリー）の参照で、基盤は解釈しない。"
+        },
+        "write": []
+      }
+    },
+    "exceptions": {
+      "$ref": "urn:semantic-agent-schema:base:change:v1#/$defs/view/properties/exceptions",
+      "readOnly": true,
+      "description": "例外",
+      "x-prompt": {
+        "read": {
+          "means": "記録と変更の前後を両方向で突き合わせて出た例外の、種類ごとの件数と中身である。",
+          "shown": "まとめの先頭に出る。"
+        },
+        "write": []
+      }
+    },
+    "purposes": {
+      "$ref": "urn:semantic-agent-schema:base:change:v1#/$defs/view/properties/purposes",
+      "readOnly": true,
+      "description": "目的 → 意図",
+      "x-prompt": {
+        "read": {
+          "means": "目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごとに成型したものである。意図の判定の結果を持つ。"
+        },
+        "write": []
+      }
+    },
+    "unreadable": {
+      "$ref": "urn:semantic-agent-schema:base:change:v1#/$defs/view/properties/unreadable",
+      "readOnly": true,
+      "description": "成型できなかった対象",
+      "x-prompt": {
+        "read": {
+          "means": "文字として読めないなどで成型できなかった対象のパスである。"
+        },
+        "write": []
+      }
+    }
+  }
+}

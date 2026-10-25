@@ -160,6 +160,18 @@ impl ConcreteSchema {
         found
     }
 
+    /// 人が決める項目（根の properties のうち x-decided-by が human のもの）の JSON Pointer と、初めの値（default）
+    pub fn decided_by_human(&self) -> Vec<(String, Option<&Value>)> {
+        self.document
+            .get("properties")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .filter(|(_, f)| f.get("x-decided-by").and_then(Value::as_str) == Some("human"))
+            .map(|(name, f)| (format!("/{name}"), f.get("default")))
+            .collect()
+    }
+
     /// x-relationship が指す Concrete の URN（場所と URN）
     pub fn relationship_targets(&self) -> Vec<(String, String)> {
         let mut out = Vec::new();

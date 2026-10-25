@@ -14,7 +14,7 @@ use semantic_agent_schema_application::semantic_agent_schema_declaration::values
 use semantic_agent_schema_application::semantic_agent_schema_declaration::values::target::Target;
 use std::path::Path;
 
-/// 手元の DB の形（決めたことの全体の4節の DDL。消す表は無く、消すことはトリガーで断る）
+/// 手元の DB の形（決めたことの全体の4節の DDL。消す表は無い。記録の削除と書き換えはトリガーで断り、まとめの id を1回入れることだけ許す）
 const DDL: &str = "
 CREATE TABLE IF NOT EXISTS changes (
   id                 TEXT PRIMARY KEY,
@@ -27,11 +27,12 @@ CREATE TABLE IF NOT EXISTS changes (
 );
 CREATE TABLE IF NOT EXISTS change_items (
   change_id TEXT NOT NULL REFERENCES changes(id),
-  seq       INTEGER NOT NULL,
   target    TEXT NOT NULL,
-  pointer   TEXT,
-  PRIMARY KEY (change_id, seq)
+  pointer   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (change_id, target, pointer)
 );
+CREATE INDEX IF NOT EXISTS change_items_by_target ON change_items (target);
+CREATE INDEX IF NOT EXISTS changes_by_purpose ON changes (purpose_ref);
 CREATE TABLE IF NOT EXISTS intent_judgments (
   change_id  TEXT PRIMARY KEY REFERENCES changes(id),
   judge_kind TEXT NOT NULL CHECK (judge_kind IN ('ai','human')),
@@ -45,6 +46,12 @@ CREATE TABLE IF NOT EXISTS session_changes (
 );
 CREATE TRIGGER IF NOT EXISTS no_delete_changes BEFORE DELETE ON changes BEGIN SELECT RAISE(ABORT, '変更の記録は消さない'); END;
 CREATE TRIGGER IF NOT EXISTS no_delete_change_items BEFORE DELETE ON change_items BEGIN SELECT RAISE(ABORT, '変更の項目は消さない'); END;
+CREATE TRIGGER IF NOT EXISTS no_update_changes BEFORE UPDATE ON changes
+  WHEN NOT (OLD.summary_id IS NULL AND NEW.summary_id IS NOT NULL AND NEW.id = OLD.id AND NEW.purpose_ref = OLD.purpose_ref
+            AND NEW.intent = OLD.intent AND NEW.writer_kind = OLD.writer_kind AND NEW.replaces_intent_id IS OLD.replaces_intent_id
+            AND NEW.created_at = OLD.created_at)
+  BEGIN SELECT RAISE(ABORT, '変更の記録は書き換えない（まとめの id を1回入れるだけ）'); END;
+CREATE TRIGGER IF NOT EXISTS no_update_change_items BEFORE UPDATE ON change_items BEGIN SELECT RAISE(ABORT, '変更の項目は書き換えない'); END;
 ";
 
 /// 手元の DB（SQLite 1ファイル）
@@ -84,16 +91,17 @@ impl LocalDb {
         };
         let mut stmt = self
             .conn
-            .prepare("SELECT target, pointer FROM change_items WHERE change_id = ?1 ORDER BY seq")
+            .prepare("SELECT target, pointer FROM change_items WHERE change_id = ?1 ORDER BY rowid")
             .map_err(|e| e.to_string())?;
         let items = stmt
             .query_map(params![id], |r| {
-                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
             })
             .map_err(|e| e.to_string())?
             .map(|r| {
-                r.map_err(|e| e.to_string())
-                    .and_then(|(t, p)| Item::new(Target::from_key(&t), p))
+                r.map_err(|e| e.to_string()).and_then(|(t, p)| {
+                    Item::new(Target::from_key(&t), Some(p).filter(|p| !p.is_empty()))
+                })
             })
             .collect::<Result<Vec<_>, _>>()?;
         let writer = Writer::parse(&writer).ok_or("書いた者の種類が読めない")?;
@@ -121,12 +129,16 @@ impl ChangeRecords for LocalDb {
             params![record.id().as_str(), record.purpose_ref(), record.intent(), record.writer().as_str(), record.replaces().map(ChangeId::as_str)],
         )
         .map_err(|e| format!("変更の記録を書けない：{e}"))?;
-        for (seq, item) in record.items().iter().enumerate() {
+        for item in record.items() {
             tx.execute(
-                "INSERT INTO change_items (change_id, seq, target, pointer) VALUES (?1, ?2, ?3, ?4)",
-                params![record.id().as_str(), i64::try_from(seq).unwrap_or(i64::MAX), item.target().key(), item.field()],
+                "INSERT INTO change_items (change_id, target, pointer) VALUES (?1, ?2, ?3)",
+                params![
+                    record.id().as_str(),
+                    item.target().key(),
+                    item.field().unwrap_or_default()
+                ],
             )
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("変更の項目を書けない（同じ項目を2回入れていないか）：{e}"))?;
         }
         if let Some(s) = session {
             tx.execute(
@@ -155,6 +167,43 @@ impl ChangeRecords for LocalDb {
         ids.iter()
             .filter_map(|id| self.load(id).transpose())
             .collect()
+    }
+
+    fn pending(&self) -> Result<Vec<ChangeRecord>, String> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id FROM changes WHERE summary_id IS NULL ORDER BY created_at, id")
+            .map_err(|e| e.to_string())?;
+        let ids = stmt
+            .query_map([], |r| r.get::<_, String>(0))
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        ids.iter()
+            .filter_map(|id| self.load(id).transpose())
+            .collect()
+    }
+
+    fn summarized(&self, ids: &[ChangeId], summary_id: &str) -> Result<(), String> {
+        let tx = self
+            .conn
+            .unchecked_transaction()
+            .map_err(|e| e.to_string())?;
+        for id in ids {
+            let n = tx
+                .execute(
+                    "UPDATE changes SET summary_id = ?1 WHERE id = ?2 AND summary_id IS NULL",
+                    params![summary_id, id.as_str()],
+                )
+                .map_err(|e| e.to_string())?;
+            if n == 0 {
+                return Err(format!(
+                    "{} は無いか、すでに別のまとめに入っている",
+                    id.as_str()
+                ));
+            }
+        }
+        tx.commit().map_err(|e| e.to_string())
     }
 }
 

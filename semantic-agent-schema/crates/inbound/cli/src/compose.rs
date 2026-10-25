@@ -1,11 +1,13 @@
 //! 起動時の結合（outbound を application へ渡す1か所）
 
 use crate::commands::mechanical::{Mechanical, parse};
+use semantic_agent_schema_application::ports::changes::Changes;
 use semantic_agent_schema_application::semantic_agent_schema_change::values::change_id::ChangeId;
 use semantic_agent_schema_application::use_cases::{
     Outcome, Ports, create, history, judge, patch, record, search, validate,
 };
 use semantic_agent_schema_fs::files::Files;
+use semantic_agent_schema_git::changes::Git;
 use semantic_agent_schema_sqlite::change_store::LocalDb;
 use serde_json::json;
 use std::path::{Path, PathBuf};
@@ -22,7 +24,8 @@ pub fn run(args: &[String]) -> ExitCode {
     };
     let root = std::env::current_dir().unwrap_or_default();
     let files = Files::new(root.clone());
-    let db = match LocalDb::open(&db_path(&root)) {
+    let git = Git::new(root.clone());
+    let db = match LocalDb::open(&db_path(&root, git.shared_dir())) {
         Ok(db) => db,
         Err(e) => {
             eprintln!("{e}");
@@ -90,6 +93,10 @@ pub fn run(args: &[String]) -> ExitCode {
             reason,
         } => judge::judge_intent(&ports, change_id, result, meaning, reason),
         Mechanical::History { path } => history::history(&ports, path),
+        Mechanical::Summarize { id } => {
+            let id = id.clone().unwrap_or_else(new_ulid);
+            record::summarize(&ports, &git, &files, &id)
+        }
     };
     print(&outcome, parsed.json);
     if outcome.ok {
@@ -99,12 +106,15 @@ pub fn run(args: &[String]) -> ExitCode {
     }
 }
 
-/// 手元の DB の置き場所。起動の設定（環境変数 SEMANTIC_AGENT_SCHEMA_DB）が無ければ、利用者の状態のフォルダ
-/// （$XDG_STATE_HOME か ~/.local/state）の下に、作業の根ごとに1つ置く。リポジトリの外なのでコミットされない。
-/// Git のアダプター（ステップ3b）を入れたら、既定をすべての worktree が共有する場所に変える
-fn db_path(root: &Path) -> PathBuf {
+/// 手元の DB の置き場所。起動の設定（環境変数 SEMANTIC_AGENT_SCHEMA_DB）が無ければ、Git のすべての worktree が共有する
+/// 置き場所（git common dir）の下に置く。Git の外なら、利用者の状態のフォルダ（$XDG_STATE_HOME か ~/.local/state）の下に、
+/// 作業の根ごとに1つ置く。どちらもコミットされない
+fn db_path(root: &Path, shared: Option<PathBuf>) -> PathBuf {
     if let Some(p) = std::env::var_os("SEMANTIC_AGENT_SCHEMA_DB") {
         return PathBuf::from(p);
+    }
+    if let Some(dir) = shared {
+        return dir.join("semantic-agent-schema").join("local.db");
     }
     let state = std::env::var_os("XDG_STATE_HOME")
         .map(PathBuf::from)

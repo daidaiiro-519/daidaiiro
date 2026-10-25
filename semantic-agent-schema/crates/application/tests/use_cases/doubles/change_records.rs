@@ -11,6 +11,7 @@ use std::cell::RefCell;
 #[derive(Default)]
 pub struct FakeChangeRecords {
     pub records: RefCell<Vec<ChangeRecord>>,
+    pub summarized: RefCell<Vec<(ChangeId, String)>>,
 }
 
 impl ChangeRecords for FakeChangeRecords {
@@ -31,5 +32,25 @@ impl ChangeRecords for FakeChangeRecords {
             .filter(|r| r.items().iter().any(|i| i.target() == target))
             .cloned()
             .collect())
+    }
+
+    fn pending(&self) -> Result<Vec<ChangeRecord>, String> {
+        let done = self.summarized.borrow();
+        Ok(self
+            .records
+            .borrow()
+            .iter()
+            .filter(|r| !done.iter().any(|(id, _)| id == r.id()))
+            .cloned()
+            .collect())
+    }
+
+    fn summarized(&self, ids: &[ChangeId], summary_id: &str) -> Result<(), String> {
+        let mut done = self.summarized.borrow_mut();
+        if ids.iter().any(|id| done.iter().any(|(d, _)| d == id)) {
+            return Err("すでに別のまとめに入っている".into());
+        }
+        done.extend(ids.iter().map(|id| (id.clone(), summary_id.to_string())));
+        Ok(())
     }
 }

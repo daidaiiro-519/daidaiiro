@@ -1,5 +1,6 @@
 //! contracts ・ instances ・ judgments（rule の判定）・ change_summaries
 
+use semantic_agent_schema_application::ports::change_summaries::ChangeSummaries;
 use semantic_agent_schema_application::ports::contracts::Contracts;
 use semantic_agent_schema_application::ports::instances::Instances;
 use serde_json::Value;
@@ -99,6 +100,37 @@ impl Instances for Files {
 
     fn write(&self, path: &str, document: &Value) -> Result<(), String> {
         Contracts::write(self, path, document)
+    }
+
+    fn all(&self) -> Result<Vec<String>, String> {
+        let mut out = Vec::new();
+        for path in json_files(&self.root) {
+            let Ok(text) = fs::read_to_string(&path) else {
+                continue;
+            };
+            let Ok(doc) = serde_json::from_str::<Value>(&text) else {
+                continue;
+            };
+            let ours = doc
+                .get("$schema")
+                .and_then(Value::as_str)
+                .is_some_and(|s| s.starts_with("urn:semantic-agent-schema:"));
+            if let (true, Ok(rel)) = (ours, path.strip_prefix(&self.root)) {
+                out.push(rel.to_string_lossy().replace('\\', "/"));
+            }
+        }
+        Ok(out)
+    }
+}
+
+impl ChangeSummaries for Files {
+    fn put(&self, id: &str, summary: &Value) -> Result<String, String> {
+        let path = format!(".semantic-agent-schema/changes/{id}.json");
+        if self.inside(&path)?.exists() {
+            return Err(format!("{path} がすでにある"));
+        }
+        Contracts::write(self, &path, summary)?;
+        Ok(path)
     }
 }
 

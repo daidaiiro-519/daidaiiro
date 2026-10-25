@@ -69,3 +69,43 @@ fn later_intent_judgment_replaces_the_earlier() {
     .unwrap();
     assert!(db.intent_of(&id).unwrap().unwrap().approved_by_human());
 }
+
+/// traces: I35
+#[test]
+fn record_goes_into_only_one_summary() {
+    let db = db("summary").unwrap();
+    db.add(&record(4).unwrap(), None).unwrap();
+    let id = record(4).unwrap().id().clone();
+    db.summarized(std::slice::from_ref(&id), "s-1").unwrap();
+    assert_eq!(
+        (
+            db.pending().unwrap().len(),
+            db.summarized(&[id], "s-2").is_err()
+        ),
+        (0, true)
+    );
+}
+
+/// traces: I32
+#[test]
+fn written_record_is_not_rewritten() {
+    let p = std::env::temp_dir().join(format!("sas-sqlite-rewrite-{}.db", std::process::id()));
+    let _ = std::fs::remove_file(&p);
+    let db = LocalDb::open(&p).unwrap();
+    db.add(&record(5).unwrap(), None).unwrap();
+    let conn = rusqlite::Connection::open(&p).unwrap();
+    let id = record(5).unwrap().id().as_str().to_string();
+    assert!(
+        conn.execute(
+            "UPDATE changes SET intent = '別の意図' WHERE id = ?1",
+            [&id]
+        )
+        .is_err()
+            && conn
+                .execute(
+                    "UPDATE change_items SET pointer = '/x' WHERE change_id = ?1",
+                    [&id]
+                )
+                .is_err()
+    );
+}

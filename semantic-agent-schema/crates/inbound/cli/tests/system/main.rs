@@ -117,11 +117,20 @@ fn args_of(cmd: &Value) -> Result<Vec<String>, String> {
         .collect()
 }
 
+/// コマンドを実行する。args は semantic-agent-schema に、git は Git に渡す（前提のリポジトリを作る ・ 取り込む）
 fn run(work: &Path, cmd: &Value) -> Result<Ran, String> {
-    let args = args_of(cmd)?;
-    let out = Command::new(env!("CARGO_BIN_EXE_semantic-agent-schema"))
+    let (program, args) = match cmd.get("git") {
+        Some(g) => ("git", args_of(&serde_json::json!({ "args": g }))?),
+        None => (env!("CARGO_BIN_EXE_semantic-agent-schema"), args_of(cmd)?),
+    };
+    let out = Command::new(program)
         .args(&args)
         .current_dir(work)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_AUTHOR_NAME", "t")
+        .env("GIT_AUTHOR_EMAIL", "t@example.com")
+        .env("GIT_COMMITTER_NAME", "t")
+        .env("GIT_COMMITTER_EMAIL", "t@example.com")
         .env("HOME", work.join(".home"))
         .env("XDG_CONFIG_HOME", work.join(".home/config"))
         .env("XDG_DATA_HOME", work.join(".home/data"))
@@ -173,11 +182,7 @@ fn run_in(root: &Path, work: &Path, s: &Value) -> Result<(), String> {
     {
         let r = run(work, step)?;
         if r.exit != 0 {
-            return Err(format!(
-                "前提のコマンド {:?} が終了コード {}",
-                args_of(step)?,
-                r.exit
-            ));
+            return Err(format!("前提のコマンド {step} が終了コード {}", r.exit));
         }
     }
     let watched: Vec<String> = s

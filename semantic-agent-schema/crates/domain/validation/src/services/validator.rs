@@ -387,20 +387,10 @@ pub fn validate_instance(
         }
     }
     // human-entry-only：人が決める項目（x-decided-by）が初めの値（default）から変わっていれば、人の承認（judge）が要る
-    for (name, f) in concrete
-        .document()
-        .get("properties")
-        .and_then(Value::as_object)
-        .into_iter()
-        .flatten()
-    {
-        if f.get("x-decided-by").and_then(Value::as_str) != Some("human") {
-            continue;
-        }
-        let at = format!("/{name}");
-        let (verdict, by, why) = match document.get(name.as_str()) {
+    for (at, default) in concrete.decided_by_human() {
+        let (verdict, by, why) = match document.pointer(&at) {
             None => (Verdict::Verified, By::Machine, "まだ書かれていない"),
-            Some(v) if f.get("default") == Some(v) => {
+            Some(v) if default == Some(v) => {
                 (Verdict::Verified, By::Machine, "初めの値（default）のまま")
             }
             Some(_) if approved.contains(&at) => (

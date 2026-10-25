@@ -1,11 +1,17 @@
 //! record ・ まとめを作る
 
+use crate::ports::change_summaries::ChangeSummaries;
+use crate::ports::changes::Changes;
 use crate::ports::sessions::SessionRef;
+use crate::use_cases::validate::{concrete_of, is_declaration, results_of};
 use crate::use_cases::{Outcome, Ports};
+use semantic_agent_schema_change::aggregates::change_record::factories::change_summary::change_summary;
 use semantic_agent_schema_change::aggregates::change_record::{ChangeRecord, Item, Writer};
 use semantic_agent_schema_change::values::change_id::ChangeId;
+use semantic_agent_schema_change::values::file_state::FileState;
 use semantic_agent_schema_declaration::values::target::Target;
-use serde_json::json;
+use semantic_agent_schema_validation::services::validator::problems;
+use serde_json::{Value, json};
 
 /// 記録する変更の中身
 pub struct RecordRequest<'a> {
@@ -68,4 +74,85 @@ pub fn record(ports: &Ports<'_>, r: &RecordRequest<'_>) -> Outcome {
         &[],
         json!({"id": change.id().as_str(), "record": change.to_json()}),
     )
+}
+
+/// 前回のコミットからの変更を、まだまとめに入っていない変更の記録と両方向で突き合わせ、まとめを1件作って置く。
+/// 入った記録にはまとめの id を付ける（不変条件 I31 ・ I35）。AI は書かない
+pub fn summarize(
+    ports: &Ports<'_>,
+    changes: &dyn Changes,
+    summaries: &dyn ChangeSummaries,
+    id: &str,
+) -> Outcome {
+    match make_summary(ports, changes, summaries, id) {
+        Ok(o) => o,
+        Err(e) => Outcome::refused("", &e),
+    }
+}
+
+fn make_summary(
+    ports: &Ports<'_>,
+    changes: &dyn Changes,
+    summaries: &dyn ChangeSummaries,
+    id: &str,
+) -> Result<Outcome, String> {
+    let id = ChangeId::parse(id)?;
+    let head = changes.head()?.unwrap_or_default();
+    let changed = changes.changed()?;
+    if let Some(open) = changed
+        .iter()
+        .find(|f| f.path.starts_with(".semantic-agent-schema/changes/") && f.before.is_none())
+    {
+        return Err(format!(
+            "コミットしていないまとめ {} がある。まとめはコミットごとに1件なので、コミットしてから作る",
+            open.path
+        ));
+    }
+    let mut files = Vec::new();
+    for f in changed {
+        let doc = f
+            .after
+            .as_deref()
+            .or(f.before.as_deref())
+            .filter(|_| f.path.ends_with(".json"))
+            .and_then(|t| serde_json::from_str::<Value>(t).ok());
+        let target = Target::of_document(&f.path, doc.as_ref());
+        let decided = match &doc {
+            Some(d) if !is_declaration(d) => concrete_of(ports, d)
+                .ok()
+                .flatten()
+                .map(|c| c.decided_by_human().into_iter().map(|(at, _)| at).collect())
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        };
+        files.push(FileState::new(&f.path, target, f.before, f.after, decided));
+    }
+    let mut records = Vec::new();
+    for r in ports.records.pending()? {
+        let j = ports.judgments.intent_of(r.id())?;
+        records.push((r, j));
+    }
+    if records.is_empty() && files.is_empty() {
+        return Err("まとめる変更が無い（前回のコミットから変わったファイルも、まとめに入っていない記録も無い）".into());
+    }
+    let (summary, ids) = change_summary(&id, (&head, "working-tree"), &records, &files);
+    let problems = problems(&results_of(ports, &summary, None)?);
+    if !problems.is_empty() {
+        return Ok(Outcome::checked(
+            &problems,
+            json!({"saved": false, "summary": summary}),
+        ));
+    }
+    let path = summaries.put(id.as_str(), &summary)?;
+    ports.records.summarized(&ids, id.as_str())?;
+    let exceptions: usize = summary["exceptions"].as_array().map_or(0, |e| {
+        e.iter()
+            .filter_map(|x| x["count"].as_u64())
+            .map(|n| usize::try_from(n).unwrap_or(0))
+            .sum()
+    });
+    Ok(Outcome::checked(
+        &[],
+        json!({"id": id.as_str(), "path": path, "records": ids.len(), "exceptions": exceptions, "summary": summary}),
+    ))
 }

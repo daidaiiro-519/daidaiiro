@@ -15,4 +15,10 @@ pub trait Instances {
     /// # Errors
     /// 書けないとき
     fn write(&self, path: &str, document: &Value) -> Result<(), String>;
+
+    /// 作業の根の下で、$schema に基盤の URN（urn:semantic-agent-schema:）を書いた文書の置き場所を、名前の順に返す
+    ///
+    /// # Errors
+    /// 読めないとき
+    fn all(&self) -> Result<Vec<String>, String>;
 }

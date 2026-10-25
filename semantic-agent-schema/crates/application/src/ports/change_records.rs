@@ -24,4 +24,16 @@ pub trait ChangeRecords {
     /// # Errors
     /// 読めないとき
     fn touching(&self, target: &Target) -> Result<Vec<ChangeRecord>, String>;
+
+    /// まだまとめに入っていない記録を、古い順に返す
+    ///
+    /// # Errors
+    /// 読めないとき
+    fn pending(&self) -> Result<Vec<ChangeRecord>, String>;
+
+    /// 記録にまとめの id を付ける（1件の記録は1つのまとめにだけ入る。不変条件 I35）
+    ///
+    /// # Errors
+    /// 書けないか、すでに別のまとめに入っている記録があるとき
+    fn summarized(&self, ids: &[ChangeId], summary_id: &str) -> Result<(), String>;
 }

@@ -1,6 +1,7 @@
 //! validate（検査②。依頼の一覧を返し、答えをまとめる）
 
 use crate::use_cases::{Outcome, Ports};
+use semantic_agent_schema_change::values::instance_state::InstanceState;
 use semantic_agent_schema_change::values::verdict::{Finding, Verdict};
 use semantic_agent_schema_declaration::aggregates::abstract_schema::AbstractSchema;
 use semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema;
@@ -10,7 +11,7 @@ use semantic_agent_schema_declaration::values::target::Target;
 use semantic_agent_schema_instance::aggregates::instance::Instance;
 use semantic_agent_schema_resolver::services::resolver::resolve_abstract;
 use semantic_agent_schema_validation::services::validator::{
-    introduced, validate_declaration, validate_instance,
+    introduced, problems, validate_declaration, validate_instance,
 };
 use serde_json::{Value, json};
 
@@ -74,7 +75,10 @@ pub(crate) fn is_declaration(document: &Value) -> bool {
 }
 
 /// インスタンスが従う Concrete を引く。引けなければ None（不変条件 I8：インスタンスは下書きとして返る）
-fn concrete_of(ports: &Ports<'_>, document: &Value) -> Result<Option<ConcreteSchema>, String> {
+pub(crate) fn concrete_of(
+    ports: &Ports<'_>,
+    document: &Value,
+) -> Result<Option<ConcreteSchema>, String> {
     let Some(schema) = document.get("$schema").and_then(Value::as_str) else {
         return Ok(None);
     };
@@ -217,8 +221,11 @@ pub(crate) fn write_checked(
     Outcome::validated(&after, data)
 }
 
-/// Concrete かインスタンスを検証する
+/// Concrete かインスタンスを検証する。"." なら作業の根の下のすべて（ほかの変更を取り込んだあとの姿。U8 ・ U18）
 pub fn validate(ports: &Ports<'_>, path: &str) -> Outcome {
+    if path == "." {
+        return validate_all(ports);
+    }
     let document = match ports.instances.read(path) {
         Ok(Some(d)) => d,
         Ok(None) => return Outcome::refused("", &format!("{path} が無い")),
@@ -228,4 +235,35 @@ pub fn validate(ports: &Ports<'_>, path: &str) -> Outcome {
         Ok(findings) => Outcome::validated(&findings, json!({"path": path})),
         Err(e) => Outcome::refused("/$schema", &e),
     }
+}
+
+/// 作業の根の下のすべての宣言とインスタンスを検証する。findings の場所は「置き場所#JSON Pointer」
+fn validate_all(ports: &Ports<'_>) -> Outcome {
+    let paths = match ports.instances.all() {
+        Ok(p) => p,
+        Err(e) => return Outcome::refused("", &e),
+    };
+    let mut problems_all: Vec<Finding> = Vec::new();
+    let mut files: Vec<Value> = Vec::new();
+    for path in &paths {
+        let results = match ports.instances.read(path) {
+            Ok(Some(d)) => results_of(ports, &d, Some(path)),
+            Ok(None) => Err(format!("{path} が無い")),
+            Err(e) => Err(e),
+        }
+        .unwrap_or_else(|e| vec![Finding::by_machine("readable", "", Verdict::Error, &e)]);
+        let state = InstanceState::from_results(&results);
+        let found = problems(&results);
+        files.push(json!({"path": path, "state": {"name": state.as_str(), "label": state.label()}, "problems": found.len()}));
+        problems_all.extend(found.iter().map(|f| {
+            Finding::new(
+                f.rule(),
+                &format!("{path}#{}", f.pointer()),
+                f.verdict(),
+                f.reason(),
+                f.by(),
+            )
+        }));
+    }
+    Outcome::checked(&problems_all, json!({"path": ".", "files": files}))
 }
