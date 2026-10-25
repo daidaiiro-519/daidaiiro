@@ -30,9 +30,13 @@ impl Verdict {
     }
 }
 
-/// 検証結果：どこで ・ どの値か ・ 根拠 ・ 判定した者。不変条件 I12
+/// 形（JSON Schema）の検証の結果に付ける rule の名前
+pub const SHAPE: &str = "json-schema";
+
+/// 検証結果：どの rule の ・ どこで ・ どの値か ・ 根拠 ・ 判定した者。不変条件 I12
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Finding {
+    rule: String,
     pointer: String,
     verdict: Verdict,
     reason: String,
@@ -40,14 +44,25 @@ pub struct Finding {
 }
 
 impl Finding {
-    /// 機械が判定した検証結果を作る
-    pub fn by_machine(pointer: &str, verdict: Verdict, reason: &str) -> Self {
+    /// 検証結果を作る
+    pub fn new(rule: &str, pointer: &str, verdict: Verdict, reason: &str, by: By) -> Self {
         Finding {
+            rule: rule.to_string(),
             pointer: pointer.to_string(),
             verdict,
             reason: reason.to_string(),
-            by: By::Machine,
+            by,
         }
+    }
+
+    /// 機械が判定した検証結果を作る
+    pub fn by_machine(rule: &str, pointer: &str, verdict: Verdict, reason: &str) -> Self {
+        Finding::new(rule, pointer, verdict, reason, By::Machine)
+    }
+
+    /// rule の id（形の検証は json-schema）
+    pub fn rule(&self) -> &str {
+        &self.rule
     }
 
     /// 場所（JSON Pointer）
@@ -78,7 +93,7 @@ mod tests {
     /// traces: U1:失敗時
     #[test]
     fn machine_finding_keeps_value_reason_and_judge() {
-        let f = Finding::by_machine("/why", Verdict::Violated, "必須の欄が空");
+        let f = Finding::by_machine("r", "/why", Verdict::Violated, "必須の欄が空");
         assert_eq!(
             (f.verdict().as_str(), f.reason(), f.by().as_str()),
             ("violated", "必須の欄が空", "machine")

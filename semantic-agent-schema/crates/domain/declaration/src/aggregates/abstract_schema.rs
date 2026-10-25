@@ -1,5 +1,6 @@
 //! Semantic Abstract Schema（セマンティックアブストラクトスキーマ）
 
+use crate::values::by::By;
 use crate::values::urn::Urn;
 use serde_json::{Value, json};
 
@@ -66,6 +67,24 @@ impl AbstractSchema {
         self.id.kind() == "semantic-abstract-schema"
     }
 
+    /// 本体が持つ rule：書いた場所（x-prompt か prompt の場所）・ id ・ 判定する者。場所で、Concrete のどこに当たる rule かが決まる
+    pub fn rules(&self) -> Vec<(String, String, By)> {
+        let mut out = Vec::new();
+        collect_rules(&self.document, "", &mut out);
+        out
+    }
+
+    /// 本体の x-delegates の名前（Concrete の rule の agent は、これも指せる）
+    pub fn delegate_names(&self) -> Vec<String> {
+        self.document
+            .get("x-delegates")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .map(|(k, _)| k.clone())
+            .collect()
+    }
+
     /// 本体の根に書けるもののうち、文書にまだ無いものを、案内（説明 ・ 読み方 ・ 書くときの rule の id）と一緒に返す。
     /// x- の案内は本体の x-extensions、ほかは本体の properties が持つ
     pub fn unfilled(&self, document: &Value) -> Vec<Value> {
@@ -109,6 +128,36 @@ impl AbstractSchema {
     }
 }
 
+fn collect_rules(v: &Value, at: &str, out: &mut Vec<(String, String, By)>) {
+    match v {
+        Value::Object(map) => {
+            for (k, child) in map {
+                let here = format!("{at}/{}", k.replace('~', "~0").replace('/', "~1"));
+                if (k == "x-prompt" || k == "prompt")
+                    && let Some(write) = child.get("write").and_then(Value::as_array)
+                {
+                    for r in write {
+                        let id = r.get("id").and_then(Value::as_str).unwrap_or_default();
+                        let by = r
+                            .get("by")
+                            .and_then(Value::as_str)
+                            .and_then(By::parse)
+                            .unwrap_or(By::Machine);
+                        out.push((here.clone(), id.to_string(), by));
+                    }
+                }
+                collect_rules(child, &here, out);
+            }
+        }
+        Value::Array(list) => {
+            for (n, child) in list.iter().enumerate() {
+                collect_rules(child, &format!("{at}/{n}"), out);
+            }
+        }
+        _ => {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::AbstractSchema;
@@ -123,6 +172,20 @@ mod tests {
             .find(|u| u["name"] == "x-instance-path")
             .unwrap();
         assert!(path["description"].is_string() && left.iter().all(|u| u["name"] != "title"));
+    }
+
+    /// traces: U1:事後
+    #[test]
+    fn body_has_24_machine_and_26_ai_rules() {
+        let body = AbstractSchema::shipped().unwrap().remove(0);
+        let count = |b| body.rules().iter().filter(|(_, _, by)| *by == b).count();
+        assert_eq!(
+            (
+                count(crate::values::by::By::Machine),
+                count(crate::values::by::By::Ai)
+            ),
+            (24, 26)
+        );
     }
 
     /// traces: I2

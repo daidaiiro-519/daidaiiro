@@ -25,8 +25,17 @@ pub fn run(args: &[String]) -> ExitCode {
             value,
         } => create::create(&files, path, owner, kind, value),
         Mechanical::Get { path, pointer } => search::get(&files, path, pointer),
-        Mechanical::Patch { path, ops } => patch::patch(&files, path, ops),
-        Mechanical::Validate { path } => validate::validate(&files, path),
+        Mechanical::CreateInstance {
+            path,
+            schema,
+            id,
+            value,
+        } => {
+            let id = id.clone().unwrap_or_else(new_id);
+            create::create_instance(&files, &files, path, schema, &id, value)
+        }
+        Mechanical::Patch { path, ops } => patch::patch(&files, &files, path, ops),
+        Mechanical::Validate { path } => validate::validate(&files, &files, path),
     };
     print(&outcome, parsed.json);
     if outcome.ok {
@@ -34,6 +43,15 @@ pub fn run(args: &[String]) -> ExitCode {
     } else {
         ExitCode::from(1)
     }
+}
+
+/// インスタンスの id を決める（時刻とプロセスの番号から。時刻を読むのは inbound だけ）
+fn new_id() -> String {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or_default();
+    format!("i{nanos:x}{:x}", std::process::id())
 }
 
 /// MCP の面を起動する（段5で書く。いまは使い方の誤りを返す）
@@ -44,11 +62,7 @@ pub fn run_mcp() -> ExitCode {
 
 fn print(outcome: &Outcome, as_json: bool) {
     if as_json {
-        let findings: Vec<_> = outcome
-            .findings
-            .iter()
-            .map(|l| json!({"pointer": l.pointer, "result": l.result, "reason": l.reason, "by": l.by}))
-            .collect();
+        let findings: Vec<_> = outcome.findings.iter().map(|l| l.to_json()).collect();
         println!(
             "{}",
             json!({"ok": outcome.ok, "findings": findings, "data": outcome.data})
@@ -56,7 +70,7 @@ fn print(outcome: &Outcome, as_json: bool) {
         return;
     }
     for l in &outcome.findings {
-        println!("{}\t{}\t{}", l.result, l.pointer, l.reason);
+        println!("{}\t{}\t{}\t{}", l.result, l.rule, l.pointer, l.reason);
     }
     println!("{}", if outcome.ok { "ok" } else { "ng" });
 }

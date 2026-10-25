@@ -80,7 +80,7 @@ fn list_scenarios(root: &Path) -> Result<Vec<PathBuf>, String> {
 /// シナリオの形を確かめる（scenario.schema.json の必須の欄と、知らない欄）
 fn check_shape(s: &Value) -> Result<(), String> {
     let obj = s.as_object().ok_or("シナリオがオブジェクトでない")?;
-    for k in ["id", "name", "title", "traces", "when", "then"] {
+    for k in ["id", "name", "title", "why", "traces", "when", "then"] {
         if !obj.contains_key(k) {
             return Err(format!("必須の欄 {k} が無い"));
         }
@@ -90,6 +90,7 @@ fn check_shape(s: &Value) -> Result<(), String> {
         "id",
         "name",
         "title",
+        "why",
         "traces",
         "given",
         "when",

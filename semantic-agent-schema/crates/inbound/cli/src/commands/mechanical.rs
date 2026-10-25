@@ -16,6 +16,17 @@ pub enum Mechanical {
         /// 作る値（create-request。--value の JSON。無ければ {}）
         value: Value,
     },
+    /// Concrete からインスタンスを作る
+    CreateInstance {
+        /// 置き場所
+        path: String,
+        /// 従う Concrete の URN
+        schema: String,
+        /// id（無ければ作るときに決める）
+        id: Option<String>,
+        /// 作る値（--value の JSON。無ければ {}）
+        value: Value,
+    },
     /// 1つの場所の値を返す
     Get {
         /// 置き場所
@@ -58,7 +69,7 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
         .split_first()
         .ok_or_else(|| format!("{name} の対象が無い"))?;
     let allowed: &[&str] = match name.as_str() {
-        "create" => &["--owner", "--kind", "--value"],
+        "create" => &["--owner", "--kind", "--value", "--schema", "--id"],
         "get" => &["--pointer"],
         "patch" => &["--patch"],
         "validate" => &[],
@@ -86,17 +97,28 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
     let need = |key: &str| take(key).ok_or_else(|| format!("{name} には {key} が必要"));
     let path = path.clone();
     let command = match name.as_str() {
-        "create" => Mechanical::Create {
-            path,
-            owner: need("--owner")?,
-            kind: need("--kind")?,
-            value: match take("--value") {
+        "create" => {
+            let value = match take("--value") {
                 Some(v) => {
                     serde_json::from_str(&v).map_err(|e| format!("--value が JSON でない：{e}"))?
                 }
                 None => Value::Object(serde_json::Map::new()),
-            },
-        },
+            };
+            match take("--schema") {
+                Some(schema) => Mechanical::CreateInstance {
+                    path,
+                    schema,
+                    id: take("--id"),
+                    value,
+                },
+                None => Mechanical::Create {
+                    path,
+                    owner: need("--owner")?,
+                    kind: need("--kind")?,
+                    value,
+                },
+            }
+        }
         "get" => Mechanical::Get {
             path,
             pointer: take("--pointer").unwrap_or_default(),
@@ -135,6 +157,19 @@ mod tests {
                 value: serde_json::json!({})
             }
         );
+    }
+
+    /// traces: U5:事後
+    #[test]
+    fn create_with_schema_makes_an_instance() {
+        let p = parse(&args(&[
+            "create",
+            "a.json",
+            "--schema",
+            "urn:semantic-agent-schema:a:b:v1",
+        ]))
+        .unwrap();
+        assert!(matches!(p.command, Mechanical::CreateInstance { .. }));
     }
 
     /// traces: U1:失敗時

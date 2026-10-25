@@ -1,19 +1,26 @@
-//! 宣言の誤り（場所と理由）
+//! 宣言の誤り（rule ・ 場所 ・ 理由）
 
-/// 宣言の誤り：形では見られない、rule ・ x- ・ 名前の宣言の誤りの場所と理由
+/// 宣言の誤り：Abstract の機械の rule のどれに外れたか、どこで、なぜ
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Breach {
+    rule: String,
     pointer: String,
     reason: String,
 }
 
 impl Breach {
-    /// 場所（JSON Pointer）と理由から作る
-    pub fn new(pointer: &str, reason: String) -> Self {
+    /// rule の id ・ 場所（JSON Pointer）・ 理由から作る
+    pub fn new(rule: &str, pointer: &str, reason: String) -> Self {
         Breach {
+            rule: rule.to_string(),
             pointer: pointer.to_string(),
             reason,
         }
+    }
+
+    /// 外れた rule の id
+    pub fn rule(&self) -> &str {
+        &self.rule
     }
 
     /// 場所（JSON Pointer）

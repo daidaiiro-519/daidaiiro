@@ -1,0 +1,10 @@
+{"$schema":"../scenario.schema.json",
+ "id":"S-RULE-LEVEL1",
+ "name":"置き場所の型に無い項目はエラー",
+ "title":"記録の置き場所の型（x-instance-path）に、スキーマに無い項目名を書くとエラーになり、ファイルは変わらない",
+ "why":"記録ファイルの置き場所は「.acdr/{no}-{slug}/acdr.json」のように、項目の値を埋め込む型で決めます。型の中にスキーマに無い項目名があると値を埋められず、置き場所が決まりません。そのような型はエラーにします。",
+ "traces":["U1:失敗時"],
+ "given":{"steps":[{"args":["create","acdr/decision-record.schema.json","--owner","acdr","--kind","decision-record","--value","{\"title\":\"意思決定の記録\",\"description\":\"決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない\"}"]}]},
+ "when":{"args":["patch","acdr/decision-record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/x-instance-path\",\"value\":\".acdr/{no}-{slug}/acdr.json\"},{\"op\":\"add\",\"path\":\"/properties\",\"value\":{\"$schema\":{\"const\":\"urn:semantic-agent-schema:acdr:decision-record:v1\"},\"kind\":{\"description\":\"種類\",\"x-prompt\":{\"read\":{\"means\":\"決定の記録であること\"}},\"const\":\"decision-record\"},\"id\":{\"description\":\"id\",\"x-prompt\":{\"read\":{\"means\":\"記録の id\"}},\"type\":\"string\"},\"no\":{\"description\":\"番号\",\"x-prompt\":{\"read\":{\"means\":\"記録の番号\"}},\"type\":\"string\"}}}]","--json"]},
+ "then":[{"of":"when","exit":1,"pointer":"/findings","contains":"level1-template"},{"of":"when","pointer":"/findings","contains":"{slug}"},{"of":"when","pointer":"/data/saved","equals":false}],
+ "unchanged":["acdr/decision-record.schema.json"]}

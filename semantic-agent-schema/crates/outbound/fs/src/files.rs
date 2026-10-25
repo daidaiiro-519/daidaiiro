@@ -1,6 +1,7 @@
 //! contracts ・ instances ・ judgments（rule の判定）・ change_summaries
 
 use semantic_agent_schema_application::ports::contracts::Contracts;
+use semantic_agent_schema_application::ports::instances::Instances;
 use serde_json::Value;
 use std::fs;
 use std::io::ErrorKind;
@@ -88,6 +89,16 @@ impl Contracts for Files {
         let tmp = dest.with_extension("json.tmp");
         fs::write(&tmp, text).map_err(|e| format!("{path} を書けない：{e}"))?;
         fs::rename(&tmp, &dest).map_err(|e| format!("{path} を置き換えられない：{e}"))
+    }
+}
+
+impl Instances for Files {
+    fn read(&self, path: &str) -> Result<Option<Value>, String> {
+        Contracts::read(self, path)
+    }
+
+    fn write(&self, path: &str, document: &Value) -> Result<(), String> {
+        Contracts::write(self, path, document)
     }
 }
 
