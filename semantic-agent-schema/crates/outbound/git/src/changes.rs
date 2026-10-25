@@ -1,6 +1,6 @@
 //! 前後（前回のコミットと今の作業ツリー）と、worktree が共有する置き場所
 
-use semantic_agent_schema_application::ports::changes::{Changes, FileChange};
+use semantic_agent_schema_application::ports::changes::{Changes, FileChange, WorkPlace};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -79,7 +79,7 @@ impl Changes for Git {
         Ok(out)
     }
 
-    fn workspace(&self) -> Result<Option<String>, String> {
+    fn place(&self) -> Result<Option<WorkPlace>, String> {
         let (Some(own), Some(common)) = (
             self.text(&["rev-parse", "--absolute-git-dir"])?,
             self.text(&["rev-parse", "--path-format=absolute", "--git-common-dir"])?,
@@ -87,11 +87,20 @@ impl Changes for Git {
             return Ok(None);
         };
         // メインのワークツリーは「main」、追加したワークツリーは共有の置き場所からの相対（worktrees/<名前>）
-        Ok(Some(match Path::new(&own).strip_prefix(&common) {
+        let worktree = match Path::new(&own).strip_prefix(&common) {
             Ok(rel) if rel.as_os_str().is_empty() => "main".to_string(),
             Ok(rel) => rel.to_string_lossy().replace('\\', "/"),
             Err(_) => own,
-        }))
+        };
+        let branch = self.text(&["symbolic-ref", "--quiet", "--short", "HEAD"])?;
+        Ok(Some(WorkPlace { worktree, branch }))
+    }
+
+    fn branches(&self) -> Result<Vec<String>, String> {
+        Ok(self
+            .text(&["for-each-ref", "--format=%(refname:short)", "refs/heads"])?
+            .map(|t| t.lines().map(str::to_string).collect())
+            .unwrap_or_default())
     }
 
     fn shared_dir(&self) -> Option<PathBuf> {

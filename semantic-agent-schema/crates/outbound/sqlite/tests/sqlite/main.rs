@@ -1,6 +1,7 @@
 //! 結合テスト：手元の DB に変更の記録と意図の判定を書いて読み戻す
 
 use semantic_agent_schema_application::ports::change_records::ChangeRecords;
+use semantic_agent_schema_application::ports::changes::WorkPlace;
 use semantic_agent_schema_application::ports::judgments::Judgments;
 use semantic_agent_schema_application::semantic_agent_schema_change::aggregates::change_record::{
     ChangeRecord, Item, Writer,
@@ -112,17 +113,24 @@ fn written_record_is_not_rewritten() {
 
 /// traces: I35
 #[test]
-fn pending_is_only_of_the_same_workspace() {
+fn pending_is_only_of_the_same_worktree() {
     let db = db("workspace").unwrap();
-    db.add(&record(6).unwrap(), Some("worktrees/a"), None)
+    let at = |w: &str, b: &str| WorkPlace {
+        worktree: w.into(),
+        branch: Some(b.into()),
+    };
+    db.add(&record(6).unwrap(), Some(&at("worktrees/a", "x")), None)
         .unwrap();
-    db.add(&record(7).unwrap(), Some("worktrees/b"), None)
+    db.add(&record(7).unwrap(), Some(&at("worktrees/b", "y")), None)
         .unwrap();
-    let ids: Vec<_> = db
+    let got: Vec<_> = db
         .pending(Some("worktrees/a"))
         .unwrap()
-        .iter()
-        .map(|r| r.id().clone())
+        .into_iter()
+        .map(|(r, b)| (r.id().clone(), b))
         .collect();
-    assert_eq!(ids, vec![record(6).unwrap().id().clone()]);
+    assert_eq!(
+        got,
+        vec![(record(6).unwrap().id().clone(), Some("x".to_string()))]
+    );
 }

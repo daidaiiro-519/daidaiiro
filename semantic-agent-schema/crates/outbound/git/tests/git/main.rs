@@ -20,7 +20,7 @@ fn repo(name: &str) -> Result<PathBuf, String> {
     let dir = std::env::temp_dir().join(format!("sas-git-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    git(&dir, &["init", "-q"]);
+    git(&dir, &["init", "-q", "-b", "main"]);
     Ok(dir)
 }
 
@@ -70,16 +70,18 @@ fn shared_dir_is_the_common_git_dir() {
 
 /// traces: I35
 #[test]
-fn each_worktree_has_its_own_workspace() {
+fn each_worktree_has_its_own_place() {
     let dir = repo("worktree").unwrap();
     std::fs::write(dir.join("a.json"), "{}").unwrap();
     git(&dir, &["add", "."]);
     git(&dir, &["commit", "-qm", "first"]);
     git(&dir, &["worktree", "add", "-q", "-b", "x", "wt-x"]);
-    let main = Git::new(dir.clone()).workspace().unwrap();
-    let other = Git::new(dir.join("wt-x")).workspace().unwrap();
+    let place = |d: PathBuf| Git::new(d).place().unwrap().map(|p| (p.worktree, p.branch));
     assert_eq!(
-        (main.as_deref(), other.as_deref()),
-        (Some("main"), Some("worktrees/wt-x"))
+        (place(dir.clone()), place(dir.join("wt-x"))),
+        (
+            Some(("main".to_string(), Some("main".to_string()))),
+            Some(("worktrees/wt-x".to_string(), Some("x".to_string())))
+        )
     );
 }

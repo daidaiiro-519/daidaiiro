@@ -2,6 +2,7 @@
 
 use rusqlite::{Connection, OptionalExtension, params};
 use semantic_agent_schema_application::ports::change_records::ChangeRecords;
+use semantic_agent_schema_application::ports::changes::WorkPlace;
 use semantic_agent_schema_application::ports::judgments::Judgments;
 use semantic_agent_schema_application::ports::sessions::SessionRef;
 use semantic_agent_schema_application::semantic_agent_schema_change::aggregates::change_record::{
@@ -23,7 +24,8 @@ CREATE TABLE IF NOT EXISTS changes (
   writer_kind        TEXT NOT NULL CHECK (writer_kind IN ('human','ai-agent')),
   replaces_intent_id TEXT,
   summary_id         TEXT,
-  workspace          TEXT,
+  worktree           TEXT,               -- 書いたワークツリー（手元の DB の中だけで使う。まとめには写さない）
+  branch             TEXT,               -- 書いたブランチ（ブランチに居ないときは NULL）
   created_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE TABLE IF NOT EXISTS change_items (
@@ -34,6 +36,7 @@ CREATE TABLE IF NOT EXISTS change_items (
 );
 CREATE INDEX IF NOT EXISTS change_items_by_target ON change_items (target);
 CREATE INDEX IF NOT EXISTS changes_by_purpose ON changes (purpose_ref);
+CREATE INDEX IF NOT EXISTS changes_by_place ON changes (worktree, branch, summary_id);
 CREATE TABLE IF NOT EXISTS intent_judgments (
   change_id  TEXT PRIMARY KEY REFERENCES changes(id),
   judge_kind TEXT NOT NULL CHECK (judge_kind IN ('ai','human')),
@@ -50,7 +53,7 @@ CREATE TRIGGER IF NOT EXISTS no_delete_change_items BEFORE DELETE ON change_item
 CREATE TRIGGER IF NOT EXISTS no_update_changes BEFORE UPDATE ON changes
   WHEN NOT (OLD.summary_id IS NULL AND NEW.summary_id IS NOT NULL AND NEW.id = OLD.id AND NEW.purpose_ref = OLD.purpose_ref
             AND NEW.intent = OLD.intent AND NEW.writer_kind = OLD.writer_kind AND NEW.replaces_intent_id IS OLD.replaces_intent_id
-            AND NEW.created_at = OLD.created_at AND NEW.workspace IS OLD.workspace)
+            AND NEW.created_at = OLD.created_at AND NEW.worktree IS OLD.worktree AND NEW.branch IS OLD.branch)
   BEGIN SELECT RAISE(ABORT, '変更の記録は書き換えない（まとめの id を1回入れるだけ）'); END;
 CREATE TRIGGER IF NOT EXISTS no_update_change_items BEFORE UPDATE ON change_items BEGIN SELECT RAISE(ABORT, '変更の項目は書き換えない'); END;
 ";
@@ -123,7 +126,7 @@ impl ChangeRecords for LocalDb {
     fn add(
         &self,
         record: &ChangeRecord,
-        workspace: Option<&str>,
+        place: Option<&WorkPlace>,
         session: Option<&SessionRef>,
     ) -> Result<(), String> {
         let tx = self
@@ -131,8 +134,8 @@ impl ChangeRecords for LocalDb {
             .unchecked_transaction()
             .map_err(|e| e.to_string())?;
         tx.execute(
-            "INSERT INTO changes (id, purpose_ref, intent, writer_kind, replaces_intent_id, workspace) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![record.id().as_str(), record.purpose_ref(), record.intent(), record.writer().as_str(), record.replaces().map(ChangeId::as_str), workspace],
+            "INSERT INTO changes (id, purpose_ref, intent, writer_kind, replaces_intent_id, worktree, branch) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![record.id().as_str(), record.purpose_ref(), record.intent(), record.writer().as_str(), record.replaces().map(ChangeId::as_str), place.map(|p| p.worktree.as_str()), place.and_then(|p| p.branch.as_deref())],
         )
         .map_err(|e| format!("変更の記録を書けない：{e}"))?;
         for item in record.items() {
@@ -175,18 +178,27 @@ impl ChangeRecords for LocalDb {
             .collect()
     }
 
-    fn pending(&self, workspace: Option<&str>) -> Result<Vec<ChangeRecord>, String> {
+    fn pending(
+        &self,
+        worktree: Option<&str>,
+    ) -> Result<Vec<(ChangeRecord, Option<String>)>, String> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id FROM changes WHERE summary_id IS NULL AND workspace IS ?1 ORDER BY created_at, id")
+            .prepare("SELECT id, branch FROM changes WHERE summary_id IS NULL AND worktree IS ?1 ORDER BY created_at, id")
             .map_err(|e| e.to_string())?;
         let ids = stmt
-            .query_map(params![workspace], |r| r.get::<_, String>(0))
+            .query_map(params![worktree], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+            })
             .map_err(|e| e.to_string())?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
         ids.iter()
-            .filter_map(|id| self.load(id).transpose())
+            .filter_map(|(id, branch)| {
+                self.load(id)
+                    .transpose()
+                    .map(|r| r.map(|r| (r, branch.clone())))
+            })
             .collect()
     }
 

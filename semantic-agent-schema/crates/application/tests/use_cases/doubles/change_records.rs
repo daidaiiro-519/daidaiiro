@@ -18,7 +18,7 @@ impl ChangeRecords for FakeChangeRecords {
     fn add(
         &self,
         record: &ChangeRecord,
-        _workspace: Option<&str>,
+        _place: Option<&semantic_agent_schema_application::ports::changes::WorkPlace>,
         _session: Option<&SessionRef>,
     ) -> Result<(), String> {
         self.records.borrow_mut().push(record.clone());
@@ -39,14 +39,17 @@ impl ChangeRecords for FakeChangeRecords {
             .collect())
     }
 
-    fn pending(&self, _workspace: Option<&str>) -> Result<Vec<ChangeRecord>, String> {
+    fn pending(
+        &self,
+        _worktree: Option<&str>,
+    ) -> Result<Vec<(ChangeRecord, Option<String>)>, String> {
         let done = self.summarized.borrow();
         Ok(self
             .records
             .borrow()
             .iter()
             .filter(|r| !done.iter().any(|(id, _)| id == r.id()))
-            .cloned()
+            .map(|r| (r.clone(), None))
             .collect())
     }
 

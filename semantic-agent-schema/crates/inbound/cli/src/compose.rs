@@ -72,7 +72,7 @@ pub fn run(args: &[String]) -> ExitCode {
             session,
         } => {
             let id = id.clone().unwrap_or_else(new_ulid);
-            let workspace = git.workspace().ok().flatten();
+            let place = git.place().ok().flatten();
             record::record(
                 &ports,
                 &record::RecordRequest {
@@ -84,7 +84,7 @@ pub fn run(args: &[String]) -> ExitCode {
                     replaces: replaces.as_deref(),
                     id: &id,
                     session: session.as_deref(),
-                    workspace: workspace.as_deref(),
+                    place: place.as_ref(),
                 },
             )
         }

@@ -1,7 +1,7 @@
 //! record ・ まとめを作る
 
 use crate::ports::change_summaries::ChangeSummaries;
-use crate::ports::changes::Changes;
+use crate::ports::changes::{Changes, WorkPlace};
 use crate::ports::sessions::SessionRef;
 use crate::use_cases::validate::{concrete_of, is_declaration, results_of};
 use crate::use_cases::{Outcome, Ports};
@@ -31,8 +31,8 @@ pub struct RecordRequest<'a> {
     pub id: &'a str,
     /// 手元のセッション
     pub session: Option<&'a str>,
-    /// 書いた作業場所の名札（変更の仕組みから受け取る。基盤は解釈しない）
-    pub workspace: Option<&'a str>,
+    /// 書いたワークツリーとブランチ（変更の仕組みから受け取る。基盤は解釈しない）
+    pub place: Option<&'a WorkPlace>,
 }
 
 /// 意図1つぶんの変更を、手元の DB に記録する。セッション ID は記録に入れず、手元の索引にだけ結ぶ（不変条件 I34）
@@ -69,7 +69,7 @@ pub fn record(ports: &Ports<'_>, r: &RecordRequest<'_>) -> Outcome {
         Ok(m) => m,
         Err(e) => return Outcome::refused("", &e),
     };
-    if let Err(e) = ports.records.add(&change, r.workspace, session.as_ref()) {
+    if let Err(e) = ports.records.add(&change, r.place, session.as_ref()) {
         return Outcome::refused("", &e);
     }
     Outcome::checked(
@@ -129,16 +129,30 @@ fn make_summary(
         };
         files.push(FileState::new(&f.path, target, f.before, f.after, decided));
     }
+    // いまのワークツリーとブランチで書いた記録だけを入れる。書いたブランチがもう無い記録（名前を変えたなど）も入れ、例外に出す
+    let place = changes.place()?;
+    let branches = changes.branches()?;
+    let current = place.as_ref().and_then(|p| p.branch.clone());
     let mut records = Vec::new();
-    let workspace = changes.workspace()?;
-    for r in ports.records.pending(workspace.as_deref())? {
+    let mut moved = Vec::new();
+    for (r, branch) in ports
+        .records
+        .pending(place.as_ref().map(|p| p.worktree.as_str()))?
+    {
+        let gone = branch.as_ref().is_some_and(|b| !branches.contains(b));
+        if branch != current && !gone {
+            continue;
+        }
+        if gone && let Some(b) = &branch {
+            moved.push((r.id().clone(), b.clone()));
+        }
         let j = ports.judgments.intent_of(r.id())?;
         records.push((r, j));
     }
     if records.is_empty() && files.is_empty() {
         return Err("まとめる変更が無い（前回のコミットから変わったファイルも、まとめに入っていない記録も無い）".into());
     }
-    let (summary, ids) = change_summary(&id, (&head, "working-tree"), &records, &files);
+    let (summary, ids) = change_summary(&id, (&head, "working-tree"), &records, &files, &moved);
     let problems = problems(&results_of(ports, &summary, None)?);
     if !problems.is_empty() {
         return Ok(Outcome::checked(

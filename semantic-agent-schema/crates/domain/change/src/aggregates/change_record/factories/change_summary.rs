@@ -90,12 +90,14 @@ fn diff_of(f: &FileState) -> Diff {
 }
 
 /// 変更のまとめ：まだまとめに入っていない変更の記録と、前の姿からの変わったファイルを両方向で突き合わせて作る（AI は書かない）。
-/// 例外は種類ごとの件数と中身で先頭に出す。不変条件 I31 ・ I35。返すのは、まとめと、入った記録の id
+/// 例外は種類ごとの件数と中身で先頭に出す。書いたブランチがもう無い記録（moved：記録の id と元のブランチ）は「ブランチが無くなった記録」として出す。
+/// 不変条件 I31 ・ I35。返すのは、まとめと、入った記録の id
 pub fn change_summary(
     id: &ChangeId,
     range: (&str, &str),
     records: &[(ChangeRecord, Option<IntentJudgment>)],
     files: &[FileState],
+    moved: &[(ChangeId, String)],
 ) -> (Value, Vec<ChangeId>) {
     let files: Vec<&FileState> = files
         .iter()
@@ -103,6 +105,12 @@ pub fn change_summary(
         .collect();
     let mut exceptions: BTreeMap<&str, Vec<Value>> = BTreeMap::new();
     let mut unreadable: Vec<String> = Vec::new();
+    for (change_id, branch) in moved {
+        exceptions
+            .entry("branch-gone")
+            .or_default()
+            .push(json!({"change_id": change_id.as_str(), "branch": branch}));
+    }
     let diffs: Vec<(&FileState, Diff)> = files.iter().map(|f| (*f, diff_of(f))).collect();
     // 記録に無い書き換え ・ 人が決める項目の書き換え
     for (f, d) in &diffs {
@@ -282,7 +290,7 @@ mod tests {
     }
 
     fn summarize(records: &[(ChangeRecord, Option<IntentJudgment>)], files: &[FileState]) -> Value {
-        change_summary(&ChangeId::from_parts(9, 9), ("a", "b"), records, files).0
+        change_summary(&ChangeId::from_parts(9, 9), ("a", "b"), records, files, &[]).0
     }
 
     /// traces: U25:事後
@@ -372,6 +380,21 @@ mod tests {
             )],
         );
         assert!(types(&s).is_empty());
+    }
+
+    /// traces: I35
+    #[test]
+    fn record_of_a_gone_branch_is_an_exception() {
+        let moved = [(ChangeId::from_parts(1, 1), "old".to_string())];
+        let s = change_summary(
+            &ChangeId::from_parts(9, 9),
+            ("a", "b"),
+            &[(record(1, "/why"), None)],
+            &[file(json!({"why": "a"}), json!({"why": "b"}))],
+            &moved,
+        )
+        .0;
+        assert_eq!(types(&s), vec!["branch-gone"]);
     }
 
     /// traces: I31
