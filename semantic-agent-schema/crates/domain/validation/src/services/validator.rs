@@ -1,0 +1,1 @@
+//! Semantic Schema Validator（セマンティックスキーマバリデーター）

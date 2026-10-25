@@ -1,0 +1,1 @@
+//! Semantic Abstract Schema

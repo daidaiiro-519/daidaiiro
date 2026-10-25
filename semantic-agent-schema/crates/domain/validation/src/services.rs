@@ -1,0 +1,2 @@
+//! ドメインサービス
+pub mod validator;

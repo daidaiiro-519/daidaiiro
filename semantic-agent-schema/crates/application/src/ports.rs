@@ -1,0 +1,14 @@
+//! 駆動される側のポート13（trait。outbound が実装する）
+pub mod ai_sessions;
+pub mod change_records;
+pub mod change_summaries;
+pub mod changes;
+pub mod contracts;
+pub mod instances;
+pub mod judge;
+pub mod judgments;
+pub mod published;
+pub mod rendered;
+pub mod sessions;
+pub mod settings;
+pub mod tools;
