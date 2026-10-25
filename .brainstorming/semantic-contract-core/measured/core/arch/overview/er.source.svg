@@ -1,27 +1,61 @@
-<svg viewBox="0 0 960 380" style="min-width:860px" role="img" aria-label="セッションの DB の表の変更">
-<text class="title" x="10" y="24">手元の DB（SQLite）：セッションの表に「親の文脈」を足す。単発は登録しない</text>
-<rect class="box" x="30" y="50" width="400" height="300"/>
-<text class="title" x="46" y="76">sessions（DB の表）</text>
-<text class="note" x="46" y="104">tool ・ id（主キー）</text>
-<text class="note" x="46" y="128">purpose_ref（目的の参照）</text>
-<text class="note" x="46" y="152">parent_tool ・ parent_id（親）</text>
-<text class="note" x="46" y="176">role（役割。継続の子だけ）</text>
-<rect class="box kind-2" x="40" y="190" width="380" height="50"/>
-<text class="title kind-2" x="52" y="212">context（新しく足す）</text>
-<text class="note small" x="52" y="230">fresh（引き継がない）・ inherited（引き継ぐ）。継続の子だけ</text>
-<text class="note" x="46" y="268">state（open ・ closed）</text>
-<text class="note" x="46" y="292">last_used_at</text>
-<text class="note small" x="46" y="322">同じ親と役割で開いているのは1つまで（一意の索引）</text>
-<rect class="box" x="540" y="50" width="390" height="150"/>
-<text class="title" x="556" y="76">session_changes（DB の表）</text>
-<text class="note" x="556" y="104">tool ・ id（セッション）</text>
-<text class="note" x="556" y="128">change_id（変更の記録の id。ULID）</text>
-<text class="note small" x="556" y="158">手元のセッションの索引。確定しない</text>
-<path class="flow" d="M538,115 H432"/><text class="label small" x="446" y="106">セッションごと</text>
-<rect class="box kind-1" x="540" y="230" width="390" height="120"/>
-<text class="title kind-1" x="556" y="256">登録しないもの</text>
-<text class="note" x="556" y="282">単発（引き継ぐ ・ 引き継がない）</text>
-<text class="note" x="556" y="306">判定させる AI の呼び出し</text>
-<text class="note small" x="556" y="332">1回で終わり、セッションとして残さない</text>
-<text class="note" x="10" y="372">変わるのは context の1列と、それに合わせた CHECK（role があるときだけ context を持つ）だけ</text>
+<svg viewBox="0 0 960 640" style="min-width:860px" role="img" aria-label="手元の DB の表と、コミットするファイル">
+<text class="title" x="10" y="24">手元の DB（SQLite。確定しない）と、リポジトリにコミットするファイル</text>
+<rect class="area" x="10" y="36" width="940" height="420"/><text class="note small" x="20" y="54">手元の DB：作業者がセッションの中で使う。同じリポジトリのどの作業ディレクトリからも1つ</text>
+<rect class="box" x="30" y="66" width="270" height="230"/>
+<text class="title" x="44" y="90">sessions</text>
+<text class="note small" x="44" y="114">tool ・ id（主キー）</text>
+<text class="note small" x="44" y="136">purpose_ref（目的の参照）</text>
+<text class="note small" x="44" y="158">parent_tool ・ parent_id（親）</text>
+<text class="note small" x="44" y="180">role（継続の子だけ）</text>
+<text class="note small" x="44" y="202">context（fresh ・ inherited。継続の子だけ）</text>
+<text class="note small" x="44" y="224">state（open ・ closed）</text>
+<text class="note small" x="44" y="246">last_used_at</text>
+<text class="note small" x="44" y="276">単発の子は登録しない</text>
+<rect class="box" x="345" y="66" width="250" height="110"/>
+<text class="title" x="359" y="90">session_changes</text>
+<text class="note small" x="359" y="114">tool ・ id（セッション）</text>
+<text class="note small" x="359" y="136">change_id（変更の記録）</text>
+<text class="note small" x="359" y="160">手元のセッションの索引</text>
+<rect class="box kind-2" x="640" y="66" width="290" height="230"/>
+<text class="title kind-2" x="654" y="90">changes（変更の記録）</text>
+<text class="note small" x="654" y="114">id（主キー。打ち合わせなしで一意）</text>
+<text class="note small" x="654" y="136">purpose_ref（目的の参照）</text>
+<text class="note small" x="654" y="158">intent（意図。1件に1つ）</text>
+<text class="note small" x="654" y="180">writer_kind（human ・ agent）</text>
+<text class="note small" x="654" y="202">replaces_intent_id（任意）</text>
+<text class="note small" x="654" y="224">summary_id（入ったまとめ。まだなら空）</text>
+<text class="note small" x="654" y="246">created_at</text>
+<text class="note small" x="654" y="276">セッション ID は持たない</text>
+<rect class="box kind-2" x="345" y="320" width="250" height="120"/>
+<text class="title kind-2" x="359" y="344">intent_judgments</text>
+<text class="note small" x="359" y="368">change_id（主キー。上書きで最後の1件）</text>
+<text class="note small" x="359" y="390">judge_kind（ai ・ human）・ result</text>
+<text class="note small" x="359" y="412">meaning ・ reason（意味と判定の理由）</text>
+<rect class="box kind-2" x="640" y="320" width="290" height="120"/>
+<text class="title kind-2" x="654" y="344">change_items（変更の項目）</text>
+<text class="note small" x="654" y="368">change_id ・ target（kind と id、またはパス）</text>
+<text class="note small" x="654" y="390">pointer（欄の JSON Pointer）</text>
+<text class="note small" x="654" y="412">前後の値は持たない（Git から取る）</text>
+<rect class="box" x="30" y="320" width="270" height="120"/>
+<text class="title" x="44" y="344">relations（関係の索引）</text>
+<text class="note small" x="44" y="368">from_id ・ to_id ・ x-relationship</text>
+<text class="note small" x="44" y="390">確定したファイルから作り直せる</text>
+<path class="flow" d="M302,120 H343"/>
+<path class="flow" d="M597,120 H638"/>
+<path class="flow" d="M785,298 V318"/>
+<path class="flow" d="M660,298 V310 H470 V318"/>
+<rect class="area" x="10" y="474" width="940" height="130"/><text class="note small" x="20" y="492">リポジトリ：コミットする（確定する）。ほかの人の手元と CI が読む</text>
+<rect class="box kind-1" x="345" y="504" width="250" height="88"/>
+<text class="title kind-1" x="359" y="528">changes/&lt;id&gt;.json</text>
+<text class="note small" x="359" y="552">変更のまとめ（change-summary）</text>
+<text class="note small" x="359" y="574">コミットごとに1件。基盤が作る</text>
+<rect class="box kind-1" x="640" y="504" width="290" height="88"/>
+<text class="title kind-1" x="654" y="528">rule の判定の記録（judgment）</text>
+<text class="note small" x="654" y="552">インスタンス × rule。上書きで最後の1件</text>
+<text class="note small" x="654" y="574">ほかの人の手元と CI が状態を導く</text>
+<rect class="box kind-1" x="30" y="504" width="270" height="88"/>
+<text class="title kind-1" x="44" y="528">インスタンス ・ Concrete など</text>
+<text class="note small" x="44" y="552">正本のファイル</text>
+<path class="link" d="M932,250 H942 V462 H470 V502"/><text class="label small" x="480" y="490">changes と intent_judgments からまとめを作る（summary_id が入る）</text>
+<text class="note" x="10" y="628">消す表は無い。不要なインスタンスは superseded にして残す。前後の値は変更の仕組み（Git）から取る</text>
 </svg>

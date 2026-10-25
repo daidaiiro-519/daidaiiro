@@ -1,0 +1,246 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0201",
+ "title": "Semantic Agent Schema の土台（アーキテクチャ ・ コマンド ・ 記録の置き場所）",
+ "date": "2026-10-25",
+ "status": "accepted",
+ "decision": "Semantic Agent Schema の土台を、ドメインサービス4つ ・ procedure を返すセマンティックのコマンド ・ 手元の記録とコミットするまとめ ・ 消すを持たない形 ・ 既定のビューにする。",
+ "why": "ボードと model.json は、ドメインサービスを13持ち、セマンティックの対象を1つの欄に限り、変更の記録をそのままコミットし、インスタンスを消す前提だった。この会話で、正しい依存の向き ・ AI が関わるかどうかでのコマンドの分け方 ・ 作業者が確かめる記録とチームが読むまとめの分け方を、目的に沿ったシミュレーションで確かめ、利用者が承認した。Rust の雛形を作る前に、正本をこの形にそろえる。",
+ "shift": [
+  {
+   "what": "ドメインサービス",
+   "from": "13（Semantic Schema Validator など13の名前）",
+   "to": "4つ（Semantic Schema Resolver ・ Validator ・ Renderer ・ Session Selector）。ほかは集約の操作とファクトリ3つ"
+  },
+  {
+   "what": "domain の crate",
+   "from": "9つ（migration ・ publish を含む。Resolver は validation の中）",
+   "to": "8つ（declaration ・ instance ・ change ・ resolver ・ validation ・ render ・ search ・ session）"
+  },
+  {
+   "what": "コマンド",
+   "from": "セマンティック3つ（対象は1つの欄）と機械的4つ。ほかは名前だけ",
+   "to": "AI が行う操作はすべてセマンティック（7つ）で procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）を返す。検査は入力と出力の2回"
+  },
+  {
+   "what": "変更の記録",
+   "from": "1件ずつコミットする。まとまりは保存しない",
+   "to": "1件ずつの記録と意図の判定は手元の DB。目的ごとのまとめ（コミットごとに1件）と rule の判定をコミットする"
+  },
+  {
+   "what": "消す",
+   "from": "インスタンスを消す（U11 ・ I11）",
+   "to": "消すを持たない。不要なものは superseded にして残す"
+  },
+  {
+   "what": "Abstract のファイルとビュー",
+   "from": "10ファイル。ビューの対象は Concrete だけ",
+   "to": "13ファイル（query ・ procedure ・ change-summary を足す）。session ・ change-summary ・ judgment に基盤の既定のビューを持ち、Concrete のビューがあればそちらで描く"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更後のアーキテクチャ：入口のコマンド → outbound → application → domain の8つの crate と、許す依存の辺",
+ "alternatives": [
+  {
+   "option": "ドメインサービスを13のまま残す",
+   "why_not": "多くは1つの集約か値オブジェクトの中で閉じる処理で、ドメインサービスの定義（集約をまたぐ処理）に合わない"
+  },
+  {
+   "option": "セマンティックを探す ・ 読む ・ 書くの3つに限る",
+   "why_not": "判定 ・ 取り込む ・ 移す ・ 作るも AI が行う操作で、入力のスキーマが違う"
+  },
+  {
+   "option": "セマンティックを semantic <操作> の1つのコマンドにまとめる",
+   "why_not": "入力が操作ごとに違う"
+  },
+  {
+   "option": "query ・ schema の機械的なコマンドを足す",
+   "why_not": "search の select と get で済んだ"
+  },
+  {
+   "option": "インスタンスを消すを残す",
+   "why_not": "消すでしか済まない場面が7つの場面で0件で、消すと指している記録が壊れる"
+  },
+  {
+   "option": "変更の記録を1件ずつコミットする（いまの形）",
+   "why_not": "1件ずつの記録は作業者がセッションの中で検証に使うもので、チームが読むのは目的ごとのまとめである"
+  },
+  {
+   "option": "まとめに AI が書く説明の欄と、記録のハッシュを持たせる",
+   "why_not": "説明は意図の文で足り、ハッシュはほかの人が照らす相手を持たない"
+  },
+  {
+   "option": "見やすいまとめを基盤が作る",
+   "why_not": "見せ方は文脈ごとに違うので Concrete のビューが持つ。基盤は既定のビューだけを持つ"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "changes",
+   "tab": "model の変更（C61〜C97）",
+   "file": ".brainstorming/semantic-contract-core/measured/core/model/changes.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# ---- 2026-10-25：ドメインサービス 13 → 4 ・ コマンド",
+     "why": "この会話で決めたことを、model.json へ適用する39件の変更（C61〜C99）として足した。各行が before ・ after ・ why ・ source を持ち、apply.py が原文と照合して適用する（99件とも照合が通った）。C98 は未決の論点 Q6-pub を置き換えの形に、C99 はセッションの欄の数を7にそろえた",
+     "before": "（無い。足した行）"
+    }
+   ]
+  },
+  {
+   "key": "board",
+   "tab": "ボード",
+   "file": ".brainstorming/semantic-contract-core.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"text\": \"Semantic Agent Schema のドメインモデルを",
+     "why": "Q1 の答え：ドメインサービスを13から4つにし、ファクトリ3つを足した（ドメインサービスの分け直しの頁）",
+     "before": "\"text\": \"Semantic Agent Schema のドメインモデルを、Q8 の使う場面と Q9 の業務領域から導き、集約9つ ・ ドメインサービス13 ・ 2種類のポート ・ 不変条件46行で決める。Concrete は x- を拡張でき、基盤はその作法だけを持ち、足した x- の意味の検証は Concrete が持つ。\","
+    },
+    {
+     "find": "\"Concrete の境界：ソースコードとテストのコードは、同じ文脈の中にあって",
+     "why": "Q1 #8：基盤はソースを解釈しないが、ソースの前後も受け取って成型する（利用者の指示。BOARD の直し）",
+     "before": "\"Concrete の境界：ソースコードとテストのコードは、同じ文脈の中にあっても Concrete の外で、言語の道具が見る。基盤はソースを読まず、テストが走ったときに書く記録（JSON）でつながる\","
+    },
+    {
+     "find": "\"ビューは描く kind（Concrete の URN か Abstract の",
+     "why": "Q1：ビューの対象に Abstract のファイルを足し、基盤の既定のビューを持つ（利用者「session と Change に関しては基盤が見れるようなわかりやすいビューを提供する分には Abstract の領域を超えない」）",
+     "before": "\"ビューは描く kind（Concrete の URN）を持つ。1つの kind に向くビューは1つで、指す先が無ければ違反。Concrete はビューを指さない\","
+    },
+    {
+     "find": "\"変更のまとめは Abstract のファイル change-summary の",
+     "why": "Q1：変更の記録は手元の DB、まとめ（change-summary）をコミットする（利用者「作業者が確認する内容でいい…ＤＢ管理でいい」・ 変更のまとめのシミュレーション）",
+     "before": "\"変更のまとまりは Abstract の一員の形で、保存しない。同じ変更の前後からは毎回同じ形に組み立て、Concrete はこの形を $ref で使って見せ方を足す\","
+    },
+    {
+     "find": "\"x- は9つとも、ドメインのオブジェクト（値オブジェクトかエンティティ）として",
+     "why": "Q1：集約の操作 ・ ファクトリ ・ セマンティックのコマンドと procedure ・ 消すを持たないことを足した（コマンドのシミュレーション）",
+     "before": "\"x- は9つとも、ドメインのオブジェクト（値オブジェクトかエンティティ）として持ち、ドメインサービスが検証する。rule と任せる先はエンティティで、ほかは値オブジェクトである\""
+    },
+    {
+     "find": "\"text\": \"エンジンはポートとアダプターで組み、crate は domai",
+     "why": "Q3 の答え：crate を domain 8つ ・ application ・ outbound ・ inbound にし、セマンティック7つ ・ 機械的なコマンド ・ 検査を2回にすることを足した",
+     "before": "\"text\": \"エンジンはドメイン層 ・ アプリケーション層と2種類のアダプターで組み、crate は core と adapters の2つにし、AI は Agents 契約で値の写しを渡して、5つの値と根拠を受け取る。\","
+    },
+    {
+     "find": "\"text\": \"名前は、標準の仕様と基盤のコードが使う語に揃え、英語と日本語の",
+     "why": "Q5：ドメインサービスの名前をカタカナと英語の対にし、resolver を validation から分けた（利用者「Semantic Schema Resolverってresolver/src/services/resolver.rsではないのか？」）",
+     "before": "\"text\": \"名前は、標準の仕様と基盤のコードが使う語に揃え、英語と日本語の対で持つ。構想 v0.3 の名前は候補として扱う。解決は Semantic Schema Resolver（セマンティックスキーマ解決器）、検証の全体は Semantic Schema Validator（セマンティックスキーマ検証器）とする。ルール1件の合否を出す側は validator（検証器）とし、Interpr"
+    },
+    {
+     "find": "\"セマンティックプロンプト（x-prompt）：欄の意味に結びついたプロンプト。",
+     "why": "Q5：procedure ・ 変更のまとめ ・ superseded の語を足した",
+     "before": "\"セマンティックプロンプト（x-prompt）：欄の意味に結びついたプロンプト。read でその欄の値の読み方を、write で書くときに意味の上で守るルールの並びを持つ。作業全体への指示ではなく、構造の1か所の意味の範囲を決める\""
+    },
+    {
+     "find": "\"text\": \"Semantic Abstract Schema は、基盤のド",
+     "why": "Q6 の答え：Abstract のファイルを13個（query ・ procedure ・ change-summary を足す）にした",
+     "before": "\"text\": \"Semantic Abstract Schema は、基盤のドメインモデルと同じ名前と粒度で、保存の単位1つを1ファイルにした10個で組む。本体は集約 Semantic Concrete Schema の形で、ほかに集約5つの形と値オブジェクト3つを持つ。正本は src/semantic-agent-schema/schemas/ に置き、最初の公開から出した版は変えない。\","
+    },
+    {
+     "find": "\"置き場所：Semantic Abstract Schema の正本は sema",
+     "why": "Q6：置き場所を schemas/v1/、URN の持ち主を base にし、annotations を外した（BOARD の直し）",
+     "before": "\"置き場所：Semantic Abstract Schema の正本は src/semantic-agent-schema/schemas/ に置く。$id は urn:semantic-agent-schema:core:<種類>:v<版> で、配る先では書き換えない\","
+    },
+    {
+     "find": "\"Abstract の rule も同じ形を守る。Abstract の AI の",
+     "why": "Q7 #17：Abstract の AI の rule は基盤自身の x-delegates の judge を使う（BOARD の直し）",
+     "before": "\"Abstract の rule も同じ形を守る。Abstract の AI の rule は agent に予約した reviewer を使い、どの Concrete に割り当てるかは各 Concrete の x-delegates が決める\","
+    },
+    {
+     "find": "\"text\": \"使う場面を、要約1つ（U0）と利用者の目的22に並べる（合わせ",
+     "why": "Q8 の答え：使う場面に U28（Semantic Search）を足して23にした",
+     "before": "\"text\": \"使う場面を、要約1つ（U0）と利用者の目的21に並べる（合わせて22。U9 ・ U15 ・ U19〜U22 は外した）。検証 ・ CRUD ・ 意味で探して取り出す ・ 描画などは場面ではなく、複数の場面で使うサブ機能（能力の候補）とする。場面ごとの成功時の保証と最低保証を、不変条件の候補にする。\","
+    },
+    {
+     "find": "\"人の場面：セッションの中で意図への判断を承認する（U16）・ 効かなくなった判",
+     "why": "Q8：U11 を「不要なインスタンスを置き換えて残す」にした（利用者「というか消すってあるのか？？」・ 消すでしか済まない場面が無かった）",
+     "before": "\"人の場面：セッションの中で意図への判断を承認する（U16）・ 効かなくなった判定を取り直す（U10）・ 消す（U11）・ 読む（U12）・ 経緯（U13）\","
+    },
+    {
+     "find": "\"外への見え方：command と protocol は共用サービスの入口で、A",
+     "why": "Q9：Abstract の版を13ファイルにし、変更の記録の置き場所を足した",
+     "before": "\"外への見え方：command と protocol は共用サービスの入口で、Abstract の版（一員10ファイルの形）は公開された言葉である。版を並べて出す\","
+    },
+    {
+     "find": "\"text\": \"セッションは1つが1つの集約で、ID ・ 目的の参照 ・ 親 ",
+     "why": "Q11 の答え：セッションに親の文脈を引き継ぐか（context）を足して7つの欄にし、子のセッションの4つの型と4つの AI ツールの実測を足した（子のセッションの型の頁）",
+     "before": "\"text\": \"セッションは1つが1つの集約で、ID ・ 目的の参照 ・ 親 ・ 役割 ・ 状態 ・ 最後に使った時刻の6つだけを持つ。目的 ・ 親 ・ 役割が同じで開いていて、キャッシュの有効時間内なら再開し、そうでなければ引き継ぎのプロンプトで新しく立てる。\","
+    }
+   ]
+  },
+  {
+   "key": "tree",
+   "tab": "アーキテクチャの頁（ディレクトリ）",
+   "file": ".brainstorming/semantic-contract-core/measured/core/view/arch_tree.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 業務領域の crate ごとに：(名前, 業務領域, 集約, ドメインサービ",
+     "why": "domain の crate を8つにし（migration ・ publish を無くし resolver を分ける）、ドメインサービス4つ ・ ファクトリ ・ 値オブジェクトを並べた。schemas/v1 は13ファイルと views/ にした",
+     "before": "('declaration', '意味の宣言', [('abstract_schema.rs', 'Semantic Abstract Schema'), ('concrete_schema.rs', 'Semantic Concrete Schema'), ('glossary.rs', 'glossary')],"
+    },
+    {
+     "find": "s = s.replace('</style>', 'pre.v .ag{bac",
+     "why": "集約とドメインサービスの印の色を、意味のトークンから取る",
+     "before": "s = s.replace('</style>', 'pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--code);color:var(--accent)}pre.v .pt{color:var(--bad)}.lg span{border-radius:6px;padding:1px 8p"
+    }
+   ]
+  },
+  {
+   "key": "page",
+   "tab": "アーキテクチャの頁（本文）",
+   "file": ".brainstorming/semantic-contract-core/measured/core/view/arch_page.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<div class=\"ans\">ポートとアダプター。コードを crates/ ",
+     "why": "頁の答えを、crate 8つ ・ セマンティックのコマンド ・ 変更のまとめのコミットに合わせた",
+     "before": "<div class=\"ans\">ポートとアダプター。コードを crates/ にまとめ、業務領域ごとの crate（crates/domain/）・ 使う場面とポートの application ・ 駆動される側の outbound ・ 入口の inbound に分け、許す辺を1つの表に持つ。<br>domain は値を受け取って値を返す関数だけを持ち、入出力は application がポートを"
+    },
+    {
+     "find": "['domain の crate 9つ（migration ・ publish ",
+     "why": "8節を「決めたこと」にし、スキーマの置き場所 ・ Abstract のファイル13 ・ 既定のビュー ・ コマンド ・ 記録の置き場所 ・ 消すを無くすことを並べた",
+     "before": "s = between(s, '<h2>8　決めてほしいこと</h2>', '</main>', '<h2>8　決めてほしいこと</h2>' + table(['決めてほしいこと', '私の見解'], ["
+    }
+   ]
+  },
+  {
+   "key": "fig",
+   "tab": "アーキテクチャの図",
+   "file": ".brainstorming/semantic-contract-core/measured/core/view/arch_fig.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "box(250, 58, 400, 'crates/inbound/cli', ",
+     "before": "box(300, 58, 300, 'crates/inbound/cli', '起動と結びつけ（compose）', 'kind-3'),",
+     "why": "入口にセマンティック7つと機械的なコマンドを書き、domain の crate を8つにした。線が交わらないよう、search を左 ・ resolver を右、change を左 ・ instance を右に並べた"
+    }
+   ]
+  },
+  {
+   "key": "cov",
+   "tab": "試験の対象表",
+   "file": ".brainstorming/semantic-contract-core/measured/core/coverage.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"U28:事後\": {",
+     "why": "U28 を足したので、事後と失敗時を「この段の参照の実装の範囲外」として分類した。場面70 ・ 実行84 ・ 不合格0 ・ 区分なし0",
+     "before": "（無い。足した行）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "changes": "058d550290d15237f6a1619bdec19b0c74368c2c19e7fc6a15e9f6519da55a4c",
+  "board": "e225c9b0b071ebf52218e38cad94bda699c92f6bff46b53786977877d3f99818",
+  "tree": "fec08407ef6ba7f06da3d8f8dc8992c2da6ad8f0448eb668d80b0016322697a5",
+  "page": "601da6cc0cc258324f808184a47dd619c4b27ecc07d8196289752475849dae75",
+  "fig": "73266ddfc592b8c9ef620fe54f6d65bf15b3a92556e0afb62bd396e3685c6022",
+  "cov": "a9350b44bfa79d8b78de357f4ccfad73cab448e341e471f2718dffdef5517ac7"
+ }
+}

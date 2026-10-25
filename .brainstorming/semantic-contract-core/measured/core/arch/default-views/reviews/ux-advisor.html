@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ux-advisor の回答</title>
+<style>*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px 16px}@media (max-width:480px){main{padding:16px 12px}}:root{--accent:#0f6e5c;--accent-soft:#e2f1ec;--band:#eef2f2;--ink:#1f2328;--line:#d3dcdc;--muted:#555f6a;--paper:#ffffff;--surface:#f3f6f6;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){:root{--accent:#5cc2a8;--accent-soft:#1d3a33;--band:#12171a;--ink:#e6ebec;--line:#34403f;--muted:#9aa6aa;--paper:#161b1d;--surface:#1e2527;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper);overflow-x:auto}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style>
+</head>
+<body><main class="rv"><header><p class="eyebrow">ux-advisor の回答 ・ <span class="tag">設計相談</span></p><h1>Semantic Agent Schema が同梱する既定のビュー3つ（session ・ change-summary ・ judgment）の体験と完成イメージ（ワイヤーフレームとデザインシステム）をどう組み立てるか</h1></header><section class="block"><h2>前置き</h2><p class="desc">判定の前に確定させた前提と、その出所</p><div class="scroll"><table><thead><tr><th>前提</th><th>内容</th><th>出所</th></tr></thead><tbody><tr><td>作るもの</td><td>基盤の Renderer が出す静的な HTML。サーバーを持たず、ファイルを開くか PR に添えて読む。明暗の両方に対応する</td><td>相談者</td></tr><tr><td>見る人</td><td>作業者（AI と作業し、手元の DB を持つ人）・ PR を見る人 ・ あとから経緯をたどる人の3者。調査で確かめた像ではなく、相談者から聞いた像である（未判定）</td><td>相談者</td></tr><tr><td>既定のビューの位置</td><td>文脈が同じ対象向けのビュー（ACDR のような形）を持てばそちらで描く。既定のビューは、何も用意していないときの最低限</td><td>相談者</td></tr><tr><td>既にある見た目の決まり</td><td>brainstorming の catalog の light.tokens.json（Design Tokens の形式）。基礎の色はここから取る</td><td>相談者</td></tr><tr><td>操作の範囲</td><td>静的な HTML なので、承認 ・ 取り直し ・ 戻すは画面の中で実行できない。次にすることは、実行するコマンドと、移る先のリンクで示す</td><td>相談者の前提から導いた制約</td></tr><tr><td>比べる相手</td><td>利用者がふだん使う PR の画面（チェックの結果の一覧と、ファイルごとの差分）に寄せる、という見立ては調べていない仮定である</td><td>判断基準の範囲外（比べる相手そのものは判断基準が決めない）</td></tr></tbody></table></div></section><section class="card"><div class="cardhead"><h2>結論</h2><span class="tag">採る</span></div><p class="lead">3つのビューを、どれも「答えの帯 → 次にすることの帯 → 要対応の項目 → 畳んだ残り」の同じ並びにし、例外 ・ 判定 ・ インスタンスをリンクでつなぎ、状態を記号と語と色の3つで示す。</p><p class="sub">画面に載せる内容の優先順位を見る人の主な目的を支える順に決め（aesthetic-and-minimalist-design）、状態をはっきり伝えて次にすることを判断できるようにし（visibility-of-system-status）、色だけで伝えない（distinguishable の 1.4.1）ためである。いまの試作はデータの並びが先に来るので、問いへの答えと次の行動が後ろに埋もれている。</p></section><section class="block"><h2>図で確認する</h2><p class="desc">結論の構造を図で示す</p><figure><figcaption>3つのビューのあいだの動線。実線は頁のリンク、点線は頁の外（Git ・ 文脈のビュー ・ CLI）へ移る先</figcaption><ol class="graph"><li>PR（まとめの HTML を添える） →（最初に開く）→ ② change-summary：この変更は意図どおりか</li><li>作業者の CLI（session を開く） →（最初に開く）→ ① session：コミットの前に片付けること</li><li>② change-summary：この変更は意図どおりか →（1画面目に出す）→ 例外の一覧（まとめの先頭）</li><li>例外の一覧（まとめの先頭） →（判定を見る（インスタンス × rule の行へ））→ ③ judgment：どの rule が、なぜその結果か</li><li>① session：コミットの前に片付けること →（violated の変更の根拠を見る）→ ③ judgment：どの rule が、なぜその結果か</li><li>③ judgment：どの rule が、なぜその結果か →（対象を見る ・ 破線）→ インスタンス（文脈のビュー、無ければ Git の差分）</li><li>① session：コミットの前に片付けること →（コミットしたあと、そのまとめへ）→ ② change-summary：この変更は意図どおりか</li><li>③ judgment：どの rule が、なぜその結果か →（戻る（現在地の行））→ ② change-summary：この変更は意図どおりか</li><li>① session：コミットの前に片付けること →（次にすることの帯 ・ 破線）→ 次にすることのコマンド（承認 ・ 取り直し ・ 戻す）</li><li>③ judgment：どの rule が、なぜその結果か →（次にすることの帯 ・ 破線）→ 次にすることのコマンド（承認 ・ 取り直し ・ 戻す）</li></ol></figure></section><section class="block"><h2>比較した案</h2><div class="scroll"><table><thead><tr><th>案</th><th>何が起きるか</th><th>採否</th></tr></thead><tbody><tr><td>案 A：件数のタイルを並べるダッシュボード型</td><td>全体の量はすぐ分かるが、どの変更のどの欄かを読むには一覧へ移る必要がある。1件だけの例外が件数の中に埋もれる</td><td><span class="tag neg">採らない</span></td></tr><tr><td>案 B：上から読む文書型（いまの試作）</td><td>PR に添えて読む形には合うが、データの並びが先に来て、答えと次の行動が後ろに埋もれる</td><td><span class="tag neg">採らない</span></td></tr><tr><td>案 C：文書型の先頭に、答えの帯 ・ 次にすることの帯 ・ 要対応の項目を置き、残りを畳む</td><td>PR に添えて上から読める形を保ったまま、1画面目で問いに答え、次の行動へ移れる。静的な HTML の details で畳めるので、スクリプトが無くても読める</td><td><span class="tag">採る</span></td></tr></tbody></table></div></section><section class="block"><h2>設計の手順</h2><ol class="steps"><li><p class="lead">1. ゴールを決める ── 見る人ごとの問いと次の行動を1行にする</p><p class="sub">① session：作業者「コミットの前に、私が片付けることは何か」→ 承認する ・ 意図に無い変更を戻す ・ 開いたままの子のセッションを閉じる。② change-summary：PR を見る人「この変更は意図どおりか。意図に無い変更はあるか」→ 例外を確かめて承認する ・ 差し戻す。経緯をたどる人「この欄の値は、何の目的で、なぜ変わったか」→ 目的の記録（文脈のビュー）と前後のコミットへ移る。③ judgment：作業者「どの rule が violated ・ unverified で、何をすれば verified になるか」→ 直す ・ 取り直す。PR を見る人「機械でなく AI や人が判定した所はどこで、その根拠に納得できるか」→ 根拠を読んで承認する ・ 差し戻す</p></li><li><p class="lead">2. シナリオを書く（who ・ why ・ where ・ what ・ how）</p><p class="sub">PR を見る人：レビューの依頼を受け（why）、PR の画面から添付のまとめを開き（where）、意図に無い変更が無いかを確かめ（what）、例外の一覧 → 判定の行 → 対象の差分の順にたどる（how）。作業者：AI との作業の区切りで（why）、手元で session を開き（where）、コミットできる状態かを知り（what）、次にすることの帯のコマンドを写して実行する（how）。経緯をたどる人：ある欄の値に疑問を持ち、まとめの意図のカードからその欄を探し、目的の記録へ移る</p></li><li><p class="lead">3. タスクフローを描く（利用者の手順とシステムの手順の両方）</p><p class="sub">利用者：開く → 答えの帯を読む → 要対応を開く → 根拠へ移る → コマンドを実行するか承認する。システム（Renderer）：DB と Git から集める → 判定の結果で並べ替える（violated → unverified → 承認待ち → verified）→ 件数と答えの文を作る → 次にすることを1つ選ぶ → 0件の欄も「0件」と書く。分かれ目は「要対応が0件か」で、0件なら答えの帯は「片付けることは無い」と書き、次にすることの帯は次の工程（まとめを作る ・ 承認する）を示す</p></li><li><p class="lead">4. 案を広げて1つに絞る（比較した案の表）</p><p class="sub">ダッシュボード型 ・ 文書型 ・ 文書型の先頭に答えを置く型の3つを比べ、案 C を採る。この案件だけの原則を4つ置き、以後の決定はこれで判定する ── (1) 答えを先に、データは後に：各頁の最初の帯が、見る人の問いに1文で答える。(2) 状態は記号 ・ 語 ・ 色の3つで示す。(3) 例外から根拠まで、リンクを2回たどれば着く（覚えて運ばせない）。(4) 何も無いことも書く：例外 0件 ・ 記録に無い書き換え 0件を省かない</p></li><li><p class="lead">5. 1画面目に出すものと畳むものを決める</p><p class="sub">共通：頁の題（&lt;h1&gt; は1つで、ビューの名前と目的の名前）・ 現在地の行（目的 ＞ 対象）・ 答えの帯 ・ 次にすることの帯を1画面目に出す。① session：出す＝violated と承認待ちの変更（対象 ・ 欄 ・ 意図 ・ 判定の札）。畳む＝欄ごとの差分 ・ verified で承認済みの変更 ・ セッションの木 ・ tool と id ・ 単発の子の数。② change-summary：出す＝例外の一覧（0件でも出す）・ 意図のカード（意図 ・ 判定の札 ・ 対象 ・ 欄の名前）。畳む＝欄ごとの差分 ・ 判定の理由の全文 ・ コミットの id と描いた版。③ judgment：出す＝インスタンスの状態と rule ごとの件数 ・ violated と unverified の行（判定した値 ・ 理由 ・ 判定した者 ・ rule の版）。畳む＝verified の行（件数だけ見せる）・ rule の文（x-prompt）の全文 ・ 形（JSON Schema）の検査</p></li><li><p class="lead">6. 動線をリンクで決める</p><p class="sub">まとめの例外の各行は、judgment の「インスタンス × rule」の行へのアンカー付きリンクと、対象の差分へのリンクを持つ（GOV.UK のエラーサマリーと同じく、1件ずつリンクし、文言を行き先と同じにする）。session の violated の変更も同じ行へリンクする。judgment の各行は、対象のインスタンス（文脈のビューがあればそちら、無ければ Git の差分）へリンクする。どの頁も現在地の行から1つ上へ戻れる。リンクの文は「判定を見る」「差分を見る」のように行き先を言い、「こちら」と書かない</p></li><li><p class="lead">7. ワイヤーフレームを描く（デザインシステムの欄の3枚）</p><p class="sub">構造 ・ 配置 ・ 階層だけを示し、色とフォントは載せない。幅 358px で1列になる前提で、横に並べるのは札と件数だけにする。表（欄 ／ 変更前 ／ 変更後）は横スクロールを許す部分として扱う</p></li><li><p class="lead">8. デザインシステムを組む（スタイルタイル ・ トークン ・ 部品）</p><p class="sub">基礎の色は既存の catalog から取り、意味の層（status ・ exception ・ diff ・ judge ・ next ・ focus ・ link）を alias で重ねる。部品は意味の層だけを参照する。色の組はすべて WCAG 2.2 の 1.4.3（文字 4.5:1）と 1.4.11（状態を見分ける枠 3:1）で計算した</p></li><li><p class="lead">9. 原則で点検し、残りを利用者で確かめる</p><p class="sub">点検の表と、利用者で確かめることの表をデザインシステムの欄の最後に置く。原則で決まらないのは、札の語（verified のままか日本語か）・ 差分の色（PR の画面と同じ赤 ・ 緑に寄せるか）・ 経緯をたどる人の入口の3つである</p></li></ol></section><section class="block"><h2>デザインシステム</h2><p class="desc">完成イメージとして渡すデザインシステム。見た目の方向（スタイルタイル）・トークン（Design Tokens Format Module の形式の JSON）・パターンの一覧（部品 ・ 振る舞い ・ 使う理由）を置く。新しく作るものの設計相談で置く</p><p>見た目の方向（スタイルタイル）：「静かな報告書」。地は白系統、文字は濃い墨。色を使うのは状態 ・ 例外 ・ 差分 ・ 次にすることの4か所だけにし、それ以外は線と余白で区切る。頁に強い色の面は1つ（次にすることの帯）だけ置く。id ・ 欄の経路 ・ 値 ・ コマンドは等幅の字で書き、文と見分ける。</p><div class="scroll"><table><thead><tr><th>見る人</th><th>この頁で答えを得たい問い</th><th>次にする行動</th><th>最初に開くビュー</th></tr></thead><tbody><tr><td>作業者</td><td>コミットの前に、私が片付けることは何か</td><td>承認する ・ 意図に無い変更を戻す ・ 子のセッションを閉じる</td><td>① session</td></tr><tr><td>作業者</td><td>どの rule が violated ・ unverified で、何をすれば verified になるか</td><td>直す ・ 取り直す</td><td>③ judgment（session から）</td></tr><tr><td>PR を見る人</td><td>この変更は意図どおりか。意図に無い変更はあるか</td><td>例外を確かめて承認する ・ 差し戻す</td><td>② change-summary</td></tr><tr><td>PR を見る人</td><td>AI や人が判定した所はどこで、根拠に納得できるか</td><td>根拠を読んで承認する ・ 差し戻す</td><td>③ judgment（まとめの例外から）</td></tr><tr><td>経緯をたどる人</td><td>この欄の値は、何の目的で、なぜ変わったか</td><td>目的の記録と前後のコミットへ移る</td><td>② change-summary（Git の履歴から）</td></tr></tbody></table></div><div class="scroll"><table><thead><tr><th>ビュー</th><th>1画面目に出す</th><th>畳む（details）</th></tr></thead><tbody><tr><td>共通</td><td>頁の題 ・ 現在地の行 ・ 答えの帯 ・ 次にすることの帯</td><td>描いた版 ・ 描く元のファイル</td></tr><tr><td>① session</td><td>violated と承認待ちの変更（対象 ・ 欄 ・ 意図 ・ 判定の札）</td><td>欄ごとの差分 ・ 承認済みの変更 ・ セッションの木 ・ tool と id ・ 単発の子の数</td></tr><tr><td>② change-summary</td><td>例外の一覧（0件でも出す）・ 意図のカード ・ 突き合わせの件数（0件でも出す）</td><td>欄ごとの差分 ・ 判定の理由の全文 ・ コミットの id</td></tr><tr><td>③ judgment</td><td>状態と件数 ・ violated と unverified の行</td><td>verified の行 ・ rule の文（x-prompt）の全文 ・ 形の検査</td></tr></tbody></table></div><p>ワイヤーフレーム ① session（1画面目）</p><pre class="code">[頁の題] セッション ─ 0199 依存の向きの検査ツール
+現在地：目的 0199 ＞ セッション S-01（あなた ・ open）
+┌ 答えの帯 ───────────────────────┐
+│ コミットの前に片付けること：2件           │
+│ ✕ violated 1 ・ ？ unverified 0 ・ 承認待ち 2 │
+└──────────────────────────────┘
+┏ 次にすることの帯 ━━━━━━━━━━━━━━━━┓
+┃ I-1 と I-2 を承認する                     ┃
+┃ $ &lt;承認のコマンド&gt; I-1 I-2   [コピー]     ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+■ 片付けること（violated ・ 承認待ちを先頭）
+┌ ✕ violated  C-2・C-3  0185 /decision ─────┐
+│ 意図 I-1 に無い記録の決定を変えた → 戻した │
+│ 判定の根拠を見る ＞  （judgment の該当行へ） │
+└──────────────────────────────┘
+┌ ✓ verified ・ 承認待ち  意図 I-1 ──────────┐
+│ 依存の向きを決めた記録を書く   対象 1 ・ 欄 3 │
+│ ▸ 差分を開く（欄 ／ −変更前 ／ ＋変更後）    │
+└──────────────────────────────┘
+▸ 意図どおりで承認済み（0件）
+▸ セッションの木（子 2 ・ 開いている 1）
+    S-01 あなた
+     ├ S-02 実装 ・ 引き継ぐ ・ open 10:38
+     └ S-03 レビュー ・ 引き継がない ・ closed
+▸ 単発の子は記録しない（反証 2 ・ 調べもの 1）</pre><p>ワイヤーフレーム ② change-summary（1画面目）</p><pre class="code">[頁の題] 変更のまとめ ─ 0199 依存の向きの検査ツール
+現在地：目的 0199 ＞ コミット 3f2a9c1（前回 8b01d4e から）
+┌ 答えの帯 ───────────────────────┐
+│ 意図 2件とも意図どおり ・ 例外 1件（戻した）│
+└──────────────────────────────┘
+┏ 次にすることの帯（PR を見る人）━━━━━━━━━┓
+┃ 例外 1件を確かめてから承認する            ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┌ ！ 例外（1件）  ← 頁の先頭 ・ 0件でも出す ─┐
+│ ・0185 /decision を意図に無く変えた         │
+│   → 同じ変更の中で戻した（差し引き 0）      │
+│   判定を見る ＞   変更を見る ＞             │
+└──────────────────────────────┘
+■ 意図のカード（意図ごとに1枚）
+┌ I-1 依存の向きを決めた記録を書く ─────────┐
+│ ✓ verified   判定：AI pass ・ 人 承認       │
+│ 対象 0199 decision-record@1（新しく作った） │
+│ 欄 /title ・ /decision ・ /why               │
+│ ▸ 差分を開く   ▸ 判定の理由を開く           │
+└──────────────────────────────┘
+┌ I-2 cargo metadata から依存を読む ─────────┐
+│ ✓ verified   判定：AI pass ・ 人 承認       │
+│ 対象 architecture-lint/src/cargo.rs         │
+│ ▸ 差分を開く（Git の差分）                  │
+└──────────────────────────────┘
+■ 突き合わせ（0件でも出す）
+  記録に無い書き換え 0 ・ 書き換えの無い記録 0
+  状態が変わったインスタンス：0199（無い → ✓ verified）
+▸ この変更の id ・ 前後のコミット ・ 描いた版</pre><p>ワイヤーフレーム ③ judgment（1画面目）</p><pre class="code">[頁の題] 判定 ─ 0199 decision-record@1
+現在地：目的 0199 ＞ 0199 ＞ いまの姿 7c3e210
+┌ 答えの帯 ───────────────────────┐
+│ ？ unverified：rule 1件の取り直しが要る     │
+│ ✓ 4 ・ ✕ 0 ・ ？ 1                          │
+└──────────────────────────────┘
+┏ 次にすることの帯 ━━━━━━━━━━━━━━━━┓
+┃ owner-format を版 4 で取り直す            ┃
+┃ $ &lt;判定のコマンド&gt; 0199 owner-format [コピー]┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+■ 要対応（violated ・ unverified を先頭）
+┌ ？ unverified  owner-format（版 4）────────┐
+│ 判定した値 /owner = maintainer daidaiiro    │
+│ 理由：rule を版 3 → 4 に変えたので、版 3 の │
+│       pass は効かない                       │
+│ 判定した者：—（前回 AI ・ 版 3）            │
+│ ▸ rule の文（版 4）を開く                   │
+└──────────────────────────────┘
+▸ ✓ verified（4件）── 開くと1行ずつ
+    形（JSON Schema）     機械  pass
+    owner-required        機械  pass
+    why-explains-decision AI    pass 根拠 ▸
+    decision-is-actionable AI   pass 根拠 ▸
+← この判定が出てくる変更のまとめ ・ セッション</pre><p>トークン（Design Tokens Format Module の形式、明るい地）。基礎の層に値を置き、意味の層は alias だけで書く。暗い地は同じ名前で値だけを替えたファイルを別に置く（下の表）。</p><pre class="code">{
+ &quot;base&quot;: {
+  &quot;$type&quot;: &quot;color&quot;,
+  &quot;$description&quot;: &quot;基礎の層。色の値はここにだけ書く（brainstorming の catalog の base と同じ値）&quot;,
+  &quot;paper&quot;: {
+   &quot;000&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.9725,
+      0.9804,
+      0.9765
+     ],
+     &quot;hex&quot;: &quot;#f8faf9&quot;
+    }
+   },
+   &quot;100&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.9333,
+      0.9451,
+      0.9373
+     ],
+     &quot;hex&quot;: &quot;#eef1ef&quot;
+    }
+   },
+   &quot;400&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.8,
+      0.8471,
+      0.8314
+     ],
+     &quot;hex&quot;: &quot;#ccd8d4&quot;
+    }
+   }
+  },
+  &quot;ink&quot;: {
+   &quot;600&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.3333,
+      0.3961,
+      0.3804
+     ],
+     &quot;hex&quot;: &quot;#556561&quot;
+    }
+   },
+   &quot;900&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.0667,
+      0.1137,
+      0.102
+     ],
+     &quot;hex&quot;: &quot;#111d1a&quot;
+    }
+   }
+  },
+  &quot;teal&quot;: {
+   &quot;100&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.8353,
+      0.902,
+      0.8902
+     ],
+     &quot;hex&quot;: &quot;#d5e6e3&quot;
+    }
+   },
+   &quot;700&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.051,
+      0.3608,
+      0.3333
+     ],
+     &quot;hex&quot;: &quot;#0d5c55&quot;
+    }
+   }
+  },
+  &quot;green&quot;: {
+   &quot;100&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.8902,
+      0.9451,
+      0.8745
+     ],
+     &quot;hex&quot;: &quot;#e3f1df&quot;
+    }
+   },
+   &quot;700&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.2431,
+      0.4824,
+      0.2118
+     ],
+     &quot;hex&quot;: &quot;#3e7b36&quot;
+    }
+   },
+   &quot;800&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.1843,
+      0.3961,
+      0.1569
+     ],
+     &quot;hex&quot;: &quot;#2f6528&quot;
+    }
+   }
+  },
+  &quot;rose&quot;: {
+   &quot;100&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.9647,
+      0.8784,
+      0.8745
+     ],
+     &quot;hex&quot;: &quot;#f6e0df&quot;
+    }
+   },
+   &quot;700&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.6392,
+      0.149,
+      0.1647
+     ],
+     &quot;hex&quot;: &quot;#a3262a&quot;
+    }
+   }
+  },
+  &quot;amber&quot;: {
+   &quot;100&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.9412,
+      0.8863,
+      0.8039
+     ],
+     &quot;hex&quot;: &quot;#f0e2cd&quot;
+    }
+   },
+   &quot;700&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.5608,
+      0.3294,
+      0.0627
+     ],
+     &quot;hex&quot;: &quot;#8f5410&quot;
+    }
+   }
+  },
+  &quot;sand&quot;: {
+   &quot;100&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.9725,
+      0.9529,
+      0.9098
+     ],
+     &quot;hex&quot;: &quot;#f8f3e8&quot;
+    }
+   },
+   &quot;700&quot;: {
+    &quot;$value&quot;: {
+     &quot;colorSpace&quot;: &quot;srgb&quot;,
+     &quot;components&quot;: [
+      0.4314,
+      0.3412,
+      0.2196
+     ],
+     &quot;hex&quot;: &quot;#6e5738&quot;
+    }
+   }
+  }
+ },
+ &quot;color&quot;: {
+  &quot;$type&quot;: &quot;color&quot;,
+  &quot;$description&quot;: &quot;意味の層。部品はこの層だけを参照する&quot;,
+  &quot;surface&quot;: {
+   &quot;page&quot;: {
+    &quot;$value&quot;: &quot;{base.paper.100}&quot;,
+    &quot;$description&quot;: &quot;頁の地&quot;
+   },
+   &quot;card&quot;: {
+    &quot;$value&quot;: &quot;{base.paper.000}&quot;,
+    &quot;$description&quot;: &quot;カード ・ 帯の地&quot;
+   },
+   &quot;line&quot;: {
+    &quot;$value&quot;: &quot;{base.paper.400}&quot;,
+    &quot;$description&quot;: &quot;区切りの線。飾りなので状態を伝えるのに使わない（1.4:1）&quot;
+   }
+  },
+  &quot;text&quot;: {
+   &quot;primary&quot;: {
+    &quot;$value&quot;: &quot;{base.ink.900}&quot;,
+    &quot;$description&quot;: &quot;本文&quot;
+   },
+   &quot;secondary&quot;: {
+    &quot;$value&quot;: &quot;{base.ink.600}&quot;,
+    &quot;$description&quot;: &quot;補足 ・ id ・ 日時&quot;
+   }
+  },
+  &quot;status&quot;: {
+   &quot;$description&quot;: &quot;判定の結果。必ず記号と語と一緒に使う（色だけで伝えない）&quot;,
+   &quot;verified&quot;: {
+    &quot;$description&quot;: &quot;✓ verified。rule を満たす&quot;,
+    &quot;fg&quot;: {
+     &quot;$value&quot;: &quot;{base.green.800}&quot;
+    },
+    &quot;bg&quot;: {
+     &quot;$value&quot;: &quot;{base.green.100}&quot;
+    },
+    &quot;border&quot;: {
+     &quot;$value&quot;: &quot;{base.green.700}&quot;
+    }
+   },
+   &quot;violated&quot;: {
+    &quot;$description&quot;: &quot;✕ violated。rule に反する&quot;,
+    &quot;fg&quot;: {
+     &quot;$value&quot;: &quot;{base.rose.700}&quot;
+    },
+    &quot;bg&quot;: {
+     &quot;$value&quot;: &quot;{base.rose.100}&quot;
+    },
+    &quot;border&quot;: {
+     &quot;$value&quot;: &quot;{base.rose.700}&quot;
+    }
+   },
+   &quot;unverified&quot;: {
+    &quot;$description&quot;: &quot;？ unverified。まだ判定していない、または rule の版が変わって判定が効かない&quot;,
+    &quot;fg&quot;: {
+     &quot;$value&quot;: &quot;{base.amber.700}&quot;
+    },
+    &quot;bg&quot;: {
+     &quot;$value&quot;: &quot;{base.amber.100}&quot;
+    },
+    &quot;border&quot;: {
+     &quot;$value&quot;: &quot;{base.amber.700}&quot;
+    }
+   }
+  },
+  &quot;exception&quot;: {
+   &quot;$description&quot;: &quot;意図に無い変更。まとめの例外の一覧の枠。violated と同じ色で、記号「！」と語「例外」を添える&quot;,
+   &quot;fg&quot;: {
+    &quot;$value&quot;: &quot;{color.status.violated.fg}&quot;
+   },
+   &quot;bg&quot;: {
+    &quot;$value&quot;: &quot;{color.status.violated.bg}&quot;
+   },
+   &quot;border&quot;: {
+    &quot;$value&quot;: &quot;{color.status.violated.border}&quot;
+   }
+  },
+  &quot;diff&quot;: {
+   &quot;$description&quot;: &quot;変更前と変更後。状態の色（緑 ・ 赤）と混ぜないため、別の色相にし、列の題「変更前」「変更後」と記号「−」「＋」を必ず添える&quot;,
+   &quot;before&quot;: {
+    &quot;fg&quot;: {
+     &quot;$value&quot;: &quot;{base.sand.700}&quot;
+    },
+    &quot;bg&quot;: {
+     &quot;$value&quot;: &quot;{base.sand.100}&quot;
+    }
+   },
+   &quot;after&quot;: {
+    &quot;fg&quot;: {
+     &quot;$value&quot;: &quot;{base.teal.700}&quot;
+    },
+    &quot;bg&quot;: {
+     &quot;$value&quot;: &quot;{base.teal.100}&quot;
+    }
+   }
+  },
+  &quot;judge&quot;: {
+   &quot;$description&quot;: &quot;判定した者（機械 ・ AI ・ 人）。色で分けず、語で分ける。札の枠だけを持つ&quot;,
+   &quot;border&quot;: {
+    &quot;$value&quot;: &quot;{base.ink.600}&quot;
+   },
+   &quot;fg&quot;: {
+    &quot;$value&quot;: &quot;{base.ink.900}&quot;
+   }
+  },
+  &quot;next&quot;: {
+   &quot;$description&quot;: &quot;次にすることの帯。頁に1つだけ置く&quot;,
+   &quot;fg&quot;: {
+    &quot;$value&quot;: &quot;{base.paper.000}&quot;
+   },
+   &quot;bg&quot;: {
+    &quot;$value&quot;: &quot;{base.teal.700}&quot;
+   }
+  },
+  &quot;focus&quot;: {
+   &quot;$value&quot;: &quot;{base.teal.700}&quot;,
+   &quot;$description&quot;: &quot;フォーカスの輪。2px 以上で描く&quot;
+  },
+  &quot;link&quot;: {
+   &quot;$value&quot;: &quot;{base.teal.700}&quot;,
+   &quot;$description&quot;: &quot;リンク。下線を付ける（色だけで見分けさせない）&quot;
+  }
+ },
+ &quot;space&quot;: {
+  &quot;$type&quot;: &quot;dimension&quot;,
+  &quot;gutter&quot;: {
+   &quot;$value&quot;: {
+    &quot;value&quot;: 16,
+    &quot;unit&quot;: &quot;px&quot;
+   },
+   &quot;$description&quot;: &quot;頁の左右の余白（幅 358px でも同じ）&quot;
+  },
+  &quot;stack&quot;: {
+   &quot;$value&quot;: {
+    &quot;value&quot;: 12,
+    &quot;unit&quot;: &quot;px&quot;
+   },
+   &quot;$description&quot;: &quot;カードどうしの間&quot;
+  }
+ },
+ &quot;radius&quot;: {
+  &quot;$type&quot;: &quot;dimension&quot;,
+  &quot;card&quot;: {
+   &quot;$value&quot;: {
+    &quot;value&quot;: 12,
+    &quot;unit&quot;: &quot;px&quot;
+   }
+  },
+  &quot;badge&quot;: {
+   &quot;$value&quot;: {
+    &quot;value&quot;: 6,
+    &quot;unit&quot;: &quot;px&quot;
+   }
+  }
+ },
+ &quot;border&quot;: {
+  &quot;$type&quot;: &quot;dimension&quot;,
+  &quot;state&quot;: {
+   &quot;$value&quot;: {
+    &quot;value&quot;: 2,
+    &quot;unit&quot;: &quot;px&quot;
+   },
+   &quot;$description&quot;: &quot;状態を持つ枠の太さ&quot;
+  },
+  &quot;focus&quot;: {
+   &quot;$value&quot;: {
+    &quot;value&quot;: 2,
+    &quot;unit&quot;: &quot;px&quot;
+   }
+  }
+ },
+ &quot;font&quot;: {
+  &quot;body&quot;: {
+   &quot;$type&quot;: &quot;fontFamily&quot;,
+   &quot;$value&quot;: [
+    &quot;Noto Sans JP&quot;,
+    &quot;Hiragino Kaku Gothic ProN&quot;,
+    &quot;system-ui&quot;,
+    &quot;sans-serif&quot;
+   ]
+  },
+  &quot;mono&quot;: {
+   &quot;$type&quot;: &quot;fontFamily&quot;,
+   &quot;$value&quot;: [
+    &quot;JetBrains Mono&quot;,
+    &quot;ui-monospace&quot;,
+    &quot;monospace&quot;
+   ],
+   &quot;$description&quot;: &quot;id ・ 欄の経路 ・ コマンド ・ 値&quot;
+  }
+ }
+}</pre><div class="scroll"><table><thead><tr><th>意味のトークン</th><th>明るい地（文字 ／ 地）</th><th>比</th><th>暗い地（文字 ／ 地）</th><th>比</th><th>色のほかに添えるもの</th></tr></thead><tbody><tr><td>color.status.verified</td><td>#2f6528 ／ #e3f1df</td><td>5.95:1</td><td>#86c27a ／ #1c2b19</td><td>7.11:1</td><td>記号 ✓ と語 verified</td></tr><tr><td>color.status.violated</td><td>#a3262a ／ #f6e0df</td><td>5.80:1</td><td>#f0a3a0 ／ #3a1c1d</td><td>7.66:1</td><td>記号 ✕ と語 violated</td></tr><tr><td>color.status.unverified</td><td>#8f5410 ／ #f0e2cd</td><td>4.78:1</td><td>#d9a35f ／ #33281a</td><td>6.41:1</td><td>記号 ？ と語 unverified</td></tr><tr><td>color.exception（violated の alias）</td><td>#a3262a ／ #f6e0df</td><td>5.80:1</td><td>#f0a3a0 ／ #3a1c1d</td><td>7.66:1</td><td>記号 ！ と見出し「例外（n件）」</td></tr><tr><td>color.diff.before</td><td>#6e5738 ／ #f8f3e8</td><td>6.15:1</td><td>#d9b77e ／ #241d14</td><td>8.74:1</td><td>列の題「変更前」と記号 −</td></tr><tr><td>color.diff.after</td><td>#0d5c55 ／ #d5e6e3</td><td>6.07:1</td><td>#6cc9b8 ／ #173330</td><td>6.88:1</td><td>列の題「変更後」と記号 ＋</td></tr><tr><td>color.next</td><td>#f8faf9 ／ #0d5c55</td><td>7.48:1</td><td>#0e1614 ／ #6cc9b8</td><td>9.34:1</td><td>見出し「次にすること」</td></tr><tr><td>color.text.secondary</td><td>#556561 ／ #f8faf9</td><td>5.86:1</td><td>#9dada8 ／ #16211e</td><td>7.07:1</td><td>—</td></tr><tr><td>状態の枠（border）とカードの地</td><td>#3e7b36 ・ #a3262a ・ #8f5410 ／ #f8faf9</td><td>4.90 ・ 6.99 ・ 5.82:1</td><td>#86c27a ・ #f0a3a0 ・ #d9a35f ／ #16211e</td><td>7.88 ・ 8.23 ・ 7.36:1</td><td>1.4.11 の 3:1 を満たす</td></tr><tr><td>color.focus とカードの地</td><td>#0d5c55 ／ #f8faf9</td><td>7.48:1</td><td>#6cc9b8 ／ #16211e</td><td>8.41:1</td><td>2px の輪</td></tr><tr><td>color.surface.line とカードの地</td><td>#ccd8d4 ／ #f8faf9</td><td>1.40:1</td><td>—</td><td>—</td><td>飾りの線。状態や境目の意味を持たせない</td></tr></tbody></table></div><div class="scroll"><table><thead><tr><th>部品</th><th>振る舞い</th><th>使う理由</th></tr></thead><tbody><tr><td>答えの帯</td><td>頁の題の直後に置き、見る人の問いへの答えを1文で書く。件数は記号付きで並べる（✓ 4 ・ ✕ 0 ・ ？ 1）</td><td>主な目的を支える情報を最初に置く</td></tr><tr><td>次にすることの帯</td><td>頁に1つ。行為を1文で書き、実行するコマンドを等幅の字で添え、コピーのボタンを置く（スクリプトが無いときはコマンドの文字だけ）。要対応が0件なら次の工程を書く</td><td>静的な HTML では操作できないので、次の行動を見て分かる形で渡す</td></tr><tr><td>状態の札</td><td>記号 ＋ 語（✓ verified ・ ✕ violated ・ ？ unverified）。地の色と 2px の枠。語は CLI の出力と同じ識別子にする</td><td>色だけで伝えない。CLI と頁で同じ語にする</td></tr><tr><td>判定した者の札</td><td>語（機械 ・ AI ・ 人）を枠だけの札で示す。色で分けない。AI と人の判定には根拠のリンクを必ず付ける</td><td>誰が判定したかは、色の意味を増やさずに語で足りる</td></tr><tr><td>例外の一覧</td><td>まとめの main の先頭に置く。見出し「例外（n件）」、0件なら「例外は無い」と書く。各行は判定の行と差分へ1件ずつリンクし、文言を行き先の判定の理由と同じにする</td><td>GOV.UK のエラーサマリーと同じ型。見落としを防ぐ</td></tr><tr><td>意図のカード</td><td>意図1件を1枚にし、意図の文 ・ 判定の札 ・ 判定した者（AI ・ 人）・ 対象 ・ 欄の名前を出す。差分と理由は details で畳む</td><td>変更を意図の単位で読ませる</td></tr><tr><td>差分の表示</td><td>欄（等幅）・ 変更前（−）・ 変更後（＋）の3列。無い値は「（無い）」と書き、空欄にしない。ファイルの差分は Git の行の差分で出す。狭い幅では表を横スクロールにする</td><td>変更前と変更後を列の題と記号で見分けられる</td></tr><tr><td>判定の行</td><td>rule の名前と版 ・ 判定した値 ・ 結果の札 ・ 判定した者の札 ・ 根拠。各行に「インスタンス × rule」のアンカーを持たせる</td><td>まとめと session から1行へ直接移れる</td></tr><tr><td>セッションの木</td><td>入れ子の一覧（ul）。子ごとに役割 ・ 引き継ぐか ・ open/closed ・ 最後に使った時刻。open を先に並べる</td><td>親子の関係を構造で示し、読み上げでも分かる</td></tr><tr><td>現在地の行</td><td>目的 ＞ 対象 ＞ 頁。各段はリンク。&lt;title&gt; は「頁の題 - 目的の名前」</td><td>どこにいるかを示し、1つ上へ戻れるようにする</td></tr><tr><td>畳み</td><td>details と summary。summary に件数を書く（「verified（4件）」）。開いた状態は印刷とページ内検索でも読める</td><td>スクリプト無しで動き、余分な情報を後ろへ回せる</td></tr></tbody></table></div><div class="scroll"><table><thead><tr><th>原則</th><th>点検した項目</th><th>結果</th></tr></thead><tbody><tr><td>Nielsen：Visibility of System Status</td><td>各頁の状態（片付けることの件数 ・ インスタンスの状態）が1画面目にあるか</td><td>答えの帯で満たす</td></tr><tr><td>Nielsen：Recognition Rather than Recall</td><td>例外の内容を覚えて別の頁へ運ばせていないか</td><td>例外の行から判定の行へ直接リンクし、判定の行にも対象と欄を書き直す</td></tr><tr><td>Nielsen：Aesthetic and Minimalist Design</td><td>まれにしか使わない情報（id ・ tool ・ 描いた版）が1画面目にあるか</td><td>畳みへ移した</td></tr><tr><td>Nielsen：Consistency and Standards</td><td>3つの頁で、同じ部品が同じ位置 ・ 同じ語か</td><td>同じ並びと同じ札にした。CLI の語とも合わせた</td></tr><tr><td>Nielsen：Help Users Recognize, Diagnose, and Recover from Errors</td><td>violated の行が、何が問題で、どう直すかを言っているか</td><td>理由の文と次にすることの帯（コマンド）で満たす</td></tr><tr><td>WCAG 1.4.1 ・ 1.3.3</td><td>状態 ・ 例外 ・ 差分を色だけで伝えていないか</td><td>記号 ・ 語 ・ 列の題を必ず添える</td></tr><tr><td>WCAG 1.4.3 ・ 1.4.11</td><td>文字 4.5:1 ・ 状態の枠 3:1</td><td>明暗とも満たす（トークンの表）</td></tr><tr><td>WCAG 1.4.10</td><td>幅 320px 相当で横スクロールが出ないか</td><td>1列に落とす。差分の表だけはデータテーブルとして横スクロールを許す</td></tr><tr><td>WCAG 1.3.1 ・ 2.4.6</td><td>見出し ・ 一覧 ・ 表を構造で書いているか</td><td>h1 は1つ、帯と節は h2、木は ul、差分は table</td></tr><tr><td>WCAG 2.4.2 ・ 2.4.8 ・ 2.4.7</td><td>頁の題 ・ 現在地 ・ フォーカスの輪</td><td>現在地の行と color.focus の 2px の輪</td></tr><tr><td>GOV.UK：Writing for user interfaces</td><td>答えの帯 ・ 次にすることの帯が短い1文か。リンクの文が行き先を言うか</td><td>「判定を見る」「差分を見る」と書き、「こちら」を使わない。「緑の札」のような色での指示を書かない</td></tr></tbody></table></div><div class="scroll"><table><thead><tr><th>原則で決まらないこと</th><th>誰に</th><th>確かめ方</th></tr></thead><tbody><tr><td>札の語を識別子（verified など）のままにするか、日本語の語にするか</td><td>PR を見る人（CLI を使わない人を含む）</td><td>ワイヤーフレームの2案を見せ、札だけを見て意味を言ってもらう（考えを声に出す形のテスト）</td></tr><tr><td>差分の色を、PR の画面と同じ赤 ・ 緑に寄せるか、状態の色と分けた砂色 ・ 青緑にするか</td><td>PR を日常的に見る人</td><td>同じまとめを2つの配色で見せ、例外の見落としと読む時間を比べる</td></tr><tr><td>経緯をたどる人が、Git の履歴からまとめに着けるか</td><td>あとから経緯をたどる人</td><td>「この欄はなぜこの値か」を課題にして、入口から目的の記録まで着けるかを観察する</td></tr><tr><td>答えの帯の1文で、承認してよいかを決められるか</td><td>PR を見る人</td><td>答えの帯だけを見せて判断を聞き、そのあと全体を見せて判断が変わるかを見る</td></tr></tbody></table></div></section><section class="block"><h2>根拠</h2><p class="desc">判定の拠りどころにした判断基準の記述</p><div class="scroll"><table><thead><tr><th>判断基準</th><th>引用</th></tr></thead><tbody><tr><td>personas</td><td>「Personas」：実在の人と話した内容をもとにした、利用者のアーキタイプ。</td></tr><tr><td>user-scenarios</td><td>情報：how ・ 何を書くか：目標をどう達成していくか（タスク）</td></tr><tr><td>task-flow-analysis</td><td>対応：タスクと判断点には、利用者の手順とシステムの手順の両方を入れる</td></tr><tr><td>comparative-analysis</td><td>機会、ほかのサービスに空いている隙間、取り入れるべきか避けるべきかのデザインパターンの候補が見つかり、競争で強みを得られることがある。</td></tr><tr><td>design-studio</td><td>プロジェクトチームが向き合っているデザインの問題について、全員が同じ理解と認識を持つために使う。</td></tr><tr><td>design-principles</td><td>対応：ほかの点では興味を引く提案にも「no」と言えるようにする</td></tr><tr><td>aesthetic-and-minimalist-design</td><td>対応：内容と機能の優先順位は、ユーザーの主な目的を支える順に決める</td></tr><tr><td>visibility-of-system-status</td><td>現在の状態を把握できれば、ユーザーは直前の操作がどうなったかを知り、次に何をするかを判断できる。</td></tr><tr><td>recognition-rather-than-recall</td><td>対応：情報を思い出させる（「recall」させる）のではなく、画面の中で見て分かるようにする</td></tr><tr><td>consistency-and-standards</td><td>「Consistency and Standards」：異なる語 ・ 状況 ・ 操作が同じ意味かどうかでユーザーを迷わせず、プラットフォームと業界の慣習に従うべきだ、という原則である。</td></tr><tr><td>match-between-the-system-and-the-real-world</td><td>対応：語の定義を調べなくても、意味が伝わるようにする</td></tr><tr><td>help-users-recognize-diagnose-and-recover-from-errors</td><td>対応：解決策を示す。例えば、エラーをすぐ解決できるショートカット</td></tr><tr><td>error-summary</td><td>対応：入力の検証のエラーがある回答へ、1つずつリンクする</td></tr><tr><td>error-summary</td><td>対応：中のメッセージを、入力の隣のエラーメッセージと同じ言い回しにする</td></tr><tr><td>wireframing</td><td>解決策を定め始めるときに、装飾よりも中身と関係を優先するために使う。</td></tr><tr><td>style-tiles</td><td>「Style tiles」：いくつものフォント ・ 色 ・ UI の要素を収め、ウェブサイトやアプリケーションが目指す、視覚的なブランドの方向を伝えるデザインの文書。</td></tr><tr><td>design-pattern-library</td><td>「Design pattern library」：デザインシステムで頻繁に使う UI の要素の集まり。基本のパターンと、その使い方の役立つ情報からなる。要素の例は色・アイコン・ボタンである。</td></tr><tr><td>design-token</td><td>対応：値は、プレーンな JSON の文字列にする（MUST）</td></tr><tr><td>alias</td><td>原典は4つを挙げる。デザインの選択を表すこと、ファイルの中で同じ値を繰り返さずに済ませること（DRY）、token どうしに意味の上の関係を作ること、関係する値の一貫性を保つことである。</td></tr><tr><td>type</td><td>対応：`colorSpace` に色空間のキーを書く（必須。例：`srgb` ・ `oklch`）</td></tr><tr><td>group</td><td>Group：特定の分類に属する token の集まり（例：Brand ・ Alert ・ Layout）。design token を論理的にまとめ、token のファイルに階層を与える。group の作り方は任意である。</td></tr><tr><td>distinguishable</td><td>達成基準：「1.4.1 色の用途」 ・ レベル：A ・ 何を求めるか：情報 ・ 動作 ・ 反応の促し ・ 要素の判別を、色という視覚的手段だけで伝えない</td></tr><tr><td>distinguishable</td><td>達成基準：「1.4.11 非テキストのコントラスト」 ・ レベル：AA ・ 何を求めるか：ユーザインタフェース コンポーネントとその状態 (state) を見分ける部分と、理解に必要なグラフィックに、隣の色と 3:1 以上のコントラスト比を持たせる</td></tr><tr><td>distinguishable</td><td>達成基準：「1.4.10 リフロー」 ・ レベル：AA ・ 何を求めるか：幅 320 CSS ピクセル相当（横スクロールのコンテンツでは高さ 256 CSS ピクセル相当）で、情報と機能を失わず、2 次元スクロールなしで示せる</td></tr><tr><td>adaptable</td><td>達成基準：「1.3.1 情報及び関係性」 ・ レベル：A ・ 何を求めるか：見た目で伝えている情報 ・ 構造 ・ 関係性を、プログラムが解釈できる形にするか、テキストで示す</td></tr><tr><td>navigable</td><td>達成基準：「2.4.8 現在位置」 ・ レベル：AAA ・ 何を求めるか：ページ一式のどこにいるかの情報を得られる</td></tr><tr><td>writing-for-user-interfaces</td><td>対応：リンクの文だけで、リンクの目的が分かるようにする</td></tr><tr><td>writing-for-user-interfaces</td><td>対応：文章を短い文に分け、1文には1つの考えだけを書く</td></tr><tr><td>usability-testing</td><td>「Usability testing」：利用者が考えを声に出しながら、プロダクトやサービスを使おうとする様子を観察すること。</td></tr></tbody></table></div></section><section class="block"><h2>注意</h2><div class="scroll"><table><thead><tr><th>アンチパターン</th><th>リスク</th><th>代替案</th></tr></thead><tbody><tr><td>データの並びを頁の先頭に置く（いまの試作）</td><td>余分な情報の1つ1つが、本当に必要な情報と競い合い、例外や violated が相対的に目立たなくなる</td><td>答えの帯 ・ 次にすることの帯 ・ 要対応の項目を先頭に置き、id ・ tool ・ verified の行を畳む</td></tr><tr><td>状態を色だけで示す（緑 ・ 赤 ・ 黄の塗りだけ）</td><td>色を見分けにくい人と、白黒で印刷した人に状態が伝わらない（1.4.1）</td><td>札を記号 ＋ 語 ＋ 色にし、件数にも記号を付ける</td></tr><tr><td>（推測）差分の色に、状態と同じ緑 ・ 赤を使う</td><td>「変更後（緑）」と「verified（緑）」、「変更前（赤）」と「violated（赤）」が同じ意味に見え、internal consistency が崩れる</td><td>差分は砂色 ・ 青緑の別の色相にし、列の題と − ・ ＋ を添える。PR の画面の赤 ・ 緑に寄せるかは利用者で確かめる</td></tr><tr><td>（推測）0件の欄を省く</td><td>「例外が無い」のか「例外を調べていない」のかを、読む人が区別できない</td><td>例外 ・ 突き合わせは0件でも欄を出し、「例外は無い」と書く</td></tr></tbody></table></div></section><section class="block"><h2>次にすること</h2><ul><li>既存の試作（default-views/index.html）を、3枚のワイヤーフレームの並びで組み直す。</li><li>トークンを、明るい地と暗い地の2つの tokens.json として書き起こす。</li><li>幅 358px ・ 明 ・ 暗の3通りで描画し、目視で確かめる。</li><li>比べる相手として、利用者がふだん使う PR の画面を2〜3つ選び、同じ観点で評価する。</li><li>札の語と差分の色について、PR を見る人3〜5人に考えを声に出す形のテストを行う。</li><li>4つの原則をボードに置き、以後の決定を原則で判定する。</li></ul></section><section class="block"><h2>関連する基準</h2><div class="scroll"><table><thead><tr><th>判断基準</th><th>関係</th></tr></thead><tbody><tr><td>group</td><td>status ・ diff ・ judge ・ next を group にし、group の $description で意味を書く</td></tr><tr><td>type</td><td>group の $type で color と dimension を既定にする</td></tr><tr><td>navigable</td><td>頁の題 ・ 見出し ・ 現在地 ・ フォーカスの見え方を点検する</td></tr><tr><td>adaptable</td><td>セッションの木 ・ 差分の表を構造（ul ・ table）で書く</td></tr></tbody></table></div></section><section class="block"><h2>AI が作業するときの注意</h2><p class="desc">この回答の結論に、AI の作業が違反しやすい点と、それを検査する方法。工程を問わない</p><div class="scroll"><table><thead><tr><th>違反しやすい点</th><th>検査する方法</th></tr></thead><tbody><tr><td>Renderer を実装するとき、部品の CSS に基礎の色（#a3262a など）を直接書き、意味のトークンを経由しない</td><td>部品の CSS を検索し、color.base の値（16進の色）が意味の層の定義の外に出てこないことを、ビルドの検査で確かめる</td></tr><tr><td>状態の札を、記号か語を落として色だけで描く</td><td>描画した HTML の状態の札の要素すべてについて、テキストに ✓ ・ ✕ ・ ？ のいずれかと verified ・ violated ・ unverified のいずれかが入っていることを検査する</td></tr><tr><td>例外の一覧のリンクの文と、行き先の判定の理由の文がずれる</td><td>例外の各行のリンク先のアンカーが judgment の頁に在り、両方の理由の文字列が一致することを検査する</td></tr><tr><td>0件の例外 ・ 突き合わせの欄を出し忘れる</td><td>例外 0件のまとめを入力にした描画の試験で、「例外は無い」の文が出ることを確かめる</td></tr><tr><td>暗い地で、明るい地と別のトークンの名前を使う</td><td>明暗の2つのトークンのファイルで、名前の集合が一致することを検査し、各組のコントラスト比を計算して 4.5:1 ・ 3:1 を下回れば失敗にする</td></tr></tbody></table></div></section></main></body>
+</html>
