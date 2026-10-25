@@ -8,7 +8,7 @@ metadata:
 
 # AIワークショップの共同制作の現在地
 
-2026年10月24日、利用者が担当を分けた共同制作を希望した。このセッションは三教材共通の「はじめに」、別セッションは企画書・オリエンテーションを担当する。別セッションはまだ開始していない。
+2026年10月24日、利用者が担当を分けた共同制作を希望した。当初は共通の「はじめに」と企画書・オリエンテーションの担当を分けた。2026年10月25日、共通導入の完成後に、利用者の指示で同じセッションがオリエンテーションの見直しを開始した。最新の担当情報と以下の変更記録を参照する。
 
 - [共同作業の入口](../docs/workshops/ai-workshop/review/shared/README.md)
 - [共通方針](../docs/workshops/ai-workshop/review/shared/direction.md)
@@ -55,3 +55,5 @@ metadata:
 2026年10月25日、利用者の正本化指示を受け、共通のはじめにをACDR0205で正本へ反映。表紙1枚＋本文9枚のスライドと原稿を再生成。表紙の専用原稿も入力へ記録。音声・動画は改訂前。[変更記録37](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-37-intro-canonical-release.md)を参照。
 
 2026年10月25日、共通のはじめにの音声・字幕付き動画をACDR0206で更新。表紙＋本文9枚、約22分39秒、字幕253cue。スライドと原稿に一致することを照合し、ブラウザー再生も確認。[変更記録38](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-38-intro-video-release.md)を参照。
+
+2026年10月25日、オリエンテーションを先に見直すことに同意。現行14枚のLunaレビューと助言を受け、既存図を活かす構成案を同じ比較HTMLへ提示。構成案は確認待ちで、図と原稿は未修正。正本と音声動画は変更していない。[変更記録39](../docs/workshops/ai-workshop/review/shared/changes/2026-10-25-39-orientation-story-assessment.md)を参照。

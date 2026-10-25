@@ -70,7 +70,7 @@ function show(){
   el('structure-status').hidden=!hasStructure;
   el('structure-status').textContent=structureApplied
     ?(structureApproved?'今回の構成を図・原稿へ反映済みです。利用者確認済みです。':'今回の構成を図・原稿へ反映済みです。利用者確認待ちです。')
-    :'今回の構成案は図・原稿へ未反映です。上部の「改訂する8枚の構成」で案を確認できます。';
+    :'この資料の構成案は、まだ図・原稿へ反映していません。上部の構成案を確認してください。';
   el('after-version-label').textContent=hasStructure
     ?(structureApplied?'変更後（今回の構成を反映済み）':'変更後（今回の構成案は未反映）'):'変更後';
   el('slide-count').textContent=n+' / '+current.notes.length;

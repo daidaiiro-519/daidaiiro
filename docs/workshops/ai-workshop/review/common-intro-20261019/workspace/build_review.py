@@ -102,6 +102,11 @@ def publish():
         structure = json.loads(structure_path.read_text())
         lead['structureAppliedSlides'] = structure.get('applied_slides', [])
         lead['structureApprovedSlides'] = structure.get('approved_slides', [])
+    repo = A.parents[5]
+    orientation_track = json.loads((repo / 'docs/workshops/ai-workshop/review/shared/tracks/proposal-orientation.json').read_text())
+    if orientation_track.get('orientation_review_input'):
+        override = json.loads((repo / orientation_track['orientation_review_input']).read_text())
+        next(item for item in data if item['id'] == 'orientation').update(override)
     text = text[:match.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[match.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
@@ -134,6 +139,9 @@ def publish():
                    + '<p><a href="materials.html?slide=1#lead">表紙から図と原稿を通して見る</a></p></details>')
     if layout.get('story_revision'):
         notice = notice.replace('新規追加のため変更前はありません。本文1〜8の比較番号は維持しています。通し閲覧は表紙と本文の全9枚です。', '表紙は保存した旧版から変更していません。現在は本文' + str(len(slides)) + '枚、表紙を含む全' + str(len(slides)+1) + '枚です。新本文6を追加し、旧教材紹介6〜8を7〜9へ移動しました。')
+    if orientation_track.get('orientation_review_plan'):
+        orientation_plan = repo / orientation_track['orientation_review_plan']
+        notice += '<details id="orientation-plan" open><summary>オリエンテーションの構成見直し案（図と原稿は未修正）</summary>' + markdown.markdown(orientation_plan.read_text(), extensions=['tables']) + '</details>'
     plan = '# 現在の本文' + str(len(slides)) + '枚構成\n\n' + '\n\n'.join('## ' + str(s['slide']) + ' ' + s['heading'] + '\n\n' + s['lede'] for s in slides)
     notice += '<details id="seven-slide-plan"><summary>現在の本文' + str(len(slides)) + '枚構成を開く</summary>' + markdown.markdown(plan) + '</details>'
     final_review = A / 'final-sequence-review-20261025'
