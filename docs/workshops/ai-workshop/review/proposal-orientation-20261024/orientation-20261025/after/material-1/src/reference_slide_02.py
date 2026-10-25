@@ -1,27 +1,29 @@
-"""変更前i0_whyの配置と部品を維持し、文字とアイコンの種類を変更する。"""
+"""作成を、確認・修正と完了まで含む仕事全体の中に置く。"""
 from intro_visuals import *
 from intro_visuals import _robot_at
 
+
 def slide_02():
-    """作業の目的と言葉の意味を言語化し、仕組みにして改善する。3つの方法を教材で1つずつ学び、目的をAIで達成する。"""
-    steps = [('AIによる成果物の作成', 'robot', '成果物を作りやすい', '資料・ツール・アプリなど', ['作成しやすくなった', '出力を得るまでの時間も短く']), ('仕事で使うまで', 'doc', '内容と品質を確認する', '必要なら修正して、実務で使う', ['作成だけでなく、確認や修正', '利用までの作業を含めて見る']), ('仕事全体の効率・生産性', 'check', '全体の進み方を見る', '工数と案件の期間にも注目する', ['作業を終える工数は減ったか', '案件を進める速さは変わったか'])]
-    a = ''
-    cw, gap = 280, 36
-    for k, (tag, ic, name, what, ex) in enumerate(steps):
-        x = k * (cw + gap)
-        a += rect(x, 0, cw, 316, PAPER, 12, LINE)
-        a += text(x + 22, 34, tag, 14, DIM, 700)
-        if ic == 'robot':
-            a += _robot_at(x + 22, 58, INK)
-        else:
-            a += icon(x + 22, 58, ic, INK, 1)
-        a += text(x + 22, 152, name, 22, INK, 700)
-        a += text(x + 22, 184, what, 15, INK)
-        a += path(f'M{x + 22} 214 H{x + cw - 22}', LINE, 1)
-        a += text(x + 22, 246, ex, 14, DIM, gap=24)
-        a += arrow(x + cw + 6, 158, x + cw + gap - 6, 158)
-    cx, cy, r = 1112 - 84, 158, 84
-    a += circle(cx, cy, r, ACCENT, ACCENT)
-    a += text(cx, cy - 8, '仕事全体の', 21, PAPER, 700, 'middle')
-    a += text(cx, cy + 24, '生産性は？', 21, PAPER, 700, 'middle')
-    return svg('作成、確認と修正、仕事全体への効果を区別して問う', a, 324)
+    """作る速さと、仕事全体の工数・期間・品質への効果を区別する。"""
+    a=rect(0,0,1112,258,PAPER,12,LINE)
+    a+=text(24,34,'仕事全体',20,INK,700)
+    a+=rect(24,58,310,176,PAPER,10,ACCENT)
+    a+=text(179,89,'資料・ツール・アプリ',20,INK,700,'middle')
+    a+=_robot_at(58,111,INK)
+    a+=icon(143,117,'doc',INK,.7)+icon(228,117,'screen',INK,.7)
+    a+=text(179,211,'作りやすく、速く',24,ACCENT,700,'middle')
+    a+=arrow(342,146,394,146)
+    a+=rect(402,58,306,176,PAPER,10,LINE)
+    a+=text(555,89,'確認・修正',20,INK,700,'middle')
+    a+=person(471,143,.8,INK)
+    a+=icon(529,117,'doc',INK,.7)+icon(605,118,'search',INK,.7)
+    a+=text(555,211,'内容や品質を確かめる',20,INK,700,'middle')
+    a+=arrow(716,146,768,146)
+    a+=rect(776,58,312,176,PAPER,10,LINE)
+    a+=text(932,89,'仕事の完了',20,INK,700,'middle')
+    a+=icon(906,116,'check',INK,1.3)
+    a+=text(932,211,'必要な条件を満たす',20,INK,700,'middle')
+
+    a+=rect(0,272,1112,58,PAPER,12,ACCENT)
+    a+=text(556,309,'見る観点：工数・案件の期間・必要な品質',24,ACCENT,700,'middle')
+    return svg('仕事全体の境界の中に作成、確認と修正、完了を置く。AIで速くなった作成の部分と、工数・案件の期間・必要な品質で見る仕事全体の効果を区別して問う',a,346)

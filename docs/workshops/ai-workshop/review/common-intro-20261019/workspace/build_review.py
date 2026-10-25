@@ -141,7 +141,7 @@ def publish():
         notice = notice.replace('新規追加のため変更前はありません。本文1〜8の比較番号は維持しています。通し閲覧は表紙と本文の全9枚です。', '表紙は保存した旧版から変更していません。現在は本文' + str(len(slides)) + '枚、表紙を含む全' + str(len(slides)+1) + '枚です。新本文6を追加し、旧教材紹介6〜8を7〜9へ移動しました。')
     if orientation_track.get('orientation_review_plan'):
         orientation_plan = repo / orientation_track['orientation_review_plan']
-        notice += '<details id="orientation-plan" open><summary>オリエンテーションの構成見直し案（図と原稿は未修正）</summary>' + markdown.markdown(orientation_plan.read_text(), extensions=['tables']) + '</details>'
+        notice += '<details id="orientation-plan-reference"><summary>オリエンテーションの構成見直し案（図と原稿は未修正）</summary>' + markdown.markdown(orientation_plan.read_text(), extensions=['tables']) + '</details>'
     plan = '# 現在の本文' + str(len(slides)) + '枚構成\n\n' + '\n\n'.join('## ' + str(s['slide']) + ' ' + s['heading'] + '\n\n' + s['lede'] for s in slides)
     notice += '<details id="seven-slide-plan"><summary>現在の本文' + str(len(slides)) + '枚構成を開く</summary>' + markdown.markdown(plan) + '</details>'
     final_review = A / 'final-sequence-review-20261025'

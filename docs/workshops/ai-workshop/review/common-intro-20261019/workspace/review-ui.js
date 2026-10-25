@@ -83,6 +83,7 @@ function show(){
 }
 function choose(initial=false){
   current=data.find(deck=>deck.id===el('deck').value)||data[0];
+  if(el('orientation-plan'))el('orientation-plan').hidden=current.id!=='orientation';
   el('slide').replaceChildren(...current.notes.map((note,index)=>{
     const option=document.createElement('option');option.value=String(index+1);
     const status=Array.isArray(current.structureAppliedSlides)

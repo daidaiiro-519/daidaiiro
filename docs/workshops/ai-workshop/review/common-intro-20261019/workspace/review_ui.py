@@ -103,7 +103,23 @@ def enhance(text):
     context = re.sub(r'<iframe\b', '<iframe loading="lazy"', context)
     # Keep historical content available without placing it ahead of the current task.
     context = context.replace('id="lead-review-notice"', 'id="lead-review-notice" class="context-card"')
-    text = text[:start] + (here / 'review-ui-shell.html').read_text().replace('<!-- REVIEW_CONTEXT -->', context).replace('<!-- REFERENCES -->', references) + text[end:]
+    repo = here.parents[5]
+    track = json.loads((repo / 'docs/workshops/ai-workshop/review/shared/tracks/proposal-orientation.json').read_text())
+    plan_panel = ''
+    if track.get('orientation_review_plan'):
+        plan = json.loads((repo / track['orientation_review_plan']).with_suffix('.json').read_text())
+        revision = json.loads((repo / track['orientation_review_plan']).with_name('revisions.json').read_text())
+        progress = '変更反映済み：' + '・'.join(str(n) + '枚目' for n in revision.get('applied_slides', [])) + '。各枚の確認後に次へ進みます。' if revision.get('applied_slides') else 'スライドと原稿は、まだ変更していません。'
+        parts = ['<section id="orientation-plan" class="orientation-plan" hidden><h2>オリエンテーションの構成案</h2><p>まず全体の流れをご確認ください。</p><p>' + html.escape(progress) + '</p>']
+        groups = [(1, 6, 'なぜ、このワークショップで学ぶのか'), (7, 10, '何を学び、仕事でどう使うのか'), (11, 14, 'どう学び、実践するのか')]
+        for first, last, title in groups:
+            parts.append('<h3>' + html.escape(title) + '</h3><ol class="plan-list" start="' + str(first) + '">')
+            for slide in plan['slides'][first-1:last]:
+                parts.append('<li><h4>' + html.escape(slide['role']) + '</h4><p>' + html.escape(slide['claim']) + '</p><details><summary>図の方針・修正点</summary><p><strong>残す表現：</strong>' + html.escape(slide['keep']) + '</p><p><strong>修正点：</strong>' + html.escape(slide['change']) + '</p></details></li>')
+            parts.append('</ol>')
+        parts.append('<p><a href="#slide-comparison">現行スライドの比較へ進む ↓</a></p></section>')
+        plan_panel = ''.join(parts)
+    text = text[:start] + (here / 'review-ui-shell.html').read_text().replace('<!-- REVIEW_CONTEXT -->', context).replace('<!-- REFERENCES -->', references).replace('<!-- ORIENTATION_PLAN -->', plan_panel) + text[end:]
     text = text.replace('</style>', '\n' + (here / 'review-ui.css').read_text() + '</style>', 1)
     encoded = json.dumps(diffs, ensure_ascii=False).replace('</', '<\\/')
     text = text.replace('<script type="application/json" id="data">', '<script type="application/json" id="review-diffs">' + encoded + '</script><script type="application/json" id="data">', 1)
