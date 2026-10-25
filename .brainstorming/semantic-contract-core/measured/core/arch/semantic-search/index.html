@@ -47,38 +47,61 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
 </style>
 <main>
 <h1>Semantic Search と用語</h1>
-<p class="meta">利用者「自然な言語からそれに該当するようなドキュメントjsonを探し、必要な情報を取得してある形式の回答用のスキーマに当てはめて返す…それはセマンティックな検索といえますか？…必要なんじゃないでしょうか？」「それぞれの呼称はちゃんと用語としてまとめておきたい」「今そこを見直してるって話だから…どうするべきかって言う形で返して欲しい」を受け、usecase-advisor ・ ddd-advisor ・ 結論を渡さない反証役を統合した。例の名前は架空</p>
-<p class="ans">自然な言葉の問いに答えのスキーマで答える Semantic Search を、使う場面 U28 として足す。作業する AI は問う者のセッションで、基盤の機械的な操作（Search ・ Semantic Read の読み取り ・ 渡した値の検証）を組み合わせる。基盤が起動するのは、答えが出どころに支えられているかを判定させる AI だけ</p>
-<div class="fig"><svg viewBox="0 0 1000 380" style="min-width:880px" role="img" aria-label="Semantic Search の流れ" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg #dsvg-b3117f42-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-b3117f42-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="380.0" fill="#FFFFFF" rx="8"/>
-<text class="title" x="10" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">Semantic Search（U28）：AI のセッションが基盤の機械的な操作を組み合わせる</text>
+<p class="meta">利用者と私で固めた見解（AI は整形を受け持ち、処理は機械的。入出力は JSON Schema の契約で決定論的。セッションを乱立させない）を、見解と理由と見直しの意図を渡した反証役に通し、直した。例の名前は架空</p>
+<p class="ans">Semantic Search は、自然な言葉の問いに、答えのスキーマで出どころ付きで答える使う場面（U28）。AI がするのは3つ（問いを条件の JSON に整形する ・ 候補から選ぶ ・ 答えの JSON に整形する）で、探す ・ 読む ・ 確かめるは基盤の機械的なコマンド。決定論的と言えるのは条件の JSON から先で、使った条件も返す</p>
+<div class="fig"><svg viewBox="0 0 1000 380" style="min-width:880px" role="img" aria-label="Semantic Search の流れ" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg #dsvg-b84029b3-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-b84029b3-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="1000.0" height="380.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">Semantic Search（U28）：AI は整形と選ぶことだけ。処理は基盤の機械的なコマンド</text>
 <rect class="area" x="10" y="40" width="330" height="300" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="22" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">AI（問う者のセッション）・ セマンティック</text>
 <rect class="area" x="420" y="40" width="570" height="300" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><text class="note small" x="432" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">基盤 ・ 機械的</text>
-<rect class="box kind-3" x="30" y="72" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">① 問いを解釈する</text><text class="note small" x="42" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">自然な言葉 → 種類 ・ term ・ 状態の条件</text>
+<rect class="box kind-3" x="30" y="72" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">① 問いを解釈する</text><text class="note small" x="42" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">「探す条件」の x-prompt を読み、JSON に</text>
 <rect class="box kind-3" x="30" y="142" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">③ 読んで選ぶ</text><text class="note small" x="42" y="182" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">x-prompt の means で意味を確かめる</text>
 <rect class="box kind-3" x="30" y="212" width="290" height="50" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/><text class="title kind-3" x="42" y="233" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">⑤ 答えを作る</text><text class="note small" x="42" y="252" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">答えのスキーマの形で書き、出どころを付ける</text>
-<rect class="box kind-2" x="440" y="72" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">② Search（サーチ）</text><text class="note small" x="452" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">候補の位置の一覧と、探した範囲を返す</text>
-<rect class="box kind-2" x="440" y="142" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">④ Semantic Read の読み取り</text><text class="note small" x="452" y="182" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">候補の欄の x-prompt と値と版を返す</text>
-<rect class="box kind-2" x="440" y="212" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="233" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">⑥ 渡した値を検証する（保存しない）</text><text class="note small" x="452" y="252" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">機械の rule ・ 出どころが実在し版が合うか → 結果と、AI に依頼する rule の一覧</text>
-<rect class="box" x="440" y="276" width="530" height="50" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="452" y="297" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">⑦ 根拠の判定（AI の rule）</text><text class="note small" x="452" y="316" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">答えの値が出どころに支えられているか。親が Agents 契約で依頼する</text>
-<path class="flow" d="M320,97 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
-<path class="flow" d="M175,122 V140" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
-<path class="flow" d="M320,167 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
-<path class="flow" d="M175,192 V210" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
-<path class="flow" d="M320,237 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
-<path class="flow" d="M380,237 V301 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b3117f42-arrow-5B6B66)"/>
-<text class="note" x="10" y="362" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">基盤が起動するのは ⑦ の判定させる AI だけ。作業する AI（①③⑤）は問う者のセッションで、何も保存しない</text>
+<rect class="box kind-2" x="440" y="72" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">② Search</text><text class="note small" x="452" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">候補の位置の一覧 ・ 探した範囲 ・ 使った条件を返す</text>
+<rect class="box kind-2" x="440" y="142" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">④ Get</text><text class="note small" x="452" y="182" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">候補の欄の x-prompt ・ 値 ・ 版を返す</text>
+<rect class="box kind-2" x="440" y="212" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="233" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">⑥ Validate（渡した値。保存しない）</text><text class="note small" x="452" y="252" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">出どころが ② の範囲の中 ・ 値の一致 ・ 版 → 結果と needs</text>
+<rect class="box" x="440" y="276" width="530" height="50" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="452" y="297" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">⑦ 根拠の判定（AI の rule）</text><text class="note small" x="452" y="316" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">答えを使う前に、問う者が needs をまとめて依頼する</text>
+<path class="flow" d="M320,97 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b84029b3-arrow-5B6B66)"/>
+<path class="flow" d="M175,122 V140" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b84029b3-arrow-5B6B66)"/>
+<path class="flow" d="M320,167 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b84029b3-arrow-5B6B66)"/>
+<path class="flow" d="M175,192 V210" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b84029b3-arrow-5B6B66)"/>
+<path class="flow" d="M320,237 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b84029b3-arrow-5B6B66)"/>
+<path class="flow" d="M380,237 V301 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b84029b3-arrow-5B6B66)"/>
+<text class="note" x="10" y="362" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">基盤は AI を起動しない。AI がするのは ① ③ ⑤。決定論的と言えるのは条件の JSON から先で、何も保存しない</text>
 </svg></div>
-<h2>1　用語（セマンティックか機械的か）</h2>
-<div class="tw"><table><tr><th>英語</th><th>日本語</th><th>種類</th><th>中身</th></tr><tr><td>Search</td><td>サーチ</td><td>機械的</td><td>種類 ・ term ・ x-relationship ・ 状態と判定の結果 ・ 拡張項目で探し、位置の一覧と探した範囲を返す。使う場面の中から呼ぶ部品</td></tr><tr><td>Semantic Search</td><td>セマンティックサーチ</td><td>セマンティック</td><td>使う場面 U28。自然な言葉の問いに、答えのスキーマで、出どころ付きで答える</td></tr><tr><td>Semantic Read</td><td>セマンティックリード</td><td>セマンティック</td><td>AI が x-prompt を読む。基盤の読み取りのコマンドの部分は機械的</td></tr><tr><td>Semantic Write</td><td>セマンティックライト</td><td>セマンティック</td><td>AI が x-prompt に従って書く。JSON Patch の適用と検証は機械的</td></tr><tr><td>Semantic Schema Resolver</td><td>セマンティックスキーマリゾルバー</td><td>機械的</td><td>指す先と版を解決する</td></tr><tr><td>Semantic Schema Validator</td><td>セマンティックスキーマバリデーター</td><td>両方</td><td>機械の rule は自分で検証し、AI の rule は依頼の一覧を返して答えをまとめる</td></tr><tr><td>Semantic Schema Renderer</td><td>セマンティックスキーマレンダラー</td><td>機械的</td><td>人が読む形にする</td></tr><tr><td>Session Selector</td><td>セッションセレクター</td><td>機械的</td><td>再開する ID か「新しく立てる」を返す</td></tr></table></div>
-<div class="tw"><table><tr><th>名前の決まり</th><th>中身</th></tr><tr><td>操作の名前の先頭の Semantic</td><td>AI が伴う操作（Semantic Search ・ Read ・ Write）。あなたの定義「AI が伴うか、コマンドだけで完結するか」</td></tr><tr><td>Semantic Schema</td><td>この基盤のスキーマの名前（Semantic Abstract Schema ・ Semantic Concrete Schema）。Semantic Schema Resolver ・ Validator ・ Renderer の Semantic は、操作ではなく「どのスキーマを扱うか」を表す</td></tr></table></div>
+<h2>1　用語</h2>
+<div class="tw"><table><tr><th>名前</th><th>種類</th><th>中身</th></tr><tr><td>Semantic Search（セマンティックサーチ）</td><td>使う場面 ・ AI が伴う</td><td>U28。問い → 条件 → Search → Get → 選ぶ → 答え → Validate</td></tr><tr><td>Semantic Read（セマンティックリード）</td><td>使う場面 ・ AI が伴う</td><td>AI が x-prompt を読んで、欄の読み方と書き方を知る。中で Get を使う</td></tr><tr><td>Semantic Write（セマンティックライト）</td><td>使う場面 ・ AI が伴う</td><td>AI が x-prompt に従って書く。中で Patch を使う</td></tr><tr><td>Search（サーチ）</td><td>コマンド ・ 機械的</td><td>条件の JSON で探し、位置の一覧 ・ 探した範囲 ・ 使った条件を返す</td></tr><tr><td>Get（ゲット）</td><td>コマンド ・ 機械的</td><td>欄の x-prompt ・ 値 ・ 版を返す</td></tr><tr><td>Patch（パッチ）</td><td>コマンド ・ 機械的</td><td>JSON Patch（RFC 6902。test ・ add ・ replace ・ remove）を適用し、検証の結果と needs を返す</td></tr><tr><td>Validate（バリデート）</td><td>コマンド ・ 機械的</td><td>渡した値を保存せずに検証し、結果と needs を返す</td></tr><tr><td>Semantic Schema Resolver ・ Validator ・ Renderer</td><td>ドメインサービス ・ 機械的</td><td>Validator は AI の rule を自分で判定せず needs として返す。判定を依頼するのは呼ぶ側</td></tr><tr><td>Session Selector（セッションセレクター）</td><td>ドメインサービス ・ 機械的</td><td>再開する ID か「新しく立てる」を返す</td></tr></table></div>
+<div class="tw"><table><tr><th>名前の決まり</th><th>中身</th></tr><tr><td>先頭の Semantic（操作の名前）</td><td>AI が伴う使う場面。基盤のコマンドの名前には付けない</td></tr><tr><td>Semantic Schema</td><td>この基盤のスキーマの名前の一部（Semantic Abstract ・ Concrete Schema）。AI の有無ではない</td></tr><tr><td>Get ・ Patch</td><td>HTTP の GET と RFC 5789 の PATCH と同じ語。x-prompt の read ・ write のキーと紛れない</td></tr></table></div>
 <h2>2　送る JSON と返る JSON</h2>
-<div class="ex"><div class="pane"><b>問う（AI のセッションが受け取る問い）</b><pre>{
+<div class="ex"><div class="pane"><b>問う ／ AI が作った条件（Abstract「探す条件」の形）</b><pre>{
   &quot;question&quot;: &quot;AI に何を許すかを決めた記録と、その責任者は？&quot;,
   &quot;answer_schema&quot;: &quot;urn:semantic-agent-schema:sample:answer-owner:v1&quot;,
   &quot;contexts&quot;: [
     &quot;sample&quot;
   ]
-}</pre></div><div class="pane on"><b>返る（検証された答え。保存しない）</b><pre>{
+}</pre><pre>{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:core:query:v1&quot;,
+  &quot;kind&quot;: [
+    &quot;urn:semantic-agent-schema:sample:record:v1&quot;
+  ],
+  &quot;term&quot;: [
+    &quot;urn:semantic-agent-schema:sample:glossary:v1#permission&quot;
+  ],
+  &quot;contexts&quot;: [
+    &quot;sample&quot;
+  ]
+}</pre></div><div class="pane on"><b>返る（保存しない）</b><pre>{
+  &quot;query&quot;: {
+    &quot;$schema&quot;: &quot;urn:semantic-agent-schema:core:query:v1&quot;,
+    &quot;kind&quot;: [
+      &quot;urn:semantic-agent-schema:sample:record:v1&quot;
+    ],
+    &quot;term&quot;: [
+      &quot;urn:semantic-agent-schema:sample:glossary:v1#permission&quot;
+    ],
+    &quot;contexts&quot;: [
+      &quot;sample&quot;
+    ]
+  },
   &quot;answer&quot;: {
     &quot;$schema&quot;: &quot;urn:semantic-agent-schema:sample:answer-owner:v1&quot;,
     &quot;items&quot;: [
@@ -87,8 +110,10 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
         &quot;owner&quot;: &quot;yamada&quot;,
         &quot;provenance&quot;: [
           {
-            &quot;id&quot;: &quot;r-12&quot;,
-            &quot;kind&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;,
+            &quot;x-relationship&quot;: {
+              &quot;id&quot;: &quot;r-12&quot;,
+              &quot;kind&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;
+            },
             &quot;instanceLocation&quot;: &quot;/owner&quot;,
             &quot;version&quot;: &quot;&lt;読んだ版&gt;&quot;
           }
@@ -98,15 +123,25 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
   },
   &quot;results&quot;: [
     {
-      &quot;rule&quot;: &quot;provenance-exists&quot;,
+      &quot;rule&quot;: &quot;provenance-in-scope&quot;,
+      &quot;by&quot;: &quot;machine&quot;,
+      &quot;value&quot;: &quot;verified&quot;
+    },
+    {
+      &quot;rule&quot;: &quot;copied-value-matches&quot;,
       &quot;by&quot;: &quot;machine&quot;,
       &quot;value&quot;: &quot;verified&quot;
     },
     {
       &quot;rule&quot;: &quot;answer-supported&quot;,
       &quot;by&quot;: &quot;ai&quot;,
-      &quot;value&quot;: &quot;unverified&quot;,
-      &quot;why&quot;: &quot;親が判定を依頼する&quot;
+      &quot;value&quot;: &quot;unverified&quot;
+    }
+  ],
+  &quot;needs&quot;: [
+    {
+      &quot;rule&quot;: &quot;answer-supported&quot;,
+      &quot;why&quot;: &quot;答えを使う前に、問う者が判定を依頼する&quot;
     }
   ],
   &quot;scope&quot;: {
@@ -116,10 +151,11 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
     &quot;index_of&quot;: &quot;&lt;正本の版&gt;&quot;
   }
 }</pre></div></div>
-<p class="meta">出どころが実在し版が合うかは機械の rule で決定論的に確かめる。答えの値が出どころに支えられているか（写した値でない要約 ・ 組み合わせを含む）は AI の rule で、結果が出るまで unverified として見える</p>
-<h2>3　あるべき形と、書き換える前提</h2>
-<div class="tw"><table><tr><th>あるべき形</th><th>変更前</th><th>変更後</th></tr><tr><td>セマンティックな検索を使う場面として持つ</td><td>使う場面に無い（U0〜U27）</td><td>U28 Semantic Search を足す。行為者は問う者（目的のセッションの AI）。業務領域は中核「意味で探す」</td></tr><tr><td>機械的な検索の名前を、AI が伴わないと分かるものにする</td><td>Q5 ・ Q9 と model.json の「意味で探す」「意味で探して取り出す」が、AI の伴わない検索を指している</td><td>Search（サーチ）。業務領域「意味で探す」には Search と Semantic Search の両方が入る</td></tr><tr><td>作業する AI を起動するのは外（呼ぶ側）にそろえる</td><td>decisions-in-session.md に「親のセッションを基盤が立ててもよい」、boundary に「AI ツールの起動は外」が並んでいる</td><td>「AI ツールの起動は外」にそろえる。基盤が起動するのは、ツールを持たせない判定の AI だけ（I29）</td></tr><tr><td>保存しない値を検証できるようにする</td><td>駆動する側のポート「検証する」は変更の前後を受け取る形だけ</td><td>「渡した値を検証する（保存しない）」を足す。Semantic Search の答えの検証に使う</td></tr><tr><td>出どころを持つ</td><td>無い</td><td>Abstract の $defs に値オブジェクト「出どころ」（id ・ kind ・ instanceLocation ・ 読んだ版）と、rule 2つ（実在と版 ＝ 機械、支えられているか ＝ AI）を足す。型は instance の crate</td></tr><tr><td>Semantic Read ・ Write の頁の言い方</td><td>「抽象のレベルでは外れない」</td><td>「機械の rule では外れない。AI の rule は判定の結果として残る」</td></tr><tr><td>答えを作る操作</td><td>Semantic Write で答えを書く（下書き）</td><td>答えはファクトリで作る。Semantic Write は既にある文書の更新に限る</td></tr></table></div>
-<p class="meta">crate は8つのまま、依存の向きも変わらない。Semantic Search はアプリケーション層の使う場面。Q3（Agents 契約）に「作業の任せる先に Search や Semantic Read を渡す契約が要るか」の論点を足す</p>
-<h2>4　確かめてほしいこと</h2>
-<div class="tw"><table><tr><th>確かめてほしいこと</th><th>私の見解</th></tr><tr><td>U28 Semantic Search を足し、作業する AI は問う者のセッションにする</td><td>そうする。問いの文脈を持つのはそのセッションだけ</td></tr><tr><td>用語の表（1節）と、名前の決まり（操作の Semantic と Semantic Schema の違い）</td><td>そうする</td></tr><tr><td>3節の書き換え</td><td>そうする</td></tr></table></div>
+<p class="meta">出どころの id と kind は x-relationship で書き、足すのは instanceLocation と読んだ版だけ。会話から思い出した値は出どころが ② の範囲に無いので violated になる</p>
+<h2>3　AI をどこで動かすか</h2>
+<div class="tw"><table><tr><th>呼ぶ側</th><th>どこで</th><th>決まり</th></tr><tr><td>AI のセッション（いちばん多い）</td><td>いまのセッション（新しく立てない）</td><td>会話の値が答えに混ざっても、出どころが範囲の中 ・ 値の一致 ・ 版の機械の rule で violated になる</td></tr><tr><td>AI のセッションで、文脈を分けたいとき</td><td>目的のセッションの任せる先「探す役」を、Session Selector で再開する</td><td>目的 ・ 親 ・ 役割で1つまで。同じ枠への問いは前の問いが返るまで次を出さない。オーケストレーターからは立てない（いまのセッションで行う）</td></tr><tr><td>AI でない呼ぶ側（CI ・ harness）</td><td>Search を直接呼ぶ</td><td>自然な言葉の問いを持たないので Semantic Search を使わない（あなたに確かめたいこと）</td></tr></table></div>
+<h2>4　あるべき形と、書き換える前提</h2>
+<div class="tw"><table><tr><th>前提</th><th>変更前</th><th>変更後</th></tr><tr><td>使う場面</td><td>U0〜U27</td><td>U28 Semantic Search を足す。成功の保証：各値の出どころは同じ呼び出しで Search が返した範囲の中にあり、版と写した値が正本と合う。使った条件を返す。支えられているかの判定は needs で返る</td></tr><tr><td>手順とコマンドの一覧</td><td>無い</td><td>Abstract のファイル「探す条件」（Search の入力と結果の形）を足し、その x-prompt に手順と各欄の書き方を書く。kind と term の候補は Resolver が enum として出す。Abstract は10ファイル → 11ファイル</td></tr><tr><td>出どころ</td><td>無い</td><td>Abstract の $defs に足す（x-relationship ＋ instanceLocation ＋ 読んだ版）。rule は、範囲の中にある ・ 写した値が一致する ・ 版が合う（機械）と、支えられている（AI）</td></tr><tr><td>駆動する側のポート</td><td>探して取り出す ・ 案内する ／ インスタンスを書く ／ 検証する</td><td>コマンドは Search ・ Get ・ Patch ・ Validate（渡した値、保存しない）。使う場面は Semantic Read ・ Write ・ Search</td></tr><tr><td>判定させる AI を誰が呼ぶか</td><td>頁と model.json に「基盤が起動する」が残っていた</td><td>Validator は needs を返すだけ。答えを使う前に、問う者がまとめて依頼する（decisions-in-session.md「呼ぶのは親」）</td></tr><tr><td>値の意味で探すこと（Semantic Read ・ Write の頁の5節）</td><td>A（値では探さない）か B（JMESPath を条件に使う）が未決</td><td>A。自由記述の値の意味で選ぶのは AI。前もって rule の判定の結果として残しておけば、Search が「状態と判定の結果」で機械的に探せる</td></tr><tr><td>Q8 ・ Q9 の「意味で探す」</td><td>語 ・ 参照 ・ rule の結果の意味で探す</td><td>Search はそのまま。値の意味で選ぶのは Semantic Search の AI の受け持ちと書き足す</td></tr></table></div>
+<h2>5　確かめてほしいこと</h2>
+<div class="tw"><table><tr><th>確かめてほしいこと</th><th>私の見解</th></tr><tr><td>AI がするのは3つ（条件への整形 ・ 選ぶ ・ 答えへの整形）で、決定論的なのは条件の JSON から先</td><td>そうする。あなたの「整形」に「選ぶ」を足した。値の中身で選ぶ部分は機械の5つの単位では表せないため</td></tr><tr><td>用語（使う場面は Semantic ○○、コマンドは Search ・ Get ・ Patch ・ Validate）</td><td>そうする</td></tr><tr><td>AI でない呼ぶ側（CI ・ harness）は Semantic Search を使わず Search を直接呼ぶ</td><td>反証役の推測。あなたの使い方と合うか確かめたい</td></tr><tr><td>値の意味で探すのは A（JMESPath は使わない）</td><td>A。意味は rule の判定の結果として残し、機械で探す</td></tr></table></div>
 </main>
