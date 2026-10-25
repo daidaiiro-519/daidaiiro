@@ -593,26 +593,31 @@ def t_cover(no):
         steps = [('教材1', '目的の把握', ('作業の目的と必要な内容をAIに伝える' if no in (0, 1) else '作業の目的を言語化し、AIへの依頼に書く'), 'search', 49),
                  ('教材2', '言葉の定義', '人や業務で違う言葉の意味を言語化する', 'book', 54),
                  ('教材3', '仕組みの構築', '目的と言葉の意味を仕組みにし、改善する', 'robot', 60)]
+        if no == 0:
+            scope = ['何を実現し、何を満たすか', '業務をどう設計に表すか', '考え方をAIでどう実践するか']
+            steps = [('教材1', ['目的と要件の', '明確化'], '目的から必要な範囲と条件を考える', 'search', 49),
+                     ('教材2', ['業務のモデル化と', '設計'], '業務をモデルに表し、設計へつなぐ', 'book', 54),
+                     ('教材3', ['AI活用の', '実践と改善'], 'AgentがSkillsを使って作業する', 'robot', 60)]
         a = ''
         for i, (label, verb, sub, kind, iw) in enumerate(steps):
             x = i * 386
             # 教材1の始まりと締めでは、教材1を際立たせる
             on = (no in (1, 8) and i == 0)
-            a += rect(x, 0, 340, 180, PAPER, 12, ACCENT if on else LINE)
+            a += rect(x, 0, 340, 218 if no == 0 else 180, PAPER, 12, ACCENT if on else LINE)
             a += text(x + 20, 28, label + '　' + scope[i], 14, ACCENT if on else DIM, 700)
             if kind == 'robot':
                 # ロボットは腕が左右へ出るので、描いた幅の中心を箱の中心へ合わせる
                 a += _robot(x + 146, 43, LINE)
             else:
                 a += icon(x + (340 - iw * 1.2) / 2, 40, kind, LINE, 1.2)
-            a += text(x + 170, 128, verb, 22, INK, 700, 'middle')
-            a += text(x + 170, 160, sub, 15, DIM, anchor='middle')
+            a += text(x + 170, 126, verb, 22, INK, 700, 'middle', gap=29)
+            a += text(x + 170, 194 if no == 0 else 160, sub, 15, DIM, anchor='middle')
             if i < 2:
-                a += arrow(x + 348, 90, x + 378, 90)
+                a += arrow(x + 348, 109 if no == 0 else 90, x + 378, 109 if no == 0 else 90)
         if no == 1:
             a += text(0, 226, '教材1の例：経費精算システムを入れ替える案件で、PMが定例の議事録から課題管理表を作る ／ 動画6本', 15, DIM)
             return svg('3つの教材の道筋と、教材1の例', a, 236)
-        return svg('3つの教材の道筋', a, 190)
+        return svg('3つの教材の道筋', a, 228 if no == 0 else 190)
     # 本編は、6本の名前を順に並べ、いまの1本だけを塗る。はじめにの「6本の動画で、この順に進みます」と同じ名前と順である
     names = ['原因を知る', '意味を決める', '範囲を決める', '条件を決める', '出力のばらつきを直す', '目的レベルを確かめる']
     a = ''

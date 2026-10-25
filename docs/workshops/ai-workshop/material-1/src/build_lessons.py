@@ -150,6 +150,7 @@ def build(lesson_path):
         title_html = esc(s['title'])
         if no == 0:
             title_html = title_html.replace('。仕事全体', '。<br>仕事全体')
+            title_html = title_html.replace('考え方を学び、実践するワークショップです', '考え方を学び、<br>実践するワークショップです')
         out.append(
             f'<section class="slide {s["cls"]}" aria-label="{i}: {esc(s["title"])}">\n'
             f'<div class="kicker"><span class="ws-mark" aria-hidden="true"></span>'

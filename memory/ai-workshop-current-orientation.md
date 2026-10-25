@@ -81,3 +81,7 @@ metadata:
 2026-10-26：受講者レビュー2回目（同条件、ワークフローで14体）。指摘は0件にならず。1回目の直し漏れ（9枚目の図の二重否定）と、2回続いた指摘（8枚目の教材3の矢印、5枚目の文、進め方、12枚目の公開時期）などを反映。採否はreview/haiku-review-20261026-round2/README.md。[変更記録24](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-24-orientation-learner-review-round2.md)。
 
 2026-10-26：全14枚の通し読みをHaiku 5.5の1体で確認。目的・学び方・目標・次にすることは正しく読み取れた。教材カード見出しの不統一、6・9枚目の欄名、11枚目の「成果物」、7枚目の（例）などを修正。採否はreview/haiku-review-20261026-whole/README.md。[変更記録25](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-25-orientation-whole-read.md)。機密情報の扱いは利用者が「今回のテーマではない」と判断し、扱わない。
+
+2026-10-26：作業記録をfa721f56でコミット。ACDR 0207（オリエンテーションの正式版改訂）を提案中。正本material-1/srcの15ファイルと出力2ファイルへ作業ツリー上で反映済み・未コミット（承認後にコミット、差し戻しならgit checkoutで戻す）。公開 http://127.0.0.1:8772/decisions/0207.html 。acdrのiframeが画面高さ基準のHTMLで伸び続ける不具合あり（0205も同じ）、別件。
+
+2026-10-26：利用者がACDR 0207を承認。オリエンテーション全14枚のスライドと原稿を正本へ反映しコミット。音声・動画は未作成。次は音声・動画、企画書の見直し。[変更記録26](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-26-orientation-canonical-release.md)。
