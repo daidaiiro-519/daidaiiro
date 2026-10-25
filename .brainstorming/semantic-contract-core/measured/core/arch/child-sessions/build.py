@@ -49,13 +49,13 @@ const T={
   a:['継続 ・ 引き継がない のまま','1回目：codex exec "<指示>"（I）／ 2回目から：codex exec resume I "<続き>"','2回目から 64% を読む（実測）','I が残る'],
   b:['継続 ・ 引き継ぐ のまま（費用が上がる）','1回目：codex exec fork P "<指示>"（J）／ 2回目から：codex exec resume J','1回目は親の約4万をほぼ全部払う（29%。実測）。2回目からは効く','J が残る'],
   tree:'目的のセッション P（約4万）\n├─ 単発 ・ 引き継ぐ：反証（残らない）\n├─ 継続 ・ 引き継がない：実装役 I\n└─ 継続 ・ 引き継ぐ：設計を知る実装役 J（作るときに約4万を1回払った）'},
- copilot:{name:'Copilot',cap:{fork:'コマンドで作れない',a:'作れる ・ 再開で効く',b:'コマンドで作れない'},
-  fork:['代わりに「いまのセッションで行う」','P の会話の中で、反証の指示を1つ続けて送る（copilot -p "<反証の指示>" --resume P）','P の会話をそのまま読むので、再開と同じく 96% 効く（実測）。ただし反証のやりとりが P の会話に残る','新しいセッションは増えない'],
+ copilot:{name:'Copilot',cap:{fork:'fork は無い ・ 親のセッション自身で行える',a:'作れる ・ 再開で効く',b:'sessions import で作れる ・ 親のキャッシュ 効かない'},
+  fork:['親のセッション自身で行う','P の会話の中で、反証の指示を1つ続けて送る（copilot -p "<反証の指示>" --resume P）','P の会話をそのまま読むので、再開と同じく 96% 効く（実測）。ただし反証のやりとりが P の会話に残る','新しいセッションは増えない'],
   a:['継続 ・ 引き継がない のまま','1回目：copilot -p "<指示>"（I）／ 2回目から：copilot -p "<続き>" --resume I','2回目から 96% を読む（実測）。Free は自動選択でモデルが変わると効かない','I が残る'],
-  b:['代わりに「継続 ・ 引き継がない」','親が設計の意図を指示に書いて渡す：copilot -p "<意図と指示>"（I）','1回目は指示の分だけ。意図は親が選んで書く','I が残る'],
-  tree:'目的のセッション P（約4万。反証のやりとりもここに入る）\n├─ 継続 ・ 引き継がない：実装役 I\n└─ 継続 ・ 引き継がない：設計を知る実装役 I2（意図を指示に書いて渡した）'},
+  b:['継続 ・ 引き継ぐ のまま（費用が上がる）','1回目：P の会話を写した JSONL を copilot sessions import で読み込ませる（J）／ 2回目から：copilot -p "<続き>" --resume J','1回目は親の約4万をほぼ全部払う（36%。実測）。2回目からは効く','J が残る'],
+  tree:'目的のセッション P（約4万。反証のやりとりもここに入る）\n├─ 継続 ・ 引き継がない：実装役 I\n└─ 継続 ・ 引き継ぐ：設計を知る実装役 J（sessions import で親の会話を持たせた）'},
  kiro:{name:'Kiro',cap:{fork:'作れる（ACP）・ 親のキャッシュ 効かない',a:'作れる ・ 再開で効く',b:'作れる（ACP）・ 親のキャッシュ 効かない'},
-  fork:['代わりに「いまのセッションで行う」','kiro-cli chat --no-interactive --resume-id P "<反証の指示>"','session/fork で作ると親の約4万を毎回払うので、再開で行う。再開は効く（クレジットが約半分）','新しいセッションは増えない'],
+  fork:['親のセッション自身で行う','kiro-cli chat --no-interactive --resume-id P "<反証の指示>"','session/fork で作ると親の約4万を毎回払うので、再開で行う。再開は効く（クレジットが約半分）','新しいセッションは増えない'],
   a:['継続 ・ 引き継がない のまま','1回目：kiro-cli chat --no-interactive "<指示>"（I）／ 2回目から：--resume-id I','2回目から効く（クレジットからの推測）','I が残る'],
   b:['継続 ・ 引き継ぐ のまま（費用が上がる）','1回目：ACP の session/fork で P から J を作る ／ 2回目から：--resume-id J','1回目は親の約4万をほぼ全部払う（推測）。2回目からは効く','J が残る'],
   tree:'目的のセッション P（約4万。反証のやりとりもここに入る）\n├─ 継続 ・ 引き継がない：実装役 I\n└─ 継続 ・ 引き継ぐ：設計を知る実装役 J（作るときに約4万を1回払った）'}
@@ -100,24 +100,25 @@ body = f'''<main>
  ['継続で引き継がないか', '意図を指示に書き切れるとき。既定'],
 ])}
 </details>
-<h2>3　AI ツールごとの手段とキャッシュ</h2>
+<h2>3　AI ツールごとの手段とキャッシュ（4つとも引き継げる）</h2>
 {FIG('matrix.svg')}
 <details><summary>全部の手段とコマンド（表）</summary>
 {table(['型', 'Claude Code 2.1.305', 'Codex 0.164.0', 'Copilot 1.0.103', 'Kiro 2.21.1'], [
  ['単発 ・ 引き継ぐ：AI の中から', Y('fork のサブエージェント（原典）'), Y('spawn_agent fork_turns all：94%（実測）'), X('無い。サブエージェントは親の会話を引き継がない（原典）'), X('無い。sub-agents は文脈を分ける（原典）')],
- ['単発 ・ 引き継ぐ：外からコマンドで', Y('--resume P --fork-session --no-session-persistence：96%（実測）'), Y('exec fork --ephemeral P：64%（実測。親の再開と同じ）'), X('無い（/fork は対話だけ）'), N('ACP の session/fork：クレジットが親と同じ（推測）')],
+ ['単発 ・ 引き継ぐ：外からコマンドで', Y('--resume P --fork-session --no-session-persistence：96%（実測）'), Y('exec fork --ephemeral P：64%（実測。親の再開と同じ）'), Y('親のセッション自身で行う（--resume P）：96%（実測）'), N('ACP の session/fork：クレジットが親と同じ（推測）')],
  ['単発 ・ 引き継がない', '通常のサブエージェント ／ claude -p', 'spawn_agent（履歴なし）／ codex exec --ephemeral', 'task のサブエージェント ／ copilot -p', 'sub-agents ／ kiro-cli chat --no-interactive'],
  ['継続 ・ 引き継がない：作る', '通常のサブエージェント ／ claude -p', 'spawn_agent（履歴なし）／ codex exec', 'task のサブエージェント ／ copilot -p', 'sub-agents ／ kiro-cli chat --no-interactive'],
- ['継続 ・ 引き継ぐ：作る', Y('--resume P --fork-session：87%（実測）'), Y('AI の中：spawn_agent fork_turns all（94%。その子に send_input で続ける）') + '<br>' + N('外から：exec fork P：29%（実測）'), X('外からは作れない（/fork は対話だけ）'), N('ACP の session/fork：効かない（推測）')],
+ ['継続 ・ 引き継ぐ：作る', Y('--resume P --fork-session：87%（実測）'), Y('AI の中：spawn_agent fork_turns all（94%。その子に send_input で続ける）') + '<br>' + N('外から：exec fork P：29%（実測）'), N('sessions import に親の会話を写して作る：36%（実測。親の会話の分は効かない）'), N('ACP の session/fork：効かない（推測）')],
  ['継続（両方）：2回目からの再開', Y('--resume I：100%（実測）。サブエージェントの再開も効く（原典）'), Y('exec resume I：64%（実測）'), Y('--resume I：96%（実測）'), Y('--resume-id I：クレジットが約半分（推測）')],
  ['人が対話で使う手段（参考）', '/fork', '/side ・ /fork', '/fork ・ /ask', '/tangent ・ /rewind'],
 ])}
 <p class="meta">Copilot Free はモデルが自動選択で、モデルが変わるとキャッシュは効かない（原典「A different model can't reuse another model's cache」）。Codex のサブエージェントは親と同じキャッシュキーを使う（ソースの試験）</p>
 </details>
-<h2>4　できない ・ 効かないときの代わり</h2>
+<h2>4　ツールの fork が無い ・ 効かないときの手段</h2>
 {table(['型', 'ツール', '代わり'], [
- ['単発 ・ 引き継ぐ', 'Copilot ・ Kiro', 'いまのセッションの中で行う（再開と同じくキャッシュが効く）。やりとりは親の会話に残る'],
- ['継続 ・ 引き継ぐ', 'Copilot', '継続 ・ 引き継がない にし、親が会話の意図を指示に書いて渡す'],
+ ['単発 ・ 引き継ぐ', 'Copilot', '親のセッション自身で行う（--resume P。キャッシュが効く）。やりとりは親の会話に残る'],
+ ['単発 ・ 引き継ぐ', 'Kiro', 'session/fork で引き継ぐ（親の分を払う）か、親のセッション自身で行う（再開で効く）'],
+ ['継続 ・ 引き継ぐ', 'Copilot', '親の記録（events.jsonl）の会話を sessions import の形に写して、新しいセッションを作る（作るときに親の分を払う。2026-10-25 に、親にしか無い合言葉を子が答えることを確かめた）'],
  ['継続 ・ 引き継ぐ', 'Codex（外から）・ Kiro', '作るときに親の文脈の分を1回払う。重ければ 引き継がない にして意図を指示に書く'],
 ])}
 {SIM}
