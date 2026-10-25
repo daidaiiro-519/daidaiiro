@@ -1,9 +1,7 @@
 //! create
 
-use crate::ports::contracts::Contracts;
-use crate::ports::instances::Instances;
-use crate::use_cases::Outcome;
 use crate::use_cases::validate::write_checked;
+use crate::use_cases::{Outcome, Ports};
 use semantic_agent_schema_declaration::aggregates::abstract_schema::AbstractSchema;
 use semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema;
 use semantic_agent_schema_declaration::aggregates::concrete_schema::factories::concrete_template::concrete_template;
@@ -14,14 +12,8 @@ use serde_json::{Value, json};
 
 /// 置き場所に作る。種類が glossary なら glossary を、ほかは Abstract の本体から Concrete を、雛形に渡した値（create-request）を重ねて作る。
 /// 既にあれば断る。出力の unfilled に、まだ書いていない項目を案内つきで返す
-pub fn create(
-    contracts: &dyn Contracts,
-    path: &str,
-    owner: &str,
-    kind: &str,
-    value: &Value,
-) -> Outcome {
-    match contracts.read(path) {
+pub fn create(ports: &Ports<'_>, path: &str, owner: &str, kind: &str, value: &Value) -> Outcome {
+    match ports.contracts.read(path) {
         Ok(None) => {}
         Ok(Some(_)) => return Outcome::refused("", &format!("{path} は既にある（作り直さない）")),
         Err(e) => return Outcome::refused("", &e),
@@ -43,31 +35,31 @@ pub fn create(
         Err(e) => return Outcome::refused("", &e),
     };
     write_checked(
-        contracts,
+        ports,
         path,
         None,
         &document,
         json!({"path": path, "id": id.to_string()}),
-        &|doc| contracts.write(path, doc),
+        &|doc| ports.contracts.write(path, doc),
     )
 }
 
 /// 置き場所に、Concrete（$schema の URN）からインスタンスを作る。id は呼ぶ側が決めて渡す。既にあれば断る。
 /// 出力の unfilled に、Concrete の欄のうちまだ書いていないものを案内つきで返す
 pub fn create_instance(
-    contracts: &dyn Contracts,
-    instances: &dyn Instances,
+    ports: &Ports<'_>,
     path: &str,
     schema: &str,
     id: &str,
     value: &Value,
 ) -> Outcome {
-    match instances.read(path) {
+    match ports.instances.read(path) {
         Ok(None) => {}
         Ok(Some(_)) => return Outcome::refused("", &format!("{path} は既にある（作り直さない）")),
         Err(e) => return Outcome::refused("", &e),
     }
-    let concrete = match contracts
+    let concrete = match ports
+        .contracts
         .find(schema)
         .and_then(|f| f.map(ConcreteSchema::from_document).transpose())
     {
@@ -80,11 +72,11 @@ pub fn create_instance(
         Err(e) => return Outcome::refused("", &e),
     };
     write_checked(
-        contracts,
+        ports,
         path,
         None,
         instance.document(),
         json!({"path": path, "id": id}),
-        &|doc| instances.write(path, doc),
+        &|doc| ports.instances.write(path, doc),
     )
 }

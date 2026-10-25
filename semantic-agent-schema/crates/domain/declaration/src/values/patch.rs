@@ -1,4 +1,4 @@
-//! JSON Patch（test ・ add ・ replace ・ remove）。検査①：適用する前に入力を見て、外れたら状態に触れずに断る
+//! JSON Patch（add ・ replace ・ remove）。検査①：適用する前に入力を見て、外れたら状態に触れずに断る
 
 use serde_json::Value;
 
@@ -43,24 +43,10 @@ fn split(path: &str) -> Option<(String, String)> {
     Some((path[..i].to_string(), unescape(&path[i + 1..])))
 }
 
-/// RFC 6902 の test の一致：数は数として比べ、配列と object は中まで比べる
-fn same(a: Option<&Value>, b: Option<&Value>) -> bool {
-    match (a, b) {
-        (Some(Value::Number(x)), Some(Value::Number(y))) => x.as_f64() == y.as_f64(),
-        (Some(Value::Array(x)), Some(Value::Array(y))) => {
-            x.len() == y.len() && x.iter().zip(y).all(|(p, q)| same(Some(p), Some(q)))
-        }
-        (Some(Value::Object(x)), Some(Value::Object(y))) => {
-            x.len() == y.len() && x.iter().all(|(k, p)| same(Some(p), y.get(k)))
-        }
-        _ => a == b,
-    }
-}
-
 /// 文書に JSON Patch を適用した写しを返す。元の文書は変えない。不変条件 I3（$schema の申告を変えさせない）
 ///
 /// # Errors
-/// 使えない op（move ・ copy など）・ 根の場所 ・ $id と $schema の書き換え ・ 無い場所 ・ test の不一致のとき
+/// 使えない op（add ・ replace ・ remove 以外）・ 根の場所 ・ $id と $schema の書き換え ・ 無い場所のとき
 pub fn apply(doc: &Value, ops: &Value) -> Result<Value, Refusal> {
     let ops = ops
         .as_array()
@@ -76,25 +62,20 @@ pub fn apply(doc: &Value, ops: &Value) -> Result<Value, Refusal> {
             .get("path")
             .and_then(Value::as_str)
             .ok_or_else(|| refuse(&at, "path が無い"))?;
-        if !["test", "add", "replace", "remove"].contains(&kind) {
+        if !["add", "replace", "remove"].contains(&kind) {
             return Err(refuse(
                 &at,
-                &format!("op「{kind}」は使えない（test ・ add ・ replace ・ remove だけ）"),
+                &format!("op「{kind}」は使えない（add ・ replace ・ remove だけ）"),
             ));
         }
         if path.is_empty() {
             return Err(refuse(&at, "文書の根は書き換えない"));
         }
-        if kind != "test" && (path == "/$id" || path == "/$schema") {
+        if path == "/$id" || path == "/$schema" {
             return Err(refuse(&at, "$id と $schema は書き換えない"));
         }
         let value = op.get("value");
         match kind {
-            "test" => {
-                if !same(out.pointer(path), value) {
-                    return Err(refuse(&at, &format!("{path} の値が test と合わない")));
-                }
-            }
             "replace" => {
                 let v = value.ok_or_else(|| refuse(&at, "value が無い"))?.clone();
                 let slot = out
@@ -184,25 +165,6 @@ mod tests {
     fn remove_deletes_the_member() {
         let out = apply(&doc(), &json!([{"op": "remove", "path": "/why"}])).unwrap();
         assert!(out.get("why").is_none());
-    }
-
-    /// traces: U1:失敗時
-    #[test]
-    fn test_mismatch_is_refused() {
-        assert!(
-            apply(
-                &doc(),
-                &json!([{"op": "test", "path": "/why", "value": "x"}])
-            )
-            .is_err()
-        );
-    }
-
-    /// traces: U1:事後
-    #[test]
-    fn test_compares_numbers_as_numbers() {
-        let d = serde_json::json!({"n": 1});
-        assert!(apply(&d, &json!([{"op": "test", "path": "/n", "value": 1.0}])).is_ok());
     }
 
     /// traces: U1:失敗時

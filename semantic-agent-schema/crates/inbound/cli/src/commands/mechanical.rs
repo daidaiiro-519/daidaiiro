@@ -27,6 +27,41 @@ pub enum Mechanical {
         /// 作る値（--value の JSON。無ければ {}）
         value: Value,
     },
+    /// 意図1つぶんの変更を記録する
+    Record {
+        /// 変えたファイル
+        path: String,
+        /// 変えた項目（JSON Pointer）
+        pointers: Vec<String>,
+        /// 意図
+        intent: String,
+        /// 目的の参照
+        purpose: String,
+        /// 書いた者の種類
+        writer: String,
+        /// 置き換える意図の id
+        replaces: Option<String>,
+        /// 記録の id（無ければ作るときに決める）
+        id: Option<String>,
+        /// 手元のセッション（tool:id）
+        session: Option<String>,
+    },
+    /// 人が意図を判定する
+    Judge {
+        /// 変更の記録の id
+        change_id: String,
+        /// 結果
+        result: String,
+        /// 意味
+        meaning: String,
+        /// 理由
+        reason: String,
+    },
+    /// 対象の変更の経緯
+    History {
+        /// 対象のファイル
+        path: String,
+    },
     /// 1つの場所の値を返す
     Get {
         /// 置き場所
@@ -40,6 +75,8 @@ pub enum Mechanical {
         path: String,
         /// op の並び
         ops: Value,
+        /// 読んだときの ETag（楽観ロック）
+        if_match: Option<String>,
     },
     /// 検証する
     Validate {
@@ -62,17 +99,28 @@ pub struct Parsed {
 /// # Errors
 /// 知らないコマンド ・ 知らない旗 ・ 足りない値のとき（使い方の誤り）
 pub fn parse(args: &[String]) -> Result<Parsed, String> {
-    let (name, rest) = args
-        .split_first()
-        .ok_or("コマンドが無い（create ・ get ・ patch ・ validate）")?;
+    let (name, rest) = args.split_first().ok_or(
+        "コマンドが無い（create ・ get ・ patch ・ validate ・ record ・ judge ・ history）",
+    )?;
     let (path, flags) = rest
         .split_first()
         .ok_or_else(|| format!("{name} の対象が無い"))?;
     let allowed: &[&str] = match name.as_str() {
         "create" => &["--owner", "--kind", "--value", "--schema", "--id"],
         "get" => &["--pointer"],
-        "patch" => &["--patch"],
+        "patch" => &["--patch", "--if-match"],
         "validate" => &[],
+        "record" => &[
+            "--pointer",
+            "--intent",
+            "--purpose",
+            "--writer",
+            "--replaces",
+            "--id",
+            "--session",
+        ],
+        "judge" => &["--result", "--meaning", "--reason"],
+        "history" => &[],
         _ => return Err(format!("知らないコマンド「{name}」")),
     };
     let mut json = false;
@@ -88,6 +136,13 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
             return Err(format!("{name} は旗「{flag}」を受け取らない"));
         }
     }
+    let all = |key: &str| -> Vec<String> {
+        values
+            .iter()
+            .filter(|(k, _)| *k == key)
+            .map(|(_, v)| v.clone())
+            .collect()
+    };
     let take = |key: &str| {
         values
             .iter()
@@ -126,8 +181,29 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
         "patch" => {
             let ops = serde_json::from_str(&need("--patch")?)
                 .map_err(|e| format!("--patch が JSON でない：{e}"))?;
-            Mechanical::Patch { path, ops }
+            Mechanical::Patch {
+                path,
+                ops,
+                if_match: take("--if-match"),
+            }
         }
+        "record" => Mechanical::Record {
+            path,
+            pointers: all("--pointer"),
+            intent: need("--intent")?,
+            purpose: need("--purpose")?,
+            writer: take("--writer").unwrap_or_else(|| "ai-agent".to_string()),
+            replaces: take("--replaces"),
+            id: take("--id"),
+            session: take("--session"),
+        },
+        "judge" => Mechanical::Judge {
+            change_id: path,
+            result: need("--result")?,
+            meaning: need("--meaning")?,
+            reason: need("--reason")?,
+        },
+        "history" => Mechanical::History { path },
         _ => Mechanical::Validate { path },
     };
     Ok(Parsed { command, json })

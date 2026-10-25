@@ -59,8 +59,7 @@ impl Instance {
     pub fn patched(&self, ops: &Value) -> Result<Instance, Refusal> {
         for (n, op) in ops.as_array().into_iter().flatten().enumerate() {
             let path = op.get("path").and_then(Value::as_str).unwrap_or_default();
-            let kind = op.get("op").and_then(Value::as_str).unwrap_or_default();
-            if kind != "test" && (path == "/kind" || path == "/id") {
+            if path == "/kind" || path == "/id" {
                 return Err(Refusal::new(
                     &format!("/{n}"),
                     "kind と id は変えない（不要になったら superseded にして作り直す）",

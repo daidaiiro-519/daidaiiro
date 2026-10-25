@@ -1,0 +1,339 @@
+{
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:judgment:v1",
+  "title": "判定の記録",
+  "description": "対象 × rule ごとに1件の判定の記録。セッション ID は持たない。状態は保存せず、判定した値といまの値を比べて導く。",
+  "x-instance-path": ".semantic-agent-schema/judgments/{key}.json",
+  "x-instance-label": "判定 {key}",
+  "type": "object",
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "key",
+    "target",
+    "rule",
+    "result",
+    "grounds",
+    "judged_by",
+    "judged_values"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:judgment:v1"
+    },
+    "kind": {
+      "const": "judgment",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "判定の記録であること。"
+        },
+        "write": []
+      }
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "readOnly": true,
+      "description": "記録の id",
+      "x-prompt": {
+        "read": {
+          "means": "対象 × rule から基盤が決める名前で、key と同じ値である。"
+        },
+        "write": []
+      }
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._~-]+(/[A-Za-z0-9._~-]+)*$",
+      "readOnly": true,
+      "description": "対象 × rule の識別",
+      "x-prompt": {
+        "read": {
+          "means": "対象と rule から基盤が作る、ファイルの名前にもなる識別である。",
+          "parse": "<対象>/<rule の id> の形。同じ対象 × rule は上書きされ、最後の1件だけが残る。"
+        },
+        "write": []
+      }
+    },
+    "target": {
+      "$ref": "urn:semantic-agent-schema:base:change:v1#/$defs/target",
+      "description": "対象",
+      "x-prompt": {
+        "read": {
+          "means": "判定したインスタンス（id と kind）か、I33 なら変更の記録である。"
+        },
+        "write": []
+      }
+    },
+    "rule": {
+      "type": "string",
+      "pattern": "^urn:semantic-agent-schema:.+#[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "判定した rule",
+      "x-prompt": {
+        "read": {
+          "means": "判定した決まりで、スキーマの URN と rule の id である。"
+        },
+        "write": []
+      }
+    },
+    "result": {
+      "enum": [
+        "verified",
+        "violated",
+        "unverified",
+        "unsupported",
+        "error"
+      ],
+      "description": "結果",
+      "x-prompt": {
+        "read": {
+          "means": "5つの値のどれか1つである。",
+          "shown": "状態の導出と、変更を見せるときの例外に出る。"
+        },
+        "write": []
+      }
+    },
+    "grounds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "$ref": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "description": "判定の理由",
+      "x-prompt": {
+        "read": {
+          "means": "結果の理由を、読んだ値の場所と1文で並べたものである。"
+        },
+        "write": [
+          {
+            "id": "grounds-in-reads",
+            "rule": "理由の場所は、判定した値で読んだ場所のどれかである。",
+            "why": "読んでいない値を理由にした答えは unverified にする（I14）。",
+            "test": "at が judged_values.reads の at にあるかを見る。",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "meaning": {
+      "type": "object",
+      "required": [
+        "whole",
+        "per_target"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "whole": {
+          "type": "string",
+          "minLength": 1
+        },
+        "per_target": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "target",
+              "text",
+              "at"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "target": {
+                "$ref": "urn:semantic-agent-schema:base:change:v1#/$defs/target"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "at": {
+                "type": "array",
+                "items": {
+                  "$ref": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "意味（I33）",
+      "x-prompt": {
+        "read": {
+          "means": "意図全体の意味の1文と、対象ごとの意味の1文である。",
+          "when": "I33 の判定の記録だけが持つ。変更を見せるとき、意図の下に出る。"
+        },
+        "write": []
+      }
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "問い",
+      "x-prompt": {
+        "read": {
+          "means": "何が分かれば決められるかの1文である。",
+          "when": "結果が unverified のときに書く。"
+        },
+        "write": []
+      }
+    },
+    "judged_by": {
+      "enum": [
+        "machine",
+        "tool",
+        "ai",
+        "human"
+      ],
+      "description": "判定した者",
+      "x-prompt": {
+        "read": {
+          "means": "機械 ・ 外のツール ・ AI ・ 人のどれかである。"
+        },
+        "write": []
+      }
+    },
+    "judged_values": {
+      "type": "object",
+      "required": [
+        "reads"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "at",
+              "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "at": {
+                "$ref": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer"
+              },
+              "value": true
+            }
+          }
+        },
+        "before": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "at",
+              "value"
+            ],
+            "properties": {
+              "at": {
+                "$ref": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1#/$defs/json-pointer"
+              },
+              "value": true
+            }
+          }
+        },
+        "prompts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "handoff": {
+          "type": "string"
+        },
+        "delegate": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "tool_version": {
+          "type": "string"
+        }
+      },
+      "description": "判定した値",
+      "x-prompt": {
+        "read": {
+          "means": "判定したときに読んだ値と渡したもの（読んだ欄の値 ・ I33 の前の値 ・ 読んだ x-prompt の文 ・ 渡した引き継ぎ ・ 任せる先とモデル）である。",
+          "parse": "いまの値と JSON Schema の等しさで比べ、違えばこの判定は効かない（I16）。"
+        },
+        "write": []
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "judged_by": {
+            "const": "ai"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "judged_values": {
+            "required": [
+              "delegate",
+              "model",
+              "prompts"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "const": "unverified"
+          },
+          "judged_by": {
+            "const": "ai"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "question"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "rule": {
+            "pattern": "#intent-matches-change$"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "meaning"
+        ],
+        "properties": {
+          "judged_values": {
+            "required": [
+              "before"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

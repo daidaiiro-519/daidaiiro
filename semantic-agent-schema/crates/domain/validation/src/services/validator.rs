@@ -257,6 +257,7 @@ pub fn validate_instance(
     shipped: &[AbstractSchema],
     glossaries: &[Glossary],
     path: Option<&str>,
+    approved: &[String],
 ) -> Vec<Finding> {
     let more: Vec<(String, Value)> =
         std::iter::once((concrete.id().to_string(), concrete.document().clone()))
@@ -380,15 +381,40 @@ pub fn validate_instance(
             "参照先のインスタンスを id で引く仕組み（ステップ6 の search）がまだ無い",
         ),
         ("x-derived-from", "x-derived-from", "導出値の評価がまだ無い"),
-        (
-            "x-decided-by",
-            "human-entry-only",
-            "変更の記録と人の判定（ステップ3a）がまだ無いので判定できない",
-        ),
     ] {
         if concrete.uses(keyword) {
             out.push(Finding::by_machine(rule, "", Verdict::Unsupported, why));
         }
+    }
+    // human-entry-only：人が決める項目（x-decided-by）が初めの値（default）から変わっていれば、人の承認（judge）が要る
+    for (name, f) in concrete
+        .document()
+        .get("properties")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+    {
+        if f.get("x-decided-by").and_then(Value::as_str) != Some("human") {
+            continue;
+        }
+        let at = format!("/{name}");
+        let (verdict, by, why) = match document.get(name.as_str()) {
+            None => (Verdict::Verified, By::Machine, "まだ書かれていない"),
+            Some(v) if f.get("default") == Some(v) => {
+                (Verdict::Verified, By::Machine, "初めの値（default）のまま")
+            }
+            Some(_) if approved.contains(&at) => (
+                Verdict::Verified,
+                By::Human,
+                "この項目を変えた変更の記録を、人が承認した",
+            ),
+            Some(_) => (
+                Verdict::Unverified,
+                By::Human,
+                "人が決める項目が初めの値から変わっている。人の承認（judge）を待つ",
+            ),
+        };
+        out.push(Finding::new("human-entry-only", &at, verdict, why, by));
     }
     sorted(out)
 }
@@ -654,6 +680,7 @@ mod tests {
             &AbstractSchema::shipped().unwrap(),
             &[],
             path,
+            &[],
         )
     }
 
@@ -722,7 +749,49 @@ mod tests {
             &AbstractSchema::shipped().unwrap(),
             &[],
             None,
+            &[],
         ));
         assert!(f.iter().any(|x| x.reason().contains("docs")));
+    }
+
+    fn decided() -> semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema {
+        let mut doc = record().document().clone();
+        doc["properties"]["status"] = field(
+            json!({"enum": ["proposed", "accepted"], "default": "proposed", "x-decided-by": "human"}),
+        );
+        semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema::from_document(doc).unwrap()
+    }
+
+    fn decided_results(status: &str, approved: &[String]) -> Vec<&'static str> {
+        let all = super::validate_instance(
+            &inst(json!({"why": "理由", "status": status})),
+            &decided(),
+            &AbstractSchema::shipped().unwrap(),
+            &[],
+            None,
+            approved,
+        );
+        verdict_of(&all, "human-entry-only")
+    }
+
+    /// traces: U16:事後
+    #[test]
+    fn human_field_at_default_is_verified() {
+        assert_eq!(decided_results("proposed", &[]), vec!["verified"]);
+    }
+
+    /// traces: U16:事後
+    #[test]
+    fn human_field_changed_without_approval_waits_for_a_human() {
+        assert_eq!(decided_results("accepted", &[]), vec!["unverified"]);
+    }
+
+    /// traces: U16:事後
+    #[test]
+    fn human_field_changed_with_approval_is_verified() {
+        assert_eq!(
+            decided_results("accepted", &["/status".to_string()]),
+            vec!["verified"]
+        );
     }
 }

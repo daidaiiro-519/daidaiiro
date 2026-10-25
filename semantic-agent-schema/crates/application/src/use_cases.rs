@@ -16,6 +16,18 @@ use semantic_agent_schema_change::values::instance_state::InstanceState;
 use semantic_agent_schema_change::values::verdict::{Finding, Verdict};
 use serde_json::{Value, json};
 
+/// 使う場面が読み書きに使うポートの組（起動時の結合 compose が作って渡す）
+pub struct Ports<'a> {
+    /// 契約（Concrete ・ glossary）
+    pub contracts: &'a dyn crate::ports::contracts::Contracts,
+    /// インスタンス
+    pub instances: &'a dyn crate::ports::instances::Instances,
+    /// 変更の記録（手元の DB）
+    pub records: &'a dyn crate::ports::change_records::ChangeRecords,
+    /// 判定の記録
+    pub judgments: &'a dyn crate::ports::judgments::Judgments,
+}
+
 /// 結果の1行：どこで ・ 何が（refused か検証の5つの値）・ 根拠 ・ 判定した者
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line {

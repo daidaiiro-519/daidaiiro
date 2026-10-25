@@ -1,12 +1,12 @@
 //! validate（検査②。依頼の一覧を返し、答えをまとめる）
 
-use crate::ports::contracts::Contracts;
-use crate::ports::instances::Instances;
-use crate::use_cases::Outcome;
+use crate::use_cases::{Outcome, Ports};
 use semantic_agent_schema_change::values::verdict::{Finding, Verdict};
 use semantic_agent_schema_declaration::aggregates::abstract_schema::AbstractSchema;
 use semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema;
 use semantic_agent_schema_declaration::aggregates::glossary::Glossary;
+use semantic_agent_schema_declaration::values::etag::ETag;
+use semantic_agent_schema_declaration::values::target::Target;
 use semantic_agent_schema_instance::aggregates::instance::Instance;
 use semantic_agent_schema_resolver::services::resolver::resolve_abstract;
 use semantic_agent_schema_validation::services::validator::{
@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 /// 宣言を申告した Abstract に照らした検証結果。$schema を引けなければ Err（断りの理由）。
 /// 欄が指す glossary を読めなかったときは、その欄の error の検証結果にする
 pub(crate) fn findings_of(
-    contracts: &dyn Contracts,
+    ports: &Ports<'_>,
     document: &Value,
     path: Option<&str>,
 ) -> Result<Vec<Finding>, String> {
@@ -28,7 +28,7 @@ pub(crate) fn findings_of(
     let mut known: Vec<String> = Vec::new();
     if let Ok(concrete) = ConcreteSchema::from_document(document.clone()) {
         for (_, to) in concrete.relationship_targets() {
-            if matches!(contracts.find(&to), Ok(Some(_))) {
+            if matches!(ports.contracts.find(&to), Ok(Some(_))) {
                 known.push(to);
             }
         }
@@ -36,7 +36,8 @@ pub(crate) fn findings_of(
             if glossaries.iter().any(|g| g.id() == term.glossary()) {
                 continue;
             }
-            match contracts
+            match ports
+                .contracts
                 .find(&term.glossary().to_string())
                 .and_then(|found| found.map(Glossary::from_document).transpose())
             {
@@ -73,14 +74,12 @@ pub(crate) fn is_declaration(document: &Value) -> bool {
 }
 
 /// インスタンスが従う Concrete を引く。引けなければ None（不変条件 I8：インスタンスは下書きとして返る）
-fn concrete_of(
-    contracts: &dyn Contracts,
-    document: &Value,
-) -> Result<Option<ConcreteSchema>, String> {
+fn concrete_of(ports: &Ports<'_>, document: &Value) -> Result<Option<ConcreteSchema>, String> {
     let Some(schema) = document.get("$schema").and_then(Value::as_str) else {
         return Ok(None);
     };
-    contracts
+    ports
+        .contracts
         .find(schema)?
         .map(ConcreteSchema::from_document)
         .transpose()
@@ -88,11 +87,11 @@ fn concrete_of(
 
 /// インスタンスを従う Concrete に照らした検証結果
 fn instance_findings(
-    contracts: &dyn Contracts,
+    ports: &Ports<'_>,
     document: &Value,
     path: Option<&str>,
 ) -> Result<Vec<Finding>, String> {
-    let Some(concrete) = concrete_of(contracts, document)? else {
+    let Some(concrete) = concrete_of(ports, document)? else {
         return Ok(vec![Finding::by_machine(
             "concrete-resolves",
             "/$schema",
@@ -105,39 +104,67 @@ fn instance_findings(
         if glossaries.iter().any(|g| g.id() == term.glossary()) {
             continue;
         }
-        if let Some(found) = contracts.find(&term.glossary().to_string())? {
+        if let Some(found) = ports.contracts.find(&term.glossary().to_string())? {
             glossaries.push(Glossary::from_document(found)?);
         }
     }
+    let approved = approved_fields(ports, path, document)?;
     Ok(validate_instance(
         document,
         &concrete,
         &AbstractSchema::shipped()?,
         &glossaries,
         path,
+        &approved,
     ))
+}
+
+/// その対象の項目のうち、変えた変更の記録を人が承認したもの（JSON Pointer）
+fn approved_fields(
+    ports: &Ports<'_>,
+    path: Option<&str>,
+    document: &Value,
+) -> Result<Vec<String>, String> {
+    let target = Target::of_document(path.unwrap_or_default(), Some(document));
+    let mut out = Vec::new();
+    for record in ports.records.touching(&target)? {
+        if ports
+            .judgments
+            .intent_of(record.id())?
+            .is_some_and(|j| j.approved_by_human())
+        {
+            out.extend(
+                record
+                    .items()
+                    .iter()
+                    .filter(|i| i.target() == &target)
+                    .filter_map(|i| i.field().map(str::to_string)),
+            );
+        }
+    }
+    Ok(out)
 }
 
 /// 宣言かインスタンスかを見て、照らした検証結果を返す
 pub(crate) fn results_of(
-    contracts: &dyn Contracts,
+    ports: &Ports<'_>,
     document: &Value,
     path: Option<&str>,
 ) -> Result<Vec<Finding>, String> {
     if is_declaration(document) {
-        findings_of(contracts, document, path)
+        findings_of(ports, document, path)
     } else {
-        instance_findings(contracts, document, path)
+        instance_findings(ports, document, path)
     }
 }
 
 /// まだ書いていない項目を案内つきで返す。Concrete は Abstract の本体の根、インスタンスは従う Concrete の根の欄
-pub(crate) fn guidance(contracts: &dyn Contracts, document: &Value) -> Vec<Value> {
+pub(crate) fn guidance(ports: &Ports<'_>, document: &Value) -> Vec<Value> {
     if is_declaration(document) {
         return unfilled(document);
     }
     match (
-        concrete_of(contracts, document),
+        concrete_of(ports, document),
         Instance::from_document(document.clone()),
     ) {
         (Ok(Some(c)), Ok(i)) => i.unfilled(c.document()),
@@ -159,23 +186,23 @@ pub(crate) fn unfilled(document: &Value) -> Vec<Value> {
 /// 書き込む前に、適用した後の姿を検証して書く。この書き込みが新しく持ち込んだ機械の violated があれば書かずに返す
 /// （断るのは止めることではなく、書き手が findings を見て直し、出し直すため）。前からある violated と、AI ・ 人の rule は書き込みを止めない
 pub(crate) fn write_checked(
-    contracts: &dyn Contracts,
+    ports: &Ports<'_>,
     path: &str,
     before: Option<&Value>,
     next: &Value,
     data: Value,
     write: &dyn Fn(&Value) -> Result<(), String>,
 ) -> Outcome {
-    let after = match results_of(contracts, next, Some(path)) {
+    let after = match results_of(ports, next, Some(path)) {
         Ok(f) => f,
         Err(e) => return Outcome::refused("/$schema", &e),
     };
     let earlier = before
-        .and_then(|b| results_of(contracts, b, Some(path)).ok())
+        .and_then(|b| results_of(ports, b, Some(path)).ok())
         .unwrap_or_default();
     let new = introduced(&earlier, &after);
     let mut data = data;
-    data["unfilled"] = json!(guidance(contracts, next));
+    data["unfilled"] = json!(guidance(ports, next));
     if !new.is_empty() {
         data["saved"] = json!(false);
         let mut refused = Outcome::validated(&after, data);
@@ -186,17 +213,18 @@ pub(crate) fn write_checked(
         return Outcome::refused("", &e);
     }
     data["saved"] = json!(true);
+    data["etag"] = json!(ETag::of(next).as_str());
     Outcome::validated(&after, data)
 }
 
 /// Concrete かインスタンスを検証する
-pub fn validate(contracts: &dyn Contracts, instances: &dyn Instances, path: &str) -> Outcome {
-    let document = match instances.read(path) {
+pub fn validate(ports: &Ports<'_>, path: &str) -> Outcome {
+    let document = match ports.instances.read(path) {
         Ok(Some(d)) => d,
         Ok(None) => return Outcome::refused("", &format!("{path} が無い")),
         Err(e) => return Outcome::refused("", &e),
     };
-    match results_of(contracts, &document, Some(path)) {
+    match results_of(ports, &document, Some(path)) {
         Ok(findings) => Outcome::validated(&findings, json!({"path": path})),
         Err(e) => Outcome::refused("/$schema", &e),
     }
