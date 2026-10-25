@@ -8,6 +8,8 @@ metadata:
 
 # 共通の「はじめに」の現在地
 
+音声・動画の更新コミット：4844a88a（main、ACDR0206）。
+
 最新：利用者の動画制作依頼を受け、正本の全10枚から音声と字幕付き動画を更新。AWS_PROFILE=dev、Polly Takumi/neural、既存aiworkshop辞書を使用。動画は1358.869秒（約22分39秒）、1280×816、字幕253cue。各枚の画像照合と全編デコード、ブラウザー再生が通過。出力はmaterial-1/out/videos/01-lead.mp4、同.vtt、out/audio/01-lead.mp3。再生は <http://127.0.0.1:8772/materials.html?mode=video#lead>。URLに内容ハッシュを付けて旧版キャッシュと区別。検証はworkspace/video-release-20261025/。ACDR0206に生成設定と案内の差分を保存。
 
 正式反映のコミット：5508d113（main、ACDR0205）。
