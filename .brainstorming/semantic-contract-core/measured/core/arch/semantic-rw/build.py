@@ -36,7 +36,7 @@ exs = ''.join([
 body = f'''<main>
 <h1>Semantic Read と Semantic Write</h1>
 <p class="meta">利用者「Semantic Read と Semantic Write というのはx-promptを読み、aiが読み書きを人間の都度の指示がなくてもループ的にできるようにしたものだと思ってください」「x-prompt自体への更新や削除、新規作成にも使用できるなどが必要です。そのときはJsonPatchなども使用できると思います」を、ddd-advisor（arch/reviews/ddd-semantic-rw.html）と、結論を渡さない反証役に通し、前提に照らして1つにした。例の名前は架空。入出力の形は protocol（Q4、待ち）が決まるまで案</p>
-<p class="ans">Semantic Read は欄の x-prompt と値と検証の結果を返し、Semantic Write は JSON Patch を適用して検証の結果と「止めてよいか」を返す。繰り返すのは AI で、基盤は1回ずつ答える。x-prompt 自体の編集も、Concrete への Semantic Write で行う</p>
+<p class="ans">Concrete のスキーマが、インスタンスの各欄の読み方と書き方（x-prompt）を決めている。AI はその指示に目的と意図を加えてインスタンスを書き、中身は目的ごとに変わる。それでも、指示から外れていないかは基盤が決定論的に返すので、抽象のレベルでは外れない。Semantic Read はその指示と値を返し、Semantic Write は JSON Patch を適用して結果と「止めてよいか」を返す</p>
 {fig}
 <h2>1　送る JSON と返る JSON</h2>
 {exs}
