@@ -8,6 +8,8 @@ metadata:
 
 # オリエンテーションの現在地
 
+作業記録：ec12a63c（main）。構成案は未承認。
+
 利用者が完成した共通の「はじめに」と同じ進め方で見直すことを依頼。企画書は次の工程。共通方針revisionは2026-10-25-13。
 
 作業先はdocs/workshops/ai-workshop/review/proposal-orientation-20261024/orientation-20261025/。現行の全14枚を新たに描画し、Lunaと助言担当が確認。story-plan.mdと.jsonの構成案を利用者へ提示した。図と原稿は未修正、正本と音声動画は変更していない。
