@@ -62,7 +62,7 @@
 |---|---|---|
 | ライブラリの crate で `unwrap` ・ `expect` ・ `panic!` を使わない。失敗は `Result` で返す | panic すると CLI が値（JSON の結果と終了コード）を返さずに落ち、呼ぶ側の AI と CI が理由を受け取れない | `[workspace.lints.clippy]` の `unwrap_used` ・ `expect_used` ・ `panic` を deny。試験のコードは根の `clippy.toml` の `allow-unwrap-in-tests` ・ `allow-expect-in-tests` ・ `allow-panic-in-tests` で許す |
 | `Result` を返す公開関数は、doc コメントに `# Errors` の節を書く | 原典：「Error conditions should be documented in an "Errors" section」（C-FAILURE） | clippy の `missing_errors_doc` を deny |
-| 外から受け取る値の検査①（入力が入力のスキーマに合うか）で外れたら断り、状態に触れない。検査②（出力が形と rule に合うか）で外れても保存し、violated で返す | ACDR 0201 と Q8（保存は断らない） | システムテスト（①は `unchanged`、②は violated を期待する場面） |
+| 外から受け取る値の検査①（入力が入力のスキーマに合うか）で外れたら断り、状態に触れない。検査②（適用した後の姿が形と rule に合うか）で、その書き込みが新しく持ち込んだ機械の violated があれば書かずに findings を返す。前からある violated ・ 書き込みの外で起きた violated ・ AI と人の rule は書き込みを止めない | ボードの Q4 と Q8（断るのは止めることではなく、書き手が findings を見て直し、出し直すループの1回） | システムテスト（①も②の断りも `unchanged` を期待する場面） ・ 使う場面の結合テスト（前からある violated を残す書き込みが通る） |
 
 ## 7. テスト
 

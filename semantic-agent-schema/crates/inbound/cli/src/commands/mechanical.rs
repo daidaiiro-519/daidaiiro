@@ -13,6 +13,8 @@ pub enum Mechanical {
         owner: String,
         /// 種類
         kind: String,
+        /// 作る値（create-request。--value の JSON。無ければ {}）
+        value: Value,
     },
     /// 1つの場所の値を返す
     Get {
@@ -56,7 +58,7 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
         .split_first()
         .ok_or_else(|| format!("{name} の対象が無い"))?;
     let allowed: &[&str] = match name.as_str() {
-        "create" => &["--owner", "--kind"],
+        "create" => &["--owner", "--kind", "--value"],
         "get" => &["--pointer"],
         "patch" => &["--patch"],
         "validate" => &[],
@@ -88,6 +90,12 @@ pub fn parse(args: &[String]) -> Result<Parsed, String> {
             path,
             owner: need("--owner")?,
             kind: need("--kind")?,
+            value: match take("--value") {
+                Some(v) => {
+                    serde_json::from_str(&v).map_err(|e| format!("--value が JSON でない：{e}"))?
+                }
+                None => Value::Object(serde_json::Map::new()),
+            },
         },
         "get" => Mechanical::Get {
             path,
@@ -123,7 +131,8 @@ mod tests {
             Mechanical::Create {
                 path: "a.json".into(),
                 owner: "o".into(),
-                kind: "k".into()
+                kind: "k".into(),
+                value: serde_json::json!({})
             }
         );
     }

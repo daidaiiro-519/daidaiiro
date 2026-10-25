@@ -14,22 +14,26 @@ pub struct Glossary {
 pub const GLOSSARY_SCHEMA: &str = "urn:semantic-agent-schema:base:glossary:v1";
 
 impl Glossary {
-    /// term の無い glossary を作る
+    /// glossary の雛形：glossary の Abstract のファイルの版と名前を入れ、作る人が渡した値（term の並び）を重ねる
     ///
     /// # Errors
-    /// 名前の種類が glossary でないとき
-    pub fn empty(id: &Urn) -> Result<Self, String> {
+    /// 名前の種類が glossary でないか、渡した値が object でないか、$schema ・ $id を含むとき
+    pub fn template(id: &Urn, value: &Value) -> Result<Value, String> {
         if id.kind() != "glossary" {
             return Err(format!(
                 "glossary の種類は glossary（{} ではない）",
                 id.kind()
             ));
         }
-        let document = json!({"$schema": GLOSSARY_SCHEMA, "$id": id.to_string(), "title": id.kind(), "$defs": {}});
-        Ok(Glossary {
-            id: id.clone(),
-            document,
-        })
+        let given = value.as_object().ok_or("作る値は object で渡す")?;
+        if given.contains_key("$schema") || given.contains_key("$id") {
+            return Err("$schema と $id は渡さない（--owner と --kind で決まる）".to_string());
+        }
+        let mut document = json!({"$schema": GLOSSARY_SCHEMA, "$id": id.to_string(), "kind": "glossary", "id": "glossary"});
+        if let Some(d) = document.as_object_mut() {
+            d.extend(given.clone());
+        }
+        Ok(document)
     }
 
     /// 文書から読む
@@ -86,6 +90,6 @@ mod tests {
     /// traces: I4
     #[test]
     fn glossary_must_be_of_kind_glossary() {
-        assert!(Glossary::empty(&Urn::new("a", "record", 1).unwrap()).is_err());
+        assert!(Glossary::template(&Urn::new("a", "record", 1).unwrap(), &json!({})).is_err());
     }
 }

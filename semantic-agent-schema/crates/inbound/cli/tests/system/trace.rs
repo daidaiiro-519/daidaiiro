@@ -1,4 +1,4 @@
-//! 追跡の検査：test-suite/trace.json と untested.json と、コードと場面に書いた traces を突き合わせ、
+//! 追跡の検査：test-suite/trace.json と untested.json と、コードとシナリオに書いた traces を突き合わせ、
 //! CODING.md の grep で見る規則と、syn で見る欄の見せ方の規則を確かめる。
 
 use serde_json::Value;

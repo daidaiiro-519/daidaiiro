@@ -1,6 +1,6 @@
-//! システムテスト：追跡の検査を通したあと、test-suite/scenarios/ の場面を1件ずつ、
+//! システムテスト：追跡の検査を通したあと、test-suite/scenarios/ のシナリオを1件ずつ、
 //! 一時ディレクトリで実行ファイル semantic-agent-schema を動かして確かめる。
-//! 場面の形は test-suite/scenario.schema.json。
+//! シナリオの形は test-suite/scenario.schema.json。
 
 mod trace;
 
@@ -39,7 +39,7 @@ fn main() -> ExitCode {
     let scenarios = match list_scenarios(&root) {
         Ok(s) => s,
         Err(e) => {
-            println!("NG   場面を読めない：{e}");
+            println!("NG   シナリオを読めない：{e}");
             return ExitCode::FAILURE;
         }
     };
@@ -56,7 +56,7 @@ fn main() -> ExitCode {
             }
         }
     }
-    println!("場面 {} 件 ・ 不合格 {} 件", scenarios.len(), failed);
+    println!("シナリオ {} 件 ・ 不合格 {} 件", scenarios.len(), failed);
     if failed == 0 {
         ExitCode::SUCCESS
     } else {
@@ -77,10 +77,10 @@ fn list_scenarios(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(out)
 }
 
-/// 場面の形を確かめる（scenario.schema.json の必須の欄と、知らない欄）
+/// シナリオの形を確かめる（scenario.schema.json の必須の欄と、知らない欄）
 fn check_shape(s: &Value) -> Result<(), String> {
-    let obj = s.as_object().ok_or("場面がオブジェクトでない")?;
-    for k in ["id", "title", "traces", "when", "then"] {
+    let obj = s.as_object().ok_or("シナリオがオブジェクトでない")?;
+    for k in ["id", "name", "title", "traces", "when", "then"] {
         if !obj.contains_key(k) {
             return Err(format!("必須の欄 {k} が無い"));
         }
@@ -88,6 +88,7 @@ fn check_shape(s: &Value) -> Result<(), String> {
     let known = [
         "$schema",
         "id",
+        "name",
         "title",
         "traces",
         "given",

@@ -1,25 +1,102 @@
 {
- "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "urn:semantic-agent-schema:base:glossary:v1",
- "title": "glossary",
- "description": "文脈の言葉（term）の用語集の形。glossary は JSON Schema の文書で、term を $defs に置き、$anchor で名前を付ける。名詞の定義だけを持ち、振る舞いは x-prompt の rule が持つ",
- "type": "object",
- "required": ["$schema", "$id", "title", "$defs"],
- "properties": {
-  "$schema": {"const": "urn:semantic-agent-schema:base:glossary:v1"},
-  "$id": {"type": "string", "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:glossary:v[1-9][0-9]*$"},
-  "title": {"type": "string"},
-  "$defs": {
-   "type": "object",
-   "additionalProperties": {
-    "type": "object",
-    "required": ["$anchor", "title", "description"],
-    "properties": {
-     "$anchor": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
-     "title": {"type": "string", "minLength": 1, "description": "term の名前"},
-     "description": {"type": "string", "minLength": 1, "description": "term の意味"}
+  "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+  "$id": "urn:semantic-agent-schema:base:glossary:v1",
+  "title": "glossary",
+  "description": "文脈の term の辞書。$defs の各 term が $anchor を持ち、Concrete の欄は urn:…:glossary:v<版>#<名前> で指す。出した版の term は変えない。",
+  "x-instance-path": ".semantic-agent-schema/glossary.json",
+  "x-instance-label": "glossary",
+  "type": "object",
+  "required": [
+    "$schema",
+    "$id",
+    "kind",
+    "id",
+    "$defs"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "urn:semantic-agent-schema:base:glossary:v1"
+    },
+    "$id": {
+      "type": "string",
+      "pattern": "^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:glossary:v[0-9]+$",
+      "description": "glossary の名前と版",
+      "x-prompt": {
+        "read": {
+          "means": "Concrete の欄が $ref で指す、この辞書の URN と版である。"
+        },
+        "write": [
+          {
+            "id": "never-change-published",
+            "rule": "出した版の term の中身は、出した時と同じである。",
+            "why": "指している Concrete の意味が黙って変わる（I25）。",
+            "test": "同じ版の term が前と同じかを見る。",
+            "by": "machine"
+          }
+        ]
+      }
+    },
+    "kind": {
+      "const": "glossary",
+      "description": "種類",
+      "x-prompt": {
+        "read": {
+          "means": "glossary であること。"
+        },
+        "write": []
+      }
+    },
+    "id": {
+      "const": "glossary",
+      "description": "id",
+      "x-prompt": {
+        "read": {
+          "means": "文脈に1つの glossary であること。"
+        },
+        "write": []
+      }
+    },
+    "$defs": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "$anchor",
+          "description"
+        ],
+        "properties": {
+          "$anchor": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "x-unit": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "term の並び",
+      "x-prompt": {
+        "read": {
+          "means": "term の名前から、意味（description）・ 値の形（JSON Schema）・ 単位を引く。"
+        },
+        "write": [
+          {
+            "id": "anchor-is-name",
+            "rule": "$anchor は $defs のキーと同じ名前である。",
+            "why": "名前と指し先がずれると、欄が別の term を指す。",
+            "test": "キーと $anchor を比べる。",
+            "by": "machine"
+          }
+        ]
+      }
     }
-   }
   }
- }
 }

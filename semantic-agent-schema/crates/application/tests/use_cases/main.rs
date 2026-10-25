@@ -10,7 +10,13 @@ const PATH: &str = "spec/record.schema.json";
 
 fn created() -> FakeContracts {
     let contracts = FakeContracts::default();
-    create::create(&contracts, PATH, "o", "record");
+    create::create(
+        &contracts,
+        PATH,
+        "o",
+        "record",
+        &json!({"title": "記録", "description": "決定の記録"}),
+    );
     contracts
 }
 
@@ -19,7 +25,13 @@ fn created() -> FakeContracts {
 fn creating_over_an_existing_file_is_refused() {
     let contracts = created();
     let before = contracts.files.borrow().clone();
-    let outcome = create::create(&contracts, PATH, "o", "record");
+    let outcome = create::create(
+        &contracts,
+        PATH,
+        "o",
+        "record",
+        &json!({"title": "記録", "description": "決定の記録"}),
+    );
     assert_eq!(
         (
             outcome.findings[0].result.as_str(),
@@ -50,31 +62,51 @@ fn patch_changing_the_id_is_refused_and_leaves_the_file() {
 
 /// traces: U23:失敗時
 #[test]
-fn patch_breaking_the_abstract_is_saved_and_violated() {
+fn patch_introducing_a_violation_is_returned_and_leaves_the_file() {
     let contracts = created();
+    let before = contracts.files.borrow().clone();
     let outcome = patch::patch(
         &contracts,
         PATH,
-        &json!([{"op": "add", "path": "/x-extensions", "value": {"x-prompt": {"schema": true, "description": "d"}}}]),
+        &json!([{"op": "add", "path": "/x-extensions", "value": {"x-prompt": {"schema": true, "description": "d", "prompt": {"read": {"means": "m"}}}}}]),
     );
     assert_eq!(
         (
             outcome.findings[0].result.as_str(),
-            contracts.files.borrow()[PATH].get("x-extensions").is_some()
+            contracts.files.borrow().clone()
         ),
-        ("violated", true)
+        ("violated", before)
+    );
+}
+
+/// traces: U1:事後
+#[test]
+fn patch_keeping_an_earlier_violation_is_written() {
+    let contracts = created();
+    contracts.files.borrow_mut().get_mut(PATH).unwrap()["x-color"] = json!("red");
+    let outcome = patch::patch(
+        &contracts,
+        PATH,
+        &json!([{"op": "replace", "path": "/title", "value": "記録"}]),
+    );
+    assert_eq!(
+        (
+            outcome.data["saved"].clone(),
+            contracts.files.borrow()[PATH]["title"].clone()
+        ),
+        (json!(true), json!("記録"))
     );
 }
 
 /// traces: U1:失敗時
 #[test]
-fn unreadable_glossary_after_saving_is_an_error_not_a_refusal() {
+fn unreadable_glossary_is_an_error_not_a_refusal() {
     let mut contracts = created();
     contracts.find_error = Some("読めない".to_string());
     let outcome = patch::patch(
         &contracts,
         PATH,
-        &json!([{"op": "add", "path": "/properties/p", "value": {"$ref": "urn:semantic-agent-schema:o:glossary:v1#Price"}}]),
+        &json!([{"op": "add", "path": "/properties", "value": {"p": {"description": "値段", "x-prompt": {"read": {"means": "値段"}}, "$ref": "urn:semantic-agent-schema:o:glossary:v1#Price"}}}]),
     );
     assert_eq!(
         (

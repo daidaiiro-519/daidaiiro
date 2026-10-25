@@ -18,7 +18,12 @@ pub fn run(args: &[String]) -> ExitCode {
     let root = std::env::current_dir().unwrap_or_default();
     let files = Files::new(root);
     let outcome = match &parsed.command {
-        Mechanical::Create { path, owner, kind } => create::create(&files, path, owner, kind),
+        Mechanical::Create {
+            path,
+            owner,
+            kind,
+            value,
+        } => create::create(&files, path, owner, kind, value),
         Mechanical::Get { path, pointer } => search::get(&files, path, pointer),
         Mechanical::Patch { path, ops } => patch::patch(&files, path, ops),
         Mechanical::Validate { path } => validate::validate(&files, path),

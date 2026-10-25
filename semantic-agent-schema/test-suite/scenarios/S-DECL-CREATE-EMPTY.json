@@ -1,0 +1,8 @@
+{"$schema":"../scenario.schema.json",
+ "id":"S-DECL-CREATE-EMPTY",
+ "name":"必須項目の無い作成は拒否",
+ "title":"title と description を渡さない create は拒否され、ファイルは作成されない",
+ "traces":["U1:失敗時"],
+ "when":{"args":["create","acdr/decision-record.schema.json","--owner","acdr","--kind","decision-record","--json"]},
+ "after":[{"args":["get","acdr/decision-record.schema.json","--json"]}],
+ "then":[{"of":"when","exit":1,"pointer":"/findings/0/result","equals":"violated"},{"of":"when","pointer":"/data/saved","equals":false},{"of":"after[0]","exit":1,"pointer":"/findings/0/result","equals":"refused"}]}

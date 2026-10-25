@@ -1,5 +1,10 @@
-{"$schema":"../scenario.schema.json","id":"S-DECL-TERM-MISSING","title":"欄が定義の無い term を指すと、保存はされるが violated で、場所がその $ref を指す","traces":["U1:失敗時"],
- "given":{"files":{"spec/glossary.schema.json":"@fixtures/acdr/glossary.schema.json"},"steps":[{"args":["create","spec/record.schema.json","--owner","acdr","--kind","record"]}]},
- "when":{"args":["patch","spec/record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/properties/why\",\"value\":{\"$ref\":\"urn:semantic-agent-schema:acdr:glossary:v1#Reason\"}}]","--json"]},
- "after":[{"args":["get","spec/record.schema.json","--pointer","/properties/why/$ref","--json"]}],
- "then":[{"of":"when","exit":1,"pointer":"/findings/0/result","equals":"violated"},{"of":"when","pointer":"/findings/0/pointer","equals":"/properties/why/$ref"},{"of":"after[0]","pointer":"/data/value","equals":"urn:semantic-agent-schema:acdr:glossary:v1#Reason"}]}
+{"$schema":"../scenario.schema.json",
+ "id":"S-DECL-TERM-MISSING",
+ "name":"未定義の term は拒否",
+ "title":"未定義の term を参照する patch は拒否され、ファイルは変更されない",
+ "traces":["U1:失敗時"],
+ "given":{"steps":[{"args":["create",".semantic-agent-schema/glossary.json","--owner","acdr","--kind","glossary","--value","{\"$defs\":{\"decision\":{\"$anchor\":\"Decision\",\"description\":\"決めてほしいこと1件。何を採るかだけを書き、手段を書かない\"}}}"]},{"args":["create","acdr/decision-record.schema.json","--owner","acdr","--kind","decision-record","--value","{\"title\":\"意思決定の記録\",\"description\":\"決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない\"}"]}]},
+ "when":{"args":["patch","acdr/decision-record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/properties\",\"value\":{\"why\":{\"description\":\"なぜ\",\"x-prompt\":{\"read\":{\"means\":\"理由\"}},\"$ref\":\"urn:semantic-agent-schema:acdr:glossary:v1#Reason\"}}}]","--json"]},
+ "after":[{"args":["get","acdr/decision-record.schema.json","--pointer","/properties","--json"]}],
+ "then":[{"of":"when","exit":1,"pointer":"/findings/0/result","equals":"violated"},{"of":"when","pointer":"/findings/0/pointer","equals":"/properties/why/$ref"},{"of":"when","pointer":"/data/saved","equals":false},{"of":"after[0]","exit":1,"pointer":"/findings/0/result","equals":"refused"}],
+ "unchanged":["acdr/decision-record.schema.json"]}

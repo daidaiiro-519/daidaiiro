@@ -202,6 +202,14 @@ impl ConcreteSchema {
             .flatten()
             .map(|(k, _)| k.clone())
             .collect();
+        for key in &declared {
+            if X_KEYWORDS.contains(&key.as_str()) {
+                out.push(Breach::new(
+                    &format!("/x-extensions/{}", escape(key)),
+                    format!("{key} は Abstract の x- と同じ名前（Concrete の拡張では定義しない）"),
+                ));
+            }
+        }
         walk_fields(&self.document, "", &mut |at, map| {
             for key in map.keys().filter(|k| k.starts_with("x-")) {
                 if !X_KEYWORDS.contains(&key.as_str()) && !declared.contains(key) {
@@ -225,8 +233,8 @@ mod tests {
         ConcreteSchema::from_document(json!({
             "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
             "$id": "urn:semantic-agent-schema:t:record:v1",
-            "x-delegates": {"judge": {"kind": "judging", "role": "読む"}},
-            "x-extensions": {"x-owner": {"schema": true, "description": "責任者"}},
+            "x-delegates": {"judge": {"role": "読む", "run": {"kind": "judging"}}},
+            "x-extensions": {"x-owner": {"schema": true, "description": "責任者", "prompt": {"read": {"means": "責任者"}}}},
             "properties": properties
         }))
         .unwrap()
@@ -304,6 +312,18 @@ mod tests {
     fn concrete_of_kind_glossary_is_a_breach() {
         let c = ConcreteSchema::from_document(json!({"$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1", "$id": "urn:semantic-agent-schema:t:glossary:v1"})).unwrap();
         assert_eq!(c.breaches()[0].pointer(), "/$id");
+    }
+
+    /// traces: I6
+    #[test]
+    fn extension_named_like_an_abstract_keyword_is_a_breach() {
+        let mut c = concrete(json!({}));
+        c = c.patched(&json!([{"op": "add", "path": "/x-extensions/x-prompt", "value": {"schema": true, "description": "d", "prompt": {"read": {"means": "m"}}}}])).unwrap();
+        assert!(
+            c.breaches()
+                .iter()
+                .any(|b| b.pointer() == "/x-extensions/x-prompt")
+        );
     }
 
     /// traces: I3

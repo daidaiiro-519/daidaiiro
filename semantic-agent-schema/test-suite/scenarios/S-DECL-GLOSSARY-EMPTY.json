@@ -1,0 +1,8 @@
+{"$schema":"../scenario.schema.json",
+ "id":"S-DECL-GLOSSARY-EMPTY",
+ "name":"term の無い glossary は拒否",
+ "title":"term を1つも渡さない glossary の作成は拒否され、ファイルは作成されない",
+ "traces":["U1:失敗時"],
+ "when":{"args":["create",".semantic-agent-schema/glossary.json","--owner","acdr","--kind","glossary","--value","{}","--json"]},
+ "after":[{"args":["get",".semantic-agent-schema/glossary.json","--json"]}],
+ "then":[{"of":"when","exit":1,"pointer":"/findings/0/result","equals":"violated"},{"of":"when","pointer":"/data/saved","equals":false},{"of":"after[0]","exit":1,"pointer":"/findings/0/result","equals":"refused"}]}

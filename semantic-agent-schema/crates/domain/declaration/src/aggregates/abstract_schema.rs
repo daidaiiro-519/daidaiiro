@@ -1,7 +1,7 @@
 //! Semantic Abstract Schema（セマンティックアブストラクトスキーマ）
 
 use crate::values::urn::Urn;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 /// Abstract が根と欄に足す9つの x-
 pub const X_KEYWORDS: [&str; 9] = [
@@ -60,11 +60,70 @@ impl AbstractSchema {
     pub fn document(&self) -> &Value {
         &self.document
     }
+
+    /// Abstract の本体（Concrete が $schema に書くメタスキーマ）か。ほかは Abstract のファイル（glossary など）
+    pub fn is_body(&self) -> bool {
+        self.id.kind() == "semantic-abstract-schema"
+    }
+
+    /// 本体の根に書けるもののうち、文書にまだ無いものを、案内（説明 ・ 読み方 ・ 書くときの rule の id）と一緒に返す。
+    /// x- の案内は本体の x-extensions、ほかは本体の properties が持つ
+    pub fn unfilled(&self, document: &Value) -> Vec<Value> {
+        let extensions = self.document.get("x-extensions");
+        self.document
+            .get("properties")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .filter(|(name, _)| document.get(name.as_str()).is_none())
+            .map(|(name, property)| {
+                // 本体の中の $ref（#/$defs/…）は、指した先の説明と案内を読む
+                let target = property
+                    .get("$ref")
+                    .and_then(Value::as_str)
+                    .and_then(|r| r.strip_prefix('#'))
+                    .and_then(|p| self.document.pointer(p))
+                    .unwrap_or(property);
+                let (description, prompt) = match extensions.and_then(|x| x.get(name.as_str())) {
+                    Some(x) => (x.get("description"), x.get("prompt")),
+                    None => (
+                        property.get("description").or(target.get("description")),
+                        property.get("x-prompt").or(target.get("x-prompt")),
+                    ),
+                };
+                let rules: Vec<Value> = prompt
+                    .and_then(|p| p.get("write"))
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|r| r.get("id").cloned())
+                    .collect();
+                json!({
+                    "name": name,
+                    "description": description.cloned().unwrap_or(Value::Null),
+                    "means": prompt.and_then(|p| p.pointer("/read/means")).cloned().unwrap_or(Value::Null),
+                    "rules": rules
+                })
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::AbstractSchema;
+
+    /// traces: U1:事後
+    #[test]
+    fn unfilled_lists_x_keywords_with_their_guidance() {
+        let body = AbstractSchema::shipped().unwrap().remove(0);
+        let left = body.unfilled(&serde_json::json!({"title": "t"}));
+        let path = left
+            .iter()
+            .find(|u| u["name"] == "x-instance-path")
+            .unwrap();
+        assert!(path["description"].is_string() && left.iter().all(|u| u["name"] != "title"));
+    }
 
     /// traces: I2
     #[test]

@@ -1,4 +1,8 @@
-{"$schema":"../scenario.schema.json","id":"S-DECL-TERM","title":"欄が glossary の term を $ref で指し、term に定義があれば検証が通る","traces":["U1:事後"],
- "given":{"files":{"spec/glossary.schema.json":"@fixtures/acdr/glossary.schema.json"},"steps":[{"args":["create","spec/record.schema.json","--owner","acdr","--kind","record"]}]},
- "when":{"args":["patch","spec/record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/properties/decision\",\"value\":{\"$ref\":\"urn:semantic-agent-schema:acdr:glossary:v1#Decision\"}}]","--json"]},
+{"$schema":"../scenario.schema.json",
+ "id":"S-DECL-TERM",
+ "name":"term の参照",
+ "title":"欄から glossary の term を $ref で参照し、term が定義されていれば検証に成功する",
+ "traces":["U1:事後"],
+ "given":{"steps":[{"args":["create",".semantic-agent-schema/glossary.json","--owner","acdr","--kind","glossary","--value","{\"$defs\":{\"decision\":{\"$anchor\":\"Decision\",\"description\":\"決めてほしいこと1件。何を採るかだけを書き、手段を書かない\"}}}"]},{"args":["create","acdr/decision-record.schema.json","--owner","acdr","--kind","decision-record","--value","{\"title\":\"意思決定の記録\",\"description\":\"決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない\"}"]}]},
+ "when":{"args":["patch","acdr/decision-record.schema.json","--patch","[{\"op\":\"add\",\"path\":\"/properties\",\"value\":{\"decision\":{\"description\":\"決めたこと\",\"x-prompt\":{\"read\":{\"means\":\"決めてほしいこと1件\"}},\"$ref\":\"urn:semantic-agent-schema:acdr:glossary:v1#Decision\"}}}]","--json"]},
  "then":[{"of":"when","exit":0,"pointer":"/ok","equals":true},{"of":"when","pointer":"/findings","count":0}]}

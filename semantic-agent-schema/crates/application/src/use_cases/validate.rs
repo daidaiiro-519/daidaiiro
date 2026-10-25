@@ -7,7 +7,7 @@ use semantic_agent_schema_declaration::aggregates::abstract_schema::AbstractSche
 use semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema;
 use semantic_agent_schema_declaration::aggregates::glossary::Glossary;
 use semantic_agent_schema_resolver::services::resolver::resolve_abstract;
-use semantic_agent_schema_validation::services::validator::validate_declaration;
+use semantic_agent_schema_validation::services::validator::{introduced, validate_declaration};
 use serde_json::{Value, json};
 
 /// 宣言を申告した Abstract に照らした検証結果。$schema を引けなければ Err（断りの理由）。
@@ -38,15 +38,48 @@ pub(crate) fn findings_of(
     if !unreadable.is_empty() {
         return Ok(unreadable);
     }
-    Ok(validate_declaration(document, of, &glossaries))
+    Ok(validate_declaration(document, of, &closed, &glossaries))
 }
 
-/// 保存したあとの検証結果。保存したので断りにはせず、引けなかった理由は error にする
-pub(crate) fn after_saving(contracts: &dyn Contracts, document: &Value, data: Value) -> Outcome {
-    match findings_of(contracts, document) {
-        Ok(findings) => Outcome::checked(&findings, data),
-        Err(e) => Outcome::checked(&[Finding::by_machine("/$schema", Verdict::Error, &e)], data),
+/// Concrete に、Abstract の本体の根に書けるもののうち、まだ書いていないものを案内つきで返す。Concrete でなければ空
+pub(crate) fn unfilled(document: &Value) -> Vec<Value> {
+    let Ok(closed) = AbstractSchema::shipped() else {
+        return Vec::new();
+    };
+    match resolve_abstract(document, &closed) {
+        Ok(of) if of.is_body() => of.unfilled(document),
+        _ => Vec::new(),
     }
+}
+
+/// 書き込む前に、適用した後の姿を検証して書く。この書き込みが新しく持ち込んだ機械の violated があれば書かずに返す
+/// （断るのは止めることではなく、書き手が findings を見て直し、出し直すため）。前からある violated と、AI ・ 人の rule は書き込みを止めない
+pub(crate) fn write_checked(
+    contracts: &dyn Contracts,
+    path: &str,
+    before: Option<&Value>,
+    next: &Value,
+    data: Value,
+) -> Outcome {
+    let after = match findings_of(contracts, next) {
+        Ok(f) => f,
+        Err(e) => return Outcome::refused("/$schema", &e),
+    };
+    let earlier = before
+        .and_then(|b| findings_of(contracts, b).ok())
+        .unwrap_or_default();
+    let new = introduced(&earlier, &after);
+    let mut data = data;
+    data["unfilled"] = json!(unfilled(next));
+    if !new.is_empty() {
+        data["saved"] = json!(false);
+        return Outcome::checked(&new, data);
+    }
+    if let Err(e) = contracts.write(path, next) {
+        return Outcome::refused("", &e);
+    }
+    data["saved"] = json!(true);
+    Outcome::checked(&after, data)
 }
 
 /// Concrete を検証する

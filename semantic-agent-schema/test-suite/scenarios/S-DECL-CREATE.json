@@ -1,4 +1,8 @@
-{"$schema":"../scenario.schema.json","id":"S-DECL-CREATE","title":"Abstract から Concrete の雛形を作り、そのまま Abstract に照らして検証が通る","traces":["U1:事後"],
- "when":{"args":["create","spec/record.schema.json","--owner","acdr","--kind","record","--json"]},
- "after":[{"args":["validate","spec/record.schema.json","--json"]},{"args":["get","spec/record.schema.json","--pointer","/$id","--json"]}],
- "then":[{"of":"when","exit":0,"pointer":"/ok","equals":true},{"of":"after[0]","exit":0,"pointer":"/ok","equals":true},{"of":"after[1]","pointer":"/data/value","equals":"urn:semantic-agent-schema:acdr:record:v1"}]}
+{"$schema":"../scenario.schema.json",
+ "id":"S-DECL-CREATE",
+ "name":"雛形の作成",
+ "title":"Abstract から Concrete を作成すると検証に成功し、まだ書いていない項目が案内つきで返る",
+ "traces":["U1:事後"],
+ "when":{"args":["create","acdr/decision-record.schema.json","--owner","acdr","--kind","decision-record","--value","{\"title\":\"意思決定の記録\",\"description\":\"決定 ・ なぜ ・ どう変わるか ・ 比較した案を1件にまとめた記録。対象の文書の全文は持たない\"}","--json"]},
+ "after":[{"args":["validate","acdr/decision-record.schema.json","--json"]},{"args":["get","acdr/decision-record.schema.json","--pointer","/$id","--json"]}],
+ "then":[{"of":"when","exit":0,"pointer":"/ok","equals":true},{"of":"when","pointer":"/data/unfilled","count":7},{"of":"when","pointer":"/data/unfilled","contains":"x-instance-path"},{"of":"after[0]","exit":0,"pointer":"/findings","count":0},{"of":"after[1]","pointer":"/data/value","equals":"urn:semantic-agent-schema:acdr:decision-record:v1"}]}
