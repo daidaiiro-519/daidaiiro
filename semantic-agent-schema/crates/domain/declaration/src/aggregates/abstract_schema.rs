@@ -131,13 +131,15 @@ impl AbstractSchema {
                     .and_then(|r| r.strip_prefix('#'))
                     .and_then(|p| self.document.pointer(p))
                     .unwrap_or(property);
-                let (description, prompt) = match extensions.and_then(|x| x.get(name.as_str())) {
-                    Some(x) => (x.get("description"), x.get("prompt")),
-                    None => (
-                        property.get("description").or(target.get("description")),
-                        property.get("x-prompt").or(target.get("x-prompt")),
-                    ),
-                };
+                let (title, description, prompt) =
+                    match extensions.and_then(|x| x.get(name.as_str())) {
+                        Some(x) => (x.get("title"), x.get("description"), x.get("prompt")),
+                        None => (
+                            property.get("title").or(target.get("title")),
+                            property.get("description").or(target.get("description")),
+                            property.get("x-prompt").or(target.get("x-prompt")),
+                        ),
+                    };
                 let rules: Vec<Value> = prompt
                     .and_then(|p| p.get("write"))
                     .and_then(Value::as_array)
@@ -148,7 +150,7 @@ impl AbstractSchema {
                 json!({
                     "name": name,
                     "description": description.cloned().unwrap_or(Value::Null),
-                    "means": prompt.and_then(|p| p.pointer("/read/means")).cloned().unwrap_or(Value::Null),
+                    "title": title.cloned().unwrap_or(Value::Null),
                     "rules": rules
                 })
             })

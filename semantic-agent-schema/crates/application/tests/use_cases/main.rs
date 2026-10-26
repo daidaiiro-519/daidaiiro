@@ -96,7 +96,7 @@ fn patch_introducing_a_violation_is_returned_and_leaves_the_file() {
     let outcome = patch::patch(
         &w.ports(),
         PATH,
-        &json!([{"op": "add", "path": "/x-extensions", "value": {"x-prompt": {"schema": true, "description": "d", "prompt": {"read": {"means": "m"}}}}}]),
+        &json!([{"op": "add", "path": "/x-extensions", "value": {"x-prompt": {"schema": true, "title": "d", "description": "m", "prompt": {}}}}]),
         None,
     );
     assert_eq!(
@@ -137,7 +137,7 @@ fn unreadable_glossary_is_an_error_not_a_refusal() {
     let outcome = patch::patch(
         &w.ports(),
         PATH,
-        &json!([{"op": "add", "path": "/properties", "value": {"p": {"description": "値段", "x-prompt": {"read": {"means": "値段"}}, "$ref": "urn:semantic-agent-schema:o:glossary:v1#Price"}}}]),
+        &json!([{"op": "add", "path": "/properties", "value": {"p": {"title": "値段", "description": "値段", "x-prompt": {}, "$ref": "urn:semantic-agent-schema:o:glossary:v1#Price"}}}]),
         None,
     );
     assert_eq!(
@@ -179,9 +179,9 @@ fn with_instance(status: &str) -> World {
         "required": ["$schema", "kind", "id"],
         "properties": {
             "$schema": {"const": "urn:semantic-agent-schema:o:record:v1"},
-            "kind": {"const": "record", "description": "種類", "x-prompt": {"read": {"means": "種類"}}},
-            "id": {"type": "string", "description": "id", "x-prompt": {"read": {"means": "id"}}},
-            "status": {"enum": ["proposed", "accepted"], "default": "proposed", "x-decided-by": "human", "description": "状態", "x-prompt": {"read": {"means": "状態"}}}
+            "kind": {"const": "record", "title": "種類", "description": "種類", "x-prompt": {}},
+            "id": {"type": "string", "title": "id", "description": "id", "x-prompt": {}},
+            "status": {"enum": ["proposed", "accepted"], "default": "proposed", "x-decided-by": "human", "title": "状態", "description": "状態", "x-prompt": {}}
         }
     }));
     w.contracts.files.borrow_mut().insert(INSTANCE.to_string(), json!({"$schema": "urn:semantic-agent-schema:o:record:v1", "kind": "record", "id": "r-1", "status": status}));

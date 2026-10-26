@@ -480,7 +480,7 @@ mod tests {
     }
 
     fn field(extra: Value) -> Value {
-        let mut f = json!({"description": "欄", "x-prompt": {"read": {"means": "意味"}}});
+        let mut f = json!({"title": "欄", "description": "意味", "x-prompt": {}});
         if let (Some(d), Some(e)) = (f.as_object_mut(), extra.as_object()) {
             d.extend(e.clone());
         }
@@ -530,14 +530,14 @@ mod tests {
 
     /// traces: I4
     #[test]
-    fn field_without_description_and_prompt_is_violated() {
+    fn field_without_title_description_and_prompt_is_violated() {
         let doc = concrete(json!({"properties": {"a": {"type": "string"}}}));
         assert_eq!(
             check(&doc, &[])
                 .iter()
                 .filter(|f| f.rule() == "json-schema")
                 .count(),
-            2
+            3
         );
     }
 
@@ -545,9 +545,8 @@ mod tests {
     #[test]
     fn rule_without_by_is_violated_at_the_rule() {
         let rule = json!({"id": "r", "rule": "決まり", "why": "理由", "test": "確かめ方"});
-        let doc = concrete(
-            json!({"properties": {"a": field(json!({"x-prompt": {"read": {"means": "m"}, "write": [rule]}}))}}),
-        );
+        let doc =
+            concrete(json!({"properties": {"a": field(json!({"x-prompt": {"write": [rule]}}))}}));
         assert!(
             check(&doc, &[])[0]
                 .pointer()
@@ -559,7 +558,7 @@ mod tests {
     #[test]
     fn extension_named_like_an_abstract_keyword_is_violated() {
         let doc = concrete(
-            json!({"x-extensions": {"x-prompt": {"schema": true, "description": "d", "prompt": {"read": {"means": "m"}}}}}),
+            json!({"x-extensions": {"x-prompt": {"schema": true, "title": "d", "description": "m", "prompt": {}}}}),
         );
         assert_eq!(
             verdict_of(&check(&doc, &[]), "no-abstract-names"),
@@ -653,7 +652,7 @@ mod tests {
                 "$schema": {"const": "urn:semantic-agent-schema:t:record:v1"},
                 "kind": field(json!({"const": "record"})),
                 "id": field(json!({"type": "string"})),
-                "why": field(json!({"type": "string", "x-prompt": {"read": {"means": "理由"}, "write": [
+                "why": field(json!({"type": "string", "x-prompt": {"write": [
                     {"id": "why-ai", "rule": "r", "why": "w", "test": "t", "by": "ai", "agent": "judge"},
                     {"id": "why-cli", "rule": "r", "why": "w", "test": "t", "by": "machine", "agent": "lint"}]}}))
             }

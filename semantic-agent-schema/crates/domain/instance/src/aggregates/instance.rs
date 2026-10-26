@@ -128,7 +128,7 @@ impl Instance {
                 json!({
                     "name": name,
                     "description": f.get("description").cloned().unwrap_or(Value::Null),
-                    "means": f.pointer("/x-prompt/read/means").cloned().unwrap_or(Value::Null),
+                    "title": f.get("title").cloned().unwrap_or(Value::Null),
                     "rules": rules
                 })
             })

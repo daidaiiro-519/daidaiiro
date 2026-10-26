@@ -274,14 +274,14 @@ impl ConcreteSchema {
                     format!("{key} は Abstract の x- と同じ名前（Concrete の拡張では定義しない）"),
                 ));
             }
-            let means = doc
-                .pointer(&format!("{at}/prompt/read/means"))
-                .and_then(Value::as_str);
-            if means.is_none_or(str::is_empty) {
+            if !doc
+                .pointer(&format!("{at}/prompt"))
+                .is_some_and(Value::is_object)
+            {
                 out.push(Breach::new(
                     "prompt-like-field",
                     &format!("{at}/prompt"),
-                    "prompt が欄の x-prompt と同じ形でない（read.means が無い）".to_string(),
+                    "prompt が欄の x-prompt と同じ形でない（オブジェクトでない）".to_string(),
                 ));
             }
         }
@@ -526,7 +526,7 @@ mod tests {
             "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
             "$id": "urn:semantic-agent-schema:t:record:v1",
             "x-delegates": {"judge": {"role": "読む", "run": {"kind": "judging"}}, "lint": {"role": "検査", "run": {"kind": "judging", "argv": ["lint"]}}},
-            "x-extensions": {"x-owner": {"schema": true, "description": "責任者", "prompt": {"read": {"means": "責任者"}}}}
+            "x-extensions": {"x-owner": {"schema": true, "title": "責任者", "description": "責任者", "prompt": {}}}
         });
         if let (Some(d), Some(e)) = (doc.as_object_mut(), extra.as_object()) {
             d.extend(e.clone());
@@ -535,7 +535,7 @@ mod tests {
     }
 
     fn field(extra: Value) -> Value {
-        let mut f = json!({"description": "欄", "x-prompt": {"read": {"means": "意味"}}});
+        let mut f = json!({"title": "欄", "description": "意味", "x-prompt": {}});
         if let (Some(d), Some(e)) = (f.as_object_mut(), extra.as_object()) {
             d.extend(e.clone());
         }
@@ -543,7 +543,7 @@ mod tests {
     }
 
     fn with_rule(r: Value) -> Value {
-        json!({"properties": {"a": field(json!({"x-prompt": {"read": {"means": "m"}, "write": [r]}}))}})
+        json!({"properties": {"a": field(json!({"x-prompt": {"write": [r]}}))}})
     }
 
     fn rule(id: &str, by: &str, agent: Option<&str>) -> Value {
@@ -571,7 +571,7 @@ mod tests {
     #[test]
     fn rules_are_found_in_nested_fields() {
         let c = concrete(
-            json!({"properties": {"a": field(json!({"type": "object", "properties": {"b": {"x-prompt": {"read": {"means": "m"}, "write": [rule("b-rule", "human", None)]}}}}))}}),
+            json!({"properties": {"a": field(json!({"type": "object", "properties": {"b": {"x-prompt": {"write": [rule("b-rule", "human", None)]}}}}))}}),
         );
         assert_eq!(
             c.rules()[0].pointer(),
@@ -583,7 +583,7 @@ mod tests {
     #[test]
     fn duplicate_rule_id_breaks_unique_id() {
         let c = concrete(
-            json!({"properties": {"a": field(json!({"x-prompt": {"read": {"means": "m"}, "write": [rule("same", "human", None)]}})), "b": field(json!({"x-prompt": {"read": {"means": "m"}, "write": [rule("same", "human", None)]}}))}}),
+            json!({"properties": {"a": field(json!({"x-prompt": {"write": [rule("same", "human", None)]}})), "b": field(json!({"x-prompt": {"write": [rule("same", "human", None)]}}))}}),
         );
         assert_eq!(broken(&c), vec!["unique-id"]);
     }
@@ -641,7 +641,7 @@ mod tests {
     /// traces: I4
     #[test]
     fn rule_in_output_breaks_no_rules_in_output() {
-        let c = concrete(json!({})).patched(&json!([{"op": "add", "path": "/x-delegates/judge/output", "value": {"details": {"type": "object", "x-prompt": {"read": {"means": "m"}, "write": [rule("in-output", "ai", Some("judge"))]}}}}])).unwrap();
+        let c = concrete(json!({})).patched(&json!([{"op": "add", "path": "/x-delegates/judge/output", "value": {"details": {"type": "object", "x-prompt": {"write": [rule("in-output", "ai", Some("judge"))]}}}}])).unwrap();
         assert_eq!(broken(&c), vec!["no-rules-in-output"]);
     }
 
@@ -676,7 +676,7 @@ mod tests {
     /// traces: I6
     #[test]
     fn extension_named_like_an_abstract_keyword_breaks_no_abstract_names() {
-        let c = concrete(json!({})).patched(&json!([{"op": "add", "path": "/x-extensions/x-prompt", "value": {"schema": true, "description": "d", "prompt": {"read": {"means": "m"}}}}])).unwrap();
+        let c = concrete(json!({})).patched(&json!([{"op": "add", "path": "/x-extensions/x-prompt", "value": {"schema": true, "title": "d", "description": "m", "prompt": {}}}])).unwrap();
         assert_eq!(broken(&c), vec!["no-abstract-names"]);
     }
 

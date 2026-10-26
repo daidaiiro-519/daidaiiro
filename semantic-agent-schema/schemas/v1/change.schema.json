@@ -20,11 +20,9 @@
     },
     "kind": {
       "const": "change",
-      "description": "種類",
+      "title": "種類",
+      "description": "変更の記録であること。",
       "x-prompt": {
-        "read": {
-          "means": "変更の記録であること。"
-        },
         "write": []
       }
     },
@@ -32,11 +30,11 @@
       "type": "string",
       "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
       "readOnly": true,
-      "description": "記録の id",
+      "title": "記録の id",
+      "description": "基盤が書いた時に1回だけ決める、打ち合わせずに一意な値（ULID）である。",
       "x-prompt": {
         "read": {
-          "means": "基盤が書いた時に1回だけ決める、打ち合わせずに一意な値（ULID）である。",
-          "parse": "時刻の順に並ぶ26文字。"
+          "interpret": "時刻の順に並ぶ26文字。"
         },
         "write": []
       }
@@ -44,10 +42,10 @@
     "purpose_ref": {
       "type": "string",
       "minLength": 1,
-      "description": "目的の参照",
+      "title": "目的の参照",
+      "description": "何の目的の変更か（ACDR の番号 ・ ボードの論点など）。基盤は指す先を解釈しない。",
       "x-prompt": {
         "read": {
-          "means": "何の目的の変更か（ACDR の番号 ・ ボードの論点など）。基盤は指す先を解釈しない。",
           "shown": "変更を見せるとき、目的 → 意図の順の先頭に出る。"
         },
         "write": []
@@ -57,10 +55,10 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 120,
-      "description": "意図",
+      "title": "意図",
+      "description": "この変更で何をしたかったかの1文である。",
       "x-prompt": {
         "read": {
-          "means": "この変更で何をしたかったかの1文である。",
           "shown": "変更を見せるときの見出しになる。"
         },
         "write": [
@@ -80,11 +78,9 @@
         "human",
         "ai-agent"
       ],
-      "description": "書いた者の種類",
+      "title": "書いた者の種類",
+      "description": "人か AI の Agent かである。",
       "x-prompt": {
-        "read": {
-          "means": "人か AI の Agent かである。"
-        },
         "write": []
       }
     },
@@ -137,12 +133,12 @@
           }
         ]
       },
-      "description": "変更の項目",
+      "title": "変更の項目",
+      "description": "どの対象のどの欄が変わったかの並びで、基盤が最後に確定した姿 → いまの前後から入れる。",
       "x-prompt": {
         "read": {
-          "means": "どの対象のどの欄が変わったかの並びで、基盤が最後に確定した姿 → いまの前後から入れる。",
-          "parse": "対象はインスタンスなら id と kind、それ以外はパス。欄は JSON の対象だけが持つ。",
-          "when": "AI は書かない。基盤が「変更を記録する」で入れる。"
+          "when": "AI は書かない。基盤が「変更を記録する」で入れる。",
+          "interpret": "対象はインスタンスなら id と kind、それ以外はパス。欄は JSON の対象だけが持つ。"
         },
         "write": [
           {
@@ -161,10 +157,10 @@
       "x-relationship": {
         "to": "urn:semantic-agent-schema:base:change:v1"
       },
-      "description": "置き換える意図の id",
+      "title": "置き換える意図の id",
+      "description": "差し戻した意図を直すときに、前の変更の記録を指す。",
       "x-prompt": {
         "read": {
-          "means": "差し戻した意図を直すときに、前の変更の記録を指す。",
           "when": "差し戻しを直すときだけ書く。"
         },
         "write": []
@@ -226,11 +222,9 @@
           "type": "string"
         }
       },
-      "description": "前後の参照",
+      "title": "前後の参照",
+      "description": "ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。",
       "x-prompt": {
-        "read": {
-          "means": "ポートに渡した前の姿と後の姿の参照で、基盤は解釈しない。"
-        },
         "write": []
       }
     },
@@ -273,11 +267,9 @@
           }
         }
       },
-      "description": "例外",
+      "title": "例外",
+      "description": "例外の種類ごとの件数と中身で、先頭に出る。",
       "x-prompt": {
-        "read": {
-          "means": "例外の種類ごとの件数と中身で、先頭に出る。"
-        },
         "write": []
       }
     },
@@ -387,11 +379,9 @@
           }
         }
       },
-      "description": "目的 → 意図",
+      "title": "目的 → 意図",
+      "description": "目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。",
       "x-prompt": {
-        "read": {
-          "means": "目的ごと、意図ごとの変更で、JSON は欄ごと、それ以外は行ごと（ファイルの全体に印）に成型したものである。"
-        },
         "write": []
       }
     },
@@ -401,11 +391,9 @@
       "items": {
         "type": "string"
       },
-      "description": "成型できなかった対象",
+      "title": "成型できなかった対象",
+      "description": "文字として読めないなどで成型できなかった対象のパスである。",
       "x-prompt": {
-        "read": {
-          "means": "文字として読めないなどで成型できなかった対象のパスである。"
-        },
         "write": []
       }
     }
