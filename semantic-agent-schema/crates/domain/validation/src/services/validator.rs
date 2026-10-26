@@ -1,7 +1,9 @@
 //! Semantic Schema Validator（セマンティックスキーマバリデーター）
 
 use semantic_agent_schema_change::values::verdict::{Finding, SHAPE, Verdict};
-use semantic_agent_schema_declaration::aggregates::abstract_schema::AbstractSchema;
+use semantic_agent_schema_declaration::aggregates::abstract_schema::{
+    AbstractSchema, meta_schemas,
+};
 use semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema;
 use semantic_agent_schema_declaration::aggregates::glossary::Glossary;
 use semantic_agent_schema_declaration::values::by::By;
@@ -29,6 +31,9 @@ fn compile_with(
     more: &[(String, Value)],
 ) -> Result<jsonschema::Validator, String> {
     let mut builder = jsonschema::Registry::new();
+    for (id, doc) in meta_schemas()? {
+        builder = builder.add(id, doc).map_err(|e| e.to_string())?;
+    }
     for a in shipped {
         builder = builder
             .add(a.id().to_string(), a.document().clone())

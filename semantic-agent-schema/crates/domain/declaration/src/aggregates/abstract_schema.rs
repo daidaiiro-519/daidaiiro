@@ -26,6 +26,31 @@ const SHIPPED: [&str; 5] = [
     include_str!("../../../../../schemas/v1/change-summary.schema.json"),
 ];
 
+/// 方言と語彙のメタスキーマ（$dynamicAnchor meta）。Abstract の版の一覧（閉じた一覧）には入れず、検査のときに参照先として登録する
+const META: [&str; 2] = [
+    include_str!("../../../../../schemas/v1/dialect.schema.json"),
+    include_str!("../../../../../schemas/v1/vocab-meta.schema.json"),
+];
+
+/// 方言と語彙のメタスキーマ：$id と文書の組
+///
+/// # Errors
+/// 入れて出すメタスキーマが JSON でないか、$id が無いとき（作り方の誤り）
+pub fn meta_schemas() -> Result<Vec<(String, Value)>, String> {
+    META.iter()
+        .map(|text| {
+            let doc: Value = serde_json::from_str(text)
+                .map_err(|e| format!("メタスキーマが JSON でない：{e}"))?;
+            let id = doc
+                .get("$id")
+                .and_then(Value::as_str)
+                .ok_or("メタスキーマに $id が無い")?
+                .to_string();
+            Ok((id, doc))
+        })
+        .collect()
+}
+
 /// Semantic Abstract Schema（セマンティックアブストラクトスキーマ）：Concrete が $schema に書くメタスキーマの1つの版
 #[derive(Debug, Clone, PartialEq)]
 pub struct AbstractSchema {

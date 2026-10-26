@@ -1,0 +1,10 @@
+{"$schema":"../scenario.schema.json",
+ "id":"S-DECL-GLOSSARY-TERM-SHAPE",
+ "name":"term の形の誤り",
+ "title":"glossary の term に JSON Schema として誤った形（type に 5）を書くとエラーになり、ファイルは変わらない",
+ "why":"term は欄が $ref で指す値の形です。形が JSON Schema として誤っていると、その term を使う欄の検証が壊れます。書いた時点で止めます。",
+ "traces":["I4"],
+ "given":{"steps":[{"args":["create",".semantic-agent-schema/glossary.json","--owner","acdr","--kind","glossary","--value","{\"$defs\":{\"decision\":{\"$anchor\":\"Decision\",\"description\":\"決めてほしいこと1件。何を採るかだけを書き、手段を書かない\"}}}"]}]},
+ "when":{"args":["patch",".semantic-agent-schema/glossary.json","--patch","[{\"op\":\"add\",\"path\":\"/$defs/decision/type\",\"value\":5}]","--json"]},
+ "then":[{"of":"when","exit":1,"pointer":"/data/saved","equals":false},{"of":"when","pointer":"/findings/0/pointer","equals":"/$defs/decision/type"}],
+ "unchanged":[".semantic-agent-schema/glossary.json"]}
