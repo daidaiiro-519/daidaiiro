@@ -13,7 +13,7 @@
       "schema": {
         "$ref": "#/$defs/instance-path"
       },
-      "title": "このスキーマのインスタンスを置く場所。名前の入る所は {id} のように書く（RFC 6570 のレベル1）",
+      "title": "インスタンスの置き場所",
       "description": "このスキーマのインスタンスを置く場所である。",
       "prompt": {
         "read": {
@@ -42,7 +42,7 @@
       "schema": {
         "$ref": "#/$defs/instance-label"
       },
-      "title": "他から指されたときと、変更を見せるときのインスタンスの名前の型。{…} の中は欄の名前",
+      "title": "インスタンスの名前の型",
       "description": "インスタンスを名前で見せるときの型である。",
       "prompt": {
         "read": {
@@ -67,7 +67,7 @@
       "schema": {
         "$ref": "#/$defs/delegates"
       },
-      "title": "任せる先。名前から、その任せる先の定義（立場 ・ 起動のしかた ・ 出力の拡張）を引く",
+      "title": "任せる先の一覧",
       "description": "この Concrete が任せる先の一覧である。名前から、立場 ・ 起動のしかた ・ 出力の拡張を引く。",
       "prompt": {
         "read": {
@@ -97,9 +97,12 @@
       "schema": {
         "$ref": "#/$defs/extensions"
       },
-      "title": "Concrete が足す x- の定義。名前から、値の形 ・ 説明 ・ prompt ・ 公開するか（published）を引く",
+      "title": "足した x- の定義",
       "description": "このスキーマが足した x- の、値の形 ・ 意味 ・ 書き方と判定の決まりである。",
       "prompt": {
+        "read": {
+          "interpret": "Concrete が足す x- の定義。名前から、値の形 ・ 説明 ・ prompt ・ 公開するか（published）を引く"
+        },
         "write": [
           {
             "id": "no-abstract-names",
@@ -123,7 +126,7 @@
       "schema": {
         "$ref": "#/$defs/prompt"
       },
-      "title": "x-prompt。read は値の読み方を観点ごとに、write は書くときの決まり（rule）を1件ずつ持つ",
+      "title": "読み方と書き方",
       "description": "その書く単位を、何として読み、どう書くかのプロンプトである。",
       "prompt": {
         "read": {
@@ -137,9 +140,12 @@
       "schema": {
         "$ref": "#/$defs/relationship"
       },
-      "title": "x-relationship。この欄が指すインスタンスの種類。to は Concrete の URN で、指す先のインスタンスが在ることを検査する",
+      "title": "指す先の種類",
       "description": "この欄の値が、to の種類のインスタンスの id を指すことの宣言である。",
       "prompt": {
+        "read": {
+          "interpret": "x-relationship。この欄が指すインスタンスの種類。to は Concrete の URN で、指す先のインスタンスが在ることを検査する"
+        },
         "write": [
           {
             "id": "target-exists",
@@ -156,7 +162,7 @@
       "schema": {
         "$ref": "#/$defs/derived"
       },
-      "title": "x-derived-from。この欄の値を、何からどう導くか（rules ・ otherwise ・ declared）。依存は rules の when のキーから引ける",
+      "title": "導き方",
       "description": "ほかの欄の答えから、この欄の値を導く決まりである。",
       "prompt": {
         "read": {
@@ -179,11 +185,12 @@
       "schema": {
         "$ref": "#/$defs/decided"
       },
-      "title": "x-decided-by。\"human\" のとき、この欄の値を決めるのは人である（決定権）",
+      "title": "決定権",
       "description": "この欄の値は人が決め、人の入口から来たものでなければならない、という宣言である。",
       "prompt": {
         "read": {
-          "when": "AI がインスタンスを書く前と、変更を取り込む前に読む。"
+          "when": "AI がインスタンスを書く前と、変更を取り込む前に読む。",
+          "interpret": "x-decided-by。\"human\" のとき、この欄の値を決めるのは人である（決定権）"
         },
         "write": [
           {
@@ -201,11 +208,12 @@
       "schema": {
         "$ref": "#/$defs/published"
       },
-      "title": "x-published。true のとき、この欄を他の文脈へ見せる。版は $id の v<版> が表す",
+      "title": "公開するか",
       "description": "この欄を他の文脈へ見せるかの宣言である。",
       "prompt": {
         "read": {
-          "when": "ほかの文脈から指されたときと、公開する版を出すときに読む。"
+          "when": "ほかの文脈から指されたときと、公開する版を出すときに読む。",
+          "interpret": "x-published。true のとき、この欄を他の文脈へ見せる。版は $id の v<版> が表す"
         },
         "write": [
           {
@@ -233,7 +241,7 @@
     "read": {
       "shown": "作者が「案内する」で受け取る Concrete の書き方と、Concrete を照らした指摘に出る。",
       "when": "Concrete を書く前と、Concrete を照らした指摘を直すときに読む。",
-      "interpret": "根の properties は Concrete の根に書けるもの、$defs/field は欄1つの形（description と x-prompt を必要とする）、$defs/rule は write の行1つの形として読む。"
+      "interpret": "properties は根に書けるもの、$defs/field は欄1つ（title ・ description ・ x-prompt が要る）、$defs/rule は write の1行の形として読む。"
     },
     "write": [
       {
@@ -252,9 +260,9 @@
       },
       {
         "id": "prompt-per-unit",
-        "rule": "欄には description と x-prompt を書く。x- のキーワードの説明と prompt は x-extensions に書く。入れ物（根の x-prompt ・ properties ・ $defs）には書かない。",
+        "rule": "欄に title ・ description ・ x-prompt を、x- の名前 ・ 説明 ・ prompt を x-extensions に書く。入れ物には書かない。",
         "why": "作成は、書く単位ごとの x-prompt を返す。",
-        "test": "根の properties の各欄に description と x-prompt があり、x- のキーワードが x-extensions に description と prompt を持つかを見る。",
+        "test": "根の properties の各欄に title ・ description ・ x-prompt があり、x- のキーワードが x-extensions に title ・ description ・ prompt を持つかを見る。",
         "by": "machine"
       },
       {
@@ -299,7 +307,7 @@
       },
       {
         "id": "rule-agent",
-        "rule": "どの決まりにも by を書く。by が ai なら agent に、argv の無い judging の任せる先を、by が machine で CLI に任せるなら argv のある judging の任せる先を書く。",
+        "rule": "どの決まりにも by を書く。by が ai なら agent に judging の任せる先を、by が machine で CLI に任せるなら argv を持つ決定的な CLI の judging の任せる先を書く。",
         "why": "agent の名前から、基盤が任せる先を引く。",
         "test": "agent が x-delegates にあり、by と kind が対応しているかを見る。",
         "by": "machine"
