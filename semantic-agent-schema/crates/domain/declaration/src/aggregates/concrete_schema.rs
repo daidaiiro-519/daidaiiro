@@ -212,12 +212,12 @@ impl ConcreteSchema {
             match own.iter().find(|d| d.name() == agent) {
                 Some(d) => {
                     let ok = match rule.by() {
-                        Some(By::Ai) => d.kind() == "judging" && !d.has_argv(),
+                        Some(By::Ai) => d.kind() == "judging",
                         Some(By::Machine) => d.kind() == "judging" && d.has_argv(),
                         _ => true,
                     };
                     if !ok {
-                        out.push(Breach::new("by-matches-kind", rule.pointer(), format!("by と任せる先「{agent}」の種類 ・ argv が合わない（ai は argv の無い judging、machine は argv のある judging）")));
+                        out.push(Breach::new("by-matches-kind", rule.pointer(), format!("by と任せる先「{agent}」の種類 ・ argv が合わない（ai は judging、machine は argv のある judging）")));
                     }
                 }
                 None if body_delegates.iter().any(|b| b == agent) => {}
@@ -228,7 +228,7 @@ impl ConcreteSchema {
                 )),
             }
         }
-        // x-delegates：own-only ・ answer-inline
+        // x-delegates：own-only ・ output-inline ・ no-rules-in-output
         if let Some(ds) = doc.get("x-delegates").and_then(Value::as_object) {
             for (name, d) in ds {
                 let at = format!("/x-delegates/{}", escape(name));
@@ -239,12 +239,21 @@ impl ConcreteSchema {
                         format!("任せる先「{name}」にほかの Concrete の URN がある"),
                     ));
                 }
-                if d.get("answer").is_some_and(|a| contains_key(a, "$ref")) {
-                    out.push(Breach::new(
-                        "answer-inline",
-                        &format!("{at}/answer"),
-                        "答えの形に $ref がある（answer の中に書き切る）".to_string(),
-                    ));
+                if let Some(output) = d.get("output") {
+                    if contains_key(output, "$ref") {
+                        out.push(Breach::new(
+                            "output-inline",
+                            &format!("{at}/output"),
+                            "出力の拡張に $ref がある（output の中に書き切る）".to_string(),
+                        ));
+                    }
+                    if contains_key(output, "write") {
+                        out.push(Breach::new(
+                            "no-rules-in-output",
+                            &format!("{at}/output"),
+                            "出力の拡張に rule（x-prompt の write）がある（決まりは JSON Schema の制約で書く）".to_string(),
+                        ));
+                    }
                 }
             }
         }
@@ -600,11 +609,40 @@ mod tests {
 
     /// traces: I4
     #[test]
-    fn ai_rule_pointing_to_a_cli_breaks_by_matches_kind() {
+    fn ai_rule_pointing_to_a_cli_passes() {
+        assert!(broken(&concrete(with_rule(rule("r", "ai", Some("lint"))))).is_empty());
+    }
+
+    /// traces: I4
+    #[test]
+    fn machine_rule_pointing_to_an_ai_tool_breaks_by_matches_kind() {
         assert_eq!(
-            broken(&concrete(with_rule(rule("r", "ai", Some("lint"))))),
+            broken(&concrete(with_rule(rule("r", "machine", Some("judge"))))),
             vec!["by-matches-kind"]
         );
+    }
+
+    /// traces: I4
+    #[test]
+    fn rule_pointing_to_a_working_delegate_breaks_by_matches_kind() {
+        let c = concrete(with_rule(rule("r", "ai", Some("writer"))))
+            .patched(&json!([{"op": "add", "path": "/x-delegates/writer", "value": {"role": "書く役", "run": {"kind": "working"}}}]))
+            .unwrap();
+        assert_eq!(broken(&c), vec!["by-matches-kind"]);
+    }
+
+    /// traces: I4
+    #[test]
+    fn ref_in_output_breaks_output_inline() {
+        let c = concrete(json!({})).patched(&json!([{"op": "add", "path": "/x-delegates/judge/output", "value": {"details": {"$ref": "#/$defs/x"}}}])).unwrap();
+        assert_eq!(broken(&c), vec!["output-inline"]);
+    }
+
+    /// traces: I4
+    #[test]
+    fn rule_in_output_breaks_no_rules_in_output() {
+        let c = concrete(json!({})).patched(&json!([{"op": "add", "path": "/x-delegates/judge/output", "value": {"details": {"type": "object", "x-prompt": {"read": {"means": "m"}, "write": [rule("in-output", "ai", Some("judge"))]}}}}])).unwrap();
+        assert_eq!(broken(&c), vec!["no-rules-in-output"]);
     }
 
     /// traces: I4

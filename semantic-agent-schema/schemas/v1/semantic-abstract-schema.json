@@ -77,10 +77,10 @@
       "schema": {
         "$ref": "#/$defs/delegates"
       },
-      "description": "任せる先。名前から、その任せる先の定義（立場 ・ 答えの形 ・ 起動のしかた）を引く",
+      "description": "任せる先。名前から、その任せる先の定義（立場 ・ 起動のしかた ・ 出力の拡張）を引く",
       "prompt": {
         "read": {
-          "means": "この Concrete が任せる先の一覧である。名前から、立場 ・ 答えの形 ・ 起動のしかたを引く。",
+          "means": "この Concrete が任せる先の一覧である。名前から、立場 ・ 起動のしかた ・ 出力の拡張を引く。",
           "parse": "kind が judging なら判定させ、working なら作業させる。argv があればその CLI をプロセスとして起動し、無ければ AI ツールで起動する。",
           "when": "行の agent が指す先を確かめるときと、基盤が任せる先を起動するときに読む。"
         },
@@ -94,7 +94,7 @@
           },
           {
             "id": "by-matches-kind",
-            "rule": "by が ai の行が指す先は、kind が judging で argv の無いもの。by が machine の行が指す先は、kind が judging で argv のあるもの。",
+            "rule": "by が ai か machine の行は judging の任せる先を指す。machine の行の先は argv を持つ決定的な CLI（ネットワーク ・ 時刻 ・ 乱数を使わない）にする。",
             "why": "判定する者と起動のしかたが食い違うと、基盤が起動できない。",
             "test": "行の by と、指す先の kind と argv の有無の組を見る。",
             "by": "machine"
@@ -1046,7 +1046,7 @@
     },
     "delegate": {
       "type": "object",
-      "description": "任せる先1件。目的（kind）と起動のしかた（argv の有無）を持つ",
+      "description": "任せる先1件。種別（kind：何をさせたいか）・ 起動のしかた（argv の有無）・ 出力の拡張（output）を持つ",
       "required": [
         "role",
         "run"
@@ -1073,24 +1073,6 @@
             ]
           }
         },
-        "answer": {
-          "type": "object",
-          "description": "答えの形",
-          "x-prompt": {
-            "read": {
-              "means": "AI の任せる先が返す本体の形（JSON Schema）である。"
-            },
-            "write": [
-              {
-                "id": "answer-inline",
-                "rule": "答えの形は answer の中に書き切り、$ref を使わない。",
-                "why": "知らないキーワードの中の $ref は、JSON Schema の実装ごとに解決が違う。",
-                "test": "answer の中に $ref が無いかを見る。",
-                "by": "machine"
-              }
-            ]
-          }
-        },
         "run": {
           "type": "object",
           "required": [
@@ -1102,16 +1084,16 @@
                 "judging",
                 "working"
               ],
-              "description": "目的：判定させるか、作業させるか（Q0 #19）",
+              "description": "種別：何をさせたいか",
               "x-prompt": {
                 "read": {
-                  "means": "任せる目的（判定させる ・ 作業させる）である。"
+                  "means": "判定させる（judging）か、この Concrete のインスタンスを書かせる（working）かである。"
                 },
                 "write": [
                   {
                     "id": "purpose",
-                    "rule": "判定だけなら judging、インスタンスを書かせるなら working にする。",
-                    "why": "目的が違うと、基盤が答えの受け取り方を誤る。",
+                    "rule": "rule の合否だけを決めさせるなら judging、この Concrete のインスタンスを書かせるなら working にする。助言 ・ 調査など答えを作らせるだけの相手は x-delegates に書かない。",
+                    "why": "種別によって、基盤と呼んだ主体が出力を受け取る形が違う。答えを作らせるだけの相手は、基盤のどの記録にも入らない。",
                     "test": "任せる先の role と kind が合っているかを見る。",
                     "by": "ai",
                     "agent": "judge"
@@ -1133,6 +1115,19 @@
                 },
                 "write": []
               }
+            },
+            "session": {
+              "enum": [
+                "single",
+                "continuous"
+              ],
+              "description": "セッションの型（working だけ）",
+              "x-prompt": {
+                "read": {
+                  "means": "working の任せる先を単発で呼ぶか（single）、役割の名前で登録して再開するか（continuous）である。judging は単発に固定で、書かない。"
+                },
+                "write": []
+              }
             }
           },
           "description": "起動のしかた",
@@ -1141,6 +1136,32 @@
               "means": "目的（judging ・ working）と、CLI なら argv である。"
             },
             "write": []
+          }
+        },
+        "output": {
+          "type": "object",
+          "description": "出力の拡張",
+          "x-prompt": {
+            "read": {
+              "means": "種別ごとの出力スキーマに、この任せる先が足す部分の形である。judging は details、working は report だけを足せる。",
+              "when": "基盤が任せる先の出力を検査するときに読む。"
+            },
+            "write": [
+              {
+                "id": "output-inline",
+                "rule": "出力の拡張は output の中に書き切り、$ref を使わない。",
+                "why": "知らないキーワードの中の $ref は、JSON Schema の実装ごとに解決が違う。",
+                "test": "output の中に $ref が無いかを見る。",
+                "by": "machine"
+              },
+              {
+                "id": "no-rules-in-output",
+                "rule": "output の中に x-prompt の write（rule）を書かない。出力の決まりは JSON Schema の制約（required ・ minLength など）で書く。",
+                "why": "任せる先の出力はインスタンスではないので、rule を掛けると任せる先が自分の出力を判定する形になる。",
+                "test": "output の中に write が無いかを見る。",
+                "by": "machine"
+              }
+            ]
           }
         }
       },
@@ -1152,17 +1173,59 @@
             ],
             "properties": {
               "run": {
-                "required": [
-                  "argv"
-                ]
+                "properties": {
+                  "kind": {
+                    "const": "judging"
+                  }
+                }
               }
             }
           },
           "then": {
-            "not": {
-              "required": [
-                "answer"
-              ]
+            "properties": {
+              "output": {
+                "properties": {
+                  "details": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "run": {
+                "not": {
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "run"
+            ],
+            "properties": {
+              "run": {
+                "properties": {
+                  "kind": {
+                    "const": "working"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "output": {
+                "properties": {
+                  "report": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false
+              }
             }
           }
         }
@@ -1353,6 +1416,222 @@
       "type": "string",
       "pattern": "^(/([^~/]|~[01])*)*$",
       "description": "JSON Pointer（RFC 6901）"
+    },
+    "judging-output": {
+      "type": "object",
+      "required": [
+        "results"
+      ],
+      "additionalProperties": false,
+      "description": "judging の任せる先が返す形。基盤は rule ごとの結果を5つの値にまとめ、判定の記録に残す",
+      "x-prompt": {
+        "read": {
+          "means": "任せた rule ごとの結果の並びである。details は任せる先の output が足す形で、基盤は5つの値の判定に使わない。"
+        },
+        "write": []
+      },
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule",
+              "result",
+              "reason",
+              "grounds"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "rule": {
+                "type": "string",
+                "minLength": 1,
+                "description": "判定した rule の id",
+                "x-prompt": {
+                  "read": {
+                    "means": "判定した rule の id である。"
+                  },
+                  "write": []
+                }
+              },
+              "result": {
+                "enum": [
+                  "verified",
+                  "violated",
+                  "unverified"
+                ],
+                "description": "判定の結果",
+                "x-prompt": {
+                  "read": {
+                    "means": "判定の結果である。"
+                  },
+                  "write": []
+                }
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "description": "根拠の文",
+                "x-prompt": {
+                  "read": {
+                    "means": "結果の根拠の文である。"
+                  },
+                  "write": []
+                }
+              },
+              "grounds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "根拠にした値の場所（渡した値の JSON Pointer）",
+                "x-prompt": {
+                  "read": {
+                    "means": "根拠にした値の場所（渡した値の JSON Pointer）の並びである。"
+                  },
+                  "write": []
+                }
+              },
+              "details": {
+                "description": "任せる先の output が足す詳細",
+                "x-prompt": {
+                  "read": {
+                    "means": "任せる先の output が足す詳細で、基盤は5つの値の判定に使わない。"
+                  },
+                  "write": []
+                }
+              }
+            }
+          },
+          "description": "rule ごとの結果の並び",
+          "x-prompt": {
+            "read": {
+              "means": "任せた rule ごとの判定の結果の並びである。"
+            },
+            "write": []
+          }
+        }
+      }
+    },
+    "working-output": {
+      "type": "object",
+      "required": [
+        "done",
+        "written"
+      ],
+      "additionalProperties": false,
+      "description": "working の任せる先が終わったときに呼んだ主体へ返す形。基盤はこれを記録しない（書く操作は基盤のコマンドで記録される）",
+      "x-prompt": {
+        "read": {
+          "means": "終えたこと ・ 書いた対象 ・ 決めきれず返す点の並びである。report は任せる先の output が足す形で、基盤は解釈しない。"
+        },
+        "write": []
+      },
+      "properties": {
+        "done": {
+          "type": "string",
+          "minLength": 1,
+          "description": "終えたこと1文",
+          "x-prompt": {
+            "read": {
+              "means": "終えたことの1文である。"
+            },
+            "write": []
+          }
+        },
+        "written": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "etag"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "書いたファイルの置き場所",
+                "x-prompt": {
+                  "read": {
+                    "means": "書いたファイルの置き場所である。"
+                  },
+                  "write": []
+                }
+              },
+              "etag": {
+                "type": "string",
+                "minLength": 1,
+                "description": "書いたあとの ETag ",
+                "x-prompt": {
+                  "read": {
+                    "means": "書いたあとの ETag である。"
+                  },
+                  "write": []
+                }
+              }
+            }
+          },
+          "description": "書いた対象と、書いたあとの ETag",
+          "x-prompt": {
+            "read": {
+              "means": "書いた対象と、書いたあとの ETag の並びである。"
+            },
+            "write": []
+          }
+        },
+        "needs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "at",
+              "question"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "at": {
+                "type": "string",
+                "description": "決めきれない欄の場所（JSON Pointer）",
+                "x-prompt": {
+                  "read": {
+                    "means": "決めきれない欄の場所（JSON Pointer）である。"
+                  },
+                  "write": []
+                }
+              },
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "description": "呼んだ主体に聞くことの1文",
+                "x-prompt": {
+                  "read": {
+                    "means": "呼んだ主体に聞くことの1文である。"
+                  },
+                  "write": []
+                }
+              }
+            }
+          },
+          "description": "決めきれず呼んだ主体に返す点",
+          "x-prompt": {
+            "read": {
+              "means": "決めきれず呼んだ主体に返す点の並びである。"
+            },
+            "write": []
+          }
+        },
+        "report": {
+          "description": "任せる先の output が足す報告",
+          "x-prompt": {
+            "read": {
+              "means": "任せる先の output が足す報告で、基盤は解釈しない。"
+            },
+            "write": []
+          }
+        }
+      }
     }
   }
 }

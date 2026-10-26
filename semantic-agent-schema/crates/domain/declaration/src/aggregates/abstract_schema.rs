@@ -179,7 +179,7 @@ mod tests {
 
     /// traces: U1:事後
     #[test]
-    fn body_has_24_machine_and_26_ai_rules() {
+    fn body_has_25_machine_and_26_ai_rules() {
         let body = AbstractSchema::shipped().unwrap().remove(0);
         let count = |b| body.rules().iter().filter(|(_, _, by)| *by == b).count();
         assert_eq!(
@@ -187,7 +187,7 @@ mod tests {
                 count(crate::values::by::By::Machine),
                 count(crate::values::by::By::Ai)
             ),
-            (24, 26)
+            (25, 26)
         );
     }
 
