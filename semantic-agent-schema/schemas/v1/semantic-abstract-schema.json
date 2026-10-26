@@ -1255,6 +1255,120 @@
       "pattern": "^(/([^~/]|~[01])*)*$",
       "description": "JSON Pointer（RFC 6901）"
     },
+    "call": {
+      "$anchor": "call",
+      "type": "object",
+      "title": "呼び出し",
+      "description": "基盤が任せる先を起動するときに渡す入力。argv の任せる先には JSON のまま標準入力で、AI の任せる先にはプロンプトに描いて渡す",
+      "required": [
+        "delegate",
+        "target"
+      ],
+      "additionalProperties": false,
+      "x-prompt": {
+        "read": {
+          "interpret": "任せる先の種別（run.kind）で使う欄が決まる。judging は rules と inputs、working は task と handoff を使う。"
+        },
+        "write": []
+      },
+      "properties": {
+        "delegate": {
+          "type": "string",
+          "minLength": 1,
+          "title": "任せる先",
+          "description": "x-delegates の中の、起動する任せる先の名前。",
+          "x-prompt": {
+            "write": []
+          }
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "title": "対象",
+          "description": "判定させる ・ 書かせるインスタンスの置き場所。",
+          "x-prompt": {
+            "write": []
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "rule"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "rule": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
+              },
+              "test": {
+                "type": "string"
+              }
+            }
+          },
+          "title": "判定させる rule",
+          "description": "judging のとき、今回判定させる rule の並び（id ・ rule ・ why ・ test）。",
+          "x-prompt": {
+            "write": []
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "at",
+              "value"
+            ],
+            "properties": {
+              "at": {
+                "$ref": "#json-pointer"
+              },
+              "value": true,
+              "description": {
+                "type": "string"
+              },
+              "read": {
+                "type": "object"
+              }
+            }
+          },
+          "title": "読む値の写し",
+          "description": "rule が読む欄の、場所 ・ 値 ・ その欄の description と read の並び。任せる先はこの値だけを根拠にする。",
+          "x-prompt": {
+            "read": {
+              "interpret": "任せる先はファイルを読まない。根拠は grounds でこの at を指す（I14 ・ I29）。"
+            },
+            "write": []
+          }
+        },
+        "task": {
+          "type": "string",
+          "minLength": 1,
+          "title": "終えたときの状態",
+          "description": "working のとき、任せる先が終えたときになっているべき状態の1文。",
+          "x-prompt": {
+            "write": []
+          }
+        },
+        "handoff": {
+          "type": "string",
+          "minLength": 1,
+          "title": "引き継ぎ",
+          "description": "呼んだ主体がまとめた引き継ぎの文。working では必須、judging では任意。",
+          "x-prompt": {
+            "write": []
+          }
+        }
+      }
+    },
     "output-judging": {
       "$anchor": "output-judging",
       "type": "object",
