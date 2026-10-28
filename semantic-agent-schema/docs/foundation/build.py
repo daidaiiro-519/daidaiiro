@@ -1,4 +1,4 @@
-"""抽象概念の土台（arch/foundation/index.html）。業務領域 ・ 目的レベル ・ 区切られた文脈の3つの層、パターン、7つの境界、ユースケースの単位、ヘキサゴナル、ディレクトリ、いまの基盤との対応をタブでまとめる。
+"""抽象概念の土台（docs/foundation/index.html）。業務領域 ・ 目的レベル ・ 区切られた文脈の3つの層、パターン、7つの境界、ユースケースの単位、ヘキサゴナル、ディレクトリ、いまの基盤との対応をタブでまとめる。
 図は同じフォルダの <名前>.source.svg（class だけ）を design-svg resolve で <名前>.svg にしたもの。この台本は型に図を差し込むだけ。"""
 import os, re
 H = os.path.dirname(os.path.abspath(__file__))
