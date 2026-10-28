@@ -1,0 +1,437 @@
+{
+ "$comment": "Semantic Agent Schema のユースケースの一覧（案）。元は .brainstorming/semantic-contract-core/measured/core/model/model.json の use_cases。レベル（summary ・ user-goal ・ subfunction ・ extension）・ 設計の範囲 ・ 業務領域を足し、抽象概念の土台の13の境界に照らして直した。usecase-advisor の点検（2026-10-28）を入れた",
+ "levels": {
+  "summary": "＋ 要約",
+  "user-goal": "！ ユーザー目的",
+  "subfunction": "－ サブ機能",
+  "extension": "拡張"
+ },
+ "items": [
+  {
+   "id": "U0",
+   "level": "summary",
+   "scope": "利用者のリポジトリ（基盤 ・ AI の Agent ・ 変更の仕組みを含む）",
+   "area": null,
+   "actor": "利用者",
+   "goal": "AI に書かせた成果物を、正しいと確かめた状態で使い続ける",
+   "success": "使っているインスタンスが、いまの契約のすべての rule で verified（機械の検証と、変更に入れた AI ・ 人の判定の記録）である",
+   "minimum": "入力が変わった判定と、検証できなかった rule は、verified として見えない",
+   "status": "直した",
+   "why": "主体が外にいる一番外側の範囲の要約。範囲の名前はシステムの集まりにする（境界2 ・ 4）",
+   "calls": [
+    "U1",
+    "U2",
+    "U3",
+    "U5",
+    "U6",
+    "U8",
+    "U10",
+    "U11",
+    "U12",
+    "U13",
+    "U16",
+    "U17",
+    "U18",
+    "U25",
+    "U27"
+   ]
+  },
+  {
+   "id": "U1",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の宣言",
+   "actor": "作者（人か AI）",
+   "goal": "Semantic Concrete Schema を作る",
+   "success": "Concrete が Abstract の版と拡張の契約に従い、Agent が案内に従ってインスタンスを書ける",
+   "minimum": "契約に従わない Concrete は、違反した rule と一緒に取り込めない理由として出る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U2",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の宣言",
+   "actor": "作者",
+   "goal": "Semantic Concrete Schema を変える（繰り返した注意を x-prompt に上げることを含む）",
+   "success": "変更に、変更後の姿での全インスタンスの状態 ・ 状態が変わったインスタンス ・ 人が見るものが出る。x-prompt を変えた欄の前の AI の判定は効かなくなり、取り直すまで unverified として出る。変更の記録（意図 ・ 目的の参照）が未確定の変更に置かれ、作業した本人はそれを書いたセッションで引ける",
+   "minimum": "取り込むまで、いまの契約 ・ x-prompt とインスタンスの状態は変わらない",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）",
+   "extensions": [
+    {
+     "when": "変更後の契約で violated のインスタンスが出た",
+     "then": "「既存のインスタンスを変える」を呼んで直す"
+    }
+   ]
+  },
+  {
+   "id": "U3",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "マイグレーション",
+   "actor": "作者",
+   "goal": "Abstract の新しい版に Concrete を合わせる",
+   "success": "機械で直せる箇所は直り、残りは案内に従って直る",
+   "minimum": "移せなかった箇所は一覧で返り、いまの Concrete は壊れない",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U4",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "スキーマの保存と公開",
+   "actor": "提供側（基盤を作る側）",
+   "goal": "Abstract の新しい版を、移し方と一緒に出す",
+   "success": "作者が U3 を案内どおりに終えられる",
+   "minimum": "前の Abstract の版は中身が変わらず、それを申告する Concrete は検証を通り続ける",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U5",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "instance の作成と変更",
+   "actor": "AI の Agent",
+   "goal": "インスタンスを作る",
+   "success": "決定権が人の欄は人の入口から来た値のまま書かれ、rule ごとの結果がそろい、violated が無い。変更の記録（意図 ・ 目的の参照）が未確定の変更に置かれ、作業した本人はそれを書いたセッションで引ける",
+   "minimum": "violated ・ error の rule が根拠付きで返る。必須の欄が空なら、根拠「必須の欄が空」の機械の violated として返る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U6",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "instance の作成と変更",
+   "actor": "AI の Agent",
+   "goal": "既存のインスタンスを変える",
+   "success": "参照と導出値が整合したまま変わる。変更の記録（意図 ・ 目的の参照）が未確定の変更に置かれ、作業した本人はそれを書いたセッションで引ける",
+   "minimum": "参照が壊れる ・ 導出値が合わない変更は violated として返り、取り込めない理由に出る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U8",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の検証",
+   "actor": "CI（変更の仕組み）",
+   "goal": "変更のたびに、すべてのインスタンスを検証する",
+   "success": "violated と unverified の一覧が返り、手元と同じ結果になる",
+   "minimum": "validator が答えない ・ 誤った形で答えた rule は error として返り、verified に数えない",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U10",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の検証",
+   "actor": "作業した本人か AI の Agent",
+   "goal": "入力が変わって効かなくなった判定を取り直す",
+   "success": "入力が変わった rule だけが検証し直され、状態が変わったインスタンスが変更の出力に出る",
+   "minimum": "基盤を通らずに書き換えられたインスタンスも、次の検証で入力が変わったと分かり、前の判定は効かない",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U11",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "instance の作成と変更",
+   "actor": "利用者",
+   "goal": "不要になったインスタンスを置き換えて残す",
+   "success": "不要になったインスタンスは status が superseded になり、置き換えた先を指す。superseded のインスタンスに結び付いた判定の記録は効かない。指している記録は壊れず、置き換えた先へたどれる",
+   "minimum": "インスタンスを消すコマンドは無い。欄を取り除くのは変える（Patch の remove）。確定していない誤りは Git の側で取り消し、基盤は戻った姿を検証するだけ",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U12",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "描画",
+   "actor": "読み手（人）",
+   "goal": "人が読む形で読んで判断する",
+   "success": "rule ごとの結果とインスタンスの状態が、内容と一緒に見える",
+   "minimum": "描画に失敗したら1ページも書かず、効かなくなった判定を verified として見せない。探した結果には探した範囲が付き、範囲の外は探していないと返る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U13",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "変更の確かめと例外の判断",
+   "actor": "利用者 ・ 監査する人",
+   "goal": "検証と判定と内容の変更の経緯を、対象ごと ・ 目的ごとにあとから確かめる",
+   "success": "対象ごとに、どの意図 ・ どの目的で ・ どの欄を変えたかと、誰が ・ どの変更の姿で ・ どのインスタンス × rule を判定したかが分かる。いつ ・ 誰が確定したかは、ポートの単位の中身から分かる（出した者と時刻は出どころ付き）",
+   "minimum": "記録の書き換えは変更の差分に出て、AI ・ 人の rule で判定の記録が無いもの ・ 変更の記録が無い書き換えは、記録が無いと分かる",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U14",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "AI と外のツールによる判定",
+   "actor": "harness の作者",
+   "goal": "validator（AI ・ 外のツール）をつなぐ",
+   "success": "判定できる rule が宣言され、宣言の外の rule は unsupported と返る",
+   "minimum": "validator を1つもつながなくても、機械で決まる rule は検証され、残りは unsupported として返る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U16",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "変更の確かめと例外の判断",
+   "actor": "作業した本人",
+   "goal": "セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する（AI の判定を覆すことを含む）",
+   "success": "原因ごとにまとめて判断し、示した入力 ・ 意図に結び付いた人の判定の記録が、手元の DB に入り、結果が変更のまとめに入る。本人が意図を承認したら（変更の記録への I33 に対する人の判定）、まとめを作ってコミットできる。同じ判断を繰り返したものは、x-prompt に上げる材料として引ける",
+   "minimum": "判断されなかったものは unverified のまま残り、verified として見えない。セッションの中でも、承認は人の入口からだけ入る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U17",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "instance の作成と変更",
+   "actor": "利用者",
+   "goal": "既存のファイルを取り込む（導入）",
+   "success": "$schema が1つに決まるファイルはそのままインスタンスになり、決まらないファイルは下書きとして一覧に出る",
+   "minimum": "取り込めなかったファイルは中身が変わらず、理由が返る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U18",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "変更の確かめと例外の判断",
+   "actor": "利用者（チーム）",
+   "goal": "ほかの変更を取り込む",
+   "success": "取り込んだあとの姿で全インスタンスが検証され、状態が変わったものが出る",
+   "minimum": "同じインスタンス × rule の判定 ・ 同じ対象の同じ欄を両方で変えたときは、基盤が片方を選ばず、変更の仕組みの衝突として人に出る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U25",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "変更の確かめと例外の判断",
+   "actor": "変更を見る人（作業した本人か、変更の仕組みで取り込みを承認する人。harness が代わりに始めることもある）",
+   "goal": "変更を確かめる（取り込むかは変更の仕組みで決める）",
+   "success": "条件（目的 ・ 対象）に紐づく変更のまとめが、意図 ・ 意味の変更 ・ 意図の判定の結果（I33 と人の承認）・ 変更後の検証の結果と一緒に出て、例外が件数と一緒に先頭に出る。作業した本人の手元では、セッションで引いた1件ずつの変更の記録も出る",
+   "minimum": "見ても契約 ・ インスタンス ・ 記録 ・ 手元の索引は変わらない。意図は書き換わらずに出て、意図の無い変更 ・ 意図に入らない未確定の変更 ・ この前後に無い変更の記録は、そうだと分かる。変更の仕組みが前後を返さないときは、見せたことにしない",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U26",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味で探す",
+   "actor": "harness の作者",
+   "goal": "探す範囲（文脈の地図）を宣言する",
+   "success": "宣言した文脈の集まりを1つの索引で引け、探した結果に範囲が付く",
+   "minimum": "地図に無い文脈は、探していないと返る",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U28",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味で探す",
+   "actor": "AI の Agent（目的のセッション）",
+   "goal": "問いに、出どころ付きの答えを返す（Semantic Search）",
+   "success": "semantic-search の procedure に従って問いを where ・ select に直し、search の結果を答えのスキーマで返す。答えの出どころ（id ・ kind ・ 版 ・ where ・ select）を validate が評価し直すと同じ値になる",
+   "minimum": "範囲の外は探していないと返る。出どころを評価し直して合わなければ violated になる",
+   "status": "直した",
+   "why": "主体が1つの目的を果たして用が済む（境界4）"
+  },
+  {
+   "id": "U23",
+   "level": "subfunction",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の宣言",
+   "actor": "作者",
+   "goal": "Concrete の拡張項目を足す ・ 変える",
+   "success": "定義した x- が形 ・ 意味 ・ 検証の仕方 ・ 名前の範囲を持ち、その x- を使う全インスタンスが宣言した検証の仕方で検証される",
+   "minimum": "検証の仕方が書けない x- は unsupported として返り、Abstract の拡張項目とぶつかる定義は違反として返る",
+   "status": "直した",
+   "why": "U1 ・ U2 の2つから使われ、unsupported という固有の失敗を持つサブ機能（境界2 ・ 5）",
+   "called_by": [
+    "U1",
+    "U2"
+   ]
+  },
+  {
+   "id": "U24",
+   "level": "subfunction",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の宣言",
+   "actor": "作者",
+   "goal": "ほかの文脈の公開された言葉（Concrete の公開する部分）を x-relationship で読む",
+   "success": "読む側は、指した公開された言葉の版で検証され続ける",
+   "minimum": "読む先の版が無い ・ 読む先が新しい版だけを出したときは、読む側の検証にそう出て、黙って壊れない。探した結果には探した範囲が付き、範囲の外は探していないと返る",
+   "status": "直した",
+   "why": "U1 ・ U2 の中で、ほかの文脈の公開された言葉を x-relationship で読む手順。2つから呼ばれる（境界2）",
+   "called_by": [
+    "U1",
+    "U2"
+   ]
+  },
+  {
+   "id": "U27",
+   "level": "summary",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "目的ごとのセッションの管理",
+   "actor": "オーケストレーターのセッション（リポジトリに1つ。入れ子にしない。人が直接始めた最上位のセッションもこれ）",
+   "goal": "目的のセッションを立て、ID で再開して進める（役割ごとに子のセッションに任せることを含む）",
+   "success": "目的のあいだは同じセッションが ID で続く。子のセッションには親がまとめた引き継ぎのプロンプトが渡り、渡したものが残る。子はほかを呼ばず、決めきれない点を needs で親に返す。目的と、そのセッションと子のセッションで書いた変更の記録が、あとから引ける",
+   "minimum": "子が答えない ・ 誤った形で答えたときは error として親に返り、子がそれまでに書いた変更の記録は消えずに残る",
+   "status": "直した",
+   "why": "目的のあいだ何度かに分けて進める要約。下のユーザー目的は、子に任せる N3 と、セッションの中で行う U2 ・ U5 ・ U6 ・ U10 ・ U16 ・ U25（境界2）",
+   "calls": [
+    "N3",
+    "U2",
+    "U5",
+    "U6",
+    "U10",
+    "U16",
+    "U25"
+   ],
+   "steps": [
+    "目的のセッションを立てる",
+    "目的のセッションを ID で再開する",
+    "目的のセッションを閉じる"
+   ]
+  },
+  {
+   "id": "N3",
+   "level": "user-goal",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "目的ごとのセッションの管理",
+   "actor": "オーケストレーターのセッション",
+   "goal": "役割ごとに子のセッションに任せる",
+   "success": "子のセッションに、親がまとめた引き継ぎのプロンプトが渡り、子が結果か needs を返す",
+   "minimum": "子が答えない ・ 誤った形で答えたときは error として親に返り、子が書いた変更の記録は消えずに残る",
+   "status": "新規（案）",
+   "why": "U27 の下のユーザー目的（境界2）"
+  },
+  {
+   "id": "S1",
+   "level": "subfunction",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の検証",
+   "actor": "呼ぶ側の主体（作者 ・ AI の Agent ・ CI）",
+   "goal": "検証する",
+   "success": "対象の文書が、従う契約のすべての rule について5つの値のどれかを持つ",
+   "minimum": "検証できない rule は unsupported か error として返り、verified に数えない",
+   "status": "直した",
+   "why": "複数のユースケースから呼ばれる（境界2）",
+   "called_by": [
+    "U1",
+    "U2",
+    "U3",
+    "U5",
+    "U6",
+    "U8",
+    "U10",
+    "U17",
+    "U18",
+    "U28"
+   ]
+  },
+  {
+   "id": "S2",
+   "level": "subfunction",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "変更の確かめと例外の判断",
+   "actor": "作業した本人か AI の Agent",
+   "goal": "変更を記録する",
+   "success": "意図 ・ 目的の参照 ・ 変えた欄が、未確定の変更の記録として手元に残る",
+   "minimum": "記録できなければ理由が返り、記録の無い変更はまとめで例外として分かる",
+   "status": "直した",
+   "why": "複数のユースケースから呼ばれる（境界2）",
+   "called_by": [
+    "U2",
+    "U5",
+    "U6",
+    "U11",
+    "U16",
+    "U17"
+   ]
+  },
+  {
+   "id": "S3",
+   "level": "subfunction",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "変更の確かめと例外の判断",
+   "actor": "作業した本人",
+   "goal": "変更のまとめを作る",
+   "success": "前回のコミットからの変更の記録と例外が、まとめ1件になる",
+   "minimum": "記録の無い変更と前後を取れない変更は、例外として出る",
+   "status": "直した",
+   "why": "複数のユースケースから呼ばれる（境界2）",
+   "called_by": [
+    "U16",
+    "U25"
+   ]
+  },
+  {
+   "id": "S4",
+   "level": "subfunction",
+   "scope": "基盤（Semantic Agent Schema）",
+   "area": "意味の宣言",
+   "actor": "AI の Agent",
+   "goal": "セマンティックの手順を返す",
+   "success": "操作ごとの手順 ・ 入力の形 ・ 出力の形が返る",
+   "minimum": "知らない操作は断られ、何も変わらない",
+   "status": "直した",
+   "why": "複数のユースケースから呼ばれる（境界2）",
+   "called_by": [
+    "U1",
+    "U2",
+    "U3",
+    "U5",
+    "U6",
+    "U10",
+    "U16",
+    "U17",
+    "U28"
+   ]
+  }
+ ],
+ "removed": [
+  {
+   "id": "U7",
+   "goal": "契約の変更で violated になったインスタンスを、同じ変更の中で直す",
+   "why": "いつ要るかを知っているのは契約を変える U2。U2 の拡張「violated が出た：」から U6 を呼べば足りる（usecase-advisor ・ extension-use-case）"
+  },
+  {
+   "id": "N1",
+   "goal": "目的のセッションを立てる",
+   "why": "それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）"
+  },
+  {
+   "id": "N2",
+   "goal": "目的のセッションを ID で再開する",
+   "why": "それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）"
+  },
+  {
+   "id": "N4",
+   "goal": "目的のセッションを閉じる",
+   "why": "それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）"
+  }
+ ]
+}
