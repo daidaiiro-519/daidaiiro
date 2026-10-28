@@ -16,20 +16,21 @@
 
 | もの | 中身 |
 |---|---|
-| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編15枚＋付録28枚。ブラウザで開き、矢印キーでめくる |
-| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編29枚＋付録14枚 |
+| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編14枚＋付録23枚。ブラウザで開き、矢印キーでめくる |
+| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編28枚＋付録9枚 |
 | [要点版の1ページ版](proposal/out/director-deck-brief-all.html) ・ [詳細版の1ページ版](proposal/out/director-deck-all.html) | 全枚を縦に並べた版。通し読みに使う |
 | [要点版の発表原稿](proposal/out/speaker-notes-brief.md) ・ [詳細版の発表原稿](proposal/out/speaker-notes.md) | 各枚に対応する原稿 |
-| [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
-| [アンケート・効果測定案](proposal/out/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 試用記録と、Microsoft Forms での実装 |
-| [Forms の Copilot に渡すプロンプト](proposal/out/forms-copilot-prompts.md) | 事前 ・ 中間 ・ 終了時の3本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
+| [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数。旧い到達像のままで、見直し前 |
+| [アンケート・効果測定案](proposal/out/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 答えやすさの方針と、Microsoft Forms での実装 |
+| [Forms の Copilot に渡すプロンプト](proposal/out/forms-copilot-prompts.md) | 事前 ・ 参加時 ・ 参加者の終了時 ・ 参加しなかった希望者の終了時の4本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
 | [全枚の一覧画像](proposal/out/overview.png) | 詳細版の全枚を1枚に並べた画像 |
 
 `proposal/out/` には常に最新版を置く。前の版は `proposal/out/versions/<版>/` に、同じファイル名のまま残す。
 
 | 版 | 置き場所 | 日付 | 内容 | 記録 |
 |---|---|---|---|---|
-| v3（最新） | `proposal/out/` | 2026-10-07 | ワークショップの目的を「目的を正しく言葉にしてAIに伝え、達成できるようになる」、期待する効果を「作業をAIに任せられる」にした。コースをやめて目的ごとに作った仕組みを誰が使うかを決める形にし、教材1〜3の進め方の枚と施策の区切りの枚を足し、順番を並べ替えた。主KPIの目的の明確化率を本人の実感で数える形にした | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
+| v4（最新） | `proposal/out/` | 2026-10-28 | 企画の目的を「AIの活用を、仕事全体の生産性と品質の改善につなげる」に改め、教材名と三教材の役割を共通方針と正式版のオリエンテーションに合わせた。「この企画の本質」を外し、目的を背景の次へ移した。主KPIを目的と要件の明確化率と改善の達成率にし、アンケートを事前7問・参加時は改善1件で8問に絞って、回答フォームをワイヤーフレームで示した。定員を15〜20名にした | [ACDR 0209](../../../.acdr/0209-企画書の正式版改訂/) |
+| v3 | `proposal/out/versions/v3/` | 2026-10-07 | ワークショップの目的を「目的を正しく言葉にしてAIに伝え、達成できるようになる」、期待する効果を「作業をAIに任せられる」にした。コースをやめて目的ごとに作った仕組みを誰が使うかを決める形にし、教材1〜3の進め方の枚と施策の区切りの枚を足し、順番を並べ替えた。主KPIの目的の明確化率を本人の実感で数える形にした | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
 | v2 | `proposal/out/versions/v2/` | 2026-09-29 | 身につける力を目的をAIで達成する力へ、主KPIを目的の達成へ改め、次の期の扱いを目指す姿と組織への浸透へ置き換えた | [ACDR 0032](../../../.acdr/0032-企画書を目的の軸へ改める/) |
 | v1 | `proposal/out/versions/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にした版 | ── |
 
