@@ -12,4 +12,7 @@
   <lexeme><grapheme>Skills</grapheme><alias>スキル</alias></lexeme>
   <lexeme><grapheme>Skill</grapheme><alias>スキル</alias></lexeme>
   <lexeme><grapheme>PR</grapheme><alias>プルリクエスト</alias></lexeme>
+  <lexeme><grapheme>SIer</grapheme><alias>エスアイヤー</alias></lexeme>
+  <lexeme><grapheme>GitHub</grapheme><alias>ギットハブ</alias></lexeme>
+  <lexeme><grapheme>Confluence</grapheme><alias>コンフルエンス</alias></lexeme>
 </lexicon>
