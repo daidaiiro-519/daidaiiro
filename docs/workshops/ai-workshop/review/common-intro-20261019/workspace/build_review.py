@@ -107,6 +107,9 @@ def publish():
     if orientation_track.get('orientation_review_input'):
         override = json.loads((repo / orientation_track['orientation_review_input']).read_text())
         next(item for item in data if item['id'] == 'orientation').update(override)
+    if orientation_track.get('proposal_review_input'):
+        for key, override in json.loads((repo / orientation_track['proposal_review_input']).read_text()).items():
+            next(item for item in data if item['id'] == key).update(override)
     text = text[:match.start(2)] + json.dumps(data, ensure_ascii=False).replace('</', '<\\/') + text[match.end(2):]
     start = text.index('<article id="lead-review-notice">')
     end = text.index('</article>', start)
