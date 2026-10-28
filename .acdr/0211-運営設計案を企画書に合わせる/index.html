@@ -1,0 +1,631 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>運営設計案を企画書の正式版に合わせる</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code td.cd code{background:none;padding:0;border-radius:0;font-size:inherit;font-family:inherit;white-space:inherit}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper);overflow-x:auto}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0211 ・ 2026-10-28 ・ <span class="tag">承認</span></p><h1>運営設計案を企画書の正式版に合わせる</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">運営設計案を、正式版の企画書（ACDR 0209）と同じ目的・教材・指標・費用の内容に改める。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>運営設計案は手で書いた文書で、企画書の改訂に追随していなかった。旧い到達像、旧教材名、旧いKPIとコース、定員15名、禁じた語「目的の高さ」が残っており、正式版の企画書と食い違う。</p></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>到達点</td><td>自分の目的をAIで達成できるようになる。</td><td>AIの活用を、仕事全体の生産性と品質の改善につなげる。</td></tr><tr><td>教材と指標</td><td>目的の把握・言葉の定義・仕組みの構築。目的の明確化率・目的達成率と、2つのコース。</td><td>目的と要件の明確化・業務のモデル化と設計・AI活用の実践と改善。目的と要件の明確化率・改善の達成率と、自分だけで使う／チームでも使う区分。</td></tr><tr><td>定員と費用</td><td>先着15名、月 $300。</td><td>先着15〜20名、月 $300〜$400。</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>運営設計案を削除し、企画書とアンケート・効果測定案だけを残す。</td><td>運営の細部（支援の運用、提出物、工数の試算、部長と確認する事項）は、企画書のスライドに載っていない。</td></tr><tr><td>旧版のまま残し、冒頭に「旧版」と注記する。</td><td>README から最新の運営案として案内しており、読んだ人が旧い条件で準備を進めるおそれがある。</td></tr></tbody></table></div></section></div><p class="bridge">ここから下は、この決定で<b>変わるファイルごとの差分</b>である。タブでファイルを切り替える。</p>
+<p class="lede"></p>
+
+<section class="diffs">
+<div id="bar"><b>変更 12 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="plan">運営設計案<span class="n">12</span></button></div>
+<section class="pane md" data-k="plan" hidden><div class="lane"><b>Markdown を描画した文書</b><span class="how">変更箇所 12 件</span></div><details class="idx" open><summary>このファイルの変更 12 件</summary><ol><li><div class="w">冒頭の到達点が、旧い到達像（自分の目的をAIで達成する）と旧教材名のままだった。正式版の企画書の目的と三教材の紹介名に合わせる。</div><div class="at"><span class="lbl">場所</span><code>AIの活用を、仕事全体の生産性と品質の改善につなげることを目指す。</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">背景の原因を「人ごとに違う仕組み」とする旧い説明を、企画書3枚目の背景（作成は速くなったが確認と修正の負担は残る）に合わせる。</div><div class="at"><span class="lbl">場所</span><code>作成が速くなった分、確認する対象も増える。</code><button class="go" data-i="1">その箇所へ移動</button></div></li><li><div class="w">利用者が2026-10-26に定員を15〜20名へ変えた。教材の公開時期、参加条件の書き方、共有の形を、企画書とオリエンテーションに合わせる。人気投票は企画書から外したため除く。</div><div class="at"><span class="lbl">場所</span><code>定員は、2026-10-26に先着15〜20名へ変更した</code><button class="go" data-i="2">その箇所へ移動</button></div></li><li><div class="w">企画書で「この企画の本質」の枚を外し、身につける4つの力を目的の枚へ移したため、節を「企画の目的と身につける力」に置き換える。</div><div class="at"><span class="lbl">場所</span><code>企画の目的は、AIの活用を、仕事全体の生産性と品質の改善につなげることである。</code><button class="go" data-i="3">その箇所へ移動</button></div></li><li><div class="w">施策の目標を企画書6枚目と同じ言葉にし、定員を15〜20名にする。</div><div class="at"><span class="lbl">場所</span><code>ワークショップだけでは、身につけたやり方は参加者の中にとどまる。</code><button class="go" data-i="4">その箇所へ移動</button></div></li><li><div class="w">「毎回、同じ品質のアウトプットが得られる」という保証の書き方を、企画書9枚目の期待する効果（残るものと業務の変化、効果は実践で検証する）に合わせる。</div><div class="at"><span class="lbl">場所</span><code>教材で学んだ考え方を業務に残し、問題に早い段階で気づけるようにする。</code><button class="go" data-i="5">その箇所へ移動</button></div></li><li><div class="w">主KPIと補助の指標、コースの区分を、企画書とアンケート・効果測定案の新しい定義に合わせる。旧いコース（自分で達成する／チームに広げる）は使わない。</div><div class="at"><span class="lbl">場所</span><code>目的と要件の明確化率</code><button class="go" data-i="6">その箇所へ移動</button></div></li><li><div class="w">旧教材名と「言葉の定義」を、三教材の紹介名と役割に改める。工程ごとに別のAgentを置かないこと、Skillsだけで品質は保証されないことを共通方針に合わせて書く。</div><div class="at"><span class="lbl">場所</span><code>目的と要件の明確化（教材1）</code><button class="go" data-i="7">その箇所へ移動</button></div></li><li><div class="w">各月にすることを、企画書16枚目とオリエンテーション12枚目の進め方に合わせる。</div><div class="at"><span class="lbl">場所</span><code>判断の観点と手順をSkillsにまとめて、小さく試す</code><button class="go" data-i="8">その箇所へ移動</button></div></li><li><div class="w">提出物を、ポータルに載せる項目（目的と要件・判断の観点と手順・使い方・試した結果と改善）に合わせる。</div><div class="at"><span class="lbl">場所</span><code>動くSkills</code><button class="go" data-i="9">その箇所へ移動</button></div></li><li><div class="w">利用者が示した基盤づくりの考え方（運営は環境を作り発信し、利用者は受けて事例を共有して循環させる）に合わせる。禁じた語「目的の高さ」を使った説明を、教材1の考え方の説明に改める。</div><div class="at"><span class="lbl">場所</span><code>運営と利用者は、どちらも受け身にならず、発信と共有を往復させる。</code><button class="go" data-i="10">その箇所へ移動</button></div></li><li><div class="w">定員15〜20名に合わせて、Kiroの費用と最終共有会の時間を見直し、お願いする事項を企画書28枚目と同じ5つにする。料金は2026-10-27に公式の料金ページで照合した。</div><div class="at"><span class="lbl">場所</span><code>15〜20名で月 $300〜$400、3か月で $900〜$1,200 となる（</code><button class="go" data-i="11">その箇所へ移動</button></div></li></ol></details><div class="doc"><h1>社内AI人材育成ワークショップ：運営設計案</h1>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="参加した人が、自分の目的をAIで達成できるようになることを目指す。そのために、目的を捉えること（教材1　目的の把握）、言葉を統一すること（教材2　言葉の定義）、仕組みにすること（教材3　仕組みの構築）の3つを身につける。どれも、目的に合わせて、どこまで具体的に決めるかを見極める考え方を土台にする。この考え方は教材1で最初に学ぶ。
+
+参加者は自分が実現したい目的を選び、エージェントやSkillsを使って仕組みを作る。目的の選択と解法の判断を参加者に委ね、3つの教材と継続的な相談で支える。" data-w="冒頭の到達点が、旧い到達像（自分の目的をAIで達成する）と旧教材名のままだった。正式版の企画書の目的と三教材の紹介名に合わせる。">AIの活用を、仕事全体の生産性と品質の改善につなげることを目指す。</mark>参加者は、自分の業務に合ったSkillsを作り、Agentsで作業を進め、結果を確認して改善できるようになる。そのために、三つの教材で、<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="教材は3つで、前の教材で決めたことを、次の教材で前提にする構成である。3つとも、1つの案件（経費精算システムの入れ替え）を題材にした音声付きのスライド動画である。教材では組織への浸透の狙いを説明しない。受講者に向けて説明するのは、目的をAIで達成できるようになることだけである。
+
+| 教材 | 名前 | 担当する段 |
+|---|---|---|
+| 教材1 | 目的の把握 | 目的を捉え、どこまで具体的に決めるかを見極めてAIへの指示に書く（意味・範囲・条件） |
+| 教材2 | 言葉の定義 | SkillやAgentの中で使う言葉が何を指すかを、チームで統一する |
+| 教材3 | 仕組みの構築 | 仕組み（Skill・Agent）を作り、目的と言葉の定義を添えてチームに渡す |
+
+チームで使われるまでの土台は、考え方と言葉をチームで統一することである。教材1の考え方（目的を捉え、目的に合った高さを設定する）と、教材2の言葉が統一されていれば、作った人以外がSkillやAgentを直しても、同じ考え方で直る。統一されていないと、別の考え方の修正が別のパターンとして蓄積し、仕組みの文書が陳腐化する。そのうえで、チームで定期的に振り返りの場を開き、どの仕組みの、どこで、何がうまくいかないかを持ち寄る。形は、レトロスペクティブ・イベントストーミング・ブレインストーミングなど、チームに合うものを選ぶ。
+
+教材は、社内のナレッジ共有ポータルで、準備期間の希望者に提供する。ポータルには、教材動画と参加者の成果物を集める。成果物は、参加者が作った仕組みを、目的・使い方・試した記録と一緒に載せる。そのうえで、カテゴリとタグを設計し、目的に合う仕組みにたどり着きやすくする。目的そのものでは分類しない。希望した人も、ポータルで探して、自分の業務で試したり、作るときの参考にしたりできる。今期はトライアルとし、利用者はワークショップの参加者と希望者に限る。うまくいけば、AI活用を促進する基盤づくりで、部内へ広げる取り組みにつなげる。
+
+教材1は制作中で、教材2・3は構成案である。10月の事前アンケートのあと、10月2週目にオリエンテーションと教材1を公開し、教材2・3は12月までに順次公開する。動画は1本8分程度を目安に分割する。視聴だけで終えず、本人の業務の目的について一つ考えてメモする。
+
+操作教材は、Kiroでファイルや設定を用意し、読み込ませ、実行し、結果を確認するまでの最小構成にする。形式を学ぶための意味の薄い短文などを入力にし、業務改善の完成例を再現する課題にはしない。Agent Skillsとエージェント設定の基本的な書き方は示す。
+
+用途の紹介は、参加者が実現したい目的を一度書いた後に行う。資料作成・データ分析・可視化・Web画面などの可能性を短く示し、完成テンプレートの配布を必須にしない。試作が始まってから他の人の発想に触れる機会を増やす。" data-w="旧教材名と「言葉の定義」を、三教材の紹介名と役割に改める。工程ごとに別のAgentを置かないこと、Skillsだけで品質は保証されないことを共通方針に合わせて書く。">目的と要件の明確化（教材1）</mark>、業務のモデル化と設計（教材2）、AI活用の実践と改善（教材3）を順に学ぶ。</p>
+<p>参加者は、自分の業務で改善したいことと、何が変われば達成かを決め、学んだ考え方を判断の観点と手順としてSkillsにまとめて試す。改善したいことの選択と解法の判断は参加者に委ね、三つの教材と継続的な相談で支える。</p>
+<p>部長向けの説明は [スライド](director-deck.html)（38枚）、話す内容は [発表原稿](speaker-notes.md) を参照する。本書は開催条件を詰めるための案であり、以下の提案事項は確定していない。</p>
+<h2>背景</h2>
+<p>AIの登場で、資料や設計書、コード、テストを作成する負担は大きく下がった。一人でも、短時間で作成できるようになった。ただし、作成したものをそのまま使えるわけではない。要件や元の情報と照合し、合わなければ修正して再確認する。<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="AIの台頭で、モノを作る難易度は大きく下がった。資料やアプリ、ツールなど、これまで技術的な障壁があったものを、AIを使えば一人でも作れるようになった。一人で作れるようになったぶん、何をどこまで作るかは、その人しだいになった。しかし現場では、生産性が上がりきらず、AI活用がなかなか進まない。個人のAI活用のレベルは人によってさまざまである。スキルの高い人は、自分の仕事を進めやすいように仕組みを作り、自分の作業効率を上げている。ただ、それがチームのやり方としてなかなか浸透していない。一部の人の効率は上がっていても、チームや組織での活用はなかなか進まないと感じている人が多い。人ごとに仕組みが増え、全体の手間はかえって増えている可能性もある。
+
+問われているのは、個人の効率ではない。チームや組織の目的を、AIで達成できるかである。足りないのは、AIを使う人ではない。目的に対してAIを正しく使い、目的を達成できる人である。道具を配布するだけでは、この状態は変化しない。" data-w="背景の原因を「人ごとに違う仕組み」とする旧い説明を、企画書3枚目の背景（作成は速くなったが確認と修正の負担は残る）に合わせる。">作成が速くなった分、確認する対象も増える。</mark></p>
+<p>何をどう確認するかは、人によって異なることがある。経験から身につけた確認の観点が、チームで共有されていない場合もある。観点が共有されていないと、見落としが後の工程で見つかり、手戻りにつながる。その結果、作成は速くなっても、案件全体の工数や期間は短縮されないことがある。</p>
+<p>問われているのは、作成の速さだけではない。AIの活用が、確認や修正まで含めた仕事全体の生産性と品質の改善につながっているかである。AIツールを導入するだけでは、この状況は変わりにくい。</p>
+<h2>決まっている条件と、今回の提案</h2>
+<div class="scroll"><table><tr><th>区分</th><th>内容</th></tr><tr><td>決定済み：目的</td><td>0から1を作る能力と考え方の育成。将来の課題探索や価値創出の土台を作る</td></tr><tr><td>決定済み：教育方針</td><td>身近な課題を対象とする。概念を中心に教え、具体的な解法を与えすぎない。用途のヒントは紹介できる</td></tr><tr><td>決定済み：対象</td><td>業務を問わず、挙手制。10月開始、下期を通じて実施。<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="| 区分 | 内容 |
+|---|---|
+| 決定済み：目的 | 0から1を作る能力と考え方の育成。将来の課題探索や価値創出の土台を作る |
+| 決定済み：教育方針 | 身近な課題を対象とする。概念を中心に教え、具体的な解法を与えすぎない。用途のヒントは紹介できる |
+| 決定済み：対象 | 業務を問わず、挙手制で定員15名。10月開始、下期を通じて実施（本書では、10〜12月を希望者の準備期間とし、12月中に参加を受け付けて先着15名を決め、1月から3か月実施する案を提案する） |
+| 決定済み：進め方 | 日常の学習は各自で進め、中間発表はTeamsのWeb会議で行う。ナレッジを持つ運営が学習コンテンツとTeamsで支援する（本書では中間発表を置かず、途中は任意の相談とする案を提案する） |
+| 決定済み：ツール | Kiro・Claude・Copilotを使える。Kiroは参加者15名にアカウントとAWS環境を発行する |
+| 決定済み：教材の構想 | エージェントの利用・作成・可能性を説明する概念スライドと、音声付き動画 |
+| 提案：期間 | 10〜12月を準備期間、2027年1月〜3月の3か月をワークショップの期間とする。準備期間は希望者が対象で、10月に事前アンケートを取り、動画の視聴を希望した人にナレッジ共有ポータルのアカウントを発行したあと、10月2週目にオリエンテーションと教材1を公開し、教材2・3を12月までに順次公開する。ワークショップは、12月中の参加時アンケートで目的を書けた人を先着15名で受け付け、1月にAWS環境とKiroのアカウントを発行する。半年では途中で中だるみしやすいため、ワークショップは四半期にまとめる |
+| 提案：参加形態 | 個人の課題と試作を基本にする。参加者は他の人の成果物の利用者となり、専門的な支援は運営が担当する |
+| 決定済み：参加条件 | 参加者は期間中に各自で時間を見つけて進める。開始時に目的・作る仕組み・利用者・達成条件を決める。開始時は、教材をすべて視聴したあとの12月の参加時アンケートの時点と解釈する。参加時アンケートでは、AIで実現したい目的と、その達成に必要なことを書く形で記入する。目的はいくつ書いてもよく、取り組む目的もいくつ選んでもよい |
+| 提案：発表 | 3月に軽食を囲む最終共有会（オフライン交流会）を1回行う。途中は、相談したい人だけが使う任意の相談の場を置く。人気投票の詳細は提案 |
+| 決定済み：効果測定の方針 | 事前・中間・終了時のアンケートによる定量評価と、できるようになったことの定性評価を報告の主軸にする（本書では、事前（10月）・参加時（12月）・終了時（3月）の3時点で測る案を提案する。終了時は、参加者と、参加しなかった希望者の2本に分ける） |
+| 提案：相談 | Teamsで相談をいつでも受け付ける。相談が入れば、予定を組んでスポット相談会を開く |" data-w="利用者が2026-10-26に定員を15〜20名へ変えた。教材の公開時期、参加条件の書き方、共有の形を、企画書とオリエンテーションに合わせる。人気投票は企画書から外したため除く。">定員は、2026-10-26に先着15〜20名へ変更した</mark>（本書では、10〜12月を希望者の準備期間とし、12月中に参加を受け付けて先着15〜20名を決め、1月から3か月実施する案を提案する）</td></tr><tr><td>決定済み：進め方</td><td>日常の学習は各自で進め、中間発表はTeamsのWeb会議で行う。ナレッジを持つ運営が学習コンテンツとTeamsで支援する（本書では中間発表を置かず、途中は任意の相談とする案を提案する）</td></tr><tr><td>決定済み：ツール</td><td>Kiro・Claude・Copilotを使える。Kiroは参加者にアカウントとAWS環境を発行する</td></tr><tr><td>決定済み：教材の構想</td><td>エージェントの利用・作成・可能性を説明する概念スライドと、音声付き動画</td></tr><tr><td>提案：期間</td><td>10〜12月を準備期間、2027年1月〜3月の3か月をワークショップの期間とする。準備期間は希望者が対象で、10月に事前アンケートを取り、動画の視聴を希望した人にナレッジ共有ポータルのアカウントを発行する。教材1から公開し、11月から教材2・3を順に公開する。12月中の参加時アンケートで参加を受け付け、1月にAWS環境とKiroのアカウントを発行する。半年では途中で中だるみしやすいため、ワークショップは四半期にまとめる</td></tr><tr><td>提案：参加形態</td><td>個人の課題と試作を基本にする。作ったSkillsを自分だけで使うか、チームでも使うかは、改善したいことに合わせて参加者が決める</td></tr><tr><td>決定済み：参加条件</td><td>参加者は期間中に各自で時間を見つけて進める。開始時に目的・作るもの・使う人・達成条件を決める。開始時は、教材をすべて視聴したあとの12月の参加時アンケートの時点と解釈する。参加時アンケートでは、改善したいことを、誰のためか、何が変われば達成か、達成に必要なことと一緒に書く。改善したいことは最大3件まで書ける</td></tr><tr><td>提案：共有</td><td>3月に軽食を囲む最終共有会（オフライン交流会）を1回行う。途中は、相談したい人だけが使う任意の相談の場を置く</td></tr><tr><td>決定済み：効果測定の方針</td><td>事前・中間・終了時のアンケートによる定量評価と、できるようになったことの定性評価を報告の主軸にする（本書では、事前（10月）・参加時（12月）・終了時（3月）の3時点で測る案を提案する。終了時は、参加者と、参加しなかった希望者の2本に分ける）</td></tr><tr><td>提案：相談</td><td>Teamsで質問と相談をいつでも受け付ける。話しながら確認した方がよい場合は、日程を決めて相談会を開く</td></tr></table></div>
+<h2>企画の目的と身につける力</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="多くの職場で、CopilotやChatGPT、Claudeを使える環境が整ってきた。開発では、Kiro、Claude Code、GitHub Copilot、Codexなどを使えるところもある。ただ、同じツールを使っていても、成果には差が出ている。この差は、ツールの操作に詳しいかどうかでは生まれない。何を実現したいのかという目的を捉え、その目的に必要なことをAIに指示できているかで生まれる。目的が曖昧なまま依頼すると、AIの出力は毎回ばらつき、頼み直しが続く。しかも、目的を達成できたやり方は本人の中に閉じ、共有されていないか、共有されていても浸透していない。
+
+ツールの操作は、ツールが変われば覚え直しになる。一方で、目的を捉えてAIで達成する力は、どのツールを使っても発揮できる。だから、身につけたいのはAIツールの使い方ではなく、自分やチームの目的を、AIで達成できるようになることである。本企画は、そこを目指す。組織として目指す姿は、「AI活用を促進する基盤づくり　組織の取り組み」の節に置く。" data-w="企画書で「この企画の本質」の枚を外し、身につける4つの力を目的の枚へ移したため、節を「企画の目的と身につける力」に置き換える。">企画の目的は、AIの活用を、仕事全体の生産性と品質の改善につなげることである。</mark>そのために、参加者が次の4つの力を身につける。</p>
+<div class="scroll"><table><tr><th>力</th><th>内容</th><th>学ぶ教材</th></tr><tr><td>1</td><td>何を実現し、どんな要件を満たすかを明確にする</td><td>教材1</td></tr><tr><td>2</td><td>業務で扱う対象や判断、守る条件をモデルに表し、設計へつなぐ</td><td>教材2</td></tr><tr><td>3</td><td>その考え方を、判断の観点と手順としてSkillsにまとめる</td><td>教材3</td></tr><tr><td>4</td><td>Skillsを使って作業を進めるAI（Agents）で作業し、結果を人が根拠と照らして確認し、改善する</td><td>教材3</td></tr></table></div>
+<p>Skillsは、判断の観点と手順をまとめ、AIが作業のたびに使えるようにしたものである。Agentsは、Skillsを使って作業を進めるAIである。どれも特定のツールの操作ではなく、ツールが替わっても使える力である。</p>
+<p>成果の差は、ツールの操作に詳しいかどうかでは埋まらない。確認の観点が人によって違うままでは、AIで速く作っても、手戻りは減りにくい。何を実現し、何を確かめるかを、AIが使える形にできるかが差になる。</p>
+<h2>企画の構成</h2>
+<p>企画は2つの施策で構成する。1つ目はワークショップで、参加者が、AIを使って自分の業務を改善できるようになる。2つ目はAI活用を促進する基盤づくりで、AIを使った改善のやり方が、部内で共有され、使い続けられるようにする。<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="企画は2つの取り組みで構成する。1つ目はワークショップで、参加した人が目的をAIで達成できるようになる。2つ目はAI活用を促進する基盤づくりで、運営がそのやり方を組織に根付かせる。運営が仕組みを作り、参加者が使う。両者は、目的をAIで達成するやり方が定着した組織という同じ方向を向く。
+
+| 部 | 主体 | 目標 | 本書の節 |
+|---|---|---|---|
+| ワークショップ | 参加者（12月の参加時アンケートで先着15名） | 個人とチームで、目的をAIで達成する | 期待する効果 〜 最低限の提出物 |
+| AI活用を促進する基盤づくり | 運営（人を選んだ少数・約3名） | 目的をAIで達成することが、組織に根付き自然に続く | AI活用を促進する基盤づくり |" data-w="施策の目標を企画書6枚目と同じ言葉にし、定員を15〜20名にする。">ワークショップだけでは、身につけたやり方は参加者の中にとどまる。</mark>基盤づくりで部内に広げる。</p>
+<div class="scroll"><table><tr><th>施策</th><th>主体</th><th>目標</th><th>本書の節</th></tr><tr><td>ワークショップ</td><td>参加者（12月の参加時アンケートで先着15〜20名）</td><td>AIを使って、自分の業務を改善できるようになる</td><td>期待する効果 〜 最低限の提出物</td></tr><tr><td>AI活用を促進する基盤づくり</td><td>運営チーム（人選した約3名）</td><td>AIを使った改善のやり方が、部内で共有され、使い続けられる</td><td>AI活用を促進する基盤づくり</td></tr></table></div>
+<p>ワークショップで実践した事例とSkillsをポータルに載せ、運営は事例と機会を発信する。両者で、仕事全体の改善が部内で続く状態を目指す。</p>
+<h2>期待する効果</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="3つを身につけると、仕事の進め方が変わる。AIのアウトプットに再現性が出る。チームでは品質が一定になり、新しく入ったメンバーの立ち上げも早くなる。
+
+| 層 | いま | 身につけると |
+|---|---|---|
+| 個人 | AIへの頼み方が毎回変わり、返ってくるものの品質も毎回違う | 毎回、同じ品質のアウトプットが得られる（再現性がある） |
+| チーム | うまくいった頼み方は、書いた本人しか知らない。新しく入ったメンバーは、一から覚える | チームでAI活用が進み、品質が一定になる。新しく入ったメンバーも同じ仕組みを使え、立ち上げのコストが下がる |
+
+組織の層で何を目指すかは、AI活用を促進する基盤づくりで示す。効果をどう確認するかは、「到達目標と評価」の節で示す。" data-w="「毎回、同じ品質のアウトプットが得られる」という保証の書き方を、企画書9枚目の期待する効果（残るものと業務の変化、効果は実践で検証する）に合わせる。">教材で学んだ考え方を業務に残し、問題に早い段階で気づけるようにする。</mark>効果の大きさは、実践を通じて検証する。</p>
+<div class="scroll"><table><tr><th>教材</th><th>業務に残るもの</th><th>期待する業務の変化</th></tr><tr><td>教材1　目的と要件の明確化</td><td>作業ごとの目的・要件と、達成の基準</td><td>要件の解釈のずれに、作成前やレビューで気づきやすい</td></tr><tr><td>教材2　業務のモデル化と設計</td><td>業務のモデルと、設計の理由</td><td>変更の影響を把握しやすく、確認の範囲を絞り込みやすい</td></tr><tr><td>教材3　AI活用の実践と改善</td><td>判断の観点と手順をまとめたSkills</td><td>AIと人が同じ観点で確認でき、確認の質が人に左右されにくい</td></tr></table></div>
+<p>目指すのは、必要な品質を満たしながら、手戻りと確認・修正の手間を減らし、案件全体の工数と期間を短縮することである。Skillsが残るため、担当者が替わっても、同じ観点で確認できる。AIの結果は、これからも人が確認する。組織の層で何を目指すかは、AI活用を促進する基盤づくりで示す。効果をどう確認するかは、「到達目標と評価」の節で示す。</p>
+<h2>到達目標と評価</h2>
+<p>参加者は、改善したいことを決め、学んだ考え方をSkillsにまとめて業務で試し、何が変わったかを確認する。人は、具体を知って初めて、改善したいことを思い描ける。そのため、改善したいことは教材をすべて視聴したあとの12月の参加時アンケートで書く。10月の事前アンケートでは、いまのAIの使い方、確認・修正の手間、チームでの共有を聞き、終了時の比較の元にする。</p>
+<p>主KPIは2つを提案し、どちらもアンケートの回答で数える。</p>
+<div class="scroll"><table><tr><th>主KPI</th><th>定義</th></tr><tr><td><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="実現したい目的を言語化し、AIで仕組みを作り、その目的を達成する。人は、具体を知って初めて、実現したい目的を思い描ける。エージェントで何ができるかを知れば、目的の幅も広がる。そのため、目的は教材をすべて視聴したあとに決める。各自が、AIで実現したい目的と、その達成に必要なことを、教材を視聴する前の10月の事前アンケートと、視聴したあとの12月の参加時アンケートで、同じ設問で記入する。事前アンケートでは、まず目的があるかを聞き、まだ無い人には理由を選んでもらう。主KPIは2つを提案し、どちらもアンケートの回答で数える。1つ目は、目的の明確化率で、「最も明確に書けた目的で、書けた観点（何を実現するか・誰のためか・何が変われば達成か・達成に何が必要か）が12月に増えた人／10月と12月の両方に回答した人」とする。2つ目は目的達成率で、「参加時アンケートで取り組むと選んだ目的のうち、1つ以上をAIで達成できたと、根拠と一緒に終了時アンケートで答えた参加者／ワークショップに参加した人」とする。取り組む目的はいくつ選んでもよく、達成した目的の数は指標とは別に添える。主KPIは参加者全員に共通で測り、補助の指標は、参加時アンケートで選んだコースごとに2つずつ測る。自分の業務でAIを使って目的を達成するイメージが、まだ持てていない人は自分で達成するコース、自分では既にAIを使いこなせていて、そのやり方をチームに広げる人はチームに広げるコースを選ぶ。自分で達成するコースの人は、実務でAIを使う人の増加と、個人の変化（AIが出した結果に、不満やストレスを感じる頻度）で測る。チームに広げるコースの人は、作った仕組みについて振り返りの場を開いた割合と、チームの変化（頼み方の共有と、新しく入った人が仕事を始めるまでの期間）で測る。あわせて、AI活用を促進する基盤づくりを先行トライアルとして検証する指標を、同じアンケートとポータルの記録から取る。
+
+個人とチームの変化と、チームで使われた成果物を報告する。設問・尺度・投票方法の正本は [アンケート・効果測定案](survey-and-evaluation.md) とする。同書は、回答をMicrosoft Formsの4本のフォームで集める前提で記述している。事前と参加時は準備期間の希望者が、終了時は参加者と、参加しなかった希望者がそれぞれ回答する。
+
+| 視点 | 実施すること | 残す成果 |
+|---|---|---|
+| 参加者 | 2月に、選んだコースに合わせて使う（自分で達成するコースは自分の業務で、チームに広げるコースはチームで）。最終共有会で発表して投票する | 使える仕組み、利用者の反応、人気作品の表彰 |
+| 運営 | 事前と参加時の目的の記述を、同じ観点で数える | 目的の明確化率 |
+| 運営 | 事前・終了時の同じ項目を比較する | 実務での利用頻度・AIの結果への不満・書き方の共有・立ち上げ期間 |
+| 運営 | 具体的にできたことと、チームで使ってもらった記録を確認する | 定量の変化を説明する実例と、残る課題 |
+
+アンケートの設問は、指標から逆算して置く。担当業務と使えるAIツールを事前に聞き、結果を業務やツールごとに読む軸にする。悩みと欲しい支援は事前回答で確認し、運営が教材や支援を調整する。
+
+人気投票は表彰に使い、学習成果の判定には個人の変化と実例を使う。自己申告と他の人による確認を区別し、同じ人の比較と回答人数を示す。個々の成果物について時間削減などを測れた場合は、条件と確認・修正の手間を添えて補足する。" data-w="主KPIと補助の指標、コースの区分を、企画書とアンケート・効果測定案の新しい定義に合わせる。旧いコース（自分で達成する／チームに広げる）は使わない。">目的と要件の明確化率</mark></td><td>参加時アンケートで、教材を見る前と比べて、改善したい業務の目的と、満たす要件を明確にできるようになったと「そう思う」「ややそう思う」と答えた人の割合。「わからない」は分母から除く</td></tr><tr><td>改善の達成率</td><td>参加時に書いた改善のうち、1件以上を、何が変われば達成か（工数・期間・品質のどれがどう変わるか）に照らして達成したと、根拠と記録を添えて終了時アンケートで答えた参加者の割合。分母は参加者で、開始時点で固定する</td></tr></table></div>
+<p>補助の指標は、作ったSkillsを自分だけで使った人と、チームでも使った人に分けて測る。</p>
+<div class="scroll"><table><tr><th>補助の指標</th><th>定義</th></tr><tr><td>実務でAIを使う人の増加</td><td>この4週間に、仕事でAIを「月に数回」以上使う人の、事前と終了時の変化</td></tr><tr><td>確認・修正の手間の変化</td><td>作ったSkillsを使った業務で、確認や修正の手間が「大きく減った」「少し減った」と答えた人の割合</td></tr><tr><td>チームでの改善の実施</td><td>チームで使った人のうち、振り返りの場を1回以上開いた人の割合</td></tr><tr><td>やり方のチームへの定着</td><td>チームで使った人のうち、AIの使い方の共有が進んだ人と、新しく入った人の立ち上げが短くなった人の割合</td></tr></table></div>
+<p>あわせて、AI活用を促進する基盤づくりを先行トライアルとして検証する指標を、同じアンケートとポータルの記録から取る。設問・尺度・数え方の正本は [アンケート・効果測定案](survey-and-evaluation.md) とする。同書は、回答をMicrosoft Formsの4本のフォームで集める前提で記述している。事前と参加時は準備期間の希望者が、終了時は参加者と、参加しなかった希望者がそれぞれ回答する。</p>
+<p>アンケートは、KPIに使う問いに絞る。事前は7問（約3分）、参加時は改善1件で8問（約5分）とし、各フォームの冒頭で、目的・問いの数と時間・回答を見る人・人事評価に使わないことを示す。</p>
+<div class="scroll"><table><tr><th>視点</th><th>実施すること</th><th>残す成果</th></tr><tr><td>参加者</td><td>2月に、作ったSkillsを業務で使い、確認・修正の手間がどう変わったかを確認する。最終共有会で、何が変わったかを共有する</td><td>使えるSkills、試した結果と改善</td></tr><tr><td>運営</td><td>参加時の明確化の実感と、終了時の改善の達成を数える</td><td>主KPI</td></tr><tr><td>運営</td><td>事前・終了時の同じ項目を比較する</td><td>実務での利用頻度・確認と修正の手間・チームでの共有・立ち上げ期間</td></tr><tr><td>運営</td><td>根拠と記録、チームで使った記録を確認する</td><td>定量の変化を説明する実例と、残る課題</td></tr></table></div>
+<p>自己申告と他の人による確認を区別し、同じ人の比較と回答人数を示す。個々の成果物について時間削減などを測れた場合は、条件と確認・修正の手間を添えて補足する。</p>
+<h2>テーマの選び方</h2>
+<p>テーマは、運営から示さない。何を改善したいかを自分で考えることが、この企画で身につけたいことの一部だからである。改善の姿を思い描けるように、教材の中で例を示す。</p>
+<p>テーマ変更は認める。試した結果と変更理由を残し、規模を小さくすることも前進として扱う。既存のSkillや設定の改良も認め、本人が決めた改善と変更判断を説明できることを求める。</p>
+<h2>教材</h2>
+<p>教材は3つで、前の教材で考えたことを、次の教材の前提にする構成である。合わなければ、前の教材に戻って見直す。3つとも、1つの案件（経費精算システムの刷新）を共通の題材にした音声付きのスライド動画である。教材では組織への浸透の狙いを説明しない。</p>
+<div class="scroll"><table><tr><th>教材</th><th>名前</th><th>学ぶこと</th></tr><tr><td>教材1</td><td>目的と要件の明確化</td><td>作業の目的から、実現する範囲と満たす要件を考える。目的を広げすぎず、具体的な要件と作業に落とし込む</td></tr><tr><td>教材2</td><td>業務のモデル化と設計</td><td>業務で扱う対象・判断・関係と、守るべき条件をモデルに表し、設計へつなげる。業務用語の意味も、そのために確認する</td></tr><tr><td>教材3</td><td>AI活用の実践と改善</td><td>判断の観点と確認の手順をSkillsにまとめる。作業結果を要件や設計と照合し、人が確認して改善する</td></tr></table></div>
+<p>教材3では、一つのAgentが作業を進めながら、工程ごとに必要なSkillsを使う。工程ごとに別のAgentは置かない。Skillsを使うだけで品質が保証されるわけではなく、人が根拠と結果を確認し、Skillsの観点や手順も改善する。</p>
+<p>チームで使う場合は、定期的に振り返りの場を開き、どのSkillsの、どこで、何がうまくいかないかを持ち寄る。形は、レトロスペクティブ・イベントストーミング・ブレインストーミングなど、チームに合うものを選ぶ。</p>
+<p>教材は、社内のナレッジ共有ポータルで、準備期間の希望者に提供する。ポータルには、教材動画と参加者の実践を集める。参加者は、作ったSkillsを、目的と要件・判断の観点と手順・使い方・試した結果と改善と一緒に載せる。そのうえで、カテゴリとタグを設計し、業務に合うSkillsにたどり着きやすくする。希望した人も、ポータルで探して、自分の業務で試したり、作るときの参考にしたりできる。今期はトライアルとし、利用者はワークショップの参加者と希望者に限る。結果がよければ、AI活用を促進する基盤づくりで部内に広げる。</p>
+<p>10月の事前アンケートのあと、教材1から公開し、11月から教材2・3を順に公開し、12月までに3つとも公開する。動画は1本8分程度を目安に分割する。視聴だけで終えず、自分の業務で改善したいことを一つ考えてメモする。</p>
+<p>操作教材は、Kiroでファイルや設定を用意し、読み込ませ、実行し、結果を確認するまでの最小構成にする。業務改善の完成例を再現する課題にはしない。Agent Skillsとエージェント設定の基本的な書き方は示す。</p>
+<p>用途の紹介は、参加者が改善したいことを一度書いた後に行う。資料作成・データ分析・可視化・Web画面などの可能性を短く示し、完成テンプレートの配布を必須にしない。試作が始まってから他の人の発想に触れる機会を増やす。</p>
+<h2>月ごとの進行案</h2>
+<div class="scroll"><table><tr><th>月</th><th>主な活動</th><th>残すもの</th><th>運営の関わり</th></tr><tr><td>準備（10〜12月）</td><td>希望者が教材を見て、改善したい業務と、何が変われば達成かを考える。10月に事前アンケートを取り、ポータルのアカウントを発行する。教材1から公開し、11月から教材2・3を公開する。12月中に参加時アンケートで参加を受け付け、先着15〜20名を決める</td><td>事前の回答、ポータルのアカウント、参加時の回答（改善したいことと達成の基準）、開始案内、利用ルール</td><td>教材2・3の制作、ナレッジ共有ポータルの構築、Kiroの社内版で手順を実行し、運営工数と利用費用を確認</td></tr><tr><td>1月</td><td>目的と要件、業務のモデルを整理し、<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="| 月 | 主な活動 | 残すもの | 運営の関わり |
+|---|---|---|---|
+| 準備（10〜12月） | 希望者が教材を視聴して、実現したい目的を考える。10月に事前アンケートを取り、動画の視聴を希望した人にポータルのアカウントを発行したあと、10月2週目にオリエンテーションと教材1を公開し、教材2・3を順次公開する。12月中に参加時アンケートで目的と、その達成に必要なことを書き、取り組む目的を選ぶ（いくつでも）。先着15名で受け付ける | 事前の回答（目的の有無と記述を含む）、ポータルのアカウント、参加時の回答（目的と必要なこと、取り組む目的）、開始案内、利用ルール | 教材2・3の制作、ナレッジ共有ポータルの構築、Kiroの社内版で手順を実行し、運営工数と利用費用を確認 |
+| 1月 | 選んだ目的を達成する仕組みを、小さく試作する | 動く一部分 | AWS環境とKiroのアカウントを発行し、未着手者を支援 |
+| 2月 | 選んだコースに合わせて使い、直す。自分で達成するコースは自分の業務で使い、チームに広げるコースはチームで使って振り返りの場を開く。どちらも、同じ考え方と言葉で直す | 自分の業務またはチームでの使われ方、うまくいかなかった所 | 言葉と考え方が統一されているか確認 |
+| 3月 | 成果物をポータルに載せる。最終共有会、投票、終了時アンケート | 成果物（ポータルに載せる）、目的の達成の回答、使用結果 | 成果の共有を手伝う。目的の達成と個人の変化を報告し、AI活用を促進する基盤づくりへつなぐ |
+
+会の名称は、3月を最終共有会とする。デッキ・発表原稿・設問別紙も同じ名称を用いる。" data-w="各月にすることを、企画書16枚目とオリエンテーション12枚目の進め方に合わせる。">判断の観点と手順をSkillsにまとめて、小さく試す</mark></td><td>動く一部分</td><td>AWS環境とKiroのアカウントを発行し、未着手者を支援</td></tr><tr><td>2月</td><td>Skillsを実際の業務で使う。目的と要件に合うか、確認・修正の手間がどう変わったかを確認し、合わない所はSkillsの観点と手順を直す。チームで使う場合は振り返りの場を開く</td><td>業務での使われ方、うまくいかなかった所と直したこと</td><td>相談への対応、よくある質問の記事化</td></tr><tr><td>3月</td><td>Skillsと記録をポータルに載せる。最終共有会で、何が変わったかを振り返る。終了時アンケート</td><td>Skillsと記録（ポータルに載せる）、改善の達成の回答</td><td>成果の共有を手伝う。主KPIと補助の指標を報告し、AI活用を促進する基盤づくりへつなぐ</td></tr></table></div>
+<p>会の名称は、3月を最終共有会とする。デッキ・発表原稿・アンケート・効果測定案も同じ名称を用いる。</p>
+<h2>各自で進める運営とサポート</h2>
+<div class="scroll"><table><tr><th>項目</th><th>運営案</th></tr><tr><td>個人の活動</td><td>各自で時間を見つけ、改善したいことに沿って教材・制作・相談・共有の準備を進める</td></tr><tr><td>支援の担当</td><td>ナレッジを持つ運営が支援する。参加者は各自で課題と試行を持つ</td></tr><tr><td>進捗投稿</td><td>隔週。試したこと、分かったこと、次に試すことを短く投稿</td></tr><tr><td>Teams相談</td><td>目的、試したこと、詰まっている箇所、必要な助けを書く。書けない場合も相談可</td></tr><tr><td>運営の確認</td><td>週2回を目安にTeamsを確認。回答が難しいものは次に確認する時点を返す</td></tr><tr><td>個別支援</td><td>操作の障害は直接支援。課題や解法の相談には、問いや比較する観点を返す</td></tr><tr><td>ナレッジ共有ポータル</td><td>教材動画・解説記事・参加者の事例を集め、カテゴリとタグで探せるようにする</td></tr><tr><td>相談会</td><td>話しながら確認した方がよい場合に、日程を決めてTeams会議で開く。準備資料なしで、試したことや困っていることを話せる場にする</td></tr><tr><td>相談会への参加</td><td>相談した人と運営が参加する。他の参加者の参加は任意とし、不参加による評価差を設けない</td></tr><tr><td>相談会の共有</td><td>一般化できる要点をTeamsへ保存する。参加していない人も読める</td></tr><tr><td>停滞時</td><td>投稿がない場合は運営から声をかけ、時間不足・操作・課題の迷いを区別する</td></tr><tr><td>繁忙時</td><td>試す範囲を縮小する。期限調整や再開予定を本人と決め、未参加のまま放置しない</td></tr></table></div>
+<p>共同制作を選ぶ場合も、全員が設定の実行と自分の判断を説明できることを求める。運営への相談が集中した場合は、共通の質問を教材にまとめ、個別に必要な支援へ時間を配分する。</p>
+<h2>最終共有会と途中の相談</h2>
+<div class="scroll"><table><tr><th>項目</th><th>途中の相談（1〜3月、任意）</th><th>最終共有会（3月）</th></tr><tr><td>形式</td><td>Teams投稿と相談会。相談したい人だけが使う</td><td>軽食を囲むオフライン交流会で、短いデモと会話</td></tr><tr><td>日程</td><td>投稿は随時。相談会は必要に応じて日程を決める</td><td>3月に1回。人数が多い場合は会を分ける</td></tr><tr><td>時間の試算</td><td>60分＋準備・要点整理30分</td><td>1人発表5分＋会話3分なら、15〜20名で120〜160分。自由な交流の時間を別に見積もる</td></tr><tr><td>返す内容</td><td>迷っている点、うまくいかない点への助言</td><td>作ったSkillsと、業務で何が変わったかへの感想</td></tr><tr><td>運営の対応</td><td>要点をTeamsに残し、参加できない人も読めるようにする</td><td>終了時アンケートの分析を行う</td></tr></table></div>
+<p>発表用の動画制作は求めない。最終共有会では、誰のためかに書いた人（自分・チームの人・上長など）が、参加時に決めた「何が変われば達成か」に照らして達成を確認する。途中の相談は自由な相談、最終共有会は成果の共有という目的で区別する。</p>
+<h2>最低限の提出物</h2>
+<div class="scroll"><table><tr><th>提出物</th><th>必要な内容</th></tr><tr><td><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="| 提出物 | 必要な内容 |
+|---|---|
+| 動く仕組み | 参加時アンケートで決めた目的を達成するために、自分の知識・手順・判断の目安を組み込んだもの。チームで使われることが望ましい |
+| 使い方 | 初めて使う人が理解できる利用条件、実行方法、期待する結果、限界 |
+| 試した記録 | 参加時アンケートで選んだ目的に対する結果、チームの誰が使い、振り返りで何を直したか、受けた支援 |
+
+1人が複数作ってもよい。主KPIは人単位で数えるため、件数の多寡を評価に用いない。出力はアプリに限らず、分析・文書生成・業務支援などから選べる。エージェントやSkillsは既存の利用・改良も認め、選んだ構成の役割を説明する。両方の新規作成を必須条件にはしない。使うエージェントの数や、生成したファイル数を評価基準にしない。社内で確認されたデータの扱いとツール権限を遵守し、初回操作には架空データを使う。" data-w="提出物を、ポータルに載せる項目（目的と要件・判断の観点と手順・使い方・試した結果と改善）に合わせる。">動くSkills</mark></td><td>参加時アンケートで決めた改善のために、判断の観点と手順を組み込んだもの。チームで使われることが望ましい</td></tr><tr><td>使い方</td><td>初めて使う人が理解できる目的と要件、実行方法、期待する結果、限界</td></tr><tr><td>試した結果と改善</td><td>参加時に書いた改善に対する結果、確認・修正の手間の変化、チームの誰が使い、振り返りで何を直したか、受けた支援</td></tr></table></div>
+<p>1人が複数作ってもよい。主KPIは人単位で数えるため、件数の多寡を評価に用いない。出力はアプリに限らず、分析・文書生成・業務支援などから選べる。AgentsやSkillsは既存の利用・改良も認め、選んだ構成の役割を説明する。両方の新規作成を必須条件にはしない。使うAgentの数や、生成したファイル数を評価基準にしない。社内で確認されたデータの扱いとツール権限を遵守し、初回操作には架空データを使う。</p>
+<h2>AI活用を促進する基盤づくり</h2>
+<p>AI活用を促進する基盤づくりは、AI活用を促す場と、そこで得た事例とノウハウを集める基盤を、組織の取り組みとして定着させるものである。中身は、ナレッジ共有ポータルと、アイデアソンやワークショップなど継続的にAI活用を促す取り組みである。</p>
+<p>AIの進化は速い。使い方を知るほど、AIで改善できる業務の幅が広がる。ただ、こうした情報は自分から追いかけないと分からない。だから、新しい使い方に触れる機会を組織の取り組みとして続け、そこで得たノウハウをポータルに集める。</p>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="AI活用を促進する基盤づくりは、トレンドに触れる機会と、そこで得たノウハウを集約する基盤を、組織の取り組みとして定着させるものである。中身は、ナレッジマネジメントと、アイデアソンやワークショップなど継続的にAI活用を促す取り組みである。
+
+AIの進化は速い。AIツールそのものの使い方は大事ではないが、ツールの仕組みを知るほど、AIで達成できる目的の幅が広がるのは事実である。ただ、こうした情報は自分から追いかけないと分からない。だから、トレンドに触れる機会を組織の取り組みとして定着させ、そのノウハウをナレッジマネジメントで集約する。
+
+運用の流れは次のとおりである。運営チームが、ナレッジの運用ルールと基盤を整備し、トレンドに触れる機会を提供する。参加者を含むメンバーが、機会とナレッジを活用して新しいAI活用の事例を創出する。事例とノウハウはナレッジ共有ポータルに集約され、次の活用に再利用される。集約したナレッジをもとに、運営チームが基盤を改善する。この流れが継続すれば、継続的なAI活用を組織として定着させられる。
+
+ナレッジマネジメントはうまくいかない、とよく言われる。原因は、目的の高さの設定と、目的までたどり着く容易さにある。GitHubやConfluenceは、ナレッジマネジメントに特化したサービスではなく、何にでも使えるよう目的の高さを広く取っている。そのため使い方の多くが利用者に委ねられ、やる気や姿勢の差がそのまま結果に出る。目的の高さが合わない道具で、目的の達成を浸透させるのは難しい。だから、ナレッジ共有ポータルは目的を「AIの仕組みとナレッジを載せ、探して使う」に限定する。載せる項目（目的・使い方・試した記録）を決め、カテゴリとタグで直感的に探せるようにし、共有のハードルを下げる。利用者に使い方を委ねない、シンプルで直感的なポータルにする。これは、教材で教える、目的に合った高さを決める考え方を、ポータルにも適用することである。
+
+今期は、ワークショップと並行して、この基盤を先行トライアルとして小さく試す。その結果をもとに、次の期に部内へ展開する。
+
+| 時期 | すること |
+|---|---|
+| 今期（1〜3月、ワークショップと並行） | ナレッジ共有ポータルに仕組みとナレッジを集め、組織への浸透を小さく試す（先行トライアル） |
+| 次の期 | 試行の結果をもとに、部内へ展開する |
+| その先 | ナレッジを出し合い、目的をAIで達成するやり方が定着する |
+
+仕組みを作ること自体は難しくない。難しいのは、それを組織に根付かせることである。根付くのを妨げるのは、仕組みの形への固執である。形が悪いのではない。目的に合わない具体的な形を導入すると、チームに適合せず、使われなくなる。" data-w="利用者が示した基盤づくりの考え方（運営は環境を作り発信し、利用者は受けて事例を共有して循環させる）に合わせる。禁じた語「目的の高さ」を使った説明を、教材1の考え方の説明に改める。">運営と利用者は、どちらも受け身にならず、発信と共有を往復させる。</mark>運営チームは、環境を整え、AI活用を促す取り組みと情報を発信する。参加者を含むメンバーは、それを受け取って自分の業務で試し、事例とノウハウを共有する。運営は、共有された事例とノウハウを受けて、次の発信と基盤の改善につなげる。この往復が続けば、AI活用が部内で循環する。</p>
+<p>ナレッジ共有がうまくいかない、とよく言われる。GitHubやConfluenceは、何にでも使えるよう使い道を広く取っているため、使い方の多くが利用者に委ねられ、置き方や探し方が人によってばらばらになる。そこで、ナレッジ共有ポータルは、作ったSkillsとナレッジを載せ、探して使うことに用途を限定する。載せる項目（目的と要件・判断の観点と手順・使い方・試した結果）を決め、カテゴリとタグで探せるようにし、共有のハードルを下げる。これは教材1と同じ考え方で、何のためのポータルかを先に決め、そこから載せる項目と探し方を決めている。</p>
+<p>今期は、ワークショップと並行して、この基盤を先行トライアルとして小さく試す。その結果で、次の期に部内へ広げるかを判断する。</p>
+<h3>目指す姿</h3>
+<div class="scroll"><table><tr><th>時期</th><th>目指す姿</th></tr><tr><td>2027年3月（本企画の終了）</td><td>参加者が、自分の業務で改善を試し、何が変わったかを確認している。ナレッジ共有ポータルに事例とSkillsが集まり始め、発信と共有の運用も小さく試している</td></tr><tr><td>次の期</td><td>試行の結果をもとに部内へ展開し、ナレッジ共有ポータルを部内に開き、ワークショップとアイデアソンを定期的に開く</td></tr><tr><td>その先</td><td>新しいAIの使い方に全員が触れ、必要な事例やナレッジを探して使え、使った人が事例とSkillsを更新し続ける。担当者が替わっても、AIを使った改善のやり方が部内で続く。顧客の業務でも発揮でき、SIerとしての強みになる</td></tr></table></div>
+<p>最大の危険は、AIを使うこと自体が目的になることである。そのため、活用件数や作ったSkillsの数を、成果として数えない。</p>
+<h3>運営チームの役割</h3>
+<p>運営は、人選した少数（約3名）で担当し、方向を統一する。参加者に運営へ回ることは求めない。今期はワークショップと並行して、次の3つを先行トライアルとして行い、結果を次の期の部内への展開に使う。</p>
+<div class="scroll"><table><tr><th>すること</th><th>内容</th></tr><tr><td>環境と運用ルールを整える</td><td>AWS環境と開発環境、ナレッジ共有ポータルを構築し、載せる項目と運用ルールを決める。ポータルの利用者は、今期は参加者と希望者に限る</td></tr><tr><td>AI活用を促す取り組みを設計する</td><td>事例やノウハウが集まり、使われ続ける運用を設計し、参加者と希望者で試す</td></tr><tr><td>情報と機会を発信する</td><td>新しい使い方や事例を発信し、アイデアソンやワークショップを定期的に開く。アイデアソンの参加は任意とする</td></tr></table></div>
+<p>AIの使い方や活用事例、Skillsは、それを使う人が作り、直す。自分で使うものは作った本人が、チームで使うものはそのチームが受け持つ。運営が使い方を作って配ることはしない。業務で何が変わったかの事例は、部会で報告する（部長への依頼事項）。</p>
+<h3>AI活用を促進する基盤づくりの指標</h3>
+<p>今期の先行トライアルで起きることから取り、次の期に何を広げるかの判断に使う。指標は、運営の発信を受けた利用者の動きの順に並べる。運営は結果を受けて、次の発信と基盤の改善につなげる。定義の正本は [アンケート・効果測定案](survey-and-evaluation.md) とする。</p>
+<div class="scroll"><table><tr><th>段階</th><th>指標</th><th>取り方</th></tr><tr><td>受け取って試す</td><td>参加者以外での再利用：参加しなかった希望者のうち、見つけた事例やSkillsを業務で試した人の割合</td><td>参加しなかった希望者の終了時アンケート</td></tr><tr><td>共有する</td><td>ナレッジを出す人の広がり：参加しなかった希望者のうち、ポータルに事例やノウハウを1件以上載せた人の割合</td><td>ポータルの掲載記録</td></tr><tr><td>探して使う</td><td>ナレッジの見つけやすさ：探していた事例やノウハウにたどり着けた割合</td><td>参加者と、参加しなかった希望者の終了時アンケート</td></tr><tr><td>続ける</td><td>チームでの改善の継続：ワークショップの終了後も振り返りの場を続けると決めた参加者の割合</td><td>参加者の終了時アンケート</td></tr></table></div>
+<p>ポータルの掲載数や閲覧数は、成果として数えない。たどり着けなかった用途は一覧にし、次の期に作るものと、カテゴリ・タグの改訂に使う。</p>
+<h2>必要時間と承認前の確認</h2>
+<p>今回の部長向け説明でお願いするのは、企画への合意、運営チーム、Kiroの費用、業務のルールや要件の確認に協力してもらう時間、部会での報告の機会である。Kiro Pro は1人あたり月額 $20 で、1,000クレジットを含む。<mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="今回の部長向け説明で得るのは3件である。企画の趣旨と進め方への合意、目的を達成した事例を部会で報告する機会、Kiroの費用の許可である。Kiro Pro は1人あたり月額 $20 で、1,000クレジットを含む。15名で月 $300、3か月で $900 となる（税別）。プランの範囲を超えた分は1クレジットあたり $0.04 で請求されるが、超過は既定で無効であり、Kiroのコンソールで有効化しない限り発生しない。運営者の工数は社内の調整で確保するため、依頼には含めない。交流会の会場・軽食費は、人数と会場が確定する2月に相談する。
+
+以下は従来の運営案による暫定試算で、オフライン交流会への変更を踏まえ再見積もりする。会場・軽食費も別途見積もる。予算検討のための仮定であり、効果の実測値ではない。実働12週は3か月間から休暇・繁忙期の余裕を見込んだ試算条件である。
+
+| 対象 | 仮定 | 試算 |
+|---|---|---|
+| 運営の事前準備 | 3つの教材の動画を構成・収録・確認 | 24時間。教材1の制作実績により再見積もり |
+| 運営の継続支援 | 週3時間 × 実働12週 | 36時間。Teams、進捗確認、ポータルの短い記事を含む |
+| 運営の発表・成果確認 | 最終共有会で、1人20分 × 15名 | 5時間。会議と前後の成果確認を含む |
+| スポット相談会 | 1回60分＋準備・要点整理30分。回数は相談の数で決まる | 未見積もり。継続支援の36時間の中で対応し、超える分は別途積算 |
+| 効果測定・投票 | フォーム準備、2時点の集計、投票、報告 | 未見積もり。実施内容を確定して別途積算 |
+| ナレッジ共有ポータル | 教材動画と成果物を集め、カテゴリとタグで探せる社内アプリケーションの構築 | 未見積もり。機能を確定して別途積算 |
+| 見積もり済み部分の小計 | 24＋36＋5 | 65時間。効果測定・投票、ナレッジ共有ポータル、環境整備、日程調整、追加支援は含まない |
+| 利用料金 | Kiro Pro を15名分、3か月 | $900（税別）。超過を有効化する場合は $0.04／クレジットが加算される |
+
+参加者と運営担当を同一人物が兼ねる場合、重複する活動時間を除いて見積もり直す。
+
+| 部長と確認すること | 決める必要がある内容 |
+|---|---|
+| 企画への合意 | 参加した人が目的をAIで達成できるようになることを目指す趣旨と、10月から希望者が教材で準備し、1月からの3か月間、先着15名が各自のペースで進める形 |
+| 部会での報告 | 目的を達成した事例を、部会で報告する機会 |
+| 育成方針 | 自分で課題を選び、試すことを重視する評価方針 |
+| 参加者の目標 | AIで実現したい目的と、その達成に必要なことの設定。目的の数は限らず、取り組む目的もいくつ選んでもよい |
+| 運営体制 | 主担当、補助担当、教材制作と支援の工数 |
+| 利用環境 | Kiroの版・利用枠・権限、1人あたり $20 の単価と超過の条件、社内データの扱い |
+| 日程 | 10月からの準備期間と1月からのワークショップへの変更、共有期間、繁忙期との調整 |" data-w="定員15〜20名に合わせて、Kiroの費用と最終共有会の時間を見直し、お願いする事項を企画書28枚目と同じ5つにする。料金は2026-10-27に公式の料金ページで照合した。">15〜20名で月 $300〜$400、3か月で $900〜$1,200 となる（税別）</mark>。プランの範囲を超えた分は1クレジットあたり $0.04 で請求されるが、超過は既定で無効であり、Kiroのコンソールで有効化しない限り発生しない（[料金](https://kiro.dev/pricing/)、2026-10-27確認）。交流会の会場・軽食費は、人数と会場が確定する2月に相談する。</p>
+<p>以下は暫定試算である。予算検討のための仮定であり、効果の実測値ではない。実働12週は3か月間から休暇・繁忙期の余裕を見込んだ試算条件である。</p>
+<div class="scroll"><table><tr><th>対象</th><th>仮定</th><th>試算</th></tr><tr><td>運営の事前準備</td><td>3つの教材の動画を構成・収録・確認</td><td>24時間。教材1の制作実績により再見積もり</td></tr><tr><td>運営の継続支援</td><td>週3時間 × 実働12週</td><td>36時間。Teams、進捗確認、ポータルの短い記事を含む</td></tr><tr><td>運営の最終共有会・成果確認</td><td>1人20分 × 15〜20名</td><td>5〜7時間。会と前後の成果確認を含む</td></tr><tr><td>相談会</td><td>1回60分＋準備・要点整理30分。回数は相談の数で決まる</td><td>未見積もり。継続支援の36時間の中で対応し、超える分は別途積算</td></tr><tr><td>効果測定</td><td>フォーム準備、3時点の集計、報告</td><td>未見積もり。実施内容を確定して別途積算</td></tr><tr><td>ナレッジ共有ポータル</td><td>教材動画と事例・Skillsを集め、カテゴリとタグで探せる社内アプリケーションの構築</td><td>未見積もり。機能を確定して別途積算</td></tr><tr><td>見積もり済み部分の小計</td><td>24＋36＋5〜7</td><td>65〜67時間。効果測定、ナレッジ共有ポータル、環境整備、日程調整、追加支援は含まない</td></tr><tr><td>利用料金</td><td>Kiro Pro を15〜20名分、3か月</td><td>$900〜$1,200（税別）。超過を有効化する場合は $0.04／クレジットが加算される</td></tr></table></div>
+<p>参加者と運営担当を同一人物が兼ねる場合、重複する活動時間を除いて見積もり直す。</p>
+<div class="scroll"><table><tr><th>部長と確認すること</th><th>決める必要がある内容</th></tr><tr><td>企画への合意</td><td>参加者が、AIを使って、自分の業務を改善できるようになることを目指す趣旨と、10月から希望者が教材で準備し、1月からの3か月間、先着15〜20名が各自のペースで進める形</td></tr><tr><td>運営チーム</td><td>人選した約3名で、AI活用を促す場とポータルを整え、情報と機会を発信すること</td></tr><tr><td>協力者の時間</td><td>参加者が、業務を知る同じチームの人や関係者に、業務のルールや要件を確認する時間</td></tr><tr><td>部会での報告</td><td>業務で何が変わったかの事例を、部会で報告する機会</td></tr><tr><td>育成方針</td><td>自分で改善したいことを選び、試すことを重視する評価方針</td></tr><tr><td>運営体制</td><td>主担当、補助担当、教材制作と支援の工数</td></tr><tr><td>利用環境</td><td>Kiroの版・利用枠・権限、1人あたり $20 の単価と超過の条件、社内データの扱い</td></tr><tr><td>日程</td><td>10月からの準備期間と1月からのワークショップへの変更、共有期間、繁忙期との調整</td></tr></table></div>
+<h2>Kiroの確認根拠と教材更新</h2>
+<p>Kiro公式の [Agent Skills](https://kiro.dev/docs/skills/) と [Creating custom agents](https://kiro.dev/docs/cli/custom-agents/creating/) を2026-09-05に、[料金](https://kiro.dev/pricing/) を2026-10-27に確認した。Skillsの利用と、エージェントにツールや参照情報などを設定する構成を、企画の技術的な前提にしている。</p>
+<p>社内のKiro環境はまだ確認していない。開始前に、参加者と同じIDE／CLIの版・権限・契約枠で、作成→読込→実行→結果確認までを完了させる。ClaudeとCopilotは、社内で利用できる環境をそのまま使う。学ぶ考え方は特定のツールに依存しないため、どのツールでも進められる。</p>
+<p>考え方の教材と操作教材を分けることで、操作が変わった場合は該当する短い教材を更新する。公開資料の機能説明だけをもって、社内環境でも動くと扱わない。</p></div></section>
+</section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 対象の文書も、同じ名前の変数（--move など）を持っていることがある。
+     印と欄にだけ、この道具の値を直に持たせる ── 文書の側の見た目は変えない */
+  var VARS = (MARKCSS.match(/--[\w-]+(?=:)/g) || []).filter(function(v, i, a){ return a.indexOf(v) === i; });
+  function ownVars(el){
+    var cs = getComputedStyle(document.documentElement);
+    VARS.forEach(function(v){ var x = cs.getPropertyValue(v); if (x) el.style.setProperty(v, x.trim()); });
+  }
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く。
+     **この道具が付けた印（data-acdr）だけを扱う。** 対象の文書が自分の印を
+     同じ class で持っていることがある（brainstorming-board のボード） */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-acdr]").forEach(function(m){
+      var p = doc.createElement("div");
+      /* **初めから開いて出す。** 閉じて出すと、どこが変わったかを1件ずつ押して探すことになる */
+      p.className = "pop"; p.hidden = false;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        /* 表のセルの中の印は、セルの中へ置く。<td> の隣へ置くと、列が1つ増えて見える */
+        var cell = m.closest("td,th");
+        if (cell) cell.appendChild(p);
+        else {
+          var host = m.closest("li") || m.parentNode;
+          if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+          else host.parentNode.appendChild(p);
+        }
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      /* 対象の文書の script も、同じ印に開閉を付けていることがある。
+         捕捉の段で受けて止め、この道具の開閉だけを動かす */
+      m.addEventListener("click", function(e){ e.stopImmediatePropagation(); tg(); }, true);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+      m.setAttribute("aria-expanded", "true");
+      if (doc !== document) { ownVars(m); ownVars(p); }
+      /* 印を囲む畳まれた節も開く。タブ（hidden）は開かない ── 面の切り替えが壊れる */
+      for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+        if (e.tagName === "DETAILS") e.open = true;
+      }
+    });
+  }
+
+  var frames = [];
+  /* 中の高さに合わせて iframe を伸ばす。**中の高さが iframe の高さで決まる文書（vh で組んだスライドなど）は、
+     伸ばすたびに中も同じだけ伸び、止まらなくなる。** 同じ幅で3回続けて伸びたら、そうした文書とみなし、
+     幅の16:9の高さで止める */
+  function resizeOne(f){
+    try {
+      var d = f.contentDocument;
+      if (!d || !d.body || f._fixed) return;
+      var next = d.documentElement.scrollHeight + 8;
+      var now = f._h || 0;
+      if (next === now) return;
+      var grow = next - now;
+      f._streak = (now && grow > 0 && grow === f._grow) ? (f._streak || 0) + 1 : 0;
+      f._grow = grow;
+      if (f._streak >= 2) {
+        f._fixed = true;
+        f.style.height = Math.round(f.clientWidth * 9 / 16) + "px";
+        return;
+      }
+      f._h = next;
+      f.style.height = next + "px";
+    } catch(e){}
+  }
+  function resizeAll(){ frames.forEach(resizeOne); }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  /* **見えているかを offsetParent で判定しない。**
+     閉じた <details> の中でも、Chromium は offsetParent を返す。
+     checkVisibility が在ればそれを使う */
+  function shown(m){
+    return m.checkVisibility ? m.checkVisibility() : !!m.offsetParent;
+  }
+
+  function reveal(m){
+    if (shown(m)) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (shown(m)) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (shown(m)) return true;
+      ins[i].checked = was;
+    }
+    return shown(m);
+  }
+
+  /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg[data-acdr]")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その箇所へ移動" : "表示されていない箇所";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンのファイル */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>

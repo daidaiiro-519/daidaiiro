@@ -20,7 +20,7 @@
 | [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編28枚＋付録9枚 |
 | [要点版の1ページ版](proposal/out/director-deck-brief-all.html) ・ [詳細版の1ページ版](proposal/out/director-deck-all.html) | 全枚を縦に並べた版。通し読みに使う |
 | [要点版の発表原稿](proposal/out/speaker-notes-brief.md) ・ [詳細版の発表原稿](proposal/out/speaker-notes.md) | 各枚に対応する原稿 |
-| [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数。旧い到達像のままで、見直し前 |
+| [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
 | [アンケート・効果測定案](proposal/out/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 答えやすさの方針と、Microsoft Forms での実装 |
 | [Forms の Copilot に渡すプロンプト](proposal/out/forms-copilot-prompts.md) | 事前 ・ 参加時 ・ 参加者の終了時 ・ 参加しなかった希望者の終了時の4本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
 | [全枚の一覧画像](proposal/out/overview.png) | 詳細版の全枚を1枚に並べた画像 |
