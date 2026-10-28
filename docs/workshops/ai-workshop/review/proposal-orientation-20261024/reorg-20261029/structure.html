@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>フォルダ構成の変更</title>
+<style>
+body{font-family:"Noto Sans JP",sans-serif;background:#fff;color:#22261f;margin:16px;line-height:1.7;font-size:14px}
+h2{font-size:17px;margin:26px 0 8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{border-bottom:1px solid #d6d9d0;padding:7px 9px;text-align:left;vertical-align:top}
+th{color:#5d6457;font-weight:500;font-size:12.5px}
+code{font-family:ui-monospace,monospace;font-size:.92em;background:#eef2ec;padding:1px 4px;border-radius:3px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tree{background:#f6f7f4;border:1px solid #d6d9d0;border-radius:6px;padding:10px 12px;min-width:0}
+.tree b{display:block;color:#5d6457;font-weight:500;margin-bottom:4px}
+pre{margin:0;font-family:ui-monospace,monospace;font-size:12px;line-height:1.65;overflow-x:auto}
+.ok{color:#2f6b4f;font-weight:600}
+</style></head><body>
+
+<h2>変更前と変更後のツリー</h2>
+<div class="pair">
+<div class="tree"><b>変更前</b><pre>ai-workshop/
+├─ README.md
+├─ books/
+├─ proposal/
+│  ├─ src/   企画書＋共通の配色・図の部品・型
+│  └─ out/   director-deck*.html/pdf, speaker-notes*.md,
+│            videos/, audio/, 設計書3本, versions/v1〜v3
+├─ material-1/
+│  ├─ README.md
+│  ├─ src/   57ファイル（7本の材料・見直しのメモ・読み辞書）
+│  └─ out/   slides/ pdf/ scripts/ videos/ audio/
+│            index.html, review/, versions/v1〜v2
+├─ material-2/   試作の材料と decks/
+└─ review/</pre></div>
+<div class="tree"><b>変更後</b><pre>ai-workshop/
+├─ README.md       入口
+├─ dist/           配るもの
+│  ├─ index.html   動画の再生ページ
+│  ├─ proposal/    detail/ brief/ と設計書3本
+│  ├─ orientation/
+│  ├─ intro/
+│  ├─ lesson-1/    01-cause/ … 05-summary/
+│  └─ lesson-2/    00-intro/ 02-context/ 09-compare/
+├─ src/            作る材料
+│  ├─ shared/      配色・図の部品・型・書籍の表紙・読み辞書
+│  ├─ proposal/
+│  ├─ lessons/     オリエンテーション・はじめに・教材1
+│  └─ lesson-2/
+├─ archive/        proposal/v1〜v3, lessons/v1〜v2
+└─ review/         ＋ orientation-ai-era/, lessons-notes/</pre></div>
+</div>
+
+<h2>本ごとのフォルダの中身（どの本も同じ名前）</h2>
+<table><thead><tr><th>変更後</th><th>変更前（オリエンテーションの例）</th></tr></thead><tbody>
+<tr><td><code>slides.html</code></td><td><code>material-1/out/slides/lesson-00-start.html</code></td></tr>
+<tr><td><code>slides-all.html</code> ・ <code>slides.pdf</code></td><td><code>material-1/out/pdf/lesson-00-start-all.html</code> ・ <code>.pdf</code></td></tr>
+<tr><td><code>script.md</code></td><td><code>material-1/out/scripts/lesson-00-start-script.md</code></td></tr>
+<tr><td><code>video.mp4</code> ・ <code>video.vtt</code> ・ <code>video-timeline.json</code> ・ <code>video-release.json</code></td><td><code>material-1/out/videos/00-start.mp4</code> ・ <code>.vtt</code> ・ <code>-timeline.json</code> ・ <code>-release.json</code></td></tr>
+<tr><td><code>poster.png</code></td><td><code>material-1/out/videos/posters/00-start.png</code></td></tr>
+<tr><td><code>audio.mp3</code></td><td><code>material-1/out/audio/00-start.mp3</code></td></tr>
+</tbody></table>
+
+<h2>案のページから変えた点</h2>
+<table><thead><tr><th>案のページ</th><th>実際</th><th>なぜ</th></tr></thead><tbody>
+<tr><td>作る材料を <code>src/orientation/</code> ・ <code>src/intro/</code> ・ <code>src/lesson-1/</code> に分ける</td><td><code>src/lessons/</code> の1つにまとめた</td><td>7本は、1つの <code>build_lessons.py</code> と共通の図の部品20本余りで組んでいる。分けると、同じ部品を3か所に置くことになる</td></tr>
+<tr><td>共通の部品を <code>src/shared/</code> の1か所に置く</td><td>配色・図の部品・型・書籍の表紙・読み辞書は移した。企画書の <code>build_deck.py</code>（型と CSS）と教材の <code>build_videos.py</code>（動画の条件と字幕）は、いまの場所から互いに読む</td><td>この2本を共有部分と本ごとの部分に分けるには、コードの書き換えが要る。今回は場所だけを変え、出力が1バイトも変わらないことを保証する</td></tr>
+<tr><td>見直しのメモを <code>review/</code> へ</td><td><code>review/lessons-notes/</code> と <code>review/orientation-ai-era/</code>（旧 <code>material-1/out/review/</code>）に置いた</td><td>どれも配るものでも、作るための材料でもない</td></tr>
+</tbody></table>
+
+<h2>移したあとの照合</h2>
+<table><thead><tr><th>対象</th><th>方法</th><th>結果</th></tr></thead><tbody>
+<tr><td>企画書の詳細版・要点版（slides.html ・ slides-all.html ・ script.md）</td><td>新しい場所で <code>build_deck.py</code> を実行し、移したファイルと比べた</td><td class="ok">1バイトも違わない</td></tr>
+<tr><td>オリエンテーション・はじめに・教材1の7本（slides.html ・ script.md）</td><td><code>build_lessons.py</code> を実行し、語の検査も通した</td><td class="ok">1バイトも違わない</td></tr>
+<tr><td>オリエンテーションとはじめにの slides-all.html</td><td><code>export_pdf.py 00 01</code> を実行した。PDF は作成日時が入るので、移したものを残した</td><td class="ok">1バイトも違わない</td></tr>
+<tr><td>字幕8本（企画書と7本）</td><td>合成済みの音声の時刻から、新しい場所の <code>build_videos.py</code> の組み方で作り直した</td><td class="ok">1バイトも違わない</td></tr>
+<tr><td>枚の画像（オリエンテーション14枚・企画書29枚）</td><td><code>render_previews.py 00</code> と <code>build_video.py previews</code> を実行した</td><td class="ok">1バイトも違わない</td></tr>
+<tr><td>企画書の読み上げの入力</td><td><code>build_video.py narration</code></td><td class="ok">1バイトも違わない</td></tr>
+<tr><td>アンケートの設計書2本と運営案</td><td><code>build_survey_docs.py</code> を実行した</td><td>違いは、本文に書いたファイルの場所（<code>src/proposal/survey.json</code> など）とリンクだけ</td></tr>
+<tr><td>動画と音声</td><td>作り直さず、<code>git mv</code> で移した</td><td>中身は変わらない</td></tr>
+<tr><td>教材2の試作</td><td><code>build_lessons.py</code> は新しい場所で動いた</td><td>出力は、前の配色で組まれたままのものを残した（今の配色で組み直すと、移動と関係の無い差分が出るため）</td></tr>
+</tbody></table>
+
+<h2>直さないもの</h2>
+<table><tbody>
+<tr><td>承認済みの ACDR ・ ブレストボード ・ <code>review/</code> の作業コピーの中の古いパス</td><td>決めた時点の記録として残す</td></tr>
+<tr><td><code>archive/</code> の中のファイル名</td><td>当時の名前のまま残す</td></tr>
+</tbody></table>
+</body></html>

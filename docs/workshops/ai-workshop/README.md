@@ -1,75 +1,78 @@
 # 下期AI活用ワークショップ
 
-部長向けの企画書と、受講者向けの教材を置く。**見るものは各フォルダの `out/`、作るための材料は `src/` にある。**
+部長向けの企画書と、受講者向けの教材を置く。最上位のフォルダは4つである。
 
+| フォルダ | 中身 |
+|---|---|
+| `dist/` | **配るもの。** 本ごとに1フォルダで、HTML ・ PDF ・ 原稿 ・ 動画 ・ 字幕 ・ 音声が同じフォルダにある。常に最新版だけを置く |
+| `src/` | 作るための材料。`src/shared/` が配色 ・ 図の部品 ・ スライドの型 ・ 書籍の表紙 ・ 読み辞書を持つ |
+| `archive/` | 前の版。版ごとのフォルダに、当時のファイル名のまま残す |
+| `review/` | 見直しの作業コピーと検証の記録。配るものではない |
 
-2026年10月17日に、説明文と表の境界、図の中の情報のまとまりを見直した。既存の配色とカードの形に合わせ、スライド・PDF・オリエンテーションの動画へ反映した。決定はACDR 0184に記録した。
+## 配るもの（`dist/`）
 
+どの本のフォルダも、中の名前は同じである。
 
+| ファイル | 中身 |
+|---|---|
+| `slides.html` | スライド。ブラウザで開き、矢印キーでめくる |
+| `slides-all.html` ・ `slides.pdf` | 全枚を縦に並べた版と、そのPDF。配る ・ 印刷するときに使う |
+| `script.md` | 枚ごとの読み上げの原稿 |
+| `video.mp4` ・ `video.vtt` | 動画（字幕を焼き込み済み、1280×816）と、字幕だけのファイル |
+| `audio.mp3` | 動画の音声だけ |
+| `poster.png` | 動画の表紙の画像 |
+| `video-timeline.json` ・ `video-release.json` | 枚ごとの時刻と、動画の検証の記録 |
 
-2026年10月17日に、オリエンテーションの原稿の重複と予告の食い違いを修正し、動画の切り替えに間と短いフェードを加えた。決定はACDR 0185に記録した。
+[dist/index.html](dist/index.html) から、オリエンテーション ・ はじめに ・ 教材1の本編5本の動画と音声を順に再生できる。
 
-
-## 見るもの
-
-### 企画書（部長向け）
+### 企画書（部長向け）　`dist/proposal/`
 
 | もの | 中身 |
 |---|---|
-| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編14枚＋付録23枚。ブラウザで開き、矢印キーでめくる |
-| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編28枚＋付録9枚 |
-| [要点版の1ページ版](proposal/out/director-deck-brief-all.html) ・ [詳細版の1ページ版](proposal/out/director-deck-all.html) | 全枚を縦に並べた版。通し読みに使う |
-| [要点版の発表原稿](proposal/out/speaker-notes-brief.md) ・ [詳細版の発表原稿](proposal/out/speaker-notes.md) | 各枚に対応する原稿 |
-| [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
-| [アンケート・効果測定案](proposal/out/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 答えやすさの方針と、Microsoft Forms での実装 |
-| [Forms の Copilot に渡すプロンプト](proposal/out/forms-copilot-prompts.md) | 事前 ・ 参加時 ・ 参加者の終了時 ・ 参加しなかった希望者の終了時の4本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
-| [全枚の一覧画像](proposal/out/overview.png) | 詳細版の全枚を1枚に並べた画像 |
-| [詳細版の動画](proposal/out/videos/director-deck.mp4) ・ [字幕](proposal/out/videos/director-deck.vtt) ・ [音声のみ](proposal/out/audio/director-deck.mp3) | 詳細版の本編29枚（表紙〜まとめ）を、発表原稿のとおりに読み上げた動画。約41分。字幕を焼き込んである。付録は含まない |
+| [詳細版](dist/proposal/detail/slides.html) ・ [PDF](dist/proposal/detail/slides.pdf) ・ [原稿](dist/proposal/detail/script.md) | 表紙1枚＋本編28枚＋付録9枚 |
+| [詳細版の動画](dist/proposal/detail/video.mp4) | 本編29枚（表紙〜まとめ）を、原稿のとおりに読み上げた動画。約41分。付録は含まない |
+| [要点版](dist/proposal/brief/slides.html) ・ [PDF](dist/proposal/brief/slides.pdf) ・ [原稿](dist/proposal/brief/script.md) | 表紙1枚＋本編14枚＋付録23枚 |
+| [運営案](dist/proposal/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
+| [アンケート・効果測定案](dist/proposal/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 答えやすさの方針と、Microsoft Forms での実装 |
+| [Forms の Copilot に渡すプロンプト](dist/proposal/forms-copilot-prompts.md) | 4本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
+| [全枚の一覧画像](dist/proposal/overview.png) | 詳細版の全枚を1枚に並べた画像 |
 
-`proposal/out/` には常に最新版を置く。前の版は `proposal/out/versions/<版>/` に、同じファイル名のまま残す。
+### オリエンテーション　`dist/orientation/`
 
-| 版 | 置き場所 | 日付 | 内容 | 記録 |
-|---|---|---|---|---|
-| v4（最新） | `proposal/out/` | 2026-10-28 | 企画の目的を「AIの活用を、仕事全体の生産性と品質の改善につなげる」に改め、教材名と三教材の役割を共通方針と正式版のオリエンテーションに合わせた。「この企画の本質」を外し、目的を背景の次へ移した。主KPIを目的と要件の明確化率と改善の達成率にし、アンケートを事前7問・参加時は改善1件で8問に絞って、回答フォームをワイヤーフレームで示した。定員を15〜20名にした | [ACDR 0209](../../../.acdr/0209-企画書の正式版改訂/) |
-| v3 | `proposal/out/versions/v3/` | 2026-10-07 | ワークショップの目的を「目的を正しく言葉にしてAIに伝え、達成できるようになる」、期待する効果を「作業をAIに任せられる」にした。コースをやめて目的ごとに作った仕組みを誰が使うかを決める形にし、教材1〜3の進め方の枚と施策の区切りの枚を足し、順番を並べ替えた。主KPIの目的の明確化率を本人の実感で数える形にした | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
-| v2 | `proposal/out/versions/v2/` | 2026-09-29 | 身につける力を目的をAIで達成する力へ、主KPIを目的の達成へ改め、次の期の扱いを目指す姿と組織への浸透へ置き換えた | [ACDR 0032](../../../.acdr/0032-企画書を目的の軸へ改める/) |
-| v1 | `proposal/out/versions/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にした版 | ── |
+全14枚、動画は約16分26秒。2026-10-26改訂（ACDR 0207 ・ 0208）。
 
-### 教材1（オリエンテーション＋目的の把握）
+### はじめに（三教材共通）　`dist/intro/`
 
-| もの | 中身 |
-|---|---|
-| [動画](material-1/out/videos/) | 本ごとの動画（mp4）。オリエンテーション、教材1のはじめに、本編5本の計7本。オリエンテーションは2026-10-26改訂、14枚、約16分26秒。はじめには2026-10-25改訂、10枚、約22分39秒 |
-| [スライド](material-1/out/slides/) | 本ごとのスライド（HTML）。7本 |
-| [原稿](material-1/out/scripts/) | 本ごとの読み上げの原稿（Markdown） |
-| [PDF](material-1/out/pdf/) | 全枚を縦に並べたHTMLとPDF。オリエンテーションとはじめにの2本。配る・印刷するときに使う |
+全10枚、動画は約22分39秒。2026-10-25改訂（ACDR 0205 ・ 0206）。
 
-2026-10-13にオリエンテーションを正式版へ改訂。仕事の目的をAIで達成できるようになる開催目的から、仕事の変化、教材、応用、学習と実践へつなげた。決定は [ACDR 0178](../../../.acdr/0178-オリエンテーションの正式版改訂/index.html) を参照。
+### 教材1　`dist/lesson-1/`
 
-`material-1/out/` には常に最新版を置く。前の版は `material-1/out/versions/<版>/` に、同じフォルダ構成のまま残す。
+本編5本。`01-cause`（原因を知る）・ `02-word`（意味を決める）・ `03-scope`（範囲を決める）・ `04-rule`（条件を決める）・ `05-summary`（具体と抽象を振り返る）。2026-10-07の版（v3）のままで、いまの教材名「目的と要件の明確化」への改訂はまだである。
+
+### 教材2（試作）　`dist/lesson-2/`
+
+ドメイン駆動設計編の試作3本（`00-intro` ・ `02-context` ・ `09-compare`）のスライドと原稿。
+
+## 前の版（`archive/`）
 
 | 版 | 置き場所 | 日付 | 内容 | 記録 |
 |---|---|---|---|---|
-| v3（最新） | `material-1/out/` | 2026-10-07 | オリエンテーションを企画書と同じ言い方（言語化して伝える・作業をAIに任せられる・教材1〜3は方法を学ぶ）にそろえ、教材1は目的の1行を2本目に置く形にした。動画はまだ作り直していない | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
-| v2 | `material-1/out/versions/v2/` | 2026-09-29 | オリエンテーションを目的をAIで達成する力の軸へ改め、3つの教材の名前を目的の把握 ・ 言葉の定義 ・ 仕組みの構築にした。動画はまだ作り直していない | [ACDR 0034](../../../.acdr/0034-オリエンテーションを目的の軸へ改める/) |
-| v1 | `material-1/out/versions/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にしたオリエンテーション（スライド ・ 原稿 ・ 動画）と、教材1のはじめに ・ まとめの表紙 | ── |
+| 企画書 v4（最新） | `dist/proposal/` | 2026-10-28 | 企画の目的を「AIの活用を、仕事全体の生産性と品質の改善につなげる」に改め、教材名と三教材の役割を共通方針と正式版のオリエンテーションに合わせた。主KPIを目的と要件の明確化率と改善の達成率にし、アンケートを事前7問・参加時は改善1件で8問に絞った。定員を15〜20名にした | [ACDR 0209](../../../.acdr/0209-企画書の正式版改訂/) |
+| 企画書 v3 | `archive/proposal/v3/` | 2026-10-07 | ワークショップの目的を「目的を正しく言葉にしてAIに伝え、達成できるようになる」にした | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
+| 企画書 v2 | `archive/proposal/v2/` | 2026-09-29 | 身につける力を目的をAIで達成する力へ、主KPIを目的の達成へ改めた | [ACDR 0032](../../../.acdr/0032-企画書を目的の軸へ改める/) |
+| 企画書 v1 | `archive/proposal/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にした版 | ── |
+| 教材 v2 | `archive/lessons/v2/` | 2026-09-29 | オリエンテーションを目的をAIで達成する力の軸へ改め、3つの教材の名前を目的の把握 ・ 言葉の定義 ・ 仕組みの構築にした | [ACDR 0034](../../../.acdr/0034-オリエンテーションを目的の軸へ改める/) |
+| 教材 v1 | `archive/lessons/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にしたオリエンテーション（スライド ・ 原稿 ・ 動画）と、教材1のはじめに ・ まとめの表紙 | ── |
 
-教材1の中身と、作り直す手順は [material-1/README.md](material-1/README.md) にある。
-
-### 教材2（試作）
-
-`material-2/` に、ドメイン駆動設計編の試作（3本ぶんのスライドと図）を置いている。
-
-## 作り直す
+## 作り直す（`src/`）
 
 | 何を | どこで | 手順 |
 |---|---|---|
-| 企画書 | `proposal/src/` | `python3 build_deck.py`。HTML を `proposal/out/` へ出す。PDF と一覧画像は別に描画して出す |
-| 企画書の動画 | `proposal/src/` | `python3 build_video.py narration` で原稿を音声の入力にし、slide-deck-speech Skill で合成する。`python3 build_video.py previews --browser <ブラウザ>` で枚の画像を撮り、`python3 build_video.py video` で `proposal/out/videos/` と `proposal/out/audio/` へ出す |
-| 教材1 | `material-1/src/` | [material-1/README.md](material-1/README.md) を参照 |
+| 企画書 | `src/proposal/` | `python3 build_deck.py` で `dist/proposal/detail/` と `brief/` へ出す。`python3 build_survey_docs.py` でアンケートの設計書2本を出す。PDF と一覧画像は別に描画して出す |
+| 企画書の動画 | `src/proposal/` | `python3 build_video.py narration` で原稿を音声の入力にし、slide-deck-speech Skill で合成する。`python3 build_video.py previews --browser <ブラウザ>` で枚の画像を撮り、`python3 build_video.py video` で `dist/proposal/detail/` へ出す |
+| オリエンテーション ・ はじめに ・ 教材1 | `src/lessons/` | 7本を1つの仕組みで作る。手順は [src/lessons/README.md](src/lessons/README.md) を参照 |
+| 教材2（試作） | `src/lesson-2/` | `python3 build_lessons.py` で `dist/lesson-2/` へ出す |
 
-企画書の作成には、同梱の Skill（`proposal/src/skills/ai-workshop-slide-deck/`）の型を使う。教材1の作成も、この型と `proposal/src/visuals.py` の部品を借りる。
+スライドの作成には、同梱の Skill（`src/shared/skills/ai-workshop-slide-deck/`）の型と、`src/shared/visuals.py` の部品を使う。教材のスライドは、企画書の `src/proposal/build_deck.py` から型と CSS を借りる。
 
-変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。
-
-2026年10月17日に、教材の閲覧方法と実践中の支援を独立した2枚として追加した。企画書の図を使用し、ポータル、日程、サポート体制の順に説明する。決定はACDR 0187に記録した。
+変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。フォルダ構成は ACDR 0214 で今の形にした。それより前の記録が指すパス（`proposal/out/` ・ `material-1/` など）は、当時の場所である。
