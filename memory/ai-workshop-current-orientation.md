@@ -93,3 +93,5 @@ metadata:
 2026-10-28：利用者がACDR 0209を承認。企画書（詳細版38枚・要点版）とアンケートの設計書を正本へ反映しコミット（1a72433e、未プッシュ）。作業コピーは review/proposal-orientation-20261024/proposal-20261026、レビュー用アーティファクト https://claude.ai/artifact/9m4N9T3BrjKed4Gddm2x3W 。残り：運営設計案 workshop-plan.md の見直し。[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-28-01-proposal-canonical-release.md)。
 
 2026-10-28：ACDR 0211（運営設計案）と ACDR 0212（企画書の動画：詳細版の本編29枚、41分07秒、字幕494件、proposal/src/build_video.py）を承認・反映し、origin へプッシュ済み（86cbe6e3）。ローカル main は別の作業の未プッシュのコミットを持つため、ワークショップの分は一時 worktree で origin/main に cherry-pick して押し出している（ローカルとは hash が違う）。企画書とオリエンテーションは、スライド・原稿・動画とも正式版。[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-28-02-proposal-video-release.md)。
+
+2026-10-29：ACDR 0213（オリエンテーションとはじめにのPDF）と ACDR 0214（フォルダ構成）を承認・反映し、プッシュ済み（origin 6a8a23d4）。ai-workshop は dist/（配るもの、本ごとに slides.html ・ slides.pdf ・ script.md ・ video.mp4 ・ audio.mp3）・ src/（shared ・ proposal ・ lessons ・ lesson-2）・ archive/ ・ review/ の4つ。本と dist の対応は src/lessons/places.py。build_deck.py と build_videos.py は互いの場所から読む形が残る（分けるのは別の決定）。教材1の本編5本は v3 のままで、いまの教材名への改訂はまだ。
