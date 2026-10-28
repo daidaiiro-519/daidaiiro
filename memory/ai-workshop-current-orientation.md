@@ -91,3 +91,5 @@ metadata:
 2026-10-26：利用者の「コミットしてプッシュ」でACDR 0208を承認として反映。オリエンテーションのスライド・原稿・音声・動画がすべて正式版。次は企画書の見直し。[変更記録27](../docs/workshops/ai-workshop/review/shared/changes/2026-10-26-27-orientation-video-release.md)。
 
 2026-10-28：利用者がACDR 0209を承認。企画書（詳細版38枚・要点版）とアンケートの設計書を正本へ反映しコミット（1a72433e、未プッシュ）。作業コピーは review/proposal-orientation-20261024/proposal-20261026、レビュー用アーティファクト https://claude.ai/artifact/9m4N9T3BrjKed4Gddm2x3W 。残り：運営設計案 workshop-plan.md の見直し。[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-28-01-proposal-canonical-release.md)。
+
+2026-10-28：ACDR 0211（運営設計案）と ACDR 0212（企画書の動画：詳細版の本編29枚、41分07秒、字幕494件、proposal/src/build_video.py）を承認・反映し、origin へプッシュ済み（86cbe6e3）。ローカル main は別の作業の未プッシュのコミットを持つため、ワークショップの分は一時 worktree で origin/main に cherry-pick して押し出している（ローカルとは hash が違う）。企画書とオリエンテーションは、スライド・原稿・動画とも正式版。[変更記録](../docs/workshops/ai-workshop/review/shared/changes/2026-10-28-02-proposal-video-release.md)。
