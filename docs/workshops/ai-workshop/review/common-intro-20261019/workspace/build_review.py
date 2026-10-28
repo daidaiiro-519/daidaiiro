@@ -167,9 +167,9 @@ def publish():
         repo = A.parents[5]
         official = V / 'official/common-intro'
         official.mkdir(parents=True, exist_ok=True)
-        source_out = repo / 'docs/workshops/ai-workshop/material-1/out'
-        (official / 'slides.html').write_bytes((source_out / 'slides/lesson-01-lead.html').read_bytes())
-        (official / 'script.md').write_bytes((source_out / 'scripts/lesson-01-lead-script.md').read_bytes())
+        source_out = repo / 'docs/workshops/ai-workshop/dist/intro'
+        (official / 'slides.html').write_bytes((source_out / 'slides.html').read_bytes())
+        (official / 'script.md').write_bytes((source_out / 'script.md').read_bytes())
         (V / 'decisions').mkdir(exist_ok=True)
         (V / 'decisions/0205.html').write_bytes((repo / '.acdr/0205-三教材共通導入の正式版改訂/index.html').read_bytes())
         if progress.get('audio_video_updated'):
