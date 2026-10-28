@@ -1,0 +1,79 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0210",
+ "title": "記録の表示の不具合を直す",
+ "date": "2026-10-28",
+ "status": "accepted",
+ "decision": "記録の差分を、コードの引用符も、画面の高さで組んだスライドも、崩さずに表示する。",
+ "why": "コードの差分で、引用符が「&#x27;」と表示されていた。画面の高さ（vh）で組んだスライドを面に置くと、高さが伸び続けて読めなかった。ACDR 0205・0207は、この不具合を避けるために差分の面を先頭に置いて出した。",
+ "shift": [
+  {
+   "what": "コードの引用符",
+   "from": "文字参照「&#x27;」が壊れて、そのまま表示される。文字列にも色が付かない。",
+   "to": "引用符のまま表示され、文字列に色が付く。"
+  },
+  {
+   "what": "vh で組んだスライドの面",
+   "from": "中の高さに合わせて伸ばすたびに中も伸び、止まらない。",
+   "to": "同じ幅で3回続けて伸びたら止め、幅の16:9の高さで置く。"
+  }
+ ],
+ "alternatives": [
+  {
+   "option": "色付けの規則を、引用符を逃がした文字参照にも当たるように書き直す。",
+   "why_not": "言語ごとの規則をすべて直すことになり、数の規則が文字参照を拾う問題は残る。"
+  },
+  {
+   "option": "HTML の面の高さを固定値にする。",
+   "why_not": "ふつうの文書の面が、途中で切れるか、下に大きな余白が出る。"
+  },
+  {
+   "option": "これまでどおり、差分の面を先頭に置いて避ける。",
+   "why_not": "生成物を先頭に置くというガイドレールを守れず、記録ごとに避け方を考えることになる。"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "code",
+   "tab": "code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/code.rs",
+   "marks": [
+    {
+     "find": "fn esc_code(value: &str) -> String {",
+     "why": "色付けの規則は逃がしたあとの行に当たる。引用符まで逃がすと、数の規則が「&#x27;」の27を拾って参照を壊すため、コードの行では & と < と > だけを逃がす。",
+     "before": "fn painted(painter: &Painter, parts: &Parts, raw: &str) -> Result<String, String> {\n    let got = painter.paint(parts, &esc(raw))?;"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/tests/code.rs",
+   "marks": [
+    {
+     "find": "fn a_quote_in_code_is_not_broken_by_the_number_rule() {",
+     "why": "引用符を含むコードの行で、文字参照が残らず、文字列に色が付き、& は逃げることを事例で固定する。",
+     "before": "（追加のみ。変更前の行は無い）"
+    }
+   ]
+  },
+  {
+   "key": "js",
+   "tab": "acdr.js",
+   "file": ".claude/skills/acdr/references/acdr.js",
+   "marks": [
+    {
+     "find": "function resizeOne(f){",
+     "why": "中の高さが iframe の高さで決まる文書は、伸ばすたびに中も同じだけ伸びる。同じ幅で3回続けて伸びたら止め、幅の16:9の高さで置く。ふつうの文書は、これまでどおり中の高さに合わせる。",
+     "before": "  function resizeAll(){\n    frames.forEach(function(f){\n      try {\n        var d = f.contentDocument;\n        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + \"px\";\n      } catch(e){}\n    });\n  }"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "code": "2edcc370924da66186e08676383913feffca17347afe1bd5b955984b985a5b94",
+  "test": "4451e853b2cfddf4f60d1f0155c8617c2432f097ac7e9da3158f17d2682841bf",
+  "js": "42d6d16cb256ceb2fb53cea952db61b48d4142cb2dd098a05d0f8be76ef4d047"
+ }
+}

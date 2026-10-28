@@ -317,9 +317,21 @@ fn text_of(value: &Value, key: &str) -> String {
         .to_owned()
 }
 
+/// コードの行を、要素の本文へ置ける形にする。**引用符は逃がさない。**
+///
+/// 色付けの規則は、逃がしたあとの行に当たる。引用符を `&#x27;` へ逃がすと、
+/// 文字列の規則が当たらず、数の規則が文字参照の中の `27` を拾って参照を壊す。
+/// 行は要素の本文にしか置かないので、`&` ・ `<` ・ `>` だけを逃がせば足りる。
+fn esc_code(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 /// 1行を、色付けした本文へ組む。**空の行は、崩れない空白にする。**
 fn painted(painter: &Painter, parts: &Parts, raw: &str) -> Result<String, String> {
-    let got = painter.paint(parts, &esc(raw))?;
+    let got = painter.paint(parts, &esc_code(raw))?;
     Ok(if got.is_empty() {
         "&nbsp;".to_owned()
     } else {

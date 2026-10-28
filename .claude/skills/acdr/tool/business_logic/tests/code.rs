@@ -265,3 +265,12 @@ fn a_hunk_that_only_deletes_lines_still_gets_its_mark() {
         diff.body
     );
 }
+
+#[test]
+fn a_quote_in_code_is_not_broken_by_the_number_rule() {
+    // **引用符を文字参照へ逃がすと、数の規則が `&#x27;` の `27` を拾って参照を壊す**
+    let got = code::render_code(&parts(), "x = 'a' + \"b\" & 27\n", ".py", &[]).expect("組める");
+    assert!(!got.contains("&#x"), "文字参照が残っている ── {got}");
+    assert!(got.contains(">'a'<"), "文字列に色が付いていない ── {got}");
+    assert!(got.contains("&amp;"), "& が逃げていない ── {got}");
+}

@@ -67,14 +67,29 @@
   }
 
   var frames = [];
-  function resizeAll(){
-    frames.forEach(function(f){
-      try {
-        var d = f.contentDocument;
-        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
-      } catch(e){}
-    });
+  /* 中の高さに合わせて iframe を伸ばす。**中の高さが iframe の高さで決まる文書（vh で組んだスライドなど）は、
+     伸ばすたびに中も同じだけ伸び、止まらなくなる。** 同じ幅で3回続けて伸びたら、そうした文書とみなし、
+     幅の16:9の高さで止める */
+  function resizeOne(f){
+    try {
+      var d = f.contentDocument;
+      if (!d || !d.body || f._fixed) return;
+      var next = d.documentElement.scrollHeight + 8;
+      var now = f._h || 0;
+      if (next === now) return;
+      var grow = next - now;
+      f._streak = (now && grow > 0 && grow === f._grow) ? (f._streak || 0) + 1 : 0;
+      f._grow = grow;
+      if (f._streak >= 2) {
+        f._fixed = true;
+        f.style.height = Math.round(f.clientWidth * 9 / 16) + "px";
+        return;
+      }
+      f._h = next;
+      f.style.height = next + "px";
+    } catch(e){}
   }
+  function resizeAll(){ frames.forEach(resizeOne); }
 
   /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
   document.querySelectorAll(".pane.html").forEach(function(pane){
