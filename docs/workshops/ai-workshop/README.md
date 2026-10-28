@@ -24,6 +24,7 @@
 | [アンケート・効果測定案](proposal/out/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 答えやすさの方針と、Microsoft Forms での実装 |
 | [Forms の Copilot に渡すプロンプト](proposal/out/forms-copilot-prompts.md) | 事前 ・ 参加時 ・ 参加者の終了時 ・ 参加しなかった希望者の終了時の4本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
 | [全枚の一覧画像](proposal/out/overview.png) | 詳細版の全枚を1枚に並べた画像 |
+| [詳細版の動画](proposal/out/videos/director-deck.mp4) ・ [字幕](proposal/out/videos/director-deck.vtt) ・ [音声のみ](proposal/out/audio/director-deck.mp3) | 詳細版の本編29枚（表紙〜まとめ）を、発表原稿のとおりに読み上げた動画。約41分。字幕を焼き込んである。付録は含まない |
 
 `proposal/out/` には常に最新版を置く。前の版は `proposal/out/versions/<版>/` に、同じファイル名のまま残す。
 
@@ -63,6 +64,7 @@
 | 何を | どこで | 手順 |
 |---|---|---|
 | 企画書 | `proposal/src/` | `python3 build_deck.py`。HTML を `proposal/out/` へ出す。PDF と一覧画像は別に描画して出す |
+| 企画書の動画 | `proposal/src/` | `python3 build_video.py narration` で原稿を音声の入力にし、slide-deck-speech Skill で合成する。`python3 build_video.py previews --browser <ブラウザ>` で枚の画像を撮り、`python3 build_video.py video` で `proposal/out/videos/` と `proposal/out/audio/` へ出す |
 | 教材1 | `material-1/src/` | [material-1/README.md](material-1/README.md) を参照 |
 
 企画書の作成には、同梱の Skill（`proposal/src/skills/ai-workshop-slide-deck/`）の型を使う。教材1の作成も、この型と `proposal/src/visuals.py` の部品を借りる。
