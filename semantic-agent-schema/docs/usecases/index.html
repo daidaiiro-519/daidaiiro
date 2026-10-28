@@ -1,41 +1,204 @@
 <title>ユースケースの一覧</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-/* 結論 → 業務領域ごとの図 → 要判断 → 新規の案 → 全件の表（折りたたみ） */
-:root{--bg:#eef2f0;--card:#fff;--ink:#111d1a;--sub:#5b6b66;--line:#d3dcd8;--accent:#0d5c55;--abg:#d5e6e3;--q:#8f5410;--qb:#f0e2cd;--sbg:#dce7f1;--sfg:#2f5b80;--f:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111614;--card:#192120;--ink:#e3ebe8;--sub:#9aaba5;--line:#2f3b37;--accent:#7cc4b7;--abg:#1e3330;--q:#f0cf94;--qb:#3a2d17;--sbg:#1d2b3b;--sfg:#9dc1e6;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#111614;--card:#192120;--ink:#e3ebe8;--sub:#9aaba5;--line:#2f3b37;--accent:#7cc4b7;--abg:#1e3330;--q:#f0cf94;--qb:#3a2d17;--sbg:#1d2b3b;--sfg:#9dc1e6;color-scheme:dark}
+/* 上：いちばん外側の目的と件数 → 検索と絞り込み → いまの条件と件数 → 業務領域ごとのカードか行。押すと右（スマホは全面）に詳細 */
+:root{--bg:#eef2f0;--card:#fff;--ink:#111d1a;--sub:#5b6b66;--line:#d3dcd8;--accent:#0d5c55;--on:#fff;--abg:#d5e6e3;--sfg:#2f5b80;--nfg:#8f5410;--sel:#fff6d6;--f:"Noto Sans JP","Hiragino Kaku Gothic ProN",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111614;--card:#192120;--ink:#e3ebe8;--sub:#9aaba5;--line:#2f3b37;--accent:#7cc4b7;--on:#0f1a18;--abg:#1e3330;--sfg:#9dc1e6;--nfg:#f0cf94;--sel:#33301a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111614;--card:#192120;--ink:#e3ebe8;--sub:#9aaba5;--line:#2f3b37;--accent:#7cc4b7;--on:#0f1a18;--abg:#1e3330;--sfg:#9dc1e6;--nfg:#f0cf94;--sel:#33301a;color-scheme:dark}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font:15px/1.75 var(--f);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
-main{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-h1{font-size:24px;margin:0} h2{font-size:17px;margin:0;color:var(--accent)} p{margin:0}
-.lead{font-weight:700;font-size:16px}
-section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0;display:flex;flex-direction:column;gap:10px}
-.fig,.tw{overflow-x:auto}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:8px}
-.card{background:var(--qb);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0} .card b{color:var(--q);font-size:14px} .card span{font-size:13px}
-.new .card{background:var(--abg)} .new .card b{color:var(--accent)}
-.legend{display:flex;flex-wrap:wrap;gap:8px} .legend span{border-radius:999px;padding:2px 12px;font-size:13px}
-.area h2{display:flex;gap:10px;align-items:baseline} .cat{font-size:12px;color:var(--sub);font-weight:400}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
-.uc{border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0;border:1px solid var(--line)}
-.uc b{font-size:15px;line-height:1.5} .uc .kind{font-size:11.5px;font-weight:700} .uc .who{font-size:12.5px;color:var(--sub)}
-.uc .uses,.uc .ext{font-size:12.5px;color:var(--sub)} .uc .ext{border-top:1px dashed var(--line);padding-top:4px}
-.k-sum{background:var(--abg);color:var(--ink)} .k-sum .kind,.legend .k-sum{color:var(--accent)} .legend .k-sum{background:var(--abg)}
-.k-goal{background:var(--card)} .k-goal .kind{color:var(--ink)} .legend .k-goal{background:var(--card);border:1px solid var(--line)}
-.k-sub{background:var(--sbg)} .k-sub .kind,.legend .k-sub{color:var(--sfg)} .legend .k-sub{background:var(--sbg)}
-.k-new{background:var(--qb)} .k-new .kind,.legend .k-new{color:var(--q)} .legend .k-new{background:var(--qb)}
-.top b{font-size:17px}
-details summary{cursor:pointer;color:var(--accent);font-size:14px}
-table{border-collapse:collapse;width:100%;font-size:13px} th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{font-size:12px;color:var(--sub);font-weight:500;white-space:nowrap}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--f);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 56px;margin:0}
+main{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-size:24px;margin:0;text-wrap:balance} p{margin:0}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{all:unset;cursor:pointer;background:var(--abg);border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;gap:2px}
+.top:focus-visible{outline:2px solid var(--accent)}
+.top .k{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em} .top b{font-size:18px} .top .s{font-size:13px;color:var(--sub)}
+.counts{font-size:13px;color:var(--sub)} .counts b{color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:3;background:var(--bg);padding:8px 0;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--line)}
+@media (max-width:900px){.bar{position:static}}
+.search{width:100%;font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filters .lbl{font-size:12px;color:var(--sub);min-width:4.5em}
+.chip{font-size:13px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:1px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on);border-color:var(--accent)}
+details.more summary{font-size:12.5px;color:var(--accent);cursor:pointer}
+details.more[open] summary{margin-bottom:6px}
+.state{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13.5px}
+#state{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#state .n{font-weight:700;font-variant-numeric:tabular-nums}
+.cond{font-size:12.5px;border:1px solid var(--accent);color:var(--accent);background:var(--card);border-radius:999px;padding:0 10px;cursor:pointer}
+.view{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.view button{border:none;background:var(--card);padding:2px 12px;cursor:pointer;font-size:13px}
+.view button[aria-pressed="true"]{background:var(--accent);color:var(--on)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:14px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+#list{display:flex;flex-direction:column;gap:16px;min-width:0}
+.area{display:flex;flex-direction:column;gap:8px}
+.area h2{font-size:16px;margin:0;color:var(--accent);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.area h2 small{font-size:12px;color:var(--sub);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:8px}
+.uc{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:10px 12px;background:var(--card)}
+.uc:hover{border-color:var(--accent)} .uc:focus-visible{outline:2px solid var(--accent)}
+.uc[aria-current="true"]{background:var(--sel);border-color:var(--accent)}
+.uc .kind{font-size:11.5px;font-weight:700;letter-spacing:.03em;color:var(--sub)} .uc .who{font-size:12.5px;color:var(--sub)} .uc b{font-size:15px;line-height:1.5}
+.k-summary{border-left-color:var(--accent)} .k-summary .kind{color:var(--accent)}
+.k-subfunction{border-left-color:var(--sfg)} .k-subfunction .kind{color:var(--sfg)}
+.k-new{border-left-style:dashed;border-left-color:var(--nfg)} .k-new .kind{color:var(--nfg)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--sub);font-weight:500;white-space:nowrap}
+td:nth-child(1){min-width:12em} td:nth-child(2){white-space:nowrap} td:nth-child(3){min-width:7em} td:nth-child(4){min-width:18em}
+tr.row{cursor:pointer} tr.row:hover td,tr.row[aria-current="true"] td{background:var(--sel)}
+.uc-row{all:unset;cursor:pointer;color:var(--accent);font-weight:700}
+.uc-row:focus-visible{outline:2px solid var(--accent)}
+.empty{color:var(--sub);font-size:14px;padding:12px;background:var(--card);border-radius:10px}
+.detail{position:sticky;top:200px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 220px);overflow:auto;min-width:0}
+@media (max-width:900px){.detail{position:fixed;inset:0;max-height:none;border-radius:0;border:none;z-index:10;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}}
+.dhead{display:flex;justify-content:flex-end}
+@media (max-width:900px){.dhead{position:sticky;top:0;background:var(--card);padding:calc(10px + env(safe-area-inset-top,0px)) 0 8px;border-bottom:1px solid var(--line)}}
+@media (min-width:901px){.dhead{display:none}}
+.close{font-size:14px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 14px;cursor:pointer}
+.detail h3{outline:none;margin:0;font-size:19px;line-height:1.5;text-wrap:balance}
+.tags{display:flex;flex-wrap:wrap;gap:6px} .tags span{font-size:12px;border-radius:999px;padding:1px 10px;background:var(--bg)}
+.detail dl{margin:0;display:grid;grid-template-columns:8em minmax(0,1fr);gap:8px 10px;font-size:14px}
+@media (max-width:420px){.detail dl{grid-template-columns:1fr;gap:2px}.detail dd{margin-bottom:8px}}
+.detail dt{color:var(--sub);font-size:12.5px} .detail dd{margin:0}
+.links{display:flex;flex-direction:column;gap:4px}
+.links button{all:unset;cursor:pointer;color:var(--accent);font-size:14px} .links button:hover{text-decoration:underline} .links button:focus-visible{outline:2px solid var(--accent)}
+.id{font-size:11.5px;color:var(--sub)}
+.placeholder{color:var(--sub);font-size:14px}
+details.removed summary{cursor:pointer;color:var(--accent);font-size:14px}
+details.removed ul{margin:6px 0 0;padding-left:1.2em;font-size:13.5px;display:flex;flex-direction:column;gap:4px}
+.howto{font-size:13px;color:var(--sub)}
 </style>
 <main>
 <h1>ユースケースの一覧</h1>
-<p class="lead">業務領域ごとに、誰が何をするかを並べた案。いちばん外側のまとめの目的の下に、利用者の目的と、いくつもの目的から使うサブ機能がある。</p>
-<div class="uc k-sum top"><span class="kind">いちばん外側のまとめの目的</span><span class="who">利用者</span><b>AI に書かせた成果物を、正しいと確かめた状態で使い続ける</b><div class="uses">下の利用者の目的をくり返し果たすことで達する</div></div>
-<div class="legend"><span class="k-sum">まとめの目的</span><span class="k-goal">利用者の目的</span><span class="k-sub">サブ機能</span><span class="k-new">新しく足す案</span></div>
-<section class="area"><h2>意味の宣言<span class="cat">中核</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">作者（人か AI）</span><b>Semantic Concrete Schema を作る</b><div class="uses">使うサブ機能：Concrete の拡張項目を足す ・ 変える・ほかの文脈の公開された言葉を x-relationship で読む・検証する・セマンティックの手順を返す</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">作者</span><b>Semantic Concrete Schema を変える</b><div class="uses">使うサブ機能：Concrete の拡張項目を足す ・ 変える・ほかの文脈の公開された言葉を x-relationship で読む・検証する・変更を記録する・セマンティックの手順を返す</div><div class="ext">変更後の契約で violated のインスタンスが出たとき → 「既存のインスタンスを変える」を呼んで直す</div></div></div></section><section class="area"><h2>意味の検証<span class="cat">中核</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">CI（変更の仕組み）</span><b>変更のたびに、すべてのインスタンスを検証する</b><div class="uses">使うサブ機能：検証する</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">作業した本人か AI の Agent</span><b>入力が変わって効かなくなった判定を取り直す</b><div class="uses">使うサブ機能：検証する・セマンティックの手順を返す</div></div></div></section><section class="area"><h2>変更の確かめと例外の判断<span class="cat">中核</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">利用者 ・ 監査する人</span><b>検証と判定と内容の変更の経緯を、対象ごと ・ 目的ごとにあとから確かめる</b></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">作業した本人</span><b>セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する</b><div class="uses">使うサブ機能：変更を記録する・変更のまとめを作る・セマンティックの手順を返す</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">利用者（チーム）</span><b>ほかの変更を取り込む</b><div class="uses">使うサブ機能：検証する</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">変更を見る人（作業した本人か、変更の仕組みで取り込みを承認する人。harness が代わりに始めることもある）</span><b>変更を確かめる</b><div class="uses">使うサブ機能：変更のまとめを作る</div></div></div></section><section class="area"><h2>意味で探す<span class="cat">中核</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">harness の作者</span><b>探す範囲を宣言する</b></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">AI の Agent（目的のセッション）</span><b>問いに、出どころ付きの答えを返す</b><div class="uses">使うサブ機能：検証する・セマンティックの手順を返す</div></div></div></section><section class="area"><h2>目的ごとのセッションの管理<span class="cat">中核</span></h2><div class="grid"><div class="uc k-sum"><span class="kind">まとめの目的</span><span class="who">オーケストレーターのセッション（リポジトリに1つ。入れ子にしない。人が直接始めた最上位のセッションもこれ）</span><b>目的のセッションを立て、ID で再開して進める</b><div class="uses">中の手順：目的のセッションを立てる・目的のセッションを ID で再開する・目的のセッションを閉じる</div></div><div class="uc k-new"><span class="kind">新しく足す案</span><span class="who">オーケストレーターのセッション</span><b>役割ごとに子のセッションに任せる</b></div></div></section><section class="area"><h2>instance の作成と変更<span class="cat">補完</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">AI の Agent</span><b>インスタンスを作る</b><div class="uses">使うサブ機能：検証する・変更を記録する・セマンティックの手順を返す</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">AI の Agent</span><b>既存のインスタンスを変える</b><div class="uses">使うサブ機能：検証する・変更を記録する・セマンティックの手順を返す</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">利用者</span><b>不要になったインスタンスを置き換えて残す</b><div class="uses">使うサブ機能：変更を記録する</div></div><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">利用者</span><b>既存のファイルを取り込む</b><div class="uses">使うサブ機能：検証する・変更を記録する・セマンティックの手順を返す</div></div></div></section><section class="area"><h2>マイグレーション<span class="cat">補完</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">作者</span><b>Abstract の新しい版に Concrete を合わせる</b><div class="uses">使うサブ機能：検証する・セマンティックの手順を返す</div></div></div></section><section class="area"><h2>スキーマの保存と公開<span class="cat">補完</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">提供側（基盤を作る側）</span><b>Abstract の新しい版を、移し方と一緒に出す</b></div></div></section><section class="area"><h2>描画<span class="cat">補完</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">読み手（人）</span><b>人が読む形で読んで判断する</b></div></div></section><section class="area"><h2>AI と外のツールによる判定<span class="cat">一般</span></h2><div class="grid"><div class="uc k-goal"><span class="kind">利用者の目的</span><span class="who">harness の作者</span><b>validatorをつなぐ</b></div></div></section>
-<section class="area"><h2>サブ機能<span class="cat">いくつもの目的から使う手順</span></h2><div class="grid"><div class="uc k-sub"><span class="kind">サブ機能</span><b>Concrete の拡張項目を足す ・ 変える</b><div class="uses">使う目的：Semantic Concrete Schema を作る・Semantic Concrete Schema を変える</div></div><div class="uc k-sub"><span class="kind">サブ機能</span><b>ほかの文脈の公開された言葉を x-relationship で読む</b><div class="uses">使う目的：Semantic Concrete Schema を作る・Semantic Concrete Schema を変える</div></div><div class="uc k-sub"><span class="kind">サブ機能</span><b>検証する</b><div class="uses">使う目的：Semantic Concrete Schema を作る・Semantic Concrete Schema を変える・Abstract の新しい版に Concrete を合わせる・インスタンスを作る・既存のインスタンスを変える・変更のたびに、すべてのインスタンスを検証する・入力が変わって効かなくなった判定を取り直す・既存のファイルを取り込む・ほかの変更を取り込む・問いに、出どころ付きの答えを返す</div></div><div class="uc k-sub"><span class="kind">サブ機能</span><b>変更を記録する</b><div class="uses">使う目的：Semantic Concrete Schema を変える・インスタンスを作る・既存のインスタンスを変える・不要になったインスタンスを置き換えて残す・セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する・既存のファイルを取り込む</div></div><div class="uc k-sub"><span class="kind">サブ機能</span><b>変更のまとめを作る</b><div class="uses">使う目的：セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する・変更を確かめる</div></div><div class="uc k-sub"><span class="kind">サブ機能</span><b>セマンティックの手順を返す</b><div class="uses">使う目的：Semantic Concrete Schema を作る・Semantic Concrete Schema を変える・Abstract の新しい版に Concrete を合わせる・インスタンスを作る・既存のインスタンスを変える・入力が変わって効かなくなった判定を取り直す・セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する・既存のファイルを取り込む・問いに、出どころ付きの答えを返す</div></div></div></section>
-<section><h2>外したもの（4件）</h2><div class="cards"><div class="card"><b>契約の変更で violated になったインスタンスを、同じ変更の中で直す</b><span>いつ要るかを知っているのは契約を変える U2。U2 の拡張「violated が出た：」から U6 を呼べば足りる（usecase-advisor ・ extension-use-case）</span></div><div class="card"><b>目的のセッションを立てる</b><span>それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）</span></div><div class="card"><b>目的のセッションを ID で再開する</b><span>それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）</span></div><div class="card"><b>目的のセッションを閉じる</b><span>それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）</span></div></div></section>
-<section><details><summary>識別子つきの全件の表（27件）</summary><div class="tw"><table><thead><tr><th>id</th><th>レベル</th><th>目的</th><th>主体</th><th>業務領域</th><th>設計の範囲</th><th>扱い</th><th>なぜ</th></tr></thead><tbody><tr><td>U0</td><td>まとめの目的</td><td>AI に書かせた成果物を、正しいと確かめた状態で使い続ける</td><td>利用者</td><td>—</td><td>利用者のリポジトリ（基盤 ・ AI の Agent ・ 変更の仕組みを含む）</td><td>直した</td><td>主体が外にいる一番外側の範囲の要約。範囲の名前はシステムの集まりにする（境界2 ・ 4）</td></tr><tr><td>U1</td><td>利用者の目的</td><td>Semantic Concrete Schema を作る</td><td>作者（人か AI）</td><td>意味の宣言</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U2</td><td>利用者の目的</td><td>Semantic Concrete Schema を変える（繰り返した注意を x-prompt に上げることを含む）</td><td>作者</td><td>意味の宣言</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U3</td><td>利用者の目的</td><td>Abstract の新しい版に Concrete を合わせる</td><td>作者</td><td>マイグレーション</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U4</td><td>利用者の目的</td><td>Abstract の新しい版を、移し方と一緒に出す</td><td>提供側（基盤を作る側）</td><td>スキーマの保存と公開</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U5</td><td>利用者の目的</td><td>インスタンスを作る</td><td>AI の Agent</td><td>instance の作成と変更</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U6</td><td>利用者の目的</td><td>既存のインスタンスを変える</td><td>AI の Agent</td><td>instance の作成と変更</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U8</td><td>利用者の目的</td><td>変更のたびに、すべてのインスタンスを検証する</td><td>CI（変更の仕組み）</td><td>意味の検証</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U10</td><td>利用者の目的</td><td>入力が変わって効かなくなった判定を取り直す</td><td>作業した本人か AI の Agent</td><td>意味の検証</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U11</td><td>利用者の目的</td><td>不要になったインスタンスを置き換えて残す</td><td>利用者</td><td>instance の作成と変更</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U12</td><td>利用者の目的</td><td>人が読む形で読んで判断する</td><td>読み手（人）</td><td>描画</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U13</td><td>利用者の目的</td><td>検証と判定と内容の変更の経緯を、対象ごと ・ 目的ごとにあとから確かめる</td><td>利用者 ・ 監査する人</td><td>変更の確かめと例外の判断</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U14</td><td>利用者の目的</td><td>validator（AI ・ 外のツール）をつなぐ</td><td>harness の作者</td><td>AI と外のツールによる判定</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U16</td><td>利用者の目的</td><td>セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する（AI の判定を覆すことを含む）</td><td>作業した本人</td><td>変更の確かめと例外の判断</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U17</td><td>利用者の目的</td><td>既存のファイルを取り込む（導入）</td><td>利用者</td><td>instance の作成と変更</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U18</td><td>利用者の目的</td><td>ほかの変更を取り込む</td><td>利用者（チーム）</td><td>変更の確かめと例外の判断</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U25</td><td>利用者の目的</td><td>変更を確かめる（取り込むかは変更の仕組みで決める）</td><td>変更を見る人（作業した本人か、変更の仕組みで取り込みを承認する人。harness が代わりに始めることもある）</td><td>変更の確かめと例外の判断</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U26</td><td>利用者の目的</td><td>探す範囲（文脈の地図）を宣言する</td><td>harness の作者</td><td>意味で探す</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U28</td><td>利用者の目的</td><td>問いに、出どころ付きの答えを返す（Semantic Search）</td><td>AI の Agent（目的のセッション）</td><td>意味で探す</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>主体が1つの目的を果たして用が済む（境界4）</td></tr><tr><td>U23</td><td>サブ機能</td><td>Concrete の拡張項目を足す ・ 変える</td><td>作者</td><td>意味の宣言</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>U1 ・ U2 の2つから使われ、unsupported という固有の失敗を持つサブ機能（境界2 ・ 5）</td></tr><tr><td>U24</td><td>サブ機能</td><td>ほかの文脈の公開された言葉（Concrete の公開する部分）を x-relationship で読む</td><td>作者</td><td>意味の宣言</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>U1 ・ U2 の中で、ほかの文脈の公開された言葉を x-relationship で読む手順。2つから呼ばれる（境界2）</td></tr><tr><td>U27</td><td>まとめの目的</td><td>目的のセッションを立て、ID で再開して進める（役割ごとに子のセッションに任せることを含む）</td><td>オーケストレーターのセッション（リポジトリに1つ。入れ子にしない。人が直接始めた最上位のセッションもこれ）</td><td>目的ごとのセッションの管理</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>目的のあいだ何度かに分けて進める要約。下のユーザー目的は、子に任せる N3 と、セッションの中で行う U2 ・ U5 ・ U6 ・ U10 ・ U16 ・ U25（境界2）</td></tr><tr><td>N3</td><td>利用者の目的</td><td>役割ごとに子のセッションに任せる</td><td>オーケストレーターのセッション</td><td>目的ごとのセッションの管理</td><td>基盤（Semantic Agent Schema）</td><td>新規（案）</td><td>U27 の下のユーザー目的（境界2）</td></tr><tr><td>S1</td><td>サブ機能</td><td>検証する</td><td>呼ぶ側の主体（作者 ・ AI の Agent ・ CI）</td><td>意味の検証</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>複数のユースケースから呼ばれる（境界2）</td></tr><tr><td>S2</td><td>サブ機能</td><td>変更を記録する</td><td>作業した本人か AI の Agent</td><td>変更の確かめと例外の判断</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>複数のユースケースから呼ばれる（境界2）</td></tr><tr><td>S3</td><td>サブ機能</td><td>変更のまとめを作る</td><td>作業した本人</td><td>変更の確かめと例外の判断</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>複数のユースケースから呼ばれる（境界2）</td></tr><tr><td>S4</td><td>サブ機能</td><td>セマンティックの手順を返す</td><td>AI の Agent</td><td>意味の宣言</td><td>基盤（Semantic Agent Schema）</td><td>直した</td><td>複数のユースケースから呼ばれる（境界2）</td></tr></tbody></table></div></details></section>
+<button type="button" class="top" id="top"></button>
+<p class="counts" id="counts"></p>
+<div class="bar">
+  <input class="search" id="q" type="search" placeholder="何をする ・ 誰が ・ 保証の言葉で探す" aria-label="ユースケースを探す">
+  <div class="filters" id="f-area"></div>
+  <div class="filters" id="f-kind"></div>
+  <details class="more" id="more"><summary>誰がで絞る</summary><div class="filters" id="f-actor"></div></details>
+  <div class="state"><span id="state" aria-live="polite"></span><span class="view" role="group" aria-label="表示"><button type="button" data-view="cards">カード</button><button type="button" data-view="rows">行で比べる</button></span></div>
+</div>
+<div class="layout">
+  <div id="list"></div>
+  <aside class="detail" id="detail" aria-label="ユースケースの詳細"></aside>
+</div>
+<details class="removed" id="removed"></details>
+<p class="howto">ユースケースを足すときは、docs/usecases/usecases.json の items に1件足して build.py を走らせる。</p>
 </main>
+<script>
+const D={"items": [{"id": "U0", "level": "summary", "scope": "利用者のリポジトリ（基盤 ・ AI の Agent ・ 変更の仕組みを含む）", "area": null, "actor": "利用者", "goal": "AI に書かせた成果物を、正しいと確かめた状態で使い続ける", "success": "使っているインスタンスが、いまの契約のすべての rule で verified（機械の検証と、変更に入れた AI ・ 人の判定の記録）である", "minimum": "入力が変わった判定と、検証できなかった rule は、verified として見えない", "status": "直した", "why": "主体が外にいる一番外側の範囲の要約。範囲の名前はシステムの集まりにする（境界2 ・ 4）", "calls": ["U1", "U2", "U3", "U5", "U6", "U8", "U10", "U11", "U12", "U13", "U16", "U17", "U18", "U25", "U27"]}, {"id": "U1", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "意味の宣言", "actor": "作者（人か AI）", "goal": "Semantic Concrete Schema を作る", "success": "Concrete が Abstract の版と拡張の契約に従い、Agent が案内に従ってインスタンスを書ける", "minimum": "契約に従わない Concrete は、違反した rule と一緒に取り込めない理由として出る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U2", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "意味の宣言", "actor": "作者", "goal": "Semantic Concrete Schema を変える（繰り返した注意を x-prompt に上げることを含む）", "success": "変更に、変更後の姿での全インスタンスの状態 ・ 状態が変わったインスタンス ・ 人が見るものが出る。x-prompt を変えた欄の前の AI の判定は効かなくなり、取り直すまで unverified として出る。変更の記録（意図 ・ 目的の参照）が未確定の変更に置かれ、作業した本人はそれを書いたセッションで引ける", "minimum": "取り込むまで、いまの契約 ・ x-prompt とインスタンスの状態は変わらない", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）", "extensions": [{"when": "変更後の契約で violated のインスタンスが出た", "then": "「既存のインスタンスを変える」を呼んで直す"}]}, {"id": "U3", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "マイグレーション", "actor": "作者", "goal": "Abstract の新しい版に Concrete を合わせる", "success": "機械で直せる箇所は直り、残りは案内に従って直る", "minimum": "移せなかった箇所は一覧で返り、いまの Concrete は壊れない", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U4", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "スキーマの保存と公開", "actor": "提供側（基盤を作る側）", "goal": "Abstract の新しい版を、移し方と一緒に出す", "success": "作者が U3 を案内どおりに終えられる", "minimum": "前の Abstract の版は中身が変わらず、それを申告する Concrete は検証を通り続ける", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U5", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "instance の作成と変更", "actor": "AI の Agent", "goal": "インスタンスを作る", "success": "決定権が人の欄は人の入口から来た値のまま書かれ、rule ごとの結果がそろい、violated が無い。変更の記録（意図 ・ 目的の参照）が未確定の変更に置かれ、作業した本人はそれを書いたセッションで引ける", "minimum": "violated ・ error の rule が根拠付きで返る。必須の欄が空なら、根拠「必須の欄が空」の機械の violated として返る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U6", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "instance の作成と変更", "actor": "AI の Agent", "goal": "既存のインスタンスを変える", "success": "参照と導出値が整合したまま変わる。変更の記録（意図 ・ 目的の参照）が未確定の変更に置かれ、作業した本人はそれを書いたセッションで引ける", "minimum": "参照が壊れる ・ 導出値が合わない変更は violated として返り、取り込めない理由に出る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U8", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "意味の検証", "actor": "CI（変更の仕組み）", "goal": "変更のたびに、すべてのインスタンスを検証する", "success": "violated と unverified の一覧が返り、手元と同じ結果になる", "minimum": "validator が答えない ・ 誤った形で答えた rule は error として返り、verified に数えない", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U10", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "意味の検証", "actor": "作業した本人か AI の Agent", "goal": "入力が変わって効かなくなった判定を取り直す", "success": "入力が変わった rule だけが検証し直され、状態が変わったインスタンスが変更の出力に出る", "minimum": "基盤を通らずに書き換えられたインスタンスも、次の検証で入力が変わったと分かり、前の判定は効かない", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U11", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "instance の作成と変更", "actor": "利用者", "goal": "不要になったインスタンスを置き換えて残す", "success": "不要になったインスタンスは status が superseded になり、置き換えた先を指す。superseded のインスタンスに結び付いた判定の記録は効かない。指している記録は壊れず、置き換えた先へたどれる", "minimum": "インスタンスを消すコマンドは無い。欄を取り除くのは変える（Patch の remove）。確定していない誤りは Git の側で取り消し、基盤は戻った姿を検証するだけ", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U12", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "描画", "actor": "読み手（人）", "goal": "人が読む形で読んで判断する", "success": "rule ごとの結果とインスタンスの状態が、内容と一緒に見える", "minimum": "描画に失敗したら1ページも書かず、効かなくなった判定を verified として見せない。探した結果には探した範囲が付き、範囲の外は探していないと返る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U13", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "変更の確かめと例外の判断", "actor": "利用者 ・ 監査する人", "goal": "検証と判定と内容の変更の経緯を、対象ごと ・ 目的ごとにあとから確かめる", "success": "対象ごとに、どの意図 ・ どの目的で ・ どの欄を変えたかと、誰が ・ どの変更の姿で ・ どのインスタンス × rule を判定したかが分かる。いつ ・ 誰が確定したかは、ポートの単位の中身から分かる（出した者と時刻は出どころ付き）", "minimum": "記録の書き換えは変更の差分に出て、AI ・ 人の rule で判定の記録が無いもの ・ 変更の記録が無い書き換えは、記録が無いと分かる", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U14", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "AI と外のツールによる判定", "actor": "harness の作者", "goal": "validator（AI ・ 外のツール）をつなぐ", "success": "判定できる rule が宣言され、宣言の外の rule は unsupported と返る", "minimum": "validator を1つもつながなくても、機械で決まる rule は検証され、残りは unsupported として返る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U16", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "変更の確かめと例外の判断", "actor": "作業した本人", "goal": "セッションの中で、意図への判断のうち機械と AI が決めきれなかった rule ・ 人が決める欄を承認する（AI の判定を覆すことを含む）", "success": "原因ごとにまとめて判断し、示した入力 ・ 意図に結び付いた人の判定の記録が、手元の DB に入り、結果が変更のまとめに入る。本人が意図を承認したら（変更の記録への I33 に対する人の判定）、まとめを作ってコミットできる。同じ判断を繰り返したものは、x-prompt に上げる材料として引ける", "minimum": "判断されなかったものは unverified のまま残り、verified として見えない。セッションの中でも、承認は人の入口からだけ入る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U17", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "instance の作成と変更", "actor": "利用者", "goal": "既存のファイルを取り込む（導入）", "success": "$schema が1つに決まるファイルはそのままインスタンスになり、決まらないファイルは下書きとして一覧に出る", "minimum": "取り込めなかったファイルは中身が変わらず、理由が返る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U18", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "変更の確かめと例外の判断", "actor": "利用者（チーム）", "goal": "ほかの変更を取り込む", "success": "取り込んだあとの姿で全インスタンスが検証され、状態が変わったものが出る", "minimum": "同じインスタンス × rule の判定 ・ 同じ対象の同じ欄を両方で変えたときは、基盤が片方を選ばず、変更の仕組みの衝突として人に出る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U25", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "変更の確かめと例外の判断", "actor": "変更を見る人（作業した本人か、変更の仕組みで取り込みを承認する人。harness が代わりに始めることもある）", "goal": "変更を確かめる（取り込むかは変更の仕組みで決める）", "success": "条件（目的 ・ 対象）に紐づく変更のまとめが、意図 ・ 意味の変更 ・ 意図の判定の結果（I33 と人の承認）・ 変更後の検証の結果と一緒に出て、例外が件数と一緒に先頭に出る。作業した本人の手元では、セッションで引いた1件ずつの変更の記録も出る", "minimum": "見ても契約 ・ インスタンス ・ 記録 ・ 手元の索引は変わらない。意図は書き換わらずに出て、意図の無い変更 ・ 意図に入らない未確定の変更 ・ この前後に無い変更の記録は、そうだと分かる。変更の仕組みが前後を返さないときは、見せたことにしない", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U26", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "意味で探す", "actor": "harness の作者", "goal": "探す範囲（文脈の地図）を宣言する", "success": "宣言した文脈の集まりを1つの索引で引け、探した結果に範囲が付く", "minimum": "地図に無い文脈は、探していないと返る", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U28", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "意味で探す", "actor": "AI の Agent（目的のセッション）", "goal": "問いに、出どころ付きの答えを返す（Semantic Search）", "success": "semantic-search の procedure に従って問いを where ・ select に直し、search の結果を答えのスキーマで返す。答えの出どころ（id ・ kind ・ 版 ・ where ・ select）を validate が評価し直すと同じ値になる", "minimum": "範囲の外は探していないと返る。出どころを評価し直して合わなければ violated になる", "status": "直した", "why": "主体が1つの目的を果たして用が済む（境界4）"}, {"id": "U23", "level": "subfunction", "scope": "基盤（Semantic Agent Schema）", "area": "意味の宣言", "actor": "作者", "goal": "Concrete の拡張項目を足す ・ 変える", "success": "定義した x- が形 ・ 意味 ・ 検証の仕方 ・ 名前の範囲を持ち、その x- を使う全インスタンスが宣言した検証の仕方で検証される", "minimum": "検証の仕方が書けない x- は unsupported として返り、Abstract の拡張項目とぶつかる定義は違反として返る", "status": "直した", "why": "U1 ・ U2 の2つから使われ、unsupported という固有の失敗を持つサブ機能（境界2 ・ 5）", "called_by": ["U1", "U2"]}, {"id": "U24", "level": "subfunction", "scope": "基盤（Semantic Agent Schema）", "area": "意味の宣言", "actor": "作者", "goal": "ほかの文脈の公開された言葉（Concrete の公開する部分）を x-relationship で読む", "success": "読む側は、指した公開された言葉の版で検証され続ける", "minimum": "読む先の版が無い ・ 読む先が新しい版だけを出したときは、読む側の検証にそう出て、黙って壊れない。探した結果には探した範囲が付き、範囲の外は探していないと返る", "status": "直した", "why": "U1 ・ U2 の中で、ほかの文脈の公開された言葉を x-relationship で読む手順。2つから呼ばれる（境界2）", "called_by": ["U1", "U2"]}, {"id": "U27", "level": "summary", "scope": "基盤（Semantic Agent Schema）", "area": "目的ごとのセッションの管理", "actor": "オーケストレーターのセッション（リポジトリに1つ。入れ子にしない。人が直接始めた最上位のセッションもこれ）", "goal": "目的のセッションを立て、ID で再開して進める（役割ごとに子のセッションに任せることを含む）", "success": "目的のあいだは同じセッションが ID で続く。子のセッションには親がまとめた引き継ぎのプロンプトが渡り、渡したものが残る。子はほかを呼ばず、決めきれない点を needs で親に返す。目的と、そのセッションと子のセッションで書いた変更の記録が、あとから引ける", "minimum": "子が答えない ・ 誤った形で答えたときは error として親に返り、子がそれまでに書いた変更の記録は消えずに残る", "status": "直した", "why": "目的のあいだ何度かに分けて進める要約。下のユーザー目的は、子に任せる N3 と、セッションの中で行う U2 ・ U5 ・ U6 ・ U10 ・ U16 ・ U25（境界2）", "calls": ["N3", "U2", "U5", "U6", "U10", "U16", "U25"], "steps": ["目的のセッションを立てる", "目的のセッションを ID で再開する", "目的のセッションを閉じる"]}, {"id": "N3", "level": "user-goal", "scope": "基盤（Semantic Agent Schema）", "area": "目的ごとのセッションの管理", "actor": "オーケストレーターのセッション", "goal": "役割ごとに子のセッションに任せる", "success": "子のセッションに、親がまとめた引き継ぎのプロンプトが渡り、子が結果か needs を返す", "minimum": "子が答えない ・ 誤った形で答えたときは error として親に返り、子が書いた変更の記録は消えずに残る", "status": "新規（案）", "why": "U27 の下のユーザー目的（境界2）"}, {"id": "S1", "level": "subfunction", "scope": "基盤（Semantic Agent Schema）", "area": "意味の検証", "actor": "呼ぶ側の主体（作者 ・ AI の Agent ・ CI）", "goal": "検証する", "success": "対象の文書が、従う契約のすべての rule について5つの値のどれかを持つ", "minimum": "検証できない rule は unsupported か error として返り、verified に数えない", "status": "直した", "why": "複数のユースケースから呼ばれる（境界2）", "called_by": ["U1", "U2", "U3", "U5", "U6", "U8", "U10", "U17", "U18", "U28"]}, {"id": "S2", "level": "subfunction", "scope": "基盤（Semantic Agent Schema）", "area": "変更の確かめと例外の判断", "actor": "作業した本人か AI の Agent", "goal": "変更を記録する", "success": "意図 ・ 目的の参照 ・ 変えた欄が、未確定の変更の記録として手元に残る", "minimum": "記録できなければ理由が返り、記録の無い変更はまとめで例外として分かる", "status": "直した", "why": "複数のユースケースから呼ばれる（境界2）", "called_by": ["U2", "U5", "U6", "U11", "U16", "U17"]}, {"id": "S3", "level": "subfunction", "scope": "基盤（Semantic Agent Schema）", "area": "変更の確かめと例外の判断", "actor": "作業した本人", "goal": "変更のまとめを作る", "success": "前回のコミットからの変更の記録と例外が、まとめ1件になる", "minimum": "記録の無い変更と前後を取れない変更は、例外として出る", "status": "直した", "why": "複数のユースケースから呼ばれる（境界2）", "called_by": ["U16", "U25"]}, {"id": "S4", "level": "subfunction", "scope": "基盤（Semantic Agent Schema）", "area": "意味の宣言", "actor": "AI の Agent", "goal": "セマンティックの手順を返す", "success": "操作ごとの手順 ・ 入力の形 ・ 出力の形が返る", "minimum": "知らない操作は断られ、何も変わらない", "status": "直した", "why": "複数のユースケースから呼ばれる（境界2）", "called_by": ["U1", "U2", "U3", "U5", "U6", "U10", "U16", "U17", "U28"]}], "removed": [{"id": "U7", "goal": "契約の変更で violated になったインスタンスを、同じ変更の中で直す", "why": "いつ要るかを知っているのは契約を変える U2。U2 の拡張「violated が出た：」から U6 を呼べば足りる（usecase-advisor ・ extension-use-case）"}, {"id": "N1", "goal": "目的のセッションを立てる", "why": "それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）"}, {"id": "N2", "goal": "目的のセッションを ID で再開する", "why": "それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）"}, {"id": "N4", "goal": "目的のセッションを閉じる", "why": "それだけでは利用者にとって価値が無いので、U27 のステップにする（usecase-advisor、推測）"}], "areaKind": {"意味の宣言": "中核", "意味の検証": "中核", "変更の確かめと例外の判断": "中核", "意味で探す": "中核", "目的ごとのセッションの管理": "中核", "スキーマの保存と公開": "補完", "instance の作成と変更": "補完", "マイグレーション": "補完", "描画": "補完", "AI と外のツールによる判定": "一般", "保存と版の管理": "一般"}};
+const KIND={summary:'まとめの目的','user-goal':'利用者の目的',subfunction:'サブ機能'};
+const items=D.items, byId=Object.fromEntries(items.map(e=>[e.id,e]));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const short=g=>String(g||'').replace(/（.*?）/g,'').trim();
+const isNew=e=>e.id.startsWith('N');
+const kindOf=e=>isNew(e)?'new':e.level;
+const kindLabel=e=>isNew(e)?'利用者の目的（新しく足す案）':KIND[e.level];
+const actorOf=e=>short(e.actor);
+const CROSS='業務領域をまたぐ';
+const areaOf=e=>e.area||CROSS;
+const outer=items.find(e=>e.level==='summary'&&!e.area);
+const areas=[...new Set(items.filter(e=>e!==outer).map(areaOf))];
+const actors=[...new Set(items.map(actorOf))];
+const st={q:'',area:new Set(),kind:new Set(),actor:new Set(),view:'cards',sel:null,from:null};
+try{const s=JSON.parse(localStorage.getItem('uc-filters')||'null');if(s){st.area=new Set(s.area||[]);st.kind=new Set(s.kind||[]);st.actor=new Set(s.actor||[]);st.view=s.view||'cards';}}catch(_){}
+function save(){try{localStorage.setItem('uc-filters',JSON.stringify({area:[...st.area],kind:[...st.kind],actor:[...st.actor],view:st.view}))}catch(_){}}
+const $=id=>document.getElementById(id);
+const narrow=()=>window.matchMedia('(max-width:900px)').matches;
+if(st.actor.size)$('more').open=true;
+
+$('top').innerHTML=outer?`<span class="k">いちばん外側のまとめの目的</span><span class="s">${esc(actorOf(outer))}が</span><b>${esc(outer.goal)}</b><span class="s">下の利用者の目的をくり返し果たすことで達する。押すと詳細</span>`:'';
+$('top').onclick=()=>outer&&show(outer.id,true);
+const cnt=k=>items.filter(e=>e.level===k).length;
+$('counts').innerHTML=`全 <b>${items.length}</b> 件 ・ まとめの目的 <b>${cnt('summary')}</b> ・ 利用者の目的 <b>${cnt('user-goal')}</b> ・ サブ機能 <b>${cnt('subfunction')}</b> ・ 業務領域 <b>${areas.filter(a=>a!==CROSS).length}</b>`;
+
+function chips(el,label,values,set,show){
+  el.innerHTML=`<span class="lbl">${label}</span>`+values.map(v=>`<button type="button" class="chip" aria-pressed="${set.has(v)}" data-v="${esc(v)}">${esc(show?show(v):v)}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const v=b.dataset.v;set.has(v)?set.delete(v):set.add(v);save();render();});
+}
+function match(e){
+  if(st.area.size&&!st.area.has(areaOf(e)))return false;
+  if(st.kind.size&&!st.kind.has(e.level))return false;
+  if(st.actor.size&&!st.actor.has(actorOf(e)))return false;
+  if(st.q){const t=[e.goal,e.actor,e.success,e.minimum,e.area].join(' ');if(!t.includes(st.q))return false;}
+  return true;
+}
+function stateLine(n){
+  const conds=[];
+  if(st.q)conds.push(['q','',`「${st.q}」`]);
+  st.area.forEach(v=>conds.push(['area',v,'業務領域：'+v]));
+  st.kind.forEach(v=>conds.push(['kind',v,'種類：'+KIND[v]]));
+  st.actor.forEach(v=>conds.push(['actor',v,'誰が：'+v]));
+  $('state').innerHTML=(conds.length?conds.map(([k,v,t])=>`<button type="button" class="cond" data-k="${k}" data-v="${esc(v)}" aria-label="${esc(t)} を外す">${esc(t)} ×</button>`).join('')+'<span>―</span>':'<span>すべて ―</span>')+`<span class="n">${n}件</span>`;
+  $('state').querySelectorAll('.cond').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(k==='q'){st.q='';$('q').value='';}else st[k].delete(b.dataset.v);save();render();});
+  document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===st.view));
+}
+function card(e){
+  return `<button type="button" class="uc k-${kindOf(e)}" data-id="${esc(e.id)}" aria-current="${st.sel===e.id}"><span class="kind">${esc(kindLabel(e))}</span><span class="who">${esc(actorOf(e))}が</span><b>${esc(short(e.goal))}</b></button>`;
+}
+function rows(es){
+  return `<div class="tw"><table><thead><tr><th>何をする</th><th>種類</th><th>誰が</th><th>成功したときの保証</th></tr></thead><tbody>${es.map(e=>`<tr class="row" data-row="${esc(e.id)}" aria-current="${st.sel===e.id}"><td><button type="button" class="uc-row" data-id="${esc(e.id)}">${esc(short(e.goal))}</button></td><td>${esc(kindLabel(e))}</td><td>${esc(actorOf(e))}</td><td>${esc(e.success)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function render(){
+  chips($('f-area'),'業務領域',areas,st.area);
+  chips($('f-kind'),'種類',['summary','user-goal','subfunction'],st.kind,v=>KIND[v]);
+  chips($('f-actor'),'誰が',actors,st.actor);
+  let html='',n=0;
+  for(const a of areas){
+    const es=items.filter(e=>e!==outer&&areaOf(e)===a&&match(e));if(!es.length)continue;n+=es.length;
+    const kind=D.areaKind[a]?esc(D.areaKind[a])+' ・ ':'';
+    html+=`<section class="area"><h2>${esc(a)}<small>${kind}${es.length}件</small></h2>${st.view==='rows'?rows(es):`<div class="grid">${es.map(card).join('')}</div>`}</section>`;
+  }
+  $('list').innerHTML=html||'<p class="empty">条件に合うユースケースはありません。上の条件の × で外してください。</p>';
+  stateLine(n);
+  $('list').querySelectorAll('[data-id]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();show(b.dataset.id,true);});
+  $('list').querySelectorAll('tr.row').forEach(r=>r.onclick=()=>show(r.dataset.row,true));
+}
+const link=id=>byId[id]?`<button type="button" data-go="${esc(id)}">${esc(short(byId[id].goal))}</button>`:'';
+const block=ids=>ids.length?`<div class="links">${ids.map(link).join('')}</div>`:'';
+function placeholder(){$('detail').innerHTML='<p class="placeholder">カードを押すと、ここに詳しい内容が出ます。</p>';}
+function show(id,push){
+  const e=byId[id];if(!e)return;
+  if(push&&st.sel!==id){try{history.pushState({id},'','#'+id)}catch(_){}}
+  if(!st.sel)st.from=document.activeElement;
+  st.sel=id;
+  const parents=items.filter(x=>(x.calls||[]).includes(id)).map(x=>x.id);
+  const subs=items.filter(x=>x.level==='subfunction'&&(x.called_by||[]).includes(id)).map(x=>x.id);
+  const row=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
+  const d=$('detail');
+  d.innerHTML=`<div class="dhead"><button type="button" class="close" id="close">一覧に戻る</button></div>
+   <div class="tags"><span>${esc(kindLabel(e))}</span><span>${esc(areaOf(e))}</span></div>
+   <h3 tabindex="-1" id="dtitle">${esc(e.goal)}</h3>
+   <dl>${row('誰が',esc(e.actor))}${row('成功したときの保証',esc(e.success))}${row('最低限の保証',esc(e.minimum))}
+   ${row('含むまとめの目的',block(parents))}${row('下の目的',block(e.calls||[]))}
+   ${row('使うサブ機能',block(subs))}${row('使う目的',block(e.called_by||[]))}
+   ${row('中の手順',(e.steps||[]).map(s=>`<div>${esc(s)}</div>`).join(''))}
+   ${row('拡張',(e.extensions||[]).map(x=>`<div>${esc(x.when)}とき → ${esc(x.then)}</div>`).join(''))}
+   ${row('設計の範囲',esc(e.scope))}${row('なぜこの形か',esc(e.why))}</dl>
+   <span class="id">識別子 ${esc(e.id)}</span>`;
+  d.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go,true));
+  $('close').onclick=back;
+  d.hidden=false;d.scrollTop=0;
+  render();if(push)$('dtitle').focus({preventScroll:!narrow()});
+}
+function back(){history.state&&history.state.id?history.back():closeDetail();}
+function closeDetail(){
+  const from=st.sel;st.sel=null;placeholder();if(narrow())$('detail').hidden=true;render();
+  const c=document.querySelector(`[data-id="${from}"]`)||st.from;if(c&&c.focus)c.focus();st.from=null;
+}
+window.addEventListener('popstate',ev=>{const id=(ev.state&&ev.state.id)||(location.hash||'').slice(1);byId[id]?show(id,false):closeDetail();});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&st.sel)back();});
+$('q').addEventListener('input',ev=>{st.q=ev.target.value.trim();render();});
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{st.view=b.dataset.view;save();render();});
+$('removed').innerHTML=D.removed.length?`<summary>外したもの（${D.removed.length}件）</summary><ul>${D.removed.map(r=>`<li><b>${esc(short(r.goal))}</b>：${esc(r.why)}</li>`).join('')}</ul>`:'';
+placeholder();if(narrow())$('detail').hidden=true;
+render();
+const h=(location.hash||'').slice(1);if(byId[h])show(h,false);
+</script>
