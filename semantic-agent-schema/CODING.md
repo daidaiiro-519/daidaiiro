@@ -6,7 +6,7 @@
 
 | 決まり | 理由 |
 |---|---|
-| リポジトリの根は事業領域。区切られた文脈は、根の直下の文脈の名前のフォルダ（いまは `contracts-and-instances/`） | 事業領域と文脈を同じものとして扱わない |
+| リポジトリの根は事業領域。区切られた文脈は、根の直下の文脈の名前のフォルダ（いまは `schemas-and-instances/`） | 事業領域と文脈を同じものとして扱わない |
 | 文脈全体を1つのヘキサゴナルにする。外とのやりとりは application の ports を adapters/outbound が実装する | 外の技術を業務ロジックから切り離す |
 | 業務ロジックは、まず use_cases にトランザクションスクリプトで書く。同じ理由で変わるものだけを domain へ引き上げる。自明なものは最初から domain に置いてよいが、根拠を探索の記録に書く | ドメインモデルは育てるもの |
 | domain の中は部品の種類で分ける（aggregates/・values/・services/）。購読する手続きが無いうちは events/ を作らない | 先取りしない |
@@ -25,7 +25,7 @@
 | 根の Cargo.toml は virtual manifest。`[workspace]` に members と `resolver = "3"` | Cargo workspaces:241・258、Book ch14-03:207〜211 |
 | 外のライブラリの版は `[workspace.dependencies]` に置き、各 crate は `workspace = true` で継承する | Cargo workspaces:359・363 |
 | 依存の向きを強制したい境界と、外のライブラリを閉じ込めたい所だけを crate にする。それ以外はモジュール | Book ch07-03:296・ch14-03:299 |
-| crate の名前は `contracts-and-instances-<業務領域>-<層>`。製品の名前は `[[bin]]`（sas）にだけ残す | 文脈の名前で事業領域と分ける |
+| crate の名前は `schemas-and-instances-<業務領域>-<層>`。製品の名前は `[[bin]]`（sas）にだけ残す | 文脈の名前で事業領域と分ける |
 | mod.rs を使わない（`src/aggregates.rs` と `src/aggregates/concrete.rs` の形） | Book ch07-05:251・265・268 |
 | ポートは trait で dyn で使い、dyn compatible に保つ | Reference traits:412・429・445・459 |
 | 集約の欄は private、メソッドだけ pub。ID と指紋は newtype | API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169 |

@@ -59,13 +59,14 @@ x-prompt はいまの vocab-meta に在る。足すのは x-view だけで、デ
 
 | 表 | 持つもの | 主キー ・ 一意 |
 |---|---|---|
-| sessions | 呼び出し元のセッションと SAS が立てたセッション（kind で分ける） | id。開いている呼び出し元はアダプター × tool_ref で1つ、人は1つ |
+| sessions | 呼び出し元のセッション（文脈「スキーマとインスタンス」） | id。開いているものはアダプター × tool_ref で1つ、人は1つ |
+| launched_sessions | SAS が立てたセッション（文脈「立てたセッション」）。呼び出し元のセッションを ID で指す | id |
 | session_turns | 手順のプロンプトを渡して答えを受け取った1回（開始 ・ 再開 ・ 形の直し） | (session_id, seq)。索引 (request_id, attempt) |
-| operations | 操作。追記だけ。どちらのセッションも session_id で指す | id。(session_id, seq)。request_id は1回（削除に伴う書き換えを除く） |
+| operations | 操作。追記だけ。呼び出し元のセッションを session_id で、立てたセッションで行ったときはその回も指す | id。(session_id, seq)。request_id は1回（削除に伴う書き換えを除く） |
 | field_changes | 変わった欄の前後 | (operation_id, pointer) |
 | rule_results | rule ごとの結果（validate だけ） | (operation_id, rule_schema, rule_id, pointer) |
 
-session_turns を足した理由は、継続のセッションが手順のプロンプトを何度も受け、形の直しも1回ずつになるためである。sessions の1行には1つしか持てない。逆に、state ・ 再開できる期限 ・ 文脈の上限は回と能力の写しから導けるので、欄に持たない。
+session_turns を足した理由は、継続のセッションが手順のプロンプトを何度も受け、形の直しも1回ずつになるためである。launched_sessions の1行には1つしか持てない。逆に、state ・ 再開できる期限 ・ 文脈の上限は回と能力の写しから導けるので、欄に持たない。
 
 DDL は design.json の 4_db.ddl にあり、SQLite 3.46 で表を作れることと、主な CHECK ・ 一意の索引が違反を断ることを確かめた。CHECK は式が NULL のとき違反にしないので、NULL になりうる欄に = ・ IN を使う2つの CHECK を IS ・ IS NOT NULL で閉じた（照合と実測で確かめた）。必要な最低の版は、部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0。trigger は `SELECT RAISE(ABORT, '<文字列のリテラル>')` で書く（文言に式を使えるのは 3.47.0 から）。
 

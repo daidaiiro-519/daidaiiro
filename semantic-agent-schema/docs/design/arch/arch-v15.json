@@ -1,74 +1,74 @@
 {
  "version": "v15",
- "architecture": "文脈全体を1つのヘキサゴナル。業務ロジックは上から決めて下から確かめる。domain は契約への適合と意味の操作だけ（突き合わせで確かめた集約・値・サービス）。操作の記録と描画は application だけ（トランザクションスクリプト）",
+ "architecture": "文脈全体を1つのヘキサゴナル。業務ロジックは上から決めて下から確かめる。domain はスキーマへの適合と意味の操作だけ（突き合わせで確かめた集約・値・サービス）。操作の記録と描画は application だけ（トランザクションスクリプト）",
  "aggregates": [
-  "Concrete（契約への適合）",
-  "インスタンス（契約への適合）",
+  "Concrete（スキーマへの適合）",
+  "インスタンス（スキーマへの適合）",
   "SAS が立てたセッション（意味の操作。回は内側）"
  ],
  "crates": [
   {
-   "crate": "contracts-and-instances-conformance-domain",
+   "crate": "schemas-and-instances-conformance-domain",
    "layer": "domain",
    "may_depend_on": "無し"
   },
   {
-   "crate": "contracts-and-instances-semantic-operations-domain",
+   "crate": "launched-sessions-semantic-operations-domain",
    "layer": "domain",
    "may_depend_on": "conformance-domain"
   },
   {
-   "crate": "contracts-and-instances-operation-recording-application",
+   "crate": "schemas-and-instances-operation-recording-application",
    "layer": "application",
    "may_depend_on": "conformance-domain（値だけ）"
   },
   {
-   "crate": "contracts-and-instances-conformance-application",
+   "crate": "schemas-and-instances-conformance-application",
    "layer": "application",
    "may_depend_on": "conformance-domain・operation-recording-application"
   },
   {
-   "crate": "contracts-and-instances-semantic-operations-application",
+   "crate": "launched-sessions-semantic-operations-application",
    "layer": "application",
    "may_depend_on": "semantic-operations-domain・conformance-domain・conformance-application・operation-recording-application"
   },
   {
-   "crate": "contracts-and-instances-rendering-application",
+   "crate": "schemas-and-instances-rendering-application",
    "layer": "application",
    "may_depend_on": "conformance-domain・conformance-application"
   },
   {
-   "crate": "contracts-and-instances-adapters-outbound-agents",
+   "crate": "schemas-and-instances-adapters-outbound-agents",
    "layer": "adapters",
    "may_depend_on": "semantic-operations-application・operation-recording-application（agent_runtime・identify_caller を実装）"
   },
   {
-   "crate": "contracts-and-instances-adapters-outbound-files",
+   "crate": "schemas-and-instances-adapters-outbound-files",
    "layer": "adapters",
    "may_depend_on": "semantic-operations-application・conformance-application（keep_prompt・document_store）"
   },
   {
-   "crate": "contracts-and-instances-adapters-outbound-git",
+   "crate": "schemas-and-instances-adapters-outbound-git",
    "layer": "adapters",
    "may_depend_on": "conformance-application（version_reader。読むだけ）"
   },
   {
-   "crate": "contracts-and-instances-adapters-outbound-jsonschema",
+   "crate": "schemas-and-instances-adapters-outbound-jsonschema",
    "layer": "adapters",
    "may_depend_on": "conformance-application（schema_checker。2020-12 の検査器のライブラリはここだけ）"
   },
   {
-   "crate": "contracts-and-instances-adapters-outbound-sqlite",
+   "crate": "schemas-and-instances-adapters-outbound-sqlite",
    "layer": "adapters",
    "may_depend_on": "semantic-operations-application・operation-recording-application（agent_session_store・operation_log。rusqlite はここだけ）"
   },
   {
-   "crate": "contracts-and-instances-adapters-outbound-templates",
+   "crate": "schemas-and-instances-adapters-outbound-templates",
    "layer": "adapters",
    "may_depend_on": "rendering-application（template_renderer。テンプレートの処理系はここだけ）"
   },
   {
-   "crate": "contracts-and-instances-adapters-inbound-cli",
+   "crate": "schemas-and-instances-adapters-inbound-cli",
    "layer": "adapters（bin・組み立て）",
    "may_depend_on": "4つの application と outbound の6つ（main.rs で組み立てる。outbound に依存してよいのはここだけ）"
   }
@@ -143,9 +143,9 @@
   "業務ロジックの置き方は、上から決めて下から確かめる。守る条件がすでに決定・Abstract の rule・試験の場面に書けている所は初めから domain に置き、それ以外は use_cases にトランザクションスクリプトで書く。引き上げの表で見分け、突き合わせで確かめたものだけを domain に置く",
   "domain の中は部品の種類でフォルダを分ける：aggregates/（集約ごと）・values/・services/。購読する手続きが無いうちは events/ を作らない",
   "application の中は use_cases/ と ports/。use_cases/ のファイルは集約か手順のまとまりごとに分け、ユースケースごとのファイルやフォルダは作らない（土台の境界6）",
-  "domain を持つのは、突き合わせで集約・値・サービスが確かめられた業務領域だけ（意味の操作・契約への適合）。操作の記録と描画は application だけ",
+  "domain を持つのは、突き合わせで集約・値・サービスが確かめられた業務領域だけ（意味の操作・スキーマへの適合）。操作の記録と描画は application だけ",
   "ポートは、それを使う手順を持つモジュールの application/ports に置く。共有の置き場を作らない。呼び出し元を見分けるポートは、いちばん下の操作の記録が持つ",
-  "モジュールの間の向きは 意味の操作 → 契約への適合 → 操作の記録、描画 → 契約への適合 の一方向。同じ文脈の別のモジュールはポートを挟まず application を直接呼ぶ",
+  "モジュールの間の向きは 意味の操作 → スキーマへの適合 → 操作の記録、描画 → スキーマへの適合 の一方向。同じ文脈の別のモジュールはポートを挟まず application を直接呼ぶ",
   "外のライブラリ（rusqlite・2020-12 の検査器・テンプレートの処理系）は、それを使う outbound の crate だけが依存する",
   "組み立て（アダプターをポートへ渡す）は入口の1か所だけ",
   "公開された言葉（schemas/<版>/）は文脈の根に置き、出した版は変えない"
@@ -228,8 +228,8 @@
    "crate": ""
   },
   {
-   "path": "└── contracts-and-instances/",
-   "desc": "文脈「契約とインスタンス」（区切られた文脈）＝ 1つのヘキサゴナル。まとめるだけのフォルダ",
+   "path": "└── schemas-and-instances/",
+   "desc": "文脈「スキーマとインスタンス」（区切られた文脈）＝ 1つのヘキサゴナル。まとめるだけのフォルダ",
    "crate": ""
   },
   {
@@ -239,13 +239,13 @@
   },
   {
    "path": "    ├── conformance/",
-   "desc": "業務領域「契約への適合」（中核・ドメインモデル）。まとめるだけのフォルダ",
+   "desc": "業務領域「スキーマへの適合」（中核・ドメインモデル）。まとめるだけのフォルダ",
    "crate": ""
   },
   {
    "path": "    │   ├── domain/",
    "desc": "依存：無し",
-   "crate": "contracts-and-instances-conformance-domain"
+   "crate": "schemas-and-instances-conformance-domain"
   },
   {
    "path": "    │   │   ├── Cargo.toml",
@@ -285,7 +285,7 @@
   {
    "path": "    │   └── application/",
    "desc": "依存：conformance-domain・operation-recording-application",
-   "crate": "contracts-and-instances-conformance-application"
+   "crate": "schemas-and-instances-conformance-application"
   },
   {
    "path": "    │       ├── Cargo.toml",
@@ -305,7 +305,7 @@
   {
    "path": "    │   ├── domain/",
    "desc": "依存：conformance-domain",
-   "crate": "contracts-and-instances-semantic-operations-domain"
+   "crate": "launched-sessions-semantic-operations-domain"
   },
   {
    "path": "    │   │   ├── Cargo.toml",
@@ -320,7 +320,7 @@
   {
    "path": "    │   └── application/",
    "desc": "依存：semantic-operations-domain・conformance-domain・conformance-application・operation-recording-application",
-   "crate": "contracts-and-instances-semantic-operations-application"
+   "crate": "launched-sessions-semantic-operations-application"
   },
   {
    "path": "    │       ├── Cargo.toml",
@@ -329,7 +329,7 @@
   },
   {
    "path": "    │       └── src/",
-   "desc": "use_cases/agent_sessions.rs（SF1：手順のプロンプトを組む・呼ぶ・答えを確かめて契約への適合へ渡す）・ports.rs（agent_runtime・keep_prompt・agent_session_store）",
+   "desc": "use_cases/agent_sessions.rs（SF1：手順のプロンプトを組む・呼ぶ・答えを確かめてスキーマへの適合へ渡す）・ports.rs（agent_runtime・keep_prompt・agent_session_store）",
    "crate": ""
   },
   {
@@ -340,7 +340,7 @@
   {
    "path": "    │   └── application/",
    "desc": "依存：conformance-domain（値だけ）",
-   "crate": "contracts-and-instances-operation-recording-application"
+   "crate": "schemas-and-instances-operation-recording-application"
   },
   {
    "path": "    │       ├── Cargo.toml",
@@ -360,7 +360,7 @@
   {
    "path": "    │   └── application/",
    "desc": "依存：conformance-domain・conformance-application",
-   "crate": "contracts-and-instances-rendering-application"
+   "crate": "schemas-and-instances-rendering-application"
   },
   {
    "path": "    │       ├── Cargo.toml",
@@ -380,7 +380,7 @@
   {
    "path": "        ├── inbound/cli/",
    "desc": "依存：4つの application と outbound の6つ。[[bin]] の名前は sas（製品の名前はここにだけ残す）。src/main.rs で組み立てる。outbound に依存してよいのはここだけ",
-   "crate": "contracts-and-instances-adapters-inbound-cli"
+   "crate": "schemas-and-instances-adapters-inbound-cli"
   },
   {
    "path": "        │   └── Cargo.toml",
@@ -395,7 +395,7 @@
   {
    "path": "            ├── agents/",
    "desc": "agent_runtime・identify_caller を実装",
-   "crate": "contracts-and-instances-adapters-outbound-agents"
+   "crate": "schemas-and-instances-adapters-outbound-agents"
   },
   {
    "path": "            │   └── Cargo.toml",
@@ -405,7 +405,7 @@
   {
    "path": "            ├── files/",
    "desc": "keep_prompt・document_store を実装",
-   "crate": "contracts-and-instances-adapters-outbound-files"
+   "crate": "schemas-and-instances-adapters-outbound-files"
   },
   {
    "path": "            │   └── Cargo.toml",
@@ -415,7 +415,7 @@
   {
    "path": "            ├── git/",
    "desc": "version_reader を実装（読むだけ）",
-   "crate": "contracts-and-instances-adapters-outbound-git"
+   "crate": "schemas-and-instances-adapters-outbound-git"
   },
   {
    "path": "            │   └── Cargo.toml",
@@ -425,7 +425,7 @@
   {
    "path": "            ├── jsonschema/",
    "desc": "schema_checker を実装（2020-12 の検査器を閉じ込める）",
-   "crate": "contracts-and-instances-adapters-outbound-jsonschema"
+   "crate": "schemas-and-instances-adapters-outbound-jsonschema"
   },
   {
    "path": "            │   └── Cargo.toml",
@@ -435,7 +435,7 @@
   {
    "path": "            ├── sqlite/",
    "desc": "agent_session_store・operation_log を実装。migrations/。行の型で変換（orphan rule）",
-   "crate": "contracts-and-instances-adapters-outbound-sqlite"
+   "crate": "schemas-and-instances-adapters-outbound-sqlite"
   },
   {
    "path": "            │   └── Cargo.toml",
@@ -445,7 +445,7 @@
   {
    "path": "            └── templates/",
    "desc": "template_renderer を実装（テンプレートの処理系を閉じ込める）",
-   "crate": "contracts-and-instances-adapters-outbound-templates"
+   "crate": "schemas-and-instances-adapters-outbound-templates"
   },
   {
    "path": "                └── Cargo.toml",
@@ -454,10 +454,63 @@
   }
  ],
  "review": "impl-ddd/review.json",
- "context": {
-  "name": "契約とインスタンス",
-  "folder": "contracts-and-instances/",
-  "why": "文脈の言葉の実物（ユースケースの「いまの契約のすべての rule」「契約・インスタンス・記録」）から付けた。事業領域 SAS の名前を文脈に使わない"
+ "context_map": {
+  "why": "言葉のずれから引いた（ガイド Q3：束ねる → 区分 → 言葉のずれ）。「セッション」で、SAS が立てた同じセッションを2つのモデルで持っていた（記録の側は操作をまとめる行、意味の操作の側は寿命・回・能力・再開を持つ集約）。ほかの語（検証 ・ 指紋 ・ 版）は同じモデルの別の面か、呼び分ければ済む別のもの",
+  "contexts": [
+   {
+    "name": "スキーマとインスタンス",
+    "folder": "schemas-and-instances/",
+    "subdomains": [
+     "スキーマへの適合",
+     "操作の記録",
+     "描画"
+    ],
+    "session_means": "呼び出し元のセッション（操作をまとめる行）",
+    "status": "あり"
+   },
+   {
+    "name": "立てたセッション",
+    "folder": "launched-sessions/",
+    "subdomains": [
+     "意味の操作"
+    ],
+    "session_means": "SAS が立てたセッション（寿命 ・ 回 ・ 能力 ・ 再開を持つ集約）",
+    "status": "ステップ6 で作る"
+   }
+  ],
+  "relations": [
+   {
+    "between": [
+     "スキーマとインスタンス",
+     "立てたセッション"
+    ],
+    "pattern": "緊密な協力（1つのチーム）",
+    "shared": "連係の契約（意味の欄と by: ai の判定を頼むポート）と、境界を越える値（判定の5つの値 ・ by ・ rule の結果 ・ 文書の指紋）だけ。ステップ6 で小さな crate にする",
+    "dependency": "2つの文脈は互いに依存しない。入口（sas）を事業領域の根へ移して両方を組み立てる（ステップ6）"
+   },
+   {
+    "between": [
+     "スキーマとインスタンス",
+     "JSON Schema"
+    ],
+    "pattern": "順応者"
+   },
+   {
+    "between": [
+     "スキーマとインスタンス",
+     "Git"
+    ],
+    "pattern": "順応者（読むだけ）"
+   },
+   {
+    "between": [
+     "立てたセッション",
+     "AI のツール"
+    ],
+    "pattern": "モデル変換装置（call をプロンプトと起動に直すアダプター）"
+   }
+  ],
+  "recheck": "まだ実装の無い語は、作るステップで照らし直す：描画の語（ステップ5）・ 立てたセッションの語（ステップ6・7）・ 検索の語（ステップ8）"
  },
  "business_domain": {
   "name": "Semantic Agent Schema",
@@ -466,24 +519,28 @@
  },
  "subdomains": [
   {
-   "name": "契約への適合",
+   "name": "スキーマへの適合",
    "folder": "conformance/",
-   "old": "型とインスタンス"
+   "old": "型とインスタンス",
+   "context": "スキーマとインスタンス"
   },
   {
    "name": "意味の操作",
-   "folder": "semantic-operations/"
+   "folder": "semantic-operations/",
+   "context": "立てたセッション"
   },
   {
    "name": "操作の記録",
    "folder": "operation-recording/",
-   "old": "操作の経緯"
+   "old": "操作の経緯",
+   "context": "スキーマとインスタンス"
   },
   {
    "name": "描画",
-   "folder": "rendering/"
+   "folder": "rendering/",
+   "context": "スキーマとインスタンス"
   }
  ],
- "crate_naming": "contracts-and-instances-<業務領域>-<層>（adapters は contracts-and-instances-adapters-<inbound|outbound>-<名前>）。製品の名前は CLI の [[bin]]（sas）にだけ残す。crate になるフォルダは直下に Cargo.toml を持ち、根の virtual manifest の members に並ぶ（13個）",
+ "crate_naming": "schemas-and-instances-<業務領域>-<層>（adapters は schemas-and-instances-adapters-<inbound|outbound>-<名前>）。製品の名前は CLI の [[bin]]（sas）にだけ残す。crate になるフォルダは直下に Cargo.toml を持ち、根の virtual manifest の members に並ぶ（13個）",
  "foundation_text_proposal": "文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）。リポジトリの根は事業領域の置き場で、文脈の根にしない。文脈の名前はその文脈の言葉から付け、事業領域や製品の名前を使わない。（土台の置き方の決まり・ディレクトリの図の注記・文脈の型1・型2 を同じ形に。ACDR で直す）"
 }
