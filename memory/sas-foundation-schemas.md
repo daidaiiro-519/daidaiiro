@@ -68,7 +68,7 @@ metadata:
 
 ## 次にすること
 - 2026-10-31：文脈を言葉のずれから引き直し、承認を受けてコミット 9519cffa。文脈は2つ ── スキーマとインスタンス（schemas-and-instances/：スキーマへの適合・操作の記録・描画）と立てたセッション（launched-sessions/：意味の操作、ステップ6 で作る）。根拠は「セッション」で同じ物を2つのモデルで持っていたこと。地図は docs/design/arch/arch-v15.json の context_map。承認のページ https://claude.ai/artifact/6v6k3qEciCCvsyTLYKKLhm 版6（シミュレーターの URL を使い回した。材料 scratchpad ctx-meaning/answer.json・review.json）。
-1. ステップ4 はコミット済み b047f035（テスト83件・場面64件）。次は「セッションを外して記録を分ける」ステップ（ステップ5 の前）。承認待ちのページ https://claude.ai/artifact/XQmeBmywzzsZy3AUgcSK4B 版4（4件：子の状態を管理しない・文脈を1つに戻す・書く子と確かめる子を --continue で続ける・changes と validations に分け断った操作は持たない）。材料：シミュレーション https://claude.ai/artifact/VYeEarjweXihDbJTNxnGhW（scratchpad session-sim/・ops-split/）、ツール6つの調査 https://claude.ai/artifact/KbNCDxxdVA5CipaYG8aFJ5（scratchpad tool-sessions/）。薄い sessions 7列（id・role・parent_id・tool・model・launch・first_seen）。直しの見積り：Rust 8ファイル・移行 0001〜0004 書き直し・試験 約25件・場面 約17件。
+1. ステップ4b はコミット済み 6f72583c（テスト86件・場面67件）。薄い sessions 7列・changes と validations・断った操作は記録しない・親の ID は --session → callers.json の環境変数（Claude Code・Codex は CODEX_SESSION_ID・Copilot・Kiro、利用者が開いた会話）→ 人。2つのツールの中から打たれたら usage。DB は <git-common-dir>/sas/sas.db。概念のページ版16（Fpx9h…）。シミュレーター 6v6k3q… 版10。次はステップ5（UC5 描画する）。ステップ6 で：子を起動する前にツールの環境変数を外す、子の ID は出力から読む、x-delegation の run.session を見直す。調査：scratchpad tool-sessions/・parent-env/。
 2. 後で扱う：ガイド Q3 への差し戻し案（最も広い文脈を言葉のずれの結果で決める・「同じ物を2つの目的で別のモデルにしているか」を問いに足す・切り出す単位と規則の優先）、土台を直す ACDR 0217（0216 を置き換える）、design.json の公開スキーマ session の kind（ステップ6）。
 
 ## 持ち越し
