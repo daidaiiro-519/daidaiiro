@@ -1,0 +1,1092 @@
+{
+ "title": "fact-check B：コーディングエージェントのセッション ・ SQLite ・ Git の掃除",
+ "checked_at": "2026-10-31",
+ "how": "fact-check fetch で原文を取得して sources/ に保存し、識別子は verify --as identifier、主張は verify --as quote で原文の文字列と照合した。要約を経由していない。照合に使った一覧は fc-scripts/names/ と fc-scripts/quotes/ にある。",
+ "design_json_not_modified": true,
+ "items": [
+  {
+   "id": "1",
+   "what": "各コーディングエージェントの再開 ・ fork ・ 非対話の実行 ・ 答えの形の指定 ・ セッション ID の取り方",
+   "design_refs": [
+    "/fact_check[4]",
+    "/3_schemas[11]（agent-connector.schema.json）",
+    "/3_schemas[7]（session-request.schema.json）",
+    "/1_boundaries[22]（d3）"
+   ],
+   "sources": [
+    {
+     "file": "sources/code.claude.com_docs_en_cli-reference.md",
+     "url": "https://code.claude.com/docs/en/cli-reference.md",
+     "fetched_at": "2026-10-31T17:55:54+0900",
+     "sha256": "9a68c8f3c42d6b42031f6b3080f9a6c32e86aac6fb3f2ffb1aaae1abeb3d4f07",
+     "lines": 187,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/code.claude.com_docs_en_headless.md",
+     "url": "https://code.claude.com/docs/en/headless.md",
+     "fetched_at": "2026-10-31T17:55:56+0900",
+     "sha256": "208eeb28afce5a433539821ec42ad3b077bb76420ee7ce6e21ce9cbe08cc2054",
+     "lines": 417,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/code.claude.com_docs_en_env-vars.md",
+     "url": "https://code.claude.com/docs/en/env-vars.md",
+     "fetched_at": "2026-10-31T17:57:24+0900",
+     "sha256": "c6af9335007280dfe50572702d0025e0d4bb8dc28554f607cb739614b7b5c096",
+     "lines": 606,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/code.claude.com_docs_en_hooks.md",
+     "url": "https://code.claude.com/docs/en/hooks.md",
+     "fetched_at": "2026-10-31T17:55:59+0900",
+     "sha256": "8e4d5d8c03b5a4cd0e6fe15cc8d71d782a5acc29cf738c584337d024ff1e4ca1",
+     "lines": 4245,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/developers.openai.com_codex_cli_reference.md",
+     "url": "https://developers.openai.com/codex/cli/reference.md",
+     "fetched_at": "2026-10-31T17:56:03+0900",
+     "sha256": "1347b0eb55a085c4d6bdb53b5825935e6479fe368518a23a914d08c7235a3567",
+     "lines": 1027,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/html/developers.openai.com_codex_cli_reference",
+     "url": "https://developers.openai.com/codex/cli/reference/",
+     "fetched_at": "2026-10-31T17:58:17+0900",
+     "sha256": "c46a4b990cac7c359e8c8f61d9249998cae46ad99999040bd265e92e7639eb54",
+     "lines": 3671,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/developers.openai.com_codex_noninteractive.md",
+     "url": "https://developers.openai.com/codex/noninteractive.md",
+     "fetched_at": "2026-10-31T17:56:05+0900",
+     "sha256": "b4bc8dbe1c39f6e5454db89d764813d82c0c1003f7caca6c8adf0532e1e76684",
+     "lines": 390,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/geminicli.com_docs_cli_cli-reference.md",
+     "url": "https://geminicli.com/docs/cli/cli-reference.md",
+     "fetched_at": "2026-10-31T17:57:22+0900",
+     "sha256": "2d445008576bc09564f6a204482d8f980272f159781b2a79e07de6abc8a87840",
+     "lines": 134,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/geminicli.com_docs_cli_session-management.md",
+     "url": "https://geminicli.com/docs/cli/session-management.md",
+     "fetched_at": "2026-10-31T17:56:06+0900",
+     "sha256": "938b285ec43c2be80a625cd405c48f2711db2032171829124ba9e040c2735271",
+     "lines": 215,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/geminicli.com_docs_cli_headless.md",
+     "url": "https://geminicli.com/docs/cli/headless.md",
+     "fetched_at": "2026-10-31T17:56:08+0900",
+     "sha256": "0c76556026820577ca1ead8c836c590a079e637100bff9790c0f1599d0f9f172",
+     "lines": 51,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md",
+     "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference.md",
+     "fetched_at": "2026-10-31T17:57:33+0900",
+     "sha256": "fe877295f4552383b6f34e56d6ffe379ce05b79ce59b11f0bd4f86e3006f17b9",
+     "lines": 1989,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/docs.github.com_en_copilot_how-tos_copilot-cli_automate-copilot-cli_run-cli-programmatically.md",
+     "url": "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically.md",
+     "fetched_at": "2026-10-31T17:58:56+0900",
+     "sha256": "74ba30eb911e9dd8fa103320651c81de263782ce1dd1d75d2c4c68f23ab64f53",
+     "lines": 160,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/kiro.dev_docs_reference_cli-commands.md",
+     "url": "https://kiro.dev/docs/reference/cli-commands.md",
+     "fetched_at": "2026-10-31T17:57:21+0900",
+     "sha256": "bac48ddf0e80f9d07e06bc5901ec14ce767cecf76e6147172ea3357d925637ce",
+     "lines": 917,
+     "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+     "file": "sources/kiro.dev_docs_cli_chat_session-management.md",
+     "url": "https://kiro.dev/docs/cli/chat/session-management.md",
+     "fetched_at": "2026-10-31T17:56:26+0900",
+     "sha256": "2a32dafb20040e1a630d338b1633fedf95e98eb356dff044ccaf7587fca564fe",
+     "lines": 276,
+     "content_type": "text/markdown; charset=utf-8"
+    }
+   ],
+   "identifiers": {
+    "result": "84 個を照合し、83 個が原文に在った。1 個（Gemini の headless の頁の stream-json）はその頁に無く、cli-reference の頁に在った（同じ識別子を別の頁で照合して ok）",
+    "by_source": {
+     "code.claude.com_docs_en_cli-reference.md": [
+      "--resume",
+      "--continue",
+      "--fork-session",
+      "--print",
+      "-p",
+      "--output-format",
+      "--json-schema",
+      "--session-id",
+      "--no-session-persistence",
+      "stream-json"
+     ],
+     "code.claude.com_docs_en_headless.md": [
+      "session_id",
+      "structured_output",
+      "total_cost_usd"
+     ],
+     "code.claude.com_docs_en_env-vars.md": [
+      "CLAUDE_CODE_SESSION_ID"
+     ],
+     "code.claude.com_docs_en_hooks.md": [
+      "cleanupPeriodDays"
+     ],
+     "html/developers.openai.com_codex_cli_reference": [
+      "--output-schema",
+      "--ephemeral",
+      "--last",
+      "--all",
+      "--json",
+      "codex exec resume [SESSION_ID]"
+     ],
+     "developers.openai.com_codex_noninteractive.md": [
+      "thread.started",
+      "thread_id",
+      "turn.completed",
+      "--output-last-message",
+      "--json",
+      "--output-schema",
+      "--ephemeral"
+     ],
+     "developers.openai.com_codex_cli_reference.md": [
+      "codex fork",
+      "codex resume",
+      "execResumeOptions"
+     ],
+     "geminicli.com_docs_cli_cli-reference.md": [
+      "--resume",
+      "--prompt",
+      "--output-format",
+      "stream-json",
+      "--list-sessions",
+      "--delete-session",
+      "-r",
+      "-p"
+     ],
+     "geminicli.com_docs_cli_headless.md": [
+      "init",
+      "--output-format",
+      "-p",
+      "（× stream-json はこの頁に無い）"
+     ],
+     "geminicli.com_docs_cli_session-management.md": [
+      "sessionRetention",
+      "maxAge",
+      "minRetention",
+      "maxCount"
+     ],
+     "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md": [
+      "--resume",
+      "--continue",
+      "--session-id",
+      "--output-format",
+      "--prompt",
+      "/fork",
+      "--silent",
+      "--share",
+      "--connect",
+      "-p"
+     ],
+     "kiro.dev_docs_reference_cli-commands.md": [
+      "--no-interactive",
+      "--resume",
+      "--resume-id",
+      "--resume-picker",
+      "--list-sessions"
+     ],
+     "kiro.dev_docs_cli_chat_session-management.md": [
+      "/session-id",
+      "--resume-id",
+      "/chat save",
+      "/chat load"
+     ]
+    }
+   },
+   "capability_table": {
+    "note": "「無い」は、取得した頁の読めた範囲に無いという意味である。推測で埋めていない。",
+    "columns": [
+     "Claude Code",
+     "OpenAI Codex CLI",
+     "Gemini CLI",
+     "GitHub Copilot CLI",
+     "Kiro CLI"
+    ],
+    "rows": [
+     {
+      "capability": "非対話の実行",
+      "Claude Code": "-p / --print",
+      "OpenAI Codex CLI": "codex exec",
+      "Gemini CLI": "-p / --prompt（非 TTY でも headless）",
+      "GitHub Copilot CLI": "-p / --prompt",
+      "Kiro CLI": "--no-interactive"
+     },
+     {
+      "capability": "ID を指定して再開",
+      "Claude Code": "--resume <ID>（-p と併用可。例が原文に在る）",
+      "OpenAI Codex CLI": "codex exec resume <SESSION_ID>",
+      "Gemini CLI": "--resume <UUID か index か latest>",
+      "GitHub Copilot CLI": "--resume=SESSION-ID ／ --session-id ID",
+      "Kiro CLI": "--resume-id <ID>"
+     },
+     {
+      "capability": "直近を再開",
+      "Claude Code": "--continue（-p と併用すると -p のセッションも対象）",
+      "OpenAI Codex CLI": "codex exec resume --last（--all で全ディレクトリ）",
+      "Gemini CLI": "--resume / -r \"latest\"",
+      "GitHub Copilot CLI": "--continue",
+      "Kiro CLI": "--resume（このディレクトリの直前）"
+     },
+     {
+      "capability": "fork（引き継いで分ける）を非対話で",
+      "Claude Code": "有る：--fork-session（--resume か --continue と併用）",
+      "OpenAI Codex CLI": "有る：codex exec fork <SESSION_ID> [PROMPT]",
+      "Gemini CLI": "無い（セッション内の /resume save などのチェックポイントだけ）",
+      "GitHub Copilot CLI": "無い（対話の /fork ・ /branch だけ）",
+      "Kiro CLI": "無い（対話の /chat save → /chat load で写しを作る手順だけ）"
+     },
+     {
+      "capability": "セッション ID を呼ぶ側が決めて渡す",
+      "Claude Code": "有る：--session-id（有効な UUID）",
+      "OpenAI Codex CLI": "無い",
+      "Gemini CLI": "無い",
+      "GitHub Copilot CLI": "有る：--session-id（一致しなければ UUID のときだけ新しく作る）",
+      "Kiro CLI": "無い"
+     },
+     {
+      "capability": "セッション ID を出力から取る",
+      "Claude Code": "--output-format json の session_id",
+      "OpenAI Codex CLI": "--json の thread.started の thread_id",
+      "Gemini CLI": "--output-format stream-json の init 事象（『session ID』とだけ書かれ、キーの名前は原文に無い）。json の出力の欄は response ・ stats ・ error で、ID は無い",
+      "GitHub Copilot CLI": "-p の終わりの要約に copilot --resume=SESSION-ID の案内（形式は原文に無い）",
+      "Kiro CLI": "終了時に ID と再開のコマンドを出す ／ /session-id（文の形。JSON の欄は原文に無い）"
+     },
+     {
+      "capability": "セッション ID の環境変数",
+      "Claude Code": "CLAUDE_CODE_SESSION_ID（Bash ・ PowerShell の道具 ・ フック ・ stdio の MCP サーバーの子プロセスに入る）",
+      "OpenAI Codex CLI": "無い",
+      "Gemini CLI": "無い",
+      "GitHub Copilot CLI": "無い",
+      "Kiro CLI": "無い"
+     },
+     {
+      "capability": "答えの形を JSON Schema で指定",
+      "Claude Code": "--json-schema（print mode だけ。結果は structured_output）",
+      "OpenAI Codex CLI": "--output-schema <path>",
+      "Gemini CLI": "無い",
+      "GitHub Copilot CLI": "無い",
+      "Kiro CLI": "無い"
+     },
+     {
+      "capability": "機械が読む出力",
+      "Claude Code": "--output-format text ・ json ・ stream-json",
+      "OpenAI Codex CLI": "--json（JSONL の事象）、-o / --output-last-message <path>",
+      "Gemini CLI": "--output-format text ・ json ・ stream-json",
+      "GitHub Copilot CLI": "--output-format text ・ json（JSONL）。記録の欄は原文に無い",
+      "Kiro CLI": "chat には無い（--output-format stream-json は --sandbox の説明の中に名前が出るだけで、chat の引数の表に行が無い）"
+     },
+     {
+      "capability": "トークンの報告",
+      "Claude Code": "json に usage ・ total_cost_usd",
+      "OpenAI Codex CLI": "turn.completed の usage",
+      "Gemini CLI": "json の stats",
+      "GitHub Copilot CLI": "既定で usage statistics を出し、-s で消す（欄は原文に無い）",
+      "Kiro CLI": "無い"
+     },
+     {
+      "capability": "保存しない実行",
+      "Claude Code": "--no-session-persistence（再開できなくなる）",
+      "OpenAI Codex CLI": "--ephemeral",
+      "Gemini CLI": "無い",
+      "GitHub Copilot CLI": "無い",
+      "Kiro CLI": "無い"
+     },
+     {
+      "capability": "再開できる期間（既定）",
+      "Claude Code": "cleanupPeriodDays で 30 日後にセッションのファイルを消す",
+      "OpenAI Codex CLI": "無い",
+      "Gemini CLI": "sessionRetention.maxAge の既定 \"30d\"",
+      "GitHub Copilot CLI": "無い",
+      "Kiro CLI": "無い"
+     },
+     {
+      "capability": "セッションを閉じる ・ 状態を読むコマンド",
+      "Claude Code": "無い（claude rm はバックグラウンドのセッションの一覧から外すもの）",
+      "OpenAI Codex CLI": "無い",
+      "Gemini CLI": "無い（--delete-session は削除）",
+      "GitHub Copilot CLI": "無い",
+      "Kiro CLI": "無い（--delete-session は削除）"
+     }
+    ]
+   },
+   "quotes": [
+    {
+     "claim": "Claude Code の fork は --fork-session を --resume か --continue と併せて使う",
+     "quote": "When resuming, create a new session ID instead of reusing the original (use with `--resume` or `--continue`)",
+     "at": "code.claude.com_docs_en_cli-reference.md:94",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "--continue は -p 無しだと -p のセッションを飛ばす",
+     "quote": "Skips sessions created with `claude -p` or the Agent SDK, and sessions whose first prompt was `/loop`. `claude -p --continue` includes `-p`, SDK, and `/loop` sessions.",
+     "at": "code.claude.com_docs_en_cli-reference.md:80",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Claude Code の出力の形",
+     "quote": "Specify output format for print mode (options: `text`, `json`, `stream-json`)",
+     "at": "code.claude.com_docs_en_cli-reference.md:112",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Claude Code は答えの形を JSON Schema で指定できる",
+     "quote": "Get validated JSON output matching a JSON Schema after the agent completes its workflow (print mode only).",
+     "at": "code.claude.com_docs_en_cli-reference.md:103",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "呼ぶ側がセッション ID を決められる",
+     "quote": "Use a specific session ID for the conversation (must be a valid UUID)",
+     "at": "code.claude.com_docs_en_cli-reference.md:128",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "保存しない実行は再開できない",
+     "quote": "Disable session persistence so sessions are not saved to disk and cannot be resumed. Print mode only.",
+     "at": "code.claude.com_docs_en_cli-reference.md:111",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "セッション ID は json の出力の session_id から取れる",
+     "quote": "session_id=$(claude -p \"Start a review\" --output-format json | jq -r '.session_id')",
+     "at": "code.claude.com_docs_en_headless.md:403",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "-p と --resume を併せて非対話で再開する",
+     "quote": "claude -p \"Continue that review\" --resume \"$session_id\"",
+     "at": "code.claude.com_docs_en_headless.md:404",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "答えは structured_output に入る",
+     "quote": "The response includes metadata about the request (session ID, usage, etc.) with the structured output in the `structured_output` field.",
+     "at": "code.claude.com_docs_en_headless.md:166",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "structured_output が無いことがある（条件付き）",
+     "quote": "If a run ends without valid structured output, for example because Claude declined the request, the response has no `structured_output` field.",
+     "at": "code.claude.com_docs_en_headless.md:178",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "CLAUDE_CODE_SESSION_ID が入る範囲",
+     "quote": "Set automatically to the current session ID in Bash and PowerShell tool subprocesses, [hook command](https://code.claude.com/docs/en/hooks.md) subprocesses, and stdio [MCP server](https://code.claude.com/docs/en/mcp.md) subprocesses.",
+     "at": "code.claude.com_docs_en_env-vars.md:381",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "MCP サーバーの子プロセスでは、ID を明示しない再開のとき起動時の ID のままのことがある",
+     "quote": "On `--continue` or `--resume` without an explicit ID it may receive the initial startup ID instead.",
+     "at": "code.claude.com_docs_en_env-vars.md:381",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Claude Code のセッションのファイルは既定で 30 日後に消える",
+     "quote": "which deletes session files after 30 days by default",
+     "at": "code.claude.com_docs_en_hooks.md:2063",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Codex は非対話で fork できる",
+     "quote": "Use `codex exec fork <SESSION_ID> [PROMPT]` to copy a saved session into a new",
+     "at": "developers.openai.com_codex_cli_reference.md:226",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "prompt 無しの fork は回を始めない",
+     "quote": "With no prompt, Codex creates the fork without starting a turn.",
+     "at": "developers.openai.com_codex_cli_reference.md:227",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "--output-schema には prompt が要る",
+     "quote": "A prompt is required when using images, `--output-schema`, `--output-last-message`, or `--ephemeral`.",
+     "at": "developers.openai.com_codex_cli_reference.md:231",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Codex の --output-schema（.md では表が部品で読めず、HTML の版で照合）",
+     "quote": "JSON Schema file describing the expected final response shape. Codex validates tool output against it.",
+     "at": "html/developers.openai.com_codex_cli_reference:1233",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Codex の --ephemeral",
+     "quote": "Run without persisting session rollout files to disk.",
+     "at": "html/developers.openai.com_codex_cli_reference:1233",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Codex の --json の事象",
+     "quote": "Event types include `thread.started`, `turn.started`, `turn.completed`, `turn.failed`, `item.*`, and `error`.",
+     "at": "developers.openai.com_codex_noninteractive.md:76",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Codex のセッション ID は thread.started の thread_id",
+     "quote": "{\"type\":\"thread.started\",\"thread_id\":\"0199a213-81c0-7800-8aa1-bbab2a035a53\"}",
+     "at": "developers.openai.com_codex_noninteractive.md:83",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Codex の ID での再開",
+     "quote": "You can also target a specific session ID with `codex exec resume <SESSION_ID>`.",
+     "at": "developers.openai.com_codex_noninteractive.md:184",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini の非対話",
+     "quote": "Prompt text. Appended to stdin input if provided. Forces non-interactive mode.",
+     "at": "geminicli.com_docs_cli_cli-reference.md:52",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini の再開",
+     "quote": "Resume a previous session. Use `\"latest\"` for most recent or index number (for example `--resume 5`)",
+     "at": "geminicli.com_docs_cli_cli-reference.md:65",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini の出力の形",
+     "quote": "The format of the CLI output. Choices: `text`, `json`, `stream-json`",
+     "at": "geminicli.com_docs_cli_cli-reference.md:70",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini は UUID でも再開できる",
+     "quote": "- **Resume by ID:** You can also provide the full session UUID:",
+     "at": "geminicli.com_docs_cli_session-management.md:50",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini の分岐はセッション内のチェックポイント",
+     "quote": "For named branch points inside a session, use chat checkpoints:",
+     "at": "geminicli.com_docs_cli_session-management.md:86",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini のセッションの保持は既定 30 日",
+     "quote": "The default policy is to **retain sessions for 30 days**.",
+     "at": "geminicli.com_docs_cli_session-management.md:159",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini の stream-json の init にセッション ID（キー名は書かれていない）",
+     "quote": "- `init`: Session metadata (session ID, model).",
+     "at": "geminicli.com_docs_cli_headless.md:29",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Gemini の json の答え",
+     "quote": "- `response`: (string) The model's final answer.",
+     "at": "geminicli.com_docs_cli_headless.md:20",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Copilot の非対話と ID の出し方",
+     "quote": "Execute a prompt programmatically (exits after completion). The exit summary includes a `copilot --resume=SESSION-ID` hint for continuing the session.",
+     "at": "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md:730",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Copilot の出力の形",
+     "quote": "FORMAT can be `text` (default) or `json` (outputs JSONL: one JSON object per line).",
+     "at": "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md:729",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Copilot の --session-id",
+     "quote": "If the ID matches an existing session or task, that session or task is resumed. If nothing matches, a new session is created only when the value is a valid UUID.",
+     "at": "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md:740",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Copilot の fork はスラッシュコマンド",
+     "quote": "Fork the current session into a new session, optionally with a name.",
+     "at": "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md:637",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Copilot の --continue",
+     "quote": "Resume the most recent session in the current working directory, falling back to the globally most recent session. Conflicts with `--resume`.",
+     "at": "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md:694",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Kiro の非対話",
+     "quote": "| `--no-interactive` | Print first response to STDOUT without interactive mode |",
+     "at": "kiro.dev_docs_reference_cli-commands.md:103",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Kiro の ID での再開",
+     "quote": "| `--resume-id <ID>` | Resume a specific local or cloud session by its ID |",
+     "at": "kiro.dev_docs_reference_cli-commands.md:106",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Kiro の --output-format stream-json は --sandbox の説明の中にだけ出る",
+     "quote": "Require the local command sandbox for a V3 headless run. Use with `--no-interactive` or `--output-format stream-json`",
+     "at": "kiro.dev_docs_reference_cli-commands.md:117",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Kiro の ID は終了時に出る",
+     "quote": "When you exit a session, Kiro CLI prints the session ID along with the command to resume it (`kiro-cli chat --resume-id <ID>`).",
+     "at": "kiro.dev_docs_cli_chat_session-management.md:67",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "Kiro の fork は対話の手順",
+     "quote": "2. Fork the session into a new one using `/chat save` in the original terminal, then `/chat load` in the new terminal. This creates a separate copy you can use independently.",
+     "at": "kiro.dev_docs_cli_chat_session-management.md:227",
+     "checked_as": "quote"
+    }
+   ],
+   "not_found": [
+    "Codex ・ Gemini ・ Copilot ・ Kiro のセッション ID の環境変数（CODEX_ は CODEX_API_KEY ・ CODEX_HOME、COPILOT_ は COPILOT_ENABLE_INTERRUPTED_SESSION_RESTORE など、GEMINI_ ・ KIRO_ は0件）",
+    "Gemini の stream-json の init 事象で、セッション ID を持つキーの名前",
+    "Copilot の --output-format json の記録の欄の名前",
+    "Gemini ・ Copilot ・ Kiro で答えの形を JSON Schema で指定する旗",
+    "どのツールにも、非対話のセッションを『閉じる』『状態を読む』コマンド"
+   ],
+   "unreadable": [
+    "developers.openai.com/codex/cli/reference.md は旗の表が <ConfigTable options={...}/> の部品で、本文に無い。HTML の版（sources/html/developers.openai.com_codex_cli_reference）を取得して照合し直した。execOptions のほかの表（resumeOptions ・ forkOptions）も HTML の側で読める",
+    "docs.github.com/en/copilot/reference/cli-command-reference は .md が無く HTML（2MB）だけ返った。移った先の copilot-cli-reference/cli-command-reference.md を取得して、そちらで照合した",
+    "kiro.dev/docs/cli/reference/cli-commands.md は『Moved』の頁。移った先 /docs/reference/cli-commands.md を取得した",
+    "取得していない頁：Claude Code の sessions.md（記録の置き場所）、Gemini の automation のチュートリアル、Codex の app-server、Copilot の SDK。ここに環境変数や欄が在る可能性は残る"
+   ],
+   "conclusion": "再開 ・ 非対話は5つとも有る。fork を非対話で出来るのは Claude Code と Codex だけ。答えの形の指定も Claude Code と Codex だけ。セッション ID の環境変数が文書に在るのは Claude Code だけで、それも道具 ・ フック ・ MCP の子プロセスの中に入るもの。セッション ID を出力の JSON の欄で取れるのは Claude Code（session_id）と Codex（thread_id）で、呼ぶ側が先に決めて渡せるのは Claude Code と Copilot（--session-id）。閉じる ・ 状態を読むコマンドはどのツールにも無い。",
+   "design_fixes": [
+    {
+     "where": "/3_schemas[11]/defs[2]/fields[0]（agent-connector の caller.env）",
+     "from": "env（ツールのセッション ID が入る環境変数の名前）",
+     "to": "env を省略できる欄にし、無いときは --caller で渡す（caller_ref）と書く。文書に環境変数が在るのは Claude Code の CLAUDE_CODE_SESSION_ID だけで、ほか4つは読めた範囲に無い",
+     "grounds": [
+      "code.claude.com_docs_en_env-vars.md:381"
+     ]
+    },
+    {
+     "where": "/1_boundaries[22]/why（d3 呼び出し元を見分ける）",
+     "from": "ツールのセッション ID を読む環境変数の名前を接続の定義に書かせ",
+     "to": "環境変数で取れるツール（Claude Code）はその名前を接続の定義に書かせ、取れないツールは呼び出し元が --caller で渡す、の2通りにする"
+    },
+    {
+     "where": "/3_schemas[11]/defs[0]/fields[4]（agent-connector の tool_ref.from）",
+     "from": "from（stdout ・ file ・ env）",
+     "to": "from（stdout ・ file ・ env ・ assigned）。assigned は SAS が UUID を作って起動の argv に入れる形（Claude Code と Copilot の --session-id）。stdout の json_pointer は Claude Code が /session_id、Codex は JSONL の thread.started の thread_id なので、JSONL の中の事象を選ぶ指定（事象の type）も要る",
+     "grounds": [
+      "code.claude.com_docs_en_cli-reference.md:128",
+      "docs.github.com_en_copilot_reference_copilot-cli-reference_cli-command-reference.md:740",
+      "code.claude.com_docs_en_headless.md:403",
+      "developers.openai.com_codex_noninteractive.md:83"
+     ]
+    },
+    {
+     "where": "/3_schemas[11]/defs[0]/fields[2]（agent-connector の commands）",
+     "from": "commands: {start, continue, fork, close, status}",
+     "to": "start ・ continue を必須、fork は capabilities.fork が true のときだけ必須、close ・ status は省略できる（どのツールにも閉じる ・ 状態を読むコマンドが無い。省略時は SAS の側で閉じたことにし、状態は回の記録から導く）"
+    },
+    {
+     "where": "/3_schemas[11]/defs[1]（capabilities）",
+     "from": "resume ・ fork ・ answer_schema ・ token_report ・ resumable_for_s ・ context_limit ・ max_concurrent",
+     "to": "欄はそのままでよい。ただし fork は『非対話で fork できる』の意味だと書く（Copilot ・ Kiro ・ Gemini の対話の fork は数えない）。resumable_for_s は文書に既定がある2つ（Claude Code 30 日 ・ Gemini 30d）以外は使う側が書く値と注記する"
+    },
+    {
+     "where": "/3_schemas[11]/defs[0]/fields[3]（answer）",
+     "from": "answer: {from（stdout ・ file）, path, json_pointer}",
+     "to": "そのままでよい。Claude Code は stdout の /structured_output（無いことがある）、Codex は -o のファイル。answer_schema が false のツール（Gemini ・ Copilot ・ Kiro）では文から JSON を読むことになり、形の直し（fix の回）が増える前提を書く",
+     "grounds": [
+      "code.claude.com_docs_en_headless.md:178"
+     ]
+    },
+    {
+     "where": "/fact_check[4]/what",
+     "from": "各コーディングエージェントの再開 ・ fork ・ 答えの形の指定 ・ セッション ID の環境変数",
+     "to": "各コーディングエージェントの再開 ・ fork ・ 答えの形の指定 ・ セッション ID の取り方（環境変数 ・ 出力 ・ 引数で渡す）。照合済み（factcheck-b.json の項目1）"
+    }
+   ]
+  },
+  {
+   "id": "2",
+   "what": "SQLite の部分索引 ・ json_valid() と CHECK ・ trigger の RAISE(ABORT, …) ・ CHECK での IS NOT",
+   "design_refs": [
+    "/4_db/ddl",
+    "/4_db/conventions",
+    "/4_db/invariants",
+    "/fact_check[6]"
+   ],
+   "sources": [
+    {
+     "file": "sources/sqlite.org_partialindex.html",
+     "url": "https://sqlite.org/partialindex.html",
+     "fetched_at": "2026-10-31T17:56:31+0900",
+     "sha256": "7fb393e3454552aa79224d51a1c9df804fcf3b53a2cac7e56a33cd10e2231f53",
+     "lines": 2779,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/sqlite.org_json1.html",
+     "url": "https://sqlite.org/json1.html",
+     "fetched_at": "2026-10-31T17:56:35+0900",
+     "sha256": "b0c396d4a3fcade0b2f38de9f1bffa3463a8c38216e7d14e4ef752e540e6d02e",
+     "lines": 1807,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/sqlite.org_lang_createtable.html",
+     "url": "https://sqlite.org/lang_createtable.html",
+     "fetched_at": "2026-10-31T17:56:50+0900",
+     "sha256": "76396a8a82203639387f766fbd59ef2a5b131e43cb4ebabe4516c3a39ce5074c",
+     "lines": 6145,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/sqlite.org_lang_expr.html",
+     "url": "https://sqlite.org/lang_expr.html",
+     "fetched_at": "2026-10-31T17:56:57+0900",
+     "sha256": "a618cf34414eaf5390a5b7814b8b720a08daff6a64fdcf7b3a02bf7b474a65a4",
+     "lines": 3527,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/sqlite.org_lang_createtrigger.html",
+     "url": "https://sqlite.org/lang_createtrigger.html",
+     "fetched_at": "2026-10-31T17:56:42+0900",
+     "sha256": "e9fee81d281f5bb8dc62f665d90a63a61ac943ef7da740f2ffbba99a8f73d257",
+     "lines": 4457,
+     "content_type": "text/html; charset=utf-8"
+    }
+   ],
+   "identifiers": {
+    "result": "6 個を照合し、6 個とも原文に在った",
+    "by_source": {
+     "sqlite.org_json1.html": [
+      "json_valid"
+     ],
+     "sqlite.org_lang_createtrigger.html": [
+      "RAISE",
+      "ABORT",
+      "IGNORE"
+     ],
+     "sqlite.org_lang_createtable.html": [
+      "ignore_check_constraints"
+     ],
+     "sqlite.org_partialindex.html": [
+      "（UNIQUE ・ WHERE は引用で照合）"
+     ]
+    }
+   },
+   "quotes": [
+    {
+     "claim": "WHERE 付きの索引が部分索引",
+     "quote": "Any index that includes the WHERE clause at the end is considered to be a partial index.",
+     "at": "sqlite.org_partialindex.html:2613",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "WHERE が真の行だけが索引に入る",
+     "quote": "Only rows of the table for which the WHERE clause evaluates to true are included in the index.",
+     "at": "sqlite.org_partialindex.html:2626",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "NULL か偽の行は入らない",
+     "quote": "If the WHERE clause expression evaluates to NULL or to false for some rows of the table, then those rows are omitted from the index.",
+     "at": "sqlite.org_partialindex.html:2627",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "部分一意索引で一部の行だけ一意にできる",
+     "quote": "This provides a mechanism for enforcing uniqueness across some subset of the rows in a table.",
+     "at": "sqlite.org_partialindex.html:2664",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "3.8.0 から（同じ段落に version 3.8.0 (2013-08-26)）",
+     "quote": "Partial indexes have been supported in SQLite since",
+     "at": "sqlite.org_partialindex.html:2767",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "json_valid は 1 か 0",
+     "quote": "The json_valid(X,Y) function returns 1 if the argument X is well-formed JSON, or returns 0 if X is not well-formed.",
+     "at": "sqlite.org_json1.html:1468",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "json_valid(NULL) は NULL",
+     "quote": "If either X or Y inputs to json_valid() are NULL, then the function returns NULL.",
+     "at": "sqlite.org_json1.html:1521",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "引数1つの json_valid は RFC 8259 の JSON の文字列だけを通す（JSON5 ・ JSONB は通さない）",
+     "quote": "The Y parameter is optional. If omitted, it defaults to 1, which means that the default behavior is to return true only if the input X is strictly conforming RFC-8259 JSON text without any extensions.",
+     "at": "sqlite.org_json1.html:1499",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "3.38.0 から既定で組み込み",
+     "quote": "The JSON functions and operators are built into SQLite by default, as of SQLite version 3.38.0 (2022-02-22).",
+     "at": "sqlite.org_json1.html:357",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "CHECK は NULL なら通る",
+     "quote": "If the result is zero (integer value 0 or real value 0.0), then a constraint violation has occurred. If the CHECK expression evaluates to NULL, or any other non-zero value, it is not a constraint violation.",
+     "at": "sqlite.org_lang_createtable.html:5999",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "UNIQUE では NULL どうしは別の値",
+     "quote": "For the purposes of UNIQUE constraints, NULL values are considered distinct from all other values, including other NULLs.",
+     "at": "sqlite.org_lang_createtable.html:5971",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "CHECK の違反は ABORT",
+     "quote": "The conflict resolution algorithm for CHECK constraints is always ABORT.",
+     "at": "sqlite.org_lang_createtable.html:6056",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "IS ・ IS NOT は NULL にならない",
+     "quote": "It is not possible for an IS or IS NOT expression to evaluate to NULL.",
+     "at": "sqlite.org_lang_expr.html:2597",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "RAISE(ABORT, …) で文が止まる",
+     "quote": "the specified <a href=\"lang_conflict.html\">ON CONFLICT</a> processing is performed and the current query terminates.",
+     "at": "sqlite.org_lang_createtrigger.html:4402",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "SQLITE_CONSTRAINT と文言が返る",
+     "quote": "An error code of <a href=\"rescode.html#constraint\">SQLITE_CONSTRAINT</a> is returned to the application, along with the specified error message.</p>",
+     "at": "sqlite.org_lang_createtrigger.html:4404",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "3.47.0 から error-message に式を書ける",
+     "quote": "Beginning with version 3.47.0 (2024-10-21), the",
+     "at": "sqlite.org_lang_createtrigger.html:4415",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "それより前は文字列のリテラルだけ",
+     "quote": "In older versions of SQLite, the <span class='yyterm'>error-message</span> was required to be a string literal.",
+     "at": "sqlite.org_lang_createtrigger.html:4417",
+     "checked_as": "quote"
+    }
+   ],
+   "also_read_not_quoted": [
+    "sqlite.org_lang_expr.html:3046-3090 IN と NOT IN の結果の表：左が NULL、または右に一致が無く NULL を含むとき、IN の結果は NULL（表の形なので引用は行ごとの値になる）"
+   ],
+   "measured": {
+    "label": "実測",
+    "condition": "Python 3 の sqlite3（SQLite 3.46.1）で design.json の 4_db.ddl をそのまま作り、行を入れた。スクリプトは fc-scripts/ddl_probe.py",
+    "results": [
+     "kind = 'resume' で resume_decision が NULL の session_turns の行：通った（断られなかった）",
+     "kind = 'validate' で after_hash が NULL の operations の行：通った（断られなかった）",
+     "capabilities が壊れた JSON：CHECK で断られた",
+     "開いている caller の (adapter, tool_ref) の重複：部分一意索引で断られた",
+     "BEFORE UPDATE の trigger で SELECT RAISE(ABORT,'operations is append-only')：UPDATE が断られ、その文言が返った",
+     "直した2つの CHECK を同じ版で作り直すと：resume で resume_decision が NULL は断られ、validate で after_hash が NULL は断られ、正しい行は通った"
+    ]
+   },
+   "conclusion": "部分一意索引 ・ json_valid の CHECK ・ IS NOT の使い方は原文どおりに働く。ただし CHECK は式が NULL なら通るので、= や IN が NULL を受け取る CHECK が2つ素通りする（実測で確認）。trigger の文言は 3.47.0 より前では文字列のリテラルだけ。",
+   "design_fixes": [
+    {
+     "where": "/4_db/ddl の session_turns",
+     "from": "CHECK (kind IS NOT 'resume' OR resume_decision IN ('resume','resume-target-changed'))",
+     "to": "CHECK (kind IS NOT 'resume' OR (resume_decision IS NOT NULL AND resume_decision IN ('resume','resume-target-changed')))",
+     "why": "resume_decision が NULL だと IN が NULL になり、CHECK は NULL を違反にしない",
+     "grounds": [
+      "sqlite.org_lang_createtable.html:5999-6002"
+     ]
+    },
+    {
+     "where": "/4_db/ddl の operations",
+     "from": "CHECK (kind IS NOT 'validate' OR (before_hash IS NOT NULL AND before_hash = after_hash))",
+     "to": "CHECK (kind IS NOT 'validate' OR (before_hash IS NOT NULL AND before_hash IS after_hash))",
+     "why": "after_hash が NULL だと = が NULL になり通る。IS は NULL にならない",
+     "grounds": [
+      "sqlite.org_lang_createtable.html:5999-6002",
+      "sqlite.org_lang_expr.html:2597"
+     ]
+    },
+    {
+     "where": "/4_db/ddl の trigger の注記（-- trigger：…）",
+     "from": "（書き方の指定が無い）",
+     "to": "BEFORE INSERT ・ UPDATE ・ DELETE の trigger で SELECT RAISE(ABORT, '<文字列のリテラル>') と書く、と注記する。式の文言は SQLite 3.47.0 から。確かめた 3.46 では使えない",
+     "grounds": [
+      "sqlite.org_lang_createtrigger.html:4415",
+      "sqlite.org_lang_createtrigger.html:4417"
+     ]
+    },
+    {
+     "where": "/4_db/engine または /4_db/conventions",
+     "from": "SQLite（リポジトリごとに1つ…）",
+     "to": "必要な最低の版を書く：部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0、trigger の文言に式を使うなら 3.47.0",
+     "grounds": [
+      "sqlite.org_partialindex.html:2767",
+      "sqlite.org_json1.html:357"
+     ]
+    },
+    {
+     "where": "/4_db/invariants の『集約3 ④ validate は前後の指紋が同じ』『集約1 ② 単発は再開しない』",
+     "from": "how: CHECK ＋ trigger",
+     "to": "上の2つの CHECK を直したうえで、そのまま"
+    },
+    {
+     "where": "/fact_check[6]",
+     "from": "SQLite の json_valid ・ 部分索引（WHERE 付きの UNIQUE INDEX）・ CHECK での IS NOT の振る舞い",
+     "to": "照合済み（factcheck-b.json の項目2）。CHECK は NULL を違反にしないので、= ・ IN を NULL になりうる欄に使う CHECK を IS ・ IS NOT NULL で閉じる"
+    }
+   ],
+   "not_checked": [
+    "PRAGMA foreign_keys = ON が接続ごとの設定であること（foreignkeys.html は取得していない）"
+   ]
+  },
+  {
+   "id": "3",
+   "what": "Git の掃除（git gc ・ git prune ・ gc.pruneExpire ・ reflog）と、コミットせずに書いたオブジェクト（git hash-object -w）が消える条件",
+   "design_refs": [
+    "/fact_check[7]",
+    "/1_boundaries[23]（d4 版を扱う）",
+    "/4_db/tables[3] before_unavailable",
+    "/4_db/not_stored[0]",
+    "/6_flows/update[7]"
+   ],
+   "sources": [
+    {
+     "file": "sources/git-scm.com_docs_git-gc",
+     "url": "https://git-scm.com/docs/git-gc",
+     "fetched_at": "2026-10-31T17:56:58+0900",
+     "sha256": "d19d8288ce144189f90067984ac5e528529b60e333b6983f9ce83c0ef83f3996",
+     "lines": 2639,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/git-scm.com_docs_git-prune",
+     "url": "https://git-scm.com/docs/git-prune",
+     "fetched_at": "2026-10-31T17:56:59+0900",
+     "sha256": "c20fd47ec1f3e5a529a11439bbfee62df5e2176289694cf5f66b390edbd081b2",
+     "lines": 1657,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/git-scm.com_docs_git-hash-object",
+     "url": "https://git-scm.com/docs/git-hash-object",
+     "fetched_at": "2026-10-31T17:57:02+0900",
+     "sha256": "0fad574deee1be56c766ccdf7cdc66594dc1d40be469064520cb901fab91007a",
+     "lines": 1710,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/git-scm.com_docs_git-config",
+     "url": "https://git-scm.com/docs/git-config",
+     "fetched_at": "2026-10-31T17:57:07+0900",
+     "sha256": "706b1566467e9cd8c6cdda853a5fc82118a48fde3119777d18cefc014bcd3d5a",
+     "lines": 15687,
+     "content_type": "text/html; charset=utf-8"
+    },
+    {
+     "file": "sources/git-scm.com_docs_git-reflog",
+     "url": "https://git-scm.com/docs/git-reflog",
+     "fetched_at": "2026-10-31T17:57:09+0900",
+     "sha256": "7f42c9f68a62236634a7f4c0184114c77fc43bf97b7ded2e29f321651653aef4",
+     "lines": 1973,
+     "content_type": "text/html; charset=utf-8"
+    }
+   ],
+   "doc_version": "git-gc の頁は『git-gc last updated in 2.52.0』、最新の欄は 2.53.0 → 2.56.0 で変更なし（HTML の 1325〜1329 行）",
+   "identifiers": {
+    "result": "14 個を照合し、14 個とも原文に在った",
+    "by_source": {
+     "git-scm.com_docs_git-gc": [
+      "gc.pruneExpire",
+      "gc.reflogExpire",
+      "gc.reflogExpireUnreachable",
+      "gc.auto",
+      "gc.cruftPacks",
+      "--prune",
+      "--no-prune",
+      "--cruft"
+     ],
+     "git-scm.com_docs_git-prune": [
+      "--expire"
+     ],
+     "git-scm.com_docs_git-hash-object": [
+      "-w"
+     ],
+     "git-scm.com_docs_git-config": [
+      "gc.pruneExpire",
+      "gc.reflogExpireUnreachable"
+     ],
+     "git-scm.com_docs_git-reflog": [
+      "--expire-unreachable",
+      "--expire"
+     ]
+    }
+   },
+   "quotes": [
+    {
+     "claim": "hash-object -w はオブジェクトを書くだけ（参照は作らない）",
+     "quote": "Actually write the object into the object database.",
+     "at": "git-scm.com_docs_git-hash-object:1627",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "git gc の --prune の既定は2週間前",
+     "quote": "Prune loose objects older than date (default is 2 weeks ago,",
+     "at": "git-scm.com_docs_git-gc:2243",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "gc.pruneExpire の既定",
+     "quote": "<p>When <em>git gc</em> is run, it will call <em>prune --expire 2.weeks.ago</em>",
+     "at": "git-scm.com_docs_git-gc:2431",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "now で即時、never で消さない",
+     "quote": "The value \"now\" may be used to disable this grace period and always prune unreachable objects immediately, or \"never\" may be used to suppress pruning.",
+     "at": "git-scm.com_docs_git-gc:2434",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "期限は更新時刻で数える",
+     "quote": "<p>Any object with modification time newer than the <span class='synopsis'><code>--prune</code></span> date is kept,",
+     "at": "git-scm.com_docs_git-gc:2559",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "そこから辿れるものも残る",
+     "quote": "along with everything reachable from it.",
+     "at": "git-scm.com_docs_git-gc:2560",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "ブランチとタグから指されたものは残す",
+     "quote": "objects referenced by your current set of branches and tags, but also",
+     "at": "git-scm.com_docs_git-gc:2538",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "index ・ reflog から指されたものも残す",
+     "quote": "objects referenced by the index, remote-tracking branches, reflogs",
+     "at": "git-scm.com_docs_git-gc:2539",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "refs/* の下のどれから指されても残す",
+     "quote": "rewound), and anything else in the refs/* namespace. Note that a note",
+     "at": "git-scm.com_docs_git-gc:2541",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "gc.reflogExpire の既定 90 日",
+     "quote": "this time; defaults to 90 days.",
+     "at": "git-scm.com_docs_git-gc:2454",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "gc.reflogExpireUnreachable の既定 30 日",
+     "quote": "defaults to 30 days.",
+     "at": "git-scm.com_docs_git-gc:2465",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "gc.auto の既定。ふだんのコマンドが git gc --auto を呼ぶ目安",
+     "quote": "The default value is 6700.",
+     "at": "git-scm.com_docs_git-gc:2343",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "git prune だけでは pack の中の到達できないオブジェクトは残る",
+     "quote": "Note that unreachable, packed objects will remain.  If this is",
+     "at": "git-scm.com_docs_git-prune:1532",
+     "checked_as": "quote"
+    },
+    {
+     "claim": "git prune の --expire",
+     "quote": "Only expire loose objects older than &lt;time&gt;.",
+     "at": "git-scm.com_docs_git-prune:1559",
+     "checked_as": "quote"
+    }
+   ],
+   "measured": {
+    "label": "実測",
+    "condition": "git 2.53.0、空のリポジトリ。スクリプトの手順は factcheck の作業の Bash に記録（fc-scripts/gitprobe）",
+    "results": [
+     "echo … | git hash-object -w --stdin で書いたオブジェクトは、既定の git gc のあと残った（2週間より新しいため）",
+     "git gc --prune=now のあと消えた",
+     "git update-ref refs/sas/versions/x <id> で refs/ の下から指したものは、git gc --prune=now のあとも残った"
+    ]
+   },
+   "conclusion": "git hash-object -w で書いただけのオブジェクトは、どこからも指されない。git gc（ふだんのコマンドが呼ぶ git gc --auto を含む）が、更新時刻が gc.pruneExpire（既定 2.weeks.ago）より古いものを消す。gc.pruneExpire = now の設定なら次の gc で消える。index ・ reflog ・ refs/* の下の参照から指されていれば消えない。",
+   "design_fixes": [
+    {
+     "where": "/fact_check[7]",
+     "from": "Git の掃除で、どこからも指されないオブジェクトが消える条件",
+     "to": "照合済み（factcheck-b.json の項目3）。結論：refs/* から指されないオブジェクトは、更新時刻が gc.pruneExpire（既定2週間）より古くなると git gc で消える。設定が now なら次の gc で消える"
+    },
+    {
+     "where": "/1_boundaries[23]（d4 版を扱う）の where か why",
+     "from": "版の参照は解釈しない文字列",
+     "to": "Git のアダプターで版を残すなら、hash-object -w だけにせず refs/ の下（例：refs/sas/…）から指す、か、指さずに2週間より古い版は before_unavailable になりうると決める、のどちらかを書く。どちらにするかは未決として残す"
+    },
+    {
+     "where": "/4_db/tables[3] の before_unavailable の注記",
+     "from": "前の版が取れなかった",
+     "to": "前の版が取れなかった（例：Git で refs から指されない版が git gc で消えた）"
+    }
+   ],
+   "not_checked": [
+    "cruft pack の期限（git-repack の --cruft-expiration）は git-repack の頁を取得していない。git-gc の頁の『repack --cruft --cruft-expiration 2.weeks.ago』の記述だけを根拠にしている"
+   ]
+  }
+ ],
+ "summary": {
+  "1": "再開 ・ 非対話は5つとも有る。fork を非対話で出来るのは Claude Code と Codex だけ。答えの形の指定も Claude Code と Codex だけ。セッション ID の環境変数が文書に在るのは Claude Code だけで、それも道具 ・ フック ・ MCP の子プロセスの中に入るもの。セッション ID を出力の JSON の欄で取れるのは Claude Code（session_id）と Codex（thread_id）で、呼ぶ側が先に決めて渡せるのは Claude Code と Copilot（--session-id）。閉じる ・ 状態を読むコマンドはどのツールにも無い。",
+  "2": "部分一意索引 ・ json_valid の CHECK ・ IS NOT の使い方は原文どおりに働く。ただし CHECK は式が NULL なら通るので、= や IN が NULL を受け取る CHECK が2つ素通りする（実測で確認）。trigger の文言は 3.47.0 より前では文字列のリテラルだけ。",
+  "3": "git hash-object -w で書いただけのオブジェクトは、どこからも指されない。git gc（ふだんのコマンドが呼ぶ git gc --auto を含む）が、更新時刻が gc.pruneExpire（既定 2.weeks.ago）より古いものを消す。gc.pruneExpire = now の設定なら次の gc で消える。index ・ reflog ・ refs/* の下の参照から指されていれば消えない。",
+  "fix_count": 16
+ }
+}

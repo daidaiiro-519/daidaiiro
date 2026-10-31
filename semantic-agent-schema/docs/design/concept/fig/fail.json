@@ -1,0 +1,78 @@
+{
+ "direction": "TB",
+ "nodes": [
+  {
+   "id": "st",
+   "label": "セッションを立てる（request_id・attempt）",
+   "role": "focus"
+  },
+  {
+   "id": "ask",
+   "label": "エージェントが答える"
+  },
+  {
+   "id": "to",
+   "label": "timeout で閉じる → 新しいセッションでやり直す（2回まで）",
+   "role": "warn"
+  },
+  {
+   "id": "shape",
+   "label": "答えの形を確かめる"
+  },
+  {
+   "id": "inv",
+   "label": "誤り → 同じセッションで直させる（2回まで）。超えたら invalid_output で閉じる",
+   "role": "warn"
+  },
+  {
+   "id": "hash",
+   "label": "対象の指紋を確かめる"
+  },
+  {
+   "id": "cf",
+   "label": "違う → conflict で閉じる（書かない）",
+   "role": "warn"
+  },
+  {
+   "id": "ok",
+   "label": "SAS が書く・completed",
+   "role": "focus"
+  }
+ ],
+ "edges": [
+  {
+   "from": "st",
+   "to": "ask"
+  },
+  {
+   "from": "ask",
+   "to": "to",
+   "label": "答えない"
+  },
+  {
+   "from": "ask",
+   "to": "shape",
+   "label": "答えた"
+  },
+  {
+   "from": "shape",
+   "to": "inv",
+   "label": "誤り"
+  },
+  {
+   "from": "shape",
+   "to": "hash",
+   "label": "合う"
+  },
+  {
+   "from": "hash",
+   "to": "cf",
+   "label": "違う"
+  },
+  {
+   "from": "hash",
+   "to": "ok",
+   "label": "一致"
+  }
+ ]
+}

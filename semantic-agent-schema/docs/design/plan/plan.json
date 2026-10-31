@@ -1,0 +1,846 @@
+{
+ "title": "Semantic Agent Schema を新しい概念で作り直す実装計画（案）",
+ "date": "2026-10-31",
+ "status": "案。利用者の承認を待つ",
+ "premises": [
+  {
+   "what": "利用者の依頼",
+   "value": "semantic-agent-schema をフォルダごとアーカイブにし、同じ名前 semantic-agent-schema/ を空から作り直す。今回の内容（概念のページ 版15・arch-v15・スキーマと DB の設計）で作り切る"
+  },
+  {
+   "what": "設計の正本",
+   "value": "概念のページ（版15）・arch-v15.json・schema-db/design.json・impl-ddd の回答と反証・general-ddd の回答・re-uc のユースケース8件（UC0〜UC7・SF1）"
+  },
+  {
+   "what": "進め方",
+   "value": "main に直接コミットし、パスを明示する。各ステップは ACDR を作らず、開発シミュレーターで見せて OK ならコミットする。作業用の道具はコミットしない。根幹の判断は調査・反証・アドバイザーを通す。Claude 専用にしない"
+  },
+  {
+   "what": "いまの実装の扱い",
+   "value": "参考の事実として読む。crate・型・ポートの名前と区分は新しい木の答えにしない"
+  }
+ ],
+ "names": {
+  "repository_folder": "semantic-agent-schema/（事業領域。名前は変えない）",
+  "context_folder": "semantic-agent-schema/contracts-and-instances/（文脈「契約とインスタンス」）",
+  "cli_bin": "sas（製品の名前は [[bin]] にだけ残す）",
+  "crate_prefix": "contracts-and-instances-<業務領域>-<層>、adapters は contracts-and-instances-adapters-<inbound|outbound>-<名前>"
+ },
+ "1_archive": {
+  "decision": "semantic-agent-schema/ を丸ごと archive/semantic-agent-schema-2026-10-31/ へ git mv で移し、移す直前のコミットに注釈付きタグ semantic-agent-schema-archive-2026-10-31 を打つ。未コミットの変更は移す前にコミットする。新しい木へ使うものは、アーカイブから写す別の手順（持ち込み）で入れる",
+  "why": [
+   "退避先をリポジトリの中の archive/ にすると、作り直しのあいだ、いまの実装をファイルとしてそのまま開いて読める（利用者の決定「フォルダごとアーカイブ」）",
+   "名前に日付を使う。SAS は版のタグを出していない（schemas/v1 も未公開と見ている）ので、版の番号で呼ぶと公開した版と読み違える",
+   "タグも打つ。archive/ へ移したあとも、元のパスのまま git show <タグ>:semantic-agent-schema/... で読め、archive/ を後で消しても戻せる。タグの名前はリリースのワークフローの条件（schema-driven-v*・brainstorming-v*・skills-creator-v*）に当たらない",
+   "archive/ を root の直下に置き、semantic-agent-schema/ の中には置かない。中に置くと新しいワークスペースの木と検索の範囲に古い Cargo.toml と名前が混ざる"
+  ],
+  "precondition": {
+   "what": "ACDR 0216（文脈の中のモジュールの置き方を直す。状態 proposed）の決着",
+   "why": "未コミットの43件のうち docs/foundation と docs/design の10件は 0216 の差分で、承認前にアーカイブのコミットへ入れると、承認していない土台の変更を正本に入れることになる",
+   "how": "0216 を承認してもらってその10件をコミットする。差し戻しなら git checkout でその10件を戻す。どちらでも、そのあと残る未コミットは実装側の32件と docs/foundation/dirfix/（作業用のスクリーンショット）になる"
+  },
+  "steps": [
+   {
+    "no": 1,
+    "do": "未コミットの範囲を確かめる",
+    "command": "git status --short -- semantic-agent-schema",
+    "expect": "0216 を決着させたあとで、実装側の32件と dirfix/ だけ"
+   },
+   {
+    "no": 2,
+    "do": "作業用のスクリーンショットを消す",
+    "command": "rm -r semantic-agent-schema/docs/foundation/dirfix",
+    "why": "作業用の道具の出力で、コミットしない"
+   },
+   {
+    "no": 3,
+    "do": "ビルドの結果を見ておく（直さない）",
+    "command": "cargo build --workspace（semantic-agent-schema で）",
+    "why": "作業途中の状態なので通らないこともある。通ったかどうかをタグの注釈に書き、あとで読む人が状態を知れるようにする"
+   },
+   {
+    "no": 4,
+    "do": "作業途中の実装をそのままコミットする",
+    "command": "git add -A -- semantic-agent-schema/CODING.md semantic-agent-schema/Cargo.lock semantic-agent-schema/architecture.json semantic-agent-schema/crates semantic-agent-schema/schemas semantic-agent-schema/test-suite && git commit",
+    "message": "semantic-agent-schema: 作り直しの前に、作業途中の実装（ステップ4の途中）をそのまま残す"
+   },
+   {
+    "no": 5,
+    "do": "タグを打つ",
+    "command": "git tag -a semantic-agent-schema-archive-2026-10-31 -m \"新しい概念（概念のページ 版15）で作り直す前の semantic-agent-schema。ビルド：<手順3の結果>\""
+   },
+   {
+    "no": 6,
+    "do": "ビルドの出力を消す",
+    "command": "rm -rf semantic-agent-schema/target",
+    "why": "7.8GB。Git の管理の外（.gitignore の /target）で、git mv に連れて行くと archive/ の下に残る。タグから cargo build で作り直せる"
+   },
+   {
+    "no": 7,
+    "do": "フォルダごと移してコミットする",
+    "command": "mkdir -p archive && git mv semantic-agent-schema archive/semantic-agent-schema-2026-10-31 && git commit -- semantic-agent-schema archive/semantic-agent-schema-2026-10-31",
+    "message": "semantic-agent-schema をフォルダごと archive/semantic-agent-schema-2026-10-31/ へ移す（作り直しのため）"
+   },
+   {
+    "no": 8,
+    "do": "push のときにタグも送る",
+    "command": "git push origin main semantic-agent-schema-archive-2026-10-31",
+    "why": "手元の .git が壊れても戻せるようにする"
+   }
+  ],
+  "carry_in": {
+   "decision": "持ち込みはアーカイブから写す（cp して git add）。アーカイブ側は消さず、退避した時点の姿をそのまま残す。持ち込みはステップ0 のコミットに入れる",
+   "carry": [
+    {
+     "what": "docs/foundation/（土台）",
+     "to": "semantic-agent-schema/docs/foundation/",
+     "why": "どの事業にも使う一般の概念で、作り直しの対象ではない。arch-v15 の木でも docs/ は事業領域の根に置く",
+     "note": "写すので git log の履歴はアーカイブ側に残る。たどるときは git log -- archive/semantic-agent-schema-2026-10-31/docs/foundation"
+    },
+    {
+     "what": "rustfmt.toml・clippy.toml（根）",
+     "to": "semantic-agent-schema/",
+     "why": "言語の道具の設定で、中身は新しい木でもそのまま使える（style_edition 2024、試験の中の unwrap・expect・panic を許す）"
+    },
+    {
+     "what": ".gitignore（/target）",
+     "to": "semantic-agent-schema/",
+     "why": "同じ"
+    },
+    {
+     "what": "試験の場面の形（scenario.schema.json の given・when・then・unchanged）",
+     "to": "semantic-agent-schema/test-suite/scenario.schema.json",
+     "why": "場面を1ファイルに書く形は新しい試験でも使う。traces の形はユースケースと保証の参照に書き直す（ステップ0）"
+    }
+   ],
+   "not_carried": [
+    {
+     "what": "crates/・schemas/・Cargo.toml・Cargo.lock・architecture.json・CODING.md・README.md",
+     "why": "新しい木（13 crate・14 スキーマ）で書き直す。読むのは参考の事実として"
+    },
+    {
+     "what": "docs/design/・docs/usecases/",
+     "why": "概念のページ（版15）とユースケース8件で置き換える"
+    },
+    {
+     "what": "test-suite/scenarios/ と trace.json・untested.json",
+     "why": "いまの27件のユースケースと不変条件 I番号を指している。新しいユースケースで書き直す"
+    }
+   ],
+   "from_scratchpad": [
+    {
+     "what": "概念のページの build.py と index.html",
+     "to": "semantic-agent-schema/docs/design/",
+     "why": "設計の正本が session ごとの scratchpad にしか無く、セッションが終わると消える"
+    },
+    {
+     "what": "arch-v15.json・schema-db/design.json・re-uc/answer.json（ユースケース）・impl-ddd/answer.json と review.json",
+     "to": "semantic-agent-schema/docs/design/data/",
+     "why": "同じ。概念のページの build.py が読む材料"
+    },
+    {
+     "what": "factcheck-a.json・factcheck-b.json・factcheck-rust.json（結果だけ）",
+     "to": "semantic-agent-schema/docs/design/factcheck/",
+     "why": "設計の根拠。URL・取得日・sha256 を持つので原文は取り直せる。取得した HTML は持ち込まない"
+    }
+   ]
+  },
+  "reading_the_archive": "archive/semantic-agent-schema-2026-10-31/ を開いて読むか、git show <タグ>:semantic-agent-schema/<パス>。名前と区分を写さない。検索は semantic-agent-schema/ に絞り、archive/ を混ぜない",
+  "references_left": "ボード（.brainstorming）・ACDR・記憶の中の semantic-agent-schema/crates/... への言及は、過去の記録としてそのままにする。開発シミュレーター（.brainstorming/.../arch/dev-sim/、コミットしない）はステップ0 で新しい木を読むように書き直す",
+  "undo": [
+   {
+    "what": "作業途中のコミット（手順4）",
+    "how": "取り消す必要は無い。消したければ git revert"
+   },
+   {
+    "what": "タグ",
+    "how": "git tag -d と git push origin :refs/tags/<タグ>"
+   },
+   {
+    "what": "移したコミット（手順7）",
+    "how": "git revert <コミット> で semantic-agent-schema/ に戻る。ステップ0 のあとなら、新しい木を別へ移してから revert する"
+   },
+   {
+    "what": "target/ の削除",
+    "how": "戻せないが、タグを checkout して cargo build で作り直せる（時間だけかかる）"
+   },
+   {
+    "what": "dirfix/ の削除",
+    "how": "戻せない。作業用のスクリーンショットで、0216 の承認に要るなら消す前に .acdr/0216-*/ へ写す"
+   }
+  ]
+ },
+ "2_step0": {
+  "name": "ステップ0 新しい木の骨組み",
+  "goal": "13 crate が空のまま依存の向きどおりにつながり、4つの検査が通る。設計の正本をリポジトリに入れる",
+  "builds": {
+   "root_cargo_toml": [
+    "[workspace] members = 13 crate のパス（contracts-and-instances/conformance/domain など）、resolver = \"3\"（virtual manifest は明示が要る）",
+    "[workspace.package] version = \"0.1.0\"・edition = \"2024\"・rust-version・license（いまの値を受け継ぐ）",
+    "[workspace.dependencies] は空で始め、外のライブラリはそれを最初に使うステップで足す（下の表）。各 crate は workspace = true で受け継ぐ。SAS の中の crate どうしは path dependencies",
+    "[workspace.lints.rust] missing_docs = deny、[workspace.lints.clippy] unwrap_used・expect_used・panic・missing_errors_doc = deny。メンバーは [lints] workspace = true だけ"
+   ],
+   "architecture_json": "13 の component と、arch-v15 の may_depend_on をそのまま辺にした29本の allow。外のライブラリの辺（rusqlite は sqlite だけ、など）もここで許す相手を決める",
+   "context_folder": "contracts-and-instances/ の下に schemas/v1/（空）・conformance/{domain,application}・semantic-operations/{domain,application}・operation-recording/application・rendering/application・adapters/inbound/cli・adapters/outbound/{agents,files,git,jsonschema,sqlite,templates}",
+   "crates": "13 crate の Cargo.toml と lib.rs（domain は pub mod aggregates; pub mod values; pub mod services; の3行、application は pub mod use_cases; pub mod ports;、cli は main.rs で [[bin]] name = \"sas\"）。中身は doc コメントだけ",
+   "clippy_toml": "根の clippy.toml に加え、2つの domain crate のフォルダに、std::fs・std::net・std::process・std::time::SystemTime を禁じる clippy.toml を置く（Clippy は近い1つだけを読むので根の値も写す）",
+   "coding_md": "arch-v15 の rules_language_neutral と rules_rust を規則にし、1件ごとに『なぜ』と『検査』を付ける。いまの CODING.md から、なぜが今も成り立つ規則（mod.rs を使わない・欄は private・共有の crate を作らない・domain は入出力に触らない など）を書き直して入れる",
+   "test_suite": "scenario.schema.json の traces を ^(UC[0-7]|SF1):(主シナリオ|拡張.+|変形.+|成功時保証|最低保証)$ と、集約の不変条件の id にする。trace.json にユースケース8件・保証・ポート9・コマンドの一覧を入れ、追跡の検査を通す",
+   "docs": "docs/design/ に概念のページと設計の材料、docs/usecases/ に UC0〜UC7・SF1、docs/index.html を新しい3つの頁の索引に直す。README.md を書き直す",
+   "simulator": "dev-sim の run.py を新しい木に合わせる：STAGES をこの計画のステップ、LAYERS を contracts-and-instances の業務領域 × 層、実行ファイルを sas に"
+  },
+  "checks": [
+   "cargo build --workspace",
+   "cargo clippy --workspace --all-targets -- -D warnings",
+   "cargo fmt --all --check",
+   "architecture-lint check --rules architecture.json --cargo .（0件）",
+   "cargo metadata --no-deps のメンバーが13で、名前が crate の名づけに合う",
+   "mod.rs が0件、outbound の crate に依存するのは cli だけ",
+   "sas が引数なしで operation-result#/$defs/error（invalid_input）の1行を返して終わる"
+  ],
+  "simulator_shows": "新しい木（ファイルまで）、architecture.json の辺の図、7つの検査の結果、アーカイブとの対照（何を持ち込み、何を書き直すか）",
+  "commit": "持ち込み・骨組み・docs を1つのコミットにする。シミュレーターで OK をもらってから"
+ },
+ "3_steps": [
+  {
+   "step": "ステップ1",
+   "usecase": "UC4 検証する（機械の rule。対象は Concrete とインスタンス、1件と全件）",
+   "with": "操作の記録の最小形（呼び出し元のセッションと validate の操作を追記する）",
+   "builds": {
+    "schemas": [
+     "semantic-abstract-schema.json",
+     "vocabulary.schema.json",
+     "dialect.schema.json",
+     "glossary.schema.json",
+     "settings.schema.json",
+     "operation-request.schema.json（common・validate）",
+     "operation-result.schema.json（envelope・target・fingerprint・rule-result・validation・error）"
+    ],
+    "db": [
+     "sessions（kind = caller の欄だけ）",
+     "operations（validate）",
+     "rule_results",
+     "追記だけ・閉じたセッションに足さない・by = human は unverified だけ の trigger と CHECK"
+    ],
+    "crates": [
+     "conformance-domain：集約 Concrete（版は閉じた一覧・本体の x- の名前を足さない）、集約インスタンス（読むだけの部分）、値 urn・fingerprint・instance_id・verdict、サービス relationship（指す先の実在）",
+     "conformance-application：use_cases/documents.rs の validate",
+     "operation-recording-application：use_cases/history.rs の追記",
+     "outbound の files・jsonschema・sqlite・agents（identify_caller だけ）",
+     "cli"
+    ],
+    "ports": [
+     "document_store",
+     "schema_checker",
+     "identify_caller",
+     "operation_log"
+    ],
+    "cli": [
+     "sas validate <パス>...",
+     "sas validate --all"
+    ],
+    "libraries": [
+     "serde・serde_json",
+     "2020-12 の検査器（jsonschema。版はこのステップで照合して決める）",
+     "rusqlite（bundled）",
+     "sha2",
+     "ULID を作るライブラリ"
+    ]
+   },
+   "acceptance": [
+    "Concrete が Abstract に従えば、すべての rule が verified で、counts が5つの値ごとに数える",
+    "申告した Abstract の版が閉じた一覧に無ければ schema_not_listed で、取りに行かない",
+    "Concrete が本体の x- の名前を足したら violated と根拠のポインタ",
+    "インスタンスの形の違反と、x-relationship の先が無いことが violated",
+    "by: human の rule は unverified（人が決める）で、verified に数えない（最低保証）",
+    "呼び出し元が分からなければ人のセッションに入り、--session を渡せばそのセッションに入る",
+    "操作は追記だけで、validate の前後の指紋が同じ"
+   ],
+   "factcheck": [
+    "2020-12 の検査器の crate が、方言の $dynamicAnchor: meta と独自の $vocabulary を扱えるか（crate の文書と小さな試験で確かめる）",
+    "rusqlite の bundled が持つ SQLite の版が 3.38.0 以上か"
+   ],
+   "decide_in_step": "ID（ULID）と時刻を作る所。見解：outbound の sqlite が行を足すときに作って返す。application と domain は時刻に触らず、試験の代役は続き番号を返す"
+  },
+  {
+   "step": "ステップ2",
+   "usecase": "UC1 作成する と UC2 更新する（機械。対象は Concrete とインスタンス）",
+   "builds": {
+    "schemas": [
+     "diff.schema.json",
+     "operation-request の create・update",
+     "operation-result の change"
+    ],
+    "db": [
+     "field_changes",
+     "operations の create・update、続き番号の trigger、request_id の部分一意索引"
+    ],
+    "crates": [
+     "集約インスタンスの書く条件（id を変えない・導出値が一致・人の欄は人の入口から・指紋が一致したときだけ書く）",
+     "集約 Concrete の書く条件（公開した版を変えない）",
+     "値 diff（前後の中身から求める）"
+    ],
+    "ports": [],
+    "cli": [
+     "sas create <パス> --concrete <URN> --value <JSON>",
+     "sas update <パス> --patch <JSON Patch> --if-match <指紋>"
+    ]
+   },
+   "acceptance": [
+    "作ると対象が型に従って在り、操作の ID と差分が返る（成功時保証）",
+    "型に従わない値は書かず、理由と操作の記録を残す（最低保証）",
+    "if-match が違えば conflict で書かない",
+    "x-prompt を変えた欄の前の判定が stale_rules に出る",
+    "Concrete の更新で violated になるインスタンスが結果に出る",
+    "同じ request_id で2回呼んでも操作は1回"
+   ],
+   "deferred": "UC2 の拡張『申告する Abstract の版を変えた』は Abstract に v1 しか無いので試せない。untested.json に理由と一緒に置く"
+  },
+  {
+   "step": "ステップ3",
+   "usecase": "SAS を通らない変更：UC1 の変形『既存のファイルを取り込む』・UC2 の取り込み（--adopt）・UC4 の untracked と『入力が変わった rule だけ』",
+   "builds": {
+    "schemas": [
+     "operation-request の adopt と validate の stale",
+     "operation-result の validation.untracked・hint、diff の source = outside と before_unavailable"
+    ],
+    "db": [
+     "operations.source、adopt の事前はその対象の最後の事後 の trigger",
+     "field_changes.before_unavailable"
+    ],
+    "crates": [
+     "outbound の git（コミット済みの版の中身を読むだけ）",
+     "インスタンスの集約に『最後の事後の指紋と比べる』条件（最後の指紋は use_cases が操作の記録から読んで値で渡す）"
+    ],
+    "ports": [
+     "version_reader"
+    ],
+    "cli": [
+     "sas create <パス> --adopt",
+     "sas update <パス> --adopt --intent <文>",
+     "sas validate --stale"
+    ]
+   },
+   "acceptance": [
+    "外で直したファイルを検証すると untracked と取り込みの案内が出て、いまの中身を検証する",
+    "取り込むと差分が HEAD との比較で source = outside になる",
+    "まだコミットされていなければ before_unavailable",
+    "人の欄が外で変わっていたら書かずに人へ返す",
+    "--stale は読んだ欄が変わった rule だけを判定し直す"
+   ],
+   "factcheck": [
+    "git の読み方（git show <rev>:<path> か cat-file）の原文。プロセスで呼ぶか、ライブラリを使うかをここで決める。見解：git コマンドを outbound/git の中から呼ぶ（ライブラリを足さない）"
+   ]
+  },
+  {
+   "step": "ステップ4",
+   "usecase": "UC3 削除する（参照している所の記載も消す。機械だけ）",
+   "builds": {
+    "schemas": [
+     "operation-request の delete",
+     "operation-result の change.references"
+    ],
+    "db": [
+     "operations の delete（事後は無し）と cause_id（参照元の update を同じセッションの続きに）"
+    ],
+    "crates": [
+     "サービス relationship に参照元を探す",
+     "参照元を1件ずつ直すのは use_cases のスクリプト"
+    ],
+    "ports": [],
+    "cli": [
+     "sas delete <パス> --intent <文>"
+    ]
+   },
+   "acceptance": [
+    "対象と、参照している所の記載が、同じセッションの操作として消える",
+    "削除の操作の記録に事前の状態が残る"
+   ],
+   "check_first": "インスタンスが従っている Concrete を消すときの振る舞い。概念のページと re-uc で決まっているかを先に確かめ、決まっていなければ usecase-advisor・ddd-advisor と反証を通して1つにしてから書く"
+  },
+  {
+   "step": "ステップ5",
+   "usecase": "UC5 描画する（機械だけ。その場で描き、コミットしない）",
+   "builds": {
+    "schemas": [
+     "design-system.schema.json",
+     "operation-request の render",
+     "operation-result の render と error の missing_view_kinds"
+    ],
+    "db": [],
+    "crates": [
+     "rendering-application：use_cases/render.rs",
+     "outbound の templates（テンプレートの処理系を閉じ込める）"
+    ],
+    "ports": [
+     "template_renderer"
+    ],
+    "cli": [
+     "sas render <パス>... --design-system <パス> --out <先>"
+    ]
+   },
+   "acceptance": [
+    "内容と rule ごとの結果が一緒に見える",
+    "Concrete が使う x-view の種類がテンプレートに欠けていれば、1ページも書かずに欠けた種類を返す",
+    "入力が変わった判定を verified と見せない（最低保証）"
+   ],
+   "factcheck": [
+    "テンプレートの処理系の候補の原文（構文・エスケープの既定・ライセンス）。選ぶのはこのステップ。adapter の中に閉じるので、選び直しても他へ広がらない",
+    "Design Tokens Format Module 2025.10 の照合は済み（factcheck-a）"
+   ],
+   "fixtures": "SAS は既定のデザインシステムを持たないので、試験用のデザインシステムは test-suite/fixtures/ に置く"
+  },
+  {
+   "step": "ステップ6",
+   "usecase": "SF1 SAS が立てたセッションでエージェントに手順で行わせる と UC4 の by: ai の rule",
+   "builds": {
+    "schemas": [
+     "procedure-prompt.schema.json",
+     "session-request.schema.json（start・reply）",
+     "agent-answer.schema.json（judgments）",
+     "session.schema.json",
+     "agent-connector.schema.json",
+     "operation-result の procedure・session",
+     "operation-request の session-status"
+    ],
+    "db": [
+     "sessions の kind = sas の欄（親・アダプター・能力の写し・tool_ref など）",
+     "session_turns",
+     "validate は単発・引き継がない の CHECK、形を直させるのは2回まで の trigger"
+    ],
+    "crates": [
+     "semantic-operations-domain：集約 SAS が立てたセッション（回は内側）、値 session_type・capabilities、サービス retry_rule",
+     "semantic-operations-application：use_cases/agent_sessions.rs",
+     "outbound の agents（Claude Code の組み込みと、接続の定義で動く汎用）・files（keep_prompt）・sqlite（agent_session_store）"
+    ],
+    "ports": [
+     "agent_runtime",
+     "keep_prompt",
+     "agent_session_store"
+    ],
+    "cli": [
+     "sas validate（by: ai の rule があれば1行目が手順のプロンプト、最後の行が結果）",
+     "sas session status <ID>"
+    ]
+   },
+   "acceptance": [
+    "by: ai の rule × 欄ごとに1ステップの手順のプロンプトが出て、答えが step・rule・pointer で突き合う",
+    "形が違えば同じセッションで2回まで直させ、超えたら invalid_output で閉じ、該当の rule は error",
+    "時間切れは新しいセッションで2回までやり直す",
+    "答えの間に指紋が変わっていたら書かずに conflict",
+    "記録とセッションを閉じるのは別のトランザクションで、間で止まったら session status が閉じ直す",
+    "by: ai の rule が無ければ SAS のセッションを立てない"
+   ],
+   "how_to_test": "自動の試験は、接続の定義（agent-connector）で決まった JSON を返す試験用のコマンドを起動する。Claude 専用にならないことも、これで確かめる。実際のエージェント（Claude Code）での実行は1回だけ手で行い、シミュレーターに載せる",
+   "factcheck": [
+    "読めなかった頁を閉じる：Claude Code の sessions の頁・Gemini の automation のチュートリアル・Codex の app-server・Copilot の SDK。環境変数や欄が見つかれば agent-connector と identify_caller に足す"
+   ]
+  },
+  {
+   "step": "ステップ7",
+   "usecase": "UC1・UC2 の意味（x-prompt の欄をエージェントが書く）とセッションの4つの型",
+   "builds": {
+    "schemas": [
+     "operation-request の session-spec・semantic・session-close",
+     "session-request の continue・fork",
+     "agent-answer の field-values（needs を含む）",
+     "procedure-prompt の write のステップと since_last"
+    ],
+    "db": [
+     "sessions の inherited_from・continued_from、session_turns の resume_decision",
+     "単発は再開しない・inherit は元を持つ・閉じたら足さない の trigger と CHECK"
+    ],
+    "crates": [
+     "サービス resume_rule（5段）",
+     "能力の確かめと unsupported_capability"
+    ],
+    "ports": [],
+    "cli": [
+     "sas create --semantic <ポインタ>...",
+     "sas update --semantic <ポインタ>...",
+     "--lifetime・--context・--session・--new・--brief",
+     "sas session close <ID>"
+    ]
+   },
+   "acceptance": [
+    "既定は単発・引き継がない",
+    "再開の決まりの5つの値それぞれに当たる場面と、記録に残る値",
+    "アダプターが能力を持たなければ立てずに、足りない能力と代わりの指定を返す",
+    "UC2 の拡張『続けて直す』（継続・引き継ぐ）で何件も直せる",
+    "エージェントが決めきれなかった点は needs で返り、書かない"
+   ]
+  },
+  {
+   "step": "ステップ8",
+   "usecase": "UC6 検索する（構造で絞る・意味で探す）",
+   "builds": {
+    "schemas": [
+     "operation-request の search",
+     "operation-result の search",
+     "agent-answer の found"
+    ],
+    "db": [
+     "operation_kind = search のセッションに操作を足さない trigger"
+    ],
+    "crates": [
+     "conformance-application：use_cases/search.rs（構造で絞る）",
+     "意味で探すのは SF1 を使う"
+    ],
+    "ports": [],
+    "cli": [
+     "sas search --scope <パス>... --where <条件>",
+     "sas search --scope <パス>... --question <文>"
+    ]
+   },
+   "acceptance": [
+    "範囲を渡さなければ invalid_input（事前条件）",
+    "結果に出どころと探した範囲が付き、範囲の外は探していないと返る",
+    "検索は操作として残らず、立てたセッションは残る",
+    "継続のセッションで問いを絞り込める"
+   ]
+  },
+  {
+   "step": "ステップ9",
+   "usecase": "UC7 セッションと操作を読む",
+   "builds": {
+    "schemas": [
+     "operation-request の read",
+     "operation-result の operation・history"
+    ],
+    "db": [],
+    "crates": [
+     "operation-recording-application：use_cases/history.rs の読む側"
+    ],
+    "ports": [],
+    "cli": [
+     "sas read --session <ID>",
+     "sas read --operation <ID>",
+     "sas read --target <パス>"
+    ]
+   },
+   "acceptance": [
+    "読んでも何も変わらない、無い ID は not_found",
+    "DB のどの欄も出力のどこかに出る（design.json の 5_mapping を試験にする）",
+    "出力に DB の名前が出ない（parent_id → parent など）"
+   ]
+  },
+  {
+   "step": "ステップ10",
+   "usecase": "UC0 その型で成果物を作り、検証された状態で使い続ける（要約）と完了の確認",
+   "builds": {
+    "schemas": [],
+    "db": [],
+    "crates": [],
+    "ports": [],
+    "cli": []
+   },
+   "acceptance": [
+    "使う側のオーケストレーターの役で、Concrete を作る → インスタンスを作る → 検証する → 直す → 描く → 記録を読む を通す場面が通る",
+    "完了の条件（6）のすべて"
+   ],
+   "docs": "docs/design（概念のページ）と docs/usecases を、作ってみた結果に合わせる。README を使い方の頁にする"
+  }
+ ],
+ "3_schemas_by_step": [
+  {
+   "file": "semantic-abstract-schema.json",
+   "step": "ステップ1"
+  },
+  {
+   "file": "vocabulary.schema.json",
+   "step": "ステップ1"
+  },
+  {
+   "file": "dialect.schema.json",
+   "step": "ステップ1"
+  },
+  {
+   "file": "glossary.schema.json",
+   "step": "ステップ1"
+  },
+  {
+   "file": "settings.schema.json",
+   "step": "ステップ1（項目はステップごとに足す）"
+  },
+  {
+   "file": "operation-request.schema.json",
+   "step": "ステップ1（$defs はステップごとに足す）"
+  },
+  {
+   "file": "operation-result.schema.json",
+   "step": "ステップ1（$defs はステップごとに足す）"
+  },
+  {
+   "file": "diff.schema.json",
+   "step": "ステップ2"
+  },
+  {
+   "file": "design-system.schema.json",
+   "step": "ステップ5"
+  },
+  {
+   "file": "procedure-prompt.schema.json",
+   "step": "ステップ6"
+  },
+  {
+   "file": "session-request.schema.json",
+   "step": "ステップ6"
+  },
+  {
+   "file": "agent-answer.schema.json",
+   "step": "ステップ6"
+  },
+  {
+   "file": "session.schema.json",
+   "step": "ステップ6"
+  },
+  {
+   "file": "agent-connector.schema.json",
+   "step": "ステップ6"
+  }
+ ],
+ "3_schemas_rule": "v1 は完了まで未公開として扱い、ステップごとに $defs を足してよい。完了の時点で公開とし、それより後は v1 を変えない",
+ "3_db_by_step": [
+  {
+   "table": "sessions",
+   "step": "ステップ1（呼び出し元の欄）・ステップ6（SAS が立てたセッションの欄）・ステップ7（引き継ぎ・続きの元）"
+  },
+  {
+   "table": "operations",
+   "step": "ステップ1（validate）・ステップ2（create・update）・ステップ3（source）・ステップ4（delete・cause_id）"
+  },
+  {
+   "table": "rule_results",
+   "step": "ステップ1"
+  },
+  {
+   "table": "field_changes",
+   "step": "ステップ2（before_unavailable はステップ3）"
+  },
+  {
+   "table": "session_turns",
+   "step": "ステップ6（resume_decision はステップ7）"
+  }
+ ],
+ "3_db_rule": "DDL は outbound/sqlite/migrations/ に1つのファイルで持ち、完了までは書き換えてよい（DB はコミットせず、公開もしないので、開発中の DB は作り直す）。完了の時点で 0001 として固定し、それより後は足すファイルで変える",
+ "3_libraries_by_step": [
+  {
+   "library": "serde・serde_json",
+   "step": "ステップ1"
+  },
+  {
+   "library": "2020-12 の検査器",
+   "step": "ステップ1"
+  },
+  {
+   "library": "rusqlite（bundled）",
+   "step": "ステップ1"
+  },
+  {
+   "library": "sha2",
+   "step": "ステップ1"
+  },
+  {
+   "library": "ULID",
+   "step": "ステップ1"
+  },
+  {
+   "library": "テンプレートの処理系",
+   "step": "ステップ5"
+  }
+ ],
+ "3_factcheck_closing": [
+  {
+   "item": "Claude Code の sessions の頁・Gemini の automation のチュートリアル・Codex の app-server・Copilot の SDK（取得していない頁）",
+   "step": "ステップ6 のはじめ",
+   "why": "agent-connector と、エージェントを起動する adapter を書く前に閉じる。ステップ1 の identify_caller は照合済みの Claude Code の環境変数と --session・--caller だけで作り、見つかったものはステップ6 で足す"
+  },
+  {
+   "item": "2020-12 の検査器の crate の方言と語彙の扱い",
+   "step": "ステップ1 のはじめ"
+  },
+  {
+   "item": "rusqlite の bundled の SQLite の版",
+   "step": "ステップ1"
+  },
+  {
+   "item": "git の版の中身の読み方",
+   "step": "ステップ3"
+  },
+  {
+   "item": "テンプレートの処理系",
+   "step": "ステップ5"
+  }
+ ],
+ "3_per_step_procedure": [
+  {
+   "phase": "読む",
+   "do": "そのステップの『読む頁』を読む：概念のページの該当タブ、arch-v15 の木とポート、design.json の該当スキーマ・表・流れ、re-uc のユースケースの本文。要約から書き起こさない"
+  },
+  {
+   "phase": "要求",
+   "do": "ユースケースの主シナリオ・拡張・変形・成功時保証・最低保証を、それぞれシステムテストの場面（test-suite/scenarios/）にする。先に書いて、通らないことを確かめる"
+  },
+  {
+   "phase": "手続き",
+   "do": "上から決めて確かめ済みの部品（集約 Concrete・インスタンス・SAS が立てたセッションと、その値・サービス）は初めから domain に置く。それ以外は use_cases にトランザクションスクリプトで書く"
+  },
+  {
+   "phase": "引き上げ",
+   "do": "書いた手続きを引き上げの表（いつも同時に守る条件 → 集約、意味を持つ値と規則 → 値オブジェクト、いくつかにまたがる判定 → ドメインサービス、データの出し入れだけ → スクリプトのまま、見た目は同じだが変わる理由が違う → 別のもの）で見分ける"
+  },
+  {
+   "phase": "突き合わせ",
+   "do": "概念のページ『確かめる』タブの下からの表と比べ、一致・上の先取り・上の見落としに分ける。食い違いは 5 の手順で直す"
+  },
+  {
+   "phase": "検査",
+   "do": "cargo build・clippy・fmt・architecture-lint・追跡の検査・全部の場面"
+  },
+  {
+   "phase": "見せる",
+   "do": "シミュレーターを作り直して公開し、場面ごとに 事前 → 入力 → 実行されたコード → 出力 → 事後（ファイルと DB の行）と、突き合わせの表を見せる"
+  },
+  {
+   "phase": "コミット",
+   "do": "OK をもらったら、そのステップのコードと場面と、直した設計の文書を1つのコミットにする"
+  }
+ ],
+ "4_dependency_order": {
+  "order": [
+   "ステップ0 骨組み",
+   "ステップ1 契約（Abstract の本体・方言・語彙・用語集）と機械の検証、操作の記録の最小形",
+   "ステップ2 機械の作成と更新",
+   "ステップ3 SAS を通らない変更",
+   "ステップ4 削除",
+   "ステップ5 描画",
+   "ステップ6 SAS が立てたセッションと意味の検証",
+   "ステップ7 意味の作成・更新とセッションの4つの型",
+   "ステップ8 検索",
+   "ステップ9 記録を読む",
+   "ステップ10 要約と完了の確認"
+  ],
+  "grounds": [
+   {
+    "ground": "Concrete を書く型が先",
+    "detail": "どのユースケースも Abstract → Concrete → インスタンスの型で動く。Abstract の本体・語彙・方言が無ければ、検証もほかの能力も始まらない"
+   },
+   {
+    "ground": "最初のユースケースは検証",
+    "detail": "作成と更新は、書く前に形の検査と機械の rule を通す。検証が先に在れば、作成と更新はそれを呼ぶだけになる。検証は書かないので、指紋の一致などの書く条件を後へ回せる"
+   },
+   {
+    "ground": "操作の記録はステップ1 から（依頼の並びと違う所）",
+    "detail": "依頼の並びでは記録はセッションのあとだったが、操作の記録は依存の向きのいちばん下で、conformance-application がそれに依存する。また UC4 と UC1 の成功時保証が『操作の記録に入る・ID が返る』なので、最初の検証から最小の形が要る。記録を読む（UC7）だけを後ろに置く"
+   },
+   {
+    "ground": "意味の操作は機械の作成・更新・検証のあと",
+    "detail": "エージェントの答えは、機械の検証と指紋の確認を通ったときだけ SAS が書く。semantic-operations-application は conformance-application に依存する"
+   },
+   {
+    "ground": "描画は意味の操作の前、SAS を通らない変更のあと",
+    "detail": "描画は契約への適合だけに依存し、エージェントを使わない。ただし最低保証『入力が変わった判定を verified と見せない』はステップ3 の stale を使う"
+   },
+   {
+    "ground": "検索は意味のセッションの型のあと",
+    "detail": "意味で探すのは SF1 を使い、絞り込みは継続のセッションで行う"
+   },
+   {
+    "ground": "記録を読むのは最後",
+    "detail": "読む形は、すべての操作の種類とセッションの型を出す。先に作ると、ステップごとに出力の形を直すことになる。それまではシミュレーターが DB を直接読んで見せる"
+   }
+  ]
+ },
+ "5_risks": [
+  {
+   "risk": "2020-12 の検査器が、方言の $dynamicAnchor: meta や独自の語彙を扱えない",
+   "effect": "dialect と vocabulary の設計が変わる",
+   "handling": "ステップ1 のはじめに小さな試験で確かめる。扱えなければ、方言を検査器に渡す形を adapter の中で変えられるかを先に見て、無理なら設計を直す（下の手順）"
+  },
+  {
+   "risk": "ステップ1 が大きい（7スキーマ・3表・8 crate・4ポート）",
+   "effect": "シミュレーターで見せる量が多い",
+   "handling": "場面を Concrete とインスタンスに分けて見せる。分けたステップにはしない（同じユースケースで、記録の最小形が無いと保証を満たせない）"
+  },
+  {
+   "risk": "エージェントの答えが毎回違う",
+   "effect": "自動の試験が揺れる",
+   "handling": "自動の試験は試験用のコマンドの接続の定義で行い、実際のエージェントは手の実行1回をシミュレーターに載せる"
+  },
+  {
+   "risk": "取得していない頁に、呼び出し元の見分け方やセッションの欄がある",
+   "effect": "agent-connector と identify_caller に欄が増える",
+   "handling": "ステップ6 のはじめに閉じる。増えるのは足すだけで、ステップ1 の形は壊さない"
+  },
+  {
+   "risk": "Abstract の版の移し方（UC2 の拡張）が試せない",
+   "effect": "完了の時点で1つの拡張が試験されていない",
+   "handling": "untested.json に理由（Abstract は v1 だけ）と、v2 を出すときに試験を足すことを書く"
+  },
+  {
+   "risk": "設計の正本が scratchpad にしか無い",
+   "effect": "セッションが終わると消える",
+   "handling": "ステップ0 で docs/design/ に持ち込む。以後の直しはそこで行う"
+  },
+  {
+   "risk": "archive/ の古い名前が検索や AI の読み込みに混ざる",
+   "effect": "いまの実装の名前を新しい木に写してしまう",
+   "handling": "検索は semantic-agent-schema/ に絞る。読むのは各ステップの『読む頁』からたどったときだけ"
+  },
+  {
+   "risk": "途中で設計が直る",
+   "effect": "概念のページ・arch・コードがずれる",
+   "handling": "下の手順で、文書を先に直してからコードを直し、同じコミットに入れる"
+  },
+  {
+   "risk": "MCP の入口が新しい木に無い",
+   "effect": "いまの README の『CLI と MCP』が満たされない",
+   "handling": "この作り直しの範囲は CLI だけとする。どの AI ツールからも CLI で呼べるので、Claude 専用にはならない。MCP は inbound/mcp を足す別の作業にする"
+  }
+ ],
+ "5_design_change_procedure": [
+  {
+   "no": 1,
+   "do": "突き合わせの表に、食い違いを1行で書く（一致・上の先取り・上の見落とし）"
+  },
+  {
+   "no": 2,
+   "do": "どちらを採るかを決める。部品の置き場所（domain かスクリプトか）は作ってみた結果を採り、自分で直す。境界と公開する契約（スキーマ・CLI の入出力・DB の表・crate・ポート・依存の向き）は設計を採り、変えるなら根幹の判断として調査・反証（fork）・アドバイザーを通す"
+  },
+  {
+   "no": 3,
+   "do": "docs/design/data の arch を新しい版のファイル（arch-v16.json など）にし、design.json と usecases を直す"
+  },
+  {
+   "no": 4,
+   "do": "概念のページの build.py を直し、同じアーティファクトの URL へ版を上げて公開する（決めたことと承認のタブに1行足す）"
+  },
+  {
+   "no": 5,
+   "do": "architecture.json・CODING.md・trace.json を直す"
+  },
+  {
+   "no": 6,
+   "do": "コードを直し、そのステップのシミュレーターで設計の直しも一緒に見せる。OK でまとめて1つのコミットにする"
+  },
+  {
+   "no": 7,
+   "do": "土台（docs/foundation）に関わる直しは、SAS のステップと分けて ACDR を起こす（土台は一般の概念で、SAS の実装のステップではない）"
+  }
+ ],
+ "6_done": [
+  "UC0〜UC7・SF1 の主シナリオ・拡張・変形・成功時保証・最低保証が、それぞれ1つ以上の場面で通る。通らないものは untested.json に理由がある（Abstract の版の移し方だけを見込む）",
+  "schemas/v1 の14ファイルがそろい、CLI のすべての出力の行を operation-result で、すべての入力を operation-request で検証する試験が通る",
+  "DB の5表が migrations に在り、どの欄も出力のどこかに出る試験が通る",
+  "9つのポートに、adapter が1つと試験の代役が1つずつある",
+  "概念のページの『必要十分』の格子のどの能力も、どれかの場面が使う",
+  "cargo build・clippy（-D warnings）・fmt・architecture-lint・追跡の検査がすべて0件",
+  "取得していない頁の確かめが閉じている",
+  "試験用のコマンドの接続の定義（Claude 以外）と、Claude Code の組み込みの両方で、意味の検証の場面が通る",
+  "docs/design（概念のページ）と docs/usecases が、作ったものと食い違わない",
+  "schemas/v1 を公開した版として扱い始める（以後は変えない）。公開の仕方（タグ・バイナリの配布）は完了のあとに別に決める"
+ ],
+ "open_for_reviewer": [
+  "アーカイブの手順と並びを、利用者に見せる前に fork で反証にかける（特に、操作の記録をステップ1 に入れたことと、archive/ の置き場所）"
+ ]
+}

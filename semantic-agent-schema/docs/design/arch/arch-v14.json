@@ -1,0 +1,328 @@
+{
+ "version": "版14（2026-10-31）",
+ "architecture": "文脈全体を1つのヘキサゴナル。業務ロジックは上から決めて下から確かめる。domain は型とインスタンスと意味の操作だけ（突き合わせで確かめた集約・値・サービス）。操作の経緯と描画は application だけ（トランザクションスクリプト）",
+ "aggregates": [
+  "Concrete（型とインスタンス）",
+  "インスタンス（型とインスタンス）",
+  "SAS が立てたセッション（意味の操作。回は内側）"
+ ],
+ "crates": [
+  {
+   "crate": "semantic-agent-schema-types-and-instances-domain",
+   "layer": "domain",
+   "may_depend_on": "無し"
+  },
+  {
+   "crate": "semantic-agent-schema-semantic-operations-domain",
+   "layer": "domain",
+   "may_depend_on": "types-and-instances-domain"
+  },
+  {
+   "crate": "semantic-agent-schema-operation-history-application",
+   "layer": "application",
+   "may_depend_on": "types-and-instances-domain（値だけ）"
+  },
+  {
+   "crate": "semantic-agent-schema-types-and-instances-application",
+   "layer": "application",
+   "may_depend_on": "types-and-instances-domain・operation-history-application"
+  },
+  {
+   "crate": "semantic-agent-schema-semantic-operations-application",
+   "layer": "application",
+   "may_depend_on": "semantic-operations-domain・types-and-instances-domain・types-and-instances-application・operation-history-application"
+  },
+  {
+   "crate": "semantic-agent-schema-rendering-application",
+   "layer": "application",
+   "may_depend_on": "types-and-instances-domain・types-and-instances-application"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-outbound-agents",
+   "layer": "adapters",
+   "may_depend_on": "semantic-operations-application・operation-history-application（agent_runtime・identify_caller を実装）"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-outbound-files",
+   "layer": "adapters",
+   "may_depend_on": "semantic-operations-application・types-and-instances-application（keep_prompt・document_store）"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-outbound-git",
+   "layer": "adapters",
+   "may_depend_on": "types-and-instances-application（version_reader。読むだけ）"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-outbound-jsonschema",
+   "layer": "adapters",
+   "may_depend_on": "types-and-instances-application（schema_checker。2020-12 の検査器のライブラリはここだけ）"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-outbound-sqlite",
+   "layer": "adapters",
+   "may_depend_on": "semantic-operations-application・operation-history-application（agent_session_store・operation_log。rusqlite はここだけ）"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-outbound-templates",
+   "layer": "adapters",
+   "may_depend_on": "rendering-application（template_renderer。テンプレートの処理系はここだけ）"
+  },
+  {
+   "crate": "semantic-agent-schema-adapters-inbound-cli",
+   "layer": "adapters（bin・組み立て）",
+   "may_depend_on": "4つの application と outbound の6つ（main.rs で組み立てる。outbound に依存してよいのはここだけ）"
+  }
+ ],
+ "ports": [
+  {
+   "port": "agent_runtime",
+   "owner": "semantic-operations",
+   "adapter": "outbound/agents",
+   "use": "dyn",
+   "why": "設定でツールを選ぶので実行時に型が決まる"
+  },
+  {
+   "port": "keep_prompt",
+   "owner": "semantic-operations",
+   "adapter": "outbound/files",
+   "use": "dyn",
+   "why": "組み立てと試験の差し替えを1つの書き方にそろえる"
+  },
+  {
+   "port": "agent_session_store",
+   "owner": "semantic-operations",
+   "adapter": "outbound/sqlite",
+   "use": "dyn",
+   "why": "同上"
+  },
+  {
+   "port": "document_store",
+   "owner": "types-and-instances",
+   "adapter": "outbound/files",
+   "use": "dyn",
+   "why": "同上。書くのは SAS の use_cases だけ"
+  },
+  {
+   "port": "version_reader",
+   "owner": "types-and-instances",
+   "adapter": "outbound/git",
+   "use": "dyn",
+   "why": "同上。コミット済みの版を読むだけ"
+  },
+  {
+   "port": "schema_checker",
+   "owner": "types-and-instances",
+   "adapter": "outbound/jsonschema",
+   "use": "dyn",
+   "why": "同上。2020-12 の形の検査。x- の判定は domain"
+  },
+  {
+   "port": "identify_caller",
+   "owner": "operation-history",
+   "adapter": "outbound/agents",
+   "use": "dyn",
+   "why": "同上。いちばん下に置き、どのモジュールからも使える"
+  },
+  {
+   "port": "operation_log",
+   "owner": "operation-history",
+   "adapter": "outbound/sqlite",
+   "use": "dyn",
+   "why": "同上。呼び出し元のセッションと操作の行を足す・読む"
+  },
+  {
+   "port": "template_renderer",
+   "owner": "rendering",
+   "adapter": "outbound/templates",
+   "use": "dyn",
+   "why": "同上"
+  }
+ ],
+ "rules_language_neutral": [
+  "文脈の根はリポジトリの根。文脈全体を1つのヘキサゴナルにし、外とのやりとりはすべて application の ports を adapters/outbound が実装する",
+  "業務ロジックの置き方は、上から決めて下から確かめる。守る条件がすでに決定・Abstract の rule・試験の場面に書けている所は初めから domain に置き、それ以外は use_cases にトランザクションスクリプトで書く。引き上げの表で見分け、突き合わせで確かめたものだけを domain に置く",
+  "domain の中は部品の種類でフォルダを分ける：aggregates/（集約ごと）・values/・services/。購読する手続きが無いうちは events/ を作らない",
+  "application の中は use_cases/ と ports/。use_cases/ のファイルは集約か手順のまとまりごとに分け、ユースケースごとのファイルやフォルダは作らない（土台の境界6）",
+  "domain を持つのは、突き合わせで集約・値・サービスが確かめられた業務領域だけ（意味の操作・型とインスタンス）。操作の経緯と描画は application だけ",
+  "ポートは、それを使う手順を持つモジュールの application/ports に置く。共有の置き場を作らない。呼び出し元を見分けるポートは、いちばん下の操作の経緯が持つ",
+  "モジュールの間の向きは 意味の操作 → 型とインスタンス → 操作の経緯、描画 → 型とインスタンス の一方向。同じ文脈の別のモジュールはポートを挟まず application を直接呼ぶ",
+  "外のライブラリ（rusqlite・2020-12 の検査器・テンプレートの処理系）は、それを使う outbound の crate だけが依存する",
+  "組み立て（アダプターをポートへ渡す）は入口の1か所だけ",
+  "公開された言葉（schemas/<版>/）は文脈の根に置き、出した版は変えない"
+ ],
+ "rules_rust": [
+  {
+   "rule": "依存の向きを強制したい境界と、外のライブラリを閉じ込めたい所だけを crate にし、それ以外はモジュールで分ける。crate の数の基準は原典に無い",
+   "source": "Book ch07-01:186・ch14-03:187（基準の記述が無い）・ch07-03:296・Reference visibility:476"
+  },
+  {
+   "rule": "domain は業務領域ごとに crate を分ける（types-and-instances-domain と semantic-operations-domain）。1つの crate の中では子のモジュールが祖先の項目を使えるので、集約の間の向きはモジュールでは止められない",
+   "source": "Book ch07-03:296・ch14-03:299"
+  },
+  {
+   "rule": "根の Cargo.toml は virtual manifest。[workspace] に members と resolver = \"3\" を書く",
+   "source": "Cargo workspaces:241・258、Book ch14-03:207〜211"
+  },
+  {
+   "rule": "外のライブラリの版は [workspace.dependencies] に置き、各 crate は workspace = true で継承する（optional にはできない）。SAS の中の crate どうしは path dependencies",
+   "source": "Cargo workspaces:359・363、specifying-dependencies:425"
+  },
+  {
+   "rule": "crate が使えるのは自分の Cargo.toml に書いた crate だけ。これで domain の無依存と、ライブラリの閉じ込めを強制する",
+   "source": "Book ch14-03:299・390"
+  },
+  {
+   "rule": "lib.rs は pub mod aggregates; pub mod values; pub mod services;（events は作らない）。crate の中だけで使う部品は pub(crate)",
+   "source": "Book ch07-02:273、Reference visibility:390・476"
+  },
+  {
+   "rule": "mod.rs を使わない。src/aggregates.rs と src/aggregates/concrete.rs・instance.rs・agent_session.rs、src/aggregates/agent_session/turn.rs の形にする",
+   "source": "Book ch07-05:251・265・268"
+  },
+  {
+   "rule": "application の ports.rs が、ポートで使う domain の型を pub use で再公開する。adapters は application だけに依存する",
+   "source": "Book ch07-04:392、Reference visibility:564"
+  },
+  {
+   "rule": "組み立ては cli の main.rs。outbound の crate に依存してよいのは cli だけ",
+   "source": "Book ch14-03:299（推論：実装の型の名前を書くので依存が要る）"
+  },
+  {
+   "rule": "ポートは trait で、9つとも dyn で使う。dyn compatible に保つ：型引数のあるメソッド・async fn・関連定数を持たず、Self を receiver 以外で使わない。sealed にしない",
+   "source": "Reference traits:412・429・445・459、API Guidelines C-OBJECT:322・324・321、C-SEALED:169"
+  },
+  {
+   "rule": "集約の欄は private、メソッドだけ pub。ID・指紋は newtype で区別する",
+   "source": "Book ch07-03:477、API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169"
+  },
+  {
+   "rule": "adapters で外の trait（rusqlite・serde など）を domain の型に実装しない（orphan rule）。sqlite の crate は自分の行の型を持って変換する",
+   "source": "Book ch10-02:302・309・313、Reference implementations:658・659・669"
+  },
+  {
+   "rule": "依存のグラフは循環させない",
+   "source": "Cargo resolver:568・585"
+  }
+ ],
+ "foundation_text_pending": "中の形は、文脈ごとに1つのヘキサゴナルにする。外とのやりとりはすべて application の ports を adapters が実装する。業務ロジックの置き方は、上から決めて下から確かめる。上から：守る条件がすでに決定や試験の場面に書けている所は、初めから集約・値・ドメインサービスを domain に置く。下から：ユースケースの手続きをトランザクションスクリプトとして書き、引き上げの表で見分ける。2つを突き合わせ、部品の置き場所は下を、境界と公開する契約は上を採る。補完はスクリプトで止めてよい",
+ "guide_q5_pending": "① 上からの判定のうち自明とした所と根拠を表にする ② ユースケースごとに段階3の手続きとルールを表にする ③ 段階4の表で何になるかを見分ける ④ 突き合わせの表（一致・上の先取り・上の見落とし）を作り、直す方を書く ⑤ 直した結果で domain の中身を確定する",
+ "tree": [
+  {
+   "path": "semantic-agent-schema/",
+   "note": "文脈の根 ＝ 1つのヘキサゴナル"
+  },
+  {
+   "path": "├── Cargo.toml",
+   "note": "virtual manifest：[workspace] members・resolver = \"3\"・[workspace.dependencies]（rusqlite・検査器・テンプレートの処理系の版）"
+  },
+  {
+   "path": "├── architecture.json",
+   "note": "crate の間で許す依存の向き（検査に使う）"
+  },
+  {
+   "path": "├── schemas/v1/",
+   "note": "公開された言葉（14のファイル）"
+  },
+  {
+   "path": "├── types-and-instances/",
+   "note": "業務領域「型とインスタンス」（中核・ドメインモデル）"
+  },
+  {
+   "path": "│   ├── domain/",
+   "note": "[crate] …-types-and-instances-domain。依存：無し"
+  },
+  {
+   "path": "│   │   ├── Cargo.toml",
+   "note": ""
+  },
+  {
+   "path": "│   │   └── src/lib.rs",
+   "note": "pub mod aggregates; pub mod values; pub mod services;"
+  },
+  {
+   "path": "│   │       ├── aggregates.rs",
+   "note": "pub mod concrete; pub mod instance;"
+  },
+  {
+   "path": "│   │       ├── aggregates/concrete.rs",
+   "note": "集約「Concrete」：版は閉じた一覧・本体の x- の名前を足さない・公開した版を変えない"
+  },
+  {
+   "path": "│   │       ├── aggregates/instance.rs",
+   "note": "集約「インスタンス」：id を変えない・導出値が一致・人の欄は人の入口から・指紋が一致したときだけ書く・SAS を通らない変更を見分ける（最後の指紋は値で受け取る）"
+  },
+  {
+   "path": "│   │       ├── values.rs ＋ values/",
+   "note": "値：fingerprint・diff・urn（URN と版）・instance_id・verdict（5つの値と数え方）"
+  },
+  {
+   "path": "│   │       └── services.rs ＋ services/",
+   "note": "サービス：relationship（指す先の実在・参照元を探す）"
+  },
+  {
+   "path": "│   └── application/",
+   "note": "[crate] …-types-and-instances-application"
+  },
+  {
+   "path": "│       ├── Cargo.toml",
+   "note": "依存：types-and-instances-domain・operation-history-application"
+  },
+  {
+   "path": "│       └── src/",
+   "note": "use_cases/documents.rs（作る・直す・消す・取り込む・機械で検証する）・use_cases/search.rs・ports.rs（document_store・version_reader・schema_checker。domain の型を pub use）"
+  },
+  {
+   "path": "├── semantic-operations/",
+   "note": "業務領域「意味の操作」（中核・ドメインモデル）"
+  },
+  {
+   "path": "│   ├── domain/",
+   "note": "[crate] …-semantic-operations-domain。依存：types-and-instances-domain"
+  },
+  {
+   "path": "│   │   └── src/",
+   "note": "aggregates.rs・aggregates/agent_session.rs（集約「SAS が立てたセッション」：型ごとの不変条件）・aggregates/agent_session/turn.rs（回）・values/（session_type・capabilities）・services/（resume_rule 5段・retry_rule）"
+  },
+  {
+   "path": "│   └── application/",
+   "note": "[crate] …-semantic-operations-application"
+  },
+  {
+   "path": "│       └── src/",
+   "note": "use_cases/agent_sessions.rs（SF1：手順のプロンプトを組む・呼ぶ・答えを確かめて型とインスタンスへ渡す）・ports.rs（agent_runtime・keep_prompt・agent_session_store）"
+  },
+  {
+   "path": "├── operation-history/",
+   "note": "業務領域「操作の経緯」（補完・トランザクションスクリプト。domain は無い）"
+  },
+  {
+   "path": "│   └── application/",
+   "note": "[crate] …-operation-history-application。依存：types-and-instances-domain（値）"
+  },
+  {
+   "path": "│       └── src/",
+   "note": "use_cases/history.rs（追記する・UC7 を読む）・ports.rs（identify_caller・operation_log）"
+  },
+  {
+   "path": "├── rendering/",
+   "note": "業務領域「描画」（補完・トランザクションスクリプト。domain は無い）"
+  },
+  {
+   "path": "│   └── application/",
+   "note": "[crate] …-rendering-application。src/use_cases/render.rs・ports.rs（template_renderer）"
+  },
+  {
+   "path": "└── adapters/",
+   "note": "ヘキサゴナルの外側"
+  },
+  {
+   "path": "    ├── inbound/cli/",
+   "note": "[crate] bin。src/main.rs で組み立てる"
+  },
+  {
+   "path": "    └── outbound/",
+   "note": "agents（agent_runtime・identify_caller）・files（keep_prompt・document_store）・git（version_reader）・jsonschema（schema_checker）・sqlite（agent_session_store・operation_log、migrations/、行の型で変換）・templates（template_renderer）。それぞれ crate"
+  }
+ ],
+ "review": "impl-ddd/review.json"
+}

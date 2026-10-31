@@ -1,0 +1,2296 @@
+{
+ "title": "SAS の JSON Schema の設計と DB の設計",
+ "criteria": [
+  {
+   "no": 1,
+   "text": "入力と出力を JSON で表したいとき"
+  },
+  {
+   "no": 2,
+   "text": "決めた型で制御したいとき"
+  },
+  {
+   "no": 3,
+   "text": "その入力や出力に意味を持たせたいとき"
+  },
+  {
+   "no": 4,
+   "text": "出力を決まった JSON の型で返したいとき"
+  }
+ ],
+ "premises": [
+  {
+   "name": "利用者の判断基準",
+   "value": "JSON Schema にするのは上の4つのどれかに当たる境界だけ。意味の操作では CLI の返り値が手順のプロンプトになり、その流れに沿って該当する所へ操作する。セッションを呼び出す入力と、操作の入力にスキーマを持つ。Concrete を書くためのスキーマ（x- 項目と拡張の仕組み）は SAS が持つ",
+   "source": "依頼の文"
+  },
+  {
+   "name": "決まった概念（版8）",
+   "value": "業務領域4つ（意味の操作 ・ 操作の経緯 ・ 型とインスタンス ・ 描画）と一般の4つ。集約3つ（SAS が立てたセッション ・ 呼び出し元のセッション ・ 操作）。セッションの4つの型と5つの操作、再開の決まり5ステップ、unsupported_capability。書くのは SAS だけ。検索は操作として残さない。人の判定は呼び出し元のセッション（SAS は by: human を「人が決める」と返すだけ）",
+   "source": "sas-concept/build.py ・ general-ddd ・ sas-model ・ re-uc"
+  },
+  {
+   "name": "公開の範囲",
+   "value": "DB の内部の形は公開しない。公開するのは CLI の出力の形と、Concrete を書くための型と、アダプターとの契約だけ",
+   "source": "re-uc の前提 ・ sas-model の文脈の地図（共用サービス）"
+  },
+  {
+   "name": "schemas/v1 は未公開",
+   "value": "リポジトリに SAS の版のタグが無い（v1.0.0 などは Skill の配布）。v1 のファイル名と $id を改めてよいと見る",
+   "source": "git tag の結果（確かめる：利用者が v1 を外へ出していないか）"
+  },
+  {
+   "name": "いまの実装",
+   "value": "crates/ の名前（patch ・ record ・ judge ・ changes ・ intent_judgments ・ session_changes）は参考の事実として読んだだけで、答えには使っていない",
+   "source": "crates/inbound/cli ・ crates/outbound/sqlite"
+  }
+ ],
+ "decision": {
+  "headline": "schemas/v1 は、境界ごとに読み手と書き手が決まる14のファイルにする。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ session_turns ・ operations ・ field_changes ・ rule_results）で、DDL は公開しない。DB のどの欄も CLI の出力のどこかに出し、スキーマにあって DB に無い欄は「記録しないと決めたもの」だけにする",
+  "because": "1つのファイルを1つの境界（誰が書き、誰が読むか）に合わせると、アダプターの作者は session-request と agent-connector だけを、Concrete の作者は Abstract の4つだけを読めばよい。DB の表は集約3つに、セッションの回（session_turns）を足した形で、継続のセッションの複数の手順のプロンプトと、形の直し ・ やり直しの回数を1か所で持てる"
+ },
+ "file_options": [
+  {
+   "option": "A：境界ごとに1ファイル（14）。共通の値（セッション ・ 差分）は2つ以上のファイルが使うので別ファイル",
+   "effect": "読み手ごとに読むファイルが決まる。アダプターの契約が CLI の出力のファイルに依存しない。$defs の数は多いが、1ファイルの中は1つの境界だけ",
+   "chosen": true
+  },
+  {
+   "option": "B：版8 の案（Abstract の本体 ・ 語彙 ・ 方言 ・ CLI の出力 ・ エージェントの答え ＋ 4つ）",
+   "effect": "セッションを呼び出す入力（セッションの依頼）・ 操作の入力（操作の依頼）・ 手順のプロンプト ・ 設定の型が無い。利用者の判断基準の3番目と4番目を満たさない。glossary の置き場所も無い",
+   "chosen": false
+  },
+  {
+   "option": "C：全部を1ファイルの $defs にする",
+   "effect": "接続の定義を書く人が CLI の出力の変更にまで付き合う。$id が1つなので、どの境界を変えたかが版から読めない",
+   "chosen": false
+  },
+  {
+   "option": "D：形ごとに1ファイル（30を超える）",
+   "effect": "rule の結果 ・ 対象 ・ 指紋のような小さな形までファイルになり、$ref の行き来が増えるだけで読み手の判断は変わらない",
+   "chosen": false
+  }
+ ],
+ "1_boundaries": [
+  {
+   "id": "a1",
+   "group": "a. Concrete を書くとき",
+   "name": "Abstract の本体（Concrete の根の決まり ・ 欄 ・ rule ・ x- の値の形）",
+   "from_to": "SAS → Concrete を書く人 ・ AI のエージェント、SAS の検査",
+   "criteria": [
+    2,
+    3
+   ],
+   "decision": "schema",
+   "where": "semantic-abstract-schema.json",
+   "why": "Concrete はこの型で書かれ、検査される（2）。x-prompt の rule ・ reading が欄に意味を持たせる（3）"
+  },
+  {
+   "id": "a2",
+   "group": "a. Concrete を書くとき",
+   "name": "入れ子のサブスキーマに掛かる x- の形",
+   "from_to": "SAS → 検査器",
+   "criteria": [
+    2
+   ],
+   "decision": "schema",
+   "where": "vocabulary.schema.json",
+   "why": "入れ子のどこに書いた x- も同じ形に縛る。x-view を足す（x-prompt はいまの vocab-meta に在る）"
+  },
+  {
+   "id": "a3",
+   "group": "a. Concrete を書くとき",
+   "name": "方言（2020-12 ＋ SAS の語彙）",
+   "from_to": "SAS → 検査器",
+   "criteria": [
+    2
+   ],
+   "decision": "schema",
+   "where": "dialect.schema.json",
+   "why": "Concrete の $schema が指す先で、語彙を入れ子へ掛けるのに要る（2020-12 の $vocabulary と $dynamicAnchor。確かめる）"
+  },
+  {
+   "id": "a4",
+   "group": "a. Concrete を書くとき",
+   "name": "Concrete が足す x- 項目（拡張の仕組み）",
+   "from_to": "Concrete を書く人 → SAS",
+   "criteria": [
+    2,
+    3
+   ],
+   "decision": "schema",
+   "where": "semantic-abstract-schema.json#/$defs/extensions（定義）。値は定義の schema で SAS の機械の rule が検査する",
+   "why": "x- の名前 ・ 値の形 ・ 説明 ・ prompt ・ 公開するかを1か所で宣言させ、知らない x- を断る（2）。prompt が x- の意味を持たせる（3）"
+  },
+  {
+   "id": "a5",
+   "group": "a. Concrete を書くとき",
+   "name": "x-delegates（rule を任せる先の立場と種類）",
+   "from_to": "Concrete を書く人 → SAS",
+   "criteria": [
+    2,
+    3
+   ],
+   "decision": "schema",
+   "where": "semantic-abstract-schema.json#/$defs/delegates ・ delegate",
+   "why": "rule の agent が指す先を型で縛る。どのツールかは書かせない（接続の定義と設定が持つ）"
+  },
+  {
+   "id": "a6",
+   "group": "a. Concrete を書くとき",
+   "name": "glossary（文脈の term の辞書）",
+   "from_to": "使う側 → Concrete の欄の $ref、意味の検索",
+   "criteria": [
+    2,
+    3
+   ],
+   "decision": "schema",
+   "where": "glossary.schema.json",
+   "why": "Concrete の欄が $ref で term を指す（Abstract の rule term-by-ref）。辞書の中身は使う側が書くが、辞書の型は Concrete を書くのに要るので SAS が持つ"
+  },
+  {
+   "id": "a7",
+   "group": "a. Concrete を書くとき",
+   "name": "x-view（描画の種類の指定）",
+   "from_to": "Concrete を書く人 → 描画",
+   "criteria": [
+    2,
+    3
+   ],
+   "decision": "schema",
+   "where": "semantic-abstract-schema.json#/$defs/view と vocabulary",
+   "why": "デザインシステムの契約が「Concrete が使う x-view の種類」を前提にしているのに、いまの Abstract に x-view が無い（漏れ）。足す"
+  },
+  {
+   "id": "a8",
+   "group": "a. Concrete を書くとき",
+   "name": "Concrete とインスタンスのファイルそのもの",
+   "from_to": "使う側 → SAS",
+   "criteria": [
+    2
+   ],
+   "decision": "no-schema（SAS は新しく持たない）",
+   "where": "Concrete は Abstract のインスタンスとして a1〜a3 で、インスタンスは使う側の Concrete で検査する",
+   "why": "型は既にある。SAS が別の型を足すと2か所になる"
+  },
+  {
+   "id": "b1",
+   "group": "b. CLI の各コマンド",
+   "name": "コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read ・ session close ・ session status）",
+   "from_to": "人 ・ AI のエージェント ・ オーケストレーター ・ CI → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "operation-request.schema.json（コマンドごとの $defs）",
+   "why": "AI のエージェントとオーケストレーターは JSON で組んで渡す（1）。旗は同じ形への書き方の1つにし、--input で JSON をそのまま受ける。MCP の道具の inputSchema にも同じ $defs を使える。ただし道具ごとに、根が type: \"object\" で、外のファイルや URN への $ref を含まない1つのスキーマへ束ねて渡す（MCP 2026-07-28 で照合済み）"
+  },
+  {
+   "id": "b2",
+   "group": "b. CLI の各コマンド",
+   "name": "コマンドの出力（作った ・ 直した ・ 消した ・ 検証の結果 ・ 描画の結果 ・ 検索の答え ・ セッション ・ 操作 ・ 誤り）",
+   "from_to": "SAS → 呼び出し元",
+   "criteria": [
+    1,
+    4
+   ],
+   "decision": "schema",
+   "where": "operation-result.schema.json（出力の種類ごとの $defs）",
+   "why": "使う側は ID と読む形だけを受け取り、自分の Concrete に記録する（4）"
+  },
+  {
+   "id": "b3",
+   "group": "b. CLI の各コマンド",
+   "name": "意味の操作の返り値（手順のプロンプト）",
+   "from_to": "SAS → 呼び出し元（と SAS が立てたセッション）",
+   "criteria": [
+    1,
+    3,
+    4
+   ],
+   "decision": "schema",
+   "where": "operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
+   "why": "利用者の判断基準：意味の操作の返り値は手順のプロンプト。CLI は JSON Lines で、1行目に手順のプロンプト、最後の行に結果を出す"
+  },
+  {
+   "id": "b4",
+   "group": "b. CLI の各コマンド",
+   "name": "セッションの5つの操作（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む）",
+   "from_to": "呼び出し元 → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "立てる ・ 続ける ・ fork は operation-request#/$defs/session-spec（create ・ update ・ search に付く）、閉じる ・ 状態を読むは #/$defs/session-close ・ session-status。出力は operation-result#/$defs/session（session.schema.json を含む）",
+   "why": "セッションは操作のために立てるので、立てる ・ 続ける ・ fork は意味の操作の指定に入れる。単独のコマンドは閉じると状態を読むだけ"
+  },
+  {
+   "id": "b5",
+   "group": "b. CLI の各コマンド",
+   "name": "取り込み（--adopt）",
+   "from_to": "人 → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "operation-request#/$defs/create ・ update の adopt。出力は #/$defs/change（source = outside）",
+   "why": "別のコマンドにせず、作成 ・ 更新の変形として同じ形に入れる（UC1 の変形 ・ UC2）"
+  },
+  {
+   "id": "b6",
+   "group": "b. CLI の各コマンド",
+   "name": "誤り（unsupported_capability ・ conflict ・ untracked_change ・ missing_view_kinds ほか）",
+   "from_to": "SAS → 呼び出し元",
+   "criteria": [
+    4
+   ],
+   "decision": "schema",
+   "where": "operation-result#/$defs/error",
+   "why": "誤りの種類で呼び出し元が次の手を決める（代わりの指定 ・ 取り込みの案内）"
+  },
+  {
+   "id": "b7",
+   "group": "b. CLI の各コマンド",
+   "name": "設定のファイル（使うアダプター ・ 上限 ・ Concrete の置き場所）",
+   "from_to": "使う側 → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "settings.schema.json",
+   "why": "8割 ・ 2回などの値を設定で変えられるようにする決定（general-ddd の確かめる）の置き場所。$ref をネットワークから取らないための置き場所の一覧もここ"
+  },
+  {
+   "id": "c1",
+   "group": "c. 意味の操作",
+   "name": "手順のプロンプトの構造化された部分",
+   "from_to": "SAS → SAS が立てたセッションのエージェント",
+   "criteria": [
+    2,
+    3
+   ],
+   "decision": "schema",
+   "where": "procedure-prompt.schema.json",
+   "why": "ステップごとに、どの欄（JSON ポインタ）に何をするか ・ 守る rule ・ 読む値 ・ 答えの形を持たせ、答えの各項目をステップへ結び付ける（該当する所への操作）"
+  },
+  {
+   "id": "c2",
+   "group": "c. 意味の操作",
+   "name": "セッションの依頼（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む）",
+   "from_to": "SAS → アダプター（組み込み ・ 接続の定義で動く汎用）",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "session-request.schema.json",
+   "why": "利用者の判断基準：セッションを呼び出す入力には、呼び出すのに要る項目を持つスキーマが要る。接続の定義の argv の組み立てはこの欄を名前で指す"
+  },
+  {
+   "id": "c3",
+   "group": "c. 意味の操作",
+   "name": "アダプターの返り（ツールの ID ・ 終わり方 ・ 答えの文字列 ・ トークン量）",
+   "from_to": "アダプター → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "session-request.schema.json#/$defs/reply",
+   "why": "汎用のアダプターが接続の定義に従って組み立てる返りを、ツールに依らず同じ形で受ける"
+  },
+  {
+   "id": "c4",
+   "group": "c. 意味の操作",
+   "name": "エージェントの答え（欄の値 ・ rule の判定 ・ 検索の答え）",
+   "from_to": "SAS が立てたセッションのエージェント → SAS",
+   "criteria": [
+    2,
+    4
+   ],
+   "decision": "schema",
+   "where": "agent-answer.schema.json",
+   "why": "SAS はこの形で受け取ったときだけ書く。手順のプロンプトに埋め、セッションの依頼の answer_schema としても渡す"
+  },
+  {
+   "id": "c5",
+   "group": "c. 意味の操作",
+   "name": "手順のプロンプトの文（テンプレートから組む前置きと指示の文）",
+   "from_to": "SAS → エージェント",
+   "criteria": [],
+   "decision": "no-schema",
+   "where": "SAS の中のテンプレート",
+   "why": "文は型で縛れない。縛るべき部分は c1 に出してある。文の指紋（prompt_hash）だけを記録する"
+  },
+  {
+   "id": "d1",
+   "group": "d. アダプターとの契約",
+   "name": "エージェントの接続の定義（起動 ・ 再開 ・ fork のコマンドの組み立て、答えの取り出し方、同時に動かせる数）",
+   "from_to": "使う側 ・ ツールの提供者 → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "agent-connector.schema.json",
+   "why": "どのコーディングエージェントでも、組み込みのアダプターなしで差し込めるようにする（Claude 専用にしない）"
+  },
+  {
+   "id": "d2",
+   "group": "d. アダプターとの契約",
+   "name": "能力の宣言",
+   "from_to": "アダプター → SAS（立てた時に写しを DB へ）",
+   "criteria": [
+    2,
+    4
+   ],
+   "decision": "schema",
+   "where": "agent-connector.schema.json#/$defs/capabilities",
+   "why": "立てる前に型に要る能力を確かめ、unsupported_capability を返す材料。組み込みのアダプターも同じ形で返す"
+  },
+  {
+   "id": "d3",
+   "group": "d. アダプターとの契約",
+   "name": "呼び出し元を見分ける（ツールのセッション ID の取り方）",
+   "from_to": "使う側の環境 → SAS",
+   "criteria": [
+    2
+   ],
+   "decision": "schema",
+   "where": "agent-connector.schema.json#/$defs/caller",
+   "why": "環境変数で取れるツール（Claude Code）はその名前を接続の定義に書かせ、取れないツールは呼び出し元が --caller で渡す、の2通りにし、SAS の中にツールの名前を書かない"
+  },
+  {
+   "id": "d4",
+   "group": "d. アダプターとの契約",
+   "name": "版の中身を読む（コミット済みの版を読むだけ）",
+   "from_to": "SAS ⇄ Git ・ ファイルのアダプター",
+   "criteria": [],
+   "decision": "no-schema",
+   "where": "操作の経緯のポート（コードの型）。読むだけで、Git に書き込む操作は持たない",
+   "why": "プロセスの外へ JSON が出ない。アダプターは SAS に組み込みで、使う側が書かない。外へ出るのは差分（diff.schema.json）だけ。SAS は版を残さない（利用者の判断、10-31）。SAS が書いた操作の差分は、書く前のファイルと書いた後の中身から求めて field_changes に持つ。SAS を通らない変更を見つけたときと、継続のセッションで対象が変わったときだけ、いまのファイルと Git のコミット済みの版（たとえば HEAD）を読んで比べる。前の版が無ければ before_unavailable を返す。Git に書き込む操作（版を残す・コミット・PR・ブランチ）は一切しない"
+  },
+  {
+   "id": "d5",
+   "group": "d. アダプターとの契約",
+   "name": "JSON Schema の検査器（2020-12）",
+   "from_to": "SAS ⇄ 検査器のライブラリ",
+   "criteria": [],
+   "decision": "no-schema",
+   "where": "型とインスタンスの data-access のインターフェース",
+   "why": "検査器の出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使う検査器がどの形を出すかを選ぶときに確かめる"
+  },
+  {
+   "id": "d6",
+   "group": "d. アダプターとの契約",
+   "name": "デザインシステム（x-view の種類ごとのテンプレート ・ デザイントークン ・ rule の結果のトークン）",
+   "from_to": "使う側 → SAS",
+   "criteria": [
+    1,
+    2
+   ],
+   "decision": "schema",
+   "where": "design-system.schema.json",
+   "why": "描く前に種類がそろうかを確かめる契約。SAS は既定を持たない"
+  },
+  {
+   "id": "d7",
+   "group": "d. アダプターとの契約",
+   "name": "テンプレートの処理系",
+   "from_to": "SAS ⇄ ライブラリ",
+   "criteria": [],
+   "decision": "no-schema",
+   "where": "描画の data-access のインターフェース",
+   "why": "プロセスの外へ JSON が出ない"
+  },
+  {
+   "id": "e1",
+   "group": "e. DB の表",
+   "name": "sessions ・ session_turns ・ operations ・ field_changes ・ rule_results",
+   "from_to": "SAS の中だけ",
+   "criteria": [],
+   "decision": "no-schema（DDL）",
+   "where": "adapters/outbound/sqlite/migrations",
+   "why": "公開しない決定。外部キー ・ 一意の索引 ・ トランザクション ・ 追記だけの決まりは JSON Schema では書けず、DDL と trigger で守る。DB の形は移行で変わり、公開の版と別に動く"
+  },
+  {
+   "id": "e2",
+   "group": "e. DB の表",
+   "name": "DB の JSON の欄（capabilities ・ tokens ・ grounds ・ details ・ before ・ after）",
+   "from_to": "SAS → DB",
+   "criteria": [
+    2
+   ],
+   "decision": "schema（既にある $defs で書く前に検査する）",
+   "where": "agent-connector#/$defs/capabilities ・ session#/$defs/tokens ・ agent-answer#/$defs/grounds ・ diff の値",
+   "why": "欄の中身の形を公開の型と同じにしておくと、読むときに直さずに出せる"
+  },
+  {
+   "id": "e3",
+   "group": "e. DB の表",
+   "name": "差分（変わった欄の前後 ・ 前後の指紋と版の参照）",
+   "from_to": "SAS → 呼び出し元 ・ 手順のプロンプト",
+   "criteria": [
+    4
+   ],
+   "decision": "schema",
+   "where": "diff.schema.json",
+   "why": "CLI の出力（作成 ・ 更新 ・ 削除 ・ 操作を読む）と、再開のときの手順のプロンプトの先頭の2か所が使う"
+  },
+  {
+   "id": "e4",
+   "group": "e. DB の表",
+   "name": "セッションの姿（4つの型 ・ 能力の写し ・ 回 ・ 終わり方）",
+   "from_to": "SAS → 呼び出し元",
+   "criteria": [
+    4
+   ],
+   "decision": "schema",
+   "where": "session.schema.json",
+   "why": "CLI の出力と、セッションの依頼（寿命 ・ 文脈の値）の2つが使う"
+  }
+ ],
+ "3_schemas": [
+  {
+   "file": "semantic-abstract-schema.json",
+   "id": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "name": "Abstract の本体",
+   "writer": "SAS",
+   "reader": "Concrete を書く人 ・ AI のエージェント ・ SAS の検査",
+   "root": [
+    {
+     "name": "$schema",
+     "type": "string（閉じた一覧）",
+     "required": true,
+     "note": "従う Abstract の版"
+    },
+    {
+     "name": "$id",
+     "type": "string（urn:semantic-agent-schema:<持ち主>:<種類>:v<版>）",
+     "required": true,
+     "note": "Concrete の名前"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "required": true,
+     "note": "名詞"
+    },
+    {
+     "name": "description",
+     "type": "string",
+     "required": true,
+     "note": "何で、何を書かないか"
+    },
+    {
+     "name": "x-instance-path",
+     "type": "#/$defs/instance-path",
+     "required": false,
+     "note": "インスタンスを作る Concrete だけ"
+    },
+    {
+     "name": "x-instance-label",
+     "type": "#/$defs/instance-label",
+     "required": false,
+     "note": ""
+    },
+    {
+     "name": "x-delegates",
+     "type": "#/$defs/delegates",
+     "required": false,
+     "note": ""
+    },
+    {
+     "name": "x-extensions",
+     "type": "#/$defs/extensions",
+     "required": false,
+     "note": "Concrete が足す x- の定義"
+    },
+    {
+     "name": "x-prompt",
+     "type": "#/$defs/prompt",
+     "required": false,
+     "note": "Concrete 全体の読み方と決まり"
+    },
+    {
+     "name": "x-view",
+     "type": "#/$defs/view",
+     "required": false,
+     "note": "インスタンスのページの種類（足す）"
+    },
+    {
+     "name": "properties",
+     "type": "#/$defs/fields",
+     "required": false,
+     "note": ""
+    },
+    {
+     "name": "$defs",
+     "type": "object（値は #/$defs/shape）",
+     "required": false,
+     "note": ""
+    }
+   ],
+   "root_rules": "x-instance-path があれば $id ・ properties.kind.const ・ properties.$schema.const ・ properties.id を要る（いまの if ・ then）。根の x-prompt.write の9つの rule はそのまま",
+   "defs": [
+    {
+     "name": "shape",
+     "fields": [
+      "properties: #/$defs/fields"
+     ]
+    },
+    {
+     "name": "fields",
+     "fields": [
+      "追加の欄はすべて #/$defs/field。x- で始まるキーと $schema ・ properties ・ $defs は欄として扱わない"
+     ]
+    },
+    {
+     "name": "field",
+     "fields": [
+      "title（必須）",
+      "description（必須）",
+      "x-prompt（必須）",
+      "x-relationship",
+      "x-derived-from",
+      "x-decided-by",
+      "x-published",
+      "x-view（足す）"
+     ]
+    },
+    {
+     "name": "prompt",
+     "fields": [
+      "read: #/$defs/reading",
+      "write: [#/$defs/rule]"
+     ]
+    },
+    {
+     "name": "reading",
+     "fields": [
+      "shown",
+      "interpret",
+      "when（どれも sentence）"
+     ]
+    },
+    {
+     "name": "rule",
+     "fields": [
+      "id（必須・英小文字とハイフン）",
+      "rule（必須）",
+      "why（必須）",
+      "test（必須）",
+      "by（必須：machine ・ ai ・ human）",
+      "reads: [json-pointer]（判定に読む欄。入力が変わった判定を見つける材料）",
+      "agent（by = ai なら必須。x-delegates の名前）",
+      "bad ・ good（組で）"
+     ]
+    },
+    {
+     "name": "relationship",
+     "fields": [
+      "to（必須：指す先の Concrete の URN）",
+      "version（ほかの文脈の公開された版）"
+     ]
+    },
+    {
+     "name": "derived",
+     "fields": [
+      "rules: [{when, then}]（必須）",
+      "otherwise（必須）"
+     ]
+    },
+    {
+     "name": "decided",
+     "fields": [
+      "const: human（人が決める欄。意味の作成 ・ 更新はこの欄へ書かない）"
+     ]
+    },
+    {
+     "name": "published",
+     "fields": [
+      "boolean"
+     ]
+    },
+    {
+     "name": "view",
+     "fields": [
+      "string（英小文字とハイフン。デザインシステムのテンプレートの種類の名前）。無ければ根は page、欄は JSON の型の名前（object ・ array ・ string ・ number ・ integer ・ boolean）"
+     ]
+    },
+    {
+     "name": "delegates ・ delegate",
+     "fields": [
+      "role（必須：立場）",
+      "run.kind（必須：judging ・ working）",
+      "run.argv（決定的な CLI のときだけ）",
+      "output（答えの details の形。JSON Schema）",
+      "run.session は外す（セッションの型は操作の依頼と SAS の決まりが持つ）"
+     ]
+    },
+    {
+     "name": "extensions",
+     "fields": [
+      "キー：x-[a-z0-9-]+",
+      "schema（必須：値の形）",
+      "title（必須）",
+      "description（必須）",
+      "prompt（必須：#/$defs/prompt）",
+      "published"
+     ]
+    },
+    {
+     "name": "instance-path ・ instance-label ・ sentence ・ json-pointer",
+     "fields": [
+      "いまのまま"
+     ]
+    }
+   ],
+   "x_terms": [
+    "x-instance-path",
+    "x-instance-label",
+    "x-delegates",
+    "x-extensions",
+    "x-prompt",
+    "x-relationship",
+    "x-derived-from",
+    "x-decided-by",
+    "x-published",
+    "x-view（足す）"
+   ],
+   "changes": "x-view を足して10にする。output-judging ・ output-working を agent-answer へ移す。delegate.run.session を外す"
+  },
+  {
+   "file": "vocabulary.schema.json",
+   "id": "urn:semantic-agent-schema:base:vocabulary:v1",
+   "name": "Abstract の語彙",
+   "writer": "SAS",
+   "reader": "検査器（方言を通して入れ子のすべてのサブスキーマへ）",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "$dynamicAnchor: meta",
+      "properties：x- の10の名前 → 本体の $anchor を $ref で指す。いまの9つに x-view を足す",
+      "$vocabulary: {urn:semantic-agent-schema:base:vocab:v1: true}（原文は SHOULD。置く）"
+     ]
+    }
+   ],
+   "changes": "vocab-meta.schema.json から名前を改める（v1 は未公開と見る）。x-view を足す（x-prompt はいまの vocab-meta に在る）"
+  },
+  {
+   "file": "dialect.schema.json",
+   "id": "urn:semantic-agent-schema:base:dialect:v1",
+   "name": "方言",
+   "writer": "SAS",
+   "reader": "検査器",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "$dynamicAnchor: meta（2020-12 のメタスキーマの $dynamicRef \"#meta\" がここへ置き換わり、語彙の形が入れ子のサブスキーマに掛かる。Core 8.2.3.2 ・ Appendix D.2 で照合済み）",
+      "$vocabulary：2020-12 の7つ ＋ urn:semantic-agent-schema:base:vocab:v1: true（SAS の検査器はこの語彙を知っている前提。知らない検査器は、この方言のスキーマを断る（Core の MUST））",
+      "allOf：2020-12 のメタスキーマと vocabulary"
+     ]
+    }
+   ],
+   "changes": "allOf の指す先を vocabulary の新しい $id に直すだけ"
+  },
+  {
+   "file": "glossary.schema.json",
+   "id": "urn:semantic-agent-schema:base:glossary:v1",
+   "name": "用語集の型",
+   "writer": "SAS（型）・ 使う側（中身）",
+   "reader": "Concrete の $ref ・ 意味の検索",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "$schema",
+      "$id",
+      "kind: glossary",
+      "id: glossary",
+      "$defs：term の名前 → {$anchor, description, x-unit, 値の形}"
+     ]
+    }
+   ],
+   "changes": "そのまま残す（外さない）"
+  },
+  {
+   "file": "operation-request.schema.json",
+   "id": "urn:semantic-agent-schema:base:operation-request:v1",
+   "name": "操作の依頼",
+   "writer": "人 ・ AI のエージェント ・ オーケストレーター ・ CI（旗か --input の JSON）",
+   "reader": "CLI",
+   "defs": [
+    {
+     "name": "common",
+     "fields": [
+      "command（必須：create ・ update ・ delete ・ validate ・ render ・ search ・ read ・ session-close ・ session-status）",
+      "caller: {session（--session。呼び出し元のセッションの ID）, ref（--caller。使う側の参照。解釈しない）}",
+      "request_id（任意。やり直しで同じ操作を2回残さないための ID）",
+      "intent（任意。1文）"
+     ]
+    },
+    {
+     "name": "session-spec",
+     "fields": [
+      "lifetime（single ・ continuing。既定 single）",
+      "context（none ・ inherit。既定 none）",
+      "session（続ける SAS が立てたセッションの ID）",
+      "new（boolean。再開の決まりを当てずに新しく立てる）",
+      "brief（決めたことの文）",
+      "adapter（設定のアダプターの名前）",
+      "model",
+      "time_limit_s"
+     ]
+    },
+    {
+     "name": "create",
+     "fields": [
+      "path（必須）",
+      "concrete（必須：従う Concrete の URN。Concrete を作るときは Abstract の $id）",
+      "value（機械で作る値）か semantic: {pointers}（x-prompt の欄をエージェントが書く）",
+      "adopt（boolean：在るファイルをそのまま取り込む）",
+      "session-spec（semantic のとき）"
+     ]
+    },
+    {
+     "name": "update",
+     "fields": [
+      "path（必須）",
+      "patch（JSON Patch（RFC 6902）の並び。各要素は op ・ path と、op に応じて value か from。op は add ・ remove ・ replace ・ move ・ copy ・ test。機械で直す）か semantic: {pointers}",
+      "if_match（直す前の指紋）",
+      "adopt（boolean：SAS を通らない変更を取り込む。intent を要る）",
+      "session-spec（semantic のとき）"
+     ]
+    },
+    {
+     "name": "delete",
+     "fields": [
+      "path（必須）",
+      "intent"
+     ]
+    },
+    {
+     "name": "validate",
+     "fields": [
+      "targets（パスの並び）か all ・ stale（入力が変わった rule だけ）",
+      "session-spec は受けない（単発 ・ 引き継がないに固定）"
+     ]
+    },
+    {
+     "name": "render",
+     "fields": [
+      "targets（必須）",
+      "design_system（デザインシステムのファイルのパス。無ければ設定）",
+      "out（書き出す先。コミットしない）"
+     ]
+    },
+    {
+     "name": "search",
+     "fields": [
+      "where: {concrete, pointer, equals ・ contains}（機械で絞る）か question（意味で探す）",
+      "scope: [パス]（必須：探す範囲）",
+      "session-spec（question のとき）"
+     ]
+    },
+    {
+     "name": "read",
+     "fields": [
+      "session ・ operation ・ target のどれか1つ（ID かパス）"
+     ]
+    },
+    {
+     "name": "session-close",
+     "fields": [
+      "session（必須：SAS が立てた継続のセッションか、呼び出し元のセッション）"
+     ]
+    },
+    {
+     "name": "session-status",
+     "fields": [
+      "session（必須）。ツールの側の状態を読み、消えていたら gone で閉じる"
+     ]
+    }
+   ],
+   "changes": "新しく作る（いまの create-request ・ --patch ・ --value の JSON をまとめる）"
+  },
+  {
+   "file": "operation-result.schema.json",
+   "id": "urn:semantic-agent-schema:base:operation-result:v1",
+   "name": "操作の結果（CLI の出力）",
+   "writer": "CLI",
+   "reader": "呼び出し元",
+   "defs": [
+    {
+     "name": "envelope",
+     "fields": [
+      "kind（必須：下の $defs の名前）",
+      "session（必須：CLI は必ずセッション ID を返す）",
+      "request ・ attempt（意味の操作のとき）"
+     ]
+    },
+    {
+     "name": "target ・ fingerprint",
+     "fields": [
+      "target: {kind（concrete ・ instance）, path, concrete（URN と版）}",
+      "fingerprint: sha256:<16進64字>"
+     ]
+    },
+    {
+     "name": "procedure",
+     "fields": [
+      "parent（呼び出し元のセッション）",
+      "prompt: procedure-prompt.schema.json",
+      "prompt_path",
+      "status: started"
+     ]
+    },
+    {
+     "name": "change",
+     "fields": [
+      "operation",
+      "result（created ・ updated ・ deleted ・ adopted）",
+      "diff: diff.schema.json",
+      "references: [change]（削除で直した参照元）",
+      "needs: [{pointer, question}]（エージェントが決めきれず返した点）",
+      "stale_rules: [{rule_schema, rule, pointer}]（この変更で入力が変わった判定）"
+     ]
+    },
+    {
+     "name": "rule-result",
+     "fields": [
+      "rule_schema（rule を持つスキーマの URN）",
+      "rule",
+      "pointer",
+      "by（machine ・ ai ・ human）",
+      "result（verified ・ violated ・ unverified ・ unsupported ・ error）",
+      "reason",
+      "grounds: [json-pointer]",
+      "reads_fingerprint",
+      "stale（boolean。いまの値が判定したときと違う）",
+      "details（任せる先の output の形）"
+     ]
+    },
+    {
+     "name": "validation",
+     "fields": [
+      "operation",
+      "results: [rule-result]",
+      "counts: {5つの値ごとの件数}",
+      "untracked: [{path, last_operation, expected, actual}]",
+      "hint（取り込みの案内）"
+     ]
+    },
+    {
+     "name": "render",
+     "fields": [
+      "design_system: {name, version, fingerprint}",
+      "pages: [{target, page_path, views}]"
+     ]
+    },
+    {
+     "name": "search",
+     "fields": [
+      "matches: [{target, pointer, value}]（機械）",
+      "answer ・ sources: [{kind（operation ・ rule-result ・ field ・ term）, operation, pointer, path, quote}]（意味）",
+      "scope: [パス]",
+      "outside_scope: 範囲の外は探していないことの文"
+     ]
+    },
+    {
+     "name": "session",
+     "fields": [
+      "session.schema.json の姿をそのまま"
+     ]
+    },
+    {
+     "name": "operation",
+     "fields": [
+      "operation: {id, session, seq, kind, source, target, intent, at, cause, turn}",
+      "diff: diff.schema.json（create ・ update ・ delete）",
+      "results: [rule-result]（validate）"
+     ]
+    },
+    {
+     "name": "history",
+     "fields": [
+      "target",
+      "operations: [operation の見出し（id ・ kind ・ source ・ session ・ intent ・ at ・ after の指紋）]"
+     ]
+    },
+    {
+     "name": "error",
+     "fields": [
+      "code（invalid_input ・ not_found ・ unsupported_capability ・ untracked_change ・ conflict ・ invalid_output ・ timeout ・ failed ・ cancelled ・ missing_view_kinds ・ schema_not_listed）",
+      "message",
+      "missing: [能力 ・ x-view の種類]",
+      "alternative: session-spec（代わりの指定）",
+      "hint"
+     ]
+    }
+   ],
+   "changes": "版8 の cli-output.schema.json を、中身を表す名前に改めて作る"
+  },
+  {
+   "file": "procedure-prompt.schema.json",
+   "id": "urn:semantic-agent-schema:base:procedure-prompt:v1",
+   "name": "手順のプロンプト（構造化された部分）",
+   "writer": "SAS",
+   "reader": "SAS が立てたセッションのエージェント ・ 呼び出し元（CLI の1行目）",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "session",
+      "operation_kind（create ・ update ・ validate ・ search）",
+      "target: {path, concrete, fingerprint}",
+      "preface: {abstract, concrete（$id と版）}（決まった前置き。キャッシュが効くように先頭）",
+      "brief",
+      "since_last: diff.schema.json（再開の決まり④で対象が変わったとき）",
+      "steps: [step]",
+      "answer: {schema（agent-answer の $defs の名前）, details（delegate.output）}",
+      "constraints: [ファイルを書かない ・ 答えの JSON だけを返す ・ ステップに無い欄に触れない]"
+     ]
+    },
+    {
+     "name": "step",
+     "fields": [
+      "no",
+      "action（write ・ judge ・ find）",
+      "pointer（該当する所）",
+      "title ・ description（欄の）",
+      "read（reading）",
+      "rules: [rule の id ・ rule ・ why ・ test ・ bad ・ good]",
+      "inputs: [{pointer, value, description}]（読む値の写し。x-relationship の先の値を含む）",
+      "current（いまの値）",
+      "question（find のとき）"
+     ]
+    }
+   ],
+   "changes": "call.schema.json の rules ・ inputs ・ task をここへ移す"
+  },
+  {
+   "file": "session-request.schema.json",
+   "id": "urn:semantic-agent-schema:base:session-request:v1",
+   "name": "セッションの依頼",
+   "writer": "SAS",
+   "reader": "アダプター（組み込み ・ 接続の定義で動く汎用）",
+   "defs": [
+    {
+     "name": "start",
+     "fields": [
+      "session（SAS の ID）",
+      "lifetime",
+      "context",
+      "inherit_from_tool_ref（inherit のとき）",
+      "prompt: {text, path, fingerprint}",
+      "answer_schema（JSON Schema。agent-answer の該当 $defs に delegate.output を入れたもの）",
+      "role（x-delegates の立場）",
+      "model",
+      "time_limit_s",
+      "working_dir"
+     ]
+    },
+    {
+     "name": "continue",
+     "fields": [
+      "session",
+      "tool_ref",
+      "prompt",
+      "answer_schema",
+      "time_limit_s"
+     ]
+    },
+    {
+     "name": "fork",
+     "fields": [
+      "session",
+      "parent_tool_ref",
+      "prompt",
+      "answer_schema",
+      "time_limit_s"
+     ]
+    },
+    {
+     "name": "close",
+     "fields": [
+      "session",
+      "tool_ref"
+     ]
+    },
+    {
+     "name": "status",
+     "fields": [
+      "session",
+      "tool_ref"
+     ]
+    },
+    {
+     "name": "reply",
+     "fields": [
+      "outcome（answered ・ timeout ・ failed ・ gone ・ cancelled）",
+      "tool_ref",
+      "answer（文字列のまま。SAS が JSON として読んで検査する）",
+      "tokens: session#/$defs/tokens",
+      "context_tokens",
+      "alive（status のとき）"
+     ]
+    }
+   ],
+   "changes": "新しく作る（call の delegate ・ handoff の役目を引き継ぐ。名前は call にしない）"
+  },
+  {
+   "file": "agent-answer.schema.json",
+   "id": "urn:semantic-agent-schema:base:agent-answer:v1",
+   "name": "エージェントの答え",
+   "writer": "SAS が立てたセッションのエージェント",
+   "reader": "SAS",
+   "defs": [
+    {
+     "name": "field-values",
+     "fields": [
+      "values: [{step, pointer, value}]",
+      "needs: [{step, pointer, question}]"
+     ]
+    },
+    {
+     "name": "judgments",
+     "fields": [
+      "results: [{step, rule, pointer, result（verified ・ violated ・ unverified）, reason, grounds, details}]"
+     ]
+    },
+    {
+     "name": "found",
+     "fields": [
+      "answer",
+      "sources: [{kind, ref, pointer, quote}]",
+      "not_found（boolean）"
+     ]
+    },
+    {
+     "name": "grounds",
+     "fields": [
+      "[json-pointer]（判定に読んだ欄）"
+     ]
+    }
+   ],
+   "changes": "Abstract の output-judging ・ output-working をここへ移す。working の written（エージェントが書いたファイル）は外す（書くのは SAS だけ）"
+  },
+  {
+   "file": "session.schema.json",
+   "id": "urn:semantic-agent-schema:base:session:v1",
+   "name": "セッションの姿",
+   "writer": "SAS",
+   "reader": "呼び出し元（UC7 ・ 状態を読む）・ session-request ・ operation-request が値の型を参照",
+   "defs": [
+    {
+     "name": "lifetime ・ context ・ ended_as ・ resume_decision ・ state",
+     "fields": [
+      "single ・ continuing",
+      "none ・ inherit",
+      "completed ・ closed ・ idle ・ timeout ・ invalid_output ・ conflict ・ failed ・ cancelled ・ gone",
+      "new-single-or-closed ・ new-cannot-resume ・ new-context-over ・ resume-target-changed ・ resume",
+      "open ・ running ・ idle ・ closed（DB に持たず導く）"
+     ]
+    },
+    {
+     "name": "tokens",
+     "fields": [
+      "input ・ output ・ cache_read ・ cache_write（どれも整数。ツールが返す分だけ）"
+     ]
+    },
+    {
+     "name": "session",
+     "fields": [
+      "id",
+      "kind（caller ・ sas）",
+      "actor（caller のとき：ai_agent ・ human）",
+      "parent",
+      "operation_kind",
+      "lifetime",
+      "context",
+      "inherited_from",
+      "continued_from",
+      "adapter",
+      "model",
+      "capabilities（agent-connector#/$defs/capabilities）",
+      "tool_ref",
+      "caller_ref",
+      "brief",
+      "state",
+      "started_at",
+      "last_used_at",
+      "ended_at",
+      "ended_as",
+      "turns: [turn]",
+      "operations: [ID]"
+     ]
+    },
+    {
+     "name": "turn",
+     "fields": [
+      "seq",
+      "kind（start ・ resume ・ fix）",
+      "request",
+      "attempt",
+      "resume_decision",
+      "prompt: {path, fingerprint}",
+      "time_limit_s",
+      "outcome（answered ・ invalid ・ timeout ・ failed ・ gone ・ cancelled）",
+      "answer_fingerprint",
+      "answer（outcome = invalid のときだけ。受け取った文字列）",
+      "tokens",
+      "context_tokens",
+      "started_at",
+      "ended_at"
+     ]
+    }
+   ],
+   "changes": "版8 の session.schema.json。state ・ 再開できる期限 ・ 文脈の上限はセッションの欄に持たず、回と能力の写しから導く"
+  },
+  {
+   "file": "diff.schema.json",
+   "id": "urn:semantic-agent-schema:base:diff:v1",
+   "name": "差分",
+   "writer": "SAS",
+   "reader": "呼び出し元 ・ 手順のプロンプト",
+   "defs": [
+    {
+     "name": "diff",
+     "fields": [
+      "target（operation-result#/$defs/target）",
+      "source（sas ・ outside）",
+      "before: {fingerprint, version}",
+      "after: {fingerprint, version}",
+      "changes: [field-change]",
+      "before_unavailable（boolean：前の版が取れなかった（例：対象がまだコミットされていない、Git が無い））"
+     ]
+    },
+    {
+     "name": "field-change",
+     "fields": [
+      "pointer",
+      "change（add ・ remove ・ replace）",
+      "before（remove ・ replace）",
+      "after（add ・ replace）"
+     ]
+    }
+   ],
+   "changes": "版8 のまま。Git の行の差分は使わず、前後の中身から JSON ポインタごとに求める"
+  },
+  {
+   "file": "agent-connector.schema.json",
+   "id": "urn:semantic-agent-schema:base:agent-connector:v1",
+   "name": "エージェントの接続の定義",
+   "writer": "使う側 ・ ツールの提供者",
+   "reader": "SAS の汎用のアダプター",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "name",
+      "version",
+      "commands: {start, continue, fork, close, status}（どれも argv の並び。{session.prompt.path} のように session-request の欄を名前で埋める。start ・ continue は必須、fork は capabilities.fork が true のときだけ必須、close ・ status は省略できる。どのツールにも閉じる ・ 状態を読むコマンドは無いので、省略時は SAS の側で閉じたことにし、状態は回の記録から導く）",
+      "answer: {from（stdout ・ file）, path, json_pointer}（答えの取り出し方。Claude Code は stdout の /structured_output、Codex は -o のファイル。answer_schema が false のツールでは文から JSON を読むので、形の直しの回が増える前提）",
+      "tool_ref: {from（stdout ・ file ・ env ・ assigned）, json_pointer, event_type}（assigned は SAS が UUID を作って --session-id で渡す形。Claude Code と Copilot。event_type は JSONL の中の事象を選ぶ指定。Codex は thread.started の thread_id）",
+      "tokens: {from, json_pointers}",
+      "exit_codes: {timeout, failed}",
+      "capabilities",
+      "caller"
+     ]
+    },
+    {
+     "name": "capabilities",
+     "fields": [
+      "resume（boolean）",
+      "fork（boolean：非対話で fork できる。対話の中だけの fork は数えない）",
+      "answer_schema（boolean：答えの形を指定できる）",
+      "token_report（boolean）",
+      "resumable_for_s（再開できる時間。文書に既定があるのは Claude Code と Gemini の30日だけで、ほかは使う側が書く値）",
+      "context_limit（文脈の量の上限）",
+      "max_concurrent（同時に動かせる数）"
+     ]
+    },
+    {
+     "name": "caller",
+     "fields": [
+      "env（任意。ツールのセッション ID が入る環境変数の名前。文書にあるのは Claude Code の CLAUDE_CODE_SESSION_ID だけ。無いときは呼び出し元が --caller で渡す）",
+      "actor（ai_agent）"
+     ]
+    }
+   ],
+   "changes": "新しく作る。ツールの名前とオプションは接続の定義のファイルに書き、SAS の中には書かない"
+  },
+  {
+   "file": "design-system.schema.json",
+   "id": "urn:semantic-agent-schema:base:design-system:v1",
+   "name": "デザインシステムの受け取りの型",
+   "writer": "使う側",
+   "reader": "SAS の描画",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "name",
+      "version",
+      "templates: {x-view の種類 → テンプレートのパス}（page と JSON の型の名前を含む）",
+      "tokens（Design Tokens Format Module 2025.10 の形：$value を持つものがトークン、持たないものが group。$type ・ $description は任意。別名は {group.token}、JSON Pointer は $ref）",
+      "result_tokens: {verified, violated, unverified, unsupported, error, stale}"
+     ]
+    }
+   ],
+   "changes": "新しく作る。指紋は SAS が求め、ファイルに書かせない"
+  },
+  {
+   "file": "settings.schema.json",
+   "id": "urn:semantic-agent-schema:base:settings:v1",
+   "name": "設定",
+   "writer": "使う側",
+   "reader": "SAS",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "schema_paths: [Abstract ・ Concrete ・ glossary の置き場所]（閉じた一覧。$ref はここだけで解く）",
+      "adapters: {名前 → 組み込みの名前か接続の定義のパス}",
+      "default_adapter",
+      "default_model",
+      "design_system",
+      "time_limit_s",
+      "shape_fix_max（既定 2）",
+      "retry_max（既定 2）",
+      "resume_context_ratio（既定 0.8）",
+      "caller_idle_close_min",
+      "prompts_dir ・ db_path（コミットしない置き場所）"
+     ]
+    }
+   ],
+   "changes": "新しく作る（いまの crates の settings を型にする）"
+  }
+ ],
+ "4_db": {
+  "engine": "SQLite（リポジトリごとに1つ。置き場所は設定の db_path。コミットしない）。必要な最低の版：部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0。trigger は SELECT RAISE(ABORT, '<文字列のリテラル>') で書く（文言に式を使えるのは 3.47.0 から）。照合済み（factcheck-b の項目2）",
+  "conventions": "時刻は ISO 8601 の UTC の文字列、JSON は TEXT に json_valid、真偽は 0 ・ 1、ID は ULID",
+  "tables": [
+   {
+    "name": "sessions",
+    "holds": "集約1（SAS が立てたセッション）と集約2（呼び出し元のセッション）の根。kind で分ける",
+    "columns": [
+     [
+      "id",
+      "TEXT",
+      "PK",
+      "ULID"
+     ],
+     [
+      "kind",
+      "TEXT",
+      "",
+      "caller ・ sas"
+     ],
+     [
+      "parent_id",
+      "TEXT",
+      "FK sessions",
+      "sas のとき必須。先は caller"
+     ],
+     [
+      "actor",
+      "TEXT",
+      "",
+      "caller のとき：ai_agent ・ human"
+     ],
+     [
+      "adapter",
+      "TEXT",
+      "",
+      "設定のアダプターの名前"
+     ],
+     [
+      "tool_ref",
+      "TEXT",
+      "",
+      "ツールのセッション ID。解釈しない"
+     ],
+     [
+      "caller_ref",
+      "TEXT",
+      "",
+      "--caller。使う側の参照"
+     ],
+     [
+      "operation_kind",
+      "TEXT",
+      "",
+      "sas のとき：create ・ update ・ validate ・ search"
+     ],
+     [
+      "lifetime",
+      "TEXT",
+      "",
+      "single ・ continuing"
+     ],
+     [
+      "context",
+      "TEXT",
+      "",
+      "none ・ inherit"
+     ],
+     [
+      "inherited_from",
+      "TEXT",
+      "FK sessions",
+      "inherit のとき必須"
+     ],
+     [
+      "continued_from",
+      "TEXT",
+      "FK sessions",
+      "再開の決まりで新しく立てたとき"
+     ],
+     [
+      "capabilities",
+      "JSON",
+      "",
+      "立てた時の能力の写し（agent-connector#/$defs/capabilities）"
+     ],
+     [
+      "model",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "brief",
+      "TEXT",
+      "",
+      "決めたことの文"
+     ],
+     [
+      "started_at",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "last_used_at",
+      "TEXT",
+      "",
+      "caller のとき：一定の時間で閉じる材料"
+     ],
+     [
+      "ended_at",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "ended_as",
+      "TEXT",
+      "",
+      "caller：closed ・ idle ／ sas：completed ・ closed ・ timeout ・ invalid_output ・ conflict ・ failed ・ cancelled ・ gone"
+     ]
+    ],
+    "keys": "PK id ／ FK parent_id ・ inherited_from ・ continued_from → sessions ／ 一意：開いている caller はアダプター × tool_ref で1つ、開いている人のセッションは1つ"
+   },
+   {
+    "name": "session_turns",
+    "holds": "集約1の内側：手順のプロンプトを渡して答えを受け取った1回。継続の再開と、形の直しも1回ずつ",
+    "columns": [
+     [
+      "session_id",
+      "TEXT",
+      "PK FK sessions",
+      ""
+     ],
+     [
+      "seq",
+      "INTEGER",
+      "PK",
+      "セッションの中の何回目か"
+     ],
+     [
+      "kind",
+      "TEXT",
+      "",
+      "start ・ resume ・ fix"
+     ],
+     [
+      "request_id",
+      "TEXT",
+      "",
+      "依頼の ID"
+     ],
+     [
+      "attempt",
+      "INTEGER",
+      "",
+      "同じ依頼の何回目のセッションか"
+     ],
+     [
+      "resume_decision",
+      "TEXT",
+      "",
+      "再開の決まりのどれに当たったか"
+     ],
+     [
+      "prompt_path",
+      "TEXT",
+      "",
+      "手順のプロンプト（JSON）のファイル"
+     ],
+     [
+      "prompt_hash",
+      "TEXT",
+      "",
+      "渡した文の指紋"
+     ],
+     [
+      "time_limit_s",
+      "INTEGER",
+      "",
+      ""
+     ],
+     [
+      "outcome",
+      "TEXT",
+      "",
+      "answered ・ invalid ・ timeout ・ failed ・ gone ・ cancelled"
+     ],
+     [
+      "answer_hash",
+      "TEXT",
+      "",
+      "受け取った答えの指紋"
+     ],
+     [
+      "answer_raw",
+      "TEXT",
+      "",
+      "invalid のときだけ受け取った文字列"
+     ],
+     [
+      "tokens",
+      "JSON",
+      "",
+      "session#/$defs/tokens"
+     ],
+     [
+      "context_tokens",
+      "INTEGER",
+      "",
+      "再開の決まり③の材料"
+     ],
+     [
+      "started_at",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "ended_at",
+      "TEXT",
+      "",
+      ""
+     ]
+    ],
+    "keys": "PK (session_id, seq) ／ 索引 (request_id, attempt)"
+   },
+   {
+    "name": "operations",
+    "holds": "集約3（操作）の根。どちらのセッションも session_id で指す。追記だけ",
+    "columns": [
+     [
+      "id",
+      "TEXT",
+      "PK",
+      "ULID"
+     ],
+     [
+      "session_id",
+      "TEXT",
+      "FK sessions",
+      ""
+     ],
+     [
+      "seq",
+      "INTEGER",
+      "",
+      "セッションの中の続き番号"
+     ],
+     [
+      "turn_seq",
+      "INTEGER",
+      "FK session_turns",
+      "sas のセッションのとき、答えを受けた回"
+     ],
+     [
+      "request_id",
+      "TEXT",
+      "",
+      "1つの依頼に操作は1回（cause_id の無いもの）"
+     ],
+     [
+      "kind",
+      "TEXT",
+      "",
+      "create ・ update ・ delete ・ validate"
+     ],
+     [
+      "source",
+      "TEXT",
+      "",
+      "sas ・ outside（取り込み）"
+     ],
+     [
+      "target_kind",
+      "TEXT",
+      "",
+      "concrete ・ instance"
+     ],
+     [
+      "target_path",
+      "TEXT",
+      "",
+      "リポジトリの中のパス"
+     ],
+     [
+      "concrete_ref",
+      "TEXT",
+      "",
+      "従う Concrete（か Abstract）の URN と版"
+     ],
+     [
+      "before_hash",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "after_hash",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "before_version",
+      "TEXT",
+      "",
+      "版を扱うポートの参照"
+     ],
+     [
+      "after_version",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "cause_id",
+      "TEXT",
+      "FK operations",
+      "削除に伴う参照元の書き換えのとき、その削除"
+     ],
+     [
+      "intent",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "at",
+      "TEXT",
+      "",
+      ""
+     ]
+    ],
+    "keys": "PK id ／ 一意 (session_id, seq) ／ 一意 request_id（cause_id が無いもの）／ 索引 (target_path, at)"
+   },
+   {
+    "name": "field_changes",
+    "holds": "操作の内側の値：変わった欄",
+    "columns": [
+     [
+      "operation_id",
+      "TEXT",
+      "PK FK operations",
+      ""
+     ],
+     [
+      "pointer",
+      "TEXT",
+      "PK",
+      "JSON ポインタ"
+     ],
+     [
+      "change",
+      "TEXT",
+      "",
+      "add ・ remove ・ replace"
+     ],
+     [
+      "before",
+      "JSON",
+      "",
+      "SQL の NULL は値が無い、JSON の null は null の値"
+     ],
+     [
+      "after",
+      "JSON",
+      "",
+      ""
+     ],
+     [
+      "before_unavailable",
+      "INTEGER",
+      "",
+      "前の版が取れなかった（例：参照の外に残した版が git gc で消えた、利用者が refs/sas/ を消した）"
+     ]
+    ],
+    "keys": "PK (operation_id, pointer)"
+   },
+   {
+    "name": "rule_results",
+    "holds": "操作の内側の値：rule ごとの結果（validate の操作だけ）",
+    "columns": [
+     [
+      "operation_id",
+      "TEXT",
+      "PK FK operations",
+      ""
+     ],
+     [
+      "rule_schema",
+      "TEXT",
+      "PK",
+      "Abstract の rule と Concrete の rule を分ける"
+     ],
+     [
+      "rule_id",
+      "TEXT",
+      "PK",
+      ""
+     ],
+     [
+      "pointer",
+      "TEXT",
+      "PK",
+      "判定した欄"
+     ],
+     [
+      "by",
+      "TEXT",
+      "",
+      "machine ・ ai ・ human"
+     ],
+     [
+      "result",
+      "TEXT",
+      "",
+      "5つの値"
+     ],
+     [
+      "reason",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "grounds",
+      "JSON",
+      "",
+      "読んだ欄のポインタの並び"
+     ],
+     [
+      "reads_hash",
+      "TEXT",
+      "",
+      "rule.reads の欄の値の指紋。入力が変わった判定を見つける"
+     ],
+     [
+      "details",
+      "JSON",
+      "",
+      "任せる先の output の形"
+     ]
+    ],
+    "keys": "PK (operation_id, rule_schema, rule_id, pointer)"
+   }
+  ],
+  "ddl": "PRAGMA foreign_keys = ON;\n\nCREATE TABLE sessions (\n  id              TEXT PRIMARY KEY,                       -- ULID\n  kind            TEXT NOT NULL CHECK (kind IN ('caller','sas')),\n  parent_id       TEXT REFERENCES sessions(id),\n  actor           TEXT CHECK (actor IN ('ai_agent','human')),\n  adapter         TEXT,\n  tool_ref        TEXT,                                   -- 解釈しない\n  caller_ref      TEXT,                                   -- 使う側の参照。解釈しない\n  operation_kind  TEXT CHECK (operation_kind IN ('create','update','validate','search')),\n  lifetime        TEXT CHECK (lifetime IN ('single','continuing')),\n  context         TEXT CHECK (context IN ('none','inherit')),\n  inherited_from  TEXT REFERENCES sessions(id),\n  continued_from  TEXT REFERENCES sessions(id),\n  capabilities    TEXT CHECK (capabilities IS NULL OR json_valid(capabilities)),\n  model           TEXT,\n  brief           TEXT,\n  started_at      TEXT NOT NULL,                          -- ISO 8601 UTC\n  last_used_at    TEXT,\n  ended_at        TEXT,\n  ended_as        TEXT,\n  CHECK ((ended_at IS NULL) = (ended_as IS NULL)),\n  CHECK (\n    (kind = 'caller' AND parent_id IS NULL AND actor IS NOT NULL AND last_used_at IS NOT NULL\n       AND operation_kind IS NULL AND lifetime IS NULL AND context IS NULL AND capabilities IS NULL AND brief IS NULL\n       AND (ended_as IS NULL OR ended_as IN ('closed','idle')))\n    OR\n    (kind = 'sas' AND parent_id IS NOT NULL AND actor IS NULL AND adapter IS NOT NULL\n       AND operation_kind IS NOT NULL AND lifetime IS NOT NULL AND context IS NOT NULL AND capabilities IS NOT NULL\n       AND (ended_as IS NULL OR ended_as IN ('completed','closed','timeout','invalid_output','conflict','failed','cancelled','gone')))\n  ),\n  CHECK (context IS NOT 'inherit' OR inherited_from IS NOT NULL),\n  CHECK (operation_kind IS NOT 'validate' OR (lifetime = 'single' AND context = 'none'))\n);\nCREATE UNIQUE INDEX sessions_open_tool_caller ON sessions (adapter, tool_ref)\n  WHERE kind = 'caller' AND ended_at IS NULL AND tool_ref IS NOT NULL;\nCREATE UNIQUE INDEX sessions_open_human ON sessions (actor)\n  WHERE kind = 'caller' AND actor = 'human' AND ended_at IS NULL;\nCREATE INDEX sessions_by_parent ON sessions (parent_id);\n-- trigger（SELECT RAISE(ABORT, '<文字列のリテラル>') で書く。3.47.0 未満は式を使えない）：parent_id の先は kind = 'caller'／閉じたセッションの行は変えない／\n--          開いている間に変えてよいのは tool_ref ・ last_used_at ・ ended_at ・ ended_as だけ／行を消さない\n\nCREATE TABLE session_turns (\n  session_id      TEXT NOT NULL REFERENCES sessions(id),\n  seq             INTEGER NOT NULL CHECK (seq >= 1),\n  kind            TEXT NOT NULL CHECK (kind IN ('start','resume','fix')),\n  request_id      TEXT NOT NULL,\n  attempt         INTEGER NOT NULL CHECK (attempt >= 1),\n  resume_decision TEXT CHECK (resume_decision IN ('new-single-or-closed','new-cannot-resume','new-context-over','resume-target-changed','resume')),\n  prompt_path     TEXT NOT NULL,\n  prompt_hash     TEXT NOT NULL,\n  time_limit_s    INTEGER NOT NULL,\n  outcome         TEXT CHECK (outcome IN ('answered','invalid','timeout','failed','gone','cancelled')),\n  answer_hash     TEXT,\n  answer_raw      TEXT,\n  tokens          TEXT CHECK (tokens IS NULL OR json_valid(tokens)),\n  context_tokens  INTEGER,\n  started_at      TEXT NOT NULL,\n  ended_at        TEXT,\n  PRIMARY KEY (session_id, seq),\n  CHECK ((ended_at IS NULL) = (outcome IS NULL)),\n  CHECK ((answer_raw IS NOT NULL) = (outcome IS 'invalid')),\n  CHECK (kind IS NOT 'resume' OR (resume_decision IS NOT NULL AND resume_decision IN ('resume','resume-target-changed')))\n);\nCREATE INDEX session_turns_by_request ON session_turns (request_id, attempt);\n-- trigger：閉じたセッションに回を足さない／kind = 'resume' はセッションが continuing のときだけ／\n--          同じ request_id ・ attempt の fix は設定の shape_fix_max まで／seq は前の回の次の番号／\n--          終わった回は変えない／行を消さない\n\nCREATE TABLE operations (\n  id              TEXT PRIMARY KEY,                       -- ULID\n  session_id      TEXT NOT NULL REFERENCES sessions(id),\n  seq             INTEGER NOT NULL CHECK (seq >= 1),\n  turn_seq        INTEGER,\n  request_id      TEXT,\n  kind            TEXT NOT NULL CHECK (kind IN ('create','update','delete','validate')),\n  source          TEXT NOT NULL CHECK (source IN ('sas','outside')),\n  target_kind     TEXT NOT NULL CHECK (target_kind IN ('concrete','instance')),\n  target_path     TEXT NOT NULL,\n  concrete_ref    TEXT NOT NULL,\n  before_hash     TEXT,\n  after_hash      TEXT,\n  cause_id        TEXT REFERENCES operations(id),\n  intent          TEXT,\n  at              TEXT NOT NULL,\n  UNIQUE (session_id, seq),\n  FOREIGN KEY (session_id, turn_seq) REFERENCES session_turns(session_id, seq),\n  CHECK (kind IS NOT 'create'   OR (after_hash IS NOT NULL)),\n  CHECK (kind IS NOT 'update'   OR (before_hash IS NOT NULL AND after_hash IS NOT NULL)),\n  CHECK (kind IS NOT 'delete'   OR (before_hash IS NOT NULL AND after_hash IS NULL)),\n  CHECK (kind IS NOT 'validate' OR (before_hash IS NOT NULL AND before_hash IS after_hash)),\n  CHECK (source IS NOT 'outside' OR (kind IN ('create','update') AND intent IS NOT NULL)),\n  CHECK (cause_id IS NULL OR kind = 'update')\n);\nCREATE UNIQUE INDEX operations_one_per_request ON operations (request_id)\n  WHERE request_id IS NOT NULL AND cause_id IS NULL;\nCREATE INDEX operations_by_target ON operations (target_path, at);\n-- trigger：閉じたセッションに足さない／seq はセッションの中で前の次の番号／\n--          kind = 'sas' のセッションでは turn_seq が要り、kind はセッションの operation_kind と同じ、search のセッションには足さない、\n--          single のセッションには cause_id の無い操作を1件まで／\n--          source = 'outside' の before_hash は、その target_path の最後の操作の after_hash（無ければ NULL）／\n--          行を変えない ・ 消さない\n\nCREATE TABLE field_changes (\n  operation_id        TEXT NOT NULL REFERENCES operations(id),\n  pointer             TEXT NOT NULL,                      -- JSON ポインタ\n  change              TEXT NOT NULL CHECK (change IN ('add','remove','replace')),\n  before              TEXT CHECK (before IS NULL OR json_valid(before)),\n  after               TEXT CHECK (after IS NULL OR json_valid(after)),\n  before_unavailable  INTEGER NOT NULL DEFAULT 0 CHECK (before_unavailable IN (0,1)),\n  PRIMARY KEY (operation_id, pointer),\n  CHECK (change IS NOT 'add'    OR before IS NULL),\n  CHECK (change IS NOT 'remove' OR after IS NULL),\n  CHECK (before_unavailable = 0 OR before IS NULL)\n);\n-- trigger：操作の kind が create ・ update のときだけ足す／行を変えない ・ 消さない\n\nCREATE TABLE rule_results (\n  operation_id  TEXT NOT NULL REFERENCES operations(id),\n  rule_schema   TEXT NOT NULL,                            -- rule を持つスキーマの URN\n  rule_id       TEXT NOT NULL,\n  pointer       TEXT NOT NULL,\n  by            TEXT NOT NULL CHECK (by IN ('machine','ai','human')),\n  result        TEXT NOT NULL CHECK (result IN ('verified','violated','unverified','unsupported','error')),\n  reason        TEXT,\n  grounds       TEXT CHECK (grounds IS NULL OR json_valid(grounds)),\n  reads_hash    TEXT NOT NULL,\n  details       TEXT CHECK (details IS NULL OR json_valid(details)),\n  PRIMARY KEY (operation_id, rule_schema, rule_id, pointer),\n  CHECK (by IS NOT 'human' OR result = 'unverified')\n);\n-- trigger：操作の kind が validate のときだけ足す／行を変えない ・ 消さない\n",
+  "invariants": [
+   {
+    "invariant": "集約1 ① 親は必ず呼び出し元のセッション",
+    "how": "CHECK（sas は parent_id 必須）＋ trigger（先の kind = caller）"
+   },
+   {
+    "invariant": "集約1 ② 単発は再開しない",
+    "how": "trigger（kind = resume の回は continuing だけ）"
+   },
+   {
+    "invariant": "集約1 ③ 閉じたら依頼を足さない",
+    "how": "trigger（ended_at のあるセッションへ回 ・ 操作を足さない）"
+   },
+   {
+    "invariant": "集約1 ④ 能力の写しに無い操作をしない",
+    "how": "application（capabilities を読んでから立てる ・ 続ける ・ fork）。DB は写しを持つだけ"
+   },
+   {
+    "invariant": "集約1 ⑤ inherit は引き継いだ元を持つ",
+    "how": "CHECK"
+   },
+   {
+    "invariant": "集約1 ⑥ validate は単発 ・ 引き継がない",
+    "how": "CHECK ＋ operation-request の validate が session-spec を受けない"
+   },
+   {
+    "invariant": "集約1 ⑦ 形を直させるのは2回まで",
+    "how": "trigger（同じ request_id ・ attempt の fix の数）と設定 shape_fix_max"
+   },
+   {
+    "invariant": "集約2 ① 閉じた時刻を変えない ② ツールの ID は解釈しない",
+    "how": "trigger（閉じた行を変えない）／ tool_ref は TEXT のまま"
+   },
+   {
+    "invariant": "集約2 開いている呼び出し元は1つに決まる",
+    "how": "部分一意索引2つ"
+   },
+   {
+    "invariant": "集約3 ⓪ 答えの形 ・ 機械の検証 ・ 指紋の一致がそろったときだけ書く",
+    "how": "application（DB の外の条件）"
+   },
+   {
+    "invariant": "集約3 ① 追記だけ",
+    "how": "trigger（UPDATE ・ DELETE を断る。field_changes ・ rule_results も）"
+   },
+   {
+    "invariant": "集約3 ② 閉じたセッションに足さない",
+    "how": "trigger"
+   },
+   {
+    "invariant": "集約3 ③ 続き番号はセッションごとに1つずつ増える",
+    "how": "UNIQUE (session_id, seq) ＋ trigger（前の次）"
+   },
+   {
+    "invariant": "集約3 ④ validate は前後の指紋が同じで rule の結果を持つ",
+    "how": "CHECK ＋ trigger（rule_results は validate だけ）"
+   },
+   {
+    "invariant": "集約3 ⑤ delete の事後は無し。参照元の書き換えは同じセッションの続きの update",
+    "how": "CHECK ＋ cause_id"
+   },
+   {
+    "invariant": "集約3 ⑥ adopt の事前は、その対象の最後の操作の事後",
+    "how": "trigger"
+   },
+   {
+    "invariant": "集約3 ⑦ 同じ request_id の操作は1回だけ",
+    "how": "部分一意索引 operations_one_per_request"
+   },
+   {
+    "invariant": "人の判定は SAS に入れない（版2）",
+    "how": "CHECK（by = human は unverified だけ）"
+   },
+   {
+    "invariant": "検索は操作として残さない",
+    "how": "trigger（operation_kind = search のセッションに操作を足さない）"
+   }
+  ],
+  "not_stored": [
+   {
+    "what": "ファイルの中身",
+    "where": "Git（パスと指紋 ・ 版の参照で指すだけ）"
+   },
+   {
+    "what": "手順のプロンプトの中身",
+    "where": "prompts_dir のファイル（パスと指紋で指す。コミットしない）"
+   },
+   {
+    "what": "正しい形で受け取った答え",
+    "where": "操作（field_changes ・ rule_results）に反映したので、指紋だけ持つ"
+   },
+   {
+    "what": "検索の答え",
+    "where": "残さない決定。回の answer_hash だけ"
+   },
+   {
+    "what": "描画したもの ・ デザインシステム ・ 設定 ・ 接続の定義",
+    "where": "ファイル（能力は立てた時の写しだけ持つ）"
+   },
+   {
+    "what": "セッションの state ・ 再開できる期限 ・ 文脈の上限 ・ いまの文脈の量",
+    "where": "回と能力の写しから導く"
+   },
+   {
+    "what": "目的 ・ 承認 ・ コミット ・ 変更のまとめ",
+    "where": "使う側"
+   }
+  ]
+ },
+ "5_mapping": {
+  "write": [
+   {
+    "from": "operation-request#/$defs/common.caller.ref",
+    "to": "sessions.caller_ref"
+   },
+   {
+    "from": "operation-request#/$defs/common.intent",
+    "to": "operations.intent"
+   },
+   {
+    "from": "operation-request#/$defs/common.request_id（無ければ SAS が振る）",
+    "to": "session_turns.request_id ・ operations.request_id"
+   },
+   {
+    "from": "operation-request#/$defs/session-spec.lifetime ・ context ・ adapter ・ model ・ brief",
+    "to": "sessions.lifetime ・ context ・ adapter ・ model ・ brief"
+   },
+   {
+    "from": "operation-request#/$defs/session-spec.session ＋ 再開の決まり",
+    "to": "session_turns.kind = resume か、新しい sessions.continued_from。どちらも session_turns.resume_decision"
+   },
+   {
+    "from": "operation-request#/$defs/session-spec.time_limit_s",
+    "to": "session_turns.time_limit_s"
+   },
+   {
+    "from": "operation-request#/$defs/create ・ update ・ delete.path ・ concrete",
+    "to": "operations.target_path ・ concrete_ref ・ target_kind（$schema から導く）"
+   },
+   {
+    "from": "operation-request#/$defs/create ・ update.adopt",
+    "to": "operations.source = outside"
+   },
+   {
+    "from": "procedure-prompt（ファイル）",
+    "to": "session_turns.prompt_path ・ prompt_hash"
+   },
+   {
+    "from": "agent-connector#/$defs/capabilities",
+    "to": "sessions.capabilities（立てた時の写し）"
+   },
+   {
+    "from": "agent-connector#/$defs/caller → ツールのセッション ID",
+    "to": "sessions.tool_ref ・ actor（caller）"
+   },
+   {
+    "from": "session-request#/$defs/reply.tool_ref",
+    "to": "sessions.tool_ref（sas）"
+   },
+   {
+    "from": "session-request#/$defs/reply.outcome ・ tokens ・ context_tokens",
+    "to": "session_turns.outcome ・ tokens ・ context_tokens"
+   },
+   {
+    "from": "session-request#/$defs/reply.answer",
+    "to": "session_turns.answer_hash（形が誤りなら answer_raw も）"
+   },
+   {
+    "from": "agent-answer#/$defs/field-values.values",
+    "to": "ファイルへ書き、diff を求めて field_changes"
+   },
+   {
+    "from": "agent-answer#/$defs/judgments.results",
+    "to": "rule_results（by = ai）。reads_hash は SAS が求める"
+   },
+   {
+    "from": "diff.schema.json",
+    "to": "operations.before_hash ・ after_hash ＋ field_changes"
+   },
+   {
+    "from": "operation-result#/$defs/rule-result（machine ・ human）",
+    "to": "rule_results（by = machine ・ human）"
+   }
+  ],
+  "read": [
+   {
+    "from": "sessions の全欄 ＋ session_turns の全欄",
+    "to": "session.schema.json#/$defs/session（operation-result#/$defs/session）。parent_id → parent、answer_raw → answer、answer_hash → answer_fingerprint、prompt_path ・ prompt_hash → prompt。state は導く"
+   },
+   {
+    "from": "operations の全欄",
+    "to": "operation-result#/$defs/operation.operation（session_id → session、turn_seq → turn、cause_id → cause、target_kind ・ target_path ・ concrete_ref → target）"
+   },
+   {
+    "from": "operations.before_* ・ after_* ＋ field_changes の全欄",
+    "to": "diff.schema.json（operation-result#/$defs/change ・ operation）"
+   },
+   {
+    "from": "rule_results の全欄",
+    "to": "operation-result#/$defs/rule-result（reads_hash → reads_fingerprint。stale はいまの値の指紋と比べて導く）"
+   },
+   {
+    "from": "operations（target_path ごとの最後の after_hash）",
+    "to": "operation-result#/$defs/validation.untracked ・ error untracked_change"
+   },
+   {
+    "from": "operations（target_path ごと）",
+    "to": "operation-result#/$defs/history"
+   },
+   {
+    "from": "sessions ＋ session_turns（新しく立てた回）＋ 手順のプロンプトのファイル",
+    "to": "operation-result#/$defs/procedure"
+   },
+   {
+    "from": "operations ・ field_changes ・ rule_results（材料）",
+    "to": "procedure-prompt.steps.inputs（意味の検索）と operation-result#/$defs/search.sources"
+   }
+  ],
+  "db_only": "無い。5つの表のどの欄も上の読む向きのどこかに出る（rowid などの SQLite の内部は除く）",
+  "schema_only_by_decision": [
+   {
+    "what": "operation-request#/$defs/validate.all ・ stale、render の全欄、search の where ・ question ・ scope",
+    "why": "どの rule ・ ページ ・ 範囲を扱ったかの制御。描画と検索は残さない決定。検証は結果の rule_results が範囲を表す"
+   },
+   {
+    "what": "operation-request#/$defs/update.patch ・ create.value",
+    "why": "当てた結果を field_changes に残す（入力そのものは残さない。同じことの2か所目になる）"
+   },
+   {
+    "what": "operation-request#/$defs/update.if_match",
+    "why": "当てる前の確かめだけ。結果は before_hash"
+   },
+   {
+    "what": "agent-answer#/$defs/field-values.needs",
+    "why": "書かなかった点を呼び出し元へ返すだけ。操作が無いので記録しない（答えの指紋は残る）"
+   },
+   {
+    "what": "agent-answer#/$defs/found（検索の答え）",
+    "why": "検索は残さない決定"
+   },
+   {
+    "what": "design-system ・ settings ・ agent-connector（能力以外）",
+    "why": "ファイルが正本。DB へ写すと2か所になる"
+   },
+   {
+    "what": "procedure-prompt の中身",
+    "why": "ファイルが正本。DB はパスと指紋"
+   }
+  ],
+  "public_only_output": "DB の名前（parent_id ・ prompt_hash など）は出力に出さず、出力の名前へ直す。入れ子（diff ・ turns）も出力の側で組む。DDL を変えても出力のスキーマは変わらない"
+ },
+ "6_flows": {
+  "validate": [
+   {
+    "step": "1. CLI の入力",
+    "schema": "operation-request#/$defs/validate",
+    "table": "",
+    "detail": "sas validate requirements/usecases/U10.json。session-spec を付けたら invalid_input"
+   },
+   {
+    "step": "2. 呼び出し元を見分ける",
+    "schema": "agent-connector#/$defs/caller",
+    "table": "sessions（caller を探すか足す。last_used_at を直す）",
+    "detail": "取れなければ --session、どちらも無ければ人のセッション"
+   },
+   {
+    "step": "3. SAS を通らない変更を確かめる",
+    "schema": "",
+    "table": "operations（target_path の最後の after_hash）",
+    "detail": "違えば結果の untracked に入れ、いまの中身を検証する"
+   },
+   {
+    "step": "4. 機械の rule と人の rule",
+    "schema": "（検査器の出力は SAS の中で rule-result へ直す）",
+    "table": "",
+    "detail": "Abstract ・ 語彙 ・ 方言 ・ Concrete ・ glossary の組で検査し、x- の値と x-relationship の先を機械の rule で見る。by: human は unverified「人が決める」"
+   },
+   {
+    "step": "5. 手順のプロンプト",
+    "schema": "procedure-prompt.schema.json（step.action = judge。answer.schema = judgments）",
+    "table": "sessions（sas ・ validate ・ single ・ none ・ capabilities）＋ session_turns（seq 1 ・ start ・ attempt 1）",
+    "detail": "by: ai の rule × 欄ごとに1ステップ。CLI は1行目に operation-result#/$defs/procedure を出す"
+   },
+   {
+    "step": "6. セッションの依頼",
+    "schema": "session-request#/$defs/start",
+    "table": "",
+    "detail": "汎用のアダプターは接続の定義の commands.start に欄を埋めて起動する"
+   },
+   {
+    "step": "7. エージェントの答え",
+    "schema": "session-request#/$defs/reply → agent-answer#/$defs/judgments",
+    "table": "sessions.tool_ref ・ session_turns.outcome ・ tokens ・ answer_hash",
+    "detail": "各項目の step ・ rule ・ pointer が手順のステップと合うか見る。合わなければ fix の回（2回まで）、超えたら invalid_output で閉じ、answer_raw を残して該当の rule を error。時間切れは新しいセッションで attempt を増やす"
+   },
+   {
+    "step": "8. 指紋を確かめる",
+    "schema": "",
+    "table": "",
+    "detail": "変わっていたら書かずに conflict で閉じ、error を返す（UC4 6c）"
+   },
+   {
+    "step": "9. 操作の記録",
+    "schema": "",
+    "table": "1つのトランザクション：operations（validate ・ before = after ・ turn_seq ・ request_id）＋ rule_results（machine ・ human ・ ai、reads_hash）＋ sessions.ended_as = completed",
+    "detail": "by: ai の rule が無ければ SAS のセッションを立てず、操作は呼び出し元のセッションに入る"
+   },
+   {
+    "step": "10. CLI の出力",
+    "schema": "operation-result#/$defs/validation",
+    "table": "operations ・ rule_results から組む",
+    "detail": "最後の行。session ・ operation ・ results ・ counts ・ untracked"
+   }
+  ],
+  "update": [
+   {
+    "step": "1. CLI の入力",
+    "schema": "operation-request#/$defs/update（semantic.pointers ・ intent ・ brief ・ session-spec）",
+    "table": "",
+    "detail": "sas update U10.json --semantic --pointer /success_guarantee --intent … --brief …"
+   },
+   {
+    "step": "2. 呼び出し元を見分ける",
+    "schema": "agent-connector#/$defs/caller",
+    "table": "sessions（caller）",
+    "detail": ""
+   },
+   {
+    "step": "3. SAS を通らない変更を確かめる",
+    "schema": "operation-result#/$defs/error（untracked_change ・ 取り込みの案内）",
+    "table": "operations",
+    "detail": "違えば直さずに断る（外の変更を上書きしない）"
+   },
+   {
+    "step": "4. セッションを決める",
+    "schema": "session.schema.json の値 ・ agent-connector#/$defs/capabilities",
+    "table": "sessions（新しく）か session_turns（resume）。resume_decision",
+    "detail": "--session が無ければ型の指定で立てる。能力が無ければ unsupported_capability（missing ・ alternative）。--session があれば再開の決まりの5ステップ"
+   },
+   {
+    "step": "5. 手順のプロンプト",
+    "schema": "procedure-prompt.schema.json（step.action = write、since_last は再開の決まり④のとき diff.schema.json）",
+    "table": "session_turns（prompt_path ・ prompt_hash）",
+    "detail": "欄ごとに x-prompt の rule ・ reading ・ いまの値 ・ x-relationship の先の値。x-decided-by: human の欄はステップにしない。CLI は1行目に procedure を出す"
+   },
+   {
+    "step": "6. セッションの依頼",
+    "schema": "session-request#/$defs/start ・ continue ・ fork",
+    "table": "",
+    "detail": ""
+   },
+   {
+    "step": "7. エージェントの答え",
+    "schema": "agent-answer#/$defs/field-values",
+    "table": "session_turns",
+    "detail": "ステップの欄だけを受ける。当てた姿を機械で検証し、通らなければ fix の回"
+   },
+   {
+    "step": "8. 指紋を確かめて書く",
+    "schema": "",
+    "table": "",
+    "detail": "変わっていれば conflict。一時ファイルに書いて置き換え、版を扱うポートで前後の版を残す"
+   },
+   {
+    "step": "9. 操作の記録",
+    "schema": "diff.schema.json（前後の中身から求める）",
+    "table": "1つのトランザクション：operations（update ・ sas ・ 前後の指紋と版 ・ intent ・ request_id ・ turn_seq）＋ field_changes ＋ single なら sessions.ended_as = completed（continuing は開いたまま）",
+    "detail": "DB が失敗したら、次の検証で SAS を通らない変更として知らせ、--adopt で直す"
+   },
+   {
+    "step": "10. CLI の出力",
+    "schema": "operation-result#/$defs/change（result = updated ・ diff ・ needs ・ stale_rules）",
+    "table": "operations ・ field_changes ・ rule_results（reads_hash）から組む",
+    "detail": "最後の行"
+   }
+  ]
+ },
+ "7_removed": [
+  {
+   "what": "judgment.schema.json",
+   "goes_to": "DB の rule_results と operation-result#/$defs/rule-result。目的 ・ 意図の判定（meaning ・ I33）は使う側。判定者 tool は machine（決定的な CLI）へまとめる"
+  },
+  {
+   "what": "change.schema.json",
+   "goes_to": "DB の operations ・ field_changes と diff.schema.json。purpose_ref ・ replaces は使う側、writer_kind は sessions.actor、exceptions は validation.untracked と error"
+  },
+  {
+   "what": "change-summary.schema.json",
+   "goes_to": "使う側（目的ごとのまとめ ・ 承認 ・ コミット）。SAS は UC7 の read で材料を渡す"
+  },
+  {
+   "what": "call.schema.json",
+   "goes_to": "役目は残し、名前を中身に合わせて2つに分ける：rules ・ inputs ・ task → procedure-prompt、delegate ・ handoff → session-request（role ・ brief）"
+  },
+  {
+   "what": "vocab-meta.schema.json",
+   "goes_to": "vocabulary.schema.json へ改名（x-view を足す（x-prompt はいまの vocab-meta に在る））"
+  },
+  {
+   "what": "Abstract の $defs output-judging ・ output-working",
+   "goes_to": "agent-answer.schema.json。written（エージェントが書いたファイル）は外す"
+  },
+  {
+   "what": "delegate.run.session",
+   "goes_to": "operation-request#/$defs/session-spec と SAS の決まり（検証は固定）"
+  },
+  {
+   "what": "版8 の cli-output.schema.json（名前）",
+   "goes_to": "operation-result.schema.json"
+  },
+  {
+   "what": "版8 の sessions の欄 state ・ resumable_until ・ context_tokens ・ context_limit ・ attempt ・ prompt_path ・ prompt_hash ・ tokens",
+   "goes_to": "session_turns へ移すか、回と能力の写しから導く"
+  },
+  {
+   "what": "版8 の operations.resume_decision",
+   "goes_to": "session_turns.resume_decision（決めたのは回のとき）"
+  }
+ ],
+ "rejected": [
+  {
+   "option": "CLI は旗だけで、操作の依頼のスキーマを持たない",
+   "why": "オーケストレーターと AI のエージェントは --value ・ --patch で既に JSON を組んでいる。入力の形が1つに決まらず、MCP の道具の定義も別に書くことになる"
+  },
+  {
+   "option": "CLI は手順のプロンプトだけを返して終わり、呼び出し元のエージェントが手順を行って答えを別のコマンドで渡す",
+   "why": "検証に呼び出し元の会話が混ざり、単発 ・ 引き継がないに固定する決定に反する。CI はエージェントを持たない。立てる ・ 時間切れ ・ やり直しを SAS が持てない"
+  },
+  {
+   "option": "意味の操作の出力を1つの JSON にし、手順のプロンプトは別のコマンドで読む",
+   "why": "利用者の判断基準（返り値は手順のプロンプト）に合わない。JSON Lines の1行目に出せば、待たずに何を頼んだかが見える"
+  },
+  {
+   "option": "2020-12 の検査器の出力の形をそのまま CLI の出力に出す",
+   "why": "公開の形が検査器の形に縛られ、機械の rule ・ AI ・ 人の結果と別の形になる。rule-result の1つに直す"
+  },
+  {
+   "option": "DB の表を JSON Schema で定義して公開する",
+   "why": "DB は公開しない決定。外部キー ・ 一意 ・ 追記だけは DDL と trigger でしか守れない"
+  },
+  {
+   "option": "受け取った答えをいつも DB に残す",
+   "why": "正しい答えは操作に反映済みで2か所になる。検索の答えは残さない決定。形が誤ったときだけ残す（UC4 6a）"
+  },
+  {
+   "option": "人の判定を operation-request で受けて rule_results に入れる",
+   "why": "版2 の決定（人の判定は呼び出し元のセッション。SAS は「人が決める」と返すだけ）に反する"
+  },
+  {
+   "option": "sessions に state ・ 文脈の量を持つ",
+   "why": "回と終わり方から導けるものを2か所に持つことになる（足す前に引く）"
+  },
+  {
+   "option": "回（session_turns）を持たず、sessions に手順のプロンプトの欄を持つ（版8）",
+   "why": "継続のセッションは手順のプロンプトを何度も受け、形の直しも回になる。1行に1つしか持てない"
+  },
+  {
+   "option": "glossary を外して使う側へ出す（sas-model の review）",
+   "why": "Abstract の rule term-by-ref が glossary の $anchor を指す。Concrete を書くのに要る型なので SAS が持つ（中身は使う側）"
+  }
+ ],
+ "fact_check": [
+  {
+   "what": "JSON Schema 2020-12 の出力の形の欄の名前（valid ・ keywordLocation ・ absoluteKeywordLocation ・ instanceLocation ・ error ・ errors ・ annotations。Core 12 で照合済み）",
+   "used_by": "schema_checker の中で rule-result へ直す所だけが使う。公開の形には出さない"
+  },
+  {
+   "what": "2020-12 の $vocabulary ・ $dynamicAnchor ・ $dynamicRef で語彙を入れ子へ掛ける振る舞い（Core 8.1.2 ・ 8.2.3.2 ・ Appendix D.2 と meta/applicator で照合済み）",
+   "used_by": "dialect ・ vocabulary"
+  },
+  {
+   "what": "JSON Patch（RFC 6902）の op ・ path ・ value ・ from と操作の種類",
+   "used_by": "operation-request#/$defs/update.patch"
+  },
+  {
+   "what": "Design Tokens Format Module 2025.10 の形（$value ・ $type ・ group の入れ子 ・ 別名の {group.token}）。照合済み",
+   "used_by": "design-system.tokens"
+  },
+  {
+   "what": "各コーディングエージェントの再開 ・ fork ・ 答えの形の指定 ・ セッション ID の取り方（環境変数 ・ 出力 ・ 引数で渡す）。照合済み（factcheck-b の項目1）",
+   "used_by": "接続の定義のファイル（SAS の中には書かない）"
+  },
+  {
+   "what": "MCP（2026-07-28）の道具の inputSchema に JSON Schema 2020-12 を使えること（根は type: \"object\"、外の $ref は解かれない）。照合済み",
+   "used_by": "operation-request の $defs を道具の定義に使う所"
+  },
+  {
+   "what": "SQLite の json_valid ・ 部分索引（WHERE 付きの UNIQUE INDEX）・ CHECK での IS NOT の振る舞い。照合済み（factcheck-b の項目2）。CHECK は NULL を違反にしないので、= ・ IN を NULL になりうる欄に使う CHECK は IS ・ IS NOT NULL で閉じる",
+   "used_by": "DDL"
+  },
+  {
+   "what": "Git の掃除で、どこからも指されないオブジェクトが消える条件。照合済み（factcheck-b の項目3）：refs/* から指されないオブジェクトは、更新時刻が gc.pruneExpire（既定2週間）より古くなると git gc で消える。now なら次の gc で消える。SAS は版を残さないので、この条件は設計に関わらない（記録として残す）",
+   "used_by": "版の中身を読むポート（前の版が取れなかった（例：対象がまだコミットされていない）ときは before_unavailable）"
+  }
+ ],
+ "views": [
+  {
+   "what": "指紋",
+   "view": "ファイルのバイト列の sha256（sha256:<16進64字>）。整形だけの外の変更も変更として知らせ、取り込むと field_changes が0件の update になる"
+  },
+  {
+   "what": "ID",
+   "view": "ULID。種類は出力の欄の名前で分かるので、ID に前置きを付けない"
+  },
+  {
+   "what": "CLI の出力",
+   "view": "1行1つの JSON（JSON Lines）。機械の操作は1行、意味の操作は1行目が procedure、最後の行が結果か error"
+  },
+  {
+   "what": "x-view が無いとき",
+   "view": "根は page、欄は JSON の型の名前。デザインシステムはそれらのテンプレートを持つ"
+  },
+  {
+   "what": "v1 の名前を改めること",
+   "view": "SAS の版のタグが無いので未公開と見る。外へ出していたら v2 として作る"
+  }
+ ],
+ "2_judgment_summary": {
+  "schema": [
+   "a1 Abstract の本体（Concrete の根の決まり ・ 欄 ・ rule ・ x- の値の形） → semantic-abstract-schema.json",
+   "a2 入れ子のサブスキーマに掛かる x- の形 → vocabulary.schema.json",
+   "a3 方言（2020-12 ＋ SAS の語彙） → dialect.schema.json",
+   "a4 Concrete が足す x- 項目（拡張の仕組み） → semantic-abstract-schema.json#/$defs/extensions（定義）。値は定義の schema で SAS の機械の rule が検査する",
+   "a5 x-delegates（rule を任せる先の立場と種類） → semantic-abstract-schema.json#/$defs/delegates ・ delegate",
+   "a6 glossary（文脈の term の辞書） → glossary.schema.json",
+   "a7 x-view（描画の種類の指定） → semantic-abstract-schema.json#/$defs/view と vocabulary",
+   "b1 コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read ・ session close ・ session status） → operation-request.schema.json（コマンドごとの $defs）",
+   "b2 コマンドの出力（作った ・ 直した ・ 消した ・ 検証の結果 ・ 描画の結果 ・ 検索の答え ・ セッション ・ 操作 ・ 誤り） → operation-result.schema.json（出力の種類ごとの $defs）",
+   "b3 意味の操作の返り値（手順のプロンプト） → operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
+   "b4 セッションの5つの操作（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む） → 立てる ・ 続ける ・ fork は operation-request#/$defs/session-spec（create ・ update ・ search に付く）、閉じる ・ 状態を読むは #/$defs/session-close ・ session-status。出力は operation-result#/$defs/session（session.schema.json を含む）",
+   "b5 取り込み（--adopt） → operation-request#/$defs/create ・ update の adopt。出力は #/$defs/change（source = outside）",
+   "b6 誤り（unsupported_capability ・ conflict ・ untracked_change ・ missing_view_kinds ほか） → operation-result#/$defs/error",
+   "b7 設定のファイル（使うアダプター ・ 上限 ・ Concrete の置き場所） → settings.schema.json",
+   "c1 手順のプロンプトの構造化された部分 → procedure-prompt.schema.json",
+   "c2 セッションの依頼（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む） → session-request.schema.json",
+   "c3 アダプターの返り（ツールの ID ・ 終わり方 ・ 答えの文字列 ・ トークン量） → session-request.schema.json#/$defs/reply",
+   "c4 エージェントの答え（欄の値 ・ rule の判定 ・ 検索の答え） → agent-answer.schema.json",
+   "d1 エージェントの接続の定義（起動 ・ 再開 ・ fork のコマンドの組み立て、答えの取り出し方、同時に動かせる数） → agent-connector.schema.json",
+   "d2 能力の宣言 → agent-connector.schema.json#/$defs/capabilities",
+   "d3 呼び出し元を見分ける（ツールのセッション ID の取り方） → agent-connector.schema.json#/$defs/caller",
+   "d6 デザインシステム（x-view の種類ごとのテンプレート ・ デザイントークン ・ rule の結果のトークン） → design-system.schema.json",
+   "e2 DB の JSON の欄（capabilities ・ tokens ・ grounds ・ details ・ before ・ after） → agent-connector#/$defs/capabilities ・ session#/$defs/tokens ・ agent-answer#/$defs/grounds ・ diff の値",
+   "e3 差分（変わった欄の前後 ・ 前後の指紋と版の参照） → diff.schema.json",
+   "e4 セッションの姿（4つの型 ・ 能力の写し ・ 回 ・ 終わり方） → session.schema.json"
+  ],
+  "no_schema": [
+   "a8 Concrete とインスタンスのファイルそのもの：型は既にある。SAS が別の型を足すと2か所になる",
+   "c5 手順のプロンプトの文（テンプレートから組む前置きと指示の文）：文は型で縛れない。縛るべき部分は c1 に出してある。文の指紋（prompt_hash）だけを記録する",
+   "d4 版を扱う（版を残す ・ 版の中身を取る）：プロセスの外へ JSON が出ない。アダプターは SAS に組み込みで、使う側が書かない。外へ出るのは差分（diff.schema.json）だけ",
+   "d5 JSON Schema の検査器（2020-12）：検査器の出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使う検査器がどの形を出すかを選ぶときに確かめる",
+   "d7 テンプレートの処理系：プロセスの外へ JSON が出ない",
+   "e1 sessions ・ session_turns ・ operations ・ field_changes ・ rule_results：公開しない決定。外部キー ・ 一意の索引 ・ トランザクション ・ 追記だけの決まりは JSON Schema では書けず、DDL と trigger で守る。DB の形は移行で変わり、公開の版と別に動く"
+  ]
+ },
+ "fact_check_status": {
+  "checked": "8項目すべてを原典と照合した（2026-10-31）。factcheck-a.json（JSON Schema 2020-12 ・ RFC 6902 ・ Design Tokens 2025.10 ・ MCP 2026-07-28）と factcheck-b.json（コーディングエージェント5つ ・ SQLite ・ Git）",
+  "unreadable": [
+   "developers.openai.com/codex/cli/reference.md は旗の表が <ConfigTable options={...}/> の部品で、本文に無い。HTML の版（sources/html/developers.openai.com_codex_cli_reference）を取得して照合し直した。execOptions のほかの表（resumeOptions ・ forkOptions）も HTML の側で読める",
+   "docs.github.com/en/copilot/reference/cli-command-reference は .md が無く HTML（2MB）だけ返った。移った先の copilot-cli-reference/cli-command-reference.md を取得して、そちらで照合した",
+   "kiro.dev/docs/cli/reference/cli-commands.md は『Moved』の頁。移った先 /docs/reference/cli-commands.md を取得した",
+   "取得していない頁：Claude Code の sessions.md（記録の置き場所）、Gemini の automation のチュートリアル、Codex の app-server、Copilot の SDK。ここに環境変数や欄が在る可能性は残る"
+  ]
+ },
+ "pending_approval": [
+  {
+   "what": "版を残さない・Git は読むだけ",
+   "decision": "SAS は版を残さない。差分は、SAS が書いた操作なら書く前後の中身から求め、SAS を通らない変更と継続で対象が変わったときは Git のコミット済みの版を読んで比べる。Git には書かない",
+   "view": "利用者の判断（10-31）：DB の中身はコミットせず、終わったセッションの記録は分析に使える程度。復元やタグのために版を残す仕組みは要らない。版を残さないので、Git の掃除の条件は設計に関わらない"
+  }
+ ]
+}

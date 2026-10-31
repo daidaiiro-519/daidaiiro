@@ -1,0 +1,131 @@
+{
+ "title": "作り直しの実装計画（plan.json）と試験の方針（rebuild-qa）の反証",
+ "date": "2026-10-31",
+ "verdict": "採る。直す所を入れた形を1つの計画とする（page/index.html）",
+ "findings": [
+  {
+   "id": "R0",
+   "weight": "重い",
+   "where": "計画全体（2_step0 が13 crate を最初に全部作る、3_steps が上からの木を前提にする）",
+   "what": "利用者の決定（いちばん大事）：『ユースケースから探索してドメインモデルを作成していく。その過程も記録して、その都度ディレクトリ構成や区切られた文脈も、変える必要がありそうなら育てていく』。計画は上から決めた木（arch-v15・集約・13 crate）を最初に作り、探索の記録も構成を見直す決まりも無い。",
+   "fix": "上から決めた設計は『仮説』として持ち、最初に全部を作らない。ステップ0 は最初のユースケースに要る最小（根の Cargo.toml・依存の向きの検査・最初に要る crate だけ）。各ステップの中に探索の段階2〜4と仮説との突き合わせを入れ、crate・モジュール・集約・値・サービスは要ると分かった時点で足す。自明なものは最初から domain に置いてよいが根拠を記録する。探索の記録をステップごとに docs/design/exploration/step-NN.json に残してコミットし、ページで描く。ディレクトリ・crate・文脈・ポートはステップごとに見直す（きっかけ：同じ語が違う意味で使われ始めた → 文脈を切り出す候補／依存の向きを強制したい境界が出た → crate を分ける／2つのユースケースが同じ理由で変わる決まりを持った → domain へ引き上げる／外の I/O が増えた → ポートを足す）。変えたら arch の新しい版 → 概念のページ → architecture.json と CODING.md → コードの順に直す。完了基準に『探索の記録が書かれている』『仮説との突き合わせが記録されている』を足す。",
+   "adopt": true
+  },
+  {
+   "id": "R1",
+   "weight": "重い",
+   "where": "1_archive.precondition（ACDR 0216 を先に決着させる）",
+   "what": "0216 をそのまま承認すると、版15 で取り消した書き方（文脈が1つならリポジトリの根・contexts/<文脈>/・中の形は実装の方法で選ぶ）が土台の正本に入る。0216 のうち、六角形の図の直し・業務領域 C を外す・3つの層の『手がかりに引く』は今も正しい。",
+   "fix": "0216 は承認しない。0216 の差分（作業ツリーの11ファイル：docs/foundation 9・docs/design 2。計画の『10件』は数え違い）を scratchpad に patch で保存してから HEAD に戻し、0216 の記録は proposed のままコミットする。アーカイブのあと、新しい木の semantic-agent-schema/docs/foundation に対して、0216 の正しい部分と版15 の決定（文脈の根は文脈の名前のフォルダ・1つのヘキサゴナル・上から決めて下から確かめる・探索の4段階）をまとめた新しい ACDR（0217）を起こし、承認のときに 0216 を superseded にする。",
+   "adopt": true
+  },
+  {
+   "id": "R2",
+   "weight": "中",
+   "where": "1_archive.steps の git mv",
+   "what": "archive/ がリポジトリにまだ無い。git mv は移す先の親フォルダが要る。",
+   "fix": "mkdir archive をしてから git mv する、と手順に書く。",
+   "adopt": true
+  },
+  {
+   "id": "R3",
+   "weight": "中",
+   "where": "1_archive.steps の『push のときにタグも送る』",
+   "what": "push は外へ出す操作で、利用者は main への直接コミットまでしか決めていない。",
+   "fix": "タグは手元に打つ。push は利用者が指示したときに、タグと一緒に送る。",
+   "adopt": true
+  },
+  {
+   "id": "R4",
+   "weight": "中",
+   "where": "持ち込み（scratchpad の概念のページを docs/design/ へ）",
+   "what": "概念のページの build.py は scratchpad の絶対パス（../sas-role4 など）を読む。写しただけでは組み直せない。",
+   "fix": "ステップ0 で、図の svg と元の JSON を docs/design/fig/ に写し、build.py の読み先を docs/design の中に直してから入れる。組み直して同じ index.html になることを確かめる。",
+   "adopt": true
+  },
+  {
+   "id": "R5",
+   "weight": "重い",
+   "where": "2_step0 と qa の試験の部品",
+   "what": "qa は dev-dependencies 専用の crate（contracts-and-instances-test-support：試験の代役9つとポートの契約テスト）を足すとした。計画は13 crate のまま。",
+   "fix": "試験の部品の crate（contracts-and-instances-test-support、dev-dependencies からだけ）は採る。ただし crate の数は決め打ちしない：仮説の木は14（13＋試験の部品）だが、ステップ0 で作るのは最初のユースケース（UC4 の機械の検証）に要るものだけで、ほかは要ると分かったステップで足す。architecture.json の規則は、足すたびに辺を足す。",
+   "adopt": true
+  },
+  {
+   "id": "R6",
+   "weight": "重い",
+   "where": "3_per_step_procedure と各ステップの acceptance",
+   "what": "qa の完了基準7つ（全テストが緑・fmt と clippy が0・範囲の id が試験か untested にある・依存の向き・回帰はネットワークと本物のツールを使わない・2回流して同じ・シミュレーターで承認）が、計画の各ステップに入っていない。突き合わせを試験として残す trace.json の表も無い。",
+   "fix": "どのステップも同じ7つを終了基準にする。突き合わせは test-suite/trace.json に部品ごとの行（上の出どころ・下の出どころ・結果・直した方）で残し、検査のテストで落とす。開始は場面と単体テストを先に書いて赤を確かめる（ATDD）。 さらに完了基準を9つにする：7つに『探索の記録 step-NN.json が書かれている』『仮説との突き合わせが記録されている（一致・上の先取り・上の見落とし・直した方）』を足す。",
+   "adopt": true
+  },
+  {
+   "id": "R7",
+   "weight": "中",
+   "where": "qa の上流への確認『UC4 の拡張 6b は仮定』",
+   "what": "利用者は『人の判定は使う側のセッション。SAS は人が決めるとして返すだけ』と決めている。",
+   "fix": "6b の then を確定する：by: human の rule は unverified（人が決める）として返し、verified に数えない。SAS は人の判定を受け取らず、rule_results の by = human は unverified だけ（CHECK）。",
+   "adopt": true
+  },
+  {
+   "id": "R8",
+   "weight": "中",
+   "where": "ステップ4 check_first（インスタンスが従っている Concrete を消すとき）",
+   "what": "利用者の決まり『削除するときは参照している所の記載も消す』をそのまま当てると、インスタンスの $schema を消すことになり、インスタンスが型を失う。",
+   "fix": "見解：x-relationship で指している記載は同じセッションの update として消す。インスタンスが従っている Concrete は、従うインスタンスが残っているあいだは消さず、残っているインスタンスの一覧を返す（先にインスタンスを消すか移す）。",
+   "adopt": true
+  },
+  {
+   "id": "R9",
+   "weight": "中",
+   "where": "ステップ1 decide_in_step（ID と時刻を作る所）",
+   "what": "domain は時刻に触れない（clippy で禁じる）。ID を作るためだけにポートを足すと、ポートが10になる。",
+   "fix": "見解：SAS が振る ID（セッション・操作）と時刻は、保存するアダプター（outbound/sqlite）が行を足すときに作って返す。試験の代役は決まった ID と時刻を返す。SAS が立てるセッションに --session-id で ID を渡すツールのために、agent_session_store は立てる前に ID を返す。",
+   "adopt": true
+  },
+  {
+   "id": "R10",
+   "weight": "軽い",
+   "where": "ステップ6 の大きさ",
+   "what": "スキーマ5つ・表2つ・ポート3つ・エージェントのアダプターが1ステップに入る。",
+   "fix": "1ステップのままにする。ただしシミュレーターで見せる場面を『試験用の実行体で通す』と『本物のツールで1回動かす』の2回に分ける。",
+   "adopt": true
+  },
+  {
+   "id": "R11",
+   "weight": "軽い",
+   "where": "前の決定との整合",
+   "what": "書くのは SAS だけ・Git は読むだけ・DB はコミットしない・単発・引き継がないが既定・文脈のフォルダ contracts-and-instances・crate の名前は、どのステップでも保たれている。DB のファイルを .gitignore に入れる記述だけが無い。",
+   "fix": "ステップ0 の .gitignore に、SAS の DB の置き場所（設定で決める）を足す。",
+   "adopt": true
+  },
+  {
+   "id": "R12",
+   "weight": "軽い",
+   "where": "利用者の決まり",
+   "what": "main に直接・パスを明示・作業用の道具（dev-sim の run.py・fc-scripts・撮影のスクリプト）はコミットしない・各ステップはシミュレーターで見せて OK ならコミット、はどれも守られている。",
+   "fix": "変えない。",
+   "adopt": true
+  },
+  {
+   "id": "R13",
+   "weight": "軽い",
+   "where": "操作の記録の最小形をステップ1 に入れたこと",
+   "what": "依存の向きのいちばん下で、検証の成功時保証が『操作の記録に入り ID が返る』を求める。根拠は通る。",
+   "fix": "変えない。読む側（UC7）だけを最後に置く。",
+   "adopt": true
+  }
+ ],
+ "settled": {
+  "archive": "未コミットのうち実装側32件をコミット → タグ semantic-agent-schema-archive-2026-10-31（手元）→ target/ を消す → mkdir archive → git mv semantic-agent-schema archive/semantic-agent-schema-2026-10-31。0216 の11件は patch に保存して HEAD に戻す。",
+  "crates": "仮説は14。ステップ0 は最初に要る crate だけ。要ると分かった時点で足す",
+  "exit_criteria": 9,
+  "acdr_0216": "承認せず、新しい木で 0217 を起こして置き換える",
+  "uc4_6b": "unverified（人が決める）で返し、人の判定は受け取らない",
+  "step4_concrete": "従うインスタンスが残るあいだは消さない。x-relationship の記載は消す",
+  "ids_and_time": "outbound/sqlite が行を足すときに作る",
+  "mcp": "範囲の外",
+  "approach": "ユースケースから探索してドメインモデルを育てる。上からの設計は仮説。探索の記録はステップごとに docs/design/exploration/step-NN.json にコミット。構成はステップごとに見直す",
+  "step0": "根の Cargo.toml（virtual manifest）・architecture.json の検査・文脈のフォルダ・adapters-inbound-cli（空の sas）・test-support・持ち込み・探索の記録の形。UC4 に要る crate（conformance-application・conformance-domain・operation-recording-application・outbound-files・outbound-jsonschema・outbound-sqlite）は S1 で要ると分かって足す。conformance-domain は Concrete の集約を引き上げるときに足し、自明として最初から置く根拠を記録に書く"
+ }
+}
