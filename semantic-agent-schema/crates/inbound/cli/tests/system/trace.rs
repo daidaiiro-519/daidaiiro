@@ -166,8 +166,7 @@ pub fn check(root: &Path) -> Vec<String> {
         }
         let text = fs::read_to_string(&f).unwrap_or_default();
         for ad in [
-            "agents_contract",
-            "ai_cli",
+            "coding_agents",
             "semantic_agent_schema_git",
             "semantic_agent_schema_fs",
             "semantic_agent_schema_tools",

@@ -18,3 +18,18 @@ pub trait Judgments {
     /// 読めないとき
     fn intent_of(&self, change_id: &ChangeId) -> Result<Option<IntentJudgment>, String>;
 }
+
+/// rule の判定の記録を読む ・ 書く：文脈のリポジトリのファイル（judgment.schema.json の形。対象 × rule で1件、上書きで最後の1件）
+pub trait RuleJudgments {
+    /// 対象 × rule の判定の記録を置く。key はファイルの名前にもなる識別（<インスタンスの id>/<rule の id>）
+    ///
+    /// # Errors
+    /// 書けないとき
+    fn put_rule(&self, key: &str, record: &serde_json::Value) -> Result<(), String>;
+
+    /// 対象 × rule の判定の記録。無ければ None
+    ///
+    /// # Errors
+    /// 読めないとき
+    fn rule_of(&self, key: &str) -> Result<Option<serde_json::Value>, String>;
+}

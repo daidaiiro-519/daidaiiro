@@ -14,7 +14,7 @@
 |---|---|---|
 | crate の依存は `architecture.json` が許す辺だけにする | 依存の向きが外から中心へ揃っていないと、中心の変更理由が外の技術に引きずられる | `architecture-lint check --rules architecture.json --cargo .` が0件 |
 | domain の crate は値を受け取り値を返す。ファイル ・ 通信 ・ プロセス ・ 時刻に触らない | 中心が入出力に触ると、代役なしの単体テストで確かめられなくなる | `crates/domain/clippy.toml` の `disallowed-methods` ・ `disallowed-types`（`std::fs` ・ `std::net` ・ `std::process` ・ `std::time::SystemTime`）に clippy が0件 |
-| domain（Semantic Schema Validator を含む）は AI を起動しない。AI が判定する rule は Validator が依頼の一覧（needs）として返し、application の使う場面がポート（rule の判定を依頼する）で依頼する。判定させる AI を起動するのは、そのポートのアダプター（outbound/agents-contract が outbound/ai-cli で起動する）で、判定ごとに新しいセッションで起動する。答えは Validator の2段目に渡す | AI の起動が domain や Validator の中に入ると、判定の入力と出力が値として残らず、決定的な試験ができない | domain の crate に outbound の crate への辺が無い（architecture-lint）。Validator の公開関数が値だけを受け取る（単体テスト） |
+| domain（Semantic Schema Validator を含む）は任せる先を起動しない。任せる先に判定させる rule は Validator が呼び出し（call）の一覧として返し、application の使う場面がポート Delegates（任せる先を呼ぶ）で呼ぶ。起動するのはそのポートのアダプターで、argv のある任せる先は outbound/tools、無い任せる先は outbound/coding-agents（call をプロンプトに直し、judging は判定ごとに新しいセッションで起動する）。どちらで起動するかは compose が組む。呼び出しと出力の形（Agents 契約：call.schema.json と output-judging ・ output-working）は公開された言葉で、答えは Validator の2段目に渡す | AI の起動が domain や Validator の中に入ると、判定の入力と出力が値として残らず、決定的な試験ができない | domain の crate に outbound の crate への辺が無い（architecture-lint）。Validator の公開関数が値だけを受け取る（単体テスト） |
 | 起動時の結合は `crates/inbound/cli/src/compose.rs` の1か所に置く。`main.rs`（CLI）と `src/bin/mcp.rs`（MCP）は、引数を受け取って compose を呼ぶだけにする | 結合が2か所にあると、片方だけ直したときに振る舞いが食い違う。原典：「Rust projects that provide a binary have a straightforward _src/main.rs_ file that calls logic that lives in the _src/lib.rs_ file」（The Rust Programming Language 11.3） | ① outbound の外から outbound の crate に依存するのは cli だけ。outbound どうしの辺は architecture.json のとおり（architecture-lint）② cli の中で outbound の crate を `use` するのは compose.rs だけ（追跡の検査の grep） |
 
 ## 2. ワークスペースと crate
@@ -73,8 +73,8 @@
 | 代役は `crates/application/tests/use_cases/doubles/` にポート1つ1ファイルで置く。保存のポートは `FakeXxx`、外から答えを受け取るポートは `StubXxx` にする。呼び出しの順は確かめない | 呼び出しの順を確かめる試験は、実装を変えるたびに落ちる | 代役の型名が Fake か Stub で始まる |
 | テストの関数の名前は「条件_期待」の英語の snake_case にし、doc コメントに `/// traces: I45, U27:事後` を1行書く。本体に if ・ for ・ match を書かない | どの試験が落ちたら、どの不変条件と使う場面のリスクが残るかを引けるようにする。条件で分かれる試験は、何を確かめたかが読めない | 追跡の検査 |
 | 決定表は1列に1テスト、状態遷移は1テストに無効な遷移1つ | 1つの試験で複数を確かめると、どれが落ちたかが分からない | レビュー |
-| outbound の ai-cli の結合テストは、AI ツールの出力を記録したファイルで走らせる。記録は AI ツールの版を上げたときと月に1回取り直し、取り直した日と版を記録のファイルに書く | 本物の AI ツールを毎回呼ぶと、遅く、結果が揺れる。記録が古いと、AI ツールの出力の形が変わっても気づけない | 記録のファイルの取り直した日が31日以内（追跡の検査） |
-| システムテストは `test-suite/scenarios/*.json`（given ・ when ・ after ・ then ・ unchanged）に書き、`crates/inbound/cli/tests/system/` が1場面を1件のテストとして走らせる。場面ごとに一時ディレクトリを作り、HOME と XDG もその下に向ける。本物の AI ツールは呼ばない | 場面どうしが手元の DB を共有すると、走らせる順で結果が変わる | 夜間に逆順で走らせて同じ結果 |
+| outbound の coding-agents の結合テストは、コーディングエージェントの出力を記録したファイルで走らせる。記録はコーディングエージェントの版を上げたときと月に1回取り直し、取り直した日と版を記録のファイルに書く | 本物のコーディングエージェントを毎回呼ぶと、遅く、結果が揺れる。記録が古いと、コーディングエージェントの出力の形が変わっても気づけない | 記録のファイルの取り直した日が31日以内（追跡の検査） |
+| システムテストは `test-suite/scenarios/*.json`（given ・ when ・ after ・ then ・ unchanged）に書き、`crates/inbound/cli/tests/system/` が1場面を1件のテストとして走らせる。場面ごとに一時ディレクトリを作り、HOME と XDG もその下に向ける。本物のコーディングエージェントは呼ばない | 場面どうしが手元の DB を共有すると、走らせる順で結果が変わる | 夜間に逆順で走らせて同じ結果 |
 | 試験がまだ無い不変条件と使う場面の行は `test-suite/untested.json` に、why と move_when を付けて置く | 試験の無い行を黙って残さない | 追跡の検査：traces と untested.json の両方にある行 ・ どちらにも無い行 ・ trace.json に無い id を落とす |
 
 ## 8. 書式

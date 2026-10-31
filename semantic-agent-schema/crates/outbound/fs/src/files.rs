@@ -3,6 +3,7 @@
 use semantic_agent_schema_application::ports::change_summaries::ChangeSummaries;
 use semantic_agent_schema_application::ports::contracts::Contracts;
 use semantic_agent_schema_application::ports::instances::Instances;
+use semantic_agent_schema_application::ports::judgments::RuleJudgments;
 use serde_json::Value;
 use std::fs;
 use std::io::ErrorKind;
@@ -120,6 +121,23 @@ impl Instances for Files {
             }
         }
         Ok(out)
+    }
+}
+
+impl RuleJudgments for Files {
+    fn put_rule(&self, key: &str, record: &Value) -> Result<(), String> {
+        Contracts::write(
+            self,
+            &format!(".semantic-agent-schema/judgments/{key}.json"),
+            record,
+        )
+    }
+
+    fn rule_of(&self, key: &str) -> Result<Option<Value>, String> {
+        Contracts::read(
+            self,
+            &format!(".semantic-agent-schema/judgments/{key}.json"),
+        )
     }
 }
 

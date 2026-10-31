@@ -1,5 +1,6 @@
 //! Semantic Schema Validator（セマンティックスキーマバリデーター）
 
+use crate::values::call::{Call, CallRule, Input};
 use semantic_agent_schema_change::values::verdict::{Finding, SHAPE, Verdict};
 use semantic_agent_schema_declaration::aggregates::abstract_schema::{
     AbstractSchema, meta_schemas,
@@ -9,7 +10,7 @@ use semantic_agent_schema_declaration::aggregates::glossary::Glossary;
 use semantic_agent_schema_declaration::values::by::By;
 use semantic_agent_schema_instance::aggregates::instance::Instance;
 use semantic_agent_schema_resolver::services::resolver::resolve_term;
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
 /// 基盤の vocabulary（Abstract の本体が $vocabulary で必須にしている）。基盤がこれを実装する
@@ -438,6 +439,165 @@ pub fn introduced(before: &[Finding], after: &[Finding]) -> Vec<Finding> {
         .collect()
 }
 
+/// インスタンスの欄の場所（/a/b）から、Concrete の中の欄の定義の場所（/properties/a/properties/b）を出す
+fn schema_of(at: &str) -> String {
+    at.split('/')
+        .filter(|seg| !seg.is_empty())
+        .map(|seg| format!("/properties/{seg}"))
+        .collect()
+}
+
+/// Validator の1段目：インスタンスの rule のうち、judging の任せる先に判定させるものを、任せる先ごとの呼び出し（call）にまとめる。
+/// by が ai の行は agent（無ければ本体の judge）、by が machine の行は argv を持つ任せる先を指すときだけ入る。
+/// 読む値は rule の reads（無ければ rule を書いた欄）の写しだけ（I14 ・ I29）
+pub fn calls_for_instance(document: &Value, concrete: &ConcreteSchema, path: &str) -> Vec<Call> {
+    let delegates = concrete.delegates();
+    let mut groups: BTreeMap<String, (Vec<CallRule>, Vec<Input>)> = BTreeMap::new();
+    for rule in concrete.rules() {
+        let delegate = match rule.by() {
+            Some(By::Ai) => rule.agent().unwrap_or("judge").to_string(),
+            Some(By::Machine) => match rule.agent() {
+                Some(a)
+                    if delegates
+                        .iter()
+                        .any(|d| d.name() == a && d.kind() == "judging" && d.has_argv()) =>
+                {
+                    a.to_string()
+                }
+                _ => continue,
+            },
+            _ => continue,
+        };
+        let at = field_of(rule.pointer());
+        let row = concrete
+            .document()
+            .pointer(rule.pointer())
+            .cloned()
+            .unwrap_or(Value::Null);
+        let (rules, inputs) = groups.entry(delegate).or_default();
+        rules.push(CallRule::new(rule.id(), &at, &row));
+        let reads: Vec<String> = if rule.reads().is_empty() {
+            vec![at.clone()]
+        } else {
+            rule.reads().to_vec()
+        };
+        for r in reads {
+            if inputs.iter().any(|i| i.at() == r) {
+                continue;
+            }
+            let field = concrete.document().pointer(&schema_of(&r));
+            let pick = |k: &str| field.and_then(|f| f.get(k)).cloned().unwrap_or(Value::Null);
+            let read = field
+                .and_then(|f| f.pointer("/x-prompt/read"))
+                .cloned()
+                .unwrap_or(Value::Null);
+            inputs.push(Input::new(
+                &r,
+                document.pointer(&r).cloned().unwrap_or(Value::Null),
+                pick("description"),
+                read,
+            ));
+        }
+    }
+    groups
+        .into_iter()
+        .map(|(delegate, (rules, inputs))| Call::new(&delegate, path, rules, inputs))
+        .collect()
+}
+
+/// Validator の2段目：任せる先が返した出力を、呼び出しの rule ごとの結果にまとめる。
+/// 形が Abstract の output-judging（と任せる先の output が足す details）に合わなければ error。
+/// 結果が無い ・ 割れた ・ 根拠が無いか渡した値に無いものは unverified（I14）
+///
+/// # Errors
+/// 出力の形を照らす検証器を組めないとき（作り方の誤り）
+pub fn judged(
+    call: &Call,
+    output: &Value,
+    details: Option<&Value>,
+    by: By,
+    shipped: &[AbstractSchema],
+) -> Result<Vec<Finding>, String> {
+    let body = shipped
+        .iter()
+        .find(|a| a.is_body())
+        .ok_or("本体の Abstract が無い")?;
+    let mut shape = json!({"allOf": [{"$ref": format!("{}#output-judging", body.id())}]});
+    if let (Some(d), Some(all)) = (details, shape["allOf"].as_array_mut()) {
+        all.push(json!({"properties": {"results": {"items": {"properties": {"details": d}}}}}));
+    }
+    let checker = compile_with(&shape, shipped, &[])?;
+    let errors: Vec<String> = checker
+        .iter_errors(output)
+        .map(|e| format!("{} {}", e.instance_path(), e))
+        .collect();
+    if !errors.is_empty() {
+        return Ok(call
+            .rules()
+            .iter()
+            .map(|r| {
+                Finding::new(
+                    r.id(),
+                    r.at(),
+                    Verdict::Error,
+                    &format!(
+                        "答えの形が output-judging に合わない：{}",
+                        errors.join(" ／ ")
+                    ),
+                    by,
+                )
+            })
+            .collect());
+    }
+    let given: Vec<&str> = call.inputs().iter().map(Input::at).collect();
+    let results: Vec<&Value> = output["results"].as_array().into_iter().flatten().collect();
+    Ok(call
+        .rules()
+        .iter()
+        .map(|r| {
+            let mine: Vec<&&Value> = results.iter().filter(|x| x["rule"] == r.id()).collect();
+            let (verdict, why) = match mine.as_slice() {
+                [] => (
+                    Verdict::Unverified,
+                    "答えにこの rule の結果が無い".to_string(),
+                ),
+                many if many.iter().any(|x| x["result"] != many[0]["result"]) => {
+                    (Verdict::Unverified, "答えが割れた".to_string())
+                }
+                [one, ..] => {
+                    let grounds: Vec<&str> = one["grounds"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                        .collect();
+                    let reason = one["reason"].as_str().unwrap_or_default().to_string();
+                    if grounds.is_empty() {
+                        (Verdict::Unverified, format!("根拠が無い：{reason}"))
+                    } else if let Some(g) = grounds.iter().find(|g| {
+                        !given
+                            .iter()
+                            .any(|a| a == *g || g.starts_with(&format!("{a}/")))
+                    }) {
+                        (
+                            Verdict::Unverified,
+                            format!("根拠 {g} が渡した値に無い：{reason}"),
+                        )
+                    } else {
+                        let v = match one["result"].as_str() {
+                            Some("verified") => Verdict::Verified,
+                            Some("violated") => Verdict::Violated,
+                            _ => Verdict::Unverified,
+                        };
+                        (v, reason)
+                    }
+                }
+            };
+            Finding::new(r.id(), r.at(), verdict, &why, by)
+        })
+        .collect())
+}
+
 fn sorted(mut out: Vec<Finding>) -> Vec<Finding> {
     out.sort_by(|a, b| {
         a.pointer()
@@ -787,5 +947,129 @@ mod tests {
             decided_results("accepted", &["/status".to_string()]),
             vec!["verified"]
         );
+    }
+    fn delegating() -> semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema
+    {
+        let row = |id: &str, by: &str, agent: &str, reads: Value| json!({"id": id, "rule": "r", "why": "w", "test": "t", "by": by, "agent": agent, "reads": reads});
+        semantic_agent_schema_declaration::aggregates::concrete_schema::ConcreteSchema::from_document(json!({
+            "$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+            "$id": "urn:semantic-agent-schema:t:record:v1",
+            "x-delegates": {
+                "reviewer": {"role": "レビュー役", "run": {"kind": "judging"}, "output": {"type": "object", "required": ["findings"]}},
+                "lint": {"role": "検査", "run": {"kind": "judging", "argv": ["lint"]}}
+            },
+            "properties": {
+                "why": {"title": "なぜ", "description": "理由", "x-prompt": {"read": {"when": "w"}, "write": [row("names-both", "ai", "reviewer", json!(["/why", "/decision"]))]}},
+                "decision": {"title": "決定", "description": "決めたこと", "x-prompt": {"write": [row("no-means", "ai", "reviewer", json!([]))]}},
+                "docs": {"title": "文書", "description": "変えた文書", "x-prompt": {"write": [row("why-per-change", "machine", "lint", json!([]))]}},
+                "no": {"title": "番号", "description": "番号", "x-prompt": {"write": [{"id": "unique-no", "rule": "r", "why": "w", "test": "t", "by": "machine"}]}}
+            }
+        })).unwrap()
+    }
+
+    fn doc() -> Value {
+        json!({"why": "理由の文", "decision": "決定の文", "docs": [], "no": "0199"})
+    }
+
+    /// traces: I14
+    #[test]
+    fn calls_group_rules_by_delegate_and_copy_only_read_values() {
+        let calls = super::calls_for_instance(&doc(), &delegating(), "r/0199.json");
+        let shown: Vec<(String, Vec<String>, Vec<String>)> = calls
+            .iter()
+            .map(|c| {
+                (
+                    c.delegate().to_string(),
+                    c.rules().iter().map(|r| r.id().to_string()).collect(),
+                    c.inputs().iter().map(|i| i.at().to_string()).collect(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            shown,
+            vec![
+                (
+                    "lint".into(),
+                    vec!["why-per-change".into()],
+                    vec!["/docs".into()]
+                ),
+                (
+                    "reviewer".into(),
+                    vec!["no-means".into(), "names-both".into()],
+                    vec!["/decision".into(), "/why".into()]
+                ),
+            ]
+        );
+    }
+
+    fn answer(results: Value) -> Vec<Finding> {
+        let shipped = AbstractSchema::shipped().unwrap();
+        let calls = super::calls_for_instance(&doc(), &delegating(), "r/0199.json");
+        let reviewer = calls.iter().find(|c| c.delegate() == "reviewer").unwrap();
+        super::judged(
+            reviewer,
+            &json!({"results": results}),
+            Some(&json!({"type": "object", "required": ["findings"]})),
+            semantic_agent_schema_declaration::values::by::By::Ai,
+            &shipped,
+        )
+        .unwrap()
+    }
+
+    fn verdicts(f: &[Finding]) -> Vec<(String, Verdict)> {
+        f.iter()
+            .map(|x| (x.rule().to_string(), x.verdict()))
+            .collect()
+    }
+
+    /// traces: U10:事後
+    #[test]
+    fn answers_with_grounds_in_the_given_values_become_results() {
+        let f = answer(json!([
+            {"rule": "names-both", "result": "verified", "reason": "両方ある", "grounds": ["/why"], "details": {"findings": []}},
+            {"rule": "no-means", "result": "violated", "reason": "手段がある", "grounds": ["/decision"], "details": {"findings": []}}
+        ]));
+        assert_eq!(
+            verdicts(&f),
+            vec![
+                ("no-means".into(), Verdict::Violated),
+                ("names-both".into(), Verdict::Verified)
+            ]
+        );
+    }
+
+    /// traces: I14
+    #[test]
+    fn missing_split_or_ungrounded_answers_are_unverified() {
+        let f = answer(json!([
+            {"rule": "names-both", "result": "verified", "reason": "a", "grounds": ["/title"], "details": {"findings": []}},
+            {"rule": "no-means", "result": "verified", "reason": "a", "grounds": ["/decision"], "details": {"findings": []}},
+            {"rule": "no-means", "result": "violated", "reason": "b", "grounds": ["/decision"], "details": {"findings": []}}
+        ]));
+        assert_eq!(
+            verdicts(&f),
+            vec![
+                ("no-means".into(), Verdict::Unverified),
+                ("names-both".into(), Verdict::Unverified)
+            ]
+        );
+    }
+
+    /// traces: I14
+    #[test]
+    fn answer_out_of_shape_is_an_error() {
+        let f = answer(
+            json!([{"rule": "names-both", "result": "ok", "reason": "a", "grounds": ["/why"]}]),
+        );
+        assert!(f.iter().all(|x| x.verdict() == Verdict::Error));
+    }
+
+    /// traces: I14
+    #[test]
+    fn details_out_of_the_delegate_output_is_an_error() {
+        let f = answer(
+            json!([{"rule": "names-both", "result": "verified", "reason": "a", "grounds": ["/why"], "details": {}}]),
+        );
+        assert!(f.iter().all(|x| x.verdict() == Verdict::Error));
     }
 }
