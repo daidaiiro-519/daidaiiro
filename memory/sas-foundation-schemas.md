@@ -68,7 +68,7 @@ metadata:
 
 ## 次にすること
 - 2026-10-31：文脈を言葉のずれから引き直し、承認を受けてコミット 9519cffa。文脈は2つ ── スキーマとインスタンス（schemas-and-instances/：スキーマへの適合・操作の記録・描画）と立てたセッション（launched-sessions/：意味の操作、ステップ6 で作る）。根拠は「セッション」で同じ物を2つのモデルで持っていたこと。地図は docs/design/arch/arch-v15.json の context_map。承認のページ https://claude.ai/artifact/6v6k3qEciCCvsyTLYKKLhm 版6（シミュレーターの URL を使い回した。材料 scratchpad ctx-meaning/answer.json・review.json）。
-1. ステップ3（SAS を通らない変更：取り込み --adopt、検証での検出）を作り、シミュレーターで承認を受ける。
+1. ステップ3 はコミット済み 29f359e8（テスト75件・場面52件。止まった結果には次に打つコマンドを入れる。シミュレーター 6v6k3q… 版7、scratchpad step3-sim/）。次はステップ4（UC3 削除する。先に Concrete を消すときの振る舞いが決まっているかを確かめる）。re-uc.json の UC2 取り込み・UC4 の知らせの本文はまだ直していない。
 2. 後で扱う：ガイド Q3 への差し戻し案（最も広い文脈を言葉のずれの結果で決める・「同じ物を2つの目的で別のモデルにしているか」を問いに足す・切り出す単位と規則の優先）、土台を直す ACDR 0217（0216 を置き換える）、design.json の公開スキーマ session の kind（ステップ6）。
 
 ## 持ち越し
