@@ -10,11 +10,12 @@ use schemas_and_instances_operation_recording_application::ports::{
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// 表の作り方。版ごとに1つ足し、足したものは変えない。
-const MIGRATIONS: [&str; 3] = [
+/// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の CHECK を広げる変更だけは元の移行に入れた：CODING.md）。
+const MIGRATIONS: [&str; 4] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
     include_str!("../migrations/0003-adopt.sql"),
+    include_str!("../migrations/0004-delete.sql"),
 ];
 
 /// SQLite の操作の記録。
@@ -90,7 +91,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, target_kind, target_path, concrete_ref, request_id, before_hash, after_hash, refusal_code, refusal, intent, source \
+                "SELECT kind, target_kind, target_path, concrete_ref, request_id, before_hash, after_hash, refusal_code, refusal, intent, source, cause_id \
                  FROM operations WHERE id = ?1",
                 [operation],
                 |r| {
@@ -107,6 +108,7 @@ impl SqliteLog {
                         after: r.get(6)?,
                         refusal: code.zip(reason),
                         intent: r.get(9)?,
+                        cause: r.get(11)?,
                         fields: Vec::new(),
                     })
                 },
@@ -249,11 +251,11 @@ impl OperationLog for SqliteLog {
             .map_or((None, None), |(c, m)| (Some(c.as_str()), Some(m.as_str())));
         tx.execute(
             "INSERT INTO operations (id, session_id, seq, request_id, kind, target_kind, target_path, concrete_ref, \
-             before_hash, after_hash, refusal_code, refusal, intent, at, source) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+             before_hash, after_hash, refusal_code, refusal, intent, at, source, cause_id) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 id, session, seq, row.request_id, row.kind, row.target_kind, row.target_path, row.concrete,
-                row.before, row.after, code, reason, row.intent, now(), row.source
+                row.before, row.after, code, reason, row.intent, now(), row.source, row.cause
             ],
         )
         .map_err(|e| err(&e))?;
@@ -290,12 +292,36 @@ impl OperationLog for SqliteLog {
             .transpose()
     }
 
+    fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, session_id FROM operations WHERE cause_id = ?1 ORDER BY rowid")
+            .map_err(|e| err(&e))?;
+        let found: Vec<(String, String)> = stmt
+            .query_map([operation], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(|e| err(&e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| err(&e))?;
+        found
+            .into_iter()
+            .map(|(operation, session)| {
+                Ok(StoredChange {
+                    row: self.change_row(&operation)?,
+                    operation,
+                    session,
+                })
+            })
+            .collect()
+    }
+
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         let mut stmt = self
             .conn
             .prepare(
                 "SELECT id, session_id, at FROM operations \
                  WHERE kind IN ('create', 'update') AND refusal_code IS NULL AND target_path = ?1 \
+                   AND rowid > coalesce((SELECT max(rowid) FROM operations \
+                                         WHERE kind = 'delete' AND refusal_code IS NULL AND target_path = ?1), 0) \
                  ORDER BY rowid",
             )
             .map_err(|e| err(&e))?;

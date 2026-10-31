@@ -22,6 +22,12 @@ pub trait DocumentStore {
     /// # Errors
     /// 経路がリポジトリの外か SAS の記録を指す ・ 書けないとき。
     fn write(&self, path: &str, text: &str) -> Result<(), String>;
+
+    /// 文書を消す。消すのは SAS の use_cases だけ。
+    ///
+    /// # Errors
+    /// 経路がリポジトリの外か SAS の記録を指す ・ 無い ・ 消せないとき。
+    fn remove(&self, path: &str) -> Result<(), String>;
 }
 
 /// JSON Schema 2020-12 の検査器。SAS が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）は検査器の側が持つ。

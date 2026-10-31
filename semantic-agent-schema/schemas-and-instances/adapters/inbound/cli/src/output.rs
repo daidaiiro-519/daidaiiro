@@ -1,9 +1,9 @@
 //! 結果を JSON の1行にする（operation-result.schema.json の validation ・ change ・ error）。
 
 use schemas_and_instances_conformance_application::use_cases::documents::{
-    ChangeResult, Refused, Validation,
+    ChangeResult, Deletion, Refused, Validation,
 };
-use schemas_and_instances_conformance_domain::values::{Counts, RuleResult, Verdict};
+use schemas_and_instances_conformance_domain::values::{Counts, Diff, RuleResult, Verdict};
 use schemas_and_instances_operation_recording_application::ports::WriteRecord;
 use schemas_and_instances_operation_recording_application::use_cases::history::Interleaved;
 use serde_json::{Map, Value, json};
@@ -157,6 +157,60 @@ pub fn print_refused(r: &Refused) {
     if let Some(h) = &r.hint {
         out["hint"] = json!(h);
     }
+    if let Some(blocked) = &r.blocked {
+        out["blocked"] = blocked
+            .iter()
+            .map(|b| json!({"path": b.path, "code": b.code, "message": b.message, "hint": b.hint}))
+            .collect();
+    }
+    println!("{out}");
+}
+
+fn changes(d: &Diff) -> Value {
+    d.changes()
+        .iter()
+        .map(|f| {
+            let mut v = json!({"pointer": f.pointer(), "change": f.change().as_str()});
+            if let Some(b) = f.before() {
+                v["before"] = b.clone();
+            }
+            if let Some(a) = f.after() {
+                v["after"] = a.clone();
+            }
+            v
+        })
+        .collect()
+}
+
+/// 削除の結果を出す。diff は消す前の状態（根の欄ごとの remove）で、事後を持たない。
+pub fn print_deletion(d: &Deletion) {
+    let out = json!({
+        "$schema": "urn:semantic-agent-schema:base:operation-result:v1",
+        "kind": "change",
+        "session": d.session,
+        "operation": d.operation,
+        "result": "deleted",
+        "replayed": d.replayed,
+        "target": {"kind": d.kind.as_str(), "path": d.path, "concrete": d.concrete},
+        "diff": {
+            "source": "sas",
+            "before": {"fingerprint": d.before.as_str()},
+            "changes": changes(&d.diff),
+        },
+        "references": d.references.iter().map(|r| json!({
+            "operation": r.operation,
+            "cause": d.operation,
+            "target": {"kind": "instance", "path": r.path, "concrete": r.concrete},
+            "diff": {
+                "source": "sas",
+                "before": {"fingerprint": r.before.as_str()},
+                "after": {"fingerprint": r.after.as_str()},
+                "changes": changes(&r.diff),
+            },
+        })).collect::<Vec<_>>(),
+        "stale_rules": [],
+        "violated_instances": [],
+    });
     println!("{out}");
 }
 

@@ -21,6 +21,7 @@ fn change(kind: &str, source: &str, before: Option<&str>, after: &str) -> Change
         after: Some(after.into()),
         refusal: None,
         intent: Some("エディターで直した".into()),
+        cause: None,
         fields: Vec::new(),
     }
 }

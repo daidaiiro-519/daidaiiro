@@ -8,25 +8,25 @@
    "name": "schemas-and-instances-conformance-domain",
    "path": "schemas-and-instances/conformance/domain",
    "layer": "domain",
-   "role": "業務領域「スキーマへの適合」のドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（指紋 ・ 5つの値 ・ rule の結果 ・ 差分 ・ 書く条件の外れ）、サービス（当たる rule ・ 参照の先）"
+   "role": "業務領域「スキーマへの適合」のドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（指紋 ・ 5つの値 ・ rule の結果 ・ 差分 ・ 書く条件の外れ）、サービス（当たる rule ・ 参照の先 ・ 参照元を探す）"
   },
   {
    "name": "schemas-and-instances-conformance-application",
    "path": "schemas-and-instances/conformance/application",
    "layer": "application",
-   "role": "UC4 検証する ・ UC1 作成する ・ UC2 更新する（機械。use_cases/documents.rs と、JSON Patch を当てる documents/patch.rs）、取り込み（adopt）・ 入力が変わった rule だけの検証（validate_stale）と、ポート DocumentStore ・ SchemaChecker ・ CommitReader"
+   "role": "UC4 検証する ・ UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/documents.rs と、参照元の記載も消す documents/delete.rs と、JSON Patch を当てる documents/patch.rs）、取り込み（adopt）・ 入力が変わった rule だけの検証（validate_stale）と、ポート DocumentStore ・ SchemaChecker ・ CommitReader"
   },
   {
    "name": "schemas-and-instances-operation-recording-application",
    "path": "schemas-and-instances/operation-recording/application",
    "layer": "application",
-   "role": "操作の記録の追記（use_cases/history.rs。検証と、作成 ・ 更新）と、ポート IdentifyCaller ・ OperationLog"
+   "role": "操作の記録の追記（use_cases/history.rs。検証と、作成 ・ 更新 ・ 削除）と、ポート IdentifyCaller ・ OperationLog"
   },
   {
    "name": "schemas-and-instances-adapters-outbound-files",
    "path": "schemas-and-instances/adapters/outbound/files",
    "layer": "outbound",
-   "role": "DocumentStore の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換える"
+   "role": "DocumentStore の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す"
   },
   {
    "name": "schemas-and-instances-adapters-outbound-jsonschema",
@@ -38,7 +38,7 @@
    "name": "schemas-and-instances-adapters-outbound-sqlite",
    "path": "schemas-and-instances/adapters/outbound/sqlite",
    "layer": "outbound",
-   "role": "OperationLog の実装。.sas/sas.db へ追記し（検証 ・ 作成 ・ 更新と変わった欄）、ID と時刻を作る。request_id と前の判定を引く。取り込み（source = outside）と、判定が読んだ所の指紋（reads_hash）"
+   "role": "OperationLog の実装。.sas/sas.db へ追記し（検証 ・ 作成 ・ 更新 ・ 削除と変わった欄、削除を原因とする書き換え）、ID と時刻を作る。request_id と前の判定を引く。取り込み（source = outside）と、判定が読んだ所の指紋（reads_hash）"
   },
   {
    "name": "schemas-and-instances-adapters-outbound-git",

@@ -22,6 +22,7 @@ fn update(request_id: Option<&str>) -> ChangeRow {
         after: Some("sha256:b".into()),
         refusal: None,
         intent: Some("目標を直す".into()),
+        cause: None,
         fields: vec![FieldRow {
             pointer: "/goal".into(),
             change: "replace".into(),
@@ -198,7 +199,7 @@ fn step1_database_is_moved_with_its_rows() {
         .connection()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 3);
+    assert_eq!(version, 4);
     let last = log.last_judgments("u1.json").unwrap();
     assert_eq!(last.len(), 1);
     assert_eq!(

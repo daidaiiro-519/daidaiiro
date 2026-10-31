@@ -1,0 +1,79 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC3-REQUEST-ID",
+ "name": "同じ依頼の削除をやり直す",
+ "title": "同じ request_id で2回消すと、2回目は消さずに1回目の削除と書き換えを返す",
+ "why": "応答を受け取れずにやり直した呼び出し元が、存在しない対象で止まったり、記録を二重にしたりしないため。",
+ "traces": [
+  "UC3:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "usecases/u2.json": "@fixtures/u2-calls-u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "delete",
+   "usecases/u1.json",
+   "--intent",
+   "U1 は U2 に統合した",
+   "--request-id",
+   "r-del-1"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "delete",
+    "usecases/u1.json",
+    "--intent",
+    "U1 は U2 に統合した",
+    "--request-id",
+    "r-del-1"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/replayed",
+   "equals": false
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/replayed",
+   "equals": true
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/references",
+   "count": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/references/0/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/diff/changes",
+   "count": 4
+  }
+ ]
+}

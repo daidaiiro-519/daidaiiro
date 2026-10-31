@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:base:operation-result:v1",
  "title": "sas が返す結果",
- "description": "sas のコマンドが標準出力へ返す JSON の1行。kind で、検証の結果（validation）・ 作成と更新の結果（change）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。$defs はステップごとに足す",
+ "description": "sas のコマンドが標準出力へ返す JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。$defs はステップごとに足す",
  "type": "object",
  "required": [
   "$schema",
@@ -392,10 +392,9 @@
   },
   "diff": {
    "type": "object",
-   "description": "前後の中身から JSON Pointer ごとに求めた差分（Git の行の差分は使わない）。作成では before が無い。更新の取り込みの前の値は、記録の最後の事後と同じ中身のコミットから取る",
+   "description": "前後の中身から JSON Pointer ごとに求めた差分（Git の行の差分は使わない）。作成では before が無い。更新の取り込みの前の値は、記録の最後の事後と同じ中身のコミットから取る。削除では after が無く、changes は消す前の根の欄ごとの remove",
    "required": [
     "source",
-    "after",
     "changes"
    ],
    "additionalProperties": false,
@@ -450,15 +449,16 @@
     "operation": {
      "type": "string",
      "pattern": "^o-[0-9]{4,}$",
-     "description": "作成か更新の操作の ID"
+     "description": "作成 ・ 更新 ・ 削除の操作の ID"
     },
     "result": {
      "enum": [
       "created",
       "updated",
-      "adopted"
+      "adopted",
+      "deleted"
      ],
-     "description": "adopted は SAS を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる"
+     "description": "adopted は SAS を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる。deleted は消した（diff は消す前の状態で after を持たない。references に記載を消した参照元が入る）"
     },
     "replayed": {
      "type": "boolean",
@@ -542,8 +542,104 @@
        }
       }
      }
+    },
+    "references": {
+     "type": "array",
+     "description": "削除で記載を消した参照元（記録した順）。それぞれ削除を原因（cause）とする同じセッションの update",
+     "items": {
+      "type": "object",
+      "required": [
+       "operation",
+       "cause",
+       "target",
+       "diff"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "operation": {
+        "type": "string",
+        "pattern": "^o-[0-9]{4,}$",
+        "description": "参照元の書き換えの操作の ID"
+       },
+       "cause": {
+        "type": "string",
+        "pattern": "^o-[0-9]{4,}$",
+        "description": "原因の削除の操作の ID"
+       },
+       "target": {
+        "type": "object",
+        "required": [
+         "kind",
+         "path",
+         "concrete"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "kind": {
+          "enum": [
+           "concrete",
+           "instance"
+          ]
+         },
+         "path": {
+          "type": "string",
+          "description": "リポジトリの根からの経路"
+         },
+         "concrete": {
+          "type": "string",
+          "description": "従う Concrete の $id（Concrete なら Abstract の版）"
+         }
+        }
+       },
+       "diff": {
+        "$ref": "#/$defs/diff"
+       }
+      }
+     }
     }
-   }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "result": {
+        "const": "deleted"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "references"
+      ],
+      "properties": {
+       "diff": {
+        "required": [
+         "before"
+        ],
+        "not": {
+         "required": [
+          "after"
+         ]
+        }
+       }
+      }
+     },
+     "else": {
+      "not": {
+       "required": [
+        "references"
+       ]
+      },
+      "properties": {
+       "diff": {
+        "required": [
+         "after"
+        ]
+       }
+      }
+     }
+    }
+   ]
   },
   "error": {
    "type": "object",
@@ -580,9 +676,12 @@
       "recorded",
       "not_recorded",
       "nothing_to_adopt",
-      "versions"
+      "versions",
+      "has_dependents",
+      "references_blocked",
+      "references_left"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、操作として記録し、session と operation を返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、操作として記録し、session と operation を返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents ・ references_blocked は止めた削除（Concrete に従うインスタンスか指している Concrete がある ・ 参照元の記載を消せない）で、操作として記録し、blocked に理由になった文書を返す。references_left は対象を消して記録したあと参照元を書けなかったことで、残った参照元を blocked に返す"
     },
     "path": {
      "type": "string"
@@ -609,6 +708,48 @@
      "type": "string",
      "minLength": 1,
      "description": "次にすることの案内（SAS を通らない変更を取り込むコマンド、人が取り込むコマンド）"
+    },
+    "blocked": {
+     "type": "array",
+     "minItems": 1,
+     "description": "削除を止めた理由になった文書（と、片付けるコマンド）。has_dependents ・ references_blocked ・ references_left だけが持つ",
+     "items": {
+      "type": "object",
+      "required": [
+       "path",
+       "code",
+       "message",
+       "hint"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "path": {
+        "type": "string"
+       },
+       "code": {
+        "enum": [
+         "follows",
+         "points_to",
+         "conflict",
+         "invalid_value",
+         "human_field",
+         "id_changed",
+         "derived_mismatch",
+         "left"
+        ],
+        "description": "follows は Concrete に従うインスタンス、points_to は x-relationship で Concrete を指す Concrete、left は書けずに残った参照元。ほかは参照元の記載を消した姿が外れる理由"
+       },
+       "message": {
+        "type": "string",
+        "minLength": 1
+       },
+       "hint": {
+        "type": "string",
+        "minLength": 1,
+        "description": "次に打つコマンド"
+       }
+      }
+     }
     }
    },
    "allOf": [
@@ -623,7 +764,10 @@
          "id_changed",
          "human_field",
          "derived_mismatch",
-         "published_changed"
+         "published_changed",
+         "has_dependents",
+         "references_blocked",
+         "references_left"
         ]
        }
       }
@@ -665,6 +809,32 @@
       "not": {
        "required": [
         "interleaved"
+       ]
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "code": {
+        "enum": [
+         "has_dependents",
+         "references_blocked",
+         "references_left"
+        ]
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "blocked",
+       "hint"
+      ]
+     },
+     "else": {
+      "not": {
+       "required": [
+        "blocked"
        ]
       }
      }

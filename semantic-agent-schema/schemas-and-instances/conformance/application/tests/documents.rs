@@ -39,6 +39,13 @@ impl DocumentStore for Files {
         self.0.borrow_mut().insert(path.into(), text.into());
         Ok(())
     }
+    fn remove(&self, path: &str) -> Result<(), String> {
+        self.0
+            .borrow_mut()
+            .remove(path)
+            .map(|_| ())
+            .ok_or_else(|| format!("{path} が無い"))
+    }
 }
 
 /// 形の検査はいつも通す代役。Abstract は根に by: human と by: machine の rule を1つずつ持つ。
@@ -109,11 +116,33 @@ impl OperationLog for Log {
                 row: r.clone(),
             }))
     }
-    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+    fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String> {
         Ok(self
             .1
             .iter()
-            .filter(|(_, r)| r.target_path == target_path && r.refusal.is_none())
+            .filter(|(_, r)| r.cause.as_deref() == Some(operation))
+            .map(|(id, r)| StoredChange {
+                operation: id.clone(),
+                session: "s-1".into(),
+                row: r.clone(),
+            })
+            .collect())
+    }
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+        let from = self
+            .1
+            .iter()
+            .rposition(|(_, r)| {
+                r.target_path == target_path && r.kind == "delete" && r.refusal.is_none()
+            })
+            .map_or(0, |i| i + 1);
+        Ok(self.1[from..]
+            .iter()
+            .filter(|(_, r)| {
+                r.target_path == target_path
+                    && r.refusal.is_none()
+                    && (r.kind == "create" || r.kind == "update")
+            })
             .map(|(id, r)| WriteRecord {
                 operation: id.clone(),
                 session: "s-1".into(),

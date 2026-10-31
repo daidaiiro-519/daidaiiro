@@ -1,0 +1,199 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 4,
+ "date": "2026-10-31",
+ "summary": "UC3 削除する（機械）を、場面12件を先に書いてステップ3 の sas で12件とも失敗することを確かめてから作った。先に決めること（従うインスタンスのある Concrete の削除）は概念のページ版15 ・ design.json ・ re-uc に決まりが無かったので、usecase-advisor と ddd-advisor に聞き、反証して1つにした：Concrete に従うインスタンスか、x-relationship で指す別の Concrete があれば、何も消さずに止めて一覧と片付けるコマンドを返す。インスタンスの削除は、参照元の記載を全部消せると確かめてから、対象を消して delete（事前の状態を根の欄ごとの remove で残す）を記録し、参照元を1件ずつ書いて、削除を原因（cause_id）とする同じセッションの update を記録する",
+ "usecases": [
+  "UC3"
+ ],
+ "factchecks": [
+  {
+   "item": "SQLite で、外部キーを持つ欄（cause_id REFERENCES operations）を ALTER TABLE … ADD COLUMN で足せるか。trigger の付け直し方",
+   "evidence": [
+    "原典 https://www.sqlite.org/lang_altertable.html（取得 2026-10-31、3,719 行、sha256 540366b0…）3400〜3402行「If foreign key constraints are enabled and a column with a REFERENCES clause is added, the column must have a default value of NULL.」（3402行を quote で照合）",
+    "同 3516行「If foreign key constraints are enabled, disable them using PRAGMA foreign_keys=OFF.」（quote で照合。移行のあいだ SqliteLog::with が止めている）",
+    "原典 https://www.sqlite.org/lang_createtrigger.html（取得 2026-10-31、4,457 行）4195行「Triggers are removed using the DROP TRIGGER statement.」（quote で照合。0004 は取り込みの trigger 2つと field_changes_only_written を DROP TRIGGER してから作り直した）",
+    "実地の試験 adapters/outbound/sqlite/tests/delete_rows.rs（4件）・ change_rows.rs の step1_database_is_moved_with_its_rows（ステップ1 の DB が版4 まで移る）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC3 削除する（機械）：conformance/application/src/use_cases/documents/delete.rs の delete",
+   "steps": [
+    "request_id があり、同じ request_id の操作が記録にあれば、消さずにその削除と、それを原因とする書き換え（caused_by）を返す",
+    "対象を読み、$schema から Concrete かインスタンスかを見分ける",
+    "前提の指紋（--if-match か、SAS が最後に書いた事後）といまの指紋を比べる。違えば消さずに conflict を記録し、間に入った変更と、取り込んでから消す ・ 打ち直す案内を返す",
+    "Concrete なら：公開した欄があれば published_changed で止める。従うインスタンス（follows）と、x-relationship で指している別の Concrete（points_to）を探し、1つでもあれば has_dependents を記録して、文書ごとの片付けるコマンドを blocked に返す",
+    "インスタンスなら：x-relationship.to が対象の Concrete を指す欄に、対象の id を持つ参照元を探す。参照元ごとに、SAS を通らない変更が無いか ・ 記載を外した姿が型に従うか ・ 書く条件（人の欄 ・ id ・ 導出値）に外れないかを確かめる。1つでも外れれば何も変えずに references_blocked を記録し、参照元ごとの理由と次のコマンドを blocked に返す",
+    "対象を消し、delete を記録する（事前の指紋と、事前の状態を根の欄ごとの remove で。事後は無い）",
+    "参照元を1件ずつ書き、削除を原因（cause_id）とする同じセッションの update を記録する（意図は「<対象> を消したので、指している記載を消す」、request_id は持たない）。途中で書けなければ references_left と、残った参照元を返す"
+   ],
+   "rules": [
+    "従うインスタンスか指している Concrete がある Concrete は消さない（機械では、インスタンスを消すか移すかを決められない）",
+    "公開した欄を持つ Concrete は消さない（ほかの文脈が読む）",
+    "参照元の記載を1つでも消せないなら、対象も参照元も変えない",
+    "配列の要素は後ろの添字から外し、1つの値の欄は欄ごと外す",
+    "人の欄にある記載は、人の入口からだけ消す",
+    "消す前の指紋の決まりは更新と同じ（SAS を通らない変更は取り込んでから消す）",
+    "消すと記録のつながりが切れる。書いた操作の並びと取り込みの決まりは、最後の削除より後だけを見る",
+    "なぜ消すか（--intent）は必須"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "参照元を探す（インスタンスの中の、ある Concrete の id を指す欄）",
+   "became": "service",
+   "evident_from_start": true,
+   "why": "いくつもの集約（Concrete と、参照元のインスタンス）を読む計算で、状態を持たない。仮説の『サービス relationship（指す先の実在 ・ 参照元を探す）』のとおり、references_to として relationship に足した"
+  },
+  {
+   "what": "Concrete を指す別の Concrete を探す",
+   "became": "service",
+   "evident_from_start": true,
+   "why": "同じく、Concrete の x-relationship の to を読むだけの計算。check_targets と同じ走査を relationship_targets として出した"
+  },
+  {
+   "what": "公開した Concrete を消さない",
+   "became": "aggregate",
+   "evident_from_start": false,
+   "why": "Concrete が自分の欄だけで決められる、書く条件（公開した欄を同じ版のまま変えない）と同じ理由の決まり。ConcreteSchema::check_delete にした"
+  },
+  {
+   "what": "従うインスタンスのある Concrete を消さない",
+   "became": "script",
+   "why": "Concrete の集約は、自分に従うインスタンスを知らない（ID で指される側）。集約の不変条件にすると Concrete がインスタンスの集合を内側に持つことになる（ddd-advisor：他の集約は ID で参照する）。業務サービスの答えを使って、削除の手続きが判定する"
+  },
+  {
+   "what": "参照元の記載を外した姿を確かめる",
+   "became": "script",
+   "why": "確かめるのは、インスタンスの集約の書く条件（check_write）と形の検査をそのまま使うこと。新しい決まりは無い"
+  },
+  {
+   "what": "削除と参照元の書き換えの順と記録",
+   "became": "script",
+   "why": "ファイルをまたぐトランザクションが無いので、1つのトランザクションで変える集約は1つにし、先に全部確かめてから集約ごとに書いて cause_id でつなぐ（ddd-advisor：複数の集約の状態は集約ごとに別々にコミットする）"
+  },
+  {
+   "what": "削除を止めた理由になった文書（Blocked）",
+   "became": "script",
+   "why": "出力の形で、domain の決まりを持たない。Refused に足した"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "インスタンスが従う Concrete を消すときの振る舞い（plan.json の check_first）",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "版15 ・ design.json ・ re-uc のどれにも無かった。usecase-advisor（scratchpad step4-uc/answer.json）と ddd-advisor（step4-ddd/answer.json）の答えを反証し、拡張 2a で止めると決めた。反証で外した案：連鎖して消す（書いた人の中身が1つの操作で失われる）・ Concrete だけ消す（インスタンスが検証できなくなり UC0 の保証が黙って破れる）"
+  },
+  {
+   "item": "re-uc の UC3 の最低保証「ほかから参照される対象は消さず、参照元を返す（推測）」",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "後の版15 が『削除は参照している所も消す』と決めたので、インスタンスの参照元については置き換わった。Concrete に頼っている文書があるときだけ、この推測と同じ振る舞いが残る。re-uc の本文はまだ直していない"
+  },
+  {
+   "item": "design.json の集約3 ⑤「delete の事後は無し。参照元の書き換えは同じセッションの続きの update」",
+   "result": "match",
+   "fixed": "none",
+   "note": "CHECK と trigger（operations_cause_is_delete）で守った。原因を持つ書き換えは request_id を持たない、を足した（1つの依頼に操作は1回で、それは削除の側）"
+  },
+  {
+   "item": "operation-request の delete（path ・ intent）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "intent を必須にした（消すと中身は記録の事前の状態にしか残らない）。if_match を足した（更新と同じ前提の指紋の決まり）。design.json を直した"
+  },
+  {
+   "item": "operation-result の change.references: [change]",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "作った。中身は {operation, cause, target, diff} にした（stale_rules などは削除に伴う書き換えでは返さない）。止めた削除のための error.blocked を足した"
+  },
+  {
+   "item": "人の欄 ・ SAS を通らない変更 ・ 型に外れる参照元",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "仮説は参照元の書き換えを無条件の update としていた。更新と同じ書く条件をそのまま当て、1つでも外れれば全体を止める拡張 3a にした"
+  },
+  {
+   "item": "消したあとの記録のつながり（取り込みの trigger と writes）",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "消したあとに同じ経路へ置いたファイルを、作成として取り込めなかった。最後の削除より後だけを見るよう、0004 で trigger を作り直し、writes を直した（S-UC3-RECREATE）"
+  },
+  {
+   "item": "サービス relationship に参照元を探す（arch-v15）",
+   "result": "match",
+   "fixed": "none"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "参照 ・ 参照元",
+   "seen": "概念のページ『参照している所の記載も消す』、design.json『削除で直した参照元』、コードの relationship",
+   "drift": "x-relationship で指す記載（インスタンスの欄の値）と、Concrete の x-relationship.to（型どうしの指し先）の2つを指す。同じモデル（指す関係）の、インスタンスの層と Concrete の層の別の面なので、文脈の境界ではない。出力では前者を references、後者を blocked の points_to と呼び分けた"
+  },
+  {
+   "term": "消す ・ 削除",
+   "seen": "UC3、sas delete、DocumentStore::remove",
+   "drift": "ずれは無い。対象を消すことだけを指す。参照元の記載を外すことは『記載を消す』と呼び、操作としては update（cause 付き）にした"
+  },
+  {
+   "term": "止める ・ 断る",
+   "seen": "has_dependents ・ references_blocked と、ステップ2 の conflict ・ human_field",
+   "drift": "どれも『何も変えずに理由を記録して返す』で同じ意味。文脈の境界を動かすずれは無い"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "ポート DocumentStore",
+    "before": "list ・ read ・ write",
+    "after": "remove を足した",
+    "why": "対象を消すため。リポジトリの外と降りないフォルダは書くときと同じ決まりで断る"
+   },
+   {
+    "what": "ポート OperationLog",
+    "before": "行は create ・ update と validate",
+    "after": "行に delete と cause を足し、caused_by（削除を原因とする操作）を足した。writes は最後の削除より後だけを返す",
+    "why": "削除と、削除に伴う書き換えの記録と、やり直しで返すため"
+   },
+   {
+    "what": "conformance-application",
+    "before": "validate ・ create ・ update ・ adopt ・ validate_stale",
+    "after": "documents/delete.rs に delete を足した。Refused に blocked を足し、session を Box<str> にした（clippy の result_large_err の上限に収めるため）",
+    "why": "UC3"
+   },
+   {
+    "what": "conformance-domain",
+    "before": "サービス relationship は check_targets ・ check_relationships",
+    "after": "references_to ・ relationship_targets を足した。ConcreteSchema に check_delete を足した",
+    "why": "参照元を探すのは業務サービス、公開した Concrete を消さないのは集約の決まり"
+   },
+   {
+    "what": "sqlite の移行",
+    "before": "0001〜0003",
+    "after": "0002 の kind の CHECK に delete を足し（公開前）、0004 で cause_id と trigger を足した",
+    "why": "operations を作り直すと、ほかの表の trigger を全部付け直すことになる。公開前なので元の移行に入れた（CODING.md に足した）"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "Concrete に頼っている文書を、移す先の Concrete へ移す手順",
+    "why": "どこへ移すかは意味の判断で、機械だけの UC3 の外。止めて一覧を返すまでにした"
+   }
+  ],
+  "context": {
+   "name": "スキーマとインスタンス",
+   "scope": "スキーマへの適合 ・ 操作の記録 ・ 描画",
+   "name_signs": [],
+   "scope_signs": [],
+   "view": "このステップで出た語（参照 ・ 参照元 ・ 消す ・ 止める）に、同じ語を別のモデルで持つずれは無かった。名前も範囲も変えない"
+  }
+ }
+}

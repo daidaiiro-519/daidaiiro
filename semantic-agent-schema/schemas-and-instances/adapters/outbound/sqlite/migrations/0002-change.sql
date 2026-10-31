@@ -2,6 +2,7 @@
 -- operations の kind の CHECK を広げるため、表を作り直して行を移す（SQLite は CHECK を ALTER で変えられない）。
 -- 移すあいだは外部キーの検査を止める（SqliteLog::with が止め、移したあとに foreign_key_check で確かめる）。
 -- 断った操作（refusal_code がある）は対象を変えないので、事前と事後の指紋が同じ。
+-- delete（ステップ4）は公開前に kind の CHECK へ足した（表を作り直すと、ほかの表の trigger を付け直すことになるため）。消した操作の事後は無い。
 -- intent は呼ぶ側が渡した意図（なぜその操作をしたか）。間に入った変更を返すときに、後の書き手が読む。
 
 CREATE TABLE operations_next (
@@ -9,7 +10,7 @@ CREATE TABLE operations_next (
     session_id   TEXT NOT NULL REFERENCES sessions (id),
     seq          INTEGER NOT NULL CHECK (seq >= 1),
     request_id   TEXT,
-    kind         TEXT NOT NULL CHECK (kind IN ('validate', 'create', 'update')),
+    kind         TEXT NOT NULL CHECK (kind IN ('validate', 'create', 'update', 'delete')),
     target_kind  TEXT NOT NULL CHECK (target_kind IN ('concrete', 'instance')),
     target_path  TEXT NOT NULL,
     concrete_ref TEXT,
@@ -26,7 +27,9 @@ CREATE TABLE operations_next (
     CHECK (kind = 'validate' OR concrete_ref IS NOT NULL),
     CHECK (kind <> 'create' OR before_hash IS NULL),
     CHECK (kind <> 'update' OR before_hash IS NOT NULL),
-    CHECK (kind = 'validate' OR refusal_code IS NOT NULL OR after_hash IS NOT NULL),
+    CHECK (kind <> 'delete' OR before_hash IS NOT NULL),
+    CHECK (kind IN ('validate', 'delete') OR refusal_code IS NOT NULL OR after_hash IS NOT NULL),
+    CHECK (kind <> 'delete' OR refusal_code IS NOT NULL OR after_hash IS NULL),
     CHECK (refusal_code IS NULL OR before_hash IS after_hash)
 ) STRICT;
 

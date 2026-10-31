@@ -45,6 +45,9 @@ impl OperationLog for Memory {
     fn find_request(&self, _: &str) -> Result<Option<StoredChange>, String> {
         Ok(None)
     }
+    fn caused_by(&self, _: &str) -> Result<Vec<StoredChange>, String> {
+        Ok(Vec::new())
+    }
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         Ok(self
             .changes
@@ -107,6 +110,7 @@ fn change(before: Option<&str>, after: Option<&str>, refused: bool) -> ChangeRow
         after: after.map(Into::into),
         refusal: refused.then(|| ("conflict".into(), "指紋が違う".into())),
         intent: None,
+        cause: None,
         fields: Vec::new(),
     }
 }

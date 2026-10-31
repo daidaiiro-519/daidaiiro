@@ -36,6 +36,7 @@
 | serde_json は `preserve_order` で使い、オブジェクトから欄を除くときは `shift_remove` を使う。書き戻した文書の欄の並びを変えないため | serde_json 1.0.154 src/map.rs:3〜4・160〜164（探索の記録 step-02） |
 | SQLite の表の CHECK を変える移行は、表を作り直して行を移す。移すあいだは外部キーの検査を止め、コミットの前に `pragma_foreign_key_check` で確かめる | SQLite の ALTER TABLE の文書 8節「Making Other Kinds Of Table Schema Changes」の手順（探索の記録 step-02） |
 | ほかの表の trigger が読む表（operations）は作り直さず、欄を足す（`ALTER TABLE … ADD COLUMN`）。欄をまたぐ決まりは trigger で拒む。作り直すのは、どの trigger からも読まれない表だけ | 作り直すと、ほかの表の trigger も消して付け直すことになる（探索の記録 step-03） |
+| 公開する前は、operations の kind の CHECK に種類を足す変更（delete と、その行の CHECK）を、元の移行（0002）に入れてよい。手元の `.sas/sas.db` は消して作り直す | 公開前で使う人がいない。作り直すと、ほかの表の trigger を全部付け直すことになる（探索の記録 step-04）。公開したあとは、表を作り直す移行を足す |
 | Git は outbound の git だけが、git コマンドで読む（`git log` ・ `git cat-file --filters`）。ライブラリを足さず、Git に書き込むコマンドを呼ばない | 探索の記録 step-03 の照合 |
 
 ## 確かめるコマンド

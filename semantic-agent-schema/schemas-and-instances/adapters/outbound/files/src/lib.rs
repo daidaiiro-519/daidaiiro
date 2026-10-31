@@ -57,20 +57,7 @@ impl DocumentStore for WorkingTree {
     }
 
     fn write(&self, path: &str, text: &str) -> Result<(), String> {
-        let parts: Vec<&str> = path.split('/').collect();
-        if path.is_empty()
-            || path.starts_with('/')
-            || path.contains('\\')
-            || parts
-                .iter()
-                .any(|p| p.is_empty() || *p == "." || *p == "..")
-            || parts.iter().any(|p| SKIP.contains(p))
-        {
-            return Err(format!(
-                "{path} には書かない（リポジトリの根からの相対の経路で、{} の中でないものだけ）",
-                SKIP.join(" ・ ")
-            ));
-        }
+        inside(path, "書かない")?;
         let to = self.root.join(path);
         if let Some(dir) = to.parent() {
             std::fs::create_dir_all(dir)
@@ -88,4 +75,28 @@ impl DocumentStore for WorkingTree {
             format!("{path} を置き換えられない：{e}")
         })
     }
+
+    fn remove(&self, path: &str) -> Result<(), String> {
+        inside(path, "消さない")?;
+        std::fs::remove_file(self.root.join(path)).map_err(|e| format!("{path} を消せない：{e}"))
+    }
+}
+
+/// 書く ・ 消す経路が、リポジトリの根からの相対で、降りないフォルダの中でないか。
+fn inside(path: &str, verb: &str) -> Result<(), String> {
+    let parts: Vec<&str> = path.split('/').collect();
+    if path.is_empty()
+        || path.starts_with('/')
+        || path.contains('\\')
+        || parts
+            .iter()
+            .any(|p| p.is_empty() || *p == "." || *p == "..")
+        || parts.iter().any(|p| SKIP.contains(p))
+    {
+        return Err(format!(
+            "{path} には{verb}（リポジトリの根からの相対の経路で、{} の中でないものだけ）",
+            SKIP.join(" ・ ")
+        ));
+    }
+    Ok(())
 }

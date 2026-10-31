@@ -1,0 +1,36 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC3-USAGE",
+ "name": "意図の無い削除",
+ "title": "--intent を付けずに消そうとすると、使い方の誤りとして何もしない",
+ "why": "消すと中身は記録の事前の状態にしか残らないので、なぜ消したかが無いと後から判断できない。",
+ "traces": [
+  "UC3:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "delete",
+   "usecases/u1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

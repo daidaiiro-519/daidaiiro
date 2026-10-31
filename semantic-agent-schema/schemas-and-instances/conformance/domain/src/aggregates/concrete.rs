@@ -197,6 +197,34 @@ impl ConcreteSchema {
         }
         Ok(())
     }
+
+    /// この Concrete を消してよいか（ステップ4）。x-published: true の根の欄は、ほかの文脈が読むので消さない。
+    /// 従うインスタンスや、この Concrete を指す別の Concrete は集約の外なので、ここでは見ない（削除の手続きが見る）。
+    ///
+    /// # Errors
+    /// 公開した欄を持つとき（最初に見つけた1つ）。
+    pub fn check_delete(&self) -> Result<(), WriteViolation> {
+        for (name, field) in self
+            .document
+            .get("properties")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+        {
+            if field.get("x-published").and_then(Value::as_bool) == Some(true) {
+                let at = format!("/properties/{}", escape(name));
+                return Err(WriteViolation::new(
+                    "published_changed",
+                    &at,
+                    &format!(
+                        "{at} は x-published: true の欄で、ほかの文脈が読む。公開した版（{}）は消さない",
+                        self.id().unwrap_or("（無し）")
+                    ),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// 文書の根の x-extensions に並ぶ名前（Abstract の本体にも Concrete にも使う）。
@@ -309,5 +337,22 @@ mod tests {
         );
         assert!(next.check_write(Some(&before)).is_ok());
         assert!(changed.check_write(None).is_ok());
+    }
+
+    #[test]
+    fn a_published_concrete_is_not_deleted() {
+        let open = ConcreteSchema::read(
+            &json!({"$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+            "$id": "urn:semantic-agent-schema:t:uc:v1", "properties": {"goal": {"type": "string"}}}),
+        );
+        assert!(open.is_some_and(|c| c.check_delete().is_ok()));
+        let published = ConcreteSchema::read(
+            &json!({"$schema": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+            "$id": "urn:semantic-agent-schema:t:uc:v1", "properties": {"goal": {"type": "string", "x-published": true}}}),
+        );
+        let refused = published.map(|c| c.check_delete());
+        assert!(
+            matches!(refused, Some(Err(v)) if v.code() == "published_changed" && v.pointer() == "/properties/goal")
+        );
     }
 }

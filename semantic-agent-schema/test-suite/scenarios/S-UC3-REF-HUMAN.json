@@ -1,0 +1,78 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC3-REF-HUMAN",
+ "name": "人の欄にある参照の記載",
+ "title": "人が決める欄 approved が U1 を指しているとき、名乗ったツールが U1 を消そうとすると human_field で止まり、人が消せば記載も消える",
+ "why": "人が承認した記載をツールが消せると、承認していない変更が承認済みの記録に混ざる。",
+ "traces": [
+  "UC3:拡張:3a",
+  "UC3:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "schemas/approval.schema.json": "@fixtures/approval.schema.json",
+   "approvals/a1.json": "@fixtures/a1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "delete",
+   "usecases/u1.json",
+   "--intent",
+   "U1 は要らなくなった",
+   "--session",
+   "agent-1"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "delete",
+    "usecases/u1.json",
+    "--intent",
+    "U1 は要らなくなった"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "references_blocked"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/code",
+   "equals": "human_field"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/hint",
+   "equals": "人が --session を付けずに消す：sas delete usecases/u1.json --intent \"…\""
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/references/0/target/path",
+   "equals": "approvals/a1.json"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/references/0/diff/changes/0",
+   "equals": {
+    "pointer": "/approved/0",
+    "change": "remove",
+    "before": "U1"
+   }
+  }
+ ]
+}

@@ -9,6 +9,11 @@
   "UC2:拡張:Concrete の更新でインスタンスが violated になった",
   "UC2:拡張:申告する Abstract の版を変えた",
   "UC2:変形:SAS を通らない変更を取り込む",
+  "UC3:成功時保証",
+  "UC3:最低保証",
+  "UC3:拡張:1a",
+  "UC3:拡張:2a",
+  "UC3:拡張:3a",
   "UC4:成功時保証",
   "UC4:最低保証",
   "UC4:拡張:*a",
@@ -109,6 +114,55 @@
     "S-UC2-ADOPT"
    ],
    "note": "記録の行（source = outside ・ 前の値が取れなかった欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、版の読み方は outbound の git の試験（versions.rs）で確かめる"
+  },
+  {
+   "id": "UC3:成功時保証",
+   "meaning": "対象が消え、削除の操作の記録に事前の状態が残る。対象を指していた記載は残らず、その書き換えは削除を原因として同じセッションの操作に残る",
+   "scenarios": [
+    "S-UC3-CONCRETE",
+    "S-UC3-DELETE-INSTANCE",
+    "S-UC3-RECREATE",
+    "S-UC3-REQUEST-ID"
+   ]
+  },
+  {
+   "id": "UC3:最低保証",
+   "meaning": "止めたときは、対象も参照元も変わらず、止めた理由が操作の記録に残る",
+   "scenarios": [
+    "S-UC3-CONCRETE-FOLLOWED",
+    "S-UC3-CONCRETE-POINTED",
+    "S-UC3-CONCRETE-PUBLISHED",
+    "S-UC3-REF-HUMAN",
+    "S-UC3-REF-REQUIRED",
+    "S-UC3-REF-UNTRACKED",
+    "S-UC3-UNTRACKED",
+    "S-UC3-USAGE"
+   ]
+  },
+  {
+   "id": "UC3:拡張:1a",
+   "meaning": "対象が前提の指紋から変わっている（SAS を通らない変更 ・ 間に入った変更）：消さずに止め、取り込むか打ち直す案内を返す",
+   "scenarios": [
+    "S-UC3-UNTRACKED"
+   ]
+  },
+  {
+   "id": "UC3:拡張:2a",
+   "meaning": "対象が Concrete で、従うインスタンスか指している Concrete がある、または公開している：消さずに止め、頼っている文書と片付けるコマンドを返す",
+   "scenarios": [
+    "S-UC3-CONCRETE-FOLLOWED",
+    "S-UC3-CONCRETE-POINTED",
+    "S-UC3-CONCRETE-PUBLISHED"
+   ]
+  },
+  {
+   "id": "UC3:拡張:3a",
+   "meaning": "参照元の1つが、記載を消すと型 ・ 書く条件に外れる、人の欄に当たる、または SAS を通らずに変わっている：何も変えずに止め、参照元ごとの理由と次の一手を返す",
+   "scenarios": [
+    "S-UC3-REF-HUMAN",
+    "S-UC3-REF-REQUIRED",
+    "S-UC3-REF-UNTRACKED"
+   ]
   },
   {
    "id": "UC4:成功時保証",

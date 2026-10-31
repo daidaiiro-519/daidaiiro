@@ -65,10 +65,10 @@ pub struct FieldRow {
     pub before_unavailable: bool,
 }
 
-/// 作成か更新の操作1件（記録の行）。断ったときは refusal に決まった名前と理由が入り、対象は変わらない。
+/// 作成 ・ 更新 ・ 削除の操作1件（記録の行）。断ったときは refusal に決まった名前と理由が入り、対象は変わらない。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeRow {
-    /// create か update
+    /// create ・ update ・ delete
     pub kind: String,
     /// sas（SAS が書いた）か outside（SAS を通らない変更を取り込んだ）
     pub source: String,
@@ -82,17 +82,19 @@ pub struct ChangeRow {
     pub request_id: Option<String>,
     /// 事前の指紋（作成では None）
     pub before: Option<String>,
-    /// 事後の指紋（断った作成では None）
+    /// 事後の指紋（断った作成と、削除では None）
     pub after: Option<String>,
     /// 断ったときの決まった名前と理由
     pub refusal: Option<(String, String)>,
     /// 意図（なぜその操作をしたか。呼ぶ側が渡したときだけ）
     pub intent: Option<String>,
+    /// この操作を引き起こした操作の ID（削除に伴う参照元の書き換えのとき、その削除）
+    pub cause: Option<String>,
     /// 変わった欄
     pub fields: Vec<FieldRow>,
 }
 
-/// 記録にある作成か更新の操作。
+/// 記録にある作成 ・ 更新 ・ 削除の操作。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredChange {
     /// 操作の ID
@@ -139,19 +141,26 @@ pub trait OperationLog {
     /// 置き場所が拒んだとき（閉じたセッション ・ 決まりに反する行）。
     fn append_validate(&mut self, session: &str, row: &ValidateRow) -> Result<String, String>;
 
-    /// 作成か更新の操作を1件足し（変わった欄も一緒に）、その ID を返す。
+    /// 作成 ・ 更新 ・ 削除の操作を1件足し（変わった欄も一緒に）、その ID を返す。
     ///
     /// # Errors
     /// 置き場所が拒んだとき（閉じたセッション ・ 同じ request_id ・ 決まりに反する行）。
     fn append_change(&mut self, session: &str, row: &ChangeRow) -> Result<String, String>;
 
-    /// request_id で足した作成か更新の操作。無ければ None。
+    /// request_id で足した作成 ・ 更新 ・ 削除の操作。無ければ None。
     ///
     /// # Errors
     /// 置き場所を読めないとき。
     fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String>;
 
+    /// 操作 operation を原因とする操作（削除に伴う参照元の書き換え）を、記録した順に。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String>;
+
     /// 経路の対象を書いた操作（作成か更新で、断っていないもの）を、記録した順に。
+    /// その経路を消した操作があれば、最後に消したより後のものだけ（消すと記録のつながりが切れる）。
     ///
     /// # Errors
     /// 置き場所を読めないとき。

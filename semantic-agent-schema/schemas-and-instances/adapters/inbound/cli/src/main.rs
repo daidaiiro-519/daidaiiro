@@ -12,8 +12,8 @@ use schemas_and_instances_adapters_outbound_git::GitCommits;
 use schemas_and_instances_adapters_outbound_jsonschema::Checker;
 use schemas_and_instances_adapters_outbound_sqlite::SqliteLog;
 use schemas_and_instances_conformance_application::use_cases::documents::{
-    AdoptAs, AdoptRequest, ChangeResult, CreateRequest, Refused, Scope, UpdateRequest, adopt,
-    create, update, validate, validate_stale,
+    AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, Refused, Scope, UpdateRequest, adopt,
+    create, delete, update, validate, validate_stale,
 };
 use serde_json::Value;
 use std::path::PathBuf;
@@ -23,7 +23,8 @@ const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<�
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --patch <JSON Patch> [--if-match <指紋>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>]";
+sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>] ／ \
+sas delete <経路> --intent <意図> [--if-match <指紋>] [--session <名前>] [--request-id <ID>]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -31,6 +32,7 @@ fn main() -> ExitCode {
         Some("validate") => run_validate(&args[1..]),
         Some("create") => run_change(&args[1..], Command::Create),
         Some("update") => run_change(&args[1..], Command::Update),
+        Some("delete") => run_delete(&args[1..]),
         Some(other) => {
             eprintln!("sas: 知らないコマンドです: {other}。{USAGE}");
             ExitCode::from(2)
@@ -257,12 +259,62 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     }
 }
 
-type Change = Result<ChangeResult, Refused>;
+fn run_delete(args: &[String]) -> ExitCode {
+    let mut flags: Vec<(&str, Option<String>)> = vec![
+        ("--intent", None),
+        ("--if-match", None),
+        ("--session", None),
+        ("--request-id", None),
+    ];
+    let mut paths = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        if let Some(slot) = flags.iter_mut().find(|(name, _)| *name == a.as_str()) {
+            match it.next() {
+                Some(v) if !v.is_empty() => slot.1 = Some(v.clone()),
+                _ => return usage(&format!("{a} に値がありません")),
+            }
+        } else if a.starts_with("--") {
+            return usage(&format!("知らない指定です: {a}"));
+        } else {
+            paths.push(a.clone());
+        }
+    }
+    let [path] = paths.as_slice() else {
+        return usage("経路を1つ渡してください");
+    };
+    let take = |name: &str| {
+        flags
+            .iter()
+            .find(|(n, _)| *n == name)
+            .and_then(|(_, v)| v.clone())
+    };
+    // 消すと中身は記録の事前の状態にしか残らないので、なぜ消すかを必ず残す
+    let Some(intent) = take("--intent") else {
+        return usage("消すときは、なぜ消すかを --intent で渡してください");
+    };
+    let request = DeleteRequest {
+        path: path.clone(),
+        if_match: take("--if-match"),
+        request_id: take("--request-id"),
+        intent: Some(intent),
+    };
+    match run_with(
+        |store, checker, who, log| delete(&request, store, checker, who, log),
+        take("--session"),
+    ) {
+        Ok(d) => {
+            output::print_deletion(&d);
+            ExitCode::SUCCESS
+        }
+        Err(r) => refuse(&r),
+    }
+}
 
-fn run_with(
-    f: impl FnOnce(&WorkingTree, &Checker, &FromArguments, &mut SqliteLog) -> Change,
+fn run_with<T>(
+    f: impl FnOnce(&WorkingTree, &Checker, &FromArguments, &mut SqliteLog) -> Result<T, Refused>,
     session: Option<String>,
-) -> Change {
+) -> Result<T, Refused> {
     let (store, checker, mut log) = adapters()?;
     f(&store, &checker, &FromArguments::new(session), &mut log)
 }

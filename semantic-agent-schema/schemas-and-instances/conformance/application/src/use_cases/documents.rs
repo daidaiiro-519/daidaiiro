@@ -7,8 +7,12 @@
 //! - SAS を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
 //!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録の最後の事後と同じ中身のコミットから取る。
 //! - UC4 の範囲「入力が変わった rule だけ」と、SAS を通らない変更があった対象の知らせ。
+//! - UC3 削除する（機械）：対象と、対象を指している参照元の記載を、同じセッションの操作として消す（delete.rs）。
 
+mod delete;
 mod patch;
+
+pub use delete::{DeleteRequest, Deletion, Rewritten, delete};
 
 use crate::ports::{CommitReader, DocumentStore, SchemaChecker};
 use schemas_and_instances_conformance_domain::aggregates::{
@@ -127,13 +131,28 @@ pub struct Refused {
     /// 理由
     pub message: String,
     /// 断った操作を記録したセッションの ID
-    pub session: Option<String>,
+    pub session: Option<Box<str>>,
     /// 断った操作の ID
     pub operation: Option<String>,
     /// 指紋が違って断ったとき（conflict）の、間に入った変更
     pub interleaved: Option<Box<Interleaved>>,
     /// 次にすることの案内（SAS を通らない変更を取り込むコマンドなど）
     pub hint: Option<Box<String>>,
+    /// 削除を止めた理由になったもの（従うインスタンス ・ 指している Concrete ・ 記載を消せない参照元）と、残った参照元
+    pub blocked: Option<Box<Vec<Blocked>>>,
+}
+
+/// 削除を止めた理由になった文書1つと、それを片付けるコマンドの案内。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Blocked {
+    /// 経路
+    pub path: String,
+    /// 決まった名前（follows ・ points_to ・ conflict ・ invalid_value ・ human_field ・ id_changed ・ derived_mismatch ・ left）
+    pub code: &'static str,
+    /// 理由
+    pub message: String,
+    /// 次に打つコマンド
+    pub hint: String,
 }
 
 fn refused(code: &'static str, path: &str, message: String) -> Refused {
@@ -573,8 +592,10 @@ fn run_validate(
 }
 
 /// 書く手前の判定で断ったとき、記録する決まった名前。
-pub const RECORDED_CODES: [&str; 7] = [
+pub const RECORDED_CODES: [&str; 9] = [
     "invalid_value",
+    "has_dependents",
+    "references_blocked",
     "conflict",
     "patch_failed",
     "id_changed",
@@ -810,10 +831,9 @@ fn replay(
                 .unwrap_or("log"),
             path: Some(row.target_path.into()),
             message,
-            session: Some(stored.session),
+            session: Some(stored.session.into()),
             operation: Some(stored.operation),
-            interleaved: None,
-            hint: None,
+            ..Refused::default()
         });
     }
     let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
@@ -876,10 +896,9 @@ fn refuse_and_record(
             code,
             path: Some(row.target_path.into()),
             message,
-            session: Some(r.session),
+            session: Some(r.session.into()),
             operation: r.operations.into_iter().next(),
-            interleaved: None,
-            hint: None,
+            ..Refused::default()
         },
         Err(e) => log_refused(e),
     }
@@ -962,6 +981,7 @@ pub fn create(
         after: None,
         refusal: None,
         intent: request.intent.clone(),
+        cause: None,
         fields: Vec::new(),
     };
     let broken = form_violations(checker, kind, &request.concrete, &value, &corpus.more)
@@ -1073,6 +1093,7 @@ pub fn update(
         after: None,
         refusal: None,
         intent: request.intent.clone(),
+        cause: None,
         fields: Vec::new(),
     };
     // 比べる指紋：呼ぶ側が読んだ指紋（--if-match）か、SAS が最後に書いた事後の指紋。
@@ -1411,6 +1432,7 @@ pub fn adopt(
         after: None,
         refusal: None,
         intent: request.intent.clone(),
+        cause: None,
         fields: Vec::new(),
     };
     let found = match &expected {
