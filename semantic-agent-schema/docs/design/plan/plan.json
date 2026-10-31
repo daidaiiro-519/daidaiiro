@@ -22,9 +22,9 @@
  ],
  "names": {
   "repository_folder": "semantic-agent-schema/（事業領域。名前は変えない）",
-  "context_folder": "semantic-agent-schema/contracts-and-instances/（文脈「契約とインスタンス」）",
+  "context_folder": "semantic-agent-schema/schemas-and-instances/（文脈「スキーマとインスタンス」。9519cffa で改名）",
   "cli_bin": "sas（製品の名前は [[bin]] にだけ残す）",
-  "crate_prefix": "contracts-and-instances-<業務領域>-<層>、adapters は contracts-and-instances-adapters-<inbound|outbound>-<名前>"
+  "crate_prefix": "schemas-and-instances-<業務領域>-<層>、adapters は schemas-and-instances-adapters-<inbound|outbound>-<名前>"
  },
  "1_archive": {
   "decision": "semantic-agent-schema/ を丸ごと archive/semantic-agent-schema-2026-10-31/ へ git mv で移し、移す直前のコミットに注釈付きタグ semantic-agent-schema-archive-2026-10-31 を打つ。未コミットの変更は移す前にコミットする。新しい木へ使うものは、アーカイブから写す別の手順（持ち込み）で入れる",
@@ -288,7 +288,7 @@
    },
    "acceptance": [
     "作ると対象が型に従って在り、操作の ID と差分が返る（成功時保証）",
-    "型に従わない値は書かず、理由と操作の記録を残す（最低保証）",
+    "型に従わない値は書かず、理由を返す（最低保証）",
     "if-match が違えば conflict で書かない",
     "x-prompt を変えた欄の前の判定が stale_rules に出る",
     "Concrete の更新で violated になるインスタンスが結果に出る",
@@ -359,6 +359,56 @@
    "check_first": "インスタンスが従っている Concrete を消すときの振る舞い。概念のページと re-uc で決まっているかを先に確かめ、決まっていなければ usecase-advisor・ddd-advisor と反証を通して1つにしてから書く"
   },
   {
+   "step": "ステップ4b",
+   "numbering": "ステップ4 と ステップ5 のあいだに入れる。ほかのステップの番号と、それを指す文書（概念のページ ・ arch-v15 ・ design.json ・ 探索の記録）を変えないため、繰り下げずに 4b とする。探索の記録は docs/design/exploration/step-04b.json",
+   "usecase": "セッションを外して記録を分ける（版16、2026-11-01 承認）：UC1〜UC4 の記録の持ち方と親の ID の決め方を直す。振る舞いの判断（指紋の比べ ・ 取り込み ・ 参照元を消す ・ 止めて次の一手を返す）は変えない",
+   "builds": {
+    "schemas": [
+     "operation-result の envelope：session を parent_session に（child_session ・ role はステップ6）",
+     "operation-result の error：session ・ operation を外す（断った操作は記録しない）",
+     "operation-request の common：session の説明（--session → 環境変数 → 人）"
+    ],
+    "db": [
+     "0001〜0004 を書き直す（公開前なので移行の番号は足さない。手元の DB は消して作り直す）",
+     "sessions：薄い7列（このステップで書くのは親の行 role = caller だけ）",
+     "operations を changes ＋ field_changes と validations ＋ rule_results に分け、ビュー operations を置く",
+     "外す：seq ・ 閉じたセッションの決まり ・ operations_adopt_follows ・ refusal_code ・ refusal ・ concrete_ref ・ target_kind",
+     "cause は「同じ呼び出しで先に記録した削除」",
+     "DB の既定の置き場所を <git-common-dir>/sas/sas.db に（Git が無ければ .sas/sas.db）"
+    ],
+    "crates": [
+     "operation-recording-application：ports（IdentifyCaller が親の ID を --session か環境変数から決める ・ OperationLog が changes と validations を書く）と use_cases/history.rs",
+     "conformance-application：refuse_and_record を記録しない refused に。Refused から session ・ operation を外す。取り込みの事前の確かめを use_cases へ",
+     "outbound/sqlite：lib.rs を新しい表に。adapters/inbound/cli：caller.rs ・ output.rs ・ main.rs"
+    ],
+    "ports": [
+     "identify_caller の返り値を『親の ID か人』に"
+    ],
+    "cli": [
+     "sas の旗は変えない（--session ・ --intent ・ --request-id ・ --if-match ・ --adopt ・ --stale）"
+    ]
+   },
+   "acceptance": [
+    "ステップ1〜4 の場面がすべて通る。変わるのは期待値だけで、断ったときの /operation を見る14件と /session の値を見る場面だけ",
+    "断った操作は DB に行を残さず、理由 ・ 案内 ・ interleaved ・ blocked はいまと同じに返る",
+    "親の ID が --session → 環境変数（Claude Code の CLAUDE_CODE_SESSION_ID）→ 人（null）の順で決まり、初めて見た親だけ sessions に1行書く",
+    "changes と validations の行は、どの欄も種類によって空にならない（作成の事前 ・ 削除の事後 ・ 原因を除く）。子の役割 ・ 親の行 ・ 原因 ・ 追記だけを trigger が断る",
+    "ワークツリーを2つ作っても DB は1つで、外の変更の検出と取り込みが通る",
+    "いまの実装が使う問い合わせ（最後の事後 ・ interleaved ・ request_id ・ 前の判定 ・ 取り込みの前の値 ・ 参照元と原因）が新しい表で同じ結果を返す"
+   ],
+   "files": [
+    "schemas-and-instances/adapters/outbound/sqlite/migrations/0001〜0004 ・ src/lib.rs ・ tests/（change_rows ・ adopt_rows ・ delete_rows ・ append_only）",
+    "schemas-and-instances/operation-recording/application/src/ports.rs ・ use_cases/history.rs ・ tests/history.rs",
+    "schemas-and-instances/conformance/application/src/use_cases/documents.rs ・ documents/delete.rs ・ ports.rs ・ tests/documents.rs",
+    "schemas-and-instances/adapters/inbound/cli/src/caller.rs ・ output.rs ・ main.rs",
+    "schemas-and-instances/schemas/v1/operation-result.schema.json",
+    "test-suite/scenarios（約17件の期待値）・ trace.json（UC1:最低保証の文）",
+    "CODING.md ・ README.md ・ architecture.json（ポートと crate の説明）"
+   ],
+   "estimate": "Rust 8ファイル前後 ・ 移行4つの書き直し ・ 試験 83件のうち約25件 ・ 場面 64件のうち約17件の期待値",
+   "how_to_show": "開発シミュレーターで、場面ごとに前と後の DB の行（operations 1表 → changes ・ validations ・ sessions）と、変わらない出力を並べて見せ、OK をもらってからコミットする"
+  },
+  {
    "step": "ステップ5",
    "usecase": "UC5 描画する（機械だけ。その場で描き、コミットしない）",
    "builds": {
@@ -392,83 +442,82 @@
   },
   {
    "step": "ステップ6",
-   "usecase": "SF1 SAS が立てたセッションでエージェントに手順で行わせる と UC4 の by: ai の rule",
+   "usecase": "SF1 SAS が起動した子のセッションで手順を行わせる と UC4 の by: ai の rule（確かめる子）",
    "builds": {
     "schemas": [
      "procedure-prompt.schema.json",
-     "session-request.schema.json（start・reply）",
+     "session-request.schema.json（start ・ continue ・ reply）",
      "agent-answer.schema.json（judgments）",
-     "session.schema.json",
-     "agent-connector.schema.json",
-     "operation-result の procedure・session",
-     "operation-request の session-status"
+     "session.schema.json（役割 ・ 親 ・ ツール ・ モデル）",
+     "agent-connector.schema.json（commands の start ・ continue、tool_ref の取り方、caller.env、cache_ttl_s）",
+     "operation-result の procedure と envelope の child_session ・ role",
+     "operation-request の semantic（continue ・ new ・ ref）"
     ],
     "db": [
-     "sessions の kind = sas の欄（親・アダプター・能力の写し・tool_ref など）",
-     "session_turns",
-     "validate は単発・引き継がない の CHECK、形を直させるのは2回まで の trigger"
+     "sessions の子の行（role = checker ・ parent_id ・ model ・ launch）",
+     "validations.child_session_id と trigger validations_child_is_checker"
     ],
     "crates": [
-     "semantic-operations-domain：集約 SAS が立てたセッション（回は内側）、値 session_type・capabilities、サービス retry_rule",
-     "semantic-operations-application：use_cases/agent_sessions.rs",
-     "outbound の agents（Claude Code の組み込みと、接続の定義で動く汎用）・files（keep_prompt）・sqlite（agent_session_store）"
+     "semantic-operations-application：use_cases/semantic.rs（子を決める ・ 起動するか続ける ・ 答えを確かめる）。domain は手続きを書いて確かめてから決める",
+     "outbound の agents（Claude Code の組み込みと、接続の定義で動く汎用）・ files（keep_prompt）"
     ],
     "ports": [
      "agent_runtime",
-     "keep_prompt",
-     "agent_session_store"
+     "keep_prompt"
     ],
     "cli": [
-     "sas validate（by: ai の rule があれば1行目が手順のプロンプト、最後の行が結果）",
-     "sas session status <ID>"
+     "sas validate（by: ai の rule があれば1行目が手順のプロンプト、最後の行が結果。結果に確かめる子の ID）",
+     "sas validate … --continue <確かめる子>"
     ]
    },
    "acceptance": [
-    "by: ai の rule × 欄ごとに1ステップの手順のプロンプトが出て、答えが step・rule・pointer で突き合う",
-    "形が違えば同じセッションで2回まで直させ、超えたら invalid_output で閉じ、該当の rule は error",
-    "時間切れは新しいセッションで2回までやり直す",
+    "by: ai の rule × 欄ごとに1ステップの手順のプロンプトが出て、答えが step ・ rule ・ pointer で突き合う",
+    "1回目は確かめる子を起動し、ツールの出力の session_id を子の ID として sessions に1行書き（model ・ launch）、結果に返す",
+    "--continue では sessions.launch を読み、同じ設定で同じ子へ送る（子の ID は変わらない）。渡すのはいまの中身だけで、前の判定 ・ 書く子の答え ・ brief は渡さない",
+    "書く子の ID を --continue に渡されたら writer_as_checker で断る。同じ子が処理中なら busy",
+    "形が違えば同じ子で2回まで直させ、超えたら該当の rule は error。時間切れは新しい子で2回までやり直す",
     "答えの間に指紋が変わっていたら書かずに conflict",
-    "記録とセッションを閉じるのは別のトランザクションで、間で止まったら session status が閉じ直す",
-    "by: ai の rule が無ければ SAS のセッションを立てない"
+    "by: ai の rule が無ければ子を起動しない",
+    "確かめる子を続けたときの判定を、順を変えた判定と新しい子での判定に照らし合わせる場面がある（qa-advisor：前の判定に引っぱられないか）",
+    "前の操作から接続の定義の cache_ttl_s を過ぎたか同じ子で10回を超えたら、新しい子を勧める案内が出る"
    ],
-   "how_to_test": "自動の試験は、接続の定義（agent-connector）で決まった JSON を返す試験用のコマンドを起動する。Claude 専用にならないことも、これで確かめる。実際のエージェント（Claude Code）での実行は1回だけ手で行い、シミュレーターに載せる",
+   "how_to_test": "自動の試験は、接続の定義（agent-connector）で決まった JSON とセッション ID を返す試験用のコマンドを起動する。Claude 専用にならないことも、これで確かめる。実際のエージェント（Claude Code）での実行は1回だけ手で行い、キャッシュの読み書きの量と一緒にシミュレーターに載せる",
    "factcheck": [
-    "読めなかった頁を閉じる：Claude Code の sessions の頁・Gemini の automation のチュートリアル・Codex の app-server・Copilot の SDK。環境変数や欄が見つかれば agent-connector と identify_caller に足す"
+    "ツールごとの子の ID の取り方と再開の旗（tool-sessions/findings.json の Codex ・ Copilot ・ Kiro ・ Gemini ・ Cursor）を接続の定義の例にするときに、原文と照らし直す"
    ]
   },
   {
    "step": "ステップ7",
-   "usecase": "UC1・UC2 の意味（x-prompt の欄をエージェントが書く）とセッションの4つの型。場面：既存の文書（md など）を、その種類の Concrete のインスタンスへ書き起こして移す",
+   "usecase": "UC1 ・ UC2 の意味（x-prompt の欄を書く子が書く）と、書く子を続けて使うこと。場面：既存の文書（md など）を、その種類の Concrete のインスタンスへ書き起こして移す",
    "builds": {
     "schemas": [
-     "operation-request の session-spec・semantic・session-close",
-     "session-request の continue・fork",
+     "operation-request の semantic（brief ・ ref ・ continue ・ new）",
      "agent-answer の field-values（needs を含む）",
-     "procedure-prompt の write のステップと since_last"
+     "procedure-prompt の write のステップと since_last ・ refs",
+     "operation-result の error の child_exists ・ previous_child"
     ],
     "db": [
-     "sessions の inherited_from・continued_from、session_turns の resume_decision",
-     "単発は再開しない・inherit は元を持つ・閉じたら足さない の trigger と CHECK"
+     "sessions の書く子の行（role = writer）",
+     "changes.child_session_id と trigger changes_child_is_writer"
     ],
     "crates": [
-     "サービス resume_rule（5段）",
-     "能力の確かめと unsupported_capability"
+     "semantic-operations-application：子を決める決まり（--continue ・ --new ・ 直前の子の案内 ・ ロック）"
     ],
     "ports": [],
     "cli": [
-     "sas create --semantic <ポインタ>...",
-     "sas update --semantic <ポインタ>...",
-     "--lifetime・--context・--session・--new・--brief",
-     "sas session close <ID>"
+     "sas create --semantic <ポインタ>... --brief <文> [--ref <パス>...]",
+     "sas update --semantic <ポインタ>... （1回目は --brief、2回目からは --continue <書く子>）",
+     "--new"
     ]
    },
    "acceptance": [
-    "既定は単発・引き継がない",
-    "再開の決まりの5つの値それぞれに当たる場面と、記録に残る値",
-    "アダプターが能力を持たなければ立てずに、足りない能力と代わりの指定を返す",
-    "UC2 の拡張『続けて直す』（継続・引き継ぐ）で何件も直せる",
+    "1回目は --brief が必須で、無ければ起動せずに案内を返す。--ref は中身を貼らずパスで渡す",
+    "2回目からは --continue で同じ書く子に差分の指示だけを送り、brief と参照を送り直さない",
+    "--continue が無く、この親が直前に使った書く子があれば、起動せずに child_exists で止め、その子と --continue ・ --new の打ち方を返す",
+    "確かめる子の ID を --continue に渡されたら断る。同じ子が処理中なら busy",
+    "ツールに続ける機能が無ければ unsupported_capability を返し、毎回新しく起動する打ち方を案内する",
     "エージェントが決めきれなかった点は needs で返り、書かない",
-    "既存の md を、その種類の Concrete のインスタンスへ書き起こせる（sas create --semantic に元の文書を材料として渡す）。欄に分けきれなかった所は needs で返って書かず、移したあとの md は正本ではなく描画したものになる"
+    "既存の md を、その種類の Concrete のインスタンスへ書き起こせる（sas create --semantic に元の文書を --ref で渡す）。欄に分けきれなかった所は needs で返って書かず、移したあとの md は正本ではなく描画したものになる"
    ]
   },
   {
@@ -497,12 +546,12 @@
     "範囲を渡さなければ invalid_input（事前条件）",
     "結果に出どころと探した範囲が付き、範囲の外は探していないと返る",
     "検索は操作として残らず、立てたセッションは残る",
-    "継続のセッションで問いを絞り込める"
+    "同じ子を --continue で続けて、問いを絞り込める"
    ]
   },
   {
    "step": "ステップ9",
-   "usecase": "UC7 セッションと操作を読む",
+   "usecase": "UC7 操作の記録を読む（書いた変更と検証を時刻順に、親と子の ID つきで）",
    "builds": {
     "schemas": [
      "operation-request の read",
@@ -514,14 +563,15 @@
     ],
     "ports": [],
     "cli": [
-     "sas read --session <ID>",
+     "sas read --session <親か子の ID>",
      "sas read --operation <ID>",
      "sas read --target <パス>"
     ]
    },
    "acceptance": [
     "読んでも何も変わらない、無い ID は not_found",
-    "DB のどの欄も出力のどこかに出る（design.json の 5_mapping を試験にする）",
+    "ビュー operations の並びで、書いた変更と検証が時刻順に出る",
+    "DB のどの欄も出力のどこかに出る（launch を除く。design.json の 5_mapping を試験にする）",
     "出力に DB の名前が出ない（parent_id → parent など）"
    ]
   },
@@ -593,7 +643,7 @@
   },
   {
    "file": "session.schema.json",
-   "step": "ステップ6"
+   "step": "ステップ6（役割 ・ 親 ・ ツール ・ モデル）"
   },
   {
    "file": "agent-connector.schema.json",
@@ -604,23 +654,19 @@
  "3_db_by_step": [
   {
    "table": "sessions",
-   "step": "ステップ1（呼び出し元の欄）・ステップ6（SAS が立てたセッションの欄）・ステップ7（引き継ぎ・続きの元）"
+   "step": "ステップ4b（親の行）・ステップ6（確かめる子）・ステップ7（書く子）"
   },
   {
-   "table": "operations",
-   "step": "ステップ1（validate）・ステップ2（create・update）・ステップ3（source）・ステップ4（delete・cause_id）"
+   "table": "changes ＋ field_changes",
+   "step": "ステップ2（create ・ update）・ステップ3（source ・ before_unavailable）・ステップ4（delete ・ cause_id）。ステップ4b で operations から分けた"
   },
   {
-   "table": "rule_results",
-   "step": "ステップ1"
+   "table": "validations ＋ rule_results",
+   "step": "ステップ1。ステップ4b で operations から分けた"
   },
   {
-   "table": "field_changes",
-   "step": "ステップ2（before_unavailable はステップ3）"
-  },
-  {
-   "table": "session_turns",
-   "step": "ステップ6（resume_decision はステップ7）"
+   "table": "operations（ビュー）",
+   "step": "ステップ4b（UC7 はステップ9）"
   }
  ],
  "3_db_rule": "DDL は outbound/sqlite/migrations/ に1つのファイルで持ち、完了までは書き換えてよい（DB はコミットせず、公開もしないので、開発中の DB は作り直す）。完了の時点で 0001 として固定し、それより後は足すファイルで変える",
@@ -684,7 +730,7 @@
   },
   {
    "phase": "手続き",
-   "do": "上から決めて確かめ済みの部品（集約 Concrete・インスタンス・SAS が立てたセッションと、その値・サービス）は初めから domain に置く。それ以外は use_cases にトランザクションスクリプトで書く"
+   "do": "上から決めて確かめ済みの部品（集約 Concrete・インスタンスと、その値・サービス）は初めから domain に置く。それ以外は use_cases にトランザクションスクリプトで書く"
   },
   {
    "phase": "引き上げ",
@@ -710,13 +756,14 @@
  "4_dependency_order": {
   "order": [
    "ステップ0 骨組み",
-   "ステップ1 契約（Abstract の本体・方言・語彙・用語集）と機械の検証、操作の記録の最小形",
+   "ステップ1 Abstract（Abstract の本体・方言・語彙・用語集）と機械の検証、操作の記録の最小形",
    "ステップ2 機械の作成と更新",
    "ステップ3 SAS を通らない変更",
    "ステップ4 削除",
+   "ステップ4b セッションを外して記録を分ける",
    "ステップ5 描画",
-   "ステップ6 SAS が立てたセッションと意味の検証",
-   "ステップ7 意味の作成・更新とセッションの4つの型",
+   "ステップ6 確かめる子と意味の検証",
+   "ステップ7 書く子と意味の作成・更新",
    "ステップ8 検索",
    "ステップ9 記録を読む",
    "ステップ10 要約と完了の確認"
@@ -740,15 +787,19 @@
    },
    {
     "ground": "描画は意味の操作の前、SAS を通らない変更のあと",
-    "detail": "描画は契約への適合だけに依存し、エージェントを使わない。ただし最低保証『入力が変わった判定を verified と見せない』はステップ3 の stale を使う"
+    "detail": "描画はスキーマへの適合だけに依存し、エージェントを使わない。ただし最低保証『入力が変わった判定を verified と見せない』はステップ3 の stale を使う"
    },
    {
-    "ground": "検索は意味のセッションの型のあと",
-    "detail": "意味で探すのは SF1 を使い、絞り込みは継続のセッションで行う"
+    "ground": "検索は書く子のあと",
+    "detail": "意味で探すのは子を起動して行い、絞り込みは同じ子を --continue で続けて行う"
    },
    {
     "ground": "記録を読むのは最後",
-    "detail": "読む形は、すべての操作の種類とセッションの型を出す。先に作ると、ステップごとに出力の形を直すことになる。それまではシミュレーターが DB を直接読んで見せる"
+    "detail": "読む形は、すべての操作の種類と親と子の IDを出す。先に作ると、ステップごとに出力の形を直すことになる。それまではシミュレーターが DB を直接読んで見せる"
+   },
+   {
+    "ground": "ステップ4b はステップ5 の前",
+    "detail": "ステップ5 以降は記録の行を読み書きする所が増える。先に外すほど書き直しが小さい。ステップ4 は出来上がっているので、混ぜずに先に閉じた（承認のページ版4）"
    }
   ]
  },
@@ -832,8 +883,8 @@
  "6_done": [
   "UC0〜UC7・SF1 の主シナリオ・拡張・変形・成功時保証・最低保証が、それぞれ1つ以上の場面で通る。通らないものは untested.json に理由がある（Abstract の版の移し方だけを見込む）",
   "schemas/v1 の14ファイルがそろい、CLI のすべての出力の行を operation-result で、すべての入力を operation-request で検証する試験が通る",
-  "DB の5表が migrations に在り、どの欄も出力のどこかに出る試験が通る",
-  "9つのポートに、adapter が1つと試験の代役が1つずつある",
+  "DB の5表とビュー operations が migrations に在り、launch のほかのどの欄も出力のどこかに出る試験が通る",
+  "8つのポートに、adapter が1つと試験の代役が1つずつある",
   "概念のページの『必要十分』の格子のどの能力も、どれかの場面が使う",
   "cargo build・clippy（-D warnings）・fmt・architecture-lint・追跡の検査がすべて0件",
   "取得していない頁の確かめが閉じている",
@@ -843,5 +894,6 @@
  ],
  "open_for_reviewer": [
   "アーカイブの手順と並びを、利用者に見せる前に fork で反証にかける（特に、操作の記録をステップ1 に入れたことと、archive/ の置き場所）"
- ]
+ ],
+ "revised": "2026-11-01：ステップ4b を足し、ステップ6 ・ 7 ・ 9 を親と子のセッションの形に直した（承認のページ XQmeBmywzzsZy3AUgcSK4B 版4）"
 }

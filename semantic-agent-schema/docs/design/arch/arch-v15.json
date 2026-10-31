@@ -1,21 +1,15 @@
 {
- "version": "v15",
- "architecture": "文脈全体を1つのヘキサゴナル。業務ロジックは上から決めて下から確かめる。domain はスキーマへの適合と意味の操作だけ（突き合わせで確かめた集約・値・サービス）。操作の記録と描画は application だけ（トランザクションスクリプト）",
+ "version": "v16",
+ "architecture": "文脈全体を1つのヘキサゴナル。業務ロジックは上から決めて下から確かめる。domain はスキーマへの適合だけ（突き合わせで確かめた集約・値・サービス）。意味の操作の domain は、ステップ6 で手続きを書いて確かめてから決める。操作の記録と描画は application だけ（トランザクションスクリプト）",
  "aggregates": [
   "Concrete（スキーマへの適合）",
-  "インスタンス（スキーマへの適合）",
-  "SAS が立てたセッション（意味の操作。回は内側）"
+  "インスタンス（スキーマへの適合）"
  ],
  "crates": [
   {
    "crate": "schemas-and-instances-conformance-domain",
    "layer": "domain",
    "may_depend_on": "無し"
-  },
-  {
-   "crate": "launched-sessions-semantic-operations-domain",
-   "layer": "domain",
-   "may_depend_on": "conformance-domain"
   },
   {
    "crate": "schemas-and-instances-operation-recording-application",
@@ -28,9 +22,9 @@
    "may_depend_on": "conformance-domain・operation-recording-application"
   },
   {
-   "crate": "launched-sessions-semantic-operations-application",
+   "crate": "schemas-and-instances-semantic-operations-application",
    "layer": "application",
-   "may_depend_on": "semantic-operations-domain・conformance-domain・conformance-application・operation-recording-application"
+   "may_depend_on": "conformance-domain・conformance-application・operation-recording-application"
   },
   {
    "crate": "schemas-and-instances-rendering-application",
@@ -60,7 +54,7 @@
   {
    "crate": "schemas-and-instances-adapters-outbound-sqlite",
    "layer": "adapters",
-   "may_depend_on": "semantic-operations-application・operation-recording-application（agent_session_store・operation_log。rusqlite はここだけ）"
+   "may_depend_on": "operation-recording-application（operation_log：sessions・changes・validations とその子の表。rusqlite はここだけ）"
   },
   {
    "crate": "schemas-and-instances-adapters-outbound-templates",
@@ -79,7 +73,7 @@
    "owner": "semantic-operations",
    "adapter": "outbound/agents",
    "use": "dyn",
-   "why": "設定でツールを選ぶので実行時に型が決まる"
+   "why": "設定でツールを選ぶので実行時に型が決まる。子を起動し、渡された ID と起動の設定（launch）で続ける"
   },
   {
    "port": "keep_prompt",
@@ -87,13 +81,6 @@
    "adapter": "outbound/files",
    "use": "dyn",
    "why": "組み立てと試験の差し替えを1つの書き方にそろえる"
-  },
-  {
-   "port": "agent_session_store",
-   "owner": "semantic-operations",
-   "adapter": "outbound/sqlite",
-   "use": "dyn",
-   "why": "同上"
   },
   {
    "port": "document_store",
@@ -121,14 +108,14 @@
    "owner": "operation-recording",
    "adapter": "outbound/agents",
    "use": "dyn",
-   "why": "同上。いちばん下に置き、どのモジュールからも使える"
+   "why": "同上。親の ID を --session か接続の定義の環境変数から決める。いちばん下に置き、どのモジュールからも使える"
   },
   {
    "port": "operation_log",
    "owner": "operation-recording",
    "adapter": "outbound/sqlite",
    "use": "dyn",
-   "why": "同上。呼び出し元のセッションと操作の行を足す・読む"
+   "why": "同上。sessions（親と子の行）と changes ・ validations の行を足す・読む"
   },
   {
    "port": "template_renderer",
@@ -139,11 +126,11 @@
   }
  ],
  "rules_language_neutral": [
-  "文脈の根はリポジトリの根。文脈全体を1つのヘキサゴナルにし、外とのやりとりはすべて application の ports を adapters/outbound が実装する",
+  "文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下。いまは schemas-and-instances/ の1つ）。文脈全体を1つのヘキサゴナルにし、外とのやりとりはすべて application の ports を adapters/outbound が実装する",
   "業務ロジックの置き方は、上から決めて下から確かめる。守る条件がすでに決定・Abstract の rule・試験の場面に書けている所は初めから domain に置き、それ以外は use_cases にトランザクションスクリプトで書く。引き上げの表で見分け、突き合わせで確かめたものだけを domain に置く",
   "domain の中は部品の種類でフォルダを分ける：aggregates/（集約ごと）・values/・services/。購読する手続きが無いうちは events/ を作らない",
   "application の中は use_cases/ と ports/。use_cases/ のファイルは集約か手順のまとまりごとに分け、ユースケースごとのファイルやフォルダは作らない（土台の境界6）",
-  "domain を持つのは、突き合わせで集約・値・サービスが確かめられた業務領域だけ（意味の操作・スキーマへの適合）。操作の記録と描画は application だけ",
+  "domain を持つのは、突き合わせで集約・値・サービスが確かめられた業務領域だけ（いまはスキーマへの適合）。意味の操作はステップ6 で確かめてから決め、操作の記録と描画は application だけ",
   "ポートは、それを使う手順を持つモジュールの application/ports に置く。共有の置き場を作らない。呼び出し元を見分けるポートは、いちばん下の操作の記録が持つ",
   "モジュールの間の向きは 意味の操作 → スキーマへの適合 → 操作の記録、描画 → スキーマへの適合 の一方向。同じ文脈の別のモジュールはポートを挟まず application を直接呼ぶ",
   "外のライブラリ（rusqlite・2020-12 の検査器・テンプレートの処理系）は、それを使う outbound の crate だけが依存する",
@@ -156,7 +143,7 @@
    "source": "Book ch07-01:186・ch14-03:187（基準の記述が無い）・ch07-03:296・Reference visibility:476"
   },
   {
-   "rule": "domain は業務領域ごとに crate を分ける（conformance-domain と semantic-operations-domain）。1つの crate の中では子のモジュールが祖先の項目を使えるので、集約の間の向きはモジュールでは止められない",
+   "rule": "domain は業務領域ごとに crate を分ける（いまは conformance-domain。意味の操作に domain が要ると確かめたら semantic-operations-domain を足す）。1つの crate の中では子のモジュールが祖先の項目を使えるので、集約の間の向きはモジュールでは止められない",
    "source": "Book ch07-03:296・ch14-03:299"
   },
   {
@@ -176,7 +163,7 @@
    "source": "Book ch07-02:273、Reference visibility:390・476"
   },
   {
-   "rule": "mod.rs を使わない。src/aggregates.rs と src/aggregates/concrete.rs・instance.rs・agent_session.rs、src/aggregates/agent_session/turn.rs の形にする",
+   "rule": "mod.rs を使わない。src/aggregates.rs と src/aggregates/concrete.rs・instance.rs の形にする",
    "source": "Book ch07-05:251・265・268"
   },
   {
@@ -188,7 +175,7 @@
    "source": "Book ch14-03:299（推論：実装の型の名前を書くので依存が要る）"
   },
   {
-   "rule": "ポートは trait で、9つとも dyn で使う。dyn compatible に保つ：型引数のあるメソッド・async fn・関連定数を持たず、Self を receiver 以外で使わない。sealed にしない",
+   "rule": "ポートは trait で、8つとも dyn で使う。dyn compatible に保つ：型引数のあるメソッド・async fn・関連定数を持たず、Self を receiver 以外で使わない。sealed にしない",
    "source": "Reference traits:412・429・445・459、API Guidelines C-OBJECT:322・324・321、C-SEALED:169"
   },
   {
@@ -214,7 +201,7 @@
   },
   {
    "path": "├── Cargo.toml",
-   "desc": "［事業領域全体］virtual manifest：[workspace] members に下の crate のパス（札の付いたフォルダ）が13並ぶ・resolver = \"3\"・[workspace.dependencies]（rusqlite・検査器・テンプレートの処理系の版）",
+   "desc": "［事業領域全体］virtual manifest：[workspace] members に下の crate のパス（札の付いたフォルダ）が12並ぶ・resolver = \"3\"・[workspace.dependencies]（rusqlite・検査器・テンプレートの処理系の版）",
    "crate": ""
   },
   {
@@ -299,28 +286,13 @@
   },
   {
    "path": "    ├── semantic-operations/",
-   "desc": "業務領域「意味の操作」（中核・ドメインモデル）。まとめるだけのフォルダ",
-   "crate": ""
-  },
-  {
-   "path": "    │   ├── domain/",
-   "desc": "依存：conformance-domain",
-   "crate": "launched-sessions-semantic-operations-domain"
-  },
-  {
-   "path": "    │   │   ├── Cargo.toml",
-   "desc": "",
-   "crate": ""
-  },
-  {
-   "path": "    │   │   └── src/",
-   "desc": "aggregates.rs・aggregates/agent_session.rs（集約「SAS が立てたセッション」：型ごとの不変条件）・aggregates/agent_session/turn.rs（回）・values/（session_type・capabilities）・services/（resume_rule 5段・retry_rule）",
+   "desc": "業務領域「意味の操作」（中核）。domain はステップ6 で手続きを書いて確かめてから決める。まとめるだけのフォルダ",
    "crate": ""
   },
   {
    "path": "    │   └── application/",
-   "desc": "依存：semantic-operations-domain・conformance-domain・conformance-application・operation-recording-application",
-   "crate": "launched-sessions-semantic-operations-application"
+   "desc": "依存：conformance-domain・conformance-application・operation-recording-application",
+   "crate": "schemas-and-instances-semantic-operations-application"
   },
   {
    "path": "    │       ├── Cargo.toml",
@@ -329,7 +301,7 @@
   },
   {
    "path": "    │       └── src/",
-   "desc": "use_cases/agent_sessions.rs（SF1：手順のプロンプトを組む・呼ぶ・答えを確かめてスキーマへの適合へ渡す）・ports.rs（agent_runtime・keep_prompt・agent_session_store）",
+   "desc": "use_cases/semantic.rs（SF1：子を決める・手順のプロンプトを組む・起動するか続ける・答えを確かめてスキーマへの適合へ渡す）・ports.rs（agent_runtime・keep_prompt）",
    "crate": ""
   },
   {
@@ -434,7 +406,7 @@
   },
   {
    "path": "            ├── sqlite/",
-   "desc": "agent_session_store・operation_log を実装。migrations/。行の型で変換（orphan rule）",
+   "desc": "operation_log を実装（sessions・changes・validations）。migrations/。行の型で変換（orphan rule）",
    "crate": "schemas-and-instances-adapters-outbound-sqlite"
   },
   {
@@ -455,39 +427,22 @@
  ],
  "review": "impl-ddd/review.json",
  "context_map": {
-  "why": "言葉のずれから引いた（ガイド Q3：束ねる → 区分 → 言葉のずれ）。「セッション」で、SAS が立てた同じセッションを2つのモデルで持っていた（記録の側は操作をまとめる行、意味の操作の側は寿命・回・能力・再開を持つ集約）。ほかの語（検証 ・ 指紋 ・ 版）は同じモデルの別の面か、呼び分ければ済む別のもの",
+  "why": "文脈は「スキーマとインスタンス」1つ。9519cffa（2026-10-31）で、「セッション」を2つのモデルで持っていた（記録の側は操作をまとめる行、意味の操作の側は寿命・回・能力・再開を持つ集約）ことを根拠に「立てたセッション」を切り出した。2026-11-01 の版16 で SAS は子の状態を管理しないことにした（寿命・再開はツールが持つ一般の仕組み。続けるかは親が決める）。sessions は誰が何で動いたかだけの1つのモデルになり、切り出した根拠が無くなったので1つに戻した。ほかに境界を動かす言葉のずれは無い（セッションは1つの意味、回は語ごと無くなり、原因は同じ呼び出しの削除）",
   "contexts": [
    {
     "name": "スキーマとインスタンス",
     "folder": "schemas-and-instances/",
     "subdomains": [
      "スキーマへの適合",
+     "意味の操作",
      "操作の記録",
      "描画"
     ],
-    "session_means": "呼び出し元のセッション（操作をまとめる行）",
+    "session_means": "ツールのセッション ID と、それが親（caller）か書く子（writer）か確かめる子（checker）か。状態は持たない",
     "status": "あり"
-   },
-   {
-    "name": "立てたセッション",
-    "folder": "launched-sessions/",
-    "subdomains": [
-     "意味の操作"
-    ],
-    "session_means": "SAS が立てたセッション（寿命 ・ 回 ・ 能力 ・ 再開を持つ集約）",
-    "status": "ステップ6 で作る"
    }
   ],
   "relations": [
-   {
-    "between": [
-     "スキーマとインスタンス",
-     "立てたセッション"
-    ],
-    "pattern": "緊密な協力（1つのチーム）",
-    "shared": "連係の契約（意味の欄と by: ai の判定を頼むポート）と、境界を越える値（判定の5つの値 ・ by ・ rule の結果 ・ 文書の指紋）だけ。ステップ6 で小さな crate にする",
-    "dependency": "2つの文脈は互いに依存しない。入口（sas）を事業領域の根へ移して両方を組み立てる（ステップ6）"
-   },
    {
     "between": [
      "スキーマとインスタンス",
@@ -504,13 +459,30 @@
    },
    {
     "between": [
-     "立てたセッション",
+     "スキーマとインスタンス",
      "AI のツール"
     ],
-    "pattern": "モデル変換装置（call をプロンプトと起動に直すアダプター）"
+    "pattern": "モデル変換装置（手順のプロンプトと起動の設定を、ツールの起動 ・ 再開のコマンドに直すアダプター。接続の定義で差し込む）"
+   },
+   {
+    "between": [
+     "スキーマとインスタンス",
+     "使う側"
+    ],
+    "pattern": "公開された言葉（Abstract と CLI の出力）。親と子の ID を返し、使う側が自分のインスタンスに書く"
    }
   ],
-  "recheck": "まだ実装の無い語は、作るステップで照らし直す：描画の語（ステップ5）・ 立てたセッションの語（ステップ6・7）・ 検索の語（ステップ8）"
+  "history": [
+   {
+    "commit": "9519cffa",
+    "change": "文脈を2つ（スキーマとインスタンス ・ 立てたセッション）に分けた"
+   },
+   {
+    "version": "v16",
+    "change": "1つに戻した。launched-sessions の crate はやめた"
+   }
+  ],
+  "recheck": "まだ実装の無い語は、作るステップで照らし直す：描画の語（ステップ5）・ 意味の操作の語（ステップ6・7）・ 検索の語（ステップ8）"
  },
  "business_domain": {
   "name": "Semantic Agent Schema",
@@ -527,7 +499,7 @@
   {
    "name": "意味の操作",
    "folder": "semantic-operations/",
-   "context": "立てたセッション"
+   "context": "スキーマとインスタンス"
   },
   {
    "name": "操作の記録",
@@ -541,6 +513,6 @@
    "context": "スキーマとインスタンス"
   }
  ],
- "crate_naming": "schemas-and-instances-<業務領域>-<層>（adapters は schemas-and-instances-adapters-<inbound|outbound>-<名前>）。製品の名前は CLI の [[bin]]（sas）にだけ残す。crate になるフォルダは直下に Cargo.toml を持ち、根の virtual manifest の members に並ぶ（13個）",
+ "crate_naming": "schemas-and-instances-<業務領域>-<層>（adapters は schemas-and-instances-adapters-<inbound|outbound>-<名前>）。製品の名前は CLI の [[bin]]（sas）にだけ残す。crate になるフォルダは直下に Cargo.toml を持ち、根の virtual manifest の members に並ぶ（仮説では12個）",
  "foundation_text_proposal": "文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）。リポジトリの根は事業領域の置き場で、文脈の根にしない。文脈の名前はその文脈の言葉から付け、事業領域や製品の名前を使わない。（土台の置き方の決まり・ディレクトリの図の注記・文脈の型1・型2 を同じ形に。ACDR で直す）"
 }

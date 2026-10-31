@@ -3,11 +3,11 @@
 //! - UC4 検証する（機械の rule）：対象を読み、Concrete かインスタンスかを $schema で見分け、形（JSON Schema）・
 //!   当たる rule ・ 参照の先を判定し、対象ごとに検証の操作を1件記録して、結果と記録の ID を返す。検証は対象を変えない。
 //! - UC1 作成する ・ UC2 更新する（機械）：値か JSON Patch から書く中身を作り、形と集約の書く条件を確かめてから書き、
-//!   前後の中身から求めた差分と一緒に操作を記録する。書く手前で断ったものも、理由と一緒に記録する。
+//!   前後の中身から求めた差分と一緒に操作を記録する。書く手前で断ったものは記録せず、理由をその場で返す。
 //! - SAS を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
-//!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録の最後の事後と同じ中身のコミットから取る。
+//!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録のどれかの事後と同じ中身のコミットから取る。
 //! - UC4 の範囲「入力が変わった rule だけ」と、SAS を通らない変更があった対象の知らせ。
-//! - UC3 削除する（機械）：対象と、対象を指している参照元の記載を、同じセッションの操作として消す（delete.rs）。
+//! - UC3 削除する（機械）：対象と、対象を指している参照元の記載を、同じ呼び出しの操作として消す（delete.rs）。
 
 mod delete;
 mod patch;
@@ -29,7 +29,7 @@ use schemas_and_instances_operation_recording_application::ports::{
     ValidateRow,
 };
 use schemas_and_instances_operation_recording_application::use_cases::history::{
-    Interleaved, interleaved, last_written, record_change, record_validations,
+    Interleaved, interleaved, record_change, record_validations, untracked_since,
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -103,8 +103,8 @@ pub struct Untracked {
 /// 検証の結果と、記録の ID。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Validation {
-    /// 呼び出し元のセッションの ID
-    pub session: String,
+    /// 呼んだ親のセッションの ID（人なら None）
+    pub parent: Option<String>,
     /// 対象ごとの結果（経路の順）
     pub targets: Vec<TargetResult>,
     /// 全体の件数
@@ -117,22 +117,19 @@ pub struct Validation {
     pub untracked: Vec<Untracked>,
 }
 
-/// 操作を始められなかった ・ 書かなかった理由。
-/// 依頼を読めない ・ 対象や型が決まらないときは何も記録せず、session と operation は None。
-/// 書く手前の判定（形 ・ 書く条件 ・ 指紋 ・ 差分の当て）で断った作成と更新は記録し、その ID が入る。
+/// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ checker ・ commits ・ log、
-    /// 記録するものは RECORDED_CODES）
+    /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ references_blocked ・ conflict ・ patch_failed ・
+    /// id_changed ・ human_field ・ derived_mismatch ・ published_changed、書いた途中で止まったもの：references_left）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
     /// 理由
     pub message: String,
-    /// 断った操作を記録したセッションの ID
-    pub session: Option<Box<str>>,
-    /// 断った操作の ID
+    /// 書いた途中で止まったとき（references_left）の、記録した削除の ID
     pub operation: Option<String>,
     /// 指紋が違って断ったとき（conflict）の、間に入った変更
     pub interleaved: Option<Box<Interleaved>>,
@@ -402,7 +399,7 @@ fn reads_of(document: &Value, at: &str) -> Fingerprint {
     Fingerprint::of_read(at, document.pointer(at))
 }
 
-/// 前の判定のあと、読んだ所が変わった rule の id。前の判定の指紋が無い（ステップ2 までの記録）rule も入る。
+/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。
 /// いまの判定と前の判定で、rule ごとに「読んだ所の指紋」の集まりを比べる。
 fn changed_rules(document: &Value, now: &[Judged], before: &[Judgment]) -> BTreeSet<String> {
     let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
@@ -412,7 +409,7 @@ fn changed_rules(document: &Value, now: &[Judged], before: &[Judgment]) -> BTree
             .or_default()
             .insert(reads_of(document, at).as_str().to_string());
     }
-    let mut previous: BTreeMap<&str, BTreeSet<Option<String>>> = BTreeMap::new();
+    let mut previous: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for j in before {
         previous
             .entry(j.rule.rule.as_str())
@@ -421,11 +418,7 @@ fn changed_rules(document: &Value, now: &[Judged], before: &[Judgment]) -> BTree
     }
     current
         .into_iter()
-        .filter(|(rule, reads)| {
-            previous.get(rule).is_none_or(|p| {
-                p.contains(&None) || p.iter().flatten().cloned().collect::<BTreeSet<_>>() != *reads
-            })
-        })
+        .filter(|(rule, reads)| previous.get(rule) != Some(reads))
         .map(|(rule, _)| rule.to_string())
         .collect()
 }
@@ -490,9 +483,10 @@ fn run_validate(
     let mut unchanged_targets = Vec::new();
     for (d, kind, declared) in classified {
         let fingerprint = Fingerprint::of(d.text.as_bytes());
-        // SAS を通らない変更：記録の最後の事後と、いまの中身の指紋が違う。知らせて、いまの中身を検証する
-        if let Some(last) = log.writes(&d.path).map_err(log_refused)?.pop()
-            && let Some(expected) = last.row.after.filter(|a| a != fingerprint.as_str())
+        // SAS を通らない変更：いまの中身が、記録のどの事後とも違う。知らせて、いまの中身を検証する
+        if let Some(expected) =
+            untracked_since(log, &d.path, fingerprint.as_str()).map_err(log_refused)?
+            && let Some(last) = log.writes(&d.path).map_err(log_refused)?.pop()
         {
             untracked.push(Untracked {
                 path: d.path.clone(),
@@ -535,14 +529,12 @@ fn run_validate(
         ));
     }
 
-    // 対象ごとに検証の操作を記録する（前後の指紋は同じ）
+    // 対象ごとに検証を記録する（対象を変えないので指紋は1つ）
     let rows: Vec<ValidateRow> = judged
         .iter()
-        .map(|(path, kind, _, fp, results, reads, _, _)| ValidateRow {
-            target_kind: kind.as_str().to_string(),
+        .map(|(path, _, _, fp, results, reads, _, _)| ValidateRow {
             target_path: path.clone(),
-            before: fp.as_str().to_string(),
-            after: fp.as_str().to_string(),
+            hash: fp.as_str().to_string(),
             results: results
                 .iter()
                 .zip(reads)
@@ -552,7 +544,7 @@ fn run_validate(
                     by: r.by().as_str().to_string(),
                     result: r.verdict().as_str().to_string(),
                     reason: r.reason().to_string(),
-                    reads: Some(reads.clone()),
+                    reads: reads.clone(),
                 })
                 .collect(),
         })
@@ -582,7 +574,7 @@ fn run_validate(
         )
         .collect();
     Ok(Validation {
-        session: recorded.session,
+        parent: recorded.parent,
         targets,
         counts: total,
         stale_only,
@@ -590,19 +582,6 @@ fn run_validate(
         untracked,
     })
 }
-
-/// 書く手前の判定で断ったとき、記録する決まった名前。
-pub const RECORDED_CODES: [&str; 9] = [
-    "invalid_value",
-    "has_dependents",
-    "references_blocked",
-    "conflict",
-    "patch_failed",
-    "id_changed",
-    "human_field",
-    "derived_mismatch",
-    "published_changed",
-];
 
 /// 作成か更新か。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -654,8 +633,8 @@ pub struct Violated {
 /// 作成か更新の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangeResult {
-    /// 呼び出し元のセッションの ID
-    pub session: String,
+    /// 呼んだ親のセッションの ID（人なら None）
+    pub parent: Option<String>,
     /// 操作の ID
     pub operation: String,
     /// 作ったか直したか
@@ -754,7 +733,7 @@ fn pretty(value: &Value, depth: usize, out: &mut String) {
 fn entry(who: &dyn IdentifyCaller) -> Entry {
     match who.identify() {
         Caller::Human => Entry::Human,
-        Caller::Tool { .. } => Entry::Tool,
+        Caller::Parent { .. } => Entry::Tool,
     }
 }
 
@@ -804,12 +783,42 @@ fn log_refused(e: String) -> Refused {
     }
 }
 
+/// 記録にある操作の対象の種類と従う型。記録には持たないので、いまのファイルの $schema か、
+/// 記録した欄（作成と削除は根の欄をすべて持つ）の $schema から見分ける。
+fn target_of(store: &dyn DocumentStore, path: &str, fields: &[FieldRow]) -> (TargetKind, String) {
+    let from_file = store
+        .read(path)
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| {
+            v.get("$schema")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        });
+    let declared = from_file
+        .or_else(|| {
+            fields
+                .iter()
+                .filter(|f| f.pointer == "/$schema")
+                .find_map(|f| f.after.as_deref().or(f.before.as_deref()))
+                .and_then(|t| serde_json::from_str::<String>(t).ok())
+        })
+        .unwrap_or_default();
+    let kind = if ConcreteSchema::declares_abstract(&serde_json::json!({ "$schema": declared })) {
+        TargetKind::Concrete
+    } else {
+        TargetKind::Instance
+    };
+    (kind, declared)
+}
+
 /// 記録にある同じ依頼の操作を、結果に戻す。source は依頼の種類（sas ・ outside）。
 fn replay(
     stored: StoredChange,
     written: Written,
     source: &str,
     path: &str,
+    store: &dyn DocumentStore,
 ) -> Result<ChangeResult, Refused> {
     let row = stored.row;
     if row.kind != written.kind() || row.source != source || row.target_path != path {
@@ -822,20 +831,7 @@ fn replay(
             ),
         ));
     }
-    if let Some((code, message)) = row.refusal {
-        return Err(Refused {
-            code: RECORDED_CODES
-                .iter()
-                .find(|c| **c == code)
-                .copied()
-                .unwrap_or("log"),
-            path: Some(row.target_path.into()),
-            message,
-            session: Some(stored.session.into()),
-            operation: Some(stored.operation),
-            ..Refused::default()
-        });
-    }
+    let (kind, concrete) = target_of(store, path, &row.fields);
     let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
     let changes = row
         .fields
@@ -859,16 +855,12 @@ fn replay(
         .and_then(Fingerprint::parse)
         .ok_or_else(|| log_refused(format!("操作 {} の事後の指紋を読めない", stored.operation)))?;
     Ok(ChangeResult {
-        session: stored.session,
+        parent: stored.parent,
         operation: stored.operation,
         written,
-        kind: if row.target_kind == "concrete" {
-            TargetKind::Concrete
-        } else {
-            TargetKind::Instance
-        },
+        kind,
         path: row.target_path,
-        concrete: row.concrete,
+        concrete,
         before: row.before.as_deref().and_then(Fingerprint::parse),
         after,
         diff: Diff::from_changes(changes),
@@ -878,30 +870,6 @@ fn replay(
         outside: row.source == "outside",
         before_commit: None,
     })
-}
-
-/// 断った操作を記録して、その ID を付けた理由を返す。
-fn refuse_and_record(
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-    mut row: ChangeRow,
-    code: &'static str,
-    message: String,
-) -> Refused {
-    row.refusal = Some((code.to_string(), message.clone()));
-    row.after.clone_from(&row.before);
-    row.fields.clear();
-    match record_change(who, log, &row) {
-        Ok(r) => Refused {
-            code,
-            path: Some(row.target_path.into()),
-            message,
-            session: Some(r.session.into()),
-            operation: r.operations.into_iter().next(),
-            ..Refused::default()
-        },
-        Err(e) => log_refused(e),
-    }
 }
 
 fn violations_message(broken: &[(String, String)]) -> String {
@@ -928,7 +896,7 @@ pub fn create(
     if let Some(id) = &request.request_id
         && let Some(stored) = log.find_request(id).map_err(log_refused)?
     {
-        return replay(stored, Written::Created, "sas", path);
+        return replay(stored, Written::Created, "sas", path, store);
     }
     let mut value = request.value.clone();
     let Some(object) = value.as_object_mut() else {
@@ -973,13 +941,10 @@ pub fn create(
     let row = ChangeRow {
         kind: Written::Created.kind().to_string(),
         source: "sas".to_string(),
-        target_kind: kind.as_str().to_string(),
         target_path: path.to_string(),
-        concrete: request.concrete.clone(),
         request_id: request.request_id.clone(),
         before: None,
         after: None,
-        refusal: None,
         intent: request.intent.clone(),
         cause: None,
         fields: Vec::new(),
@@ -987,11 +952,9 @@ pub fn create(
     let broken = form_violations(checker, kind, &request.concrete, &value, &corpus.more)
         .map_err(|e| refused("checker", path, e))?;
     if !broken.is_empty() {
-        return Err(refuse_and_record(
-            who,
-            log,
-            row,
+        return Err(refused(
             "invalid_value",
+            path,
             format!("型に従わない：{}", violations_message(&broken)),
         ));
     }
@@ -1002,7 +965,7 @@ pub fn create(
         corpus.concretes.get(&request.concrete),
         entry(who),
     ) {
-        return Err(refuse_and_record(who, log, row, code, message));
+        return Err(refused(code, path, message));
     }
     let text = to_text(&value);
     store
@@ -1021,7 +984,7 @@ pub fn create(
     )
     .map_err(log_refused)?;
     Ok(ChangeResult {
-        session: recorded.session,
+        parent: recorded.parent,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
         written: Written::Created,
         kind,
@@ -1067,7 +1030,7 @@ pub fn update(
     if let Some(id) = &request.request_id
         && let Some(stored) = log.find_request(id).map_err(log_refused)?
     {
-        return replay(stored, Written::Updated, "sas", path);
+        return replay(stored, Written::Updated, "sas", path, store);
     }
     let text = store
         .read(path)
@@ -1085,33 +1048,28 @@ pub fn update(
     let row = ChangeRow {
         kind: Written::Updated.kind().to_string(),
         source: "sas".to_string(),
-        target_kind: kind.as_str().to_string(),
         target_path: path.to_string(),
-        concrete: declared.clone(),
         request_id: request.request_id.clone(),
         before: Some(current.as_str().to_string()),
         after: None,
-        refusal: None,
         intent: request.intent.clone(),
         cause: None,
         fields: Vec::new(),
     };
-    // 比べる指紋：呼ぶ側が読んだ指紋（--if-match）か、SAS が最後に書いた事後の指紋。
-    // SAS が一度も書いていなければ比べる指紋が無く、そのまま書く
+    // 比べる指紋：呼ぶ側が読んだ指紋（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後の指紋。
+    // SAS が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べる指紋が無く、そのまま書く
     let (expected, from) = match &request.if_match {
         Some(fp) => (Some(fp.clone()), "--if-match の"),
         None => (
-            last_written(log, path).map_err(log_refused)?,
+            untracked_since(log, path, current.as_str()).map_err(log_refused)?,
             "SAS が最後に書いた事後の",
         ),
     };
     if let Some(expected) = expected.filter(|e| e != current.as_str()) {
         let between = interleaved(log, path, &expected, current.as_str()).map_err(log_refused)?;
-        let mut r = refuse_and_record(
-            who,
-            log,
-            row,
+        let mut r = refused(
             "conflict",
+            path,
             format!(
                 "いまの中身の指紋は {}。{from}指紋 {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
                 current.as_str(),
@@ -1133,11 +1091,9 @@ pub fn update(
     let after = match patch::apply(&before, &request.patch) {
         Ok(v) => v,
         Err(e) => {
-            return Err(refuse_and_record(
-                who,
-                log,
-                row,
+            return Err(refused(
                 "patch_failed",
+                path,
                 format!("JSON Patch を当てられない（どれも当てていない）：{e}"),
             ));
         }
@@ -1156,11 +1112,9 @@ pub fn update(
     let broken = form_violations(checker, kind, &declared, &after, &more)
         .map_err(|e| refused("checker", path, e))?;
     if !broken.is_empty() {
-        return Err(refuse_and_record(
-            who,
-            log,
-            row,
+        return Err(refused(
             "invalid_value",
+            path,
             format!("当てた結果が型に従わない：{}", violations_message(&broken)),
         ));
     }
@@ -1171,7 +1125,7 @@ pub fn update(
         corpus.concretes.get(&declared),
         entry(who),
     ) {
-        return Err(refuse_and_record(who, log, row, code, message));
+        return Err(refused(code, path, message));
     }
     let new_text = to_text(&after);
     store
@@ -1196,7 +1150,7 @@ pub fn update(
         None => Vec::new(),
     };
     Ok(ChangeResult {
-        session: recorded.session,
+        parent: recorded.parent,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
         written: Written::Updated,
         kind,
@@ -1303,12 +1257,14 @@ pub struct AdoptRequest {
 /// 前の中身を探すコミットの数の上限。
 pub const COMMITS_TO_SEARCH: usize = 50;
 
-/// 記録の最後の事後と同じ中身のコミットを、新しい順に探す。見つからなければ None。
+/// 中身の指紋が記録のどれかの事後と同じコミットを、新しい順に探す。見つかればコミットと中身と、その指紋。
+/// DB はワークツリーで1つなので、最後の事後だけでなく、この経路の記録のどの事後でもよい
+/// （このワークツリーの履歴にあるのは、ほかのワークツリーが書く前の事後かもしれない）。
 fn find_commit(
     committed: &dyn CommitReader,
     path: &str,
-    expected: &str,
-) -> Result<Option<(String, Value)>, Refused> {
+    recorded: &[String],
+) -> Result<Option<(String, Value, String)>, Refused> {
     let store_err = |e: String| refused("commits", path, e);
     for rev in committed
         .commits(path, COMMITS_TO_SEARCH)
@@ -1317,10 +1273,11 @@ fn find_commit(
         let Some(bytes) = committed.read(&rev, path).map_err(store_err)? else {
             continue;
         };
-        if Fingerprint::of(&bytes).as_str() == expected
+        let fp = Fingerprint::of(&bytes);
+        if recorded.iter().any(|r| r == fp.as_str())
             && let Ok(value) = serde_json::from_slice::<Value>(&bytes)
         {
-            return Ok(Some((rev, value)));
+            return Ok(Some((rev, value, fp.as_str().to_string())));
         }
     }
     Ok(None)
@@ -1328,12 +1285,12 @@ fn find_commit(
 
 /// SAS を通らない変更を取り込む（UC1 の変形 ・ UC2 の --adopt）。ファイルは書かず、いまの中身を
 /// 形と集約の書く条件に照らしてから、source = outside の作成か更新として記録する。
-/// 更新の取り込みの差分は、記録の最後の事後と同じ中身のコミット（ふつうは HEAD）との比較で、
-/// そのコミットが無ければ前の値の無い差分（before_unavailable）にする。
+/// 更新の取り込みの差分は、記録のどれかの事後と同じ中身のコミット（ふつうは HEAD）との比較で、
+/// そのコミットが無ければ前の値の無い差分（before_unavailable）にし、事前は記録の最後の事後にする。
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない ・ 作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無いか
-/// 外の変更が無い（何も記録しない）。形や書く条件に外れる（取り込まずに記録する）。コミットや記録を読めない ・ 記録できないとき。
+/// 外の変更が無い ・ 形や書く条件に外れる（何も記録しない）。コミットや記録を読めない ・ 記録できないとき。
 pub fn adopt(
     request: &AdoptRequest,
     store: &dyn DocumentStore,
@@ -1350,7 +1307,7 @@ pub fn adopt(
     if let Some(id) = &request.request_id
         && let Some(stored) = log.find_request(id).map_err(log_refused)?
     {
-        return replay(stored, written, "outside", path);
+        return replay(stored, written, "outside", path, store);
     }
     let text = store
         .read(path)
@@ -1374,10 +1331,11 @@ pub fn adopt(
     let corpus = Corpus::load(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
     let fingerprint = Fingerprint::of(text.as_bytes());
-    let last = log.writes(path).map_err(log_refused)?.pop();
+    let writes = log.writes(path).map_err(log_refused)?;
+    let recorded: Vec<String> = writes.iter().filter_map(|w| w.row.after.clone()).collect();
 
-    // 前の状態：作成の取り込みは記録が無いこと、更新の取り込みは記録の最後の事後といまの中身が違うこと
-    let expected = match (request.as_kind, last) {
+    // 前の状態：作成の取り込みは記録が無いこと、更新の取り込みはいまの中身が記録のどの事後とも違うこと
+    let last = match (request.as_kind, writes.last()) {
         (AdoptAs::Create, Some(w)) => {
             return Err(refused(
                 "recorded",
@@ -1399,14 +1357,17 @@ pub fn adopt(
             ));
         }
         (AdoptAs::Update, Some(w)) => {
-            let after = w.row.after.unwrap_or_default();
-            if after == fingerprint.as_str() {
+            if let Some(same) = writes
+                .iter()
+                .rev()
+                .find(|x| x.row.after.as_deref() == Some(fingerprint.as_str()))
+            {
                 return Err(refused(
                     "nothing_to_adopt",
                     path,
                     format!(
                         "いまの中身は操作 {} の事後と同じで、SAS を通らない変更が無い",
-                        w.operation
+                        same.operation
                     ),
                 ));
             }
@@ -1417,36 +1378,35 @@ pub fn adopt(
                     "更新の取り込みには、外で直した意図（--intent）が要る".to_string(),
                 ));
             }
-            Some(after)
+            Some(w.row.after.clone().unwrap_or_default())
         }
     };
     let row = ChangeRow {
         kind: written.kind().to_string(),
         source: "outside".to_string(),
-        target_kind: kind.as_str().to_string(),
         target_path: path.to_string(),
-        concrete: declared.clone(),
         request_id: request.request_id.clone(),
-        // 断るときは対象を変えないので、事前と事後は同じ（作成は無し、更新はいまの中身）
-        before: expected.as_ref().map(|_| fingerprint.as_str().to_string()),
+        before: None,
         after: None,
-        refusal: None,
         intent: request.intent.clone(),
         cause: None,
         fields: Vec::new(),
     };
-    let found = match &expected {
-        Some(e) => find_commit(committed, path, e)?,
+    let found = match &last {
+        Some(_) => find_commit(committed, path, &recorded)?,
         None => None,
+    };
+    // 事前：前の中身のコミットが見つかればその指紋（記録のどれかの事後）、無ければ記録の最後の事後
+    let expected: Option<String> = match (&found, &last) {
+        (Some((_, _, fp)), _) => Some(fp.clone()),
+        (None, l) => l.clone(),
     };
     let broken = form_violations(checker, kind, &declared, &current, &corpus.more)
         .map_err(|e| refused("checker", path, e))?;
     if !broken.is_empty() {
-        return Err(refuse_and_record(
-            who,
-            log,
-            row,
+        return Err(refused(
             "invalid_value",
+            path,
             format!(
                 "いまの中身が型に従わないので取り込まない：{}",
                 violations_message(&broken)
@@ -1455,7 +1415,7 @@ pub fn adopt(
     }
     // 書く条件：前の中身のコミットがあればそれと比べる。無ければ、前の値を知らない作成と同じに見る
     // （ツールからの取り込みで人の欄が default 以外なら、外で人の欄が変わったかを確かめられないので断る）
-    let before_value = found.as_ref().map(|(_, v)| v);
+    let before_value = found.as_ref().map(|(_, v, _)| v);
     if let Err((code, message)) = check_write(
         kind,
         before_value,
@@ -1464,11 +1424,9 @@ pub fn adopt(
         entry(who),
     ) {
         let unknown = expected.is_some() && found.is_none();
-        let mut r = refuse_and_record(
-            who,
-            log,
-            row,
+        let mut r = refused(
             code,
+            path,
             if unknown && code == "human_field" {
                 format!(
                     "{message}。前の中身のコミットが無く、外で人の欄が変わったかを確かめられない"
@@ -1492,7 +1450,7 @@ pub fn adopt(
     }
     let diff = match (&expected, &found) {
         (None, _) => Diff::between(None, &current),
-        (Some(_), Some((_, before))) => Diff::between(Some(before), &current),
+        (Some(_), Some((_, before, _))) => Diff::between(Some(before), &current),
         (Some(_), None) => Diff::without_before(&current),
     };
     let recorded = record_change(
@@ -1522,7 +1480,7 @@ pub fn adopt(
         _ => Vec::new(),
     };
     Ok(ChangeResult {
-        session: recorded.session,
+        parent: recorded.parent,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
         written,
         kind,
@@ -1535,6 +1493,6 @@ pub fn adopt(
         violated,
         replayed: false,
         outside: true,
-        before_commit: found.map(|(rev, _)| rev),
+        before_commit: found.map(|(rev, _, _)| rev),
     })
 }

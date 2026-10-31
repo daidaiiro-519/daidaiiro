@@ -39,7 +39,7 @@
   },
   {
    "id": "UC1:最低保証",
-   "meaning": "型に従わないものは作られず、理由と操作の記録が残る",
+   "meaning": "型に従わないものは作られず、理由が返る",
    "scenarios": [
     "S-UC1-ADOPT-INVALID",
     "S-UC1-DERIVED",
@@ -48,7 +48,7 @@
     "S-UC1-INVALID",
     "S-UC1-USAGE"
    ],
-   "note": "断った作成の記録は、出力の operation の ID で確かめる。記録の行の中身は outbound の sqlite の試験（change_rows.rs）で確かめる"
+   "note": "断った作成は記録しない（ステップ4b）。出力に operation が無いことで確かめる。記録の行の決まりは outbound の sqlite の試験で確かめる"
   },
   {
    "id": "UC1:変形:既存のファイルを取り込む",
@@ -111,6 +111,7 @@
     "S-UC2-ADOPT-OLDER",
     "S-UC2-ADOPT-UNCOMMITTED",
     "S-UC2-ADOPT-USAGE",
+    "S-UC2-ADOPT-WORKTREE",
     "S-UC2-ADOPT"
    ],
    "note": "記録の行（source = outside ・ 前の値が取れなかった欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、版の読み方は outbound の git の試験（versions.rs）で確かめる"
@@ -173,6 +174,7 @@
     "S-UC4-CONCRETE-OK",
     "S-UC4-INSTANCE-FORM",
     "S-UC4-RELATION-MISSING",
+    "S-UC4-SESSION-NESTED",
     "S-UC4-SESSION",
     "S-UC4-UNKNOWN-KEYWORD"
    ]
@@ -214,8 +216,10 @@
    "id": "UC4:変形:SAS を通らない変更を見つける",
    "meaning": "記録の最後の事後といまの中身の指紋が違う対象を知らせ、いまの中身を検証する",
    "scenarios": [
+    "S-UC2-ADOPT-WORKTREE",
     "S-UC4-STALE-OUTSIDE",
-    "S-UC4-UNTRACKED"
+    "S-UC4-UNTRACKED",
+    "S-UC4-WORKTREE"
    ]
   }
  ]

@@ -1,0 +1,218 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": "4b",
+ "date": "2026-11-01",
+ "summary": "セッションを外して記録を分けた（概念のページ版16）。0001〜0004 を番号を足さずに書き直し、sessions を薄い7列（このステップで書くのは親の行だけ）、operations を changes ＋ field_changes と validations ＋ rule_results に分け、ビュー operations を置いた。断った操作は記録せず、理由 ・ 案内 ・ 間に入った変更をその場で返す。親のセッション ID は --session → ツールの環境変数（callers.json）→ 人（null）で決め、記録は <git-common-dir>/sas/sas.db に置いてワークツリーで1つにした。そのために、SAS を通ったかを「いまの中身が、その経路の記録のどれかの事後か」で見るようにした。ステップ1〜4 の場面は、断ったときの operation と session の値の期待だけを直し、場面3件（S-UC4-SESSION を書き直し、S-UC4-WORKTREE ・ S-UC2-ADOPT-WORKTREE を足した）はステップ4 の sas で失敗することを確かめた",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "ワークツリーで共通の Git のフォルダを、絶対の経路で引く方法",
+   "evidence": [
+    "原典 https://git-scm.com/docs/git-rev-parse（取得 2026-11-01、3,831 行、122,331 バイト）2915〜2917行 --git-common-dir「Show $GIT_COMMON_DIR if defined, else $GIT_DIR.」（「if defined, else」を quote で照合）",
+    "同 2885〜2888行 --path-format=(absolute|relative)「If specified as absolute, the paths printed by those options will be absolute and canonical.」（quote で照合）。2900行「The following options are modified by --path-format:」の一覧に --git-common-dir がある",
+    "識別子 --git-common-dir ・ --path-format を identifier で照合（2 件とも在る）",
+    "実地：git 2.53.0 で git rev-parse --path-format=absolute --git-common-dir が、リポジトリの下のフォルダからも /…/.git を返した。場面 S-UC4-WORKTREE ・ S-UC2-ADOPT-WORKTREE（git worktree add で作ったワークツリーから同じ DB に書く）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "親のセッション ID の環境変数（Claude Code）",
+   "evidence": [
+    "実測 2026-10-31：Claude Code 2.1.316 の中で打ったコマンドの環境に CLAUDE_CODE_SESSION_ID があり、claude -p --output-format json で起動した親の session_id と一致した（scratchpad session-sim/runs3/s1.json）",
+    "ほかのツール（Codex ・ Copilot ・ Kiro ・ Gemini ・ Cursor）の環境変数は、ツールの調査（scratchpad tool-sessions/findings.json）で確かめられていないので、callers.json に入れていない"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "記録の置き場所と親のセッション（adapters/inbound/cli の main.rs ・ caller.rs）",
+   "steps": [
+    "SAS_DB_PATH があればその経路、無ければ outbound の git で <git-common-dir> を引いて sas/sas.db、Git が無ければ .sas/sas.db",
+    "--session があればそれを親の ID にし、どのツールの中かは環境変数の表で見る（無ければ unknown）",
+    "--session が無ければ、callers.json の表を上から見て、値のある環境変数を親の ID にする",
+    "どちらも無ければ人（Caller::Human）"
+   ],
+   "rules": [
+    "親の ID はツールのセッション ID で、SAS は作らない",
+    "人の欄の守り（Entry）は、親がいれば Tool、いなければ Human。AI のツールの中で --session を渡し忘れても、環境変数で Tool になる"
+   ]
+  },
+  {
+   "usecase": "記録の追記（operation-recording の history.rs）",
+   "steps": [
+    "parent_session：親なら sessions に caller の行を初めて見たときだけ足し、その ID を返す。人なら None",
+    "record_validations：検証ごとに validations と rule_results を1つのトランザクションで足す",
+    "record_change：書いた作成 ・ 更新 ・ 削除だけを changes と field_changes に足す（断った操作は呼ばない）",
+    "untracked_since：いまの中身がその経路の記録のどれかの事後なら None、どれでもなければ最後の事後を返す"
+   ],
+   "rules": [
+    "断った操作は記録しない",
+    "SAS を通った中身は、最後の事後だけでなく、その経路の記録のどれかの事後（ワークツリーで記録が1つなので）"
+   ]
+  },
+  {
+   "usecase": "UC1 ・ UC2 ・ UC3 ・ UC4 の手続き（documents.rs ・ documents/delete.rs）",
+   "steps": [
+    "書く手前で断ったら refused で理由を返す（記録しない）。conflict の interleaved と hint、止めた削除の blocked と hint はいまのまま",
+    "--if-match が無い update ・ delete は、untracked_since で比べる指紋を決める",
+    "検証の untracked は untracked_since で決める",
+    "取り込みの nothing_to_adopt は、いまの中身が記録のどれかの事後なら返す。前の中身のコミットは、記録のどれかの事後と同じ中身のものを新しい順に探し、事前はその指紋（無ければ最後の事後で before_unavailable）",
+    "同じ request_id のやり直しは、対象の種類と従う型を記録に持たないので、いまのファイルの $schema か、記録した欄の /$schema から見分ける"
+   ],
+   "rules": [
+    "取り込みの事前は、その経路の記録のどれかの事後（design.json の記録 ⑦）",
+    "作成の取り込みは記録の無い対象だけ（application で確かめる）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "いまの中身が SAS を通った中身か（untracked_since）",
+   "became": "script",
+   "why": "記録の行を読んで比べるだけで、守る条件を持つ状態が無い。操作の記録の use_cases（history.rs）に置いた"
+  },
+  {
+   "what": "親のセッション ID を決める順（--session → 環境変数 → 人）",
+   "became": "script",
+   "why": "入口の外の値（引数 ・ 環境変数）を読むことで、業務の決まりではない。入口の adapter（caller.rs）に置き、名前の表は callers.json に置いた"
+  },
+  {
+   "what": "記録した操作の対象の種類と従う型（target_of）",
+   "became": "script",
+   "why": "同じ request_id のやり直しで結果を組むためだけに使う。記録に持たず、ファイルか記録の欄の $schema から決める"
+  },
+  {
+   "what": "changes と validations の採番を1つにする",
+   "became": "script",
+   "why": "結果の operation の形（o-NNNN）を1つに保つための置き場所の都合。sqlite の adapter に置いた"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "design.json の DDL（sessions 7列 ・ changes ・ field_changes ・ validations ・ rule_results ・ ビュー operations）",
+   "result": "match",
+   "fixed": "none",
+   "note": "表と欄は仮説のとおり。rule_results は、実装が使う欄（ord ・ rule_id ・ pointer ・ by ・ result ・ reason ・ reads_hash）だけにし、仮説の rule_schema ・ grounds ・ details は、それを読むステップ（6 以降）まで足さない。field_changes の CHECK は、ステップ3 の前の値が取れない欄の決まり（replace だけ）を残した"
+  },
+  {
+   "item": "記録 ⑦ 取り込みの事前は、その経路の記録のどこかにある事後（application が書く前に確かめる）",
+   "result": "match",
+   "fixed": "none",
+   "note": "0003 の operations_adopt_follows を外し、adopt の手続きで、前の中身のコミットを記録のどれかの事後で探すようにした"
+  },
+  {
+   "item": "--if-match を省いた update ・ delete と、検証の untracked",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "仮説は記録を1つにすることだけを決め、比べ方を決めていなかった。最後の事後だけと比べると、ほかのワークツリーが書いたあとに、こちらの中身が外の変更に見える（場面 S-UC4-WORKTREE）。いまの中身が記録のどれかの事後なら SAS を通った中身とみなすようにした。代わりに、同じワークツリーで外から前の事後へ戻された中身は、外の変更として知らせない"
+  },
+  {
+   "item": "断った操作は記録しない（ops-split の決定）",
+   "result": "match",
+   "fixed": "none",
+   "note": "最低保証を「理由を返す」に直した（trace.json の UC1:最低保証、S-UC1-INVALID の題）。結果の error から session と operation を外し、operation は references_left（消して記録したあと参照元を書けなかった）だけに残した"
+  },
+  {
+   "item": "結果の session を parent_session に",
+   "result": "match",
+   "fixed": "none",
+   "note": "validation ・ change ・ interleaved の操作 ・ last_recorded。値は親のセッション ID か null（人）"
+  },
+  {
+   "item": "子の行（writer ・ checker）と launch、child_session_id",
+   "result": "not_yet",
+   "note": "表と決まり（trigger）は置いたが、子を起動するのはステップ6。いまは書かない"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "セッション",
+   "seen": "sessions 表 ・ 結果の parent_session ・ --session",
+   "drift": "ずれは無い。SAS の中では「操作をした親（か子）のツールのセッション ID」の1つの意味だけになった。開く ・ 閉じる ・ 続き番号は語ごと無くなった"
+  },
+  {
+   "term": "記録の事後 ・ 最後の事後",
+   "seen": "untracked_since ・ adopt ・ interleaved",
+   "drift": "「SAS を通った中身」を「最後の事後」と同じ意味で使っていたが、ワークツリーで記録が1つになると別のものになる。「記録のどれかの事後」を SAS を通った中身、「最後の事後」を比べる相手（外の変更があったときに返す指紋）と呼び分けた"
+  },
+  {
+   "term": "原因（cause）",
+   "seen": "changes.cause_id ・ 0004",
+   "drift": "「同じセッションの削除」から「同じ呼び出しで先に記録した削除」へ。セッションに続き番号が無くなったので、trigger は原因が削除であることだけを見る。文脈の中の語で、境界を動かすずれは無い"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "sqlite の移行 0001〜0004",
+    "before": "sessions（kind ・ 閉じる）・ operations（検証と変更と断った操作が1つ）・ field_changes ・ rule_results",
+    "after": "sessions（7列、追記だけ）・ validations ＋ rule_results（0001）・ changes ＋ field_changes（0002）・ 取り込みの trigger（0003）・ 原因の trigger とビュー operations（0004）",
+    "why": "公開前の書き直し（plan.json のステップ4b）"
+   },
+   {
+    "what": "ポート IdentifyCaller",
+    "before": "Caller::Tool { tool_ref } か Human",
+    "after": "Caller::Parent { id, tool } か Human",
+    "why": "親のセッション ID はツールのもので、どのツールかも sessions に書く"
+   },
+   {
+    "what": "ポート OperationLog",
+    "before": "caller_session（s-0001 を作る）・ append_*（session を受ける）・ 行に target_kind ・ concrete ・ refusal",
+    "after": "parent_session（親の行を初めて見たときだけ足し、ID か None を返す）・ append_*（Option<&str> の親）・ 行から target_kind ・ concrete ・ refusal を外し、ValidateRow は hash 1つ",
+    "why": "断った操作を記録せず、記録に要らない欄を持たない（ops-split）"
+   },
+   {
+    "what": "conformance-application",
+    "before": "refuse_and_record（断った操作を記録して ID を返す）・ Refused に session ・ operation",
+    "after": "refused（記録しない）。Refused から session を外し、operation は references_left だけ。ChangeResult ・ Validation ・ Deletion の session を parent（Option）に",
+    "why": "断った操作は記録しない"
+   },
+   {
+    "what": "outbound の git",
+    "before": "CommitReader（log ・ cat-file --filters）",
+    "after": "common_dir（rev-parse --path-format=absolute --git-common-dir）を足した",
+    "why": "記録の置き場所をワークツリーで1つにする"
+   },
+   {
+    "what": "inbound の cli",
+    "before": "記録は .sas/sas.db、呼び出し元は --session だけ",
+    "after": "SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db。呼び出し元は --session と callers.json の環境変数",
+    "why": "概念のページ版16"
+   },
+   {
+    "what": "場面のスキーマ（test-suite/scenario.schema.json）",
+    "before": "コマンドは args ・ git ・ cwd ・ stdin ・ write",
+    "after": "env を足した。試験は callers.json の環境変数と SAS_DB_PATH を外してから、場面が渡したものだけを渡す",
+    "why": "試験を動かす環境（AI のツールの中）の親のセッション ID を持ち込まず、環境変数から親が決まる場面を書くため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "子の行（writer ・ checker）・ launch ・ child_session_id を書くこと、--continue ・ --new ・ busy ・ child_exists ・ writer_as_checker",
+    "why": "子を起動するのはステップ6"
+   },
+   {
+    "what": "callers.json の Claude Code 以外の行",
+    "why": "ほかのツールの環境変数は、原文でも実測でも確かめていない"
+   },
+   {
+    "what": "Abstract v1 の x-delegation の run.session（single ・ continuous）",
+    "why": "任せる先の起動のしかたで、ステップ6 で親と子の形に照らして見直す"
+   }
+  ],
+  "context": {
+   "name": "スキーマとインスタンス",
+   "scope": "スキーマへの適合 ・ 操作の記録 ・ 描画 ・ 意味の操作",
+   "name_signs": [],
+   "scope_signs": [],
+   "view": "文脈は1つに戻した（概念のページ版16）。このステップで出た語（セッション ・ 記録の事後 ・ 原因）は、どれも文脈の中の呼び分けで済み、同じ物を別のモデルで持つずれは無い。名前も範囲も変えない"
+  }
+ }
+}

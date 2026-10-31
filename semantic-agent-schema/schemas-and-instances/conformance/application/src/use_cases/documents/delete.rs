@@ -1,4 +1,4 @@
-//! UC3 削除する（機械）：対象と、対象を指している参照元の記載を、同じセッションの操作として消す。
+//! UC3 削除する（機械）：対象と、対象を指している参照元の記載を、同じ呼び出しの操作として消す。
 //!
 //! 参照元はいくつもの集約にまたがるので、1つの集約の不変条件にはせず、この手続きが業務サービスで探して判定する。
 //! ファイルをまたぐトランザクションは無いので、先に全部を確かめて止められるものは止め（何も変えない）、
@@ -6,7 +6,7 @@
 
 use super::{
     Blocked, Corpus, Refused, TargetKind, check_write, classify, entry, field_rows,
-    form_violations, log_refused, patch, refuse_and_record, refused, to_text, violations_message,
+    form_violations, log_refused, patch, refused, target_of, to_text, violations_message,
 };
 use crate::ports::{DocumentStore, SchemaChecker};
 use schemas_and_instances_conformance_domain::aggregates::{ConcreteSchema, Instance};
@@ -16,7 +16,7 @@ use schemas_and_instances_operation_recording_application::ports::{
     ChangeRow, IdentifyCaller, OperationLog, StoredChange,
 };
 use schemas_and_instances_operation_recording_application::use_cases::history::{
-    interleaved, last_written, record_change,
+    interleaved, record_change, untracked_since,
 };
 use serde_json::{Value, json};
 
@@ -25,7 +25,7 @@ use serde_json::{Value, json};
 pub struct DeleteRequest {
     /// 消す経路
     pub path: String,
-    /// 消す前に読んだ中身の指紋。無ければ、SAS が最後に書いた事後の指紋と比べる
+    /// 消す前に読んだ中身の指紋。無ければ、いまの中身が記録のどれかの事後かを確かめる
     pub if_match: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
@@ -53,8 +53,8 @@ pub struct Rewritten {
 /// 削除の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Deletion {
-    /// 呼び出し元のセッションの ID
-    pub session: String,
+    /// 呼んだ親のセッションの ID（人なら None）
+    pub parent: Option<String>,
     /// 削除の操作の ID
     pub operation: String,
     /// 対象の種類
@@ -108,7 +108,12 @@ fn without(doc: &Value, pointers: &[String]) -> Result<Value, String> {
     patch::apply(doc, &Value::Array(ops))
 }
 
-fn replayed(stored: StoredChange, path: &str, log: &dyn OperationLog) -> Result<Deletion, Refused> {
+fn replayed(
+    stored: StoredChange,
+    path: &str,
+    store: &dyn DocumentStore,
+    log: &dyn OperationLog,
+) -> Result<Deletion, Refused> {
     let row = stored.row;
     if row.kind != "delete" || row.target_path != path {
         return Err(refused(
@@ -119,20 +124,6 @@ fn replayed(stored: StoredChange, path: &str, log: &dyn OperationLog) -> Result<
                 row.target_path, row.kind
             ),
         ));
-    }
-    if let Some((code, message)) = row.refusal {
-        return Err(Refused {
-            code: super::RECORDED_CODES
-                .iter()
-                .find(|c| **c == code)
-                .copied()
-                .unwrap_or("log"),
-            path: Some(row.target_path.into()),
-            message,
-            session: Some(stored.session.into()),
-            operation: Some(stored.operation),
-            ..Refused::default()
-        });
     }
     let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
     let diff_of =
@@ -158,40 +149,32 @@ fn replayed(stored: StoredChange, path: &str, log: &dyn OperationLog) -> Result<
     };
     let mut references = Vec::new();
     for c in log.caused_by(&stored.operation).map_err(log_refused)? {
+        let (_, concrete) = target_of(store, &c.row.target_path, &c.row.fields);
         references.push(Rewritten {
             before: fp(&c.row.before, &c.operation)?,
             after: fp(&c.row.after, &c.operation)?,
             diff: diff_of(&c.row.fields),
             path: c.row.target_path,
-            concrete: c.row.concrete,
+            concrete,
             operation: c.operation,
         });
     }
+    let (kind, concrete) = target_of(store, path, &row.fields);
     Ok(Deletion {
         before: fp(&row.before, &stored.operation)?,
         diff: diff_of(&row.fields),
-        session: stored.session,
+        parent: stored.parent,
         operation: stored.operation,
-        kind: if row.target_kind == "concrete" {
-            TargetKind::Concrete
-        } else {
-            TargetKind::Instance
-        },
+        kind,
         path: row.target_path,
-        concrete: row.concrete,
+        concrete,
         references,
         replayed: true,
     })
 }
 
-/// 止めた削除を記録し、止めた理由になったものを付けて返す。
-fn refuse_with(
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-    row: ChangeRow,
-    code: &'static str,
-    blocked: Vec<Blocked>,
-) -> Refused {
+/// 止めた削除の理由に、止めた理由になったものを付けて返す（記録しない）。
+fn refuse_with(path: &str, code: &'static str, blocked: Vec<Blocked>) -> Refused {
     let message = blocked
         .iter()
         .map(|b| format!("{}：{}", b.path, b.message))
@@ -201,7 +184,7 @@ fn refuse_with(
         "has_dependents" => "この Concrete に頼っている文書があるので消さない（何も変えていない）",
         _ => "参照元の記載を消せないものがあるので、対象も参照元も変えない",
     };
-    let mut r = refuse_and_record(who, log, row, code, format!("{lead}：{message}"));
+    let mut r = refused(code, path, format!("{lead}：{message}"));
     r.hint = Some(Box::new(format!(
         "blocked のそれぞれの hint を片付けてから、消し直す：sas delete {} --intent \"…\"",
         r.path.as_deref().unwrap_or_default()
@@ -228,7 +211,7 @@ pub fn delete(
     if let Some(id) = &request.request_id
         && let Some(stored) = log.find_request(id).map_err(log_refused)?
     {
-        return replayed(stored, path, log);
+        return replayed(stored, path, store, log);
     }
     let text = store
         .read(path)
@@ -246,13 +229,10 @@ pub fn delete(
     let row = ChangeRow {
         kind: "delete".to_string(),
         source: "sas".to_string(),
-        target_kind: kind.as_str().to_string(),
         target_path: path.to_string(),
-        concrete: declared.clone(),
         request_id: request.request_id.clone(),
         before: Some(current.as_str().to_string()),
         after: None,
-        refusal: None,
         intent: request.intent.clone(),
         cause: None,
         fields: Vec::new(),
@@ -262,17 +242,15 @@ pub fn delete(
     let (expected, from) = match &request.if_match {
         Some(fp) => (Some(fp.clone()), "--if-match の"),
         None => (
-            last_written(log, path).map_err(log_refused)?,
+            untracked_since(log, path, current.as_str()).map_err(log_refused)?,
             "SAS が最後に書いた事後の",
         ),
     };
     if let Some(expected) = expected.filter(|e| e != current.as_str()) {
         let between = interleaved(log, path, &expected, current.as_str()).map_err(log_refused)?;
-        let mut r = refuse_and_record(
-            who,
-            log,
-            row,
+        let mut r = refused(
             "conflict",
+            path,
             format!(
                 "いまの中身の指紋は {}。{from}指紋 {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
                 current.as_str(),
@@ -304,13 +282,7 @@ pub fn delete(
         TargetKind::Concrete => {
             let concrete = ConcreteSchema::read(&before);
             if let Some(Err(v)) = concrete.as_ref().map(ConcreteSchema::check_delete) {
-                return Err(refuse_and_record(
-                    who,
-                    log,
-                    row,
-                    v.code(),
-                    v.message().to_string(),
-                ));
+                return Err(refused(v.code(), path, v.message().to_string()));
             }
             let own = concrete
                 .as_ref()
@@ -351,7 +323,7 @@ pub fn delete(
                 }
             }
             if !blocked.is_empty() {
-                return Err(refuse_with(who, log, row, "has_dependents", blocked));
+                return Err(refuse_with(path, "has_dependents", blocked));
             }
         }
         TargetKind::Instance => {
@@ -380,8 +352,8 @@ pub fn delete(
                     });
                 };
                 let fp = Fingerprint::of(d.text.as_bytes());
-                if let Some(last) = last_written(log, &d.path).map_err(log_refused)?
-                    && last != fp.as_str()
+                if let Some(last) =
+                    untracked_since(log, &d.path, fp.as_str()).map_err(log_refused)?
                 {
                     block(
                         "conflict",
@@ -460,7 +432,7 @@ pub fn delete(
                 });
             }
             if !blocked.is_empty() {
-                return Err(refuse_with(who, log, row, "references_blocked", blocked));
+                return Err(refuse_with(path, "references_blocked", blocked));
             }
         }
     }
@@ -477,7 +449,7 @@ pub fn delete(
         },
     )
     .map_err(log_refused)?;
-    let session = recorded.session;
+    let parent = recorded.parent;
     let operation = recorded.operations.into_iter().next().unwrap_or_default();
 
     // 4. 参照元を1件ずつ書き、削除を原因とする update を記録する
@@ -492,7 +464,6 @@ pub fn delete(
                     "{path} は消して記録した（{operation}）が、参照元 {} を書けない：{e}。残った参照元は blocked にある",
                     p.path
                 ),
-                session: Some(session.into()),
                 operation: Some(operation),
                 hint: Some(Box::new(
                     "残った参照元の記載を直す（次の検証で relationship-target として見える）"
@@ -524,13 +495,10 @@ pub fn delete(
             &ChangeRow {
                 kind: "update".to_string(),
                 source: "sas".to_string(),
-                target_kind: TargetKind::Instance.as_str().to_string(),
                 target_path: p.path.clone(),
-                concrete: p.concrete.clone(),
                 request_id: None,
                 before: Some(before_fp.as_str().to_string()),
                 after: Some(after_fp.as_str().to_string()),
-                refusal: None,
                 intent: Some(format!("{path} を消したので、指している記載を消す")),
                 cause: Some(operation.clone()),
                 fields: field_rows(&d),
@@ -547,7 +515,7 @@ pub fn delete(
         });
     }
     Ok(Deletion {
-        session,
+        parent,
         operation,
         kind,
         path: path.to_string(),

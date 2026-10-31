@@ -2,57 +2,45 @@
 
 use crate::ports::{ChangeRow, IdentifyCaller, OperationLog, ValidateRow, WriteRecord};
 
-/// 追記した結果：呼び出し元のセッションと、足した操作の ID（足した順）。
+/// 追記した結果：呼んだ親のセッションと、足した操作の ID（足した順）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recorded {
-    /// セッションの ID
-    pub session: String,
+    /// 呼んだ親のセッションの ID（人なら None）
+    pub parent: Option<String>,
     /// 操作の ID
     pub operations: Vec<String>,
 }
 
-/// 呼び出し元のセッションを決め、検証の操作を1件ずつ足す。
+/// 呼んだ親を決め、検証を1件ずつ足す。
 ///
 /// # Errors
-/// 置き場所がセッションを作れない ・ 行を拒んだとき。それまでに足した行は消さない。
+/// 置き場所が親の行を書けない ・ 行を拒んだとき。それまでに足した行は消さない。
 pub fn record_validations(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
     rows: &[ValidateRow],
 ) -> Result<Recorded, String> {
-    let session = log.caller_session(&who.identify())?;
+    let parent = log.parent_session(&who.identify())?;
     let mut operations = Vec::new();
     for row in rows {
-        if row.before != row.after {
-            return Err(format!("検証の前後で {} の指紋が違う", row.target_path));
-        }
-        operations.push(log.append_validate(&session, row)?);
+        operations.push(log.append_validate(parent.as_deref(), row)?);
     }
-    Ok(Recorded {
-        session,
-        operations,
-    })
+    Ok(Recorded { parent, operations })
 }
 
-/// 呼び出し元のセッションを決め、作成か更新の操作を1件足す。
+/// 呼んだ親を決め、書いた作成 ・ 更新 ・ 削除を1件足す。断った操作は記録しない。
 ///
 /// # Errors
-/// 置き場所がセッションを作れない ・ 行を拒んだとき。断った操作の事前と事後の指紋が違うとき。
+/// 置き場所が親の行を書けない ・ 行を拒んだとき。
 pub fn record_change(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
     row: &ChangeRow,
 ) -> Result<Recorded, String> {
-    if row.refusal.is_some() && row.before != row.after {
-        return Err(format!(
-            "断った操作で {} の指紋が変わっている",
-            row.target_path
-        ));
-    }
-    let session = log.caller_session(&who.identify())?;
-    let operation = log.append_change(&session, row)?;
+    let parent = log.parent_session(&who.identify())?;
+    let operation = log.append_change(parent.as_deref(), row)?;
     Ok(Recorded {
-        session,
+        parent,
         operations: vec![operation],
     })
 }
@@ -67,7 +55,7 @@ pub struct Interleaved {
     pub current: String,
     /// 前提の指紋のあとに記録された、対象を書いた操作（古い順）
     pub operations: Vec<WriteRecord>,
-    /// いまの中身が、記録した操作の事後のどれでもない（SAS を通らない変更があった）
+    /// いまの中身が、この経路の記録の事後のどれでもない（SAS を通らない変更があった）
     pub untracked: bool,
     /// 最後に記録した、対象を書いた操作（無ければ None）
     pub last_recorded: Option<WriteRecord>,
@@ -82,6 +70,28 @@ pub fn last_written(log: &dyn OperationLog, target_path: &str) -> Result<Option<
         .writes(target_path)?
         .last()
         .and_then(|w| w.row.after.clone()))
+}
+
+/// いまの中身が SAS を通らずに変わったなら、比べた最後の事後の指紋を返す。記録が無い ・ 記録のどれかの事後と同じなら None。
+///
+/// DB はワークツリーで1つなので、ほかのワークツリーが後から書いた事後があっても、いまの中身がこの経路の記録の
+/// どれかの事後と同じなら SAS を通った中身とみなす（最後の事後だけと比べると、ワークツリーごとに外の変更に見える）。
+///
+/// # Errors
+/// 置き場所を読めないとき。
+pub fn untracked_since(
+    log: &dyn OperationLog,
+    target_path: &str,
+    current: &str,
+) -> Result<Option<String>, String> {
+    let writes = log.writes(target_path)?;
+    if writes
+        .iter()
+        .any(|w| w.row.after.as_deref() == Some(current))
+    {
+        return Ok(None);
+    }
+    Ok(writes.last().and_then(|w| w.row.after.clone()))
 }
 
 /// 前提の指紋からいまの指紋までに記録された操作を、事前と事後の指紋をたどって組む。
@@ -107,9 +117,10 @@ pub fn interleaved(
         })
         .unwrap_or(0);
     let operations: Vec<WriteRecord> = writes[start.min(writes.len())..].to_vec();
-    let reached = operations
-        .last()
-        .is_some_and(|w| w.row.after.as_deref() == Some(current));
+    // いまの中身が記録のどれかの事後なら、SAS を通った中身（ほかのワークツリーが書いた事後を含む）
+    let reached = writes
+        .iter()
+        .any(|w| w.row.after.as_deref() == Some(current));
     Ok(Interleaved {
         expected: expected.to_string(),
         current: current.to_string(),

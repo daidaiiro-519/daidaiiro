@@ -4,23 +4,77 @@
  "title": "探索の記録（1ステップ）",
  "description": "ユースケースから探索してドメインモデルと構成を育てる過程を、ステップごとに1ファイルで残す。段階は探索ノートの4段階（境界・ユースケース・トランザクションスクリプト・引き上げ）",
  "type": "object",
- "required": ["$schema", "step", "date", "usecases", "procedures", "promotions", "reconciliation", "structure"],
+ "required": [
+  "$schema",
+  "step",
+  "date",
+  "usecases",
+  "procedures",
+  "promotions",
+  "reconciliation",
+  "structure"
+ ],
  "additionalProperties": false,
  "properties": {
-  "$schema": {"const": "urn:semantic-agent-schema:design:exploration:v1"},
-  "step": {"type": "integer", "minimum": 0, "description": "ステップの番号"},
-  "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
-  "summary": {"type": "string", "description": "このステップでしたことの1文"},
-  "usecases": {"type": "array", "items": {"type": "string", "pattern": "^(UC[0-7]|SF1)$"}, "description": "扱ったユースケース（段階2）。ステップ0 のように無いときは空"},
+  "$schema": {
+   "const": "urn:semantic-agent-schema:design:exploration:v1"
+  },
+  "step": {
+   "oneOf": [
+    {
+     "type": "integer",
+     "minimum": 0
+    },
+    {
+     "type": "string",
+     "pattern": "^[0-9]+[a-z]$"
+    }
+   ],
+   "description": "ステップの番号。あいだに入れたステップは番号と小文字1字（4b）"
+  },
+  "date": {
+   "type": "string",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+  },
+  "summary": {
+   "type": "string",
+   "description": "このステップでしたことの1文"
+  },
+  "usecases": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^(UC[0-7]|SF1)$"
+   },
+   "description": "扱ったユースケース（段階2）。ステップ0 のように無いときは空"
+  },
   "procedures": {
    "type": "array",
    "description": "段階3：use_cases にトランザクションスクリプトとして書いた手続きと、その中で見つけたルール",
    "items": {
-    "type": "object", "required": ["usecase", "steps", "rules"], "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "usecase",
+     "steps",
+     "rules"
+    ],
+    "additionalProperties": false,
     "properties": {
-     "usecase": {"type": "string"},
-     "steps": {"type": "array", "items": {"type": "string"}},
-     "rules": {"type": "array", "items": {"type": "string"}}
+     "usecase": {
+      "type": "string"
+     },
+     "steps": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "rules": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
     }
    }
   },
@@ -28,12 +82,36 @@
    "type": "array",
    "description": "段階4：引き上げの表で見分けた結果。引き上げなかったものも理由と一緒に残す",
    "items": {
-    "type": "object", "required": ["what", "became", "why"], "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "what",
+     "became",
+     "why"
+    ],
+    "additionalProperties": false,
     "properties": {
-     "what": {"type": "string", "description": "スクリプトの中で見たもの"},
-     "became": {"enum": ["aggregate", "value", "service", "script", "separate"], "description": "集約・値オブジェクト・ドメインサービス・スクリプトのまま・別のものとして分ける"},
-     "evident_from_start": {"type": "boolean", "description": "自明として最初から domain に置いたか"},
-     "why": {"type": "string", "description": "同じ理由で一緒に変わるか、など見分けた理由。自明として置いたときはその根拠"}
+     "what": {
+      "type": "string",
+      "description": "スクリプトの中で見たもの"
+     },
+     "became": {
+      "enum": [
+       "aggregate",
+       "value",
+       "service",
+       "script",
+       "separate"
+      ],
+      "description": "集約・値オブジェクト・ドメインサービス・スクリプトのまま・別のものとして分ける"
+     },
+     "evident_from_start": {
+      "type": "boolean",
+      "description": "自明として最初から domain に置いたか"
+     },
+     "why": {
+      "type": "string",
+      "description": "同じ理由で一緒に変わるか、など見分けた理由。自明として置いたときはその根拠"
+     }
     }
    }
   },
@@ -41,12 +119,36 @@
    "type": "array",
    "description": "上から決めた設計（仮説：docs/design/arch）との突き合わせ",
    "items": {
-    "type": "object", "required": ["item", "result"], "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "item",
+     "result"
+    ],
+    "additionalProperties": false,
     "properties": {
-     "item": {"type": "string"},
-     "result": {"enum": ["match", "top_premature", "top_missed", "not_yet"], "description": "一致・上の先取り・上の見落とし・まだ確かめていない"},
-     "fixed": {"enum": ["hypothesis", "implementation", "none"], "description": "直した方"},
-     "note": {"type": "string"}
+     "item": {
+      "type": "string"
+     },
+     "result": {
+      "enum": [
+       "match",
+       "top_premature",
+       "top_missed",
+       "not_yet"
+      ],
+      "description": "一致・上の先取り・上の見落とし・まだ確かめていない"
+     },
+     "fixed": {
+      "enum": [
+       "hypothesis",
+       "implementation",
+       "none"
+      ],
+      "description": "直した方"
+     },
+     "note": {
+      "type": "string"
+     }
     }
    }
   },
@@ -54,11 +156,31 @@
    "type": "array",
    "description": "このステップのはじめに閉じた照合。原典の文字列か、実地の試験を根拠にする",
    "items": {
-    "type": "object", "required": ["item", "evidence", "result"], "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "item",
+     "evidence",
+     "result"
+    ],
+    "additionalProperties": false,
     "properties": {
-     "item": {"type": "string"},
-     "evidence": {"type": "array", "items": {"type": "string"}, "description": "原典の場所と文字列、または試験の名前"},
-     "result": {"enum": ["confirmed", "refuted", "open"]}
+     "item": {
+      "type": "string"
+     },
+     "evidence": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "原典の場所と文字列、または試験の名前"
+     },
+     "result": {
+      "enum": [
+       "confirmed",
+       "refuted",
+       "open"
+      ]
+     }
     }
    }
   },
@@ -66,42 +188,122 @@
    "type": "array",
    "description": "手続きを書く中で見えた、語と意味のずれ",
    "items": {
-    "type": "object", "required": ["term", "seen", "drift"], "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "term",
+     "seen",
+     "drift"
+    ],
+    "additionalProperties": false,
     "properties": {
-     "term": {"type": "string"},
-     "seen": {"type": "string", "description": "どこで見たか"},
-     "drift": {"type": "string", "description": "何と何がずれているか"}
+     "term": {
+      "type": "string"
+     },
+     "seen": {
+      "type": "string",
+      "description": "どこで見たか"
+     },
+     "drift": {
+      "type": "string",
+      "description": "何と何がずれているか"
+     }
     }
    }
   },
   "structure": {
    "type": "object",
    "description": "構成（文脈・crate・モジュール・ポート）を変えたか",
-   "required": ["changed"], "additionalProperties": false,
+   "required": [
+    "changed"
+   ],
+   "additionalProperties": false,
    "properties": {
-    "changed": {"type": "boolean"},
+    "changed": {
+     "type": "boolean"
+    },
     "changes": {
      "type": "array",
      "items": {
-      "type": "object", "required": ["what", "before", "after", "why"], "additionalProperties": false,
-      "properties": {"what": {"type": "string"}, "before": {"type": "string"}, "after": {"type": "string"}, "why": {"type": "string"}}
+      "type": "object",
+      "required": [
+       "what",
+       "before",
+       "after",
+       "why"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "what": {
+        "type": "string"
+       },
+       "before": {
+        "type": "string"
+       },
+       "after": {
+        "type": "string"
+       },
+       "why": {
+        "type": "string"
+       }
+      }
      }
     },
     "not_built": {
      "type": "array",
      "description": "仮説にはあるが、このステップでは作らなかったもの",
-     "items": {"type": "object", "required": ["what", "why"], "additionalProperties": false, "properties": {"what": {"type": "string"}, "why": {"type": "string"}}}
+     "items": {
+      "type": "object",
+      "required": [
+       "what",
+       "why"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "what": {
+        "type": "string"
+       },
+       "why": {
+        "type": "string"
+       }
+      }
+     }
     },
     "context": {
      "type": "object",
      "description": "文脈の名前と範囲の見直し。変えるかどうかは利用者が決め、ここには兆しと見解だけを書く",
-     "required": ["name", "scope", "name_signs", "scope_signs", "view"], "additionalProperties": false,
+     "required": [
+      "name",
+      "scope",
+      "name_signs",
+      "scope_signs",
+      "view"
+     ],
+     "additionalProperties": false,
      "properties": {
-      "name": {"type": "string"},
-      "scope": {"type": "string"},
-      "name_signs": {"type": "array", "items": {"type": "string"}, "description": "名前を変える方がよい兆しと、その根拠"},
-      "scope_signs": {"type": "array", "items": {"type": "string"}, "description": "範囲を変える方がよい兆しと、その根拠"},
-      "view": {"type": "string", "description": "見解（このステップでは変えない）"}
+      "name": {
+       "type": "string"
+      },
+      "scope": {
+       "type": "string"
+      },
+      "name_signs": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "名前を変える方がよい兆しと、その根拠"
+      },
+      "scope_signs": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "範囲を変える方がよい兆しと、その根拠"
+      },
+      "view": {
+       "type": "string",
+       "description": "見解（このステップでは変えない）"
+      }
      }
     }
    }

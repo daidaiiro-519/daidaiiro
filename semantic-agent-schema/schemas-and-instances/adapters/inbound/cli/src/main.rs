@@ -2,6 +2,9 @@
 //!
 //! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
+//!
+//! 操作の記録の置き場所：環境変数 SAS_DB_PATH（db_path の上書き）→ `<git-common-dir>/sas/sas.db`（ワークツリーで1つ）→
+//! Git が無ければ `.sas/sas.db`。どれもコミットしない。無ければ空で作る（作り直せるデータ）。
 
 mod caller;
 mod output;
@@ -16,7 +19,7 @@ use schemas_and_instances_conformance_application::use_cases::documents::{
     create, delete, update, validate, validate_stale,
 };
 use serde_json::Value;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
@@ -53,6 +56,31 @@ fn usage(message: &str) -> ExitCode {
     ExitCode::from(2)
 }
 
+/// 操作の記録の置き場所。
+fn db_path(root: &Path) -> PathBuf {
+    if let Some(p) = std::env::var_os("SAS_DB_PATH").filter(|p| !p.is_empty()) {
+        return PathBuf::from(p);
+    }
+    GitCommits::new(root.to_path_buf())
+        .common_dir()
+        .map_or_else(
+            || root.join(".sas").join("sas.db"),
+            |dir| dir.join("sas").join("sas.db"),
+        )
+}
+
+/// 呼び出し元：--session と、ツールごとの環境変数。
+fn caller(session: Option<String>) -> Result<FromArguments, Refused> {
+    FromArguments::new(session, |name| std::env::var(name).ok()).map_err(|tools| Refused {
+        code: "usage",
+        message: format!(
+            "{} の中で打たれていて、どれが打ったかを決められません。--session <打った会話の ID> で名乗ってください",
+            tools.join(" と ")
+        ),
+        ..Refused::default()
+    })
+}
+
 /// 置き場所 ・ 検査器 ・ 記録を組み立てる。
 fn adapters() -> Result<(WorkingTree, Checker, SqliteLog), Refused> {
     let root = PathBuf::from(".");
@@ -61,7 +89,7 @@ fn adapters() -> Result<(WorkingTree, Checker, SqliteLog), Refused> {
         message,
         ..Refused::default()
     })?;
-    let log = SqliteLog::open(&root.join(".sas").join("sas.db")).map_err(|message| Refused {
+    let log = SqliteLog::open(&db_path(&root)).map_err(|message| Refused {
         code: "log",
         message,
         ..Refused::default()
@@ -100,13 +128,11 @@ fn run_validate(args: &[String]) -> ExitCode {
         Ok(a) => a,
         Err(r) => return refuse(&r),
     };
-    match run(
-        &scope,
-        &store,
-        &checker,
-        &FromArguments::new(session),
-        &mut log,
-    ) {
+    let who = match caller(session) {
+        Ok(w) => w,
+        Err(r) => return refuse(&r),
+    };
+    match run(&scope, &store, &checker, &who, &mut log) {
         Ok(v) => {
             output::print_validation(&v);
             if v.counts.fails() {
@@ -316,10 +342,10 @@ fn run_with<T>(
     session: Option<String>,
 ) -> Result<T, Refused> {
     let (store, checker, mut log) = adapters()?;
-    f(&store, &checker, &FromArguments::new(session), &mut log)
+    f(&store, &checker, &caller(session)?, &mut log)
 }
 
 fn refuse(r: &Refused) -> ExitCode {
     output::print_refused(r);
-    ExitCode::from(1)
+    ExitCode::from(if r.code == "usage" { 2 } else { 1 })
 }

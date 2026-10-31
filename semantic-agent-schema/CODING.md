@@ -15,7 +15,7 @@
 | 外のライブラリは、`architecture.json` の allow の libraries に書いた crate だけが使う（rusqlite は outbound の sqlite、jsonschema は outbound の jsonschema） | 外の技術を adapter に閉じ込めたことを、依存の検査で確かめる |
 | ユースケースは、先に `test-suite/scenarios/` に場面を書き、失敗を確かめてから作る。場面と保証 ・ 拡張の突き合わせは `test-suite/trace.json`、まだ確かめないものは `untested.json` に理由と一緒に置く | 保証と拡張のどれを確かめたかを、試験で数えられるようにする |
 | SAS の DB（`.sas/`）はコミットしない。ID と時刻は outbound の sqlite が作り、application と domain は時刻に触らない | 決定的な試験のため |
-| リポジトリの文書を書くのは use_cases だけで、形と集約の書く条件を確かめてから DocumentStore の write で書く。書く手前で断ったものも、操作として記録する | 書くのは SAS だけ。型に従わないものは作らず、理由と記録を残す（UC1 の最低保証） |
+| リポジトリの文書を書くのは use_cases だけで、形と集約の書く条件を確かめてから DocumentStore の write で書く。書く手前で断ったものは記録せず、理由 ・ 案内 ・ 間に入った変更をその場で返す | 書くのは SAS だけ。型に従わないものは作らず、理由を返す（UC1 の最低保証）。断った操作の記録は SAS が読まず、コミットしない記録は監査の証拠にもならない（探索の記録 step-04b） |
 | ステップごとに `docs/design/exploration/step-NN.json` を書く | 探索の過程と、仮説との突き合わせを残す |
 
 ## Rust の決まり
@@ -35,9 +35,12 @@
 | `if let` が入れ子になるときは let chains（`if let … && let …`）で書く | clippy の collapsible_if（edition 2024） |
 | serde_json は `preserve_order` で使い、オブジェクトから欄を除くときは `shift_remove` を使う。書き戻した文書の欄の並びを変えないため | serde_json 1.0.154 src/map.rs:3〜4・160〜164（探索の記録 step-02） |
 | SQLite の表の CHECK を変える移行は、表を作り直して行を移す。移すあいだは外部キーの検査を止め、コミットの前に `pragma_foreign_key_check` で確かめる | SQLite の ALTER TABLE の文書 8節「Making Other Kinds Of Table Schema Changes」の手順（探索の記録 step-02） |
-| ほかの表の trigger が読む表（operations）は作り直さず、欄を足す（`ALTER TABLE … ADD COLUMN`）。欄をまたぐ決まりは trigger で拒む。作り直すのは、どの trigger からも読まれない表だけ | 作り直すと、ほかの表の trigger も消して付け直すことになる（探索の記録 step-03） |
-| 公開する前は、operations の kind の CHECK に種類を足す変更（delete と、その行の CHECK）を、元の移行（0002）に入れてよい。手元の `.sas/sas.db` は消して作り直す | 公開前で使う人がいない。作り直すと、ほかの表の trigger を全部付け直すことになる（探索の記録 step-04）。公開したあとは、表を作り直す移行を足す |
-| Git は outbound の git だけが、git コマンドで読む（`git log` ・ `git cat-file --filters`）。ライブラリを足さず、Git に書き込むコマンドを呼ばない | 探索の記録 step-03 の照合 |
+| ほかの表の trigger が読む表（changes ・ sessions）は作り直さず、欄を足す（`ALTER TABLE … ADD COLUMN`）。欄をまたぐ決まりは trigger で拒む。作り直すのは、どの trigger からも読まれない表だけ | 作り直すと、ほかの表の trigger も消して付け直すことになる（探索の記録 step-03） |
+| 移行 0001〜0004 は、公開前の書き直し（ステップ4b）で表の最終の形にした。これからは版ごとに足し、足したものは変えない | 公開前で使う人がいない（探索の記録 step-04b）。置き場所も変えたので、前の `.sas/sas.db` は読まない |
+| 記録は種類ごとの表に分け、種類によって空になる欄を作らない（書いた変更は changes、検証は validations）。両方を並べて読むのはビュー operations | 1つの表に種類を混ぜると、条件付きの CHECK と「断ったものを除く」絞り込みが毎回入る（探索の記録 step-04b） |
+| 記録の置き場所は入口が決める：`SAS_DB_PATH` → `<git-common-dir>/sas/sas.db` → Git が無ければ `.sas/sas.db`。SAS の記録とファイルのつながりは「いまの中身が、その経路の記録のどれかの事後か」で見る | ワークツリーで記録を1つにするため。最後の事後だけと比べると、ほかのワークツリーで書くたびに外の変更に見える（探索の記録 step-04b） |
+| 親のセッション ID は `--session` → ツールごとの環境変数 → 人（null）。環境変数の名前はコードに書かず、入口の `callers.json` に置き、原文か実測で確かめたものだけを入れる | ツールが増えても表に行を足すだけにする。確かめていない名前で人と AI を取り違えない |
+| Git は outbound の git だけが、git コマンドで読む（`git log` ・ `git cat-file --filters` ・ `git rev-parse --path-format=absolute --git-common-dir`）。ライブラリを足さず、Git に書き込むコマンドを呼ばない | 探索の記録 step-03 ・ step-04b の照合 |
 
 ## 確かめるコマンド
 

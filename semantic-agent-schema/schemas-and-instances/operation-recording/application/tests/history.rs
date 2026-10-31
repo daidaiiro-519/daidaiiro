@@ -7,7 +7,7 @@ use schemas_and_instances_operation_recording_application::ports::{
     WriteRecord,
 };
 use schemas_and_instances_operation_recording_application::use_cases::history::{
-    interleaved, last_written, record_change, record_validations,
+    interleaved, last_written, record_change, record_validations, untracked_since,
 };
 
 struct Fixed(Caller);
@@ -19,28 +19,31 @@ impl IdentifyCaller for Fixed {
 
 #[derive(Default)]
 struct Memory {
-    sessions: Vec<Caller>,
-    ops: Vec<(String, ValidateRow)>,
-    changes: Vec<(String, ChangeRow)>,
+    parents: Vec<String>,
+    ops: Vec<(Option<String>, ValidateRow)>,
+    changes: Vec<(Option<String>, ChangeRow)>,
 }
 impl OperationLog for Memory {
-    fn caller_session(&mut self, caller: &Caller) -> Result<String, String> {
-        let at = match self.sessions.iter().position(|c| c == caller) {
-            Some(i) => i,
-            None => {
-                self.sessions.push(caller.clone());
-                self.sessions.len() - 1
-            }
+    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+        let Caller::Parent { id, .. } = caller else {
+            return Ok(None);
         };
-        Ok(format!("s-{}", at + 1))
+        if !self.parents.contains(id) {
+            self.parents.push(id.clone());
+        }
+        Ok(Some(id.clone()))
     }
-    fn append_validate(&mut self, session: &str, row: &ValidateRow) -> Result<String, String> {
-        self.ops.push((session.to_string(), row.clone()));
-        Ok(format!("o-{}", self.ops.len()))
+    fn append_validate(
+        &mut self,
+        parent: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String> {
+        self.ops.push((parent.map(Into::into), row.clone()));
+        Ok(format!("o-{}", self.ops.len() + self.changes.len()))
     }
-    fn append_change(&mut self, session: &str, row: &ChangeRow) -> Result<String, String> {
-        self.changes.push((session.to_string(), row.clone()));
-        Ok(format!("o-{}", self.changes.len()))
+    fn append_change(&mut self, parent: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+        self.changes.push((parent.map(Into::into), row.clone()));
+        Ok(format!("o-{}", self.ops.len() + self.changes.len()))
     }
     fn find_request(&self, _: &str) -> Result<Option<StoredChange>, String> {
         Ok(None)
@@ -53,10 +56,10 @@ impl OperationLog for Memory {
             .changes
             .iter()
             .enumerate()
-            .filter(|(_, (_, r))| r.target_path == target_path && r.refusal.is_none())
-            .map(|(i, (session, r))| WriteRecord {
+            .filter(|(_, (_, r))| r.target_path == target_path)
+            .map(|(i, (parent, r))| WriteRecord {
                 operation: format!("o-{}", i + 1),
-                session: session.clone(),
+                parent: parent.clone(),
                 at: "t".into(),
                 row: r.clone(),
             })
@@ -67,48 +70,42 @@ impl OperationLog for Memory {
     }
 }
 
-fn row(before: &str, after: &str) -> ValidateRow {
+fn row(hash: &str) -> ValidateRow {
     ValidateRow {
-        target_kind: "concrete".into(),
         target_path: "a.json".into(),
-        before: before.into(),
-        after: after.into(),
+        hash: hash.into(),
         results: Vec::new(),
     }
 }
 
+fn parent(id: &str) -> Fixed {
+    Fixed(Caller::Parent {
+        id: id.into(),
+        tool: "claude-code".into(),
+    })
+}
+
 #[test]
-fn same_caller_reuses_session() {
+fn parent_is_recorded_once_and_a_human_has_none() {
     let mut log = Memory::default();
-    let tool = Fixed(Caller::Tool {
-        tool_ref: "t".into(),
-    });
-    let a = record_validations(&tool, &mut log, &[row("h", "h")]).unwrap();
-    let b = record_validations(&Fixed(Caller::Human), &mut log, &[row("h", "h")]).unwrap();
-    let c = record_validations(&tool, &mut log, &[row("h", "h"), row("h", "h")]).unwrap();
-    assert_eq!(a.session, c.session);
-    assert_ne!(a.session, b.session);
+    let a = record_validations(&parent("p1"), &mut log, &[row("h")]).unwrap();
+    let b = record_validations(&Fixed(Caller::Human), &mut log, &[row("h")]).unwrap();
+    let c = record_validations(&parent("p1"), &mut log, &[row("h"), row("h")]).unwrap();
+    assert_eq!(a.parent.as_deref(), Some("p1"));
+    assert_eq!(b.parent, None);
+    assert_eq!(c.parent, a.parent);
+    assert_eq!(log.parents, ["p1"]);
     assert_eq!(c.operations, ["o-3", "o-4"]);
 }
 
-#[test]
-fn changed_fingerprint_is_refused() {
-    let mut log = Memory::default();
-    assert!(record_validations(&Fixed(Caller::Human), &mut log, &[row("a", "b")]).is_err());
-    assert!(log.ops.is_empty());
-}
-
-fn change(before: Option<&str>, after: Option<&str>, refused: bool) -> ChangeRow {
+fn change(before: Option<&str>, after: Option<&str>) -> ChangeRow {
     ChangeRow {
         kind: "update".into(),
         source: "sas".into(),
-        target_kind: "instance".into(),
         target_path: "a.json".into(),
-        concrete: "urn:x:v1".into(),
         request_id: None,
         before: before.map(Into::into),
         after: after.map(Into::into),
-        refusal: refused.then(|| ("conflict".into(), "指紋が違う".into())),
         intent: None,
         cause: None,
         fields: Vec::new(),
@@ -116,41 +113,45 @@ fn change(before: Option<&str>, after: Option<&str>, refused: bool) -> ChangeRow
 }
 
 #[test]
-fn refused_change_keeps_target() {
-    let mut log = Memory::default();
-    let human = Fixed(Caller::Human);
-    assert!(record_change(&human, &mut log, &change(Some("a"), Some("b"), true)).is_err());
-    assert!(log.changes.is_empty());
-    let r = record_change(&human, &mut log, &change(Some("a"), Some("a"), true)).unwrap();
-    assert_eq!(r.operations, ["o-1"]);
-    let w = record_change(&human, &mut log, &change(Some("a"), Some("b"), false)).unwrap();
-    assert_eq!(w.session, r.session);
-}
-
-#[test]
 fn interleaved_follows_fingerprints_from_expected() {
     let mut log = Memory::default();
     let human = Fixed(Caller::Human);
     assert_eq!(last_written(&log, "a.json").unwrap(), None);
-    record_change(&human, &mut log, &change(Some("a"), Some("b"), false)).unwrap();
-    record_change(&human, &mut log, &change(Some("b"), Some("b"), true)).unwrap();
-    record_change(&human, &mut log, &change(Some("b"), Some("c"), false)).unwrap();
+    record_change(&human, &mut log, &change(Some("a"), Some("b"))).unwrap();
+    record_change(&human, &mut log, &change(Some("b"), Some("c"))).unwrap();
     assert_eq!(last_written(&log, "a.json").unwrap().as_deref(), Some("c"));
 
-    // 前提の b のあとに、o-3（b → c）が入った
+    // 前提の b のあとに、o-2（b → c）が入った
     let i = interleaved(&log, "a.json", "b", "c").unwrap();
     let ids: Vec<&str> = i.operations.iter().map(|w| w.operation.as_str()).collect();
-    assert_eq!(ids, ["o-3"]);
+    assert_eq!(ids, ["o-2"]);
     assert!(!i.untracked);
 
     // 記録の最後（c）のあとに、記録に無い変更で d になった
     let i = interleaved(&log, "a.json", "c", "d").unwrap();
     assert!(i.operations.is_empty());
     assert!(i.untracked);
-    assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-3"));
+    assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
 
     // 前提の指紋が記録に無いときは、記録した操作をすべて返す
     let i = interleaved(&log, "a.json", "z", "c").unwrap();
     assert_eq!(i.operations.len(), 2);
     assert!(!i.untracked);
+}
+
+#[test]
+fn any_recorded_after_is_tracked() {
+    let mut log = Memory::default();
+    let human = Fixed(Caller::Human);
+    assert_eq!(untracked_since(&log, "a.json", "x").unwrap(), None);
+    record_change(&human, &mut log, &change(Some("a"), Some("b"))).unwrap();
+    record_change(&human, &mut log, &change(Some("b"), Some("c"))).unwrap();
+    // ほかのワークツリーが c まで書いても、このワークツリーの b は SAS を通った中身
+    assert_eq!(untracked_since(&log, "a.json", "b").unwrap(), None);
+    assert_eq!(untracked_since(&log, "a.json", "c").unwrap(), None);
+    // 記録のどの事後でもない中身は、最後の事後と比べた外の変更
+    assert_eq!(
+        untracked_since(&log, "a.json", "d").unwrap().as_deref(),
+        Some("c")
+    );
 }

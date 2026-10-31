@@ -50,7 +50,7 @@ pub fn print_validation(v: &Validation) {
     let mut out = json!({
         "$schema": "urn:semantic-agent-schema:base:operation-result:v1",
         "kind": "validation",
-        "session": v.session,
+        "parent_session": v.parent,
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
         "targets": targets,
         "counts": counts(&v.counts),
@@ -86,7 +86,7 @@ fn write_record(w: &WriteRecord) -> Value {
             .and_then(|t| serde_json::from_str::<Value>(t).ok())
     };
     // 読む順（だれが ・ 何のために ・ いつ ・ どの欄を）に並べる
-    let mut v = json!({"operation": w.operation, "session": w.session, "kind": w.row.kind, "source": w.row.source});
+    let mut v = json!({"operation": w.operation, "parent_session": w.parent, "kind": w.row.kind, "source": w.row.source});
     if let Some(i) = &w.row.intent {
         v["intent"] = json!(i);
     }
@@ -126,7 +126,7 @@ fn interleaved(i: &Interleaved) -> Value {
     if let Some(w) = &i.last_recorded {
         v["last_recorded"] = json!({
             "operation": w.operation,
-            "session": w.session,
+            "parent_session": w.parent,
             "at": w.at,
             "after": {"fingerprint": w.row.after},
         });
@@ -144,9 +144,6 @@ pub fn print_refused(r: &Refused) {
     });
     if let Some(p) = &r.path {
         out["path"] = json!(p);
-    }
-    if let Some(s) = &r.session {
-        out["session"] = json!(s);
     }
     if let Some(o) = &r.operation {
         out["operation"] = json!(o);
@@ -187,7 +184,7 @@ pub fn print_deletion(d: &Deletion) {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:base:operation-result:v1",
         "kind": "change",
-        "session": d.session,
+        "parent_session": d.parent,
         "operation": d.operation,
         "result": "deleted",
         "replayed": d.replayed,
@@ -245,7 +242,7 @@ pub fn print_change(c: &ChangeResult) {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:base:operation-result:v1",
         "kind": "change",
-        "session": c.session,
+        "parent_session": c.parent,
         "operation": c.operation,
         "result": if c.outside { "adopted" } else { c.written.as_str() },
         "replayed": c.replayed,

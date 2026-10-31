@@ -1,0 +1,35 @@
+{
+ "description": "親のセッション ID を、ツールごとの環境変数から引く表。--session が無いときに、値がある行を探す。2つ以上のツールの行に値があれば（ツールの中から別のツールを起動したとき）、どちらが打ったかを決めずに --session で名乗るよう返す。親は、利用者がツールを起動して開いた会話（根のセッション）にする。値は、原文か実測で確かめたものだけを入れる",
+ "tools": [
+  {
+   "tool": "claude-code",
+   "session_env": "CLAUDE_CODE_SESSION_ID",
+   "source": "実測 2026-10-31：Claude Code 2.1.316 の中で打ったコマンドの環境に入っていて、親の claude -p --output-format json の session_id と一致した（scratchpad session-sim/runs3/s1.json）"
+  },
+  {
+   "tool": "codex",
+   "session_env": "CODEX_SESSION_ID",
+   "source": "実測 2026-11-01：codex-cli 0.164.0 の codex exec の中で打ったコマンドの環境に入っていて、--json の thread.started の thread_id と一致した（resume でも同じ）。原典：openai/codex codex-rs/core/src/exec_env.rs:40「Exposes the shared root-session identity」。親は利用者が開いた会話（根のセッション）にそろえる（Claude Code のエージェントの中でも CLAUDE_CODE_SESSION_ID は呼んだ側の会話の ID）。CODEX_THREAD_ID は Codex 自身のエージェントの中ではそのスレッドになるので使わない（scratchpad parent-env/work/env-codex.txt）"
+  },
+  {
+   "tool": "copilot",
+   "session_env": "COPILOT_AGENT_SESSION_ID",
+   "source": "実測 2026-11-01：Copilot CLI 1.0.103 の copilot -p の中で打ったコマンドの環境に入っていて、--output-format json の result の sessionId と一致した（--resume でも同じ）。原典：github/copilot-cli changelog.md 1.0.29（scratchpad parent-env/work/env-copilot.txt）"
+  },
+  {
+   "tool": "kiro",
+   "session_env": "KIRO_SESSION_ID",
+   "source": "実測 2026-11-01：kiro-cli 2.21.1（--agent-engine v2）の chat --no-interactive の中で打ったコマンドの環境に入っていて、stream-json の sessionId と一致した（--resume-id でも同じ）。公式の文書には記載が無い（scratchpad parent-env/work/env-kiro.txt）"
+  }
+ ],
+ "not_listed": [
+  {
+   "tool": "gemini",
+   "why": "シェルの環境に会話の ID を入れない。GEMINI_SESSION_ID はフックの環境だけ（docs/hooks/index.md:142）。AI の印 GEMINI_CLI=1 はある（docs/tools/shell.md:134）"
+  },
+  {
+   "tool": "cursor",
+   "why": "シェルに会話の ID を渡す記載が無く、実測もしていない。ID はフックの入力の conversation_id ・ session_id だけ"
+  }
+ ]
+}

@@ -45,6 +45,26 @@ fn place(dir: &Path, files: &serde_json::Map<String, Value>) {
     }
 }
 
+/// 親のセッション ID が入る環境変数の名前（入口の表 callers.json から）。
+fn session_envs() -> Vec<String> {
+    let table: Value = serde_json::from_str(
+        &std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("callers.json"))
+            .expect("callers.json を読めること"),
+    )
+    .expect("callers.json が JSON であること");
+    table["tools"]
+        .as_array()
+        .expect("tools がある")
+        .iter()
+        .map(|t| {
+            t["session_env"]
+                .as_str()
+                .expect("session_env は文字列")
+                .to_string()
+        })
+        .collect()
+}
+
 fn run(dir: &Path, cmd: &Value) -> Output {
     let cwd = cmd
         .get("cwd")
@@ -60,6 +80,17 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     let mut c = if let Some(args) = strings("args") {
         let mut c = Command::new(env!("CARGO_BIN_EXE_sas"));
         c.args(args);
+        // 試験を動かす環境（AI のツールの中など）の親のセッション ID と記録の置き場所を持ち込まない。
+        // 場面が env で渡したものだけを使う
+        for name in session_envs() {
+            c.env_remove(name);
+        }
+        c.env_remove("SAS_DB_PATH");
+        if let Some(env) = cmd.get("env").and_then(Value::as_object) {
+            for (k, v) in env {
+                c.env(k, v.as_str().expect("環境変数の値は文字列"));
+            }
+        }
         c
     } else {
         let mut c = Command::new("git");

@@ -77,8 +77,9 @@ impl IdentifyCaller for Human {
 struct Tool;
 impl IdentifyCaller for Tool {
     fn identify(&self) -> Caller {
-        Caller::Tool {
-            tool_ref: "agent".into(),
+        Caller::Parent {
+            id: "agent".into(),
+            tool: "claude-code".into(),
         }
     }
 }
@@ -92,15 +93,18 @@ impl Log {
     }
 }
 impl OperationLog for Log {
-    fn caller_session(&mut self, _: &Caller) -> Result<String, String> {
-        Ok("s-1".into())
+    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+        Ok(match caller {
+            Caller::Parent { id, .. } => Some(id.clone()),
+            Caller::Human => None,
+        })
     }
-    fn append_validate(&mut self, _: &str, row: &ValidateRow) -> Result<String, String> {
+    fn append_validate(&mut self, _: Option<&str>, row: &ValidateRow) -> Result<String, String> {
         let id = self.next();
         self.0.push(row.clone());
         Ok(id)
     }
-    fn append_change(&mut self, _: &str, row: &ChangeRow) -> Result<String, String> {
+    fn append_change(&mut self, _: Option<&str>, row: &ChangeRow) -> Result<String, String> {
         let id = self.next();
         self.1.push((id.clone(), row.clone()));
         Ok(id)
@@ -112,7 +116,7 @@ impl OperationLog for Log {
             .find(|(_, r)| r.request_id.as_deref() == Some(request_id))
             .map(|(id, r)| StoredChange {
                 operation: id.clone(),
-                session: "s-1".into(),
+                parent: None,
                 row: r.clone(),
             }))
     }
@@ -123,7 +127,7 @@ impl OperationLog for Log {
             .filter(|(_, r)| r.cause.as_deref() == Some(operation))
             .map(|(id, r)| StoredChange {
                 operation: id.clone(),
-                session: "s-1".into(),
+                parent: None,
                 row: r.clone(),
             })
             .collect())
@@ -132,20 +136,16 @@ impl OperationLog for Log {
         let from = self
             .1
             .iter()
-            .rposition(|(_, r)| {
-                r.target_path == target_path && r.kind == "delete" && r.refusal.is_none()
-            })
+            .rposition(|(_, r)| r.target_path == target_path && r.kind == "delete")
             .map_or(0, |i| i + 1);
         Ok(self.1[from..]
             .iter()
             .filter(|(_, r)| {
-                r.target_path == target_path
-                    && r.refusal.is_none()
-                    && (r.kind == "create" || r.kind == "update")
+                r.target_path == target_path && (r.kind == "create" || r.kind == "update")
             })
             .map(|(id, r)| WriteRecord {
                 operation: id.clone(),
-                session: "s-1".into(),
+                parent: None,
                 at: "t".into(),
                 row: r.clone(),
             })
@@ -208,7 +208,7 @@ fn concrete_gets_a_result_for_every_applied_rule() {
         ]
     );
     assert_eq!(log.0.len(), 1);
-    assert_eq!(log.0[0].before, log.0[0].after);
+    assert_eq!(log.0[0].hash, t.fingerprint.as_str());
 }
 
 #[test]
@@ -313,7 +313,7 @@ fn create_writes_records_and_returns_the_diff() {
 }
 
 #[test]
-fn create_refused_by_a_write_rule_is_recorded_without_writing() {
+fn create_refused_by_a_write_rule_writes_and_records_nothing() {
     let store = files(&[("c.json", decided())]);
     let mut log = Log::default();
     let r = create(
@@ -324,14 +324,9 @@ fn create_refused_by_a_write_rule_is_recorded_without_writing() {
         &mut log,
     )
     .unwrap_err();
-    assert_eq!(
-        (r.code, r.operation.as_deref()),
-        ("human_field", Some("o-1"))
-    );
+    assert_eq!((r.code, r.operation.as_deref()), ("human_field", None));
     assert!(store.read("u1.json").is_err());
-    let row = &log.1[0].1;
-    assert_eq!((row.before.as_deref(), row.after.as_deref()), (None, None));
-    assert!(row.fields.is_empty());
+    assert!(log.1.is_empty(), "断った操作は記録しない");
 }
 
 #[test]
@@ -373,7 +368,7 @@ fn update_checks_the_fingerprint_before_writing() {
     let r = update(&req("sha256:x"), &store, &Lenient, &Human, &mut log).unwrap_err();
     assert_eq!(r.code, "conflict");
     assert_eq!(store.read("u1.json").unwrap(), before);
-    assert_eq!(log.1[0].1.before, log.1[0].1.after);
+    assert!(log.1.is_empty(), "断った操作は記録しない");
     let fp = Fingerprint::of(before.as_bytes());
     let c = update(&req(fp.as_str()), &store, &Lenient, &Human, &mut log).unwrap();
     assert_eq!(c.before, Some(fp));

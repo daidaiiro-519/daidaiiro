@@ -1,6 +1,7 @@
-//! ポート OperationLog を SQLite で実装する。置き場所は作業ディレクトリの .sas/sas.db で、コミットしない。
+//! ポート OperationLog を SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/sas/sas.db で、コミットしない）。
 //!
-//! ID（s-0001 ・ o-0001）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。application と domain は時刻に触らない。
+//! 操作の ID（o-0001。changes と validations で同じ採番）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。
+//! application と domain は時刻に触らない。セッションの ID はツールのもので、ここでは作らない。
 
 use rusqlite::{Connection, OptionalExtension, params};
 use schemas_and_instances_operation_recording_application::ports::{
@@ -10,7 +11,7 @@ use schemas_and_instances_operation_recording_application::ports::{
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の CHECK を広げる変更だけは元の移行に入れた：CODING.md）。
+/// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の書き直しはステップ4b の1回だけ：CODING.md）。
 const MIGRATIONS: [&str; 4] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
@@ -54,7 +55,7 @@ impl SqliteLog {
         let version: usize = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .map_err(|e| err(&e))?;
-        // 表を作り直す移行があるので、移すあいだは外部キーの検査を止め、コミットの前に外れが無いかを確かめる
+        // 移すあいだは外部キーの検査を止め、コミットの前に外れが無いかを確かめる
         // （SQLite の ALTER TABLE の文書の手順。PRAGMA foreign_keys はトランザクションの外で変える）
         conn.pragma_update(None, "foreign_keys", false)
             .map_err(|e| err(&e))?;
@@ -86,29 +87,24 @@ impl SqliteLog {
         &self.conn
     }
 
-    /// 書いた ・ 断った作成か更新の行を、操作の ID から読む。
+    /// 書いた作成 ・ 更新 ・ 削除の行を、操作の ID から読む。
     fn change_row(&self, operation: &str) -> Result<ChangeRow, String> {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, target_kind, target_path, concrete_ref, request_id, before_hash, after_hash, refusal_code, refusal, intent, source, cause_id \
-                 FROM operations WHERE id = ?1",
+                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent, cause_id \
+                 FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
-                    let code: Option<String> = r.get(7)?;
-                    let reason: Option<String> = r.get(8)?;
                     Ok(ChangeRow {
                         kind: r.get(0)?,
-                        source: r.get(10)?,
-                        target_kind: r.get(1)?,
+                        source: r.get(1)?,
                         target_path: r.get(2)?,
-                        concrete: r.get(3)?,
-                        request_id: r.get(4)?,
-                        before: r.get(5)?,
-                        after: r.get(6)?,
-                        refusal: code.zip(reason),
-                        intent: r.get(9)?,
-                        cause: r.get(11)?,
+                        request_id: r.get(3)?,
+                        before: r.get(4)?,
+                        after: r.get(5)?,
+                        intent: r.get(6)?,
+                        cause: r.get(7)?,
                         fields: Vec::new(),
                     })
                 },
@@ -116,7 +112,7 @@ impl SqliteLog {
             .map_err(|e| err(&e))?;
         let mut stmt = self
             .conn
-            .prepare("SELECT pointer, change, before, after, before_unavailable FROM field_changes WHERE operation_id = ?1 ORDER BY pointer")
+            .prepare("SELECT pointer, change, before, after, before_unavailable FROM field_changes WHERE change_id = ?1 ORDER BY pointer")
             .map_err(|e| err(&e))?;
         row.fields = stmt
             .query_map([operation], |r| {
@@ -134,12 +130,31 @@ impl SqliteLog {
         Ok(row)
     }
 
-    fn next_id(&self, table: &str, prefix: &str) -> Result<String, String> {
+    /// 操作の次の ID。changes と validations は同じ採番から振る（結果の operation の形を1つにする）。
+    fn next_operation(&self) -> Result<String, String> {
         let n: i64 = self
             .conn
-            .query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))
+            .query_row(
+                "SELECT (SELECT count(*) FROM changes) + (SELECT count(*) FROM validations)",
+                [],
+                |r| r.get(0),
+            )
             .map_err(|e| err(&e))?;
-        Ok(format!("{prefix}-{:04}", n + 1))
+        Ok(format!("o-{:04}", n + 1))
+    }
+
+    /// 操作の ID と親から、記録にある変更を組む。
+    fn stored(&self, found: Vec<(String, Option<String>)>) -> Result<Vec<StoredChange>, String> {
+        found
+            .into_iter()
+            .map(|(operation, parent)| {
+                Ok(StoredChange {
+                    row: self.change_row(&operation)?,
+                    operation,
+                    parent,
+                })
+            })
+            .collect()
     }
 }
 
@@ -169,63 +184,47 @@ fn now() -> String {
 }
 
 impl OperationLog for SqliteLog {
-    fn caller_session(&mut self, caller: &Caller) -> Result<String, String> {
-        let found: Option<(String, Option<String>)> = match caller {
-            Caller::Tool { tool_ref } => self
-                .conn
-                .query_row("SELECT id, ended_at FROM sessions WHERE tool_ref = ?1", [tool_ref], |r| {
-                    Ok((r.get(0)?, r.get(1)?))
-                })
-                .optional(),
-            Caller::Human => self
-                .conn
-                .query_row(
-                    "SELECT id, ended_at FROM sessions WHERE actor = 'human' AND ended_at IS NULL ORDER BY id LIMIT 1",
-                    [],
-                    |r| Ok((r.get(0)?, r.get(1)?)),
-                )
-                .optional(),
-        }
-        .map_err(|e| err(&e))?;
-        match found {
-            Some((id, None)) => Ok(id),
-            Some((id, Some(_))) => Err(format!("セッション {id} は閉じている")),
-            None => {
-                let id = self.next_id("sessions", "s")?;
-                let (actor, tool_ref) = match caller {
-                    Caller::Tool { tool_ref } => ("tool", Some(tool_ref.as_str())),
-                    Caller::Human => ("human", None),
-                };
-                self.conn
-                    .execute(
-                        "INSERT INTO sessions (id, actor, tool_ref, started_at) VALUES (?1, ?2, ?3, ?4)",
-                        params![id, actor, tool_ref, now()],
-                    )
-                    .map_err(|e| err(&e))?;
-                Ok(id)
-            }
-        }
-    }
-
-    fn append_validate(&mut self, session: &str, row: &ValidateRow) -> Result<String, String> {
-        let id = self.next_id("operations", "o")?;
-        let tx = self.conn.transaction().map_err(|e| err(&e))?;
-        let seq: i64 = tx
-            .query_row(
-                "SELECT coalesce(max(seq), 0) + 1 FROM operations WHERE session_id = ?1",
-                [session],
-                |r| r.get(0),
+    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+        let Caller::Parent { id, tool } = caller else {
+            return Ok(None);
+        };
+        // 初めて見た親だけ1行足す（行は書き換えない）
+        self.conn
+            .execute(
+                "INSERT INTO sessions (id, role, tool, first_seen) VALUES (?1, 'caller', ?2, ?3) \
+                 ON CONFLICT (id) DO NOTHING",
+                params![id, tool, now()],
             )
             .map_err(|e| err(&e))?;
+        let role: String = self
+            .conn
+            .query_row("SELECT role FROM sessions WHERE id = ?1", [id], |r| {
+                r.get(0)
+            })
+            .map_err(|e| err(&e))?;
+        if role != "caller" {
+            return Err(format!(
+                "セッション {id} は SAS が起動した子（{role}）で、親として名乗れない"
+            ));
+        }
+        Ok(Some(id.clone()))
+    }
+
+    fn append_validate(
+        &mut self,
+        parent: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String> {
+        let id = self.next_operation()?;
+        let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
-            "INSERT INTO operations (id, session_id, seq, kind, target_kind, target_path, before_hash, after_hash, at) \
-             VALUES (?1, ?2, ?3, 'validate', ?4, ?5, ?6, ?7, ?8)",
-            params![id, session, seq, row.target_kind, row.target_path, row.before, row.after, now()],
+            "INSERT INTO validations (id, at, target_path, hash, parent_session_id) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, now(), row.target_path, row.hash, parent],
         )
         .map_err(|e| err(&e))?;
         for (ord, r) in row.results.iter().enumerate() {
             tx.execute(
-                "INSERT INTO rule_results (operation_id, ord, rule_id, pointer, by, result, reason, reads_hash) \
+                "INSERT INTO rule_results (validation_id, ord, rule_id, pointer, by, result, reason, reads_hash) \
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 params![id, i64::try_from(ord).unwrap_or(i64::MAX), r.rule, r.pointer, r.by, r.result, r.reason, r.reads],
             )
@@ -235,33 +234,21 @@ impl OperationLog for SqliteLog {
         Ok(id)
     }
 
-    fn append_change(&mut self, session: &str, row: &ChangeRow) -> Result<String, String> {
-        let id = self.next_id("operations", "o")?;
+    fn append_change(&mut self, parent: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+        let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
-        let seq: i64 = tx
-            .query_row(
-                "SELECT coalesce(max(seq), 0) + 1 FROM operations WHERE session_id = ?1",
-                [session],
-                |r| r.get(0),
-            )
-            .map_err(|e| err(&e))?;
-        let (code, reason) = row
-            .refusal
-            .as_ref()
-            .map_or((None, None), |(c, m)| (Some(c.as_str()), Some(m.as_str())));
         tx.execute(
-            "INSERT INTO operations (id, session_id, seq, request_id, kind, target_kind, target_path, concrete_ref, \
-             before_hash, after_hash, refusal_code, refusal, intent, at, source, cause_id) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, \
+             cause_id, parent_session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
-                id, session, seq, row.request_id, row.kind, row.target_kind, row.target_path, row.concrete,
-                row.before, row.after, code, reason, row.intent, now(), row.source, row.cause
+                id, now(), row.kind, row.target_path, row.before, row.after, row.intent, row.request_id,
+                row.source, row.cause, parent
             ],
         )
         .map_err(|e| err(&e))?;
         for f in &row.fields {
             tx.execute(
-                "INSERT INTO field_changes (operation_id, pointer, change, before, after, before_unavailable) \
+                "INSERT INTO field_changes (change_id, pointer, change, before, after, before_unavailable) \
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                 params![id, f.pointer, f.change, f.before, f.after, i64::from(f.before_unavailable)],
             )
@@ -272,71 +259,54 @@ impl OperationLog for SqliteLog {
     }
 
     fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
-        let found: Option<(String, String)> = self
+        let found: Option<(String, Option<String>)> = self
             .conn
             .query_row(
-                "SELECT id, session_id FROM operations WHERE request_id = ?1",
+                "SELECT id, parent_session_id FROM changes WHERE request_id = ?1",
                 [request_id],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .optional()
             .map_err(|e| err(&e))?;
-        found
-            .map(|(operation, session)| {
-                Ok(StoredChange {
-                    row: self.change_row(&operation)?,
-                    operation,
-                    session,
-                })
-            })
-            .transpose()
+        Ok(self.stored(found.into_iter().collect())?.pop())
     }
 
     fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, session_id FROM operations WHERE cause_id = ?1 ORDER BY rowid")
+            .prepare("SELECT id, parent_session_id FROM changes WHERE cause_id = ?1 ORDER BY rowid")
             .map_err(|e| err(&e))?;
-        let found: Vec<(String, String)> = stmt
+        let found: Vec<(String, Option<String>)> = stmt
             .query_map([operation], |r| Ok((r.get(0)?, r.get(1)?)))
             .map_err(|e| err(&e))?
             .collect::<Result<_, _>>()
             .map_err(|e| err(&e))?;
-        found
-            .into_iter()
-            .map(|(operation, session)| {
-                Ok(StoredChange {
-                    row: self.change_row(&operation)?,
-                    operation,
-                    session,
-                })
-            })
-            .collect()
+        self.stored(found)
     }
 
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT id, session_id, at FROM operations \
-                 WHERE kind IN ('create', 'update') AND refusal_code IS NULL AND target_path = ?1 \
-                   AND rowid > coalesce((SELECT max(rowid) FROM operations \
-                                         WHERE kind = 'delete' AND refusal_code IS NULL AND target_path = ?1), 0) \
+                "SELECT id, parent_session_id, at FROM changes \
+                 WHERE kind IN ('create', 'update') AND target_path = ?1 \
+                   AND rowid > coalesce((SELECT max(rowid) FROM changes \
+                                         WHERE kind = 'delete' AND target_path = ?1), 0) \
                  ORDER BY rowid",
             )
             .map_err(|e| err(&e))?;
-        let found: Vec<(String, String, String)> = stmt
+        let found: Vec<(String, Option<String>, String)> = stmt
             .query_map([target_path], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
             .map_err(|e| err(&e))?
             .collect::<Result<_, _>>()
             .map_err(|e| err(&e))?;
         found
             .into_iter()
-            .map(|(operation, session, at)| {
+            .map(|(operation, parent, at)| {
                 Ok(WriteRecord {
                     row: self.change_row(&operation)?,
                     operation,
-                    session,
+                    parent,
                     at,
                 })
             })
@@ -344,16 +314,16 @@ impl OperationLog for SqliteLog {
     }
 
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        // rule ごとに、その rule を最後に判定した検証の操作を選び、その操作の行を返す
+        // rule ごとに、その rule を最後に判定した検証を選び、その検証の行を返す
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT o.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash \
-                 FROM rule_results r JOIN operations o ON o.id = r.operation_id \
-                 WHERE o.kind = 'validate' AND o.target_path = ?1 \
-                   AND o.rowid = (SELECT max(o2.rowid) FROM rule_results r2 JOIN operations o2 ON o2.id = r2.operation_id \
-                                  WHERE o2.kind = 'validate' AND o2.target_path = ?1 AND r2.rule_id = r.rule_id) \
-                 ORDER BY o.rowid, r.ord",
+                "SELECT v.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash \
+                 FROM rule_results r JOIN validations v ON v.id = r.validation_id \
+                 WHERE v.target_path = ?1 \
+                   AND v.rowid = (SELECT max(v2.rowid) FROM rule_results r2 JOIN validations v2 ON v2.id = r2.validation_id \
+                                  WHERE v2.target_path = ?1 AND r2.rule_id = r.rule_id) \
+                 ORDER BY v.rowid, r.ord",
             )
             .map_err(|e| err(&e))?;
         stmt.query_map([target_path], |r| {

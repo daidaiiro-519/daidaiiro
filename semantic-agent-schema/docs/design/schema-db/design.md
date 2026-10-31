@@ -4,7 +4,7 @@
 
 ## 結論
 
-schemas/v1 は14のファイルにする。1つのファイルは1つの境界（誰が書き、誰が読むか）だけを持つ。DB は SQLite の5つの表で、DDL は公開しない。DB のどの欄も CLI の出力のどこかに出る。
+schemas/v1 は14のファイルにする。1つのファイルは1つの境界（誰が書き、誰が読むか）だけを持つ。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理せず、sessions には誰が何で動いたかだけを追記する（版16、2026-11-01）。起動の設定（launch）のほかは、DB のどの欄も CLI の出力のどこかに出る。
 
 ## 判断基準
 
@@ -26,9 +26,9 @@ schemas/v1 は14のファイルにする。1つのファイルは1つの境界�
 | operation-request.schema.json | 操作の依頼。コマンドごとの入力 | 呼び出し元 → CLI | 1 ・ 2 |
 | operation-result.schema.json | 操作の結果。CLI の出力 | CLI → 呼び出し元 | 1 ・ 4 |
 | procedure-prompt.schema.json | 手順のプロンプトの構造化された部分 | SAS → エージェントと呼び出し元 | 2 ・ 3 |
-| session-request.schema.json | セッションの依頼と、アダプターの返り | SAS ⇄ アダプター | 1 ・ 2 |
+| session-request.schema.json | 子のセッションの依頼（起動する ・ 続ける）と、アダプターの返り | SAS ⇄ アダプター | 1 ・ 2 |
 | agent-answer.schema.json | エージェントの答え | エージェント → SAS | 2 ・ 4 |
-| session.schema.json | セッションの姿（4つの型 ・ 回 ・ 終わり方） | SAS → 呼び出し元 | 4 |
+| session.schema.json | セッションの姿（役割 ・ 親 ・ ツール ・ モデル） | SAS → 呼び出し元 | 4 |
 | diff.schema.json | 差分（欄ごとの前後 ・ 指紋 ・ 版の参照） | SAS → 呼び出し元と手順のプロンプト | 4 |
 | agent-connector.schema.json | エージェントの接続の定義と能力の宣言 | 使う側 → SAS | 1 ・ 2 |
 | design-system.schema.json | デザインシステムの受け取りの型 | 使う側 → SAS | 1 ・ 2 |
@@ -59,51 +59,52 @@ x-prompt はいまの vocab-meta に在る。足すのは x-view だけで、デ
 
 | 表 | 持つもの | 主キー ・ 一意 |
 |---|---|---|
-| sessions | 呼び出し元のセッション（文脈「スキーマとインスタンス」） | id。開いているものはアダプター × tool_ref で1つ、人は1つ |
-| launched_sessions | SAS が立てたセッション（文脈「立てたセッション」）。呼び出し元のセッションを ID で指す | id |
-| session_turns | 手順のプロンプトを渡して答えを受け取った1回（開始 ・ 再開 ・ 形の直し） | (session_id, seq)。索引 (request_id, attempt) |
-| operations | 操作。追記だけ。呼び出し元のセッションを session_id で、立てたセッションで行ったときはその回も指す | id。(session_id, seq)。request_id は1回（削除に伴う書き換えを除く） |
-| field_changes | 変わった欄の前後 | (operation_id, pointer) |
-| rule_results | rule ごとの結果（validate だけ） | (operation_id, rule_schema, rule_id, pointer) |
+| sessions | 誰が何で動いたかだけ（id ・ role（caller ・ writer ・ checker）・ parent_id ・ tool ・ model ・ launch ・ first_seen）。親は SAS が初めて見たとき、子は起動したときに1行。書き換えない | id（ツールのセッション ID） |
+| changes | 書いた変更（作成 ・ 更新 ・ 削除）。断った操作は持たない | id。request_id は1回 |
+| field_changes | 変わった欄の前後 | (change_id, pointer) |
+| validations | ある中身を判定したこと（指紋は1つ） | id |
+| rule_results | rule ごとの結果 | (validation_id, rule_schema, rule_id, pointer) |
+| operations（ビュー） | UC7 のために changes と validations を時刻順に並べる | ― |
 
-session_turns を足した理由は、継続のセッションが手順のプロンプトを何度も受け、形の直しも1回ずつになるためである。launched_sessions の1行には1つしか持てない。逆に、state ・ 再開できる期限 ・ 文脈の上限は回と能力の写しから導けるので、欄に持たない。
+子の状態（開閉 ・ 終わり方 ・ 回の数）は持たない。続けるかは親が決め、`--continue <子の ID>` で渡す。SAS は sessions.launch を読み、同じ設定で再開する。子との各回のやりとりは、ツールの会話の記録を子の ID でたどる。変更と検証を別の表にしたので、どの行もすべての欄が埋まり（空になるのは作成の事前 ・ 削除の事後 ・ 原因だけ）、子の役割は指す表で決まる。
 
-DDL は design.json の 4_db.ddl にあり、SQLite 3.46 で表を作れることと、主な CHECK ・ 一意の索引が違反を断ることを確かめた。CHECK は式が NULL のとき違反にしないので、NULL になりうる欄に = ・ IN を使う2つの CHECK を IS ・ IS NOT NULL で閉じた（照合と実測で確かめた）。必要な最低の版は、部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0。trigger は `SELECT RAISE(ABORT, '<文字列のリテラル>')` で書く（文言に式を使えるのは 3.47.0 から）。
+DDL は design.json の 4_db.ddl にあり、SQLite で表を作れることと、子の役割 ・ 親の行 ・ 原因 ・ 追記だけの決まりが違反を断ることを確かめた（2026-11-01）。CHECK は式が NULL のとき違反にしないので、NULL になりうる欄に = ・ IN を使う2つの CHECK を IS ・ IS NOT NULL で閉じた（照合と実測で確かめた）。必要な最低の版は、部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0。trigger は `SELECT RAISE(ABORT, '<文字列のリテラル>')` で書く（文言に式を使えるのは 3.47.0 から）。
 
 ## スキーマと DB の対応の要点
 
 | 向き | 要点 |
 |---|---|
-| 書く | 操作の依頼の intent ・ brief ・ セッションの型 → operations と sessions。アダプターの返り → session_turns。エージェントの答え → field_changes（差分を求めて）と rule_results |
-| 読む | sessions と session_turns → session.schema.json。operations と field_changes → diff.schema.json。rule_results → rule-result |
-| DB にだけある欄 | 無い |
-| スキーマにだけある欄 | 記録しないと決めたものだけ（描画 ・ 検索の入力、当てる前の patch、決めきれず返した点、検索の答え、ファイルが正本の設定） |
-| 名前 | DB の名前は出力に出さない（parent_id → parent、prompt_hash → prompt.fingerprint など） |
+| 書く | 親の ID（--session か環境変数）→ sessions（caller）と各行の parent_session_id。子の ID（ツールの出力の session_id）→ sessions（writer ・ checker）と child_session_id。intent ・ request_id → changes。エージェントの答え → field_changes（差分を求めて）と rule_results |
+| 読む | sessions → session.schema.json。ビュー operations と field_changes → operation ・ diff。rule_results → rule-result。sessions と最後の時刻 → child_exists の案内 |
+| DB にだけある欄 | launch（ツールの旗をそのまま持つので出さない） |
+| スキーマにだけある欄 | 記録しないと決めたものだけ（描画 ・ 検索の入力、当てる前の patch、決めきれず返した点、検索の答え、ファイルが正本の設定、断った操作の理由） |
 
 ## 意味の操作の流れ
 
 | ステップ | 検証 | 更新 |
 |---|---|---|
-| CLI の入力 | operation-request の validate（型の指定は受けない） | operation-request の update（semantic ・ intent ・ brief ・ 型の指定） |
-| 手順のプロンプト | procedure-prompt（judge のステップ） | procedure-prompt（write のステップ。再開で対象が変わったら差分を先頭へ） |
-| CLI の1行目 | operation-result の procedure | operation-result の procedure |
-| セッションの依頼 | session-request の start | session-request の start ・ continue ・ fork |
+| CLI の入力 | operation-request の validate（--continue は確かめる子だけ。brief は受けない） | operation-request の update（semantic ・ intent ・ 1回目は brief と ref、2回目からは --continue） |
+| 子を決める | 確かめる子を起動するか続ける。書く子の ID なら writer_as_checker で断る | --continue が無く直前の書く子があれば child_exists で止めて案内（--new で新しく）。同じ子が動いていれば busy |
+| 手順のプロンプト | procedure-prompt（judge のステップ） | procedure-prompt（write のステップ。続けるときは差分の指示だけ） |
+| セッションの依頼 | session-request の start か continue | session-request の start か continue（launch をそのまま渡す） |
 | エージェントの答え | agent-answer の judgments | agent-answer の field-values |
-| 記録 | operations ＋ rule_results ＋ sessions を閉じる | operations ＋ field_changes（単発なら sessions を閉じる） |
-| CLI の最後の行 | operation-result の validation | operation-result の change |
+| 記録 | validations ＋ rule_results | changes ＋ field_changes |
+| CLI の最後の行 | operation-result の validation（parent_session ・ child_session） | operation-result の change（parent_session ・ child_session ・ hint） |
 
-答えの各項目はステップの番号と JSON ポインタを持ち、SAS はステップにある欄だけへ操作する。形が誤れば同じセッションで2回まで直させる。時間切れは新しいセッションで2回までやり直す。
+答えの各項目はステップの番号と JSON ポインタを持ち、SAS はステップにある欄だけへ操作する。形が誤れば同じ子で2回まで直させる。時間切れは新しい子で2回までやり直す。前の操作から接続の定義の cache_ttl_s を過ぎたか、同じ子で10回を超えたら、新しい子を勧める案内を返す。
 
 ## 外したもの
 
 | 外したもの | 引き継ぐ先 |
 |---|---|
 | judgment | rule_results と rule-result |
-| change | operations ・ field_changes と diff |
+| change | changes ・ field_changes と diff |
 | change-summary | 使う側（SAS は記録を読む形で材料を渡す） |
 | call | 役目は残す。rules ・ inputs ・ task は procedure-prompt へ、delegate ・ handoff は session-request へ |
 | Abstract の output-judging ・ output-working | agent-answer |
-| delegate.run.session | 操作の依頼の型の指定と、検証を固定する決まり |
+| delegate.run.session | 操作の依頼の semantic（brief ・ ref ・ continue ・ new） |
+| セッションの4つの型 ・ 回（session_turns）・ 終わり方（版15） | 薄い sessions。子との各回はツールの会話の記録 |
+| operations（1表）・ 断った操作の行（版15） | changes と validations。断った操作は記録せず、理由はその場で返す |
 
 ## 原典と照合した結果（2026-10-31）
 
@@ -131,3 +132,14 @@ DDL は design.json の 4_db.ddl にあり、SQLite 3.46 で表を作れるこ�
 | 版を残す仕組み | 持たない。refs/sas/versions/ で版を指すこと、版を残す操作、復元の話を外した |
 | 差分の取り方 | SAS が書いた操作は書く前後の中身から求めて field_changes に持つ。SAS を通らない変更と、継続で対象が変わったときは、いまのファイルと Git のコミット済みの版（たとえば HEAD）を読んで比べる。前の版が無ければ before_unavailable |
 | Git | 読むだけ。ポートは「版の中身を読む」（version_reader）だけ |
+
+## 11-01 の利用者の判断で直したこと（版16）
+
+| こと | 直した形 |
+|---|---|
+| セッション | SAS は子の状態を管理しない。sessions は追記だけの7列（id ・ role ・ parent_id ・ tool ・ model ・ launch ・ first_seen） |
+| 子 | 書く子と確かめる子をそれぞれ `--continue` で続けて使う。fork は使わない。子の ID はツールの出力から取る |
+| 親の ID | `--session` → 接続の定義の caller.env の環境変数 → 人なら NULL |
+| 記録 | changes ＋ field_changes と validations ＋ rule_results に分ける。断った操作は持たない |
+| DB の置き場所 | `<git-common-dir>/sas/sas.db`（作業ツリーの外 ・ ワークツリーで1つ）。作り直せるデータ |
+| 根拠 | 承認のページ XQmeBmywzzsZy3AUgcSK4B 版4、シミュレーション VYeEarjweXihDbJTNxnGhW、ツール6つの調査 KbNCDxxdVA5CipaYG8aFJ5（実測：子を続けると2回目以降の費用が Claude Code で約1/20） |

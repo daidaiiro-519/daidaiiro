@@ -1,24 +1,16 @@
 {
  "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
  "id": "S-UC4-SESSION",
- "name": "呼び出し元のセッション",
- "title": "--session を渡すと、同じ呼び出し元の検証は同じセッションに入り、渡さなければ人のセッションに入る",
- "why": "どの呼び出し元の検証かを残せないと、記録から誰の操作かを読めない。",
+ "name": "呼んだ親のセッション",
+ "title": "呼んだ親のセッション ID は --session → ツールの環境変数 → どちらも無ければ人（null）の順で決まり、--session が環境変数より先に効く",
+ "why": "どの親の検証かを残せないと、記録から誰の操作かを読めない。AI のツールの中では --session を渡し忘れても、環境変数から親が分かる。",
  "traces": [
   "UC4:成功時保証"
  ],
  "given": {
   "files": {
    "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
-  },
-  "steps": [
-   {
-    "args": [
-     "validate",
-     "schemas/usecase.schema.json"
-    ]
-   }
-  ]
+  }
  },
  "when": {
   "args": [
@@ -35,39 +27,56 @@
   },
   {
    "of": "when",
-   "pointer": "/session",
-   "equals": "s-0002"
+   "pointer": "/parent_session",
+   "equals": "tool-a"
   },
   {
    "of": "after[0]",
-   "pointer": "/session",
-   "equals": "s-0002"
+   "pointer": "/parent_session",
+   "equals": "c5c5ab7a-4041-4920-8749-7d2a36030744"
   },
   {
    "of": "after[0]",
    "pointer": "/operations/0",
-   "equals": "o-0003"
+   "equals": "o-0002"
   },
   {
    "of": "after[1]",
-   "pointer": "/session",
-   "equals": "s-0001"
+   "pointer": "/parent_session",
+   "equals": null
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/parent_session",
+   "equals": "tool-a"
   }
  ],
  "after": [
   {
    "args": [
     "validate",
-    "--session",
-    "tool-a",
     "schemas/usecase.schema.json"
-   ]
+   ],
+   "env": {
+    "CLAUDE_CODE_SESSION_ID": "c5c5ab7a-4041-4920-8749-7d2a36030744"
+   }
   },
   {
    "args": [
     "validate",
     "schemas/usecase.schema.json"
    ]
+  },
+  {
+   "args": [
+    "validate",
+    "--session",
+    "tool-a",
+    "schemas/usecase.schema.json"
+   ],
+   "env": {
+    "CLAUDE_CODE_SESSION_ID": "c5c5ab7a-4041-4920-8749-7d2a36030744"
+   }
   }
  ]
 }

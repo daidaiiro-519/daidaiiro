@@ -43,11 +43,17 @@
    "name": "いまの実装",
    "value": "crates/ の名前（patch ・ record ・ judge ・ changes ・ intent_judgments ・ session_changes）は参考の事実として読んだだけで、答えには使っていない",
    "source": "crates/inbound/cli ・ crates/outbound/sqlite"
+  },
+  {
+   "name": "決まった概念（版16、2026-11-01）",
+   "value": "SAS は子の状態を管理しない。親（呼び出し元）の ID は --session → ツールごとの環境変数 → 人なら NULL。子の ID はツールの出力の session_id。書く子と確かめる子をそれぞれ --continue で続けて使い、fork は使わない。sessions は追記だけの7列。記録は changes と validations。断った操作は持たない。文脈は「スキーマとインスタンス」1つ",
+   "source": "利用者の承認（2026-11-01）・ 承認のページ版4 ・ scratchpad session-sim ・ ops-split ・ tool-sessions"
   }
  ],
  "decision": {
-  "headline": "schemas/v1 は、境界ごとに読み手と書き手が決まる14のファイルにする。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ session_turns ・ operations ・ field_changes ・ rule_results）で、DDL は公開しない。DB のどの欄も CLI の出力のどこかに出し、スキーマにあって DB に無い欄は「記録しないと決めたもの」だけにする",
-  "because": "1つのファイルを1つの境界（誰が書き、誰が読むか）に合わせると、アダプターの作者は session-request と agent-connector だけを、Concrete の作者は Abstract の4つだけを読めばよい。DB の表は集約3つに、セッションの回（session_turns）を足した形で、継続のセッションの複数の手順のプロンプトと、形の直し ・ やり直しの回数を1か所で持てる"
+  "headline": "schemas/v1 は、境界ごとに読み手と書き手が決まる14のファイルにする。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理しない（版16）",
+  "because": "1つのファイルを1つの境界（誰が書き、誰が読むか）に合わせると、アダプターの作者は session-request と agent-connector だけを、Concrete の作者は Abstract の4つだけを読めばよい。sessions は誰が何で動いたか（役割 ・ 親 ・ ツール ・ モデル ・ 起動の設定）だけを追記で持ち、開閉 ・ 回 ・ 再開の決まりは持たない。次にどの子へ送るかは親が決める。記録は書いた変更（changes）と検証（validations）を別の表にし、どの行もすべての欄が埋まる形にする。断った操作は持たず、理由はその場で返す",
+  "revised": "2026-11-01 版16：セッションの4つの型 ・ 5つの操作 ・ session_turns ・ 終わり方をやめ、薄い sessions（7列）と書く子 ・ 確かめる子に。operations 1表を changes と validations に分け、断った操作を持たない。材料：承認のページ XQmeBmywzzsZy3AUgcSK4B 版4、シミュレーション VYeEarjweXihDbJTNxnGhW、ツール6つの調査 KbNCDxxdVA5CipaYG8aFJ5"
  },
  "file_options": [
   {
@@ -176,7 +182,7 @@
   {
    "id": "b1",
    "group": "b. CLI の各コマンド",
-   "name": "コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read ・ session close ・ session status）",
+   "name": "コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read）",
    "from_to": "人 ・ AI のエージェント ・ オーケストレーター ・ CI → SAS",
    "criteria": [
     1,
@@ -216,15 +222,15 @@
   {
    "id": "b4",
    "group": "b. CLI の各コマンド",
-   "name": "セッションの5つの操作（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む）",
+   "name": "子のセッション（起動する ・ 続ける）",
    "from_to": "呼び出し元 → SAS",
    "criteria": [
     1,
     2
    ],
    "decision": "schema",
-   "where": "立てる ・ 続ける ・ fork は operation-request#/$defs/session-spec（create ・ update ・ search に付く）、閉じる ・ 状態を読むは #/$defs/session-close ・ session-status。出力は operation-result#/$defs/session（session.schema.json を含む）",
-   "why": "セッションは操作のために立てるので、立てる ・ 続ける ・ fork は意味の操作の指定に入れる。単独のコマンドは閉じると状態を読むだけ"
+   "where": "operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は operation-result の envelope（child_session ・ role）",
+   "why": "子は操作のために起動するので、意味の操作の指定に入れる。続けるかは親が決めて ID を渡す。閉じる ・ 状態を読む ・ fork はどのツールでも非対話で揃わず、SAS は子の状態を持たない（版16）"
   },
   {
    "id": "b5",
@@ -280,7 +286,7 @@
   {
    "id": "c2",
    "group": "c. 意味の操作",
-   "name": "セッションの依頼（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む）",
+   "name": "セッションの依頼（起動する ・ 続ける）",
    "from_to": "SAS → アダプター（組み込み ・ 接続の定義で動く汎用）",
    "criteria": [
     1,
@@ -362,7 +368,7 @@
    ],
    "decision": "schema",
    "where": "agent-connector.schema.json#/$defs/caller",
-   "why": "環境変数で取れるツール（Claude Code）はその名前を接続の定義に書かせ、取れないツールは呼び出し元が --caller で渡す、の2通りにし、SAS の中にツールの名前を書かない"
+   "why": "環境変数で取れるツール（Claude Code）はその名前を接続の定義に書かせ、取れないツールは呼び出し元が --session で渡す、の2通りにし、SAS の中にツールの名前を書かない"
   },
   {
    "id": "d4",
@@ -410,7 +416,7 @@
   {
    "id": "e1",
    "group": "e. DB の表",
-   "name": "sessions ・ session_turns ・ operations ・ field_changes ・ rule_results",
+   "name": "sessions ・ changes ・ field_changes ・ validations ・ rule_results",
    "from_to": "SAS の中だけ",
    "criteria": [],
    "decision": "no-schema（DDL）",
@@ -420,13 +426,13 @@
   {
    "id": "e2",
    "group": "e. DB の表",
-   "name": "DB の JSON の欄（capabilities ・ tokens ・ grounds ・ details ・ before ・ after）",
+   "name": "DB の JSON の欄（launch ・ grounds ・ details ・ before ・ after）",
    "from_to": "SAS → DB",
    "criteria": [
     2
    ],
    "decision": "schema（既にある $defs で書く前に検査する）",
-   "where": "agent-connector#/$defs/capabilities ・ session#/$defs/tokens ・ agent-answer#/$defs/grounds ・ diff の値",
+   "where": "sessions.launch（接続の定義の起動の設定）・ agent-answer#/$defs/grounds ・ diff の値",
    "why": "欄の中身の形を公開の型と同じにしておくと、読むときに直さずに出せる"
   },
   {
@@ -444,14 +450,14 @@
   {
    "id": "e4",
    "group": "e. DB の表",
-   "name": "セッションの姿（4つの型 ・ 能力の写し ・ 回 ・ 終わり方）",
+   "name": "セッションの姿（役割 ・ 親 ・ ツール ・ モデル）",
    "from_to": "SAS → 呼び出し元",
    "criteria": [
     4
    ],
    "decision": "schema",
    "where": "session.schema.json",
-   "why": "CLI の出力と、セッションの依頼（寿命 ・ 文脈の値）の2つが使う"
+   "why": "CLI の出力（UC7 ・ child_exists の案内）が使う"
   }
  ],
  "3_schemas": [
@@ -730,20 +736,19 @@
     {
      "name": "common",
      "fields": [
-      "command（必須：create ・ update ・ delete ・ validate ・ render ・ search ・ read ・ session-close ・ session-status）",
-      "caller: {session（--session。呼び出し元のセッションの ID）, ref（--caller。使う側の参照。解釈しない）}",
-      "request_id（任意。やり直しで同じ操作を2回残さないための ID）",
-      "intent（任意。1文）"
+      "command（必須：create ・ update ・ delete ・ validate ・ render ・ search ・ read）",
+      "session（--session。呼び出し元＝親のセッションの ID。無ければ接続の定義の caller.env の環境変数、それも無ければ人）",
+      "request_id（任意。やり直しで同じ変更を2回残さないための ID）",
+      "intent（任意。1文。削除と更新の取り込みは必須）"
      ]
     },
     {
-     "name": "session-spec",
+     "name": "semantic",
      "fields": [
-      "lifetime（single ・ continuing。既定 single）",
-      "context（none ・ inherit。既定 none）",
-      "session（続ける SAS が立てたセッションの ID）",
-      "new（boolean。再開の決まりを当てずに新しく立てる）",
-      "brief（決めたことの文）",
+      "brief（意味の作成 ・ 更新で子を新しく起動するとき必須。決めたことの文）",
+      "ref: [パス]（読ませる参照の文書。中身は貼らず、子が自分で読む）",
+      "continue（続ける子のセッション ID。書く子は作成 ・ 更新、確かめる子は検証に使う）",
+      "new（boolean：この親が直前に使った子があっても新しく起動する）",
       "adapter（設定のアダプターの名前）",
       "model",
       "time_limit_s"
@@ -756,7 +761,7 @@
       "concrete（必須：従う Concrete の URN。Concrete を作るときは Abstract の $id）",
       "value（機械で作る値）か semantic: {pointers}（x-prompt の欄をエージェントが書く）",
       "adopt（boolean：在るファイルをそのまま取り込む）",
-      "session-spec（semantic のとき）"
+      "semantic（意味のとき）"
      ]
     },
     {
@@ -766,7 +771,7 @@
       "patch（JSON Patch（RFC 6902）の並び。各要素は op ・ path と、op に応じて value か from。op は add ・ remove ・ replace ・ move ・ copy ・ test。機械で直す）か semantic: {pointers}",
       "if_match（直す前の指紋）",
       "adopt（boolean：SAS を通らない変更を取り込む。intent を要る）",
-      "session-spec（semantic のとき）"
+      "semantic（意味のとき）"
      ]
     },
     {
@@ -781,7 +786,7 @@
      "name": "validate",
      "fields": [
       "targets（パスの並び）か all ・ stale（入力が変わった rule だけ）",
-      "session-spec は受けない（単発 ・ 引き継がないに固定）"
+      "semantic の continue ・ new ・ ref（確かめる子。brief は受けない：書き手の意図を判定に混ぜない）"
      ]
     },
     {
@@ -797,29 +802,17 @@
      "fields": [
       "where: {concrete, pointer, equals ・ contains}（機械で絞る）か question（意味で探す）",
       "scope: [パス]（必須：探す範囲）",
-      "session-spec（question のとき）"
+      "semantic（question のとき）"
      ]
     },
     {
      "name": "read",
      "fields": [
-      "session ・ operation ・ target のどれか1つ（ID かパス）"
-     ]
-    },
-    {
-     "name": "session-close",
-     "fields": [
-      "session（必須：SAS が立てた継続のセッションか、呼び出し元のセッション）"
-     ]
-    },
-    {
-     "name": "session-status",
-     "fields": [
-      "session（必須）。ツールの側の状態を読み、消えていたら gone で閉じる"
+      "parent_session ・ child_session ・ operation ・ target のどれか1つ（ID かパス）"
      ]
     }
    ],
-   "changes": "新しく作る（いまの create-request ・ --patch ・ --value の JSON をまとめる）"
+   "changes": "新しく作る（いまの create-request ・ --patch ・ --value の JSON をまとめる）。版16：session-spec ・ session-close ・ session-status と caller.ref を外し、semantic（brief ・ ref ・ continue ・ new）にした"
   },
   {
    "file": "operation-result.schema.json",
@@ -832,8 +825,9 @@
      "name": "envelope",
      "fields": [
       "kind（必須：下の $defs の名前）",
-      "session（必須：CLI は必ずセッション ID を返す）",
-      "request ・ attempt（意味の操作のとき）"
+      "parent_session（呼んだ親の ID。人は null）",
+      "child_session ・ role（意味の操作のとき。子の ID と writer ・ checker）",
+      "hint（次に打つコマンド。止まったとき ・ 新しい子を勧めるとき）"
      ]
     },
     {
@@ -846,7 +840,8 @@
     {
      "name": "procedure",
      "fields": [
-      "parent（呼び出し元のセッション）",
+      "parent_session",
+      "child_session（起動した子か、続けた子）",
       "prompt: procedure-prompt.schema.json",
       "prompt_path",
       "status: started"
@@ -907,13 +902,13 @@
     {
      "name": "session",
      "fields": [
-      "session.schema.json の姿をそのまま"
+      "sessions の1行：id ・ role ・ parent ・ tool ・ model ・ first_seen（session.schema.json）"
      ]
     },
     {
      "name": "operation",
      "fields": [
-      "operation: {id, session, seq, kind, source, target, intent, at, cause, turn}",
+      "operation: {id, kind, source, target_path, intent, at, cause, parent_session, child_session}",
       "diff: diff.schema.json（create ・ update ・ delete）",
       "results: [rule-result]（validate）"
      ]
@@ -922,22 +917,23 @@
      "name": "history",
      "fields": [
       "target",
-      "operations: [operation の見出し（id ・ kind ・ source ・ session ・ intent ・ at ・ after の指紋）]"
+      "operations: [operation の見出し（id ・ kind ・ source ・ parent_session ・ child_session ・ intent ・ at ・ after の指紋）]（ビュー operations を時刻順に）"
      ]
     },
     {
      "name": "error",
      "fields": [
-      "code（invalid_input ・ not_found ・ unsupported_capability ・ untracked_change ・ conflict ・ invalid_output ・ timeout ・ failed ・ cancelled ・ missing_view_kinds ・ schema_not_listed）",
+      "code（invalid_input ・ not_found ・ unsupported_capability ・ untracked_change ・ conflict ・ invalid_output ・ timeout ・ failed ・ cancelled ・ missing_view_kinds ・ schema_not_listed ・ busy ・ writer_as_checker ・ child_exists）",
       "message",
       "missing: [能力 ・ x-view の種類]",
-      "alternative: session-spec（代わりの指定）",
       "hint",
-      "blocked: [{path, code, message, hint}]（削除を止めた理由になった文書：従うインスタンス follows ・ 指している Concrete points_to ・ 記載を消せない参照元。has_dependents ・ references_blocked ・ references_left だけ。ステップ4）"
+      "blocked: [{path, code, message, hint}]（削除を止めた理由になった文書：従うインスタンス follows ・ 指している Concrete points_to ・ 記載を消せない参照元。has_dependents ・ references_blocked ・ references_left だけ。ステップ4）",
+      "（session ・ operation の欄は持たない：断った操作は記録しない。版16）",
+      "previous_child: {id, role, last_at}（child_exists のとき。この親が直前に使った同じ役割の子）"
      ]
     }
    ],
-   "changes": "版8 の cli-output.schema.json を、中身を表す名前に改めて作る"
+   "changes": "版8 の cli-output.schema.json を、中身を表す名前に改めて作る。版16：session の欄を parent_session ・ child_session ・ role に、error から session ・ operation を外し、busy ・ writer_as_checker ・ child_exists を足した"
   },
   {
    "file": "procedure-prompt.schema.json",
@@ -949,15 +945,16 @@
     {
      "name": "（根）",
      "fields": [
-      "session",
+      "child_session（子の ID）",
       "operation_kind（create ・ update ・ validate ・ search）",
       "target: {path, concrete, fingerprint}",
       "preface: {abstract, concrete（$id と版）}（決まった前置き。キャッシュが効くように先頭）",
-      "brief",
-      "since_last: diff.schema.json（再開の決まり④で対象が変わったとき）",
+      "brief（1回目だけ。続けるときは送らない）",
+      "since_last: diff.schema.json（続けた子へ送るとき、前の回のあとに対象が変わっていたら）",
       "steps: [step]",
       "answer: {schema（agent-answer の $defs の名前）, details（delegate.output）}",
-      "constraints: [ファイルを書かない ・ 答えの JSON だけを返す ・ ステップに無い欄に触れない]"
+      "constraints: [ファイルを書かない ・ 答えの JSON だけを返す ・ ステップに無い欄に触れない]",
+      "refs: [パス]（読ませる参照の文書。1回目だけ）"
      ]
     },
     {
@@ -987,14 +984,10 @@
     {
      "name": "start",
      "fields": [
-      "session（SAS の ID）",
-      "lifetime",
-      "context",
-      "inherit_from_tool_ref（inherit のとき）",
+      "role（writer ・ checker）",
+      "launch（起動の設定：model ・ ツール ・ 権限 ・ ツールに固有の旗。sessions.launch に写す）",
       "prompt: {text, path, fingerprint}",
       "answer_schema（JSON Schema。agent-answer の該当 $defs に delegate.output を入れたもの）",
-      "role（x-delegates の立場）",
-      "model",
       "time_limit_s",
       "working_dir"
      ]
@@ -1002,50 +995,24 @@
     {
      "name": "continue",
      "fields": [
-      "session",
-      "tool_ref",
+      "tool_ref（続ける子の ID）",
+      "launch（sessions.launch をそのまま。再開のたびに同じ設定を渡す）",
       "prompt",
       "answer_schema",
       "time_limit_s"
-     ]
-    },
-    {
-     "name": "fork",
-     "fields": [
-      "session",
-      "parent_tool_ref",
-      "prompt",
-      "answer_schema",
-      "time_limit_s"
-     ]
-    },
-    {
-     "name": "close",
-     "fields": [
-      "session",
-      "tool_ref"
-     ]
-    },
-    {
-     "name": "status",
-     "fields": [
-      "session",
-      "tool_ref"
      ]
     },
     {
      "name": "reply",
      "fields": [
       "outcome（answered ・ timeout ・ failed ・ gone ・ cancelled）",
-      "tool_ref",
+      "tool_ref（ツールの出力の session_id ・ thread_id ・ sessionId）",
       "answer（文字列のまま。SAS が JSON として読んで検査する）",
-      "tokens: session#/$defs/tokens",
-      "context_tokens",
-      "alive（status のとき）"
+      "tokens: session#/$defs/tokens"
      ]
     }
    ],
-   "changes": "新しく作る（call の delegate ・ handoff の役目を引き継ぐ。名前は call にしない）"
+   "changes": "新しく作る（call の delegate ・ handoff の役目を引き継ぐ）。版16：fork ・ close ・ status と lifetime ・ context を外した（どのツールにも閉じる ・ 状態を読むコマンドは無く、fork は使わない）"
   },
   {
    "file": "agent-answer.schema.json",
@@ -1089,72 +1056,33 @@
    "id": "urn:semantic-agent-schema:base:session:v1",
    "name": "セッションの姿",
    "writer": "SAS",
-   "reader": "呼び出し元（UC7 ・ 状態を読む）・ session-request ・ operation-request が値の型を参照",
+   "reader": "呼び出し元（UC7）・ operation-result が値の型を参照",
    "defs": [
     {
-     "name": "lifetime ・ context ・ ended_as ・ resume_decision ・ state",
+     "name": "role",
      "fields": [
-      "single ・ continuing",
-      "none ・ inherit",
-      "completed ・ closed ・ idle ・ timeout ・ invalid_output ・ conflict ・ failed ・ cancelled ・ gone",
-      "new-single-or-closed ・ new-cannot-resume ・ new-context-over ・ resume-target-changed ・ resume",
-      "open ・ running ・ idle ・ closed（DB に持たず導く）"
+      "caller ・ writer ・ checker"
      ]
     },
     {
      "name": "tokens",
      "fields": [
-      "input ・ output ・ cache_read ・ cache_write（どれも整数。ツールが返す分だけ）"
+      "input ・ output ・ cache_read ・ cache_write（どれも整数。ツールが返す分だけ。再開した子の usage が累計で出るツールは差で出す）"
      ]
     },
     {
      "name": "session",
      "fields": [
-      "id",
-      "kind（caller ・ sas）",
-      "actor（caller のとき：ai_agent ・ human）",
-      "parent",
-      "operation_kind",
-      "lifetime",
-      "context",
-      "inherited_from",
-      "continued_from",
-      "adapter",
+      "id（ツールのセッション ID）",
+      "role",
+      "parent（子を起動させた親。親と、人が起動させた子は null）",
+      "tool",
       "model",
-      "capabilities（agent-connector#/$defs/capabilities）",
-      "tool_ref",
-      "caller_ref",
-      "brief",
-      "state",
-      "started_at",
-      "last_used_at",
-      "ended_at",
-      "ended_as",
-      "turns: [turn]",
-      "operations: [ID]"
-     ]
-    },
-    {
-     "name": "turn",
-     "fields": [
-      "seq",
-      "kind（start ・ resume ・ fix）",
-      "request",
-      "attempt",
-      "resume_decision",
-      "prompt: {path, fingerprint}",
-      "time_limit_s",
-      "outcome（answered ・ invalid ・ timeout ・ failed ・ gone ・ cancelled）",
-      "answer_fingerprint",
-      "answer（outcome = invalid のときだけ。受け取った文字列）",
-      "tokens",
-      "context_tokens",
-      "started_at",
-      "ended_at"
+      "first_seen"
      ]
     }
    ],
-   "changes": "版8 の session.schema.json。state ・ 再開できる期限 ・ 文脈の上限はセッションの欄に持たず、回と能力の写しから導く"
+   "changes": "版16：4つの型 ・ 回 ・ 終わり方 ・ 状態をやめ、誰が何で動いたかだけの7欄（launch は公開しない）"
   },
   {
    "file": "diff.schema.json",
@@ -1198,11 +1126,11 @@
      "fields": [
       "name",
       "version",
-      "commands: {start, continue, fork, close, status}（どれも argv の並び。{session.prompt.path} のように session-request の欄を名前で埋める。start ・ continue は必須、fork は capabilities.fork が true のときだけ必須、close ・ status は省略できる。どのツールにも閉じる ・ 状態を読むコマンドは無いので、省略時は SAS の側で閉じたことにし、状態は回の記録から導く）",
-      "answer: {from（stdout ・ file）, path, json_pointer}（答えの取り出し方。Claude Code は stdout の /structured_output、Codex は -o のファイル。answer_schema が false のツールでは文から JSON を読むので、形の直しの回が増える前提）",
-      "tool_ref: {from（stdout ・ file ・ env ・ assigned）, json_pointer, event_type}（assigned は SAS が UUID を作って --session-id で渡す形。Claude Code と Copilot。event_type は JSONL の中の事象を選ぶ指定。Codex は thread.started の thread_id）",
-      "tokens: {from, json_pointers}",
-      "exit_codes: {timeout, failed}",
+      "commands: {start, continue}（argv の並び。{prompt.path} のように session-request の欄を名前で埋める。continue は capabilities.resume が true のときだけ必須。Codex の exec resume のように旗が欠けるツールは -c などの代わりの書き方をここに書く）",
+      "answer: {from（stdout ・ file）, path, json_pointer}",
+      "tool_ref: {from（stdout ・ file ・ assigned）, json_pointer, event_type}（子の ID の取り方。Claude Code は stdout の session_id、Codex は thread.started の thread_id、Copilot は sessionId か assigned、Kiro は stream-json の sessionId）",
+      "tokens: {from, json_pointers, cumulative（boolean：再開した子の usage が累計で出る）}",
+      "exit_codes: {timeout, failed, busy}",
       "capabilities",
       "caller"
      ]
@@ -1210,24 +1138,22 @@
     {
      "name": "capabilities",
      "fields": [
-      "resume（boolean）",
-      "fork（boolean：非対話で fork できる。対話の中だけの fork は数えない）",
-      "answer_schema（boolean：答えの形を指定できる）",
+      "resume（boolean：ID を指定して非対話で続けられる）",
+      "answer_schema（boolean）",
       "token_report（boolean）",
-      "resumable_for_s（再開できる時間。文書に既定があるのは Claude Code と Gemini の30日だけで、ほかは使う側が書く値）",
-      "context_limit（文脈の量の上限）",
+      "cache_ttl_s（キャッシュの有効時間の目安。Claude Code の -p は 3600、Copilot は 1800。新しい子を勧める目安に使う）",
       "max_concurrent（同時に動かせる数）"
      ]
     },
     {
      "name": "caller",
      "fields": [
-      "env（任意。ツールのセッション ID が入る環境変数の名前。文書にあるのは Claude Code の CLAUDE_CODE_SESSION_ID だけ。無いときは呼び出し元が --caller で渡す）",
-      "actor（ai_agent）"
+      "env（任意。親のセッション ID が入る環境変数の名前。Claude Code は CLAUDE_CODE_SESSION_ID。無いツールでは呼び出し元が --session で渡す）",
+      "tool（親の行の sessions.tool に書く名前）"
      ]
     }
    ],
-   "changes": "新しく作る。ツールの名前とオプションは接続の定義のファイルに書き、SAS の中には書かない"
+   "changes": "新しく作る。版16：commands の fork ・ close ・ status と capabilities の fork ・ resumable_for_s ・ context_limit を外し、cache_ttl_s ・ tokens.cumulative を足した"
   },
   {
    "file": "design-system.schema.json",
@@ -1267,9 +1193,8 @@
       "time_limit_s",
       "shape_fix_max（既定 2）",
       "retry_max（既定 2）",
-      "resume_context_ratio（既定 0.8）",
-      "caller_idle_close_min",
-      "prompts_dir ・ db_path（コミットしない置き場所）"
+      "child_hint: {idle_s（既定は接続の定義の cache_ttl_s）, max_ops（既定 10。実測していない目安）}（新しい子を勧める案内の目安）",
+      "prompts_dir ・ db_path（コミットしない置き場所。db_path の既定は <git-common-dir>/sas/sas.db、Git が無ければ .sas/sas.db）"
      ]
     }
    ],
@@ -1277,306 +1202,109 @@
   }
  ],
  "4_db": {
-  "engine": "SQLite（リポジトリごとに1つ。置き場所は設定の db_path。コミットしない）。必要な最低の版：部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0。trigger は SELECT RAISE(ABORT, '<文字列のリテラル>') で書く（文言に式を使えるのは 3.47.0 から）。照合済み（factcheck-b の項目2）",
-  "conventions": "時刻は ISO 8601 の UTC の文字列、JSON は TEXT に json_valid、真偽は 0 ・ 1、ID は ULID",
+  "engine": "SQLite（リポジトリごとに1つ。既定の置き場所は <git-common-dir>/sas/sas.db で、作業ツリーの外 ・ ワークツリーで1つ ・ コミットしない。作り直せるデータとして扱い、消えたら空で作り直す）。必要な最低の版：部分索引 3.8.0、JSON の関数が既定で組み込み 3.38.0。trigger は SELECT RAISE(ABORT, '<文字列のリテラル>') で書く（文言に式を使えるのは 3.47.0 から）。照合済み（factcheck-b の項目2）",
+  "conventions": "時刻は ISO 8601 の UTC の文字列、JSON は TEXT に json_valid、真偽は 0 ・ 1。sessions の ID はツールのセッション ID、changes ・ validations の ID は同じ採番（o-NNNN）",
   "tables": [
    {
     "name": "sessions",
-    "context": "スキーマとインスタンス",
-    "holds": "集約2（呼び出し元のセッション）の根。操作をまとめる行。SAS が立てたセッションは launched_sessions に持つ（文脈を分けたため。kind で1つの表にしない）",
+    "holds": "誰が何で動いたかだけ。親（caller）は SAS が初めて見たとき、子（writer ・ checker）は起動したときに1行。状態 ・ 開閉 ・ 回は持たず、書き換えない",
     "columns": [
      [
       "id",
       "TEXT",
       "PK",
-      "ULID"
+      "ツールのセッション ID"
      ],
      [
-      "actor",
+      "role",
       "TEXT",
       "",
-      "ai_agent ・ human"
+      "caller ・ writer ・ checker"
      ],
      [
-      "adapter",
-      "TEXT",
-      "",
-      "設定のアダプターの名前"
-     ],
-     [
-      "tool_ref",
-      "TEXT",
-      "",
-      "ツールのセッション ID。解釈しない"
-     ],
-     [
-      "caller_ref",
-      "TEXT",
-      "",
-      "--caller。使う側の参照"
-     ],
-     [
-      "started_at",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "last_used_at",
-      "TEXT",
-      "",
-      "一定の時間で閉じる材料"
-     ],
-     [
-      "ended_at",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "ended_as",
-      "TEXT",
-      "",
-      "closed ・ idle"
-     ]
-    ],
-    "keys": "PK id ／ 一意：開いているセッションはアダプター × tool_ref で1つ、開いている人のセッションは1つ"
-   },
-   {
-    "name": "launched_sessions",
-    "context": "立てたセッション",
-    "holds": "集約1（SAS が立てたセッション）の根。寿命 ・ 回 ・ 能力 ・ 再開を持つ",
-    "columns": [
-     [
-      "id",
-      "TEXT",
-      "PK",
-      "ULID"
-     ],
-     [
-      "caller_session_id",
+      "parent_id",
       "TEXT",
       "FK sessions",
-      "立てさせた呼び出し元のセッション（境界を越える ID。文脈の外の行を指す）"
+      "子を起動させた親（caller の行だけ）。親と、人が起動させた子は NULL"
      ],
      [
-      "operation_kind",
+      "tool",
       "TEXT",
       "",
-      "create ・ update ・ validate ・ search"
-     ],
-     [
-      "lifetime",
-      "TEXT",
-      "",
-      "single ・ continuing"
-     ],
-     [
-      "context",
-      "TEXT",
-      "",
-      "none ・ inherit"
-     ],
-     [
-      "inherited_from",
-      "TEXT",
-      "FK launched_sessions",
-      "inherit のとき必須"
-     ],
-     [
-      "continued_from",
-      "TEXT",
-      "FK launched_sessions",
-      "再開の決まりで新しく立てたとき"
-     ],
-     [
-      "capabilities",
-      "JSON",
-      "",
-      "立てた時の能力の写し（agent-connector#/$defs/capabilities）"
+      "接続の定義の名前"
      ],
      [
       "model",
       "TEXT",
       "",
-      ""
+      "子を起動したモデル"
      ],
      [
-      "brief",
-      "TEXT",
-      "",
-      "決めたことの文"
-     ],
-     [
-      "started_at",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "ended_at",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "ended_as",
-      "TEXT",
-      "",
-      "completed ・ closed ・ timeout ・ invalid_output ・ conflict ・ failed ・ cancelled ・ gone"
-     ]
-    ],
-    "keys": "PK id ／ FK caller_session_id → sessions ／ FK inherited_from ・ continued_from → launched_sessions"
-   },
-   {
-    "name": "session_turns",
-    "holds": "集約1の内側：手順のプロンプトを渡して答えを受け取った1回。継続の再開と、形の直しも1回ずつ",
-    "columns": [
-     [
-      "session_id",
-      "TEXT",
-      "PK FK launched_sessions",
-      ""
-     ],
-     [
-      "seq",
-      "INTEGER",
-      "PK",
-      "セッションの中の何回目か"
-     ],
-     [
-      "kind",
-      "TEXT",
-      "",
-      "start ・ resume ・ fix"
-     ],
-     [
-      "request_id",
-      "TEXT",
-      "",
-      "依頼の ID"
-     ],
-     [
-      "attempt",
-      "INTEGER",
-      "",
-      "同じ依頼の何回目のセッションか"
-     ],
-     [
-      "resume_decision",
-      "TEXT",
-      "",
-      "再開の決まりのどれに当たったか"
-     ],
-     [
-      "prompt_path",
-      "TEXT",
-      "",
-      "手順のプロンプト（JSON）のファイル"
-     ],
-     [
-      "prompt_hash",
-      "TEXT",
-      "",
-      "渡した文の指紋"
-     ],
-     [
-      "time_limit_s",
-      "INTEGER",
-      "",
-      ""
-     ],
-     [
-      "outcome",
-      "TEXT",
-      "",
-      "answered ・ invalid ・ timeout ・ failed ・ gone ・ cancelled"
-     ],
-     [
-      "answer_hash",
-      "TEXT",
-      "",
-      "受け取った答えの指紋"
-     ],
-     [
-      "answer_raw",
-      "TEXT",
-      "",
-      "invalid のときだけ受け取った文字列"
-     ],
-     [
-      "tokens",
+      "launch",
       "JSON",
       "",
-      "session#/$defs/tokens"
+      "子の起動の設定。--continue で同じものを渡す"
      ],
      [
-      "context_tokens",
-      "INTEGER",
-      "",
-      "再開の決まり③の材料"
-     ],
-     [
-      "started_at",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "ended_at",
+      "first_seen",
       "TEXT",
       "",
       ""
      ]
     ],
-    "keys": "PK (session_id, seq) ／ 索引 (request_id, attempt)",
-    "context": "立てたセッション"
+    "keys": "PK id ／ FK parent_id → sessions ／ 索引 (parent_id, role)"
    },
    {
-    "name": "operations",
-    "holds": "集約3（操作）の根。session_id は呼び出し元のセッション、SAS が立てたセッションで行ったときは launched_session_id と turn_seq も持つ。追記だけ",
+    "name": "changes",
+    "holds": "書いた変更（作成 ・ 更新 ・ 削除）。断った操作は持たない",
     "columns": [
      [
       "id",
       "TEXT",
       "PK",
-      "ULID"
+      ""
      ],
      [
-      "session_id",
-      "TEXT",
-      "FK sessions",
-      "呼び出し元のセッション"
-     ],
-     [
-      "launched_session_id",
-      "TEXT",
-      "FK launched_sessions",
-      "SAS が立てたセッションで行ったとき"
-     ],
-     [
-      "seq",
-      "INTEGER",
-      "",
-      "セッションの中の続き番号"
-     ],
-     [
-      "turn_seq",
-      "INTEGER",
-      "FK session_turns",
-      "launched_session_id があるとき、答えを受けた回"
-     ],
-     [
-      "request_id",
+      "at",
       "TEXT",
       "",
-      "1つの依頼に操作は1回（cause_id の無いもの）"
+      ""
      ],
      [
       "kind",
       "TEXT",
       "",
-      "create ・ update ・ delete ・ validate"
+      "create ・ update ・ delete"
+     ],
+     [
+      "target_path",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "before_hash",
+      "TEXT",
+      "",
+      "作成は NULL"
+     ],
+     [
+      "after_hash",
+      "TEXT",
+      "",
+      "削除は NULL"
+     ],
+     [
+      "intent",
+      "TEXT",
+      "",
+      "削除と更新の取り込みは必須"
+     ],
+     [
+      "request_id",
+      "TEXT",
+      "",
+      "一意"
      ],
      [
       "source",
@@ -1585,76 +1313,34 @@
       "sas ・ outside（取り込み）"
      ],
      [
-      "target_kind",
-      "TEXT",
-      "",
-      "concrete ・ instance"
-     ],
-     [
-      "target_path",
-      "TEXT",
-      "",
-      "リポジトリの中のパス"
-     ],
-     [
-      "concrete_ref",
-      "TEXT",
-      "",
-      "従う Concrete（か Abstract）の URN と版"
-     ],
-     [
-      "before_hash",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "after_hash",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
-      "before_version",
-      "TEXT",
-      "",
-      "版を扱うポートの参照"
-     ],
-     [
-      "after_version",
-      "TEXT",
-      "",
-      ""
-     ],
-     [
       "cause_id",
       "TEXT",
-      "FK operations",
-      "削除に伴う参照元の書き換えのとき、その削除"
+      "FK changes",
+      "原因の削除"
      ],
      [
-      "intent",
+      "parent_session_id",
       "TEXT",
-      "",
-      ""
+      "FK sessions",
+      "呼んだ親。人は NULL"
      ],
      [
-      "at",
+      "child_session_id",
       "TEXT",
-      "",
-      ""
+      "FK sessions",
+      "書いた書く子。機械だけなら NULL"
      ]
     ],
-    "keys": "PK id ／ 一意 (session_id, seq) ／ 一意 request_id（cause_id が無いもの）／ 索引 (target_path, at)"
+    "keys": "PK id ／ 一意 request_id ／ 索引 (target_path, at)・(parent_session_id, at)"
    },
    {
     "name": "field_changes",
-    "holds": "操作の内側の値：変わった欄",
+    "holds": "変わった欄の前後",
     "columns": [
      [
-      "operation_id",
+      "change_id",
       "TEXT",
-      "PK FK operations",
+      "PK FK changes",
       ""
      ],
      [
@@ -1673,7 +1359,7 @@
       "before",
       "JSON",
       "",
-      "SQL の NULL は値が無い、JSON の null は null の値"
+      ""
      ],
      [
       "after",
@@ -1685,26 +1371,69 @@
       "before_unavailable",
       "INTEGER",
       "",
-      "前の値が取れなかった（記録の最後の事後と同じ中身のコミットが無い：まだコミットしていない ・ Git が無い。ステップ3）"
+      "前の版が取れなかった"
      ]
     ],
-    "keys": "PK (operation_id, pointer)"
+    "keys": "PK (change_id, pointer)"
+   },
+   {
+    "name": "validations",
+    "holds": "ある中身を判定したこと。対象を変えないので指紋は1つ",
+    "columns": [
+     [
+      "id",
+      "TEXT",
+      "PK",
+      ""
+     ],
+     [
+      "at",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "target_path",
+      "TEXT",
+      "",
+      ""
+     ],
+     [
+      "hash",
+      "TEXT",
+      "",
+      "判定した中身の指紋"
+     ],
+     [
+      "parent_session_id",
+      "TEXT",
+      "FK sessions",
+      ""
+     ],
+     [
+      "child_session_id",
+      "TEXT",
+      "FK sessions",
+      "判定した確かめる子。機械と人の rule だけなら NULL"
+     ]
+    ],
+    "keys": "PK id ／ 索引 (target_path, at)"
    },
    {
     "name": "rule_results",
-    "holds": "操作の内側の値：rule ごとの結果（validate の操作だけ）",
+    "holds": "rule ごとの結果",
     "columns": [
      [
-      "operation_id",
+      "validation_id",
       "TEXT",
-      "PK FK operations",
+      "PK FK validations",
       ""
      ],
      [
       "rule_schema",
       "TEXT",
       "PK",
-      "Abstract の rule と Concrete の rule を分ける"
+      ""
      ],
      [
       "rule_id",
@@ -1716,7 +1445,7 @@
       "pointer",
       "TEXT",
       "PK",
-      "判定した欄"
+      ""
      ],
      [
       "by",
@@ -1740,191 +1469,153 @@
       "grounds",
       "JSON",
       "",
-      "読んだ欄のポインタの並び"
+      ""
      ],
      [
       "reads_hash",
       "TEXT",
       "",
-      "rule.reads の欄の値の指紋。入力が変わった判定を見つける"
+      "読んだ所の指紋（--stale）"
      ],
      [
       "details",
       "JSON",
       "",
-      "任せる先の output の形"
+      ""
      ]
     ],
-    "keys": "PK (operation_id, rule_schema, rule_id, pointer)"
+    "keys": "PK (validation_id, rule_schema, rule_id, pointer)"
+   },
+   {
+    "name": "operations（ビュー）",
+    "holds": "UC7 のために changes と validations を時刻順に並べる",
+    "columns": [],
+    "keys": "UNION ALL"
    }
   ],
-  "ddl": "PRAGMA foreign_keys = ON;\n\n-- 文脈「スキーマとインスタンス」\nCREATE TABLE sessions (                                   -- 呼び出し元のセッション\n  id              TEXT PRIMARY KEY,                       -- ULID\n  actor           TEXT NOT NULL CHECK (actor IN ('ai_agent','human')),\n  adapter         TEXT,\n  tool_ref        TEXT,                                   -- 解釈しない\n  caller_ref      TEXT,                                   -- 使う側の参照。解釈しない\n  started_at      TEXT NOT NULL,                          -- ISO 8601 UTC\n  last_used_at    TEXT NOT NULL,\n  ended_at        TEXT,\n  ended_as        TEXT CHECK (ended_as IN ('closed','idle')),\n  CHECK ((ended_at IS NULL) = (ended_as IS NULL))\n);\nCREATE UNIQUE INDEX sessions_open_tool_caller ON sessions (adapter, tool_ref)\n  WHERE ended_at IS NULL AND tool_ref IS NOT NULL;\nCREATE UNIQUE INDEX sessions_open_human ON sessions (actor)\n  WHERE actor = 'human' AND ended_at IS NULL;\n-- trigger：閉じたセッションの行は変えない／開いている間に変えてよいのは tool_ref ・ last_used_at ・ ended_at ・ ended_as だけ／行を消さない\n\n-- 文脈「立てたセッション」\nCREATE TABLE launched_sessions (                          -- SAS が立てたセッション\n  id                 TEXT PRIMARY KEY,                    -- ULID\n  caller_session_id  TEXT NOT NULL REFERENCES sessions(id),  -- 境界を越える ID\n  adapter            TEXT NOT NULL,\n  operation_kind     TEXT NOT NULL CHECK (operation_kind IN ('create','update','validate','search')),\n  lifetime           TEXT NOT NULL CHECK (lifetime IN ('single','continuing')),\n  context            TEXT NOT NULL CHECK (context IN ('none','inherit')),\n  inherited_from     TEXT REFERENCES launched_sessions(id),\n  continued_from     TEXT REFERENCES launched_sessions(id),\n  capabilities       TEXT NOT NULL CHECK (json_valid(capabilities)),\n  model              TEXT,\n  brief              TEXT,\n  started_at         TEXT NOT NULL,\n  ended_at           TEXT,\n  ended_as           TEXT CHECK (ended_as IN ('completed','closed','timeout','invalid_output','conflict','failed','cancelled','gone')),\n  CHECK ((ended_at IS NULL) = (ended_as IS NULL)),\n  CHECK (context IS NOT 'inherit' OR inherited_from IS NOT NULL),\n  CHECK (operation_kind IS NOT 'validate' OR (lifetime = 'single' AND context = 'none'))\n);\nCREATE INDEX launched_sessions_by_caller ON launched_sessions (caller_session_id);\n-- trigger：閉じたセッションの行は変えない／開いている間に変えてよいのは ended_at ・ ended_as だけ／行を消さない\n\nCREATE TABLE session_turns (\n  session_id      TEXT NOT NULL REFERENCES launched_sessions(id),\n  seq             INTEGER NOT NULL CHECK (seq >= 1),\n  kind            TEXT NOT NULL CHECK (kind IN ('start','resume','fix')),\n  request_id      TEXT NOT NULL,\n  attempt         INTEGER NOT NULL CHECK (attempt >= 1),\n  resume_decision TEXT CHECK (resume_decision IN ('new-single-or-closed','new-cannot-resume','new-context-over','resume-target-changed','resume')),\n  prompt_path     TEXT NOT NULL,\n  prompt_hash     TEXT NOT NULL,\n  time_limit_s    INTEGER NOT NULL,\n  outcome         TEXT CHECK (outcome IN ('answered','invalid','timeout','failed','gone','cancelled')),\n  answer_hash     TEXT,\n  answer_raw      TEXT,\n  tokens          TEXT CHECK (tokens IS NULL OR json_valid(tokens)),\n  context_tokens  INTEGER,\n  started_at      TEXT NOT NULL,\n  ended_at        TEXT,\n  PRIMARY KEY (session_id, seq),\n  CHECK ((ended_at IS NULL) = (outcome IS NULL)),\n  CHECK ((answer_raw IS NOT NULL) = (outcome IS 'invalid')),\n  CHECK (kind IS NOT 'resume' OR (resume_decision IS NOT NULL AND resume_decision IN ('resume','resume-target-changed')))\n);\nCREATE INDEX session_turns_by_request ON session_turns (request_id, attempt);\n-- trigger：閉じたセッションに回を足さない／kind = 'resume' はセッションが continuing のときだけ／\n--          同じ request_id ・ attempt の fix は設定の shape_fix_max まで／seq は前の回の次の番号／\n--          終わった回は変えない／行を消さない\n\nCREATE TABLE operations (\n  id              TEXT PRIMARY KEY,                       -- ULID\n  session_id      TEXT NOT NULL REFERENCES sessions(id),      -- 呼び出し元のセッション\n  seq             INTEGER NOT NULL CHECK (seq >= 1),\n  launched_session_id TEXT REFERENCES launched_sessions(id),  -- SAS が立てたセッションで行ったとき\n  turn_seq        INTEGER,\n  request_id      TEXT,\n  kind            TEXT NOT NULL CHECK (kind IN ('create','update','delete','validate')),\n  source          TEXT NOT NULL CHECK (source IN ('sas','outside')),\n  target_kind     TEXT NOT NULL CHECK (target_kind IN ('concrete','instance')),\n  target_path     TEXT NOT NULL,\n  concrete_ref    TEXT NOT NULL,\n  before_hash     TEXT,\n  after_hash      TEXT,\n  cause_id        TEXT REFERENCES operations(id),\n  intent          TEXT,\n  at              TEXT NOT NULL,\n  UNIQUE (session_id, seq),\n  FOREIGN KEY (launched_session_id, turn_seq) REFERENCES session_turns(session_id, seq),\n  CHECK ((launched_session_id IS NULL) = (turn_seq IS NULL)),\n  CHECK (kind IS NOT 'create'   OR (after_hash IS NOT NULL)),\n  CHECK (kind IS NOT 'update'   OR (before_hash IS NOT NULL AND after_hash IS NOT NULL)),\n  CHECK (kind IS NOT 'delete'   OR (before_hash IS NOT NULL AND after_hash IS NULL)),\n  CHECK (kind IS NOT 'validate' OR (before_hash IS NOT NULL AND before_hash IS after_hash)),\n  CHECK (source IS NOT 'outside' OR kind IN ('create','update')),\n  CHECK (source IS NOT 'outside' OR kind IS NOT 'update' OR intent IS NOT NULL),   -- 作成の取り込みは意図を任意にする（ステップ3）\n  CHECK (cause_id IS NULL OR kind = 'update')\n);\nCREATE UNIQUE INDEX operations_one_per_request ON operations (request_id)\n  WHERE request_id IS NOT NULL AND cause_id IS NULL;\nCREATE INDEX operations_by_target ON operations (target_path, at);\n-- trigger：閉じたセッションに足さない／seq はセッションの中で前の次の番号／\n--          launched_session_id があるとき kind は立てたセッションの operation_kind と同じ、search のセッションには足さない、\n--          single のセッションには cause_id の無い操作を1件まで／\n--          source = 'outside' の before_hash は、その target_path の最後の操作の after_hash（無ければ NULL。最後の削除より後だけを見る：消すと記録のつながりが切れる）／\n--          cause_id は書いた update だけで、先は同じセッションの先に記録した削除。原因を持つ書き換えは request_id を持たない／\n--          行を変えない ・ 消さない\n\nCREATE TABLE field_changes (\n  operation_id        TEXT NOT NULL REFERENCES operations(id),\n  pointer             TEXT NOT NULL,                      -- JSON ポインタ\n  change              TEXT NOT NULL CHECK (change IN ('add','remove','replace')),\n  before              TEXT CHECK (before IS NULL OR json_valid(before)),\n  after               TEXT CHECK (after IS NULL OR json_valid(after)),\n  before_unavailable  INTEGER NOT NULL DEFAULT 0 CHECK (before_unavailable IN (0,1)),\n  PRIMARY KEY (operation_id, pointer),\n  CHECK (change IS NOT 'add'    OR before IS NULL),\n  CHECK (change IS NOT 'remove' OR after IS NULL),\n  CHECK (before_unavailable = 0 OR before IS NULL)\n);\n-- trigger：操作の kind が create ・ update のときだけ足す／行を変えない ・ 消さない\n\nCREATE TABLE rule_results (\n  operation_id  TEXT NOT NULL REFERENCES operations(id),\n  rule_schema   TEXT NOT NULL,                            -- rule を持つスキーマの URN\n  rule_id       TEXT NOT NULL,\n  pointer       TEXT NOT NULL,\n  by            TEXT NOT NULL CHECK (by IN ('machine','ai','human')),\n  result        TEXT NOT NULL CHECK (result IN ('verified','violated','unverified','unsupported','error')),\n  reason        TEXT,\n  grounds       TEXT CHECK (grounds IS NULL OR json_valid(grounds)),\n  reads_hash    TEXT NOT NULL,\n  details       TEXT CHECK (details IS NULL OR json_valid(details)),\n  PRIMARY KEY (operation_id, rule_schema, rule_id, pointer),\n  CHECK (by IS NOT 'human' OR result = 'unverified')\n);\n-- trigger：操作の kind が validate のときだけ足す／行を変えない ・ 消さない\n",
+  "ddl": "PRAGMA foreign_keys = ON;\n\n-- 誰が何で動いたかだけ（状態は持たない ・ 書き換えない）。親は SAS が初めて見たとき、子は起動したときに1行\nCREATE TABLE sessions (\n  id          TEXT PRIMARY KEY,                       -- ツールのセッション ID（親は --session か環境変数、子はツールの出力の session_id）\n  role        TEXT NOT NULL CHECK (role IN ('caller','writer','checker')),\n  parent_id   TEXT REFERENCES sessions(id),           -- 子を起動させた親。親の行と、人が起動させた子は NULL\n  tool        TEXT NOT NULL,                          -- claude-code ・ codex など（接続の定義の名前）\n  model       TEXT,                                   -- 子を起動したモデル。親は分からなければ NULL\n  launch      TEXT CHECK (launch IS NULL OR json_valid(launch)),  -- 子の起動の設定。--continue で同じものを渡す\n  first_seen  TEXT NOT NULL,                          -- ISO 8601 UTC\n  CHECK (role <> 'caller' OR (parent_id IS NULL AND launch IS NULL)),\n  CHECK (role = 'caller' OR launch IS NOT NULL)\n) STRICT;\nCREATE INDEX sessions_by_parent ON sessions (parent_id, role) WHERE parent_id IS NOT NULL;\nCREATE TRIGGER sessions_no_update BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;\nCREATE TRIGGER sessions_no_delete BEFORE DELETE ON sessions BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;\nCREATE TRIGGER sessions_parent_is_caller BEFORE INSERT ON sessions\nWHEN NEW.parent_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'the parent must be a caller session'); END;\n\n-- 書いた変更（作成 ・ 更新 ・ 削除）。断った操作は持たない（理由はその場で返す）\nCREATE TABLE changes (\n  id                 TEXT PRIMARY KEY,\n  at                 TEXT NOT NULL,\n  kind               TEXT NOT NULL CHECK (kind IN ('create','update','delete')),\n  target_path        TEXT NOT NULL,\n  before_hash        TEXT,                              -- 作成は無い\n  after_hash         TEXT,                              -- 削除は無い\n  intent             TEXT,\n  request_id         TEXT,\n  source             TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas','outside')),\n  cause_id           TEXT REFERENCES changes(id),       -- 原因の削除（参照元の書き換え）\n  parent_session_id  TEXT REFERENCES sessions(id),      -- 呼んだ親。人は NULL\n  child_session_id   TEXT REFERENCES sessions(id),      -- 書いた書く子。機械だけなら NULL\n  CHECK ((kind = 'create') = (before_hash IS NULL)),\n  CHECK ((kind = 'delete') = (after_hash IS NULL)),\n  CHECK (kind <> 'delete' OR intent IS NOT NULL),\n  CHECK (source = 'sas' OR kind <> 'delete'),\n  CHECK (source = 'sas' OR kind <> 'update' OR intent IS NOT NULL),\n  CHECK (cause_id IS NULL OR request_id IS NULL)\n) STRICT;\nCREATE UNIQUE INDEX changes_one_per_request ON changes (request_id) WHERE request_id IS NOT NULL;\nCREATE INDEX changes_by_target ON changes (target_path, at);\nCREATE INDEX changes_by_parent ON changes (parent_session_id, at) WHERE parent_session_id IS NOT NULL;\n\nCREATE TABLE field_changes (\n  change_id           TEXT NOT NULL REFERENCES changes(id),\n  pointer             TEXT NOT NULL,                     -- JSON ポインタ\n  change              TEXT NOT NULL CHECK (change IN ('add','remove','replace')),\n  before              TEXT CHECK (before IS NULL OR json_valid(before)),\n  after               TEXT CHECK (after IS NULL OR json_valid(after)),\n  before_unavailable  INTEGER NOT NULL DEFAULT 0 CHECK (before_unavailable IN (0,1)),\n  PRIMARY KEY (change_id, pointer),\n  CHECK (change IS NOT 'add'    OR before IS NULL),\n  CHECK (change IS NOT 'remove' OR after IS NULL),\n  CHECK (before_unavailable = 0 OR before IS NULL)\n) STRICT;\n\n-- 検証。対象を変えないので指紋は1つ。依頼の ID ・ 意図を持たない\nCREATE TABLE validations (\n  id                 TEXT PRIMARY KEY,\n  at                 TEXT NOT NULL,\n  target_path        TEXT NOT NULL,\n  hash               TEXT NOT NULL,\n  parent_session_id  TEXT REFERENCES sessions(id),\n  child_session_id   TEXT REFERENCES sessions(id)      -- 判定した確かめる子。機械と人の rule だけなら NULL\n) STRICT;\nCREATE INDEX validations_by_target ON validations (target_path, at);\n\nCREATE TABLE rule_results (\n  validation_id  TEXT NOT NULL REFERENCES validations(id),\n  rule_schema    TEXT NOT NULL,                           -- rule を持つスキーマの URN\n  rule_id        TEXT NOT NULL,\n  pointer        TEXT NOT NULL,\n  by             TEXT NOT NULL CHECK (by IN ('machine','ai','human')),\n  result         TEXT NOT NULL CHECK (result IN ('verified','violated','unverified','unsupported','error')),\n  reason         TEXT,\n  grounds        TEXT CHECK (grounds IS NULL OR json_valid(grounds)),\n  reads_hash     TEXT NOT NULL,\n  details        TEXT CHECK (details IS NULL OR json_valid(details)),\n  PRIMARY KEY (validation_id, rule_schema, rule_id, pointer),\n  CHECK (by IS NOT 'human' OR result = 'unverified')\n) STRICT;\n\n-- 子の役割は表で決まる ・ 原因は削除だけ ・ 親の欄は親の行だけ\nCREATE TRIGGER changes_child_is_writer BEFORE INSERT ON changes\nWHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'writer'\nBEGIN SELECT RAISE(ABORT, 'a change is made by a writer'); END;\nCREATE TRIGGER validations_child_is_checker BEFORE INSERT ON validations\nWHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'checker'\nBEGIN SELECT RAISE(ABORT, 'a validation is made by a checker'); END;\nCREATE TRIGGER changes_parent_is_caller BEFORE INSERT ON changes\nWHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;\nCREATE TRIGGER validations_parent_is_caller BEFORE INSERT ON validations\nWHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;\nCREATE TRIGGER changes_cause_is_delete BEFORE INSERT ON changes\nWHEN NEW.cause_id IS NOT NULL\n  AND (NEW.kind IS NOT 'update' OR NEW.source IS NOT 'sas' OR (SELECT kind FROM changes WHERE id = NEW.cause_id) IS NOT 'delete')\nBEGIN SELECT RAISE(ABORT, 'a cause must be a delete'); END;\n-- 追記だけ（4表とも）\nCREATE TRIGGER changes_no_update BEFORE UPDATE ON changes BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;\nCREATE TRIGGER changes_no_delete BEFORE DELETE ON changes BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;\nCREATE TRIGGER field_changes_no_update BEFORE UPDATE ON field_changes BEGIN SELECT RAISE(ABORT, 'field changes are append-only'); END;\nCREATE TRIGGER field_changes_no_delete BEFORE DELETE ON field_changes BEGIN SELECT RAISE(ABORT, 'field changes are append-only'); END;\nCREATE TRIGGER validations_no_update BEFORE UPDATE ON validations BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;\nCREATE TRIGGER validations_no_delete BEFORE DELETE ON validations BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;\nCREATE TRIGGER rule_results_no_update BEFORE UPDATE ON rule_results BEGIN SELECT RAISE(ABORT, 'rule results are append-only'); END;\nCREATE TRIGGER rule_results_no_delete BEFORE DELETE ON rule_results BEGIN SELECT RAISE(ABORT, 'rule results are append-only'); END;\n\n-- UC7「操作の記録を読む」：変更と検証を時刻順に並べる\nCREATE VIEW operations AS\n  SELECT id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, cause_id, parent_session_id, child_session_id FROM changes\n  UNION ALL\n  SELECT id, at, 'validate', target_path, hash, hash, NULL, NULL, 'sas', NULL, parent_session_id, child_session_id FROM validations;\n",
   "invariants": [
    {
-    "invariant": "集約1 ① 親は必ず呼び出し元のセッション",
-    "how": "CHECK（caller_session_id は NOT NULL）＋ 外部キー（先は sessions ＝ 呼び出し元のセッションだけ）"
+    "invariant": "sessions ① 書いた行は変えない ・ 消さない",
+    "how": "trigger"
    },
    {
-    "invariant": "集約1 ② 単発は再開しない",
-    "how": "trigger（kind = resume の回は continuing だけ）"
+    "invariant": "sessions ② 子の親は親の行（caller）だけ",
+    "how": "trigger sessions_parent_is_caller"
    },
    {
-    "invariant": "集約1 ③ 閉じたら依頼を足さない",
-    "how": "trigger（ended_at のあるセッションへ回 ・ 操作を足さない）"
+    "invariant": "sessions ③ 親は parent と launch を持たず、子は launch を必ず持つ",
+    "how": "CHECK（人が起動させた子は親が NULL）"
    },
    {
-    "invariant": "集約1 ④ 能力の写しに無い操作をしない",
-    "how": "application（capabilities を読んでから立てる ・ 続ける ・ fork）。DB は写しを持つだけ"
-   },
-   {
-    "invariant": "集約1 ⑤ inherit は引き継いだ元を持つ",
-    "how": "CHECK"
-   },
-   {
-    "invariant": "集約1 ⑥ validate は単発 ・ 引き継がない",
-    "how": "CHECK ＋ operation-request の validate が session-spec を受けない"
-   },
-   {
-    "invariant": "集約1 ⑦ 形を直させるのは2回まで",
-    "how": "trigger（同じ request_id ・ attempt の fix の数）と設定 shape_fix_max"
-   },
-   {
-    "invariant": "集約2 ① 閉じた時刻を変えない ② ツールの ID は解釈しない",
-    "how": "trigger（閉じた行を変えない）／ tool_ref は TEXT のまま"
-   },
-   {
-    "invariant": "集約2 開いている呼び出し元は1つに決まる",
-    "how": "部分一意索引2つ"
-   },
-   {
-    "invariant": "集約3 ⓪ 答えの形 ・ 機械の検証 ・ 指紋の一致がそろったときだけ書く",
+    "invariant": "記録 ⓪ 答えの形 ・ 機械の検証 ・ 指紋の一致がそろったときだけ書く",
     "how": "application（DB の外の条件）"
    },
    {
-    "invariant": "集約3 ① 追記だけ",
-    "how": "trigger（UPDATE ・ DELETE を断る。field_changes ・ rule_results も）"
+    "invariant": "記録 ① 追記だけ",
+    "how": "trigger（changes ・ field_changes ・ validations ・ rule_results の UPDATE ・ DELETE を断る）"
    },
    {
-    "invariant": "集約3 ② 閉じたセッションに足さない",
+    "invariant": "記録 ② 書く子は変更だけ、確かめる子は検証だけ",
+    "how": "trigger changes_child_is_writer ・ validations_child_is_checker（書く子の ID を検証に渡されたら application が writer_as_checker で断る）"
+   },
+   {
+    "invariant": "記録 ③ 親の欄は親の行だけを指す",
     "how": "trigger"
    },
    {
-    "invariant": "集約3 ③ 続き番号はセッションごとに1つずつ増える",
-    "how": "UNIQUE (session_id, seq) ＋ trigger（前の次）"
+    "invariant": "記録 ④ 作成は事前が無く、削除は事後が無い。削除には意図が要る",
+    "how": "CHECK"
    },
    {
-    "invariant": "集約3 ④ validate は前後の指紋が同じで rule の結果を持つ",
-    "how": "CHECK ＋ trigger（rule_results は validate だけ）"
+    "invariant": "記録 ⑤ 参照元の書き換えの原因は削除だけで、原因を持つ書き換えは request_id を持たない",
+    "how": "trigger changes_cause_is_delete ＋ CHECK"
    },
    {
-    "invariant": "集約3 ⑤ delete の事後は無し。参照元の書き換えは同じセッションの続きの update",
-    "how": "CHECK（delete は事前を持ち事後を持たない）＋ trigger（cause_id は書いた update だけが持ち、先は同じセッションの先に記録した削除。原因を持つ書き換えは request_id を持たない。削除の変わった欄は事前の remove だけ）"
+    "invariant": "記録 ⑥ 取り込みは作成か更新だけで、更新の取り込みには意図が要る",
+    "how": "CHECK"
    },
    {
-    "invariant": "集約3 ⑥ adopt の事前は、その対象の最後の操作の事後",
-    "how": "trigger"
+    "invariant": "記録 ⑦ 取り込みの事前は、その経路の記録のどこかにある事後",
+    "how": "application（書く前に確かめる。ワークツリーで DB が1つでも鎖が切れない。最後の削除より後だけを見る）"
    },
    {
-    "invariant": "集約3 ⑦ 同じ request_id の操作は1回だけ",
-    "how": "部分一意索引 operations_one_per_request"
+    "invariant": "記録 ⑧ 同じ request_id の変更は1回だけ",
+    "how": "部分一意索引 changes_one_per_request"
    },
    {
     "invariant": "人の判定は SAS に入れない（版2）",
     "how": "CHECK（by = human は unverified だけ）"
    },
    {
-    "invariant": "検索は操作として残さない",
-    "how": "trigger（operation_kind = search のセッションに操作を足さない）"
+    "invariant": "検索は記録しない",
+    "how": "application（changes ・ validations に行を書かない）"
+   },
+   {
+    "invariant": "1つの子へは前の結果が返るまで次を送らない",
+    "how": "application（子の ID ごとのファイルのロック。取れなければ busy）"
    }
   ],
   "not_stored": [
    {
     "what": "ファイルの中身",
-    "where": "Git（パスと指紋 ・ 版の参照で指すだけ）"
+    "where": "Git（パスと指紋で指すだけ）"
    },
    {
-    "what": "手順のプロンプトの中身",
-    "where": "prompts_dir のファイル（パスと指紋で指す。コミットしない）"
+    "what": "手順のプロンプトの中身 ・ 子との各回のやりとり",
+    "where": "ツールの会話の記録（子の ID でたどる）と prompts_dir のファイル（コミットしない）"
    },
    {
-    "what": "正しい形で受け取った答え",
-    "where": "操作（field_changes ・ rule_results）に反映したので、指紋だけ持つ"
+    "what": "子の状態（開いている ・ 閉じた ・ 終わり方）・ 回の数 ・ トークン量",
+    "where": "持たない。続けられるかはツールに送ってみて分かる。トークンは出力で返すだけ"
+   },
+   {
+    "what": "断った操作",
+    "where": "持たない。理由と案内はその場で返す。改善の材料が要るときは追記だけのログを足す"
+   },
+   {
+    "what": "Concrete かインスタンスか ・ 従う Concrete",
+    "where": "ファイル（$schema）から毎回判定する"
    },
    {
     "what": "検索の答え",
-    "where": "残さない決定。回の answer_hash だけ"
+    "where": "残さない決定"
    },
    {
     "what": "描画したもの ・ デザインシステム ・ 設定 ・ 接続の定義",
-    "where": "ファイル（能力は立てた時の写しだけ持つ）"
+    "where": "ファイル"
    },
    {
-    "what": "セッションの state ・ 再開できる期限 ・ 文脈の上限 ・ いまの文脈の量",
-    "where": "回と能力の写しから導く"
-   },
-   {
-    "what": "目的 ・ 承認 ・ コミット ・ 変更のまとめ",
-    "where": "使う側"
+    "what": "目的 ・ 承認 ・ コミット ・ 変更のまとめ ・ 使う側の参照",
+    "where": "使う側（子と親の ID は使う側のインスタンスに書いて Git に残す）"
    }
   ]
  },
  "5_mapping": {
   "write": [
    {
-    "from": "operation-request#/$defs/common.caller.ref",
-    "to": "sessions.caller_ref"
+    "from": "operation-request#/$defs/common.session（無ければ caller.env）",
+    "to": "sessions（role = caller。初めて見たときに1行）・ changes ・ validations.parent_session_id"
    },
    {
-    "from": "operation-request#/$defs/common.intent",
-    "to": "operations.intent"
+    "from": "operation-request#/$defs/common.intent ・ request_id",
+    "to": "changes.intent ・ request_id"
    },
    {
-    "from": "operation-request#/$defs/common.request_id（無ければ SAS が振る）",
-    "to": "session_turns.request_id ・ operations.request_id"
+    "from": "operation-request#/$defs/semantic（brief ・ ref ・ model）",
+    "to": "手順のプロンプト（1回目）と sessions.model ・ launch"
    },
    {
-    "from": "operation-request#/$defs/session-spec.lifetime ・ context ・ adapter ・ model ・ brief",
-    "to": "sessions.lifetime ・ context ・ adapter ・ model ・ brief"
-   },
-   {
-    "from": "operation-request#/$defs/session-spec.session ＋ 再開の決まり",
-    "to": "session_turns.kind = resume か、新しい sessions.continued_from。どちらも session_turns.resume_decision"
-   },
-   {
-    "from": "operation-request#/$defs/session-spec.time_limit_s",
-    "to": "session_turns.time_limit_s"
-   },
-   {
-    "from": "operation-request#/$defs/create ・ update ・ delete.path ・ concrete",
-    "to": "operations.target_path ・ concrete_ref ・ target_kind（$schema から導く）"
+    "from": "operation-request#/$defs/semantic.continue",
+    "to": "sessions.launch を読んで session-request#/$defs/continue"
    },
    {
     "from": "operation-request#/$defs/create ・ update.adopt",
-    "to": "operations.source = outside"
-   },
-   {
-    "from": "procedure-prompt（ファイル）",
-    "to": "session_turns.prompt_path ・ prompt_hash"
-   },
-   {
-    "from": "agent-connector#/$defs/capabilities",
-    "to": "sessions.capabilities（立てた時の写し）"
-   },
-   {
-    "from": "agent-connector#/$defs/caller → ツールのセッション ID",
-    "to": "sessions.tool_ref ・ actor（caller）"
+    "to": "changes.source = outside"
    },
    {
     "from": "session-request#/$defs/reply.tool_ref",
-    "to": "sessions.tool_ref（sas）"
-   },
-   {
-    "from": "session-request#/$defs/reply.outcome ・ tokens ・ context_tokens",
-    "to": "session_turns.outcome ・ tokens ・ context_tokens"
-   },
-   {
-    "from": "session-request#/$defs/reply.answer",
-    "to": "session_turns.answer_hash（形が誤りなら answer_raw も）"
+    "to": "sessions.id（role = writer ・ checker、parent_id = 親）・ changes ・ validations.child_session_id"
    },
    {
     "from": "agent-answer#/$defs/field-values.values",
@@ -1936,7 +1627,7 @@
    },
    {
     "from": "diff.schema.json",
-    "to": "operations.before_hash ・ after_hash ＋ field_changes"
+    "to": "changes.before_hash ・ after_hash ＋ field_changes"
    },
    {
     "from": "operation-result#/$defs/rule-result（machine ・ human）",
@@ -1945,39 +1636,35 @@
   ],
   "read": [
    {
-    "from": "sessions の全欄 ＋ session_turns の全欄",
-    "to": "session.schema.json#/$defs/session（operation-result#/$defs/session）。parent_id → parent、answer_raw → answer、answer_hash → answer_fingerprint、prompt_path ・ prompt_hash → prompt。state は導く"
+    "from": "sessions の全欄（launch を除く）",
+    "to": "session.schema.json#/$defs/session（parent_id → parent）"
    },
    {
-    "from": "operations の全欄",
-    "to": "operation-result#/$defs/operation.operation（session_id → session、turn_seq → turn、cause_id → cause、target_kind ・ target_path ・ concrete_ref → target）"
+    "from": "ビュー operations の全欄",
+    "to": "operation-result#/$defs/operation（cause_id → cause）"
    },
    {
-    "from": "operations.before_* ・ after_* ＋ field_changes の全欄",
+    "from": "changes.before_* ・ after_* ＋ field_changes",
     "to": "diff.schema.json（operation-result#/$defs/change ・ operation）"
    },
    {
     "from": "rule_results の全欄",
-    "to": "operation-result#/$defs/rule-result（reads_hash → reads_fingerprint。stale はいまの値の指紋と比べて導く）"
+    "to": "operation-result#/$defs/rule-result（reads_hash → reads_fingerprint）"
    },
    {
-    "from": "operations（target_path ごとの最後の after_hash）",
+    "from": "changes（target_path ごとの最後の after_hash。最後の削除より後）",
     "to": "operation-result#/$defs/validation.untracked ・ error untracked_change"
    },
    {
-    "from": "operations（target_path ごと）",
+    "from": "ビュー operations（target_path ごと）",
     "to": "operation-result#/$defs/history"
    },
    {
-    "from": "sessions ＋ session_turns（新しく立てた回）＋ 手順のプロンプトのファイル",
-    "to": "operation-result#/$defs/procedure"
-   },
-   {
-    "from": "operations ・ field_changes ・ rule_results（材料）",
-    "to": "procedure-prompt.steps.inputs（意味の検索）と operation-result#/$defs/search.sources"
+    "from": "sessions（parent_id ・ role）＋ changes ・ validations の最後の at",
+    "to": "error child_exists の previous_child と、新しい子を勧める hint"
    }
   ],
-  "db_only": "無い。5つの表のどの欄も上の読む向きのどこかに出る（rowid などの SQLite の内部は除く）",
+  "db_only": "launch（起動の設定）だけは出力に出さない（ツールの旗をそのまま持つため）。ほかの欄は読む向きのどこかに出る",
   "schema_only_by_decision": [
    {
     "what": "operation-request#/$defs/validate.all ・ stale、render の全欄、search の where ・ question ・ scope",
@@ -2016,123 +1703,105 @@
     "step": "1. CLI の入力",
     "schema": "operation-request#/$defs/validate",
     "table": "",
-    "detail": "sas validate requirements/usecases/U10.json。session-spec を付けたら invalid_input"
+    "detail": "sas validate U10.json（--continue <確かめる子>）"
    },
    {
-    "step": "2. 呼び出し元を見分ける",
+    "step": "2. 親を決める",
     "schema": "agent-connector#/$defs/caller",
-    "table": "sessions（caller を探すか足す。last_used_at を直す）",
-    "detail": "取れなければ --session、どちらも無ければ人のセッション"
+    "table": "sessions（caller を初めて見たら1行）",
+    "detail": "--session → 環境変数 → 人なら NULL"
    },
    {
-    "step": "3. SAS を通らない変更を確かめる",
+    "step": "3. SAS を通らない変更",
     "schema": "",
-    "table": "operations（target_path の最後の after_hash）",
-    "detail": "違えば結果の untracked に入れ、いまの中身を検証する"
+    "table": "changes（最後の after_hash）",
+    "detail": "違えば untracked に入れ、いまの中身を検証する"
    },
    {
-    "step": "4. 機械の rule と人の rule",
-    "schema": "（検査器の出力は SAS の中で rule-result へ直す）",
+    "step": "4. 機械と人の rule",
+    "schema": "rule-result",
     "table": "",
-    "detail": "Abstract ・ 語彙 ・ 方言 ・ Concrete ・ glossary の組で検査し、x- の値と x-relationship の先を機械の rule で見る。by: human は unverified「人が決める」"
+    "detail": "by: human は unverified"
    },
    {
-    "step": "5. 手順のプロンプト",
-    "schema": "procedure-prompt.schema.json（step.action = judge。answer.schema = judgments）",
-    "table": "sessions（sas ・ validate ・ single ・ none ・ capabilities）＋ session_turns（seq 1 ・ start ・ attempt 1）",
-    "detail": "by: ai の rule × 欄ごとに1ステップ。CLI は1行目に operation-result#/$defs/procedure を出す"
+    "step": "5. 確かめる子",
+    "schema": "session-request#/$defs/start か continue",
+    "table": "sessions（checker を起動したら1行）",
+    "detail": "by: ai の rule があるときだけ。--continue の子が writer なら writer_as_checker で断る。前の判定 ・ 書く子の答え ・ brief は渡さない"
    },
    {
-    "step": "6. セッションの依頼",
-    "schema": "session-request#/$defs/start",
+    "step": "6. 答え",
+    "schema": "agent-answer#/$defs/judgments",
     "table": "",
-    "detail": "汎用のアダプターは接続の定義の commands.start に欄を埋めて起動する"
+    "detail": "形が誤りなら新しく起動せずに同じ子で直させる（2回まで）"
    },
    {
-    "step": "7. エージェントの答え",
-    "schema": "session-request#/$defs/reply → agent-answer#/$defs/judgments",
-    "table": "sessions.tool_ref ・ session_turns.outcome ・ tokens ・ answer_hash",
-    "detail": "各項目の step ・ rule ・ pointer が手順のステップと合うか見る。合わなければ fix の回（2回まで）、超えたら invalid_output で閉じ、answer_raw を残して該当の rule を error。時間切れは新しいセッションで attempt を増やす"
-   },
-   {
-    "step": "8. 指紋を確かめる",
+    "step": "7. 記録",
     "schema": "",
-    "table": "",
-    "detail": "変わっていたら書かずに conflict で閉じ、error を返す（UC4 6c）"
+    "table": "validations ＋ rule_results（1つのトランザクション）",
+    "detail": ""
    },
    {
-    "step": "9. 操作の記録",
-    "schema": "",
-    "table": "1つのトランザクション：operations（validate ・ before = after ・ turn_seq ・ request_id）＋ rule_results（machine ・ human ・ ai、reads_hash）＋ sessions.ended_as = completed",
-    "detail": "by: ai の rule が無ければ SAS のセッションを立てず、操作は呼び出し元のセッションに入る"
-   },
-   {
-    "step": "10. CLI の出力",
+    "step": "8. CLI の出力",
     "schema": "operation-result#/$defs/validation",
-    "table": "operations ・ rule_results から組む",
-    "detail": "最後の行。session ・ operation ・ results ・ counts ・ untracked"
+    "table": "",
+    "detail": "parent_session ・ child_session ・ results ・ untracked ・ hint"
    }
   ],
   "update": [
    {
     "step": "1. CLI の入力",
-    "schema": "operation-request#/$defs/update（semantic.pointers ・ intent ・ brief ・ session-spec）",
+    "schema": "operation-request#/$defs/update（semantic）",
     "table": "",
-    "detail": "sas update U10.json --semantic --pointer /success_guarantee --intent … --brief …"
+    "detail": "sas update U10.json --semantic /goal --brief … --ref …（2回目からは --continue <書く子>）"
    },
    {
-    "step": "2. 呼び出し元を見分ける",
+    "step": "2. 親を決める",
     "schema": "agent-connector#/$defs/caller",
     "table": "sessions（caller）",
     "detail": ""
    },
    {
-    "step": "3. SAS を通らない変更を確かめる",
-    "schema": "operation-result#/$defs/error（untracked_change ・ 取り込みの案内）",
-    "table": "operations",
-    "detail": "違えば直さずに断る（外の変更を上書きしない）"
+    "step": "3. SAS を通らない変更",
+    "schema": "error untracked_change",
+    "table": "changes",
+    "detail": "違えば書かずに取り込みの案内"
    },
    {
-    "step": "4. セッションを決める",
-    "schema": "session.schema.json の値 ・ agent-connector#/$defs/capabilities",
-    "table": "sessions（新しく）か session_turns（resume）。resume_decision",
-    "detail": "--session が無ければ型の指定で立てる。能力が無ければ unsupported_capability（missing ・ alternative）。--session があれば再開の決まりの5ステップ"
+    "step": "4. 子を決める",
+    "schema": "",
+    "table": "sessions（parent_id ・ role）",
+    "detail": "--continue が無く直前の書く子があれば child_exists で止めて案内（--new で新しく）。ロックが取れなければ busy"
    },
    {
     "step": "5. 手順のプロンプト",
-    "schema": "procedure-prompt.schema.json（step.action = write、since_last は再開の決まり④のとき diff.schema.json）",
-    "table": "session_turns（prompt_path ・ prompt_hash）",
-    "detail": "欄ごとに x-prompt の rule ・ reading ・ いまの値 ・ x-relationship の先の値。x-decided-by: human の欄はステップにしない。CLI は1行目に procedure を出す"
+    "schema": "procedure-prompt（write）",
+    "table": "",
+    "detail": "1回目は brief と ref のパス、続けるときは差分の指示だけ"
    },
    {
     "step": "6. セッションの依頼",
-    "schema": "session-request#/$defs/start ・ continue ・ fork",
-    "table": "",
+    "schema": "session-request#/$defs/start か continue（launch をそのまま）",
+    "table": "sessions（writer を起動したら1行）",
     "detail": ""
    },
    {
-    "step": "7. エージェントの答え",
+    "step": "7. 答え",
     "schema": "agent-answer#/$defs/field-values",
-    "table": "session_turns",
-    "detail": "ステップの欄だけを受ける。当てた姿を機械で検証し、通らなければ fix の回"
+    "table": "",
+    "detail": "ステップの欄だけを受け、機械で検証する"
    },
    {
     "step": "8. 指紋を確かめて書く",
     "schema": "",
+    "table": "changes ＋ field_changes",
+    "detail": "一時ファイルで置き換える"
+   },
+   {
+    "step": "9. CLI の出力",
+    "schema": "operation-result#/$defs/change",
     "table": "",
-    "detail": "変わっていれば conflict。一時ファイルに書いて置き換え、版を扱うポートで前後の版を残す"
-   },
-   {
-    "step": "9. 操作の記録",
-    "schema": "diff.schema.json（前後の中身から求める）",
-    "table": "1つのトランザクション：operations（update ・ sas ・ 前後の指紋と版 ・ intent ・ request_id ・ turn_seq）＋ field_changes ＋ single なら sessions.ended_as = completed（continuing は開いたまま）",
-    "detail": "DB が失敗したら、次の検証で SAS を通らない変更として知らせ、--adopt で直す"
-   },
-   {
-    "step": "10. CLI の出力",
-    "schema": "operation-result#/$defs/change（result = updated ・ diff ・ needs ・ stale_rules）",
-    "table": "operations ・ field_changes ・ rule_results（reads_hash）から組む",
-    "detail": "最後の行"
+    "detail": "parent_session ・ child_session ・ role ・ hint（新しい子を勧める目安）"
    }
   ]
  },
@@ -2163,7 +1832,7 @@
   },
   {
    "what": "delegate.run.session",
-   "goes_to": "operation-request#/$defs/session-spec と SAS の決まり（検証は固定）"
+   "goes_to": "operation-request#/$defs/semantic（版16）"
   },
   {
    "what": "版8 の cli-output.schema.json（名前）",
@@ -2176,6 +1845,26 @@
   {
    "what": "版8 の operations.resume_decision",
    "goes_to": "session_turns.resume_decision（決めたのは回のとき）"
+  },
+  {
+   "what": "版15 の sessions の型 ・ 終わり方 ・ 開閉と launched_sessions ・ session_turns",
+   "goes_to": "薄い sessions（7列）。子との各回はツールの会話の記録を子の ID でたどる（版16）"
+  },
+  {
+   "what": "operations（1表）",
+   "goes_to": "changes ＋ field_changes と validations ＋ rule_results、UC7 はビュー operations（版16）"
+  },
+  {
+   "what": "断った操作の行（refusal_code ・ refusal）",
+   "goes_to": "記録しない。理由と案内はその場で返す（版16）"
+  },
+  {
+   "what": "operations の concrete_ref ・ target_kind ・ seq ・ actor ・ caller_ref ・ attempts",
+   "goes_to": "ファイルから毎回判定（Concrete）・ rowid と時刻（並び）・ parent_session_id が NULL か（人）・ 使う側のインスタンス（参照）・ 持たない（やり直しの回数）"
+  },
+  {
+   "what": "operation-request の session-spec ・ session-close ・ session-status ・ caller.ref",
+   "goes_to": "semantic（brief ・ ref ・ continue ・ new）"
   }
  ],
  "rejected": [
@@ -2218,6 +1907,34 @@
   {
    "option": "glossary を外して使う側へ出す（sas-model の review）",
    "why": "Abstract の rule term-by-ref が glossary の $anchor を指す。Concrete を書くのに要る型なので SAS が持つ（中身は使う側）"
+  },
+  {
+   "option": "SAS が子の状態（開閉 ・ 終わり方 ・ 回 ・ 再開の決まり）を持つ（版15）",
+   "why": "セッションの寿命と再開はツールが持つ仕組み（一般）で、SAS が持つと要件を複雑にする。続けるかは親が決めれば足りる"
+  },
+  {
+   "option": "意味の操作を親の会話の複製（fork）で行う",
+   "why": "親とモデルや設定が違えば親の全履歴を書き直し、同じでも親の履歴の分を毎回読む。非対話の fork は Claude Code と Codex だけ（実測と調査、2026-11-01）"
+  },
+  {
+   "option": "毎回新しく起動して brief と参照で引き継ぐ（子を続けない）",
+   "why": "参照を毎回読み直す。実測で2回目以降の費用は続けると約1/20（Claude Code）・ 約1/10（Codex）"
+  },
+  {
+   "option": "検証を書く子で行う",
+   "why": "作った人が確かめるのは独立性が無い（qa-advisor：independence-of-testing）"
+  },
+  {
+   "option": "sessions を持たず、子の ID を記録の行に値で持つ",
+   "why": "役割 ・ 親 ・ ツール ・ モデル ・ 起動の設定は子の性質で、行ごとに書くと重複する。--continue で同じ設定を渡すには起動の設定を1か所に持つ必要がある"
+  },
+  {
+   "option": "記録を operations 1表にする",
+   "why": "変更 ・ 検証 ・ 断った操作が混ざり、kind で列が空になる。条件付きの CHECK と問い合わせの絞り込みが増える"
+  },
+  {
+   "option": "断った操作を記録する",
+   "why": "SAS があとから読む場面が無い。コミットしない DB は監査の証拠にならない。改善の材料が要るなら追記だけのログで足りる"
   }
  ],
  "fact_check": [
@@ -2285,24 +2002,24 @@
    "a5 x-delegates（rule を任せる先の立場と種類） → semantic-abstract-schema.json#/$defs/delegates ・ delegate",
    "a6 glossary（文脈の term の辞書） → glossary.schema.json",
    "a7 x-view（描画の種類の指定） → semantic-abstract-schema.json#/$defs/view と vocabulary",
-   "b1 コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read ・ session close ・ session status） → operation-request.schema.json（コマンドごとの $defs）",
+   "b1 コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read） → operation-request.schema.json（コマンドごとの $defs）",
    "b2 コマンドの出力（作った ・ 直した ・ 消した ・ 検証の結果 ・ 描画の結果 ・ 検索の答え ・ セッション ・ 操作 ・ 誤り） → operation-result.schema.json（出力の種類ごとの $defs）",
    "b3 意味の操作の返り値（手順のプロンプト） → operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
-   "b4 セッションの5つの操作（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む） → 立てる ・ 続ける ・ fork は operation-request#/$defs/session-spec（create ・ update ・ search に付く）、閉じる ・ 状態を読むは #/$defs/session-close ・ session-status。出力は operation-result#/$defs/session（session.schema.json を含む）",
+   "b4 子のセッション（起動する ・ 続ける） → operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は envelope の child_session ・ role。閉じる ・ 状態を読む ・ fork は持たない（版16）",
    "b5 取り込み（--adopt） → operation-request#/$defs/create ・ update の adopt。出力は #/$defs/change（source = outside）",
    "b6 誤り（unsupported_capability ・ conflict ・ untracked_change ・ missing_view_kinds ほか） → operation-result#/$defs/error",
    "b7 設定のファイル（使うアダプター ・ 上限 ・ Concrete の置き場所） → settings.schema.json",
    "c1 手順のプロンプトの構造化された部分 → procedure-prompt.schema.json",
-   "c2 セッションの依頼（立てる ・ 続ける ・ fork ・ 閉じる ・ 状態を読む） → session-request.schema.json",
+   "c2 セッションの依頼（起動する ・ 続ける） → session-request.schema.json",
    "c3 アダプターの返り（ツールの ID ・ 終わり方 ・ 答えの文字列 ・ トークン量） → session-request.schema.json#/$defs/reply",
    "c4 エージェントの答え（欄の値 ・ rule の判定 ・ 検索の答え） → agent-answer.schema.json",
    "d1 エージェントの接続の定義（起動 ・ 再開 ・ fork のコマンドの組み立て、答えの取り出し方、同時に動かせる数） → agent-connector.schema.json",
    "d2 能力の宣言 → agent-connector.schema.json#/$defs/capabilities",
    "d3 呼び出し元を見分ける（ツールのセッション ID の取り方） → agent-connector.schema.json#/$defs/caller",
    "d6 デザインシステム（x-view の種類ごとのテンプレート ・ デザイントークン ・ rule の結果のトークン） → design-system.schema.json",
-   "e2 DB の JSON の欄（capabilities ・ tokens ・ grounds ・ details ・ before ・ after） → agent-connector#/$defs/capabilities ・ session#/$defs/tokens ・ agent-answer#/$defs/grounds ・ diff の値",
+   "e2 DB の JSON の欄（capabilities ・ tokens ・ grounds ・ details ・ before ・ after） → session#/$defs/tokens ・ sessions.launch ・ agent-answer#/$defs/grounds ・ diff の値",
    "e3 差分（変わった欄の前後 ・ 前後の指紋と版の参照） → diff.schema.json",
-   "e4 セッションの姿（4つの型 ・ 能力の写し ・ 回 ・ 終わり方） → session.schema.json"
+   "e4 セッションの姿（役割 ・ 親 ・ ツール ・ モデル） → session.schema.json"
   ],
   "no_schema": [
    "a8 Concrete とインスタンスのファイルそのもの：型は既にある。SAS が別の型を足すと2か所になる",
@@ -2310,7 +2027,7 @@
    "d4 版を扱う（版を残す ・ 版の中身を取る）：プロセスの外へ JSON が出ない。アダプターは SAS に組み込みで、使う側が書かない。外へ出るのは差分（diff.schema.json）だけ",
    "d5 JSON Schema の検査器（2020-12）：検査器の出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使う検査器がどの形を出すかを選ぶときに確かめる",
    "d7 テンプレートの処理系：プロセスの外へ JSON が出ない",
-   "e1 sessions ・ session_turns ・ operations ・ field_changes ・ rule_results：公開しない決定。外部キー ・ 一意の索引 ・ トランザクション ・ 追記だけの決まりは JSON Schema では書けず、DDL と trigger で守る。DB の形は移行で変わり、公開の版と別に動く"
+   "e1 sessions ・ changes ・ field_changes ・ validations ・ rule_results：公開しない決定。外部キー ・ 一意の索引 ・ トランザクション ・ 追記だけの決まりは JSON Schema では書けず、DDL と trigger で守る"
   ]
  },
  "fact_check_status": {

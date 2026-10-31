@@ -4,10 +4,13 @@
 //! - 中身：`git cat-file --filters <コミット>:./<経路>`（作業ツリーに置いたときと同じ変換を当てたバイト列。
 //!   `./` で始まる経路は、いまのフォルダからの相対として読まれる）
 //!
+//! - 記録の置き場所に使う共通のフォルダ：`git rev-parse --path-format=absolute --git-common-dir`
+//!   （ワークツリーをいくつ作っても同じ1つ。$GIT_COMMON_DIR があればそれ、無ければ $GIT_DIR）
+//!
 //! リポジトリでない ・ コミットが無い ・ git が無いときは、前の中身のコミットが無いとして空を返す。
 
 use schemas_and_instances_conformance_application::ports::CommitReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 /// 作業ディレクトリの Git を読む。
@@ -34,6 +37,19 @@ impl GitCommits {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(e) => Err(format!("git を動かせない：{e}")),
         }
+    }
+
+    /// ワークツリーで共通の Git のフォルダ（絶対の経路）。リポジトリでない ・ git が無ければ None。
+    #[must_use]
+    pub fn common_dir(&self) -> Option<PathBuf> {
+        let out = self
+            .git(&["rev-parse", "--path-format=absolute", "--git-common-dir"])
+            .ok()??;
+        if !out.status.success() {
+            return None;
+        }
+        let dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        (!dir.is_empty()).then(|| Path::new(&dir).to_path_buf())
     }
 
     /// コミットのあるリポジトリの中か。

@@ -3,11 +3,11 @@
  "nodes": [
   {
    "id": "s0",
-   "label": "CLI の入力：operation-request の update（intent・brief・session-spec）"
+   "label": "CLI の入力：operation-request の update（semantic・intent。1回目は brief・ref）"
   },
   {
    "id": "s1",
-   "label": "呼び出し元を見分ける：sessions（caller）",
+   "label": "親を決める：sessions（caller）",
    "role": "focus"
   },
   {
@@ -17,40 +17,34 @@
   },
   {
    "id": "s3",
-   "label": "セッションを決める：再開の決まり → sessions か session_turns",
+   "label": "子を決める：--continue か、直前の子があれば child_exists",
    "role": "focus"
   },
   {
    "id": "s4",
-   "label": "手順のプロンプト：procedure-prompt（write。再開なら diff を先頭）",
-   "role": "focus"
+   "label": "手順のプロンプト：procedure-prompt（write。続けるときは差分の指示だけ）"
   },
   {
    "id": "s5",
-   "label": "セッションの依頼：session-request の start・continue・fork"
-  },
-  {
-   "id": "s6",
-   "label": "答え：agent-answer の field-values（ステップの欄だけ）",
+   "label": "書く子：起動して sessions（writer・launch）か、launch のまま続ける",
    "role": "focus"
   },
   {
+   "id": "s6",
+   "label": "答え：agent-answer の field-values（ステップの欄だけ）"
+  },
+  {
    "id": "s7",
-   "label": "指紋を確かめて書く：一時ファイルで置き換え、書く前と後の中身から差分を求める"
+   "label": "指紋を確かめて書く：一時ファイルで置き換え、前後の中身から差分を求める"
   },
   {
    "id": "s8",
-   "label": "記録：operations・field_changes（diff から）",
+   "label": "記録：changes・field_changes（diff から）",
    "role": "focus"
   },
   {
    "id": "s9",
-   "label": "閉じる：単発なら sessions.ended_as（別のトランザクション）",
-   "role": "focus"
-  },
-  {
-   "id": "s10",
-   "label": "CLI の最後の行：operation-result の change"
+   "label": "CLI の最後の行：operation-result の change（親と子の ID・hint）"
   }
  ],
  "edges": [
@@ -89,10 +83,6 @@
   {
    "from": "s8",
    "to": "s9"
-  },
-  {
-   "from": "s9",
-   "to": "s10"
   }
  ]
 }

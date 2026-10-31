@@ -189,7 +189,7 @@
    "type": "object",
    "required": [
     "kind",
-    "session",
+    "parent_session",
     "operations",
     "targets",
     "counts",
@@ -199,10 +199,8 @@
     "kind": {
      "const": "validation"
     },
-    "session": {
-     "type": "string",
-     "pattern": "^s-[0-9]{4,}$",
-     "description": "呼び出し元のセッションの ID"
+    "parent_session": {
+     "$ref": "#/$defs/parent-session"
     },
     "operations": {
      "type": "array",
@@ -428,7 +426,7 @@
    "type": "object",
    "required": [
     "kind",
-    "session",
+    "parent_session",
     "operation",
     "result",
     "replayed",
@@ -441,10 +439,8 @@
     "kind": {
      "const": "change"
     },
-    "session": {
-     "type": "string",
-     "pattern": "^s-[0-9]{4,}$",
-     "description": "呼び出し元のセッションの ID"
+    "parent_session": {
+     "$ref": "#/$defs/parent-session"
     },
     "operation": {
      "type": "string",
@@ -681,7 +677,7 @@
       "references_blocked",
       "references_left"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、操作として記録し、session と operation を返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents ・ references_blocked は止めた削除（Concrete に従うインスタンスか指している Concrete がある ・ 参照元の記載を消せない）で、操作として記録し、blocked に理由になった文書を返す。references_left は対象を消して記録したあと参照元を書けなかったことで、残った参照元を blocked に返す"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents ・ references_blocked は止めた削除（Concrete に従うインスタンスか指している Concrete がある ・ 参照元の記載を消せない）で、記録せず、blocked に理由になった文書を返す。references_left は対象を消して記録したあと参照元を書けなかったことで、記録した削除の operation と、残った参照元を blocked に返す"
     },
     "path": {
      "type": "string"
@@ -690,19 +686,14 @@
      "type": "string",
      "minLength": 1
     },
-    "session": {
-     "type": "string",
-     "pattern": "^s-[0-9]{4,}$",
-     "description": "断った操作を記録したセッションの ID"
-    },
     "operation": {
      "type": "string",
      "pattern": "^o-[0-9]{4,}$",
-     "description": "断った操作の ID"
+     "description": "references_left のときだけ持つ。消して記録した削除の ID（断った操作は記録しないので、ほかの理由では持たない）"
     },
     "interleaved": {
      "$ref": "#/$defs/interleaved",
-     "description": "conflict のときだけ持つ。同じ request_id のやり直しで断りを返すときは、比べた指紋を記録していないので持たない"
+     "description": "conflict のときだけ持つ"
     },
     "hint": {
      "type": "string",
@@ -757,40 +748,19 @@
      "if": {
       "properties": {
        "code": {
-        "enum": [
-         "invalid_value",
-         "conflict",
-         "patch_failed",
-         "id_changed",
-         "human_field",
-         "derived_mismatch",
-         "published_changed",
-         "has_dependents",
-         "references_blocked",
-         "references_left"
-        ]
+        "const": "references_left"
        }
       }
      },
      "then": {
       "required": [
-       "session",
        "operation"
       ]
      },
      "else": {
       "not": {
-       "anyOf": [
-        {
-         "required": [
-          "session"
-         ]
-        },
-        {
-         "required": [
-          "operation"
-         ]
-        }
+       "required": [
+        "operation"
        ]
       }
      }
@@ -846,7 +816,7 @@
    "description": "記録にある、対象を書いた操作1件（作成か更新で、断っていないもの）",
    "required": [
     "operation",
-    "session",
+    "parent_session",
     "kind",
     "source",
     "at",
@@ -860,10 +830,8 @@
      "pattern": "^o-[0-9]{4,}$",
      "description": "操作の ID"
     },
-    "session": {
-     "type": "string",
-     "pattern": "^s-[0-9]{4,}$",
-     "description": "その操作をしたセッションの ID"
+    "parent_session": {
+     "$ref": "#/$defs/parent-session"
     },
     "kind": {
      "enum": [
@@ -937,7 +905,7 @@
      "description": "最後に記録した、対象を書いた操作",
      "required": [
       "operation",
-      "session",
+      "parent_session",
       "at",
       "after"
      ],
@@ -947,9 +915,8 @@
        "type": "string",
        "pattern": "^o-[0-9]{4,}$"
       },
-      "session": {
-       "type": "string",
-       "pattern": "^s-[0-9]{4,}$"
+      "parent_session": {
+       "$ref": "#/$defs/parent-session"
       },
       "at": {
        "type": "string"
@@ -960,6 +927,14 @@
      }
     }
    }
+  },
+  "parent-session": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "minLength": 1,
+   "description": "呼んだ親のセッションの ID（ツールのセッション ID。--session か、ツールの環境変数で決まる）。人なら null"
   }
  }
 }
