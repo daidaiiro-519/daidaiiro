@@ -1,0 +1,77 @@
+---
+name: sas-foundation-schemas
+description: semantic-agent-schema のステップ4の途中で、「基盤で用意すべきスキーマ」・ER 図・業務領域と文脈を検討している現在地（2026-10-30 更新）
+metadata:
+  node_type: memory
+  type: project
+---
+
+## いまどこに居るか（2026-10-30）
+
+ステップ4（AI と外のツールに rule を判定させる）の途中で、土台と「基盤で用意すべきスキーマ」を見直している。承認待ちが2件ある。区切られた文脈の切り方は、ガイドのボード [[usecase-to-domain-modeling-board]] の手順で決め直すことになり、それを待っている。
+
+### 承認待ち1：基盤が用意するスキーマの案
+- ページ：https://claude.ai/artifact/MmnqRQksebjiHYS3Cikubc（scratchpad の schemas-page。ddd-advisor の答えは scratchpad の schemas-ddd/answer.json）
+- 答え：公開する契約は「任せる先の入出力・コミットするファイル・CLI の出力・Concrete を書く型」の4種類だけ。手元の SQLite の表（changes・change_items・intent_judgments・sessions・session_changes）は JSON Schema を持たない。schemas/v1 は8つから7つにする。
+  - call.schema.json を消す。渡す形は Abstract の本体の $defs に input-judging・input-working として、output-judging・output-working と並べる。call は「任せる先を起動するコマンド」（application のユースケース）と値の型だけ。入力に任せる先の名前は書かない。
+  - change.schema.json は残し、「record・history が CLI に出す変更の記録の形」と定め直す（ACDR 0201 の「手元の DB の行の形」を改める）。history の出力（fields・intent_judgment）はどのスキーマにも従っていない不具合なので、change の形にそろえる。
+  - target は本体の $defs へ。range・exceptions・purposes・unreadable は change-summary の中へ。
+  - judgment.schema.json から、使われていない意図の判定（I33）の枝（変更の記録を指す target・meaning・judged_values.before）を外す。
+  - 意図の判定と rule の判定は分けたまま。意図の判定がほかの人に届く道は change-summary の purposes だけ。
+  - 前提の読み替えも承認に含む：「rule の判定は judgment に、変更の意図の判定は変更の記録の側（intent_judgments → change-summary）に残る」。
+  - 試験を1件足す：call が組む JSON を input-* と照らす。call への言及が残る6か所（call.rs・tools の run.rs・prompt.rs・ports の delegates.rs・abstract_schema.rs・layout.json）を直す。
+  - 後で決める：history 以外のコマンドの CLI の出力に JSON Schema を付けるか。
+
+### 承認待ち2：Q3（エンジンの部品と Agents 契約）
+- ページ：https://claude.ai/artifact/LoVrCpfdozS5PYCHuoL57x。rule の判定の記録は値の記録（インスタンス × rule の key で置き換え、ポートは置く・引くの2つ、judged_by と rule の by の照合を足す）。インスタンスと変更の記録は今の形のまま。call は delegation の domain に置く。
+- ボード .brainstorming/semantic-contract-core.json の Q3 は open のまま。brainstorming の道具は、取り消した第96回の Q12 を指す変更で止まり、次の回へ進めない。
+
+### ER 図（基盤の全体像）
+- https://claude.ai/artifact/GobNtkJFQKGM4KaHgtL59x（版6、scratchpad の er/index.html。前の版は index.v4.html・index.v5.html）。スキーマ・Concrete の中・データの3つの枠。スキーマの案を入れてある。
+- セッション（Q11 の7つの欄、ステップ9 で表を足す）と変更の記録は、session_changes で N:M。意図の判定 → change-summary は purposes で公開。
+- 利用者の指摘で、call は ER 図から外し、別の図「call から呼ばれるものと、できるもの」にした（読むもの → call → judging・working の任せる先 → できるもの。できるものは広い意味でインスタンス：judgment・Concrete・change のインスタンス。needs だけはインスタンスにならず呼んだ主体へ返る）。
+
+### 設計の考え方で話したこと
+- 「境界はトップダウン、中身はボトムアップ」の意見に対して：境界は先に、ただし広く決める（『ドメイン駆動設計をはじめよう』の経験則）。重複の引き上げは「同じ理由で一緒に変わるか」で判断する。
+- 意見の「境界」は区切られた文脈であって、業務領域ではない。先に決める境界は「区切られた文脈と、公開された言葉（共用サービス）」、後から育てる中身は「集約・値・共通のルール」。
+- 境界の4つの対象（第11章）：業務領域・区切られた文脈・値オブジェクト・集約。業務領域は見つけるもの、文脈は設計するもの。業務領域と文脈は「中に入る」関係ではなく対応づける関係。
+- （取り消し）「このプロジェクトの区切られた文脈は1つ」は 2026-10-30 に利用者が間違いと指摘した（下の決定）。
+
+### 2026-10-30 の利用者の決定
+- Semantic Agent Schema は事業領域であって、区切られた文脈ではない。「区切られた文脈は1つ（Semantic Agent Schema）」という今の切り方は間違い。文脈は、ボード usecase-to-domain-modeling（https://claude.ai/artifact/746VYbbvem7DwcRK5yYgzK）の Q3 の手順で決め直す。
+- そのため、次は前提が崩れている（まだ直していない。ガイドの Q3 の結果が出てから一緒に直す）：
+  - 「業務領域とディレクトリ」の案（https://claude.ai/artifact/RHKTQs8MUhxnyXw48hmwuK）。業務領域は9つ（U3 を意味の宣言へ、U4 はディレクトリなし、core/storage を外す、delegation は補完）までは反証済みだが、「文脈は1つのまま」の部分は無効。承認を止めてもらった。
+  - ER 図のページ・探索ノート・土台（docs/foundation）のディレクトリの決まりの「文脈は1つ」の記述。
+
+### この期間に作った説明のページ
+- 探索ノート（db を持つ）：https://claude.ai/artifact/WNGTnJvUkgGLF6E5aiNHvJ。4つの境界・探索の4段階・業務領域・発見の記録8件。発見は ArtifactData で足す。
+- ユースケースと設計の単位：https://claude.ai/artifact/TLxdiDqz4ETyiirVbrvJeG。保証の文から候補を見つける読み方、候補ごとの表示。call は「コマンド」ではなく「外部システムとの連係」に直した（コマンドは集約の状態を変える指示）。
+
+## 2026-10-31：SAS の範囲を見直し中（最優先の承認待ち）
+- 利用者の問い：SAS に目的ごとの営みやユースケース駆動の考え方まで背負わせていないか。SAS の本質は JSON Schema の Semantic な拡張・注入されたデザインシステムでの描画・x- 項目の機械の検証・Agents による意味の検証。
+- 答え（usecase・ddd・meta-thinking の3アドバイザーと反証、scratchpad の scope-uc・scope-ddd・scope-meta・scope-review）：SAS は能力と判定の記録まで（判定の記録に任せる先の実行 ID と入力の値の指紋を足す）。変更の記録・意図・目的・セッション・まとめ・承認とコミットは外（使う側の Concrete、SAS で検証）。U27・N3 は外、U2・U13・U16・U18・U25・U28・S3 は分ける。schemas/v1 は 8→5（call・change・change-summary を外す）。ER 図から6つの表を外す。AI と外のツールによる判定・保存と版の管理は業務領域ではない。
+- ボード semantic-contract-core に Q13「SAS が提供する範囲」として置いた（回答待ち。Q3 は Q13 に依存させ waiting）。公開：https://claude.ai/artifact/CdRCEdAdiSnUrBSc3svC5j（版24）。advance は止まったまま：round 96 にある取り消した Q12 との差分が check に落ちる（brainstorming の道具の不具合。changes の Q12 の行は消したが解けない）。
+- 決着後：ACDR 2件（範囲を決める：usecases.json・設計のページ・ER・スキーマ構成、0201 などを差し替え済みに／外したコード change_store.rs・sessions_store.rs などを消す）。承認待ちの「基盤が用意するスキーマの案」と Q3 の案はこの範囲で書き直す。
+- 10-31 追記（利用者の判断）：意味で探す（U26・U28）は SAS の中核。「意味があるなら目的もついてくる」→ 目的は意味の一部として SAS に入れる（rule.why・reading.when・Concrete の根の description。description の決まり what-and-not を「何で、何のために使い、何を書かないか」に直す。x-purpose は足さない＝確かめてほしい箇所）。進め方としての目的（セッション・承認とコミット）と変更の意図は使う側の Concrete。判定の記録は目的を持たない。材料：scratchpad purpose-meta・purpose-ddd・purpose-review。Q13 は版26 で回答待ち。
+- 10-31 さらに組み直し（Q13 のボードとは別に、フレッシュに）：ページ「SAS の責務と能力」https://claude.ai/artifact/Fpx9h65f62uHmbDZrZYyD9（scratchpad sas-role/、材料 re-ddd・re-uc・re-platform・re-review）。前提：能力は型（Abstract→Concrete→インスタンス）で作成・更新・削除・検証・描画・検索、意味があるのは作成・更新・検証・検索／どんな Concrete を作るかは使う側／SAS が操作のために立てるセッションと操作の記録を手元の DB に持つ（判定は検証の操作の記録の一部。独立した判定の記録は無くす）／DB のモデルは SAS の中だけ、公開は ID と読む形／検証の写しを .sas/verifications/<ID>.json にコミットして CI に届ける。ユースケースは8件（UC0〜UC7・SF1）。
+  - 版2（10-31、利用者と決定）：判定の写しはコミットしない（OK かは呼んだ人が決める、CI は機械の検証だけ）。意味の作成・更新・検索も同じ手順。人の判定は使う側のセッション。SAS の DB は「セッション」と「操作」の2つ（1対多。操作は変わった欄の前後・任意の意図・検証なら rule ごとの結果）。意図は1件の操作の理由として SAS が持つ。使い道：意味で探す・検証し直す範囲・レビューと反証で場所を引く。約束：CLI は必ずセッション ID を返す、使う側は --caller で呼び出し元の参照を渡せる。
+  - 版3（10-31、scratchpad sas-role3/）：利用者の差し戻しで作り直し。操作は必ずセッションに属する（SAS が立てたセッションが無ければ呼び出し元のセッションを記録。セッションは caller と sas の2種類、parent で親子）。検証は残す・検索は残さない。SAS を通らない書き換えは意図を追えないので、描画したものはコミットしない、検証でハッシュを比べて知らせ --adopt で意図を付けて取り込む（メインの提案）。ローカル PC で動く。PR・コミットは SAS が担わない。削除は参照元の記載も同じセッションで消す。ER（sessions・operations・field_changes・rule_results）と4つの場面を実際の値で。確かめてほしい3件（SAS を通らない変更の見つけ方・人のセッションの立て方・呼び出し元のセッション ID の取り方）で返事待ち。
+  - 版5（10-31、scratchpad sas-role4/、デザインを作り直した版の上）：SAS が立てるセッションは4つの操作とも単発・引き継がない、1件の操作ごとに新しく立て再開しない。書くのは SAS だけ（JSON を返させ、機械の検証と指紋の確認を通ったら書く）。形の誤りは同じセッションで2回まで、時間切れは新しいセッションで2回まで。sessions に request_id・attempt・prompt_hash・brief・tokens、ended_as 6値、決まり7つ。Q11 の4つの型と再開の規則は使う側へ。材料 sess-ddd・sess-platform。承認してほしい6件を「決めた形」で並べた（利用者の指摘：選ばせず見解付きで決めて出す）。
+  - 版6〜7（10-31、scratchpad sas-concept/、build.py と fig/）：利用者の指摘「文章が多すぎ、図で」で、土台・設計のページの作り（タブ・結論1文・図・カード・details）にそろえて「Semantic Agent Schema の概念」として作り直した。13タブ。版7 で SAS をユースケース駆動の手順で作り始めた：事業領域と文脈（業務領域：意味の操作・操作の経緯＝中核、型とインスタンス・描画＝補完、版の管理・JSON Schema の検査・エージェントの実行・描画の部品＝一般。SAS 自身の4つで広い1つの文脈、境界はツールの「セッション」・Git の「コミット」・使う側の「目的のセッション」の手前）、ドメインモデル（集約3つ：SAS が立てたセッション・呼び出し元のセッション・その操作）、アーキテクチャ（Rust・ヘキサゴナル。中核は domain＋application/ports、補完は application＋data-access。semantic-operations/・operation-history/・types-and-instances/・rendering/・adapters/）、スキーマ5つ（Abstract 本体・語彙・方言・CLI の出力・エージェントの答え）。材料 sas-model/answer.json・review.json。承認待ち10件。
+  - 版8（10-31）：利用者の指摘「一般の領域ができることを SAS の契約で必要十分に。セッションは4つの型を基盤の能力として。エージェントは依存性として差し込む。描画はデザインシステムを受け取る契約。Git は diff を SAS の型に当てる」。一般を「契約（SAS の中、持ち主の業務領域）」と「製品（外、アダプター）」に分けた。セッションは4つの型と5つの操作（立てる・続ける・fork・閉じる・状態を読む）、再開の決まり5段は SAS、既定は単発・引き継がない（検証は固定）、能力が無ければ unsupported_capability。版を扱うポートは版を残す・中身を取るだけ（Git 専用にしない）。schemas/v1 は9つ（session・diff・agent-connector・design-system を足す）。集約3つ。必要十分のタブ（12ステップ×13能力）。材料 general-ddd/answer.json・review.json。各ツールの再開・fork の有無と 2020-12 の出力の形は fact-check で確かめる。
+  - 版9〜10（10-31）：利用者「正しいスキーマ定義と DB 定義がかなめ」。境界ごとに JSON Schema を決めた（scratchpad schema-db/design.json・design.md・review.json）。schemas/v1 は14ファイル（Abstract 本体・vocabulary・dialect・glossary／operation-request・operation-result／procedure-prompt・session-request・agent-answer／session・diff／agent-connector・design-system・settings）。x- は10個（x-view を足す）。DB は5表（sessions・session_turns・operations・field_changes・rule_results）、DDL は公開しない。意味の操作の CLI の出力は JSON Lines（1行目が手順のプロンプト）。原典と照合済み（factcheck-a.json・factcheck-b.json、sources/）：CHECK の NULL のすり抜け2つを直した、RAISE はリテラル、5ツールの能力の表（非対話の fork は Claude Code と Codex だけ、閉じる・状態はどれにも無い）、Git の版を refs/sas で残す案は版11 で取り消し（利用者「復元とかタグとかいるんか？」）：Git は読むだけ（version_reader）、SAS が書いた差分は field_changes、SAS を通らない変更は HEAD などコミット済みの版と比べる、無ければ before_unavailable。DB はコミットしない、役目は動いているセッションを回すこと、記録は分析程度。図27枚を監査して崩れを直した（fig-audit.json、figman.py）。ページ版11 公開済み。版12（公開済み）：アーキテクチャを六角形の図に、crate（業務領域×層、13 crate、Cargo.toml と依存の向き）と DDD の部品（domain/src/{aggregates/<集約>/, values/, services/, events/}、application/src/{use_cases/（集約ごとのファイル、境界6）, ports/}、補完は application＋data-access）をディレクトリの木で表した。記録 scratchpad sas-model/arch-v12.json。
+  - 版14（10-31、公開済み）：利用者「初めからドメインで定義するのはダメ。ユースケースから共通のビジネスロジックが出たらドメインモデルに育てる。ただ自明なら最初から決めてよい。今回はユースケースから作ってみて構成が妥当か確かめる」＝探索ノートの4段階（境界→ユースケース→トランザクションスクリプト→引き上げの表）。上から決めて下から確かめた（impl-ddd/answer.json・review.json）：型とインスタンス＝中核・ドメインモデル（集約 Concrete・インスタンス）、意味の操作＝ドメインモデル（集約 SAS が立てたセッション）、操作の経緯・描画＝補完・トランザクションスクリプト。食い違い6件は上を直した（差分は値、events/ は作らない、SAS を通らない変更はインスタンスの集約、操作の経緯は追記の行）。技術方式は文脈全体でヘキサゴナル1つ（データアクセスはレイヤードの語）、描画もポート。crate 13（domain 2・application 4・outbound 6・cli）、ポート9つすべて dyn。Rust の一次情報（rust-src/factcheck-rust.json）で pub mod・pub(crate)・mod.rs を使わない・orphan rule は行の型で変換・組み立ては cli の main.rs・virtual manifest と resolver。設計 sas-model/arch-v14.json。承認待ち：土台の「中の形」の文の案、ガイド Q5 に足す手順の案（ACDR が要る）。
+  - 版15（10-31、公開済み）：利用者「SAS は文脈じゃない、事業領域。いつも言っている」「contexts/ は要らない、文脈の名前がフォルダ」「crate はどこ？」。リポジトリの根 semantic-agent-schema/＝事業領域（Cargo.toml・architecture.json・docs/ は事業領域全体）、直下に文脈のフォルダ contracts-and-instances/（文脈「契約とインスタンス」＝1つのヘキサゴナル）、その中に業務領域 conformance（契約への適合、旧 型とインスタンス）・semantic-operations・operation-recording（操作の記録、旧 操作の経緯）・rendering と adapters/。crate は Cargo.toml を持つフォルダに「crate」の札、名前は contracts-and-instances-<業務領域>-<層>、製品名は [[bin]] sas にだけ。設計 sas-model/arch-v15.json、反証 dir-bnd/review.json。土台の「文脈が1つならリポジトリの根」は誤りの元 → 直す案を承認待ちに（ACDR）。
+  - 実装計画（10-31、承認待ち）：ページは下の Artifact の URL（scratchpad rebuild-plan/page/、plan.json・review.json、qa は rebuild-qa/answer.json）。semantic-agent-schema をフォルダごと archive/semantic-agent-schema-2026-10-31/ へ git mv（注釈付きタグ semantic-agent-schema-archive-2026-10-31、push は指示で）、同じ名前で作り直す。ACDR 0216 は承認せず差分を patch に退避して戻し、0217 で置き換える。進め方：上からの設計は仮説、ユースケースから探索してドメインモデルと構成を育てる、毎ステップ探索の記録 docs/design/exploration/step-NN.json をコミット。S0 は根の Cargo.toml・architecture.json の検査・空の sas・test-support だけ。S1 UC4 機械の検証 … S10 UC0。完了基準9つ（qa の7＋探索の記録・突き合わせ）。計画は承認済み（https://claude.ai/artifact/KjJGs8VMVVt3r4E6JQgnNV）。
+  - アーカイブ済み（10-31）：80539cd0（作業途中の実装をコミット、cargo build は通る）・タグ semantic-agent-schema-archive-2026-10-31（手元のみ、push は指示待ち）・fecd07fc（archive/semantic-agent-schema-2026-10-31/ へ git mv）。ACDR 0216 の差分は .acdr/0216-…/withdrawn.patch に退避して docs を戻した（0216 は未コミット、0217 で置き換える予定）。target/ は削除。ステップ0 は作り終えて未コミット、承認待ち（シミュレーター https://claude.ai/artifact/6v6k3qEciCCvsyTLYKKLhm 版2。Artifact が上限1000件に達したので、重複だったこの URL を使い回した。scratchpad step0-sim/）。cargo test 9件・fmt・clippy 通過、sas は引数なしで終了コード 2。ステップ0 はコミット済み 26ac317e。ステップ1 はコミット済み 2b2cff6e。ステップ2 はコミット済み ca7512f6（テスト63件。--if-match は任意、指紋が違えば止まり interleaved（間の操作・意図・変えた欄）を返す、--intent を足した）。文脈の名前は 9519cffa で決着（下の「次にすること」）。見立て：文脈の名前は変える兆しが強い、案「スキーマとインスタンス（schemas-and-instances）」、範囲はステップ6 まで1つ。ステップ1 の記録（シミュレーターは同じ URL 6v6k3q… 版3。cargo test 38件。見立て：「契約」はステップ1 の手続きに一度も出ず指し先が2つ → ステップ2 で見直し、操作の記録は適合の言葉を使わず書けた → 別の文脈の兆し、ステップ6 で判断）（scratchpad step1-sim/、記録 docs/design/exploration/step-01.json）。利用者「文脈が若干しっくり来ていない、進めるうちに変わるかも」→ 文脈「契約とインスタンス」の名前と範囲を、各ステップの探索で確かめ、見立てを記録に書く。次：承認を受けたら、ディレクトリ構成とスキーマ定義を作る（仕組みは作らず SAS の中身だけ。成功したら手順を Concrete にする）。Q13（ボード）はこのページの結果で書き直す。
+- ACDR 0216（文脈の中のモジュールの置き方、https://claude.ai/artifact/Ev5S4XCPCULpDhMWgh1SnS）も承認待ち。作業ツリーに未コミットで適用済み。
+
+## 次にすること
+- 2026-10-31：文脈を言葉のずれから引き直し、承認を受けてコミット 9519cffa。文脈は2つ ── スキーマとインスタンス（schemas-and-instances/：スキーマへの適合・操作の記録・描画）と立てたセッション（launched-sessions/：意味の操作、ステップ6 で作る）。根拠は「セッション」で同じ物を2つのモデルで持っていたこと。地図は docs/design/arch/arch-v15.json の context_map。承認のページ https://claude.ai/artifact/6v6k3qEciCCvsyTLYKKLhm 版6（シミュレーターの URL を使い回した。材料 scratchpad ctx-meaning/answer.json・review.json）。
+1. ステップ3（SAS を通らない変更：取り込み --adopt、検証での検出）を作り、シミュレーターで承認を受ける。
+2. 後で扱う：ガイド Q3 への差し戻し案（最も広い文脈を言葉のずれの結果で決める・「同じ物を2つの目的で別のモデルにしているか」を問いに足す・切り出す単位と規則の優先）、土台を直す ACDR 0217（0216 を置き換える）、design.json の公開スキーマ session の kind（ステップ6）。
+
+## 持ち越し
+- 未コミット：ステップ4 の作業中の変更（約41ファイル）、docs/foundation/layout.json と土台の index.html（意図の判定の行の修正）。
+- 返事待ち：基盤は概念を組み込まない③でよいか、usecase.schema.json を足すか。
+- アーティファクトの追跡は上限（25件）に達している。
