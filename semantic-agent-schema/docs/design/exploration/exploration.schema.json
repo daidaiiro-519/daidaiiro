@@ -50,6 +50,30 @@
     }
    }
   },
+  "factchecks": {
+   "type": "array",
+   "description": "このステップのはじめに閉じた照合。原典の文字列か、実地の試験を根拠にする",
+   "items": {
+    "type": "object", "required": ["item", "evidence", "result"], "additionalProperties": false,
+    "properties": {
+     "item": {"type": "string"},
+     "evidence": {"type": "array", "items": {"type": "string"}, "description": "原典の場所と文字列、または試験の名前"},
+     "result": {"enum": ["confirmed", "refuted", "open"]}
+    }
+   }
+  },
+  "vocabulary": {
+   "type": "array",
+   "description": "手続きを書く中で見えた、語と意味のずれ",
+   "items": {
+    "type": "object", "required": ["term", "seen", "drift"], "additionalProperties": false,
+    "properties": {
+     "term": {"type": "string"},
+     "seen": {"type": "string", "description": "どこで見たか"},
+     "drift": {"type": "string", "description": "何と何がずれているか"}
+    }
+   }
+  },
   "structure": {
    "type": "object",
    "description": "構成（文脈・crate・モジュール・ポート）を変えたか",
@@ -67,6 +91,18 @@
      "type": "array",
      "description": "仮説にはあるが、このステップでは作らなかったもの",
      "items": {"type": "object", "required": ["what", "why"], "additionalProperties": false, "properties": {"what": {"type": "string"}, "why": {"type": "string"}}}
+    },
+    "context": {
+     "type": "object",
+     "description": "文脈の名前と範囲の見直し。変えるかどうかは利用者が決め、ここには兆しと見解だけを書く",
+     "required": ["name", "scope", "name_signs", "scope_signs", "view"], "additionalProperties": false,
+     "properties": {
+      "name": {"type": "string"},
+      "scope": {"type": "string"},
+      "name_signs": {"type": "array", "items": {"type": "string"}, "description": "名前を変える方がよい兆しと、その根拠"},
+      "scope_signs": {"type": "array", "items": {"type": "string"}, "description": "範囲を変える方がよい兆しと、その根拠"},
+      "view": {"type": "string", "description": "見解（このステップでは変えない）"}
+     }
     }
    }
   }

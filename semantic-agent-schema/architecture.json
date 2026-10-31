@@ -1,14 +1,128 @@
 {
- "description": "いまある crate と、その間で許す依存の向き。crate を足したら、ここにも足す。仮説としての向き（ドメインモデルが育ったときの形）は docs/design/arch-v15.json にあり、要ると分かった時点でここへ移す",
+ "description": "いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足す。仮説としての向き（ドメインモデルが育ったときの形）は docs/design/arch/arch-v15.json にあり、要ると分かった時点でここへ移す",
  "context": "contracts-and-instances",
  "crate_name_prefix": "contracts-and-instances-",
  "crates": [
-  {"name": "contracts-and-instances-adapters-inbound-cli", "path": "contracts-and-instances/adapters/inbound/cli", "layer": "inbound", "role": "sas コマンドの入口。ステップ0 では空"},
-  {"name": "contracts-and-instances-test-support", "path": "contracts-and-instances/test-support", "layer": "test-support", "role": "試験の部品。dev-dependencies からだけ使う"}
+  {
+   "name": "contracts-and-instances-conformance-domain",
+   "path": "contracts-and-instances/conformance/domain",
+   "layer": "domain",
+   "role": "業務領域「契約への適合」のドメインモデル。集約 Concrete ・ インスタンス、値（指紋 ・ 5つの値 ・ rule の結果）、サービス（当たる rule ・ 参照の先）"
+  },
+  {
+   "name": "contracts-and-instances-conformance-application",
+   "path": "contracts-and-instances/conformance/application",
+   "layer": "application",
+   "role": "UC4 検証する（use_cases/documents.rs）と、ポート DocumentStore ・ SchemaChecker"
+  },
+  {
+   "name": "contracts-and-instances-operation-recording-application",
+   "path": "contracts-and-instances/operation-recording/application",
+   "layer": "application",
+   "role": "操作の記録の追記（use_cases/history.rs）と、ポート IdentifyCaller ・ OperationLog"
+  },
+  {
+   "name": "contracts-and-instances-adapters-outbound-files",
+   "path": "contracts-and-instances/adapters/outbound/files",
+   "layer": "outbound",
+   "role": "DocumentStore の実装。作業ディレクトリの JSON を読む"
+  },
+  {
+   "name": "contracts-and-instances-adapters-outbound-jsonschema",
+   "path": "contracts-and-instances/adapters/outbound/jsonschema",
+   "layer": "outbound",
+   "role": "SchemaChecker の実装。入れて出すスキーマを持つ 2020-12 の検査器"
+  },
+  {
+   "name": "contracts-and-instances-adapters-outbound-sqlite",
+   "path": "contracts-and-instances/adapters/outbound/sqlite",
+   "layer": "outbound",
+   "role": "OperationLog の実装。.sas/sas.db へ追記し、ID と時刻を作る"
+  },
+  {
+   "name": "contracts-and-instances-adapters-inbound-cli",
+   "path": "contracts-and-instances/adapters/inbound/cli",
+   "layer": "inbound",
+   "role": "sas コマンドの入口。adapter を組み立てる。IdentifyCaller を引数で実装する"
+  },
+  {
+   "name": "contracts-and-instances-test-support",
+   "path": "contracts-and-instances/test-support",
+   "layer": "test-support",
+   "role": "試験の部品。dev-dependencies からだけ使う。ステップ1 ではスキーマと依存の向きの検査だけを持つ"
+  }
  ],
  "allow": [
-  {"from": "contracts-and-instances-adapters-inbound-cli", "to": []},
-  {"from": "contracts-and-instances-test-support", "to": []}
+  {
+   "from": "contracts-and-instances-conformance-domain",
+   "to": [],
+   "libraries": [
+    "serde_json",
+    "sha2"
+   ]
+  },
+  {
+   "from": "contracts-and-instances-conformance-application",
+   "to": [
+    "contracts-and-instances-conformance-domain",
+    "contracts-and-instances-operation-recording-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "contracts-and-instances-operation-recording-application",
+   "to": [],
+   "libraries": []
+  },
+  {
+   "from": "contracts-and-instances-adapters-outbound-files",
+   "to": [
+    "contracts-and-instances-conformance-application"
+   ],
+   "libraries": []
+  },
+  {
+   "from": "contracts-and-instances-adapters-outbound-jsonschema",
+   "to": [
+    "contracts-and-instances-conformance-application"
+   ],
+   "libraries": [
+    "serde_json",
+    "jsonschema"
+   ]
+  },
+  {
+   "from": "contracts-and-instances-adapters-outbound-sqlite",
+   "to": [
+    "contracts-and-instances-operation-recording-application"
+   ],
+   "libraries": [
+    "rusqlite"
+   ]
+  },
+  {
+   "from": "contracts-and-instances-adapters-inbound-cli",
+   "to": [
+    "contracts-and-instances-conformance-application",
+    "contracts-and-instances-conformance-domain",
+    "contracts-and-instances-operation-recording-application",
+    "contracts-and-instances-adapters-outbound-files",
+    "contracts-and-instances-adapters-outbound-jsonschema",
+    "contracts-and-instances-adapters-outbound-sqlite"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "contracts-and-instances-test-support",
+   "to": [],
+   "libraries": []
+  }
  ],
- "dev_only": ["contracts-and-instances-test-support"]
+ "dev_only": [
+  "contracts-and-instances-test-support"
+ ]
 }

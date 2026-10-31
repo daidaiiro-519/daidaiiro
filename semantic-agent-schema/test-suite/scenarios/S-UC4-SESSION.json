@@ -1,0 +1,73 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC4-SESSION",
+ "name": "呼び出し元のセッション",
+ "title": "--session を渡すと、同じ呼び出し元の検証は同じセッションに入り、渡さなければ人のセッションに入る",
+ "why": "どの呼び出し元の検証かを残せないと、記録から誰の操作かを読めない。",
+ "traces": [
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "schemas/usecase.schema.json"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "--session",
+   "tool-a",
+   "schemas/usecase.schema.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/session",
+   "equals": "s-0002"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/session",
+   "equals": "s-0002"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operations/0",
+   "equals": "o-0003"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/session",
+   "equals": "s-0001"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "--session",
+    "tool-a",
+    "schemas/usecase.schema.json"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "schemas/usecase.schema.json"
+   ]
+  }
+ ]
+}

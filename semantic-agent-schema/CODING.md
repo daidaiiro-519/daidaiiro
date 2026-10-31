@@ -12,6 +12,9 @@
 | domain の中は部品の種類で分ける（aggregates/・values/・services/）。購読する手続きが無いうちは events/ を作らない | 先取りしない |
 | ユースケースごとのファイルやフォルダは作らない | 土台の境界6 |
 | crate・モジュール・ポートは、必要と分かった時点で足す。足したら `architecture.json` にも足す | 最初に構造を全部作らない |
+| 外のライブラリは、`architecture.json` の allow の libraries に書いた crate だけが使う（rusqlite は outbound の sqlite、jsonschema は outbound の jsonschema） | 外の技術を adapter に閉じ込めたことを、依存の検査で確かめる |
+| ユースケースは、先に `test-suite/scenarios/` に場面を書き、失敗を確かめてから作る。場面と保証 ・ 拡張の突き合わせは `test-suite/trace.json`、まだ確かめないものは `untested.json` に理由と一緒に置く | 保証と拡張のどれを確かめたかを、試験で数えられるようにする |
+| SAS の DB（`.sas/`）はコミットしない。ID と時刻は outbound の sqlite が作り、application と domain は時刻に触らない | 決定的な試験のため |
 | ステップごとに `docs/design/exploration/step-NN.json` を書く | 探索の過程と、仮説との突き合わせを残す |
 
 ## Rust の決まり
@@ -27,6 +30,8 @@
 | 集約の欄は private、メソッドだけ pub。ID と指紋は newtype | API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169 |
 | adapters で外の trait を domain の型に実装しない（orphan rule） | Reference implementations:658・659・669 |
 | 試験の部品（test-support）は dev-dependencies からだけ使う | `architecture.json` の dev_only と、その検査 |
+| ポートの代役は、使う application の `tests/` に置く（test-support に置くと dev-dependencies が循環する） | 探索の記録 step-01 |
+| `if let` が入れ子になるときは let chains（`if let … && let …`）で書く | clippy の collapsible_if（edition 2024） |
 
 ## 確かめるコマンド
 

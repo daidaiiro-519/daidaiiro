@@ -1,0 +1,92 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:base:operation-result:v1",
+ "title": "sas が返す結果",
+ "description": "sas のコマンドが標準出力へ返す JSON の1行。kind で、検証の結果（validation）と、始められなかった理由（error）を分ける。$defs はステップごとに足す",
+ "type": "object",
+ "required": ["$schema", "kind"],
+ "properties": {
+  "$schema": {"const": "urn:semantic-agent-schema:base:operation-result:v1"},
+  "kind": {"enum": ["validation", "error"]}
+ },
+ "oneOf": [
+  {"$ref": "#/$defs/validation"},
+  {"$ref": "#/$defs/error"}
+ ],
+ "$defs": {
+  "verdict": {
+   "enum": ["verified", "violated", "unverified", "error", "unsupported"],
+   "description": "rule の結果の5つの値。unverified は人が決めるもの、unsupported は判定する手続きか相手がまだ無いもの"
+  },
+  "counts": {
+   "type": "object",
+   "description": "5つの値ごとの件数",
+   "required": ["verified", "violated", "unverified", "error", "unsupported"],
+   "additionalProperties": false,
+   "properties": {
+    "verified": {"type": "integer", "minimum": 0},
+    "violated": {"type": "integer", "minimum": 0},
+    "unverified": {"type": "integer", "minimum": 0},
+    "error": {"type": "integer", "minimum": 0},
+    "unsupported": {"type": "integer", "minimum": 0}
+   }
+  },
+  "fingerprint": {
+   "type": "string",
+   "pattern": "^sha256:[0-9a-f]{64}$",
+   "description": "対象の中身（バイト列）の SHA-256"
+  },
+  "rule-result": {
+   "type": "object",
+   "required": ["rule", "pointer", "by", "result", "reason"],
+   "additionalProperties": false,
+   "properties": {
+    "rule": {"type": "string", "minLength": 1, "description": "rule の id。JSON Schema の形の検査は json-schema、参照の先は relationship-target"},
+    "pointer": {"type": "string", "description": "対象の中の当たる所（JSON Pointer）"},
+    "by": {"enum": ["machine", "ai", "human"]},
+    "result": {"$ref": "#/$defs/verdict"},
+    "reason": {"type": "string", "minLength": 1}
+   },
+   "if": {"properties": {"by": {"const": "human"}}},
+   "then": {"properties": {"result": {"const": "unverified"}}}
+  },
+  "target": {
+   "type": "object",
+   "required": ["path", "kind", "schema", "fingerprint", "operation", "results", "counts"],
+   "additionalProperties": false,
+   "properties": {
+    "path": {"type": "string", "description": "リポジトリの根からの経路"},
+    "kind": {"enum": ["concrete", "instance"]},
+    "schema": {"type": "string", "description": "従う schema の $id（Concrete なら Abstract の版）"},
+    "fingerprint": {"$ref": "#/$defs/fingerprint"},
+    "operation": {"type": "string", "pattern": "^o-[0-9]{4,}$", "description": "この対象の検証を記録した操作の ID"},
+    "results": {"type": "array", "items": {"$ref": "#/$defs/rule-result"}, "minItems": 1},
+    "counts": {"$ref": "#/$defs/counts"}
+   }
+  },
+  "validation": {
+   "type": "object",
+   "required": ["kind", "session", "operations", "targets", "counts"],
+   "properties": {
+    "kind": {"const": "validation"},
+    "session": {"type": "string", "pattern": "^s-[0-9]{4,}$", "description": "呼び出し元のセッションの ID"},
+    "operations": {"type": "array", "items": {"type": "string", "pattern": "^o-[0-9]{4,}$"}},
+    "targets": {"type": "array", "items": {"$ref": "#/$defs/target"}},
+    "counts": {"$ref": "#/$defs/counts"}
+   }
+  },
+  "error": {
+   "type": "object",
+   "required": ["kind", "code", "message"],
+   "properties": {
+    "kind": {"const": "error"},
+    "code": {
+     "enum": ["usage", "schema_not_listed", "unknown_schema", "no_schema", "not_found", "not_json", "store", "checker", "log"],
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと"
+    },
+    "path": {"type": "string"},
+    "message": {"type": "string", "minLength": 1}
+   }
+  }
+ }
+}

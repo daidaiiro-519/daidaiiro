@@ -69,3 +69,33 @@ fn broken_record_is_rejected() {
     let broken = serde_json::json!({"$schema": "urn:semantic-agent-schema:design:exploration:v1", "step": 1});
     assert!(!validator.is_valid(&broken), "欄の欠けた記録を通してしまう");
 }
+
+#[test]
+fn shipped_result_schema_follows_meta_schema() {
+    assert_meta_valid("contracts-and-instances/schemas/v1/operation-result.schema.json");
+}
+
+#[test]
+fn scenarios_follow_schema() {
+    let schema = load("test-suite/scenario.schema.json");
+    let validator = jsonschema::validator_for(&schema).expect("場面のスキーマを組めること");
+    let mut count = 0;
+    for entry in
+        std::fs::read_dir(root().join("test-suite/scenarios")).expect("場面の置き場所を読めること")
+    {
+        let path = entry.expect("項目を読めること").path();
+        let text = std::fs::read_to_string(&path).expect("場面を読めること");
+        let scenario: Value = serde_json::from_str(&text).expect("場面が JSON であること");
+        let errors: Vec<String> = validator
+            .iter_errors(&scenario)
+            .map(|e| e.to_string())
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "{} がスキーマに従わない: {errors:?}",
+            path.display()
+        );
+        count += 1;
+    }
+    assert!(count > 0, "場面が1つも無い");
+}

@@ -8,6 +8,6 @@ JSON Schema を Semantic に拡張し、その型（Abstract → Concrete → �
 | `contracts-and-instances/` | 区切られた文脈「契約とインスタンス」。1つのヘキサゴナル |
 | `docs/foundation/` | 土台。どの事業にも使う一般の概念 |
 | `docs/design/` | Semantic Agent Schema に適用した設計。仮説と、探索の記録 |
-| `test-suite/` | システムテストの場面の形 |
+| `test-suite/` | システムテストの場面（`scenarios/`）と材料（`fixtures/`）、保証 ・ 拡張との突き合わせ（`trace.json` ・ `untested.json`） |
 
-作り方は、ユースケースから探索してドメインモデルと構成を育てる進め方による。ステップごとの記録は `docs/design/exploration/` にある。前の実装は `archive/semantic-agent-schema-2026-10-31/`（タグ `semantic-agent-schema-archive-2026-10-31`）に残してある。
+作り方は、ユースケースから探索してドメインモデルと構成を育てる進め方による。いまできるコマンドは `sas validate [--session <名前>] (<経路>... | --all)`（UC4 の機械の rule）。ステップごとの記録は `docs/design/exploration/` にある。前の実装は `archive/semantic-agent-schema-2026-10-31/`（タグ `semantic-agent-schema-archive-2026-10-31`）に残してある。

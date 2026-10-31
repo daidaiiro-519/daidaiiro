@@ -1,0 +1,162 @@
+//! rule ごとの結果と、5つの値ごとの数。
+
+use super::Verdict;
+
+/// 誰が判定する rule か（x-prompt の rule の by）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum By {
+    /// 機械（SAS か JSON Schema の検査器）
+    Machine,
+    /// AI（エージェント）
+    Ai,
+    /// 人
+    Human,
+}
+
+impl By {
+    /// rule の by の文字列から読む。知らない値は None。
+    #[must_use]
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "machine" => Some(Self::Machine),
+            "ai" => Some(Self::Ai),
+            "human" => Some(Self::Human),
+            _ => None,
+        }
+    }
+
+    /// 公開された言葉での名前。
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Machine => "machine",
+            Self::Ai => "ai",
+            Self::Human => "human",
+        }
+    }
+}
+
+/// 1つの rule を1か所に当てた結果。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuleResult {
+    rule: String,
+    pointer: String,
+    by: By,
+    verdict: Verdict,
+    reason: String,
+}
+
+impl RuleResult {
+    /// 結果を作る。人が決める rule は、何を渡しても unverified になる（人の判定は使う側のセッションで行う）。
+    #[must_use]
+    pub fn new(rule: &str, pointer: &str, by: By, verdict: Verdict, reason: &str) -> Self {
+        let verdict = if by == By::Human {
+            Verdict::Unverified
+        } else {
+            verdict
+        };
+        Self {
+            rule: rule.to_string(),
+            pointer: pointer.to_string(),
+            by,
+            verdict,
+            reason: reason.to_string(),
+        }
+    }
+
+    /// rule の id。
+    #[must_use]
+    pub fn rule(&self) -> &str {
+        &self.rule
+    }
+    /// 当てた所（対象の中の JSON Pointer）。
+    #[must_use]
+    pub fn pointer(&self) -> &str {
+        &self.pointer
+    }
+    /// 誰が判定する rule か。
+    #[must_use]
+    pub const fn by(&self) -> By {
+        self.by
+    }
+    /// 結果。
+    #[must_use]
+    pub const fn verdict(&self) -> Verdict {
+        self.verdict
+    }
+    /// 理由。
+    #[must_use]
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
+}
+
+/// 5つの値ごとの数。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Counts([usize; 5]);
+
+impl Counts {
+    /// 結果の並びから数える。
+    #[must_use]
+    pub fn of<'a>(results: impl IntoIterator<Item = &'a RuleResult>) -> Self {
+        let mut c = Self::default();
+        for r in results {
+            c.add(r.verdict());
+        }
+        c
+    }
+
+    /// 1件足す。
+    pub fn add(&mut self, v: Verdict) {
+        if let Some(i) = Verdict::ALL.iter().position(|x| *x == v) {
+            self.0[i] += 1;
+        }
+    }
+
+    /// ほかの数を足し合わせる。
+    pub fn merge(&mut self, other: &Self) {
+        for (a, b) in self.0.iter_mut().zip(other.0) {
+            *a += b;
+        }
+    }
+
+    /// その値の数。
+    #[must_use]
+    pub fn get(&self, v: Verdict) -> usize {
+        Verdict::ALL
+            .iter()
+            .position(|x| *x == v)
+            .map_or(0, |i| self.0[i])
+    }
+
+    /// violated か error が1件でもあるか。
+    #[must_use]
+    pub fn fails(&self) -> bool {
+        self.get(Verdict::Violated) + self.get(Verdict::Error) > 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{By, Counts, RuleResult, Verdict};
+
+    #[test]
+    fn human_rule_is_always_unverified() {
+        let r = RuleResult::new("x", "", By::Human, Verdict::Verified, "");
+        assert_eq!(r.verdict(), Verdict::Unverified);
+    }
+
+    #[test]
+    fn counts_each_value() {
+        let rs = [
+            RuleResult::new("a", "", By::Machine, Verdict::Verified, ""),
+            RuleResult::new("b", "", By::Machine, Verdict::Violated, ""),
+            RuleResult::new("c", "", By::Ai, Verdict::Unsupported, ""),
+        ];
+        let c = Counts::of(&rs);
+        assert_eq!(c.get(Verdict::Verified), 1);
+        assert_eq!(c.get(Verdict::Violated), 1);
+        assert_eq!(c.get(Verdict::Unsupported), 1);
+        assert!(c.fails());
+    }
+}

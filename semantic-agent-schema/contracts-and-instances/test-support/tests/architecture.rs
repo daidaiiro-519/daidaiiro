@@ -3,7 +3,7 @@
 //! cargo metadata が返すワークスペースの crate と依存を読み、次を確かめる。
 //! - architecture.json の crate と、ワークスペースの members が一致する
 //! - crate の名前が文脈の名前で始まる
-//! - 通常の依存（normal ・ build）は allow に書いた先だけ
+//! - 通常の依存（normal ・ build）は、ワークスペースの crate なら allow の to、外のライブラリなら allow の libraries に書いたものだけ
 //! - dev_only の crate（試験の部品）は dev-dependencies にしか現れない
 
 // 試験の補助の関数でも expect を使う（clippy.toml が #[test] の中で許すのと同じ考え）。
@@ -74,29 +74,32 @@ fn dependencies_follow_allow() {
         .iter()
         .map(|v| v.as_str().expect("文字列であること").to_string())
         .collect();
-    let allow = |from: &str| -> BTreeSet<String> {
+    let allow = |from: &str, key: &str| -> BTreeSet<String> {
         arch["allow"]
             .as_array()
             .expect("allow が配列であること")
             .iter()
             .find(|a| a["from"] == from)
             .map(|a| {
-                a["to"]
+                a[key]
                     .as_array()
-                    .expect("to が配列であること")
+                    .expect("to と libraries が配列であること")
                     .iter()
                     .map(|v| v.as_str().expect("文字列であること").to_string())
                     .collect()
             })
             .unwrap_or_default()
     };
+    let meta = metadata();
+    let workspace = names(&meta, "packages");
     let mut broken = Vec::new();
-    for pkg in metadata()["packages"]
+    for pkg in meta["packages"]
         .as_array()
         .expect("packages が配列であること")
     {
         let from = pkg["name"].as_str().expect("name が文字列であること");
-        let allowed = allow(from);
+        let allowed = allow(from, "to");
+        let libraries = allow(from, "libraries");
         for dep in pkg["dependencies"]
             .as_array()
             .expect("dependencies が配列であること")
@@ -105,8 +108,14 @@ fn dependencies_follow_allow() {
             let is_dev = dep["kind"].as_str() == Some("dev");
             if dev_only.contains(to) && !is_dev {
                 broken.push(format!("{from} → {to}（試験の部品を通常の依存にしている）"));
-            } else if !is_dev && !allowed.contains(to) {
+            } else if is_dev {
+                continue;
+            } else if workspace.contains(to) && !allowed.contains(to) {
                 broken.push(format!("{from} → {to}（architecture.json に無い向き）"));
+            } else if !workspace.contains(to) && !libraries.contains(to) {
+                broken.push(format!(
+                    "{from} → {to}（architecture.json の libraries に無い外のライブラリ）"
+                ));
             }
         }
     }

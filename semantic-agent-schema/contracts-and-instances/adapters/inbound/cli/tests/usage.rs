@@ -1,4 +1,4 @@
-//! ステップ0 の sas：コマンドを持たないので、どう呼んでも使い方の誤り（終了コード 2）を1行返す。
+//! コマンドを指定しない ・ 知らないコマンドは、使い方の誤り（終了コード 2）。
 
 use std::process::Command;
 
@@ -15,7 +15,7 @@ fn no_arguments_is_usage_error() {
 #[test]
 fn unknown_command_is_usage_error() {
     let out = Command::new(env!("CARGO_BIN_EXE_sas"))
-        .arg("validate")
+        .arg("frobnicate")
         .output()
         .expect("sas を起動できること");
     assert_eq!(out.status.code(), Some(2));

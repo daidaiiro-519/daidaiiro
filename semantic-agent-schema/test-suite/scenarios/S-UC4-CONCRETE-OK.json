@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC4-CONCRETE-OK",
+ "name": "Concrete が従う",
+ "title": "Abstract に従う Concrete を検証すると、機械の rule が verified になり、5つの値ごとに数える",
+ "why": "Concrete が契約に従うかを確かめられないと、インスタンスを書く前に契約の誤りに気付けない。",
+ "traces": [
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "schemas/usecase.schema.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/kind",
+   "equals": "concrete"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/error",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/fingerprint",
+   "contains": "sha256:"
+  },
+  {
+   "of": "when",
+   "pointer": "/operations",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/counts/verified",
+   "exists": true
+  }
+ ],
+ "unchanged": [
+  "schemas/usecase.schema.json"
+ ]
+}

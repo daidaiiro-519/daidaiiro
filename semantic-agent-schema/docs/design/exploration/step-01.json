@@ -1,0 +1,265 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 1,
+ "date": "2026-10-31",
+ "summary": "UC4 検証する（機械の rule）を、場面を先に書いて失敗を確かめてから、use_cases の手続きとして書き、操作の記録の最小形（呼び出し元のセッションと検証の操作の追記）と一緒に通した",
+ "usecases": [
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "2020-12 の検査器 jsonschema =0.58.6 が、方言の $dynamicAnchor: meta と独自の $vocabulary を扱えるか",
+   "evidence": [
+    "原典 jsonschema-0.58.6/src/options.rs:409〜425 の with_vocabulary の文書「Declare support for a vocabulary this crate does not implement itself. A meta-schema that requires an unknown vocabulary is rejected.」",
+    "原典 jsonschema-0.58.6/src/keywords/mod.rs:568 で $dynamicRef を compile_dynamic_ref に結んでいる",
+    "実地の試験 adapters/outbound/jsonschema/tests/dialect.rs：abstract_follows_dialect（Abstract の本体が方言に従う）・nested_x_shape_is_checked_through_dialect（入れ子 /properties/a/properties/b の x-relationship の形の誤りを、方言を通して見つける）・concrete_can_be_used_as_schema（Concrete を schema にしてインスタンスを照らせる）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "rusqlite =0.32.1（libsqlite3-sys 0.30.1）の bundled の SQLite の版が 3.38.0 以上か",
+   "evidence": [
+    "原典 libsqlite3-sys-0.30.1/sqlite3/sqlite3.h:149「#define SQLITE_VERSION        \"3.46.0\"」",
+    "実地の試験 adapters/outbound/sqlite/tests/append_only.rs：bundled_sqlite_is_new_enough（sqlite_version() が 3.38 以上）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 検証する（機械の rule）：conformance/application/src/use_cases/documents.rs の validate",
+   "steps": [
+    "リポジトリの JSON をすべて読み、Concrete（$schema が閉じた一覧の Abstract）と、その $id、Concrete に従うインスタンスの id を集める",
+    "対象を決める：経路を渡されたらその文書、--all なら Abstract を申告した文書と、リポジトリの Concrete に従う文書",
+    "対象を見分ける：Concrete ／ インスタンス ／ Abstract の版が一覧に無い（schema_not_listed）／ $schema が無い ／ 従う先が分からない。後ろの3つは何も記録せずに断る（取りに行かない）",
+    "形を照らす：Concrete は申告した Abstract と方言の両方、インスタンスは従う Concrete。外れが無ければ json-schema を verified に1件",
+    "当たる rule を集める：Concrete には Abstract の根の rule、Concrete にある根の欄の rule、Concrete が使う x- の rule。インスタンスには Concrete の根の rule と、インスタンスにある欄の rule",
+    "rule ごとに判定する：機械の rule は手続きがあれば判定し（closed-list ・ no-abstract-names ・ abstract-keywords-closed ・ target-exists）、無ければ unsupported。by: human は unverified、by: ai は unsupported（エージェントはステップ6）",
+    "インスタンスの x-relationship の欄の値が、指す先の Concrete のインスタンスの id として在るか（relationship-target）",
+    "対象ごとに検証の操作を1件記録する（前後の指紋は同じ）。呼び出し元のセッションは operation-recording の use_cases/history.rs が決める",
+    "rule ごとの結果、対象ごとと全体の5つの値の件数、セッションと操作の ID を返す"
+   ],
+   "rules": [
+    "申告した Abstract の版が閉じた一覧に無ければ、取りに行かずに断る",
+    "Concrete は本体の x- の名前を x-extensions に足さない",
+    "x- で始まるキーは、本体の x-extensions か、その Concrete の x-extensions にある名前だけ",
+    "x-relationship の to は、閉じた一覧の版か、リポジトリの Concrete の $id",
+    "x-relationship の欄の値は、指す先の Concrete に従うインスタンスの id として在る",
+    "by: human の rule は unverified だけ（verified に数えない）",
+    "検証は対象を変えない（記録の前後の指紋が同じ）",
+    "判定する手続きか相手がまだ無い rule は unsupported として返し、verified に数えない"
+   ]
+  },
+  {
+   "usecase": "操作の記録の追記：operation-recording/application/src/use_cases/history.rs の record_validations",
+   "steps": [
+    "呼び出し元を見分ける（--session を渡したツールか、人）",
+    "呼び出し元のセッションを引く。無ければ作る（人は開いているものを使い回す）",
+    "検証の操作を1件ずつ足す。前後の指紋が違う行は足さない"
+   ],
+   "rules": [
+    "記録は追記だけ（UPDATE ・ DELETE を trigger で拒む）",
+    "閉じたセッションには足さない",
+    "同じツールの名前は同じセッションに入る",
+    "ID と時刻は置き場所（outbound の sqlite）が作る"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "Concrete の版の申告 ・ 本体の名前を足さない ・ x- を閉じる",
+   "became": "aggregate",
+   "evident_from_start": true,
+   "why": "3つとも Concrete の文書だけを見て決まり、Abstract の版が変わるときに一緒に変わる。計画の段階で『集約 Concrete』として挙がっており、手続きを書いても形は変わらなかった"
+  },
+  {
+   "what": "インスタンスの読み取り（従う Concrete と id）",
+   "became": "aggregate",
+   "evident_from_start": true,
+   "why": "ステップ1 では読むだけ。作成 ・ 更新（ステップ2）で不変条件が増えたら、ここに足す"
+  },
+  {
+   "what": "指紋 ・ 5つの値 ・ by ・ rule の結果 ・ 件数",
+   "became": "value",
+   "evident_from_start": true,
+   "why": "出力 ・ 記録 ・ 判定のどれでも同じ意味で使う。rule の結果が by: human を unverified に固定するのは最低保証そのものなので、値の作り方に入れた"
+  },
+  {
+   "what": "当たる rule を集める（Concrete とインスタンス）",
+   "became": "service",
+   "evident_from_start": true,
+   "why": "Abstract と Concrete の2つの文書にまたがり、rule を書く場所の決まり（x-prompt.write ・ x-extensions の prompt.write）が変わるときに一緒に変わる。正直に書くと、スクリプトに書いてから引き上げたのではなく最初から domain に置いた。$defs の中の rule（入れ子の欄ごとに当たるもの）はまだ集めていない"
+  },
+  {
+   "what": "参照の先（target-exists と relationship-target）",
+   "became": "service",
+   "evident_from_start": true,
+   "why": "Concrete とほかのインスタンスにまたがる判定。計画の『サービス relationship』のとおり"
+  },
+  {
+   "what": "対象の見分け（Concrete ／ インスタンス ／ 断る）と、形の検査を Abstract と方言の両方に掛けること",
+   "became": "script",
+   "why": "validate の中でしか使わず、リポジトリの文書の一覧という外の材料に依る。作成 ・ 更新（ステップ2）でも同じ見分けが要るなら、そのとき引き上げを見直す"
+  },
+  {
+   "what": "rule を判定の手続きへ振り分ける（どの機械の rule に手続きがあるか）",
+   "became": "script",
+   "why": "手続きのある rule はステップごとに増える。増え方が見えるまでは振り分けを手続きの側に置く"
+  },
+  {
+   "what": "人の開いたセッションを使い回す ・ ツールは名前で引く",
+   "became": "script",
+   "why": "いまは outbound の sqlite の問い合わせの中にある。業務の決まりが adapter にあるので、SAS がセッションを立てるステップ6 でセッションの集約を作るときに、domain へ移すかを見直す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "crate：conformance-domain ・ conformance-application ・ operation-recording-application ・ outbound の files ・ jsonschema ・ sqlite ・ inbound の cli",
+   "result": "match",
+   "fixed": "none",
+   "note": "仮説（arch-v15）の crate と名前 ・ 層が一致。7つを足した"
+  },
+  {
+   "item": "ポート document_store ・ schema_checker ・ identify_caller ・ operation_log を dyn で使う",
+   "result": "match",
+   "fixed": "none",
+   "note": "4つとも trait で、use case は &dyn で受け取る"
+  },
+  {
+   "item": "identify_caller を outbound の agents が実装する",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "ステップ1 では --session の引数だけで足りたので、cli の中で実装した。エージェントの環境から見分けるのはステップ6 で agents と一緒に足す"
+  },
+  {
+   "item": "operation-recording-application が conformance-domain に依存してよい（値だけ）",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "記録の行は文字列と数で足り、依存は要らなかった。5つの値と by の取りうる値は、domain の型 ・ 表の CHECK ・ operation-result.schema.json の3か所にある（仮説の見直しの材料）"
+  },
+  {
+   "item": "cli が依存するのは4つの application と outbound",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "cli は出力を組むのに conformance-domain の値（Verdict ・ Counts）も使う。architecture.json の allow に足した"
+  },
+  {
+   "item": "ID は ULID",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "記録はリポジトリごとに1つの DB で、書くのは SAS だけなので、続き番号（s-0001 ・ o-0001）で足りた。複数の場所で記録を合わせる必要が出たら ULID にする"
+  },
+  {
+   "item": "スキーマ glossary ・ settings ・ operation-request",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "UC4 の機械の rule には要らなかった。term-by-ref の判定（glossary）・ 設定の読み込み ・ 依頼の形を受け取るステップで足す"
+  },
+  {
+   "item": "受け入れ基準『Concrete が Abstract に従えば、すべての rule が verified』",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "Abstract の rule には by: ai と、判定の材料がまだ無い機械の rule（owner-kind-version ・ never-reuse ・ term-by-ref など）がある。いまは unsupported で返し、violated と error が無ければ終了コード 0 にした"
+  },
+  {
+   "item": "場面の traces の拡張の番号",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "計画の受け入れ基準（schema_not_listed など）は UC4 の拡張に番号が無い。UC4 の事前条件『対象が SAS で読める』の外れにあたるので、最低保証に結んだ"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "契約",
+   "seen": "文脈の名前と計画にはあるが、UC4 の手続きとコードには一度も出てこない",
+   "drift": "手続きの中では、Abstract（Concrete が従うもの）と Concrete（インスタンスが従うもの）の2つが、どちらも『従う先』として働く。『契約』がどちらを指すかが決まらない"
+  },
+  {
+   "term": "rule",
+   "seen": "Abstract の rule は Concrete に、Concrete の rule はインスタンスに当たる",
+   "drift": "同じ語が2つの階層に当たる。出力では rule の id だけを返すので、どちらの階層の rule かは対象の kind から読むしかない"
+  },
+  {
+   "term": "操作の記録の ID（2つの ID が返る）",
+   "seen": "UC4 の成功時保証",
+   "drift": "UC4 は1回の検証に操作が1件の書き方だが、指紋は対象ごとなので、操作は対象ごとに1件になった。返る ID は『セッション1つと操作の並び』"
+  },
+  {
+   "term": "判定できない（unsupported）",
+   "seen": "UC4 の最低保証『判定を取れなかった rule は verified に数えない』",
+   "drift": "UC4 には『手続きがまだ無い』という場合が無い。5つの値の unsupported をそれに使った"
+  },
+  {
+   "term": "人が決める",
+   "seen": "UC4 の拡張 6b",
+   "drift": "6b は Agents が『人が決める』と返す場合で、Concrete に by: human と書いた rule は書き手が最初から決めている。どちらも unverified で返すが、出どころが違う"
+  },
+  {
+   "term": "呼ぶ側 ／ 呼び出し元",
+   "seen": "UC4 は『呼ぶ側』、DB と計画は『呼び出し元（caller）』",
+   "drift": "同じものを指している。コードでは Caller と呼び出し元にそろえた"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate",
+    "before": "cli と test-support の2つ",
+    "after": "conformance-domain ・ conformance-application ・ operation-recording-application ・ outbound の files ・ jsonschema ・ sqlite を足して8つ",
+    "why": "UC4 の手続きとポートが要ると分かったので足した"
+   },
+   {
+    "what": "architecture.json の依存の検査",
+    "before": "通常の依存は、外のライブラリも含めて allow の to に無ければ誤り",
+    "after": "ワークスペースの crate は allow の to、外のライブラリは crate ごとの libraries と照らす",
+    "why": "外のライブラリ（rusqlite ・ jsonschema）をどの crate に閉じ込めたかも、同じ表で確かめるため"
+   },
+   {
+    "what": "ポートの代役",
+    "before": "test-support に置く予定",
+    "after": "使う application の tests/ の中に置く",
+    "why": "test-support に置くと、test-support が application に依存し、application の試験が test-support に依存して、dev-dependencies の循環になる"
+   },
+   {
+    "what": "探索の記録の形",
+    "before": "照合 ・ 語のずれ ・ 文脈の見直しを書く欄が無い",
+    "after": "factchecks ・ vocabulary ・ structure.context を足した（どれも任意）",
+    "why": "ステップ1 で、この3つを記録に残すよう求められた"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "outbound-agents",
+    "why": "identify_caller は引数で足りた。エージェントを起動する adapter と一緒にステップ6 で足す"
+   },
+   {
+    "what": "スキーマ glossary ・ settings ・ operation-request、ULID のライブラリ",
+    "why": "UC4 の機械の rule に要らなかった（突き合わせの表に理由）"
+   },
+   {
+    "what": "$defs の中の rule の当て方、手続きの無い機械の rule の判定",
+    "why": "判定の材料（glossary ・ 公開の記録 ・ 変更の記録）を作るステップで足す"
+   },
+   {
+    "what": "semantic-operations-* ・ rendering-application ・ outbound の git ・ templates",
+    "why": "使うユースケースのステップで足す"
+   }
+  ],
+  "context": {
+   "name": "契約とインスタンス（contracts-and-instances）",
+   "scope": "1つの文脈に4つの業務領域（契約への適合 ・ 意味の操作 ・ 操作の記録 ・ 描画）",
+   "name_signs": [
+    "『契約』が手続きの中に一度も出てこない。手続きが使う語は Abstract ・ Concrete ・ インスタンス ・ rule ・ 検証 ・ 操作 ・ セッション",
+    "『契約』の指し先が2つある：Abstract は Concrete の契約で、Concrete はインスタンスの契約。名前が階層を区別しない（語のずれの表の『契約』『rule』）"
+   ],
+   "scope_signs": [
+    "操作の記録は、契約への適合の言葉を1つも使わずに書けた。operation-recording-application は domain に依存せず、行は文字列と数だけ（仮説では値への依存を許していた）",
+    "操作の記録の言葉（呼び出し元 ・ セッション ・ 操作 ・ 前後の指紋）は検証に限らず、作成 ・ 更新 ・ 削除でも同じに使う予定で、契約の中身に依らない",
+    "逆向きの兆し：5つの値と by の取りうる値を、適合の側と記録の側の両方が持つ（domain の型 ・ 表の CHECK ・ 結果のスキーマ）。記録が判定の意味を一部知っている",
+    "描画と意味の操作はまだ作っていないので、範囲の兆しは操作の記録の分だけ"
+   ],
+   "view": "名前は、手続きの言葉と合っていない兆しがある。『契約』が Abstract と Concrete のどちらを指すかを決めるか、手続きの言葉（たとえば Concrete とインスタンス）に寄せる案を、ステップ2（作成 ・ 更新）で語が増えたところで見直すのがよいと考える。範囲は、操作の記録が適合の言葉に依らず書けたことから、別の文脈（汎用の業務領域）に分けられる兆しがある。ただし判定の5つの値を両方が持つので、分けるなら共有する言葉の置き場所を先に決める必要がある。セッションの言葉が増えるステップ6 までは1つの文脈のまま進め、そこで判断するのがよい。このステップでは名前も範囲も変えていない"
+  }
+ }
+}
