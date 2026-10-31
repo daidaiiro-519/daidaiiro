@@ -68,10 +68,12 @@ metadata:
 
 ## 次にすること
 - 2026-10-31：文脈を言葉のずれから引き直し、承認を受けてコミット 9519cffa。文脈は2つ ── スキーマとインスタンス（schemas-and-instances/：スキーマへの適合・操作の記録・描画）と立てたセッション（launched-sessions/：意味の操作、ステップ6 で作る）。根拠は「セッション」で同じ物を2つのモデルで持っていたこと。地図は docs/design/arch/arch-v15.json の context_map。承認のページ https://claude.ai/artifact/6v6k3qEciCCvsyTLYKKLhm 版6（シミュレーターの URL を使い回した。材料 scratchpad ctx-meaning/answer.json・review.json）。
-1. ステップ3 はコミット済み 29f359e8（テスト75件・場面52件。止まった結果には次に打つコマンドを入れる。シミュレーター 6v6k3q… 版7、scratchpad step3-sim/）。次はステップ4（UC3 削除する。先に Concrete を消すときの振る舞いが決まっているかを確かめる）。re-uc.json の UC2 取り込み・UC4 の知らせの本文はまだ直していない。
+1. ステップ4 はコミット済み b047f035（テスト83件・場面64件）。次は「セッションを外して記録を分ける」ステップ（ステップ5 の前）。承認待ちのページ https://claude.ai/artifact/XQmeBmywzzsZy3AUgcSK4B 版4（4件：子の状態を管理しない・文脈を1つに戻す・書く子と確かめる子を --continue で続ける・changes と validations に分け断った操作は持たない）。材料：シミュレーション https://claude.ai/artifact/VYeEarjweXihDbJTNxnGhW（scratchpad session-sim/・ops-split/）、ツール6つの調査 https://claude.ai/artifact/KbNCDxxdVA5CipaYG8aFJ5（scratchpad tool-sessions/）。薄い sessions 7列（id・role・parent_id・tool・model・launch・first_seen）。直しの見積り：Rust 8ファイル・移行 0001〜0004 書き直し・試験 約25件・場面 約17件。
 2. 後で扱う：ガイド Q3 への差し戻し案（最も広い文脈を言葉のずれの結果で決める・「同じ物を2つの目的で別のモデルにしているか」を問いに足す・切り出す単位と規則の優先）、土台を直す ACDR 0217（0216 を置き換える）、design.json の公開スキーマ session の kind（ステップ6）。
 
 ## 持ち越し
+- 2026-10-31 夜（Agents Workspace の話から）：DB はコミットしないのでリポジトリの外に置く案（既定の置き場所と、Git の共通ディレクトリでリポジトリを見分ける）と、caller_ref を操作1件ごとに持たせる案。詳しくは [[agents-workspace-board]] の「SAS のセッションと操作の契約をどう使うか」。
+- 2026-10-31 夜：利用者「SAS でセッション管理は少し重いのかな。無くても動くのか。SAS を動かすセッション ID さえわかれば -p で送れる」。見立て：無くても動く。sessions ・ launched_sessions ・ session_turns をやめ、operations に actor ・ tool_ref ・ caller_ref ・ launched_ref（SAS が -p で起動したツールのセッション ID）を直接持つ軽い形で足りる。続ける ・ 引き継ぐ ・ 再開は呼び出し元が ID を渡して決める。形の誤りのやり直しは同じ ID に -p で送り直すだけ。今の重さは目的のセッションを背負っていたころの名残。アドバイザーと反証を通した意見は [[sas-light-sessions-opinion]]（未承認。採るかは SAS の側で決める。文脈を1つに戻す所は 9519cffa の変更になる）。
 - 未コミット：ステップ4 の作業中の変更（約41ファイル）、docs/foundation/layout.json と土台の index.html（意図の判定の行の修正）。
 - 返事待ち：基盤は概念を組み込まない③でよいか、usecase.schema.json を足すか。
 - アーティファクトの追跡は上限（25件）に達している。
