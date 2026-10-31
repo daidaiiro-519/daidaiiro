@@ -1,6 +1,13 @@
 {
  "description": "ユースケースの保証と拡張を、それを確かめる場面と突き合わせる表。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる",
  "scope": [
+  "UC1:成功時保証",
+  "UC1:最低保証",
+  "UC1:変形:既存のファイルを取り込む",
+  "UC2:成功時保証",
+  "UC2:最低保証",
+  "UC2:拡張:Concrete の更新でインスタンスが violated になった",
+  "UC2:拡張:申告する Abstract の版を変えた",
   "UC4:成功時保証",
   "UC4:最低保証",
   "UC4:拡張:*a",
@@ -12,6 +19,64 @@
   "UC4:拡張:6c"
  ],
  "traces": [
+  {
+   "id": "UC1:成功時保証",
+   "meaning": "対象が型に従って在り、作成の操作の記録（事後）の ID が返る",
+   "scenarios": [
+    "S-UC1-CREATE-BY-TOOL",
+    "S-UC1-CREATE-CONCRETE",
+    "S-UC1-CREATE-INSTANCE",
+    "S-UC1-REQUEST-ID"
+   ]
+  },
+  {
+   "id": "UC1:最低保証",
+   "meaning": "型に従わないものは作られず、理由と操作の記録が残る",
+   "scenarios": [
+    "S-UC1-DERIVED",
+    "S-UC1-EXISTS",
+    "S-UC1-HUMAN-FIELD",
+    "S-UC1-INVALID",
+    "S-UC1-USAGE"
+   ],
+   "note": "断った作成の記録は、出力の operation の ID で確かめる。記録の行の中身は outbound の sqlite の試験（change_rows.rs）で確かめる"
+  },
+  {
+   "id": "UC2:成功時保証",
+   "meaning": "事前と事後が操作の記録に残り、x-prompt を変えた欄の前の判定は効かない",
+   "scenarios": [
+    "S-UC2-DEFAULT",
+    "S-UC2-FIRST-WRITE",
+    "S-UC2-HUMAN-UPDATE",
+    "S-UC2-REQUEST-ID",
+    "S-UC2-STALE",
+    "S-UC2-UPDATE"
+   ],
+   "note": "事前と事後の指紋は出力の diff で、記録の行は outbound の sqlite の試験で確かめる"
+  },
+  {
+   "id": "UC2:最低保証",
+   "meaning": "取り込めない更新は対象を変えない",
+   "scenarios": [
+    "S-UC2-CONFLICT",
+    "S-UC2-DERIVED",
+    "S-UC2-HUMAN-FIELD",
+    "S-UC2-ID",
+    "S-UC2-INVALID",
+    "S-UC2-PARALLEL",
+    "S-UC2-PATCH-FAILED",
+    "S-UC2-PUBLISHED",
+    "S-UC2-UNTRACKED",
+    "S-UC2-USAGE"
+   ]
+  },
+  {
+   "id": "UC2:拡張:Concrete の更新でインスタンスが violated になった",
+   "meaning": "インスタンスに UC2 を呼ぶ（SAS は外れたインスタンスを返し、呼ぶ側が UC2 を呼ぶ）",
+   "scenarios": [
+    "S-UC2-CONCRETE-VIOLATES"
+   ]
+  },
   {
    "id": "UC4:成功時保証",
    "meaning": "範囲のすべての rule に結果があり、判定とセッションが検証の操作の記録に入り、2つの ID（操作とセッション）が返る",

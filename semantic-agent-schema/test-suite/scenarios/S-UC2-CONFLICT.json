@@ -1,0 +1,55 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-CONFLICT",
+ "name": "指紋が違う",
+ "title": "--if-match の指紋がいまの中身と違うと、直さずに conflict と記録を返す",
+ "why": "読んだあとに中身が変わっていたら、古い前提で書くと間に入った変更が黙って消える。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+   "--if-match",
+   "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "conflict"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/current",
+   "equals": "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

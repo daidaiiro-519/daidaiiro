@@ -1,0 +1,57 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-DEFAULT",
+ "name": "指紋を省いて直す",
+ "title": "--if-match を省くと、SAS が最後に書いた指紋といまの中身の指紋を比べ、同じなら直す",
+ "why": "呼ぶたびに指紋を読み直して渡すと、手順が増えるのに守れる変更は同じである。",
+ "traces": [
+  "UC2:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+     "--if-match",
+     "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果から、直す欄と理由が分かる\"}]"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "updated"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/after",
+   "equals": "検証の結果から、直す欄と理由が分かる"
+  }
+ ]
+}

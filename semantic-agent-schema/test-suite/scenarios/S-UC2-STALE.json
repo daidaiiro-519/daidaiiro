@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-STALE",
+ "name": "前の判定が効かなくなる",
+ "title": "検証したあとに x-prompt のある欄を直すと、その欄の前の判定が stale_rules に出る",
+ "why": "変えた欄の前の判定が効いたままだと、確かめていない値が確かめ済みに見える。",
+ "traces": [
+  "UC2:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "usecases/u1.json"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "when",
+   "pointer": "/stale_rules",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/stale_rules/0/rule",
+   "equals": "goal-is-outcome"
+  },
+  {
+   "of": "when",
+   "pointer": "/stale_rules/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/stale_rules/0/operation",
+   "equals": "o-0001"
+  }
+ ]
+}

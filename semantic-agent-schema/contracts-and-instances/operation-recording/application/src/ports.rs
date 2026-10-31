@@ -48,6 +48,77 @@ pub struct ValidateRow {
     pub results: Vec<RuleRow>,
 }
 
+/// 作成 ・ 更新で変わった欄1つ（記録の行）。値は JSON の文字列で、None は値が無いこと。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldRow {
+    /// JSON Pointer
+    pub pointer: String,
+    /// add ・ remove ・ replace
+    pub change: String,
+    /// 前の値
+    pub before: Option<String>,
+    /// 後の値
+    pub after: Option<String>,
+}
+
+/// 作成か更新の操作1件（記録の行）。断ったときは refusal に決まった名前と理由が入り、対象は変わらない。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChangeRow {
+    /// create か update
+    pub kind: String,
+    /// concrete か instance
+    pub target_kind: String,
+    /// リポジトリの根からの経路
+    pub target_path: String,
+    /// 従う Concrete（Concrete なら Abstract の版）の $id
+    pub concrete: String,
+    /// やり直しで同じ操作を2回残さないための ID
+    pub request_id: Option<String>,
+    /// 事前の指紋（作成では None）
+    pub before: Option<String>,
+    /// 事後の指紋（断った作成では None）
+    pub after: Option<String>,
+    /// 断ったときの決まった名前と理由
+    pub refusal: Option<(String, String)>,
+    /// 意図（なぜその操作をしたか。呼ぶ側が渡したときだけ）
+    pub intent: Option<String>,
+    /// 変わった欄
+    pub fields: Vec<FieldRow>,
+}
+
+/// 記録にある作成か更新の操作。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredChange {
+    /// 操作の ID
+    pub operation: String,
+    /// 呼び出し元のセッションの ID
+    pub session: String,
+    /// 行
+    pub row: ChangeRow,
+}
+
+/// 記録にある、対象を書いた操作（作成か更新で、断っていないもの）。古い順に並べて使う。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WriteRecord {
+    /// 操作の ID
+    pub operation: String,
+    /// 呼び出し元のセッションの ID
+    pub session: String,
+    /// 記録した日時
+    pub at: String,
+    /// 行
+    pub row: ChangeRow,
+}
+
+/// 前の検証の判定1件。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Judgment {
+    /// 判定を記録した検証の操作の ID
+    pub operation: String,
+    /// 判定
+    pub rule: RuleRow,
+}
+
 /// 操作の記録の置き場所。追記だけを受け付ける。ID と時刻は置き場所が作る。
 pub trait OperationLog {
     /// 呼び出し元のセッションの ID。開いているものが無ければ作る。
@@ -61,4 +132,28 @@ pub trait OperationLog {
     /// # Errors
     /// 置き場所が拒んだとき（閉じたセッション ・ 決まりに反する行）。
     fn append_validate(&mut self, session: &str, row: &ValidateRow) -> Result<String, String>;
+
+    /// 作成か更新の操作を1件足し（変わった欄も一緒に）、その ID を返す。
+    ///
+    /// # Errors
+    /// 置き場所が拒んだとき（閉じたセッション ・ 同じ request_id ・ 決まりに反する行）。
+    fn append_change(&mut self, session: &str, row: &ChangeRow) -> Result<String, String>;
+
+    /// request_id で足した作成か更新の操作。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String>;
+
+    /// 経路の対象を書いた操作（作成か更新で、断っていないもの）を、記録した順に。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String>;
+
+    /// 経路の対象を最後に検証した操作の判定。検証が無ければ空。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
 }

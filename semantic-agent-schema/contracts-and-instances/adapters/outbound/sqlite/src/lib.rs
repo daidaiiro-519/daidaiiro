@@ -3,14 +3,18 @@
 //! ID（s-0001 ・ o-0001）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。application と domain は時刻に触らない。
 
 use contracts_and_instances_operation_recording_application::ports::{
-    Caller, OperationLog, ValidateRow,
+    Caller, ChangeRow, FieldRow, Judgment, OperationLog, RuleRow, StoredChange, ValidateRow,
+    WriteRecord,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない。
-const MIGRATIONS: [&str; 1] = [include_str!("../migrations/0001-validate.sql")];
+const MIGRATIONS: [&str; 2] = [
+    include_str!("../migrations/0001-validate.sql"),
+    include_str!("../migrations/0002-change.sql"),
+];
 
 /// SQLite の操作の記録。
 #[derive(Debug)]
@@ -45,18 +49,32 @@ impl SqliteLog {
     }
 
     fn with(conn: Connection) -> Result<Self, String> {
-        conn.pragma_update(None, "foreign_keys", true)
-            .map_err(|e| err(&e))?;
         let version: usize = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .map_err(|e| err(&e))?;
-        for (i, sql) in MIGRATIONS.iter().enumerate().skip(version) {
-            conn.execute_batch(&format!(
-                "BEGIN; {sql} PRAGMA user_version = {}; COMMIT;",
-                i + 1
-            ))
+        // 表を作り直す移行があるので、移すあいだは外部キーの検査を止め、コミットの前に外れが無いかを確かめる
+        // （SQLite の ALTER TABLE の文書の手順。PRAGMA foreign_keys はトランザクションの外で変える）
+        conn.pragma_update(None, "foreign_keys", false)
             .map_err(|e| err(&e))?;
+        for (i, sql) in MIGRATIONS.iter().enumerate().skip(version) {
+            conn.execute_batch(&format!("BEGIN; {sql} PRAGMA user_version = {};", i + 1))
+                .map_err(|e| err(&e))?;
+            let broken: i64 = conn
+                .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+                    r.get(0)
+                })
+                .map_err(|e| err(&e))?;
+            if broken > 0 {
+                let _ = conn.execute_batch("ROLLBACK;");
+                return Err(format!(
+                    "操作の記録：版 {} へ移すと {broken} 件が外部キーに外れるので、移さない",
+                    i + 1
+                ));
+            }
+            conn.execute_batch("COMMIT;").map_err(|e| err(&e))?;
         }
+        conn.pragma_update(None, "foreign_keys", true)
+            .map_err(|e| err(&e))?;
         Ok(Self { conn })
     }
 
@@ -64,6 +82,51 @@ impl SqliteLog {
     #[must_use]
     pub const fn connection(&self) -> &Connection {
         &self.conn
+    }
+
+    /// 書いた ・ 断った作成か更新の行を、操作の ID から読む。
+    fn change_row(&self, operation: &str) -> Result<ChangeRow, String> {
+        let mut row = self
+            .conn
+            .query_row(
+                "SELECT kind, target_kind, target_path, concrete_ref, request_id, before_hash, after_hash, refusal_code, refusal, intent \
+                 FROM operations WHERE id = ?1",
+                [operation],
+                |r| {
+                    let code: Option<String> = r.get(7)?;
+                    let reason: Option<String> = r.get(8)?;
+                    Ok(ChangeRow {
+                        kind: r.get(0)?,
+                        target_kind: r.get(1)?,
+                        target_path: r.get(2)?,
+                        concrete: r.get(3)?,
+                        request_id: r.get(4)?,
+                        before: r.get(5)?,
+                        after: r.get(6)?,
+                        refusal: code.zip(reason),
+                        intent: r.get(9)?,
+                        fields: Vec::new(),
+                    })
+                },
+            )
+            .map_err(|e| err(&e))?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT pointer, change, before, after FROM field_changes WHERE operation_id = ?1 ORDER BY pointer")
+            .map_err(|e| err(&e))?;
+        row.fields = stmt
+            .query_map([operation], |r| {
+                Ok(FieldRow {
+                    pointer: r.get(0)?,
+                    change: r.get(1)?,
+                    before: r.get(2)?,
+                    after: r.get(3)?,
+                })
+            })
+            .map_err(|e| err(&e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| err(&e))?;
+        Ok(row)
     }
 
     fn next_id(&self, table: &str, prefix: &str) -> Result<String, String> {
@@ -165,5 +228,123 @@ impl OperationLog for SqliteLog {
         }
         tx.commit().map_err(|e| err(&e))?;
         Ok(id)
+    }
+
+    fn append_change(&mut self, session: &str, row: &ChangeRow) -> Result<String, String> {
+        let id = self.next_id("operations", "o")?;
+        let tx = self.conn.transaction().map_err(|e| err(&e))?;
+        let seq: i64 = tx
+            .query_row(
+                "SELECT coalesce(max(seq), 0) + 1 FROM operations WHERE session_id = ?1",
+                [session],
+                |r| r.get(0),
+            )
+            .map_err(|e| err(&e))?;
+        let (code, reason) = row
+            .refusal
+            .as_ref()
+            .map_or((None, None), |(c, m)| (Some(c.as_str()), Some(m.as_str())));
+        tx.execute(
+            "INSERT INTO operations (id, session_id, seq, request_id, kind, target_kind, target_path, concrete_ref, \
+             before_hash, after_hash, refusal_code, refusal, intent, at) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            params![
+                id, session, seq, row.request_id, row.kind, row.target_kind, row.target_path, row.concrete,
+                row.before, row.after, code, reason, row.intent, now()
+            ],
+        )
+        .map_err(|e| err(&e))?;
+        for f in &row.fields {
+            tx.execute(
+                "INSERT INTO field_changes (operation_id, pointer, change, before, after) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![id, f.pointer, f.change, f.before, f.after],
+            )
+            .map_err(|e| err(&e))?;
+        }
+        tx.commit().map_err(|e| err(&e))?;
+        Ok(id)
+    }
+
+    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
+        let found: Option<(String, String)> = self
+            .conn
+            .query_row(
+                "SELECT id, session_id FROM operations WHERE request_id = ?1",
+                [request_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+            .map_err(|e| err(&e))?;
+        found
+            .map(|(operation, session)| {
+                Ok(StoredChange {
+                    row: self.change_row(&operation)?,
+                    operation,
+                    session,
+                })
+            })
+            .transpose()
+    }
+
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT id, session_id, at FROM operations \
+                 WHERE kind IN ('create', 'update') AND refusal_code IS NULL AND target_path = ?1 \
+                 ORDER BY rowid",
+            )
+            .map_err(|e| err(&e))?;
+        let found: Vec<(String, String, String)> = stmt
+            .query_map([target_path], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .map_err(|e| err(&e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| err(&e))?;
+        found
+            .into_iter()
+            .map(|(operation, session, at)| {
+                Ok(WriteRecord {
+                    row: self.change_row(&operation)?,
+                    operation,
+                    session,
+                    at,
+                })
+            })
+            .collect()
+    }
+
+    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
+        let last: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT id FROM operations WHERE kind = 'validate' AND target_path = ?1 \
+                 ORDER BY rowid DESC LIMIT 1",
+                [target_path],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| err(&e))?;
+        let Some(operation) = last else {
+            return Ok(Vec::new());
+        };
+        let mut stmt = self
+            .conn
+            .prepare("SELECT rule_id, pointer, by, result, reason FROM rule_results WHERE operation_id = ?1 ORDER BY ord")
+            .map_err(|e| err(&e))?;
+        stmt.query_map([&operation], |r| {
+            Ok(Judgment {
+                operation: operation.clone(),
+                rule: RuleRow {
+                    rule: r.get(0)?,
+                    pointer: r.get(1)?,
+                    by: r.get(2)?,
+                    result: r.get(3)?,
+                    reason: r.get(4)?,
+                },
+            })
+        })
+        .map_err(|e| err(&e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| err(&e))
     }
 }

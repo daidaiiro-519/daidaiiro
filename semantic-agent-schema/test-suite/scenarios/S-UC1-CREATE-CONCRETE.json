@@ -1,0 +1,66 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC1-CREATE-CONCRETE",
+ "name": "Concrete を作る",
+ "title": "Abstract の版を --concrete に渡して Concrete を作ると、Abstract と方言の両方に従うファイルができる",
+ "why": "Concrete を手で書くと、Abstract に従わない契約が検証まで気付かれない。",
+ "traces": [
+  "UC1:成功時保証"
+ ],
+ "given": {
+  "files": {}
+ },
+ "when": {
+  "args": [
+   "create",
+   "schemas/note.schema.json",
+   "--concrete",
+   "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "--value",
+   "{\"$id\":\"urn:semantic-agent-schema:sample:note:v1\",\"title\":\"メモ\",\"description\":\"短い書き置きである。\",\"type\":\"object\",\"required\":[\"$schema\",\"id\"],\"properties\":{\"$schema\":{\"const\":\"urn:semantic-agent-schema:sample:note:v1\"},\"id\":{\"title\":\"ID\",\"description\":\"メモの名前である。\",\"x-prompt\":{\"write\":[]},\"type\":\"string\"}}}"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "schemas/note.schema.json"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "created"
+  },
+  {
+   "of": "when",
+   "pointer": "/target/kind",
+   "equals": "concrete"
+  },
+  {
+   "of": "when",
+   "pointer": "/target/concrete",
+   "equals": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/kind",
+   "equals": "concrete"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 0
+  }
+ ]
+}

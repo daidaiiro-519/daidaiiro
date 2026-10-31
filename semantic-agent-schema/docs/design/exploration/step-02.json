@@ -1,0 +1,438 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 2,
+ "date": "2026-10-31",
+ "summary": "UC1 作成する ・ UC2 更新する（機械。対象は Concrete とインスタンス）を、場面26件を先に書いて失敗を確かめてから use_cases の手続きとして書き、前後の中身から求める差分 ・ 集約の書く条件 ・ 書く手前で断った操作の記録 ・ 1つの依頼に操作は1回を通した。直す前の指紋は --if-match を省くと SAS が最後に書いた事後の指紋と比べ、違えば書かずに間に入った変更（記録の操作の意図と変わった欄、たどれなければ SAS を通らない変更があったこと）を返す",
+ "usecases": [
+  "UC1",
+  "UC2"
+ ],
+ "factchecks": [
+  {
+   "item": "SQLite で表の CHECK を変える手順（表を作り直して行を移す）と、外部キーの検査の止め方 ・ 確かめ方",
+   "evidence": [
+    "原典 https://www.sqlite.org/lang_altertable.html 8節「Making Other Kinds Of Table Schema Changes」の「If foreign key constraints are enabled, disable them using PRAGMA foreign_keys=OFF.」「Transfer content from X into new_X using a statement like: INSERT INTO new_X SELECT ... FROM X.」「Drop the old table X:  DROP TABLE X.」「Change the name of new_X to X using: ALTER TABLE new_X RENAME TO X.」「If foreign key constraints were originally enabled then run PRAGMA foreign_key_check to verify that the schema change did not break any foreign key constraints.」",
+    "実地の試験 adapters/outbound/sqlite/tests/change_rows.rs：step1_database_is_moved_with_its_rows（ステップ1 の DB を開くと、検証の行と判定を残したまま版2へ移り、続きの ID で足せる）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "serde_json の preserve_order でオブジェクトの欄の並びが保たれ、remove は並びを変える",
+   "evidence": [
+    "原典 serde_json-1.0.154/src/map.rs:3〜4「By default the map is backed by a [`BTreeMap`]. Enable the `preserve_order` feature of serde_json to use [`IndexMap`] instead.」",
+    "原典 serde_json-1.0.154/src/map.rs:160〜164「If serde_json's \"preserve_order\" is enabled, `.remove(key)` is equivalent to [`.swap_remove(key)`][Self::swap_remove], replacing this entry's position with the last element. If you need to preserve the relative order of the keys in the map, use [`.shift_remove(key)`][Self::shift_remove] instead.」",
+    "実地の試験 conformance/application の documents/patch.rs：keys_keep_their_order"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "JSON Patch（RFC 6902）の欄と op の値",
+   "evidence": [
+    "docs/design/schema-db/factcheck-a.json の照合（op ・ path ・ value ・ from。op は add ・ remove ・ replace ・ move ・ copy ・ test）をそのまま使った",
+    "実地の試験 documents/patch.rs：rfc6902_operations ・ failure_leaves_document_and_names_the_operation ・ array_positions_are_strict"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "JSON Schema で、スキーマを当てる文書を instance と呼ぶか（文脈の名前の案の根拠）",
+   "evidence": [
+    "原典 https://json-schema.org/draft/2020-12/json-schema-core「A JSON document to which a schema is applied is known as an \"instance\".」"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作成する（機械）：conformance/application/src/use_cases/documents.rs の create",
+   "steps": [
+    "request_id があり、同じ request_id の操作が記録にあれば、書かずにそれを返す（断った操作なら同じ理由を返す）",
+    "値がオブジェクトかを見る。$schema が無ければ --concrete を先頭に入れ、違えば断る（invalid_input。記録しない）",
+    "経路にファイルがすでに在れば断る（exists。記録しない）",
+    "リポジトリの文書を読み、--concrete から対象を見分ける：Abstract の版なら Concrete、リポジトリの Concrete の $id ならインスタンス、どちらでもなければ取りに行かずに断る",
+    "形を照らす：Concrete は Abstract と方言、インスタンスは従う Concrete。外れがあれば書かずに invalid_value を記録して断る",
+    "集約の書く条件を確かめる：インスタンスは人の欄（x-decided-by: human）を名乗ったツールが default 以外で決めていないか、導出値（x-derived-from）と一致するか。外れれば書かずに記録して断る",
+    "1字下げの JSON で書く（一時ファイルに書いて置き換える）",
+    "空のオブジェクトからの差分を求め、作成の操作と変わった欄を1つのトランザクションで記録する",
+    "セッション ・ 操作の ID ・ 事後の指紋 ・ 差分を返す"
+   ],
+   "rules": [
+    "型に従わない値は書かず、理由と操作の記録を残す（記録は事前も事後も指紋が無い）",
+    "作成で上書きしない",
+    "人の欄は、作成時の default の値ならツールが書いてよい",
+    "導出値の欄が書かれていれば、決まりを上から当てて最初に当たった then（無ければ otherwise）と一致する",
+    "1つの request_id に操作は1回"
+   ]
+  },
+  {
+   "usecase": "UC2 更新する（機械）：conformance/application/src/use_cases/documents.rs の update",
+   "steps": [
+    "request_id があり、同じ request_id の操作が記録にあれば、書かずにそれを返す（指紋が変わっていても conflict にしない）",
+    "いまの中身を読み、$schema から対象を見分ける（UC4 と同じ見分け）",
+    "比べる指紋を決める：--if-match があればそれ、無ければ記録にある対象の最後の書いた操作の事後の指紋。SAS が一度も書いていなければ比べる指紋が無く、そのまま進む（S-UC2-FIRST-WRITE）",
+    "いまの中身の指紋と比べる。違えば、比べた指紋からいまの指紋までの間に入った変更を記録から組み、書かずに conflict を記録して、間に入った変更と一緒に断る",
+    "JSON Patch を写しに当てる。1つでも当てられなければ、どれも当てずに patch_failed を記録して断る",
+    "当てた結果の形を照らす。Concrete を直すときは、新しい中身を同じ $id の Concrete として検査器に渡す",
+    "集約の書く条件を確かめる：インスタンスは id を変えない ・ 人の欄は人の入口から ・ 導出値が一致、Concrete は x-published の欄を同じ版のまま変えない",
+    "書き、前後の中身から差分を求め、更新の操作と変わった欄を記録する",
+    "その対象を最後に検証した判定のうち、読む所が変えた欄と重なるもの（形の判定は除く）を stale_rules にする",
+    "Concrete を直したときは、それに従うインスタンスを新しい形に照らし、外れたものを violated_instances にする（書くのは止めない。呼ぶ側がインスタンスに UC2 を呼ぶ）"
+   ],
+   "rules": [
+    "取り込めない更新（指紋が違う ・ 当てられない ・ 形や書く条件に外れる）は対象を変えず、事前と事後の指紋が同じ操作として記録する",
+    "読んだ指紋といまの指紋が違えば、間に入った変更を上書きしない。呼ぶ側は間に入った操作の意図と変わった欄を読んでから直し方を決め直す",
+    "id はほかのインスタンスから指される名前なので変えない",
+    "人の欄（x-decided-by: human）は、名乗らない呼び出し（人）からだけ変える",
+    "公開した欄（x-published: true）を変えるときは $id の版を上げる",
+    "根の判定（pointer が空）は文書全体を読むので、どの欄を変えても効かなくなる"
+   ]
+  },
+  {
+   "usecase": "操作の記録の追記：operation-recording/application/src/use_cases/history.rs の record_change",
+   "steps": [
+    "断った操作で前後の指紋が違えば足さない",
+    "呼び出し元のセッションを引く（無ければ作る）",
+    "作成か更新の操作を、変わった欄と一緒に1件足す"
+   ],
+   "rules": [
+    "断った操作は対象を変えない（表の CHECK でも拒む）",
+    "変わった欄は、書いた作成 ・ 更新にだけ付く（trigger）",
+    "判定は検証の操作にだけ付く（trigger）",
+    "seq はセッションの中で前の操作の次の番号（trigger）",
+    "1つの request_id に操作は1回（部分一意索引）"
+   ]
+  },
+  {
+   "usecase": "操作の記録を読む：operation-recording/application/src/use_cases/history.rs の last_written ・ interleaved",
+   "steps": [
+    "対象を書いた操作（作成か更新で、断っていないもの）を記録した順に引く（ポート OperationLog の writes）",
+    "last_written：最後の操作の事後の指紋を返す。無ければ None",
+    "interleaved：比べた指紋を事後に持つ最後の操作の次から（無ければ、比べた指紋を事前に持つ最初の操作から、それも無ければ最初から）最後までを、間に入った操作にする",
+    "間に入った操作の最後の事後がいまの指紋でなければ、SAS を通らない変更があったとする（untracked）。最後に記録した操作も返す"
+   ],
+   "rules": [
+    "記録の操作は事前と事後の指紋でつながる。つながりが、いまの指紋まで届かなければ、記録に無い変更が入っている",
+    "conformance が記録を読む向きは conformance → 操作の記録で、逆は無い"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "差分（前後の中身から JSON Pointer ごとに求める）",
+   "became": "value",
+   "evident_from_start": true,
+   "why": "計画で『値 diff』として挙がっていた。前後の2つの文書だけで決まり、出力 ・ 記録 ・ 再実行の返し方のどれでも同じ意味で使う。作成は空のオブジェクトからの差分にしたので、作成と更新で求め方が1つ"
+  },
+  {
+   "what": "インスタンスの書く条件（id を変えない ・ 人の欄は人の入口から ・ 導出値が一致）",
+   "became": "aggregate",
+   "evident_from_start": true,
+   "why": "3つとも書く前と後のインスタンスと従う Concrete だけで決まり、Abstract の x- の意味（x-decided-by ・ x-derived-from）が変わるときに一緒に変わる。計画の『集約インスタンスの書く条件』のとおり。根の欄だけを見ており、入れ子の欄はまだ見ない"
+  },
+  {
+   "what": "指紋が一致したときだけ書く",
+   "became": "script",
+   "why": "計画では集約インスタンスの書く条件に入っていたが、比べるのはいまのファイルのバイト列と依頼の --if-match で、Concrete とインスタンスの両方に同じに当たる。集約の中身の決まりではなく、読んでから書くまでの間の手続きなので use_cases に残した。--if-match を省いたときに比べる指紋（最後に書いた事後の指紋）と、間に入った変更を組む手続きは、記録を読むだけなので操作の記録の use_cases（history.rs）に置いた"
+  },
+  {
+   "what": "Concrete の書く条件（公開した欄を同じ版のまま変えない）",
+   "became": "aggregate",
+   "evident_from_start": true,
+   "why": "直す前と後の Concrete だけで決まる。計画の『公開した版を変えない』を、x-published: true の根の欄と $id の版で読んだ"
+  },
+  {
+   "what": "書く入口（人 ・ ツール）",
+   "became": "value",
+   "evident_from_start": false,
+   "why": "x-decided-by: human の判定にだけ使う。domain は操作の記録の Caller に依存できないので、use_cases が Caller から Entry に移す。値として aggregates/instance.rs に置いた"
+  },
+  {
+   "what": "書く条件の外れ（決まった名前 ・ 当たる所 ・ 理由）",
+   "became": "value",
+   "evident_from_start": false,
+   "why": "2つの集約が同じ形で返し、出力の error の code と記録の refusal_code に同じ名前で入る"
+  },
+  {
+   "what": "JSON Patch を当てる",
+   "became": "script",
+   "why": "RFC 6902 の手順で、業務の決まりを持たない。変わる理由は RFC と入力の形で、domain の言葉と一緒に変わらない。documents.rs の下の private なモジュール（documents/patch.rs）にした"
+  },
+  {
+   "what": "前の判定のうち効かなくなったもの（stale_rules）",
+   "became": "script",
+   "why": "pointer の重なりで見分けている。判定が読んだ所の指紋（reads_hash）を持つのは『入力が変わった rule だけ』を検証するステップ3 で、そこで判定の読む所の決まりがはっきりしたら service へ引き上げるかを見直す"
+  },
+  {
+   "what": "Concrete の更新で外れたインスタンスを探す",
+   "became": "script",
+   "why": "リポジトリの文書の一覧と検査器を使う出し入れで、決まりは『同じ $id に従う文書を新しい形に照らす』だけ"
+  },
+  {
+   "what": "対象の見分け（classify）と形の照らし方（form_violations）",
+   "became": "script",
+   "why": "ステップ1 の見直しの約束どおり、作成 ・ 更新でも同じ見分けが要ったので関数に切り出し、3つの手続きで共有した。リポジトリの Concrete の一覧という外の材料に依るので domain へは上げない"
+  },
+  {
+   "what": "書く手前で断った操作を記録する ・ 同じ request_id の操作を返す",
+   "became": "script",
+   "why": "記録の出し入れで、決まりは表の CHECK と索引が守る"
+  },
+  {
+   "what": "間に入った変更（比べた指紋 ・ いまの指紋 ・ 間の操作 ・ SAS を通らない変更があったか）",
+   "became": "script",
+   "evident_from_start": false,
+   "why": "conflict を返すときに初めて要った。決まりは『操作は事前と事後の指紋でつながる』だけで、記録の出し入れと一緒に変わるので domain に上げない。operation-recording の application の型 Interleaved とし、conformance の Refused が持つ"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "スキーマ diff.schema.json を別のファイルにする",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "いま差分を読むのは結果（operation-result）だけなので、operation-result の $defs（diff ・ field-change）に置いた。手順のプロンプトが差分を読むステップ6 で別のファイルに分ける"
+  },
+  {
+   "item": "スキーマ operation-request の create ・ update",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "入力は CLI の旗（--concrete ・ --value ・ --patch ・ --if-match ・ --request-id）で足りた。JSON Patch の形は documents/patch.rs が操作ごとに理由を返す。依頼を JSON で渡す入口ができたときに作る"
+  },
+  {
+   "item": "operation-result の change（operation ・ result ・ diff ・ stale_rules）",
+   "result": "match",
+   "fixed": "none",
+   "note": "references ・ needs は削除（ステップ4）と意味の操作（ステップ6）のもので、まだ無い。stale_rules の rule_schema は、判定の表に rule を持つスキーマの欄がまだ無いので、代わりに判定を記録した operation を返す"
+  },
+  {
+   "item": "結果に、Concrete の更新で外れたインスタンスを返す欄",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "UC2 の拡張『Concrete の更新でインスタンスが violated になった：インスタンスに UC2 を呼ぶ』を呼ぶ側が行うには、外れたインスタンスの経路が要る。violated_instances を足した。仮説の change の $defs にも足すのがよい"
+  },
+  {
+   "item": "結果に、やり直しで返したことを示す欄",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "同じ request_id の2回目は書かずに1回目を返す。呼ぶ側が見分けられるよう replayed を足した"
+  },
+  {
+   "item": "表 field_changes",
+   "result": "match",
+   "fixed": "none",
+   "note": "before_unavailable は、前の版が取れない場合（SAS を通らない変更の取り込み）を扱うステップ3 で足す"
+  },
+  {
+   "item": "operations の kind に create ・ update、続き番号の trigger、request_id の部分一意索引",
+   "result": "match",
+   "fixed": "none",
+   "note": "索引の条件の cause_id は、削除（ステップ4）で足す"
+  },
+  {
+   "item": "断った作成 ・ 更新を記録する欄",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "UC1 の最低保証『型に従わないものは作られず、理由と操作の記録が残る』を、仮説の DDL（create は after_hash が要る）では記録できない。refusal_code ・ refusal を足し、断った操作は事前と事後の指紋が同じという CHECK にした"
+  },
+  {
+   "item": "表の版を移す手順",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "仮説の DDL は1回で作る形で、ステップごとに足すと CHECK を変えるために表を作り直す移行が要る。0002 の移行と、移すあいだの外部キーの扱いを決めた（CODING.md に足した）"
+  },
+  {
+   "item": "operations の concrete_ref",
+   "result": "match",
+   "fixed": "none",
+   "note": "作成 ・ 更新では必ず入れる。ステップ1 の検証の行は持っていなかったので、検証では NULL を許した"
+  },
+  {
+   "item": "ポート document_store を書くのは use_cases だけ",
+   "result": "match",
+   "fixed": "none",
+   "note": "write を足した。一時ファイルに書いて置き換え、リポジトリの外 ・ .sas ・ target ・ .git には書かない"
+  },
+  {
+   "item": "ポート version_reader（outbound の git）と、操作の before_version ・ after_version",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "機械の作成 ・ 更新は前後の中身をその場で持つので要らなかった。前の版を Git から取るステップ3 で足す"
+  },
+  {
+   "item": "error の code（invalid_input ・ conflict ほか）",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "conflict と invalid_input は仮説どおり。書く条件ごとの名前（id_changed ・ human_field ・ derived_mismatch ・ published_changed）と invalid_value ・ patch_failed ・ exists ・ request_reused が要った。記録する7つには session と operation を返す"
+  },
+  {
+   "item": "update の if_match",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "はじめは必須にしたが、任意に直した。必須にした理由（無いとほかの変更の上に古い前提で書ける）は、旧版（archive/semantic-agent-schema-2026-10-31 の S-INST-ETAG。書く前に --if-match で ETag を渡す）から確かめずに持ち込んだものだった。SAS は書いた操作の事後の指紋を記録に持つので、--if-match が無ければ最後に書いた事後の指紋と比べれば同じ変更を守れる（S-UC2-DEFAULT ・ S-UC2-UNTRACKED）。--if-match は、並行するセッションや子のエージェントが同じインスタンスを順に直すときに、自分が読んだ指紋を渡すために使う（S-UC2-PARALLEL）。仮説の if_match（直す前の指紋）は任意の欄なので一致"
+  },
+  {
+   "item": "集約インスタンスの『SAS を通らない変更を見分ける』",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "見分けるところまではステップ2 で入った：記録の指紋のつながりがいまの指紋に届かなければ untracked として返し、書かない（S-UC2-UNTRACKED）。取り込み（--adopt と source = outside の操作）はステップ3"
+  },
+  {
+   "item": "serde_json の欄の並び",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "既定の BTreeMap では、書き戻すと人が書いた文書の欄が名前の順に並び替わる。preserve_order を使い、欄を除くときは shift_remove にした"
+  },
+  {
+   "item": "場面の traces の拡張と変形の書き方",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "UC1 ・ UC2 は一覧の形で、主シナリオに番号が無い。scenario.schema.json の traces に『拡張：一覧の文』『変形：一覧の文』を足した。番号を振るなら、ユースケースの本文（re-uc.json）を直す"
+  },
+  {
+   "item": "Concrete の更新で外れたインスタンスがあるときの終了コード",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "更新は書けたので 0 を返し、外れは violated_instances で返す。CI がこれで止めたいかは、UC0 の流れを作るときに確かめる"
+  },
+  {
+   "item": "操作の intent（operation-request の common.intent ・ operations.intent）",
+   "result": "match",
+   "fixed": "none",
+   "note": "記録の使い道がはっきりしたので足した：間に入った変更を返すとき、後の書き手は間の操作の意図を読んで、上書きしてよいかを決める。CLI の --intent で渡し、渡さなければ記録しない（仮説も任意）"
+  },
+  {
+   "item": "記録を読んで返す『間に入った変更』（error の interleaved）",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "仮説の conflict は書かないことだけで、何が間に入ったかを返す欄が無かった。operation-result の $defs に interleaved と written-operation を足し、conflict のときだけ持つ"
+  },
+  {
+   "item": "--if-match を省いた更新で、SAS が一度も書いていない対象",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "比べる指紋が無いので書く（S-UC2-FIRST-WRITE）。書く前のファイルが SAS を通らずに変わっていても見分けられない。取り込んだファイルの最初の指紋を記録するのはステップ3 の UC1 の変形『既存のファイルを取り込む』で、そこで比べる指紋ができる"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "契約",
+   "seen": "文脈の名前と crate の説明（業務領域『契約への適合』）",
+   "drift": "UC1 ・ UC2 の手続き ・ 場面 ・ 出力にも一度も出てこない。ステップ1 と同じ"
+  },
+  {
+   "term": "型",
+   "seen": "UC1『型に従って書き』、UC1 の最低保証『型に従わないもの』",
+   "drift": "コードでは『従う Concrete（Concrete なら Abstract の版）』と書き、出力では target.concrete。対象が Concrete のときは Abstract、インスタンスのときは Concrete を指す。『契約』と同じく2つの階層を指すが、こちらは手続きの中で実際に使う語"
+  },
+  {
+   "term": "差分",
+   "seen": "UC2『差分を当てて』、計画『値 diff』",
+   "drift": "入力の JSON Patch（操作の並び。move ・ copy ・ test を含む）と、出力 ・ 記録の差分（欄ごとの add ・ remove ・ replace）の2つを指す。コードでは patch と Diff に分けた"
+  },
+  {
+   "term": "取り込めない更新",
+   "seen": "UC2 の最低保証",
+   "drift": "ステップ3 の『取り込み（--adopt）』と同じ語。ここでは指紋が違う ・ 当てられない ・ 形や書く条件に外れるものを指し、どれも『書かなかった更新』として記録した"
+  },
+  {
+   "term": "人の入口",
+   "seen": "Abstract の x-decided-by の rule『本人の承認（人の判定）』、計画『人の欄は人の入口から』",
+   "drift": "いまは --session を付けない呼び出しを人とみなす（ステップ1 の呼び出し元の見分け）。ツールが --session を付けなければ人として通るので、人の判定の記録とは別のもの"
+  },
+  {
+   "term": "公開した版",
+   "seen": "計画『公開した版を変えない』",
+   "drift": "x-published は欄ごとの宣言で、版は $id の v<版>。『版を公開した』のではなく『欄を公開した』ので、公開した欄を同じ版のまま変えない、と読んだ"
+  },
+  {
+   "term": "作成の操作の記録（事後）の ID",
+   "seen": "UC1 の成功時保証",
+   "drift": "返すのは操作の ID と事後の指紋。『事後』は記録の中の指紋で、ID とは別の欄"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "ポート DocumentStore",
+    "before": "list ・ read",
+    "after": "write を足した（一時ファイルに書いて置き換える）",
+    "why": "作成 ・ 更新で書く"
+   },
+   {
+    "what": "ポート OperationLog",
+    "before": "caller_session ・ append_validate",
+    "after": "append_change ・ find_request ・ writes ・ last_judgments を足した",
+    "why": "作成 ・ 更新の記録、1つの依頼に操作は1回、前の判定のうち効かなくなったものを返すため。writes は、--if-match を省いたときに比べる指紋と、間に入った変更を組むため"
+   },
+   {
+    "what": "conformance-application のモジュール",
+    "before": "use_cases/documents.rs に validate",
+    "after": "同じファイルに create ・ update と共有の関数（Corpus ・ classify ・ form_violations）、下に private な documents/patch.rs",
+    "why": "ユースケースごとのファイルを作らない決まりのまま、RFC の手続きだけを分けた"
+   },
+   {
+    "what": "conformance-domain",
+    "before": "集約は読む部分、値は指紋 ・ 5つの値 ・ rule の結果",
+    "after": "集約に書く条件、値に Diff ・ FieldChange ・ Change ・ WriteViolation、Fingerprint::parse",
+    "why": "引き上げの表のとおり"
+   },
+   {
+    "what": "DB",
+    "before": "0001-validate.sql",
+    "after": "0002-change.sql（operations を作り直して kind ・ request_id ・ concrete_ref ・ refusal ・ intent を足す、field_changes、続き番号 ・ 判定は検証だけ ・ 欄は書いた変更だけの trigger）",
+    "why": "作成 ・ 更新の記録"
+   },
+   {
+    "what": "serde_json",
+    "before": "既定（BTreeMap）",
+    "after": "preserve_order",
+    "why": "書き戻した文書の欄の並びを変えないため"
+   },
+   {
+    "what": "場面の traces",
+    "before": "拡張は番号だけ",
+    "after": "番号の無いユースケースは一覧の文で書ける",
+    "why": "UC1 ・ UC2 に主シナリオの番号が無い"
+   },
+   {
+    "what": "場面の命令",
+    "before": "args（sas）・ git",
+    "after": "write（SAS を通らずにファイルを書く。エディターで直したことの代わり）を足した",
+    "why": "SAS を通らない変更で止まることを場面で確かめるため（S-UC2-UNTRACKED）"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "diff.schema.json ・ operation-request.schema.json",
+    "why": "突き合わせの表に理由"
+   },
+   {
+    "what": "outbound-git ・ version_reader ・ before_unavailable ・ --adopt ・ UC1 の変形『既存のファイルを取り込む』",
+    "why": "ステップ3"
+   },
+   {
+    "what": "意味の作成 ・ 更新（x-prompt の欄をエージェントが書く）",
+    "why": "ステップ6"
+   },
+   {
+    "what": "入れ子の欄の書く条件、判定の表の rule_schema ・ reads_hash",
+    "why": "判定の読む所の決まりを作るステップ3 と、入れ子の欄の rule を当てるステップで足す"
+   }
+  ],
+  "context": {
+   "name": "契約とインスタンス（contracts-and-instances）",
+   "scope": "1つの文脈に4つの業務領域（契約への適合 ・ 意味の操作 ・ 操作の記録 ・ 描画）。作ったのは適合と記録の2つ",
+   "name_signs": [
+    "UC1 ・ UC2 でも『契約』は手続き ・ 場面 ・ 出力のどこにも出てこない。2つのステップを通して、手続きが使う語は Abstract ・ Concrete ・ インスタンス ・ 型 ・ 従う ・ 書く条件 ・ 差分 ・ 指紋 ・ 操作",
+    "UC1〜UC6 の一覧は、どれも『対象：Concrete かインスタンス』と書き、コードの集約も ConcreteSchema と Instance の2つ。文脈が扱うものは、従う側（スキーマ）と従われる側（インスタンス）の対で言える",
+    "JSON Schema 2020-12 の core は、スキーマを当てる文書を instance と呼ぶ（照合済み）。Abstract も Concrete も JSON Schema のスキーマなので、『スキーマとインスタンス』は造語でなく原典の語の対になる",
+    "強さ：ステップ1 は兆しの段階だったが、UC1 ・ UC2 で語が増えても『契約』を使う場面が1つも無かったので、変える兆しは強いと考える"
+   ],
+   "scope_signs": [
+    "操作の記録はまだ適合の言葉に依らない：変わった欄は JSON Pointer と JSON の値、断った理由は文字列で持つ",
+    "向きが1つ増えた：適合の手続きが記録を読む（前の判定 ・ 同じ request_id の操作）。記録は適合へ情報を渡す側（上流）として働いており、別の文脈に分けても向きは変わらない",
+    "逆向きの兆しは変わらない：5つの値と by に加え、断った理由の決まった名前（7つ）も、適合の側（RECORDED_CODES）と結果のスキーマの両方が持つ。記録の表は名前を解釈しない"
+   ],
+   "view": "名前は変える案を出す。案は『スキーマとインスタンス（schemas-and-instances）』で、JSON Schema の原典の語の対であり、UC1〜UC6 の『対象：Concrete かインスタンス』と集約2つをそのまま言える。次の案は『Concrete とインスタンス』だが、Abstract（入れて出すスキーマ）を名前から外すので1つ目を推す。変えたときの波及：フォルダ contracts-and-instances/ と、crate の名前の頭（8つの crate。Cargo.toml の members ・ 依存の path は相対のまま、crate の名前と Rust の use の contracts_and_instances_* がすべて変わる）、architecture.json の context と crate_name_prefix、CODING.md ・ README.md、arch-v15 の木。業務領域『契約への適合』も同じ語を持つので、名前を変えるなら『スキーマへの適合』などに合わせて見直す（フォルダ conformance/ は変わらない）。過去の探索の記録とコミットの文はそのまま残す。範囲は変えない：記録は適合へ情報を渡す側として独立に書けているが、判定の値と断った理由の名前を両方が持つので、分けるなら共有する言葉の置き場所を先に決める。ステップ6 までは1つの文脈のまま進める。このステップでは名前も範囲も変えていない"
+  }
+ }
+}

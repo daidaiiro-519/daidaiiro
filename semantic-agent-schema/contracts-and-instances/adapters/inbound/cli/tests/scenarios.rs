@@ -1,5 +1,6 @@
 //! システムテスト：test-suite/scenarios/ の場面を1つずつ、空の作業ディレクトリで sas を動かして確かめる。
 //! ネットワークと本物のエージェントは使わない。given の git だけは準備として本物の git を使う。
+//! given の write は、SAS を通らずにファイルを書く（エディターで直したことの代わり）。
 
 #![allow(clippy::expect_used, clippy::panic)]
 
@@ -137,6 +138,13 @@ fn play(scenario: &Value) {
         .into_iter()
         .flatten()
     {
+        // SAS を通らない書き込み（エディターで直したことの代わり）
+        if let Some(w) = step.get("write") {
+            let to = dir.join(w["path"].as_str().expect("path は文字列"));
+            std::fs::write(to, w["content"].as_str().expect("content は文字列"))
+                .expect("ファイルを書けること");
+            continue;
+        }
         let out = run(&dir, step);
         assert!(
             out.status.success(),

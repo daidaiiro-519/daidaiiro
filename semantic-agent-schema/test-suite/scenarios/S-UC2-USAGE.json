@@ -1,0 +1,38 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-USAGE",
+ "name": "更新の使い方の誤り",
+ "title": "--patch を渡さずに直そうとすると、使い方の誤りで終了コード 2 を返す",
+ "why": "何を直すかが無い更新を受けると、呼ぶ側の誤りに気づけない。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

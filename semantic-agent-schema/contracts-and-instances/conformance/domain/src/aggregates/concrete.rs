@@ -2,8 +2,9 @@
 //!
 //! 自明として最初から domain に置いた（探索の記録 step-01 に根拠）。版は閉じた一覧から申告し、
 //! 本体（Abstract）の x- の名前を足さず、使う x- は本体か自分の x-extensions にあるものだけ。
+//! 書く条件（ステップ2）：公開した欄（x-published: true）を同じ版のまま変えない。
 
-use crate::values::{By, RuleResult, Verdict};
+use crate::values::{By, RuleResult, Verdict, WriteViolation};
 use serde_json::Value;
 use std::collections::BTreeSet;
 
@@ -159,6 +160,45 @@ impl ConcreteSchema {
     }
 }
 
+impl ConcreteSchema {
+    /// この中身を書いてよいか（ステップ2）。before は直す前の中身（作成なら None）。
+    /// 直す前に x-published: true だった根の欄は、$id（版）を変えずには変えない ・ 消さない。
+    ///
+    /// # Errors
+    /// 公開した欄を同じ版のまま変えたとき（最初に見つけた1つ）。
+    pub fn check_write(&self, before: Option<&Self>) -> Result<(), WriteViolation> {
+        let Some(b) = before else {
+            return Ok(());
+        };
+        if b.id() != self.id() {
+            return Ok(());
+        }
+        let now = self.document.get("properties");
+        for (name, field) in b
+            .document
+            .get("properties")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+        {
+            if field.get("x-published").and_then(Value::as_bool) == Some(true)
+                && now.and_then(|p| p.get(name)) != Some(field)
+            {
+                let at = format!("/properties/{}", escape(name));
+                return Err(WriteViolation::new(
+                    "published_changed",
+                    &at,
+                    &format!(
+                        "{at} は x-published: true の欄で、ほかの文脈が読む。変えるときは $id の版を上げる（いまの版：{}）",
+                        self.id().unwrap_or("（無し）")
+                    ),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// 文書の根の x-extensions に並ぶ名前（Abstract の本体にも Concrete にも使う）。
 #[must_use]
 pub fn extension_names(document: &Value) -> BTreeSet<String> {
@@ -245,5 +285,29 @@ mod tests {
         let r = c.judge("abstract-keywords-closed", "", &names()).unwrap();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].pointer(), "/properties/a/x-other");
+    }
+
+    #[test]
+    fn published_field_needs_new_version() {
+        let abs = "urn:semantic-agent-schema:base:semantic-abstract-schema:v1";
+        let before = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
+            "properties": {"s": {"x-published": true, "type": "string"}, "t": {"type": "string"}}}))
+        .unwrap();
+        let other = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
+            "properties": {"s": {"x-published": true, "type": "string"}, "t": {"type": "number"}}}))
+        .unwrap();
+        let changed = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
+            "properties": {"s": {"x-published": true, "type": "array"}}}))
+        .unwrap();
+        let next = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v2",
+            "properties": {"s": {"x-published": true, "type": "array"}}}))
+        .unwrap();
+        assert!(other.check_write(Some(&before)).is_ok());
+        assert_eq!(
+            changed.check_write(Some(&before)).err().map(|v| v.code()),
+            Some("published_changed")
+        );
+        assert!(next.check_write(Some(&before)).is_ok());
+        assert!(changed.check_write(None).is_ok());
     }
 }

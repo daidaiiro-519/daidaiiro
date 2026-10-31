@@ -20,6 +20,17 @@ impl Fingerprint {
         Self(hex)
     }
 
+    /// 記録や引数の文字列から読む。`sha256:` に続く小文字の16進64字でなければ None。
+    #[must_use]
+    pub fn parse(text: &str) -> Option<Self> {
+        let hex = text.strip_prefix("sha256:")?;
+        (hex.len() == 64
+            && hex
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+        .then(|| Self(text.to_string()))
+    }
+
     /// 文字列として読む。
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -36,5 +47,9 @@ mod tests {
         assert_eq!(Fingerprint::of(b"{}"), Fingerprint::of(b"{}"));
         assert_ne!(Fingerprint::of(b"{}"), Fingerprint::of(b"{ }"));
         assert!(Fingerprint::of(b"").as_str().starts_with("sha256:"));
+        let fp = Fingerprint::of(b"{}");
+        assert_eq!(Fingerprint::parse(fp.as_str()), Some(fp));
+        assert_eq!(Fingerprint::parse("sha256:00"), None);
+        assert_eq!(Fingerprint::parse("md5:00"), None);
     }
 }

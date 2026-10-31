@@ -1,0 +1,42 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-HUMAN-UPDATE",
+ "name": "人が人の欄を直す",
+ "title": "名乗らない呼び出し（人）が人の欄を直すと、直せる",
+ "why": "人の入口からも直せないと、人の欄を誰も変えられない。",
+ "traces": [
+  "UC2:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/decision.schema.json": "@fixtures/decision.schema.json",
+   "decisions/d1.json": "@fixtures/d1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "decisions/d1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/status\",\"value\":\"approved\"}]",
+   "--if-match",
+   "sha256:d7ef0cf6166d824a6113c9e9ae9fd123fcfbf9b7163043e558e7850b96123003"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "updated"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/pointer",
+   "equals": "/status"
+  }
+ ]
+}

@@ -15,6 +15,13 @@ pub trait DocumentStore {
     /// # Errors
     /// 無い ・ 読めないとき。
     fn read(&self, path: &str) -> Result<String, String>;
+
+    /// 文書を書く。途中で止まっても、前の中身か新しい中身のどちらかが残る（一時ファイルに書いて置き換える）。
+    /// 書くのは SAS の use_cases だけ。
+    ///
+    /// # Errors
+    /// 経路がリポジトリの外か SAS の記録を指す ・ 書けないとき。
+    fn write(&self, path: &str, text: &str) -> Result<(), String>;
 }
 
 /// JSON Schema 2020-12 の検査器。SAS が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）は検査器の側が持つ。

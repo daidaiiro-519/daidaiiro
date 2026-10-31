@@ -1,0 +1,50 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-INVALID",
+ "name": "型に従わなくなる",
+ "title": "当てた結果が Concrete の形に従わないと、直さずに invalid_value と記録を返す",
+ "why": "形に外れた結果を書くと、そのファイルを読む人とツールが壊れる。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/calls\",\"value\":\"U2\"}]",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_value"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "/calls"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}
