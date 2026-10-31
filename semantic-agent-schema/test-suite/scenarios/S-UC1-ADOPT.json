@@ -1,0 +1,70 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC1-ADOPT",
+ "name": "既存のファイルを取り込む",
+ "title": "SAS の記録に無い既存のファイルを create --adopt で取り込むと、ファイルは変えずに source = outside の作成として記録し、以後は比べる指紋になる",
+ "why": "SAS を使う前からあるファイルを記録に載せられないと、そのファイルへの外の変更を見つけられない。",
+ "traces": [
+  "UC1:変形:既存のファイルを取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "usecases/u1.json",
+   "--adopt"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "usecases/u1.json"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "adopted"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/source",
+   "equals": "outside"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes",
+   "count": 4
+  },
+  {
+   "of": "when",
+   "pointer": "/target/concrete",
+   "equals": "urn:semantic-agent-schema:sample:usecase:v1"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/untracked",
+   "count": 0
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

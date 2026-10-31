@@ -8,18 +8,22 @@ mod output;
 
 use caller::FromArguments;
 use schemas_and_instances_adapters_outbound_files::WorkingTree;
+use schemas_and_instances_adapters_outbound_git::GitCommits;
 use schemas_and_instances_adapters_outbound_jsonschema::Checker;
 use schemas_and_instances_adapters_outbound_sqlite::SqliteLog;
 use schemas_and_instances_conformance_application::use_cases::documents::{
-    ChangeResult, CreateRequest, Refused, Scope, UpdateRequest, create, update, validate,
+    AdoptAs, AdoptRequest, ChangeResult, CreateRequest, Refused, Scope, UpdateRequest, adopt,
+    create, update, validate, validate_stale,
 };
 use serde_json::Value;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "使い方：sas validate [--session <名前>] (<経路>... | --all) ／ \
+const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --patch <JSON Patch> [--if-match <指紋>] [--intent <意図>] [--session <名前>] [--request-id <ID>]";
+sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
+sas update <経路> --patch <JSON Patch> [--if-match <指紋>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
+sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -66,11 +70,13 @@ fn adapters() -> Result<(WorkingTree, Checker, SqliteLog), Refused> {
 fn run_validate(args: &[String]) -> ExitCode {
     let mut session = None;
     let mut all = false;
+    let mut stale = false;
     let mut paths = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--all" => all = true,
+            "--stale" => stale = true,
             "--session" => match it.next() {
                 Some(s) if !s.is_empty() => session = Some(s.clone()),
                 _ => return usage("--session に名前がありません"),
@@ -83,13 +89,16 @@ fn run_validate(args: &[String]) -> ExitCode {
         (true, true) => Scope::All,
         (false, false) => Scope::Paths(paths),
         (true, false) => return usage("経路と --all は一緒に渡せません"),
+        // 入力が変わった rule だけなら、経路を渡さなければすべてを見る
+        (false, true) if stale => Scope::All,
         (false, true) => return usage("検証する経路か --all を渡してください"),
     };
+    let run = if stale { validate_stale } else { validate };
     let (store, checker, mut log) = match adapters() {
         Ok(a) => a,
         Err(r) => return refuse(&r),
     };
-    match validate(
+    match run(
         &scope,
         &store,
         &checker,
@@ -115,6 +124,9 @@ enum Command {
 }
 
 fn run_change(args: &[String], command: Command) -> ExitCode {
+    // --adopt は値を取らない旗なので、先に抜き出す
+    let adopting = args.iter().any(|a| a == "--adopt");
+    let args: Vec<String> = args.iter().filter(|a| *a != "--adopt").cloned().collect();
     let mut flags: Vec<(&str, Option<String>)> = match command {
         Command::Create => vec![("--concrete", None), ("--value", None)],
         Command::Update => vec![("--patch", None), ("--if-match", None)],
@@ -150,12 +162,48 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     let session = take("--session");
     let request_id = take("--request-id");
     let intent = take("--intent");
+    if adopting {
+        // 取り込みはファイルを書かないので、書く中身（--value ・ --patch）と前提の指紋（--if-match）を受けない
+        if let Some(name) = ["--value", "--patch", "--if-match"]
+            .into_iter()
+            .find(|n| take(n).is_some())
+        {
+            return usage(&format!("--adopt と {name} は一緒に渡せません"));
+        }
+        if command == Command::Update && intent.is_none() {
+            return usage(
+                "--adopt で更新を取り込むときは、外で直した意図を --intent で渡してください",
+            );
+        }
+        let request = AdoptRequest {
+            path: path.clone(),
+            as_kind: match command {
+                Command::Create => AdoptAs::Create,
+                Command::Update => AdoptAs::Update,
+            },
+            concrete: take("--concrete"),
+            intent,
+            request_id,
+        };
+        let committed = GitCommits::new(PathBuf::from("."));
+        let result = run_with(
+            |store, checker, who, log| adopt(&request, store, checker, &committed, who, log),
+            session,
+        );
+        return match result {
+            Ok(c) => {
+                output::print_change(&c);
+                ExitCode::SUCCESS
+            }
+            Err(r) => refuse(&r),
+        };
+    }
     let json = |name: &str| -> Result<Value, ExitCode> {
         let text = take(name).ok_or_else(|| usage(&format!("{name} を渡してください")))?;
         serde_json::from_str(&text).map_err(|e| {
             refuse(&Refused {
                 code: "invalid_input",
-                path: Some(path.clone()),
+                path: Some(path.as_str().into()),
                 message: format!("{name} が JSON として読めない：{e}"),
                 ..Refused::default()
             })

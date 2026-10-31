@@ -4,10 +4,13 @@
 //!   当たる rule ・ 参照の先を判定し、対象ごとに検証の操作を1件記録して、結果と記録の ID を返す。検証は対象を変えない。
 //! - UC1 作成する ・ UC2 更新する（機械）：値か JSON Patch から書く中身を作り、形と集約の書く条件を確かめてから書き、
 //!   前後の中身から求めた差分と一緒に操作を記録する。書く手前で断ったものも、理由と一緒に記録する。
+//! - SAS を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
+//!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録の最後の事後と同じ中身のコミットから取る。
+//! - UC4 の範囲「入力が変わった rule だけ」と、SAS を通らない変更があった対象の知らせ。
 
 mod patch;
 
-use crate::ports::{DocumentStore, SchemaChecker};
+use crate::ports::{CommitReader, DocumentStore, SchemaChecker};
 use schemas_and_instances_conformance_domain::aggregates::{
     ABSTRACT_VERSIONS, ConcreteSchema, Entry, Instance, extension_names,
 };
@@ -18,7 +21,8 @@ use schemas_and_instances_conformance_domain::values::{
     By, Change, Counts, Diff, FieldChange, Fingerprint, RuleResult, Verdict,
 };
 use schemas_and_instances_operation_recording_application::ports::{
-    Caller, ChangeRow, FieldRow, IdentifyCaller, OperationLog, RuleRow, StoredChange, ValidateRow,
+    Caller, ChangeRow, FieldRow, IdentifyCaller, Judgment, OperationLog, RuleRow, StoredChange,
+    ValidateRow,
 };
 use schemas_and_instances_operation_recording_application::use_cases::history::{
     Interleaved, interleaved, last_written, record_change, record_validations,
@@ -75,6 +79,21 @@ pub struct TargetResult {
     pub counts: Counts,
     /// 記録した操作の ID
     pub operation: String,
+    /// 入力が変わった rule だけを検証したとき、読んだ所が変わっていないので判定し直さなかった rule の id
+    pub unchanged_rules: Vec<String>,
+}
+
+/// 記録の最後の事後と中身が違う対象（SAS を通らない変更があった）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Untracked {
+    /// 経路
+    pub path: String,
+    /// 対象を最後に書いた操作の ID
+    pub last_operation: String,
+    /// その操作の事後の指紋
+    pub expected: String,
+    /// いまの中身の指紋
+    pub actual: String,
 }
 
 /// 検証の結果と、記録の ID。
@@ -86,6 +105,12 @@ pub struct Validation {
     pub targets: Vec<TargetResult>,
     /// 全体の件数
     pub counts: Counts,
+    /// 入力が変わった rule だけを検証したか
+    pub stale_only: bool,
+    /// 入力が変わった rule だけを検証したとき、変わった rule が無く記録しなかった対象
+    pub unchanged_targets: Vec<String>,
+    /// SAS を通らない変更があった対象（いまの中身を検証した）
+    pub untracked: Vec<Untracked>,
 }
 
 /// 操作を始められなかった ・ 書かなかった理由。
@@ -94,10 +119,11 @@ pub struct Validation {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
-    /// invalid_input ・ request_reused ・ store ・ checker ・ log、記録するものは RECORDED_CODES）
+    /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ checker ・ commits ・ log、
+    /// 記録するものは RECORDED_CODES）
     pub code: &'static str,
     /// 対象の経路（あれば）
-    pub path: Option<String>,
+    pub path: Option<Box<str>>,
     /// 理由
     pub message: String,
     /// 断った操作を記録したセッションの ID
@@ -106,17 +132,20 @@ pub struct Refused {
     pub operation: Option<String>,
     /// 指紋が違って断ったとき（conflict）の、間に入った変更
     pub interleaved: Option<Box<Interleaved>>,
+    /// 次にすることの案内（SAS を通らない変更を取り込むコマンドなど）
+    pub hint: Option<Box<String>>,
 }
 
 fn refused(code: &'static str, path: &str, message: String) -> Refused {
     Refused {
         code,
-        path: Some(path.to_string()),
+        path: Some(path.into()),
         message,
         ..Refused::default()
     }
 }
 
+#[derive(Clone)]
 struct Doc {
     path: String,
     text: String,
@@ -239,12 +268,159 @@ pub fn validate(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
 ) -> Result<Validation, Refused> {
+    run_validate(scope, false, store, checker, who, log)
+}
+
+/// UC4 の範囲「入力が変わった rule だけ」：rule ごとに、前の判定が読んだ所の指紋といまの指紋を比べ、
+/// 違う rule（前の判定が無い rule を含む）だけを判定して記録する。変わった rule が1つも無い対象は記録しない。
+///
+/// # Errors
+/// validate と同じ。
+pub fn validate_stale(
+    scope: &Scope,
+    store: &dyn DocumentStore,
+    checker: &dyn SchemaChecker,
+    who: &dyn IdentifyCaller,
+    log: &mut dyn OperationLog,
+) -> Result<Validation, Refused> {
+    run_validate(scope, true, store, checker, who, log)
+}
+
+/// 判定と、その判定が読んだ所（JSON Pointer。"" は文書全体）。
+/// 読んだ所は当たる rule の所で、形の検査と参照の先の判定は文書全体を読む。
+type Judged = (RuleResult, String);
+
+fn whole(r: RuleResult) -> Judged {
+    (r, String::new())
+}
+
+/// 1つの対象のすべての rule を判定する。
+fn judge(
+    d: &Doc,
+    kind: TargetKind,
+    declared: &str,
+    checker: &dyn SchemaChecker,
+    corpus: &Corpus,
+    known_concretes: &BTreeSet<String>,
+) -> Result<Vec<Judged>, Refused> {
     let Corpus {
-        docs: corpus,
         concretes,
         more,
         instances,
-    } = Corpus::load(store)?;
+        ..
+    } = corpus;
+    let mut results: Vec<Judged> = Vec::new();
+    let broken = form_violations(checker, kind, declared, &d.value, more)
+        .map_err(|e| refused("checker", &d.path, e))?;
+    if broken.is_empty() {
+        results.push(whole(RuleResult::new(
+            "json-schema",
+            "",
+            By::Machine,
+            Verdict::Verified,
+            "形が従う",
+        )));
+    }
+    for (at, why) in broken {
+        results.push(whole(RuleResult::new(
+            "json-schema",
+            &at,
+            By::Machine,
+            Verdict::Violated,
+            &why,
+        )));
+    }
+    match kind {
+        TargetKind::Concrete => {
+            let abstract_doc = checker.shipped(declared).ok_or_else(|| {
+                refused("checker", &d.path, format!("{declared} を検査器が持たない"))
+            })?;
+            let names = extension_names(&abstract_doc);
+            let concrete = ConcreteSchema::read(&d.value).ok_or_else(|| {
+                refused("checker", &d.path, "Concrete として読めない".to_string())
+            })?;
+            for rule in rules_for_concrete(&abstract_doc, &concrete) {
+                if let Some(rs) = concrete.judge(&rule.id, &rule.pointer, &names) {
+                    results.extend(rs.into_iter().map(|r| (r, rule.pointer.clone())));
+                } else if rule.id == "target-exists" {
+                    let rs = check_targets(concrete.document(), known_concretes);
+                    if rs.is_empty() {
+                        results.push(whole(RuleResult::new(
+                            &rule.id,
+                            &rule.pointer,
+                            By::Machine,
+                            Verdict::Verified,
+                            "x-relationship の to が無い",
+                        )));
+                    }
+                    results.extend(rs.into_iter().map(whole));
+                } else {
+                    results.push((judge_others(&rule), rule.pointer.clone()));
+                }
+            }
+        }
+        TargetKind::Instance => {
+            let concrete_doc = concretes
+                .get(declared)
+                .map(ConcreteSchema::document)
+                .cloned()
+                .unwrap_or_default();
+            for rule in rules_for_instance(&concrete_doc, &d.value) {
+                results.push((judge_others(&rule), rule.pointer.clone()));
+            }
+            results.extend(
+                check_relationships(&concrete_doc, &d.value, instances)
+                    .into_iter()
+                    .map(whole),
+            );
+        }
+    }
+    Ok(results)
+}
+
+/// 判定が読んだ所の指紋。
+fn reads_of(document: &Value, at: &str) -> Fingerprint {
+    Fingerprint::of_read(at, document.pointer(at))
+}
+
+/// 前の判定のあと、読んだ所が変わった rule の id。前の判定の指紋が無い（ステップ2 までの記録）rule も入る。
+/// いまの判定と前の判定で、rule ごとに「読んだ所の指紋」の集まりを比べる。
+fn changed_rules(document: &Value, now: &[Judged], before: &[Judgment]) -> BTreeSet<String> {
+    let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+    for (r, at) in now {
+        current
+            .entry(r.rule())
+            .or_default()
+            .insert(reads_of(document, at).as_str().to_string());
+    }
+    let mut previous: BTreeMap<&str, BTreeSet<Option<String>>> = BTreeMap::new();
+    for j in before {
+        previous
+            .entry(j.rule.rule.as_str())
+            .or_default()
+            .insert(j.rule.reads.clone());
+    }
+    current
+        .into_iter()
+        .filter(|(rule, reads)| {
+            previous.get(rule).is_none_or(|p| {
+                p.contains(&None) || p.iter().flatten().cloned().collect::<BTreeSet<_>>() != *reads
+            })
+        })
+        .map(|(rule, _)| rule.to_string())
+        .collect()
+}
+
+fn run_validate(
+    scope: &Scope,
+    stale_only: bool,
+    store: &dyn DocumentStore,
+    checker: &dyn SchemaChecker,
+    who: &dyn IdentifyCaller,
+    log: &mut dyn OperationLog,
+) -> Result<Validation, Refused> {
+    let corpus = Corpus::load(store)?;
+    let concretes = &corpus.concretes;
 
     // 対象を決め、種類を見分ける
     let targets: Vec<Doc> = match scope {
@@ -263,7 +439,8 @@ pub fn validate(
             out
         }
         Scope::All => corpus
-            .into_iter()
+            .docs
+            .iter()
             .filter(|d| {
                 ConcreteSchema::declares_abstract(&d.value)
                     || d.value
@@ -271,6 +448,7 @@ pub fn validate(
                         .and_then(Value::as_str)
                         .is_some_and(|s| concretes.contains_key(s))
             })
+            .cloned()
             .collect(),
     };
     let mut classified = Vec::new();
@@ -281,119 +459,95 @@ pub fn validate(
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
-        let kind = classify(&concretes, &d.path, &declared)?;
+        let kind = classify(concretes, &d.path, &declared)?;
         classified.push((d, kind, declared));
     }
 
-    // 判定する
+    // 判定する。入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut known_concretes: BTreeSet<String> = concretes.keys().cloned().collect();
     known_concretes.extend(ABSTRACT_VERSIONS.iter().map(ToString::to_string));
     let mut judged = Vec::new();
+    let mut untracked = Vec::new();
+    let mut unchanged_targets = Vec::new();
     for (d, kind, declared) in classified {
-        let mut results = Vec::new();
-        let broken = form_violations(checker, kind, &declared, &d.value, &more)
-            .map_err(|e| refused("checker", &d.path, e))?;
-        if broken.is_empty() {
-            results.push(RuleResult::new(
-                "json-schema",
-                "",
-                By::Machine,
-                Verdict::Verified,
-                "形が従う",
-            ));
+        let fingerprint = Fingerprint::of(d.text.as_bytes());
+        // SAS を通らない変更：記録の最後の事後と、いまの中身の指紋が違う。知らせて、いまの中身を検証する
+        if let Some(last) = log.writes(&d.path).map_err(log_refused)?.pop()
+            && let Some(expected) = last.row.after.filter(|a| a != fingerprint.as_str())
+        {
+            untracked.push(Untracked {
+                path: d.path.clone(),
+                last_operation: last.operation,
+                expected,
+                actual: fingerprint.as_str().to_string(),
+            });
         }
-        for (at, why) in broken {
-            results.push(RuleResult::new(
-                "json-schema",
-                &at,
-                By::Machine,
-                Verdict::Violated,
-                &why,
-            ));
-        }
-        match kind {
-            TargetKind::Concrete => {
-                let abstract_doc = checker.shipped(&declared).ok_or_else(|| {
-                    refused("checker", &d.path, format!("{declared} を検査器が持たない"))
-                })?;
-                let names = extension_names(&abstract_doc);
-                let concrete = ConcreteSchema::read(&d.value).ok_or_else(|| {
-                    refused("checker", &d.path, "Concrete として読めない".to_string())
-                })?;
-                for rule in rules_for_concrete(&abstract_doc, &concrete) {
-                    if let Some(rs) = concrete.judge(&rule.id, &rule.pointer, &names) {
-                        results.extend(rs);
-                    } else if rule.id == "target-exists" {
-                        let rs = check_targets(concrete.document(), &known_concretes);
-                        if rs.is_empty() {
-                            results.push(RuleResult::new(
-                                &rule.id,
-                                &rule.pointer,
-                                By::Machine,
-                                Verdict::Verified,
-                                "x-relationship の to が無い",
-                            ));
-                        }
-                        results.extend(rs);
-                    } else {
-                        results.push(judge_others(&rule));
-                    }
+        let mut results = judge(&d, kind, &declared, checker, &corpus, &known_concretes)?;
+        let mut unchanged_rules = Vec::new();
+        if stale_only {
+            let before = log.last_judgments(&d.path).map_err(log_refused)?;
+            let changed = changed_rules(&d.value, &results, &before);
+            for (r, _) in &results {
+                if !changed.contains(r.rule()) && !unchanged_rules.iter().any(|u| u == r.rule()) {
+                    unchanged_rules.push(r.rule().to_string());
                 }
             }
-            TargetKind::Instance => {
-                let concrete_doc = concretes
-                    .get(&declared)
-                    .map(ConcreteSchema::document)
-                    .cloned()
-                    .unwrap_or_default();
-                for rule in rules_for_instance(&concrete_doc, &d.value) {
-                    results.push(judge_others(&rule));
-                }
-                results.extend(check_relationships(&concrete_doc, &d.value, &instances));
+            results.retain(|(r, _)| changed.contains(r.rule()));
+            if results.is_empty() {
+                unchanged_targets.push(d.path);
+                continue;
             }
         }
-        let counts = Counts::of(&results);
+        let rules: Vec<RuleResult> = results.iter().map(|(r, _)| r.clone()).collect();
+        let reads: Vec<String> = results
+            .iter()
+            .map(|(_, at)| reads_of(&d.value, at).as_str().to_string())
+            .collect();
+        let counts = Counts::of(&rules);
         judged.push((
             d.path,
             kind,
             declared,
-            Fingerprint::of(d.text.as_bytes()),
-            results,
+            fingerprint,
+            rules,
+            reads,
             counts,
+            unchanged_rules,
         ));
     }
 
     // 対象ごとに検証の操作を記録する（前後の指紋は同じ）
     let rows: Vec<ValidateRow> = judged
         .iter()
-        .map(|(path, kind, _, fp, results, _)| ValidateRow {
+        .map(|(path, kind, _, fp, results, reads, _, _)| ValidateRow {
             target_kind: kind.as_str().to_string(),
             target_path: path.clone(),
             before: fp.as_str().to_string(),
             after: fp.as_str().to_string(),
             results: results
                 .iter()
-                .map(|r| RuleRow {
+                .zip(reads)
+                .map(|(r, reads)| RuleRow {
                     rule: r.rule().to_string(),
                     pointer: r.pointer().to_string(),
                     by: r.by().as_str().to_string(),
                     result: r.verdict().as_str().to_string(),
                     reason: r.reason().to_string(),
+                    reads: Some(reads.clone()),
                 })
                 .collect(),
         })
         .collect();
-    let recorded = record_validations(who, log, &rows).map_err(|e| Refused {
-        code: "log",
-        message: e,
-        ..Refused::default()
-    })?;
+    let recorded = record_validations(who, log, &rows).map_err(log_refused)?;
     let mut total = Counts::default();
     let targets = judged
         .into_iter()
         .zip(recorded.operations)
         .map(
-            |((path, kind, schema, fingerprint, results, counts), operation)| {
+            |(
+                (path, kind, schema, fingerprint, results, _, counts, unchanged_rules),
+                operation,
+            )| {
                 total.merge(&counts);
                 TargetResult {
                     path,
@@ -403,6 +557,7 @@ pub fn validate(
                     results,
                     counts,
                     operation,
+                    unchanged_rules,
                 }
             },
         )
@@ -411,6 +566,9 @@ pub fn validate(
         session: recorded.session,
         targets,
         counts: total,
+        stale_only,
+        unchanged_targets,
+        untracked,
     })
 }
 
@@ -499,6 +657,10 @@ pub struct ChangeResult {
     pub violated: Vec<Violated>,
     /// 同じ request_id の操作がすでにあり、書かずにそれを返したか
     pub replayed: bool,
+    /// SAS を通らない変更を取り込んだ操作か（source = outside）
+    pub outside: bool,
+    /// 更新の取り込みで、欄ごとの前の値を取ったコミット。そのコミットが無ければ None（差分の欄は前の値を持たない）
+    pub before_commit: Option<String>,
 }
 
 /// 作成の依頼。
@@ -608,6 +770,7 @@ fn field_rows(diff: &Diff) -> Vec<FieldRow> {
             change: c.change().as_str().to_string(),
             before: c.before().map(Value::to_string),
             after: c.after().map(Value::to_string),
+            before_unavailable: c.before_unavailable(),
         })
         .collect()
 }
@@ -620,10 +783,15 @@ fn log_refused(e: String) -> Refused {
     }
 }
 
-/// 記録にある同じ依頼の操作を、結果に戻す。
-fn replay(stored: StoredChange, written: Written, path: &str) -> Result<ChangeResult, Refused> {
+/// 記録にある同じ依頼の操作を、結果に戻す。source は依頼の種類（sas ・ outside）。
+fn replay(
+    stored: StoredChange,
+    written: Written,
+    source: &str,
+    path: &str,
+) -> Result<ChangeResult, Refused> {
     let row = stored.row;
-    if row.kind != written.kind() || row.target_path != path {
+    if row.kind != written.kind() || row.source != source || row.target_path != path {
         return Err(refused(
             "request_reused",
             path,
@@ -640,11 +808,12 @@ fn replay(stored: StoredChange, written: Written, path: &str) -> Result<ChangeRe
                 .find(|c| **c == code)
                 .copied()
                 .unwrap_or("log"),
-            path: Some(row.target_path),
+            path: Some(row.target_path.into()),
             message,
             session: Some(stored.session),
             operation: Some(stored.operation),
             interleaved: None,
+            hint: None,
         });
     }
     let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
@@ -658,6 +827,10 @@ fn replay(stored: StoredChange, written: Written, path: &str) -> Result<ChangeRe
                 parse(&f.before),
                 parse(&f.after),
             ))
+            .map(|c| match (f.before_unavailable, c.after()) {
+                (true, Some(a)) => FieldChange::without_before(&f.pointer, a.clone()),
+                _ => c,
+            })
         })
         .collect();
     let after = row
@@ -682,6 +855,8 @@ fn replay(stored: StoredChange, written: Written, path: &str) -> Result<ChangeRe
         stale: Vec::new(),
         violated: Vec::new(),
         replayed: true,
+        outside: row.source == "outside",
+        before_commit: None,
     })
 }
 
@@ -699,11 +874,12 @@ fn refuse_and_record(
     match record_change(who, log, &row) {
         Ok(r) => Refused {
             code,
-            path: Some(row.target_path),
+            path: Some(row.target_path.into()),
             message,
             session: Some(r.session),
             operation: r.operations.into_iter().next(),
             interleaved: None,
+            hint: None,
         },
         Err(e) => log_refused(e),
     }
@@ -733,7 +909,7 @@ pub fn create(
     if let Some(id) = &request.request_id
         && let Some(stored) = log.find_request(id).map_err(log_refused)?
     {
-        return replay(stored, Written::Created, path);
+        return replay(stored, Written::Created, "sas", path);
     }
     let mut value = request.value.clone();
     let Some(object) = value.as_object_mut() else {
@@ -777,6 +953,7 @@ pub fn create(
     let kind = classify(&corpus.concretes, path, &request.concrete)?;
     let row = ChangeRow {
         kind: Written::Created.kind().to_string(),
+        source: "sas".to_string(),
         target_kind: kind.as_str().to_string(),
         target_path: path.to_string(),
         concrete: request.concrete.clone(),
@@ -836,6 +1013,8 @@ pub fn create(
         stale: Vec::new(),
         violated: Vec::new(),
         replayed: false,
+        outside: false,
+        before_commit: None,
     })
 }
 
@@ -868,7 +1047,7 @@ pub fn update(
     if let Some(id) = &request.request_id
         && let Some(stored) = log.find_request(id).map_err(log_refused)?
     {
-        return replay(stored, Written::Updated, path);
+        return replay(stored, Written::Updated, "sas", path);
     }
     let text = store
         .read(path)
@@ -885,6 +1064,7 @@ pub fn update(
     let current = Fingerprint::of(text.as_bytes());
     let row = ChangeRow {
         kind: Written::Updated.kind().to_string(),
+        source: "sas".to_string(),
         target_kind: kind.as_str().to_string(),
         target_path: path.to_string(),
         concrete: declared.clone(),
@@ -921,6 +1101,11 @@ pub fn update(
                 }
             ),
         );
+        r.hint = Some(Box::new(if between.untracked {
+            adopt_hint(path)
+        } else {
+            reapply_hint(path, current.as_str())
+        }));
         r.interleaved = Some(Box::new(between));
         return Err(r);
     }
@@ -984,8 +1169,32 @@ pub fn update(
     )
     .map_err(log_refused)?;
 
-    // 前の判定のうち、読む所が変えた欄と重なるもの（形の判定は書く前に照らし直したので除く）
-    let stale = log
+    let stale = stale_judgments(log, path, &diff)?;
+    let violated = match &own_id {
+        Some(id) => violated_instances(checker, &corpus, path, id, &more)?,
+        None => Vec::new(),
+    };
+    Ok(ChangeResult {
+        session: recorded.session,
+        operation: recorded.operations.into_iter().next().unwrap_or_default(),
+        written: Written::Updated,
+        kind,
+        path: path.to_string(),
+        concrete: declared,
+        before: Some(current),
+        after: after_fp,
+        diff,
+        stale,
+        violated,
+        replayed: false,
+        outside: false,
+        before_commit: None,
+    })
+}
+
+/// 前の判定のうち、読む所が変えた欄と重なるもの（形の判定は書く前に照らし直したので除く）。
+fn stale_judgments(log: &dyn OperationLog, path: &str, diff: &Diff) -> Result<Vec<Stale>, Refused> {
+    Ok(log
         .last_judgments(path)
         .map_err(log_refused)?
         .into_iter()
@@ -1000,43 +1209,310 @@ pub fn update(
             pointer: j.rule.pointer,
             operation: j.operation,
         })
-        .collect();
+        .collect())
+}
 
-    // Concrete を直したら、それに従うインスタンスを新しい形に照らす
+/// Concrete を直したら、それに従うインスタンスを新しい形に照らす。
+fn violated_instances(
+    checker: &dyn SchemaChecker,
+    corpus: &Corpus,
+    path: &str,
+    id: &str,
+    more: &[(String, Value)],
+) -> Result<Vec<Violated>, Refused> {
     let mut violated = Vec::new();
-    if let Some(id) = &own_id {
-        for d in &corpus.docs {
-            if d.path == path || d.value.get("$schema").and_then(Value::as_str) != Some(id) {
-                continue;
-            }
-            let broken = checker
-                .check(id, &d.value, &more)
-                .map_err(|e| refused("checker", &d.path, e))?;
-            if !broken.is_empty() {
-                violated.push(Violated {
-                    path: d.path.clone(),
-                    results: broken
-                        .iter()
-                        .map(|(at, why)| {
-                            RuleResult::new("json-schema", at, By::Machine, Verdict::Violated, why)
-                        })
-                        .collect(),
-                });
-            }
+    for d in &corpus.docs {
+        if d.path == path || d.value.get("$schema").and_then(Value::as_str) != Some(id) {
+            continue;
+        }
+        let broken = checker
+            .check(id, &d.value, more)
+            .map_err(|e| refused("checker", &d.path, e))?;
+        if !broken.is_empty() {
+            violated.push(Violated {
+                path: d.path.clone(),
+                results: broken
+                    .iter()
+                    .map(|(at, why)| {
+                        RuleResult::new("json-schema", at, By::Machine, Verdict::Violated, why)
+                    })
+                    .collect(),
+            });
         }
     }
+    Ok(violated)
+}
+
+/// SAS を通らない変更を取り込むコマンドの案内。
+fn adopt_hint(path: &str) -> String {
+    format!("意図を付けて取り込む：sas update {path} --adopt --intent \"…\"")
+}
+
+/// SAS を通した変更が間に入ったときに、のせ直して打ち直すコマンドの案内。
+fn reapply_hint(path: &str, current: &str) -> String {
+    format!(
+        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：sas update {path} --patch <JSON Patch> --if-match {current} --intent \"…\""
+    )
+}
+
+/// 取り込みを、作成として行うか更新として行うか。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdoptAs {
+    /// SAS の記録に無い既存のファイルを取り込む（UC1 の変形「既存のファイルを取り込む」）
+    Create,
+    /// SAS が書いたあとに外で直されたファイルを取り込む（UC2 の --adopt）
+    Update,
+}
+
+/// SAS を通らない変更の取り込みの依頼。ファイルは書かない。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdoptRequest {
+    /// 取り込む経路
+    pub path: String,
+    /// 作成か更新か
+    pub as_kind: AdoptAs,
+    /// 従う Concrete の $id。渡されたら $schema と同じかを確かめる（無ければ $schema から決める）
+    pub concrete: Option<String>,
+    /// 意図（なぜ外で直したか）。更新の取り込みでは要る
+    pub intent: Option<String>,
+    /// やり直しで同じ操作を2回残さないための ID
+    pub request_id: Option<String>,
+}
+
+/// 前の中身を探すコミットの数の上限。
+pub const COMMITS_TO_SEARCH: usize = 50;
+
+/// 記録の最後の事後と同じ中身のコミットを、新しい順に探す。見つからなければ None。
+fn find_commit(
+    committed: &dyn CommitReader,
+    path: &str,
+    expected: &str,
+) -> Result<Option<(String, Value)>, Refused> {
+    let store_err = |e: String| refused("commits", path, e);
+    for rev in committed
+        .commits(path, COMMITS_TO_SEARCH)
+        .map_err(store_err)?
+    {
+        let Some(bytes) = committed.read(&rev, path).map_err(store_err)? else {
+            continue;
+        };
+        if Fingerprint::of(&bytes).as_str() == expected
+            && let Ok(value) = serde_json::from_slice::<Value>(&bytes)
+        {
+            return Ok(Some((rev, value)));
+        }
+    }
+    Ok(None)
+}
+
+/// SAS を通らない変更を取り込む（UC1 の変形 ・ UC2 の --adopt）。ファイルは書かず、いまの中身を
+/// 形と集約の書く条件に照らしてから、source = outside の作成か更新として記録する。
+/// 更新の取り込みの差分は、記録の最後の事後と同じ中身のコミット（ふつうは HEAD）との比較で、
+/// そのコミットが無ければ前の値の無い差分（before_unavailable）にする。
+///
+/// # Errors
+/// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない ・ 作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無いか
+/// 外の変更が無い（何も記録しない）。形や書く条件に外れる（取り込まずに記録する）。コミットや記録を読めない ・ 記録できないとき。
+pub fn adopt(
+    request: &AdoptRequest,
+    store: &dyn DocumentStore,
+    checker: &dyn SchemaChecker,
+    committed: &dyn CommitReader,
+    who: &dyn IdentifyCaller,
+    log: &mut dyn OperationLog,
+) -> Result<ChangeResult, Refused> {
+    let path = request.path.as_str();
+    let written = match request.as_kind {
+        AdoptAs::Create => Written::Created,
+        AdoptAs::Update => Written::Updated,
+    };
+    if let Some(id) = &request.request_id
+        && let Some(stored) = log.find_request(id).map_err(log_refused)?
+    {
+        return replay(stored, written, "outside", path);
+    }
+    let text = store
+        .read(path)
+        .map_err(|e| refused("not_found", path, e))?;
+    let current: Value = serde_json::from_str(&text)
+        .map_err(|e| refused("not_json", path, format!("JSON として読めない：{e}")))?;
+    let declared = current
+        .get("$schema")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    if let Some(c) = &request.concrete
+        && *c != declared
+    {
+        return Err(refused(
+            "invalid_input",
+            path,
+            format!("ファイルの $schema（{declared}）が --concrete（{c}）と違う"),
+        ));
+    }
+    let corpus = Corpus::load(store)?;
+    let kind = classify(&corpus.concretes, path, &declared)?;
+    let fingerprint = Fingerprint::of(text.as_bytes());
+    let last = log.writes(path).map_err(log_refused)?.pop();
+
+    // 前の状態：作成の取り込みは記録が無いこと、更新の取り込みは記録の最後の事後といまの中身が違うこと
+    let expected = match (request.as_kind, last) {
+        (AdoptAs::Create, Some(w)) => {
+            return Err(refused(
+                "recorded",
+                path,
+                format!(
+                    "{path} は操作 {} で記録がある。外で直した変更は sas update {path} --adopt --intent \"…\" で取り込む",
+                    w.operation
+                ),
+            ));
+        }
+        (AdoptAs::Create, None) => None,
+        (AdoptAs::Update, None) => {
+            return Err(refused(
+                "not_recorded",
+                path,
+                format!(
+                    "{path} は SAS の記録に無い。既存のファイルは sas create {path} --adopt で取り込む"
+                ),
+            ));
+        }
+        (AdoptAs::Update, Some(w)) => {
+            let after = w.row.after.unwrap_or_default();
+            if after == fingerprint.as_str() {
+                return Err(refused(
+                    "nothing_to_adopt",
+                    path,
+                    format!(
+                        "いまの中身は操作 {} の事後と同じで、SAS を通らない変更が無い",
+                        w.operation
+                    ),
+                ));
+            }
+            if request.intent.is_none() {
+                return Err(refused(
+                    "invalid_input",
+                    path,
+                    "更新の取り込みには、外で直した意図（--intent）が要る".to_string(),
+                ));
+            }
+            Some(after)
+        }
+    };
+    let row = ChangeRow {
+        kind: written.kind().to_string(),
+        source: "outside".to_string(),
+        target_kind: kind.as_str().to_string(),
+        target_path: path.to_string(),
+        concrete: declared.clone(),
+        request_id: request.request_id.clone(),
+        // 断るときは対象を変えないので、事前と事後は同じ（作成は無し、更新はいまの中身）
+        before: expected.as_ref().map(|_| fingerprint.as_str().to_string()),
+        after: None,
+        refusal: None,
+        intent: request.intent.clone(),
+        fields: Vec::new(),
+    };
+    let found = match &expected {
+        Some(e) => find_commit(committed, path, e)?,
+        None => None,
+    };
+    let broken = form_violations(checker, kind, &declared, &current, &corpus.more)
+        .map_err(|e| refused("checker", path, e))?;
+    if !broken.is_empty() {
+        return Err(refuse_and_record(
+            who,
+            log,
+            row,
+            "invalid_value",
+            format!(
+                "いまの中身が型に従わないので取り込まない：{}",
+                violations_message(&broken)
+            ),
+        ));
+    }
+    // 書く条件：前の中身のコミットがあればそれと比べる。無ければ、前の値を知らない作成と同じに見る
+    // （ツールからの取り込みで人の欄が default 以外なら、外で人の欄が変わったかを確かめられないので断る）
+    let before_value = found.as_ref().map(|(_, v)| v);
+    if let Err((code, message)) = check_write(
+        kind,
+        before_value,
+        &current,
+        corpus.concretes.get(&declared),
+        entry(who),
+    ) {
+        let unknown = expected.is_some() && found.is_none();
+        let mut r = refuse_and_record(
+            who,
+            log,
+            row,
+            code,
+            if unknown && code == "human_field" {
+                format!(
+                    "{message}。前の中身のコミットが無く、外で人の欄が変わったかを確かめられない"
+                )
+            } else {
+                message
+            },
+        );
+        if code == "human_field" {
+            r.hint = Some(Box::new(format!(
+                "人が --session を付けずに取り込む：sas {} {path} --adopt{}",
+                written.kind(),
+                if expected.is_some() {
+                    " --intent \"…\""
+                } else {
+                    ""
+                }
+            )));
+        }
+        return Err(r);
+    }
+    let diff = match (&expected, &found) {
+        (None, _) => Diff::between(None, &current),
+        (Some(_), Some((_, before))) => Diff::between(Some(before), &current),
+        (Some(_), None) => Diff::without_before(&current),
+    };
+    let recorded = record_change(
+        who,
+        log,
+        &ChangeRow {
+            before: expected.clone(),
+            after: Some(fingerprint.as_str().to_string()),
+            fields: field_rows(&diff),
+            ..row
+        },
+    )
+    .map_err(log_refused)?;
+    let stale = stale_judgments(log, path, &diff)?;
+    let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
+    let violated = match (&own_id, request.as_kind) {
+        (Some(id), AdoptAs::Update) => {
+            let mut more: Vec<(String, Value)> = corpus
+                .more
+                .iter()
+                .filter(|(i, _)| i != id)
+                .cloned()
+                .collect();
+            more.push((id.clone(), current.clone()));
+            violated_instances(checker, &corpus, path, id, &more)?
+        }
+        _ => Vec::new(),
+    };
     Ok(ChangeResult {
         session: recorded.session,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
-        written: Written::Updated,
+        written,
         kind,
         path: path.to_string(),
         concrete: declared,
-        before: Some(current),
-        after: after_fp,
+        before: expected.as_deref().and_then(Fingerprint::parse),
+        after: fingerprint,
         diff,
         stale,
         violated,
         replayed: false,
+        outside: true,
+        before_commit: found.map(|(rev, _)| rev),
     })
 }

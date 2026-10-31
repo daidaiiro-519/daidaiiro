@@ -8,6 +8,7 @@
   "UC2:最低保証",
   "UC2:拡張:Concrete の更新でインスタンスが violated になった",
   "UC2:拡張:申告する Abstract の版を変えた",
+  "UC2:変形:SAS を通らない変更を取り込む",
   "UC4:成功時保証",
   "UC4:最低保証",
   "UC4:拡張:*a",
@@ -16,7 +17,9 @@
   "UC4:拡張:5a",
   "UC4:拡張:6a",
   "UC4:拡張:6b",
-  "UC4:拡張:6c"
+  "UC4:拡張:6c",
+  "UC4:変形:入力が変わった rule だけ",
+  "UC4:変形:SAS を通らない変更を見つける"
  ],
  "traces": [
   {
@@ -33,6 +36,7 @@
    "id": "UC1:最低保証",
    "meaning": "型に従わないものは作られず、理由と操作の記録が残る",
    "scenarios": [
+    "S-UC1-ADOPT-INVALID",
     "S-UC1-DERIVED",
     "S-UC1-EXISTS",
     "S-UC1-HUMAN-FIELD",
@@ -42,9 +46,20 @@
    "note": "断った作成の記録は、出力の operation の ID で確かめる。記録の行の中身は outbound の sqlite の試験（change_rows.rs）で確かめる"
   },
   {
+   "id": "UC1:変形:既存のファイルを取り込む",
+   "meaning": "既存のファイルを取り込む（$schema が1つに決まらないものは理由を返す）",
+   "scenarios": [
+    "S-UC1-ADOPT-INVALID",
+    "S-UC1-ADOPT-NO-SCHEMA",
+    "S-UC1-ADOPT-RECORDED",
+    "S-UC1-ADOPT"
+   ]
+  },
+  {
    "id": "UC2:成功時保証",
    "meaning": "事前と事後が操作の記録に残り、x-prompt を変えた欄の前の判定は効かない",
    "scenarios": [
+    "S-UC2-ADOPT",
     "S-UC2-DEFAULT",
     "S-UC2-FIRST-WRITE",
     "S-UC2-HUMAN-UPDATE",
@@ -58,11 +73,14 @@
    "id": "UC2:最低保証",
    "meaning": "取り込めない更新は対象を変えない",
    "scenarios": [
+    "S-UC2-ADOPT-HUMAN-FIELD",
+    "S-UC2-ADOPT-INVALID",
     "S-UC2-CONFLICT",
     "S-UC2-DERIVED",
     "S-UC2-HUMAN-FIELD",
     "S-UC2-ID",
     "S-UC2-INVALID",
+    "S-UC2-PARALLEL-REAPPLY",
     "S-UC2-PARALLEL",
     "S-UC2-PATCH-FAILED",
     "S-UC2-PUBLISHED",
@@ -76,6 +94,21 @@
    "scenarios": [
     "S-UC2-CONCRETE-VIOLATES"
    ]
+  },
+  {
+   "id": "UC2:変形:SAS を通らない変更を取り込む",
+   "meaning": "SAS が書いたあとに外で直されたファイルを、意図と、記録の最後の事後と同じ中身のコミットとの差分と一緒に取り込む（ファイルは書かない）",
+   "scenarios": [
+    "S-UC2-ADOPT-HUMAN-FIELD",
+    "S-UC2-ADOPT-INVALID",
+    "S-UC2-ADOPT-NOT-RECORDED",
+    "S-UC2-ADOPT-NOTHING",
+    "S-UC2-ADOPT-OLDER",
+    "S-UC2-ADOPT-UNCOMMITTED",
+    "S-UC2-ADOPT-USAGE",
+    "S-UC2-ADOPT"
+   ],
+   "note": "記録の行（source = outside ・ 前の値が取れなかった欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、版の読み方は outbound の git の試験（versions.rs）で確かめる"
   },
   {
    "id": "UC4:成功時保証",
@@ -114,6 +147,22 @@
     "S-UC4-HUMAN-RULE"
    ],
    "note": "by: human の rule が unverified になる所までを確かめる。人が判定を渡して呼び直す後半は、人の判定を受け取る形を作るステップで足す"
+  },
+  {
+   "id": "UC4:変形:入力が変わった rule だけ",
+   "meaning": "範囲「入力が変わった rule だけ」：前の判定が読んだ所の指紋といまの指紋が違う rule だけを判定し直す",
+   "scenarios": [
+    "S-UC4-STALE-ONLY",
+    "S-UC4-STALE-OUTSIDE"
+   ]
+  },
+  {
+   "id": "UC4:変形:SAS を通らない変更を見つける",
+   "meaning": "記録の最後の事後といまの中身の指紋が違う対象を知らせ、いまの中身を検証する",
+   "scenarios": [
+    "S-UC4-STALE-OUTSIDE",
+    "S-UC4-UNTRACKED"
+   ]
   }
  ]
 }

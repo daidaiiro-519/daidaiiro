@@ -1,0 +1,92 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC4-STALE-ONLY",
+ "name": "入力が変わった rule だけ",
+ "title": "検証したあとに calls だけを直して --stale で検証すると、読んだ所が変わった rule だけを判定し、goal の rule と Concrete は判定し直さない",
+ "why": "変わっていない所まで毎回判定し直すと、意味の rule（エージェントに頼む判定）の時間と費用が変更の大きさに比例しない。",
+ "traces": [
+  "UC4:変形:入力が変わった rule だけ"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "--all"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\":\"add\",\"path\":\"/calls/-\",\"value\":\"U1\"}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "--stale"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "--stale"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/stale_only",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/targets",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/path",
+   "equals": "usecases/u1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/unchanged_rules",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/unchanged_rules/0",
+   "equals": "goal-is-outcome"
+  },
+  {
+   "of": "when",
+   "pointer": "/unchanged_targets/0",
+   "equals": "schemas/usecase.schema.json"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets",
+   "count": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/unchanged_targets",
+   "count": 2
+  }
+ ]
+}

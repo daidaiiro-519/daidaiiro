@@ -1,5 +1,7 @@
 //! 指紋：ファイルの中身の sha256。中身が同じなら同じ指紋になる。
+//! 判定が読んだ所の指紋（of_read）も同じ形で持つ。読んだ所と値が同じなら同じ指紋になる。
 
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
 
@@ -18,6 +20,14 @@ impl Fingerprint {
             let _ = write!(hex, "{b:02x}");
         }
         Self(hex)
+    }
+
+    /// 判定が読んだ所の指紋。読んだ所（JSON Pointer。"" は文書全体）と、そこの値から作る。
+    /// 値が無いことと null の値は別の指紋になり、同じ値を別の所へ移しても別の指紋になる。
+    #[must_use]
+    pub fn of_read(pointer: &str, value: Option<&Value>) -> Self {
+        let value = value.map_or_else(|| "\u{1}absent".to_string(), Value::to_string);
+        Self::of(format!("{pointer}\u{0}{value}").as_bytes())
     }
 
     /// 記録や引数の文字列から読む。`sha256:` に続く小文字の16進64字でなければ None。
@@ -41,6 +51,24 @@ impl Fingerprint {
 #[cfg(test)]
 mod tests {
     use super::Fingerprint;
+    use serde_json::json;
+
+    #[test]
+    fn read_fingerprint_depends_on_place_and_value() {
+        let a = json!("x");
+        assert_eq!(
+            Fingerprint::of_read("/goal", Some(&a)),
+            Fingerprint::of_read("/goal", Some(&json!("x")))
+        );
+        assert_ne!(
+            Fingerprint::of_read("/goal", Some(&a)),
+            Fingerprint::of_read("/name", Some(&a))
+        );
+        assert_ne!(
+            Fingerprint::of_read("/goal", None),
+            Fingerprint::of_read("/goal", Some(&json!(null)))
+        );
+    }
 
     #[test]
     fn same_bytes_same_fingerprint() {

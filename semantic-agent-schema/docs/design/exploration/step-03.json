@@ -1,0 +1,329 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 3,
+ "date": "2026-10-31",
+ "summary": "SAS を通らない変更を、場面16件を先に書いてステップ2 の sas で失敗することを確かめてから作った。既存のファイルを作成として取り込む（create --adopt）・ SAS が書いたあとに外で直されたファイルを意図と一緒に更新として取り込む（update --adopt）・ 検証で記録とずれた対象を知らせる（untracked と案内）・ 前の判定が読んだ所が変わった rule だけを判定し直す（validate --stale）。取り込みはファイルを書かず、欄ごとの前の値は、記録の最後の事後と同じ中身のコミットから取り、無ければ前の値を持たない差分にする",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "Git のコミットにある中身の読み方：git show か git cat-file か、経路の書き方",
+   "evidence": [
+    "原典 https://git-scm.com/docs/gitrevisions（取得 2026-10-31、2,752 行）2438〜2446行「<rev>:<path>」の節「A suffix : followed by a path names the blob or tree」「A path starting with ./ or ../ is relative to the current working directory.」（2443行）",
+    "原典 https://git-scm.com/docs/git-cat-file（取得 2026-10-31、2,856 行）2281〜2284行 --filters「Show the content as converted by the filters configured in the current working tree for the given <path> (i.e. smudge filters, end-of-line conversion, etc). In this case, <object> has to be of the form <tree-ish>:<path>, or :<path>.」、2246行 -e「Exit with zero status if <object> exists and is a valid object.」",
+    "原典 https://git-scm.com/docs/git-show（取得 2026-10-31、5,721 行）3287行「For plain blobs, it shows the plain contents.」、5170〜5179行 --textconv「filters are enabled by default only for git-diff[1] and git-log[1]」。show は作業ツリーの変換（行末 ・ smudge）を当てないので、指紋を作業ツリーのバイト列と比べるには cat-file --filters を使う",
+    "実地の試験 adapters/outbound/git/tests/commits.rs：commits_are_newest_first_and_contents_are_read ・ not_a_repository_has_no_versions ・ repository_without_commits_has_no_versions"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "経路を変えたコミットを新しい順に、件数を絞って並べる（git log）と、コミットの無いリポジトリの見分け（git rev-parse）",
+   "evidence": [
+    "原典 https://git-scm.com/docs/git-log（取得 2026-10-31、7,760 行）3869〜3870行 [--] <path>...「Show only commits that are enough to explain how the files that match the specified paths came to be.」、3903行 --max-count「Limit the output to the first <number> commits that would be shown.」、5498〜5500行 %H「commit hash」",
+    "原典 https://git-scm.com/docs/git-rev-parse（取得 2026-10-31、3,831 行）2741〜2745行 --quiet「Only meaningful in --verify mode. Do not output an error message if the first argument is not a valid object name; instead exit with non-zero status silently.」"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "SQLite で欄を足す移行（ALTER TABLE … ADD COLUMN）で、CHECK と NOT NULL の欄を足せるか。表を作り直すときに、ほかの表の trigger をどうするか",
+   "evidence": [
+    "原典 https://www.sqlite.org/lang_altertable.html（取得 2026-10-31）3395〜3399行「The column may not have a PRIMARY KEY or UNIQUE constraint.」「If a NOT NULL constraint is specified, then the column must have a default value other than NULL.」、3407〜3410行「When adding a column with a CHECK constraint, … the added constraints are tested against all preexisting rows in the table」",
+    "同 3522行「Remember the format of all indexes, triggers, and views associated with table X.」、3543〜3545行「Use CREATE INDEX, CREATE TRIGGER, and CREATE VIEW to reconstruct indexes, triggers, and views associated with table X.」",
+    "実地の試験 adapters/outbound/sqlite/tests/change_rows.rs：step1_database_is_moved_with_its_rows（ステップ1 の DB が版3 まで移り、前の判定は読んだ所の指紋を持たない）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 の変形「既存のファイルを取り込む」と UC2 の --adopt：conformance/application/src/use_cases/documents.rs の adopt",
+   "steps": [
+    "request_id があり、同じ request_id の操作が記録にあれば、記録を見ずにそれを返す（種類 ・ source ・ 経路が違えば request_reused）",
+    "いまの中身を読み、$schema から対象を見分ける。--concrete を渡されたら $schema と同じかを確かめる（$schema が1つに決まらなければ理由を返し、何も記録しない）",
+    "記録の書いた操作を引く。作成の取り込みは記録が無いこと（あれば recorded と、更新の取り込みの案内）。更新の取り込みは記録があること（無ければ not_recorded と、作成の取り込みの案内）と、いまの指紋が最後の事後と違うこと（同じなら nothing_to_adopt）と、意図があること",
+    "更新の取り込みでは、対象を変えたコミットを新しい順に50件まで読み、中身の指紋が記録の最後の事後と同じ最初のコミットを前の中身にする",
+    "いまの中身を形に照らす。外れれば取り込まずに invalid_value を記録する（記録の事後を、型に従わない中身にしない）",
+    "集約の書く条件を、前の中身（無ければ前の値を知らない作成と同じ見方）と比べて確かめる。ツールの取り込みで人の欄が変わっていれば、取り込まずに human_field と、人が取り込む案内を返す",
+    "差分を求める：作成は空からの差分、前の中身があればそれとの差分、無ければいまの中身の根の欄ごとに前の値の無い replace",
+    "ファイルは書かず、source = outside の作成か更新を記録する。更新の事前の指紋は記録の最後の事後",
+    "前の判定のうち読む所が変わったものと、Concrete の取り込みで外れたインスタンスを返す"
+   ],
+   "rules": [
+    "取り込みはファイルを書かない。記録を、いまのファイルに追いつかせるだけ",
+    "更新の取り込みの事前は、対象を最後に書いた操作の事後（trigger）。記録の指紋のつながりを切らない",
+    "作成の取り込みは、書いた記録の無い対象だけ（trigger）",
+    "更新の取り込みには意図が要る（trigger）。作成の取り込みの意図は任意",
+    "前の値が取れない欄は、取り込んだ更新にだけ在る（trigger）",
+    "型に従わない中身は取り込まない",
+    "前の中身が分からないときは、ツールは人の欄が default 以外のファイルを取り込めない（外で人の欄が変わったかを確かめられない）"
+   ]
+  },
+  {
+   "usecase": "UC4 の範囲「入力が変わった rule だけ」と SAS を通らない変更の知らせ：documents.rs の validate_stale ・ run_validate",
+   "steps": [
+    "対象ごとに、記録の最後の書いた操作の事後といまの指紋を比べ、違えば untracked に入れて案内を付ける（検証はいまの中身で続ける）",
+    "すべての rule を判定し、判定ごとに読んだ所（当たる rule の所。形の検査と参照の先の判定は文書全体）を持つ",
+    "--stale のときは、rule ごとに、いまの「読んだ所の指紋」の集まりと、前の判定（rule ごとの最後の検証の行）の集まりを比べ、同じ rule を除く。前の判定に指紋が無ければ変わったとみなす",
+    "残った rule が無い対象は記録せず、unchanged_targets に入れる",
+    "判定と、読んだ所の指紋を記録する"
+   ],
+   "rules": [
+    "読んだ所の指紋は、読んだ所（JSON Pointer）とそこの値から作る。同じ値を別の所へ移しても、値が無いことと null も、別の指紋になる",
+    "前の判定は、操作ではなく rule ごとに引く（--stale は検証の操作ごとに判定する rule が違う）",
+    "機械の rule は全部判定してから除いても同じ結果になる。意味の rule（ステップ6）は判定する前に除く必要があり、そのときは当たる rule の所から読んだ所を決めて比べる"
+   ]
+  },
+  {
+   "usecase": "コミットを読む：adapters/outbound/git の GitCommits",
+   "steps": [
+    "git rev-parse --verify --quiet HEAD が失敗すれば（リポジトリでない ・ コミットが無い）、コミットは無い",
+    "git log --format=%H --max-count=<数> -- <経路> で、経路を変えたコミットを新しい順に並べる",
+    "git cat-file -e <コミット>:./<経路> で有無を見て、git cat-file --filters <コミット>:./<経路> で作業ツリーと同じ変換を当てた中身を読む"
+   ],
+   "rules": [
+    "Git に書き込むコマンドを呼ばない",
+    "git が無ければ、コミットが無いとして扱う（取り込みは前の値の無い差分になる）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "判定が読んだ所の指紋",
+   "became": "value",
+   "evident_from_start": false,
+   "why": "読んだ所と値だけで決まり、記録（reads_hash）・ --stale の比較 ・ 将来の rule-result の reads_fingerprint で同じ意味に使う。Fingerprint::of_read として指紋の値に足した"
+  },
+  {
+   "what": "前の値の無い欄（before_unavailable）",
+   "became": "value",
+   "evident_from_start": false,
+   "why": "差分の欄の性質で、出力 ・ 記録 ・ やり直しの返し方で同じ意味。FieldChange::without_before と Diff::without_before にした。足されたのか変わったのかは分からないので replace とした"
+  },
+  {
+   "what": "取り込みの前提（記録の有無 ・ 最後の事後との違い ・ 意図）",
+   "became": "script",
+   "why": "記録を読むだけの手続きで、決まりは表の trigger が守る。計画の『インスタンスの集約に、最後の事後の指紋と比べる条件』は、ステップ2 と同じ理由（Concrete とインスタンスの両方に同じに当たり、比べるのはファイルと記録）で use_cases に残した"
+  },
+  {
+   "what": "前の中身のコミットを探す",
+   "became": "script",
+   "why": "Git の出し入れで、決まりは『指紋が記録の最後の事後と同じ』だけ"
+  },
+  {
+   "what": "入力が変わった rule を選ぶ（changed_rules）",
+   "became": "script",
+   "why": "前の判定（記録）といまの判定の突き合わせで、記録の引き方と一緒に変わる。読んだ所の決まりは judge が持つ。意味の rule（ステップ6）で判定の前に選ぶようになったら、読んだ所を決める部分を rules のサービスへ上げるかを見直す"
+  },
+  {
+   "what": "人の欄の確かめ（取り込み）",
+   "became": "aggregate",
+   "evident_from_start": true,
+   "why": "ステップ2 の集約インスタンスの書く条件をそのまま使った。前の中身が無いときは前の値を知らない作成と同じ見方にする、という使い方だけを use_cases に置いた"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "ポート version_reader（outbound の git、dyn）",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "作ったが、名前を commit_reader（CommitReader）に改めた。文脈の地図で「版」は Abstract の版とコミットに呼び分けると決めたので、Git の側はコミットと呼ぶ。arch-v15 の ports と木を直した。plan.json の語は承認済みの計画なので残した"
+  },
+  {
+   "item": "前の版を Git のコミット済みの版（たとえば HEAD）から読んで比べる（design.json d4）",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "HEAD だけと比べると、外の変更がコミットまでされたときに差分が空になり、何を取り込んだかが残らない（S-UC2-ADOPT-OLDER）。対象を変えたコミットを新しい順に読み、中身の指紋が記録の最後の事後と同じ最初のコミットを前の中身にした。ふつうは HEAD が当たる（S-UC2-ADOPT）。git show は作業ツリーの変換を当てないので cat-file --filters にした"
+  },
+  {
+   "item": "operations.source と CHECK（outside は create ・ update で intent が要る）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "計画の CLI は sas create <パス> --adopt で意図を取らない。既存のファイルを最初に取り込むときの意図は決まっている（取り込むこと）ので、意図が要るのは更新の取り込みだけにした。design.json の DDL を2つの CHECK に分けた。実装は欄を足す移行なので、欄をまたぐ決まりは trigger にした"
+  },
+  {
+   "item": "集約3 ⑥ adopt の事前は、その対象の最後の操作の事後（trigger）",
+   "result": "match",
+   "fixed": "none",
+   "note": "0003 の operations_adopt_follows。比べる相手は書いた操作（作成 ・ 更新で断っていないもの）の最後で、検証の操作は数えない"
+  },
+  {
+   "item": "作成の取り込みは記録の無い対象だけ",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "仮説に無かった。記録の途中に2つ目の作成が入ると事前と事後のつながりが切れるので、trigger operations_adopt_create_first と、出力の recorded にした"
+  },
+  {
+   "item": "field_changes.before_unavailable",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "前の値が取れない欄は replace で before を持たない、と決めた（仮説は変わり方を決めていなかった）。仮説の説明『参照の外に残した版が git gc で消えた、利用者が refs/sas/ を消した』は SAS が版を残していた頃のものなので、『記録の最後の事後と同じ中身のコミットが無い』に直した"
+  },
+  {
+   "item": "diff の before: {fingerprint, version}",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "前の値を取ったコミットを before.commit で返す。version は Abstract の版と紛れるので commit に改め、design.json も直した。記録の表には持たない（やり直しの返し方では無くなる）。要るのは UC7 の記録を読むときで、そこで見直す"
+  },
+  {
+   "item": "operation-result の validation.untracked ・ hint、change.result = adopted",
+   "result": "match",
+   "fixed": "none",
+   "note": "validation の untracked はいつも配列で返す（空でも）"
+  },
+  {
+   "item": "error の untracked_change",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "SAS を通らない変更の上に更新しようとしたときは、ステップ2 の conflict（interleaved.untracked = true）のままにし、取り込みの案内（hint）を足した。別の名前にすると、呼ぶ側の分け方が2つになる"
+  },
+  {
+   "item": "rule_results.reads_hash と、--stale",
+   "result": "match",
+   "fixed": "none",
+   "note": "読んだ所は、当たる rule の所（形の検査 ・ target-exists ・ relationship-target は文書全体）。relationship-target は指す先のインスタンスも読むが、指す先の変化はまだ読んだ所に入れていない（指す先が消えても --stale では判定し直さない）。全件の検証で確かめる"
+  },
+  {
+   "item": "前の判定の引き方（last_judgments）",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "ステップ2 は最後の検証の操作の行だった。--stale で検証の操作ごとに判定する rule が違うので、rule ごとに、その rule を最後に判定した検証の行にした。stale_rules もこれで引く"
+  },
+  {
+   "item": "validation の stale_only ・ unchanged_targets ・ target.unchanged_rules",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "判定し直さなかったものを返さないと、呼ぶ側は判定が無いのか変わっていないのかを分けられない"
+  },
+  {
+   "item": "error の recorded ・ not_recorded ・ nothing_to_adopt ・ commits",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "取り込みの前提に合わないときの名前。どれも記録しない。commits は Git を読めなかったこと"
+  },
+  {
+   "item": "rule-result の reads_fingerprint ・ stale ・ grounds",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "記録には読んだ所の指紋を持ったが、出力にはまだ出していない。stale は記録を読む UC7（ステップ9）で、grounds は意味の rule（ステップ6）で足す"
+  },
+  {
+   "item": "ユースケースの本文（re-uc.json）の UC2 と UC4",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "UC2 の一覧に取り込みの変形が無く、UC4 の一覧に SAS を通らない変更の知らせが無い。計画が UC2 の取り込み ・ UC4 の untracked として決めていたので、範囲に『UC2:変形:SAS を通らない変更を取り込む』『UC4:変形:SAS を通らない変更を見つける』『UC4:変形:入力が変わった rule だけ』を足した。本文は usecase-advisor の答えなので、ここでは直していない"
+  },
+  {
+   "item": "outbound の git の crate",
+   "result": "match",
+   "fixed": "none",
+   "note": "architecture.json に足し、inbound-cli だけが依存する。外のライブラリは足していない"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "取り込む ・ 取り込み",
+   "seen": "UC2 の最低保証『取り込めない更新は対象を変えない』、--adopt、re-uc の支援アクター『Git などの変更の仕組み（取り込み ・ 取り消し）』",
+   "drift": "3つを指す：書けなかった更新（ステップ2）、SAS を通らない変更を記録へ入れること（このステップ）、Git のマージ。同じモデルの中の別のものに同じ語なので、文脈の境界ではなく呼び分けで足りる。コードと出力では --adopt ・ adopted ・ source = outside を使い、『取り込み』は --adopt だけを指すようにした。UC2 の最低保証の語は本文の直しと一緒に『書けない更新』へ寄せるのがよい"
+  },
+  {
+   "term": "版",
+   "seen": "計画『version_reader』、design.json『前の版』『before: {fingerprint, version}』",
+   "drift": "文脈の地図で、Abstract の版とコミットに呼び分けると決めた語。このステップで出たのはどれも Git のコミットなので、ポートを CommitReader、出力を before.commit、文を『前の中身のコミット』にした。『版』は Abstract の版だけに残る"
+  },
+  {
+   "term": "指紋",
+   "seen": "ファイルの指紋（sha256）と、判定が読んだ所の指紋（reads_hash）",
+   "drift": "2つとも同じ作り方（sha256）で同じ型 Fingerprint だが、前はファイルのバイト列、後は読んだ所と値から作る。比べる相手を取り違えないよう、記録の欄は before_hash ・ after_hash と reads_hash に分け、文では『読んだ所の指紋』と書いた。文脈の地図の『文書の指紋と prompt_hash に呼び分ける』と同じ向き"
+  },
+  {
+   "term": "untracked",
+   "seen": "ステップ2 の interleaved.untracked、このステップの validation.untracked",
+   "drift": "どちらも『記録の最後の事後といまの中身が違う』で同じ意味。前は真偽値、後は対象の並び"
+  },
+  {
+   "term": "セッション",
+   "seen": "取り込みの記録、--session",
+   "drift": "このステップで出たのは呼び出し元のセッションだけで、SAS が立てたセッションは出てこない。文脈を2つに分けたことと食い違う語は無かった"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate",
+    "before": "8つ",
+    "after": "outbound の git を足して9つ",
+    "why": "Git を読むのを1か所に閉じ込める。外のライブラリは足さず git コマンドを呼ぶ"
+   },
+   {
+    "what": "ポート",
+    "before": "DocumentStore ・ SchemaChecker ・ IdentifyCaller ・ OperationLog",
+    "after": "CommitReader（commits ・ read）を足した。OperationLog の行に source ・ before_unavailable ・ reads を足し、last_judgments を rule ごとの最後にした",
+    "why": "取り込みと --stale"
+   },
+   {
+    "what": "conformance-application",
+    "before": "validate ・ create ・ update",
+    "after": "adopt ・ validate_stale を足した。stale_judgments ・ violated_instances を update から切り出して adopt と共有した。Refused に hint を足し、path を Box<str> にした（clippy の result_large_err の上限に収めるため）",
+    "why": "取り込みと、範囲『入力が変わった rule だけ』"
+   },
+   {
+    "what": "conformance-domain",
+    "before": "指紋 ・ 差分",
+    "after": "Fingerprint::of_read、FieldChange ・ Diff の前の値の無い形",
+    "why": "引き上げの表のとおり"
+   },
+   {
+    "what": "DB",
+    "before": "0001 ・ 0002",
+    "after": "0003-adopt.sql：operations に source と4つの trigger、field_changes を作り直して before_unavailable、rule_results に reads_hash",
+    "why": "operations はほかの表の trigger が読むので作り直さず欄を足した（CODING.md に足した）"
+   },
+   {
+    "what": "CLI",
+    "before": "validate ・ create ・ update",
+    "after": "create ・ update の --adopt、validate の --stale（経路を渡さなければ全件）",
+    "why": "計画の CLI"
+   },
+   {
+    "what": "場面の範囲",
+    "before": "UC1 の変形『既存のファイルを取り込む』は untested",
+    "after": "場面で確かめた。範囲に UC2 の取り込みと UC4 の2つの変形を足した",
+    "why": "突き合わせの表の『ユースケースの本文』"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "rule-result の reads_fingerprint ・ stale ・ grounds の出力",
+    "why": "突き合わせの表に理由"
+   },
+   {
+    "what": "継続のセッションで対象が変わったときに Git のコミットを読んで比べる（design.json d4 の後半）",
+    "why": "ステップ7（セッションの4つの型）"
+   },
+   {
+    "what": "取り込みに使ったコミットを記録の表に持つ",
+    "why": "UC7 の記録を読む（ステップ9）で要るかを見直す"
+   },
+   {
+    "what": "参照の先の変化を、--stale の読んだ所に入れる",
+    "why": "指す先のインスタンスの指紋を判定に結びつける形が要る。意味の rule の入力を決めるステップ6 で一緒に見直す"
+   }
+  ],
+  "context": {
+   "name": "スキーマとインスタンス（schemas-and-instances）",
+   "scope": "文脈は2つ（9519cffa）で、こちらは業務領域『スキーマへの適合』『操作の記録』『描画』を受け持つ。作ったのは適合と記録",
+   "name_signs": [
+    "このステップの手続きで使った語は Concrete ・ インスタンス ・ 指紋 ・ 差分 ・ 記録 ・ コミット ・ 取り込み ・ 判定 ・ 読んだ所。どれも文脈の名前の対（スキーマとインスタンス）の中で言え、名前を変える兆しは無い"
+   ],
+   "scope_signs": [
+    "新しい語（取り込み ・ コミット ・ 読んだ所の指紋）に、同じものを2つのモデルで持つずれは無かった。『取り込み』『版』は同じ文脈の中の呼び分けで足りる（語の表）",
+    "outbound の git は適合の側のポートだけを実装し、立てたセッションの側の語を持たない。立てたセッションのコミットの読み方（ステップ7）は、そちらの文脈のポートとして別に作るかを、そのときに決める"
+   ],
+   "view": "名前も範囲も変えない。語の照らし直しでは境界を動かす兆しは無く、『取り込み』と『版』の呼び分けをこの文脈の中で済ませた"
+  }
+ }
+}

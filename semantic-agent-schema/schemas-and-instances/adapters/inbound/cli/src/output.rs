@@ -32,7 +32,7 @@ pub fn print_validation(v: &Validation) {
         .targets
         .iter()
         .map(|t| {
-            json!({
+            let mut o = json!({
                 "path": t.path,
                 "kind": t.kind.as_str(),
                 "schema": t.schema,
@@ -40,17 +40,41 @@ pub fn print_validation(v: &Validation) {
                 "operation": t.operation,
                 "results": t.results.iter().map(rule_result).collect::<Vec<_>>(),
                 "counts": counts(&t.counts),
-            })
+            });
+            if v.stale_only {
+                o["unchanged_rules"] = json!(t.unchanged_rules);
+            }
+            o
         })
         .collect();
-    let out = json!({
+    let mut out = json!({
         "$schema": "urn:semantic-agent-schema:base:operation-result:v1",
         "kind": "validation",
         "session": v.session,
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
         "targets": targets,
         "counts": counts(&v.counts),
+        "untracked": v.untracked.iter().map(|u| json!({
+            "path": u.path,
+            "last_operation": u.last_operation,
+            "expected": u.expected,
+            "actual": u.actual,
+        })).collect::<Vec<_>>(),
     });
+    if v.stale_only {
+        out["stale_only"] = json!(true);
+        out["unchanged_targets"] = json!(v.unchanged_targets);
+    }
+    if let Some(u) = v.untracked.first() {
+        out["hint"] = json!(format!(
+            "SAS を通らない変更がある。意図を付けて取り込む：sas update {} --adopt --intent \"…\"",
+            if v.untracked.len() == 1 {
+                u.path.as_str()
+            } else {
+                "<経路>"
+            }
+        ));
+    }
     println!("{out}");
 }
 
@@ -62,7 +86,7 @@ fn write_record(w: &WriteRecord) -> Value {
             .and_then(|t| serde_json::from_str::<Value>(t).ok())
     };
     // 読む順（だれが ・ 何のために ・ いつ ・ どの欄を）に並べる
-    let mut v = json!({"operation": w.operation, "session": w.session, "kind": w.row.kind});
+    let mut v = json!({"operation": w.operation, "session": w.session, "kind": w.row.kind, "source": w.row.source});
     if let Some(i) = &w.row.intent {
         v["intent"] = json!(i);
     }
@@ -79,6 +103,9 @@ fn write_record(w: &WriteRecord) -> Value {
             let mut c = json!({"pointer": f.pointer, "change": f.change});
             if let Some(b) = value(&f.before) {
                 c["before"] = b;
+            }
+            if f.before_unavailable {
+                c["before_unavailable"] = json!(true);
             }
             if let Some(a) = value(&f.after) {
                 c["after"] = a;
@@ -127,18 +154,24 @@ pub fn print_refused(r: &Refused) {
     if let Some(i) = &r.interleaved {
         out["interleaved"] = interleaved(i);
     }
+    if let Some(h) = &r.hint {
+        out["hint"] = json!(h);
+    }
     println!("{out}");
 }
 
 /// 作成か更新の結果を出す。
 pub fn print_change(c: &ChangeResult) {
     let mut diff = json!({
-        "source": "sas",
+        "source": if c.outside { "outside" } else { "sas" },
         "after": {"fingerprint": c.after.as_str()},
         "changes": c.diff.changes().iter().map(|f| {
             let mut v = json!({"pointer": f.pointer(), "change": f.change().as_str()});
             if let Some(b) = f.before() {
                 v["before"] = b.clone();
+            }
+            if f.before_unavailable() {
+                v["before_unavailable"] = json!(true);
             }
             if let Some(a) = f.after() {
                 v["after"] = a.clone();
@@ -148,13 +181,19 @@ pub fn print_change(c: &ChangeResult) {
     });
     if let Some(b) = &c.before {
         diff["before"] = json!({"fingerprint": b.as_str()});
+        if let Some(v) = &c.before_commit {
+            diff["before"]["commit"] = json!(v);
+        }
+    }
+    if c.outside && c.before.is_some() {
+        diff["before_unavailable"] = json!(c.diff.before_unavailable());
     }
     let out = json!({
         "$schema": "urn:semantic-agent-schema:base:operation-result:v1",
         "kind": "change",
         "session": c.session,
         "operation": c.operation,
-        "result": c.written.as_str(),
+        "result": if c.outside { "adopted" } else { c.written.as_str() },
         "replayed": c.replayed,
         "target": {"kind": c.kind.as_str(), "path": c.path, "concrete": c.concrete},
         "diff": diff,

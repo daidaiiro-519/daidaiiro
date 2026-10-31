@@ -14,7 +14,7 @@
    "name": "schemas-and-instances-conformance-application",
    "path": "schemas-and-instances/conformance/application",
    "layer": "application",
-   "role": "UC4 検証する ・ UC1 作成する ・ UC2 更新する（機械。use_cases/documents.rs と、JSON Patch を当てる documents/patch.rs）と、ポート DocumentStore ・ SchemaChecker"
+   "role": "UC4 検証する ・ UC1 作成する ・ UC2 更新する（機械。use_cases/documents.rs と、JSON Patch を当てる documents/patch.rs）、取り込み（adopt）・ 入力が変わった rule だけの検証（validate_stale）と、ポート DocumentStore ・ SchemaChecker ・ CommitReader"
   },
   {
    "name": "schemas-and-instances-operation-recording-application",
@@ -38,7 +38,13 @@
    "name": "schemas-and-instances-adapters-outbound-sqlite",
    "path": "schemas-and-instances/adapters/outbound/sqlite",
    "layer": "outbound",
-   "role": "OperationLog の実装。.sas/sas.db へ追記し（検証 ・ 作成 ・ 更新と変わった欄）、ID と時刻を作る。request_id と前の判定を引く"
+   "role": "OperationLog の実装。.sas/sas.db へ追記し（検証 ・ 作成 ・ 更新と変わった欄）、ID と時刻を作る。request_id と前の判定を引く。取り込み（source = outside）と、判定が読んだ所の指紋（reads_hash）"
+  },
+  {
+   "name": "schemas-and-instances-adapters-outbound-git",
+   "path": "schemas-and-instances/adapters/outbound/git",
+   "layer": "outbound",
+   "role": "CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。Git に書き込まない"
   },
   {
    "name": "schemas-and-instances-adapters-inbound-cli",
@@ -104,6 +110,13 @@
    ]
   },
   {
+   "from": "schemas-and-instances-adapters-outbound-git",
+   "to": [
+    "schemas-and-instances-conformance-application"
+   ],
+   "libraries": []
+  },
+  {
    "from": "schemas-and-instances-adapters-inbound-cli",
    "to": [
     "schemas-and-instances-conformance-application",
@@ -111,7 +124,8 @@
     "schemas-and-instances-operation-recording-application",
     "schemas-and-instances-adapters-outbound-files",
     "schemas-and-instances-adapters-outbound-jsonschema",
-    "schemas-and-instances-adapters-outbound-sqlite"
+    "schemas-and-instances-adapters-outbound-sqlite",
+    "schemas-and-instances-adapters-outbound-git"
    ],
    "libraries": [
     "serde_json"

@@ -98,6 +98,7 @@ fn changed_fingerprint_is_refused() {
 fn change(before: Option<&str>, after: Option<&str>, refused: bool) -> ChangeRow {
     ChangeRow {
         kind: "update".into(),
+        source: "sas".into(),
         target_kind: "instance".into(),
         target_path: "a.json".into(),
         concrete: "urn:x:v1".into(),

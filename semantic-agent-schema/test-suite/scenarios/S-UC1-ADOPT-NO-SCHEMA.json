@@ -1,0 +1,42 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC1-ADOPT-NO-SCHEMA",
+ "name": "従う型が決まらない",
+ "title": "$schema の無いファイルを取り込もうとすると、取り込まずに no_schema を返し、何も記録しない",
+ "why": "従う型が決まらないファイルを記録すると、形も rule も照らせないまま確かめ済みの記録に見える。",
+ "traces": [
+  "UC1:変形:既存のファイルを取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "notes/n1.json": "{\n \"id\": \"N1\"\n}\n"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "notes/n1.json",
+   "--adopt"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "no_schema"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "exists": false
+  }
+ ],
+ "unchanged": [
+  "notes/n1.json"
+ ]
+}

@@ -1,0 +1,107 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-ADOPT-OLDER",
+ "name": "前の版が HEAD より古い",
+ "title": "記録の最後の事後が HEAD ではなく前のコミットにあるときは、そのコミットと比べた差分で取り込む",
+ "why": "外の変更がコミットまでされていると、HEAD と比べた差分は空になり、何を取り込んだかが残らない。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む"
+ ],
+ "given": {
+  "repo": true,
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ]
+   },
+   {
+    "git": [
+     "add",
+     "schemas",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:semantic-agent-schema:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"外でコミットした目的\",\n \"calls\": []\n}\n"
+    }
+   },
+   {
+    "git": [
+     "add",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "2"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--intent",
+   "外でコミットされた変更を取り込む"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before_unavailable",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/before",
+   "equals": "検証の結果を受け取る"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/after",
+   "equals": "外でコミットした目的"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

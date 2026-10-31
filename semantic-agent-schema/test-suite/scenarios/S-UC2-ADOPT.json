@@ -1,0 +1,142 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC2-ADOPT",
+ "name": "外の変更を取り込む",
+ "title": "コミットしたあとにエディターで直したファイルを update --adopt で取り込むと、ファイルは変えずに、HEAD との比較の差分を source = outside の更新として記録する",
+ "why": "外で直した変更を、誰が何のためにどの欄を変えたかと一緒に記録へ入れられないと、以後の更新が止まったままになる。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む",
+  "UC2:成功時保証"
+ ],
+ "given": {
+  "repo": true,
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ]
+   },
+   {
+    "git": [
+     "add",
+     "schemas",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:semantic-agent-schema:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"エディターで直した目的\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--intent",
+   "目的を短く言い直した"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "usecases/u1.json"
+   ]
+  },
+  {
+   "args": [
+    "update",
+    "usecases/u1.json",
+    "--patch",
+    "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"取り込んだあとに SAS で直す\"}]"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "adopted"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/source",
+   "equals": "outside"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before_unavailable",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before/fingerprint",
+   "equals": "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before/commit",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/after/fingerprint",
+   "equals": "sha256:20539427f1debb6e707b78281f22f0e0662a044c1511ccdac7a0cde084a90aa7"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/before",
+   "equals": "検証の結果を受け取る"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/after",
+   "equals": "エディターで直した目的"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/untracked",
+   "count": 0
+  },
+  {
+   "of": "after[1]",
+   "exit": 0
+  }
+ ]
+}

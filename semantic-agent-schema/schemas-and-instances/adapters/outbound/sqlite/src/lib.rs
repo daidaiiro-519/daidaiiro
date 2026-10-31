@@ -2,18 +2,19 @@
 //!
 //! ID（s-0001 ・ o-0001）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。application と domain は時刻に触らない。
 
+use rusqlite::{Connection, OptionalExtension, params};
 use schemas_and_instances_operation_recording_application::ports::{
     Caller, ChangeRow, FieldRow, Judgment, OperationLog, RuleRow, StoredChange, ValidateRow,
     WriteRecord,
 };
-use rusqlite::{Connection, OptionalExtension, params};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない。
-const MIGRATIONS: [&str; 2] = [
+const MIGRATIONS: [&str; 3] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
+    include_str!("../migrations/0003-adopt.sql"),
 ];
 
 /// SQLite の操作の記録。
@@ -89,7 +90,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, target_kind, target_path, concrete_ref, request_id, before_hash, after_hash, refusal_code, refusal, intent \
+                "SELECT kind, target_kind, target_path, concrete_ref, request_id, before_hash, after_hash, refusal_code, refusal, intent, source \
                  FROM operations WHERE id = ?1",
                 [operation],
                 |r| {
@@ -97,6 +98,7 @@ impl SqliteLog {
                     let reason: Option<String> = r.get(8)?;
                     Ok(ChangeRow {
                         kind: r.get(0)?,
+                        source: r.get(10)?,
                         target_kind: r.get(1)?,
                         target_path: r.get(2)?,
                         concrete: r.get(3)?,
@@ -112,7 +114,7 @@ impl SqliteLog {
             .map_err(|e| err(&e))?;
         let mut stmt = self
             .conn
-            .prepare("SELECT pointer, change, before, after FROM field_changes WHERE operation_id = ?1 ORDER BY pointer")
+            .prepare("SELECT pointer, change, before, after, before_unavailable FROM field_changes WHERE operation_id = ?1 ORDER BY pointer")
             .map_err(|e| err(&e))?;
         row.fields = stmt
             .query_map([operation], |r| {
@@ -121,6 +123,7 @@ impl SqliteLog {
                     change: r.get(1)?,
                     before: r.get(2)?,
                     after: r.get(3)?,
+                    before_unavailable: r.get::<_, i64>(4)? == 1,
                 })
             })
             .map_err(|e| err(&e))?
@@ -220,9 +223,9 @@ impl OperationLog for SqliteLog {
         .map_err(|e| err(&e))?;
         for (ord, r) in row.results.iter().enumerate() {
             tx.execute(
-                "INSERT INTO rule_results (operation_id, ord, rule_id, pointer, by, result, reason) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![id, i64::try_from(ord).unwrap_or(i64::MAX), r.rule, r.pointer, r.by, r.result, r.reason],
+                "INSERT INTO rule_results (operation_id, ord, rule_id, pointer, by, result, reason, reads_hash) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![id, i64::try_from(ord).unwrap_or(i64::MAX), r.rule, r.pointer, r.by, r.result, r.reason, r.reads],
             )
             .map_err(|e| err(&e))?;
         }
@@ -246,18 +249,19 @@ impl OperationLog for SqliteLog {
             .map_or((None, None), |(c, m)| (Some(c.as_str()), Some(m.as_str())));
         tx.execute(
             "INSERT INTO operations (id, session_id, seq, request_id, kind, target_kind, target_path, concrete_ref, \
-             before_hash, after_hash, refusal_code, refusal, intent, at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+             before_hash, after_hash, refusal_code, refusal, intent, at, source) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
             params![
                 id, session, seq, row.request_id, row.kind, row.target_kind, row.target_path, row.concrete,
-                row.before, row.after, code, reason, row.intent, now()
+                row.before, row.after, code, reason, row.intent, now(), row.source
             ],
         )
         .map_err(|e| err(&e))?;
         for f in &row.fields {
             tx.execute(
-                "INSERT INTO field_changes (operation_id, pointer, change, before, after) VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![id, f.pointer, f.change, f.before, f.after],
+                "INSERT INTO field_changes (operation_id, pointer, change, before, after, before_unavailable) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![id, f.pointer, f.change, f.before, f.after, i64::from(f.before_unavailable)],
             )
             .map_err(|e| err(&e))?;
         }
@@ -314,32 +318,28 @@ impl OperationLog for SqliteLog {
     }
 
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        let last: Option<String> = self
-            .conn
-            .query_row(
-                "SELECT id FROM operations WHERE kind = 'validate' AND target_path = ?1 \
-                 ORDER BY rowid DESC LIMIT 1",
-                [target_path],
-                |r| r.get(0),
-            )
-            .optional()
-            .map_err(|e| err(&e))?;
-        let Some(operation) = last else {
-            return Ok(Vec::new());
-        };
+        // rule ごとに、その rule を最後に判定した検証の操作を選び、その操作の行を返す
         let mut stmt = self
             .conn
-            .prepare("SELECT rule_id, pointer, by, result, reason FROM rule_results WHERE operation_id = ?1 ORDER BY ord")
+            .prepare(
+                "SELECT o.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash \
+                 FROM rule_results r JOIN operations o ON o.id = r.operation_id \
+                 WHERE o.kind = 'validate' AND o.target_path = ?1 \
+                   AND o.rowid = (SELECT max(o2.rowid) FROM rule_results r2 JOIN operations o2 ON o2.id = r2.operation_id \
+                                  WHERE o2.kind = 'validate' AND o2.target_path = ?1 AND r2.rule_id = r.rule_id) \
+                 ORDER BY o.rowid, r.ord",
+            )
             .map_err(|e| err(&e))?;
-        stmt.query_map([&operation], |r| {
+        stmt.query_map([target_path], |r| {
             Ok(Judgment {
-                operation: operation.clone(),
+                operation: r.get(0)?,
                 rule: RuleRow {
-                    rule: r.get(0)?,
-                    pointer: r.get(1)?,
-                    by: r.get(2)?,
-                    result: r.get(3)?,
-                    reason: r.get(4)?,
+                    rule: r.get(1)?,
+                    pointer: r.get(2)?,
+                    by: r.get(3)?,
+                    result: r.get(4)?,
+                    reason: r.get(5)?,
+                    reads: r.get(6)?,
                 },
             })
         })

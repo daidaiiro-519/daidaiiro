@@ -20,6 +20,7 @@ fn row(by: &str, result: &str) -> ValidateRow {
             by: by.into(),
             result: result.into(),
             reason: "理由".into(),
+            reads: Some("sha256:r".into()),
         }],
     }
 }

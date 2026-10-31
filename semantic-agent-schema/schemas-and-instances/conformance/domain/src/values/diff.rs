@@ -44,6 +44,7 @@ pub struct FieldChange {
     change: Change,
     before: Option<Value>,
     after: Option<Value>,
+    before_unavailable: bool,
 }
 
 impl FieldChange {
@@ -60,6 +61,20 @@ impl FieldChange {
             change,
             before,
             after,
+            before_unavailable: false,
+        }
+    }
+
+    /// 前の値が取れなかった欄（SAS を通らない変更を取り込むとき、前の中身のコミットが無い）。
+    /// 足されたのか変わったのかは分からないので replace とし、前の値を持たない。
+    #[must_use]
+    pub fn without_before(pointer: &str, after: Value) -> Self {
+        Self {
+            pointer: pointer.to_string(),
+            change: Change::Replace,
+            before: None,
+            after: Some(after),
+            before_unavailable: true,
         }
     }
 
@@ -86,6 +101,12 @@ impl FieldChange {
     pub const fn after(&self) -> Option<&Value> {
         self.after.as_ref()
     }
+
+    /// 前の値が取れなかったか。
+    #[must_use]
+    pub const fn before_unavailable(&self) -> bool {
+        self.before_unavailable
+    }
 }
 
 /// 前後の中身の差分（欄の並びは JSON Pointer の順）。
@@ -102,6 +123,25 @@ impl Diff {
         walk(before.unwrap_or(&empty), after, "", &mut out);
         out.sort_by(|a, b| a.pointer.cmp(&b.pointer));
         Self(out)
+    }
+
+    /// 前の中身が取れないときの差分。いまの中身の根の欄ごとに、前の値の無い replace にする。
+    #[must_use]
+    pub fn without_before(after: &Value) -> Self {
+        let mut out: Vec<FieldChange> = after
+            .as_object()
+            .into_iter()
+            .flatten()
+            .map(|(k, v)| FieldChange::without_before(&format!("/{}", escape(k)), v.clone()))
+            .collect();
+        out.sort_by(|a, b| a.pointer.cmp(&b.pointer));
+        Self(out)
+    }
+
+    /// 前の値が取れなかった欄があるか。
+    #[must_use]
+    pub fn before_unavailable(&self) -> bool {
+        self.0.iter().any(FieldChange::before_unavailable)
     }
 
     /// 記録から戻す。
@@ -208,6 +248,25 @@ mod tests {
         );
         assert_eq!(d.changes()[1].before(), Some(&json!("x")));
         assert_eq!(d.changes()[0].after(), None);
+    }
+
+    #[test]
+    fn without_before_lists_root_fields() {
+        let d = Diff::without_before(&json!({"id": "U1", "goal": "y"}));
+        let p: Vec<_> = d
+            .changes()
+            .iter()
+            .map(|c| (c.pointer(), c.change(), c.before(), c.before_unavailable()))
+            .collect();
+        assert_eq!(
+            p,
+            vec![
+                ("/goal", Change::Replace, None, true),
+                ("/id", Change::Replace, None, true)
+            ]
+        );
+        assert!(d.before_unavailable());
+        assert!(!Diff::between(None, &json!({"a": 1})).before_unavailable());
     }
 
     #[test]

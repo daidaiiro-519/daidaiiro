@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:base:operation-result:v1",
  "title": "sas が返す結果",
- "description": "sas のコマンドが標準出力へ返す JSON の1行。kind で、検証の結果（validation）・ 作成と更新の結果（change）・ 始められなかった ・ 書かなかった理由（error）を分ける。$defs はステップごとに足す",
+ "description": "sas のコマンドが標準出力へ返す JSON の1行。kind で、検証の結果（validation）・ 作成と更新の結果（change）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。$defs はステップごとに足す",
  "type": "object",
  "required": [
   "$schema",
@@ -175,6 +175,13 @@
     },
     "counts": {
      "$ref": "#/$defs/counts"
+    },
+    "unchanged_rules": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "入力が変わった rule だけを検証したとき、読んだ所が前の判定と同じで判定し直さなかった rule の id"
     }
    }
   },
@@ -185,7 +192,8 @@
     "session",
     "operations",
     "targets",
-    "counts"
+    "counts",
+    "untracked"
    ],
    "properties": {
     "kind": {
@@ -211,12 +219,60 @@
     },
     "counts": {
      "$ref": "#/$defs/counts"
+    },
+    "stale_only": {
+     "const": true,
+     "description": "入力が変わった rule だけを検証した（--stale）。results には判定し直した rule だけが入る"
+    },
+    "unchanged_targets": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "入力が変わった rule が1つも無く、検証の操作を記録しなかった対象の経路"
+    },
+    "untracked": {
+     "type": "array",
+     "description": "SAS を通らない変更があった対象。記録の最後の事後と、いまの中身の指紋が違う。いまの中身を検証した",
+     "items": {
+      "type": "object",
+      "required": [
+       "path",
+       "last_operation",
+       "expected",
+       "actual"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "path": {
+        "type": "string"
+       },
+       "last_operation": {
+        "type": "string",
+        "pattern": "^o-[0-9]{4,}$",
+        "description": "対象を最後に書いた操作の ID"
+       },
+       "expected": {
+        "$ref": "#/$defs/fingerprint",
+        "description": "その操作の事後の指紋"
+       },
+       "actual": {
+        "$ref": "#/$defs/fingerprint",
+        "description": "いまの中身の指紋"
+       }
+      }
+     }
+    },
+    "hint": {
+     "type": "string",
+     "minLength": 1,
+     "description": "SAS を通らない変更があったときの、取り込みの案内"
     }
    }
   },
   "field-change": {
    "type": "object",
-   "description": "変わった欄1つ。add は before を、remove は after を持たない。値が null のときは null を持つ",
+   "description": "変わった欄1つ。add は before を、remove は after を持たない。値が null のときは null を持つ。前の中身のコミットが無い取り込みでは replace で before を持たず、before_unavailable が true",
    "required": [
     "pointer",
     "change"
@@ -239,6 +295,10 @@
     },
     "after": {
      "description": "後の値"
+    },
+    "before_unavailable": {
+     "const": true,
+     "description": "前の値が取れなかった（SAS を通らない変更の取り込みで、記録の最後の事後と同じ中身のコミットが無い）"
     }
    },
    "allOf": [
@@ -290,9 +350,25 @@
      },
      "then": {
       "required": [
-       "before",
        "after"
-      ]
+      ],
+      "if": {
+       "required": [
+        "before_unavailable"
+       ]
+      },
+      "then": {
+       "not": {
+        "required": [
+         "before"
+        ]
+       }
+      },
+      "else": {
+       "required": [
+        "before"
+       ]
+      }
      }
     }
    ]
@@ -306,12 +382,17 @@
    "properties": {
     "fingerprint": {
      "$ref": "#/$defs/fingerprint"
+    },
+    "commit": {
+     "type": "string",
+     "minLength": 1,
+     "description": "欄ごとの前の値を取ったコミット（更新の取り込みだけ。Abstract の版とは別のもの）"
     }
    }
   },
   "diff": {
    "type": "object",
-   "description": "前後の中身から JSON Pointer ごとに求めた差分（Git の行の差分は使わない）。作成では before が無い",
+   "description": "前後の中身から JSON Pointer ごとに求めた差分（Git の行の差分は使わない）。作成では before が無い。更新の取り込みの前の値は、記録の最後の事後と同じ中身のコミットから取る",
    "required": [
     "source",
     "after",
@@ -320,8 +401,11 @@
    "additionalProperties": false,
    "properties": {
     "source": {
-     "const": "sas",
-     "description": "SAS を通った変更（SAS を通らない変更の取り込みはステップ3 で outside を足す）"
+     "enum": [
+      "sas",
+      "outside"
+     ],
+     "description": "sas は SAS が書いた変更、outside は SAS を通らない変更の取り込み（--adopt）"
     },
     "before": {
      "$ref": "#/$defs/side"
@@ -334,6 +418,10 @@
      "items": {
       "$ref": "#/$defs/field-change"
      }
+    },
+    "before_unavailable": {
+     "type": "boolean",
+     "description": "更新の取り込みだけが持つ。true なら前の中身のコミットが無く、changes はいまの中身の根の欄ごとに前の値を持たない"
     }
    }
   },
@@ -367,8 +455,10 @@
     "result": {
      "enum": [
       "created",
-      "updated"
-     ]
+      "updated",
+      "adopted"
+     ],
+     "description": "adopted は SAS を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる"
     },
     "replayed": {
      "type": "boolean",
@@ -486,9 +576,13 @@
       "id_changed",
       "human_field",
       "derived_mismatch",
-      "published_changed"
+      "published_changed",
+      "recorded",
+      "not_recorded",
+      "nothing_to_adopt",
+      "versions"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、操作として記録し、session と operation を返す"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、操作として記録し、session と operation を返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと"
     },
     "path": {
      "type": "string"
@@ -510,6 +604,11 @@
     "interleaved": {
      "$ref": "#/$defs/interleaved",
      "description": "conflict のときだけ持つ。同じ request_id のやり直しで断りを返すときは、比べた指紋を記録していないので持たない"
+    },
+    "hint": {
+     "type": "string",
+     "minLength": 1,
+     "description": "次にすることの案内（SAS を通らない変更を取り込むコマンド、人が取り込むコマンド）"
     }
    },
    "allOf": [
@@ -579,6 +678,7 @@
     "operation",
     "session",
     "kind",
+    "source",
     "at",
     "after",
     "changes"
@@ -600,6 +700,13 @@
       "create",
       "update"
      ]
+    },
+    "source": {
+     "enum": [
+      "sas",
+      "outside"
+     ],
+     "description": "outside は SAS を通らない変更を取り込んだ操作"
     },
     "intent": {
      "type": "string",
@@ -646,7 +753,7 @@
     },
     "untracked": {
      "type": "boolean",
-     "description": "true なら、いまの中身は記録した操作の事後のどれでもない（SAS を通らない変更があった。取り込みはステップ3 の --adopt）"
+     "description": "true なら、いまの中身は記録した操作の事後のどれでもない（SAS を通らない変更があった。--adopt で取り込む）"
     },
     "operations": {
      "type": "array",

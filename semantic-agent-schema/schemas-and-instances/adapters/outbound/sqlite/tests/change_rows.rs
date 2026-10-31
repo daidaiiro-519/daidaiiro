@@ -1,7 +1,7 @@
 //! ステップ2 の表の決まり：作成 ・ 更新の行と変わった欄、断った操作は対象を変えない、1つの依頼に操作は1回、
 //! seq は前の次の番号、変わった欄は書いた作成 ・ 更新にだけ付く、判定は検証にだけ付く。
 //! 対象を書いた操作は、断ったものと検証を除いて記録した順に読める。
-//! あわせて、ステップ1 の DB を開くと行を残したまま移すこと。
+//! あわせて、ステップ1 の DB を開くと行を残したまま（版3 まで）移すこと。
 
 #![allow(clippy::unwrap_used)]
 
@@ -13,6 +13,7 @@ use schemas_and_instances_operation_recording_application::ports::{
 fn update(request_id: Option<&str>) -> ChangeRow {
     ChangeRow {
         kind: "update".into(),
+        source: "sas".into(),
         target_kind: "instance".into(),
         target_path: "u1.json".into(),
         concrete: "urn:x:v1".into(),
@@ -26,6 +27,7 @@ fn update(request_id: Option<&str>) -> ChangeRow {
             change: "replace".into(),
             before: Some("\"x\"".into()),
             after: Some("null".into()),
+            before_unavailable: false,
         }],
     }
 }
@@ -42,6 +44,7 @@ fn validate_row() -> ValidateRow {
             by: "human".into(),
             result: "unverified".into(),
             reason: "人が決める".into(),
+            reads: Some("sha256:r".into()),
         }],
     }
 }
@@ -195,8 +198,13 @@ fn step1_database_is_moved_with_its_rows() {
         .connection()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 2);
-    assert_eq!(log.last_judgments("u1.json").unwrap().len(), 1);
+    assert_eq!(version, 3);
+    let last = log.last_judgments("u1.json").unwrap();
+    assert_eq!(last.len(), 1);
+    assert_eq!(
+        last[0].rule.reads, None,
+        "ステップ1 の判定は読んだ所の指紋を持たない"
+    );
     let s = log.caller_session(&Caller::Human).unwrap();
     assert_eq!(s, "s-0001");
     assert_eq!(log.append_change(&s, &update(None)).unwrap(), "o-0002");

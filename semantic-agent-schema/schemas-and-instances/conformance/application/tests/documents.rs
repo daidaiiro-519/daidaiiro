@@ -3,14 +3,17 @@
 
 #![allow(clippy::unwrap_used, clippy::panic)]
 
-use schemas_and_instances_conformance_application::ports::{DocumentStore, SchemaChecker};
+use schemas_and_instances_conformance_application::ports::{
+    CommitReader, DocumentStore, SchemaChecker,
+};
 use schemas_and_instances_conformance_application::use_cases::documents::{
-    CreateRequest, Scope, TargetKind, UpdateRequest, create, update, validate,
+    AdoptAs, AdoptRequest, CreateRequest, Scope, TargetKind, UpdateRequest, adopt, create, update,
+    validate, validate_stale,
 };
 use schemas_and_instances_conformance_domain::values::Fingerprint;
 use schemas_and_instances_conformance_domain::values::Verdict;
 use schemas_and_instances_operation_recording_application::ports::{
-    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, RuleRow, StoredChange, ValidateRow,
+    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, StoredChange, ValidateRow,
     WriteRecord,
 };
 use serde_json::{Value, json};
@@ -120,21 +123,22 @@ impl OperationLog for Log {
             .collect())
     }
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        Ok(self
-            .0
-            .iter()
-            .enumerate()
-            .rfind(|(_, r)| r.target_path == target_path)
-            .map(|(i, r)| {
-                r.results
-                    .iter()
-                    .map(|rule: &RuleRow| Judgment {
-                        operation: format!("o-{}", i + 1),
-                        rule: rule.clone(),
-                    })
-                    .collect()
-            })
-            .unwrap_or_default())
+        // rule ごとに、その rule を最後に判定した検証の行（検証の ID は検証だけの並びの番号）
+        let mut latest: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
+        for (i, r) in self.0.iter().enumerate() {
+            if r.target_path != target_path {
+                continue;
+            }
+            let mut here: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
+            for rule in &r.results {
+                here.entry(rule.rule.clone()).or_default().push(Judgment {
+                    operation: format!("o-{}", i + 1),
+                    rule: rule.clone(),
+                });
+            }
+            latest.extend(here);
+        }
+        Ok(latest.into_values().flatten().collect())
     }
 }
 
@@ -438,4 +442,158 @@ fn update_reports_the_previous_judgments_it_made_stale() {
         .map(|s| (s.rule.as_str(), s.pointer.as_str(), s.operation.as_str()))
         .collect();
     assert_eq!(stale, [("goal-is-outcome", "/goal", "o-1")]);
+}
+
+/// コミット済みの版の代役：コミットの名前と中身の並び（新しい順）。
+struct Commits(Vec<(String, String)>);
+impl CommitReader for Commits {
+    fn commits(&self, _: &str, max: usize) -> Result<Vec<String>, String> {
+        Ok(self.0.iter().take(max).map(|(c, _)| c.clone()).collect())
+    }
+    fn read(&self, rev: &str, _: &str) -> Result<Option<Vec<u8>>, String> {
+        Ok(self
+            .0
+            .iter()
+            .find(|(c, _)| c == rev)
+            .map(|(_, t)| t.clone().into_bytes()))
+    }
+}
+
+fn adopt_request(as_kind: AdoptAs) -> AdoptRequest {
+    AdoptRequest {
+        path: "u1.json".into(),
+        as_kind,
+        concrete: None,
+        intent: Some("エディターで直した".into()),
+        request_id: None,
+    }
+}
+
+#[test]
+fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
+    let first = json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"});
+    let store = files(&[("c.json", decided()), ("u1.json", first)]);
+    let committed = store.read("u1.json").unwrap();
+    let mut log = Log::default();
+    let none = Commits(Vec::new());
+    let c = adopt(
+        &adopt_request(AdoptAs::Create),
+        &store,
+        &Lenient,
+        &none,
+        &Human,
+        &mut log,
+    )
+    .unwrap();
+    assert!(c.outside);
+    assert!(c.before.is_none());
+    // 外で goal を直す。HEAD は外でのコミット（中身が違う）、その前のコミットが記録の最後の事後
+    let edited = json!({"$schema": UC, "id": "U1", "goal": "b", "status": "draft"}).to_string();
+    store.write("u1.json", &edited).unwrap();
+    let commits = Commits(vec![
+        ("head".into(), edited.clone()),
+        ("older".into(), committed),
+    ]);
+    let c = adopt(
+        &adopt_request(AdoptAs::Update),
+        &store,
+        &Lenient,
+        &commits,
+        &Human,
+        &mut log,
+    )
+    .unwrap();
+    assert_eq!(c.before_commit.as_deref(), Some("older"));
+    let changes: Vec<(&str, Option<&Value>)> = c
+        .diff
+        .changes()
+        .iter()
+        .map(|f| (f.pointer(), f.before()))
+        .collect();
+    assert_eq!(changes, [("/goal", Some(&json!("a")))]);
+    assert_eq!(log.1[1].1.source, "outside");
+    assert_eq!(
+        store.read("u1.json").unwrap(),
+        edited,
+        "取り込みはファイルを書かない"
+    );
+}
+
+#[test]
+fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
+    let store = files(&[
+        ("c.json", decided()),
+        (
+            "u1.json",
+            json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"}),
+        ),
+    ]);
+    let mut log = Log::default();
+    let none = Commits(Vec::new());
+    adopt(
+        &adopt_request(AdoptAs::Create),
+        &store,
+        &Lenient,
+        &none,
+        &Human,
+        &mut log,
+    )
+    .unwrap();
+    store
+        .write(
+            "u1.json",
+            &json!({"$schema": UC, "id": "U1", "goal": "b", "status": "approved"}).to_string(),
+        )
+        .unwrap();
+    let r = adopt(
+        &adopt_request(AdoptAs::Update),
+        &store,
+        &Lenient,
+        &none,
+        &Tool,
+        &mut log,
+    )
+    .unwrap_err();
+    assert_eq!(r.code, "human_field");
+    assert!(r.message.contains("前の中身のコミットが無く"));
+    assert!(r.hint.unwrap().contains("--session を付けずに"));
+    // 人なら、前の値を持たない差分で取り込める
+    let c = adopt(
+        &adopt_request(AdoptAs::Update),
+        &store,
+        &Lenient,
+        &none,
+        &Human,
+        &mut log,
+    )
+    .unwrap();
+    assert!(c.diff.before_unavailable());
+    assert!(c.diff.changes().iter().all(|f| f.before().is_none()));
+}
+
+#[test]
+fn stale_validation_rejudges_only_rules_whose_reads_changed() {
+    let store = files(&[
+        ("c.json", decided()),
+        (
+            "u1.json",
+            json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"}),
+        ),
+    ]);
+    let mut log = Log::default();
+    validate(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    store
+        .write(
+            "u1.json",
+            &json!({"$schema": UC, "id": "U1", "goal": "a", "status": "approved"}).to_string(),
+        )
+        .unwrap();
+    let v = validate_stale(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    assert_eq!(v.unchanged_targets, ["c.json"]);
+    let t = &v.targets[0];
+    let rules: Vec<&str> = t.results.iter().map(|r| r.rule()).collect();
+    assert_eq!(rules, ["json-schema"], "goal を読む rule は読んだ所が同じ");
+    assert_eq!(t.unchanged_rules, ["goal-is-outcome"]);
+    let again = validate_stale(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    assert!(again.targets.is_empty());
 }

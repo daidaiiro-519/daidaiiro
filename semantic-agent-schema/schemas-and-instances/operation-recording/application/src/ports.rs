@@ -31,6 +31,8 @@ pub struct RuleRow {
     pub result: String,
     /// 理由
     pub reason: String,
+    /// 判定が読んだ所の指紋（読んだ所と値から作る）。ステップ2 までの記録には無い
+    pub reads: Option<String>,
 }
 
 /// 検証の操作1件（記録の行）。検証は対象を変えないので、事前と事後の指紋は同じ。
@@ -59,6 +61,8 @@ pub struct FieldRow {
     pub before: Option<String>,
     /// 後の値
     pub after: Option<String>,
+    /// 前の値が取れなかった（SAS を通らない変更の取り込みで、前の中身のコミットが無い）。true なら before は None
+    pub before_unavailable: bool,
 }
 
 /// 作成か更新の操作1件（記録の行）。断ったときは refusal に決まった名前と理由が入り、対象は変わらない。
@@ -66,6 +70,8 @@ pub struct FieldRow {
 pub struct ChangeRow {
     /// create か update
     pub kind: String,
+    /// sas（SAS が書いた）か outside（SAS を通らない変更を取り込んだ）
+    pub source: String,
     /// concrete か instance
     pub target_kind: String,
     /// リポジトリの根からの経路
@@ -151,7 +157,8 @@ pub trait OperationLog {
     /// 置き場所を読めないとき。
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String>;
 
-    /// 経路の対象を最後に検証した操作の判定。検証が無ければ空。
+    /// 経路の対象の、rule ごとの最後の判定（その rule を最後に判定した検証の操作の行）。検証が無ければ空。
+    /// 入力が変わった rule だけを検証すると、検証の操作ごとに判定した rule が違うので、操作ではなく rule ごとに引く。
     ///
     /// # Errors
     /// 置き場所を読めないとき。

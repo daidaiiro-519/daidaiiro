@@ -1,0 +1,71 @@
+{
+ "$schema": "urn:semantic-agent-schema:test-suite:scenario:v1",
+ "id": "S-UC4-UNTRACKED",
+ "name": "SAS を通らない変更を知らせる",
+ "title": "SAS が記録したあとにエディターで直されたファイルを検証すると、いまの中身を検証し、untracked と取り込みの案内を返す",
+ "why": "記録に無い変更を黙って検証すると、誰が何のために直したかが分からないまま確かめ済みに見える。",
+ "traces": [
+  "UC4:変形:SAS を通らない変更を見つける"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:semantic-agent-schema:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"エディターで直した目的\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/fingerprint",
+   "equals": "sha256:20539427f1debb6e707b78281f22f0e0662a044c1511ccdac7a0cde084a90aa7"
+  },
+  {
+   "of": "when",
+   "pointer": "/untracked",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/untracked/0/last_operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/untracked/0/actual",
+   "equals": "sha256:20539427f1debb6e707b78281f22f0e0662a044c1511ccdac7a0cde084a90aa7"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "sas update usecases/u1.json --adopt --intent"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}
