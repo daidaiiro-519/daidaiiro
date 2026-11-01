@@ -234,23 +234,20 @@ fn procedure_follows_the_current_content_and_not_the_previous_judgment() {
 
 #[test]
 fn reading_of_the_field_goes_into_the_procedure() {
-    // x-prompt の read（interpret ・ when）は、値を読む手がかりとして手順に入る
+    // x-prompt の meaning ・ when は、値を読む手がかりとして手順に同じ名前で入る
     let mut c = meaning();
-    c["properties"]["goal"]["x-prompt"]["read"] =
-        json!({"interpret": "利用者の言葉で書いた結果として読む", "when": "検証するときに読む"});
+    c["properties"]["goal"]["x-prompt"]["meaning"] = json!("利用者の言葉で書いた結果として読む");
+    c["properties"]["goal"]["x-prompt"]["when"] = json!("検証するときに読む");
     let store = files(&[
         ("c.json", c),
         ("u1.json", json!({"$schema": UC, "goal": "注文が届く"})),
     ]);
     let p = procedures(&store, &Log::default(), &HUMAN);
     assert_eq!(
-        p[0]["steps"][0]["read"]["interpret"],
+        p[0]["steps"][0]["meaning"],
         json!("利用者の言葉で書いた結果として読む")
     );
-    assert_eq!(
-        p[0]["steps"][0]["read"]["when"],
-        json!("検証するときに読む")
-    );
+    assert_eq!(p[0]["steps"][0]["when"], json!("検証するときに読む"));
 }
 
 #[test]

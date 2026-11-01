@@ -45,7 +45,7 @@ impl Files {
 pub(crate) struct Lenient;
 impl Lenient {
     pub(crate) fn shipped(&self, id: &str) -> Option<Value> {
-        (id == ABSTRACT).then(|| json!({"x-prompt": {"write": [{"id": "goal-is-ok"}]}}))
+        (id == ABSTRACT).then(|| json!({"x-prompt": {"rules": [{"id": "goal-is-ok"}]}}))
     }
     pub(crate) fn check(
         &self,
@@ -187,7 +187,7 @@ pub(crate) fn concrete() -> Value {
 pub(crate) fn decided() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC, "properties": {
         "status": {"x-decided-by": "human", "default": "draft"},
-        "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome"}]}}
+        "goal": {"x-prompt": {"rules": [{"id": "goal-is-outcome"}]}}
     }})
 }
 
@@ -195,7 +195,7 @@ pub(crate) fn decided() -> Value {
 pub(crate) fn meaning() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC,
            "properties": {
-        "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
-                 "why": "手段だと果たせたかを決められない。", "test": "結果を表す名詞句か。"}]}}
+        "goal": {"x-prompt": {"rules": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
+                 "why": "手段だと果たせたかを決められない。", "check": "結果を表す名詞句か。"}]}}
     }})
 }

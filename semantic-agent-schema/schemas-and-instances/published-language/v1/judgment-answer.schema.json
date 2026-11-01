@@ -12,11 +12,9 @@
    "title": "判定した中身のハッシュ",
    "description": "判定した中身のハッシュ（手順の target.hash）",
    "x-prompt": {
-    "read": {
-     "when": "判定を書き始めるときに読む。",
-     "interpret": "手順の target.hash をそのまま写す。いまの中身と違えば SAS は断る。"
-    },
-    "write": []
+    "meaning": "手順の target.hash をそのまま写す。いまの中身と違えば SAS は断る。",
+    "when": "判定を書き始めるときに読む。",
+    "rules": []
    }
   },
   "results": {
@@ -24,11 +22,9 @@
    "title": "判定",
    "description": "まとまりの rules の id ごとの判定。どのまとまりのどの id も1件ずつ持つ",
    "x-prompt": {
-    "read": {
-     "when": "steps を判定したあとに、判定を並べるときに読む。",
-     "interpret": "まとまりの rules の id 1つに1件。step はまとまりの no、rule はその id、pointer はまとまりの pointer を写し、result と reason はその rule に照らして書く。"
-    },
-    "write": []
+    "meaning": "まとまりの rules の id 1つに1件。step はまとまりの no、rule はその id、pointer はまとまりの pointer を写し、result と reason はその rule に照らして書く。",
+    "when": "steps を判定したあとに、判定を並べるときに読む。",
+    "rules": []
    },
    "items": {
     "type": "object",
@@ -39,32 +35,32 @@
       "minimum": 1,
       "title": "ステップの番号",
       "description": "判定した rule が入っていたまとまりの no（手順の steps の no）",
-      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "まとまりの no をそのまま写す。" }, "write": [] }
+      "x-prompt": { "meaning": "まとまりの no をそのまま写す。", "when": "判定を書くときに読む。", "rules": [] }
      },
      "rule": {
       "type": "string",
       "title": "rule の id",
       "description": "判定した rule の id（まとまりの rules の1つ）",
-      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "まとまりの rules の id をそのまま写す。" }, "write": [] }
+      "x-prompt": { "meaning": "まとまりの rules の id をそのまま写す。", "when": "判定を書くときに読む。", "rules": [] }
      },
      "pointer": {
       "type": "string",
       "title": "当たる所",
       "description": "当たる所（JSON Pointer）",
-      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "まとまりの pointer をそのまま写す（文書全体のまとまりは空の文字列）。" }, "write": [] }
+      "x-prompt": { "meaning": "まとまりの pointer をそのまま写す（文書全体のまとまりは空の文字列）。", "when": "判定を書くときに読む。", "rules": [] }
      },
      "result": {
       "enum": ["verified", "violated", "unverified"],
       "title": "判定",
       "description": "verified：rule を満たす、violated：満たさない、unverified：判定できない",
-      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "まとまりの current の値（変わった所は before と after を見比べて）を、rule の id で手順の rules から引いた rule の rule ・ why ・ test に照らして決める。読むものが足りず決められなければ unverified にする。" }, "write": [] }
+      "x-prompt": { "meaning": "まとまりの current の値（変わった所は before と after を見比べて）を、rule の id で手順の rules から引いた rule の rule ・ why ・ test に照らして決める。読むものが足りず決められなければ unverified にする。", "when": "判定を書くときに読む。", "rules": [] }
      },
      "reason": {
       "type": "string",
       "minLength": 1,
       "title": "理由",
       "description": "そう判定した理由",
-      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "current のどの値が rule のどこに当たるかを書く。" }, "write": [] }
+      "x-prompt": { "meaning": "current のどの値が rule のどこに当たるかを書く。", "when": "判定を書くときに読む。", "rules": [] }
      }
     }
    }

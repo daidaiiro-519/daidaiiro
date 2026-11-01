@@ -3,7 +3,7 @@
 //! - 手順の steps はレビューのまとまりで、形は2つだけ：所のまとまり（pointer ・ before ・ after ・ current ・ rules）と、
 //!   文書全体のまとまり（changed ・ rules。いつも1つ）。場面によって変わるのは、まとまりの数と中身だけ
 //! - 判定済みの対象では、前の判定のあとに記録された変更（changes の field_changes）から変わった所を決め、
-//!   その所に当たる rule ・ その所を reads で読む rule ・ 文書全体に当たる rule ・ 文が変わった rule だけを入れる
+//!   その所に当たる rule ・ その所を related_fields で読む rule ・ 文書全体に当たる rule ・ 文が変わった rule だけを入れる
 //! - rule の全文は手順の rules に1回だけ書き、まとまりは rule の id で指す。前の判定は入れない
 //! - 判定は書いたときとは別の文脈で行い、判定用の会話はキャッシュの有効時間のうちは続けて使うよう、constraints で求める。
 //!   SAS は判定したのが誰かを見分けない
@@ -96,8 +96,10 @@ pub struct Group {
     pub title: Option<String>,
     /// 欄の説明
     pub description: Option<String>,
-    /// 欄の読み方（x-prompt の read：interpret ・ when）
-    pub read: Option<Value>,
+    /// 欄の意味（x-prompt の meaning）
+    pub meaning: Option<String>,
+    /// 欄をいつ読むか（x-prompt の when）
+    pub when: Option<String>,
 }
 
 /// 判定する1件（rule × 当たる所）。no はそれを入れたまとまりの番号。
@@ -109,10 +111,10 @@ pub struct Step {
     pub rule: String,
     /// 当たる所
     pub pointer: String,
-    /// rule の定義（x-prompt の write の1行）
+    /// rule の定義（x-prompt の rules の1件）
     pub definition: Value,
-    /// rule の reads が指す所と、その値（判定に一緒に渡す）
-    pub reads: Vec<(String, Value)>,
+    /// rule の related_fields が指す所と、その値（判定に一緒に渡す）
+    pub related_fields: Vec<(String, Value)>,
 }
 
 /// 対象1つの判定の手順。command は判定を渡すときに打つコマンド。
@@ -170,12 +172,15 @@ pub fn procedure(
             if let Some(d) = &g.description {
                 v["description"] = json!(d);
             }
-            if let Some(r) = &g.read {
-                v["read"] = r.clone();
+            if let Some(m) = &g.meaning {
+                v["meaning"] = json!(m);
+            }
+            if let Some(w) = &g.when {
+                v["when"] = json!(w);
             }
             let mut reads: Vec<Value> = Vec::new();
             for s in steps.iter().filter(|s| s.no == g.no) {
-                for (p, val) in &s.reads {
+                for (p, val) in &s.related_fields {
                     let r = json!({"pointer": p, "value": val});
                     if !reads.contains(&r) {
                         reads.push(r);
@@ -183,7 +188,7 @@ pub fn procedure(
                 }
             }
             if !reads.is_empty() {
-                v["reads"] = Value::Array(reads);
+                v["related_fields"] = Value::Array(reads);
             }
             v
         })
@@ -200,7 +205,7 @@ pub fn procedure(
         "command": command,
         "constraints": [
             "steps はレビューのまとまり。所のまとまり（review-place）は、その所の rules のそれぞれを、前の判定のときの値（before）といまの値（current）を見比べ、変更の操作（changes）の理由を踏まえて、いまの値で判定する。文書全体のまとまり（review-document）は、変わった所（changed）と変更の操作（changes）を踏まえて、文書全体（current）で rules のそれぞれを判定する",
-            "rule は id で手順の rules から引き、rule ・ why ・ test（bad ・ good があれば違反する例と満たす例）に照らす。read があればその読み方で、reads があればその値も読む",
+            "rule は id で手順の rules から引き、rule ・ why ・ check（bad ・ good があれば違反する例と満たす例）に照らす。meaning があればその読み方で、when があればその読み手として、related_fields があればその値も読む",
             "判定は answer の形の JSON にし、まとまりの rules の1つごとに1件（step はまとまりの no、pointer はまとまりの pointer）を書き、hash には target.hash を写して、command で渡す",
             "ファイルを書かない",
             "まとまりに無い欄に触れない",

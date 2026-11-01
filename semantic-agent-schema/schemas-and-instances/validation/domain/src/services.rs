@@ -5,5 +5,7 @@ mod judged;
 mod rules;
 
 pub use abstract_rules::builtin_checks;
-pub use judged::{Judged, concrete_rules, instance_rules, reads_hash, reads_of, rule_reads, whole};
+pub use judged::{
+    Judged, concrete_rules, instance_rules, reads_hash, reads_of, related_fields, whole,
+};
 pub use rules::{AppliedRule, rules_for_concrete, rules_for_instance, unjudged};

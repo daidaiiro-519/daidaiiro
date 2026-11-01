@@ -1,6 +1,6 @@
 //! 当たる rule を集める。rule はどれも AI（sas を打ったセッション）が判定し、sas validate --answer で渡す。
 //!
-//! rule は x-prompt.write にある。欄の rule は欄に、x- の rule はその x- の値の形（Abstract の $defs）に書く。
+//! rule は x-prompt.rules にある。欄の rule は欄に、x- の rule はその x- の値の形（Abstract の $defs）に書く。
 //! 当たるのは、対象の文書にその欄や x- が実際にあるときだけ。Abstract の $defs の中の rule も、$ref でたどって当てる。
 
 use crate::values::{By, RuleResult, Verdict};
@@ -14,13 +14,13 @@ pub struct AppliedRule {
     pub id: String,
     /// 対象の中の当たる所（JSON Pointer）
     pub pointer: String,
-    /// rule の定義（x-prompt の write の1行）。文が変われば前の判定は効かない
+    /// rule の定義（x-prompt の rules の1件）。文が変われば前の判定は効かない
     pub definition: Value,
 }
 
-fn write_rules(prompt: Option<&Value>) -> Vec<(String, Value)> {
+fn prompt_rules(prompt: Option<&Value>) -> Vec<(String, Value)> {
     prompt
-        .and_then(|p| p.get("write"))
+        .and_then(|p| p.get("rules"))
         .and_then(Value::as_array)
         .map(|rs| {
             rs.iter()
@@ -58,7 +58,7 @@ pub fn rules_for_concrete(
 }
 
 fn push_rules(schema: &Value, at: &str, out: &mut Vec<AppliedRule>) {
-    for (id, definition) in write_rules(schema.get("x-prompt")) {
+    for (id, definition) in prompt_rules(schema.get("x-prompt")) {
         out.push(AppliedRule {
             id,
             pointer: at.to_string(),
@@ -256,10 +256,10 @@ mod tests {
     #[test]
     fn rules_follow_present_fields_only() {
         let concrete = json!({
-            "x-prompt": {"write": [{"id": "root"}]},
+            "x-prompt": {"rules": [{"id": "root"}]},
             "properties": {
-                "goal": {"x-prompt": {"write": [{"id": "goal-rule"}]}},
-                "absent": {"x-prompt": {"write": [{"id": "absent-rule"}]}}
+                "goal": {"x-prompt": {"rules": [{"id": "goal-rule"}]}},
+                "absent": {"x-prompt": {"rules": [{"id": "absent-rule"}]}}
             }
         });
         let rules = rules_for_instance(&concrete, &json!({"goal": "x"}), &[]);
@@ -272,9 +272,9 @@ mod tests {
     #[test]
     fn instance_rules_follow_ref_into_defs_and_other_concretes() {
         let other = json!({"$id": "urn:example:t:person:v1", "$defs": {"person": {"properties": {
-            "name": {"x-prompt": {"write": [{"id": "name-rule"}]}}}}}});
+            "name": {"x-prompt": {"rules": [{"id": "name-rule"}]}}}}}});
         let concrete = json!({
-            "$defs": {"step": {"properties": {"action": {"x-prompt": {"write": [{"id": "action-rule"}]}}}}},
+            "$defs": {"step": {"properties": {"action": {"x-prompt": {"rules": [{"id": "action-rule"}]}}}}},
             "properties": {
                 "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}},
                 "owner": {"$ref": "urn:example:t:person:v1#/$defs/person"}
@@ -301,20 +301,20 @@ mod tests {
     fn abstract_rules_inside_defs_reach_the_concrete() {
         // Abstract の $defs の中の rule（欄の title、rule の欄）も、$ref と x- の値の形をたどって当たる
         let abstract_doc = json!({
-            "x-prompt": {"write": [{"id": "root-rule"}]},
+            "x-prompt": {"rules": [{"id": "root-rule"}]},
             "properties": {"properties": {"$ref": "#/$defs/fields"}},
             "$defs": {
                 "fields": {"additionalProperties": {"$ref": "#/$defs/field"}},
-                "field": {"properties": {"title": {"x-prompt": {"write": [{"id": "title-rule"}]}}}},
-                "prompt": {"$anchor": "prompt", "properties": {"write": {"items": {"$ref": "#/$defs/rule"}}}},
-                "rule": {"properties": {"why": {"$ref": "#/$defs/sentence", "x-prompt": {"write": [{"id": "why-rule"}]}}}},
+                "field": {"properties": {"title": {"x-prompt": {"rules": [{"id": "title-rule"}]}}}},
+                "prompt": {"$anchor": "prompt", "properties": {"rules": {"items": {"$ref": "#/$defs/rule"}}}},
+                "rule": {"properties": {"why": {"$ref": "#/$defs/sentence", "x-prompt": {"rules": [{"id": "why-rule"}]}}}},
                 "sentence": {"type": "string"}
             }
         });
         let vocabulary = json!({"properties": {"x-prompt": {"$ref": "urn:semantic-agent-schema:published-language:abstract:v1#prompt"}}});
         let concrete = ConcreteSchema::read(&json!({
             "$schema": "urn:semantic-agent-schema:published-language:abstract:v1", "$id": "urn:example:a:v1",
-            "properties": {"goal": {"title": "目的", "x-prompt": {"write": [{"id": "r", "why": "w"}]}}}
+            "properties": {"goal": {"title": "目的", "x-prompt": {"rules": [{"id": "r", "why": "w"}]}}}
         }))
         .unwrap();
         let got: Vec<(String, String)> =
@@ -326,7 +326,7 @@ mod tests {
         assert!(got.contains(&("title-rule".into(), "/properties/goal/title".into())));
         assert!(got.contains(&(
             "why-rule".into(),
-            "/properties/goal/x-prompt/write/0/why".into()
+            "/properties/goal/x-prompt/rules/0/why".into()
         )));
     }
 }

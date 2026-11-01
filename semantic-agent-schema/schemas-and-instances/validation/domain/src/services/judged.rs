@@ -1,7 +1,7 @@
 //! 対象に当たる rule（形の検査を除く）と、その判定が読んだ所のハッシュ。
 //!
 //! 検証は判定して記録し、書くモジュールは更新のあとに前の判定のうち読んだ所が変わったものを決める。
-//! どちらも同じ基準（当たる所の値 ・ rule の reads が指す所の値 ・ rule の文）でハッシュを作る。
+//! どちらも同じ基準（当たる所の値 ・ rule の related_fields が指す所の値 ・ rule の文）でハッシュを作る。
 
 use crate::services::{builtin_checks, rules_for_concrete, rules_for_instance, unjudged};
 use crate::values::RuleResult;
@@ -9,8 +9,8 @@ use serde_json::Value;
 use writing_domain::aggregates::ConcreteSchema;
 use writing_domain::values::ContentHash;
 
-/// 判定と、その判定が読んだ所（JSON Pointer。"" は文書全体）と、判定に使った rule の定義（x-prompt の write の1行）。
-/// 読んだ所は当たる rule の所（と rule の reads）で、形の検査と組み込みの検査は文書全体を読む。
+/// 判定と、その判定が読んだ所（JSON Pointer。"" は文書全体）と、判定に使った rule の定義（x-prompt の rules の1件）。
+/// 読んだ所は当たる rule の所（と rule の related_fields）で、形の検査と組み込みの検査は文書全体を読む。
 pub type Judged = (RuleResult, String, Option<Value>);
 
 /// 文書全体を読む判定。
@@ -64,11 +64,11 @@ pub fn reads_of(document: &Value, at: &str) -> ContentHash {
     ContentHash::of_read(at, document.pointer(at))
 }
 
-/// rule の定義の reads（判定のときに一緒に読む所。このインスタンスの中の JSON Pointer）。
+/// rule の定義の related_fields（判定のときに一緒に読む所。このインスタンスの中の JSON Pointer）。
 #[must_use]
-pub fn rule_reads(definition: Option<&Value>) -> Vec<String> {
+pub fn related_fields(definition: Option<&Value>) -> Vec<String> {
     definition
-        .and_then(|d| d.get("reads"))
+        .and_then(|d| d.get("related_fields"))
         .and_then(Value::as_array)
         .map(|a| {
             a.iter()
@@ -79,12 +79,12 @@ pub fn rule_reads(definition: Option<&Value>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// 判定1件が読んだもののハッシュ：当たる所の値に、rule の reads が指す所の値と rule の文を足す
+/// 判定1件が読んだもののハッシュ：当たる所の値に、rule の related_fields が指す所の値と rule の文を足す
 /// （読む欄が変わる ・ Concrete の rule を書き換えると、前の判定は効かない）。
 #[must_use]
 pub fn reads_hash(document: &Value, at: &str, definition: Option<&Value>) -> ContentHash {
     let mut reads = reads_of(document, at);
-    for p in rule_reads(definition) {
+    for p in related_fields(definition) {
         let more = reads_of(document, &p);
         reads = ContentHash::of(format!("{}\u{0}{}", reads.as_str(), more.as_str()).as_bytes());
     }

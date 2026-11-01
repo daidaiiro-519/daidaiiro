@@ -13,7 +13,7 @@ use crate::use_cases::meaning::{
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::services::{
-    Judged, concrete_rules, instance_rules, reads_hash, rule_reads, whole,
+    Judged, concrete_rules, instance_rules, reads_hash, related_fields, whole,
 };
 use validation_domain::values::{By, Counts, Judgment, RuleResult, RuleRow, ValidateRow, Verdict};
 use writing_domain::aggregates::ConcreteSchema;
@@ -386,7 +386,12 @@ fn steps_of(
         let here: Vec<(&str, Vec<String>)> = chosen
             .iter()
             .filter(|&&k| c.results[k].0.pointer() == at)
-            .map(|&k| (c.results[k].0.rule(), rule_reads(c.definitions[k].as_ref())))
+            .map(|&k| {
+                (
+                    c.results[k].0.rule(),
+                    related_fields(c.definitions[k].as_ref()),
+                )
+            })
             .collect();
         let changes: Vec<ChangeOp> = c
             .ops
@@ -418,10 +423,14 @@ fn steps_of(
                 .and_then(|f| f.get("description"))
                 .and_then(Value::as_str)
                 .map(ToString::to_string),
-            read: field
-                .and_then(|f| f.pointer("/x-prompt/read"))
-                .filter(|r| r.as_object().is_some_and(|m| !m.is_empty()))
-                .cloned(),
+            meaning: field
+                .and_then(|f| f.pointer("/x-prompt/meaning"))
+                .and_then(Value::as_str)
+                .map(ToString::to_string),
+            when: field
+                .and_then(|f| f.pointer("/x-prompt/when"))
+                .and_then(Value::as_str)
+                .map(ToString::to_string),
         });
     }
     groups.push(Group {
@@ -438,7 +447,8 @@ fn steps_of(
         changed: c.changed.clone(),
         title: None,
         description: None,
-        read: None,
+        meaning: None,
+        when: None,
     });
     let mut steps = Vec::new();
     for &i in &chosen {
@@ -453,7 +463,7 @@ fn steps_of(
             rule: r.rule().to_string(),
             pointer: r.pointer().to_string(),
             definition: def.cloned().unwrap_or_default(),
-            reads: rule_reads(def)
+            related_fields: related_fields(def)
                 .into_iter()
                 .map(|p| {
                     let v = c.doc.value.pointer(&p).cloned().unwrap_or(Value::Null);
@@ -598,7 +608,7 @@ pub struct Current {
     pub hash: ContentHash,
     /// rule ごとの結果と、その判定が読んだ所のハッシュ
     pub results: Vec<(RuleResult, ContentHash)>,
-    /// rule ごとの定義（x-prompt の write の1行。results と同じ並び。機械だけの検査は None）
+    /// rule ごとの定義（x-prompt の rules の1件。results と同じ並び。機械だけの検査は None）
     pub definitions: Vec<Option<Value>>,
     /// results と同じ並びで、前の判定から変わっていない所か（意味の判定の既定で、手順に入れず前の判定を引き継ぐ）
     pub kept: Vec<bool>,
@@ -673,7 +683,7 @@ pub fn judge_current(
         let results = judged
             .into_iter()
             .map(|(r, at, definition)| {
-                // 当たる所の値 ・ rule の reads が指す所の値 ・ rule の文（どれかが変われば、前の判定は効かない）
+                // 当たる所の値 ・ rule の related_fields が指す所の値 ・ rule の文（どれかが変われば、前の判定は効かない）
                 let reads = reads_hash(&doc.value, &at, definition.as_ref());
                 (r, reads)
             })
@@ -832,7 +842,7 @@ fn review_of(
 
 /// 意味の判定の既定の選び方：前の判定のあとに記録された変更から、判定するもの（引き継がないもの）を選ぶ。選ぶのは、意味の rule × 当たる所のうち
 /// (1) 当たる所が変わった所と重なる（同じ ・ その中 ・ その外側。文書全体に当たる rule は、どこかが変われば入る）
-/// (2) rule の reads が変わった所と重なる (3) rule の文が前の判定のあとに変わった (4) 前の判定に無い ・ 前に判定できなかった。
+/// (2) rule の related_fields が変わった所と重なる (3) rule の文が前の判定のあとに変わった (4) 前の判定に無い ・ 前に判定できなかった。
 /// ほかは前の判定を引き継ぐ。前の判定を使えない対象（first）はすべてを選ぶ。
 fn select_changed(c: &mut Current, before: &[Judgment]) {
     if c.review != ReviewScope::Changed {
@@ -857,7 +867,7 @@ fn select_changed(c: &mut Current, before: &[Judgment]) {
             continue;
         }
         let hit = c.changed.iter().any(|p| {
-            related(r.pointer(), p) || rule_reads(def.as_ref()).iter().any(|q| related(q, p))
+            related(r.pointer(), p) || related_fields(def.as_ref()).iter().any(|q| related(q, p))
         });
         if hit || rules_changed.contains(r.rule()) {
             continue;

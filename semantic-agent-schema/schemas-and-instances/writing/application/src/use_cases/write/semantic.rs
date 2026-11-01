@@ -5,7 +5,7 @@
 //! - 書く欄は根の欄（x-prompt か、中に rule を持つ欄か、根が求める欄）。人が決める欄（x-decided-by: human）と、
 //!   const で決まる欄と、$schema は書く欄にしない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
 //! - インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く（同じ手続き）。
-//! - 書く順は rule の reads：読まれる欄を先にする。読み合う欄があれば、手順を出さずに断る。
+//! - 書く順は rule の related_fields：読まれる欄を先にする。読み合う欄があれば、手順を出さずに断る。
 //! - --ref の文書は SAS が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
 //! - 手順を返すだけで、記録しない。
 
@@ -142,7 +142,7 @@ fn write_units(doc: &Value, others: &[(String, Value)]) -> Vec<Unit> {
                 return None;
             }
             let rules: Vec<Value> = field
-                .pointer("/x-prompt/write")
+                .pointer("/x-prompt/rules")
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
@@ -162,7 +162,7 @@ fn write_units(doc: &Value, others: &[(String, Value)]) -> Vec<Unit> {
             let reads = rules
                 .iter()
                 .flat_map(|r| {
-                    r.get("reads")
+                    r.get("related_fields")
                         .and_then(Value::as_array)
                         .cloned()
                         .unwrap_or_default()
@@ -224,7 +224,7 @@ fn inner_rules(
         let mut rules: Vec<Value> = Vec::new();
         for n in [sub, target] {
             for r in n
-                .pointer("/x-prompt/write")
+                .pointer("/x-prompt/rules")
                 .and_then(Value::as_array)
                 .into_iter()
                 .flatten()
@@ -361,7 +361,7 @@ fn order(path: &str, mut units: Vec<Unit>) -> Result<Vec<Unit>, Refused> {
                 "reads_cycle",
                 path,
                 format!(
-                    "欄 {} の rule の reads が互いを読んでいて、書く順が決まらない。どちらかを先に置き、もう一方の rule で食い違わないかを確かめる形に Concrete を直す",
+                    "欄 {} の rule の related_fields が互いを読んでいて、書く順が決まらない。どちらかを先に置き、もう一方の rule で食い違わないかを確かめる形に Concrete を直す",
                     left.join(" ・ ")
                 ),
             ));
@@ -415,8 +415,10 @@ fn build_procedure(
             about.insert(k.to_string(), v.clone());
         }
     }
-    if let Some(r) = doc.pointer("/x-prompt/read") {
-        about.insert("read".to_string(), r.clone());
+    for k in ["meaning", "when"] {
+        if let Some(v) = doc.pointer(&format!("/x-prompt/{k}")) {
+            about.insert(k.to_string(), v.clone());
+        }
     }
     let steps: Vec<Value> = units
         .iter()
@@ -435,14 +437,16 @@ fn build_procedure(
                     s[k] = v.clone();
                 }
             }
-            if let Some(r) = u.field.pointer("/x-prompt/read") {
-                s["read"] = r.clone();
+            for k in ["meaning", "when"] {
+                if let Some(v) = u.field.pointer(&format!("/x-prompt/{k}")) {
+                    s[k] = v.clone();
+                }
             }
             if let Some(v) = current.and_then(|c| c.pointer(&at)) {
                 s["current"] = v.clone();
             }
             if !u.reads.is_empty() {
-                s["reads"] = json!(
+                s["related_fields"] = json!(
                     u.reads
                         .iter()
                         .map(|r| json!({"pointer": format!("/{}", escape(r))}))
@@ -478,7 +482,7 @@ fn build_procedure(
         "answer": answer,
         "command": write_command(path, declared, hash.as_deref(), request, caller),
         "constraints": [
-            "steps を no の順に行い、pointer の欄の値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例）と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決める（read があればその読み方で、reads があれば先に書いた欄の値を読み、current があればいまの値を直す形で）",
+            "steps を no の順に行い、pointer の欄の値を、rules の rule（rule ・ why ・ check。bad ・ good があれば例）と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決める（meaning があればその読み方で、when があればその読み手として、related_fields があれば先に書いた欄の値を読み、current があればいまの値を直す形で）",
             "値は answer.schema の形（JSON Schema）に従わせる。steps に無い形の決まり（求める欄 ・ 型 ・ const など）も、そこから読んで守る",
             "optional のステップは、書かないなら値から外してよい",
             "書くのは command の sas だけで、ファイルを直接書かない",
@@ -487,7 +491,7 @@ fn build_procedure(
         ],
     });
     if let Some(r) = doc
-        .pointer("/x-prompt/write")
+        .pointer("/x-prompt/rules")
         .and_then(Value::as_array)
         .filter(|r| !r.is_empty())
     {

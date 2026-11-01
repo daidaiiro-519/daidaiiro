@@ -869,7 +869,7 @@ pub fn update(
     })
 }
 
-/// 前の判定のうち、読んだ所がいまの中身と変わったもの（--stale と同じ基準。rule の reads と rule の文を含む）。
+/// 前の判定のうち、読んだ所がいまの中身と変わったもの（--stale と同じ基準。rule の related_fields と rule の文を含む）。
 /// 形の判定は書く前に照らし直したので除く。
 fn stale_judgments(
     log: &dyn ChangeLog,

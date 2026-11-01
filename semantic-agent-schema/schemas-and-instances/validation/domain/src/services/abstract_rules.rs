@@ -81,14 +81,14 @@ fn collect_ids(v: &Value, at: &str, out: &mut BTreeMap<String, Vec<String>>) {
         Value::Object(m) => {
             if let Some(rules) = m
                 .get("x-prompt")
-                .and_then(|p| p.get("write"))
+                .and_then(|p| p.get("rules"))
                 .and_then(Value::as_array)
             {
                 for (i, r) in rules.iter().enumerate() {
                     if let Some(id) = r.get("id").and_then(Value::as_str) {
                         out.entry(id.to_string())
                             .or_default()
-                            .push(format!("{at}/x-prompt/write/{i}/id"));
+                            .push(format!("{at}/x-prompt/rules/{i}/id"));
                     }
                 }
             }
@@ -141,12 +141,12 @@ mod tests {
         let c = concrete(
             json!({"$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
             "$id": "urn:example:a:v1", "properties": {
-                "a": {"x-prompt": {"write": [{"id": "r1"}]}},
-                "b": {"x-prompt": {"write": [{"id": "r1"}, {"id": "r2"}]}}}}),
+                "a": {"x-prompt": {"rules": [{"id": "r1"}]}},
+                "b": {"x-prompt": {"rules": [{"id": "r1"}, {"id": "r2"}]}}}}),
         );
         let r: Vec<_> = builtin_checks(&c).into_iter().skip(1).collect();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].verdict(), Verdict::Violated);
-        assert_eq!(r[0].pointer(), "/properties/b/x-prompt/write/0/id");
+        assert_eq!(r[0].pointer(), "/properties/b/x-prompt/rules/0/id");
     }
 }

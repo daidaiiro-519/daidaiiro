@@ -9,34 +9,32 @@
     }
   ],
   "x-prompt": {
-    "read": {
-      "when": "Concrete を書く前と、Concrete を照らした指摘を直すときに読む。",
-      "interpret": "properties は根に書けるもの、$defs/field は欄1つ（title ・ description ・ x-prompt が要る）、$defs/rule は write の1行の形として読む。"
-    },
-    "write": [
+    "meaning": "properties は根に書けるもの、$defs/field は欄1つ（title ・ description ・ x-prompt が要る）、$defs/rule は rules の1件の形として読む。",
+    "when": "Concrete を書く前と、Concrete を照らした指摘を直すときに読む。",
+    "rules": [
       {
         "id": "read-perspectives",
-        "rule": "値の形だけで解釈が決まらない欄には interpret を、読む時が決まっている欄には when を書く。",
+        "rule": "値の形だけで解釈が決まらない欄には meaning を、読む時が決まっている欄には when を書く。",
         "why": "description だけでは、同じ値を人と AI が別の意味に読む。",
-        "test": "欄の値の形と使われ方から、interpret ・ when が必要なのに無い欄が無いかを見る。"
+        "check": "欄の値の形と使われ方から、meaning ・ when が必要なのに無い欄が無いかを見る。"
       },
       {
         "id": "list-as-array",
         "rule": "並びになる値は、文字列に詰めず配列の型にする。",
         "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
-        "test": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。"
+        "check": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。"
       },
       {
         "id": "one-document-kind",
         "rule": "1つの Concrete には、1種類の文書の形だけを書く。読み手か変わる理由の違う文書は、別の Concrete にする。",
         "why": "2種類を混ぜると、インスタンスの $schema がどちらの形かを名乗れず、片方を直すともう片方が壊れる。",
-        "test": "根で oneOf などを使い、読み手か用途の違う2種類の文書を1つに混ぜていないかを見る。"
+        "check": "根で oneOf などを使い、読み手か用途の違う2種類の文書を1つに混ぜていないかを見る。"
       },
       {
         "id": "no-shape-only-concrete",
         "rule": "インスタンスを持たない、形だけを置く Concrete は作らない。",
         "why": "インスタンスが名乗らない Concrete は、持ち主の分からない形の置き場になり、どの Concrete と一緒に直すかが決まらない。",
-        "test": "properties が、ほかの Concrete から $ref で指されるためだけの形になっていないかを見る。"
+        "check": "properties が、ほかの Concrete から $ref で指されるためだけの形になっていないかを見る。"
       }
     ]
   },
@@ -54,7 +52,7 @@
       "title": "従う Abstract の版",
       "description": "このスキーマが従う Abstract の版と作法の版で、閉じた一覧のどれかである。",
       "x-prompt": {
-        "write": []
+        "rules": []
       },
       "enum": [
         "urn:semantic-agent-schema:published-language:abstract:v1"
@@ -66,10 +64,8 @@
       "title": "スキーマの名前",
       "description": "インスタンスが $schema で指す、このスキーマの名前である。",
       "x-prompt": {
-        "read": {
-          "interpret": "URN で、最後が :v<版>（v と数字）である。持ち主の名前空間（urn: の次）は使う側が決める。"
-        },
-        "write": []
+        "meaning": "URN で、最後が :v<版>（v と数字）である。持ち主の名前空間（urn: の次）は使う側が決める。",
+        "rules": []
       },
       "not": {
         "pattern": "^urn:semantic-agent-schema:"
@@ -81,12 +77,12 @@
       "title": "スキーマの名前",
       "description": "このスキーマが表すものの名前である。",
       "x-prompt": {
-        "write": [
+        "rules": [
           {
             "id": "noun",
             "rule": "インスタンスが何であるかを、名詞で書く。",
             "why": "読む人は題だけで、何のインスタンスかを判断する。",
-            "test": "題が名詞で終わっているかを見る。",
+            "check": "題が名詞で終わっているかを見る。",
             "bad": "意思決定を記録するためのもの",
             "good": "意思決定の記録"
           }
@@ -99,12 +95,12 @@
       "title": "スキーマの説明",
       "description": "インスタンスが何で、何を書かないかの説明である。",
       "x-prompt": {
-        "write": [
+        "rules": [
           {
             "id": "what-and-not",
             "rule": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を書く。",
             "why": "書かないものが分からないと、ほかのスキーマと同じことを2か所に書く。",
-            "test": "説明に、書かないものが1つ以上あるかを見る。"
+            "check": "説明に、書かないものが1つ以上あるかを見る。"
           }
         ]
       }
@@ -133,18 +129,18 @@
       "title": "Concrete の中で使い回す形",
       "description": "インスタンスの根にならない形（入れ子のオブジェクトの型など）の置き場所である。",
       "x-prompt": {
-        "write": [
+        "rules": [
           {
             "id": "shape-in-defs",
             "rule": "インスタンスの根にならない形は $defs に置き、欄からは $ref で指す。",
             "why": "同じ形を欄ごとに書くと、片方だけ直って食い違う。",
-            "test": "同じ形の入れ子のオブジェクトが、2か所以上に書かれていないかを見る。"
+            "check": "同じ形の入れ子のオブジェクトが、2か所以上に書かれていないかを見る。"
           },
           {
             "id": "ref-not-copy",
             "rule": "ほかの Concrete にある形は写さず、その Concrete の $id に #/$defs/<名前> を付けて $ref で指す。",
             "why": "写すと、持ち主の Concrete で形が変わっても、写しが古いまま残る。",
-            "test": "ほかの Concrete の $defs と同じ形を、この Concrete に書いていないかを見る。"
+            "check": "ほかの Concrete の $defs と同じ形を、この Concrete に書いていないかを見る。"
           }
         ]
       },
@@ -193,12 +189,12 @@
           "title": "欄の名前",
           "description": "この欄の名前（名詞）。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "what-goes-here",
                 "rule": "何を入れる欄かを名詞で書く。",
                 "why": "読む人は名前で、欄の中身を判断する。",
-                "test": "名前が名詞で、欄の値と合っているかを見る。"
+                "check": "名前が名詞で、欄の値と合っているかを見る。"
               }
             ]
           }
@@ -209,12 +205,12 @@
           "title": "欄の説明",
           "description": "その欄の値が何を表すかの1文。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "noun-sentence",
                 "rule": "値が何であるかを、名詞で終わる1文で書く。",
                 "why": "読む人は、まず何の値かで判断する。",
-                "test": "1文で、値の中身と合っているかを見る。"
+                "check": "1文で、値の中身と合っているかを見る。"
               }
             ]
           }
@@ -233,11 +229,9 @@
       "title": "決定権",
       "description": "この欄の値は人が決める、という宣言である。セッションの分かる呼び出し（AI）からは、作成時の default のほかに変えられない（SAS が書く前に断る）。",
       "x-prompt": {
-        "read": {
-          "when": "AI がインスタンスを書く前と、変更を取り込む前に読む。",
-          "interpret": "x-decided-by。\"human\" のとき、この欄の値を決めるのは人である（決定権）"
-        },
-        "write": []
+        "meaning": "x-decided-by。\"human\" のとき、この欄の値を決めるのは人である（決定権）",
+        "when": "AI がインスタンスを書く前と、変更を取り込む前に読む。",
+        "rules": []
       }
     },
     "published": {
@@ -246,15 +240,13 @@
       "title": "版のあいだ変えない欄",
       "description": "true のとき、この欄を同じ版（$id）のあいだ変えない宣言である。",
       "x-prompt": {
-        "read": {
-          "interpret": "x-published。true の欄を変えるときは、$id の版を上げた新しい Concrete にする。"
-        },
-        "write": [
+        "meaning": "x-published。true の欄を変えるときは、$id の版を上げた新しい Concrete にする。",
+        "rules": [
           {
             "id": "freeze-only-relied",
             "rule": "インスタンスやほかの仕組みが頼っていて、変わると困る欄だけを true にする。",
             "why": "true の欄は、版を上げないと変えられない。",
-            "test": "true の欄が、変わると困る欄かを見る。"
+            "check": "true の欄が、変わると困る欄かを見る。"
           }
         ]
       }
@@ -266,16 +258,14 @@
       "description": "インスタンスを、デザインシステムのどのテンプレートで描くかの名前である。Concrete の根にだけ書く。",
       "title": "描画の種類",
       "x-prompt": {
-        "read": {
-          "when": "描画する前に読む。",
-          "interpret": "x-view。Concrete の根に書く、ページのテンプレートの種類の名前。無ければ page。値の置き方はテンプレートが決める"
-        },
-        "write": [
+        "meaning": "x-view。Concrete の根に書く、ページのテンプレートの種類の名前。無ければ page。値の置き方はテンプレートが決める",
+        "when": "描画する前に読む。",
+        "rules": [
           {
             "id": "same-look-same-kind",
             "rule": "同じ見せ方にしたい Concrete には、同じ種類の名前を付ける。",
             "why": "種類ごとにテンプレートを1つ用意すれば、どの Concrete のインスタンスも同じデザインで描ける。",
-            "test": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。"
+            "check": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。"
           }
         ]
       }
@@ -286,59 +276,17 @@
       "required": [],
       "additionalProperties": false,
       "properties": {
-        "read": {
-          "$ref": "#/$defs/reading",
-          "title": "読み方",
-          "description": "その書く単位を何として読むかを、観点ごとに書く。",
-          "x-prompt": {
-            "write": []
-          }
-        },
-        "write": {
-          "type": "array",
-          "minItems": 0,
-          "items": {
-            "$ref": "#/$defs/rule"
-          },
-          "title": "書き方の決まりの並び",
-          "description": "その書く単位を書くときに守る決まり（rule）の並びである。",
-          "x-prompt": {
-            "write": [
-              {
-                "id": "one-rule-per-item",
-                "rule": "1つの決まりに1つのことだけを書く。",
-                "why": "2つ混ぜると、どちらで違反したかが分からない。",
-                "test": "rule の文に、2つの決まりが並んでいないかを見る。"
-              }
-            ]
-          }
-        }
-      },
-      "title": "読み方と書き方",
-      "description": "その書く単位を、何として読み、どう書くかのプロンプトである。",
-      "x-prompt": {
-        "read": {
-          "interpret": "read は観点ごとの1文、write は決まり（rule）の並びとして読む。"
-        },
-        "write": []
-      }
-    },
-    "reading": {
-      "type": "object",
-      "description": "値の読み方。観点ごとに1文。何を表すかは欄の description に書く",
-      "additionalProperties": false,
-      "properties": {
-        "interpret": {
+        "meaning": {
           "$ref": "#/$defs/sentence",
-          "title": "値をどう解釈するか",
-          "description": "値の形だけでは決まらない、解釈のしかた。",
+          "title": "意味",
+          "description": "その書く単位の値を何として読むかで、値の形だけでは決まらない解釈のしかたである。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "ambiguity-only",
                 "rule": "形だけでは読み違えうる点だけを書く。",
                 "why": "形で分かることまで書くと、必要な点が埋もれる。",
-                "test": "書いた点が、型や pattern で決まっていないことかを見る。"
+                "check": "書いた点が、型や pattern で決まっていないことかを見る。"
               }
             ]
           }
@@ -348,16 +296,41 @@
           "title": "いつ読むか",
           "description": "その値を、いつ、何のために読むかである。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "trigger",
                 "rule": "読む時と、そのとき決めることを書く。",
                 "why": "読む時が分かれば、読み手が決まる。",
-                "test": "時と決めることの両方があるかを見る。"
+                "check": "時と決めることの両方があるかを見る。"
+              }
+            ]
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/rule"
+          },
+          "title": "決まりの並び",
+          "description": "その書く単位を書くときに守る決まり（rule）の並びである。",
+          "x-prompt": {
+            "rules": [
+              {
+                "id": "one-rule-per-item",
+                "rule": "1つの決まりに1つのことだけを書く。",
+                "why": "2つ混ぜると、どちらで違反したかが分からない。",
+                "check": "rule の文に、2つの決まりが並んでいないかを見る。"
               }
             ]
           }
         }
+      },
+      "title": "読み方と書き方",
+      "description": "その書く単位を、何として読み（meaning ・ when）、どう書くか（rules）のプロンプトである。",
+      "x-prompt": {
+        "meaning": "meaning と when は読み方の1文ずつ、rules は決まり（rule）の並びとして読む。",
+        "rules": []
       }
     },
     "rule": {
@@ -367,7 +340,7 @@
         "id",
         "rule",
         "why",
-        "test"
+        "check"
       ],
       "additionalProperties": false,
       "properties": {
@@ -377,7 +350,7 @@
           "title": "決まりの名前",
           "description": "その決まりを指す、英小文字とハイフンの名前である。Concrete のどこ（$defs の中も）でも重ならない（SAS が組み込みで確かめる）。json-schema ・ instance-schema-name ・ unique-id は SAS が検証の結果に使う名前なので使わない。",
           "x-prompt": {
-            "write": []
+            "rules": []
           },
           "not": {
             "enum": [
@@ -392,18 +365,18 @@
           "title": "決まりの文",
           "description": "書くときに守ることの1文である。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "state-based",
                 "rule": "決まりは、ある時点のインスタンスを見れば判定できる状態として書き、操作（手段）を書かない。",
                 "why": "状態で書けば、どの経路でその状態になったかに判定が左右されない（TLA+ の invariant の考え方）。",
-                "test": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。"
+                "check": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。"
               },
               {
                 "id": "json-schema-first",
                 "rule": "値だけで決まる決まりは、行ではなく JSON Schema のキーワードで書き、行には書けないものだけを残す。",
                 "why": "JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる。",
-                "test": "値だけで決まる決まりを、if ・ then や pattern で書かずに rule にしていないかを見る。"
+                "check": "値だけで決まる決まりを、if ・ then や pattern で書かずに rule にしていないかを見る。"
               }
             ]
           }
@@ -413,45 +386,45 @@
           "title": "なぜ",
           "description": "その決まりを守らないと何が起きるかである。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "consequence",
                 "rule": "守らないと何が起きるかを書く。",
                 "why": "理由が無いと、決まりを直してよいかを判断できない。",
-                "test": "起きることが書かれているかを見る。"
+                "check": "起きることが書かれているかを見る。"
               }
             ]
           }
         },
-        "test": {
+        "check": {
           "$ref": "#/$defs/sentence",
           "title": "確かめ方",
           "description": "その決まりが守られているかを、どう確かめるかである。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "checkable",
                 "rule": "何を見れば合否が決まるかを書く。",
                 "why": "確かめ方が無いと、判定する人で結果が変わる。",
-                "test": "見る場所と、合否の分かれ目があるかを見る。"
+                "check": "見る場所と、合否の分かれ目があるかを見る。"
               }
             ]
           }
         },
-        "reads": {
+        "related_fields": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/json-pointer"
           },
-          "title": "読む欄",
+          "title": "一緒に読む欄",
           "description": "判定するときに読む欄（このインスタンスの中の JSON Pointer）の並びである。インスタンスの外（参照先のファイルなど）は指さない。SAS はここを読んで判定に渡し、読んだ所のハッシュに含める。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "minimal-reads",
                 "rule": "判定に必要な欄だけを並べる。",
                 "why": "読む範囲を絞ると、意味の判定がぶれない。",
-                "test": "並べた欄が、決まりの文に出てくるかを見る。"
+                "check": "並べた欄が、決まりの文に出てくるかを見る。"
               }
             ]
           }
@@ -462,12 +435,12 @@
           "title": "破る例",
           "description": "この決まりを破る値の例である。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "bad-violates",
                 "rule": "この決まりで violated になる値を書く。",
                 "why": "破らない例は、決まりの意味を示さない。",
-                "test": "例がこの決まりで violated になるかを見る。"
+                "check": "例がこの決まりで violated になるかを見る。"
               }
             ]
           }
@@ -478,12 +451,12 @@
           "title": "守る例",
           "description": "この決まりを守る値の例である。",
           "x-prompt": {
-            "write": [
+            "rules": [
               {
                 "id": "good-passes",
                 "rule": "この決まりで verified になる値を書く。",
                 "why": "守らない例は、決まりの意味を示さない。",
-                "test": "例がこの決まりで verified になるかを見る。"
+                "check": "例がこの決まりで verified になるかを見る。"
               }
             ]
           }
