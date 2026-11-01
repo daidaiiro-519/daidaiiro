@@ -18,7 +18,9 @@ pub use semantic::{SemanticRequest, semantic_procedure};
 use crate::ports::{ChangeLog, CommitReader, DocumentStore, SchemaValidator};
 use serde_json::Value;
 use std::collections::BTreeMap;
-use validation_domain::services::{Judged, concrete_rules, instance_rules, reads_hash};
+use validation_domain::services::{
+    EXAMPLE_RELATED, Judged, concrete_rules, example_related, instance_rules, reads_hash,
+};
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
 use writing_domain::values::{
@@ -433,7 +435,21 @@ fn check_write(
 ) -> Result<(), (&'static str, String)> {
     let r = match kind {
         TargetKind::Concrete => match ConcreteSchema::read(after) {
-            Some(c) => c.check_write(before.and_then(ConcreteSchema::read).as_ref()),
+            Some(c) => {
+                // rule の例の related は、その rule の related_fields にある所だけ（組み込みの検査 example-related）
+                let broken: Vec<String> = example_related(&c)
+                    .into_iter()
+                    .filter(|r| r.verdict() == Verdict::Violated)
+                    .map(|r| format!("{}：{}", r.pointer(), r.reason()))
+                    .collect();
+                if !broken.is_empty() {
+                    return Err((
+                        "invalid_value",
+                        format!("書かない（{EXAMPLE_RELATED}）：{}", broken.join(" ／ ")),
+                    ));
+                }
+                c.check_write(before.and_then(ConcreteSchema::read).as_ref())
+            }
             None => return Ok(()),
         },
         TargetKind::Instance => {

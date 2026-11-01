@@ -48,6 +48,7 @@
   "約束:template-language",
   "約束:abstract:instance-schema-name",
   "約束:abstract:unique-id",
+  "約束:abstract:example-related",
   "約束:dialect:nested",
   "UC1:変形:意味で書く",
   "UC2:変形:意味で書く",
@@ -128,6 +129,7 @@
     "S-UC2-ADOPT-INVALID",
     "S-UC2-CONFLICT",
     "S-UC2-DERIVED",
+    "S-UC2-EXAMPLE-RELATED",
     "S-UC2-HUMAN-FIELD-NESTED",
     "S-UC2-HUMAN-FIELD",
     "S-UC2-INVALID",
@@ -454,7 +456,7 @@
   },
   {
    "id": "約束:abstract:rule",
-   "meaning": "rule はどれも AI が判定する（打ったセッションが --answer で渡す。判定できなければ unverified）。id は Concrete の中で重ならず、SAS が結果に使う名前を使わない。rule は id ・ rule ・ why ・ check と、違反する例 bad ・ 満たす例 good（どちらも1つ以上の並び）を持ち、一緒に読む欄は related_fields に書く",
+   "meaning": "rule はどれも AI が判定する（打ったセッションが --answer で渡す。判定できなければ unverified）。id は Concrete の中で重ならず、SAS が結果に使う名前を使わない。rule は id ・ rule ・ why ・ check と、違反する例 bad ・ 満たす例 good を持つ。例はどちらも1つ以上の並びで、1件は value（当たる所の値）・ related（related_fields にある所の値）・ note（bad では必須の、なぜ違反かの1文）。一緒に読む欄は related_fields に書く",
    "scenarios": [
     "S-UC2-STALE-READS",
     "S-UC4-AI-UNVERIFIED",
@@ -510,6 +512,13 @@
    "meaning": "rule の id は Concrete のどこでも重ならない。SAS が Concrete の検証のたびに組み込みで確かめる",
    "scenarios": [
     "S-UC4-CONCRETE-OK"
+   ]
+  },
+  {
+   "id": "約束:abstract:example-related",
+   "meaning": "rule の例（bad ・ good）の related のキーは、その rule の related_fields にある所だけ。SAS が Concrete の検証のたびに組み込みで確かめ、Concrete の作成 ・ 更新では書く前に断る",
+   "scenarios": [
+    "S-UC2-EXAMPLE-RELATED"
    ]
   },
   {

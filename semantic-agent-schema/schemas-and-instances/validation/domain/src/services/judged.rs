@@ -27,7 +27,7 @@ pub fn concrete_rules(
     vocabulary: Option<&Value>,
     concrete: &ConcreteSchema,
 ) -> Vec<Judged> {
-    // JSON Schema で書けない Concrete の決まり2つは、SAS が組み込みで確かめる
+    // JSON Schema で書けない Concrete の決まり3つは、SAS が組み込みで確かめる
     let mut results: Vec<Judged> = builtin_checks(concrete).into_iter().map(whole).collect();
     for rule in rules_for_concrete(abstract_doc, vocabulary, concrete) {
         results.push((

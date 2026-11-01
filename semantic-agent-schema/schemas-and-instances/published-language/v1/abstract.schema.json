@@ -2,7 +2,7 @@
   "$schema": "urn:semantic-agent-schema:published-language:dialect:v1",
   "$id": "urn:semantic-agent-schema:published-language:abstract:v1",
   "title": "SAS の Abstract v1",
-  "description": "使う側が書く Concrete（JSON Schema）が従う、SAS の Abstract の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりと、x- の値の形（$defs。その x- の読み方と rule を x-prompt に持つ）を持つ。Concrete は x- を足さない。Concrete に書ける x- は x-prompt ・ x-decided-by ・ x-published ・ x-view の4つだけで、意味の決まりを広げるときは、欄の x-prompt の rule に書く。JSON Schema の構文で書けることは JSON Schema で書く。JSON Schema で書けない Concrete の決まりは2つで、SAS が検証のたびに組み込みで確かめる：根の properties の $schema の const は $id と同じ（instance-schema-name。SAS はインスタンスの $schema で従う Concrete を引く）・ rule の id は Concrete のどこでも重ならない（unique-id。判定の記録は名前で rule を指す）。",
+  "description": "使う側が書く Concrete（JSON Schema）が従う、SAS の Abstract の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりと、x- の値の形（$defs。その x- の読み方と rule を x-prompt に持つ）を持つ。Concrete は x- を足さない。Concrete に書ける x- は x-prompt ・ x-decided-by ・ x-published ・ x-view の4つだけで、意味の決まりを広げるときは、欄の x-prompt の rule に書く。JSON Schema の構文で書けることは JSON Schema で書く。JSON Schema で書けない Concrete の決まりは3つで、SAS が検証のたびに組み込みで確かめる：根の properties の $schema の const は $id と同じ（instance-schema-name。SAS はインスタンスの $schema で従う Concrete を引く）・ rule の id は Concrete のどこでも重ならない（unique-id。判定の記録は名前で rule を指す）・ rule の例の related のキーは、その rule の related_fields にある所だけ（example-related。作成 ・ 更新でも書く前に断る）。",
   "allOf": [
     {
       "$ref": "urn:semantic-agent-schema:published-language:dialect:v1"
@@ -18,10 +18,38 @@
         "why": "description だけでは、同じ値を人と AI が別の意味に読む。",
         "check": "欄の値の形と使われ方から、meaning ・ when が必要なのに無い欄が無いかを見る。",
         "bad": [
-          "{\"due\": {\"type\": \"string\", \"title\": \"期限\", \"description\": \"作業の期限である。\", \"x-prompt\": {\"rules\": []}}}（日付か期間かが形で決まらないのに meaning が無い）"
+          {
+            "value": {
+              "properties": {
+                "due": {
+                  "type": "string",
+                  "title": "期限",
+                  "description": "作業の期限である。",
+                  "x-prompt": {
+                    "rules": []
+                  }
+                }
+              }
+            },
+            "note": "日付か期間かが形で決まらない期限の欄に、meaning が無い。"
+          }
         ],
         "good": [
-          "{\"due\": {\"type\": \"string\", \"title\": \"期限\", \"description\": \"作業の期限である。\", \"x-prompt\": {\"meaning\": \"作業を終える日（YYYY-MM-DD）として読む。期間ではない。\", \"rules\": []}}}"
+          {
+            "value": {
+              "properties": {
+                "due": {
+                  "type": "string",
+                  "title": "期限",
+                  "description": "作業の期限である。",
+                  "x-prompt": {
+                    "meaning": "作業を終える日（YYYY-MM-DD）として読む。期間ではない。",
+                    "rules": []
+                  }
+                }
+              }
+            }
+          }
         ]
       },
       {
@@ -30,10 +58,32 @@
         "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
         "check": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。",
         "bad": [
-          "{\"tags\": {\"type\": \"string\", \"description\": \"タグをカンマで区切って並べたものである。\"}}"
+          {
+            "value": {
+              "properties": {
+                "tags": {
+                  "type": "string",
+                  "description": "タグをカンマで区切って並べたものである。"
+                }
+              }
+            },
+            "note": "並びになるタグを、区切りの記号で1つの文字列に詰めている。"
+          }
         ],
         "good": [
-          "{\"tags\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"description\": \"タグの並びである。\"}}"
+          {
+            "value": {
+              "properties": {
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "タグの並びである。"
+                }
+              }
+            }
+          }
         ]
       },
       {
@@ -42,22 +92,76 @@
         "why": "2種類を混ぜると、インスタンスの $schema がどちらの形かを名乗れず、片方を直すともう片方が壊れる。",
         "check": "根で oneOf などを使い、読み手か用途の違う2種類の文書を1つに混ぜていないかを見る。",
         "bad": [
-          "{\"oneOf\": [{\"$ref\": \"#/$defs/invoice\"}, {\"$ref\": \"#/$defs/receipt\"}]}（請求書と領収書を1つの Concrete に混ぜた）"
+          {
+            "value": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/invoice"
+                },
+                {
+                  "$ref": "#/$defs/receipt"
+                }
+              ]
+            },
+            "note": "読み手の違う請求書と領収書の2種類を、1つの Concrete に混ぜている。"
+          }
         ],
         "good": [
-          "{\"properties\": {\"$schema\": {\"const\": \"urn:example:invoice:v1\"}, \"amount\": {\"type\": \"integer\"}, \"due\": {\"type\": \"string\"}}}（請求書だけを書く）"
+          {
+            "value": {
+              "properties": {
+                "$schema": {
+                  "const": "urn:example:invoice:v1"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "due": {
+                  "type": "string"
+                }
+              }
+            },
+            "note": "請求書の1種類だけを書いている。"
+          }
         ]
       },
       {
         "id": "no-shape-only-concrete",
-        "rule": "インスタンスを持たない、形だけを置く Concrete は作らない。",
-        "why": "インスタンスが名乗らない Concrete は、持ち主の分からない形の置き場になり、どの Concrete と一緒に直すかが決まらない。",
-        "check": "properties が、ほかの Concrete から $ref で指されるためだけの形になっていないかを見る。",
+        "rule": "properties に $schema のほかの欄を1つ以上持たせる。$defs にだけ形を置く Concrete は作らない。",
+        "why": "書く欄の無い Concrete はインスタンスが名乗っても書けず、形だけの置き場になって、どの Concrete と一緒に直すかが決まらない。",
+        "check": "properties に $schema のほかの欄があるかを見る。",
         "bad": [
-          "{\"$id\": \"urn:example:address:v1\", \"$defs\": {\"address\": {\"type\": \"object\"}}, \"properties\": {\"$schema\": {\"const\": \"urn:example:address:v1\"}}}（ほかの Concrete から $ref で指されるための形だけを置き、インスタンスが名乗らない）"
+          {
+            "value": {
+              "$id": "urn:example:address:v1",
+              "$defs": {
+                "address": {
+                  "type": "object"
+                }
+              },
+              "properties": {
+                "$schema": {
+                  "const": "urn:example:address:v1"
+                }
+              }
+            },
+            "note": "properties が $schema だけで、形は $defs にしか無い。"
+          }
         ],
         "good": [
-          "{\"$id\": \"urn:example:customer:v1\", \"$defs\": {\"address\": {\"type\": \"object\"}}, \"properties\": {\"$schema\": {\"const\": \"urn:example:customer:v1\"}, \"name\": {\"type\": \"string\"}, \"address\": {\"$ref\": \"#/$defs/address\"}}}（顧客のインスタンスが名乗り、住所の形はその中に置く）"
+          {
+            "value": {
+              "$id": "urn:example:customer:v1",
+              "properties": {
+                "$schema": {
+                  "const": "urn:example:customer:v1"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         ]
       }
     ]
@@ -108,11 +212,19 @@
             "why": "読む人は題だけで、何のインスタンスかを判断する。",
             "check": "題が名詞で終わっているかを見る。",
             "bad": [
-              "意思決定を記録するためのもの",
-              "意思決定を記録する"
+              {
+                "value": "意思決定を記録するためのもの",
+                "note": "何であるかではなく、何に使うかを書いている。"
+              },
+              {
+                "value": "意思決定を記録する",
+                "note": "動詞で終わり、名詞になっていない。"
+              }
             ],
             "good": [
-              "意思決定の記録"
+              {
+                "value": "意思決定の記録"
+              }
             ]
           }
         ]
@@ -131,10 +243,15 @@
             "why": "書かないものが分からないと、ほかのスキーマと同じことを2か所に書く。",
             "check": "説明に、書かないものが1つ以上あるかを見る。",
             "bad": [
-              "1件の意思決定の記録である。"
+              {
+                "value": "1件の意思決定の記録である。",
+                "note": "書かないもの（ほかのスキーマが持つもの）が無い。"
+              }
             ],
             "good": [
-              "1件の意思決定の記録である。決定に至った議論の経緯は書かない（議事録が持つ）。"
+              {
+                "value": "1件の意思決定の記録である。決定に至った議論の経緯は書かない（議事録が持つ）。"
+              }
             ]
           }
         ]
@@ -170,11 +287,59 @@
             "rule": "インスタンスの根にならない形は $defs に置き、欄からは $ref で指す。",
             "why": "同じ形を欄ごとに書くと、片方だけ直って食い違う。",
             "check": "同じ形の入れ子のオブジェクトが、2か所以上に書かれていないかを見る。",
+            "related_fields": [
+              "/properties"
+            ],
             "bad": [
-              "{\"properties\": {\"from\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}, \"to\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}}}（同じ形を2つの欄に書いた）"
+              {
+                "value": {},
+                "related": {
+                  "/properties": {
+                    "from": {
+                      "type": "object",
+                      "properties": {
+                        "city": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "to": {
+                      "type": "object",
+                      "properties": {
+                        "city": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "note": "city を持つ同じ形の入れ子を from と to の2か所に書き、$defs に置いていない。"
+              }
             ],
             "good": [
-              "{\"$defs\": {\"place\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}}, \"properties\": {\"from\": {\"$ref\": \"#/$defs/place\"}, \"to\": {\"$ref\": \"#/$defs/place\"}}}"
+              {
+                "value": {
+                  "place": {
+                    "type": "object",
+                    "properties": {
+                      "city": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "related": {
+                  "/properties": {
+                    "from": {
+                      "$ref": "#/$defs/place"
+                    },
+                    "to": {
+                      "$ref": "#/$defs/place"
+                    }
+                  }
+                },
+                "note": "同じ形を $defs に1つ置き、2つの欄から $ref で指している。"
+              }
             ]
           },
           {
@@ -183,10 +348,34 @@
             "why": "写すと、持ち主の Concrete で形が変わっても、写しが古いまま残る。",
             "check": "ほかの Concrete の $defs と同じ形を、この Concrete に書いていないかを見る。",
             "bad": [
-              "{\"$defs\": {\"address\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}}}（urn:example:customer:v1 の $defs/address と同じ形を写した）"
+              {
+                "value": {
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "city": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "note": "urn:example:customer:v1 の $defs/address と同じ形を写している。"
+              }
             ],
             "good": [
-              "{\"properties\": {\"address\": {\"$ref\": \"urn:example:customer:v1#/$defs/address\"}}}"
+              {
+                "value": {
+                  "place": {
+                    "type": "object",
+                    "properties": {
+                      "city": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "note": "この Concrete だけが使う形を置き、ほかの Concrete の形は $ref で指している。"
+              }
             ]
           }
         ]
@@ -243,11 +432,19 @@
                 "why": "読む人は名前で、欄の中身を判断する。",
                 "check": "名前が名詞で、欄の値と合っているかを見る。",
                 "bad": [
-                  "期限を決める",
-                  "その他"
+                  {
+                    "value": "期限を決める",
+                    "note": "動詞で終わり、名詞になっていない。"
+                  },
+                  {
+                    "value": "その他",
+                    "note": "名詞だが、何を入れる欄かが分からない。"
+                  }
                 ],
                 "good": [
-                  "期限"
+                  {
+                    "value": "期限"
+                  }
                 ]
               }
             ]
@@ -266,10 +463,15 @@
                 "why": "読む人は、まず何の値かで判断する。",
                 "check": "1文で、値の中身と合っているかを見る。",
                 "bad": [
-                  "期限を入れてください。過ぎたら通知します。"
+                  {
+                    "value": "期限を入れてください。過ぎたら通知します。",
+                    "note": "2文で、値が何であるかではなく、書き手への依頼になっている。"
+                  }
                 ],
                 "good": [
-                  "作業を終える日である。"
+                  {
+                    "value": "作業を終える日である。"
+                  }
                 ]
               }
             ]
@@ -308,10 +510,16 @@
             "why": "true の欄は、版を上げないと変えられない。",
             "check": "true の欄が、変わると困る欄かを見る。",
             "bad": [
-              "{\"memo\": {\"type\": \"string\", \"x-published\": true}}（だれも頼っていない自由記述の欄を変えられなくした）"
+              {
+                "value": true,
+                "note": "だれも頼っていない自由記述のメモの欄に付けている。"
+              }
             ],
             "good": [
-              "{\"id\": {\"type\": \"string\", \"pattern\": \"^U[0-9]+$\", \"x-published\": true}}（ほかのインスタンスがこの ID で指している）"
+              {
+                "value": true,
+                "note": "ほかのインスタンスがこの値で指している ID の欄に付けている。"
+              }
             ]
           }
         ]
@@ -321,25 +529,12 @@
       "$anchor": "view",
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",
-      "description": "インスタンスを、デザインシステムのどのテンプレートで描くかの名前である。Concrete の根にだけ書く。",
+      "description": "インスタンスを、デザインシステムのどのテンプレートで描くかの名前である。Concrete の根にだけ書く。同じ見せ方にしたい Concrete には、同じ種類の名前を付ける。",
       "title": "描画の種類",
       "x-prompt": {
         "meaning": "x-view。Concrete の根に書く、ページのテンプレートの種類の名前。無ければ page。値の置き方はテンプレートが決める",
         "when": "描画する前に読む。",
-        "rules": [
-          {
-            "id": "same-look-same-kind",
-            "rule": "同じ見せ方にしたい Concrete には、同じ種類の名前を付ける。",
-            "why": "種類ごとにテンプレートを1つ用意すれば、どの Concrete のインスタンスも同じデザインで描ける。",
-            "check": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。",
-            "bad": [
-              "\"x-view\": \"card\"（表で並べて見せたい決定の記録に、ユースケースのカードと同じ種類を付けた）"
-            ],
-            "good": [
-              "\"x-view\": \"card\"（ユースケースと同じカードで見せたい要件に、同じ種類を付けた）"
-            ]
-          }
-        ]
+        "rules": []
       }
     },
     "prompt": {
@@ -360,10 +555,15 @@
                 "why": "形で分かることまで書くと、必要な点が埋もれる。",
                 "check": "書いた点が、型や pattern で決まっていないことかを見る。",
                 "bad": [
-                  "文字列として読む。"
+                  {
+                    "value": "文字列として読む。",
+                    "note": "型で分かることを書いている。"
+                  }
                 ],
                 "good": [
-                  "作業を終える日として読む。開始日ではない。"
+                  {
+                    "value": "作業を終える日として読む。開始日ではない。"
+                  }
                 ]
               }
             ]
@@ -381,10 +581,15 @@
                 "why": "読む時が分かれば、読み手が決まる。",
                 "check": "時と決めることの両方があるかを見る。",
                 "bad": [
-                  "必要なときに読む。"
+                  {
+                    "value": "必要なときに読む。",
+                    "note": "読む時も、そのとき決めることも書いていない。"
+                  }
                 ],
                 "good": [
-                  "レビューで、期限を延ばすかを決めるときに読む。"
+                  {
+                    "value": "レビューで、期限を延ばすかを決めるときに読む。"
+                  }
                 ]
               }
             ]
@@ -406,10 +611,29 @@
                 "why": "2つ混ぜると、どちらで違反したかが分からない。",
                 "check": "rule の文に、2つの決まりが並んでいないかを見る。",
                 "bad": [
-                  "[{\"id\": \"goal-style\", \"rule\": \"結果を名詞句で書き、敬語を使わない。\"}]（1つの rule に2つの決まり）"
+                  {
+                    "value": [
+                      {
+                        "id": "goal-style",
+                        "rule": "結果を名詞句で書き、敬語を使わない。"
+                      }
+                    ],
+                    "note": "1つの rule に、名詞句で書くことと敬語を使わないことの2つの決まりを並べている。"
+                  }
                 ],
                 "good": [
-                  "[{\"id\": \"goal-is-outcome\", \"rule\": \"利用者が得る結果を書く。\"}, {\"id\": \"plain-style\", \"rule\": \"敬語を使わない。\"}]"
+                  {
+                    "value": [
+                      {
+                        "id": "goal-is-outcome",
+                        "rule": "利用者が得る結果を書く。"
+                      },
+                      {
+                        "id": "plain-style",
+                        "rule": "敬語を使わない。"
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -440,7 +664,7 @@
           "type": "string",
           "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
           "title": "決まりの名前",
-          "description": "その決まりを指す、英小文字とハイフンの名前である。Concrete のどこ（$defs の中も）でも重ならない（SAS が組み込みで確かめる）。json-schema ・ instance-schema-name ・ unique-id は SAS が検証の結果に使う名前なので使わない。",
+          "description": "その決まりを指す、英小文字とハイフンの名前である。Concrete のどこ（$defs の中も）でも重ならない（SAS が組み込みで確かめる）。json-schema ・ instance-schema-name ・ unique-id ・ example-related は SAS が検証の結果に使う名前なので使わない。",
           "x-prompt": {
             "rules": []
           },
@@ -448,7 +672,8 @@
             "enum": [
               "json-schema",
               "instance-schema-name",
-              "unique-id"
+              "unique-id",
+              "example-related"
             ]
           }
         },
@@ -464,10 +689,15 @@
                 "why": "状態で書けば、どの経路でその状態になったかに判定が左右されない（TLA+ の invariant の考え方）。",
                 "check": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。",
                 "bad": [
-                  "保存するときは、目的を確かめる。"
+                  {
+                    "value": "保存するときは、目的を確かめる。",
+                    "note": "操作（保存するとき）を書いていて、ある時点のインスタンスを見ても判定できない。"
+                  }
                 ],
                 "good": [
-                  "目的があるなら、それは利用者が得る結果である。"
+                  {
+                    "value": "目的があるなら、それは利用者が得る結果である。"
+                  }
                 ]
               },
               {
@@ -476,10 +706,15 @@
                 "why": "JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる。",
                 "check": "値だけで決まる決まりを、if ・ then や pattern で書かずに rule にしていないかを見る。",
                 "bad": [
-                  "ID は U と数字で書く。"
+                  {
+                    "value": "ID は U と数字で書く。",
+                    "note": "値だけで決まるので、pattern で書ける。"
+                  }
                 ],
                 "good": [
-                  "目的は、利用者が得る結果を書く。"
+                  {
+                    "value": "目的は、利用者が得る結果を書く。"
+                  }
                 ]
               }
             ]
@@ -497,10 +732,15 @@
                 "why": "理由が無いと、決まりを直してよいかを判断できない。",
                 "check": "起きることが書かれているかを見る。",
                 "bad": [
-                  "大事だから。"
+                  {
+                    "value": "大事だから。",
+                    "note": "守らないと何が起きるかを書いていない。"
+                  }
                 ],
                 "good": [
-                  "手段を書くと、目的が果たせたかを決められない。"
+                  {
+                    "value": "手段を書くと、目的が果たせたかを決められない。"
+                  }
                 ]
               }
             ]
@@ -518,10 +758,15 @@
                 "why": "確かめ方が無いと、判定する人で結果が変わる。",
                 "check": "見る場所と、合否の分かれ目があるかを見る。",
                 "bad": [
-                  "よく見る。"
+                  {
+                    "value": "よく見る。",
+                    "note": "何を見るかも、どこで合否が分かれるかも無い。"
+                  }
                 ],
                 "good": [
-                  "題が名詞で終わっているかを見る。"
+                  {
+                    "value": "題が名詞で終わっているかを見る。"
+                  }
                 ]
               }
             ]
@@ -542,10 +787,22 @@
                 "why": "読む範囲を絞ると、意味の判定がぶれない。",
                 "check": "並べた欄が、決まりの文に出てくるかを見る。",
                 "bad": [
-                  "[\"/goal\", \"/id\", \"/status\"]（「目的に食い違わない1文にする」の rule で、文に出てこない /id ・ /status も読む）"
+                  {
+                    "value": [
+                      "/goal",
+                      "/id",
+                      "/status"
+                    ],
+                    "note": "「目的に食い違わない1文にする」の rule で、文に出てこない /id ・ /status も並べている。"
+                  }
                 ],
                 "good": [
-                  "[\"/goal\"]（「目的に食い違わない1文にする」の rule）"
+                  {
+                    "value": [
+                      "/goal"
+                    ],
+                    "note": "「目的に食い違わない1文にする」の rule で、文に出てくる目的だけを並べている。"
+                  }
                 ]
               }
             ]
@@ -555,52 +812,64 @@
           "type": "array",
           "minItems": 1,
           "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "title": "破る例",
-          "description": "この決まりで violated になる値の例の並びである。",
-          "x-prompt": {
-            "rules": [
-              {
-                "id": "bad-violates",
-                "rule": "この決まりで violated になる値を、1つ以上並べる。",
-                "why": "破らない例は、決まりの意味を示さない。",
-                "check": "並べたどの例も、この決まりで violated になるかを見る。",
-                "bad": [
-                  "[\"意思決定の記録\"]（「題は名詞で書く」の rule の bad に、守る例を書いた）"
-                ],
-                "good": [
-                  "[\"意思決定を記録するためのもの\"]（「題は名詞で書く」の rule の bad）"
-                ]
-              }
+            "$ref": "#/$defs/example",
+            "required": [
+              "note"
             ]
+          },
+          "title": "違反する例",
+          "description": "この決まりで違反になる値の例の並びである。note でどこがなぜ違反かを言う。",
+          "x-prompt": {
+            "rules": []
           }
         },
         "good": {
           "type": "array",
           "minItems": 1,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/example"
           },
-          "title": "守る例",
-          "description": "この決まりで verified になる値の例の並びである。",
+          "title": "満たす例",
+          "description": "この決まりを満たす値の例の並びである。",
           "x-prompt": {
-            "rules": [
-              {
-                "id": "good-passes",
-                "rule": "この決まりで verified になる値を、1つ以上並べる。",
-                "why": "守らない例は、決まりの意味を示さない。",
-                "check": "並べたどの例も、この決まりで verified になるかを見る。",
-                "bad": [
-                  "[\"意思決定を記録するためのもの\"]（「題は名詞で書く」の rule の good に、破る例を書いた）"
-                ],
-                "good": [
-                  "[\"意思決定の記録\"]（「題は名詞で書く」の rule の good）"
-                ]
-              }
-            ]
+            "rules": []
+          }
+        }
+      }
+    },
+    "example": {
+      "type": "object",
+      "title": "例",
+      "description": "rule の bad ・ good の1件。rule が当たる所の値と、判定に効くほかの所の値と、なぜ違反か ・ なぜ満たすかの1文である。",
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "title": "値",
+          "description": "その rule が当たる所の値（JSON のまま、任意の型）。判定に効かない欄は省いた最小の値でよい。",
+          "x-prompt": {
+            "rules": []
+          }
+        },
+        "related": {
+          "type": "object",
+          "title": "一緒に読む値",
+          "description": "判定に効くほかの所の値（JSON Pointer → 値）。キーは、その rule の related_fields にある所だけ（SAS が組み込みで確かめる：example-related）。",
+          "propertyNames": {
+            "$ref": "#/$defs/json-pointer"
+          },
+          "x-prompt": {
+            "rules": []
+          }
+        },
+        "note": {
+          "$ref": "#/$defs/sentence",
+          "title": "なぜ",
+          "description": "なぜ違反か ・ なぜ満たすかの1文である。bad の例では必須、good の例では任意。",
+          "x-prompt": {
+            "rules": []
           }
         }
       }

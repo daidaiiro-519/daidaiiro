@@ -1,0 +1,66 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-EXAMPLE-RELATED",
+ "name": "例の related の所",
+ "title": "rule の例の related に、その rule の related_fields に無い所（/id）を書くパッチは、書く前に invalid_value（example-related）で断り、対象を変えない。そう書かれた Concrete を検証すると、組み込みの検査 example-related が violated になる",
+ "why": "rule が読まない所の値を例に書くと、例が示す境目と、判定が実際に読むものが食い違う。",
+ "traces": [
+  "UC2:最低保証",
+  "約束:abstract:example-related"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "schemas/broken.schema.json": "{\n \"$schema\": \"urn:semantic-agent-schema:published-language:abstract:v1\",\n \"$id\": \"urn:example:sample:summary-broken:v1\",\n \"title\": \"要約付きの決めごと\",\n \"description\": \"目的と、それを1文で言った要約である。\",\n \"type\": \"object\",\n \"required\": [\n  \"$schema\",\n  \"id\",\n  \"goal\"\n ],\n \"properties\": {\n  \"$schema\": {\n   \"const\": \"urn:example:sample:summary-broken:v1\"\n  },\n  \"id\": {\n   \"title\": \"ID\",\n   \"description\": \"ユースケースを区別する名前である。\",\n   \"x-prompt\": {\n    \"rules\": []\n   },\n   \"type\": \"string\",\n   \"pattern\": \"^R[0-9]+$\"\n  },\n  \"goal\": {\n   \"title\": \"目的\",\n   \"description\": \"利用者が果たしたいことである。\",\n   \"x-prompt\": {\n    \"rules\": [\n     {\n      \"id\": \"goal-is-outcome\",\n      \"rule\": \"利用者が得る結果を書く。\",\n      \"why\": \"手段を書くと、目的が果たせたかを決められない。\",\n      \"check\": \"結果を表す名詞句かを見る。\",\n      \"bad\": [\n       {\n        \"value\": \"注文フォームに入力する\",\n        \"note\": \"利用者の操作（手段）で、得る結果ではない。\"\n       }\n      ],\n      \"good\": [\n       {\n        \"value\": \"注文した品の受け取り\"\n       }\n      ]\n     }\n    ]\n   },\n   \"type\": \"string\"\n  },\n  \"summary\": {\n   \"title\": \"要約\",\n   \"description\": \"目的を1文で言ったものである。\",\n   \"type\": \"string\",\n   \"x-prompt\": {\n    \"rules\": [\n     {\n      \"id\": \"summary-matches\",\n      \"rule\": \"目的に食い違わない1文にする。\",\n      \"why\": \"要約だけ読んだ人が、違うことを決める。\",\n      \"check\": \"目的に無いことを書いていないかを見る。\",\n      \"related_fields\": [\n       \"/goal\"\n      ],\n      \"bad\": [\n       {\n        \"value\": \"請求書を印刷するための決めごと\",\n        \"related\": {\n         \"/goal\": \"検証の結果を受け取る\",\n         \"/id\": \"R9\"\n        },\n        \"note\": \"目的に無い請求書の印刷を書いている。\"\n       }\n      ],\n      \"good\": [\n       {\n        \"value\": \"検証の結果を受け取るための決めごと\",\n        \"related\": {\n         \"/goal\": \"検証の結果を受け取る\"\n        }\n       }\n      ]\n     }\n    ]\n   }\n  }\n }\n}\n"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "schemas/summary.schema.json",
+   "--patch",
+   "[{\"op\": \"add\", \"path\": \"/properties/summary/x-prompt/rules/0/bad/0/related/~1id\", \"value\": \"R9\"}]"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_value"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "example-related"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/results",
+   "contains": "/properties/summary/x-prompt/rules/0/bad/0/related/~1id"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 1
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "schemas/broken.schema.json"
+   ]
+  }
+ ],
+ "unchanged": [
+  "schemas/summary.schema.json"
+ ]
+}
