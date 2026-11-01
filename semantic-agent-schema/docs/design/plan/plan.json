@@ -1,7 +1,7 @@
 {
  "title": "Semantic Agent Schema を新しい概念で作り直す実装計画（案）",
  "date": "2026-10-31",
- "status": "案。利用者の承認を待つ",
+ "status": "版1 は 10-31 に承認。2026-11-01 に版2（plan_v2）へ組み直した",
  "premises": [
   {
    "what": "利用者の依頼",
@@ -912,5 +912,125 @@
   "date": "2026-11-01",
   "what": "文脈の中のフォルダを、業務領域を作るモジュール（writing ・ validation ・ recording。rendering はステップ5、search はステップ8）と adapters にした。集約は writing/domain、検証は validation/domain。schemas/v1 は published-language/v1（公開された言葉。Abstract も含む）にした。test-suite は schemas-and-instances/system-tests へ。crate の名前は <モジュール>-<層> ・ <inbound|outbound>-<技術>。「意味の操作」は業務領域にせず、意味は書く ・ 検証 ・ 検索の中の性質、AI の子セッションは手段（outbound-agents）。ステップ0〜4b の記録の中の古い名前は、その時点の記録として残す",
   "page": "https://claude.ai/artifact/9C9nmWLvzKT6VZoG5UbPTr"
+ },
+ "plan_v2": {
+  "date": "2026-11-01",
+  "status": "承認済み（https://claude.ai/artifact/GE2h7eLL8dFKhneuoVrm8c）。上の版1 は過去の計画として残す",
+  "premises": [
+   "公開された言葉の7つ（Abstract ・ 語彙 ・ 方言 ・ CLI の出力 ・ 接続の定義 ・ デザインシステム ・ テンプレートの書き方）は使う側への約束で、先に確定する根幹",
+   "約束をどのモジュール ・ 集約で守るかは、場面を通してから探索の記録に書く",
+   "ステップの単位は約束。1つの約束を、書く ・ 検証 ・ 削除のどこで守るかまで1つのステップで閉じる",
+   "約束の id を trace.json の scope と場面の traces に足し、いまの試験（trace.rs）で守らせる"
+  ],
+  "P0": [
+   {
+    "item": "x-extensions",
+    "status": "決着（5b037cb2）",
+    "decision": "一覧ごと外し、各 x- の説明と rule を値の形（$defs）へ移す"
+   },
+   {
+    "item": "深い所の x-view",
+    "status": "決着（5b037cb2）",
+    "decision": "根だけに書ける。$defs/nested の $dynamicAnchor meta で根より内側を断る"
+   },
+   {
+    "item": "入れ子の x- を守る範囲",
+    "status": "決着（スキーマは変えない。実装は S2 ・ S3）",
+    "decision": "x-decided-by ・ x-published は Concrete のどこに書いても守る。値の所は検査器の注釈（instance_location）で集める"
+   },
+   {
+    "item": "別の版の Concrete の指し方",
+    "status": "無くなった（5b037cb2）",
+    "decision": "x-relationship を外したので約束が要らない"
+   },
+   {
+    "item": "T1 rule の reads の範囲",
+    "status": "決着（5b037cb2）",
+    "decision": "そのインスタンスの中の欄だけ。参照先は開かない。子セッションのツールは checker ・ writer とも0件の見解（NsyLpKCp2C463KbR45Sf4W）"
+   },
+   {
+    "item": "unique-id の範囲",
+    "status": "未決",
+    "decision": "Concrete の $defs の中の rule の id も重ならないことに含めるか"
+   },
+   {
+    "item": "CLI の出力の空の値",
+    "status": "未決",
+    "decision": "エラーの code versions を実装が出していない。出すか、一覧から外すか"
+   },
+   {
+    "item": "受け取りの型の約束",
+    "status": "未決",
+    "decision": "接続の定義（名前 ・ 版 ・ 中身の指紋で続ける）とデザインシステム（templates の経路はフォルダの中）を実装が守っているか"
+   }
+  ],
+  "P1": "約束の id（例 A:x-decided-by）を trace.json の scope に足し、場面が無いものは untested.json に「どのステップで作るか」を書く。DB は公開しないので入れない",
+  "S": [
+   {
+    "id": "S1",
+    "name": "インスタンスを見分ける",
+    "promises": "$schema（enum）・ instance-schema-name",
+    "where": "作成 ・ 更新 ・ 検証"
+   },
+   {
+    "id": "S2",
+    "name": "人が決める欄（x-decided-by）",
+    "promises": "入れ子の欄でも、AI のセッションの変更を断る ・ 検証の human-entry-only",
+    "where": "作成 ・ 更新 ・ 検証"
+   },
+   {
+    "id": "S3",
+    "name": "版のあいだ変えない欄（x-published）",
+    "promises": "入れ子の欄でも、同じ版のあいだ変えない ・ 削除は止めない",
+    "where": "更新 ・ 削除"
+   },
+   {
+    "id": "S5",
+    "name": "rule（x-prompt）",
+    "promises": "write の rule が当たる所（$defs の中も）・ unique-id ・ read を子セッションへ ・ reads はインスタンスの中",
+    "where": "検証 ・ 子セッションの判定"
+   },
+   {
+    "id": "S6",
+    "name": "Concrete の形の決まり（JSON Schema）",
+    "promises": "$id の名前空間 ・ 欄の required ・ x- の閉じた一覧（どこが断られたか）",
+    "where": "検証"
+   },
+   {
+    "id": "S7",
+    "name": "描画の約束",
+    "promises": "x-view ・ デザインシステム ・ テンプレートの書き方",
+    "where": "描画 ・ 検証"
+   },
+   {
+    "id": "S8",
+    "name": "接続の定義と CLI の出力",
+    "promises": "名前 ・ 版 ・ 中身の指紋で続ける ・ 出力の値がどれも実装から出る",
+    "where": "子セッションの判定 ・ すべての出力"
+   }
+  ],
+  "removed": [
+   {
+    "id": "S4",
+    "name": "参照（x-relationship）",
+    "why": "5b037cb2 で x-relationship を外した。参照は Concrete の作り手が普通の欄として書く"
+   },
+   {
+    "what": "S1 の「id を変えない」",
+    "why": "id_changed を外した（理由は参照が外れることだけだった）"
+   }
+  ],
+  "after": [
+   "ステップ7 意味で書く（UC1 ・ UC2）：書かせる約束を対応表に足してから",
+   "ステップ8 検索（UC6）",
+   "ステップ9 記録を読む（UC7）",
+   "ステップ10 UC0 と完了の確認：7つの公開された言葉の約束が、すべて場面を持つ"
+  ],
+  "done_per_step": [
+   "そのステップの約束がすべて「守られる場面」と「断る場面」を持つ（trace.json）",
+   "試験 ・ clippy ・ fmt ・ 依存の向き ・ 対応表が通る",
+   "探索の記録 ・ 概念のページ ・ 計画を直す",
+   "シミュレーターで見せて OK をもらってからコミット"
+  ]
  }
 }

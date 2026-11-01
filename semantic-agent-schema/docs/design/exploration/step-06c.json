@@ -1,0 +1,119 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": "6c",
+ "date": "2026-11-01",
+ "summary": "スキーマの形の未決5つを決めた（コミット 5b037cb2）。利用者の指摘「ここまでのステップは再定義したスキーマ前提の実装になっていない」で Abstract と実装を突き合わせ、計画を版2（公開された言葉を根幹に、P0 で形を変えうる未決を決めきる）に組み直した。P0 のうち5つ：x-extensions を一覧ごと外す ・ 深い所の x-view を断る ・ 入れ子の x-decided-by ・ x-published はどこに書いても守る ・ x-relationship を外す ・ reads はインスタンスの中だけ。x-relationship は、利用者の問い「relationship って本当に要る？」から、アドバイザー3人（ddd ・ platform は残す、usecase は外す）と反証を通したが、残す理由の大半は reads で参照先を開く前提に立っていた。利用者「ぶっちゃけここまで複雑な仕組みをここで作る必要があるのか」「Abstract に参照パスが要るかはわからないのに入れていたのは責務過多」で外した。参照のパスが要る Concrete は、作り手が普通の欄（format: uri-reference と pattern）として書く。",
+ "usecases": [
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "深い所の x-view を、いちばん外側の $dynamicAnchor で断れるか",
+   "evidence": [
+    "json-schema.org/draft/2020-12/json-schema-core 8.2.3.2（$dynamicRef はいちばん外側の動的な範囲の $dynamicAnchor へ解決する）",
+    "実地：Rust（jsonschema 0.58.6）と Python の検査器で、根の x-view は通り、欄 ・ items ・ $defs の中は断ることを確かめた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "format: uri-reference と、format が既定で断らないこと",
+   "evidence": [
+    "json-schema.org/draft/2020-12/json-schema-validation 7.3.5 uri-reference「A string instance is valid against this attribute if it is a valid URI Reference (either a URI or a relative-reference)」",
+    "同 7.2.1「MUST be disabled by default」"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "JSON Pointer は1つの文書の中だけを指す",
+   "evidence": [
+    "RFC 6901（取得済み scratchpad jsonschema-spec）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "入れ子の x- の所を検査器の注釈で集められるか",
+   "evidence": [
+    "実地：jsonschema 0.58.6 の evaluate().iter_annotations() が instance_location 付きで入れ子 ・ $ref ・ items ・ if/then の先の注釈を出した（Core 7.7.1）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC3 削除する（writing/application の write/delete.rs）",
+   "steps": [
+    "前提の指紋を確かめる（更新と同じ決まり）",
+    "Concrete なら、従うインスタンス（$schema が自分の $id）があれば止めて blocked（follows）を返す",
+    "対象を消し、消す前の状態を根の欄ごとの remove として記録する"
+   ],
+   "rules": [
+    "ほかの文書は変えない（SAS は参照を見分けない）",
+    "参照元の書き換え ・ cause_id ・ references_blocked ・ references_left は無い"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "参照元を探す（references_to ・ relationship_targets）",
+   "became": "separate",
+   "why": "SAS の責務から外した。参照は Concrete の作り手が普通の欄として持ち、Git とレビューで直す。writing/domain の services/ は空になったので消した"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "x-relationship（Abstract の $defs/relationship、target-exists、relationship-target、削除での参照元の書き換え）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "要る場面が無いまま Abstract の約束にしていた。外して、x- は4つ"
+  },
+  {
+   "item": "id_changed（インスタンスの id を変えさせない）",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "理由は「id で指す参照が外れる」だけだった"
+  },
+  {
+   "item": "入れ子の x-decided-by ・ x-published",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "根の欄でしか守っていない。検査器の注釈で値の所を集めて守る（次の実装）"
+  },
+  {
+   "item": "x-extensions（Abstract の本体の一覧）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "語彙と $defs の二重の一覧だった"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "参照",
+   "seen": "Abstract の x-relationship、削除の references",
+   "drift": "SAS の約束（型で縛る参照）から、Concrete の作り手が選ぶ普通の欄へ"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "writing/domain の services/",
+    "before": "references.rs（参照元を探す）",
+    "after": "無し（モジュールごと消した）",
+    "why": "参照を見分けないので、文書をまたぐ計算が無い"
+   },
+   {
+    "what": "validation/domain の services/relationship.rs",
+    "before": "target-exists ・ relationship-target",
+    "after": "無し",
+    "why": "x-relationship を外した"
+   },
+   {
+    "what": "記録の changes.cause_id と OperationLog::caused_by",
+    "before": "削除を原因とする参照元の update",
+    "after": "無し",
+    "why": "削除はほかの文書を書き換えない"
+   }
+  ]
+ }
+}
