@@ -1,0 +1,148 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 9,
+ "date": "2026-11-01",
+ "summary": "版30 で、各モジュールの application が自分のユースケースが使うポートを自分の ports.rs に宣言し、ほかのモジュールの application に依存しない形にした（32268b31）。CLI の入出力と記録の中身は変えていない（試験130件）。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC5",
+  "UC6",
+  "UC7"
+ ],
+ "factchecks": [
+  {
+   "item": "検索がポートを持たず、検証のポートとユースケースの中身を借りていた",
+   "evidence": [
+    "32268b31 の前の search/application/src/use_cases/search.rs：validation_application::ports の DocumentStore ・ SchemaValidator と、validation_application::use_cases の classify ・ Corpus ・ Doc ・ Refused ・ answer_json ・ command_line を use していた",
+    "search/application/Cargo.toml が validation-application と recording-application に依存していた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "記録のポートを DB の表の側から作った1つの trait を全モジュールが借りていた",
+   "evidence": [
+    "32268b31 の前の recording/application/src/ports.rs：OperationLog に変更と検証の追記と引くメソッドが並び、書く ・ 検証 ・ 描画 ・ 検索の application が recording-application に依存していた",
+    "CODING.md（32268b31）：表の側から作った1つの大きな trait にすると、どのモジュールも使わないメソッドにまで依存する"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "誰が打ったかを各ユースケースが記録のポートで調べていた",
+   "evidence": [
+    "32268b31 の前の validation/application/src/use_cases/validate.rs：引数 who: &dyn IdentifyCaller を受け、answer_command の中で who.identify() を呼んでいた",
+    "Caller と Via は recording/application/src/ports.rs の型だった"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "誰が打ったかを決めて登録する（recording/application。入口の CLI だけが呼ぶ identify ・ register ・ register_session）",
+   "steps": [
+    "--session ・ ツールの環境変数（callers.json）・ sas init の登録から、打ったセッションか人かを決める",
+    "記録をつけるコマンドなら、sessions に1行足す",
+    "決まった値（writing-domain の Caller）を、各モジュールのユースケースへ渡す"
+   ],
+   "rules": [
+    "ユースケースは誰が打ったかを自分で決めない",
+    "外からの入力を読むのは入口の責務"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "文書が Concrete かインスタンスかの判定（TargetKind）・ リポジトリの文書の一覧（Corpus）",
+   "became": "value",
+   "why": "書く ・ 検証 ・ 描画 ・ 検索が同じ判定を使うので、検証の application から writing-domain へ移した"
+  },
+  {
+   "what": "スキーマの所に当たる欄の定義を引く（field_schema）",
+   "became": "service",
+   "why": "複数のモジュールが使う判断なので writing-domain へ移した"
+  },
+  {
+   "what": "誰が打ったか（Caller）",
+   "became": "value",
+   "why": "x-decided-by の欄を変えてよいかを決めるドメインの概念なので、記録のモジュールの型から writing-domain へ移した"
+  },
+  {
+   "what": "記録にある書いた変更の行（ChangeRow ・ WriteRecord）",
+   "became": "value",
+   "why": "書くモジュールの ChangeLog と記録のアダプターが同じ行を使うので writing-domain へ移した"
+  },
+  {
+   "what": "当たる rule を集める ・ 判定が読んだ所のハッシュ（reads_hash）",
+   "became": "service",
+   "why": "書くモジュールが入力が変わった前の判定を検証と同じ基準で決めるので、validation-domain へ移した"
+  },
+  {
+   "what": "記録にある検証と判定の行（ValidateRow ・ RuleRow ・ Judgment）",
+   "became": "value",
+   "why": "検証 ・ 描画の ValidationLog と書くモジュールの ChangeLog が同じ行を使うので、validation-domain へ移した"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "検索のポート",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "search/application の ports.rs に DocumentStore（読む）・ SchemaValidator（形の検査）を宣言し、classify は TargetKind を使う自分の関数にした。記録のポートは持たない"
+  },
+  {
+   "item": "記録のポート",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "追記するモジュールがそれぞれ宣言する（書く ChangeLog ・ 検証 ValidationLog ・ 描画 ValidationLog）。sqlite のアダプター SqliteLog が1つで、すべての記録のポートを実装する"
+  },
+  {
+   "item": "誰が打ったか",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "入口（CLI）が決めて sessions に登録し、Caller の値でユースケースへ渡す。ユースケースの引数 who: &dyn IdentifyCaller を caller: &Caller にした"
+  },
+  {
+   "item": "なぜ起きたか",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "ポートをユースケースから探索して見つけず、DB の表の側から先に作った。CODING.md と architecture.json に、ポートは使うモジュールが自分のユースケースが使うメソッドだけで宣言すると書いた"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "application の間の依存",
+    "before": "書く ・ 描画 ・ 検索 → 検証の application、書く ・ 検証 ・ 描画 ・ 検索 → 記録の application",
+    "after": "どの application も、ほかのモジュールの application に依存しない。使うのは domain の crate だけ",
+    "why": "借りると、相手のモジュールの中を直すたびに壊れる"
+   },
+   {
+    "what": "各モジュールの ports.rs",
+    "before": "書く ・ 描画 ・ 検索は検証のポート DocumentStore ・ SchemaValidator を借りる。記録のポートは記録のモジュールに1つ",
+    "after": "書く ・ 検証 ・ 描画 ・ 検索が、使うポートとメソッドだけを宣言する。同じ形の DocumentStore ・ SchemaValidator もモジュールごとに宣言し、1つのアダプターが実装する",
+    "why": "ポートは使う側が自分が必要とするものとして宣言する"
+   },
+   {
+    "what": "記録のモジュール",
+    "before": "追記（OperationLog）・ 読む（OperationReader）・ 誰が打ったか（IdentifyCaller ・ Caller）",
+    "after": "UC7（OperationReader）と、入口が使う決めて登録する手続き（IdentifyCaller ・ SessionLog）だけ",
+    "why": "追記は追記するモジュールのポートで行う"
+   },
+   {
+    "what": "断った理由の型（Refused）",
+    "before": "検証の use_cases の Refused を書く ・ 検索が借りていた",
+    "after": "各モジュールの use_cases が自分の欄で持ち、inbound/cli の output が From で出力の形へ移す",
+    "why": "モジュールが互いの断る理由の欄を知らなくてよくする"
+   },
+   {
+    "what": "答えのスキーマ",
+    "before": "validation/application の agent-answer.schema.json ・ search/application の search-answer.schema.json",
+    "after": "published-language/v1 の judgment-answer ・ search-answer（公開された言葉は9つ）",
+    "why": "打ったセッションが書いて --answer で渡す形なので、使う側への約束"
+   }
+  ]
+ }
+}
