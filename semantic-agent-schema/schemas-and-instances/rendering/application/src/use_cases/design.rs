@@ -707,8 +707,8 @@ pub struct DesignTarget {
 /// デザインシステムの検証の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignValidation {
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// デザインシステムごとの結果（渡した順）
     pub targets: Vec<DesignTarget>,
     /// 全体の件数
@@ -738,7 +738,6 @@ pub fn validate_design_systems(
     let rows: Vec<ValidateRow> = checked
         .iter()
         .map(|d| ValidateRow {
-            child_session: None,
             target_path: d.path.clone(),
             hash: ContentHash::of(d.text.as_bytes()).as_str().to_string(),
             results: d
@@ -776,7 +775,7 @@ pub fn validate_design_systems(
         })
         .collect();
     Ok(DesignValidation {
-        parent: recorded.parent,
+        session: recorded.session,
         targets,
         counts: total,
     })

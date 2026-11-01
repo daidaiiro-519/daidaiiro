@@ -5,8 +5,8 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::panic)]
 
 use recording_application::ports::{
-    Caller, ChangeRow, ChildRecord, ChildRow, IdentifyCaller, Judgment, OperationLog, StoredChange,
-    ValidateRow, WriteRecord,
+    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, SessionRow, StoredChange,
+    ValidateRow, Via, WriteRecord,
 };
 use serde_json::{Value, json};
 use std::cell::RefCell;
@@ -86,19 +86,20 @@ impl IdentifyCaller for Human {
 pub(crate) struct Tool;
 impl IdentifyCaller for Tool {
     fn identify(&self) -> Caller {
-        Caller::Parent {
+        Caller::Session {
             id: "agent".into(),
             tool: "claude-code".into(),
+            folder: "/w".into(),
+            via: Via::Env,
         }
     }
 }
 
-/// 検証と変更を、足した順に1つの並びで持つ代役。3つ目は子セッションの行。
+/// 検証と変更を、足した順に1つの並びで持つ代役。
 #[derive(Default)]
 pub(crate) struct Log(
     pub(crate) Vec<ValidateRow>,
     pub(crate) Vec<(String, ChangeRow)>,
-    pub(crate) Vec<ChildRecord>,
 );
 impl Log {
     fn next(&self) -> String {
@@ -106,11 +107,20 @@ impl Log {
     }
 }
 impl OperationLog for Log {
-    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
         Ok(match caller {
-            Caller::Parent { id, .. } => Some(id.clone()),
+            Caller::Session { id, .. } => Some(id.clone()),
             Caller::Human => None,
         })
+    }
+    fn session_row(&self, _: &str) -> Result<Option<SessionRow>, String> {
+        Ok(None)
+    }
+    fn initialized(&self, _: &str) -> Result<Option<SessionRow>, String> {
+        Ok(None)
+    }
+    fn new_session_id(&self) -> String {
+        "sas-1".into()
     }
     fn append_validate(&mut self, _: Option<&str>, row: &ValidateRow) -> Result<String, String> {
         let id = self.next();
@@ -129,7 +139,7 @@ impl OperationLog for Log {
             .find(|(_, r)| r.request_id.as_deref() == Some(request_id))
             .map(|(id, r)| StoredChange {
                 operation: id.clone(),
-                parent: None,
+                session: None,
                 row: r.clone(),
             }))
     }
@@ -146,37 +156,11 @@ impl OperationLog for Log {
             })
             .map(|(id, r)| WriteRecord {
                 operation: id.clone(),
-                parent: None,
+                session: None,
                 at: "t".into(),
                 row: r.clone(),
             })
             .collect())
-    }
-    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String> {
-        if !self.2.iter().any(|c| c.row.id == child.id) {
-            self.2.push(ChildRecord {
-                row: child.clone(),
-                parent: parent.map(str::to_string),
-                uses: 0,
-                idle_s: 0,
-            });
-        }
-        Ok(())
-    }
-    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String> {
-        Ok(self
-            .2
-            .iter()
-            .find(|c| c.row.id == id)
-            .cloned()
-            .map(|mut c| {
-                c.uses = self
-                    .0
-                    .iter()
-                    .filter(|r| r.child_session.as_deref() == Some(id))
-                    .count() as u64;
-                c
-            }))
     }
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         // rule ごとに、その rule を最後に判定した検証の行（検証の ID は検証だけの並びの番号）
@@ -218,7 +202,7 @@ pub(crate) fn decided() -> Value {
     }})
 }
 
-/// rule を1つ持つ Concrete。goal を検証用の子セッションに判定させる。
+/// rule を1つ持つ Concrete。goal の判定を打ったセッションから受け取る。
 pub(crate) fn meaning() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC,
            "properties": {

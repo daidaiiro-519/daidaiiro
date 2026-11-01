@@ -1,0 +1,73 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SESSION-INIT",
+ "name": "sas init で登録する",
+ "title": "環境変数にセッション ID が無いツールで sas init を打つと、SAS が ID を決めてこのフォルダの記録の相手として登録し、以後このフォルダで打った sas はそのセッションの操作として記録される",
+ "why": "Gemini ・ Cursor はシェルに会話の ID を渡さない。登録が無いと、AI が打った操作が人の操作として記録される。",
+ "traces": [
+  "約束:command-result:session"
+ ],
+ "given": {
+  "repo": true,
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "init"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "session"
+  },
+  {
+   "of": "when",
+   "pointer": "/via",
+   "equals": "init"
+  },
+  {
+   "of": "when",
+   "pointer": "/tool",
+   "equals": "unknown"
+  },
+  {
+   "of": "when",
+   "pointer": "/id",
+   "contains": "sas-"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/session",
+   "contains": "sas-"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/session",
+   "equals": "ci-1"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "schemas/usecase.schema.json"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "schemas/usecase.schema.json",
+    "--session",
+    "ci-1"
+   ]
+  }
+ ]
+}

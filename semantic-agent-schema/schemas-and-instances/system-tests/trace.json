@@ -1,5 +1,5 @@
 {
- "description": "ユースケースの保証と拡張を、それを確かめる場面と突き合わせる表。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。CLI の出力が command-result に従うことは、場面を流す試験（adapters/inbound/cli/tests/scenarios.rs）がすべての出力の行で照らすので、約束の行を持たない",
+ "description": "ユースケースの保証と拡張を、それを確かめる場面と突き合わせる表。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。CLI の出力が command-result に従うことは、場面を流す試験（adapters/inbound/cli/tests/scenarios.rs）がすべての出力の行で照らすので、形の約束の行を持たない（打ったセッションの決め方は 約束:command-result:session で持つ）",
  "scope": [
   "UC1:成功時保証",
   "UC1:最低保証",
@@ -17,8 +17,6 @@
   "UC4:最低保証",
   "UC4:拡張:*a",
   "UC4:拡張:3a",
-  "UC4:拡張:4a",
-  "UC4:拡張:5a",
   "UC4:拡張:6a",
   "UC4:拡張:6b",
   "UC4:拡張:6c",
@@ -40,12 +38,6 @@
   "UC5:拡張:*a",
   "UC4:変形:デザインシステムを検証する",
   "UC5:変形:任意の欄が無い",
-  "SF1:成功時保証",
-  "SF1:変形:検証用の子セッションを続ける",
-  "SF1:拡張:答えの形が違う",
-  "SF1:拡張:時間切れ",
-  "SF1:拡張:同じ子セッションが処理中",
-  "SF1:拡張:続ける子セッションが無い",
   "約束:abstract:root",
   "約束:abstract:field",
   "約束:abstract:x-decided-by",
@@ -54,7 +46,6 @@
   "約束:abstract:x-prompt",
   "約束:abstract:rule",
   "約束:vocabulary:closed",
-  "約束:agent-connector",
   "約束:design-system",
   "約束:template-language",
   "約束:abstract:instance-schema-name",
@@ -62,7 +53,9 @@
   "約束:dialect:nested",
   "UC1:変形:意味で書く",
   "UC2:変形:意味で書く",
-  "約束:procedure"
+  "約束:procedure",
+  "UC4:変形:意味の判定",
+  "約束:command-result:session"
  ],
  "traces": [
   {
@@ -72,7 +65,8 @@
     "S-UC1-CREATE-BY-TOOL",
     "S-UC1-CREATE-CONCRETE",
     "S-UC1-CREATE-INSTANCE",
-    "S-UC1-REQUEST-ID"
+    "S-UC1-REQUEST-ID",
+    "S-UC1-SEMANTIC-WRITE"
    ]
   },
   {
@@ -194,8 +188,8 @@
    "id": "UC4:成功時保証",
    "meaning": "範囲のすべての rule に結果があり、判定とセッションが検証の操作の記録に入り、2つの ID（操作とセッション）が返る",
    "scenarios": [
-    "S-SF1-JUDGE",
     "S-UC4-ALL",
+    "S-UC4-ANSWER",
     "S-UC4-CONCRETE-OK",
     "S-UC4-DEEP-VIEW",
     "S-UC4-INSTANCE-FORM",
@@ -207,24 +201,24 @@
   },
   {
    "id": "UC4:最低保証",
-   "meaning": "対象の内容は変わらない。判定を取れなかった rule は verified に数えない。起動した子セッションとそこまでの記録は消えない",
+   "meaning": "対象の内容は変わらない。判定を取れなかった rule は verified に数えない。手順に合わない判定は記録しない",
    "scenarios": [
-    "S-SF1-TIMEOUT-GIVE-UP",
     "S-UC4-AI-UNVERIFIED",
+    "S-UC4-ANSWER-SHAPE",
     "S-UC4-NOT-LISTED",
     "S-UC4-USAGE"
    ]
   },
   {
    "id": "UC4:拡張:3a",
-   "meaning": "範囲に rule が無い：子セッションを起動せず、結果を返す",
+   "meaning": "範囲に意味の rule が無い：--semantic でも手順を出さず、機械の検証を記録して返す",
    "scenarios": [
-    "S-SF1-NO-RULE"
+    "S-UC4-SEMANTIC-NO-RULE"
    ]
   },
   {
    "id": "UC4:拡張:6b",
-   "meaning": "子セッションが判定できないと答えた：unverified として記録し、verified に数えない",
+   "meaning": "判定したセッションが判定できないと答えた：unverified として記録し、verified に数えない",
    "scenarios": [
     "S-UC4-AI-UNVERIFIED"
    ]
@@ -233,11 +227,11 @@
    "id": "UC4:変形:入力が変わった rule だけ",
    "meaning": "範囲「入力が変わった rule だけ」：前の判定が読んだ所のハッシュといまのハッシュが違う rule だけを判定し直す。読んだ所には rule の文（x-prompt の write の1行）も入る",
    "scenarios": [
-    "S-UC4-STALE-AGENT",
     "S-UC4-STALE-ONLY",
     "S-UC4-STALE-OUTSIDE",
     "S-UC4-STALE-READS",
-    "S-UC4-STALE-RULE-CHANGED"
+    "S-UC4-STALE-RULE-CHANGED",
+    "S-UC4-STALE-SEMANTIC"
    ]
   },
   {
@@ -361,32 +355,18 @@
    ]
   },
   {
-   "id": "UC4:拡張:4a",
-   "meaning": "接続の定義の子セッションを起動できない：該当の rule を error として記録する",
-   "scenarios": [
-    "S-SF1-CANNOT-START"
-   ]
-  },
-  {
-   "id": "UC4:拡張:5a",
-   "meaning": "子セッションが時間内に答えない：新しい子セッションで2回までやり直し、超えたら該当の rule を error として記録する",
-   "scenarios": [
-    "S-SF1-TIMEOUT-GIVE-UP",
-    "S-SF1-TIMEOUT"
-   ]
-  },
-  {
    "id": "UC4:拡張:6a",
-   "meaning": "答えが答えの形に合わない：同じ子セッションに2回まで直させ、合わなければ該当の rule を error にし、合わなかった理由を残す",
+   "meaning": "渡された判定が答えの形か手順の step ・ rule ・ pointer に合わない：記録せずに invalid_answer で理由と直し方を返す",
    "scenarios": [
-    "S-SF1-SHAPE-ERROR"
+    "S-UC4-ANSWER-MISMATCH",
+    "S-UC4-ANSWER-SHAPE"
    ]
   },
   {
    "id": "UC4:拡張:6c",
-   "meaning": "事前の状態から対象が変わった：判定を記録に入れず、変わったことを返す",
+   "meaning": "手順を出したあとに対象が変わった（判定のハッシュがいまの中身と違う）：判定を記録に入れず、conflict で手順を取り直すコマンドを返す",
    "scenarios": [
-    "S-SF1-CONFLICT"
+    "S-UC4-ANSWER-HASH"
    ]
   },
   {
@@ -394,57 +374,6 @@
    "meaning": "インスタンスに任意の欄が無いとき、その欄のセクションは描かず、反転のセクションを描く（Mustache の仕様）",
    "scenarios": [
     "S-UC5-OPTIONAL-ABSENT"
-   ]
-  },
-  {
-   "id": "SF1:変形:検証用の子セッションを続ける",
-   "meaning": "--continue で記録にある検証用の子セッションを同じ起動の設定で続ける。cache_ttl_s を過ぎたか10回を超えたら新しい子セッションを勧める",
-   "scenarios": [
-    "S-SF1-CONTINUE",
-    "S-SF1-HINT"
-   ]
-  },
-  {
-   "id": "SF1:成功時保証",
-   "meaning": "rule × 当たる所ごとの手順のプロンプトを検証用の子セッションに渡し、答えを step ・ rule ・ pointer で突き合わせて記録し、子セッションの ID を返す。rule が無ければ子セッションを起動しない。子セッションを起動する前に親セッションの環境変数を外す",
-   "scenarios": [
-    "S-SF1-JUDGE",
-    "S-SF1-NO-RULE",
-    "S-SF1-PARENT-ENV",
-    "S-SF1-READS",
-    "S-UC4-STALE-AGENT"
-   ]
-  },
-  {
-   "id": "SF1:拡張:同じ子セッションが処理中",
-   "meaning": "SAS の中の同時の送りは子セッションごとの OS の鍵で断り、ツールが処理中と返したら busy で断る",
-   "scenarios": [
-    "S-SF1-BUSY"
-   ]
-  },
-  {
-   "id": "SF1:拡張:時間切れ",
-   "meaning": "新しい子セッションで2回までやり直し、超えたら該当の rule を error にする",
-   "scenarios": [
-    "S-SF1-TIMEOUT-GIVE-UP",
-    "S-SF1-TIMEOUT"
-   ]
-  },
-  {
-   "id": "SF1:拡張:答えの形が違う",
-   "meaning": "同じ子セッションで2回まで直させ、超えたら該当の rule を error にする",
-   "scenarios": [
-    "S-SF1-SHAPE-ERROR",
-    "S-SF1-SHAPE-RETRY"
-   ]
-  },
-  {
-   "id": "SF1:拡張:続ける子セッションが無い",
-   "meaning": "記録に無い子セッションを --continue に渡されたら not_found、起動したときと名前か版が違う接続の定義なら launch_mismatch で断る",
-   "scenarios": [
-    "S-SF1-LAUNCH-EDITED",
-    "S-SF1-LAUNCH-MISMATCH",
-    "S-SF1-NOT-RECORDED"
    ]
   },
   {
@@ -465,7 +394,7 @@
   },
   {
    "id": "約束:abstract:x-decided-by",
-   "meaning": "x-decided-by: human の欄は、親セッションのある呼び出し（AI）からは default のまま作るほか変えられない",
+   "meaning": "x-decided-by: human の欄は、セッションの分かる呼び出し（AI）からは default のまま作るほか変えられない",
    "scenarios": [
     "S-UC1-CREATE-BY-TOOL",
     "S-UC1-HUMAN-FIELD",
@@ -495,20 +424,20 @@
   },
   {
    "id": "約束:abstract:x-prompt",
-   "meaning": "x-prompt の write の rule は当たる所の値で判定され、read は子セッションへの手順に入る",
+   "meaning": "x-prompt の write の rule は当たる所の値で判定され、read は判定の手順に入る",
    "scenarios": [
-    "S-SF1-JUDGE",
-    "S-UC2-STALE"
+    "S-UC2-STALE",
+    "S-UC4-SEMANTIC-PROCEDURE"
    ]
   },
   {
    "id": "約束:abstract:rule",
-   "meaning": "rule はどれも検証用の子セッションが判定する（判定できなければ unverified）。id は Concrete の中で重ならず、SAS が結果に使う名前を使わない",
+   "meaning": "rule はどれも AI が判定する（打ったセッションが --answer で渡す。判定できなければ unverified）。id は Concrete の中で重ならず、SAS が結果に使う名前を使わない",
    "scenarios": [
-    "S-SF1-READS",
     "S-UC2-STALE-READS",
     "S-UC4-AI-UNVERIFIED",
     "S-UC4-RULE-ID-RESERVED",
+    "S-UC4-SEMANTIC-READS",
     "S-UC4-STALE-READS",
     "S-UC4-STALE-RULE-CHANGED"
    ]
@@ -518,15 +447,6 @@
    "meaning": "x- は閉じた一覧（x-prompt ・ x-decided-by ・ x-published ・ x-view）だけで、ほかの x- は形の検査で断る",
    "scenarios": [
     "S-UC4-UNKNOWN-KEYWORD"
-   ]
-  },
-  {
-   "id": "約束:agent-connector",
-   "meaning": "子セッションの起動 ・ 続け方 ・ 答えと ID の取り出し方は接続の定義に従い、続けるときは名前 ・ 版 ・ 中身のハッシュを比べる",
-   "scenarios": [
-    "S-SF1-JUDGE",
-    "S-SF1-LAUNCH-EDITED",
-    "S-SF1-LAUNCH-MISMATCH"
    ]
   },
   {
@@ -572,31 +492,51 @@
   },
   {
    "id": "UC1:変形:意味で書く",
-   "meaning": "Concrete の rule から SAS が書く手順を組み、書き込み用の子セッションに欄を書かせ、答えを形に照らしてから SAS が書く（作成）",
+   "meaning": "Concrete の rule から SAS が書く手順を組み、書くコマンド（sas create … --value）と一緒に打ったセッションに返す（記録しない）。そのセッションが値を決めてコマンドで渡すと、機械の作成として形に照らしてから書き、記録する",
    "scenarios": [
     "S-UC1-SEMANTIC-CONCRETE",
     "S-UC1-SEMANTIC-CYCLE",
     "S-UC1-SEMANTIC-NESTED",
     "S-UC1-SEMANTIC-REF-LARGE",
-    "S-UC1-SEMANTIC-RETRY",
+    "S-UC1-SEMANTIC-WRITE",
     "S-UC1-SEMANTIC"
    ]
   },
   {
    "id": "UC2:変形:意味で書く",
-   "meaning": "いまの値を手順に入れて書き込み用の子セッションに直させ、変わった欄だけを当てる（更新）",
+   "meaning": "いまの値を手順に入れ、手順を組んだときのハッシュを --if-match に持つ書くコマンド（sas update … --patch）と一緒に返す。渡された JSON Patch の欄だけが変わる",
    "scenarios": [
-    "S-UC1-SEMANTIC-CHECKER",
-    "S-UC1-SEMANTIC-CONTINUE",
     "S-UC2-SEMANTIC"
    ]
   },
   {
    "id": "約束:procedure",
-   "meaning": "手順のプロンプトは procedure.schema.json に従い、判定（validate）と書き込み（write）の両方で同じ形を使う",
+   "meaning": "手順は procedure.schema.json に従い、判定（validate）と書き込み（write）の両方で同じ形を使う。answer の形と、値を渡す command を持つ",
    "scenarios": [
     "S-UC1-SEMANTIC",
-    "S-UC2-SEMANTIC"
+    "S-UC2-SEMANTIC",
+    "S-UC4-SEMANTIC-PROCEDURE"
+   ]
+  },
+  {
+   "id": "UC4:変形:意味の判定",
+   "meaning": "--semantic で意味の rule の判定の手順（対象のハッシュ ・ 判定を渡すコマンド）を返して記録せず、--answer で渡された判定を形 ・ ハッシュ ・ step ・ rule ・ pointer で確かめてから、機械の結果と合わせて打ったセッションの検証として記録する",
+   "scenarios": [
+    "S-UC4-ANSWER-MISMATCH",
+    "S-UC4-ANSWER",
+    "S-UC4-SEMANTIC-NO-RULE",
+    "S-UC4-SEMANTIC-PROCEDURE",
+    "S-UC4-SEMANTIC-READS",
+    "S-UC4-STALE-SEMANTIC"
+   ]
+  },
+  {
+   "id": "約束:command-result:session",
+   "meaning": "打ったセッションは --session → ツールの環境変数 → このフォルダで sas init が登録したセッション → 人の順で決まり、最初に打った sas で sessions に1行入る。sas init はツールから ID が取れなければ SAS が ID を決めて登録し、結果を kind = session の1行で返す",
+   "scenarios": [
+    "S-SESSION-ENV",
+    "S-SESSION-INIT-FLAG",
+    "S-SESSION-INIT"
    ]
   }
  ]

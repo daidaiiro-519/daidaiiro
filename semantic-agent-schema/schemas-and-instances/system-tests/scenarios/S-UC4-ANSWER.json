@@ -1,0 +1,85 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-ANSWER",
+ "name": "判定を渡して記録する",
+ "title": "validate --answer で渡した判定は、手順の step ・ rule ・ pointer と対象のハッシュに合えば、機械の結果と合わせて、打ったセッションの検証として記録される（標準入力からも渡せる）",
+ "why": "判定したセッションと判定した中身を記録に残さないと、誰がどの中身を判定したかを後からたどれない。",
+ "traces": [
+  "UC4:成功時保証",
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "answers/ok.json": "{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"利用者が受け取る結果を書いている\"}]}"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--answer",
+   "answers/ok.json"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c-1"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "when",
+   "pointer": "/session",
+   "equals": "c-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/verified",
+   "equals": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/unsupported",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "利用者が受け取る結果を書いている"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operations/0",
+   "equals": "o-0002"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/r1.json",
+    "--answer",
+    "-"
+   ],
+   "stdin": "{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"利用者が受け取る結果を書いている\"}]}"
+  }
+ ]
+}

@@ -1,0 +1,73 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-ANSWER-MISMATCH",
+ "name": "判定が手順と合わない",
+ "title": "渡した判定の step ・ rule ・ pointer が手順と合わない ・ 判定が欠けると、記録せずに invalid_answer で断る",
+ "why": "別の rule や別の所への判定を、この rule の判定として記録しない。欠けた判定を verified に見せない。",
+ "traces": [
+  "UC4:拡張:6a",
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "answers/other.json": "{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": [{\"step\": 1, \"rule\": \"other-rule\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"結果を書いている\"}]}",
+   "answers/empty.json": "{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": []}"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--answer",
+   "answers/other.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "手順と違う"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/message",
+   "contains": "判定が無い"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/r1.json",
+    "--answer",
+    "answers/empty.json"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "items/r1.json"
+   ]
+  }
+ ]
+}

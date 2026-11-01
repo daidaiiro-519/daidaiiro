@@ -111,7 +111,7 @@ fn get_mut<'a>(doc: &'a mut Value, path: &[String]) -> Result<&'a mut Value, Str
                 let i = index(t, a.len(), false)?;
                 &mut a[i]
             }
-            _ => return Err(format!("{t} の親セッションがオブジェクトでも配列でもない")),
+            _ => return Err(format!("{t} の親の値がオブジェクトでも配列でもない")),
         };
     }
     Ok(at)
@@ -132,9 +132,7 @@ fn add(doc: &mut Value, path: &[String], value: Value) -> Result<(), String> {
             a.insert(i, value);
             Ok(())
         }
-        _ => Err(format!(
-            "{last} の親セッションがオブジェクトでも配列でもない"
-        )),
+        _ => Err(format!("{last} の親の値がオブジェクトでも配列でもない")),
     }
 }
 
@@ -147,9 +145,7 @@ fn remove(doc: &mut Value, path: &[String]) -> Result<Value, String> {
             let i = index(last, a.len(), false)?;
             Ok(a.remove(i))
         }
-        _ => Err(format!(
-            "{last} の親セッションがオブジェクトでも配列でもない"
-        )),
+        _ => Err(format!("{last} の親の値がオブジェクトでも配列でもない")),
     }
 }
 

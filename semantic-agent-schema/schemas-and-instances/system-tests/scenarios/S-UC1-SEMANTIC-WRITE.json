@@ -1,0 +1,74 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-WRITE",
+ "name": "手順のコマンドで書く",
+ "title": "手順を受け取ったセッションが、手順のコマンド（sas create … --value）で値を渡すと、機械の作成として形に照らしてから書き、打ったセッションの操作として記録する。手順を出したことは記録に無い",
+ "why": "書くのはいつも SAS の機械の作成で、意味で書いたかどうかで書き方が変わらない。記録には、値を決めて打ったセッションが残る。",
+ "traces": [
+  "UC1:変形:意味で書く",
+  "UC1:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "docs/withdraw.md": "@fixtures/withdraw.md"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/s2.json",
+     "--concrete",
+     "urn:example:sample:summary:v1",
+     "--semantic",
+     "--brief",
+     "会員が退会する流れを書く"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/s2.json",
+   "--concrete",
+   "urn:example:sample:summary:v1",
+   "--value",
+   "{\"$schema\": \"urn:example:sample:summary:v1\", \"id\": \"R7\", \"goal\": \"退会の手続きが完了したことを確かめられる\", \"summary\": \"会員が退会し、完了を確かめられる決めごと\"}",
+   "--intent",
+   "退会を足す"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c-1"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "created"
+  },
+  {
+   "of": "when",
+   "pointer": "/session",
+   "equals": "c-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "file": "items/s2.json",
+   "contains": "退会の手続きが完了した"
+  }
+ ]
+}

@@ -6,7 +6,7 @@
 
 use outbound_sqlite::SqliteLog;
 use recording_application::ports::{
-    Caller, ChangeRow, FieldRow, OperationLog, RuleRow, ValidateRow,
+    Caller, ChangeRow, FieldRow, OperationLog, RuleRow, ValidateRow, Via,
 };
 
 fn update(request_id: Option<&str>) -> ChangeRow {
@@ -25,13 +25,11 @@ fn update(request_id: Option<&str>) -> ChangeRow {
             after: Some("null".into()),
             before_unavailable: false,
         }],
-        child: None,
     }
 }
 
 fn validate_row() -> ValidateRow {
     ValidateRow {
-        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: vec![RuleRow {
@@ -52,10 +50,12 @@ fn rejects(log: &SqliteLog, sql: &str) {
     );
 }
 
-fn parent(log: &mut SqliteLog) -> Option<String> {
-    log.parent_session(&Caller::Parent {
+fn session(log: &mut SqliteLog) -> Option<String> {
+    log.session(&Caller::Session {
         id: "c5c5".into(),
         tool: "claude-code".into(),
+        folder: "/w".into(),
+        via: Via::Env,
     })
     .unwrap()
 }
@@ -63,13 +63,13 @@ fn parent(log: &mut SqliteLog) -> Option<String> {
 #[test]
 fn change_and_fields_are_kept_and_found_by_request() {
     let mut log = SqliteLog::in_memory().unwrap();
-    let p = parent(&mut log);
+    let p = session(&mut log);
     let o = log
         .append_change(p.as_deref(), &update(Some("r-1")))
         .unwrap();
     let found = log.find_request("r-1").unwrap().unwrap();
     assert_eq!(
-        (found.operation.as_str(), found.parent.clone()),
+        (found.operation.as_str(), found.session.clone()),
         (o.as_str(), p.clone())
     );
     assert_eq!(found.row, update(Some("r-1")));
@@ -104,7 +104,7 @@ fn writes_are_written_changes_in_order() {
     let ids: Vec<&str> = writes.iter().map(|w| w.operation.as_str()).collect();
     assert_eq!(ids, [first.as_str(), second_id.as_str()]);
     assert_eq!(writes[0].row, update(None));
-    assert_eq!(writes[0].parent, None);
+    assert_eq!(writes[0].session, None);
     assert!(!writes[0].at.is_empty());
     assert!(log.writes("u9.json").unwrap().is_empty());
 }

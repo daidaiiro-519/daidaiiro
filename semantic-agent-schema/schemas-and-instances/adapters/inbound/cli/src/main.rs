@@ -1,4 +1,5 @@
 //! sas コマンドの入口。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON の1行で返す。
+//! 意味の部分（--semantic）は、結果の代わりに手順（procedure.schema.json）を返す。SAS はエージェントを起動しない。
 //!
 //! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
@@ -10,33 +11,37 @@ mod caller;
 mod output;
 
 use caller::FromArguments;
-use outbound_agents::Connector;
 use outbound_filesystem::{OutDir, WorkingTree};
 use outbound_git::GitCommits;
 use outbound_javascript::Boa;
 use outbound_jsonschema::Validator;
 use outbound_sqlite::SqliteLog;
 use outbound_templates::Mustache;
+use recording_application::ports::{IdentifyCaller, OperationLog};
+use recording_application::use_cases::history::register_session;
 use rendering_application::use_cases::design::{DESIGN_SYSTEM, validate_design_systems};
 use rendering_application::use_cases::render::{RenderRequest, render};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use validation_application::ports::SchemaValidator;
-use validation_application::use_cases::meaning::MeaningCall;
 use validation_application::use_cases::validate::{
-    Refused, Scope, validate, validate_stale, validate_with_meaning,
+    Refused, Scope, log_refused, semantic_procedures, validate, validate_stale,
+    validate_with_answer,
 };
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
-    create, delete, semantic_write, update,
+    create, delete, semantic_procedure, update,
 };
 
-const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
-sas validate (<経路>... | --all) --agent <接続の定義> [--continue <検証用の子セッション>] [--session <名前>] ／ \
+const USAGE: &str = "使い方：sas init [--session <ID>] ／ \
+sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
+sas validate [--session <名前>] [--stale] (<経路>... | --all) --semantic ／ \
+sas validate <経路> [--stale] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
+sas create <経路> --concrete <URN> --semantic [--brief <依頼>] [--ref <経路>]... [--intent <意図>] [--session <名前>] ／ \
 sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
+sas update <経路> --semantic --brief <依頼> [--ref <経路>]... [--intent <意図>] [--session <名前>] ／ \
 sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>] ／ \
 sas delete <経路> --intent <意図> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
 sas render <経路>... --design-system <経路> --out <書き出す先>";
@@ -44,6 +49,7 @@ sas render <経路>... --design-system <経路> --out <書き出す先>";
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
+        Some("init") => run_init(&args[1..]),
         Some("validate") => run_validate(&args[1..]),
         Some("create") => run_change(&args[1..], Command::Create),
         Some("update") => run_change(&args[1..], Command::Update),
@@ -82,16 +88,38 @@ fn db_path(root: &Path) -> PathBuf {
         )
 }
 
-/// 呼び出し元：--session と、ツールごとの環境変数。
-fn caller(session: Option<String>) -> Result<FromArguments, Refused> {
-    FromArguments::new(session, |name| std::env::var(name).ok()).map_err(|tools| Refused {
-        code: "usage",
-        message: format!(
-            "{} の中で打たれていて、どれが打ったかを決められません。--session <打った会話の ID> で名乗ってください",
-            tools.join(" と ")
-        ),
-        ..Refused::default()
-    })
+/// sas を打ったフォルダ：Git の中なら作業ツリーの根、外なら作業フォルダ（絶対の経路）。
+fn folder() -> String {
+    GitCommits::new(PathBuf::from("."))
+        .toplevel()
+        .or_else(|| std::env::current_dir().ok())
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| ".".to_string())
+}
+
+/// 呼び出し元：--session ・ ツールごとの環境変数 ・ このフォルダで sas init が登録したセッション。
+/// init は sas init のとき（登録の前なので、前の登録を使わない）。
+fn caller(session: Option<String>, log: &SqliteLog, init: bool) -> Result<FromArguments, Refused> {
+    let folder = folder();
+    let initialized = if init {
+        None
+    } else {
+        log.initialized(&folder).map_err(|message| Refused {
+            code: "log",
+            message,
+            ..Refused::default()
+        })?
+    };
+    FromArguments::new(session, |name| std::env::var(name).ok(), &folder, initialized).map_err(
+        |tools| Refused {
+            code: "usage",
+            message: format!(
+                "{} の中で打たれていて、どれが打ったかを決められません。--session <打った会話の ID> で名乗ってください",
+                tools.join(" と ")
+            ),
+            ..Refused::default()
+        },
+    )
 }
 
 /// 置き場所 ・ バリデーター ・ 記録を組み立てる。
@@ -110,25 +138,56 @@ fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
     Ok((WorkingTree::new(root), validator, log))
 }
 
+/// sas init：いまのセッションを、このフォルダの記録の相手として登録する。
+fn run_init(args: &[String]) -> ExitCode {
+    let mut session = None;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--session" => match it.next() {
+                Some(s) if !s.is_empty() => session = Some(s.clone()),
+                _ => return usage("--session に ID がありません"),
+            },
+            s => return usage(&format!("知らない指定です: {s}")),
+        }
+    }
+    let (_, _, mut log) = match adapters() {
+        Ok(a) => a,
+        Err(r) => return refuse(&r),
+    };
+    let who = match caller(session, &log, true) {
+        Ok(w) => w,
+        Err(r) => return refuse(&r),
+    };
+    match register_session(&who, &folder(), &mut log) {
+        Ok(row) => {
+            output::print_session(&row);
+            ExitCode::SUCCESS
+        }
+        Err(message) => refuse(&Refused {
+            code: "log",
+            message,
+            ..Refused::default()
+        }),
+    }
+}
+
 fn run_validate(args: &[String]) -> ExitCode {
     let mut session = None;
     let mut all = false;
     let mut stale = false;
-    let mut agent = None;
-    let mut continue_child = None;
+    let mut semantic = false;
+    let mut answer = None;
     let mut paths = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--all" => all = true,
             "--stale" => stale = true,
-            "--agent" => match it.next() {
-                Some(s) if !s.is_empty() => agent = Some(s.clone()),
-                _ => return usage("--agent に接続の定義の経路がありません"),
-            },
-            "--continue" => match it.next() {
-                Some(s) if !s.is_empty() => continue_child = Some(s.clone()),
-                _ => return usage("--continue に検証用の子セッションの ID がありません"),
+            "--semantic" => semantic = true,
+            "--answer" => match it.next() {
+                Some(s) if !s.is_empty() => answer = Some(s.clone()),
+                _ => return usage("--answer に判定の JSON のファイルか - がありません"),
             },
             "--session" => match it.next() {
                 Some(s) if !s.is_empty() => session = Some(s.clone()),
@@ -138,28 +197,33 @@ fn run_validate(args: &[String]) -> ExitCode {
             p => paths.push(p.to_string()),
         }
     }
+    if semantic && answer.is_some() {
+        return usage(
+            "--semantic と --answer は一緒に渡せません（--semantic で手順を受け取り、判定を --answer で渡す）",
+        );
+    }
     let scope = match (all, paths.is_empty()) {
         (true, true) => Scope::All,
         (false, false) => Scope::Paths(paths),
         (true, false) => return usage("経路と --all は一緒に渡せません"),
         // 入力が変わった rule だけなら、経路を渡さなければすべてを見る
-        (false, true) if stale => Scope::All,
+        (false, true) if stale && answer.is_none() => Scope::All,
         (false, true) => return usage("検証する経路か --all を渡してください"),
     };
     // デザインシステムは、受け取りの型とテンプレートの書き方の契約に照らす（描画のモジュール）
     if let Scope::Paths(paths) = &scope {
         let design: Vec<bool> = paths.iter().map(|p| is_design_system(p)).collect();
         if design.iter().any(|d| *d) {
-            if !design.iter().all(|d| *d) || stale {
+            if !design.iter().all(|d| *d) || stale || semantic || answer.is_some() {
                 return usage(
-                    "デザインシステムは、ほかの対象や --stale と一緒に渡さずに、それだけで検証してください",
+                    "デザインシステムは、ほかの対象や --stale ・ --semantic ・ --answer と一緒に渡さずに、それだけで検証してください",
                 );
             }
             let (store, validator, mut log) = match adapters() {
                 Ok(a) => a,
                 Err(r) => return refuse(&r),
             };
-            let who = match caller(session) {
+            let who = match caller(session, &log, false) {
                 Ok(w) => w,
                 Err(r) => return refuse(&r),
             };
@@ -178,22 +242,53 @@ fn run_validate(args: &[String]) -> ExitCode {
             };
         }
     }
-    if continue_child.is_some() && agent.is_none() {
-        return usage("--continue は --agent と一緒に渡してください");
-    }
-    if let Some(agent) = agent {
-        return run_validate_with_agent(&scope, stale, &agent, continue_child, session);
-    }
-    let run = if stale { validate_stale } else { validate };
+    let answer_text = match &answer {
+        Some(from) => {
+            let Scope::Paths(paths) = &scope else {
+                return usage("--answer は --all と一緒に渡せません。経路を1つ渡してください");
+            };
+            if paths.len() != 1 {
+                return usage("--answer は経路を1つだけ渡してください");
+            }
+            match read_answer(from) {
+                Ok(t) => Some(t),
+                Err(r) => return refuse(&r),
+            }
+        }
+        None => None,
+    };
     let (store, validator, mut log) = match adapters() {
         Ok(a) => a,
         Err(r) => return refuse(&r),
     };
-    let who = match caller(session) {
+    let who = match caller(session, &log, false) {
         Ok(w) => w,
         Err(r) => return refuse(&r),
     };
-    match run(&scope, &store, &validator, &who, &mut log) {
+    if let Err(message) = log.session(&who.identify()) {
+        return refuse(&log_refused(message));
+    }
+    if semantic {
+        // 判定の手順を出すだけで、記録しない。判定する rule がどの対象にも無ければ、機械の検証をそのまま記録する
+        match semantic_procedures(&scope, stale, &store, &validator, &who, &log) {
+            Ok(procedures) if !procedures.is_empty() => {
+                for p in &procedures {
+                    output::print_procedure(p);
+                }
+                return ExitCode::SUCCESS;
+            }
+            Ok(_) => {}
+            Err(r) => return refuse(&r),
+        }
+    }
+    let result = match (&scope, answer_text) {
+        (Scope::Paths(paths), Some(text)) => {
+            validate_with_answer(&paths[0], stale, &text, &store, &validator, &who, &mut log)
+        }
+        _ if stale => validate_stale(&scope, &store, &validator, &who, &mut log),
+        _ => validate(&scope, &store, &validator, &who, &mut log),
+    };
+    match result {
         Ok(v) => {
             output::print_validation(&v);
             if v.counts.fails() {
@@ -206,86 +301,22 @@ fn run_validate(args: &[String]) -> ExitCode {
     }
 }
 
-/// rule を、接続の定義のエージェントの検証用の子セッションに判定させる検証。
-fn run_validate_with_agent(
-    scope: &Scope,
-    stale: bool,
-    agent: &str,
-    continue_child: Option<String>,
-    session: Option<String>,
-) -> ExitCode {
-    let (store, validator, mut log) = match adapters() {
-        Ok(a) => a,
-        Err(r) => return refuse(&r),
+/// 判定の JSON を、ファイルか標準入力（-）から読む。
+fn read_answer(from: &str) -> Result<String, Refused> {
+    let read = if from == "-" {
+        let mut text = String::new();
+        std::io::Read::read_to_string(&mut std::io::stdin(), &mut text)
+            .map(|_| text)
+            .map_err(|e| format!("標準入力を読めない：{e}"))
+    } else {
+        std::fs::read_to_string(from).map_err(|e| format!("{from} を読めない：{e}"))
     };
-    let who = match caller(session) {
-        Ok(w) => w,
-        Err(r) => return refuse(&r),
-    };
-    let reader = match load_connector(agent, &validator) {
-        Ok(r) => r,
-        Err(r) => return refuse(&r),
-    };
-    let call = MeaningCall {
-        reader: &reader,
-        continue_child,
-        progress: &output::Live,
-    };
-    match validate_with_meaning(scope, stale, &store, &validator, &who, &mut log, &call) {
-        Ok((v, meaning)) => {
-            output::print_validation_with(&v, meaning.as_ref());
-            if v.counts.fails() {
-                ExitCode::from(1)
-            } else {
-                ExitCode::SUCCESS
-            }
-        }
-        Err(r) => refuse(&r),
-    }
+    read.map_err(|message| Refused {
+        code: "invalid_input",
+        message,
+        ..Refused::default()
+    })
 }
-
-/// 接続の定義を読み、型に照らして、子セッションを起動するアダプターにする。
-fn load_connector(agent: &str, validator: &Validator) -> Result<Connector, Refused> {
-    let def: Value = std::fs::read_to_string(agent)
-        .map_err(|e| format!("{agent} を読めない：{e}"))
-        .and_then(|t| serde_json::from_str(&t).map_err(|e| format!("{agent} が JSON でない：{e}")))
-        .map_err(|message| Refused {
-            code: "invalid_input",
-            path: Some(agent.into()),
-            message,
-            ..Refused::default()
-        })?;
-    let broken = validator
-        .check(AGENT_CONNECTOR, &def, &[])
-        .map_err(|message| Refused {
-            code: "validator",
-            message,
-            ..Refused::default()
-        })?;
-    if !broken.is_empty() {
-        return Err(Refused {
-            code: "invalid_input",
-            path: Some(agent.into()),
-            message: format!(
-                "接続の定義が型に合わない：{}",
-                broken
-                    .iter()
-                    .map(|(at, why)| format!("{at} {why}"))
-                    .collect::<Vec<_>>()
-                    .join(" ／ ")
-            ),
-            ..Refused::default()
-        });
-    }
-    let root = PathBuf::from(".");
-    let work = db_path(&root)
-        .parent()
-        .map_or_else(|| root.join(".sas"), Path::to_path_buf);
-    Ok(Connector::new(def, caller::session_envs(), work))
-}
-
-/// エージェントの接続の定義の型。
-const AGENT_CONNECTOR: &str = "urn:semantic-agent-schema:published-language:agent-connector:v1";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Command {
@@ -320,8 +351,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         ("--session", None),
         ("--request-id", None),
         ("--brief", None),
-        ("--agent", None),
-        ("--continue", None),
     ]);
     let mut paths = Vec::new();
     let mut it = args.iter();
@@ -349,21 +378,14 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     let session = take("--session");
     let request_id = take("--request-id");
     let intent = take("--intent");
-    if !semantic
-        && let Some(name) = ["--brief", "--agent"]
-            .into_iter()
-            .find(|n| take(n).is_some())
-    {
-        return usage(&format!("{name} は --semantic と一緒に渡してください"));
-    }
-    if !semantic && take("--continue").is_some() {
-        return usage("--continue は --semantic と一緒に渡してください");
+    if !semantic && take("--brief").is_some() {
+        return usage("--brief は --semantic と一緒に渡してください");
     }
     if !semantic && !refs.is_empty() {
         return usage("--ref は --semantic と一緒に渡してください");
     }
     if semantic {
-        // 意味で書く：値と JSON Patch は子セッションが決めるので受けない
+        // 意味で書く：手順を返すだけ。値と JSON Patch は、手順を受け取ったセッションが決めて、手順の command で書く
         if adopting {
             return usage("--semantic と --adopt は一緒に渡せません");
         }
@@ -373,11 +395,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         {
             return usage(&format!("--semantic と {name} は一緒に渡せません"));
         }
-        let Some(agent) = take("--agent") else {
-            return usage(
-                "--semantic には、書き込み用の子セッションを起動する接続の定義を --agent で渡してください",
-            );
-        };
         let concrete = match command {
             Command::Create => match take("--concrete") {
                 Some(c) => Some(c),
@@ -392,18 +409,14 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             refs,
             intent,
             request_id,
-            continue_child: take("--continue"),
         };
         let result = run_with(
-            |store, validator, who, log| {
-                let reader = load_connector(&agent, validator)?;
-                semantic_write(&request, store, validator, who, log, &reader, &output::Live)
-            },
+            |store, validator, who, _| semantic_procedure(&request, store, validator, who),
             session,
         );
         return match result {
-            Ok((c, outcome)) => {
-                output::print_semantic(&c, &outcome);
+            Ok(p) => {
+                output::print_procedure(&p);
                 ExitCode::SUCCESS
             }
             Err(r) => refuse(&r),
@@ -471,7 +484,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 value,
                 request_id,
                 intent,
-                writer: None,
             };
             run_with(
                 |store, validator, who, log| create(&request, store, validator, who, log),
@@ -489,7 +501,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 if_match: take("--if-match"),
                 request_id,
                 intent,
-                writer: None,
             };
             run_with(
                 |store, validator, who, log| update(&request, store, validator, who, log),
@@ -634,12 +645,15 @@ fn is_design_system(path: &str) -> bool {
         .is_some_and(|s| s == DESIGN_SYSTEM)
 }
 
+/// 置き場所と呼び出し元を組み立て、打ったセッションを記録してから f を呼ぶ（最初に sas を打ったときに sessions に1行）。
 fn run_with<T>(
     f: impl FnOnce(&WorkingTree, &Validator, &FromArguments, &mut SqliteLog) -> Result<T, Refused>,
     session: Option<String>,
 ) -> Result<T, Refused> {
     let (store, validator, mut log) = adapters()?;
-    f(&store, &validator, &caller(session)?, &mut log)
+    let who = caller(session, &log, false)?;
+    log.session(&who.identify()).map_err(log_refused)?;
+    f(&store, &validator, &who, &mut log)
 }
 
 fn refuse(r: &Refused) -> ExitCode {

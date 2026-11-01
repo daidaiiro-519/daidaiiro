@@ -1,0 +1,80 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-STALE-SEMANTIC",
+ "name": "判定できなかった rule をあとで判定する",
+ "title": "判定を渡さずに検証して unsupported になった rule は、中身が同じでも --stale --semantic の手順に入り、--stale --answer で判定を渡すと記録される",
+ "why": "判定を渡さずに検証したあと、--stale で判定を渡すと、まだ誰も判定していない rule が残らない。",
+ "traces": [
+  "UC4:変形:入力が変わった rule だけ",
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "answers/summary.json": "{\"hash\": \"sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"結果を書いている\"}, {\"step\": 2, \"rule\": \"summary-matches\", \"pointer\": \"/summary\", \"result\": \"verified\", \"reason\": \"目的に食い違わない\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/s1.json"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/s1.json",
+   "--stale",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "contains": "--stale --answer"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/counts/verified",
+   "equals": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/counts/unsupported",
+   "equals": 0
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/s1.json",
+    "--stale",
+    "--answer",
+    "answers/summary.json"
+   ]
+  }
+ ]
+}

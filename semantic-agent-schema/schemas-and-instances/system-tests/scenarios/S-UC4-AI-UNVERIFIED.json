@@ -1,8 +1,8 @@
 {
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-AI-UNVERIFIED",
- "name": "子セッションが判定できないと答える",
- "title": "検証用の子セッションが rule を判定できないと答えると、unverified として返し、verified に数えない",
+ "name": "判定できないと答える",
+ "title": "渡した判定が rule を判定できない（unverified）と答えていると、unverified として記録し、verified に数えない",
  "why": "AI が決めきれないことを verified にすると、誰も決めていないものが決まったことになる。",
  "traces": [
   "UC4:最低保証",
@@ -13,17 +13,15 @@
   "files": {
    "schemas/review.schema.json": "@fixtures/review.schema.json",
    "items/r1.json": "@fixtures/r1.json",
-   "agent/test-agent.sh": "@fixtures/test-agent.sh",
-   "agent/test-agent.json": "@fixtures/test-agent.json",
-   "agent/reply-1.json": "@fixtures/reply-unverified.json"
+   "answers/unverified.json": "{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"unverified\", \"reason\": \"目的が利用者の結果かは、利用者に聞かないと決められない\"}]}"
   }
  },
  "when": {
   "args": [
    "validate",
    "items/r1.json",
-   "--agent",
-   "agent/test-agent.json"
+   "--answer",
+   "answers/unverified.json"
   ]
  },
  "then": [
@@ -34,6 +32,11 @@
   {
    "of": "when",
    "pointer": "/targets/0/counts/unverified",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/verified",
    "equals": 1
   },
   {

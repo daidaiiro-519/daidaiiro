@@ -6,6 +6,7 @@
 //!
 //! - 記録の置き場所に使う共通のフォルダ：`git rev-parse --path-format=absolute --git-common-dir`
 //!   （ワークツリーをいくつ作っても同じ1つ。$GIT_COMMON_DIR があればそれ、無ければ $GIT_DIR）
+//! - セッションを打ったフォルダ：`git rev-parse --show-toplevel`（作業ツリーの根。ワークツリーごとに違う）
 //!
 //! リポジトリでない ・ コミットが無い ・ git が無いときは、前の中身のコミットが無いとして空を返す。
 
@@ -45,6 +46,17 @@ impl GitCommits {
         let out = self
             .git(&["rev-parse", "--path-format=absolute", "--git-common-dir"])
             .ok()??;
+        if !out.status.success() {
+            return None;
+        }
+        let dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        (!dir.is_empty()).then(|| Path::new(&dir).to_path_buf())
+    }
+
+    /// 作業ツリーの根（絶対の経路）。リポジトリでない ・ git が無ければ None。
+    #[must_use]
+    pub fn toplevel(&self) -> Option<PathBuf> {
+        let out = self.git(&["rev-parse", "--show-toplevel"]).ok()??;
         if !out.status.success() {
             return None;
         }

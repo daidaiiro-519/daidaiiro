@@ -1,14 +1,14 @@
-//! 表の決まり：追記だけ ・ 親セッションの行は初めて見たときだけ ・ 親セッションの欄は親セッションの行だけ ・ 子セッションの役割 ・ by は machine か ai。
+//! 表の決まり：追記だけ ・ セッションの行は初めて見たときだけ ・ via は env か flag か init ・ by は machine か ai。
+//! sas init が登録したセッションをフォルダから引け、SAS が決めるセッション ID は重ならない。
 //! あわせて、bundled の SQLite の版が 3.38.0 以上であること（ステップ1 の照合の実地の証拠）。
 
 #![allow(clippy::unwrap_used)]
 
 use outbound_sqlite::SqliteLog;
-use recording_application::ports::{Caller, OperationLog, RuleRow, ValidateRow};
+use recording_application::ports::{Caller, OperationLog, RuleRow, ValidateRow, Via};
 
 fn row(by: &str, result: &str) -> ValidateRow {
     ValidateRow {
-        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: vec![RuleRow {
@@ -22,11 +22,17 @@ fn row(by: &str, result: &str) -> ValidateRow {
     }
 }
 
-fn parent(id: &str) -> Caller {
-    Caller::Parent {
+fn session(id: &str, folder: &str, via: Via) -> Caller {
+    Caller::Session {
         id: id.into(),
         tool: "claude-code".into(),
+        folder: folder.into(),
+        via,
     }
+}
+
+fn parent(id: &str) -> Caller {
+    session(id, "/w", Via::Env)
 }
 
 fn rejects(log: &SqliteLog, sql: &str) {
@@ -54,22 +60,20 @@ fn bundled_sqlite_is_new_enough() {
 }
 
 #[test]
-fn a_parent_is_written_once_and_a_human_has_no_row() {
+fn a_session_is_written_once_and_a_human_has_no_row() {
     let mut log = SqliteLog::in_memory().unwrap();
-    assert_eq!(log.parent_session(&Caller::Human).unwrap(), None);
-    let p = log.parent_session(&parent("c5c5")).unwrap();
+    assert_eq!(log.session(&Caller::Human).unwrap(), None);
+    let p = log.session(&parent("c5c5")).unwrap();
     assert_eq!(p.as_deref(), Some("c5c5"));
-    assert_eq!(log.parent_session(&parent("c5c5")).unwrap(), p);
+    assert_eq!(log.session(&parent("c5c5")).unwrap(), p);
     assert_eq!(count(&log, "sessions"), 1);
-    let (role, tool): (String, String) = log
-        .connection()
-        .query_row(
-            "SELECT role, tool FROM sessions WHERE id = 'c5c5'",
-            [],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )
-        .unwrap();
-    assert_eq!((role.as_str(), tool.as_str()), ("caller", "claude-code"));
+    // 同じ ID を別の入り方で見ても、初めの行のまま
+    log.session(&session("c5c5", "/other", Via::Init)).unwrap();
+    let seen = log.session_row("c5c5").unwrap().unwrap();
+    assert_eq!(
+        (seen.tool.as_str(), seen.folder.as_str(), seen.via.as_str()),
+        ("claude-code", "/w", "env")
+    );
     assert_eq!(
         log.append_validate(p.as_deref(), &row("machine", "verified"))
             .unwrap(),
@@ -84,7 +88,7 @@ fn a_parent_is_written_once_and_a_human_has_no_row() {
 #[test]
 fn records_cannot_be_changed_or_removed() {
     let mut log = SqliteLog::in_memory().unwrap();
-    let p = log.parent_session(&parent("c5c5")).unwrap();
+    let p = log.session(&parent("c5c5")).unwrap();
     log.append_validate(p.as_deref(), &row("machine", "verified"))
         .unwrap();
     rejects(&log, "UPDATE validations SET target_path = 'x'");
@@ -104,34 +108,35 @@ fn rows_against_the_rules_are_refused() {
     );
     // 拒んだ検証の行は残らない（rule の結果と一緒に1つのトランザクションで足す）
     assert_eq!(count(&log, "validations"), 0);
-    // 親セッションの欄は親セッションの行だけを指し、検証は検証用の子セッションだけがする
-    log.connection()
-        .execute_batch(
-            "INSERT INTO sessions (id, role, tool, first_seen) VALUES ('p', 'caller', 'claude-code', 't'); \
-             INSERT INTO sessions (id, role, parent_id, tool, launch, first_seen) VALUES ('w', 'writer', 'p', 'claude-code', '{}', 't');",
-        )
-        .unwrap();
+    // via は env ・ flag ・ init だけ ・ 検証の session_id は sessions の行だけを指す
     rejects(
         &log,
-        "INSERT INTO validations (id, at, target_path, hash, parent_session_id) VALUES ('o-9', 't', 'a', 'h', 'w')",
+        "INSERT INTO sessions (id, tool, folder, via, first_seen) VALUES ('q', 'claude-code', '/w', 'child', 't')",
     );
     rejects(
         &log,
-        "INSERT INTO validations (id, at, target_path, hash, parent_session_id, child_session_id) VALUES ('o-9', 't', 'a', 'h', 'p', 'w')",
+        "INSERT INTO validations (id, at, target_path, hash, session_id) VALUES ('o-9', 't', 'a', 'h', 'nobody')",
     );
-    // 子セッションの親セッションは親セッションの行だけ ・ 親セッションの行は起動の設定を持たない ・ 子セッションは起動の設定を持つ
-    rejects(
-        &log,
-        "INSERT INTO sessions (id, role, parent_id, tool, launch, first_seen) VALUES ('c', 'checker', 'w', 'claude-code', '{}', 't')",
+}
+
+#[test]
+fn the_last_session_registered_by_init_is_found_by_folder() {
+    let mut log = SqliteLog::in_memory().unwrap();
+    assert_eq!(log.initialized("/w").unwrap(), None);
+    log.session(&session("a", "/w", Via::Init)).unwrap();
+    log.session(&session("e", "/w", Via::Env)).unwrap();
+    log.session(&session("b", "/w", Via::Init)).unwrap();
+    log.session(&session("c", "/other", Via::Init)).unwrap();
+    assert_eq!(
+        log.initialized("/w").unwrap().map(|r| r.id),
+        Some("b".to_string())
     );
-    rejects(
-        &log,
-        "INSERT INTO sessions (id, role, tool, launch, first_seen) VALUES ('q', 'caller', 'claude-code', '{}', 't')",
-    );
-    rejects(
-        &log,
-        "INSERT INTO sessions (id, role, parent_id, tool, first_seen) VALUES ('c', 'checker', 'p', 'claude-code', 't')",
-    );
-    // 子セッションの ID を親セッションとして名乗れない
-    assert!(log.parent_session(&parent("w")).is_err());
+}
+
+#[test]
+fn new_session_ids_do_not_collide() {
+    let log = SqliteLog::in_memory().unwrap();
+    let ids: std::collections::BTreeSet<String> = (0..100).map(|_| log.new_session_id()).collect();
+    assert_eq!(ids.len(), 100);
+    assert!(ids.iter().all(|i| i.starts_with("sas-") && i.len() == 36));
 }

@@ -1,0 +1,72 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-ANSWER-HASH",
+ "name": "判定のあとに中身が変わった",
+ "title": "渡した判定のハッシュ（手順の target.hash）がいまの中身のハッシュと違うと、記録せずに conflict で断り、手順を取り直すコマンドを返す",
+ "why": "判定した中身と記録の中身を食い違わせない。判定の間にだれかが直したら、いまの中身で判定し直す。",
+ "traces": [
+  "UC4:拡張:6c"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "answers/ok.json": "{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"利用者が受け取る結果を書いている\"}]}"
+  },
+  "steps": [
+   {
+    "write": {
+     "path": "items/r1.json",
+     "content": "{\n \"$schema\": \"urn:example:sample:review:v1\",\n \"id\": \"R1\",\n \"goal\": \"外で直した\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--answer",
+   "answers/ok.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "conflict"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "items/r1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "sas validate items/r1.json --semantic"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved",
+   "exists": false
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/r1.json"
+   ]
+  }
+ ]
+}

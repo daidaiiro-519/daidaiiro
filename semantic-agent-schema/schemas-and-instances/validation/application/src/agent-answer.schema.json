@@ -1,11 +1,12 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:validation:agent-answer-judgments:v1",
- "title": "検証用の子セッションの答え（判定）",
- "description": "手順のプロンプトの steps ごとに、rule に照らした判定を1件ずつ返す。答えはこの JSON だけで、ほかの文を付けない",
+ "title": "判定の答え",
+ "description": "sas validate --semantic が出した手順の steps ごとに、rule に照らした判定を1件ずつ持つ JSON。sas validate <経路> --answer で渡す。hash は手順の target.hash を写したもので、いまの中身のハッシュと違えば SAS は記録せずに断る",
  "type": "object",
- "required": ["results"],
+ "required": ["hash", "results"],
  "properties": {
+  "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "判定した中身のハッシュ（手順の target.hash）" },
   "results": {
    "type": "array",
    "items": {

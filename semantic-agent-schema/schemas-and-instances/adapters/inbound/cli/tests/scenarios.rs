@@ -5,8 +5,9 @@
 #![allow(clippy::expect_used, clippy::panic)]
 
 use serde_json::Value;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 
 fn suite() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../system-tests")
@@ -17,7 +18,7 @@ fn result_schema() -> jsonschema::Validator {
     published("command-result.schema.json")
 }
 
-/// 子セッションに渡した手順の形（意味の部分を含む操作で、結果の行の前に出る）。
+/// 手順の形（意味の部分を含む操作で、結果の行の代わりに出る）。
 fn procedure_schema() -> jsonschema::Validator {
     published("procedure.schema.json")
 }
@@ -50,13 +51,13 @@ fn place(dir: &Path, files: &serde_json::Map<String, Value>) {
             None => content.to_string(),
         };
         let to = dir.join(rel);
-        std::fs::create_dir_all(to.parent().expect("親セッションがある"))
+        std::fs::create_dir_all(to.parent().expect("親のフォルダがある"))
             .expect("フォルダを作れること");
         std::fs::write(to, text).expect("ファイルを置けること");
     }
 }
 
-/// 親セッション ID が入る環境変数の名前（入口の表 callers.json から）。
+/// セッション ID が入る環境変数の名前（入口の表 callers.json から）。
 fn session_envs() -> Vec<String> {
     let table: Value = serde_json::from_str(
         &std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("callers.json"))
@@ -91,7 +92,7 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     let mut c = if let Some(args) = strings("args") {
         let mut c = Command::new(env!("CARGO_BIN_EXE_sas"));
         c.args(args);
-        // 試験を動かす環境（AI のツールの中など）の親セッション ID と記録の置き場所を持ち込まない。
+        // 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所を持ち込まない。
         // 場面が env で渡したものだけを使う
         for name in session_envs() {
             c.env_remove(name);
@@ -108,9 +109,24 @@ fn run(dir: &Path, cmd: &Value) -> Output {
         c.args(strings("git").expect("args か git がある"));
         c
     };
-    c.current_dir(cwd)
-        .output()
-        .expect("コマンドを起動できること")
+    c.current_dir(cwd);
+    let Some(input) = cmd.get("stdin").and_then(Value::as_str) else {
+        return c.output().expect("コマンドを起動できること");
+    };
+    // 標準入力に渡す（--answer - など）
+    let mut child = c
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("コマンドを起動できること");
+    child
+        .stdin
+        .take()
+        .expect("標準入力がある")
+        .write_all(input.as_bytes())
+        .expect("標準入力に書けること");
+    child.wait_with_output().expect("終わりを待てること")
 }
 
 fn check(id: &str, label: &str, out: &Output, expect: &Value) {

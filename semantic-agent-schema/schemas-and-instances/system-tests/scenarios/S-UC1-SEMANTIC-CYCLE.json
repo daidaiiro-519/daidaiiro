@@ -2,16 +2,14 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC1-SEMANTIC-CYCLE",
  "name": "読み合う欄",
- "title": "rule の reads で欄どうしが互いを読む Concrete では、手順を出さず子セッションも起動せずに reads_cycle と直し方を返す",
+ "title": "rule の reads で欄どうしが互いを読む Concrete では、手順を出さずに reads_cycle と直し方を返す",
  "why": "読み合う欄は書く順が決まらない。手順の項目を足しても解けず、Concrete の欄の切り方を直す話なので、作り手に返す。",
  "traces": [
   "UC1:変形:意味で書く"
  ],
  "given": {
   "files": {
-   "schemas/cycle.schema.json": "@fixtures/cycle.schema.json",
-   "agent/test-agent.sh": "@fixtures/test-agent.sh",
-   "agent/test-agent.json": "@fixtures/test-agent.json"
+   "schemas/cycle.schema.json": "@fixtures/cycle.schema.json"
   }
  },
  "when": {
@@ -20,9 +18,7 @@
    "items/c1.json",
    "--concrete",
    "urn:example:sample:cycle:v1",
-   "--semantic",
-   "--agent",
-   "agent/test-agent.json"
+   "--semantic"
   ]
  },
  "then": [
@@ -34,11 +30,6 @@
    "of": "when",
    "pointer": "/code",
    "equals": "reads_cycle"
-  },
-  {
-   "of": "when",
-   "file": "agent/count",
-   "exists": false
   },
   {
    "of": "when",

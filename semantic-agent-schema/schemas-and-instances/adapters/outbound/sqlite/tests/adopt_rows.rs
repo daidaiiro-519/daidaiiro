@@ -17,7 +17,6 @@ fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -
         after: after.map(Into::into),
         intent: Some("エディターで直した".into()),
         fields: Vec::new(),
-        child: None,
     }
 }
 
@@ -33,7 +32,6 @@ fn unavailable() -> FieldRow {
 
 fn judged(rules: &[(&str, &str)]) -> ValidateRow {
     ValidateRow {
-        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: rules

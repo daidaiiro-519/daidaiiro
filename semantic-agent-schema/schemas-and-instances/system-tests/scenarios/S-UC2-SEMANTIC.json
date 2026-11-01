@@ -1,9 +1,9 @@
 {
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC2-SEMANTIC",
- "name": "意味で直す",
- "title": "--semantic で直すと、手順の各ステップにいまの値が入り、子セッションの答えのうち変わった欄だけを JSON Patch として当てる",
- "why": "いまの値を見せずに書かせると、直す必要の無い欄まで書き換わる。変わらない欄を差分に出すと、何を直したかが読めない。",
+ "name": "意味で直す手順",
+ "title": "--semantic で直すと、手順の各ステップにいまの値が入り、手順を組んだときの中身のハッシュを --if-match に持つ書くコマンド（sas update … --patch）を出す。そのコマンドで変えた欄だけの JSON Patch を渡すと、その欄だけが変わる",
+ "why": "いまの値を見せずに書かせると、直す必要の無い欄まで書き換わる。手順を読む間にだれかが直したら、前提のハッシュが違うので書かない。",
  "traces": [
   "UC2:変形:意味で書く",
   "約束:procedure"
@@ -11,10 +11,7 @@
  "given": {
   "files": {
    "schemas/summary.schema.json": "@fixtures/summary.schema.json",
-   "items/s1.json": "@fixtures/s1.json",
-   "agent/test-agent.sh": "@fixtures/test-agent.sh",
-   "agent/test-agent.json": "@fixtures/test-agent.json",
-   "agent/reply-1.json": "@fixtures/reply-write-update.json"
+   "items/s1.json": "@fixtures/s1.json"
   }
  },
  "when": {
@@ -24,8 +21,6 @@
    "--semantic",
    "--brief",
    "要約を目的に合わせる",
-   "--agent",
-   "agent/test-agent.json",
    "--intent",
    "要約を直す"
   ]
@@ -37,24 +32,55 @@
   },
   {
    "of": "when",
-   "line": 0,
+   "lines": 1
+  },
+  {
+   "of": "when",
    "pointer": "/steps/1/current",
    "equals": "検証の結果を受け取る"
   },
   {
    "of": "when",
+   "pointer": "/answer/format",
+   "equals": "json-patch"
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "equals": "sas update items/s1.json --patch <JSON Patch> --if-match sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa --intent '要約を直す'"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
    "pointer": "/result",
    "equals": "updated"
   },
   {
-   "of": "when",
+   "of": "after[0]",
    "pointer": "/diff/changes",
    "count": 1
   },
   {
-   "of": "when",
+   "of": "after[0]",
    "pointer": "/diff/changes/0/pointer",
    "equals": "/summary"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "update",
+    "items/s1.json",
+    "--patch",
+    "[{\"op\": \"replace\", \"path\": \"/summary\", \"value\": \"検証の結果を受け取るための決めごとで、目的と食い違わない\"}]",
+    "--if-match",
+    "sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa",
+    "--intent",
+    "要約を直す"
+   ]
   }
  ]
 }

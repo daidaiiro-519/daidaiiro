@@ -13,8 +13,7 @@ CREATE TABLE changes (
     intent            TEXT,
     request_id        TEXT,
     source            TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas', 'outside')),
-    parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親セッション。人は NULL
-    child_session_id  TEXT REFERENCES sessions (id),      -- 書いた書き込み用の子セッション。機械だけなら NULL
+    session_id        TEXT REFERENCES sessions (id),      -- 打ったセッション。人は NULL
     CHECK ((kind = 'create') = (before_hash IS NULL)),
     CHECK ((kind = 'delete') = (after_hash IS NULL)),
     CHECK (kind <> 'delete' OR intent IS NOT NULL),
@@ -27,7 +26,7 @@ CREATE UNIQUE INDEX changes_one_per_request ON changes (request_id) WHERE reques
 
 CREATE INDEX changes_by_target ON changes (target_path, id);
 
-CREATE INDEX changes_by_parent ON changes (parent_session_id, at) WHERE parent_session_id IS NOT NULL;
+CREATE INDEX changes_by_session ON changes (session_id, at) WHERE session_id IS NOT NULL;
 
 -- 変わった欄。SQL の NULL は値が無いこと、JSON の null は null の値。
 -- 前の値が取れなかった欄（before_unavailable = 1、ステップ3 の取り込み）は replace で、前の値を持たない
@@ -43,14 +42,6 @@ CREATE TABLE field_changes (
     CHECK (before_unavailable = 1 OR (change = 'add') = (before IS NULL)),
     CHECK ((change = 'remove') = (after IS NULL))
 ) STRICT;
-
-CREATE TRIGGER changes_parent_is_caller BEFORE INSERT ON changes
-WHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'
-BEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;
-
-CREATE TRIGGER changes_child_is_writer BEFORE INSERT ON changes
-WHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'writer'
-BEGIN SELECT RAISE(ABORT, 'a change is made by a writer'); END;
 
 CREATE TRIGGER changes_no_update BEFORE UPDATE ON changes
 BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;

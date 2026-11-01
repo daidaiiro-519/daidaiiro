@@ -1,0 +1,51 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SESSION-INIT-FLAG",
+ "name": "名乗った ID を登録する",
+ "title": "sas init --session <ID> は、その ID をこのフォルダの記録の相手として登録し、以後 --session を渡さなくても、このフォルダで打った sas はその ID の操作になる",
+ "why": "毎回 --session を渡し忘れずに打つのは難しい。1回名乗れば、そのフォルダの操作が同じセッションにまとまる。",
+ "traces": [
+  "約束:command-result:session"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "init",
+   "--session",
+   "gemini-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/id",
+   "equals": "gemini-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/via",
+   "equals": "init"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/session",
+   "equals": "gemini-1"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "schemas/usecase.schema.json"
+   ]
+  }
+ ]
+}

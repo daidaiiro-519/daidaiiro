@@ -3,14 +3,15 @@
 //! - UC4 検証する：対象を読み、Concrete かインスタンスかを $schema で見分け、形（JSON Schema）・ 組み込みの検査 ・
 //!   当たる rule を判定し、対象ごとに検証の操作を1件記録して、結果と記録の ID を返す。検証は対象を変えない。
 //! - UC4 の範囲「入力が変わった rule だけ」と、SAS を通らない変更があった対象の知らせ。
+//! - UC4 の意味の部分：判定の手順を打ったセッションに返し（記録しない）、そのセッションが渡した判定を機械の結果と合わせて記録する。
 //! - 書くモジュール（writing-application）が書く前後に使う、対象の見分けと形の確かめ、断った理由の形もここに置く。
 
 use crate::ports::{DocumentStore, SchemaValidator};
 use crate::use_cases::meaning::{
-    Child, MAX_USES, MeaningCall, Step, field_schema, judge as judge_meaning, procedure,
+    Step, answer_json, check_answer, command_line, field_schema, match_steps, procedure,
 };
 use recording_application::ports::{
-    Caller, ChildRow, IdentifyCaller, Judgment, OperationLog, RuleRow, ValidateRow,
+    Caller, IdentifyCaller, Judgment, OperationLog, RuleRow, ValidateRow, Via,
 };
 use recording_application::use_cases::history::{Interleaved, record_validations, untracked_since};
 use serde_json::Value;
@@ -91,8 +92,8 @@ pub struct Untracked {
 /// 検証の結果と、記録の ID。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Validation {
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// 対象ごとの結果（経路の順）
     pub targets: Vec<TargetResult>,
     /// 全体の件数
@@ -112,7 +113,8 @@ pub struct Refused {
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
     /// 描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out、
     /// 書く手前の判定で断ったもの：invalid_value ・ conflict ・ patch_failed ・ human_field ・ published_changed、
-    /// 止めた削除：has_dependents、検証用の子セッションを続けられないもの：busy ・ writer_as_checker ・ launch_mismatch）
+    /// 止めた削除：has_dependents、意味で書く手順を組めないもの：reads_cycle ・ ref_too_large、
+    /// 渡された判定が手順に合わないもの：invalid_answer）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
@@ -269,7 +271,7 @@ pub fn form_violations(
     Ok(broken)
 }
 
-/// UC4 検証する：形 ・ 組み込みの検査 ・ 当たる rule を判定し（rule は子セッションが無ければ unsupported）、対象ごとに検証の操作を記録する。
+/// UC4 検証する：形 ・ 組み込みの検査 ・ 当たる rule を判定し（rule は判定を渡されなければ unsupported）、対象ごとに検証の操作を記録する。
 ///
 /// # Errors
 /// 対象を読めない ・ 申告した Abstract の版が閉じた一覧に無い（取りに行かない）・ 従う schema が分からない ・ 記録できないとき。
@@ -280,7 +282,7 @@ pub fn validate(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
 ) -> Result<Validation, Refused> {
-    run_validate(scope, false, store, validator, who, log, None).map(|(v, _)| v)
+    run_validate(scope, false, store, validator, who, log, None)
 }
 
 /// UC4 の範囲「入力が変わった rule だけ」：rule ごとに、前の判定が読んだ所のハッシュといまのハッシュを比べ、
@@ -295,41 +297,151 @@ pub fn validate_stale(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
 ) -> Result<Validation, Refused> {
-    run_validate(scope, true, store, validator, who, log, None).map(|(v, _)| v)
+    run_validate(scope, true, store, validator, who, log, None)
 }
 
-/// 検証用の子セッションのことと、渡した手順のプロンプト。
-#[derive(Debug, Clone, PartialEq)]
-pub struct MeaningOutcome {
-    /// 判定した検証用の子セッションの ID（起動できなければ None）
-    pub child: Option<String>,
-    /// --continue で続けた子か
-    pub continued: bool,
-    /// この呼び出しで新しく起動した子セッションの ID
-    pub started: Vec<String>,
-    /// 形の誤りを直させた回数
-    pub corrections: u32,
-    /// 時間切れで新しい子セッションにした回数
-    pub restarts: u32,
-    /// 新しい子セッションを勧める案内（キャッシュの有効時間を過ぎた ・ 使った回数が多い）
-    pub hint: Option<String>,
-}
-
-/// UC4 の検証に、rule の意味の判定を足す（SF1）。rule が無ければ子セッションを起動しない。
+/// UC4 の意味の部分の1つ目：機械の検証をしたうえで、意味の rule（ai）の判定の手順を対象ごとに返す。記録しない。
+/// 判定する rule が無い対象の手順は無い（どの対象にも無ければ空）。
+/// 入力が変わった rule だけ（stale_only）のときは、前に判定できなかった rule も手順に入れる。
 ///
 /// # Errors
-/// validate と同じ。ほかに、続ける子セッションが記録に無い（not_found）・ 書き込み用の子セッション（writer_as_checker）・ 処理中（busy）・
-/// 答えを待つ間に対象が変わった（conflict）とき。
-pub fn validate_with_meaning(
+/// validate と同じ。
+pub fn semantic_procedures(
     scope: &Scope,
     stale_only: bool,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     who: &dyn IdentifyCaller,
+    log: &dyn OperationLog,
+) -> Result<Vec<Value>, Refused> {
+    let (corpus, current, _) = current_for(scope, stale_only, true, store, validator, log)?;
+    Ok(current
+        .iter()
+        .filter_map(|c| {
+            let (steps, _) = steps_of(c, &corpus, validator);
+            if steps.is_empty() {
+                return None;
+            }
+            let command = answer_command(&c.doc.path, stale_only, who);
+            Some(procedure(
+                &c.doc.path,
+                &c.declared,
+                c.hash.as_str(),
+                &steps,
+                &command,
+            ))
+        })
+        .collect())
+}
+
+/// UC4 の意味の部分の2つ目：打ったセッションが渡した判定（answer）を、形 ・ 手順のハッシュ ・ step ・ rule ・ pointer で
+/// 確かめ、機械の結果と合わせて記録する。合わなければ記録せずに断る。
+///
+/// # Errors
+/// validate と同じ。ほかに、答えが形に合わない ・ 手順と突き合わない（invalid_answer）・ 手順のハッシュがいまの中身と違う（conflict）とき。
+pub fn validate_with_answer(
+    path: &str,
+    stale_only: bool,
+    answer: &str,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
-    call: &MeaningCall<'_>,
-) -> Result<(Validation, Option<MeaningOutcome>), Refused> {
-    run_validate(scope, stale_only, store, validator, who, log, Some(call))
+) -> Result<Validation, Refused> {
+    run_validate(
+        &Scope::Paths(vec![path.to_string()]),
+        stale_only,
+        store,
+        validator,
+        who,
+        log,
+        Some(answer),
+    )
+}
+
+/// 判定を渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
+fn answer_command(path: &str, stale_only: bool, who: &dyn IdentifyCaller) -> String {
+    let mut args = vec!["sas", "validate", path];
+    if stale_only {
+        args.push("--stale");
+    }
+    args.extend(["--answer", "<判定の JSON のファイル | ->"]);
+    let caller = who.identify();
+    if let Caller::Session {
+        id, via: Via::Flag, ..
+    } = &caller
+    {
+        args.extend(["--session", id.as_str()]);
+    }
+    command_line(&args)
+}
+
+/// 手順を取り直すコマンド。
+fn procedure_command(path: &str, stale_only: bool) -> String {
+    let mut args = vec!["sas", "validate", path];
+    if stale_only {
+        args.push("--stale");
+    }
+    args.push("--semantic");
+    command_line(&args)
+}
+
+/// 対象1つの、意味の rule（ai）を判定するステップと、そのステップが当たる results の位置。
+fn steps_of(
+    c: &Current,
+    corpus: &Corpus,
+    validator: &dyn SchemaValidator,
+) -> (Vec<Step>, Vec<usize>) {
+    let schema_doc = match c.kind {
+        TargetKind::Concrete => validator.shipped(&c.declared).unwrap_or_default(),
+        TargetKind::Instance => corpus
+            .concretes
+            .get(&c.declared)
+            .map(|k| k.document().clone())
+            .unwrap_or_default(),
+    };
+    let mut steps = Vec::new();
+    let mut at = Vec::new();
+    for (i, ((r, _), def)) in c.results.iter().zip(&c.definitions).enumerate() {
+        if r.by() != By::Ai {
+            continue;
+        }
+        let field = field_schema(&schema_doc, r.pointer(), &corpus.more);
+        let field = field.as_ref();
+        steps.push(Step {
+            no: steps.len() + 1,
+            rule: r.rule().to_string(),
+            pointer: r.pointer().to_string(),
+            definition: def.clone().unwrap_or_default(),
+            title: field
+                .and_then(|f| f.get("title"))
+                .and_then(Value::as_str)
+                .map(ToString::to_string),
+            description: field
+                .and_then(|f| f.get("description"))
+                .and_then(Value::as_str)
+                .map(ToString::to_string),
+            read: field
+                .and_then(|f| f.pointer("/x-prompt/read"))
+                .filter(|r| r.as_object().is_some_and(|m| !m.is_empty()))
+                .cloned(),
+            current: c
+                .doc
+                .value
+                .pointer(r.pointer())
+                .cloned()
+                .unwrap_or(Value::Null),
+            reads: rule_reads(def.as_ref())
+                .into_iter()
+                .map(|p| {
+                    let v = c.doc.value.pointer(&p).cloned().unwrap_or(Value::Null);
+                    (p, v)
+                })
+                .collect(),
+        });
+        at.push(i);
+    }
+    (steps, at)
 }
 
 /// いまの中身で、対象の rule ごとの読んだ所のハッシュ（rule の id ・ 当たる所 ・ ハッシュ）。
@@ -357,207 +469,59 @@ pub fn reads_now(
         .collect())
 }
 
-/// rule を子セッションに判定させ、current の結果を置き換える。対象の経路 → 判定した子セッションの ID を返す。
-fn apply_meaning(
+/// 渡された判定で、対象の意味の rule の結果を置き換える。
+fn apply_answer(
     current: &mut [Current],
     corpus: &Corpus,
-    store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-    call: &MeaningCall<'_>,
-) -> Result<(BTreeMap<String, String>, Option<MeaningOutcome>), Refused> {
-    let has_ai = current
-        .iter()
-        .any(|c| c.results.iter().any(|(r, _)| r.by() == By::Ai));
-    if !has_ai {
-        return Ok((BTreeMap::new(), None));
-    }
-    let reader = call.reader;
-    let mut hint = None;
-    let mut child = match &call.continue_child {
-        Some(id) => {
-            let rec = log.child(id).map_err(log_refused)?.ok_or_else(|| Refused {
-                code: "not_found",
-                message: format!("子セッション {id} は記録に無い"),
-                ..Refused::default()
-            })?;
-            if rec.row.role != "checker" {
-                return Err(Refused {
-                    code: "writer_as_checker",
-                    message: format!(
-                        "{id} は書き込み用の子セッション（{}）で、検証用の子セッションとして続けられない。書いた子セッションに自分の書いたものを確かめさせない",
-                        rec.row.role
-                    ),
-                    ..Refused::default()
-                });
-            }
-            // 記録の起動の設定と同じ接続の定義でだけ続ける（別のツールで同じ ID を打たない）
-            let recorded: Value = serde_json::from_str(&rec.row.launch).unwrap_or_default();
-            let now = reader.launch();
-            if recorded.get("connector") != now.get("connector")
-                || recorded.get("version") != now.get("version")
-                || recorded.get("hash") != now.get("hash")
-            {
-                return Err(Refused {
-                    code: "launch_mismatch",
-                    message: format!(
-                        "子セッション {id} は接続の定義 {} 版 {}（{}）で起動した。いまの定義（{} 版 {}、{}）では続けない。同じ定義を --agent に渡す",
-                        recorded.get("connector").unwrap_or(&Value::Null),
-                        recorded.get("version").unwrap_or(&Value::Null),
-                        recorded.get("hash").unwrap_or(&Value::Null),
-                        now.get("connector").unwrap_or(&Value::Null),
-                        now.get("version").unwrap_or(&Value::Null),
-                        now.get("hash").unwrap_or(&Value::Null)
-                    ),
-                    ..Refused::default()
-                });
-            }
-            let ttl = reader.cache_ttl_s();
-            if ttl.is_some_and(|t| rec.idle_s >= t) || rec.uses >= MAX_USES {
-                hint = Some(format!(
-                    "子セッション {id} は{}。新しい子セッションにするには --continue を外して打つ",
-                    if rec.uses >= MAX_USES {
-                        format!("{} 回使った", rec.uses)
-                    } else {
-                        format!(
-                            "最後に使ってから {} 秒たち、キャッシュの有効時間を過ぎた",
-                            rec.idle_s
-                        )
-                    }
-                ));
-            }
-            Child {
-                tool_ref: Some(id.clone()),
-                launch: recorded,
-            }
-        }
-        None => Child {
-            tool_ref: None,
-            launch: reader.launch(),
-        },
+    answer: &str,
+    stale_only: bool,
+) -> Result<(), Refused> {
+    let [c] = current else {
+        return Err(Refused {
+            code: "usage",
+            message: "--answer は対象を1つだけ渡してください".to_string(),
+            ..Refused::default()
+        });
     };
-    let parent = log.parent_session(&who.identify()).map_err(log_refused)?;
-    let mut by_path = BTreeMap::new();
-    let mut outcome = MeaningOutcome {
-        child: None,
-        continued: call.continue_child.is_some(),
-        started: Vec::new(),
-        corrections: 0,
-        restarts: 0,
-        hint,
+    let path = c.doc.path.clone();
+    let invalid = |why: String| {
+        let mut r = refused(
+            "invalid_answer",
+            &path,
+            format!("判定の答えを記録しない：{why}"),
+        );
+        r.hint = Some(Box::new(
+            "答えを手順の answer の形と steps に合わせて直し、打ち直す".to_string(),
+        ));
+        r
     };
-    for c in current.iter_mut() {
-        let schema_doc = match c.kind {
-            TargetKind::Concrete => validator.shipped(&c.declared).unwrap_or_default(),
-            TargetKind::Instance => corpus
-                .concretes
-                .get(&c.declared)
-                .map(|k| k.document().clone())
-                .unwrap_or_default(),
-        };
-        let mut steps = Vec::new();
-        let mut at = Vec::new();
-        for (i, ((r, _), def)) in c.results.iter().zip(&c.definitions).enumerate() {
-            if r.by() != By::Ai {
-                continue;
-            }
-            let field = field_schema(&schema_doc, r.pointer(), &corpus.more);
-            let field = field.as_ref();
-            steps.push(Step {
-                no: steps.len() + 1,
-                rule: r.rule().to_string(),
-                pointer: r.pointer().to_string(),
-                definition: def.clone().unwrap_or_default(),
-                title: field
-                    .and_then(|f| f.get("title"))
-                    .and_then(Value::as_str)
-                    .map(ToString::to_string),
-                description: field
-                    .and_then(|f| f.get("description"))
-                    .and_then(Value::as_str)
-                    .map(ToString::to_string),
-                read: field
-                    .and_then(|f| f.pointer("/x-prompt/read"))
-                    .filter(|r| r.as_object().is_some_and(|m| !m.is_empty()))
-                    .cloned(),
-                current: c
-                    .doc
-                    .value
-                    .pointer(r.pointer())
-                    .cloned()
-                    .unwrap_or(Value::Null),
-                reads: rule_reads(def.as_ref())
-                    .into_iter()
-                    .map(|p| {
-                        let v = c.doc.value.pointer(&p).cloned().unwrap_or(Value::Null);
-                        (p, v)
-                    })
-                    .collect(),
-            });
-            at.push(i);
-        }
-        if steps.is_empty() {
-            continue;
-        }
-        let proc = procedure(&c.doc.path, &c.declared, c.hash.as_str(), &steps);
-        call.progress.procedure(&proc);
-        let judged = judge_meaning(reader, validator, &mut child, &proc, &steps, call.progress)
-            .map_err(|code| Refused {
-                code,
-                path: Some(c.doc.path.as_str().into()),
-                message: format!(
-                    "子セッション {} は処理中。終わってから打ち直す",
-                    child.tool_ref.clone().unwrap_or_default()
-                ),
-                ..Refused::default()
-            })?;
-        let launch = child.launch.to_string();
-        for id in &judged.started {
-            log.append_child(
-                parent.as_deref(),
-                &ChildRow {
-                    id: id.clone(),
-                    role: "checker".to_string(),
-                    tool: reader.tool(),
-                    model: reader.model(),
-                    launch: launch.clone(),
-                },
-            )
-            .map_err(log_refused)?;
-        }
-        // 答えを待つ間に対象が変わっていたら、判定を記録に入れない
-        let now = store
-            .read(&c.doc.path)
-            .map(|t| ContentHash::of(t.as_bytes()))
-            .map_err(|e| refused("not_found", &c.doc.path, e))?;
-        if now != c.hash {
-            return Err(refused(
-                "conflict",
-                &c.doc.path,
-                format!(
-                    "検証用の子セッションが判定している間に中身が変わった（{} → {}）。判定を記録に入れない。もう一度検証する",
-                    c.hash.as_str(),
-                    now.as_str()
-                ),
-            ));
-        }
-        for (step, i) in steps.iter().zip(at) {
-            if let Some(r) = judged.results.get(&step.no) {
-                c.results[i].0 = r.clone();
-            }
-        }
-        if let Some(id) = &judged.child {
-            by_path.insert(c.doc.path.clone(), id.clone());
-        }
-        outcome.child = judged.child.clone().or(outcome.child);
-        outcome.started.extend(judged.started);
-        outcome.corrections += judged.corrections;
-        outcome.restarts += judged.restarts;
+    let v = answer_json(answer).map_err(invalid)?;
+    check_answer(validator, &v).map_err(|e| invalid(format!("答えの形に合わない：{e}")))?;
+    let hash = v["hash"].as_str().unwrap_or_default();
+    if hash != c.hash.as_str() {
+        let mut r = refused(
+            "conflict",
+            &path,
+            format!(
+                "判定した中身のハッシュ（{hash}）が、いまの中身（{}）と違う。判定を記録に入れない",
+                c.hash.as_str()
+            ),
+        );
+        r.hint = Some(Box::new(format!(
+            "いまの中身で手順を取り直して判定し直す：{}",
+            procedure_command(&path, stale_only)
+        )));
+        return Err(r);
     }
-    // 時間切れで新しい子セッションに替わったら、続けたとは言わない
-    outcome.continued = call.continue_child.is_some() && outcome.child == call.continue_child;
-    Ok((by_path, Some(outcome)))
+    let (steps, at) = steps_of(c, corpus, validator);
+    let judged = match_steps(&v, &steps).map_err(invalid)?;
+    for (step, i) in steps.iter().zip(at) {
+        if let Some((verdict, reason)) = judged.get(&step.no) {
+            c.results[i].0 = RuleResult::new(&step.rule, &step.pointer, By::Ai, *verdict, reason);
+        }
+    }
+    Ok(())
 }
 
 /// Abstract の語彙（入れ子に書ける x- の名前と、その値の形の対応を持つ）。
@@ -767,7 +731,7 @@ pub fn judge_current(
     Ok((corpus, current))
 }
 
-/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。子セッションがつながっているとき
+/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。意味の判定の手順を出す ・ 判定を受け取るとき
 /// （retry_unjudged）は、前に判定できなかった（unsupported ・ error）rule も入る。
 /// いまの判定と前の判定で、rule ごとに「読んだ所のハッシュ」の集まりを比べる。
 fn changed_rules(
@@ -799,22 +763,25 @@ fn changed_rules(
         .collect()
 }
 
-fn run_validate(
+/// 経路 → 入力が変わった rule だけを検証したときに除いた rule の id。
+type Unchanged = BTreeMap<String, Vec<String>>;
+
+/// いまの中身で判定し、入力が変わった rule だけ（stale_only）のときは読んだ所が前の判定と同じ rule を除く。
+/// retry_unjudged なら、前に判定できなかった（unsupported ・ error）rule も残す。経路 → 除いた rule の id も返す。
+fn current_for(
     scope: &Scope,
     stale_only: bool,
+    retry_unjudged: bool,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-    call: Option<&MeaningCall<'_>>,
-) -> Result<(Validation, Option<MeaningOutcome>), Refused> {
+    log: &dyn OperationLog,
+) -> Result<(Corpus, Vec<Current>, Unchanged), Refused> {
     let (corpus, mut current) = judge_current(scope, store, validator)?;
-    // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を、子セッションに渡す前に除く
-    let mut unchanged: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut unchanged = Unchanged::new();
     if stale_only {
         for c in &mut current {
             let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
-            let changed = changed_rules(&c.results, &before, call.is_some());
+            let changed = changed_rules(&c.results, &before, retry_unjudged);
             let rules = unchanged.entry(c.doc.path.clone()).or_default();
             for (r, _) in &c.results {
                 if !changed.contains(r.rule()) && !rules.iter().any(|u| u == r.rule()) {
@@ -832,10 +799,23 @@ fn run_validate(
             c.definitions.retain(|_| *k.next().unwrap_or(&false));
         }
     }
-    let (children, meaning) = match call {
-        Some(call) => apply_meaning(&mut current, &corpus, store, validator, who, log, call)?,
-        None => (BTreeMap::new(), None),
-    };
+    Ok((corpus, current, unchanged))
+}
+
+fn run_validate(
+    scope: &Scope,
+    stale_only: bool,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    who: &dyn IdentifyCaller,
+    log: &mut dyn OperationLog,
+    answer: Option<&str>,
+) -> Result<Validation, Refused> {
+    let (corpus, mut current, mut unchanged) =
+        current_for(scope, stale_only, answer.is_some(), store, validator, log)?;
+    if let Some(answer) = answer {
+        apply_answer(&mut current, &corpus, validator, answer, stale_only)?;
+    }
     // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();
     let mut untracked = Vec::new();
@@ -887,7 +867,6 @@ fn run_validate(
     let rows: Vec<ValidateRow> = judged
         .iter()
         .map(|(path, _, _, hash, results, reads, _, _)| ValidateRow {
-            child_session: children.get(path).cloned(),
             target_path: path.clone(),
             hash: hash.as_str().to_string(),
             results: results
@@ -925,17 +904,14 @@ fn run_validate(
             },
         )
         .collect();
-    Ok((
-        Validation {
-            parent: recorded.parent,
-            targets,
-            counts: total,
-            stale_only,
-            unchanged_targets,
-            untracked,
-        },
-        meaning,
-    ))
+    Ok(Validation {
+        session: recorded.session,
+        targets,
+        counts: total,
+        stale_only,
+        unchanged_targets,
+        untracked,
+    })
 }
 
 /// 呼び出し元が人か、ツールか（集約の書く条件の入口）。
@@ -943,7 +919,7 @@ fn run_validate(
 pub fn entry(who: &dyn IdentifyCaller) -> Entry {
     match who.identify() {
         Caller::Human => Entry::Human,
-        Caller::Parent { .. } => Entry::Tool,
+        Caller::Session { .. } => Entry::Tool,
     }
 }
 

@@ -10,9 +10,9 @@ BEGIN SELECT RAISE(ABORT, 'a delete records only removals of the previous state'
 -- UC7「操作の記録を読む」：変更と検証を記録した順に並べる
 CREATE VIEW operations AS
     SELECT id, at, kind, target_path, before_hash, after_hash, intent, request_id, source,
-           parent_session_id, child_session_id
+           session_id
     FROM changes
     UNION ALL
     SELECT id, at, 'validate', target_path, hash, hash, NULL, NULL, 'sas',
-           parent_session_id, child_session_id
+           session_id
     FROM validations;

@@ -1,0 +1,55 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SESSION-ENV",
+ "name": "環境変数のセッション",
+ "title": "環境変数からセッション ID が取れるツールでは、sas init を打たなくても、最初に打った sas でそのセッションが sessions に1行入る（あとから sas init を打っても、その行のまま）",
+ "why": "使う側が登録の手順を覚えていなくても、記録は打った会話ごとにまとまる。",
+ "traces": [
+  "約束:command-result:session"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "schemas/usecase.schema.json"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "init"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c-1"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/id",
+   "equals": "c-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/tool",
+   "equals": "claude-code"
+  },
+  {
+   "of": "when",
+   "pointer": "/via",
+   "equals": "env"
+  }
+ ]
+}

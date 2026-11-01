@@ -1,32 +1,22 @@
-//! UC1 作成する ・ UC2 更新する の意味で書く変形：Concrete の rule から書く手順を組み、SAS が起動した書き込み用の子セッションに
-//! 欄の値を書かせ、答えを答えの形 ・ Concrete の形に照らしてから、作成 ・ 更新と同じ手続きで書く。
+//! UC1 作成する ・ UC2 更新する の意味で書く変形：Concrete の rule から書く手順を組み、打ったセッションに返す。
+//! SAS はエージェントを起動しない。手順を受け取ったセッションが値を決め、手順の command（sas create … --value ／
+//! sas update … --patch）で書く。書くのは、その機械の作成 ・ 更新で、形と書く条件に照らしてから書く。
 //!
 //! - 書く欄は根の欄（x-prompt か、中に rule を持つ欄か、根が求める欄）。人が決める欄（x-decided-by: human）と、
-//!   const で決まる欄と、$schema は書かせない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
+//!   const で決まる欄と、$schema は書く欄にしない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
 //! - インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く（同じ手続き）。
-//! - 書き込み用の子セッションは --continue で続けられる（記録の起動の設定と同じ接続の定義でだけ）。
 //! - 書く順は rule の reads：読まれる欄を先にする。読み合う欄があれば、手順を出さずに断る。
-//! - --ref の文書は SAS が読んで中身を手順に入れる（子セッションはファイルを開けない）。上限を超えたら切り詰めずに断る。
-//! - 書くのは SAS で、子セッションではない。答えが形に合わなければ同じ子セッションに2回まで直させる。
+//! - --ref の文書は SAS が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
+//! - 手順を返すだけで、記録しない。
 
-use super::{ChangeResult, CreateRequest, UpdateRequest, create, update, violations_message};
-use recording_application::ports::{ChildRow, IdentifyCaller, OperationLog};
+use recording_application::ports::{Caller, IdentifyCaller, Via};
 use serde_json::{Map, Value, json};
-use validation_application::ports::{DocumentStore, ReadMeaning, SchemaValidator};
-use validation_application::use_cases::meaning::{
-    Child, Progress, answer_json, converse, field_schema,
-};
-use validation_application::use_cases::validate::{
-    Corpus, Refused, TargetKind, classify, form_violations, log_refused, refused,
-};
-use validation_domain::services::builtin_checks;
-use validation_domain::values::Verdict;
-use writing_domain::aggregates::{ConcreteSchema, escape};
+use validation_application::ports::{DocumentStore, SchemaValidator};
+use validation_application::use_cases::meaning::{command_line, field_schema};
+use validation_application::use_cases::validate::{Corpus, Refused, TargetKind, classify, refused};
+use writing_domain::aggregates::escape;
 use writing_domain::values::ContentHash;
 
-/// 書き込みの答えの形（公開しない。子セッションに渡し、答えを照らす）。
-pub const WRITER_ANSWER_SCHEMA: &str = include_str!("../../writer-answer.schema.json");
-const WRITER_ANSWER_ID: &str = "urn:semantic-agent-schema:writing:agent-answer-values:v1";
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 /// --ref の文書1つの上限（バイト）。
 pub const REF_LIMIT: usize = 64 * 1024;
@@ -42,27 +32,10 @@ pub struct SemanticRequest {
     pub brief: Option<String>,
     /// 読ませる文書の経路（--ref）
     pub refs: Vec<String>,
-    /// 意図
+    /// 意図（手順の command に入れる）
     pub intent: Option<String>,
-    /// やり直しで同じ操作を2回残さないための ID
+    /// やり直しで同じ操作を2回残さないための ID（手順の command に入れる）
     pub request_id: Option<String>,
-    /// 続ける書き込み用の子セッションの ID（--continue）。無ければ新しい子セッションを起動する
-    pub continue_child: Option<String>,
-}
-
-/// 意味で書いた結果：書き込み用の子セッションのこと（手順は Progress が子セッションに渡す前に受け取る）。
-#[derive(Debug, Clone, PartialEq)]
-pub struct SemanticOutcome {
-    /// 書いた子セッションの ID（起動できなければ None）
-    pub child: Option<String>,
-    /// 新しく起動した子セッションの ID
-    pub started: Vec<String>,
-    /// 形の誤りを直させた回数
-    pub corrections: u32,
-    /// 時間切れで新しい子セッションにした回数
-    pub restarts: u32,
-    /// --continue で続けた子セッションか
-    pub continued: bool,
 }
 
 /// 書く欄1つ。
@@ -75,20 +48,16 @@ struct Unit {
     required: bool,
 }
 
-/// 意味で書く（UC1 ・ UC2 の変形）。
+/// 意味で書く手順を組む（UC1 ・ UC2 の変形）。記録しない。
 ///
 /// # Errors
-/// 依頼を読めない ・ 型が決まらない ・ 書く欄が無い ・ 読み合う欄がある ・ 資料を読めない ・ 大きすぎる ・
-/// 子セッションが処理中 ・ 答えを得られない（記録しない）。書く手前で断られたとき（作成 ・ 更新と同じ）。
-pub fn semantic_write(
+/// 依頼を読めない ・ 型が決まらない ・ 書く欄が無い ・ 読み合う欄がある ・ 資料を読めない ・ 大きすぎるとき。
+pub fn semantic_procedure(
     request: &SemanticRequest,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-    reader: &dyn ReadMeaning,
-    progress: &dyn Progress,
-) -> Result<(ChangeResult, SemanticOutcome), Refused> {
+) -> Result<Value, Refused> {
     let path = request.path.as_str();
     let (declared, current, current_text) = match &request.concrete {
         Some(c) => {
@@ -132,11 +101,11 @@ pub fn semantic_write(
         return Err(refused(
             "invalid_input",
             path,
-            "x-prompt を持ち、子セッションに書かせてよい欄が無い".to_string(),
+            "x-prompt を持ち、意味で書いてよい欄が無い".to_string(),
         ));
     }
     let refs = read_refs(store, &request.refs)?;
-    let procedure = build_procedure(
+    Ok(build_procedure(
         path,
         &declared,
         doc,
@@ -145,117 +114,8 @@ pub fn semantic_write(
         request,
         &units,
         &refs,
-    );
-    let schema: Value = serde_json::from_str(WRITER_ANSWER_SCHEMA).unwrap_or_default();
-    let first = prompt_text(&procedure, &schema);
-    progress.procedure(&procedure);
-    let base = current
-        .clone()
-        .unwrap_or_else(|| json!({"$schema": declared}));
-    let mut child = continued_child(log, reader, path, request.continue_child.as_deref())?;
-    let conversed = converse(
-        reader,
-        &mut child,
-        &first,
-        &schema,
-        &|answer| {
-            let candidate = read_values(validator, answer, &units, &base)?;
-            let mut broken = form_violations(validator, kind, &declared, &candidate, &corpus.more)?;
-            // Concrete は JSON Schema で書けない組み込みの検査にも合わせる
-            if kind == TargetKind::Concrete
-                && let Some(c) = ConcreteSchema::read(&candidate)
-            {
-                broken.extend(
-                    builtin_checks(&c)
-                        .into_iter()
-                        .filter(|r| r.verdict() == Verdict::Violated)
-                        .map(|r| (r.pointer().to_string(), r.reason().to_string())),
-                );
-            }
-            if broken.is_empty() {
-                Ok(candidate)
-            } else {
-                Err(format!(
-                    "書く元のスキーマの形に合わない：{}",
-                    violations_message(&broken)
-                ))
-            }
-        },
-        progress,
-    )
-    .map_err(|code| refused(code, path, "書き込み用の子セッションが処理中".to_string()))?;
-    let parent = log.parent_session(&who.identify()).map_err(log_refused)?;
-    let launch = child.launch.to_string();
-    for id in &conversed.started {
-        log.append_child(
-            parent.as_deref(),
-            &ChildRow {
-                id: id.clone(),
-                role: "writer".to_string(),
-                tool: reader.tool(),
-                model: reader.model(),
-                launch: launch.clone(),
-            },
-        )
-        .map_err(log_refused)?;
-    }
-    let outcome = SemanticOutcome {
-        child: conversed.child.clone(),
-        started: conversed.started.clone(),
-        corrections: conversed.corrections,
-        restarts: conversed.restarts,
-        continued: request.continue_child.is_some(),
-    };
-    let candidate = conversed
-        .outcome
-        .map_err(|why| refused("writer_failed", path, why))?;
-    let changed = match (&request.concrete, current_text) {
-        (Some(c), _) => create(
-            &CreateRequest {
-                path: path.to_string(),
-                concrete: c.clone(),
-                value: candidate,
-                request_id: request.request_id.clone(),
-                intent: request.intent.clone(),
-                writer: conversed.child,
-            },
-            store,
-            validator,
-            who,
-            log,
-        )?,
-        (None, Some(text)) => {
-            let ops: Vec<Value> = units
-                .iter()
-                .filter_map(|u| {
-                    let at = format!("/{}", escape(&u.name));
-                    let new = candidate.pointer(&at)?;
-                    match base.pointer(&at) {
-                        Some(old) if old == new => None,
-                        Some(_) => Some(json!({"op": "replace", "path": at, "value": new})),
-                        None => Some(json!({"op": "add", "path": at, "value": new})),
-                    }
-                })
-                .collect();
-            update(
-                &UpdateRequest {
-                    path: path.to_string(),
-                    patch: Value::Array(ops),
-                    // 子セッションが書く間に中身が変わっていたら書かない
-                    if_match: Some(ContentHash::of(text.as_bytes()).as_str().to_string()),
-                    request_id: request.request_id.clone(),
-                    intent: request.intent.clone(),
-                    writer: conversed.child,
-                },
-                store,
-                validator,
-                who,
-                log,
-            )?
-        }
-        (None, None) => return Err(refused("not_found", path, String::new())),
-    };
-    Ok((changed, outcome))
+        who,
+    ))
 }
 
 /// 書く欄：根の欄のうち、x-prompt か中の rule を持つか、根が求める欄。人の欄 ・ const の欄 ・ $schema は外す。
@@ -411,53 +271,6 @@ fn deref<'a>(
     target.map_or((root, node), |t| (doc, t))
 }
 
-/// --continue のときは記録の書き込み用の子セッションを、同じ接続の定義でだけ続ける。無ければ新しい子セッション。
-fn continued_child(
-    log: &dyn OperationLog,
-    reader: &dyn ReadMeaning,
-    path: &str,
-    id: Option<&str>,
-) -> Result<Child, Refused> {
-    let Some(id) = id else {
-        return Ok(Child {
-            tool_ref: None,
-            launch: reader.launch(),
-        });
-    };
-    let rec = log
-        .child(id)
-        .map_err(log_refused)?
-        .ok_or_else(|| refused("not_found", path, format!("子セッション {id} は記録に無い")))?;
-    if rec.row.role != "writer" {
-        return Err(refused(
-            "checker_as_writer",
-            path,
-            format!(
-                "{id} は検証用の子セッション（{}）で、書き込み用の子セッションとして続けられない。判定した子セッションに書かせない",
-                rec.row.role
-            ),
-        ));
-    }
-    let recorded: Value = serde_json::from_str(&rec.row.launch).unwrap_or_default();
-    let now = reader.launch();
-    if ["connector", "version", "hash"]
-        .iter()
-        .any(|k| recorded.get(*k) != now.get(*k))
-    {
-        return Err(refused(
-            "launch_mismatch",
-            path,
-            format!(
-                "子セッション {id} を起動した接続の定義といまの定義の名前 ・ 版 ・ 中身のハッシュが違う。同じ定義を --agent に渡す"
-            ),
-        ));
-    }
-    Ok(Child {
-        tool_ref: Some(id.to_string()),
-        launch: recorded,
-    })
-}
-
 /// 読まれる欄を先にする（同じなら Concrete の並び）。読み合う欄があれば断る。
 fn order(path: &str, mut units: Vec<Unit>) -> Result<Vec<Unit>, Refused> {
     let names: Vec<String> = units.iter().map(|u| u.name.clone()).collect();
@@ -513,10 +326,12 @@ fn build_procedure(
     request: &SemanticRequest,
     units: &[Unit],
     refs: &[Value],
+    who: &dyn IdentifyCaller,
 ) -> Value {
     let mut target = json!({"path": path, "concrete": declared});
-    if let Some(t) = current_text {
-        target["hash"] = json!(ContentHash::of(t.as_bytes()).as_str());
+    let hash = current_text.map(|t| ContentHash::of(t.as_bytes()).as_str().to_string());
+    if let Some(h) = &hash {
+        target["hash"] = json!(h);
     }
     let mut about = Map::new();
     for k in ["title", "description"] {
@@ -561,6 +376,12 @@ fn build_procedure(
             s
         })
         .collect();
+    // 作成は文書全体を --value で、更新は書く欄への JSON Patch を --patch で渡す
+    let answer = if current.is_some() {
+        json!({"format": "json-patch", "schema": declared})
+    } else {
+        json!({"format": "document", "schema": declared})
+    };
     let not_written: Vec<Value> = doc
         .get("properties")
         .and_then(Value::as_object)
@@ -578,11 +399,14 @@ fn build_procedure(
         "target": target,
         "about": about,
         "steps": steps,
-        "answer": {"schema": "values"},
+        "answer": answer,
+        "command": write_command(path, declared, hash.as_deref(), request, who),
         "constraints": [
-            "答えの JSON だけを返す（ほかの文を付けない）",
+            "steps を no の順に行い、pointer の欄の値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例）と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決める（read があればその読み方で、reads があれば先に書いた欄の値を読み、current があればいまの値を直す形で）",
+            "optional のステップは、書かないなら値から外してよい",
+            "書くのは command の sas だけで、ファイルを直接書かない",
             "steps に無い欄は書かない",
-            "ファイルを書かない（書くのは SAS）",
+            "断られたら、出力の理由を読んで直し、打ち直す",
         ],
     });
     if let Some(r) = doc
@@ -604,75 +428,47 @@ fn build_procedure(
     p
 }
 
-/// 子セッションに渡すプロンプトの文。
-#[must_use]
-pub fn prompt_text(procedure: &Value, answer_schema: &Value) -> String {
-    format!(
-        "あなたは SAS（Semantic Agent Schema）が起動した書き込み用の子セッションです。\n\
-         次の手順のプロンプトの about が書く文書、brief が依頼、refs が資料です。steps を no の順に行い、\
-         それぞれの pointer の欄に書く値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例として読む）と、inner_rules の rule（その欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決めてください\
-         （read があればその読み方で、reads があれば先に書いた欄の値を読んで、current があればいまの値を直す形で）。\n\
-         optional のステップは、書かないなら答えから外してかまいません。答えの形に合う JSON だけを返してください。ファイルを書かず、steps に無い欄に触れないでください。\n\n\
-         手順のプロンプト：\n{}\n\n答えの形：\n{}\n",
-        serde_json::to_string_pretty(procedure).unwrap_or_default(),
-        serde_json::to_string_pretty(answer_schema).unwrap_or_default()
-    )
-}
-
-/// 答えを読み、答えの形に照らし、steps と突き合わせて、書いた姿（base に値を入れたもの）を返す。
-fn read_values(
-    validator: &dyn SchemaValidator,
-    answer: &str,
-    units: &[Unit],
-    base: &Value,
-) -> Result<Value, String> {
-    let v = answer_json(answer)?;
-    let schema: Value = serde_json::from_str(WRITER_ANSWER_SCHEMA).unwrap_or_default();
-    let broken = validator.check(
-        WRITER_ANSWER_ID,
-        &v,
-        &[(WRITER_ANSWER_ID.to_string(), schema)],
-    )?;
-    if !broken.is_empty() {
-        return Err(broken
-            .iter()
-            .map(|(at, why)| format!("{at}：{why}"))
-            .collect::<Vec<_>>()
-            .join(" ／ "));
+/// 書くときに打つコマンド。作成は文書全体を --value で、更新は JSON Patch を --patch で、手順を組んだときの中身の
+/// ハッシュを --if-match で渡す（手順を読んでいる間に中身が変わっていたら書かない）。--session で名乗ったセッションは、書くときも名乗る。
+fn write_command(
+    path: &str,
+    declared: &str,
+    hash: Option<&str>,
+    request: &SemanticRequest,
+    who: &dyn IdentifyCaller,
+) -> String {
+    let mut args: Vec<&str> = match hash {
+        Some(h) => vec![
+            "sas",
+            "update",
+            path,
+            "--patch",
+            "<JSON Patch>",
+            "--if-match",
+            h,
+        ],
+        None => vec![
+            "sas",
+            "create",
+            path,
+            "--concrete",
+            declared,
+            "--value",
+            "<値の JSON>",
+        ],
+    };
+    if let Some(i) = &request.intent {
+        args.extend(["--intent", i.as_str()]);
     }
-    let mut out = base.clone();
-    let mut seen = Vec::new();
-    for item in v["values"].as_array().into_iter().flatten() {
-        let no = item["step"]
-            .as_u64()
-            .and_then(|n| usize::try_from(n).ok())
-            .unwrap_or_default();
-        let unit = no
-            .checked_sub(1)
-            .and_then(|i| units.get(i))
-            .ok_or_else(|| format!("手順に無い step {no}"))?;
-        let at = format!("/{}", escape(&unit.name));
-        if item["pointer"] != json!(at) {
-            return Err(format!("step {no} の pointer が手順と違う（手順は {at}）"));
-        }
-        if seen.contains(&no) {
-            return Err(format!("step {no} の値が2つある"));
-        }
-        seen.push(no);
-        if let Some(obj) = out.as_object_mut() {
-            if item["value"].is_null() && !unit.required {
-                obj.remove(&unit.name);
-            } else {
-                obj.insert(unit.name.clone(), item["value"].clone());
-            }
-        }
+    if let Some(r) = &request.request_id {
+        args.extend(["--request-id", r.as_str()]);
     }
-    let missing: Vec<String> = (1..=units.len())
-        .filter(|n| !seen.contains(n) && units[n - 1].required)
-        .map(|n| n.to_string())
-        .collect();
-    if !missing.is_empty() {
-        return Err(format!("step {} の値が無い", missing.join(" ・ ")));
+    let caller = who.identify();
+    if let Caller::Session {
+        id, via: Via::Flag, ..
+    } = &caller
+    {
+        args.extend(["--session", id.as_str()]);
     }
-    Ok(out)
+    command_line(&args)
 }

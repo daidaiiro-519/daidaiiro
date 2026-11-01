@@ -1,46 +1,51 @@
 //! 操作の記録へ追記する。
 
-use crate::ports::{ChangeRow, IdentifyCaller, OperationLog, ValidateRow, WriteRecord};
+use crate::ports::{
+    Caller, ChangeRow, IdentifyCaller, OperationLog, SessionRow, ValidateRow, Via, WriteRecord,
+};
 
-/// 追記した結果：呼んだ親セッションと、足した操作の ID（足した順）。
+/// 追記した結果：打ったセッションと、足した操作の ID（足した順）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recorded {
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// 操作の ID
     pub operations: Vec<String>,
 }
 
-/// 呼んだ親セッションを決め、検証を1件ずつ足す。
+/// 打ったセッションを決め、検証を1件ずつ足す。
 ///
 /// # Errors
-/// 置き場所が親セッションの行を書けない ・ 行を拒んだとき。それまでに足した行は消さない。
+/// 置き場所がセッションの行を書けない ・ 行を拒んだとき。それまでに足した行は消さない。
 pub fn record_validations(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
     rows: &[ValidateRow],
 ) -> Result<Recorded, String> {
-    let parent = log.parent_session(&who.identify())?;
+    let session = log.session(&who.identify())?;
     let mut operations = Vec::new();
     for row in rows {
-        operations.push(log.append_validate(parent.as_deref(), row)?);
+        operations.push(log.append_validate(session.as_deref(), row)?);
     }
-    Ok(Recorded { parent, operations })
+    Ok(Recorded {
+        session,
+        operations,
+    })
 }
 
-/// 呼んだ親セッションを決め、書いた作成 ・ 更新 ・ 削除を1件足す。断った操作は記録しない。
+/// 打ったセッションを決め、書いた作成 ・ 更新 ・ 削除を1件足す。断った操作は記録しない。
 ///
 /// # Errors
-/// 置き場所が親セッションの行を書けない ・ 行を拒んだとき。
+/// 置き場所がセッションの行を書けない ・ 行を拒んだとき。
 pub fn record_change(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
     row: &ChangeRow,
 ) -> Result<Recorded, String> {
-    let parent = log.parent_session(&who.identify())?;
-    let operation = log.append_change(parent.as_deref(), row)?;
+    let session = log.session(&who.identify())?;
+    let operation = log.append_change(session.as_deref(), row)?;
     Ok(Recorded {
-        parent,
+        session,
         operations: vec![operation],
     })
 }
@@ -128,4 +133,29 @@ pub fn interleaved(
         last_recorded: writes.last().cloned(),
         operations,
     })
+}
+
+/// sas init：いまのセッションを、このフォルダの記録の相手として sessions に登録する（via = init）。
+/// 呼び出し元のセッション ID（--session か環境変数）があればそれを、無ければ記録の置き場所が ID を決める。
+/// すでに記録にある ID なら、行を書き換えずに、その行を返す（追記だけ）。
+///
+/// # Errors
+/// 置き場所を読めない ・ 書けないとき。
+pub fn register_session(
+    who: &dyn IdentifyCaller,
+    folder: &str,
+    log: &mut dyn OperationLog,
+) -> Result<SessionRow, String> {
+    let (id, tool) = match who.identify() {
+        Caller::Session { id, tool, .. } => (id, tool),
+        Caller::Human => (log.new_session_id(), "unknown".to_string()),
+    };
+    log.session(&Caller::Session {
+        id: id.clone(),
+        tool,
+        folder: folder.to_string(),
+        via: Via::Init,
+    })?;
+    log.session_row(&id)?
+        .ok_or_else(|| format!("セッション {id} を登録できなかった"))
 }

@@ -3,11 +3,11 @@
  "nodes": [
   {
    "id": "s0",
-   "label": "CLI の入力：sas update の引数（--intent。意味で書くときはステップ7）"
+   "label": "CLI の入力：sas update --semantic --brief（--ref）"
   },
   {
    "id": "s1",
-   "label": "親セッションを決める：sessions（caller）",
+   "label": "セッションを決める：sessions",
    "role": "focus"
   },
   {
@@ -17,34 +17,24 @@
   },
   {
    "id": "s3",
-   "label": "子セッションを決める：--continue か、直前の子セッションがあれば child_exists",
-   "role": "focus"
+   "label": "--semantic：procedure（write）を出して終わる。command は update --patch … --if-match。記録しない"
   },
   {
    "id": "s4",
-   "label": "手順のプロンプト：procedure.schema.json（write。続けるときは差分の指示だけ）"
+   "label": "--patch：打ったセッションが JSON Patch で渡す。ステップの欄だけ"
   },
   {
    "id": "s5",
-   "label": "書き込み用の子セッション：起動して sessions（writer・launch）か、launch のまま続ける",
-   "role": "focus"
+   "label": "ハッシュを確かめて書く：--if-match と違えば conflict。一時ファイルで置き換え、前後の中身から差分を求める"
   },
   {
    "id": "s6",
-   "label": "答え：agent-answer の field-values（ステップの欄だけ）"
-  },
-  {
-   "id": "s7",
-   "label": "ハッシュを確かめて書く：一時ファイルで置き換え、前後の中身から差分を求める"
-  },
-  {
-   "id": "s8",
    "label": "記録：changes・field_changes（diff から）",
    "role": "focus"
   },
   {
-   "id": "s9",
-   "label": "CLI の最後の行：command-result の change（親セッションと子セッションの ID・hint）"
+   "id": "s7",
+   "label": "CLI の最後の行：command-result の change（session・hint）"
   }
  ],
  "edges": [
@@ -75,14 +65,6 @@
   {
    "from": "s6",
    "to": "s7"
-  },
-  {
-   "from": "s7",
-   "to": "s8"
-  },
-  {
-   "from": "s8",
-   "to": "s9"
   }
  ]
 }

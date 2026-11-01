@@ -3,11 +3,11 @@
 #![allow(clippy::unwrap_used)]
 
 use recording_application::ports::{
-    Caller, ChangeRow, ChildRecord, ChildRow, IdentifyCaller, Judgment, OperationLog, StoredChange,
-    ValidateRow, WriteRecord,
+    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, SessionRow, StoredChange,
+    ValidateRow, Via, WriteRecord,
 };
 use recording_application::use_cases::history::{
-    interleaved, last_written, record_change, record_validations, untracked_since,
+    interleaved, last_written, record_change, record_validations, register_session, untracked_since,
 };
 
 struct Fixed(Caller);
@@ -19,36 +19,55 @@ impl IdentifyCaller for Fixed {
 
 #[derive(Default)]
 struct Memory {
-    parents: Vec<String>,
+    sessions: Vec<SessionRow>,
     ops: Vec<(Option<String>, ValidateRow)>,
     changes: Vec<(Option<String>, ChangeRow)>,
 }
 impl OperationLog for Memory {
-    fn append_child(&mut self, _: Option<&str>, _: &ChildRow) -> Result<(), String> {
-        Err("この代役は子セッションを残さない".to_string())
-    }
-    fn child(&self, _: &str) -> Result<Option<ChildRecord>, String> {
-        Ok(None)
-    }
-    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
-        let Caller::Parent { id, .. } = caller else {
+    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+        let Caller::Session {
+            id,
+            tool,
+            folder,
+            via,
+        } = caller
+        else {
             return Ok(None);
         };
-        if !self.parents.contains(id) {
-            self.parents.push(id.clone());
+        if !self.sessions.iter().any(|s| &s.id == id) {
+            self.sessions.push(SessionRow {
+                id: id.clone(),
+                tool: tool.clone(),
+                folder: folder.clone(),
+                via: via.as_str().to_string(),
+            });
         }
         Ok(Some(id.clone()))
     }
+    fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
+        Ok(self.sessions.iter().find(|s| s.id == id).cloned())
+    }
+    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
+        Ok(self
+            .sessions
+            .iter()
+            .rev()
+            .find(|s| s.folder == folder && s.via == "init")
+            .cloned())
+    }
+    fn new_session_id(&self) -> String {
+        format!("sas-{}", self.sessions.len() + 1)
+    }
     fn append_validate(
         &mut self,
-        parent: Option<&str>,
+        session: Option<&str>,
         row: &ValidateRow,
     ) -> Result<String, String> {
-        self.ops.push((parent.map(Into::into), row.clone()));
+        self.ops.push((session.map(Into::into), row.clone()));
         Ok(format!("o-{}", self.ops.len() + self.changes.len()))
     }
-    fn append_change(&mut self, parent: Option<&str>, row: &ChangeRow) -> Result<String, String> {
-        self.changes.push((parent.map(Into::into), row.clone()));
+    fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+        self.changes.push((session.map(Into::into), row.clone()));
         Ok(format!("o-{}", self.ops.len() + self.changes.len()))
     }
     fn find_request(&self, _: &str) -> Result<Option<StoredChange>, String> {
@@ -60,9 +79,9 @@ impl OperationLog for Memory {
             .iter()
             .enumerate()
             .filter(|(_, (_, r))| r.target_path == target_path)
-            .map(|(i, (parent, r))| WriteRecord {
+            .map(|(i, (session, r))| WriteRecord {
                 operation: format!("o-{}", i + 1),
-                parent: parent.clone(),
+                session: session.clone(),
                 at: "t".into(),
                 row: r.clone(),
             })
@@ -75,30 +94,32 @@ impl OperationLog for Memory {
 
 fn row(hash: &str) -> ValidateRow {
     ValidateRow {
-        child_session: None,
         target_path: "a.json".into(),
         hash: hash.into(),
         results: Vec::new(),
     }
 }
 
-fn parent(id: &str) -> Fixed {
-    Fixed(Caller::Parent {
+fn session(id: &str) -> Fixed {
+    Fixed(Caller::Session {
         id: id.into(),
         tool: "claude-code".into(),
+        folder: "/w".into(),
+        via: Via::Env,
     })
 }
 
 #[test]
-fn parent_is_recorded_once_and_a_human_has_none() {
+fn session_is_recorded_once_and_a_human_has_none() {
     let mut log = Memory::default();
-    let a = record_validations(&parent("p1"), &mut log, &[row("h")]).unwrap();
+    let a = record_validations(&session("p1"), &mut log, &[row("h")]).unwrap();
     let b = record_validations(&Fixed(Caller::Human), &mut log, &[row("h")]).unwrap();
-    let c = record_validations(&parent("p1"), &mut log, &[row("h"), row("h")]).unwrap();
-    assert_eq!(a.parent.as_deref(), Some("p1"));
-    assert_eq!(b.parent, None);
-    assert_eq!(c.parent, a.parent);
-    assert_eq!(log.parents, ["p1"]);
+    let c = record_validations(&session("p1"), &mut log, &[row("h"), row("h")]).unwrap();
+    assert_eq!(a.session.as_deref(), Some("p1"));
+    assert_eq!(b.session, None);
+    assert_eq!(c.session, a.session);
+    let ids: Vec<&str> = log.sessions.iter().map(|s| s.id.as_str()).collect();
+    assert_eq!(ids, ["p1"]);
     assert_eq!(c.operations, ["o-3", "o-4"]);
 }
 
@@ -112,7 +133,6 @@ fn change(before: Option<&str>, after: Option<&str>) -> ChangeRow {
         after: after.map(Into::into),
         intent: None,
         fields: Vec::new(),
-        child: None,
     }
 }
 
@@ -158,4 +178,16 @@ fn any_recorded_after_is_tracked() {
         untracked_since(&log, "a.json", "d").unwrap().as_deref(),
         Some("c")
     );
+}
+
+#[test]
+fn init_registers_the_tool_session_or_a_new_one() {
+    let mut log = Memory::default();
+    // ツールの ID があれば、それを init として登録する
+    let r = register_session(&session("c5c5"), "/w", &mut log).unwrap();
+    assert_eq!((r.id.as_str(), r.via.as_str()), ("c5c5", "init"));
+    // ID が無ければ、置き場所が決めた ID を登録する
+    let h = register_session(&Fixed(Caller::Human), "/w", &mut log).unwrap();
+    assert_eq!((h.id.as_str(), h.tool.as_str()), ("sas-2", "unknown"));
+    assert_eq!(log.initialized("/w").unwrap(), Some(h));
 }

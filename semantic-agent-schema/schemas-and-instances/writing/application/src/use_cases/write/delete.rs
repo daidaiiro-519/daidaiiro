@@ -29,8 +29,8 @@ pub struct DeleteRequest {
 /// 削除の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Deletion {
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// 削除の操作の ID
     pub operation: String,
     /// 対象の種類
@@ -92,7 +92,7 @@ fn replayed(
     Ok(Deletion {
         before: hash(&row.before, &stored.operation)?,
         diff: diff_of(&row.fields),
-        parent: stored.parent,
+        session: stored.session,
         operation: stored.operation,
         kind,
         path: row.target_path,
@@ -161,7 +161,6 @@ pub fn delete(
         after: None,
         intent: request.intent.clone(),
         fields: Vec::new(),
-        child: None,
     };
 
     // 1. 消す前提のハッシュ（更新と同じ決まり）
@@ -235,11 +234,11 @@ pub fn delete(
         },
     )
     .map_err(log_refused)?;
-    let parent = recorded.parent;
+    let session = recorded.session;
     let operation = recorded.operations.into_iter().next().unwrap_or_default();
 
     Ok(Deletion {
-        parent,
+        session,
         operation,
         kind,
         path: path.to_string(),

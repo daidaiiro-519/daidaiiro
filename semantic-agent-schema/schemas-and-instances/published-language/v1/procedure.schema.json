@@ -1,8 +1,8 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:procedure:v1",
- "title": "手順のプロンプト",
- "description": "SAS が Concrete の rule ・ 当たる所から組み、SAS が起動した子セッション（AI）に渡す手順。子セッションは steps を順に行い、answer の形の JSON だけを返す。意味の部分を含む操作では、子セッションに渡す前に CLI の標準出力へ同じものを1行ずつ出す（呼び出し元が、答えを待つ前に何を頼んだかを読めるように）。子セッションとのやりとりの途中は標準エラーに出る",
+ "title": "手順",
+ "description": "SAS が Concrete の rule ・ 当たる所から組み、sas を打ったセッションに返す手順。SAS はエージェントを起動しない。sas validate --semantic（判定）と sas create ・ update --semantic（書き込み）が、結果の行の代わりに標準出力へ1行ずつ出し、記録しない。受け取ったセッションは steps を順に行い、answer の形の値を作って command で SAS に渡す。断られたら、SAS の出力の理由を読んで直し、打ち直す",
  "type": "object",
  "required": [
   "$schema",
@@ -11,6 +11,7 @@
   "target",
   "steps",
   "answer",
+  "command",
   "constraints"
  ],
  "properties": {
@@ -25,7 +26,7 @@
     "validate",
     "write"
    ],
-   "description": "validate は rule の判定、write は欄の値を書かせる"
+   "description": "validate は rule の判定、write は欄の値を書く"
   },
   "target": {
    "type": "object",
@@ -43,7 +44,7 @@
     "hash": {
      "type": "string",
      "pattern": "^sha256:[0-9a-f]{64}$",
-     "description": "対象の中身のハッシュ（SHA-256）。作成には無い。SAS は答えを受けたときに対象が変わっていないかを比べる"
+     "description": "手順を組んだときの対象の中身のハッシュ（SHA-256）。作成には無い。判定では答えの hash に写し、更新では command の --if-match に入る。SAS は渡されたときに、いまの中身のハッシュと比べる"
     }
    }
   },
@@ -137,7 +138,42 @@
    }
   },
   "answer": {
-   "type": "object"
+   "type": "object",
+   "description": "command で渡す値の形",
+   "required": [
+    "format",
+    "schema"
+   ],
+   "properties": {
+    "format": {
+     "enum": [
+      "judgments",
+      "document",
+      "json-patch"
+     ],
+     "description": "judgments は判定の JSON（schema の形。--answer で渡す）、document は作る文書全体（--value で渡す）、json-patch は steps の欄を直す JSON Patch（RFC 6902。--patch で渡す）"
+    },
+    "schema": {
+     "type": [
+      "object",
+      "string"
+     ],
+     "description": "judgments では答えの JSON Schema、document ・ json-patch では書いた文書が従う schema の $id"
+    }
+   }
+  },
+  "command": {
+   "type": "string",
+   "minLength": 1,
+   "title": "渡すコマンド",
+   "description": "answer の形の値を SAS に渡すときに打つ sas のコマンドの1行。<…> の所を、作った値（ファイルの経路か - と標準入力でもよい）で埋める。",
+   "x-prompt": {
+    "read": {
+     "when": "steps を終えて、値を SAS に渡すときに読む。",
+     "interpret": "判定は sas validate <経路> --answer、作成は sas create <経路> --value、更新は sas update <経路> --patch --if-match。<…> のほかの引数は変えずに打つ。"
+    },
+    "write": []
+   }
   },
   "constraints": {
    "type": "array",
@@ -166,7 +202,7 @@
   },
   "refs": {
    "type": "array",
-   "description": "SAS が読んだ資料（--ref）。子セッションはファイルを開けないので中身を入れる",
+   "description": "SAS が読んだ資料（--ref）の中身。手順だけで書けるように入れる",
    "items": {
     "type": "object",
     "required": [
@@ -191,7 +227,7 @@
   },
   "not_written": {
    "type": "array",
-   "description": "子セッションに書かせない欄と、その理由",
+   "description": "書く欄にしない欄と、その理由",
    "items": {
     "type": "object",
     "required": [

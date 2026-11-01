@@ -1,17 +1,57 @@
 //! この業務領域が外に求めるもの。
 
+/// 打ったセッションの ID をどこから知ったか。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Via {
+    /// ツールの環境変数（callers.json の表）
+    Env,
+    /// --session
+    Flag,
+    /// このフォルダで sas init が登録したセッション
+    Init,
+}
+
+impl Via {
+    /// 記録と出力に書く名前。
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Env => "env",
+            Self::Flag => "flag",
+            Self::Init => "init",
+        }
+    }
+}
+
 /// 操作を呼んだのは誰か。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Caller {
-    /// 親セッション（AI のエージェント ・ CI ・ オーケストレーター）。--session か、ツールの環境変数で分かった
-    Parent {
-        /// ツールのセッション ID
+    /// sas を打ったセッション（AI のエージェント ・ CI ・ オーケストレーター）。--session ・ ツールの環境変数 ・ sas init で分かった
+    Session {
+        /// セッション ID（ツールのものか、sas init で SAS が決めたもの）
         id: String,
         /// ツールの名前（claude-code など。分からなければ unknown）
         tool: String,
+        /// 打ったフォルダ（Git の中ならリポジトリの根、外なら作業フォルダ）
+        folder: String,
+        /// ID をどこから知ったか
+        via: Via,
     },
-    /// --session も環境変数も無い呼び出し。人とみなす
+    /// --session も環境変数も sas init の登録も無い呼び出し。人とみなす
     Human,
+}
+
+/// 記録にあるセッション1つ（sessions の行）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionRow {
+    /// セッション ID
+    pub id: String,
+    /// ツールの名前
+    pub tool: String,
+    /// 初めて見たときに打ったフォルダ
+    pub folder: String,
+    /// ID をどこから知ったか（env ・ flag ・ init）
+    pub via: String,
 }
 
 /// 呼び出し元を見分ける。
@@ -42,8 +82,6 @@ pub struct RuleRow {
 pub struct ValidateRow {
     /// リポジトリの根からの経路
     pub target_path: String,
-    /// rule を判定した検証用の子セッション ID（rule を子セッションに判定させなかったなら None）
-    pub child_session: Option<String>,
     /// 判定した中身のハッシュ
     pub hash: String,
     /// rule ごとの結果
@@ -84,8 +122,6 @@ pub struct ChangeRow {
     pub intent: Option<String>,
     /// 変わった欄
     pub fields: Vec<FieldRow>,
-    /// 書いた書き込み用の子セッションの ID（意味で書いたときだけ）
-    pub child: Option<String>,
 }
 
 /// 記録にある作成 ・ 更新 ・ 削除の操作。
@@ -93,8 +129,8 @@ pub struct ChangeRow {
 pub struct StoredChange {
     /// 操作の ID
     pub operation: String,
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// 行
     pub row: ChangeRow,
 }
@@ -104,8 +140,8 @@ pub struct StoredChange {
 pub struct WriteRecord {
     /// 操作の ID
     pub operation: String,
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// 記録した日時
     pub at: String,
     /// 行
@@ -121,41 +157,28 @@ pub struct Judgment {
     pub rule: RuleRow,
 }
 
-/// SAS が起動した子セッション（記録の行）。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChildRow {
-    /// ツールのセッション ID（ツールの出力から読んだもの）
-    pub id: String,
-    /// writer か checker
-    pub role: String,
-    /// ツールの名前（接続の定義の name）
-    pub tool: String,
-    /// モデル（分かれば）
-    pub model: Option<String>,
-    /// 起動の設定（JSON の文字列）。--continue で同じものを渡す
-    pub launch: String,
-}
-
-/// 記録にある子セッション。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChildRecord {
-    /// 行
-    pub row: ChildRow,
-    /// 子セッションを起動させた親セッションの ID（人なら None）
-    pub parent: Option<String>,
-    /// この子セッションを使った操作（検証と変更）の数
-    pub uses: u64,
-    /// この子セッションを最後に使った操作から、いままでの秒（使った操作が無ければ、起動してからの秒）
-    pub idle_s: u64,
-}
-
 /// 操作の記録の置き場所。追記だけを受け付ける。ID と時刻は置き場所が作る。
 pub trait OperationLog {
-    /// 呼んだ親セッションの ID。初めて見た親なら、親セッションの行（role = caller）を1行足す。人なら None。
+    /// 打ったセッションの ID。初めて見たセッションなら、sessions に1行足す（行は書き換えない）。人なら None。
     ///
     /// # Errors
     /// 置き場所を読めない ・ 書けないとき。
-    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String>;
+    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String>;
+
+    /// 記録にあるセッションの行。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String>;
+
+    /// フォルダで sas init が最後に登録したセッション（via = init）。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String>;
+
+    /// 新しいセッション ID（sas init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
+    fn new_session_id(&self) -> String;
 
     /// 検証を1件足し（rule ごとの結果も一緒に）、その ID を返す。
     ///
@@ -163,7 +186,7 @@ pub trait OperationLog {
     /// 置き場所が拒んだとき（決まりに反する行）。
     fn append_validate(
         &mut self,
-        parent: Option<&str>,
+        session: Option<&str>,
         row: &ValidateRow,
     ) -> Result<String, String>;
 
@@ -171,7 +194,7 @@ pub trait OperationLog {
     ///
     /// # Errors
     /// 置き場所が拒んだとき（同じ request_id ・ 決まりに反する行）。
-    fn append_change(&mut self, parent: Option<&str>, row: &ChangeRow) -> Result<String, String>;
+    fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String>;
 
     /// request_id で足した作成 ・ 更新 ・ 削除。無ければ None。
     ///
@@ -193,16 +216,4 @@ pub trait OperationLog {
     /// # Errors
     /// 置き場所を読めないとき。
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
-
-    /// SAS が起動した子セッションを1行足す（初めて見た ID だけ）。親セッションは parent_session が返した ID。
-    ///
-    /// # Errors
-    /// 置き場所が拒んだとき（親セッションが caller でない ・ 同じ ID が別の役割で在る）。
-    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String>;
-
-    /// 子セッションの行と、使われ方。無ければ None。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String>;
 }

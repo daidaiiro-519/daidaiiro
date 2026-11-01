@@ -1,0 +1,86 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-PROCEDURE",
+ "name": "判定の手順を受け取る",
+ "title": "validate --semantic は、機械の検証をしたうえで、意味の rule の判定の手順（rule × 当たる所ごとのステップ ・ 対象のハッシュ ・ 判定を渡すコマンド）を出し、記録しない",
+ "why": "判定するのは sas を打ったセッション自身なので、SAS は何を判定するかだけを渡す。記録しないので、判定を渡す前の検証が記録に混ざらない。",
+ "traces": [
+  "UC4:変形:意味の判定",
+  "約束:abstract:x-prompt",
+  "約束:procedure"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation_kind",
+   "equals": "validate"
+  },
+  {
+   "of": "when",
+   "pointer": "/target/hash",
+   "equals": "sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/rules/0/id",
+   "equals": "goal-is-outcome"
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/format",
+   "equals": "judgments"
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "equals": "sas validate items/r1.json --answer <判定の JSON のファイル | ->"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/r1.json"
+   ]
+  }
+ ],
+ "unchanged": [
+  "items/r1.json"
+ ]
+}

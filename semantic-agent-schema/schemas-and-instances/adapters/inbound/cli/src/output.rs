@@ -1,14 +1,14 @@
-//! 結果を JSON の1行にする（command-result.schema.json の validation ・ change ・ render ・ error）。
+//! 結果を JSON の1行にする（command-result.schema.json の validation ・ change ・ render ・ session ・ error と、
+//! procedure.schema.json の手順）。
 
-use recording_application::ports::WriteRecord;
+use recording_application::ports::{SessionRow, WriteRecord};
 use recording_application::use_cases::history::Interleaved;
 use rendering_application::use_cases::design::DesignValidation;
 use rendering_application::use_cases::render::Rendered;
 use serde_json::{Map, Value, json};
-use validation_application::use_cases::meaning::Progress;
-use validation_application::use_cases::validate::{MeaningOutcome, Refused, Validation};
+use validation_application::use_cases::validate::{Refused, Validation};
 use validation_domain::values::{Counts, RuleResult, Verdict};
-use writing_application::use_cases::write::{ChangeResult, Deletion, SemanticOutcome};
+use writing_application::use_cases::write::{ChangeResult, Deletion};
 use writing_domain::values::Diff;
 
 fn counts(c: &Counts) -> Value {
@@ -29,24 +29,26 @@ fn rule_result(r: &RuleResult) -> Value {
     })
 }
 
-/// 手順は子セッションに渡す前に標準出力へ1行で出し、子セッションとのやりとりの途中は標準エラーへ出す。
-pub struct Live;
-impl Progress for Live {
-    fn procedure(&self, procedure: &Value) {
-        println!("{procedure}");
-    }
-    fn note(&self, line: &str) {
-        eprintln!("sas: {line}");
-    }
+/// 手順（procedure.schema.json）を1行で出す。
+pub fn print_procedure(procedure: &Value) {
+    println!("{procedure}");
+}
+
+/// sas init で登録したセッションを出す。
+pub fn print_session(row: &SessionRow) {
+    let out = json!({
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
+        "kind": "session",
+        "id": row.id,
+        "tool": row.tool,
+        "folder": row.folder,
+        "via": row.via,
+    });
+    println!("{out}");
 }
 
 /// 検証の結果を出す。
 pub fn print_validation(v: &Validation) {
-    print_validation_with(v, None);
-}
-
-/// 検証の結果を出す（検証用の子セッションに判定させたときは、その子セッションのことも）。
-pub fn print_validation_with(v: &Validation, meaning: Option<&MeaningOutcome>) {
     let targets: Vec<Value> = v
         .targets
         .iter()
@@ -69,7 +71,7 @@ pub fn print_validation_with(v: &Validation, meaning: Option<&MeaningOutcome>) {
     let mut out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "validation",
-        "parent_session": v.parent,
+        "session": v.session,
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
         "targets": targets,
         "counts": counts(&v.counts),
@@ -83,19 +85,6 @@ pub fn print_validation_with(v: &Validation, meaning: Option<&MeaningOutcome>) {
     if v.stale_only {
         out["stale_only"] = json!(true);
         out["unchanged_targets"] = json!(v.unchanged_targets);
-    }
-    if let Some(m) = meaning {
-        out["child_session"] = json!({
-            "id": m.child,
-            "role": "checker",
-            "continued": m.continued,
-            "started": m.started,
-            "corrections": m.corrections,
-            "restarts": m.restarts,
-        });
-        if let Some(h) = &m.hint {
-            out["child_session"]["hint"] = json!(h);
-        }
     }
     if let Some(u) = v.untracked.first() {
         out["hint"] = json!(format!(
@@ -130,7 +119,7 @@ pub fn print_design_validation(v: &DesignValidation) {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "validation",
-        "parent_session": v.parent,
+        "session": v.session,
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
         "targets": targets,
         "counts": counts(&v.counts),
@@ -147,7 +136,7 @@ fn write_record(w: &WriteRecord) -> Value {
             .and_then(|t| serde_json::from_str::<Value>(t).ok())
     };
     // 読む順（だれが ・ 何のために ・ いつ ・ どの欄を）に並べる
-    let mut v = json!({"operation": w.operation, "parent_session": w.parent, "kind": w.row.kind, "source": w.row.source});
+    let mut v = json!({"operation": w.operation, "session": w.session, "kind": w.row.kind, "source": w.row.source});
     if let Some(i) = &w.row.intent {
         v["intent"] = json!(i);
     }
@@ -187,7 +176,7 @@ fn interleaved(i: &Interleaved) -> Value {
     if let Some(w) = &i.last_recorded {
         v["last_recorded"] = json!({
             "operation": w.operation,
-            "parent_session": w.parent,
+            "session": w.session,
             "at": w.at,
             "after": {"hash": w.row.after},
         });
@@ -245,7 +234,7 @@ pub fn print_deletion(d: &Deletion) {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "change",
-        "parent_session": d.parent,
+        "session": d.session,
         "operation": d.operation,
         "result": "deleted",
         "replayed": d.replayed,
@@ -264,16 +253,6 @@ pub fn print_deletion(d: &Deletion) {
 /// 作成か更新の結果を出す。
 pub fn print_change(c: &ChangeResult) {
     println!("{}", change_json(c));
-}
-
-/// 意味で書いた結果を出す：変更の結果に書いた子セッションを添える（手順は子セッションに渡す前に Live が出した）。
-pub fn print_semantic(c: &ChangeResult, o: &SemanticOutcome) {
-    let mut out = change_json(c);
-    out["child_session"] = json!({
-        "id": o.child, "role": "writer", "continued": o.continued, "started": o.started,
-        "corrections": o.corrections, "restarts": o.restarts,
-    });
-    println!("{out}");
 }
 
 fn change_json(c: &ChangeResult) -> Value {
@@ -306,7 +285,7 @@ fn change_json(c: &ChangeResult) -> Value {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "change",
-        "parent_session": c.parent,
+        "session": c.session,
         "operation": c.operation,
         "result": if c.outside { "adopted" } else { c.written.as_str() },
         "replayed": c.replayed,

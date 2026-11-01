@@ -1,4 +1,4 @@
-//! 当たる rule を集める。rule はどれも検証用の子セッション（AI）が判定する。
+//! 当たる rule を集める。rule はどれも AI（sas を打ったセッション）が判定し、sas validate --answer で渡す。
 //!
 //! rule は x-prompt.write にある。欄の rule は欄に、x- の rule はその x- の値の形（Abstract の $defs）に書く。
 //! 当たるのは、対象の文書にその欄や x- が実際にあるときだけ。Abstract の $defs の中の rule も、$ref でたどって当てる。
@@ -234,7 +234,7 @@ pub fn rules_for_instance(
     out
 }
 
-/// 子セッションにつながっていないときの rule の結果：unsupported（エージェントがつながっていない）。
+/// 意味の判定を渡されていないときの rule の結果：unsupported。
 #[must_use]
 pub fn unjudged(rule: &AppliedRule) -> RuleResult {
     RuleResult::new(
@@ -242,7 +242,7 @@ pub fn unjudged(rule: &AppliedRule) -> RuleResult {
         &rule.pointer,
         By::Ai,
         Verdict::Unsupported,
-        "エージェントがつながっていない（--agent で接続の定義を渡す）",
+        "意味の判定を渡していない（sas validate --semantic で手順を受け取り、判定を --answer で渡す）",
     )
 }
 

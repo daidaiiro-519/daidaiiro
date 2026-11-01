@@ -7,7 +7,7 @@ pub enum Verdict {
     Verified,
     /// 破られている
     Violated,
-    /// 子セッションが判定できなかった（決めきれない）
+    /// 判定したセッションが判定できないと答えた（決めきれない）
     Unverified,
     /// 判定しようとして失敗した
     Error,

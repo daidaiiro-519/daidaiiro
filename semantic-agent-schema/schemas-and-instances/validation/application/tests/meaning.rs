@@ -1,69 +1,18 @@
-//! SF1 の手続き（rule を検証用の子セッションに判定させる）を、ポートの代役で確かめる。
-//! 子セッションを起動する代役は、渡されたプロンプトを残し、決めた答えを返す。
+//! UC4 の意味の部分（判定の手順を返し、打ったセッションが渡した判定を記録する）を、ポートの代役で確かめる。
 
 #![allow(clippy::unwrap_used, clippy::panic)]
 
 mod support;
 
-use recording_application::ports::ChildRow;
+use recording_application::ports::{Caller, IdentifyCaller, Via};
 use serde_json::{Value, json};
-use std::cell::RefCell;
 use support::{Human, Lenient, Log, UC, files, meaning};
-use validation_application::ports::{DocumentStore, ReadMeaning, Reply};
-use validation_application::use_cases::meaning::MeaningCall;
-use validation_application::use_cases::validate::{Scope, validate_with_meaning};
+use validation_application::ports::DocumentStore;
+use validation_application::use_cases::validate::{
+    Scope, semantic_procedures, validate_with_answer,
+};
 use validation_domain::values::Verdict;
-
-/// 決めた答えを返し、渡されたプロンプトを (子セッションの ID か None, プロンプト) で残す代役。
-struct Scripted {
-    sent: RefCell<Vec<(Option<String>, String)>>,
-    verdict: &'static str,
-    reason: &'static str,
-}
-impl Scripted {
-    fn new(verdict: &'static str, reason: &'static str) -> Self {
-        Self {
-            sent: RefCell::new(Vec::new()),
-            verdict,
-            reason,
-        }
-    }
-    fn answer(&self) -> String {
-        json!({"results": [{"step": 1, "rule": "goal-is-outcome", "pointer": "/goal",
-                            "result": self.verdict, "reason": self.reason}]})
-        .to_string()
-    }
-}
-impl ReadMeaning for Scripted {
-    fn tool(&self) -> String {
-        "scripted".into()
-    }
-    fn model(&self) -> Option<String> {
-        None
-    }
-    fn launch(&self) -> Value {
-        json!({"argv": ["scripted"]})
-    }
-    fn cache_ttl_s(&self) -> Option<u64> {
-        None
-    }
-    fn start(&self, prompt: &str, _: &Value) -> Reply {
-        self.sent.borrow_mut().push((None, prompt.into()));
-        Reply::Answered {
-            tool_ref: "checker-1".into(),
-            answer: self.answer(),
-        }
-    }
-    fn resume(&self, tool_ref: &str, _: &Value, prompt: &str, _: &Value) -> Reply {
-        self.sent
-            .borrow_mut()
-            .push((Some(tool_ref.into()), prompt.into()));
-        Reply::Answered {
-            tool_ref: tool_ref.into(),
-            answer: self.answer(),
-        }
-    }
-}
+use writing_domain::values::ContentHash;
 
 fn store() -> support::Files {
     files(&[
@@ -72,113 +21,173 @@ fn store() -> support::Files {
     ])
 }
 
-fn run(
-    store: &support::Files,
-    log: &mut Log,
-    reader: &Scripted,
-    continue_child: Option<&str>,
-) -> Result<Verdict, &'static str> {
-    let call = MeaningCall {
-        reader,
-        continue_child: continue_child.map(str::to_string),
-        progress: &validation_application::use_cases::meaning::Silent,
-    };
-    validate_with_meaning(
+fn procedures(store: &support::Files, log: &Log, who: &dyn IdentifyCaller) -> Vec<Value> {
+    semantic_procedures(
         &Scope::Paths(vec!["u1.json".into()]),
         false,
         store,
         &Lenient,
-        &Human,
+        who,
         log,
-        &call,
     )
-    .map(|(v, _)| {
-        v.targets[0]
-            .results
-            .iter()
-            .find(|r| r.rule() == "goal-is-outcome")
-            .unwrap()
-            .verdict()
-    })
-    .map_err(|r| r.code)
+    .unwrap()
+}
+
+fn hash(store: &support::Files) -> String {
+    ContentHash::of(store.read("u1.json").unwrap().as_bytes())
+        .as_str()
+        .to_string()
+}
+
+fn answer(hash: &str, rule: &str, verdict: &str, reason: &str) -> String {
+    json!({"hash": hash, "results": [{"step": 1, "rule": rule, "pointer": "/goal",
+                                      "result": verdict, "reason": reason}]})
+    .to_string()
+}
+
+fn give(store: &support::Files, log: &mut Log, answer: &str) -> Result<Verdict, &'static str> {
+    validate_with_answer("u1.json", false, answer, store, &Lenient, &Human, log)
+        .map(|v| {
+            v.targets[0]
+                .results
+                .iter()
+                .find(|r| r.rule() == "goal-is-outcome")
+                .unwrap()
+                .verdict()
+        })
+        .map_err(|r| r.code)
 }
 
 #[test]
-fn writer_is_refused_as_checker_and_nothing_is_sent() {
+fn procedure_is_returned_and_nothing_is_recorded() {
     let store = store();
-    let mut log = Log::default();
-    log.append_child_row("w-1", "writer");
-    let reader = Scripted::new("verified", "結果を書いている");
+    let log = Log::default();
+    let p = procedures(&store, &log, &Human);
+    assert_eq!(p.len(), 1);
+    assert_eq!(p[0]["steps"][0]["rules"][0]["id"], json!("goal-is-outcome"));
+    assert_eq!(p[0]["steps"][0]["current"], json!("注文が届く"));
+    assert_eq!(p[0]["target"]["hash"], json!(hash(&store)));
     assert_eq!(
-        run(&store, &mut log, &reader, Some("w-1")),
-        Err("writer_as_checker")
+        p[0]["command"],
+        json!("sas validate u1.json --answer <判定の JSON のファイル | ->")
     );
+    assert!(log.0.is_empty(), "手順を返すだけで記録しない");
+}
+
+#[test]
+fn a_named_session_names_itself_again_in_the_command() {
+    struct Named;
+    impl IdentifyCaller for Named {
+        fn identify(&self) -> Caller {
+            Caller::Session {
+                id: "ci 1".into(),
+                tool: "unknown".into(),
+                folder: "/w".into(),
+                via: Via::Flag,
+            }
+        }
+    }
+    let p = procedures(&store(), &Log::default(), &Named);
     assert!(
-        reader.sent.borrow().is_empty(),
-        "書き込み用の子セッションへは送らない"
+        p[0]["command"]
+            .as_str()
+            .unwrap()
+            .ends_with("--session 'ci 1'")
     );
-    assert!(log.0.is_empty(), "断った検証は記録しない");
 }
 
 #[test]
-fn continued_child_gets_the_same_prompt_as_a_new_child() {
-    // 続けた子セッションに渡すのは、いまの中身だけ。前の判定の理由を渡さないので、同じ中身なら新しい子セッションと同じプロンプトになる
+fn the_answer_is_recorded_with_the_machine_results() {
     let store = store();
     let mut log = Log::default();
-    let reader = Scripted::new("violated", "前の判定の理由");
-    assert_eq!(run(&store, &mut log, &reader, None), Ok(Verdict::Violated));
-    assert_eq!(log.0[0].child_session.as_deref(), Some("checker-1"));
+    let h = hash(&store);
     assert_eq!(
-        run(&store, &mut log, &reader, Some("checker-1")),
+        give(
+            &store,
+            &mut log,
+            &answer(&h, "goal-is-outcome", "violated", "手段だ")
+        ),
         Ok(Verdict::Violated)
     );
-    let sent = reader.sent.borrow();
-    assert_eq!(sent[1].0.as_deref(), Some("checker-1"));
-    assert_eq!(sent[0].1, sent[1].1);
-    assert!(!sent[1].1.contains("前の判定の理由"));
+    assert_eq!(log.0.len(), 1);
+    assert!(
+        log.0[0]
+            .results
+            .iter()
+            .any(|r| r.by == "ai" && r.result == "violated" && r.reason == "手段だ")
+    );
+    assert!(log.0[0].results.iter().any(|r| r.by == "machine"));
 }
 
 #[test]
-fn prompt_follows_the_current_content() {
+fn an_answer_for_other_content_is_refused_and_not_recorded() {
     let store = store();
     let mut log = Log::default();
-    let reader = Scripted::new("verified", "結果を書いている");
-    run(&store, &mut log, &reader, None).unwrap();
+    let old = hash(&store);
     store
         .write(
             "u1.json",
             &json!({"$schema": UC, "goal": "画面を作る"}).to_string(),
         )
         .unwrap();
-    run(&store, &mut log, &reader, Some("checker-1")).unwrap();
-    let sent = reader.sent.borrow();
-    assert!(sent[1].1.contains("画面を作る"));
-    assert!(!sent[1].1.contains("注文が届く"));
-}
-
-trait SeedChild {
-    fn append_child_row(&mut self, id: &str, role: &str);
-}
-impl SeedChild for Log {
-    fn append_child_row(&mut self, id: &str, role: &str) {
-        use recording_application::ports::OperationLog;
-        self.append_child(
-            None,
-            &ChildRow {
-                id: id.into(),
-                role: role.into(),
-                tool: "scripted".into(),
-                model: None,
-                launch: "{}".into(),
-            },
-        )
-        .unwrap();
-    }
+    assert_eq!(
+        give(
+            &store,
+            &mut log,
+            &answer(&old, "goal-is-outcome", "verified", "結果だ")
+        ),
+        Err("conflict")
+    );
+    assert!(log.0.is_empty());
 }
 
 #[test]
-fn reading_of_the_field_goes_to_the_child_session() {
-    // x-prompt の read（interpret ・ when）は、子セッションが値を読む手がかりとして手順に入る
+fn an_answer_that_does_not_match_the_steps_is_refused() {
+    let store = store();
+    let mut log = Log::default();
+    let h = hash(&store);
+    assert_eq!(
+        give(
+            &store,
+            &mut log,
+            &answer(&h, "other-rule", "verified", "結果だ")
+        ),
+        Err("invalid_answer")
+    );
+    assert_eq!(
+        give(&store, &mut log, "判定しました。verified です。"),
+        Err("invalid_answer")
+    );
+    assert!(log.0.is_empty());
+}
+
+#[test]
+fn procedure_follows_the_current_content_and_not_the_previous_judgment() {
+    // 手順に入れるのは、いまの中身だけ。前の判定の理由は入れない
+    let store = store();
+    let mut log = Log::default();
+    let h = hash(&store);
+    give(
+        &store,
+        &mut log,
+        &answer(&h, "goal-is-outcome", "violated", "前の判定の理由"),
+    )
+    .unwrap();
+    store
+        .write(
+            "u1.json",
+            &json!({"$schema": UC, "goal": "画面を作る"}).to_string(),
+        )
+        .unwrap();
+    let text = procedures(&store, &log, &Human)[0].to_string();
+    assert!(text.contains("画面を作る"));
+    assert!(!text.contains("注文が届く"));
+    assert!(!text.contains("前の判定の理由"));
+}
+
+#[test]
+fn reading_of_the_field_goes_into_the_procedure() {
+    // x-prompt の read（interpret ・ when）は、値を読む手がかりとして手順に入る
     let mut c = meaning();
     c["properties"]["goal"]["x-prompt"]["read"] =
         json!({"interpret": "利用者の言葉で書いた結果として読む", "when": "検証するときに読む"});
@@ -186,12 +195,15 @@ fn reading_of_the_field_goes_to_the_child_session() {
         ("c.json", c),
         ("u1.json", json!({"$schema": UC, "goal": "注文が届く"})),
     ]);
-    let mut log = Log::default();
-    let reader = Scripted::new("verified", "結果を書いている");
-    run(&store, &mut log, &reader, None).unwrap();
-    let sent = reader.sent.borrow();
-    assert!(sent[0].1.contains("利用者の言葉で書いた結果として読む"));
-    assert!(sent[0].1.contains("検証するときに読む"));
+    let p = procedures(&store, &Log::default(), &Human);
+    assert_eq!(
+        p[0]["steps"][0]["read"]["interpret"],
+        json!("利用者の言葉で書いた結果として読む")
+    );
+    assert_eq!(
+        p[0]["steps"][0]["read"]["when"],
+        json!("検証するときに読む")
+    );
 }
 
 #[test]
@@ -232,4 +244,20 @@ fn answer_in_a_code_fence_is_read() {
     );
     assert_eq!(answer_json(" {\"a\": 1} ").unwrap(), json!({"a": 1}));
     assert!(answer_json("```\nnot json\n```").is_err());
+}
+
+#[test]
+fn command_line_quotes_only_what_needs_it() {
+    use validation_application::use_cases::meaning::command_line;
+    assert_eq!(
+        command_line(&[
+            "sas",
+            "update",
+            "a b.json",
+            "--intent",
+            "it's",
+            "<JSON Patch>"
+        ]),
+        "sas update 'a b.json' --intent 'it'\\''s' <JSON Patch>"
+    );
 }

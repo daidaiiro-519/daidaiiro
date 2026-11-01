@@ -12,7 +12,7 @@ mod patch;
 mod semantic;
 
 pub use delete::{DeleteRequest, Deletion, delete};
-pub use semantic::{SemanticOutcome, SemanticRequest, semantic_write};
+pub use semantic::{SemanticRequest, semantic_procedure};
 
 use crate::ports::CommitReader;
 use recording_application::ports::{
@@ -79,8 +79,8 @@ pub struct Violated {
 /// 作成か更新の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangeResult {
-    /// 呼んだ親セッションの ID（人なら None）
-    pub parent: Option<String>,
+    /// 打ったセッションの ID（人なら None）
+    pub session: Option<String>,
     /// 操作の ID
     pub operation: String,
     /// 作ったか直したか
@@ -122,8 +122,6 @@ pub struct CreateRequest {
     pub request_id: Option<String>,
     /// 意図（なぜ作るか）。記録に残し、間に入った変更として後の書き手に返す
     pub intent: Option<String>,
-    /// 書いた書き込み用の子セッションの ID（意味で書いたときだけ。記録に残す）
-    pub writer: Option<String>,
 }
 
 /// 更新の依頼。
@@ -139,8 +137,6 @@ pub struct UpdateRequest {
     pub request_id: Option<String>,
     /// 意図（なぜ直すか）。記録に残し、間に入った変更として後の書き手に返す
     pub intent: Option<String>,
-    /// 書いた書き込み用の子セッションの ID（意味で書いたときだけ。記録に残す）
-    pub writer: Option<String>,
 }
 
 /// 書く文書の文字列（1字下げの JSON と、末尾の改行。リポジトリの文書の書き方に合わせる）。
@@ -324,7 +320,7 @@ fn replay(
             ))
         })?;
     Ok(ChangeResult {
-        parent: stored.parent,
+        session: stored.session,
         operation: stored.operation,
         written,
         kind,
@@ -416,7 +412,6 @@ pub fn create(
         after: None,
         intent: request.intent.clone(),
         fields: Vec::new(),
-        child: request.writer.clone(),
     };
     let broken = form_violations(validator, kind, &request.concrete, &value, &corpus.more)
         .map_err(|e| refused("validator", path, e))?;
@@ -457,7 +452,7 @@ pub fn create(
     )
     .map_err(log_refused)?;
     Ok(ChangeResult {
-        parent: recorded.parent,
+        session: recorded.session,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
         written: Written::Created,
         kind,
@@ -516,7 +511,6 @@ pub fn update(
         after: None,
         intent: request.intent.clone(),
         fields: Vec::new(),
-        child: request.writer.clone(),
     };
     // 比べるハッシュ：呼ぶ側が読んだハッシュ（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後のハッシュ。
     // SAS が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べるハッシュが無く、そのまま書く
@@ -616,7 +610,7 @@ pub fn update(
         None => Vec::new(),
     };
     Ok(ChangeResult {
-        parent: recorded.parent,
+        session: recorded.session,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
         written: Written::Updated,
         kind,
@@ -862,7 +856,6 @@ pub fn adopt(
         after: None,
         intent: request.intent.clone(),
         fields: Vec::new(),
-        child: None,
     };
     let found = match &last {
         Some(_) => find_commit(committed, path, &recorded)?,
@@ -956,7 +949,7 @@ pub fn adopt(
         _ => Vec::new(),
     };
     Ok(ChangeResult {
-        parent: recorded.parent,
+        session: recorded.session,
         operation: recorded.operations.into_iter().next().unwrap_or_default(),
         written,
         kind,

@@ -1,0 +1,83 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-ANSWER-SHAPE",
+ "name": "判定の形が違う",
+ "title": "渡した判定が答えの形（agent-answer）に合わないと、記録せずに invalid_answer で理由と直し方を返す",
+ "why": "形の合わない答えを判定として記録しない。断る理由を返せば、打ったセッションが直して打ち直せる。",
+ "traces": [
+  "UC4:拡張:6a",
+  "UC4:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "answers/bad.json": "判定しました。verified です。",
+   "answers/no-hash.json": "{\"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"利用者が受け取る結果を書いている\"}]}"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--answer",
+   "answers/bad.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "items/r1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "exists": true
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/message",
+   "contains": "hash"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/r1.json",
+    "--answer",
+    "answers/no-hash.json"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "items/r1.json"
+   ]
+  }
+ ]
+}

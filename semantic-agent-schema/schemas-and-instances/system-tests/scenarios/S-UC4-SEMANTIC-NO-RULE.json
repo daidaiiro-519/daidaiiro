@@ -1,0 +1,44 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-NO-RULE",
+ "name": "判定する rule が無い",
+ "title": "意味の rule が無い対象に validate --semantic を打つと、手順を出さずに、機械の検証をそのまま記録して返す",
+ "why": "判定することが無いのに手順を返すと、空の判定を渡す手間だけが増える。",
+ "traces": [
+  "UC4:拡張:3a",
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/decision.schema.json": "@fixtures/decision.schema.json",
+   "decisions/d1.json": "@fixtures/d1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "decisions/d1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "when",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  }
+ ]
+}

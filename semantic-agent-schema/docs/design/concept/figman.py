@@ -35,7 +35,7 @@ class Fig:
 def overview():
     f = Fig(1000, 700, 'SAS と使う側と一般の製品')
     f.area(10, 10, 980, 190, '使う側（SAS の外）')
-    f.box(30, 40, 290, 56, ['オーケストレーター：', '目的のセッション・親子・子セッションへの委譲'])
+    f.box(30, 40, 290, 56, ['オーケストレーター：', '目的のセッションを立てて任せる'])
     f.box(30, 124, 290, 56, ['進め方としての目的', '（目的ごとに進める営み）'], dashed=True)
     f.box(355, 40, 290, 56, ['変更の運用：', '承認・まとめ・コミット・PR'])
     f.box(680, 40, 290, 56, ['Concrete を持つ Skill・ガイド'])
@@ -47,14 +47,13 @@ def overview():
     f.box(340, 360, 320, 56, ['能力：作成・更新・削除・', '検証・描画・検索'], 'focus')
     f.path('M500,416 V448'); f.path('M340,388 H175 V448'); f.path('M660,388 H825 V448', dashed=True)
     f.box(30, 450, 290, 64, ['記録：誰が何で動いたかと', '書いた変更・検証'], 'focus')
-    f.box(355, 450, 290, 64, ['契約：子セッションの起動と継続・差分', '（Git は読むだけ）・検査・描画'], 'focus')
+    f.box(355, 450, 290, 64, ['契約：手順を返す・差分', '（Git は読むだけ）・検査・描画'], 'focus')
     f.box(680, 450, 290, 64, ['意味としての目的：rule.why・', 'reading.when・description・意図'], 'kind-1')
-    f.area(10, 580, 980, 110, '一般の製品（渡す）')
-    f.path('M500,514 V618', dashed=True); f.note(508, 566, 'アダプター')
+    f.area(10, 580, 980, 110, '一般の製品')
     f.path('M420,514 V556 H260 V618', dashed=True); f.note(268, 574, '読むだけ')
     f.path('M580,514 V556 H825 V618', dashed=True); f.note(833, 574, '渡す')
     f.box(30, 620, 290, 56, ['製品：Git', '（コミット済みの版を読むだけ）'])
-    f.box(355, 620, 290, 56, ['製品：コーディングエージェント', '（どのツールでも）'])
+    f.box(355, 620, 290, 56, ['製品：コーディングエージェント', '（sas を打つ。SAS は起動しない）'])
     f.box(680, 620, 290, 56, ['製品：2020-12 のバリデーター・', 'テンプレートの処理系'])
     return f.write('overview')
 
@@ -69,7 +68,7 @@ def layers():
     f.box(340, 130, 150, 56, ['記録（補完）', 'スクリプト'])
     f.box(500, 130, 150, 56, ['描画（補完）', 'スクリプト'])
     f.box(660, 130, 150, 56, ['検索', 'ステップ8 で確かめる'])
-    f.box(820, 130, 150, 56, ['一般：版の管理・検証・', 'エージェント・部品'], dashed=True)
+    f.box(820, 130, 150, 56, ['一般：版の管理・', '検証・描画の部品'], dashed=True)
     f.area(10, 250, 980, 260, '解決の側（設計する）', tx=136)
     f.bound(24, 280, 952, 124, '文脈「スキーマとインスタンス」（1つ）', tx=136)
     labs = [['writing/', '書くのモジュール'], ['validation/', '検証のモジュール'], ['recording/', '記録のモジュール'], ['rendering/', '描画のモジュール'], ['search/', '検索のモジュール'], ['published-language/', '公開された言葉']]
@@ -78,7 +77,7 @@ def layers():
         f.box(x, 328, 150, 56, l, 'focus' if x < 300 else '')
     f.note(108, 230, 'モジュール')
     f.path('M895,384 V438', dashed=True); f.note(885, 420, 'アダプターとして渡す', 'end')
-    f.bound(24, 440, 952, 56, '外の文脈：製品（Git・コーディングエージェント・バリデーター・テンプレートの処理系）')
+    f.bound(24, 440, 952, 56, '外の文脈：製品（Git・バリデーター・テンプレートの処理系）と、sas を打つコーディングエージェント')
     return f.write('layers')
 
 def model():
@@ -113,7 +112,7 @@ def datamap():
     return rows_map('datamap', 'データとドメインモデルの対応', '手元の DB と Git', 'ドメインモデル・行', [
         ('Git のファイル：Concrete', '集約：Concrete', 'focus'),
         ('Git のファイル：インスタンス', '集約：インスタンス', 'focus'),
-        ('sessions（親セッションと子セッション。誰が何で動いたか）', '操作の記録の行（集約にしない。追記だけ）', ''),
+        ('sessions（打ったセッション。誰がどのツールで動いたか）', '操作の記録の行（集約にしない。追記だけ）', ''),
         ('changes・field_changes', '操作の記録の行（書いた変更。差分は値で読む）', ''),
         ('validations・rule_results', '操作の記録の行（検証。判定の結果は値で読む）', '')])
 
@@ -122,25 +121,21 @@ def gone():
         ('judgment', 'rule_results・rule-result', 'focus'),
         ('change', 'changes・field_changes・diff', 'focus'),
         ('change-summary', '使う側（まとめ・承認・コミット）', 'muted'),
-        ('call', 'procedure・agent-connector', 'focus'),
+        ('call', 'procedure（値を渡す command を持つ）', 'focus'),
         ('output-judging・output-working', 'agent-answer', 'focus'),
         ('vocab-meta', 'vocabulary（改名・x-view を足す）', 'focus')])
 
 def bnd():
-    f = Fig(1000, 490, 'スキーマの境界')
+    f = Fig(1000, 370, 'スキーマの境界')
     f.box(40, 30, 260, 56, ['Concrete を書く人・AI'])
     f.box(370, 30, 260, 56, ['呼び出し元（人・AI・CI）'])
-    f.box(700, 30, 260, 56, ['使う側のファイル', '（設定・接続の定義・デザインシステム）'])
+    f.box(700, 30, 260, 56, ['使う側のファイル', '（設定・デザインシステム）'])
     f.box(370, 170, 260, 56, ['SAS（CLI）'], 'focus')
-    f.path('M500,86 V168'); f.note(508, 118, 'CLI の引数 ⇄ command-result')
+    f.path('M500,86 V168'); f.note(508, 112, 'CLI の引数 ・ 値 ・ 判定'); f.note(508, 130, '⇄ command-result ・ procedure')
     f.path('M170,86 V198 H368'); f.note(178, 132, 'Concrete を書く型')
     f.path('M830,86 V198 H632'); f.note(822, 152, '受け取りの型', 'end')
     f.box(40, 290, 260, 50, ['手元の DB（5表・公開しない）'], dashed=True)
     f.path('M440,226 V315 H302', dashed=True); f.note(310, 306, 'スキーマにしない')
-    f.box(560, 290, 200, 50, ['アダプター'])
-    f.path('M600,226 V288'); f.note(608, 262, '接続の定義（agent-connector）で起動')
-    f.box(560, 410, 200, 56, ['子セッションの', 'エージェント'])
-    f.path('M660,340 V408'); f.note(668, 380, 'procedure ⇄ agent-answer')
     return f.write('bnd')
 
 def hexf():
@@ -156,13 +151,13 @@ def hexf():
     f.path('M670,128 H690 V388 H662')
     f.path('M440,208 H420 V498 H438', dashed=True); f.note(412, 470, '記録', 'end')
     f.path('M230,391 H320 V128 H438'); f.path('M320,208 H438'); f.path('M320,391 V658 H438'); f.path('M320,498 H438'); f.path('M320,578 H438')
-    PS = [(102, 46, ['ポート（書く）', 'commit_reader']), (170, 106, ['ポート（検証）', 'document_store', 'schema_validator', 'read_meaning（6）', 'keep_prompt（6）']), (470, 70, ['ポート（記録）', 'identify_caller', 'operation_log']), (556, 46, ['ポート（描画）', 'template_renderer'])]
+    PS = [(102, 46, ['ポート（書く）', 'commit_reader']), (170, 66, ['ポート（検証）', 'document_store', 'schema_validator']), (470, 70, ['ポート（記録）', 'identify_caller', 'operation_log']), (556, 46, ['ポート（描画）', 'template_renderer'])]
     for y, h, l in PS: f.box(704, y, 166, h, l)
     for y in [100, 180, 470, 550]: f.path(f'M670,{y+28} H702')
-    AD = [(80, 'outbound/agents（6）'), (150, 'outbound/filesystem'), (220, 'outbound/git（読むだけ）'), (290, 'outbound/jsonschema'), (470, 'outbound/sqlite'), (560, 'outbound/templates（5）')]
+    AD = [(150, 'outbound/filesystem'), (220, 'outbound/git（読むだけ）'), (290, 'outbound/jsonschema'), (470, 'outbound/sqlite'), (560, 'outbound/templates（5）')]
     for y, l in AD: f.box(1080, y, 200, 44, [l])
     f.note(1180, 60, 'アダプター（outbound）', 'middle', True)
-    C = [(102, 1060, 250), (172, 1045, 230), (242, 1030, 125), (312, 1015, 200), (492, 1000, 505), (582, 985, 579)]
+    C = [(172, 1045, 216), (242, 1030, 125), (312, 1015, 230), (492, 1000, 505), (582, 985, 579)]
     for ay, lx, ty in C: f.path(f'M1078,{ay} H{lx} V{ty} H872')
     f.note(1180, 690, 'アダプターがポートを実装する（外 → 内）', 'middle')
     f.note(1180, 708, 'writing-domain は何にも依存しない', 'middle')
@@ -174,11 +169,11 @@ def cratesf():
     f.area(350, 10, 520, 720, 'application')
     f.area(910, 10, 320, 720, 'domain')
     f.box(30, 46, 260, 56, ['inbound-cli', '（bin・コンポジションルート）'], 'focus')
-    outs = ['agents（6）', 'filesystem', 'git', 'jsonschema', 'sqlite', 'templates（5）']
+    outs = ['filesystem', 'git', 'jsonschema', 'sqlite', 'templates', 'javascript']
     for i, n in enumerate(outs): f.box(30, 136 + i * 92, 260, 56, ['outbound-' + n], dashed=n.endswith('）'))
     f.path('M30,86 H20 V624', arrow=False)
     for i in range(6): f.path(f'M20,{164 + i * 92} H28')
-    apps = [(60, 'writing-application', 'focus', False), (170, 'validation-application', 'focus', False), (400, 'recording-application', '', False), (500, 'rendering-application（5）', '', True), (600, 'search-application（8）', '', True)]
+    apps = [(60, 'writing-application', 'focus', False), (170, 'validation-application', 'focus', False), (400, 'recording-application', '', False), (500, 'rendering-application', '', False), (600, 'search-application（8）', '', True)]
     for y, n, r, d in apps: f.box(390, y, 290, 56, [n], r, dashed=d)
     f.box(940, 60, 270, 56, ['writing-domain'], 'focus')
     f.box(940, 170, 270, 56, ['validation-domain'], 'focus')
@@ -193,7 +188,7 @@ def cratesf():
     f.note(1075, 300, 'validation-domain は集約を読む', 'middle')
     f.note(160, 700, 'cli だけが outbound に依存', 'middle')
     f.note(610, 676, '線は依存してよい向き：書く → 検証 → 記録、検証の domain → 書くの domain', 'middle')
-    f.note(610, 694, 'いま11、点線はこれから足す', 'middle')
+    f.note(610, 694, 'いま14、点線はこれから足す', 'middle')
     f.note(610, 712, 'outbound は application のポートを実装する', 'middle')
     return f.write('crates', 1000)
 

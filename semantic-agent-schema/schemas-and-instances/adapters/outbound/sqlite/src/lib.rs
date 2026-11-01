@@ -1,13 +1,14 @@
 //! ポート OperationLog を SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/sas/sas.db で、コミットしない）。
 //!
 //! 操作の ID（o-0001。changes と validations で同じ採番）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。
-//! application と domain は時刻に触らない。セッションの ID はツールのもので、ここでは作らない。
+//! application と domain は時刻に触らない。セッションの ID はツールのもので、ツールから取れないとき（sas init）だけここで作る。
 
 use recording_application::ports::{
-    Caller, ChangeRow, ChildRecord, ChildRow, FieldRow, Judgment, OperationLog, RuleRow,
-    StoredChange, ValidateRow, WriteRecord,
+    Caller, ChangeRow, FieldRow, Judgment, OperationLog, RuleRow, SessionRow, StoredChange,
+    ValidateRow, WriteRecord,
 };
 use rusqlite::{Connection, OptionalExtension, params};
+use std::hash::{BuildHasher, Hasher};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -30,7 +31,7 @@ fn err(e: &rusqlite::Error) -> String {
 }
 
 impl SqliteLog {
-    /// path の DB を開き、表が古ければ作る。親セッションのフォルダが無ければ作る。
+    /// path の DB を開き、表が古ければ作る。置き場所のフォルダが無ければ作る。
     ///
     /// # Errors
     /// 開けない ・ 表を作れないとき。
@@ -92,7 +93,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent, child_session_id \
+                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent \
                  FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
@@ -105,7 +106,6 @@ impl SqliteLog {
                         after: r.get(5)?,
                         intent: r.get(6)?,
                         fields: Vec::new(),
-                        child: r.get(7)?,
                     })
                 },
             )
@@ -143,15 +143,15 @@ impl SqliteLog {
         Ok(format!("o-{:04}", n + 1))
     }
 
-    /// 操作の ID と親から、記録にある変更を組む。
+    /// 操作の ID と打ったセッションから、記録にある変更を組む。
     fn stored(&self, found: Vec<(String, Option<String>)>) -> Result<Vec<StoredChange>, String> {
         found
             .into_iter()
-            .map(|(operation, parent)| {
+            .map(|(operation, session)| {
                 Ok(StoredChange {
                     row: self.change_row(&operation)?,
                     operation,
-                    parent,
+                    session,
                 })
             })
             .collect()
@@ -184,43 +184,76 @@ fn now() -> String {
 }
 
 impl OperationLog for SqliteLog {
-    fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
-        let Caller::Parent { id, tool } = caller else {
+    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+        let Caller::Session {
+            id,
+            tool,
+            folder,
+            via,
+        } = caller
+        else {
             return Ok(None);
         };
-        // 初めて見た親だけ1行足す（行は書き換えない）
+        // 初めて見たセッションだけ1行足す（行は書き換えない）
         self.conn
             .execute(
-                "INSERT INTO sessions (id, role, tool, first_seen) VALUES (?1, 'caller', ?2, ?3) \
+                "INSERT INTO sessions (id, tool, folder, via, first_seen) VALUES (?1, ?2, ?3, ?4, ?5) \
                  ON CONFLICT (id) DO NOTHING",
-                params![id, tool, now()],
+                params![id, tool, folder, via.as_str(), now()],
             )
             .map_err(|e| err(&e))?;
-        let role: String = self
-            .conn
-            .query_row("SELECT role FROM sessions WHERE id = ?1", [id], |r| {
-                r.get(0)
-            })
-            .map_err(|e| err(&e))?;
-        if role != "caller" {
-            return Err(format!(
-                "セッション {id} は SAS が起動した子セッション（{role}）で、親セッションとして名乗れない"
-            ));
-        }
         Ok(Some(id.clone()))
+    }
+
+    fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
+        self.conn
+            .query_row(
+                "SELECT id, tool, folder, via FROM sessions WHERE id = ?1",
+                [id],
+                session_row,
+            )
+            .optional()
+            .map_err(|e| err(&e))
+    }
+
+    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
+        self.conn
+            .query_row(
+                "SELECT id, tool, folder, via FROM sessions WHERE folder = ?1 AND via = 'init' \
+                 ORDER BY rowid DESC LIMIT 1",
+                [folder],
+                session_row,
+            )
+            .optional()
+            .map_err(|e| err(&e))
+    }
+
+    fn new_session_id(&self) -> String {
+        // 時刻とプロセスに、プロセスごとに乱数で決まる鍵のハッシュを2つ重ねる（推測できる時刻だけにしない）
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos());
+        let part = |salt: u64| {
+            let mut h = std::collections::hash_map::RandomState::new().build_hasher();
+            h.write_u128(nanos);
+            h.write_u32(std::process::id());
+            h.write_u64(salt);
+            h.finish()
+        };
+        format!("sas-{:016x}{:016x}", part(1), part(2))
     }
 
     fn append_validate(
         &mut self,
-        parent: Option<&str>,
+        session: Option<&str>,
         row: &ValidateRow,
     ) -> Result<String, String> {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
-            "INSERT INTO validations (id, at, target_path, hash, parent_session_id, child_session_id) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![id, now(), row.target_path, row.hash, parent, row.child_session],
+            "INSERT INTO validations (id, at, target_path, hash, session_id) \
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, now(), row.target_path, row.hash, session],
         )
         .map_err(|e| err(&e))?;
         for (ord, r) in row.results.iter().enumerate() {
@@ -235,15 +268,15 @@ impl OperationLog for SqliteLog {
         Ok(id)
     }
 
-    fn append_change(&mut self, parent: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+    fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
             "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, \
-             parent_session_id, child_session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+             session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 id, now(), row.kind, row.target_path, row.before, row.after, row.intent, row.request_id,
-                row.source, parent, row.child
+                row.source, session
             ],
         )
         .map_err(|e| err(&e))?;
@@ -263,7 +296,7 @@ impl OperationLog for SqliteLog {
         let found: Option<(String, Option<String>)> = self
             .conn
             .query_row(
-                "SELECT id, parent_session_id FROM changes WHERE request_id = ?1",
+                "SELECT id, session_id FROM changes WHERE request_id = ?1",
                 [request_id],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
@@ -276,7 +309,7 @@ impl OperationLog for SqliteLog {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT id, parent_session_id, at FROM changes \
+                "SELECT id, session_id, at FROM changes \
                  WHERE kind IN ('create', 'update') AND target_path = ?1 \
                    AND rowid > coalesce((SELECT max(rowid) FROM changes \
                                          WHERE kind = 'delete' AND target_path = ?1), 0) \
@@ -290,11 +323,11 @@ impl OperationLog for SqliteLog {
             .map_err(|e| err(&e))?;
         found
             .into_iter()
-            .map(|(operation, parent, at)| {
+            .map(|(operation, session, at)| {
                 Ok(WriteRecord {
                     row: self.change_row(&operation)?,
                     operation,
-                    parent,
+                    session,
                     at,
                 })
             })
@@ -333,71 +366,14 @@ impl OperationLog for SqliteLog {
         .collect::<Result<_, _>>()
         .map_err(|e| err(&e))
     }
+}
 
-    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String> {
-        let existing: Option<String> = self
-            .conn
-            .query_row(
-                "SELECT role FROM sessions WHERE id = ?1",
-                [&child.id],
-                |r| r.get(0),
-            )
-            .optional()
-            .map_err(|e| err(&e))?;
-        match existing {
-            Some(role) if role == child.role => Ok(()),
-            Some(role) => Err(format!(
-                "セッション {} はすでに {role} として在り、{} にできない",
-                child.id, child.role
-            )),
-            None => self
-                .conn
-                .execute(
-                    "INSERT INTO sessions (id, role, parent_id, tool, model, launch, first_seen) \
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                    params![
-                        child.id,
-                        child.role,
-                        parent,
-                        child.tool,
-                        child.model,
-                        child.launch,
-                        now()
-                    ],
-                )
-                .map(|_| ())
-                .map_err(|e| err(&e)),
-        }
-    }
-
-    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String> {
-        self.conn
-            .query_row(
-                "SELECT s.role, s.parent_id, s.tool, s.model, s.launch, \
-                   (SELECT count(*) FROM validations WHERE child_session_id = s.id) \
-                   + (SELECT count(*) FROM changes WHERE child_session_id = s.id), \
-                   CAST(strftime('%s', 'now') AS INTEGER) - CAST(strftime('%s', coalesce( \
-                     (SELECT max(at) FROM (SELECT at FROM validations WHERE child_session_id = s.id \
-                                           UNION ALL SELECT at FROM changes WHERE child_session_id = s.id)), \
-                     s.first_seen)) AS INTEGER) \
-                 FROM sessions s WHERE s.id = ?1 AND s.role <> 'caller'",
-                [id],
-                |r| {
-                    Ok(ChildRecord {
-                        row: ChildRow {
-                            id: id.to_string(),
-                            role: r.get(0)?,
-                            tool: r.get(2)?,
-                            model: r.get(3)?,
-                            launch: r.get::<_, Option<String>>(4)?.unwrap_or_default(),
-                        },
-                        parent: r.get(1)?,
-                        uses: u64::try_from(r.get::<_, i64>(5)?).unwrap_or_default(),
-                        idle_s: u64::try_from(r.get::<_, i64>(6)?).unwrap_or_default(),
-                    })
-                },
-            )
-            .optional()
-            .map_err(|e| err(&e))
-    }
+/// sessions の行を読む（id ・ tool ・ folder ・ via の順に選んだ行）。
+fn session_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<SessionRow> {
+    Ok(SessionRow {
+        id: r.get(0)?,
+        tool: r.get(1)?,
+        folder: r.get(2)?,
+        via: r.get(3)?,
+    })
 }

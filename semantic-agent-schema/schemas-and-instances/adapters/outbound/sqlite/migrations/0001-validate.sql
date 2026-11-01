@@ -2,20 +2,15 @@
 -- ステップ4b で書き直した（公開前なので移行の番号は足さない）。セッションは状態を持たない：開閉 ・ 終わり方 ・ 続き番号は無い。
 -- どの表も追記だけ（UPDATE ・ DELETE を trigger で拒む）。
 
--- 親セッションは SAS が初めて見たときに1行（role = caller）。子セッション（writer ・ checker）は起動したときに1行で、ステップ6 から書く
+-- sas を打ったセッションは、SAS が初めて見たときに1行（sas init で登録したときも）。SAS はエージェントを起動しないので、
+-- セッションどうしのつながりと起動の設定は持たない（概念のページ版28）
 CREATE TABLE sessions (
-    id         TEXT PRIMARY KEY,                          -- ツールのセッション ID（親セッションは --session か環境変数）
-    role       TEXT NOT NULL CHECK (role IN ('caller', 'writer', 'checker')),
-    parent_id  TEXT REFERENCES sessions (id),             -- 子セッションを起動させた親セッション。親セッションの行と、人が起動させた子セッションは NULL
+    id         TEXT PRIMARY KEY,                          -- セッション ID（--session ・ ツールの環境変数 ・ sas init で SAS が決めたもの）
     tool       TEXT NOT NULL,                             -- claude-code など。分からなければ unknown
-    model      TEXT,                                      -- 子セッションを起動したモデル。親セッションは分からなければ NULL
-    launch     TEXT CHECK (launch IS NULL OR json_valid(launch)),  -- 子セッションの起動の設定。--continue で同じものを渡す
-    first_seen TEXT NOT NULL,
-    CHECK (role <> 'caller' OR (parent_id IS NULL AND launch IS NULL)),
-    CHECK (role = 'caller' OR launch IS NOT NULL)
+    folder     TEXT NOT NULL,                             -- 初めて見たときに打ったフォルダ（Git の中ならリポジトリの根、外なら作業フォルダ）
+    via        TEXT NOT NULL CHECK (via IN ('env', 'flag', 'init')),  -- ID をどこから知ったか
+    first_seen TEXT NOT NULL
 ) STRICT;
-
-CREATE INDEX sessions_by_parent ON sessions (parent_id, role) WHERE parent_id IS NOT NULL;
 
 CREATE TRIGGER sessions_no_update BEFORE UPDATE ON sessions
 BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;
@@ -23,18 +18,13 @@ BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;
 CREATE TRIGGER sessions_no_delete BEFORE DELETE ON sessions
 BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;
 
-CREATE TRIGGER sessions_parent_is_caller BEFORE INSERT ON sessions
-WHEN NEW.parent_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_id) IS NOT 'caller'
-BEGIN SELECT RAISE(ABORT, 'the parent must be a caller session'); END;
-
 -- 検証。対象を変えないのでハッシュは1つ。ID は changes と同じ採番（o-NNNN）から振る
 CREATE TABLE validations (
     id                TEXT PRIMARY KEY,
     at                TEXT NOT NULL,
     target_path       TEXT NOT NULL,
     hash              TEXT NOT NULL,
-    parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親セッション。人は NULL
-    child_session_id  TEXT REFERENCES sessions (id)       -- 判定した検証用の子セッション。子セッションに判定させなかったなら NULL
+    session_id        TEXT REFERENCES sessions (id)       -- 打ったセッション。人は NULL
 ) STRICT;
 
 CREATE INDEX validations_by_target ON validations (target_path, id);
@@ -51,14 +41,6 @@ CREATE TABLE rule_results (
     reads_hash    TEXT NOT NULL,
     PRIMARY KEY (validation_id, ord)
 ) STRICT;
-
-CREATE TRIGGER validations_parent_is_caller BEFORE INSERT ON validations
-WHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'
-BEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;
-
-CREATE TRIGGER validations_child_is_checker BEFORE INSERT ON validations
-WHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'checker'
-BEGIN SELECT RAISE(ABORT, 'a validation is made by a checker'); END;
 
 CREATE TRIGGER validations_no_update BEFORE UPDATE ON validations
 BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;
