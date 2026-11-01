@@ -14,8 +14,18 @@ fn suite() -> PathBuf {
 
 /// sas が返す結果の形（出力のたびに照らす）。
 fn result_schema() -> jsonschema::Validator {
+    published("operation-result.schema.json")
+}
+
+/// 子セッションに渡した手順の形（意味の部分を含む操作で、結果の行の前に出る）。
+fn procedure_schema() -> jsonschema::Validator {
+    published("procedure.schema.json")
+}
+
+fn published(name: &str) -> jsonschema::Validator {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../published-language/v1/operation-result.schema.json");
+        .join("../../../published-language/v1")
+        .join(name);
     let schema: Value =
         serde_json::from_str(&std::fs::read_to_string(path).expect("結果の形を読めること"))
             .expect("結果の形が JSON であること");
@@ -126,13 +136,15 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
         })
         .collect();
     for line in &lines {
-        let errors: Vec<String> = result_schema()
-            .iter_errors(line)
-            .map(|e| e.to_string())
-            .collect();
+        let (schema, name) = if line.get("kind").and_then(Value::as_str) == Some("procedure") {
+            (procedure_schema(), "procedure.schema.json")
+        } else {
+            (result_schema(), "operation-result.schema.json")
+        };
+        let errors: Vec<String> = schema.iter_errors(line).map(|e| e.to_string()).collect();
         assert!(
             errors.is_empty(),
-            "{id} {label}: 出力が operation-result.schema.json に従わない {errors:?}"
+            "{id} {label}: 出力が {name} に従わない {errors:?}"
         );
     }
     if let Some(n) = expect.get("lines").and_then(Value::as_u64) {

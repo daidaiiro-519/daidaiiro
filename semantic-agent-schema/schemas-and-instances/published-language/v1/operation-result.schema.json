@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:operation-result:v1",
  "title": "sas が返す結果",
- "description": "sas のコマンドが標準出力へ返す JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。$defs はステップごとに足す",
+ "description": "sas のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分を含む操作は、結果の行の前に、子セッションに渡した手順（procedure.schema.json に従う行）を出す。$defs はステップごとに足す",
  "type": "object",
  "required": [
   "$schema",
@@ -14,7 +14,6 @@
   },
   "kind": {
    "enum": [
-    "procedure",
     "validation",
     "change",
     "render",
@@ -23,9 +22,6 @@
   }
  },
  "oneOf": [
-  {
-   "$ref": "#/$defs/procedure"
-  },
   {
    "$ref": "#/$defs/validation"
   },
@@ -977,105 +973,6 @@
         "description": "使った x-view の種類"
        }
       }
-     }
-    }
-   }
-  },
-  "procedure": {
-   "type": "object",
-   "required": [
-    "kind",
-    "operation_kind",
-    "target",
-    "steps",
-    "answer",
-    "constraints"
-   ],
-   "description": "手順のプロンプト（rule の判定を検証用の子セッションに渡したもの。出力の1行目から、対象ごとに1行）。答えは step ・ rule ・ pointer で突き合わせる",
-   "properties": {
-    "$schema": true,
-    "kind": {
-     "const": "procedure"
-    },
-    "operation_kind": {
-     "enum": [
-      "validate"
-     ]
-    },
-    "child_session": {
-     "type": [
-      "string",
-      "null"
-     ],
-     "description": "判定した検証用の子セッションの ID"
-    },
-    "target": {
-     "type": "object",
-     "required": [
-      "path",
-      "concrete",
-      "fingerprint"
-     ],
-     "properties": {
-      "path": {
-       "type": "string"
-      },
-      "concrete": {
-       "type": "string"
-      },
-      "fingerprint": {
-       "$ref": "#/$defs/fingerprint"
-      }
-     }
-    },
-    "steps": {
-     "type": "array",
-     "minItems": 1,
-     "items": {
-      "type": "object",
-      "required": [
-       "no",
-       "action",
-       "pointer",
-       "rules",
-       "current"
-      ],
-      "properties": {
-       "no": {
-        "type": "integer",
-        "minimum": 1
-       },
-       "action": {
-        "enum": [
-         "judge"
-        ]
-       },
-       "pointer": {
-        "type": "string"
-       },
-       "title": {
-        "type": "string"
-       },
-       "description": {
-        "type": "string"
-       },
-       "rules": {
-        "type": "array",
-        "items": {
-         "type": "object"
-        }
-       },
-       "current": true
-      }
-     }
-    },
-    "answer": {
-     "type": "object"
-    },
-    "constraints": {
-     "type": "array",
-     "items": {
-      "type": "string"
      }
     }
    }

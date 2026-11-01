@@ -32,7 +32,7 @@ fn rule_result(r: &RuleResult) -> Value {
 pub fn print_procedures(m: &MeaningOutcome) {
     for p in &m.procedures {
         let mut line = p.clone();
-        line["$schema"] = json!("urn:semantic-agent-schema:published-language:operation-result:v1");
+        line["$schema"] = json!("urn:semantic-agent-schema:published-language:procedure:v1");
         line["child_session"] = json!(m.child);
         println!("{line}");
     }

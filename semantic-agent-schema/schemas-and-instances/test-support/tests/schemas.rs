@@ -76,6 +76,11 @@ fn shipped_result_schema_follows_meta_schema() {
 }
 
 #[test]
+fn shipped_procedure_schema_follows_meta_schema() {
+    assert_meta_valid("schemas-and-instances/published-language/v1/procedure.schema.json");
+}
+
+#[test]
 fn scenarios_follow_schema() {
     let schema = load("schemas-and-instances/system-tests/scenario.schema.json");
     let validator = jsonschema::validator_for(&schema).expect("場面のスキーマを組めること");

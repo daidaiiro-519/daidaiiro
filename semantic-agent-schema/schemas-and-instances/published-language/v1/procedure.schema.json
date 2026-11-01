@@ -1,0 +1,113 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:published-language:procedure:v1",
+ "title": "手順のプロンプト",
+ "description": "SAS が Concrete の rule ・ 当たる所から組み、SAS が起動した子セッション（AI）に渡す手順。子セッションは steps を順に行い、answer の形の JSON だけを返す。意味の部分を含む操作では、CLI の出力の結果の行の前にも同じものを1行ずつ出す（呼び出し元が何を頼んだかを読めるように）",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind",
+  "operation_kind",
+  "target",
+  "steps",
+  "answer",
+  "constraints"
+ ],
+ "properties": {
+  "$schema": {
+   "const": "urn:semantic-agent-schema:published-language:procedure:v1"
+  },
+  "kind": {
+   "const": "procedure"
+  },
+  "operation_kind": {
+   "enum": [
+    "validate"
+   ]
+  },
+  "child_session": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "description": "判定した検証用の子セッションの ID"
+  },
+  "target": {
+   "type": "object",
+   "required": [
+    "path",
+    "concrete",
+    "fingerprint"
+   ],
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "concrete": {
+     "type": "string"
+    },
+    "fingerprint": {
+     "$ref": "#/$defs/fingerprint"
+    }
+   }
+  },
+  "steps": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "no",
+     "action",
+     "pointer",
+     "rules",
+     "current"
+    ],
+    "properties": {
+     "no": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "action": {
+      "enum": [
+       "judge"
+      ]
+     },
+     "pointer": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "rules": {
+      "type": "array",
+      "items": {
+       "type": "object"
+      }
+     },
+     "current": true
+    }
+   }
+  },
+  "answer": {
+   "type": "object"
+  },
+  "constraints": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  }
+ },
+ "additionalProperties": false,
+ "$defs": {
+  "fingerprint": {
+   "type": "string",
+   "pattern": "^sha256:[0-9a-f]{64}$",
+   "description": "対象の中身（バイト列）の SHA-256"
+  }
+ }
+}
