@@ -122,7 +122,7 @@ def gone():
         ('judgment', 'rule_results・rule-result', 'focus'),
         ('change', 'changes・field_changes・diff', 'focus'),
         ('change-summary', '使う側（まとめ・承認・コミット）', 'muted'),
-        ('call', 'procedure-prompt・session-request', 'focus'),
+        ('call', 'procedure・agent-connector', 'focus'),
         ('output-judging・output-working', 'agent-answer', 'focus'),
         ('vocab-meta', 'vocabulary（改名・x-view を足す）', 'focus')])
 
@@ -138,9 +138,9 @@ def bnd():
     f.box(40, 290, 260, 50, ['手元の DB（5表・公開しない）'], dashed=True)
     f.path('M440,226 V315 H302', dashed=True); f.note(310, 306, 'スキーマにしない')
     f.box(560, 290, 200, 50, ['アダプター'])
-    f.path('M600,226 V288'); f.note(608, 262, 'session-request ⇄ reply')
+    f.path('M600,226 V288'); f.note(608, 262, '接続の定義（agent-connector）で起動')
     f.box(560, 410, 200, 56, ['子セッションの', 'エージェント'])
-    f.path('M660,340 V408'); f.note(668, 380, 'procedure-prompt ⇄ agent-answer')
+    f.path('M660,340 V408'); f.note(668, 380, 'procedure ⇄ agent-answer')
     return f.write('bnd')
 
 def hexf():

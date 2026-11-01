@@ -1,4 +1,4 @@
-"""Semantic Agent Schema の概念（版25）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
+"""Semantic Agent Schema の概念（版26）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
 図は design-svg の figure と chart exchange で作り、ER 図と3段の型は版5（../sas-role4/）の検査済みの図を使う。"""
 import os, re, json, subprocess, html
 H = os.path.dirname(os.path.abspath(__file__))
@@ -279,6 +279,7 @@ T_NEW = {
   + det('Rust の決まり（一次情報の頁と行）', '<ul class="plain">' + ''.join(f'<li>{x}</li>' for x in RULES_RS) + '</ul><p class="hint">原文は 2026-10-31 に取得して照合した（The Rust Programming Language・The Cargo Book・The Rust Reference・Rust API Guidelines。識別子33個・引用51件が原文と一致）。crate の数の基準は原文に無い。</p>')),
  'schema': ('schema', 'スキーマと DB',
   '<p class="ans">公開された言葉は published-language/v1 の8つ（Concrete を書く型3 ・ CLI の出力1 ・ 子セッションへの指示1 ・ 受け取りの型3）。JSON Schema で書けることは JSON Schema で書き、x- と SAS の rule は書けないことだけにする。子セッションとのやりとり（答えの形）は公開しない。DB は5表とビューで公開せず、起動の設定のほかのどの欄も CLI の出力の形のどこかに出る。</p>'
+  + '<h3>自分の $id を持つリソースにするか、$defs の部品にするか</h3><div class="tw"><table><tr><th>問い</th><th>はい</th><th>いいえ</th></tr><tr><td>1. その形を1つの文書として名指しする相手がいるか（$schema で名乗る ・ 別の文書の欄から URN で指す ・ 外の道具へ文書で渡す）</td><td>2へ</td><td>使うリソースの $defs に置く。複数で使うなら意味の持ち主の $defs に置き、ほかは $id#/$defs/名前 で指す</td></tr><tr><td>2. すでにあるリソースと、読み手も変わる理由も同じか</td><td>同じリソースに置く</td><td>自分の $id を持つリソース（ファイル）にする</td></tr></table></div><p class="hint">ファイルは運ぶ単位で、線はリソース（$id）にある（JSON Schema 2020-12 Core 8.2.4 ・ 9.3）。手順（procedure）は子セッションが読み手で command-result と違うので別のリソース。Concrete を書く人への作法は Abstract の $defs の説明にある：インスタンスの根にならない形は $defs、ほかの Concrete の形は写さず $ref、形だけの Concrete は作らない。pattern 1つ程度の小さな値の型（指紋など）は、読み手の違うリソースどうしでは写してよい。</p>'
   + fig(F['bnd'], 'スキーマの境界', 'JSON で表したい・型で制御したい・意味を持たせたい・決まった型で返したい、のどれかに当たる境界だけをスキーマにする。DB の表と版の管理・バリデーター・テンプレートの処理系はプロセスの外へ JSON が出ないのでスキーマにしない。')
   + schg_html()
   + cards([("Concrete を書く型", "Concrete に書ける x- は4つ（x-prompt ・ x-decided-by ・ x-published ・ x-view）。x- を増やさず、意味の決まりは x-prompt の rule に書く。参照のパスが要る Concrete は、普通の欄（format: uri-reference と pattern）として書く"), ("子セッションとのやりとり", "答えの形（agent-answer）はポートの側。手順は command-result の procedure、起動は agent-connector"), ("公開しない", "DB の DDL。出力では DB の名前を直し、DDL を変えても出力のスキーマは変わらない")])
@@ -345,6 +346,7 @@ T_VERIFY = ('verify', '確かめる',
 
 # ---------- 決めたこと・承認 ----------
 DECIDED = [
+ ("版26", "スキーマの分け方の作法", "外に出すかの線はファイルではなくリソース（$id）。名指しする相手がいて、読み手か変わる理由が違うときだけ自分の $id を持つ。Concrete を書く人への作法は Abstract の $defs の説明に書いた（部品は $defs、ほかの Concrete の形は $ref、形だけの Concrete は作らない）。rule は足さない"),
  ("版25", "operation-result を command-result に", "SAS のコマンドの出力の抽象の型なので、名前をコマンドにそろえた（記録の操作 operation と取り違えない）。入力は CLI の引数で、command-request は JSON で依頼する口を作るときに足す"),
  ("版24", "手順のプロンプトを独立したスキーマに", "手順は SAS が子セッションに渡す指示で、CLI の結果（operation-result）とは相手も役目も違うので、operation-result の $defs から published-language/v1/procedure.schema.json に分けた。公開された言葉は8つ。版21 で「手順は operation-result の中で足りる」とした判断を改めた"),
  ("版23", "rule の by をなくした", "x-prompt の rule は、書く AI への指示であり、検証では子セッションが判定するレビューの観点である。by: machine は SAS に実行する手段が無くいつも unsupported、by: human は unverified を返すだけで、どちらも空の約束だった。値だけで決まる決まりは JSON Schema、JSON Schema で書けない Concrete の決まり2つ（instance-schema-name ・ unique-id）は SAS の組み込みの検査、承認は x-decided-by の欄、子セッションが決められないときは unverified。人だけが変える欄の rule human-entry-only も外した"),
@@ -418,7 +420,7 @@ APPROVE = [
  ("土台の文の案（ディレクトリと文脈・中の形）", "見解：「文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）」と「中の形は文脈ごとに中をポートとアダプターで作る、上から決めて下から確かめる」に直す。土台は正本なので ACDR 0217 で差分を見せてから直す（0216 を置き換える）"),
  ("ガイドの確かめる段階（ボード Q5）と Q3 に手順を足す", "見解：Q5 に上からと下からの突き合わせの5つの手順、Q3 に「同じ物を2つの目的で別のモデルにしているか」の問いを足す。ボードは次の回で直す"),
 ]
-TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2"}
+TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2"}
 def tagged(items):
     return '<div class="dec">' + ''.join(f'<div class="dc {TAGC[t]}"><span class="tag">{"版2 のまま" if t == "版2" else t}</span><b>{h}</b><span>{d}</span></div>' for t, h, d in items) + '</div>'
 
@@ -595,7 +597,7 @@ JS = '''<script>
 })();
 </script>'''
 page = ('<title>Semantic Agent Schema の概念</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>\n' + CSS + '\n</style>\n<main>'
-        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版25（operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
+        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版26（スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
         + status + f'<nav class="tabs" role="tablist" aria-label="内容">{tabs}</nav>' + panels + '</main>\n' + JS)
 open(os.path.join(H, 'index.html'), 'w').write(page)
 for n, r in REPORT: print(n, r)
