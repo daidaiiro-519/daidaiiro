@@ -132,7 +132,7 @@ def bnd():
     f.box(370, 30, 260, 56, ['呼び出し元（人・AI・CI）'])
     f.box(700, 30, 260, 56, ['使う側のファイル', '（設定・デザインシステム）'])
     f.box(370, 170, 260, 56, ['SAS（CLI）'], 'focus')
-    f.path('M500,86 V168'); f.note(508, 112, 'CLI の引数 ・ 値 ・ 判定'); f.note(508, 130, '⇄ command-result ・ procedure')
+    f.path('M500,86 V168'); f.note(508, 112, 'CLI の引数 ・ 値 ・ 判定の答え'); f.note(508, 130, '⇄ command-result ・ procedure')
     f.path('M170,86 V198 H368'); f.note(178, 132, 'Concrete を書く型')
     f.path('M830,86 V198 H632'); f.note(822, 152, '受け取りの型', 'end')
     f.box(40, 290, 260, 50, ['手元の DB（5表・公開しない）'], dashed=True)
