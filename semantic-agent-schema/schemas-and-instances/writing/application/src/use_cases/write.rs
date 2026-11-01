@@ -691,7 +691,7 @@ fn find_commit(
     path: &str,
     recorded: &[String],
 ) -> Result<Option<(String, Value, String)>, Refused> {
-    let store_err = |e: String| refused("commits", path, e);
+    let store_err = |e: String| refused("versions", path, e);
     for rev in committed
         .commits(path, COMMITS_TO_SEARCH)
         .map_err(store_err)?

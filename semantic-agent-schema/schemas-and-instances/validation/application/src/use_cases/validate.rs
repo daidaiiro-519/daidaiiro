@@ -109,7 +109,7 @@ pub struct Validation {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
-    /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ commits ・ log、
+    /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
     /// 描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out、
     /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ conflict ・ patch_failed ・
     /// human_field ・ published_changed）
@@ -373,15 +373,18 @@ fn apply_meaning(
             let now = reader.launch();
             if recorded.get("connector") != now.get("connector")
                 || recorded.get("version") != now.get("version")
+                || recorded.get("fingerprint") != now.get("fingerprint")
             {
                 return Err(Refused {
                     code: "launch_mismatch",
                     message: format!(
-                        "子セッション {id} は接続の定義 {} 版 {} で起動した。いまの定義（{} 版 {}）では続けない。同じ定義を --agent に渡す",
+                        "子セッション {id} は接続の定義 {} 版 {}（{}）で起動した。いまの定義（{} 版 {}、{}）では続けない。同じ定義を --agent に渡す",
                         recorded.get("connector").unwrap_or(&Value::Null),
                         recorded.get("version").unwrap_or(&Value::Null),
+                        recorded.get("fingerprint").unwrap_or(&Value::Null),
                         now.get("connector").unwrap_or(&Value::Null),
-                        now.get("version").unwrap_or(&Value::Null)
+                        now.get("version").unwrap_or(&Value::Null),
+                        now.get("fingerprint").unwrap_or(&Value::Null)
                     ),
                     ..Refused::default()
                 });

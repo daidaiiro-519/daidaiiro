@@ -1,0 +1,56 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-LAUNCH-EDITED",
+ "name": "同じ名前と版で中身を変えた接続の定義で続ける",
+ "title": "子セッションを起動した接続の定義と名前 ・ 版が同じでも、中身を変えた定義で --continue すると、送らずに launch_mismatch で断る",
+ "why": "版を上げずに起動の設定（許すツールや時間）を変えると、記録と違う条件の子セッションに続けて送ることになる。",
+ "traces": [
+  "SF1:拡張:続ける子セッションが無い"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/other-agent.json": "@fixtures/test-agent-edited.json",
+   "agent/reply-1.json": "@fixtures/reply-ok.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/r1.json",
+     "--agent",
+     "agent/test-agent.json"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--agent",
+   "agent/other-agent.json",
+   "--continue",
+   "child-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "launch_mismatch"
+  },
+  {
+   "of": "when",
+   "file": "agent/call-2.txt",
+   "exists": false
+  }
+ ]
+}

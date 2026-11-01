@@ -287,9 +287,14 @@ impl ReadMeaning for Connector {
     }
 
     fn launch(&self) -> Value {
+        let fingerprint: String = Sha256::digest(serde_json::to_vec(&self.def).unwrap_or_default())
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
         json!({
             "connector": self.text("/name"),
             "version": self.text("/version"),
+            "fingerprint": format!("sha256:{fingerprint}"),
             "model": self.text("/model"),
         })
     }

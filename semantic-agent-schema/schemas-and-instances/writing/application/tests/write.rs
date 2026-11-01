@@ -276,6 +276,45 @@ fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
     );
 }
 
+/// コミット済みの版を読めない代役。
+struct Unreadable;
+impl CommitReader for Unreadable {
+    fn commits(&self, _: &str, _: usize) -> Result<Vec<String>, String> {
+        Err("版を読めない".into())
+    }
+    fn read(&self, _: &str, _: &str) -> Result<Option<Vec<u8>>, String> {
+        Err("版を読めない".into())
+    }
+}
+
+#[test]
+fn unreadable_versions_are_refused_as_versions() {
+    let first = json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"});
+    let store = files(&[("c.json", decided()), ("u1.json", first)]);
+    let mut log = Log::default();
+    adopt(
+        &adopt_request(AdoptAs::Create),
+        &store,
+        &Lenient,
+        &Commits(Vec::new()),
+        &Human,
+        &mut log,
+    )
+    .unwrap();
+    let edited = json!({"$schema": UC, "id": "U1", "goal": "b", "status": "draft"}).to_string();
+    store.write("u1.json", &edited).unwrap();
+    let r = adopt(
+        &adopt_request(AdoptAs::Update),
+        &store,
+        &Lenient,
+        &Unreadable,
+        &Human,
+        &mut log,
+    )
+    .unwrap_err();
+    assert_eq!(r.code, "versions", "CLI の出力の一覧にある名前で断る");
+}
+
 #[test]
 fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
     let store = files(&[
