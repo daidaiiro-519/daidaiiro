@@ -16,6 +16,16 @@
     "実地：codex-cli 0.164.0。--ignore-user-config ・ --disable shell_tool ほか ・ -c web_search=\"disabled\" で、起動でも resume でもファイルを読めず書けない。残るツールは apply_patch（read-only）・ 時計 ・ goal ・ 画像の生成。resume に --sandbox は無いので -c sandbox_mode=\"read-only\""
    ],
    "result": "confirmed"
+  },
+  {
+   "item": "Concrete を Abstract の rule で意味で書くとき、SAS 経由だと Claude Code の子セッションが答えない",
+   "evidence": [
+    "実地 2026-11-01：sas create schemas/incident.schema.json --concrete abstract:v1 --semantic で、子セッションの記録が要求を送ったあと 6〜10 分応答なし（2回）",
+    "同じ手順を claude -p に直接渡すと、ファイルのリダイレクトで 77秒、パイプで 81秒で答える（出力 約8,300トークン、Opus 5.5、effort medium）",
+    "環境変数の名前 ・ 起動の引数 ・ 作業フォルダは同じ。SAS は標準入力 ・ 出力を別のスレッドで読み書きする。インスタンスを書くときと検証は SAS 経由で約1分で答える",
+    "Claude Code の答えは ```json の囲みで包まれる（Opus 5.5 ・ Sonnet 5.5 とも）→ 囲みを外して読むようにした（c0e2cebd）"
+   ],
+   "result": "open"
   }
  ],
  "procedures": [
