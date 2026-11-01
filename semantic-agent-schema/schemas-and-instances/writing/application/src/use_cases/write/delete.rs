@@ -24,8 +24,8 @@ pub struct DeleteRequest {
     pub if_match: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
-    /// 意図（なぜ消すか）
-    pub intent: Option<String>,
+    /// 理由（なぜ消すか）
+    pub reason: Option<String>,
 }
 
 /// 削除の結果。
@@ -50,7 +50,7 @@ pub struct Deletion {
 }
 
 fn delete_hint(path: &str) -> String {
-    format!("消す：sas delete {path} --intent \"…\"")
+    format!("消す：sas delete {path} --reason \"…\"")
 }
 
 fn replayed(
@@ -116,7 +116,7 @@ fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
         format!("この Concrete に頼っている文書があるので消さない（何も変えていない）：{message}"),
     );
     r.hint = Some(Box::new(format!(
-        "blocked のそれぞれの hint を片付けてから、消し直す：sas delete {} --intent \"…\"",
+        "blocked のそれぞれの hint を片付けてから、消し直す：sas delete {} --reason \"…\"",
         r.path.as_deref().unwrap_or_default()
     )));
     r.blocked = Some(Box::new(blocked));
@@ -161,7 +161,7 @@ pub fn delete(
         request_id: request.request_id.clone(),
         before: Some(current.as_str().to_string()),
         after: None,
-        intent: request.intent.clone(),
+        reason: request.reason.clone(),
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
@@ -192,11 +192,11 @@ pub fn delete(
         );
         r.hint = Some(Box::new(if between.untracked {
             format!(
-                "外の変更を取り込んでから消す：sas update {path} --adopt --intent \"…\" のあとで sas delete {path} --intent \"…\""
+                "外の変更を取り込んでから消す：sas update {path} --adopt --reason \"…\" のあとで sas delete {path} --reason \"…\""
             )
         } else {
             format!(
-                "間に入った変更を読み、それでも消すなら打ち直す：sas delete {path} --if-match {} --intent \"…\"",
+                "間に入った変更を読み、それでも消すなら打ち直す：sas delete {path} --if-match {} --reason \"…\"",
                 current.as_str()
             )
         }));

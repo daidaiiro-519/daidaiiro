@@ -31,8 +31,8 @@ pub struct SemanticRequest {
     pub brief: Option<String>,
     /// 読ませる文書の経路（--ref）
     pub refs: Vec<String>,
-    /// 意図（手順の command に入れる）
-    pub intent: Option<String>,
+    /// 理由（手順の command に入れる）
+    pub reason: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID（手順の command に入れる）
     pub request_id: Option<String>,
 }
@@ -534,8 +534,8 @@ fn write_command(
             "<値の JSON>",
         ],
     };
-    if let Some(i) = &request.intent {
-        args.extend(["--intent", i.as_str()]);
+    if let Some(i) = &request.reason {
+        args.extend(["--reason", i.as_str()]);
     }
     if let Some(r) = &request.request_id {
         args.extend(["--request-id", r.as_str()]);

@@ -1,0 +1,89 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-PLACE-REMOVED",
+ "name": "欄が消えたときの判定",
+ "title": "判定済みの対象から要素を消すと、validate --semantic は判定する所が無いので手順を出さず、残った所の前の判定を引き継いで検証の結果全体を記録し、消えた所（/steps/1/action）は引き継がない。そのあと何も変えずに打つと記録しない",
+ "why": "消えた所の判定を引き継ぐと、無い欄が verified に見える。残った所の判定を落とすと、判定し直しを求められる。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/steps.schema.json": "@fixtures/steps.schema.json",
+   "items/st1.json": "@fixtures/st1.json",
+   "answers/steps.json": "{\"hash\": \"sha256:1ad4a6251c4aad520559a7e66bff800e1c4baf0b87ff044200af0c73e09dd1a7\", \"results\": [{\"step\": 1, \"rule\": \"one-action\", \"pointer\": \"/steps/0/action\", \"result\": \"verified\", \"reason\": \"利用者が送る1つだけ\"}, {\"step\": 2, \"rule\": \"one-action\", \"pointer\": \"/steps/1/action\", \"result\": \"verified\", \"reason\": \"仕組みが確かめる1つだけ\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/st1.json",
+     "--answer",
+     "answers/steps.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/st1.json",
+     "--patch",
+     "[{\"op\": \"remove\", \"path\": \"/steps/1\"}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/st1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/verified",
+   "equals": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/unsupported",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "/steps/0/action"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/unchanged_targets/0",
+   "equals": "items/st1.json"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "validate",
+    "items/st1.json",
+    "--semantic"
+   ]
+  }
+ ],
+ "unchanged": [
+  "items/st1.json"
+ ]
+}

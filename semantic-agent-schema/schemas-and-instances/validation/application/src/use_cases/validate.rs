@@ -7,7 +7,8 @@
 
 use crate::ports::{DocumentStore, SchemaValidator, ValidationLog};
 use crate::use_cases::meaning::{
-    Step, answer_json, check_answer, command_line, match_steps, procedure,
+    ChangeOp, FieldEdit, Group, ReviewScope, Step, answer_json, check_answer, command_line,
+    match_steps, procedure, related, revert, touched_rules,
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -17,7 +18,9 @@ use validation_domain::services::{
 use validation_domain::values::{By, Counts, Judgment, RuleResult, RuleRow, ValidateRow, Verdict};
 use writing_domain::aggregates::ConcreteSchema;
 use writing_domain::services::field_schema;
-use writing_domain::values::{Caller, ContentHash, Corpus, Doc, TargetKind, untracked_since};
+use writing_domain::values::{
+    Caller, ContentHash, Corpus, Doc, FieldRow, TargetKind, WriteRecord, untracked_since,
+};
 
 /// 何を検証するか。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -164,7 +167,7 @@ pub fn validate(
     caller: &Caller,
     log: &mut dyn ValidationLog,
 ) -> Result<Validation, Refused> {
-    run_validate(scope, false, store, validator, caller, log, None)
+    run_validate(scope, Pick::All, store, validator, caller, log, None)
 }
 
 /// UC4 の範囲「入力が変わった rule だけ」：rule ごとに、前の判定が読んだ所のハッシュといまのハッシュを比べ、
@@ -179,7 +182,53 @@ pub fn validate_stale(
     caller: &Caller,
     log: &mut dyn ValidationLog,
 ) -> Result<Validation, Refused> {
-    run_validate(scope, true, store, validator, caller, log, None)
+    run_validate(
+        scope,
+        Pick::ChangedRules,
+        store,
+        validator,
+        caller,
+        log,
+        None,
+    )
+}
+
+/// 意味の判定の既定の選び方（rule × 当たる所の単位で、変わった所だけ）で、判定を渡さずに記録する。
+/// 判定の手順に入る所が無かった --semantic が使う。手順に入らない所は前の判定を引き継ぎ、検証の結果全体を記録する。
+/// 前の判定から何も変わらず、消えた所も無い対象は記録しない。
+///
+/// # Errors
+/// validate と同じ。
+pub fn validate_changed(
+    scope: &Scope,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    caller: &Caller,
+    log: &mut dyn ValidationLog,
+) -> Result<Validation, Refused> {
+    run_validate(
+        scope,
+        Pick::ChangedPlaces,
+        store,
+        validator,
+        caller,
+        log,
+        None,
+    )
+}
+
+/// どの判定を、前の判定と比べて選ぶか。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pick {
+    /// すべてを判定する（前の判定と比べない）
+    All,
+    /// --stale（機械の検証）：rule ごとに、読んだ所のハッシュの集まりが前の判定と違う rule だけを判定して記録する
+    ChangedRules,
+    /// 意味の判定の既定：前の判定のあとに記録された変更と重なる所 ・ 読む所 ・ 文が変わった rule ・ 前の判定に無い所だけを
+    /// 手順に入れ、ほかの所は前の判定を引き継いで、検証の結果全体を記録する
+    ChangedPlaces,
+    /// 意味の判定の --all-rules：すべてを判定する。レビューのまとまりには前の判定のときの値と、そのあとの変更を入れる
+    AllRules,
 }
 
 /// 意味の判定（--semantic ・ --answer）で、どの rule を手順に入れるか。
@@ -193,16 +242,20 @@ pub struct Selection {
 }
 
 impl Selection {
-    /// 変わった rule だけを入れるか。
-    const fn changed_only(self) -> bool {
-        !self.all_rules
+    /// 前の判定と比べてどれを手順に入れるか。
+    const fn pick(self) -> Pick {
+        if self.all_rules {
+            Pick::AllRules
+        } else {
+            Pick::ChangedPlaces
+        }
     }
 }
 
 /// UC4 の意味の部分の1つ目：機械の検証をしたうえで、意味の rule（ai）の判定の手順を対象ごとに返す。記録しない。
 /// 判定する rule が無い対象の手順は無い（どの対象にも無ければ空）。
-/// 既定では、前の判定から読んだ所（reads_hash）が変わった rule と、前に判定できなかった rule だけを手順に入れる
-/// （前の判定が無い対象はすべて）。--all-rules なら、すべての rule を入れる。
+/// 既定では、rule × 当たる所ごとに、前の判定から読んだ所（reads_hash）が変わった所 ・ 前に判定できなかった所 ・
+/// 前の判定に無い所だけを手順に入れる（前の判定が無い対象はすべて）。--all-rules なら、すべての所を入れる。
 ///
 /// # Errors
 /// validate と同じ。
@@ -214,12 +267,11 @@ pub fn semantic_procedures(
     caller: &Caller,
     log: &dyn ValidationLog,
 ) -> Result<Vec<Value>, Refused> {
-    let (corpus, current, _) =
-        current_for(scope, selection.changed_only(), true, store, validator, log)?;
+    let (corpus, current, _) = current_for(scope, selection.pick(), store, validator, log)?;
     Ok(current
         .iter()
         .filter_map(|c| {
-            let (steps, _) = steps_of(c, &corpus, validator);
+            let (groups, steps, _) = steps_of(c, &corpus, validator);
             if steps.is_empty() {
                 return None;
             }
@@ -228,6 +280,8 @@ pub fn semantic_procedures(
                 &c.doc.path,
                 &c.declared,
                 c.hash.as_str(),
+                (c.since.as_deref(), c.review),
+                &groups,
                 &steps,
                 &command,
             ))
@@ -237,7 +291,8 @@ pub fn semantic_procedures(
 
 /// UC4 の意味の部分の2つ目：打ったセッションが渡した判定（answer）を、形 ・ 手順のハッシュ ・ step ・ rule ・ pointer で
 /// 確かめ、機械の結果と合わせて記録する。合わなければ記録せずに断る。
-/// 手順を組んだときと同じ選び方（selection）で rule を選ぶので、既定では変わった rule だけを記録する。
+/// 手順を組んだときと同じ選び方（selection）で所を選ぶ。既定では手順に入らなかった所の前の判定を引き継ぎ、
+/// 検証の結果全体を記録する。
 ///
 /// # Errors
 /// validate と同じ。ほかに、答えが形に合わない ・ 手順と突き合わない（invalid_answer）・ 手順のハッシュがいまの中身と違う（conflict）とき。
@@ -252,7 +307,7 @@ pub fn validate_with_answer(
 ) -> Result<Validation, Refused> {
     run_validate(
         &Scope::Paths(vec![path.to_string()]),
-        selection.changed_only(),
+        selection.pick(),
         store,
         validator,
         caller,
@@ -292,12 +347,14 @@ fn selection_args(selection: Selection) -> Vec<&'static str> {
     args
 }
 
-/// 対象1つの、意味の rule（ai）を判定するステップと、そのステップが当たる results の位置。
+/// 対象1つのレビューのまとまりと、判定する rule × 当たる所（意味の rule のうち、前の判定を引き継がないもの）と、
+/// それが当たる results の位置。所のまとまりは当たる所ごとに1つ（results に出てきた順）、文書全体のまとまりはいつも1つで最後。
+/// 判定するものが無ければ、どれも空。
 fn steps_of(
     c: &Current,
     corpus: &Corpus,
     validator: &dyn SchemaValidator,
-) -> (Vec<Step>, Vec<usize>) {
+) -> (Vec<Group>, Vec<Step>, Vec<usize>) {
     let schema_doc = match c.kind {
         TargetKind::Concrete => validator.shipped(&c.declared).unwrap_or_default(),
         TargetKind::Instance => corpus
@@ -306,19 +363,53 @@ fn steps_of(
             .map(|k| k.document().clone())
             .unwrap_or_default(),
     };
-    let mut steps = Vec::new();
-    let mut at = Vec::new();
-    for (i, ((r, _), def)) in c.results.iter().zip(&c.definitions).enumerate() {
-        if r.by() != By::Ai {
+    let chosen: Vec<usize> = c
+        .results
+        .iter()
+        .enumerate()
+        .filter(|(i, (r, _))| r.by() == By::Ai && !c.kept[*i])
+        .map(|(i, _)| i)
+        .collect();
+    if chosen.is_empty() {
+        return (Vec::new(), Vec::new(), Vec::new());
+    }
+    let mut groups: Vec<Group> = Vec::new();
+    for &i in &chosen {
+        let at = c.results[i].0.pointer();
+        if at.is_empty() || groups.iter().any(|g| g.pointer == at) {
             continue;
         }
-        let field = field_schema(&schema_doc, r.pointer(), &corpus.more);
+        let now = c.doc.value.pointer(at).cloned().unwrap_or(Value::Null);
+        // 前の判定のときの値。前の判定を使えない ・ そのあとに足した所は無い（null）。値が変わっていなければ current と同じ
+        let before = c.before_doc.as_ref().and_then(|b| b.pointer(at)).cloned();
+        // この所の値を変えた操作 ・ この所の rule が読む所を変えた操作 ・ この所の rule の文を変えた Concrete の操作
+        let here: Vec<(&str, Vec<String>)> = chosen
+            .iter()
+            .filter(|&&k| c.results[k].0.pointer() == at)
+            .map(|&k| (c.results[k].0.rule(), rule_reads(c.definitions[k].as_ref())))
+            .collect();
+        let changes: Vec<ChangeOp> = c
+            .ops
+            .iter()
+            .filter(|o| {
+                o.pointers.iter().any(|p| {
+                    related(at, p)
+                        || here
+                            .iter()
+                            .any(|(_, reads)| reads.iter().any(|q| related(q, p)))
+                }) || here.iter().any(|(rule, _)| o.rules.contains(*rule))
+            })
+            .cloned()
+            .collect();
+        let field = field_schema(&schema_doc, at, &corpus.more);
         let field = field.as_ref();
-        steps.push(Step {
-            no: steps.len() + 1,
-            rule: r.rule().to_string(),
-            pointer: r.pointer().to_string(),
-            definition: def.clone().unwrap_or_default(),
+        groups.push(Group {
+            no: groups.len() + 1,
+            pointer: at.to_string(),
+            before,
+            changes,
+            current: now,
+            changed: Vec::new(),
             title: field
                 .and_then(|f| f.get("title"))
                 .and_then(Value::as_str)
@@ -331,13 +422,38 @@ fn steps_of(
                 .and_then(|f| f.pointer("/x-prompt/read"))
                 .filter(|r| r.as_object().is_some_and(|m| !m.is_empty()))
                 .cloned(),
-            current: c
-                .doc
-                .value
-                .pointer(r.pointer())
-                .cloned()
-                .unwrap_or(Value::Null),
-            reads: rule_reads(def.as_ref())
+        });
+    }
+    groups.push(Group {
+        no: groups.len() + 1,
+        pointer: String::new(),
+        before: None,
+        changes: c
+            .ops
+            .iter()
+            .filter(|o| !o.pointers.is_empty())
+            .cloned()
+            .collect(),
+        current: c.doc.value.clone(),
+        changed: c.changed.clone(),
+        title: None,
+        description: None,
+        read: None,
+    });
+    let mut steps = Vec::new();
+    for &i in &chosen {
+        let r = &c.results[i].0;
+        let def = c.definitions[i].as_ref();
+        let no = groups
+            .iter()
+            .find(|g| g.pointer == r.pointer())
+            .map_or(groups.len(), |g| g.no);
+        steps.push(Step {
+            no,
+            rule: r.rule().to_string(),
+            pointer: r.pointer().to_string(),
+            definition: def.cloned().unwrap_or_default(),
+            reads: rule_reads(def)
                 .into_iter()
                 .map(|p| {
                     let v = c.doc.value.pointer(&p).cloned().unwrap_or(Value::Null);
@@ -345,9 +461,8 @@ fn steps_of(
                 })
                 .collect(),
         });
-        at.push(i);
     }
-    (steps, at)
+    (groups, steps, chosen)
 }
 
 /// 渡された判定で、対象の意味の rule の結果を置き換える。
@@ -395,10 +510,10 @@ fn apply_answer(
         )));
         return Err(r);
     }
-    let (steps, at) = steps_of(c, corpus, validator);
+    let (_, steps, at) = steps_of(c, corpus, validator);
     let judged = match_steps(&v, &steps).map_err(invalid)?;
-    for (step, i) in steps.iter().zip(at) {
-        if let Some((verdict, reason)) = judged.get(&step.no) {
+    for (n, (step, i)) in steps.iter().zip(at).enumerate() {
+        if let Some((verdict, reason)) = judged.get(&n) {
             c.results[i].0 = RuleResult::new(&step.rule, &step.pointer, By::Ai, *verdict, reason);
         }
     }
@@ -485,6 +600,20 @@ pub struct Current {
     pub results: Vec<(RuleResult, ContentHash)>,
     /// rule ごとの定義（x-prompt の write の1行。results と同じ並び。機械だけの検査は None）
     pub definitions: Vec<Option<Value>>,
+    /// results と同じ並びで、前の判定から変わっていない所か（意味の判定の既定で、手順に入れず前の判定を引き継ぐ）
+    pub kept: Vec<bool>,
+    /// 前の判定から何も変わっていない対象か（記録しない）
+    pub same: bool,
+    /// 意味の判定で、前の判定のときの文書（記録した変更を戻して組む）。前の判定を使えないときは None
+    pub before_doc: Option<Value>,
+    /// 意味の判定で、前の判定のあとに記録された変更の所（重ならず、所の順）
+    pub changed: Vec<String>,
+    /// 意味の判定で、前の判定の操作の ID（無ければ None）
+    pub since: Option<String>,
+    /// 意味の判定で、手順がどこまでを持つか
+    pub review: ReviewScope,
+    /// 意味の判定で、前の判定のあとに記録された変更の操作（対象を書いた操作と、文が変わった rule の Concrete の操作。古い順）
+    pub ops: Vec<ChangeOp>,
 }
 
 /// 対象を決めて種類を見分け、いまの中身ですべての rule を判定する。記録しない。
@@ -549,8 +678,16 @@ pub fn judge_current(
                 (r, reads)
             })
             .collect();
+        let results: Vec<(RuleResult, ContentHash)> = results;
         current.push(Current {
             hash: ContentHash::of(doc.text.as_bytes()),
+            kept: vec![false; results.len()],
+            same: false,
+            before_doc: None,
+            changed: Vec::new(),
+            since: None,
+            review: ReviewScope::First,
+            ops: Vec::new(),
             doc,
             kind,
             declared,
@@ -561,14 +698,9 @@ pub fn judge_current(
     Ok((corpus, current))
 }
 
-/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。意味の判定の手順を出す ・ 判定を受け取るとき
-/// （retry_unjudged）は、前に判定できなかった（unsupported ・ error）rule も入る。
+/// 前の判定のあと、読んだ所が変わった rule の id（--stale）。前の判定が無い rule も入る。
 /// いまの判定と前の判定で、rule ごとに「読んだ所のハッシュ」の集まりを比べる。
-fn changed_rules(
-    now: &[(RuleResult, ContentHash)],
-    before: &[Judgment],
-    retry_unjudged: bool,
-) -> BTreeSet<String> {
+fn changed_rules(now: &[(RuleResult, ContentHash)], before: &[Judgment]) -> BTreeSet<String> {
     let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for (r, reads) in now {
         current
@@ -577,10 +709,7 @@ fn changed_rules(
             .insert(reads.as_str().to_string());
     }
     let mut previous: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
-    for j in before
-        .iter()
-        .filter(|j| !retry_unjudged || (j.rule.result != "unsupported" && j.rule.result != "error"))
-    {
+    for j in before {
         previous
             .entry(j.rule.rule.as_str())
             .or_default()
@@ -593,40 +722,255 @@ fn changed_rules(
         .collect()
 }
 
-/// 経路 → 入力が変わった rule だけを検証したときに除いた rule の id。
+/// 経路 → 入力が変わった rule だけを検証したときに、判定し直さなかった rule の id。
 type Unchanged = BTreeMap<String, Vec<String>>;
 
-/// いまの中身で判定し、入力が変わった rule だけ（stale_only）のときは読んだ所が前の判定と同じ rule を除く。
-/// retry_unjudged なら、前に判定できなかった（unsupported ・ error）rule も残す。経路 → 除いた rule の id も返す。
+/// 記録した判定の区分の名前を、区分に戻す。知らない名前は unverified（verified に数えない）。
+fn verdict_of(name: &str) -> Verdict {
+    Verdict::ALL
+        .into_iter()
+        .find(|v| v.as_str() == name)
+        .unwrap_or(Verdict::Unverified)
+}
+
+/// 操作の ID（o-0001）の番号。
+fn op_no(id: &str) -> u64 {
+    id.strip_prefix("o-")
+        .and_then(|n| n.parse().ok())
+        .unwrap_or_default()
+}
+
+/// 記録した変わった欄を、値を読んだ形にする。
+fn edits(fields: &[FieldRow]) -> Vec<FieldEdit> {
+    let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
+    fields
+        .iter()
+        .map(|f| FieldEdit {
+            pointer: f.pointer.clone(),
+            change: f.change.clone(),
+            before: parse(&f.before),
+            after: parse(&f.after),
+        })
+        .collect()
+}
+
+/// 対象の前の判定と、そのあとに記録された変更（意味の判定の手順のレビューのまとまりに入れる）。
+/// 前の判定は、by が ai で判定できた（verified ・ violated ・ unverified）行を持つ最も新しい検証。
+/// 前の判定が無い対象と、前の判定のあとの中身が記録で説明できない対象（取り込んでいない変更がある）は first で、
+/// 前の判定を使わない。concrete はインスタンスが従う Concrete のファイル（文が変わった rule を引く）と、その書いた操作。
+fn review_of(
+    c: &mut Current,
+    before: &[Judgment],
+    writes: &[WriteRecord],
+    concrete: Option<(&Doc, &[WriteRecord])>,
+) {
+    c.review = ReviewScope::First;
+    let judged = |j: &&Judgment| {
+        j.rule.by == "ai"
+            && ["verified", "violated", "unverified"].contains(&j.rule.result.as_str())
+    };
+    let Some(base) = before
+        .iter()
+        .filter(judged)
+        .max_by_key(|j| op_no(&j.operation))
+    else {
+        return;
+    };
+    let base_no = op_no(&base.operation);
+    let after_base: Vec<&WriteRecord> = writes
+        .iter()
+        .filter(|w| op_no(&w.operation) > base_no)
+        .collect();
+    let explained = after_base
+        .last()
+        .map_or(Some(base.hash.as_str()), |w| w.row.after.as_deref());
+    if explained != Some(c.hash.as_str()) {
+        return;
+    }
+    let edits_after: Vec<Vec<FieldEdit>> =
+        after_base.iter().map(|w| edits(&w.row.fields)).collect();
+    let mut changed: Vec<String> = edits_after
+        .iter()
+        .flatten()
+        .map(|e| e.pointer.clone())
+        .collect();
+    changed.sort();
+    changed.dedup();
+    let mut ops: Vec<ChangeOp> = after_base
+        .iter()
+        .zip(&edits_after)
+        .map(|(w, e)| ChangeOp {
+            operation: w.operation.clone(),
+            session: w.session.clone(),
+            target: w.row.target_path.clone(),
+            reason: w.row.reason.clone(),
+            pointers: e.iter().map(|e| e.pointer.clone()).collect(),
+            rules: BTreeSet::new(),
+        })
+        .collect();
+    if let Some((doc, concrete_writes)) = concrete {
+        for w in concrete_writes
+            .iter()
+            .filter(|w| op_no(&w.operation) > base_no)
+        {
+            let rules = touched_rules(&doc.value, &edits(&w.row.fields));
+            if !rules.is_empty() {
+                ops.push(ChangeOp {
+                    operation: w.operation.clone(),
+                    session: w.session.clone(),
+                    target: w.row.target_path.clone(),
+                    reason: w.row.reason.clone(),
+                    pointers: Vec::new(),
+                    rules,
+                });
+            }
+        }
+    }
+    ops.sort_by_key(|o| op_no(&o.operation));
+    c.review = ReviewScope::Changed;
+    c.since = Some(base.operation.clone());
+    c.before_doc = Some(revert(&c.doc.value, &edits_after));
+    c.changed = changed;
+    c.ops = ops;
+}
+
+/// 意味の判定の既定の選び方：前の判定のあとに記録された変更から、判定するもの（引き継がないもの）を選ぶ。選ぶのは、意味の rule × 当たる所のうち
+/// (1) 当たる所が変わった所と重なる（同じ ・ その中 ・ その外側。文書全体に当たる rule は、どこかが変われば入る）
+/// (2) rule の reads が変わった所と重なる (3) rule の文が前の判定のあとに変わった (4) 前の判定に無い ・ 前に判定できなかった。
+/// ほかは前の判定を引き継ぐ。前の判定を使えない対象（first）はすべてを選ぶ。
+fn select_changed(c: &mut Current, before: &[Judgment]) {
+    if c.review != ReviewScope::Changed {
+        return;
+    }
+    let rules_changed: BTreeSet<String> =
+        c.ops.iter().flat_map(|o| o.rules.iter().cloned()).collect();
+    let mut previous: BTreeMap<(&str, &str), &RuleRow> = BTreeMap::new();
+    for j in before {
+        previous
+            .entry((j.rule.rule.as_str(), j.rule.pointer.as_str()))
+            .or_insert(&j.rule);
+    }
+    for (i, ((r, _), def)) in c.results.iter_mut().zip(&c.definitions).enumerate() {
+        if r.by() != By::Ai {
+            continue;
+        }
+        let Some(row) = previous.get(&(r.rule(), r.pointer())) else {
+            continue;
+        };
+        if row.result == "unsupported" || row.result == "error" {
+            continue;
+        }
+        let hit = c.changed.iter().any(|p| {
+            related(r.pointer(), p) || rule_reads(def.as_ref()).iter().any(|q| related(q, p))
+        });
+        if hit || rules_changed.contains(r.rule()) {
+            continue;
+        }
+        c.kept[i] = true;
+        *r = RuleResult::new(
+            &row.rule,
+            &row.pointer,
+            By::Ai,
+            verdict_of(&row.result),
+            &row.reason,
+        );
+    }
+    // 機械の検査は毎回いまの中身で判定する。何も変わらず、消えた所も無ければ、記録しない
+    let places_now: BTreeSet<(&str, &str)> = c
+        .results
+        .iter()
+        .map(|(r, _)| (r.rule(), r.pointer()))
+        .collect();
+    let places_before: BTreeSet<(&str, &str)> = previous.keys().copied().collect();
+    let ai_kept = c
+        .results
+        .iter()
+        .zip(&c.kept)
+        .all(|((r, _), k)| r.by() != By::Ai || *k);
+    c.same = c.ops.is_empty() && ai_kept && places_now == places_before;
+}
+
+/// いまの中身で判定し、前の判定と比べて選ぶ。経路 → 判定し直さなかった rule の id も返す。
+/// - ChangedRules（--stale）：読んだ所が前の判定と同じ rule を除く
+/// - ChangedPlaces（意味の判定の既定）：何も除かず、変わっていない所に印を付けて、意味の rule の所は前の判定を引き継ぐ
 fn current_for(
     scope: &Scope,
-    stale_only: bool,
-    retry_unjudged: bool,
+    pick: Pick,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     log: &dyn ValidationLog,
 ) -> Result<(Corpus, Vec<Current>, Unchanged), Refused> {
     let (corpus, mut current) = judge_current(scope, store, validator)?;
     let mut unchanged = Unchanged::new();
-    if stale_only {
-        for c in &mut current {
-            let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
-            let changed = changed_rules(&c.results, &before, retry_unjudged);
-            let rules = unchanged.entry(c.doc.path.clone()).or_default();
-            for (r, _) in &c.results {
-                if !changed.contains(r.rule()) && !rules.iter().any(|u| u == r.rule()) {
-                    rules.push(r.rule().to_string());
+    for c in &mut current {
+        match pick {
+            Pick::All => {}
+            Pick::ChangedRules => {
+                let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
+                let changed = changed_rules(&c.results, &before);
+                let rules = unchanged.entry(c.doc.path.clone()).or_default();
+                for (r, _) in &c.results {
+                    if !changed.contains(r.rule()) && !rules.iter().any(|u| u == r.rule()) {
+                        rules.push(r.rule().to_string());
+                    }
+                }
+                let keep: Vec<bool> = c
+                    .results
+                    .iter()
+                    .map(|(r, _)| changed.contains(r.rule()))
+                    .collect();
+                let mut k = keep.iter();
+                c.results.retain(|_| *k.next().unwrap_or(&false));
+                let mut k = keep.iter();
+                c.definitions.retain(|_| *k.next().unwrap_or(&false));
+                c.kept = vec![false; c.results.len()];
+                c.same = c.results.is_empty();
+            }
+            Pick::ChangedPlaces | Pick::AllRules => {
+                let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
+                let writes = log.writes(&c.doc.path).map_err(log_refused)?;
+                // インスタンスでは、従う Concrete のファイルに前の判定のあと記録された変更から、文が変わった rule を引く
+                let concrete = match c.kind {
+                    TargetKind::Instance => corpus
+                        .docs
+                        .iter()
+                        .find(|d| {
+                            d.value.get("$id").and_then(Value::as_str) == Some(c.declared.as_str())
+                        })
+                        .cloned(),
+                    TargetKind::Concrete => None,
+                };
+                let concrete_writes = match &concrete {
+                    Some(d) => log.writes(&d.path).map_err(log_refused)?,
+                    None => Vec::new(),
+                };
+                review_of(
+                    c,
+                    &before,
+                    &writes,
+                    concrete.as_ref().map(|d| (d, concrete_writes.as_slice())),
+                );
+                if pick == Pick::AllRules {
+                    if c.review == ReviewScope::Changed {
+                        c.review = ReviewScope::AllRules;
+                    }
+                    continue;
+                }
+                select_changed(c, &before);
+                // どの所も前の判定を引き継いだ rule
+                let rules = unchanged.entry(c.doc.path.clone()).or_default();
+                for (r, _) in &c.results {
+                    let all_kept = c
+                        .results
+                        .iter()
+                        .zip(&c.kept)
+                        .filter(|((o, _), _)| o.rule() == r.rule())
+                        .all(|(_, k)| *k);
+                    if all_kept && !rules.iter().any(|u| u == r.rule()) {
+                        rules.push(r.rule().to_string());
+                    }
                 }
             }
-            let keep: Vec<bool> = c
-                .results
-                .iter()
-                .map(|(r, _)| changed.contains(r.rule()))
-                .collect();
-            let mut k = keep.iter();
-            c.results.retain(|_| *k.next().unwrap_or(&false));
-            let mut k = keep.iter();
-            c.definitions.retain(|_| *k.next().unwrap_or(&false));
         }
     }
     Ok((corpus, current, unchanged))
@@ -634,15 +978,15 @@ fn current_for(
 
 fn run_validate(
     scope: &Scope,
-    stale_only: bool,
+    pick: Pick,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     caller: &Caller,
     log: &mut dyn ValidationLog,
     answer: Option<(&str, Selection)>,
 ) -> Result<Validation, Refused> {
-    let (corpus, mut current, mut unchanged) =
-        current_for(scope, stale_only, answer.is_some(), store, validator, log)?;
+    let stale_only = matches!(pick, Pick::ChangedRules | Pick::ChangedPlaces);
+    let (corpus, mut current, mut unchanged) = current_for(scope, pick, store, validator, log)?;
     if let Some((answer, selection)) = answer {
         apply_answer(&mut current, &corpus, validator, answer, selection)?;
     }
@@ -656,6 +1000,7 @@ fn run_validate(
         declared,
         hash,
         results,
+        same,
         ..
     } in current
     {
@@ -672,7 +1017,7 @@ fn run_validate(
             });
         }
         let unchanged_rules = unchanged.remove(&d.path).unwrap_or_default();
-        if stale_only && results.is_empty() {
+        if same {
             unchanged_targets.push(d.path);
             continue;
         }

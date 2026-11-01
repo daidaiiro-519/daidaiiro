@@ -39,6 +39,8 @@ pub struct ValidateRow {
 pub struct Judgment {
     /// 判定を記録した検証の ID
     pub operation: String,
+    /// 判定を記録した検証が判定した中身のハッシュ
+    pub hash: String,
     /// 判定
     pub rule: RuleRow,
 }

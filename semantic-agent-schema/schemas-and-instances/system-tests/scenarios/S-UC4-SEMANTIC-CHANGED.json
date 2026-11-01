@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-SEMANTIC-CHANGED",
  "name": "変わった所だけを判定する",
- "title": "判定済みの対象に validate --semantic を打つと、前の判定から読んだ所が変わった rule（要約を直したので summary-matches）だけが手順に入り、rule の全文は rules に1回だけ書かれる",
+ "title": "判定済みの対象で要約（summary）だけを直して validate --semantic を打つと、直した所のまとまり（前の判定のときの値 ・ いまの値 ・ 直した操作つき）と文書全体のまとまり（変わった所の一覧）だけが出て、直していない目的（goal）は出ない。rule の全文は rules に1回だけ書かれる",
  "why": "書いて直すたびに検証するので、1か所直すたびにすべての所を判定し直すと、欄が増えるほど待つ時間が延びる。",
  "traces": [
   "UC4:変形:意味の判定",
@@ -53,12 +53,41 @@
   {
    "of": "when",
    "pointer": "/steps",
-   "count": 1
+   "count": 2
   },
   {
    "of": "when",
-   "pointer": "/steps/0/rule",
-   "equals": "summary-matches"
+   "pointer": "/steps/0/action",
+   "equals": "review-place"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/summary"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/before",
+   "equals": "検証の結果を受け取るための決めごと"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/rules",
+   "equals": [
+    "summary-matches"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/action",
+   "equals": "review-document"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/changed",
+   "equals": [
+    "/summary"
+   ]
   },
   {
    "of": "when",
@@ -69,6 +98,41 @@
    "of": "when",
    "pointer": "/command",
    "equals": "sas validate items/s1.json --answer <判定の JSON のファイル | ->"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/current",
+   "equals": "検証の結果を受け取るための約束"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/target",
+   "equals": "items/s1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/session",
+   "equals": null
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/changes",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/review/scope",
+   "equals": "changed"
+  },
+  {
+   "of": "when",
+   "pointer": "/review/since",
+   "equals": "o-0001"
   }
  ],
  "unchanged": [

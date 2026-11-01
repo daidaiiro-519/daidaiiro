@@ -16,7 +16,7 @@ fn change(path: &str) -> ChangeRow {
         request_id: None,
         before: None,
         after: Some("sha256:b".into()),
-        intent: Some("足す".into()),
+        reason: Some("足す".into()),
         schema: Some("urn:example:u:v1".into()),
         fields: vec![FieldRow {
             pointer: "/goal".into(),
@@ -108,7 +108,7 @@ fn operations_are_listed_newest_first_with_their_session() {
         all[1].session.as_ref().map(|s| s.folder.as_str()),
         Some("/w/b")
     );
-    assert_eq!(all[2].intent.as_deref(), Some("足す"));
+    assert_eq!(all[2].reason.as_deref(), Some("足す"));
 }
 
 #[test]

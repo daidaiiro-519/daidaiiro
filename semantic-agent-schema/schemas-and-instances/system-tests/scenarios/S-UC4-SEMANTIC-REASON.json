@@ -1,0 +1,76 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-REASON",
+ "name": "変更の理由を判定に渡す",
+ "title": "--reason を付けて要約を直すと、次の validate --semantic の、直した所のまとまりと文書全体のまとまりの changes に、その操作の理由と打ったセッションが入る",
+ "why": "なぜ変えたかが分からないと、判定する側はいまの値だけを見て、変えた目的に合っているかを判定できない。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "answers/summary.json": "{\"hash\": \"sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"結果を書いている\"}, {\"step\": 2, \"rule\": \"summary-matches\", \"pointer\": \"/summary\", \"result\": \"verified\", \"reason\": \"目的に食い違わない\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/s1.json",
+     "--answer",
+     "answers/summary.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/s1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/summary\",\"value\":\"検証の結果を受け取るための約束\"}]",
+     "--reason",
+     "要約を言い直す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/s1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/summary"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/reason",
+   "equals": "要約を言い直す"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/session",
+   "equals": "c-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/changes/0/reason",
+   "equals": "要約を言い直す"
+  }
+ ],
+ "unchanged": [
+  "items/s1.json"
+ ]
+}

@@ -33,8 +33,8 @@ pub struct ChangeRow {
     pub before: Option<String>,
     /// 事後のハッシュ（削除では None）
     pub after: Option<String>,
-    /// 意図（なぜその操作をしたか。呼ぶ側が渡したときだけ）
-    pub intent: Option<String>,
+    /// 理由（なぜその操作をしたか。呼ぶ側が渡したときだけ）
+    pub reason: Option<String>,
     /// 書いた文書が従う schema の $id（削除は消す前の文書のもの。記録を読むときに返す。版5より前の行は None）
     pub schema: Option<String>,
     /// 変わった欄
@@ -97,7 +97,7 @@ mod tests {
                 request_id: None,
                 before: Some(before.into()),
                 after: Some(after.into()),
-                intent: None,
+                reason: None,
                 schema: None,
                 fields: Vec::new(),
             },

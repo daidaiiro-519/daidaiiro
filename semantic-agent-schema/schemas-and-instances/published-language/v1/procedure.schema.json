@@ -26,7 +26,7 @@
     "write",
     "search"
    ],
-   "description": "validate は rule の判定、write は欄の値を書く、search は範囲の文書を読んで問いに答える。判定の手順は、既定では前の判定から読んだ所が変わった rule と前に判定できなかった rule だけを持ち（前の判定が無い対象はすべて）、--all-rules ですべてを持つ"
+   "description": "validate は rule の判定、write は欄の値を書く、search は範囲の文書を読んで問いに答える。判定の手順は、判定済みの対象では、前の判定のあとに記録された変更（changes の field_changes）から決めた変わった所のまとまりと文書全体のまとまりを持ち、前の判定が無い対象と --all-rules では当たるすべての所を持つ"
   },
   "target": {
    "type": "object",
@@ -49,157 +49,197 @@
    },
    "description": "判定 ・ 書き込みの対象。検索には無い（範囲 range を持つ）"
   },
+  "review": {
+   "title": "判定の範囲",
+   "description": "判定の手順が、前の判定と比べてどこまでを持つか。判定のときだけ",
+   "x-prompt": {
+    "read": {
+     "when": "手順を受け取ったときに読む。",
+     "interpret": "since から何が変わったかを scope で読む。"
+    },
+    "write": []
+   },
+   "type": "object",
+   "required": [
+    "since",
+    "scope"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "since": {
+     "title": "前の判定",
+     "description": "前の判定の操作の ID。前の判定を使えない（scope が first）ときは null",
+     "x-prompt": {
+      "read": {
+       "when": "手順を受け取ったときに読む。",
+       "interpret": "sas log --operation でこの ID を読めば、前の判定の中身が分かる。"
+      },
+      "write": []
+     },
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "scope": {
+     "title": "範囲",
+     "description": "changed：前の判定のあとに変わった所だけ。all-rules：--all-rules を渡したので、前の判定があってもすべての当たる所。first：前の判定が無いか、前の判定のあとの中身が記録で説明できない（取り込んでいない変更がある）ので、すべての当たる所",
+     "x-prompt": {
+      "read": {
+       "when": "手順を受け取ったときに読む。",
+       "interpret": "changed ならまとまりは変わった所だけで、ほかは前の判定を引き継ぐ。"
+      },
+      "write": []
+     },
+     "enum": [
+      "changed",
+      "all-rules",
+      "first"
+     ]
+    }
+   }
+  },
   "steps": {
    "type": "array",
    "minItems": 1,
    "items": {
-    "type": "object",
-    "required": [
-     "no",
-     "action"
-    ],
-    "properties": {
-     "no": {
-      "type": "integer",
-      "minimum": 1
+    "anyOf": [
+     {
+      "$ref": "#/$defs/review-place"
      },
-     "action": {
-      "enum": [
-       "judge",
-       "write",
-       "read"
-      ],
-      "description": "judge は rule の判定、write は欄の値を書く、read は範囲の文書を読む（検索）"
+     {
+      "$ref": "#/$defs/review-document"
      },
-     "pointer": {
-      "type": "string"
-     },
-     "title": {
-      "type": "string"
-     },
-     "description": {
-      "type": "string"
-     },
-     "rule": {
-      "type": "string",
-      "description": "判定する rule の id。手順の rules から、同じ id の rule の全文を引く。判定のときだけ"
-     },
-     "rules": {
-      "type": "array",
-      "items": {
-       "type": "object"
-      },
-      "description": "当たる rule（x-prompt の write の1行）。書き込みのときだけ"
-     },
-     "current": {
-      "description": "いまの値。判定ではいつもあり、書き込みでは更新のときだけある。検索では文書全体"
-     },
-     "read": {
+     {
       "type": "object",
-      "description": "欄の読み方（x-prompt の read）"
-     },
-     "reads": {
-      "type": "array",
-      "description": "rule の reads が指す所。判定では値も入る。書き込みでは先に書く欄",
-      "items": {
-       "type": "object",
-       "required": [
-        "pointer"
-       ],
-       "properties": {
-        "pointer": {
-         "type": "string"
+      "required": [
+       "no",
+       "action"
+      ],
+      "properties": {
+       "no": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "action": {
+        "enum": [
+         "write",
+         "read"
+        ],
+        "description": "write は欄の値を書く、read は範囲の文書を読む（検索）。判定（validate）の steps は、$defs の review-place か review-document のまとまり"
+       },
+       "pointer": {
+        "type": "string"
+       },
+       "title": {
+        "type": "string"
+       },
+       "description": {
+        "type": "string"
+       },
+       "rules": {
+        "type": "array",
+        "items": {
+         "type": "object"
         },
-        "value": true
-       }
-      }
-     },
-     "inner_rules": {
-      "type": "array",
-      "description": "欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule と、その所の形（* は配列の要素か名前を選ばない欄）。書き込みのときだけ",
-      "items": {
-       "type": "object",
-       "required": [
-        "pointer",
-        "rules"
-       ],
-       "properties": {
-        "pointer": {
-         "type": "string"
-        },
-        "rules": {
-         "type": "array",
-         "items": {
-          "type": "object"
+        "description": "当たる rule（x-prompt の write の1行）。書き込みのときだけ"
+       },
+       "current": {
+        "description": "いまの値。書き込みでは更新のときだけある。検索では文書全体"
+       },
+       "read": {
+        "type": "object",
+        "description": "欄の読み方（x-prompt の read）"
+       },
+       "reads": {
+        "type": "array",
+        "description": "書き込みで、先に書く欄",
+        "items": {
+         "type": "object",
+         "required": [
+          "pointer"
+         ],
+         "properties": {
+          "pointer": {
+           "type": "string"
+          },
+          "value": true
          }
         }
-       }
-      }
-     },
-     "optional": {
-      "type": "boolean",
-      "description": "書く元のスキーマが求めない欄。書かないなら答えから外してよい"
-     },
-     "path": {
-      "type": "string",
-      "description": "読む文書の経路。検索のときだけ"
-     },
-     "hash": {
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$",
-      "description": "読む文書の中身のハッシュ。検索のときだけで、答えの sources の hash に写す"
-     }
-    },
-    "allOf": [
-     {
-      "if": {
-       "properties": {
-        "action": {
-         "const": "read"
+       },
+       "inner_rules": {
+        "type": "array",
+        "description": "欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule と、その所の形（* は配列の要素か名前を選ばない欄）。書き込みのときだけ",
+        "items": {
+         "type": "object",
+         "required": [
+          "pointer",
+          "rules"
+         ],
+         "properties": {
+          "pointer": {
+           "type": "string"
+          },
+          "rules": {
+           "type": "array",
+           "items": {
+            "type": "object"
+           }
+          }
+         }
         }
+       },
+       "optional": {
+        "type": "boolean",
+        "description": "書く元のスキーマが求めない欄。書かないなら答えから外してよい"
+       },
+       "path": {
+        "type": "string",
+        "description": "読む文書の経路。検索のときだけ"
+       },
+       "hash": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "description": "読む文書の中身のハッシュ。検索のときだけで、答えの sources の hash に写す"
        }
       },
-      "then": {
-       "required": [
-        "path",
-        "hash",
-        "current"
-       ]
-      }
-     },
-     {
-      "if": {
-       "properties": {
-        "action": {
-         "const": "judge"
+      "allOf": [
+       {
+        "if": {
+         "properties": {
+          "action": {
+           "const": "read"
+          }
+         }
+        },
+        "then": {
+         "required": [
+          "path",
+          "hash",
+          "current"
+         ]
+        }
+       },
+       {
+        "if": {
+         "properties": {
+          "action": {
+           "const": "write"
+          }
+         }
+        },
+        "then": {
+         "required": [
+          "pointer",
+          "rules"
+         ]
         }
        }
-      },
-      "then": {
-       "required": [
-        "pointer",
-        "rule",
-        "current"
-       ]
-      }
-     },
-     {
-      "if": {
-       "properties": {
-        "action": {
-         "const": "write"
-        }
-       }
-      },
-      "then": {
-       "required": [
-        "pointer",
-        "rules"
-       ]
-      }
+      ]
      }
     ]
-   }
+   },
+   "description": "判定では、レビューのまとまりの並び（所のまとまり review-place が当たる所ごとに0個以上、文書全体のまとまり review-document がいつも最後に1つ）。形はこの2つだけで、場面によって変わるのはまとまりの数と中身。書き込みと検索では、欄ごと ・ 文書ごとのステップ"
   },
   "answer": {
    "type": "object",
@@ -314,7 +354,7 @@
    "items": {
     "type": "object"
    },
-   "description": "rule の全文（x-prompt の write の1行）。判定では、steps が rule の id で指す rule を、id ごとに1回だけ持つ。書き込みでは、文書全体に当たる rule（書く元のスキーマの根の x-prompt の write）"
+   "description": "rule の全文（x-prompt の write の1行）。判定では、まとまりの rules が id で指す rule を、id ごとに1回だけ持つ。書き込みでは、文書全体に当たる rule（書く元のスキーマの根の x-prompt の write）"
   },
   "question": {
    "type": "string",
@@ -364,6 +404,371 @@
      "target"
     ]
    }
+  },
+  {
+   "if": {
+    "properties": {
+     "operation_kind": {
+      "const": "validate"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "review"
+    ]
+   }
   }
- ]
+ ],
+ "$defs": {
+  "change": {
+   "type": "object",
+   "required": [
+    "operation",
+    "session",
+    "target"
+   ],
+   "additionalProperties": false,
+   "title": "変更の操作",
+   "description": "前の判定のあとに記録された変更の操作1件",
+   "properties": {
+    "operation": {
+     "title": "操作の ID",
+     "description": "記録にある操作の ID（sas log --operation で中身を読める）",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "変更の中身が要るときは sas log --operation でこの ID を読む。"
+      },
+      "write": []
+     },
+     "type": "string",
+     "pattern": "^o-[0-9]{4,}$"
+    },
+    "session": {
+     "title": "打ったセッション",
+     "description": "変更を打ったセッションの ID。人なら null",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "誰が変えたかの手がかりにする。判定の基準にはしない。"
+      },
+      "write": []
+     },
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "target": {
+     "title": "変えた文書",
+     "description": "変えた文書の経路。rule の文を変えた操作なら Concrete の経路",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "対象の経路でなければ、rule の文が変わった変更として読む。"
+      },
+      "write": []
+     },
+     "type": "string"
+    },
+    "reason": {
+     "title": "変更の理由",
+     "description": "変更を打ったときに --reason で渡された理由。渡されなかったときは欄が無い",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "変えた目的として読み、いまの値がその目的と rule の両方に合うかを見る。"
+      },
+      "write": []
+     },
+     "type": "string"
+    }
+   }
+  },
+  "review-place": {
+   "type": "object",
+   "title": "所のまとまり",
+   "description": "当たる所1つと、そこに当たる意味の rule。scope が changed なら、前の判定のあとに記録された変更と重なる所 ・ そこを reads で読む rule の所 ・ 文が変わった rule の当たるすべての所 ・ 前の判定に無い所だけが入る。all-rules と first では、当たるすべての所が入る",
+   "required": [
+    "no",
+    "action",
+    "pointer",
+    "before",
+    "current",
+    "changes",
+    "rules"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "no": {
+     "title": "まとまりの番号",
+     "description": "1から数えるまとまりの番号",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "判定の答えの step に写す。"
+      },
+      "write": []
+     },
+     "type": "integer",
+     "minimum": 1
+    },
+    "action": {
+     "title": "まとまりの種類",
+     "description": "所のまとまり",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "この所の rules をこの所の値で判定する。"
+      },
+      "write": []
+     },
+     "const": "review-place"
+    },
+    "pointer": {
+     "title": "当たる所",
+     "description": "当たる所（JSON Pointer）",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "判定の答えの pointer に写す。"
+      },
+      "write": []
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "before": {
+     "title": "前の判定のときの値",
+     "description": "この所の、前の判定のときの値。null はこの所に前の判定が無いこと（scope が first、または前の判定のあとに足した所）。値が変わっていない所（rule の文や一緒に読む所が変わった）は current と同じ値",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "current と見比べて、何が変わったかを読む。null なら新しく判定する所として読む。"
+      },
+      "write": []
+     }
+    },
+    "current": {
+     "title": "いまの値",
+     "description": "この所のいまの値",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "判定はこの値でする。"
+      },
+      "write": []
+     }
+    },
+    "changes": {
+     "title": "変更の操作",
+     "description": "前の判定のあとに記録された変更の操作の並び（古い順）",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "それぞれの reason を読み、なぜ変わったかを踏まえて判定する。"
+      },
+      "write": []
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/change"
+     }
+    },
+    "rules": {
+     "title": "判定する rule",
+     "description": "このまとまりで判定する rule の id の並び。全文は手順の rules から id で引く",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "id ごとに1件の判定を書く（step はまとまりの no、pointer はまとまりの pointer）。"
+      },
+      "write": []
+     },
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "title": {
+     "title": "欄の名前",
+     "description": "Concrete（Concrete では Abstract）のこの欄の title",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "値が何の欄かを読む。"
+      },
+      "write": []
+     },
+     "type": "string"
+    },
+    "description": {
+     "title": "欄の説明",
+     "description": "Concrete（Concrete では Abstract）のこの欄の description",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "値が何を表すかを読む。"
+      },
+      "write": []
+     },
+     "type": "string"
+    },
+    "read": {
+     "title": "欄の読み方",
+     "description": "この欄の x-prompt の read",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "interpret の読み方で値を読む。"
+      },
+      "write": []
+     },
+     "type": "object"
+    },
+    "reads": {
+     "title": "一緒に読む所",
+     "description": "このまとまりの rule の reads が指す所と、そのいまの値",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "rule が一緒に読む値として判定に使う。"
+      },
+      "write": []
+     },
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "pointer",
+       "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "pointer": {
+        "type": "string",
+        "title": "所",
+        "description": "一緒に読む所（JSON Pointer）"
+       },
+       "value": {
+        "title": "値",
+        "description": "その所のいまの値"
+       }
+      }
+     }
+    }
+   }
+  },
+  "review-document": {
+   "type": "object",
+   "title": "文書全体のまとまり",
+   "description": "いつも1つ。文書全体に当たる意味の rule（scope が changed なら、どこかが変われば入る）",
+   "required": [
+    "no",
+    "action",
+    "pointer",
+    "changed",
+    "changes",
+    "current",
+    "rules"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "no": {
+     "title": "まとまりの番号",
+     "description": "1から数えるまとまりの番号",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "判定の答えの step に写す。"
+      },
+      "write": []
+     },
+     "type": "integer",
+     "minimum": 1
+    },
+    "action": {
+     "title": "まとまりの種類",
+     "description": "文書全体のまとまり",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "rules を文書全体で判定する。"
+      },
+      "write": []
+     },
+     "const": "review-document"
+    },
+    "pointer": {
+     "title": "当たる所",
+     "description": "文書全体（空の文字列）",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "判定の答えの pointer に空の文字列を写す。"
+      },
+      "write": []
+     },
+     "const": ""
+    },
+    "changed": {
+     "title": "変わった所",
+     "description": "前の判定のあとに記録された変更の所（JSON Pointer。所の順）。scope が first なら空",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "文書のどこが変わったかを読み、全体の判定で踏まえる。"
+      },
+      "write": []
+     },
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "changes": {
+     "title": "変更の操作",
+     "description": "変わった所を変えた操作の並び（古い順）。scope が first なら空",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "それぞれの reason を読み、なぜ変わったかを踏まえて判定する。"
+      },
+      "write": []
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/change"
+     }
+    },
+    "current": {
+     "title": "いまの文書",
+     "description": "いまの文書全体",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "判定はこの文書でする。"
+      },
+      "write": []
+     }
+    },
+    "rules": {
+     "title": "判定する rule",
+     "description": "このまとまりで判定する rule の id の並び。全文は手順の rules から id で引く",
+     "x-prompt": {
+      "read": {
+       "when": "判定するまとまりを読むときに読む。",
+       "interpret": "id ごとに1件の判定を書く（step はまとまりの no、pointer はまとまりの pointer）。"
+      },
+      "write": []
+     },
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
 }

@@ -1,4 +1,4 @@
-//! ステップ3 の表の決まり：取り込み（source = outside）は作成か更新だけで、更新の取り込みは意図を持つ。
+//! ステップ3 の表の決まり：取り込み（source = outside）は作成か更新だけで、更新の取り込みは理由を持つ。
 //! 前の値が取れなかった欄は取り込んだ更新だけ。判定は rule ごとに、その rule を最後に判定した検証の行を引く。
 //! 「取り込みの事前は記録のどれかの事後」「作成の取り込みは記録の無い対象だけ」は application が確かめる（DB はワークツリーで1つ）。
 
@@ -16,7 +16,7 @@ fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -
         request_id: None,
         before: before.map(Into::into),
         after: after.map(Into::into),
-        intent: Some("エディターで直した".into()),
+        reason: Some("エディターで直した".into()),
         schema: None,
         fields: Vec::new(),
     }
@@ -68,13 +68,13 @@ fn adopted_changes_keep_the_source() {
 }
 
 #[test]
-fn adopted_update_needs_an_intent_and_a_delete_is_not_adopted() {
+fn adopted_update_needs_a_reason_and_a_delete_is_not_adopted() {
     let mut log = SqliteLog::in_memory().unwrap();
     log.append_change(None, &change("create", "sas", None, Some("sha256:a")))
         .unwrap();
-    let mut no_intent = change("update", "outside", Some("sha256:a"), Some("sha256:b"));
-    no_intent.intent = None;
-    assert!(log.append_change(None, &no_intent).is_err());
+    let mut no_reason = change("update", "outside", Some("sha256:a"), Some("sha256:b"));
+    no_reason.reason = None;
+    assert!(log.append_change(None, &no_reason).is_err());
     assert!(
         log.append_change(None, &change("delete", "outside", Some("sha256:a"), None))
             .is_err()

@@ -30,7 +30,7 @@ fn delete_row() -> ChangeRow {
         request_id: None,
         before: Some("sha256:a".into()),
         after: None,
-        intent: Some("消す".into()),
+        reason: Some("消す".into()),
         schema: None,
         fields: vec![FieldRow {
             pointer: "/id".into(),

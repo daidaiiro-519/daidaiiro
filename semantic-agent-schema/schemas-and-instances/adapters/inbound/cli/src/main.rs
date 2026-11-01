@@ -34,7 +34,8 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use validation_application::use_cases::validate::{
-    Scope, Selection, semantic_procedures, validate, validate_stale, validate_with_answer,
+    Scope, Selection, semantic_procedures, validate, validate_changed, validate_stale,
+    validate_with_answer,
 };
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
@@ -46,13 +47,13 @@ const USAGE: &str = "使い方：sas init [--session <ID>] ／ \
 sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
 sas validate [--session <名前>] [--stale | --all-rules] (<経路>... | --all) --semantic ／ \
 sas validate <経路> [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
-sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
-sas create <経路> --concrete <URN> --semantic [--brief <依頼>] [--ref <経路>]... [--intent <意図>] [--session <名前>] ／ \
-sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --semantic --brief <依頼> [--ref <経路>]... [--intent <意図>] [--session <名前>] ／ \
-sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>] ／ \
-sas delete <経路> --intent <意図> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
+sas create <経路> --concrete <URN> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+sas create <経路> --concrete <URN> --semantic [--brief <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+sas create <経路> --adopt [--concrete <URN>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+sas update <経路> --semantic --brief <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+sas update <経路> --adopt --reason <理由> [--session <名前>] [--request-id <ID>] ／ \
+sas delete <経路> --reason <理由> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
 sas render <経路>... --design-system <経路> --out <書き出す先> ／ \
 sas log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
 sas log --operation <ID> ／ \
@@ -312,10 +313,12 @@ fn run_validate(args: &[String]) -> ExitCode {
         (Scope::Paths(paths), Some(text)) => validate_with_answer(
             &paths[0], selection, &text, &store, &validator, &caller, &mut log,
         ),
-        // 判定する rule が無いときの意味の判定は、手順と同じ選び方で機械の検証を記録する
-        _ if stale || (semantic && !all_rules) => {
-            validate_stale(&scope, &store, &validator, &caller, &mut log)
+        // 判定する所が無いときの意味の判定は、手順と同じ選び方（rule × 当たる所で変わった所だけ）で、
+        // 前の判定を引き継いで記録する
+        _ if semantic && !all_rules => {
+            validate_changed(&scope, &store, &validator, &caller, &mut log)
         }
+        _ if stale => validate_stale(&scope, &store, &validator, &caller, &mut log),
         _ => validate(&scope, &store, &validator, &caller, &mut log),
     };
     match result {
@@ -377,7 +380,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         Command::Update => vec![("--patch", None), ("--if-match", None)],
     };
     flags.extend([
-        ("--intent", None),
+        ("--reason", None),
         ("--session", None),
         ("--request-id", None),
         ("--brief", None),
@@ -407,7 +410,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     };
     let session = take("--session");
     let request_id = take("--request-id");
-    let intent = take("--intent");
+    let reason = take("--reason");
     if !semantic && take("--brief").is_some() {
         return usage("--brief は --semantic と一緒に渡してください");
     }
@@ -437,7 +440,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             concrete,
             brief: take("--brief"),
             refs,
-            intent,
+            reason,
             request_id,
         };
         let result = run_with(
@@ -460,9 +463,9 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         {
             return usage(&format!("--adopt と {name} は一緒に渡せません"));
         }
-        if command == Command::Update && intent.is_none() {
+        if command == Command::Update && reason.is_none() {
             return usage(
-                "--adopt で更新を取り込むときは、外で直した意図を --intent で渡してください",
+                "--adopt で更新を取り込むときは、外で直した理由を --reason で渡してください",
             );
         }
         let request = AdoptRequest {
@@ -472,7 +475,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 Command::Update => AdoptAs::Update,
             },
             concrete: take("--concrete"),
-            intent,
+            reason,
             request_id,
         };
         let committed = GitCommits::new(PathBuf::from("."));
@@ -515,7 +518,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 concrete,
                 value,
                 request_id,
-                intent,
+                reason,
             };
             run_with(
                 |store, validator, caller, log| create(&request, store, validator, caller, log),
@@ -532,7 +535,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 patch,
                 if_match: take("--if-match"),
                 request_id,
-                intent,
+                reason,
             };
             run_with(
                 |store, validator, caller, log| update(&request, store, validator, caller, log),
@@ -551,7 +554,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
 
 fn run_delete(args: &[String]) -> ExitCode {
     let mut flags: Vec<(&str, Option<String>)> = vec![
-        ("--intent", None),
+        ("--reason", None),
         ("--if-match", None),
         ("--session", None),
         ("--request-id", None),
@@ -580,14 +583,14 @@ fn run_delete(args: &[String]) -> ExitCode {
             .and_then(|(_, v)| v.clone())
     };
     // 消すと中身は記録の事前の状態にしか残らないので、なぜ消すかを必ず残す
-    let Some(intent) = take("--intent") else {
-        return usage("消すときは、なぜ消すかを --intent で渡してください");
+    let Some(reason) = take("--reason") else {
+        return usage("消すときは、なぜ消すかを --reason で渡してください");
     };
     let request = DeleteRequest {
         path: path.clone(),
         if_match: take("--if-match"),
         request_id: take("--request-id"),
-        intent: Some(intent),
+        reason: Some(reason),
     };
     match run_with(
         |store, _, caller, log| delete(&request, store, caller, log),

@@ -75,7 +75,7 @@ fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
         concrete: UC.into(),
         value,
         request_id: request_id.map(Into::into),
-        intent: None,
+        reason: None,
     }
 }
 
@@ -131,7 +131,7 @@ fn same_request_is_one_operation() {
         patch: json!([]),
         if_match: Some(first.after.as_str().into()),
         request_id: Some("r-1".into()),
-        intent: None,
+        reason: None,
     };
     let r = update(&other, &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "request_reused");
@@ -150,7 +150,7 @@ fn update_checks_the_hash_before_writing() {
         patch: json!([{"op": "replace", "path": "/goal", "value": "b"}]),
         if_match: Some(if_match.into()),
         request_id: None,
-        intent: None,
+        reason: None,
     };
     let r = update(&req("sha256:x"), &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "conflict");
@@ -174,7 +174,7 @@ fn update_without_if_match_compares_with_the_last_write() {
         patch: json!([{"op": "replace", "path": "/goal", "value": goal}]),
         if_match: None,
         request_id: None,
-        intent: Some("目標を直す".into()),
+        reason: Some("目標を直す".into()),
     };
     // SAS が一度も書いていないので、比べるハッシュが無く、書く
     let first = update(&req("b"), &store, &Lenient, &HUMAN, &mut log).unwrap();
@@ -195,7 +195,7 @@ fn update_without_if_match_compares_with_the_last_write() {
     assert!(i.untracked);
     assert!(i.operations.is_empty());
     assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
-    // 古いハッシュを --if-match で渡すと、そのあとの操作が意図と一緒に返る
+    // 古いハッシュを --if-match で渡すと、そのあとの操作が理由と一緒に返る
     let r = update(
         &UpdateRequest {
             if_match: Some(first.before.unwrap().as_str().into()),
@@ -210,7 +210,7 @@ fn update_without_if_match_compares_with_the_last_write() {
     let i = r.interleaved.unwrap();
     let ids: Vec<&str> = i.operations.iter().map(|w| w.operation.as_str()).collect();
     assert_eq!(ids, ["o-1", "o-2"]);
-    assert_eq!(i.operations[0].row.intent.as_deref(), Some("目標を直す"));
+    assert_eq!(i.operations[0].row.reason.as_deref(), Some("目標を直す"));
     assert!(i.untracked);
 }
 
@@ -252,7 +252,7 @@ fn update_reports_the_previous_judgments_it_made_stale() {
             patch: json!([{"op": "replace", "path": "/status", "value": "approved"}, {"op": "replace", "path": "/goal", "value": "b"}]),
             if_match: Some(fp.as_str().into()),
             request_id: None,
-            intent: None,
+            reason: None,
         },
         &store,
         &Lenient,
@@ -288,7 +288,7 @@ fn adopt_request(as_kind: AdoptAs) -> AdoptRequest {
         path: "u1.json".into(),
         as_kind,
         concrete: None,
-        intent: Some("エディターで直した".into()),
+        reason: Some("エディターで直した".into()),
         request_id: None,
     }
 }
@@ -446,7 +446,7 @@ fn written(n: usize, before: &str, after: &str) -> WriteRecord {
             request_id: None,
             before: Some(before.into()),
             after: Some(after.into()),
-            intent: None,
+            reason: None,
             schema: None,
             fields: Vec::new(),
         },

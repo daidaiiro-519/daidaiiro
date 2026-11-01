@@ -156,7 +156,7 @@
   },
   {
    "id": "UC2:変形:SAS を通らない変更を取り込む",
-   "meaning": "SAS が書いたあとに外で直されたファイルを、意図と、記録の最後の事後と同じ中身のコミットとの差分と一緒に取り込む（ファイルは書かない）",
+   "meaning": "SAS が書いたあとに外で直されたファイルを、理由と、記録の最後の事後と同じ中身のコミットとの差分と一緒に取り込む（ファイルは書かない）",
    "scenarios": [
     "S-UC2-ADOPT-HUMAN-FIELD",
     "S-UC2-ADOPT-INVALID",
@@ -563,15 +563,21 @@
   },
   {
    "id": "UC4:変形:意味の判定",
-   "meaning": "--semantic で意味の rule の判定の手順（対象のハッシュ ・ 判定を渡すコマンド）を返して記録せず、--answer で渡された判定を形 ・ ハッシュ ・ step ・ rule ・ pointer で確かめてから、機械の結果と合わせて打ったセッションの検証として記録する。判定済みの対象では、前の判定から読んだ所が変わった rule と前に判定できなかった rule だけを手順に入れ、--all-rules ですべてを入れる。rule の全文は手順の rules に1回だけ書き、ステップは rule の id で指す",
+   "meaning": "--semantic で意味の rule の判定の手順を返して記録せず、--answer で渡された判定を形 ・ ハッシュ ・ step ・ rule ・ pointer で確かめてから、機械の結果と合わせて打ったセッションの検証として記録する。手順の steps はレビューのまとまりで、形は所のまとまり（pointer ・ before ・ current ・ changes ・ rules）と文書全体のまとまり（changed ・ changes ・ rules。いつも1つ）の2つだけで、changes には前の判定のあとの変更の操作と --reason の理由が入り、手順の根の review が前の判定（since）と範囲（scope）を持つ。判定済みの対象では、前の判定のあとに記録された変更（取り込みを含む）の所と重なる rule ・ その所を reads で読む rule ・ 文書全体に当たる rule ・ 文が変わった rule ・ 前の判定に無い所だけを入れ（--all-rules と初めての対象はすべて）、記録は手順に入らなかった所の前の判定を引き継いで検証の結果全体にする（消えた所は引き継がない）。rule の全文は手順の rules に1回だけ書く",
    "scenarios": [
     "S-UC4-ANSWER-MISMATCH",
     "S-UC4-ANSWER",
+    "S-UC4-SEMANTIC-ADOPTED",
     "S-UC4-SEMANTIC-ALL-RULES",
     "S-UC4-SEMANTIC-CHANGED",
     "S-UC4-SEMANTIC-NO-RULE",
+    "S-UC4-SEMANTIC-PLACE-ADDED",
+    "S-UC4-SEMANTIC-PLACE-REMOVED",
     "S-UC4-SEMANTIC-PROCEDURE",
     "S-UC4-SEMANTIC-READS",
+    "S-UC4-SEMANTIC-REASON",
+    "S-UC4-SEMANTIC-RULE-CHANGED",
+    "S-UC4-SEMANTIC-SAME-RULE",
     "S-UC4-STALE-SEMANTIC"
    ]
   },
@@ -634,7 +640,7 @@
   },
   {
    "id": "UC7:成功時保証",
-   "meaning": "操作（変更と検証）が新しい順に1行1件で返り、打ったセッション（ID ・ ツール ・ フォルダ）・ 意図 ・ 検証の件数を持つ。読む形は記録の表の形に依らない",
+   "meaning": "操作（変更と検証）が新しい順に1行1件で返り、打ったセッション（ID ・ ツール ・ フォルダ）・ 理由 ・ 検証の件数を持つ。読む形は記録の表の形に依らない",
    "scenarios": [
     "S-UC7-LOG-FILTER",
     "S-UC7-LOG-FOLDER",

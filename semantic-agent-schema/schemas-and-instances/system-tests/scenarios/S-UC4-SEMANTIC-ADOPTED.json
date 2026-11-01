@@ -1,0 +1,117 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-ADOPTED",
+ "name": "取り込んだ変更の判定",
+ "title": "判定したあとエディターで直した変更を update --adopt で取り込むと、validate --semantic は取り込んだ変更の所（/steps/1/action）だけを、前の判定のときの値と、取り込んだ操作（理由つき）と一緒に所のまとまりにする",
+ "why": "SAS を通らない変更も、取り込めば変更の記録に入る。取り込んだのに手順に入らないと、外で直した所を誰も判定しない。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "repo": true,
+  "files": {
+   "schemas/steps.schema.json": "@fixtures/steps.schema.json",
+   "items/st1.json": "@fixtures/st1.json",
+   "answers/steps.json": "{\"hash\": \"sha256:1ad4a6251c4aad520559a7e66bff800e1c4baf0b87ff044200af0c73e09dd1a7\", \"results\": [{\"step\": 1, \"rule\": \"one-action\", \"pointer\": \"/steps/0/action\", \"result\": \"verified\", \"reason\": \"利用者が送る1つだけ\"}, {\"step\": 2, \"rule\": \"one-action\", \"pointer\": \"/steps/1/action\", \"result\": \"verified\", \"reason\": \"仕組みが確かめる1つだけ\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/st1.json",
+     "--adopt"
+    ]
+   },
+   {
+    "git": [
+     "add",
+     "schemas",
+     "items"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "args": [
+     "validate",
+     "items/st1.json",
+     "--answer",
+     "answers/steps.json"
+    ]
+   },
+   {
+    "write": {
+     "path": "items/st1.json",
+     "content": "{\n \"$schema\": \"urn:example:sample:steps:v1\",\n \"steps\": [\n  {\n   \"action\": \"利用者が注文を送る\"\n  },\n  {\n   \"action\": \"仕組みが在庫と値段を確かめる\"\n  }\n ]\n}\n"
+    }
+   },
+   {
+    "args": [
+     "update",
+     "items/st1.json",
+     "--adopt",
+     "--reason",
+     "在庫と値段を確かめると書き直した"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/st1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/steps/1/action"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/before",
+   "equals": "仕組みが在庫を確かめる"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/current",
+   "equals": "仕組みが在庫と値段を確かめる"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/changed",
+   "equals": [
+    "/steps/1/action"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/reason",
+   "equals": "在庫と値段を確かめると書き直した"
+  }
+ ],
+ "unchanged": [
+  "items/st1.json"
+ ]
+}

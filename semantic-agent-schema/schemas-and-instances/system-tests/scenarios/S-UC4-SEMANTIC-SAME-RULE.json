@@ -1,0 +1,85 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-SAME-RULE",
+ "name": "直していない所の同じ rule",
+ "title": "同じ rule が2つの所（/steps/0/action と /steps/1/action）に当たる対象で1つ目だけを直すと、validate --semantic の手順には直した所だけが入り、直していない所の同じ rule は入らない",
+ "why": "rule の単位で比べると、1か所直すだけでその rule が当たる所がすべて入り、欄の数に比例して判定し直す。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/steps.schema.json": "@fixtures/steps.schema.json",
+   "items/st1.json": "@fixtures/st1.json",
+   "answers/steps.json": "{\"hash\": \"sha256:1ad4a6251c4aad520559a7e66bff800e1c4baf0b87ff044200af0c73e09dd1a7\", \"results\": [{\"step\": 1, \"rule\": \"one-action\", \"pointer\": \"/steps/0/action\", \"result\": \"verified\", \"reason\": \"利用者が送る1つだけ\"}, {\"step\": 2, \"rule\": \"one-action\", \"pointer\": \"/steps/1/action\", \"result\": \"verified\", \"reason\": \"仕組みが確かめる1つだけ\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/st1.json",
+     "--answer",
+     "answers/steps.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/st1.json",
+     "--patch",
+     "[{\"op\": \"replace\", \"path\": \"/steps/0/action\", \"value\": \"利用者が注文を確かめて送る\"}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/st1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/steps/0/action"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/rules",
+   "equals": [
+    "one-action"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/before",
+   "equals": "利用者が注文を送る"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/current",
+   "equals": "利用者が注文を確かめて送る"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/changed",
+   "equals": [
+    "/steps/0/action"
+   ]
+  }
+ ],
+ "unchanged": [
+  "items/st1.json"
+ ]
+}

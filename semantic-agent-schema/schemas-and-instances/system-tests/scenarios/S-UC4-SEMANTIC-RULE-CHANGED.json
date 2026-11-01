@@ -1,0 +1,96 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-RULE-CHANGED",
+ "name": "rule の文が変わったとき",
+ "title": "インスタンスを判定したあとに Concrete の rule の文（one-action）を直すと、インスタンスは変えていなくても、validate --semantic はその rule が当たるすべての所を所のまとまりにする（値は変わっていないので before は current と同じで、changes には Concrete を直した操作が入る）",
+ "why": "rule の文が変わると、前の判定は前の文に照らしたもので、いまの文に照らしていない。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/steps.schema.json": "@fixtures/steps.schema.json",
+   "items/st1.json": "@fixtures/st1.json",
+   "answers/steps.json": "{\"hash\": \"sha256:1ad4a6251c4aad520559a7e66bff800e1c4baf0b87ff044200af0c73e09dd1a7\", \"results\": [{\"step\": 1, \"rule\": \"one-action\", \"pointer\": \"/steps/0/action\", \"result\": \"verified\", \"reason\": \"利用者が送る1つだけ\"}, {\"step\": 2, \"rule\": \"one-action\", \"pointer\": \"/steps/1/action\", \"result\": \"verified\", \"reason\": \"仕組みが確かめる1つだけ\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/st1.json",
+     "--answer",
+     "answers/steps.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "schemas/steps.schema.json",
+     "--patch",
+     "[{\"op\": \"replace\", \"path\": \"/$defs/step/properties/action/x-prompt/write/0/rule\", \"value\": \"誰が何をするかを1つだけ、主語から書く。\"}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/st1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 3
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/steps/0/action"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/pointer",
+   "equals": "/steps/1/action"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/2/changed",
+   "count": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/rules/0/rule",
+   "equals": "誰が何をするかを1つだけ、主語から書く。"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/before",
+   "equals": "利用者が注文を送る"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/current",
+   "equals": "利用者が注文を送る"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes/0/target",
+   "equals": "schemas/steps.schema.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/2/changes",
+   "count": 0
+  }
+ ],
+ "unchanged": [
+  "items/st1.json"
+ ]
+}

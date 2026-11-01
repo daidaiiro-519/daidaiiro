@@ -16,7 +16,7 @@ fn update(request_id: Option<&str>) -> ChangeRow {
         request_id: request_id.map(Into::into),
         before: Some("sha256:a".into()),
         after: Some("sha256:b".into()),
-        intent: Some("目標を直す".into()),
+        reason: Some("目標を直す".into()),
         schema: None,
         fields: vec![FieldRow {
             pointer: "/goal".into(),
@@ -80,7 +80,7 @@ fn change_and_fields_are_kept_and_found_by_request() {
         log.append_change(p.as_deref(), &update(Some("r-1")))
             .is_err()
     );
-    rejects(&log, "UPDATE changes SET intent = 'x'");
+    rejects(&log, "UPDATE changes SET reason = 'x'");
     rejects(&log, "DELETE FROM changes");
     rejects(&log, "UPDATE field_changes SET after = '1'");
     rejects(&log, "DELETE FROM field_changes");
@@ -94,7 +94,7 @@ fn writes_are_written_changes_in_order() {
     let mut second = update(None);
     second.before = Some("sha256:b".into());
     second.after = Some("sha256:c".into());
-    second.intent = None;
+    second.reason = None;
     let second_id = log.append_change(None, &second).unwrap();
     assert_eq!(
         (first.as_str(), second_id.as_str()),
@@ -187,7 +187,7 @@ fn a_database_in_a_new_place_is_made_empty() {
         .connection()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 5);
+    assert_eq!(version, 6);
     assert_eq!(log.append_change(None, &update(None)).unwrap(), "o-0001");
     drop(log);
     // 開き直しても行は残り、版は進まない

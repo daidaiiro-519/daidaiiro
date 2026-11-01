@@ -94,6 +94,8 @@ pub(crate) fn tool() -> Caller {
 pub(crate) struct Log(
     pub(crate) Vec<ValidateRow>,
     pub(crate) Vec<(String, ChangeRow)>,
+    /// 検証の操作の ID（0 と同じ並び。試験が 0 へ直に足した検証は、検証だけの並びの番号にする）
+    pub(crate) Vec<String>,
 );
 impl Log {
     fn next(&self) -> String {
@@ -106,6 +108,7 @@ impl Log {
     ) -> Result<String, String> {
         let id = self.next();
         self.0.push(row.clone());
+        self.2.push(id.clone());
         Ok(id)
     }
     pub(crate) fn append_change(
@@ -148,7 +151,7 @@ impl Log {
             .collect())
     }
     pub(crate) fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        // rule ごとに、その rule を最後に判定した検証の行（検証の ID は検証だけの並びの番号）
+        // rule ごとに、その rule を最後に判定した検証の行（検証の ID は記録した操作の ID）
         let mut latest: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
         for (i, r) in self.0.iter().enumerate() {
             if r.target_path != target_path {
@@ -157,7 +160,8 @@ impl Log {
             let mut here: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
             for rule in &r.results {
                 here.entry(rule.rule.clone()).or_default().push(Judgment {
-                    operation: format!("o-{}", i + 1),
+                    operation: self.2.get(i).cloned().unwrap_or(format!("o-{}", i + 1)),
+                    hash: r.hash.clone(),
                     rule: rule.clone(),
                 });
             }

@@ -130,7 +130,7 @@ fn form_violations(
 }
 
 /// 書く前に、呼ぶ側が前提にしたハッシュといまのハッシュが違ったときに返す「間に入った変更」。
-/// 呼ぶ側（人か AI）は、間に入った操作の意図と変わった欄を読んで、直し方を考え直す。
+/// 呼ぶ側（人か AI）は、間に入った操作の理由と変わった欄を読んで、直し方を考え直す。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Interleaved {
     /// 呼ぶ側が前提にしたハッシュ（--if-match か、最後に記録した書いた操作の事後のハッシュ）
@@ -341,8 +341,8 @@ pub struct CreateRequest {
     pub value: Value,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
-    /// 意図（なぜ作るか）。記録に残し、間に入った変更として後の書き手に返す
-    pub intent: Option<String>,
+    /// 理由（なぜ作るか）。記録に残し、間に入った変更として後の書き手に返す
+    pub reason: Option<String>,
 }
 
 /// 更新の依頼。
@@ -356,8 +356,8 @@ pub struct UpdateRequest {
     pub if_match: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
-    /// 意図（なぜ直すか）。記録に残し、間に入った変更として後の書き手に返す
-    pub intent: Option<String>,
+    /// 理由（なぜ直すか）。記録に残し、間に入った変更として後の書き手に返す
+    pub reason: Option<String>,
 }
 
 /// 書く文書の文字列（1字下げの JSON と、末尾の改行。リポジトリの文書の書き方に合わせる）。
@@ -631,7 +631,7 @@ pub fn create(
         request_id: request.request_id.clone(),
         before: None,
         after: None,
-        intent: request.intent.clone(),
+        reason: request.reason.clone(),
         schema: Some(request.concrete.clone()),
         fields: Vec::new(),
     };
@@ -730,7 +730,7 @@ pub fn update(
         request_id: request.request_id.clone(),
         before: Some(current.as_str().to_string()),
         after: None,
-        intent: request.intent.clone(),
+        reason: request.reason.clone(),
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
@@ -928,13 +928,13 @@ fn violated_instances(
 
 /// SAS を通らない変更を取り込むコマンドの案内。
 fn adopt_hint(path: &str) -> String {
-    format!("意図を付けて取り込む：sas update {path} --adopt --intent \"…\"")
+    format!("理由を付けて取り込む：sas update {path} --adopt --reason \"…\"")
 }
 
 /// SAS を通した変更が間に入ったときに、のせ直して打ち直すコマンドの案内。
 fn reapply_hint(path: &str, current: &str) -> String {
     format!(
-        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：sas update {path} --patch <JSON Patch> --if-match {current} --intent \"…\""
+        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：sas update {path} --patch <JSON Patch> --if-match {current} --reason \"…\""
     )
 }
 
@@ -956,8 +956,8 @@ pub struct AdoptRequest {
     pub as_kind: AdoptAs,
     /// 従う Concrete の $id。渡されたら $schema と同じかを確かめる（無ければ $schema から決める）
     pub concrete: Option<String>,
-    /// 意図（なぜ外で直したか）。更新の取り込みでは要る
-    pub intent: Option<String>,
+    /// 理由（なぜ外で直したか）。更新の取り込みでは要る
+    pub reason: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
 }
@@ -1049,7 +1049,7 @@ pub fn adopt(
                 "recorded",
                 path,
                 format!(
-                    "{path} は操作 {} で記録がある。外で直した変更は sas update {path} --adopt --intent \"…\" で取り込む",
+                    "{path} は操作 {} で記録がある。外で直した変更は sas update {path} --adopt --reason \"…\" で取り込む",
                     w.operation
                 ),
             ));
@@ -1079,11 +1079,11 @@ pub fn adopt(
                     ),
                 ));
             }
-            if request.intent.is_none() {
+            if request.reason.is_none() {
                 return Err(refused(
                     "invalid_input",
                     path,
-                    "更新の取り込みには、外で直した意図（--intent）が要る".to_string(),
+                    "更新の取り込みには、外で直した理由（--reason）が要る".to_string(),
                 ));
             }
             Some(w.row.after.clone().unwrap_or_default())
@@ -1096,7 +1096,7 @@ pub fn adopt(
         request_id: request.request_id.clone(),
         before: None,
         after: None,
-        intent: request.intent.clone(),
+        reason: request.reason.clone(),
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
@@ -1152,7 +1152,7 @@ pub fn adopt(
                 "人が --session を付けずに取り込む：sas {} {path} --adopt{}",
                 written.kind(),
                 if expected.is_some() {
-                    " --intent \"…\""
+                    " --reason \"…\""
                 } else {
                     ""
                 }

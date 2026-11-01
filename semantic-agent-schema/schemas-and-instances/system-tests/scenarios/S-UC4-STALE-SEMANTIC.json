@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-STALE-SEMANTIC",
  "name": "判定できなかった rule をあとで判定する",
- "title": "判定を渡さずに検証して unsupported になった rule は、中身が同じでも --stale --semantic の手順に入り、--stale --answer で判定を渡すと記録される",
+ "title": "判定を渡さずに検証して unsupported になった rule は、中身が同じでも --stale --semantic の手順に入り、--stale --answer で判定を渡すと記録される（記録は形の検査を含む検証の結果全体）",
  "why": "判定を渡さずに検証したあと、--stale で判定を渡すと、まだ誰も判定していない rule が残らない。",
  "traces": [
   "UC4:変形:入力が変わった rule だけ",
@@ -44,7 +44,7 @@
   {
    "of": "when",
    "pointer": "/steps",
-   "count": 2
+   "count": 3
   },
   {
    "of": "when",
@@ -58,12 +58,17 @@
   {
    "of": "after[0]",
    "pointer": "/targets/0/counts/verified",
-   "equals": 2
+   "equals": 3
   },
   {
    "of": "after[0]",
    "pointer": "/targets/0/counts/unsupported",
    "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/review/scope",
+   "equals": "first"
   }
  ],
  "after": [

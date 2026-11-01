@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-SEMANTIC-ALL-RULES",
  "name": "すべての所を判定し直す",
- "title": "判定済みの対象でも、validate --semantic --all-rules は変わっていない rule を含むすべての所を手順に入れ、判定を渡すコマンドにも --all-rules を付ける",
+ "title": "判定済みの対象でも、validate --semantic --all-rules は変わっていない所を含むすべての当たる所を所のまとまりにし、before には前の判定のときの値（変わっていない所は current と同じ）を、changes にはその所に関わった変更を入れる。判定を渡すコマンドにも --all-rules を付ける",
  "why": "rule の文ではなく判定する側の基準を変えたときは、変わった所だけでは前の判定が残る。",
  "traces": [
   "UC4:変形:意味の判定"
@@ -48,7 +48,7 @@
   {
    "of": "when",
    "pointer": "/steps",
-   "count": 2
+   "count": 3
   },
   {
    "of": "when",
@@ -59,6 +59,46 @@
    "of": "when",
    "pointer": "/command",
    "contains": "--all-rules --answer"
+  },
+  {
+   "of": "when",
+   "pointer": "/review/scope",
+   "equals": "all-rules"
+  },
+  {
+   "of": "when",
+   "pointer": "/review/since",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/before",
+   "equals": "検証の結果を受け取る"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/changes",
+   "count": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/pointer",
+   "equals": "/summary"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/before",
+   "equals": "検証の結果を受け取るための決めごと"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/changes",
+   "count": 1
   }
  ],
  "unchanged": [

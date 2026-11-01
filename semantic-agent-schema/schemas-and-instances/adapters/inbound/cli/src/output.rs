@@ -172,7 +172,7 @@ pub fn print_validation(v: &Validation) {
     }
     if let Some(u) = v.untracked.first() {
         out["hint"] = json!(format!(
-            "SAS を通らない変更がある。意図を付けて取り込む：sas update {} --adopt --intent \"…\"",
+            "SAS を通らない変更がある。理由を付けて取り込む：sas update {} --adopt --reason \"…\"",
             if v.untracked.len() == 1 {
                 u.path.as_str()
             } else {
@@ -221,8 +221,8 @@ fn write_record(w: &WriteRecord) -> Value {
     };
     // 読む順（だれが ・ 何のために ・ いつ ・ どの欄を）に並べる
     let mut v = json!({"operation": w.operation, "session": w.session, "kind": w.row.kind, "source": w.row.source});
-    if let Some(i) = &w.row.intent {
-        v["intent"] = json!(i);
+    if let Some(i) = &w.row.reason {
+        v["reason"] = json!(i);
     }
     v["at"] = json!(w.at);
     if let Some(b) = &w.row.before {
@@ -417,8 +417,8 @@ pub fn print_operation(o: &OperationSummary) {
         "path": o.path,
         "session": o.session.as_ref().map(|s| json!({"id": s.id, "tool": s.tool, "folder": s.folder})),
     });
-    if let Some(i) = &o.intent {
-        out["intent"] = json!(i);
+    if let Some(i) = &o.reason {
+        out["reason"] = json!(i);
     }
     if o.op == "validate" {
         let mut m = Map::new();
@@ -452,7 +452,7 @@ fn rule_row(r: &RuleRow) -> Value {
 }
 
 /// 記録にある操作1件の中身（sas log --operation）。書いたとき ・ 検証したときと同じ change ・ validation の形で出し、
-/// 記録した日時 at と意図 intent を足す。記録にあるのは差分と判定だけなので、stale_rules と violated_instances は空。
+/// 記録した日時 at と理由 reason を足す。記録にあるのは差分と判定だけなので、stale_rules と violated_instances は空。
 pub fn print_operation_detail(d: &OperationDetail) {
     let out = match d {
         OperationDetail::Change {
@@ -515,8 +515,8 @@ pub fn print_operation_detail(d: &OperationDetail) {
                 "stale_rules": [],
                 "violated_instances": [],
             });
-            if let Some(i) = &row.intent {
-                out["intent"] = json!(i);
+            if let Some(i) = &row.reason {
+                out["reason"] = json!(i);
             }
             out
         }

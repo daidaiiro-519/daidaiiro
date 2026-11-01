@@ -1,4 +1,4 @@
-//! ステップ4 の表の決まり：削除は事後を持たず、意図を持ち、変わった欄は事前の remove だけ。
+//! ステップ4 の表の決まり：削除は事後を持たず、理由を持ち、変わった欄は事前の remove だけ。
 //! 消すと記録のつながりが切れ、書いた操作の並び（writes）は、最後の削除より後だけを見る。
 
 #![allow(clippy::unwrap_used)]
@@ -14,7 +14,7 @@ fn row(kind: &str, path: &str, before: Option<&str>, after: Option<&str>) -> Cha
         request_id: None,
         before: before.map(Into::into),
         after: after.map(Into::into),
-        intent: Some("消す".into()),
+        reason: Some("消す".into()),
         schema: None,
         fields: Vec::new(),
     }
@@ -51,13 +51,13 @@ fn a_delete_has_no_after_and_records_only_removals() {
 }
 
 #[test]
-fn a_delete_has_an_intent() {
+fn a_delete_has_a_reason() {
     let mut log = SqliteLog::in_memory().unwrap();
-    let mut no_intent = row("delete", "u4.json", Some("sha256:f"), None);
-    no_intent.intent = None;
+    let mut no_reason = row("delete", "u4.json", Some("sha256:f"), None);
+    no_reason.reason = None;
     assert!(
-        log.append_change(None, &no_intent).is_err(),
-        "削除は意図を持つ"
+        log.append_change(None, &no_reason).is_err(),
+        "削除は理由を持つ"
     );
 }
 

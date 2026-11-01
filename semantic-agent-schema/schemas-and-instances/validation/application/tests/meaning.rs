@@ -114,7 +114,8 @@ fn procedure_is_returned_and_nothing_is_recorded() {
     let log = Log::default();
     let p = procedures(&store, &log, &HUMAN);
     assert_eq!(p.len(), 1);
-    assert_eq!(p[0]["steps"][0]["rule"], json!("goal-is-outcome"));
+    assert_eq!(p[0]["steps"][0]["rules"][0], json!("goal-is-outcome"));
+    assert_eq!(p[0]["steps"][1]["action"], json!("review-document"));
     assert_eq!(p[0]["rules"][0]["id"], json!("goal-is-outcome"));
     assert_eq!(p[0]["steps"][0]["current"], json!("注文が届く"));
     assert_eq!(p[0]["target"]["hash"], json!(hash(&store)));
@@ -271,10 +272,10 @@ fn command_line_quotes_only_what_needs_it() {
             "sas",
             "update",
             "a b.json",
-            "--intent",
+            "--reason",
             "it's",
             "<JSON Patch>"
         ]),
-        "sas update 'a b.json' --intent 'it'\\''s' <JSON Patch>"
+        "sas update 'a b.json' --reason 'it'\\''s' <JSON Patch>"
     );
 }

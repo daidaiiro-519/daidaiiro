@@ -1,0 +1,71 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-PLACE-ADDED",
+ "name": "欄が増えたときの判定",
+ "title": "判定済みの対象に要素を足すと、validate --semantic の手順には、新しく当たるようになった所（/steps/2/action）だけが入る",
+ "why": "新しく当たるようになった所は前の判定が無いので、判定しないと誰も判定していない所が残る。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/steps.schema.json": "@fixtures/steps.schema.json",
+   "items/st1.json": "@fixtures/st1.json",
+   "answers/steps.json": "{\"hash\": \"sha256:1ad4a6251c4aad520559a7e66bff800e1c4baf0b87ff044200af0c73e09dd1a7\", \"results\": [{\"step\": 1, \"rule\": \"one-action\", \"pointer\": \"/steps/0/action\", \"result\": \"verified\", \"reason\": \"利用者が送る1つだけ\"}, {\"step\": 2, \"rule\": \"one-action\", \"pointer\": \"/steps/1/action\", \"result\": \"verified\", \"reason\": \"仕組みが確かめる1つだけ\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/st1.json",
+     "--answer",
+     "answers/steps.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/st1.json",
+     "--patch",
+     "[{\"op\": \"add\", \"path\": \"/steps/-\", \"value\": {\"action\": \"仕組みが受け付けを返す\"}}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/st1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/steps/2/action"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/before",
+   "equals": null
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/current",
+   "equals": "仕組みが受け付けを返す"
+  }
+ ],
+ "unchanged": [
+  "items/st1.json"
+ ]
+}

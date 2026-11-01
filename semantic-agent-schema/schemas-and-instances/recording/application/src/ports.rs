@@ -79,8 +79,8 @@ pub struct OperationSummary {
     pub path: String,
     /// 打ったセッション（人なら None）
     pub session: Option<SessionRow>,
-    /// 意図（変更で、呼ぶ側が渡したときだけ）
-    pub intent: Option<String>,
+    /// 理由（変更で、呼ぶ側が渡したときだけ）
+    pub reason: Option<String>,
     /// 検証なら、判定の区分ごとの件数（区分の名前 → 件数）。変更なら空
     pub counts: Vec<(String, usize)>,
 }

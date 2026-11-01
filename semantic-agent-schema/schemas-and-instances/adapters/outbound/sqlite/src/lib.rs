@@ -17,12 +17,13 @@ use validation_domain::values::{Judgment, RuleRow, ValidateRow};
 use writing_domain::values::{Caller, ChangeRow, FieldRow, StoredChange, WriteRecord};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の書き直しはステップ4b の1回だけ：CODING.md）。
-const MIGRATIONS: [&str; 5] = [
+const MIGRATIONS: [&str; 6] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
     include_str!("../migrations/0003-adopt.sql"),
     include_str!("../migrations/0004-delete.sql"),
     include_str!("../migrations/0005-read.sql"),
+    include_str!("../migrations/0006-reason.sql"),
 ];
 
 /// SQLite の操作の記録。
@@ -98,7 +99,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent, schema \
+                "SELECT kind, source, target_path, request_id, before_hash, after_hash, reason, schema \
                  FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
@@ -109,7 +110,7 @@ impl SqliteLog {
                         request_id: r.get(3)?,
                         before: r.get(4)?,
                         after: r.get(5)?,
-                        intent: r.get(6)?,
+                        reason: r.get(6)?,
                         schema: r.get(7)?,
                         fields: Vec::new(),
                     })
@@ -305,10 +306,10 @@ impl SqliteLog {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
-            "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, \
+            "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, reason, request_id, source, \
              session_id, schema) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
-                id, now(), row.kind, row.target_path, row.before, row.after, row.intent, row.request_id,
+                id, now(), row.kind, row.target_path, row.before, row.after, row.reason, row.request_id,
                 row.source, session, row.schema
             ],
         )
@@ -384,7 +385,7 @@ impl SqliteLog {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT v.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash \
+                "SELECT v.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash, v.hash \
                  FROM rule_results r JOIN validations v ON v.id = r.validation_id \
                  WHERE v.target_path = ?1 \
                    AND CAST(substr(v.id, 3) AS INTEGER) > coalesce((SELECT max(CAST(substr(id, 3) AS INTEGER)) FROM changes \
@@ -397,6 +398,7 @@ impl SqliteLog {
         stmt.query_map([target_path], |r| {
             Ok(Judgment {
                 operation: r.get(0)?,
+                hash: r.get(7)?,
                 rule: RuleRow {
                     rule: r.get(1)?,
                     pointer: r.get(2)?,
@@ -516,7 +518,7 @@ impl OperationReader for SqliteLog {
             conditions.push(format!("o.at >= ?{}", args.len()));
         }
         let mut sql =
-            "SELECT o.id, o.at, o.kind, o.target_path, o.intent, s.id, s.tool, s.folder, s.via \
+            "SELECT o.id, o.at, o.kind, o.target_path, o.reason, s.id, s.tool, s.folder, s.via \
                        FROM operations o LEFT JOIN sessions s ON s.id = o.session_id"
                 .to_string();
         if !conditions.is_empty() {
@@ -545,7 +547,7 @@ impl OperationReader for SqliteLog {
                     op: r.get(2)?,
                     path: r.get(3)?,
                     session,
-                    intent: r.get(4)?,
+                    reason: r.get(4)?,
                     counts: Vec::new(),
                 })
             })
