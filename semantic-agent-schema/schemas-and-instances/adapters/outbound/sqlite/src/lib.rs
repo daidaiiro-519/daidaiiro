@@ -92,7 +92,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent, cause_id \
+                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent \
                  FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
@@ -104,7 +104,6 @@ impl SqliteLog {
                         before: r.get(4)?,
                         after: r.get(5)?,
                         intent: r.get(6)?,
-                        cause: r.get(7)?,
                         fields: Vec::new(),
                     })
                 },
@@ -240,10 +239,10 @@ impl OperationLog for SqliteLog {
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
             "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, \
-             cause_id, parent_session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+             parent_session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 id, now(), row.kind, row.target_path, row.before, row.after, row.intent, row.request_id,
-                row.source, row.cause, parent
+                row.source, parent
             ],
         )
         .map_err(|e| err(&e))?;
@@ -270,19 +269,6 @@ impl OperationLog for SqliteLog {
             .optional()
             .map_err(|e| err(&e))?;
         Ok(self.stored(found.into_iter().collect())?.pop())
-    }
-
-    fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, parent_session_id FROM changes WHERE cause_id = ?1 ORDER BY rowid")
-            .map_err(|e| err(&e))?;
-        let found: Vec<(String, Option<String>)> = stmt
-            .query_map([operation], |r| Ok((r.get(0)?, r.get(1)?)))
-            .map_err(|e| err(&e))?
-            .collect::<Result<_, _>>()
-            .map_err(|e| err(&e))?;
-        self.stored(found)
     }
 
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {

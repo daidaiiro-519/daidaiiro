@@ -4,13 +4,13 @@
 //!   前後の中身から求めた差分と一緒に操作を記録する。書く手前で断ったものは記録せず、理由をその場で返す。
 //! - SAS を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
 //!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録のどれかの事後と同じ中身のコミットから取る。
-//! - UC3 削除する（機械）：対象と、対象を指している参照元の記載を、同じ呼び出しの操作として消す（delete.rs）。
+//! - UC3 削除する（機械）：対象を消し、消す前の状態を記録する（delete.rs）。
 //! - 対象の見分け ・ 形の確かめ ・ 検証は、検証のモジュール（validation-application）を使う。
 
 mod delete;
 mod patch;
 
-pub use delete::{DeleteRequest, Deletion, Rewritten, delete};
+pub use delete::{DeleteRequest, Deletion, delete};
 
 use crate::ports::CommitReader;
 use recording_application::ports::{
@@ -374,7 +374,6 @@ pub fn create(
         before: None,
         after: None,
         intent: request.intent.clone(),
-        cause: None,
         fields: Vec::new(),
     };
     let broken = form_violations(validator, kind, &request.concrete, &value, &corpus.more)
@@ -481,7 +480,6 @@ pub fn update(
         before: Some(current.as_str().to_string()),
         after: None,
         intent: request.intent.clone(),
-        cause: None,
         fields: Vec::new(),
     };
     // 比べる指紋：呼ぶ側が読んだ指紋（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後の指紋。
@@ -817,7 +815,6 @@ pub fn adopt(
         before: None,
         after: None,
         intent: request.intent.clone(),
-        cause: None,
         fields: Vec::new(),
     };
     let found = match &last {

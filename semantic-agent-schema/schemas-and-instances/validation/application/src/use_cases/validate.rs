@@ -16,11 +16,10 @@ use recording_application::use_cases::history::{Interleaved, record_validations,
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::services::{
-    check_relationships, check_targets, judge_concrete, judge_others, rules_for_concrete,
-    rules_for_instance,
+    judge_concrete, judge_others, rules_for_concrete, rules_for_instance,
 };
 use validation_domain::values::{By, Counts, RuleResult, Verdict};
-use writing_domain::aggregates::{ABSTRACT_VERSIONS, ConcreteSchema, Entry, Instance};
+use writing_domain::aggregates::{ABSTRACT_VERSIONS, ConcreteSchema, Entry};
 use writing_domain::values::Fingerprint;
 
 /// 方言（Concrete の入れ子の x- の形を決める）。Concrete は Abstract の本体と、この方言の両方に照らす。
@@ -112,20 +111,18 @@ pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ commits ・ log、
     /// 描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out、
-    /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ references_blocked ・ conflict ・ patch_failed ・
-    /// id_changed ・ human_field ・ published_changed、書いた途中で止まったもの：references_left）
+    /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ conflict ・ patch_failed ・
+    /// human_field ・ published_changed）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
     /// 理由
     pub message: String,
-    /// 書いた途中で止まったとき（references_left）の、記録した削除の ID
-    pub operation: Option<String>,
     /// 指紋が違って断ったとき（conflict）の、間に入った変更
     pub interleaved: Option<Box<Interleaved>>,
     /// 次にすることの案内（SAS を通らない変更を取り込むコマンドなど）
     pub hint: Option<Box<String>>,
-    /// 削除を止めた理由になったもの（従うインスタンス ・ 指している Concrete ・ 記載を消せない参照元）と、残った参照元
+    /// 削除を止めた理由になったもの（Concrete に従うインスタンス）
     pub blocked: Option<Box<Vec<Blocked>>>,
     /// 描画で、デザインシステムに無かった x-view の種類（missing_view_kinds）
     pub missing: Option<Box<Vec<String>>>,
@@ -136,7 +133,7 @@ pub struct Refused {
 pub struct Blocked {
     /// 経路
     pub path: String,
-    /// 決まった名前（follows ・ points_to ・ conflict ・ invalid_value ・ human_field ・ id_changed ・ left）
+    /// 決まった名前（follows）
     pub code: &'static str,
     /// 理由
     pub message: String,
@@ -174,12 +171,10 @@ pub struct Corpus {
     pub concretes: BTreeMap<String, ConcreteSchema>,
     /// バリデーターに渡す Concrete（$id と文書）
     pub more: Vec<(String, Value)>,
-    /// （従う Concrete の $id, インスタンスの id）
-    pub instances: BTreeSet<(String, String)>,
 }
 
 impl Corpus {
-    /// リポジトリの文書を読む（Concrete の一覧と、参照の先のインスタンスに使う）。
+    /// リポジトリの文書を読む（Concrete の一覧に使う）。
     ///
     /// # Errors
     /// 文書の一覧を読めないとき。
@@ -205,17 +200,10 @@ impl Corpus {
             .iter()
             .map(|(id, c)| (id.clone(), c.document().clone()))
             .collect();
-        let instances: BTreeSet<(String, String)> = docs
-            .iter()
-            .filter_map(|d| Instance::read(&d.value))
-            .filter(|i| concretes.contains_key(i.concrete()))
-            .filter_map(|i| Some((i.concrete().to_string(), i.id()?.to_string())))
-            .collect();
         Ok(Self {
             docs,
             concretes,
             more,
-            instances,
         })
     }
 }
@@ -537,6 +525,9 @@ fn apply_meaning(
     Ok((by_path, Some(outcome)))
 }
 
+/// Abstract の語彙（入れ子に書ける x- の名前と、その値の形の対応を持つ）。
+const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocabulary:v1";
+
 /// 判定と、その判定が読んだ所（JSON Pointer。"" は文書全体）と、判定に使った rule の定義（x-prompt の write の1行）。
 /// 読んだ所は当たる rule の所で、形の検査と参照の先の判定は文書全体を読む。
 type Judged = (RuleResult, String, Option<Value>);
@@ -552,13 +543,9 @@ fn judge(
     declared: &str,
     validator: &dyn SchemaValidator,
     corpus: &Corpus,
-    known_concretes: &BTreeSet<String>,
 ) -> Result<Vec<Judged>, Refused> {
     let Corpus {
-        concretes,
-        more,
-        instances,
-        ..
+        concretes, more, ..
     } = corpus;
     let mut results: Vec<Judged> = Vec::new();
     let broken = form_violations(validator, kind, declared, &d.value, more)
@@ -593,24 +580,13 @@ fn judge(
             let concrete = ConcreteSchema::read(&d.value).ok_or_else(|| {
                 refused("validator", &d.path, "Concrete として読めない".to_string())
             })?;
-            for rule in rules_for_concrete(&abstract_doc, &concrete) {
+            let vocabulary = validator.shipped(VOCABULARY);
+            for rule in rules_for_concrete(&abstract_doc, vocabulary.as_ref(), &concrete) {
                 if let Some(rs) = judge_concrete(&concrete, &rule.id, &rule.pointer) {
                     results.extend(
                         rs.into_iter()
                             .map(|r| (r, rule.pointer.clone(), Some(rule.definition.clone()))),
                     );
-                } else if rule.id == "target-exists" {
-                    let rs = check_targets(concrete.document(), known_concretes);
-                    if rs.is_empty() {
-                        results.push(whole(RuleResult::new(
-                            &rule.id,
-                            &rule.pointer,
-                            By::Machine,
-                            Verdict::Verified,
-                            "x-relationship の to が無い",
-                        )));
-                    }
-                    results.extend(rs.into_iter().map(whole));
                 } else {
                     results.push((
                         judge_others(&rule),
@@ -633,11 +609,6 @@ fn judge(
                     Some(rule.definition.clone()),
                 ));
             }
-            results.extend(
-                check_relationships(&concrete_doc, &d.value, instances)
-                    .into_iter()
-                    .map(whole),
-            );
         }
     }
     Ok(results)
@@ -715,11 +686,9 @@ pub fn judge_current(
         let kind = classify(concretes, &d.path, &declared)?;
         classified.push((d, kind, declared));
     }
-    let mut known_concretes: BTreeSet<String> = concretes.keys().cloned().collect();
-    known_concretes.extend(ABSTRACT_VERSIONS.iter().map(ToString::to_string));
     let mut current = Vec::new();
     for (doc, kind, declared) in classified {
-        let judged = judge(&doc, kind, &declared, validator, &corpus, &known_concretes)?;
+        let judged = judge(&doc, kind, &declared, validator, &corpus)?;
         let definitions = judged.iter().map(|(_, _, d)| d.clone()).collect();
         let results = judged
             .into_iter()

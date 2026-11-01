@@ -57,7 +57,7 @@ fn create_refused_by_a_write_rule_writes_and_records_nothing() {
         &mut log,
     )
     .unwrap_err();
-    assert_eq!((r.code, r.operation.as_deref()), ("human_field", None));
+    assert_eq!(r.code, "human_field");
     assert!(store.read("u1.json").is_err());
     assert!(log.1.is_empty(), "断った操作は記録しない");
 }

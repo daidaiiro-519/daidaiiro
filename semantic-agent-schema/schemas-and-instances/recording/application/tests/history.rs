@@ -48,9 +48,6 @@ impl OperationLog for Memory {
     fn find_request(&self, _: &str) -> Result<Option<StoredChange>, String> {
         Ok(None)
     }
-    fn caused_by(&self, _: &str) -> Result<Vec<StoredChange>, String> {
-        Ok(Vec::new())
-    }
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         Ok(self
             .changes
@@ -108,7 +105,6 @@ fn change(before: Option<&str>, after: Option<&str>) -> ChangeRow {
         before: before.map(Into::into),
         after: after.map(Into::into),
         intent: None,
-        cause: None,
         fields: Vec::new(),
     }
 }

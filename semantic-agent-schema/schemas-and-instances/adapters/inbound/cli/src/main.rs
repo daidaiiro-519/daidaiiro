@@ -472,7 +472,7 @@ fn run_delete(args: &[String]) -> ExitCode {
         intent: Some(intent),
     };
     match run_with(
-        |store, validator, who, log| delete(&request, store, validator, who, log),
+        |store, _, who, log| delete(&request, store, who, log),
         take("--session"),
     ) {
         Ok(d) => {

@@ -1,7 +1,7 @@
 -- ステップ2：書いた変更（作成 ・ 更新、ステップ4 から削除）と、変わった欄。ステップ4b で書き直した。
 -- 断った操作は持たない（理由 ・ 案内 ・ 間に入った変更は、その場で呼び出し元に返す）。
 -- intent は呼ぶ側が渡した意図（間に入った変更を返すときに後の書き手が読む）。
--- source はステップ3 の取り込み（outside）、cause_id はステップ4 の削除に伴う書き換えの原因。どちらも表の形はここで決める。
+-- source はステップ3 の取り込み（outside）。表の形はここで決める。
 
 CREATE TABLE changes (
     id                TEXT PRIMARY KEY,
@@ -13,15 +13,13 @@ CREATE TABLE changes (
     intent            TEXT,
     request_id        TEXT,
     source            TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas', 'outside')),
-    cause_id          TEXT REFERENCES changes (id),       -- 原因の削除（参照元の書き換え）
     parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親セッション。人は NULL
     child_session_id  TEXT REFERENCES sessions (id),      -- 書いた書き込み用の子セッション。機械だけなら NULL
     CHECK ((kind = 'create') = (before_hash IS NULL)),
     CHECK ((kind = 'delete') = (after_hash IS NULL)),
     CHECK (kind <> 'delete' OR intent IS NOT NULL),
     CHECK (source = 'sas' OR kind <> 'delete'),
-    CHECK (source = 'sas' OR kind <> 'update' OR intent IS NOT NULL),
-    CHECK (cause_id IS NULL OR request_id IS NULL)
+    CHECK (source = 'sas' OR kind <> 'update' OR intent IS NOT NULL)
 ) STRICT;
 
 -- 1つの依頼に変更は1回（やり直しで同じ変更を2回残さない）

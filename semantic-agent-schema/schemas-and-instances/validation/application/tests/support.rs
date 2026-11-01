@@ -46,8 +46,7 @@ pub(crate) struct Lenient;
 impl SchemaValidator for Lenient {
     fn shipped(&self, id: &str) -> Option<Value> {
         (id == ABSTRACT).then(|| {
-            json!({"x-prompt": {"write": [{"id": "unique-id", "by": "machine"}, {"id": "someone-decides", "by": "human"}]},
-                   "x-extensions": {"x-prompt": {}, "x-relationship": {}}})
+            json!({"x-prompt": {"write": [{"id": "unique-id", "by": "machine"}, {"id": "someone-decides", "by": "human"}]}})
         })
     }
     fn check(
@@ -116,18 +115,6 @@ impl OperationLog for Log {
                 parent: None,
                 row: r.clone(),
             }))
-    }
-    fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String> {
-        Ok(self
-            .1
-            .iter()
-            .filter(|(_, r)| r.cause.as_deref() == Some(operation))
-            .map(|(id, r)| StoredChange {
-                operation: id.clone(),
-                parent: None,
-                row: r.clone(),
-            })
-            .collect())
     }
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         let from = self
@@ -204,7 +191,7 @@ pub(crate) fn files(entries: &[(&str, Value)]) -> Files {
 }
 
 pub(crate) fn concrete() -> Value {
-    json!({"$schema": ABSTRACT, "$id": UC, "properties": {"calls": {"items": {"x-relationship": {"to": UC}}}}})
+    json!({"$schema": ABSTRACT, "$id": UC, "properties": {"calls": {"items": {"type": "string"}}}})
 }
 
 pub(crate) fn decided() -> Value {

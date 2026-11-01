@@ -1,9 +1,8 @@
 //! 集約 Concrete：使う側が Abstract に従って書く schema。
 //!
 //! 自明として最初から domain に置いた（探索の記録 step-01 に根拠）。版は閉じた一覧から申告する。
-//! 書く条件（ステップ2）：公開した欄（x-published: true）を同じ版のまま変えない。
-//! 本体（Abstract）の x- の名前を足さない ・ 使う x- は本体か自分の x-extensions にあるもの、の判定は
-//! 検証のモジュール（validation-domain の services::judge_concrete）が持つ。
+//! 書く条件（ステップ2）：x-published: true の欄を同じ版のまま変えない。
+//! Concrete に書ける x- の閉じた一覧は、Abstract の語彙（JSON Schema の propertyNames）が見る。
 
 use crate::values::WriteViolation;
 use serde_json::Value;
@@ -123,7 +122,7 @@ fn walk_keys(v: &Value, at: &str, out: &mut Vec<(String, String)>) {
                 if k.starts_with("x-") {
                     out.push((k.clone(), here.clone()));
                 }
-                // x-extensions の中身と、x- の値の中は、名前の並びや値なので降りない
+                // x- の値の中と、const ・ default ・ examples の中は値なので降りない
                 if !k.starts_with("x-") && k != "const" && k != "default" && k != "examples" {
                     walk_keys(child, &here, out);
                 }

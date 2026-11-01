@@ -58,34 +58,6 @@ fn unlisted_version_is_refused_and_nothing_is_recorded() {
 }
 
 #[test]
-fn instance_relationship_is_checked_against_existing_instances() {
-    let store = files(&[
-        ("c.json", concrete()),
-        ("u1.json", json!({"$schema": UC, "id": "U1", "calls": []})),
-        (
-            "u2.json",
-            json!({"$schema": UC, "id": "U2", "calls": ["U1", "U3"]}),
-        ),
-    ]);
-    let mut log = Log::default();
-    let v = validate(
-        &Scope::Paths(vec!["u2.json".into()]),
-        &store,
-        &Lenient,
-        &Human,
-        &mut log,
-    )
-    .unwrap();
-    let rel: Vec<Verdict> = v.targets[0]
-        .results
-        .iter()
-        .filter(|r| r.rule() == "relationship-target")
-        .map(|r| r.verdict())
-        .collect();
-    assert_eq!(rel, [Verdict::Verified, Verdict::Violated]);
-}
-
-#[test]
 fn all_skips_documents_of_other_schemas() {
     let store = files(&[
         ("c.json", concrete()),

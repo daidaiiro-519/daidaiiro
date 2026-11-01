@@ -18,7 +18,6 @@ fn update(request_id: Option<&str>) -> ChangeRow {
         before: Some("sha256:a".into()),
         after: Some("sha256:b".into()),
         intent: Some("目標を直す".into()),
-        cause: None,
         fields: vec![FieldRow {
             pointer: "/goal".into(),
             change: "replace".into(),

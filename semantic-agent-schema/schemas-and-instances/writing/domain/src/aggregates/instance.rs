@@ -57,26 +57,13 @@ impl Instance {
     /// この中身を書いてよいか。before は直す前の中身（作成なら None）、concrete は従う Concrete の文書。
     ///
     /// # Errors
-    /// id を変えた ・ 人の欄を人でない入口から決めた ・ 導出値と違う値を書いたとき（最初に見つけた1つ）。
+    /// 人の欄を人でない入口から決めた ・ 導出値と違う値を書いたとき（最初に見つけた1つ）。
     pub fn check_write(
         &self,
         before: Option<&Self>,
         concrete: &Value,
         entry: Entry,
     ) -> Result<(), WriteViolation> {
-        if let Some(b) = before
-            && b.id() != self.id()
-        {
-            return Err(WriteViolation::new(
-                "id_changed",
-                "/id",
-                &format!(
-                    "id を {} から {} へ変えようとした。id はほかのインスタンスから指される名前なので変えない",
-                    b.id().unwrap_or("（無し）"),
-                    self.id().unwrap_or("（無し）")
-                ),
-            ));
-        }
         let Some(properties) = concrete.get("properties").and_then(Value::as_object) else {
             return Ok(());
         };
@@ -124,16 +111,6 @@ mod tests {
 
     fn code(r: Result<(), crate::values::WriteViolation>) -> &'static str {
         r.err().map_or("ok", |v| v.code())
-    }
-
-    #[test]
-    fn id_is_kept() {
-        let b = inst(&json!({"$schema": "c", "id": "D1"}));
-        let a = inst(&json!({"$schema": "c", "id": "D2"}));
-        assert_eq!(
-            code(a.check_write(Some(&b), &concrete(), Entry::Human)),
-            "id_changed"
-        );
     }
 
     #[test]

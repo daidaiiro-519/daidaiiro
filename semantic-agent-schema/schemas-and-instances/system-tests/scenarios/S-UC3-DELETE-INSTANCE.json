@@ -1,9 +1,9 @@
 {
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC3-DELETE-INSTANCE",
- "name": "インスタンスを消し、参照の記載も消す",
- "title": "U2 が calls で U1 を指しているとき、U1 を消すと U2 の記載も消え、削除と書き換えが同じセッションの操作として返る",
- "why": "参照が残ると、消したものを指す記載が陳腐化する。書き換えも記録に残らないと、なぜ U2 が変わったかを追えない。",
+ "name": "インスタンスを消す（参照の記載は残る）",
+ "title": "U2 が calls で U1 を指していても、U1 を消すと U1 だけが消え、U2 は変わらない",
+ "why": "参照はただの値で、SAS は参照を見分けない。消したファイルを指す記載は、Git の差分とレビューで見つけて直す。",
  "traces": [
   "UC3:成功時保証"
  ],
@@ -57,40 +57,16 @@
   },
   {
    "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
    "pointer": "/diff/changes/2",
    "equals": {
     "pointer": "/goal",
     "change": "remove",
     "before": "検証の結果を受け取る"
-   }
-  },
-  {
-   "of": "when",
-   "pointer": "/references",
-   "count": 1
-  },
-  {
-   "of": "when",
-   "pointer": "/references/0/target/path",
-   "equals": "usecases/u2.json"
-  },
-  {
-   "of": "when",
-   "pointer": "/references/0/cause",
-   "equals": "o-0001"
-  },
-  {
-   "of": "when",
-   "pointer": "/references/0/operation",
-   "equals": "o-0002"
-  },
-  {
-   "of": "when",
-   "pointer": "/references/0/diff/changes/0",
-   "equals": {
-    "pointer": "/calls/0",
-    "change": "remove",
-    "before": "U1"
    }
   },
   {

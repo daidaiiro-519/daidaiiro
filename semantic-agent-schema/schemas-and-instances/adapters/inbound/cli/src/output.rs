@@ -204,9 +204,6 @@ pub fn print_refused(r: &Refused) {
     if let Some(p) = &r.path {
         out["path"] = json!(p);
     }
-    if let Some(o) = &r.operation {
-        out["operation"] = json!(o);
-    }
     if let Some(i) = &r.interleaved {
         out["interleaved"] = interleaved(i);
     }
@@ -256,17 +253,6 @@ pub fn print_deletion(d: &Deletion) {
             "before": {"fingerprint": d.before.as_str()},
             "changes": changes(&d.diff),
         },
-        "references": d.references.iter().map(|r| json!({
-            "operation": r.operation,
-            "cause": d.operation,
-            "target": {"kind": "instance", "path": r.path, "concrete": r.concrete},
-            "diff": {
-                "source": "sas",
-                "before": {"fingerprint": r.before.as_str()},
-                "after": {"fingerprint": r.after.as_str()},
-                "changes": changes(&r.diff),
-            },
-        })).collect::<Vec<_>>(),
         "stale_rules": [],
         "violated_instances": [],
     });

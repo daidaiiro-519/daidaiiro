@@ -82,8 +82,6 @@ pub struct ChangeRow {
     pub after: Option<String>,
     /// 意図（なぜその操作をしたか。呼ぶ側が渡したときだけ）
     pub intent: Option<String>,
-    /// この操作を引き起こした操作の ID（削除に伴う参照元の書き換えのとき、その削除）
-    pub cause: Option<String>,
     /// 変わった欄
     pub fields: Vec<FieldRow>,
 }
@@ -178,12 +176,6 @@ pub trait OperationLog {
     /// # Errors
     /// 置き場所を読めないとき。
     fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String>;
-
-    /// 操作 operation を原因とする操作（削除に伴う参照元の書き換え）を、記録した順に。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn caused_by(&self, operation: &str) -> Result<Vec<StoredChange>, String>;
 
     /// 経路の対象を書いた操作（作成か更新）を、記録した順に。
     /// その経路を消した操作があれば、最後に消したより後のものだけ（消すと記録のつながりが切れる）。

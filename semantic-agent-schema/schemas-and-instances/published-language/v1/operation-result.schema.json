@@ -103,7 +103,7 @@
     "rule": {
      "type": "string",
      "minLength": 1,
-     "description": "rule の id。JSON Schema の形の検査は json-schema、参照の先は relationship-target"
+     "description": "rule の id。JSON Schema の形の検査は json-schema"
     },
     "pointer": {
      "type": "string",
@@ -514,7 +514,7 @@
       "adopted",
       "deleted"
      ],
-     "description": "adopted は SAS を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる。deleted は消した（diff は消す前の状態で after を持たない。references に記載を消した参照元が入る）"
+     "description": "adopted は SAS を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる。deleted は消した（diff は消す前の状態で after を持たない）"
     },
     "replayed": {
      "type": "boolean",
@@ -598,60 +598,6 @@
        }
       }
      }
-    },
-    "references": {
-     "type": "array",
-     "description": "削除で記載を消した参照元（記録した順）。それぞれ削除を原因（cause）とする同じセッションの update",
-     "items": {
-      "type": "object",
-      "required": [
-       "operation",
-       "cause",
-       "target",
-       "diff"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "operation": {
-        "type": "string",
-        "pattern": "^o-[0-9]{4,}$",
-        "description": "参照元の書き換えの操作の ID"
-       },
-       "cause": {
-        "type": "string",
-        "pattern": "^o-[0-9]{4,}$",
-        "description": "原因の削除の操作の ID"
-       },
-       "target": {
-        "type": "object",
-        "required": [
-         "kind",
-         "path",
-         "concrete"
-        ],
-        "additionalProperties": false,
-        "properties": {
-         "kind": {
-          "enum": [
-           "concrete",
-           "instance"
-          ]
-         },
-         "path": {
-          "type": "string",
-          "description": "リポジトリの根からの経路"
-         },
-         "concrete": {
-          "type": "string",
-          "description": "従う Concrete の $id（Concrete なら Abstract の版）"
-         }
-        }
-       },
-       "diff": {
-        "$ref": "#/$defs/diff"
-       }
-      }
-     }
     }
    },
    "allOf": [
@@ -664,9 +610,6 @@
       }
      },
      "then": {
-      "required": [
-       "references"
-      ],
       "properties": {
        "diff": {
         "required": [
@@ -681,11 +624,6 @@
       }
      },
      "else": {
-      "not": {
-       "required": [
-        "references"
-       ]
-      },
       "properties": {
        "diff": {
         "required": [
@@ -725,7 +663,6 @@
       "invalid_value",
       "conflict",
       "patch_failed",
-      "id_changed",
       "human_field",
       "published_changed",
       "recorded",
@@ -733,8 +670,6 @@
       "nothing_to_adopt",
       "versions",
       "has_dependents",
-      "references_blocked",
-      "references_left",
       "missing_view_kinds",
       "template",
       "out",
@@ -743,7 +678,7 @@
       "writer_as_checker",
       "launch_mismatch"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents ・ references_blocked は止めた削除（Concrete に従うインスタンスか指している Concrete がある ・ 参照元の記載を消せない）で、記録せず、blocked に理由になった文書を返す。references_left は対象を消して記録したあと参照元を書けなかったことで、記録した削除の operation と、残った参照元を blocked に返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前か版が違う）で、記録しない"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前か版が違う）で、記録しない"
     },
     "path": {
      "type": "string"
@@ -751,11 +686,6 @@
     "message": {
      "type": "string",
      "minLength": 1
-    },
-    "operation": {
-     "type": "string",
-     "pattern": "^o-[0-9]{4,}$",
-     "description": "references_left のときだけ持つ。消して記録した削除の ID（断った操作は記録しないので、ほかの理由では持たない）"
     },
     "interleaved": {
      "$ref": "#/$defs/interleaved",
@@ -769,7 +699,7 @@
     "blocked": {
      "type": "array",
      "minItems": 1,
-     "description": "削除を止めた理由になった文書（と、片付けるコマンド）。has_dependents ・ references_blocked ・ references_left だけが持つ",
+     "description": "削除を止めた理由になった文書（と、片付けるコマンド）。has_dependents だけが持つ",
      "items": {
       "type": "object",
       "required": [
@@ -785,15 +715,9 @@
        },
        "code": {
         "enum": [
-         "follows",
-         "points_to",
-         "conflict",
-         "invalid_value",
-         "human_field",
-         "id_changed",
-         "left"
+         "follows"
         ],
-        "description": "follows は Concrete に従うインスタンス、points_to は x-relationship で Concrete を指す Concrete、left は書けずに残った参照元。ほかは参照元の記載を消した姿が外れる理由"
+        "description": "follows は Concrete に従うインスタンス"
        },
        "message": {
         "type": "string",
@@ -819,27 +743,6 @@
    "allOf": [
     {
      "if": {
-      "properties": {
-       "code": {
-        "const": "references_left"
-       }
-      }
-     },
-     "then": {
-      "required": [
-       "operation"
-      ]
-     },
-     "else": {
-      "not": {
-       "required": [
-        "operation"
-       ]
-      }
-     }
-    },
-    {
-     "if": {
       "not": {
        "properties": {
         "code": {
@@ -860,11 +763,7 @@
      "if": {
       "properties": {
        "code": {
-        "enum": [
-         "has_dependents",
-         "references_blocked",
-         "references_left"
-        ]
+        "const": "has_dependents"
        }
       }
      },
