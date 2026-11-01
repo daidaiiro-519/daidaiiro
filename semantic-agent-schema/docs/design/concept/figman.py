@@ -48,7 +48,7 @@ def overview():
     f.path('M500,416 V448'); f.path('M340,388 H175 V448'); f.path('M660,388 H825 V448', dashed=True)
     f.box(30, 450, 290, 64, ['記録：誰が何で動いたかと', '書いた変更・検証'], 'focus')
     f.box(355, 450, 290, 64, ['契約：手順を返す・差分', '（Git は読むだけ）・検査・描画'], 'focus')
-    f.box(680, 450, 290, 64, ['意味としての目的：rule.why・', 'reading.when・description・意図'], 'kind-1')
+    f.box(680, 450, 290, 64, ['意味としての目的：rule.why・', 'x-prompt の when・description・reason'], 'kind-1')
     f.area(10, 580, 980, 110, '一般の製品')
     f.path('M420,514 V556 H260 V618', dashed=True); f.note(268, 574, '読むだけ')
     f.path('M580,514 V556 H825 V618', dashed=True); f.note(833, 574, '渡す')
@@ -114,7 +114,7 @@ def datamap():
         ('Git のファイル：Concrete', '集約：Concrete', 'focus'),
         ('Git のファイル：インスタンス', '集約：インスタンス', 'focus'),
         ('sessions（打ったセッション。誰がどのツールで動いたか）', '操作の記録の行（集約にしない。追記だけ）', ''),
-        ('changes・field_changes', '操作の記録の行（書いた変更。差分は値で読む）', ''),
+        ('changes・field_changes', '操作の記録の行（書いた変更。次の判定のまとまりを作る）', ''),
         ('validations・rule_results', '操作の記録の行（検証。判定の結果は値で読む）', '')])
 
 def gone():
