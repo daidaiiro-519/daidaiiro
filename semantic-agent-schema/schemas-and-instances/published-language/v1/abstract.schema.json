@@ -16,25 +16,49 @@
         "id": "read-perspectives",
         "rule": "値の形だけで解釈が決まらない欄には meaning を、読む時が決まっている欄には when を書く。",
         "why": "description だけでは、同じ値を人と AI が別の意味に読む。",
-        "check": "欄の値の形と使われ方から、meaning ・ when が必要なのに無い欄が無いかを見る。"
+        "check": "欄の値の形と使われ方から、meaning ・ when が必要なのに無い欄が無いかを見る。",
+        "bad": [
+          "{\"due\": {\"type\": \"string\", \"title\": \"期限\", \"description\": \"作業の期限である。\", \"x-prompt\": {\"rules\": []}}}（日付か期間かが形で決まらないのに meaning が無い）"
+        ],
+        "good": [
+          "{\"due\": {\"type\": \"string\", \"title\": \"期限\", \"description\": \"作業の期限である。\", \"x-prompt\": {\"meaning\": \"作業を終える日（YYYY-MM-DD）として読む。期間ではない。\", \"rules\": []}}}"
+        ]
       },
       {
         "id": "list-as-array",
         "rule": "並びになる値は、文字列に詰めず配列の型にする。",
         "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
-        "check": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。"
+        "check": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。",
+        "bad": [
+          "{\"tags\": {\"type\": \"string\", \"description\": \"タグをカンマで区切って並べたものである。\"}}"
+        ],
+        "good": [
+          "{\"tags\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"description\": \"タグの並びである。\"}}"
+        ]
       },
       {
         "id": "one-document-kind",
         "rule": "1つの Concrete には、1種類の文書の形だけを書く。読み手か変わる理由の違う文書は、別の Concrete にする。",
         "why": "2種類を混ぜると、インスタンスの $schema がどちらの形かを名乗れず、片方を直すともう片方が壊れる。",
-        "check": "根で oneOf などを使い、読み手か用途の違う2種類の文書を1つに混ぜていないかを見る。"
+        "check": "根で oneOf などを使い、読み手か用途の違う2種類の文書を1つに混ぜていないかを見る。",
+        "bad": [
+          "{\"oneOf\": [{\"$ref\": \"#/$defs/invoice\"}, {\"$ref\": \"#/$defs/receipt\"}]}（請求書と領収書を1つの Concrete に混ぜた）"
+        ],
+        "good": [
+          "{\"properties\": {\"$schema\": {\"const\": \"urn:example:invoice:v1\"}, \"amount\": {\"type\": \"integer\"}, \"due\": {\"type\": \"string\"}}}（請求書だけを書く）"
+        ]
       },
       {
         "id": "no-shape-only-concrete",
         "rule": "インスタンスを持たない、形だけを置く Concrete は作らない。",
         "why": "インスタンスが名乗らない Concrete は、持ち主の分からない形の置き場になり、どの Concrete と一緒に直すかが決まらない。",
-        "check": "properties が、ほかの Concrete から $ref で指されるためだけの形になっていないかを見る。"
+        "check": "properties が、ほかの Concrete から $ref で指されるためだけの形になっていないかを見る。",
+        "bad": [
+          "{\"$id\": \"urn:example:address:v1\", \"$defs\": {\"address\": {\"type\": \"object\"}}, \"properties\": {\"$schema\": {\"const\": \"urn:example:address:v1\"}}}（ほかの Concrete から $ref で指されるための形だけを置き、インスタンスが名乗らない）"
+        ],
+        "good": [
+          "{\"$id\": \"urn:example:customer:v1\", \"$defs\": {\"address\": {\"type\": \"object\"}}, \"properties\": {\"$schema\": {\"const\": \"urn:example:customer:v1\"}, \"name\": {\"type\": \"string\"}, \"address\": {\"$ref\": \"#/$defs/address\"}}}（顧客のインスタンスが名乗り、住所の形はその中に置く）"
+        ]
       }
     ]
   },
@@ -83,8 +107,13 @@
             "rule": "インスタンスが何であるかを、名詞で書く。",
             "why": "読む人は題だけで、何のインスタンスかを判断する。",
             "check": "題が名詞で終わっているかを見る。",
-            "bad": "意思決定を記録するためのもの",
-            "good": "意思決定の記録"
+            "bad": [
+              "意思決定を記録するためのもの",
+              "意思決定を記録する"
+            ],
+            "good": [
+              "意思決定の記録"
+            ]
           }
         ]
       }
@@ -100,7 +129,13 @@
             "id": "what-and-not",
             "rule": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を書く。",
             "why": "書かないものが分からないと、ほかのスキーマと同じことを2か所に書く。",
-            "check": "説明に、書かないものが1つ以上あるかを見る。"
+            "check": "説明に、書かないものが1つ以上あるかを見る。",
+            "bad": [
+              "1件の意思決定の記録である。"
+            ],
+            "good": [
+              "1件の意思決定の記録である。決定に至った議論の経緯は書かない（議事録が持つ）。"
+            ]
           }
         ]
       }
@@ -134,13 +169,25 @@
             "id": "shape-in-defs",
             "rule": "インスタンスの根にならない形は $defs に置き、欄からは $ref で指す。",
             "why": "同じ形を欄ごとに書くと、片方だけ直って食い違う。",
-            "check": "同じ形の入れ子のオブジェクトが、2か所以上に書かれていないかを見る。"
+            "check": "同じ形の入れ子のオブジェクトが、2か所以上に書かれていないかを見る。",
+            "bad": [
+              "{\"properties\": {\"from\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}, \"to\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}}}（同じ形を2つの欄に書いた）"
+            ],
+            "good": [
+              "{\"$defs\": {\"place\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}}, \"properties\": {\"from\": {\"$ref\": \"#/$defs/place\"}, \"to\": {\"$ref\": \"#/$defs/place\"}}}"
+            ]
           },
           {
             "id": "ref-not-copy",
             "rule": "ほかの Concrete にある形は写さず、その Concrete の $id に #/$defs/<名前> を付けて $ref で指す。",
             "why": "写すと、持ち主の Concrete で形が変わっても、写しが古いまま残る。",
-            "check": "ほかの Concrete の $defs と同じ形を、この Concrete に書いていないかを見る。"
+            "check": "ほかの Concrete の $defs と同じ形を、この Concrete に書いていないかを見る。",
+            "bad": [
+              "{\"$defs\": {\"address\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}}}}（urn:example:customer:v1 の $defs/address と同じ形を写した）"
+            ],
+            "good": [
+              "{\"properties\": {\"address\": {\"$ref\": \"urn:example:customer:v1#/$defs/address\"}}}"
+            ]
           }
         ]
       },
@@ -194,7 +241,14 @@
                 "id": "what-goes-here",
                 "rule": "何を入れる欄かを名詞で書く。",
                 "why": "読む人は名前で、欄の中身を判断する。",
-                "check": "名前が名詞で、欄の値と合っているかを見る。"
+                "check": "名前が名詞で、欄の値と合っているかを見る。",
+                "bad": [
+                  "期限を決める",
+                  "その他"
+                ],
+                "good": [
+                  "期限"
+                ]
               }
             ]
           }
@@ -210,7 +264,13 @@
                 "id": "noun-sentence",
                 "rule": "値が何であるかを、名詞で終わる1文で書く。",
                 "why": "読む人は、まず何の値かで判断する。",
-                "check": "1文で、値の中身と合っているかを見る。"
+                "check": "1文で、値の中身と合っているかを見る。",
+                "bad": [
+                  "期限を入れてください。過ぎたら通知します。"
+                ],
+                "good": [
+                  "作業を終える日である。"
+                ]
               }
             ]
           }
@@ -246,7 +306,13 @@
             "id": "freeze-only-relied",
             "rule": "インスタンスやほかの仕組みが頼っていて、変わると困る欄だけを true にする。",
             "why": "true の欄は、版を上げないと変えられない。",
-            "check": "true の欄が、変わると困る欄かを見る。"
+            "check": "true の欄が、変わると困る欄かを見る。",
+            "bad": [
+              "{\"memo\": {\"type\": \"string\", \"x-published\": true}}（だれも頼っていない自由記述の欄を変えられなくした）"
+            ],
+            "good": [
+              "{\"id\": {\"type\": \"string\", \"pattern\": \"^U[0-9]+$\", \"x-published\": true}}（ほかのインスタンスがこの ID で指している）"
+            ]
           }
         ]
       }
@@ -265,7 +331,13 @@
             "id": "same-look-same-kind",
             "rule": "同じ見せ方にしたい Concrete には、同じ種類の名前を付ける。",
             "why": "種類ごとにテンプレートを1つ用意すれば、どの Concrete のインスタンスも同じデザインで描ける。",
-            "check": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。"
+            "check": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。",
+            "bad": [
+              "\"x-view\": \"card\"（表で並べて見せたい決定の記録に、ユースケースのカードと同じ種類を付けた）"
+            ],
+            "good": [
+              "\"x-view\": \"card\"（ユースケースと同じカードで見せたい要件に、同じ種類を付けた）"
+            ]
           }
         ]
       }
@@ -286,7 +358,13 @@
                 "id": "ambiguity-only",
                 "rule": "形だけでは読み違えうる点だけを書く。",
                 "why": "形で分かることまで書くと、必要な点が埋もれる。",
-                "check": "書いた点が、型や pattern で決まっていないことかを見る。"
+                "check": "書いた点が、型や pattern で決まっていないことかを見る。",
+                "bad": [
+                  "文字列として読む。"
+                ],
+                "good": [
+                  "作業を終える日として読む。開始日ではない。"
+                ]
               }
             ]
           }
@@ -301,7 +379,13 @@
                 "id": "trigger",
                 "rule": "読む時と、そのとき決めることを書く。",
                 "why": "読む時が分かれば、読み手が決まる。",
-                "check": "時と決めることの両方があるかを見る。"
+                "check": "時と決めることの両方があるかを見る。",
+                "bad": [
+                  "必要なときに読む。"
+                ],
+                "good": [
+                  "レビューで、期限を延ばすかを決めるときに読む。"
+                ]
               }
             ]
           }
@@ -320,7 +404,13 @@
                 "id": "one-rule-per-item",
                 "rule": "1つの決まりに1つのことだけを書く。",
                 "why": "2つ混ぜると、どちらで違反したかが分からない。",
-                "check": "rule の文に、2つの決まりが並んでいないかを見る。"
+                "check": "rule の文に、2つの決まりが並んでいないかを見る。",
+                "bad": [
+                  "[{\"id\": \"goal-style\", \"rule\": \"結果を名詞句で書き、敬語を使わない。\"}]（1つの rule に2つの決まり）"
+                ],
+                "good": [
+                  "[{\"id\": \"goal-is-outcome\", \"rule\": \"利用者が得る結果を書く。\"}, {\"id\": \"plain-style\", \"rule\": \"敬語を使わない。\"}]"
+                ]
               }
             ]
           }
@@ -340,7 +430,9 @@
         "id",
         "rule",
         "why",
-        "check"
+        "check",
+        "bad",
+        "good"
       ],
       "additionalProperties": false,
       "properties": {
@@ -370,13 +462,25 @@
                 "id": "state-based",
                 "rule": "決まりは、ある時点のインスタンスを見れば判定できる状態として書き、操作（手段）を書かない。",
                 "why": "状態で書けば、どの経路でその状態になったかに判定が左右されない（TLA+ の invariant の考え方）。",
-                "check": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。"
+                "check": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。",
+                "bad": [
+                  "保存するときは、目的を確かめる。"
+                ],
+                "good": [
+                  "目的があるなら、それは利用者が得る結果である。"
+                ]
               },
               {
                 "id": "json-schema-first",
                 "rule": "値だけで決まる決まりは、行ではなく JSON Schema のキーワードで書き、行には書けないものだけを残す。",
                 "why": "JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる。",
-                "check": "値だけで決まる決まりを、if ・ then や pattern で書かずに rule にしていないかを見る。"
+                "check": "値だけで決まる決まりを、if ・ then や pattern で書かずに rule にしていないかを見る。",
+                "bad": [
+                  "ID は U と数字で書く。"
+                ],
+                "good": [
+                  "目的は、利用者が得る結果を書く。"
+                ]
               }
             ]
           }
@@ -391,7 +495,13 @@
                 "id": "consequence",
                 "rule": "守らないと何が起きるかを書く。",
                 "why": "理由が無いと、決まりを直してよいかを判断できない。",
-                "check": "起きることが書かれているかを見る。"
+                "check": "起きることが書かれているかを見る。",
+                "bad": [
+                  "大事だから。"
+                ],
+                "good": [
+                  "手段を書くと、目的が果たせたかを決められない。"
+                ]
               }
             ]
           }
@@ -406,7 +516,13 @@
                 "id": "checkable",
                 "rule": "何を見れば合否が決まるかを書く。",
                 "why": "確かめ方が無いと、判定する人で結果が変わる。",
-                "check": "見る場所と、合否の分かれ目があるかを見る。"
+                "check": "見る場所と、合否の分かれ目があるかを見る。",
+                "bad": [
+                  "よく見る。"
+                ],
+                "good": [
+                  "題が名詞で終わっているかを見る。"
+                ]
               }
             ]
           }
@@ -424,51 +540,69 @@
                 "id": "minimal-reads",
                 "rule": "判定に必要な欄だけを並べる。",
                 "why": "読む範囲を絞ると、意味の判定がぶれない。",
-                "check": "並べた欄が、決まりの文に出てくるかを見る。"
+                "check": "並べた欄が、決まりの文に出てくるかを見る。",
+                "bad": [
+                  "[\"/goal\", \"/id\", \"/status\"]（「目的に食い違わない1文にする」の rule で、文に出てこない /id ・ /status も読む）"
+                ],
+                "good": [
+                  "[\"/goal\"]（「目的に食い違わない1文にする」の rule）"
+                ]
               }
             ]
           }
         },
         "bad": {
-          "type": "string",
-          "minLength": 1,
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "title": "破る例",
-          "description": "この決まりを破る値の例である。",
+          "description": "この決まりで violated になる値の例の並びである。",
           "x-prompt": {
             "rules": [
               {
                 "id": "bad-violates",
-                "rule": "この決まりで violated になる値を書く。",
+                "rule": "この決まりで violated になる値を、1つ以上並べる。",
                 "why": "破らない例は、決まりの意味を示さない。",
-                "check": "例がこの決まりで violated になるかを見る。"
+                "check": "並べたどの例も、この決まりで violated になるかを見る。",
+                "bad": [
+                  "[\"意思決定の記録\"]（「題は名詞で書く」の rule の bad に、守る例を書いた）"
+                ],
+                "good": [
+                  "[\"意思決定を記録するためのもの\"]（「題は名詞で書く」の rule の bad）"
+                ]
               }
             ]
           }
         },
         "good": {
-          "type": "string",
-          "minLength": 1,
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "title": "守る例",
-          "description": "この決まりを守る値の例である。",
+          "description": "この決まりで verified になる値の例の並びである。",
           "x-prompt": {
             "rules": [
               {
                 "id": "good-passes",
-                "rule": "この決まりで verified になる値を書く。",
+                "rule": "この決まりで verified になる値を、1つ以上並べる。",
                 "why": "守らない例は、決まりの意味を示さない。",
-                "check": "例がこの決まりで verified になるかを見る。"
+                "check": "並べたどの例も、この決まりで verified になるかを見る。",
+                "bad": [
+                  "[\"意思決定を記録するためのもの\"]（「題は名詞で書く」の rule の good に、破る例を書いた）"
+                ],
+                "good": [
+                  "[\"意思決定の記録\"]（「題は名詞で書く」の rule の good）"
+                ]
               }
             ]
           }
         }
-      },
-      "dependentRequired": {
-        "bad": [
-          "good"
-        ],
-        "good": [
-          "bad"
-        ]
       }
     },
     "sentence": {

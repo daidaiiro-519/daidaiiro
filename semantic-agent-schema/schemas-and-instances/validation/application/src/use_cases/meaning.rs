@@ -205,7 +205,7 @@ pub fn procedure(
         "command": command,
         "constraints": [
             "steps はレビューのまとまり。所のまとまり（review-place）は、その所の rules のそれぞれを、前の判定のときの値（before）といまの値（current）を見比べ、変更の操作（changes）の理由を踏まえて、いまの値で判定する。文書全体のまとまり（review-document）は、変わった所（changed）と変更の操作（changes）を踏まえて、文書全体（current）で rules のそれぞれを判定する",
-            "rule は id で手順の rules から引き、rule ・ why ・ check（bad ・ good があれば違反する例と満たす例）に照らす。meaning があればその読み方で、when があればその読み手として、related_fields があればその値も読む",
+            "rule は id で手順の rules から引き、rule ・ why ・ check と、違反する例 bad ・ 満たす例 good に照らす。meaning があればその読み方で、when があればその読み手として、related_fields があればその値も読む",
             "判定は answer の形の JSON にし、まとまりの rules の1つごとに1件（step はまとまりの no、pointer はまとまりの pointer）を書き、hash には target.hash を写して、command で渡す",
             "ファイルを書かない",
             "まとまりに無い欄に触れない",
