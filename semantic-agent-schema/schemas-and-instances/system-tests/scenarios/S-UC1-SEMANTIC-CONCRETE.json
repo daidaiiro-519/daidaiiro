@@ -1,0 +1,58 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-CONCRETE",
+ "name": "Concrete を意味で書く",
+ "title": "--concrete に Abstract の版を渡して --semantic で作ると、Abstract の rule（根 ・ 欄 ・ 入れ子）から手順を組み、書き込み用の子セッションが書いた Concrete を、Abstract と組み込みの検査に照らしてから書く",
+ "why": "Concrete を書くときも、インスタンスと同じく、作法（Abstract の rule）が書く AI への指示とレビューの観点になる。",
+ "traces": [
+  "UC1:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-write-concrete.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "schemas/flow.schema.json",
+   "--concrete",
+   "urn:semantic-agent-schema:published-language:abstract:v1",
+   "--semantic",
+   "--brief",
+   "手順の並びを持つ文書の型",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/rules/0/id",
+   "equals": "read-perspectives"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/5/pointer",
+   "equals": "/properties"
+  },
+  {
+   "of": "when",
+   "pointer": "/target/kind",
+   "equals": "concrete"
+  },
+  {
+   "of": "when",
+   "file": "schemas/flow.schema.json",
+   "contains": "urn:example:sample:flow:v1"
+  }
+ ]
+}

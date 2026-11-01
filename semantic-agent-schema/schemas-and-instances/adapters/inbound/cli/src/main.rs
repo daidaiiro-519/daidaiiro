@@ -323,6 +323,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         ("--request-id", None),
         ("--brief", None),
         ("--agent", None),
+        ("--continue", None),
     ]);
     let mut paths = Vec::new();
     let mut it = args.iter();
@@ -357,6 +358,9 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     {
         return usage(&format!("{name} は --semantic と一緒に渡してください"));
     }
+    if !semantic && take("--continue").is_some() {
+        return usage("--continue は --semantic と一緒に渡してください");
+    }
     if !semantic && !refs.is_empty() {
         return usage("--ref は --semantic と一緒に渡してください");
     }
@@ -390,6 +394,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             refs,
             intent,
             request_id,
+            continue_child: take("--continue"),
         };
         let result = run_with(
             |store, validator, who, log| {

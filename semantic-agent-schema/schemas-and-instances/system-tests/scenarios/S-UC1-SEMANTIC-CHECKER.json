@@ -1,0 +1,59 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-CHECKER",
+ "name": "検証用の子セッションに書かせない",
+ "title": "--semantic --continue に検証用の子セッションを渡すと、送らずに checker_as_writer で断る",
+ "why": "判定した子セッションに書かせると、自分の判定に合わせて書く。書き込みと判定は別の子セッションにする。",
+ "traces": [
+  "UC2:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-summary.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/s1.json",
+     "--agent",
+     "agent/test-agent.json"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "items/s1.json",
+   "--semantic",
+   "--continue",
+   "child-1",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "checker_as_writer"
+  },
+  {
+   "of": "when",
+   "file": "agent/call-2.txt",
+   "exists": false
+  }
+ ],
+ "unchanged": [
+  "items/s1.json"
+ ]
+}

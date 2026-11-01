@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-REF-LARGE",
+ "name": "大きすぎる資料",
+ "title": "--ref の文書が上限（64KiB）を超えると、切り詰めずに ref_too_large で断り、子セッションを起動しない",
+ "why": "切り詰めると、資料のどこが落ちたかを書く側も読む側も知らないまま書く。",
+ "traces": [
+  "UC1:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "docs/big.md": "@fixtures/big.md",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/s2.json",
+   "--concrete",
+   "urn:example:sample:summary:v1",
+   "--semantic",
+   "--ref",
+   "docs/big.md",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "ref_too_large"
+  },
+  {
+   "of": "when",
+   "file": "agent/count",
+   "exists": false
+  }
+ ]
+}

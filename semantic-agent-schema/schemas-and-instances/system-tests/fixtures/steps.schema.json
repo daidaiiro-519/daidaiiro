@@ -1,0 +1,50 @@
+{
+ "$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
+ "$id": "urn:example:sample:steps:v1",
+ "title": "手順の並び",
+ "description": "利用者と仕組みのやりとりの並びである。",
+ "type": "object",
+ "required": [
+  "$schema",
+  "steps"
+ ],
+ "$defs": {
+  "step": {
+   "type": "object",
+   "required": [
+    "action"
+   ],
+   "properties": {
+    "action": {
+     "type": "string",
+     "x-prompt": {
+      "write": [
+       {
+        "id": "one-action",
+        "rule": "誰が何をするかを1つだけ書く。",
+        "why": "2つ混ぜると、どこで失敗したかが分からない。",
+        "test": "主語と動作が1組だけかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  }
+ },
+ "properties": {
+  "$schema": {
+   "const": "urn:example:sample:steps:v1"
+  },
+  "steps": {
+   "title": "手順",
+   "description": "やりとりの並びである。",
+   "x-prompt": {
+    "write": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/step"
+   }
+  }
+ }
+}

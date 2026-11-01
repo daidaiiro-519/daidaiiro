@@ -1,0 +1,52 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-NESTED",
+ "name": "入れ子の欄の rule を書かせる",
+ "title": "配列の要素の中の欄（$defs の形）に rule がある Concrete を意味で書くと、そのステップの inner_rules に所の形（/steps/*/action）と rule が入る",
+ "why": "検証では入れ子の rule が当たるのに、書くときに知らされないと、書いたものがいつも検証で外れる。",
+ "traces": [
+  "UC1:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/steps.schema.json": "@fixtures/steps.schema.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-write-steps.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/w1.json",
+   "--concrete",
+   "urn:example:sample:steps:v1",
+   "--semantic",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/0/inner_rules/0/pointer",
+   "equals": "/steps/*/action"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/0/inner_rules/0/rules/0/id",
+   "equals": "one-action"
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "created"
+  }
+ ]
+}

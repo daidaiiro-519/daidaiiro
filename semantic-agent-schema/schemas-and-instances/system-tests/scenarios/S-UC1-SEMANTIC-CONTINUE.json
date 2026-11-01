@@ -1,0 +1,66 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-CONTINUE",
+ "name": "書き込み用の子セッションを続ける",
+ "title": "--semantic --continue に記録の書き込み用の子セッションを渡すと、同じ子セッションを同じ接続の定義で続けて書かせる",
+ "why": "前に書いた子セッションに続けて直させると、前の書き方を踏まえて直せる。",
+ "traces": [
+  "UC2:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-write-ok.json",
+   "agent/reply-2.json": "@fixtures/reply-write-ok.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/s2.json",
+     "--concrete",
+     "urn:example:sample:summary:v1",
+     "--semantic",
+     "--agent",
+     "agent/test-agent.json"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "items/s2.json",
+   "--semantic",
+   "--brief",
+   "要約を短くする",
+   "--continue",
+   "writer-1",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/continued",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/started",
+   "count": 0
+  },
+  {
+   "of": "when",
+   "file": "agent/call-2.txt",
+   "contains": "continue writer-1"
+  }
+ ]
+}

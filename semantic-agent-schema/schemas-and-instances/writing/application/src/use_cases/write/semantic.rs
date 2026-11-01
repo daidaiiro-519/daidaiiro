@@ -1,7 +1,10 @@
 //! UC1 作成する ・ UC2 更新する の意味で書く変形：Concrete の rule から書く手順を組み、SAS が起動した書き込み用の子セッションに
 //! 欄の値を書かせ、答えを答えの形 ・ Concrete の形に照らしてから、作成 ・ 更新と同じ手続きで書く。
 //!
-//! - 書く欄は x-prompt を持つ根の欄。人が決める欄（x-decided-by: human）と、const で決まる欄は書かせない。
+//! - 書く欄は根の欄（x-prompt か、中に rule を持つ欄か、根が求める欄）。人が決める欄（x-decided-by: human）と、
+//!   const で決まる欄と、$schema は書かせない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
+//! - インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く（同じ手続き）。
+//! - 書き込み用の子セッションは --continue で続けられる（記録の起動の設定と同じ接続の定義でだけ）。
 //! - 書く順は rule の reads：読まれる欄を先にする。読み合う欄があれば、手順を出さずに断る。
 //! - --ref の文書は SAS が読んで中身を手順に入れる（子セッションはファイルを開けない）。上限を超えたら切り詰めずに断る。
 //! - 書くのは SAS で、子セッションではない。答えが形に合わなければ同じ子セッションに2回まで直させる。
@@ -12,9 +15,11 @@ use serde_json::{Map, Value, json};
 use validation_application::ports::{DocumentStore, ReadMeaning, SchemaValidator};
 use validation_application::use_cases::meaning::{Child, converse, field_schema};
 use validation_application::use_cases::validate::{
-    Corpus, Refused, TargetKind, form_violations, log_refused, refused,
+    Corpus, Refused, TargetKind, classify, form_violations, log_refused, refused,
 };
-use writing_domain::aggregates::escape;
+use validation_domain::services::builtin_checks;
+use validation_domain::values::Verdict;
+use writing_domain::aggregates::{ConcreteSchema, escape};
 use writing_domain::values::ContentHash;
 
 /// 書き込みの答えの形（公開しない。子セッションに渡し、答えを照らす）。
@@ -39,6 +44,8 @@ pub struct SemanticRequest {
     pub intent: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
+    /// 続ける書き込み用の子セッションの ID（--continue）。無ければ新しい子セッションを起動する
+    pub continue_child: Option<String>,
 }
 
 /// 意味で書いた結果：渡した手順と、書き込み用の子セッションのこと。
@@ -54,6 +61,8 @@ pub struct SemanticOutcome {
     pub corrections: u32,
     /// 時間切れで新しい子セッションにした回数
     pub restarts: u32,
+    /// --continue で続けた子セッションか
+    pub continued: bool,
 }
 
 /// 書く欄1つ。
@@ -61,7 +70,9 @@ struct Unit {
     name: String,
     field: Value,
     rules: Vec<Value>,
+    inner: Vec<Value>,
     reads: Vec<String>,
+    required: bool,
 }
 
 /// 意味で書く（UC1 ・ UC2 の変形）。
@@ -104,16 +115,17 @@ pub fn semantic_write(
         }
     };
     let corpus = Corpus::load(store)?;
-    let Some(concrete) = corpus.concretes.get(&declared) else {
-        return Err(refused(
-            "unknown_schema",
-            path,
-            format!(
-                "{declared} はリポジトリの Concrete に無い（意味で書けるのはインスタンスだけ）"
-            ),
-        ));
+    let kind = classify(&corpus.concretes, path, &declared)?;
+    // インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く
+    let doc: Value = match kind {
+        TargetKind::Instance => corpus
+            .concretes
+            .get(&declared)
+            .map(|c| c.document().clone())
+            .unwrap_or_default(),
+        TargetKind::Concrete => validator.shipped(&declared).unwrap_or_default(),
     };
-    let doc = concrete.document();
+    let doc = &doc;
     let units = order(path, write_units(doc, &corpus.more))?;
     if units.is_empty() {
         return Err(refused(
@@ -138,24 +150,26 @@ pub fn semantic_write(
     let base = current
         .clone()
         .unwrap_or_else(|| json!({"$schema": declared}));
-    let mut child = Child {
-        tool_ref: None,
-        launch: reader.launch(),
-    };
+    let mut child = continued_child(log, reader, path, request.continue_child.as_deref())?;
     let conversed = converse(reader, &mut child, &first, &schema, &|answer| {
         let candidate = read_values(validator, answer, &units, &base)?;
-        let broken = form_violations(
-            validator,
-            TargetKind::Instance,
-            &declared,
-            &candidate,
-            &corpus.more,
-        )?;
+        let mut broken = form_violations(validator, kind, &declared, &candidate, &corpus.more)?;
+        // Concrete は JSON Schema で書けない組み込みの検査にも合わせる
+        if kind == TargetKind::Concrete
+            && let Some(c) = ConcreteSchema::read(&candidate)
+        {
+            broken.extend(
+                builtin_checks(&c)
+                    .into_iter()
+                    .filter(|r| r.verdict() == Verdict::Violated)
+                    .map(|r| (r.pointer().to_string(), r.reason().to_string())),
+            );
+        }
         if broken.is_empty() {
             Ok(candidate)
         } else {
             Err(format!(
-                "Concrete の形に合わない：{}",
+                "書く元のスキーマの形に合わない：{}",
                 violations_message(&broken)
             ))
         }
@@ -182,6 +196,7 @@ pub fn semantic_write(
         started: conversed.started.clone(),
         corrections: conversed.corrections,
         restarts: conversed.restarts,
+        continued: request.continue_child.is_some(),
     };
     let candidate = conversed
         .outcome
@@ -235,26 +250,46 @@ pub fn semantic_write(
     Ok((changed, outcome))
 }
 
-/// 書く欄：x-prompt を持つ根の欄。人が決める欄と const で決まる欄は外す。
+/// 書く欄：根の欄のうち、x-prompt か中の rule を持つか、根が求める欄。人の欄 ・ const の欄 ・ $schema は外す。
 fn write_units(doc: &Value, others: &[(String, Value)]) -> Vec<Unit> {
     let Some(props) = doc.get("properties").and_then(Value::as_object) else {
         return Vec::new();
     };
+    let required: Vec<&str> = doc
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
     props
-        .keys()
-        .filter_map(|name| {
+        .iter()
+        .filter_map(|(name, own)| {
+            if name == "$schema" {
+                return None;
+            }
             let field = field_schema(doc, &format!("/{}", escape(name)), others)?;
-            let prompt = field.get("x-prompt")?;
             if field.get("const").is_some()
                 || field.get("x-decided-by").and_then(Value::as_str) == Some("human")
             {
                 return None;
             }
-            let rules: Vec<Value> = prompt
-                .get("write")
+            let rules: Vec<Value> = field
+                .pointer("/x-prompt/write")
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
+            let mut inner = Vec::new();
+            inner_rules(
+                doc,
+                own,
+                others,
+                &format!("/{}", escape(name)),
+                &mut inner,
+                0,
+            );
+            let is_required = required.contains(&name.as_str());
+            if field.get("x-prompt").is_none() && inner.is_empty() && !is_required {
+                return None;
+            }
             let reads = rules
                 .iter()
                 .flat_map(|r| {
@@ -274,10 +309,145 @@ fn write_units(doc: &Value, others: &[(String, Value)]) -> Vec<Unit> {
                 name: name.clone(),
                 field,
                 rules,
+                inner,
                 reads,
+                required: is_required,
             })
         })
         .collect()
+}
+
+/// 欄の中（properties ・ additionalProperties ・ items ・ allOf と $ref の先）の rule を、所の形
+/// （配列の要素と名前を選ばない欄は *）と一緒に集める。
+fn inner_rules(
+    root: &Value,
+    node: &Value,
+    others: &[(String, Value)],
+    at: &str,
+    out: &mut Vec<Value>,
+    depth: usize,
+) {
+    if depth > 8 {
+        return;
+    }
+    let (root, node) = deref(root, node, others);
+    for sub in node
+        .get("allOf")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        inner_rules(root, sub, others, at, out, depth + 1);
+    }
+    let mut subs: Vec<(&Value, String)> = Vec::new();
+    if let Some(props) = node.get("properties").and_then(Value::as_object) {
+        for (name, sub) in props {
+            subs.push((sub, format!("{at}/{}", escape(name))));
+        }
+    }
+    for key in ["additionalProperties", "items"] {
+        if let Some(sub) = node.get(key).filter(|a| a.is_object()) {
+            subs.push((sub, format!("{at}/*")));
+        }
+    }
+    for (sub, here) in subs {
+        let (_, target) = deref(root, sub, others);
+        let mut rules: Vec<Value> = Vec::new();
+        for n in [sub, target] {
+            for r in n
+                .pointer("/x-prompt/write")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                if !rules.contains(r) {
+                    rules.push(r.clone());
+                }
+            }
+        }
+        if !rules.is_empty() && !out.iter().any(|o| o["pointer"] == json!(here)) {
+            out.push(json!({"pointer": here, "rules": rules}));
+        }
+        inner_rules(root, sub, others, &here, out, depth + 1);
+    }
+}
+
+/// $ref の先と、その先がある文書（文書の中の #… と、ほかの文書の <$id>#…）。引けなければそのまま。
+fn deref<'a>(
+    root: &'a Value,
+    node: &'a Value,
+    others: &'a [(String, Value)],
+) -> (&'a Value, &'a Value) {
+    let Some(r) = node.get("$ref").and_then(Value::as_str) else {
+        return (root, node);
+    };
+    let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
+    let doc = if base.is_empty() {
+        Some(root)
+    } else {
+        others.iter().find(|(id, _)| id == base).map(|(_, d)| d)
+    };
+    let Some(doc) = doc else {
+        return (root, node);
+    };
+    let target = if fragment.is_empty() {
+        Some(doc)
+    } else if fragment.starts_with('/') {
+        doc.pointer(fragment)
+    } else {
+        doc.get("$defs").and_then(Value::as_object).and_then(|m| {
+            m.values()
+                .find(|d| d.get("$anchor").and_then(Value::as_str) == Some(fragment))
+        })
+    };
+    target.map_or((root, node), |t| (doc, t))
+}
+
+/// --continue のときは記録の書き込み用の子セッションを、同じ接続の定義でだけ続ける。無ければ新しい子セッション。
+fn continued_child(
+    log: &dyn OperationLog,
+    reader: &dyn ReadMeaning,
+    path: &str,
+    id: Option<&str>,
+) -> Result<Child, Refused> {
+    let Some(id) = id else {
+        return Ok(Child {
+            tool_ref: None,
+            launch: reader.launch(),
+        });
+    };
+    let rec = log
+        .child(id)
+        .map_err(log_refused)?
+        .ok_or_else(|| refused("not_found", path, format!("子セッション {id} は記録に無い")))?;
+    if rec.row.role != "writer" {
+        return Err(refused(
+            "checker_as_writer",
+            path,
+            format!(
+                "{id} は検証用の子セッション（{}）で、書き込み用の子セッションとして続けられない。判定した子セッションに書かせない",
+                rec.row.role
+            ),
+        ));
+    }
+    let recorded: Value = serde_json::from_str(&rec.row.launch).unwrap_or_default();
+    let now = reader.launch();
+    if ["connector", "version", "hash"]
+        .iter()
+        .any(|k| recorded.get(*k) != now.get(*k))
+    {
+        return Err(refused(
+            "launch_mismatch",
+            path,
+            format!(
+                "子セッション {id} を起動した接続の定義といまの定義の名前 ・ 版 ・ 中身のハッシュが違う。同じ定義を --agent に渡す"
+            ),
+        ));
+    }
+    Ok(Child {
+        tool_ref: Some(id.to_string()),
+        launch: recorded,
+    })
 }
 
 /// 読まれる欄を先にする（同じなら Concrete の並び）。読み合う欄があれば断る。
@@ -355,6 +525,12 @@ fn build_procedure(
         .map(|(i, u)| {
             let at = format!("/{}", escape(&u.name));
             let mut s = json!({"no": i + 1, "action": "write", "pointer": at, "rules": u.rules});
+            if !u.inner.is_empty() {
+                s["inner_rules"] = json!(u.inner);
+            }
+            if !u.required {
+                s["optional"] = json!(true);
+            }
             for k in ["title", "description"] {
                 if let Some(v) = u.field.get(k) {
                     s[k] = v.clone();
@@ -401,6 +577,13 @@ fn build_procedure(
             "ファイルを書かない（書くのは SAS）",
         ],
     });
+    if let Some(r) = doc
+        .pointer("/x-prompt/write")
+        .and_then(Value::as_array)
+        .filter(|r| !r.is_empty())
+    {
+        p["rules"] = json!(r);
+    }
     if let Some(b) = &request.brief {
         p["brief"] = json!(b);
     }
@@ -419,9 +602,9 @@ pub fn prompt_text(procedure: &Value, answer_schema: &Value) -> String {
     format!(
         "あなたは SAS（Semantic Agent Schema）が起動した書き込み用の子セッションです。\n\
          次の手順のプロンプトの about が書く文書、brief が依頼、refs が資料です。steps を no の順に行い、\
-         それぞれの pointer の欄に書く値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例として読む）を守って決めてください\
+         それぞれの pointer の欄に書く値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例として読む）と、inner_rules の rule（その欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決めてください\
          （read があればその読み方で、reads があれば先に書いた欄の値を読んで、current があればいまの値を直す形で）。\n\
-         答えの形に合う JSON だけを返してください。ファイルを書かず、steps に無い欄に触れないでください。\n\n\
+         optional のステップは、書かないなら答えから外してかまいません。答えの形に合う JSON だけを返してください。ファイルを書かず、steps に無い欄に触れないでください。\n\n\
          手順のプロンプト：\n{}\n\n答えの形：\n{}\n",
         serde_json::to_string_pretty(procedure).unwrap_or_default(),
         serde_json::to_string_pretty(answer_schema).unwrap_or_default()
@@ -470,11 +653,15 @@ fn read_values(
         }
         seen.push(no);
         if let Some(obj) = out.as_object_mut() {
-            obj.insert(unit.name.clone(), item["value"].clone());
+            if item["value"].is_null() && !unit.required {
+                obj.remove(&unit.name);
+            } else {
+                obj.insert(unit.name.clone(), item["value"].clone());
+            }
         }
     }
     let missing: Vec<String> = (1..=units.len())
-        .filter(|n| !seen.contains(n))
+        .filter(|n| !seen.contains(n) && units[n - 1].required)
         .map(|n| n.to_string())
         .collect();
     if !missing.is_empty() {

@@ -271,7 +271,7 @@ pub fn print_semantic(c: &ChangeResult, o: &SemanticOutcome) {
     println!("{p}");
     let mut out = change_json(c);
     out["child_session"] = json!({
-        "id": o.child, "role": "writer", "started": o.started,
+        "id": o.child, "role": "writer", "continued": o.continued, "started": o.started,
         "corrections": o.corrections, "restarts": o.restarts,
     });
     println!("{out}");
