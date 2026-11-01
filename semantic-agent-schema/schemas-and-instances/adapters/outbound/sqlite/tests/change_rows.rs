@@ -187,7 +187,7 @@ fn a_database_in_a_new_place_is_made_empty() {
         .connection()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 6);
+    assert_eq!(version, 7);
     assert_eq!(log.append_change(None, &update(None)).unwrap(), "o-0001");
     drop(log);
     // 開き直しても行は残り、版は進まない

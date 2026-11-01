@@ -46,7 +46,7 @@ fn validated(path: &str) -> ValidateRow {
                 rule: "goal-is-outcome".into(),
                 pointer: "/goal".into(),
                 by: "ai".into(),
-                result: "unsupported".into(),
+                result: "not-judged".into(),
                 reason: "判定を渡されていない".into(),
                 reads: "sha256:r".into(),
             },
@@ -102,7 +102,7 @@ fn operations_are_listed_newest_first_with_their_session() {
     assert_eq!(all[0].session, None);
     assert_eq!(
         all[0].counts,
-        [("unsupported".to_string(), 1), ("verified".to_string(), 1)]
+        [("not-judged".to_string(), 1), ("verified".to_string(), 1)]
     );
     assert_eq!(
         all[1].session.as_ref().map(|s| s.folder.as_str()),

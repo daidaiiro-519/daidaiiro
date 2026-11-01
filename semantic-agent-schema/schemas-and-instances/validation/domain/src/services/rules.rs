@@ -234,14 +234,14 @@ pub fn rules_for_instance(
     out
 }
 
-/// 意味の判定を渡されていないときの rule の結果：unsupported。
+/// 意味の判定を渡されていないときの rule の結果：not-judged（まだ判定していない）。
 #[must_use]
 pub fn unjudged(rule: &AppliedRule) -> RuleResult {
     RuleResult::new(
         &rule.id,
         &rule.pointer,
         By::Ai,
-        Verdict::Unsupported,
+        Verdict::NotJudged,
         "意味の判定を渡していない（sas validate --semantic で手順を受け取り、判定を --answer で渡す）",
     )
 }
@@ -266,7 +266,7 @@ mod tests {
         let ids: Vec<&str> = rules.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["root", "goal-rule"]);
         assert_eq!(rules[1].pointer, "/goal");
-        assert_eq!(unjudged(&rules[1]).verdict(), Verdict::Unsupported);
+        assert_eq!(unjudged(&rules[1]).verdict(), Verdict::NotJudged);
     }
 
     #[test]

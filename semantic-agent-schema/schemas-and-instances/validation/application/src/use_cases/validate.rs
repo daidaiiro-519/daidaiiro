@@ -156,7 +156,7 @@ fn form_violations(
     Ok(broken)
 }
 
-/// UC4 検証する：形 ・ 組み込みの検査 ・ 当たる rule を判定し（rule は判定を渡されなければ unsupported）、対象ごとに検証の操作を記録する。
+/// UC4 検証する：形 ・ 組み込みの検査 ・ 当たる rule を判定し（rule は判定を渡されなければ not-judged）、対象ごとに検証の操作を記録する。
 ///
 /// # Errors
 /// 対象を読めない ・ 申告した Abstract の版が閉じた一覧に無い（取りに行かない）・ 従う schema が分からない ・ 記録できないとき。
@@ -727,10 +727,7 @@ type Unchanged = BTreeMap<String, Vec<String>>;
 
 /// 記録した判定の区分の名前を、区分に戻す。知らない名前は unverified（verified に数えない）。
 fn verdict_of(name: &str) -> Verdict {
-    Verdict::ALL
-        .into_iter()
-        .find(|v| v.as_str() == name)
-        .unwrap_or(Verdict::Unverified)
+    Verdict::parse(name).unwrap_or(Verdict::Unverified)
 }
 
 /// 操作の ID（o-0001）の番号。
@@ -766,8 +763,7 @@ fn review_of(
 ) {
     c.review = ReviewScope::First;
     let judged = |j: &&Judgment| {
-        j.rule.by == "ai"
-            && ["verified", "violated", "unverified"].contains(&j.rule.result.as_str())
+        j.rule.by == "ai" && Verdict::parse(&j.rule.result).is_some_and(Verdict::judged)
     };
     let Some(base) = before
         .iter()
@@ -857,7 +853,7 @@ fn select_changed(c: &mut Current, before: &[Judgment]) {
         let Some(row) = previous.get(&(r.rule(), r.pointer())) else {
             continue;
         };
-        if row.result == "unsupported" || row.result == "error" {
+        if !Verdict::parse(&row.result).is_some_and(Verdict::judged) {
             continue;
         }
         let hit = c.changed.iter().any(|p| {

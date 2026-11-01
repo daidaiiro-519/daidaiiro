@@ -11,8 +11,8 @@ pub enum Verdict {
     Unverified,
     /// 判定しようとして失敗した
     Error,
-    /// 判定する手続きやつながる先が無い
-    Unsupported,
+    /// まだ判定していない（意味の rule の判定が渡されていない ・ 判定する手続きが無い）
+    NotJudged,
 }
 
 impl Verdict {
@@ -22,7 +22,7 @@ impl Verdict {
         Self::Violated,
         Self::Unverified,
         Self::Error,
-        Self::Unsupported,
+        Self::NotJudged,
     ];
 
     /// 公開された言葉での名前。
@@ -33,8 +33,20 @@ impl Verdict {
             Self::Violated => "violated",
             Self::Unverified => "unverified",
             Self::Error => "error",
-            Self::Unsupported => "unsupported",
+            Self::NotJudged => "not-judged",
         }
+    }
+
+    /// 公開された言葉での名前から読む。知らない名前は None。
+    #[must_use]
+    pub fn parse(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|v| v.as_str() == name)
+    }
+
+    /// 判定できた値か（verified ・ violated ・ unverified）。not-judged と error は判定できていない。
+    #[must_use]
+    pub const fn judged(self) -> bool {
+        matches!(self, Self::Verified | Self::Violated | Self::Unverified)
     }
 
     /// 対象を「通らない」とする値か（violated と error）。

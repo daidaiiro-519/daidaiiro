@@ -19,7 +19,7 @@ pub fn whole(r: RuleResult) -> Judged {
     (r, String::new(), None)
 }
 
-/// Concrete に当たる、組み込みの検査の結果と Abstract の rule（判定を渡されていなければ unsupported）。
+/// Concrete に当たる、組み込みの検査の結果と Abstract の rule（判定を渡されていなければ not-judged）。
 /// abstract_doc は申告した Abstract の本体、vocabulary は Abstract の語彙。
 #[must_use]
 pub fn concrete_rules(
@@ -39,7 +39,7 @@ pub fn concrete_rules(
     results
 }
 
-/// インスタンスに当たる Concrete の rule（判定を渡されていなければ unsupported）。more はリポジトリの Concrete（$id と文書）。
+/// インスタンスに当たる Concrete の rule（判定を渡されていなければ not-judged）。more はリポジトリの Concrete（$id と文書）。
 #[must_use]
 pub fn instance_rules(
     concrete_doc: &Value,

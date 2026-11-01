@@ -17,13 +17,14 @@ use validation_domain::values::{Judgment, RuleRow, ValidateRow};
 use writing_domain::values::{Caller, ChangeRow, FieldRow, StoredChange, WriteRecord};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の書き直しはステップ4b の1回だけ：CODING.md）。
-const MIGRATIONS: [&str; 6] = [
+const MIGRATIONS: [&str; 7] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
     include_str!("../migrations/0003-adopt.sql"),
     include_str!("../migrations/0004-delete.sql"),
     include_str!("../migrations/0005-read.sql"),
     include_str!("../migrations/0006-reason.sql"),
+    include_str!("../migrations/0007-not-judged.sql"),
 ];
 
 /// SQLite の操作の記録。

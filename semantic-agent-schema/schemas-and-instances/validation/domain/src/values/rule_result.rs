@@ -126,12 +126,12 @@ mod tests {
         let rs = [
             RuleResult::new("a", "", By::Machine, Verdict::Verified, ""),
             RuleResult::new("b", "", By::Machine, Verdict::Violated, ""),
-            RuleResult::new("c", "", By::Ai, Verdict::Unsupported, ""),
+            RuleResult::new("c", "", By::Ai, Verdict::NotJudged, ""),
         ];
         let c = Counts::of(&rs);
         assert_eq!(c.get(Verdict::Verified), 1);
         assert_eq!(c.get(Verdict::Violated), 1);
-        assert_eq!(c.get(Verdict::Unsupported), 1);
+        assert_eq!(c.get(Verdict::NotJudged), 1);
         assert!(c.fails());
     }
 }

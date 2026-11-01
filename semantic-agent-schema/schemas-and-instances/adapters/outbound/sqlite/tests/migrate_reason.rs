@@ -1,4 +1,4 @@
-//! 移行 0006：変更の記録の intent を reason に名前を変える。版5 までの DB を開くと、行と決まり（CHECK）を保ったまま版6 になる。
+//! 移行 0006：変更の記録の intent を reason に名前を変える。版5 までの DB を開くと、行と決まり（CHECK）を保ったまま新しい版になる。
 
 #![allow(clippy::unwrap_used)]
 
@@ -43,7 +43,7 @@ fn rows_written_as_intent_are_read_as_reason() {
         .connection()
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 6);
+    assert_eq!(version, 7);
     // 版5 で書いた理由が、名前を変えた欄から読める
     let all = log.operations(&OperationFilter::default()).unwrap();
     assert_eq!(all[0].reason.as_deref(), Some("目標を直す"));
