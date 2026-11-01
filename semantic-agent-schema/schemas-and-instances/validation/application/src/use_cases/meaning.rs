@@ -7,13 +7,16 @@
 //! - 時間切れは新しい子セッションで2回までやり直す。起動できなければ該当の rule は error
 //! - 意味は検証の中の性質で、業務領域にしない。子セッションを起動するのはアダプター（outbound/agents）
 
-use crate::ports::{ReadMeaning, Reply};
+use crate::ports::{ReadMeaning, Reply, SchemaValidator};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use validation_domain::values::{By, RuleResult, Verdict};
 
 /// 答えの形（検証用の子セッションが返す JSON）。
 pub const ANSWER_SCHEMA: &str = include_str!("../agent-answer.schema.json");
+
+/// 判定の答えの形の $id。
+const ANSWER_ID: &str = "urn:semantic-agent-schema:validation:agent-answer-judgments:v1";
 
 /// 形の誤りを同じ子セッションで直させる回数の上限。
 pub const MAX_CORRECTIONS: u32 = 2;
@@ -117,55 +120,51 @@ pub fn correction_text(why: &str) -> String {
     )
 }
 
-/// 答えを読み、steps と突き合わせる。合えば (step の no → 判定と理由)。合わなければ理由。
+/// 答えを読み、形を子セッションに渡したのと同じ答えの形（JSON Schema）に照らしてから、steps と突き合わせる。
+/// 合えば (step の no → 判定と理由)。合わなければ理由。
 ///
 /// # Errors
-/// JSON でない ・ 形が違う ・ ステップの判定が欠けた ・ 重なった ・ rule と所が手順と違うとき。
+/// JSON でない ・ 答えの形に合わない ・ ステップの判定が欠けた ・ 重なった ・ rule と所が手順と違うとき。
 pub fn read_answer(
+    validator: &dyn SchemaValidator,
     answer: &str,
     steps: &[Step],
 ) -> Result<BTreeMap<usize, (Verdict, String)>, String> {
     let v: Value =
         serde_json::from_str(answer.trim()).map_err(|e| format!("JSON として読めない（{e}）"))?;
-    let results = v
-        .get("results")
-        .and_then(Value::as_array)
-        .ok_or("results の並びが無い")?;
+    let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
+    let broken = validator.check(ANSWER_ID, &v, &[(ANSWER_ID.to_string(), schema)])?;
+    if !broken.is_empty() {
+        return Err(broken
+            .iter()
+            .map(|(at, why)| format!("{at}：{why}"))
+            .collect::<Vec<_>>()
+            .join(" ／ "));
+    }
+    // ここから先は手順との突き合わせ（形は上で確かめた）
     let mut out = BTreeMap::new();
-    for r in results {
-        let no = r
-            .get("step")
-            .and_then(Value::as_u64)
+    for r in v["results"].as_array().into_iter().flatten() {
+        let no = r["step"]
+            .as_u64()
             .and_then(|n| usize::try_from(n).ok())
-            .ok_or("step が整数でない")?;
+            .unwrap_or_default();
         let step = steps
             .iter()
             .find(|s| s.no == no)
             .ok_or_else(|| format!("手順に無い step {no}"))?;
-        let rule = r.get("rule").and_then(Value::as_str).unwrap_or_default();
-        let pointer = r.get("pointer").and_then(Value::as_str).unwrap_or_default();
-        if rule != step.rule || pointer != step.pointer {
+        if r["rule"] != json!(step.rule) || r["pointer"] != json!(step.pointer) {
             return Err(format!(
                 "step {no} の rule と所が手順と違う（手順は {} {}）",
                 step.rule, step.pointer
             ));
         }
-        let verdict = match r.get("result").and_then(Value::as_str) {
+        let verdict = match r["result"].as_str() {
             Some("verified") => Verdict::Verified,
             Some("violated") => Verdict::Violated,
-            Some("unverified") => Verdict::Unverified,
-            other => {
-                return Err(format!(
-                    "step {no} の result が verified ・ violated ・ unverified でない（{other:?}）"
-                ));
-            }
+            _ => Verdict::Unverified,
         };
-        let reason = r
-            .get("reason")
-            .and_then(Value::as_str)
-            .filter(|s| !s.trim().is_empty())
-            .ok_or_else(|| format!("step {no} の reason が無い"))?;
-        if out.insert(no, (verdict, reason.to_string())).is_some() {
+        let reason = r["reason"].as_str().unwrap_or_default().to_string();
+        if out.insert(no, (verdict, reason)).is_some() {
             return Err(format!("step {no} の判定が2つある"));
         }
     }
@@ -208,6 +207,7 @@ pub struct Child {
 /// 子セッションが処理中（busy）のとき。
 pub fn judge(
     reader: &dyn ReadMeaning,
+    validator: &dyn SchemaValidator,
     child: &mut Child,
     procedure: &Value,
     steps: &[Step],
@@ -274,7 +274,7 @@ pub fn judge(
                     started.push(tool_ref.clone());
                 }
                 child.tool_ref = Some(tool_ref.clone());
-                match read_answer(&answer, steps) {
+                match read_answer(validator, &answer, steps) {
                     Ok(map) => {
                         let results = steps
                             .iter()

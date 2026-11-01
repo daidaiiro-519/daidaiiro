@@ -504,15 +504,18 @@ fn apply_meaning(
             continue;
         }
         let proc = procedure(&c.doc.path, &c.declared, c.hash.as_str(), &steps);
-        let judged = judge_meaning(reader, &mut child, &proc, &steps).map_err(|code| Refused {
-            code,
-            path: Some(c.doc.path.as_str().into()),
-            message: format!(
-                "子セッション {} は処理中。終わってから打ち直す",
-                child.tool_ref.clone().unwrap_or_default()
-            ),
-            ..Refused::default()
-        })?;
+        let judged =
+            judge_meaning(reader, validator, &mut child, &proc, &steps).map_err(|code| {
+                Refused {
+                    code,
+                    path: Some(c.doc.path.as_str().into()),
+                    message: format!(
+                        "子セッション {} は処理中。終わってから打ち直す",
+                        child.tool_ref.clone().unwrap_or_default()
+                    ),
+                    ..Refused::default()
+                }
+            })?;
         let launch = child.launch.to_string();
         for id in &judged.started {
             log.append_child(
