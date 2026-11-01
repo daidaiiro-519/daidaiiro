@@ -71,7 +71,7 @@ pub struct WriteRecord {
 /// DB はワークツリーで1つなので、ほかのワークツリーが後から書いた事後があっても、いまの中身がこの経路の記録の
 /// どれかの事後と同じなら SAS を通った中身とみなす（最後の事後だけと比べると、ワークツリーごとに外の変更に見える）。
 #[must_use]
-pub fn untracked_since(writes: &[WriteRecord], current: &str) -> Option<String> {
+pub fn unrecorded_since(writes: &[WriteRecord], current: &str) -> Option<String> {
     if writes
         .iter()
         .any(|w| w.row.after.as_deref() == Some(current))
@@ -83,7 +83,7 @@ pub fn untracked_since(writes: &[WriteRecord], current: &str) -> Option<String> 
 
 #[cfg(test)]
 mod tests {
-    use super::{ChangeRow, WriteRecord, untracked_since};
+    use super::{ChangeRow, WriteRecord, unrecorded_since};
 
     fn write(n: usize, before: &str, after: &str) -> WriteRecord {
         WriteRecord {
@@ -106,12 +106,12 @@ mod tests {
 
     #[test]
     fn any_recorded_after_is_tracked() {
-        assert_eq!(untracked_since(&[], "x"), None);
+        assert_eq!(unrecorded_since(&[], "x"), None);
         let writes = [write(1, "a", "b"), write(2, "b", "c")];
         // ほかのワークツリーが c まで書いても、このワークツリーの b は SAS を通った中身
-        assert_eq!(untracked_since(&writes, "b"), None);
-        assert_eq!(untracked_since(&writes, "c"), None);
+        assert_eq!(unrecorded_since(&writes, "b"), None);
+        assert_eq!(unrecorded_since(&writes, "c"), None);
         // 記録のどの事後でもない中身は、最後の事後と比べた外の変更
-        assert_eq!(untracked_since(&writes, "d").as_deref(), Some("c"));
+        assert_eq!(unrecorded_since(&writes, "d").as_deref(), Some("c"));
     }
 }

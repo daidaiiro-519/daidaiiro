@@ -159,7 +159,7 @@ pub fn print_validation(v: &Validation) {
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
         "targets": targets,
         "counts": counts(&v.counts),
-        "untracked": v.untracked.iter().map(|u| json!({
+        "unrecorded": v.unrecorded.iter().map(|u| json!({
             "path": u.path,
             "last_operation": u.last_operation,
             "expected": u.expected,
@@ -170,10 +170,10 @@ pub fn print_validation(v: &Validation) {
         out["stale_only"] = json!(true);
         out["unchanged_targets"] = json!(v.unchanged_targets);
     }
-    if let Some(u) = v.untracked.first() {
+    if let Some(u) = v.unrecorded.first() {
         out["hint"] = json!(format!(
             "SAS を通らない変更がある。理由を付けて取り込む：sas update {} --adopt --reason \"…\"",
-            if v.untracked.len() == 1 {
+            if v.unrecorded.len() == 1 {
                 u.path.as_str()
             } else {
                 "<経路>"
@@ -207,7 +207,7 @@ pub fn print_design_validation(v: &DesignValidation) {
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
         "targets": targets,
         "counts": counts(&v.counts),
-        "untracked": [],
+        "unrecorded": [],
     });
     println!("{out}");
 }
@@ -254,7 +254,7 @@ fn interleaved(i: &Interleaved) -> Value {
     let mut v = json!({
         "expected": i.expected,
         "current": i.current,
-        "untracked": i.untracked,
+        "unrecorded": i.unrecorded,
         "operations": i.operations.iter().map(write_record).collect::<Vec<_>>(),
     });
     if let Some(w) = &i.last_recorded {
@@ -322,13 +322,13 @@ pub fn print_deletion(d: &Deletion) {
         "operation": d.operation,
         "result": "deleted",
         "replayed": d.replayed,
-        "target": {"kind": d.kind.as_str(), "path": d.path, "concrete": d.concrete},
+        "target": {"kind": d.kind.as_str(), "path": d.path, "schema": d.schema},
         "diff": {
             "source": "sas",
             "before": {"hash": d.before.as_str()},
             "changes": changes(&d.diff),
         },
-        "stale_rules": [],
+        "stale_judgments": [],
         "violated_instances": [],
     });
     println!("{out}");
@@ -373,9 +373,9 @@ fn change_json(c: &ChangeResult) -> Value {
         "operation": c.operation,
         "result": if c.outside { "adopted" } else { c.written.as_str() },
         "replayed": c.replayed,
-        "target": {"kind": c.kind.as_str(), "path": c.path, "concrete": c.concrete},
+        "target": {"kind": c.kind.as_str(), "path": c.path, "schema": c.schema},
         "diff": diff,
-        "stale_rules": c.stale.iter().map(|s| json!({
+        "stale_judgments": c.stale.iter().map(|s| json!({
             "rule": s.rule, "pointer": s.pointer, "operation": s.operation,
         })).collect::<Vec<_>>(),
         "violated_instances": c.violated.iter().map(|v| json!({
@@ -452,7 +452,7 @@ fn rule_row(r: &RuleRow) -> Value {
 }
 
 /// 記録にある操作1件の中身（sas log --operation）。書いたとき ・ 検証したときと同じ change ・ validation の形で出し、
-/// 記録した日時 at と理由 reason を足す。記録にあるのは差分と判定だけなので、stale_rules と violated_instances は空。
+/// 記録した日時 at と理由 reason を足す。記録にあるのは差分と判定だけなので、stale_judgments と violated_instances は空。
 pub fn print_operation_detail(d: &OperationDetail) {
     let out = match d {
         OperationDetail::Change {
@@ -510,9 +510,9 @@ pub fn print_operation_detail(d: &OperationDetail) {
                 "at": at,
                 "result": result,
                 "replayed": false,
-                "target": {"kind": kind_of(&schema), "path": row.target_path, "concrete": schema},
+                "target": {"kind": kind_of(&schema), "path": row.target_path, "schema": schema},
                 "diff": diff,
-                "stale_rules": [],
+                "stale_judgments": [],
                 "violated_instances": [],
             });
             if let Some(i) = &row.reason {
@@ -553,7 +553,7 @@ pub fn print_operation_detail(d: &OperationDetail) {
                     "counts": counts,
                 }],
                 "counts": counts,
-                "untracked": [],
+                "unrecorded": [],
             })
         }
     };

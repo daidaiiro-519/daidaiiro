@@ -197,7 +197,7 @@
     "operations",
     "targets",
     "counts",
-    "untracked"
+    "unrecorded"
    ],
    "properties": {
     "kind": {
@@ -233,7 +233,7 @@
      },
      "description": "入力が変わった rule が1つも無く、検証の操作を記録しなかった対象の経路"
     },
-    "untracked": {
+    "unrecorded": {
      "type": "array",
      "description": "SAS を通らない変更があった対象。記録の最後の事後と、いまの中身のハッシュが違う。いまの中身を検証した",
      "items": {
@@ -441,7 +441,7 @@
     "replayed",
     "target",
     "diff",
-    "stale_rules",
+    "stale_judgments",
     "violated_instances"
    ],
    "properties": {
@@ -467,14 +467,14 @@
     },
     "replayed": {
      "type": "boolean",
-     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_rules と violated_instances は空（記録にあるのは差分だけ）。sas log --operation で記録から読んだときは false で、stale_rules と violated_instances は空（記録にあるのは差分だけ）"
+     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_judgments と violated_instances は空（記録にあるのは差分だけ）。sas log --operation で記録から読んだときは false で、stale_judgments と violated_instances は空（記録にあるのは差分だけ）"
     },
     "target": {
      "type": "object",
      "required": [
       "kind",
       "path",
-      "concrete"
+      "schema"
      ],
      "additionalProperties": false,
      "properties": {
@@ -488,16 +488,16 @@
        "type": "string",
        "description": "リポジトリの根からの経路"
       },
-      "concrete": {
+      "schema": {
        "type": "string",
-       "description": "従う Concrete の $id（Concrete なら Abstract の版）"
+       "description": "従う schema の $id（インスタンスなら Concrete、Concrete なら Abstract の版）"
       }
      }
     },
     "diff": {
      "$ref": "#/$defs/diff"
     },
-    "stale_rules": {
+    "stale_judgments": {
      "type": "array",
      "description": "前の検証の判定のうち、読む所がこの変更で変わったもの。もう効かない",
      "items": {
@@ -829,7 +829,7 @@
    "required": [
     "expected",
     "current",
-    "untracked",
+    "unrecorded",
     "operations"
    ],
    "additionalProperties": false,
@@ -842,7 +842,7 @@
      "$ref": "#/$defs/hash",
      "description": "いまの中身のハッシュ"
     },
-    "untracked": {
+    "unrecorded": {
      "type": "boolean",
      "description": "true なら、いまの中身は記録した操作の事後のどれでもない（SAS を通らない変更があった。--adopt で取り込む）"
     },

@@ -48,10 +48,10 @@ sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
 sas validate [--session <名前>] [--stale | --all-rules] (<経路>... | --all) --semantic ／ \
 sas validate <経路> [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-sas create <経路> --concrete <URN> --semantic [--brief <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+sas create <経路> --concrete <URN> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
 sas create <経路> --adopt [--concrete <URN>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --semantic --brief <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+sas update <経路> --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
 sas update <経路> --adopt --reason <理由> [--session <名前>] [--request-id <ID>] ／ \
 sas delete <経路> --reason <理由> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
 sas render <経路>... --design-system <経路> --out <書き出す先> ／ \
@@ -383,7 +383,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         ("--reason", None),
         ("--session", None),
         ("--request-id", None),
-        ("--brief", None),
+        ("--task", None),
     ]);
     let mut paths = Vec::new();
     let mut it = args.iter();
@@ -411,8 +411,8 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     let session = take("--session");
     let request_id = take("--request-id");
     let reason = take("--reason");
-    if !semantic && take("--brief").is_some() {
-        return usage("--brief は --semantic と一緒に渡してください");
+    if !semantic && take("--task").is_some() {
+        return usage("--task は --semantic と一緒に渡してください");
     }
     if !semantic && !refs.is_empty() {
         return usage("--ref は --semantic と一緒に渡してください");
@@ -438,7 +438,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         let request = SemanticRequest {
             path: path.clone(),
             concrete,
-            brief: take("--brief"),
+            task: take("--task"),
             refs,
             reason,
             request_id,

@@ -27,8 +27,8 @@ pub struct SemanticRequest {
     pub path: String,
     /// 作成なら従う Concrete の $id。更新なら None（いまの中身の $schema）
     pub concrete: Option<String>,
-    /// 何を書くかの依頼（--brief）
-    pub brief: Option<String>,
+    /// 何を書くかの依頼（--task）
+    pub task: Option<String>,
     /// 読ませる文書の経路（--ref）
     pub refs: Vec<String>,
     /// 理由（手順の command に入れる）
@@ -404,7 +404,7 @@ fn build_procedure(
     refs: &[Value],
     caller: &Caller,
 ) -> Value {
-    let mut target = json!({"path": path, "concrete": declared});
+    let mut target = json!({"path": path, "schema": declared});
     let hash = current_text.map(|t| ContentHash::of(t.as_bytes()).as_str().to_string());
     if let Some(h) = &hash {
         target["hash"] = json!(h);
@@ -493,8 +493,8 @@ fn build_procedure(
     {
         p["rules"] = json!(r);
     }
-    if let Some(b) = &request.brief {
-        p["brief"] = json!(b);
+    if let Some(b) = &request.task {
+        p["task"] = json!(b);
     }
     if !refs.is_empty() {
         p["refs"] = json!(refs);

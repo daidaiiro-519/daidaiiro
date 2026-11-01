@@ -192,7 +192,7 @@ fn update_without_if_match_compares_with_the_last_write() {
     assert_eq!(r.code, "conflict");
     assert_eq!(store.read("u1.json").unwrap(), edited);
     let i = r.interleaved.unwrap();
-    assert!(i.untracked);
+    assert!(i.unrecorded);
     assert!(i.operations.is_empty());
     assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
     // 古いハッシュを --if-match で渡すと、そのあとの操作が理由と一緒に返る
@@ -211,7 +211,7 @@ fn update_without_if_match_compares_with_the_last_write() {
     let ids: Vec<&str> = i.operations.iter().map(|w| w.operation.as_str()).collect();
     assert_eq!(ids, ["o-1", "o-2"]);
     assert_eq!(i.operations[0].row.reason.as_deref(), Some("目標を直す"));
-    assert!(i.untracked);
+    assert!(i.unrecorded);
 }
 
 #[test]
@@ -461,16 +461,16 @@ fn interleaved_follows_hashs_from_expected() {
     let i = interleaved(&writes, "b", "c");
     let ids: Vec<&str> = i.operations.iter().map(|w| w.operation.as_str()).collect();
     assert_eq!(ids, ["o-2"]);
-    assert!(!i.untracked);
+    assert!(!i.unrecorded);
 
     // 記録の最後（c）のあとに、記録に無い変更で d になった
     let i = interleaved(&writes, "c", "d");
     assert!(i.operations.is_empty());
-    assert!(i.untracked);
+    assert!(i.unrecorded);
     assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
 
     // 前提のハッシュが記録に無いときは、記録した操作をすべて返す
     let i = interleaved(&writes, "z", "c");
     assert_eq!(i.operations.len(), 2);
-    assert!(!i.untracked);
+    assert!(!i.unrecorded);
 }

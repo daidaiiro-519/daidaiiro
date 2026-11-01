@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use writing_domain::aggregates::{ConcreteSchema, Instance};
 use writing_domain::values::{
     Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
-    untracked_since,
+    unrecorded_since,
 };
 
 /// 削除の依頼。
@@ -39,8 +39,8 @@ pub struct Deletion {
     pub kind: TargetKind,
     /// 経路
     pub path: String,
-    /// 従う Concrete（Concrete なら Abstract の版）の $id
-    pub concrete: String,
+    /// 従う schema の $id（インスタンスなら Concrete、Concrete なら Abstract の版）
+    pub schema: String,
     /// 消す前のハッシュ
     pub before: ContentHash,
     /// 消す前の状態（根の欄ごとの remove）
@@ -98,7 +98,7 @@ fn replayed(
         operation: stored.operation,
         kind,
         path: row.target_path,
-        concrete,
+        schema: concrete,
         replayed: true,
     })
 }
@@ -170,7 +170,7 @@ pub fn delete(
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
-            untracked_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
+            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
             "SAS が最後に書いた事後の",
         ),
     };
@@ -183,14 +183,14 @@ pub fn delete(
             format!(
                 "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
                 current.as_str(),
-                if between.untracked {
+                if between.unrecorded {
                     "。SAS を通らない変更がある"
                 } else {
                     ""
                 }
             ),
         );
-        r.hint = Some(Box::new(if between.untracked {
+        r.hint = Some(Box::new(if between.unrecorded {
             format!(
                 "外の変更を取り込んでから消す：sas update {path} --adopt --reason \"…\" のあとで sas delete {path} --reason \"…\""
             )
@@ -243,7 +243,7 @@ pub fn delete(
         operation,
         kind,
         path: path.to_string(),
-        concrete: declared,
+        schema: declared,
         before: current,
         diff,
         replayed: false,

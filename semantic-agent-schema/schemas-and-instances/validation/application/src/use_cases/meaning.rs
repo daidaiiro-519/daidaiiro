@@ -192,7 +192,7 @@ pub fn procedure(
         "$schema": "urn:semantic-agent-schema:published-language:procedure:v1",
         "kind": "procedure",
         "operation_kind": "validate",
-        "target": {"path": path, "concrete": concrete, "hash": hash},
+        "target": {"path": path, "schema": concrete, "hash": hash},
         "review": {"since": review.0, "scope": review.1.as_str()},
         "rules": rules,
         "steps": rendered,

@@ -23,7 +23,7 @@ use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
 use writing_domain::values::{
     Caller, Change, ChangeRow, ContentHash, Corpus, Diff, FieldChange, FieldRow, StoredChange,
-    TargetKind, WriteRecord, untracked_since,
+    TargetKind, WriteRecord, unrecorded_since,
 };
 
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
@@ -140,7 +140,7 @@ pub struct Interleaved {
     /// 前提のハッシュのあとに記録された、対象を書いた操作（古い順）
     pub operations: Vec<WriteRecord>,
     /// いまの中身が、この経路の記録の事後のどれでもない（SAS を通らない変更があった）
-    pub untracked: bool,
+    pub unrecorded: bool,
     /// 最後に記録した、対象を書いた操作（無ければ None）
     pub last_recorded: Option<WriteRecord>,
 }
@@ -167,7 +167,7 @@ pub fn interleaved(writes: &[WriteRecord], expected: &str, current: &str) -> Int
     Interleaved {
         expected: expected.to_string(),
         current: current.to_string(),
-        untracked: !reached,
+        unrecorded: !reached,
         last_recorded: writes.last().cloned(),
         operations,
     }
@@ -310,8 +310,8 @@ pub struct ChangeResult {
     pub kind: TargetKind,
     /// 経路
     pub path: String,
-    /// 従う Concrete（Concrete なら Abstract の版）の $id
-    pub concrete: String,
+    /// 従う schema の $id（インスタンスなら Concrete、Concrete なら Abstract の版）
+    pub schema: String,
     /// 事前のハッシュ（作成では None）
     pub before: Option<ContentHash>,
     /// 事後のハッシュ
@@ -546,7 +546,7 @@ fn replay(
         written,
         kind,
         path: row.target_path,
-        concrete,
+        schema: concrete,
         before: row.before.as_deref().and_then(ContentHash::parse),
         after,
         diff: Diff::from_changes(changes),
@@ -678,7 +678,7 @@ pub fn create(
         written: Written::Created,
         kind,
         path: path.to_string(),
-        concrete: request.concrete.clone(),
+        schema: request.concrete.clone(),
         before: None,
         after,
         diff,
@@ -739,7 +739,7 @@ pub fn update(
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
-            untracked_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
+            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
             "SAS が最後に書いた事後の",
         ),
     };
@@ -752,14 +752,14 @@ pub fn update(
             format!(
                 "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
                 current.as_str(),
-                if between.untracked {
+                if between.unrecorded {
                     "。SAS を通らない変更がある"
                 } else {
                     ""
                 }
             ),
         );
-        r.hint = Some(Box::new(if between.untracked {
+        r.hint = Some(Box::new(if between.unrecorded {
             adopt_hint(path)
         } else {
             reapply_hint(path, current.as_str())
@@ -857,7 +857,7 @@ pub fn update(
         written: Written::Updated,
         kind,
         path: path.to_string(),
-        concrete: declared,
+        schema: declared,
         before: Some(current),
         after: after_hash,
         diff,
@@ -1196,7 +1196,7 @@ pub fn adopt(
         written,
         kind,
         path: path.to_string(),
-        concrete: declared,
+        schema: declared,
         before: expected.as_deref().and_then(ContentHash::parse),
         after: hash,
         diff,

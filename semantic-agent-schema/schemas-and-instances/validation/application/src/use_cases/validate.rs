@@ -19,7 +19,7 @@ use validation_domain::values::{By, Counts, Judgment, RuleResult, RuleRow, Valid
 use writing_domain::aggregates::ConcreteSchema;
 use writing_domain::services::field_schema;
 use writing_domain::values::{
-    Caller, ContentHash, Corpus, Doc, FieldRow, TargetKind, WriteRecord, untracked_since,
+    Caller, ContentHash, Corpus, Doc, FieldRow, TargetKind, WriteRecord, unrecorded_since,
 };
 
 /// 何を検証するか。
@@ -54,7 +54,7 @@ pub struct TargetResult {
 
 /// 記録の最後の事後と中身が違う対象（SAS を通らない変更があった）。
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Untracked {
+pub struct Unrecorded {
     /// 経路
     pub path: String,
     /// 対象を最後に書いた操作の ID
@@ -79,7 +79,7 @@ pub struct Validation {
     /// 入力が変わった rule だけを検証したとき、変わった rule が無く記録しなかった対象
     pub unchanged_targets: Vec<String>,
     /// SAS を通らない変更があった対象（いまの中身を検証した）
-    pub untracked: Vec<Untracked>,
+    pub unrecorded: Vec<Unrecorded>,
 }
 
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
@@ -992,7 +992,7 @@ fn run_validate(
     }
     // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();
-    let mut untracked = Vec::new();
+    let mut unrecorded = Vec::new();
     let mut unchanged_targets = Vec::new();
     for Current {
         doc: d,
@@ -1006,10 +1006,10 @@ fn run_validate(
     {
         // SAS を通らない変更：いまの中身が、記録のどの事後とも違う。知らせて、いまの中身を検証する
         let mut writes = log.writes(&d.path).map_err(log_refused)?;
-        if let Some(expected) = untracked_since(&writes, hash.as_str())
+        if let Some(expected) = unrecorded_since(&writes, hash.as_str())
             && let Some(last) = writes.pop()
         {
-            untracked.push(Untracked {
+            unrecorded.push(Unrecorded {
                 path: d.path.clone(),
                 last_operation: last.operation,
                 expected,
@@ -1094,7 +1094,7 @@ fn run_validate(
         counts: total,
         stale_only,
         unchanged_targets,
-        untracked,
+        unrecorded,
     })
 }
 
