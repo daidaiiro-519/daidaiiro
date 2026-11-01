@@ -1,8 +1,8 @@
 //! 集約 Instance：Concrete に従って書いた JSON。
 //!
-//! 書く条件（ステップ2）：id を変えない ・ 導出値が一致する ・ 人の欄は人の入口から変える。
-//! ハッシュが一致したときだけ書く条件は、いまの中身を読む手続き（use_cases）の側で確かめる。
-//! 欄は根の properties だけを見る（入れ子の欄はまだ見ない）。
+//! 書く条件：人の欄（x-decided-by: human）は人の入口から変える。人の欄の所は入れ子のどこでも、
+//! 手続き（use_cases）がバリデーターの注釈から集めて渡す。導出値は JSON Schema（if ・ then）が見る。
+//! ハッシュが一致したときだけ書く条件は、いまの中身を読む手続きの側で確かめる。
 
 use crate::values::WriteViolation;
 use serde_json::Value;
@@ -39,12 +39,6 @@ impl Instance {
             .get("$schema")
             .and_then(Value::as_str)
             .unwrap_or_default()
-    }
-
-    /// インスタンスの id（参照の先として指される名前）。
-    #[must_use]
-    pub fn id(&self) -> Option<&str> {
-        self.document.get("id").and_then(Value::as_str)
     }
 
     /// 文書。

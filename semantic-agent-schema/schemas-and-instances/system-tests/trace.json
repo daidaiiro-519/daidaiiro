@@ -97,7 +97,7 @@
   },
   {
    "id": "UC2:成功時保証",
-   "meaning": "事前と事後が操作の記録に残り、x-prompt を変えた欄の前の判定は効かない",
+   "meaning": "事前と事後が操作の記録に残り、rule が読む所（当たる所と reads）を変えた前の判定は stale_rules として返る",
    "scenarios": [
     "S-UC2-ADOPT",
     "S-UC2-DEFAULT",
@@ -151,7 +151,7 @@
     "S-UC2-ADOPT-WORKTREE",
     "S-UC2-ADOPT"
    ],
-   "note": "記録の行（source = outside ・ 前の値が取れなかった欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、版の読み方は outbound の git の試験（versions.rs）で確かめる"
+   "note": "記録の行（source = outside ・ 前の値が取れなかった欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、版の読み方は outbound の git の試験（commits.rs）で確かめる"
   },
   {
    "id": "UC3:成功時保証",
@@ -182,7 +182,7 @@
   },
   {
    "id": "UC3:拡張:2a",
-   "meaning": "対象が Concrete で、従うインスタンスがある、または公開している：消さずに止め、頼っている文書と片付けるコマンドを返す",
+   "meaning": "対象が Concrete で、従うインスタンスがある：消さずに止め、従うインスタンスと片付けるコマンドを返す",
    "scenarios": [
     "S-UC3-CONCRETE-FOLLOWED"
    ]
@@ -192,7 +192,6 @@
    "meaning": "範囲のすべての rule に結果があり、判定とセッションが検証の操作の記録に入り、2つの ID（操作とセッション）が返る",
    "scenarios": [
     "S-SF1-JUDGE",
-    "S-UC4-ABSTRACT-NAME",
     "S-UC4-ALL",
     "S-UC4-CONCRETE-OK",
     "S-UC4-DEEP-VIEW",
@@ -205,28 +204,27 @@
   },
   {
    "id": "UC4:最低保証",
-   "meaning": "対象の内容は変わらない。判定を取れなかった rule は verified に数えない。立ち上げたセッションとそこまでの記録は消えない",
+   "meaning": "対象の内容は変わらない。判定を取れなかった rule は verified に数えない。起動した子セッションとそこまでの記録は消えない",
    "scenarios": [
+    "S-SF1-TIMEOUT-GIVE-UP",
     "S-UC4-AI-UNVERIFIED",
     "S-UC4-NOT-LISTED",
     "S-UC4-USAGE"
-   ],
-   "note": "立ち上げたセッションの部分は、SAS がセッションを立てるステップ6 で足す"
+   ]
   },
   {
    "id": "UC4:拡張:3a",
    "meaning": "範囲に rule が無い：子セッションを起動せず、結果を返す",
    "scenarios": [
-    "S-SF1-NO-AI-RULE"
+    "S-SF1-NO-RULE"
    ]
   },
   {
    "id": "UC4:拡張:6b",
-   "meaning": "子セッションが判定できない（人が決める）と答えた：unverified として記録し、人が決める点として返す",
+   "meaning": "子セッションが判定できないと答えた：unverified として記録し、verified に数えない",
    "scenarios": [
     "S-UC4-AI-UNVERIFIED"
-   ],
-   "note": "by: human の rule が unverified になる所までを確かめる。人が判定を渡して呼び直す後半は、人の判定を受け取る形を作るステップで足す"
+   ]
   },
   {
    "id": "UC4:変形:入力が変わった rule だけ",
@@ -361,14 +359,14 @@
   },
   {
    "id": "UC4:拡張:4a",
-   "meaning": "指定された Agents を立ち上げられない：該当の rule を error として記録する",
+   "meaning": "接続の定義の子セッションを起動できない：該当の rule を error として記録する",
    "scenarios": [
     "S-SF1-CANNOT-START"
    ]
   },
   {
    "id": "UC4:拡張:5a",
-   "meaning": "Agents が時間内に答えない：セッションを止め、該当の rule を error として記録する",
+   "meaning": "子セッションが時間内に答えない：新しい子セッションで2回までやり直し、超えたら該当の rule を error として記録する",
    "scenarios": [
     "S-SF1-TIMEOUT-GIVE-UP",
     "S-SF1-TIMEOUT"
@@ -376,7 +374,7 @@
   },
   {
    "id": "UC4:拡張:6a",
-   "meaning": "答えが答えの形に合わない：答えをそのまま残し、該当の rule を error にする",
+   "meaning": "答えが答えの形に合わない：同じ子セッションに2回まで直させ、合わなければ該当の rule を error にし、合わなかった理由を残す",
    "scenarios": [
     "S-SF1-SHAPE-ERROR"
    ]
@@ -405,10 +403,10 @@
   },
   {
    "id": "SF1:成功時保証",
-   "meaning": "by: ai の rule × 当たる所ごとの手順のプロンプトを検証用の子セッションに渡し、答えを step ・ rule ・ pointer で突き合わせて記録し、子セッションの ID を返す。by: ai の rule が無ければ子セッションを起動しない。子セッションを起動する前に親セッションの環境変数を外す",
+   "meaning": "rule × 当たる所ごとの手順のプロンプトを検証用の子セッションに渡し、答えを step ・ rule ・ pointer で突き合わせて記録し、子セッションの ID を返す。rule が無ければ子セッションを起動しない。子セッションを起動する前に親セッションの環境変数を外す",
    "scenarios": [
     "S-SF1-JUDGE",
-    "S-SF1-NO-AI-RULE",
+    "S-SF1-NO-RULE",
     "S-SF1-PARENT-ENV",
     "S-SF1-READS",
     "S-UC4-STALE-AGENT"
@@ -516,7 +514,6 @@
    "id": "約束:vocabulary:closed",
    "meaning": "x- は閉じた一覧（x-prompt ・ x-decided-by ・ x-published ・ x-view）だけで、ほかの x- は形の検査で断る",
    "scenarios": [
-    "S-UC4-ABSTRACT-NAME",
     "S-UC4-UNKNOWN-KEYWORD"
    ]
   },

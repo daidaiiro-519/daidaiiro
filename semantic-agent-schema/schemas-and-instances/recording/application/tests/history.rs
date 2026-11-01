@@ -3,8 +3,8 @@
 #![allow(clippy::unwrap_used)]
 
 use recording_application::ports::{
-    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, StoredChange, ValidateRow,
-    WriteRecord,
+    Caller, ChangeRow, ChildRecord, ChildRow, IdentifyCaller, Judgment, OperationLog, StoredChange,
+    ValidateRow, WriteRecord,
 };
 use recording_application::use_cases::history::{
     interleaved, last_written, record_change, record_validations, untracked_since,
@@ -24,6 +24,12 @@ struct Memory {
     changes: Vec<(Option<String>, ChangeRow)>,
 }
 impl OperationLog for Memory {
+    fn append_child(&mut self, _: Option<&str>, _: &ChildRow) -> Result<(), String> {
+        Err("この代役は子セッションを残さない".to_string())
+    }
+    fn child(&self, _: &str) -> Result<Option<ChildRecord>, String> {
+        Ok(None)
+    }
     fn parent_session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
         let Caller::Parent { id, .. } = caller else {
             return Ok(None);

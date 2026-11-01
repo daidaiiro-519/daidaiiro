@@ -51,27 +51,12 @@ impl ConcreteSchema {
         &self.document
     }
 
-    /// 申告した Abstract の版。
-    #[must_use]
-    pub fn declared(&self) -> &str {
-        self.document
-            .get("$schema")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-    }
-
     /// 文書のどこかで使っている x- のキーと、その場所。
     #[must_use]
     pub fn used_keywords(&self) -> Vec<(String, String)> {
         let mut out = Vec::new();
         walk_keys(&self.document, "", &mut out);
         out
-    }
-
-    /// x- の名前を使っているか。
-    #[must_use]
-    pub fn uses(&self, keyword: &str) -> bool {
-        self.used_keywords().iter().any(|(k, _)| k == keyword)
     }
 }
 

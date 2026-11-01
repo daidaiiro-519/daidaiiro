@@ -1,7 +1,7 @@
 //! Concrete とインスタンスの検証（業務領域「書いて検証する」の検証のモジュールの手続き）。
 //!
-//! - UC4 検証する（機械の rule）：対象を読み、Concrete かインスタンスかを $schema で見分け、形（JSON Schema）・
-//!   当たる rule ・ 参照の先を判定し、対象ごとに検証の操作を1件記録して、結果と記録の ID を返す。検証は対象を変えない。
+//! - UC4 検証する：対象を読み、Concrete かインスタンスかを $schema で見分け、形（JSON Schema）・ 組み込みの検査 ・
+//!   当たる rule を判定し、対象ごとに検証の操作を1件記録して、結果と記録の ID を返す。検証は対象を変えない。
 //! - UC4 の範囲「入力が変わった rule だけ」と、SAS を通らない変更があった対象の知らせ。
 //! - 書くモジュール（writing-application）が書く前後に使う、対象の見分けと形の確かめ、断った理由の形もここに置く。
 
@@ -16,7 +16,7 @@ use recording_application::use_cases::history::{Interleaved, record_validations,
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::services::{
-    judge_concrete, judge_others, rules_for_concrete, rules_for_instance,
+    builtin_checks, rules_for_concrete, rules_for_instance, unjudged,
 };
 use validation_domain::values::{By, Counts, RuleResult, Verdict};
 use writing_domain::aggregates::{ABSTRACT_VERSIONS, ConcreteSchema, Entry};
@@ -111,8 +111,8 @@ pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
     /// 描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out、
-    /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ conflict ・ patch_failed ・
-    /// human_field ・ published_changed）
+    /// 書く手前の判定で断ったもの：invalid_value ・ conflict ・ patch_failed ・ human_field ・ published_changed、
+    /// 止めた削除：has_dependents、検証用の子セッションを続けられないもの：busy ・ writer_as_checker ・ launch_mismatch）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
@@ -269,7 +269,7 @@ pub fn form_violations(
     Ok(broken)
 }
 
-/// UC4 の機械の rule を検証し、対象ごとに検証の操作を記録する。
+/// UC4 検証する：形 ・ 組み込みの検査 ・ 当たる rule を判定し（rule は子セッションが無ければ unsupported）、対象ごとに検証の操作を記録する。
 ///
 /// # Errors
 /// 対象を読めない ・ 申告した Abstract の版が閉じた一覧に無い（取りに行かない）・ 従う schema が分からない ・ 記録できないとき。
@@ -566,7 +566,7 @@ fn apply_meaning(
 const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocabulary:v1";
 
 /// 判定と、その判定が読んだ所（JSON Pointer。"" は文書全体）と、判定に使った rule の定義（x-prompt の write の1行）。
-/// 読んだ所は当たる rule の所で、形の検査と参照の先の判定は文書全体を読む。
+/// 読んだ所は当たる rule の所（と rule の reads）で、形の検査と組み込みの検査は文書全体を読む。
 type Judged = (RuleResult, String, Option<Value>);
 
 fn whole(r: RuleResult) -> Judged {
@@ -619,17 +619,10 @@ fn judge(
             })?;
             let vocabulary = validator.shipped(VOCABULARY);
             // JSON Schema で書けない Concrete の決まり2つは、SAS が組み込みで確かめる
-            for id in ["instance-schema-name", "unique-id"] {
-                results.extend(
-                    judge_concrete(&concrete, id, "")
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(whole),
-                );
-            }
+            results.extend(builtin_checks(&concrete).into_iter().map(whole));
             for rule in rules_for_concrete(&abstract_doc, vocabulary.as_ref(), &concrete) {
                 results.push((
-                    judge_others(&rule),
+                    unjudged(&rule),
                     rule.pointer.clone(),
                     Some(rule.definition.clone()),
                 ));
@@ -643,7 +636,7 @@ fn judge(
                 .unwrap_or_default();
             for rule in rules_for_instance(&concrete_doc, &d.value, more) {
                 results.push((
-                    judge_others(&rule),
+                    unjudged(&rule),
                     rule.pointer.clone(),
                     Some(rule.definition.clone()),
                 ));
@@ -895,10 +888,10 @@ fn run_validate(
     // 対象ごとに検証を記録する（対象を変えないのでハッシュは1つ）
     let rows: Vec<ValidateRow> = judged
         .iter()
-        .map(|(path, _, _, fp, results, reads, _, _)| ValidateRow {
+        .map(|(path, _, _, hash, results, reads, _, _)| ValidateRow {
             child_session: children.get(path).cloned(),
             target_path: path.clone(),
-            hash: fp.as_str().to_string(),
+            hash: hash.as_str().to_string(),
             results: results
                 .iter()
                 .zip(reads)

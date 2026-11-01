@@ -25,7 +25,7 @@ fn nested_x_shape_is_checked_through_dialect() {
     let c = Validator::new().unwrap();
     let bad = json!({
         "$schema": ABSTRACT,
-        "properties": {"a": {"properties": {"b": {"x-decided-by": 1, "x-relationship": {"to": "urn:example:t:x:v1"}}}}}
+        "properties": {"a": {"properties": {"b": {"x-decided-by": 1, "x-color": "red"}}}}
     });
     let errors = c.check(DIALECT, &bad, &[]).unwrap();
     assert!(
@@ -37,7 +37,7 @@ fn nested_x_shape_is_checked_through_dialect() {
     assert!(
         errors
             .iter()
-            .any(|(p, m)| p == "/properties/a/properties/b" && m.contains("x-relationship")),
+            .any(|(p, m)| p == "/properties/a/properties/b" && m.contains("x-color")),
         "x- の閉じた一覧に無いキーは断る：{errors:?}"
     );
 }

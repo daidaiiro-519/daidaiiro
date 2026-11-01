@@ -34,7 +34,7 @@ CREATE TABLE validations (
     target_path       TEXT NOT NULL,
     hash              TEXT NOT NULL,
     parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親セッション。人は NULL
-    child_session_id  TEXT REFERENCES sessions (id)       -- 判定した検証用の子セッション。機械と人の rule だけなら NULL
+    child_session_id  TEXT REFERENCES sessions (id)       -- 判定した検証用の子セッション。子セッションに判定させなかったなら NULL
 ) STRICT;
 
 CREATE INDEX validations_by_target ON validations (target_path, id);

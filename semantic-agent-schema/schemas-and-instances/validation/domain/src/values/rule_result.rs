@@ -2,7 +2,7 @@
 
 use super::Verdict;
 
-/// 誰が判定する rule か（x-prompt の rule の by）。
+/// 誰が判定したか（結果の by）。machine は形の検査と組み込みの検査、ai は検証用の子セッション。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum By {
     /// 機械（SAS か JSON Schema のバリデーター）

@@ -27,7 +27,7 @@ pub struct RuleRow {
     pub rule: String,
     /// 対象の中の当たる所
     pub pointer: String,
-    /// machine ・ ai ・ human
+    /// machine ・ ai
     pub by: String,
     /// 判定の5つの区分のどれか
     pub result: String,
@@ -196,17 +196,11 @@ pub trait OperationLog {
     ///
     /// # Errors
     /// 置き場所が拒んだとき（親セッションが caller でない ・ 同じ ID が別の役割で在る）。
-    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String> {
-        let _ = (parent, child);
-        Err("この置き場所は子セッションを残せない".to_string())
-    }
+    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String>;
 
     /// 子セッションの行と、使われ方。無ければ None。
     ///
     /// # Errors
     /// 置き場所を読めないとき。
-    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String> {
-        let _ = id;
-        Ok(None)
-    }
+    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String>;
 }

@@ -83,14 +83,14 @@ fn replayed(
                 .collect(),
         )
     };
-    let fp = |s: &Option<String>, op: &str| {
+    let hash = |s: &Option<String>, op: &str| {
         s.as_deref()
             .and_then(ContentHash::parse)
             .ok_or_else(|| log_refused(format!("操作 {op} のハッシュを読めない")))
     };
     let (kind, concrete) = target_of(store, path, &row.fields);
     Ok(Deletion {
-        before: fp(&row.before, &stored.operation)?,
+        before: hash(&row.before, &stored.operation)?,
         diff: diff_of(&row.fields),
         parent: stored.parent,
         operation: stored.operation,
@@ -101,15 +101,15 @@ fn replayed(
     })
 }
 
-/// 止めた削除の理由に、止めた理由になったものを付けて返す（記録しない）。
-fn refuse_with(path: &str, code: &'static str, blocked: Vec<Blocked>) -> Refused {
+/// Concrete に従うインスタンスがあるので止めた削除を、従うインスタンスと一緒に返す（記録しない）。
+fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
     let message = blocked
         .iter()
         .map(|b| format!("{}：{}", b.path, b.message))
         .collect::<Vec<_>>()
         .join(" ／ ");
     let mut r = refused(
-        code,
+        "has_dependents",
         path,
         format!("この Concrete に頼っている文書があるので消さない（何も変えていない）：{message}"),
     );
@@ -125,7 +125,7 @@ fn refuse_with(path: &str, code: &'static str, blocked: Vec<Blocked>) -> Refused
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない（何も記録しない）。
-/// ハッシュが違う ・ 公開した Concrete ・ 頼っている文書がある（何も変えない）。
+/// ハッシュが違う ・ Concrete に従うインスタンスがある（何も変えない）。
 /// 消せない ・ 記録できないとき。
 pub fn delete(
     request: &DeleteRequest,
@@ -165,7 +165,7 @@ pub fn delete(
 
     // 1. 消す前提のハッシュ（更新と同じ決まり）
     let (expected, from) = match &request.if_match {
-        Some(fp) => (Some(fp.clone()), "--if-match の"),
+        Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
             untracked_since(log, path, current.as_str()).map_err(log_refused)?,
             "SAS が最後に書いた事後の",
@@ -218,7 +218,7 @@ pub fn delete(
             })
             .collect();
         if !blocked.is_empty() {
-            return Err(refuse_with(path, "has_dependents", blocked));
+            return Err(has_dependents(path, blocked));
         }
     }
 

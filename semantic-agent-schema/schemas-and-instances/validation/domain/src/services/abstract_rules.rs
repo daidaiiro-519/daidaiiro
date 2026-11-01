@@ -1,6 +1,5 @@
-//! Concrete に当たる Abstract の機械の rule のうち、Concrete の文書だけで決まるもの（instance-schema-name ・ unique-id）を
-//! 判定する。JSON Schema の構文で書けることは Abstract の JSON Schema が見るので、ここが見るのは
-//! JSON Schema で書けないことだけ（欄どうしの値の一致 ・ 配列の中の id の重なり）。
+//! Concrete の組み込みの検査（instance-schema-name ・ unique-id）。JSON Schema で書けない Concrete の決まり2つ
+//! （欄どうしの値の一致 ・ 文書のどこかの rule の id の重なり）を、Concrete の検証のたびに確かめる。
 //! 集約 Concrete は writing-domain にあり、ここはそれを読んで rule に照らす。
 
 use crate::values::{By, RuleResult, Verdict};
@@ -8,18 +7,16 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use writing_domain::aggregates::ConcreteSchema;
 
-/// Concrete の文書だけで決まる機械の rule を判定する。知らない id は None。
+/// Concrete の組み込みの検査2つの結果。
 #[must_use]
-pub fn judge_concrete(c: &ConcreteSchema, rule: &str, pointer: &str) -> Option<Vec<RuleResult>> {
-    match rule {
-        "instance-schema-name" => Some(vec![instance_schema_name(c, pointer)]),
-        "unique-id" => Some(unique_id(c, pointer)),
-        _ => None,
-    }
+pub fn builtin_checks(c: &ConcreteSchema) -> Vec<RuleResult> {
+    let mut out = vec![instance_schema_name(c)];
+    out.extend(unique_id(c));
+    out
 }
 
 /// properties.$schema の const が $id と同じか。
-fn instance_schema_name(c: &ConcreteSchema, pointer: &str) -> RuleResult {
+fn instance_schema_name(c: &ConcreteSchema) -> RuleResult {
     let doc = c.document();
     let id = doc.get("$id").and_then(Value::as_str);
     let konst = doc
@@ -39,27 +36,24 @@ fn instance_schema_name(c: &ConcreteSchema, pointer: &str) -> RuleResult {
             "$id か properties.$schema の const が無い".to_string(),
         ),
     };
-    let at = if pointer.is_empty() {
-        "/properties/$schema/const"
-    } else {
-        pointer
-    };
-    RuleResult::new("instance-schema-name", at, By::Machine, verdict, &reason)
+    RuleResult::new(
+        "instance-schema-name",
+        "/properties/$schema/const",
+        By::Machine,
+        verdict,
+        &reason,
+    )
 }
 
-/// 当たる所（rule の id）の id が、Concrete の中のほかの rule と重ならないか。所が空なら Concrete 全体を見る。
-fn unique_id(c: &ConcreteSchema, pointer: &str) -> Vec<RuleResult> {
+/// rule の id が、Concrete のどこ（$defs の中も）でもほかの rule と重ならないか。
+fn unique_id(c: &ConcreteSchema) -> Vec<RuleResult> {
     let mut seen: BTreeMap<String, Vec<String>> = BTreeMap::new();
     collect_ids(c.document(), "", &mut seen);
-    let mine = c.document().pointer(pointer).and_then(Value::as_str);
-    let dup: Vec<(&String, &Vec<String>)> = seen
-        .iter()
-        .filter(|(id, at)| at.len() > 1 && mine.is_none_or(|m| m == id.as_str()))
-        .collect();
+    let dup: Vec<(&String, &Vec<String>)> = seen.iter().filter(|(_, at)| at.len() > 1).collect();
     if dup.is_empty() {
         return vec![RuleResult::new(
             "unique-id",
-            pointer,
+            "",
             By::Machine,
             Verdict::Verified,
             "rule の id はほかと重ならない",
@@ -69,7 +63,7 @@ fn unique_id(c: &ConcreteSchema, pointer: &str) -> Vec<RuleResult> {
         .map(|(id, at)| {
             RuleResult::new(
                 "unique-id",
-                if pointer.is_empty() { &at[1] } else { pointer },
+                &at[1],
                 By::Machine,
                 Verdict::Violated,
                 &format!(
@@ -119,7 +113,7 @@ fn collect_ids(v: &Value, at: &str, out: &mut BTreeMap<String, Vec<String>>) {
 
 #[cfg(test)]
 mod tests {
-    use super::judge_concrete;
+    use super::builtin_checks;
     use crate::values::Verdict;
     use serde_json::json;
     use writing_domain::aggregates::ConcreteSchema;
@@ -138,14 +132,8 @@ mod tests {
             json!({"$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
             "$id": "urn:example:a:v1", "properties": {"$schema": {"const": "urn:example:b:v1"}}}),
         );
-        assert_eq!(
-            judge_concrete(&ok, "instance-schema-name", "").unwrap()[0].verdict(),
-            Verdict::Verified
-        );
-        assert_eq!(
-            judge_concrete(&ng, "instance-schema-name", "").unwrap()[0].verdict(),
-            Verdict::Violated
-        );
+        assert_eq!(builtin_checks(&ok)[0].verdict(), Verdict::Verified);
+        assert_eq!(builtin_checks(&ng)[0].verdict(), Verdict::Violated);
     }
 
     #[test]
@@ -156,21 +144,9 @@ mod tests {
                 "a": {"x-prompt": {"write": [{"id": "r1"}]}},
                 "b": {"x-prompt": {"write": [{"id": "r1"}, {"id": "r2"}]}}}}),
         );
-        let r = judge_concrete(&c, "unique-id", "").unwrap();
+        let r: Vec<_> = builtin_checks(&c).into_iter().skip(1).collect();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].verdict(), Verdict::Violated);
         assert_eq!(r[0].pointer(), "/properties/b/x-prompt/write/0/id");
-        let here = judge_concrete(&c, "unique-id", "/properties/a/x-prompt/write/0/id").unwrap();
-        assert_eq!(here[0].verdict(), Verdict::Violated);
-        let other = judge_concrete(&c, "unique-id", "/properties/b/x-prompt/write/1/id").unwrap();
-        assert_eq!(other[0].verdict(), Verdict::Verified);
-    }
-
-    #[test]
-    fn unknown_rule_is_none() {
-        let c = concrete(
-            json!({"$schema": "urn:semantic-agent-schema:published-language:abstract:v1", "$id": "urn:example:a:v1"}),
-        );
-        assert!(judge_concrete(&c, "closed-list", "").is_none());
     }
 }

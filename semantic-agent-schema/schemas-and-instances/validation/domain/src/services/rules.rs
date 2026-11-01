@@ -236,7 +236,7 @@ pub fn rules_for_instance(
 
 /// 子セッションにつながっていないときの rule の結果：unsupported（エージェントがつながっていない）。
 #[must_use]
-pub fn judge_others(rule: &AppliedRule) -> RuleResult {
+pub fn unjudged(rule: &AppliedRule) -> RuleResult {
     RuleResult::new(
         &rule.id,
         &rule.pointer,
@@ -248,7 +248,7 @@ pub fn judge_others(rule: &AppliedRule) -> RuleResult {
 
 #[cfg(test)]
 mod tests {
-    use super::{judge_others, rules_for_concrete, rules_for_instance};
+    use super::{rules_for_concrete, rules_for_instance, unjudged};
     use crate::values::Verdict;
     use serde_json::json;
     use writing_domain::aggregates::ConcreteSchema;
@@ -266,7 +266,7 @@ mod tests {
         let ids: Vec<&str> = rules.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["root", "goal-rule"]);
         assert_eq!(rules[1].pointer, "/goal");
-        assert_eq!(judge_others(&rules[1]).verdict(), Verdict::Unsupported);
+        assert_eq!(unjudged(&rules[1]).verdict(), Verdict::Unsupported);
     }
 
     #[test]

@@ -30,7 +30,7 @@ impl Scripted {
     }
     fn answer(&self) -> String {
         json!({"results": [{"step": 1, "rule": "goal-is-outcome", "pointer": "/goal",
-                            "result": self.verdict, "reason": self.reason, "grounds": ["/goal"]}]})
+                            "result": self.verdict, "reason": self.reason}]})
         .to_string()
     }
 }

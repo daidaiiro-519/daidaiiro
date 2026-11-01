@@ -347,7 +347,7 @@ fn violations_message(broken: &[(String, String)]) -> String {
 ///
 /// # Errors
 /// 依頼を読めない ・ 従う型が決まらない ・ すでに在る（何も記録しない）。
-/// 形に外れる ・ 書く条件に外れる（書かずに記録する）。書けない ・ 記録できないとき。
+/// 形に外れる ・ 書く条件に外れる（書かず、記録もしない）。書けない ・ 記録できないとき。
 pub fn create(
     request: &CreateRequest,
     store: &dyn DocumentStore,
@@ -473,7 +473,7 @@ pub fn create(
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない（何も記録しない）。
-/// ハッシュが違う ・ 差分を当てられない ・ 形や書く条件に外れる（書かずに記録する）。書けない ・ 記録できないとき。
+/// ハッシュが違う ・ 差分を当てられない ・ 形や書く条件に外れる（書かず、記録もしない）。書けない ・ 記録できないとき。
 pub fn update(
     request: &UpdateRequest,
     store: &dyn DocumentStore,
@@ -513,7 +513,7 @@ pub fn update(
     // 比べるハッシュ：呼ぶ側が読んだハッシュ（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後のハッシュ。
     // SAS が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べるハッシュが無く、そのまま書く
     let (expected, from) = match &request.if_match {
-        Some(fp) => (Some(fp.clone()), "--if-match の"),
+        Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
             untracked_since(log, path, current.as_str()).map_err(log_refused)?,
             "SAS が最後に書いた事後の",
@@ -589,13 +589,13 @@ pub fn update(
     store
         .write(path, &new_text)
         .map_err(|e| refused("store", path, e))?;
-    let after_fp = ContentHash::of(new_text.as_bytes());
+    let after_hash = ContentHash::of(new_text.as_bytes());
     let diff = Diff::between(Some(&before), &after);
     let recorded = record_change(
         who,
         log,
         &ChangeRow {
-            after: Some(after_fp.as_str().to_string()),
+            after: Some(after_hash.as_str().to_string()),
             fields: field_rows(&diff),
             ..row
         },
@@ -615,7 +615,7 @@ pub fn update(
         path: path.to_string(),
         concrete: declared,
         before: Some(current),
-        after: after_fp,
+        after: after_hash,
         diff,
         stale,
         violated,
@@ -737,11 +737,11 @@ fn find_commit(
         let Some(bytes) = committed.read(&rev, path).map_err(store_err)? else {
             continue;
         };
-        let fp = ContentHash::of(&bytes);
-        if recorded.iter().any(|r| r == fp.as_str())
+        let hash = ContentHash::of(&bytes);
+        if recorded.iter().any(|r| r == hash.as_str())
             && let Ok(value) = serde_json::from_slice::<Value>(&bytes)
         {
-            return Ok(Some((rev, value, fp.as_str().to_string())));
+            return Ok(Some((rev, value, hash.as_str().to_string())));
         }
     }
     Ok(None)
@@ -861,7 +861,7 @@ pub fn adopt(
     };
     // 事前：前の中身のコミットが見つかればそのハッシュ（記録のどれかの事後）、無ければ記録の最後の事後
     let expected: Option<String> = match (&found, &last) {
-        (Some((_, _, fp)), _) => Some(fp.clone()),
+        (Some((_, _, hash)), _) => Some(hash.clone()),
         (None, l) => l.clone(),
     };
     let broken = form_violations(validator, kind, &declared, &current, &corpus.more)

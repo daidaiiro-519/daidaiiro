@@ -1,7 +1,7 @@
 //! rule を、SAS が起動した検証用の子セッションに判定させる（SF1 と UC4 の意味の部分）。
 //!
-//! - rule × 当たる所ごとに1ステップの手順のプロンプトを作る。渡すのはいまの中身と rule だけで、前の判定 ・ 書き込み用の子セッションの答え ・
-//!   brief は渡さない
+//! - rule × 当たる所ごとに1ステップの手順のプロンプトを作る。渡すのはいまの中身と rule と rule の reads の値だけで、
+//!   前の判定と書き込み用の子セッションの答えは渡さない
 //! - 子セッションは新しく起動するか（--continue が無いとき）、記録にある検証用の子セッションを同じ起動の設定で続ける
 //! - 答えは step ・ rule ・ pointer で突き合わせる。形が違えば同じ子セッションで2回まで直させ、超えたら該当の rule は error
 //! - 時間切れは新しい子セッションで2回までやり直す。起動できなければ該当の rule は error
@@ -100,7 +100,7 @@ pub fn procedure(path: &str, concrete: &str, hash: &str, steps: &[Step]) -> Valu
 pub fn prompt_text(procedure: &Value, answer_schema: &Value) -> String {
     format!(
         "あなたは SAS（Semantic Agent Schema）が起動した検証用の子セッションです。\n\
-         次の手順のプロンプトの steps のそれぞれについて、rules の rule（rule ・ why ・ test）に照らして current の値を判定し（read があれば、その読み方で値を読む。reads があれば、その値も読んで判定に使う）、\n\
+         次の手順のプロンプトの steps のそれぞれについて、rules の rule（rule ・ why ・ test。bad ・ good があれば、違反する例と満たす例として読む）に照らして current の値を判定し（read があれば、その読み方で値を読む。reads があれば、その値も読んで判定に使う）、\n\
          答えの形に合う JSON だけを返してください。ファイルを書かず、ステップに無い欄に触れないでください。\n\n\
          手順のプロンプト：\n{}\n\n答えの形：\n{}\n",
         serde_json::to_string_pretty(procedure).unwrap_or_default(),

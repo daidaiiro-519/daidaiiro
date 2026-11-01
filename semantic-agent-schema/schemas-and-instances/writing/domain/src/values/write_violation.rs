@@ -1,6 +1,6 @@
 //! 書く条件に当たって書けなかった理由。
 
-/// 集約の書く条件に外れたこと。code は決まった名前で、出力と操作の記録に入る。
+/// 集約の書く条件に外れたこと。code は決まった名前で、出力に入る（断った操作は記録しない）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteViolation {
     code: &'static str,

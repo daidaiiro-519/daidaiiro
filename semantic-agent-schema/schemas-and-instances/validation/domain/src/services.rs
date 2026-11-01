@@ -3,5 +3,5 @@
 mod abstract_rules;
 mod rules;
 
-pub use abstract_rules::judge_concrete;
-pub use rules::{AppliedRule, judge_others, rules_for_concrete, rules_for_instance};
+pub use abstract_rules::builtin_checks;
+pub use rules::{AppliedRule, rules_for_concrete, rules_for_instance, unjudged};

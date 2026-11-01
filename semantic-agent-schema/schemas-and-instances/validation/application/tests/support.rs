@@ -218,12 +218,11 @@ pub(crate) fn decided() -> Value {
     }})
 }
 
-/// 意味の ruleを1つ持つ Concrete。goal を検証用の子セッションに判定させる。
+/// rule を1つ持つ Concrete。goal を検証用の子セッションに判定させる。
 pub(crate) fn meaning() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC,
            "properties": {
         "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
-                 "why": "手段だと果たせたかを決められない。", "test": "結果を表す名詞句か。",
-                 "reads": ["/goal"]}]}}
+                 "why": "手段だと果たせたかを決められない。", "test": "結果を表す名詞句か。"}]}}
     }})
 }
