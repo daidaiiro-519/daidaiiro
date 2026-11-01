@@ -30,8 +30,8 @@
 | 依存の向きを強制したい境界と、外のライブラリを閉じ込めたい所だけを crate にする。それ以外はモジュール | Book ch07-03:296・ch14-03:299 |
 | crate の名前はフォルダから決める：`<モジュール>-<層>`（writing-domain など）・ `<inbound|outbound>-<技術>` ・ test-support。製品の名前は `[[bin]]`（sas）にだけ残す | 文脈は1つなので文脈の名前を前に付けない。別の文脈は別のプロジェクトになる。名前とフォルダの一致は architecture の試験が確かめる |
 | mod.rs を使わない（`src/aggregates.rs` と `src/aggregates/concrete.rs` の形） | Book ch07-05:251・265・268 |
-| ポートは trait で dyn で使い、dyn compatible に保つ | Reference traits:412・429・445・459 |
-| 集約の欄は private、メソッドだけ pub。ID と指紋は newtype | API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169 |
+| ポートは trait で dyn で使い、dyn compatible に保つ。実装が単純になるほうを選ぶ：手続きは `&dyn` を受け取るだけで型引数を持たず、アダプターは cli の main.rs で選んで渡す。呼び先はファイル ・ SQLite ・ 子セッションなので、dyn の呼び出しの手間は効かない | Reference traits:412・429・445・459 |
+| 集約の欄は private、メソッドだけ pub。ID とハッシュは newtype | API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169 |
 | adapters で外の trait を domain の型に実装しない（orphan rule） | Reference implementations:658・659・669 |
 | 試験の部品（test-support）は dev-dependencies からだけ使う | `architecture.json` の dev_only と、その検査 |
 | ポートの代役は、使う application の `tests/` に置く（test-support に置くと dev-dependencies が循環する）。書くと検証の試験が共に使う代役は `validation/application/tests/support.rs` に置き、書く側は `#[path]` で読む | 探索の記録 step-01 |
