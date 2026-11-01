@@ -1,4 +1,4 @@
-"""Semantic Agent Schema の概念（版30）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
+"""Semantic Agent Schema の概念（版31）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
 図は design-svg の figure と chart exchange で作り、ER 図と3段の型は版5（../sas-role4/）の検査済みの図を使う。"""
 import os, re, json, subprocess, html
 H = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +68,8 @@ SC = {
        ("SAS", "人", "o-0040")]),
  'e': ("エージェント", [("エージェント", "SAS", "U10 を更新（--semantic）"), ("SAS", "エージェント", "書く手順（記録しない）"),
        ("エージェント", "SAS", "update --patch"), ("SAS", "エージェント", "断った理由（形が誤り）"), ("エージェント", "SAS", "直して打ち直す"),
-       ("SAS", "SAS", "書く・o-0050"), ("SAS", "エージェント", "updated")]),
+       ("SAS", "SAS", "書く・o-0050"), ("SAS", "エージェント", "updated"),
+       ("エージェント", "SAS", "U10 を検証（--semantic）"), ("SAS", "エージェント", "変わった所の判定の手順")]),
 }
 for k, (who, steps) in SC.items():
     parts = [who, "SAS"]
@@ -193,7 +194,7 @@ CRATES = [["writing-domain", "domain", "無し"], ["validation-domain", "domain"
 tree_html = ('<div class="legend"><span class="crate">crate</span> Cargo.toml を持つフォルダ。依存の単位で、名前は右のラベルのとおり（いま15個）。ラベルの無いフォルダは、まとめるだけのフォルダか、crate の中のモジュール</div>' + '<div class="fig"><div class="tree">' + ''.join(f'<div class="tl"><code>{html.escape(p)}</code><span>' + (f'<span class="crate">crate</span><code class="cn">{html.escape(c)}</code> ' if c else '') + f'{html.escape(n)}</span></div>' for p, n, c in TREE) + '</div></div>')
 SCHG = [("Concrete を書くための型", "SAS → Concrete を書く人と AI ・ バリデーター", [("abstract.schema.json", "Abstract の本体。Concrete に書ける x- の4つの値の形（$defs）と、根 ・ 欄 ・ rule の形。JSON Schema で書けることは JSON Schema で書き、書けない2つは SAS の組み込みの検査にする"), ("vocabulary.schema.json", "語彙。入れ子に書ける x- の3つの形と、x- の閉じた一覧（propertyNames）"), ("dialect.schema.json", "方言。2020-12 に SAS の語彙を足す（$dynamicAnchor: meta で入れ子に掛ける）")]),
  ("CLI の出力", "SAS → 呼び出し元", [("command-result.schema.json", "操作の結果。change ・ validation ・ rule-result ・ render ・ session（sas init）・ operation（sas log の一覧の1行）・ search ・ error（打ったセッションの ID を持つ）。sas log --operation は change ・ validation の形で返す")]),
- ("打ったセッションへの手順", "SAS → 打ったセッション", [("procedure.schema.json", "手順。SAS が Concrete の rule と当たる所（検索は範囲の文書）から組み、--semantic で結果の行の代わりに出す（記録しない）。operation_kind は validate ・ write ・ search。command に値を渡すコマンド、answer に値の形（format ・ schema）を持つ。schema は形の本体（書くときは書く元のスキーマ。$ref の先は $id を持ったまま $defs に入れる）")]),
+ ("打ったセッションへの手順", "SAS → 打ったセッション", [("procedure.schema.json", "手順。SAS が Concrete の rule と当たる所（検索は範囲の文書）から組み、--semantic で結果の行の代わりに出す（記録しない）。operation_kind は validate ・ write ・ search。command に値を渡すコマンド、answer に値の形（format ・ schema）を持つ。判定のステップは rule（rule の id）で根の rules を指し、rule の全文は rules に id ごとに1回だけ書く。schema は形の本体（書くときは書く元のスキーマ。$ref の先は $id を持ったまま $defs に入れる）")]),
  ("打ったセッションの答え", "打ったセッション → SAS", [("judgment-answer.schema.json", "sas validate --answer で渡す判定（hash ・ results）。手順の answer.schema に中身が入る。書く値は --value（文書全体）か --patch（JSON Patch）"), ("search-answer.schema.json", "sas search --answer で渡す答え（answer ・ sources の path ・ pointer ・ hash）。手順の answer.schema に中身が入る")]),
  ("受け取りの型", "使う側 → SAS", [("design-system.schema.json", "デザインシステムの受け取りの型（x-view の種類ごとのテンプレート ・ トークン）"), ("template-language.json", "テンプレートの書き方の契約（Mustache）")]),
  ("作らないと決めたもの", "版21", [("glossary", "使うステップが無い"), ("command-request", "SAS の入力は CLI の引数で、JSON で依頼する口が無い。口を作るときに足す"), ("session-request", "SAS はセッションを立てない（版28）"), ("session ・ diff", "command-result の中（$defs）"), ("settings", "使う設定が無い")])]
@@ -224,7 +225,7 @@ def flow(name, steps):
         if n["role"] is None: del n["role"]
     return run('figure', name, {"direction": "TB", "nodes": ns, "edges": [{"from": f"s{i}", "to": f"s{i+1}"} for i in range(len(steps) - 1)]})
 F['fv'] = flow('fv', [("CLI の入力", "sas validate の引数（--semantic か --answer）", False), ("セッションを決める", "--session ・ 環境変数 ・ sas init → sessions", True), ("SAS を通らない変更", "changes の最後の after_hash と比べる", True),
-  ("形の検査と組み込みの検査", "バリデーター → rule-result（by: machine）", False), ("--semantic", "判定の手順（procedure）を出して終わる。記録しない", False),
+  ("形の検査と組み込みの検査", "バリデーター → rule-result（by: machine）", False), ("--semantic", "読んだ所が変わった rule の判定の手順（procedure。すべては --all-rules）を出して終わる。記録しない", False),
   ("--answer", "judgment-answer の形 → ハッシュ → step ・ rule ・ pointer。違えば invalid_answer か conflict", False), ("記録", "validations・rule_results（1つのトランザクション）", True), ("CLI の最後の行", "command-result の validation（session）", False)])
 F['fu'] = flow('fu', [("CLI の入力", "sas update --semantic --brief（--ref）", False), ("セッションを決める", "sessions", True), ("SAS を通らない変更", "違えば直さずに断る", True),
   ("--semantic", "procedure（write）を出して終わる。command は update --patch … --if-match。記録しない", False),
@@ -295,8 +296,9 @@ T_NEW = {
 }
 UC_FIX = tbl(['ユースケース', '直した保証・足した拡張'], [["UC3 削除する", "対象と、参照している所の記載が、同じ呼び出しの続きの更新（原因は削除）として消える"], ["UC6 検索する", "範囲（経路 ・ --concrete ・ --all）を必ず渡し、結果に範囲を返す。検索は記録しない。構造で絞るのは --where の一致だけ。意味で探すときは打ったセッションに手順を返し、--answer の出どころが範囲の中か ・ ハッシュ ・ 所を確かめる。拡張：範囲の外か所が無い → invalid_answer、ハッシュが違う → conflict、範囲の中身が 64KB を超える → range_too_large（切り詰めない）"], ["UC7 操作の記録を読む", "読むだけで、セッションの行も足さない。一覧は新しい順の要約（operation）、1件は書いたとき ・ 検証したときと同じ change ・ validation の形。拡張：無い ID → not_found"],
   ["UC1 作成する", "意味の作成は打ったセッションが行う。--semantic（--brief ・ --ref）で手順を返し、セッションが create --value で書く。最低保証は「理由が返る」（断った操作は記録しない）。手順の answer.schema は書く元のスキーマの本体で、形の決まりを書く前に読める。拡張：断られた → 理由を読んで直し、打ち直す"],
-  ["UC2 更新する", "UC1 と同じ。手順の command は update --patch … --if-match <手順のハッシュ>。中身が変わっていれば conflict"],
-  ["UC4 検証する", "変形「意味の判定」：--semantic で判定の手順を返し、打ったセッションが --answer で判定を渡す。拡張：答えの形か突き合わせが違う → invalid_answer、ハッシュが違う → conflict（手順の取り直しを案内）"]])
+  ["UC2 更新する", "UC1 と同じ。手順の command は update --patch … --if-match <手順のハッシュ>。中身が変わっていれば conflict。拡張「パッチが申告する Abstract の版を変える」：一覧に無い版なら schema_not_listed で断る（移すコマンドは Abstract の v2 を出すときに作る）"],
+  ["UC4 検証する", "変形「意味の判定」：--semantic で判定の手順を返し、打ったセッションが --answer で判定を渡す。判定済みの対象では、前の判定から読んだ所が変わった rule と前に判定できなかった rule だけを手順に入れる（すべては --all-rules と初めての対象）。拡張：答えの形か突き合わせが違う → invalid_answer、ハッシュが違う → conflict（手順の取り直しを案内）。最低保証に「判定は1回の記録で入り、途中で止まっても半端な判定の行は残らない」を足し、拡張 *a（呼ぶ側が中断した）を外した"],
+  ["UC5 描画する", "最低保証：入力 ・ デザインシステム ・ 記録は変わらない。ページは1枚ずつ前か新しいかのどちらかで、止まったときは理由を返す。打ち直せばそろい、作業用のファイル（.sas-bak）も消える。拡張 *a（読み手が中断した）は外した"]])
 
 
 # ---------- 確かめる：上から決めて下から確かめる（版14） ----------
@@ -346,6 +348,7 @@ T_VERIFY = ('verify', '確かめる',
 
 # ---------- 決めたこと・承認 ----------
 DECIDED = [
+ ("版31", "変わった所だけを判定する ・ 判定の手順の助言 ・ Abstract の版の変更を断る ・ 中断の約束（ボード sas-open-decisions Q1〜Q5、34c0d917）", "1か所直すたびにすべてを判定させ、1分以上待っていたので、判定済みの対象では validate --semantic が、前の判定から読んだ所（reads_hash）が変わった rule と前に判定できなかった rule だけを手順に入れる。すべては --all-rules と初めての対象だけ（実測 20 → 6 ステップ）。rule の全文は手順の rules に1回だけ書き、ステップは rule の id で指す。判定の手順に、書いたときとは別の文脈で判定し、判定用の会話はキャッシュの有効時間のうち続けて使い変わった所だけを渡す、と書いた（SAS は判定者を見分けない。サブエージェントのセッション ID は親と同じ）。Concrete の Abstract の版を一覧に無い版へ変えるパッチは schema_not_listed で断る（外のライブラリの英語の文が code validator で漏れていた。移すコマンドは v2 を出すときに作る）。UC4 の中断の拡張を外し、判定は1回の記録で入る最低保証を sqlite の試験で確かめた。描画を打ち直したら .sas-bak も消す（止められたあと残り続けていた）。untested は空（試験132件、場面131本）"),
  ("版30", "モジュールごとに自分のポートを宣言する ・ 誰が打ったかは入口が決める ・ 答えのスキーマを公開された言葉に", "ポートは、それを使うアプリケーションの側が自分に要るものとして宣言する。記録のポートを DB の表の側から作っていたので、全モジュールが記録のモジュールに依存し、使わないメソッドにまで依存していた。誰が打ったかを決めるのは外からの入力の読み取りで、入口のアダプターの責務。そこで、書く ・ 検証 ・ 検索 ・ 描画 ・ 記録の application は、自分のユースケースが使うポートを自分の ports.rs に宣言し、ほかのモジュールの application に依存しない（依存してよいのは domain だけ）。1つのアダプターが複数のモジュールのポートを実装する（WorkingTree ・ Validator ・ SqliteLog）。複数のモジュールが使う判断は domain へ移した（writing-domain：TargetKind ・ Corpus ・ field_schema ・ Caller ・ 変更の行、validation-domain：当たる rule ・ reads_hash ・ 判定の行）。記録のポートは使うモジュールが宣言する（書く change_log、検証 validation_log、描画 validation_log の検証を足すだけ、検索は持たない）。記録のモジュールに残るのは UC7 と、入口が使う「誰が打ったかを決めて登録する」手続き。判定と検索の答えのスキーマ（judgment-answer ・ search-answer）を published-language/v1 へ移し、公開された言葉は9つ。断る理由の型 Refused は各モジュールが持ち、出力の形は inbound/cli が持つ"),
  ("版29", "記録を読む ・ 検索 ・ 手順に形を入れる ・ 完了の確認（ステップ8〜10）", "sas log（UC7）は記録にある操作を新しい順に要約（operation）で返し、--operation で1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す（無い ID は not_found）。絞り方は経路 ・ --by ・ --folder ・ --since ・ --limit。読むだけで、changes ・ validations に schema の欄を足した（0005）。ポート operation_reader を足した。sas search（UC6）は範囲（経路 ・ --concrete ・ --all）を必ず渡し、--where で構造で絞るか、--semantic で範囲の文書ごとの手順を返す。--answer の出どころは範囲の中か ・ ハッシュ ・ 所を SAS が確かめる（U28）。範囲の中身が 64KB を超えたら range_too_large。検索は記録しない。検索は業務領域「検索」（補完）のモジュール（search-application。application だけ）。意味で書く手順の answer.schema に、書く元のスキーマの本体を入れた。公開された言葉7つと UC0〜UC7 のどれにも場面があることを試験で確かめる（場面128本。UC0 は S-UC0-USE の1本）"),
  ("版28", "SAS はエージェントを起動しない（b2ae6ad7）", "意味の操作は、打ったセッションに手順（procedure、command 欄つき）を返すだけにした。子セッション ・ 接続の定義 ・ outbound/agents ・ --agent ・ --continue を外し、sessions は id ・ tool ・ folder ・ via ・ first_seen にした。sas init は環境変数から ID が取れないツールのため"),
@@ -410,6 +413,7 @@ DECIDED = [
  ("版2", "CLI はセッション ID を返す", "（版16）親セッションと子セッションの ID。使う側はそれを自分の Concrete に記録する"),
 ]
 DECIDED += [
+ ("変更", "土台の文（文脈の根とモジュールのポート）", "ACDR 0219 で直した（2cc2297f。0216 を置き換え）。文脈の根はリポジトリの根の直下の文脈の名前のフォルダ、中はポートとアダプターで作り上から決めて下から確かめる、各モジュールは自分のユースケースが使うポートを宣言する、外からの入力は入口のアダプターが読み取って値で渡す"),
  ("足した", "上から決めて下から確かめる", "自明な所は上から domain に置き、ユースケースの手続きを段階3で書いて段階4の表で判別し、突き合わせて確かめたものだけを domain に置く。一致：実装の方法と3つの集約（版14 の時点。版16 で2つ）。食い違い6件は上を直した"),
  ("足した", "ポートは8つ（版16）", "（版17）read_meaning・keep_prompt・document_store・schema_validator（検証）、commit_reader（書く）、identify_caller・operation_log（記録）、template_renderer（描画）。agent_session_store は外し、agent_runtime は read_meaning に改めた"),
  ("変更", "domain の crate", "（版17）writing-domain（集約）と validation-domain（判定の値・サービス）の2つ。文脈の根に domain を置かない"),
@@ -421,10 +425,9 @@ DECIDED += [
  ("変更", "crate の名前", "（版17）&lt;モジュール&gt;-&lt;層&gt;・&lt;inbound|outbound&gt;-&lt;技術&gt;・test-support。文脈は1つなので文脈の名前を付けない。製品の名前は CLI のコマンド名（[[bin]]）にだけ残す"),
 ]
 APPROVE = [
- ("土台の文の案（ディレクトリと文脈・中の形）", "見解：「文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）」と「中の形は文脈ごとに中をポートとアダプターで作る、上から決めて下から確かめる」に直す。土台は正本なので ACDR 0217 で差分を見せてから直す（0216 を置き換える）"),
  ("ガイドの確かめる段階（ボード Q5）と Q3 に手順を足す", "見解：Q5 に上からと下からの突き合わせの5つの手順、Q3 に「同じ物を2つの目的で別のモデルにしているか」の問いを足す。ボードは次の回で直す"),
 ]
-TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2", "版27": "t-new2", "版28": "t-new2", "版29": "t-new2", "版30": "t-new2"}
+TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2", "版27": "t-new2", "版28": "t-new2", "版29": "t-new2", "版30": "t-new2", "版31": "t-new2"}
 def tagged(items):
     return '<div class="dec">' + ''.join(f'<div class="dc {TAGC[t]}"><span class="tag">{"版2 のまま" if t == "版2" else t}</span><b>{h}</b><span>{d}</span></div>' for t, h, d in items) + '</div>'
 
@@ -534,7 +537,7 @@ SIM_URL = 'https://claude.ai/artifact/PkMt9GJLuAyX1zLAeMivm9'
 SESS_CMDS = tbl(['誰が', 'すること', '何で'], [
   ['SAS', '打ったセッションに、意味で書く手順（x-prompt と rule）を返す', '<code>sas create ・ update --semantic</code>'],
   ['SAS', '検査して書く。断ったら理由を返す', '<code>sas create --value ・ update --patch</code>'],
-  ['SAS', '意味の rule の判定の手順を返す ／ 判定を受け取って記録する', '<code>sas validate --semantic ・ --answer</code>'],
+  ['SAS', '意味の rule の判定の手順を返す（判定済みの対象は変わった所だけ）／ 判定を受け取って記録する', '<code>sas validate --semantic（--all-rules）・ --answer</code>'],
   ['SAS', '最初に打ったときに sessions に1行足し、以後の操作の行から指す', 'どのコマンドでも（環境変数か --session）'],
   ['SAS', 'いまのセッションをこのフォルダに登録する（環境変数から ID が取れないツールのため）', '<code>sas init</code>'],
   ['使う側', '目的を分けるとき、フォルダ（ワークツリーなど）を用意してセッションを1つ立てる', '<code>git worktree add</code> と <code>claude -p</code> など'],
@@ -572,7 +575,10 @@ T.append(('data', 'データ',
 T.append(('flow', '意味の部分を含む操作の流れ',
   '<p class="ans">セッションが sas に手順をもらい、自分で値を作って書かせる。断られたら理由を読んで直す。立てた側が受け取るのは最後の答えだけ。SAS はセッションを作らない。ふだんの1セッションでは、いま動いているセッションが同じことを自分で行う。</p>'
   + fig(F['flow'], '意味の部分を含む操作の流れ', 'ユースケースを意味で作る例。main はいま動いているセッション、別のフォルダは使う側が別のフォルダ（ワークツリーなど）に立てたセッション。ふだんの1セッションでは、main が自分で SAS と同じやりとりをする。検証も同じで、validate --semantic で手順をもらい、--answer で判定を渡す。', 1.8)
-  + cards([("セッションは増えない", "どの sas も、打ったセッションの操作になる"), ("判定はその時のもの", "結果は打ったセッションに返る。コミットしない"), ("CI", "機械の検証だけを毎回行う")])))
+  + cards([("セッションは増えない", "どの sas も、打ったセッションの操作になる"), ("判定はその時のもの", "結果は打ったセッションに返る。コミットしない"), ("CI", "機械の検証だけを毎回行う"),
+           ("判定する範囲", "判定済みの対象では、前の判定から読んだ所が変わった rule と前に判定できなかった rule だけ。すべては --all-rules と初めての対象"),
+           ("判定する文脈", "手順の constraints に2文：判定は書いたときとは別の文脈（サブエージェントなど）で行う／判定用の会話はキャッシュの有効時間のうち続けて使い、変わった所の手順だけを渡す"),
+           ("判定者は見分けない", "サブエージェントのセッション ID は親と同じなので、SAS は判定したのが誰かを見分けない")])))
 SCN = {
  'a': ("場面 a：エージェントが U10 を作り、検証する", "sas create requirements/usecases/U10.json --concrete urn:…:usecase:v1 --semantic --brief \"…\"\nsas create requirements/usecases/U10.json --concrete urn:…:usecase:v1 --value '{…}'\nsas validate requirements/usecases/U10.json --semantic\nsas validate requirements/usecases/U10.json --answer judgments.json",
        '{"kind": "procedure", "operation_kind": "write", "command": "sas create … --value <値の JSON>", …}\n{"kind": "change", "result": "created", "session": "4401cead…", "operation": "o-0031", …}\n{"kind": "procedure", "operation_kind": "validate", "command": "sas validate … --answer <ファイル | ->", …}\n{"kind": "validation", "session": "4401cead…", "counts": {"verified": 2, "unverified": 1}, …}',
@@ -586,9 +592,9 @@ SCN = {
  'd': ("場面 d：U11 を消す（U0 が U11 を指していても U0 は変えない）", "sas delete requirements/usecases/U11.json --intent \"U0 に統合した\"",
        '{"result": "deleted", "operation": "o-0040", "target": {"kind": "instance", "path": "…/U11.json"}}',
        [["changes", "o-0040 delete U11（事後なし・事前の欄を remove で残す）。U0 の記載は Git の差分とレビューで直す"]]),
- 'e': ("場面 e：エージェントが U10 を意味で直し、断られて打ち直す", "sas update requirements/usecases/U10.json --semantic --brief \"goal を短くする\"\nsas update requirements/usecases/U10.json --patch '[…]' --if-match sha256:3f9a…\n（断った理由を読んで直す）\nsas update requirements/usecases/U10.json --patch '[…]' --if-match sha256:3f9a…",
-       '{"kind": "procedure", "operation_kind": "write", "command": "sas update … --patch <JSON Patch> --if-match sha256:3f9a…", …}\n{"kind": "error", "code": "invalid_value", "message": "…", …}\n{"kind": "change", "result": "updated", "session": "4401cead…", "operation": "o-0050", …}',
-       [["sessions", "増えない（同じセッション）"], ["changes", "o-0050 update U10 ・ session 4401cead…（断った操作は記録しないので、記録は1件）"]]),
+ 'e': ("場面 e：エージェントが U10 を意味で直し、断られて打ち直し、変わった所を判定させる", "sas update requirements/usecases/U10.json --semantic --brief \"goal を短くする\"\nsas update requirements/usecases/U10.json --patch '[…]' --if-match sha256:3f9a…\n（断った理由を読んで直す）\nsas update requirements/usecases/U10.json --patch '[…]' --if-match sha256:3f9a…\nsas validate requirements/usecases/U10.json --semantic",
+       '{"kind": "procedure", "operation_kind": "write", "command": "sas update … --patch <JSON Patch> --if-match sha256:3f9a…", …}\n{"kind": "error", "code": "invalid_value", "message": "…", …}\n{"kind": "change", "result": "updated", "session": "4401cead…", "operation": "o-0050", …}\n{"kind": "procedure", "operation_kind": "validate", "rules": [{"id": "goal-phrase", …}], "steps": [{"no": 1, "action": "judge", "pointer": "/goal", "rule": "goal-phrase", …}], …}\n（/goal を読む rule だけ。すべては --all-rules）',
+       [["sessions", "増えない（同じセッション）"], ["changes", "o-0050 update U10 ・ session 4401cead…（断った操作は記録しないので、記録は1件）"], ["validations", "入らない（手順を返すだけ。判定は --answer で渡したときに記録する）"]]),
 }
 use_html = ''
 for k in 'abcde':
@@ -610,7 +616,7 @@ T.append(('uc', 'ユースケース',
   + fig(F['uc'], 'ユースケース')
   + det('8件の機械／意味と主アクター', wfix(tables(v5sec('uc'))[0] if tables(v5sec('uc')) else '').replace('UC7 セッションと操作を読む', 'UC7 操作の記録を読む').replace('<tr><td>SF1 SAS が立てたセッションでエージェントに手順で行わせる（サブ機能）</td><td>意味</td><td>呼び出したユースケースと同じ</td></tr>', '').replace('<td>UC4 検証する</td>', '<td>UC4 検証する（変形：意味の判定）</td>'))
   + det('いまの27件との対応', tbl(['扱い', 'いまのユースケース', '移す先'], MAP27))
-  + det('直した保証と足した拡張（UC1・UC2・UC3・UC4・UC6・UC7）', UC_FIX)))
+  + det('直した保証と足した拡張（UC1〜UC7）', UC_FIX)))
 T.append(('decided', '決めたことと承認',
   '<p class="ans">決めたことと承認してほしい決定（「確かめる」は見解付き）。</p><h3>決めたこと</h3>' + tagged(DECIDED)
   + '<h3>承認してほしいこと</h3><div class="dec">' + ''.join(f'<div class="dc t-ask"><span class="tag">承認待ち</span><b>{h}</b><span>{d}</span></div>' for h, d in APPROVE) + '</div>'))
@@ -620,7 +626,7 @@ T.append(T_NEED)
 T.append(T_VERIFY)
 ORDER = ['overview', 'types', 'uc', 'domain', 'model', 'verify', 'arch', 'data', 'session', 'flow', 'use', 'link', 'schema', 'need', 'decided']
 T = sorted(T, key=lambda t: ORDER.index(t[0]))
-STATUS = [("決まった", "s-ok", "全体像〜スキーマと DB の全部（計画の承認 2026-10-31、版16 の承認 2026-11-01、版28 はコミット済み、版29 はコミット済み（dc769345）、版30 はコミット済み（32268b31））"), ("承認待ち", "s-wait", "土台の文（ACDR 0217）・ガイドのボードへ足す手順")]
+STATUS = [("決まった", "s-ok", "全体像〜スキーマと DB の全部（計画の承認 2026-10-31、版16 の承認 2026-11-01、版28 はコミット済み、版29 はコミット済み（dc769345）、版30 はコミット済み（32268b31）、版31 はコミット済み（34c0d917））"), ("承認待ち", "s-wait", "ガイドのボードへ足す手順")]
 
 CSS = open(os.path.join(H, 'base.css')).read()
 tabs = ''.join(f'<button type="button" role="tab" id="t-{k}" aria-controls="p-{k}" aria-selected="{"true" if i == 0 else "false"}">{n}</button>' for i, (k, n, _) in enumerate(T))
@@ -637,7 +643,7 @@ JS = '''<script>
 })();
 </script>'''
 page = ('<title>Semantic Agent Schema の概念</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>\n' + CSS + '\n</style>\n<main>'
-        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版30（モジュールごとに自分のポートを宣言する ・ 誰が打ったかは入口が決める ・ 答えのスキーマを公開された言葉に。版29：記録を読む sas log ・ 検索 sas search ・ 意味で書く手順に形の本体を入れる ・ 完了の確認。版28：SAS はエージェントを起動しない。打ったセッションを sessions に記録するだけで、子セッションの概念を外した。版27：ステップ7 意味で書く。版26：スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
+        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-02 版31（判定済みの対象は変わった所だけを判定する ・ 判定の手順に別の文脈で判定する助言 ・ Abstract の版を変えるパッチを断る ・ 中断の約束を直した。版30：モジュールごとに自分のポートを宣言する ・ 誰が打ったかは入口が決める ・ 答えのスキーマを公開された言葉に。版29：記録を読む sas log ・ 検索 sas search ・ 意味で書く手順に形の本体を入れる ・ 完了の確認。版28：SAS はエージェントを起動しない。打ったセッションを sessions に記録するだけで、子セッションの概念を外した。版27：ステップ7 意味で書く。版26：スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
         + status + f'<nav class="tabs" role="tablist" aria-label="内容">{tabs}</nav>' + panels + '</main>\n' + JS)
 page = page.replace('指紋', 'ハッシュ')  # 以前の記録の語も、ふだん使う語で見せる
 open(os.path.join(H, 'index.html'), 'w').write(page)
