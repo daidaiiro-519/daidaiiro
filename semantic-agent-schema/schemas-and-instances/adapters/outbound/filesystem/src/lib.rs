@@ -169,6 +169,13 @@ impl PageWriter for OutDir {
         };
         for (rel, html) in pages {
             let to = base.join(rel);
+            if to.exists() && !to.is_file() {
+                undo(&staged, &made);
+                return Err(PageRefusal::Failed(format!(
+                    "{} はファイルではないので、ページで置き換えない",
+                    to.display()
+                )));
+            }
             if let Some(dir) = to.parent() {
                 let mut missing: Vec<PathBuf> = dir
                     .ancestors()
@@ -204,9 +211,11 @@ impl PageWriter for OutDir {
             } else {
                 Ok(())
             };
+            let moved_ok = had && moved.is_ok();
             let result = moved.and_then(|()| std::fs::rename(tmp, to));
             if let Err(e) = result {
-                if had && backup.exists() {
+                // 自分で退避したときだけ戻す（退避に失敗したなら、前のページはそのまま在る）
+                if moved_ok {
                     let _ = std::fs::rename(&backup, to);
                 }
                 for (page, saved) in replaced.iter().rev() {

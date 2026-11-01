@@ -2,14 +2,14 @@
 -- ステップ4b で書き直した（公開前なので移行の番号は足さない）。セッションは状態を持たない：開閉 ・ 終わり方 ・ 続き番号は無い。
 -- どの表も追記だけ（UPDATE ・ DELETE を trigger で拒む）。by = human は unverified だけ。
 
--- 親は SAS が初めて見たときに1行（role = caller）。子（writer ・ checker）は起動したときに1行で、ステップ6 から書く
+-- 親セッションは SAS が初めて見たときに1行（role = caller）。子セッション（writer ・ checker）は起動したときに1行で、ステップ6 から書く
 CREATE TABLE sessions (
-    id         TEXT PRIMARY KEY,                          -- ツールのセッション ID（親は --session か環境変数）
+    id         TEXT PRIMARY KEY,                          -- ツールのセッション ID（親セッションは --session か環境変数）
     role       TEXT NOT NULL CHECK (role IN ('caller', 'writer', 'checker')),
-    parent_id  TEXT REFERENCES sessions (id),             -- 子を起動させた親。親の行と、人が起動させた子は NULL
+    parent_id  TEXT REFERENCES sessions (id),             -- 子セッションを起動させた親セッション。親セッションの行と、人が起動させた子セッションは NULL
     tool       TEXT NOT NULL,                             -- claude-code など。分からなければ unknown
-    model      TEXT,                                      -- 子を起動したモデル。親は分からなければ NULL
-    launch     TEXT CHECK (launch IS NULL OR json_valid(launch)),  -- 子の起動の設定。--continue で同じものを渡す
+    model      TEXT,                                      -- 子セッションを起動したモデル。親セッションは分からなければ NULL
+    launch     TEXT CHECK (launch IS NULL OR json_valid(launch)),  -- 子セッションの起動の設定。--continue で同じものを渡す
     first_seen TEXT NOT NULL,
     CHECK (role <> 'caller' OR (parent_id IS NULL AND launch IS NULL)),
     CHECK (role = 'caller' OR launch IS NOT NULL)
@@ -33,8 +33,8 @@ CREATE TABLE validations (
     at                TEXT NOT NULL,
     target_path       TEXT NOT NULL,
     hash              TEXT NOT NULL,
-    parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親。人は NULL
-    child_session_id  TEXT REFERENCES sessions (id)       -- 判定した確かめる子。機械と人の rule だけなら NULL
+    parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親セッション。人は NULL
+    child_session_id  TEXT REFERENCES sessions (id)       -- 判定した検証用の子セッション。機械と人の rule だけなら NULL
 ) STRICT;
 
 CREATE INDEX validations_by_target ON validations (target_path, id);

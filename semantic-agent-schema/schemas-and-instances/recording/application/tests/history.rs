@@ -72,6 +72,7 @@ impl OperationLog for Memory {
 
 fn row(hash: &str) -> ValidateRow {
     ValidateRow {
+        child_session: None,
         target_path: "a.json".into(),
         hash: hash.into(),
         results: Vec::new(),

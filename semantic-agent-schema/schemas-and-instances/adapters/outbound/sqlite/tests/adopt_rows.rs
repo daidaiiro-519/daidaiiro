@@ -33,6 +33,7 @@ fn unavailable() -> FieldRow {
 
 fn judged(rules: &[(&str, &str)]) -> ValidateRow {
     ValidateRow {
+        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: rules

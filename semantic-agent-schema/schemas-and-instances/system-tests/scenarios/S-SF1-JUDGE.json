@@ -1,0 +1,94 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-JUDGE",
+ "name": "検証用の子セッションに判定させる",
+ "title": "by: ai の rule は、接続の定義のエージェントの検証用の子セッションを起動して判定させる。1行目が手順のプロンプト、最後の行が結果で、子セッションの ID はツールの出力から読み、記録に残す",
+ "why": "意味の rule を機械の rule と同じ結果の形で返す。子セッションの ID で、どの子セッションが判定したかを後からたどれる。",
+ "traces": [
+  "SF1:成功時保証",
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-ok.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 2
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/0/rules/0/id",
+   "equals": "goal-is-outcome"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/child_session",
+   "equals": "child-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/id",
+   "equals": "child-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/started",
+   "equals": [
+    "child-1"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "利用者が受け取る結果を書いている"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/verified",
+   "equals": 2
+  },
+  {
+   "of": "when",
+   "file": "agent/call-1.txt",
+   "contains": "start"
+  }
+ ]
+}

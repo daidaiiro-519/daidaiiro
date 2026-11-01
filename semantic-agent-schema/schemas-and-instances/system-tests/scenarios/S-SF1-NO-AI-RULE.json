@@ -1,0 +1,43 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-NO-AI-RULE",
+ "name": "by: ai の rule が無い",
+ "title": "by: ai の rule が無い対象は、--agent を渡しても子セッションを起動しない",
+ "why": "使わない子セッションを起動して費用をかけない。",
+ "traces": [
+  "SF1:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "file": "agent/count",
+   "exists": false
+  }
+ ]
+}

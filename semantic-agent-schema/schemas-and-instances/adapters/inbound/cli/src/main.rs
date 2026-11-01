@@ -10,6 +10,7 @@ mod caller;
 mod output;
 
 use caller::FromArguments;
+use outbound_agents::Connector;
 use outbound_filesystem::{OutDir, WorkingTree};
 use outbound_git::GitCommits;
 use outbound_javascript::Boa;
@@ -21,13 +22,18 @@ use rendering_application::use_cases::render::{RenderRequest, render};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use validation_application::use_cases::validate::{Refused, Scope, validate, validate_stale};
+use validation_application::ports::SchemaValidator;
+use validation_application::use_cases::meaning::MeaningCall;
+use validation_application::use_cases::validate::{
+    Refused, Scope, validate, validate_stale, validate_with_meaning,
+};
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, UpdateRequest, adopt, create, delete,
     update,
 };
 
 const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
+sas validate (<経路>... | --all) --agent <接続の定義> [--continue <検証用の子セッション>] [--session <名前>] ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --patch <JSON Patch> [--if-match <指紋>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
@@ -108,12 +114,22 @@ fn run_validate(args: &[String]) -> ExitCode {
     let mut session = None;
     let mut all = false;
     let mut stale = false;
+    let mut agent = None;
+    let mut continue_child = None;
     let mut paths = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--all" => all = true,
             "--stale" => stale = true,
+            "--agent" => match it.next() {
+                Some(s) if !s.is_empty() => agent = Some(s.clone()),
+                _ => return usage("--agent に接続の定義の経路がありません"),
+            },
+            "--continue" => match it.next() {
+                Some(s) if !s.is_empty() => continue_child = Some(s.clone()),
+                _ => return usage("--continue に検証用の子セッションの ID がありません"),
+            },
             "--session" => match it.next() {
                 Some(s) if !s.is_empty() => session = Some(s.clone()),
                 _ => return usage("--session に名前がありません"),
@@ -162,6 +178,15 @@ fn run_validate(args: &[String]) -> ExitCode {
             };
         }
     }
+    if continue_child.is_some() && agent.is_none() {
+        return usage("--continue は --agent と一緒に渡してください");
+    }
+    if agent.is_some() && stale {
+        return usage("--agent と --stale は一緒に渡せません");
+    }
+    if let Some(agent) = agent {
+        return run_validate_with_agent(&scope, &agent, continue_child, session);
+    }
     let run = if stale { validate_stale } else { validate };
     let (store, validator, mut log) = match adapters() {
         Ok(a) => a,
@@ -183,6 +208,88 @@ fn run_validate(args: &[String]) -> ExitCode {
         Err(r) => refuse(&r),
     }
 }
+
+/// by: ai の rule を、接続の定義のエージェントの検証用の子セッションに判定させる検証。
+fn run_validate_with_agent(
+    scope: &Scope,
+    agent: &str,
+    continue_child: Option<String>,
+    session: Option<String>,
+) -> ExitCode {
+    let (store, validator, mut log) = match adapters() {
+        Ok(a) => a,
+        Err(r) => return refuse(&r),
+    };
+    let who = match caller(session) {
+        Ok(w) => w,
+        Err(r) => return refuse(&r),
+    };
+    let def: Value = match std::fs::read_to_string(agent)
+        .map_err(|e| format!("{agent} を読めない：{e}"))
+        .and_then(|t| serde_json::from_str(&t).map_err(|e| format!("{agent} が JSON でない：{e}")))
+    {
+        Ok(v) => v,
+        Err(message) => {
+            return refuse(&Refused {
+                code: "invalid_input",
+                path: Some(agent.into()),
+                message,
+                ..Refused::default()
+            });
+        }
+    };
+    match validator.check(AGENT_CONNECTOR, &def, &[]) {
+        Ok(broken) if broken.is_empty() => {}
+        Ok(broken) => {
+            return refuse(&Refused {
+                code: "invalid_input",
+                path: Some(agent.into()),
+                message: format!(
+                    "接続の定義が型に合わない：{}",
+                    broken
+                        .iter()
+                        .map(|(at, why)| format!("{at} {why}"))
+                        .collect::<Vec<_>>()
+                        .join(" ／ ")
+                ),
+                ..Refused::default()
+            });
+        }
+        Err(message) => {
+            return refuse(&Refused {
+                code: "validator",
+                message,
+                ..Refused::default()
+            });
+        }
+    }
+    let root = PathBuf::from(".");
+    let work = db_path(&root)
+        .parent()
+        .map_or_else(|| root.join(".sas"), Path::to_path_buf);
+    let reader = Connector::new(def, caller::session_envs(), work);
+    let call = MeaningCall {
+        reader: &reader,
+        continue_child,
+    };
+    match validate_with_meaning(scope, &store, &validator, &who, &mut log, &call) {
+        Ok((v, meaning)) => {
+            if let Some(m) = &meaning {
+                output::print_procedures(m);
+            }
+            output::print_validation_with(&v, meaning.as_ref());
+            if v.counts.fails() {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            }
+        }
+        Err(r) => refuse(&r),
+    }
+}
+
+/// エージェントの接続の定義の型。
+const AGENT_CONNECTOR: &str = "urn:semantic-agent-schema:published-language:agent-connector:v1";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Command {

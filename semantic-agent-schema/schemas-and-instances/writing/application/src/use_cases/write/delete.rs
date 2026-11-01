@@ -49,7 +49,7 @@ pub struct Rewritten {
 /// 削除の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Deletion {
-    /// 呼んだ親のセッションの ID（人なら None）
+    /// 呼んだ親セッションの ID（人なら None）
     pub parent: Option<String>,
     /// 削除の操作の ID
     pub operation: String,

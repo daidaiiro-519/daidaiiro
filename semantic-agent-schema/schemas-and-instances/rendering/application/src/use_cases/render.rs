@@ -14,7 +14,8 @@
 //! 4. 描く。すべての対象を描けてから、まとめて書き出す。
 
 use crate::ports::{PageRefusal, PageWriter, ScriptReader, TemplateRenderer};
-use crate::use_cases::design::{alias_of, check_design_system};
+use crate::use_cases::design::check_design_system;
+use crate::use_cases::tokens::css_of;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use validation_application::ports::{DocumentStore, SchemaValidator};
@@ -101,7 +102,7 @@ pub fn render(
             ..Refused::default()
         });
     }
-    let css = css_of(&ds.tokens).map_err(|e| refused("invalid_input", ds_path, e))?;
+    let css = css_of(&ds.tokens);
     let tokens = token_values(ds.value.get("tokens"));
     let templates: BTreeMap<String, String> = ds
         .value
@@ -292,34 +293,4 @@ fn page_path_of(target: &str) -> String {
     target
         .strip_suffix(".json")
         .map_or_else(|| format!("{target}.html"), |s| format!("{s}.html"))
-}
-
-/// トークンの名前を CSS のカスタムプロパティの名前に。
-fn var_name(token: &str) -> String {
-    format!("--{}", token.replace('.', "-"))
-}
-
-/// 別名（{group.token}）を var(--group-token) に。トークンに無い名前なら誤り。
-fn resolve(value: &Value, tokens: &BTreeMap<String, Value>) -> Result<String, String> {
-    let name = alias_of(value).unwrap_or_default();
-    if tokens.contains_key(name) {
-        Ok(format!("var({})", var_name(name)))
-    } else {
-        Err(format!("別名 {{{name}}} の先のトークンが無い"))
-    }
-}
-
-/// トークンを :root のカスタムプロパティにする（名前の順）。文字列と数だけを出す（合成の値は出さない）。
-fn css_of(tokens: &BTreeMap<String, Value>) -> Result<String, String> {
-    let mut lines = Vec::new();
-    for (name, value) in tokens {
-        let v = match value {
-            v if alias_of(v).is_some() => resolve(v, tokens)?,
-            Value::String(s) => s.clone(),
-            Value::Number(n) => n.to_string(),
-            _ => continue,
-        };
-        lines.push(format!("{}: {v};", var_name(name)));
-    }
-    Ok(format!(":root {{ {} }}", lines.join(" ")))
 }

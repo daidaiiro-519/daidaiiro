@@ -46,14 +46,14 @@
   },
   {
    "name": "決まった概念（版16、2026-11-01）",
-   "value": "SAS は子の状態を管理しない。親（呼び出し元）の ID は --session → ツールごとの環境変数 → 人なら NULL。子の ID はツールの出力の session_id。書く子と確かめる子をそれぞれ --continue で続けて使い、fork は使わない。sessions は追記だけの7列。記録は changes と validations。断った操作は持たない。文脈は「スキーマとインスタンス」1つ",
+   "value": "SAS は子セッションの状態を管理しない。親セッション（呼び出し元）の ID は --session → ツールごとの環境変数 → 人なら NULL。子セッションの ID はツールの出力の session_id。書き込み用の子セッションと検証用の子セッションをそれぞれ --continue で続けて使い、fork は使わない。sessions は追記だけの7列。記録は changes と validations。断った操作は持たない。文脈は「スキーマとインスタンス」1つ",
    "source": "利用者の承認（2026-11-01）・ 承認のページ版4 ・ scratchpad session-sim ・ ops-split ・ tool-sessions"
   }
  ],
  "decision": {
-  "headline": "スキーマは、境界ごとに読み手と書き手が決まる14のファイルにする。子のセッションとのやりとりの3つのほかは、公開された言葉として published-language/v1 に置く。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理しない（版16）",
-  "because": "1つのファイルを1つの境界（誰が書き、誰が読むか）に合わせると、アダプターの作者は session-request と agent-connector だけを、Concrete の作者は Abstract の4つだけを読めばよい。sessions は誰が何で動いたか（役割 ・ 親 ・ ツール ・ モデル ・ 起動の設定）だけを追記で持ち、開閉 ・ 回 ・ 再開の決まりは持たない。次にどの子へ送るかは親が決める。記録は書いた変更（changes）と検証（validations）を別の表にし、どの行もすべての欄が埋まる形にする。断った操作は持たず、理由はその場で返す",
-  "revised": "2026-11-01 版16：セッションの4つの型 ・ 5つの操作 ・ session_turns ・ 終わり方をやめ、薄い sessions（7列）と書く子 ・ 確かめる子に。operations 1表を changes と validations に分け、断った操作を持たない。材料：承認のページ XQmeBmywzzsZy3AUgcSK4B 版4、シミュレーション VYeEarjweXihDbJTNxnGhW、ツール6つの調査 KbNCDxxdVA5CipaYG8aFJ5"
+  "headline": "スキーマは、境界ごとに読み手と書き手が決まる14のファイルにする。子セッションとのやりとりの3つのほかは、公開された言葉として published-language/v1 に置く。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子セッションの状態を管理しない（版16）",
+  "because": "1つのファイルを1つの境界（誰が書き、誰が読むか）に合わせると、アダプターの作者は session-request と agent-connector だけを、Concrete の作者は Abstract の4つだけを読めばよい。sessions は誰が何で動いたか（役割 ・ 親セッション ・ ツール ・ モデル ・ 起動の設定）だけを追記で持ち、開閉 ・ 回 ・ 再開の決まりは持たない。次にどの子セッションへ送るかは親セッションが決める。記録は書いた変更（changes）と検証（validations）を別の表にし、どの行もすべての欄が埋まる形にする。断った操作は持たず、理由はその場で返す",
+  "revised": "2026-11-01 版16：セッションの4つの型 ・ 5つの操作 ・ session_turns ・ 終わり方をやめ、薄い sessions（7列）と書き込み用の子セッション ・ 検証用の子セッションに。operations 1表を changes と validations に分け、断った操作を持たない。材料：承認のページ XQmeBmywzzsZy3AUgcSK4B 版4、シミュレーション VYeEarjweXihDbJTNxnGhW、ツール6つの調査 KbNCDxxdVA5CipaYG8aFJ5"
  },
  "file_options": [
   {
@@ -222,7 +222,7 @@
   {
    "id": "b4",
    "group": "b. CLI の各コマンド",
-   "name": "子のセッション（起動する ・ 続ける）",
+   "name": "子セッション（起動する ・ 続ける）",
    "from_to": "呼び出し元 → SAS",
    "criteria": [
     1,
@@ -230,7 +230,7 @@
    ],
    "decision": "schema",
    "where": "operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は operation-result の envelope（child_session ・ role）",
-   "why": "子は操作のために起動するので、意味の部分の指定に入れる。続けるかは親が決めて ID を渡す。閉じる ・ 状態を読む ・ fork はどのツールでも非対話で揃わず、SAS は子の状態を持たない（版16）"
+   "why": "子セッションは操作のために起動するので、意味の部分の指定に入れる。続けるかは親セッションが決めて ID を渡す。閉じる ・ 状態を読む ・ fork はどのツールでも非対話で揃わず、SAS は子セッションの状態を持たない（版16）"
   },
   {
    "id": "b5",
@@ -450,7 +450,7 @@
   {
    "id": "e4",
    "group": "e. DB の表",
-   "name": "セッションの姿（役割 ・ 親 ・ ツール ・ モデル）",
+   "name": "セッションの姿（役割 ・ 親セッション ・ ツール ・ モデル）",
    "from_to": "SAS → 呼び出し元",
    "criteria": [
     4
@@ -736,7 +736,7 @@
      "name": "common",
      "fields": [
       "command（必須：create ・ update ・ delete ・ validate ・ render ・ search ・ read）",
-      "session（--session。呼び出し元＝親のセッションの ID。無ければ接続の定義の caller.env の環境変数、それも無ければ人）",
+      "session（--session。呼び出し元＝親セッションの ID。無ければ接続の定義の caller.env の環境変数、それも無ければ人）",
       "request_id（任意。やり直しで同じ変更を2回残さないための ID）",
       "intent（任意。1文。削除と更新の取り込みは必須）"
      ]
@@ -744,10 +744,10 @@
     {
      "name": "semantic",
      "fields": [
-      "brief（意味の作成 ・ 更新で子を新しく起動するとき必須。決めたことの文）",
-      "ref: [パス]（読ませる参照の文書。中身は貼らず、子が自分で読む）",
-      "continue（続ける子のセッション ID。書く子は作成 ・ 更新、確かめる子は検証に使う）",
-      "new（boolean：この親が直前に使った子があっても新しく起動する）",
+      "brief（意味の作成 ・ 更新で子セッションを新しく起動するとき必須。決めたことの文）",
+      "ref: [パス]（読ませる参照の文書。中身は貼らず、子セッションが自分で読む）",
+      "continue（続ける子セッション ID。書き込み用の子セッションは作成 ・ 更新、検証用の子セッションは検証に使う）",
+      "new（boolean：この親セッションが直前に使った子セッションがあっても新しく起動する）",
       "adapter（設定のアダプターの名前）",
       "model",
       "time_limit_s"
@@ -785,7 +785,7 @@
      "name": "validate",
      "fields": [
       "targets（パスの並び）か all ・ stale（入力が変わった rule だけ）",
-      "semantic の continue ・ new ・ ref（確かめる子。brief は受けない：書き手の意図を判定に混ぜない）"
+      "semantic の continue ・ new ・ ref（検証用の子セッション。brief は受けない：書き手の意図を判定に混ぜない）"
      ]
     },
     {
@@ -824,9 +824,9 @@
      "name": "envelope",
      "fields": [
       "kind（必須：下の $defs の名前）",
-      "parent_session（呼んだ親の ID。人は null）",
-      "child_session ・ role（意味の部分を含む操作のとき。子の ID と writer ・ checker）",
-      "hint（次に打つコマンド。止まったとき ・ 新しい子を勧めるとき）"
+      "parent_session（呼んだ親セッションの ID。人は null）",
+      "child_session ・ role（意味の部分を含む操作のとき。子セッションの ID と writer ・ checker）",
+      "hint（次に打つコマンド。止まったとき ・ 新しい子セッションを勧めるとき）"
      ]
     },
     {
@@ -840,7 +840,7 @@
      "name": "procedure",
      "fields": [
       "parent_session",
-      "child_session（起動した子か、続けた子）",
+      "child_session（起動した子か、続けた子セッション）",
       "prompt: procedure-prompt.schema.json",
       "prompt_path",
       "status: started"
@@ -928,7 +928,7 @@
       "hint",
       "blocked: [{path, code, message, hint}]（削除を止めた理由になった文書：従うインスタンス follows ・ 指している Concrete points_to ・ 記載を消せない参照元。has_dependents ・ references_blocked ・ references_left だけ。ステップ4）",
       "（session ・ operation の欄は持たない：断った操作は記録しない。版16）",
-      "previous_child: {id, role, last_at}（child_exists のとき。この親が直前に使った同じ役割の子）"
+      "previous_child: {id, role, last_at}（child_exists のとき。この親セッションが直前に使った同じ役割の子セッション）"
      ]
     }
    ],
@@ -944,12 +944,12 @@
     {
      "name": "（根）",
      "fields": [
-      "child_session（子の ID）",
+      "child_session（子セッションの ID）",
       "operation_kind（create ・ update ・ validate ・ search）",
       "target: {path, concrete, fingerprint}",
       "preface: {abstract, concrete（$id と版）}（決まった前置き。キャッシュが効くように先頭）",
       "brief（1回目だけ。続けるときは送らない）",
-      "since_last: diff.schema.json（続けた子へ送るとき、前の回のあとに対象が変わっていたら）",
+      "since_last: diff.schema.json（続けた子セッションへ送るとき、前の回のあとに対象が変わっていたら）",
       "steps: [step]",
       "answer: {schema（agent-answer の $defs の名前）, details（delegate.output）}",
       "constraints: [ファイルを書かない ・ 答えの JSON だけを返す ・ ステップに無い欄に触れない]",
@@ -994,7 +994,7 @@
     {
      "name": "continue",
      "fields": [
-      "tool_ref（続ける子の ID）",
+      "tool_ref（続ける子セッションの ID）",
       "launch（sessions.launch をそのまま。再開のたびに同じ設定を渡す）",
       "prompt",
       "answer_schema",
@@ -1066,7 +1066,7 @@
     {
      "name": "tokens",
      "fields": [
-      "input ・ output ・ cache_read ・ cache_write（どれも整数。ツールが返す分だけ。再開した子の usage が累計で出るツールは差で出す）"
+      "input ・ output ・ cache_read ・ cache_write（どれも整数。ツールが返す分だけ。再開した子セッションの usage が累計で出るツールは差で出す）"
      ]
     },
     {
@@ -1074,7 +1074,7 @@
      "fields": [
       "id（ツールのセッション ID）",
       "role",
-      "parent（子を起動させた親。親と、人が起動させた子は null）",
+      "parent（子セッションを起動させた親セッション。親セッションと、人が起動させた子セッションは null）",
       "tool",
       "model",
       "first_seen"
@@ -1127,8 +1127,8 @@
       "version",
       "commands: {start, continue}（argv の並び。{prompt.path} のように session-request の欄を名前で埋める。continue は capabilities.resume が true のときだけ必須。Codex の exec resume のように旗が欠けるツールは -c などの代わりの書き方をここに書く）",
       "answer: {from（stdout ・ file）, path, json_pointer}",
-      "tool_ref: {from（stdout ・ file ・ assigned）, json_pointer, event_type}（子の ID の取り方。Claude Code は stdout の session_id、Codex は thread.started の thread_id、Copilot は sessionId か assigned、Kiro は stream-json の sessionId）",
-      "tokens: {from, json_pointers, cumulative（boolean：再開した子の usage が累計で出る）}",
+      "tool_ref: {from（stdout ・ file ・ assigned）, json_pointer, event_type}（子セッションの ID の取り方。Claude Code は stdout の session_id、Codex は thread.started の thread_id、Copilot は sessionId か assigned、Kiro は stream-json の sessionId）",
+      "tokens: {from, json_pointers, cumulative（boolean：再開した子セッションの usage が累計で出る）}",
       "exit_codes: {timeout, failed, busy}",
       "capabilities",
       "caller"
@@ -1140,15 +1140,15 @@
       "resume（boolean：ID を指定して非対話で続けられる）",
       "answer_schema（boolean）",
       "token_report（boolean）",
-      "cache_ttl_s（キャッシュの有効時間の目安。Claude Code の -p は 3600、Copilot は 1800。新しい子を勧める目安に使う）",
+      "cache_ttl_s（キャッシュの有効時間の目安。Claude Code の -p は 3600、Copilot は 1800。新しい子セッションを勧める目安に使う）",
       "max_concurrent（同時に動かせる数）"
      ]
     },
     {
      "name": "caller",
      "fields": [
-      "env（任意。親のセッション ID が入る環境変数の名前。Claude Code は CLAUDE_CODE_SESSION_ID。無いツールでは呼び出し元が --session で渡す）",
-      "tool（親の行の sessions.tool に書く名前）"
+      "env（任意。親セッション ID が入る環境変数の名前。Claude Code は CLAUDE_CODE_SESSION_ID。無いツールでは呼び出し元が --session で渡す）",
+      "tool（親セッションの行の sessions.tool に書く名前）"
      ]
     }
    ],
@@ -1192,7 +1192,7 @@
       "time_limit_s",
       "shape_fix_max（既定 2）",
       "retry_max（既定 2）",
-      "child_hint: {idle_s（既定は接続の定義の cache_ttl_s）, max_ops（既定 10。実測していない目安）}（新しい子を勧める案内の目安）",
+      "child_hint: {idle_s（既定は接続の定義の cache_ttl_s）, max_ops（既定 10。実測していない目安）}（新しい子セッションを勧める案内の目安）",
       "prompts_dir ・ db_path（コミットしない置き場所。db_path の既定は <git-common-dir>/sas/sas.db、Git が無ければ .sas/sas.db）"
      ]
     }
@@ -1224,7 +1224,7 @@
   "tables": [
    {
     "name": "sessions",
-    "holds": "誰が何で動いたかだけ。親（caller）は SAS が初めて見たとき、子（writer ・ checker）は起動したときに1行。状態 ・ 開閉 ・ 回は持たず、書き換えない",
+    "holds": "誰が何で動いたかだけ。親セッション（caller）は SAS が初めて見たとき、子セッション（writer ・ checker）は起動したときに1行。状態 ・ 開閉 ・ 回は持たず、書き換えない",
     "columns": [
      [
       "id",
@@ -1242,7 +1242,7 @@
       "parent_id",
       "TEXT",
       "FK sessions",
-      "子を起動させた親（caller の行だけ）。親と、人が起動させた子は NULL"
+      "子セッションを起動させた親セッション（caller の行だけ）。親セッションと、人が起動させた子セッションは NULL"
      ],
      [
       "tool",
@@ -1254,13 +1254,13 @@
       "model",
       "TEXT",
       "",
-      "子を起動したモデル"
+      "子セッションを起動したモデル"
      ],
      [
       "launch",
       "JSON",
       "",
-      "子の起動の設定。--continue で同じものを渡す"
+      "子セッションの起動の設定。--continue で同じものを渡す"
      ],
      [
       "first_seen",
@@ -1339,13 +1339,13 @@
       "parent_session_id",
       "TEXT",
       "FK sessions",
-      "呼んだ親。人は NULL"
+      "呼んだ親セッション。人は NULL"
      ],
      [
       "child_session_id",
       "TEXT",
       "FK sessions",
-      "書いた書く子。機械だけなら NULL"
+      "書いた書き込み用の子セッション。機械だけなら NULL"
      ]
     ],
     "keys": "PK id ／ 一意 request_id ／ 索引 (target_path, at)・(parent_session_id, at)"
@@ -1431,7 +1431,7 @@
       "child_session_id",
       "TEXT",
       "FK sessions",
-      "判定した確かめる子。機械と人の rule だけなら NULL"
+      "判定した検証用の子セッション。機械と人の rule だけなら NULL"
      ]
     ],
     "keys": "PK id ／ 索引 (target_path, at)"
@@ -1510,19 +1510,19 @@
     "keys": "UNION ALL"
    }
   ],
-  "ddl": "PRAGMA foreign_keys = ON;\n\n-- 誰が何で動いたかだけ（状態は持たない ・ 書き換えない）。親は SAS が初めて見たとき、子は起動したときに1行\nCREATE TABLE sessions (\n  id          TEXT PRIMARY KEY,                       -- ツールのセッション ID（親は --session か環境変数、子はツールの出力の session_id）\n  role        TEXT NOT NULL CHECK (role IN ('caller','writer','checker')),\n  parent_id   TEXT REFERENCES sessions(id),           -- 子を起動させた親。親の行と、人が起動させた子は NULL\n  tool        TEXT NOT NULL,                          -- claude-code ・ codex など（接続の定義の名前）\n  model       TEXT,                                   -- 子を起動したモデル。親は分からなければ NULL\n  launch      TEXT CHECK (launch IS NULL OR json_valid(launch)),  -- 子の起動の設定。--continue で同じものを渡す\n  first_seen  TEXT NOT NULL,                          -- ISO 8601 UTC\n  CHECK (role <> 'caller' OR (parent_id IS NULL AND launch IS NULL)),\n  CHECK (role = 'caller' OR launch IS NOT NULL)\n) STRICT;\nCREATE INDEX sessions_by_parent ON sessions (parent_id, role) WHERE parent_id IS NOT NULL;\nCREATE TRIGGER sessions_no_update BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;\nCREATE TRIGGER sessions_no_delete BEFORE DELETE ON sessions BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;\nCREATE TRIGGER sessions_parent_is_caller BEFORE INSERT ON sessions\nWHEN NEW.parent_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'the parent must be a caller session'); END;\n\n-- 書いた変更（作成 ・ 更新 ・ 削除）。断った操作は持たない（理由はその場で返す）\nCREATE TABLE changes (\n  id                 TEXT PRIMARY KEY,\n  at                 TEXT NOT NULL,\n  kind               TEXT NOT NULL CHECK (kind IN ('create','update','delete')),\n  target_path        TEXT NOT NULL,\n  before_hash        TEXT,                              -- 作成は無い\n  after_hash         TEXT,                              -- 削除は無い\n  intent             TEXT,\n  request_id         TEXT,\n  source             TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas','outside')),\n  cause_id           TEXT REFERENCES changes(id),       -- 原因の削除（参照元の書き換え）\n  parent_session_id  TEXT REFERENCES sessions(id),      -- 呼んだ親。人は NULL\n  child_session_id   TEXT REFERENCES sessions(id),      -- 書いた書く子。機械だけなら NULL\n  CHECK ((kind = 'create') = (before_hash IS NULL)),\n  CHECK ((kind = 'delete') = (after_hash IS NULL)),\n  CHECK (kind <> 'delete' OR intent IS NOT NULL),\n  CHECK (source = 'sas' OR kind <> 'delete'),\n  CHECK (source = 'sas' OR kind <> 'update' OR intent IS NOT NULL),\n  CHECK (cause_id IS NULL OR request_id IS NULL)\n) STRICT;\nCREATE UNIQUE INDEX changes_one_per_request ON changes (request_id) WHERE request_id IS NOT NULL;\nCREATE INDEX changes_by_target ON changes (target_path, at);\nCREATE INDEX changes_by_parent ON changes (parent_session_id, at) WHERE parent_session_id IS NOT NULL;\n\nCREATE TABLE field_changes (\n  change_id           TEXT NOT NULL REFERENCES changes(id),\n  pointer             TEXT NOT NULL,                     -- JSON ポインタ\n  change              TEXT NOT NULL CHECK (change IN ('add','remove','replace')),\n  before              TEXT CHECK (before IS NULL OR json_valid(before)),\n  after               TEXT CHECK (after IS NULL OR json_valid(after)),\n  before_unavailable  INTEGER NOT NULL DEFAULT 0 CHECK (before_unavailable IN (0,1)),\n  PRIMARY KEY (change_id, pointer),\n  CHECK (change IS NOT 'add'    OR before IS NULL),\n  CHECK (change IS NOT 'remove' OR after IS NULL),\n  CHECK (before_unavailable = 0 OR before IS NULL)\n) STRICT;\n\n-- 検証。対象を変えないので指紋は1つ。依頼の ID ・ 意図を持たない\nCREATE TABLE validations (\n  id                 TEXT PRIMARY KEY,\n  at                 TEXT NOT NULL,\n  target_path        TEXT NOT NULL,\n  hash               TEXT NOT NULL,\n  parent_session_id  TEXT REFERENCES sessions(id),\n  child_session_id   TEXT REFERENCES sessions(id)      -- 判定した確かめる子。機械と人の rule だけなら NULL\n) STRICT;\nCREATE INDEX validations_by_target ON validations (target_path, at);\n\nCREATE TABLE rule_results (\n  validation_id  TEXT NOT NULL REFERENCES validations(id),\n  rule_schema    TEXT NOT NULL,                           -- rule を持つスキーマの URN\n  rule_id        TEXT NOT NULL,\n  pointer        TEXT NOT NULL,\n  by             TEXT NOT NULL CHECK (by IN ('machine','ai','human')),\n  result         TEXT NOT NULL CHECK (result IN ('verified','violated','unverified','unsupported','error')),\n  reason         TEXT,\n  grounds        TEXT CHECK (grounds IS NULL OR json_valid(grounds)),\n  reads_hash     TEXT NOT NULL,\n  details        TEXT CHECK (details IS NULL OR json_valid(details)),\n  PRIMARY KEY (validation_id, rule_schema, rule_id, pointer),\n  CHECK (by IS NOT 'human' OR result = 'unverified')\n) STRICT;\n\n-- 子の役割は表で決まる ・ 原因は削除だけ ・ 親の欄は親の行だけ\nCREATE TRIGGER changes_child_is_writer BEFORE INSERT ON changes\nWHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'writer'\nBEGIN SELECT RAISE(ABORT, 'a change is made by a writer'); END;\nCREATE TRIGGER validations_child_is_checker BEFORE INSERT ON validations\nWHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'checker'\nBEGIN SELECT RAISE(ABORT, 'a validation is made by a checker'); END;\nCREATE TRIGGER changes_parent_is_caller BEFORE INSERT ON changes\nWHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;\nCREATE TRIGGER validations_parent_is_caller BEFORE INSERT ON validations\nWHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;\nCREATE TRIGGER changes_cause_is_delete BEFORE INSERT ON changes\nWHEN NEW.cause_id IS NOT NULL\n  AND (NEW.kind IS NOT 'update' OR NEW.source IS NOT 'sas' OR (SELECT kind FROM changes WHERE id = NEW.cause_id) IS NOT 'delete')\nBEGIN SELECT RAISE(ABORT, 'a cause must be a delete'); END;\n-- 追記だけ（4表とも）\nCREATE TRIGGER changes_no_update BEFORE UPDATE ON changes BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;\nCREATE TRIGGER changes_no_delete BEFORE DELETE ON changes BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;\nCREATE TRIGGER field_changes_no_update BEFORE UPDATE ON field_changes BEGIN SELECT RAISE(ABORT, 'field changes are append-only'); END;\nCREATE TRIGGER field_changes_no_delete BEFORE DELETE ON field_changes BEGIN SELECT RAISE(ABORT, 'field changes are append-only'); END;\nCREATE TRIGGER validations_no_update BEFORE UPDATE ON validations BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;\nCREATE TRIGGER validations_no_delete BEFORE DELETE ON validations BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;\nCREATE TRIGGER rule_results_no_update BEFORE UPDATE ON rule_results BEGIN SELECT RAISE(ABORT, 'rule results are append-only'); END;\nCREATE TRIGGER rule_results_no_delete BEFORE DELETE ON rule_results BEGIN SELECT RAISE(ABORT, 'rule results are append-only'); END;\n\n-- UC7「操作の記録を読む」：変更と検証を時刻順に並べる\nCREATE VIEW operations AS\n  SELECT id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, cause_id, parent_session_id, child_session_id FROM changes\n  UNION ALL\n  SELECT id, at, 'validate', target_path, hash, hash, NULL, NULL, 'sas', NULL, parent_session_id, child_session_id FROM validations;\n",
+  "ddl": "PRAGMA foreign_keys = ON;\n\n-- 誰が何で動いたかだけ（状態は持たない ・ 書き換えない）。親セッションは SAS が初めて見たとき、子セッションは起動したときに1行\nCREATE TABLE sessions (\n  id          TEXT PRIMARY KEY,                       -- ツールのセッション ID（親セッションは --session か環境変数、子セッションはツールの出力の session_id）\n  role        TEXT NOT NULL CHECK (role IN ('caller','writer','checker')),\n  parent_id   TEXT REFERENCES sessions(id),           -- 子セッションを起動させた親セッション。親セッションの行と、人が起動させた子セッションは NULL\n  tool        TEXT NOT NULL,                          -- claude-code ・ codex など（接続の定義の名前）\n  model       TEXT,                                   -- 子セッションを起動したモデル。親セッションは分からなければ NULL\n  launch      TEXT CHECK (launch IS NULL OR json_valid(launch)),  -- 子セッションの起動の設定。--continue で同じものを渡す\n  first_seen  TEXT NOT NULL,                          -- ISO 8601 UTC\n  CHECK (role <> 'caller' OR (parent_id IS NULL AND launch IS NULL)),\n  CHECK (role = 'caller' OR launch IS NOT NULL)\n) STRICT;\nCREATE INDEX sessions_by_parent ON sessions (parent_id, role) WHERE parent_id IS NOT NULL;\nCREATE TRIGGER sessions_no_update BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;\nCREATE TRIGGER sessions_no_delete BEFORE DELETE ON sessions BEGIN SELECT RAISE(ABORT, 'sessions are append-only'); END;\nCREATE TRIGGER sessions_parent_is_caller BEFORE INSERT ON sessions\nWHEN NEW.parent_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'the parent must be a caller session'); END;\n\n-- 書いた変更（作成 ・ 更新 ・ 削除）。断った操作は持たない（理由はその場で返す）\nCREATE TABLE changes (\n  id                 TEXT PRIMARY KEY,\n  at                 TEXT NOT NULL,\n  kind               TEXT NOT NULL CHECK (kind IN ('create','update','delete')),\n  target_path        TEXT NOT NULL,\n  before_hash        TEXT,                              -- 作成は無い\n  after_hash         TEXT,                              -- 削除は無い\n  intent             TEXT,\n  request_id         TEXT,\n  source             TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas','outside')),\n  cause_id           TEXT REFERENCES changes(id),       -- 原因の削除（参照元の書き換え）\n  parent_session_id  TEXT REFERENCES sessions(id),      -- 呼んだ親セッション。人は NULL\n  child_session_id   TEXT REFERENCES sessions(id),      -- 書いた書き込み用の子セッション。機械だけなら NULL\n  CHECK ((kind = 'create') = (before_hash IS NULL)),\n  CHECK ((kind = 'delete') = (after_hash IS NULL)),\n  CHECK (kind <> 'delete' OR intent IS NOT NULL),\n  CHECK (source = 'sas' OR kind <> 'delete'),\n  CHECK (source = 'sas' OR kind <> 'update' OR intent IS NOT NULL),\n  CHECK (cause_id IS NULL OR request_id IS NULL)\n) STRICT;\nCREATE UNIQUE INDEX changes_one_per_request ON changes (request_id) WHERE request_id IS NOT NULL;\nCREATE INDEX changes_by_target ON changes (target_path, at);\nCREATE INDEX changes_by_parent ON changes (parent_session_id, at) WHERE parent_session_id IS NOT NULL;\n\nCREATE TABLE field_changes (\n  change_id           TEXT NOT NULL REFERENCES changes(id),\n  pointer             TEXT NOT NULL,                     -- JSON ポインタ\n  change              TEXT NOT NULL CHECK (change IN ('add','remove','replace')),\n  before              TEXT CHECK (before IS NULL OR json_valid(before)),\n  after               TEXT CHECK (after IS NULL OR json_valid(after)),\n  before_unavailable  INTEGER NOT NULL DEFAULT 0 CHECK (before_unavailable IN (0,1)),\n  PRIMARY KEY (change_id, pointer),\n  CHECK (change IS NOT 'add'    OR before IS NULL),\n  CHECK (change IS NOT 'remove' OR after IS NULL),\n  CHECK (before_unavailable = 0 OR before IS NULL)\n) STRICT;\n\n-- 検証。対象を変えないので指紋は1つ。依頼の ID ・ 意図を持たない\nCREATE TABLE validations (\n  id                 TEXT PRIMARY KEY,\n  at                 TEXT NOT NULL,\n  target_path        TEXT NOT NULL,\n  hash               TEXT NOT NULL,\n  parent_session_id  TEXT REFERENCES sessions(id),\n  child_session_id   TEXT REFERENCES sessions(id)      -- 判定した検証用の子セッション。機械と人の rule だけなら NULL\n) STRICT;\nCREATE INDEX validations_by_target ON validations (target_path, at);\n\nCREATE TABLE rule_results (\n  validation_id  TEXT NOT NULL REFERENCES validations(id),\n  rule_schema    TEXT NOT NULL,                           -- rule を持つスキーマの URN\n  rule_id        TEXT NOT NULL,\n  pointer        TEXT NOT NULL,\n  by             TEXT NOT NULL CHECK (by IN ('machine','ai','human')),\n  result         TEXT NOT NULL CHECK (result IN ('verified','violated','unverified','unsupported','error')),\n  reason         TEXT,\n  grounds        TEXT CHECK (grounds IS NULL OR json_valid(grounds)),\n  reads_hash     TEXT NOT NULL,\n  details        TEXT CHECK (details IS NULL OR json_valid(details)),\n  PRIMARY KEY (validation_id, rule_schema, rule_id, pointer),\n  CHECK (by IS NOT 'human' OR result = 'unverified')\n) STRICT;\n\n-- 子セッションの役割は表で決まる ・ 原因は削除だけ ・ 親セッションの欄は親セッションの行だけ\nCREATE TRIGGER changes_child_is_writer BEFORE INSERT ON changes\nWHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'writer'\nBEGIN SELECT RAISE(ABORT, 'a change is made by a writer'); END;\nCREATE TRIGGER validations_child_is_checker BEFORE INSERT ON validations\nWHEN NEW.child_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.child_session_id) IS NOT 'checker'\nBEGIN SELECT RAISE(ABORT, 'a validation is made by a checker'); END;\nCREATE TRIGGER changes_parent_is_caller BEFORE INSERT ON changes\nWHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;\nCREATE TRIGGER validations_parent_is_caller BEFORE INSERT ON validations\nWHEN NEW.parent_session_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_session_id) IS NOT 'caller'\nBEGIN SELECT RAISE(ABORT, 'parent_session_id must point to a caller session'); END;\nCREATE TRIGGER changes_cause_is_delete BEFORE INSERT ON changes\nWHEN NEW.cause_id IS NOT NULL\n  AND (NEW.kind IS NOT 'update' OR NEW.source IS NOT 'sas' OR (SELECT kind FROM changes WHERE id = NEW.cause_id) IS NOT 'delete')\nBEGIN SELECT RAISE(ABORT, 'a cause must be a delete'); END;\n-- 追記だけ（4表とも）\nCREATE TRIGGER changes_no_update BEFORE UPDATE ON changes BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;\nCREATE TRIGGER changes_no_delete BEFORE DELETE ON changes BEGIN SELECT RAISE(ABORT, 'changes are append-only'); END;\nCREATE TRIGGER field_changes_no_update BEFORE UPDATE ON field_changes BEGIN SELECT RAISE(ABORT, 'field changes are append-only'); END;\nCREATE TRIGGER field_changes_no_delete BEFORE DELETE ON field_changes BEGIN SELECT RAISE(ABORT, 'field changes are append-only'); END;\nCREATE TRIGGER validations_no_update BEFORE UPDATE ON validations BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;\nCREATE TRIGGER validations_no_delete BEFORE DELETE ON validations BEGIN SELECT RAISE(ABORT, 'validations are append-only'); END;\nCREATE TRIGGER rule_results_no_update BEFORE UPDATE ON rule_results BEGIN SELECT RAISE(ABORT, 'rule results are append-only'); END;\nCREATE TRIGGER rule_results_no_delete BEFORE DELETE ON rule_results BEGIN SELECT RAISE(ABORT, 'rule results are append-only'); END;\n\n-- UC7「操作の記録を読む」：変更と検証を時刻順に並べる\nCREATE VIEW operations AS\n  SELECT id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, cause_id, parent_session_id, child_session_id FROM changes\n  UNION ALL\n  SELECT id, at, 'validate', target_path, hash, hash, NULL, NULL, 'sas', NULL, parent_session_id, child_session_id FROM validations;\n",
   "invariants": [
    {
     "invariant": "sessions ① 書いた行は変えない ・ 消さない",
     "how": "trigger"
    },
    {
-    "invariant": "sessions ② 子の親は親の行（caller）だけ",
+    "invariant": "sessions ② 子セッションの親セッションは親セッションの行（caller）だけ",
     "how": "trigger sessions_parent_is_caller"
    },
    {
-    "invariant": "sessions ③ 親は parent と launch を持たず、子は launch を必ず持つ",
-    "how": "CHECK（人が起動させた子は親が NULL）"
+    "invariant": "sessions ③ 親セッションは parent と launch を持たず、子セッションは launch を必ず持つ",
+    "how": "CHECK（人が起動させた子セッションは親セッションが NULL）"
    },
    {
     "invariant": "記録 ⓪ 答えの形 ・ 機械の検証 ・ 指紋の一致がそろったときだけ書く",
@@ -1533,11 +1533,11 @@
     "how": "trigger（changes ・ field_changes ・ validations ・ rule_results の UPDATE ・ DELETE を断る）"
    },
    {
-    "invariant": "記録 ② 書く子は変更だけ、確かめる子は検証だけ",
-    "how": "trigger changes_child_is_writer ・ validations_child_is_checker（書く子の ID を検証に渡されたら application が writer_as_checker で断る）"
+    "invariant": "記録 ② 書き込み用の子セッションは変更だけ、検証用の子セッションは検証だけ",
+    "how": "trigger changes_child_is_writer ・ validations_child_is_checker（書き込み用の子セッションの ID を検証に渡されたら application が writer_as_checker で断る）"
    },
    {
-    "invariant": "記録 ③ 親の欄は親の行だけを指す",
+    "invariant": "記録 ③ 親セッションの欄は親セッションの行だけを指す",
     "how": "trigger"
    },
    {
@@ -1569,8 +1569,8 @@
     "how": "application（changes ・ validations に行を書かない）"
    },
    {
-    "invariant": "1つの子へは前の結果が返るまで次を送らない",
-    "how": "application（子の ID ごとのファイルのロック。取れなければ busy）"
+    "invariant": "1つの子セッションへは前の結果が返るまで次を送らない",
+    "how": "application（子セッションの ID ごとのファイルのロック。取れなければ busy）"
    }
   ],
   "not_stored": [
@@ -1579,11 +1579,11 @@
     "where": "Git（パスと指紋で指すだけ）"
    },
    {
-    "what": "手順のプロンプトの中身 ・ 子との各回のやりとり",
-    "where": "ツールの会話の記録（子の ID でたどる）と prompts_dir のファイル（コミットしない）"
+    "what": "手順のプロンプトの中身 ・ 子セッションとの各回のやりとり",
+    "where": "ツールの会話の記録（子セッションの ID でたどる）と prompts_dir のファイル（コミットしない）"
    },
    {
-    "what": "子の状態（開いている ・ 閉じた ・ 終わり方）・ 回の数 ・ トークン量",
+    "what": "子セッションの状態（開いている ・ 閉じた ・ 終わり方）・ 回の数 ・ トークン量",
     "where": "持たない。続けられるかはツールに送ってみて分かる。トークンは出力で返すだけ"
    },
    {
@@ -1604,7 +1604,7 @@
    },
    {
     "what": "目的 ・ 承認 ・ コミット ・ 変更のまとめ ・ 使う側の参照",
-    "where": "使う側（子と親の ID は使う側のインスタンスに書いて Git に残す）"
+    "where": "使う側（子セッションと親セッションの ID は使う側のインスタンスに書いて Git に残す）"
    }
   ]
  },
@@ -1632,7 +1632,7 @@
    },
    {
     "from": "session-request#/$defs/reply.tool_ref",
-    "to": "sessions.id（role = writer ・ checker、parent_id = 親）・ changes ・ validations.child_session_id"
+    "to": "sessions.id（role = writer ・ checker、parent_id = 親セッション）・ changes ・ validations.child_session_id"
    },
    {
     "from": "agent-answer#/$defs/field-values.values",
@@ -1678,7 +1678,7 @@
    },
    {
     "from": "sessions（parent_id ・ role）＋ changes ・ validations の最後の at",
-    "to": "error child_exists の previous_child と、新しい子を勧める hint"
+    "to": "error child_exists の previous_child と、新しい子セッションを勧める hint"
    }
   ],
   "db_only": "launch（起動の設定）だけは出力に出さない（ツールの旗をそのまま持つため）。ほかの欄は読む向きのどこかに出る",
@@ -1720,10 +1720,10 @@
     "step": "1. CLI の入力",
     "schema": "operation-request#/$defs/validate",
     "table": "",
-    "detail": "sas validate U10.json（--continue <確かめる子>）"
+    "detail": "sas validate U10.json（--continue <検証用の子セッション>）"
    },
    {
-    "step": "2. 親を決める",
+    "step": "2. 親セッションを決める",
     "schema": "agent-connector#/$defs/caller",
     "table": "sessions（caller を初めて見たら1行）",
     "detail": "--session → 環境変数 → 人なら NULL"
@@ -1741,16 +1741,16 @@
     "detail": "by: human は unverified"
    },
    {
-    "step": "5. 確かめる子",
+    "step": "5. 検証用の子セッション",
     "schema": "session-request#/$defs/start か continue",
     "table": "sessions（checker を起動したら1行）",
-    "detail": "by: ai の rule があるときだけ。--continue の子が writer なら writer_as_checker で断る。前の判定 ・ 書く子の答え ・ brief は渡さない"
+    "detail": "by: ai の rule があるときだけ。--continue の子セッションが writer なら writer_as_checker で断る。前の判定 ・ 書き込み用の子セッションの答え ・ brief は渡さない"
    },
    {
     "step": "6. 答え",
     "schema": "agent-answer#/$defs/judgments",
     "table": "",
-    "detail": "形が誤りなら新しく起動せずに同じ子で直させる（2回まで）"
+    "detail": "形が誤りなら新しく起動せずに同じ子セッションで直させる（2回まで）"
    },
    {
     "step": "7. 記録",
@@ -1770,10 +1770,10 @@
     "step": "1. CLI の入力",
     "schema": "operation-request#/$defs/update（semantic）",
     "table": "",
-    "detail": "sas update U10.json --semantic /goal --brief … --ref …（2回目からは --continue <書く子>）"
+    "detail": "sas update U10.json --semantic /goal --brief … --ref …（2回目からは --continue <書き込み用の子セッション>）"
    },
    {
-    "step": "2. 親を決める",
+    "step": "2. 親セッションを決める",
     "schema": "agent-connector#/$defs/caller",
     "table": "sessions（caller）",
     "detail": ""
@@ -1785,10 +1785,10 @@
     "detail": "違えば書かずに取り込みの案内"
    },
    {
-    "step": "4. 子を決める",
+    "step": "4. 子セッションを決める",
     "schema": "",
     "table": "sessions（parent_id ・ role）",
-    "detail": "--continue が無く直前の書く子があれば child_exists で止めて案内（--new で新しく）。ロックが取れなければ busy"
+    "detail": "--continue が無く直前の書き込み用の子セッションがあれば child_exists で止めて案内（--new で新しく）。ロックが取れなければ busy"
    },
    {
     "step": "5. 手順のプロンプト",
@@ -1818,7 +1818,7 @@
     "step": "9. CLI の出力",
     "schema": "operation-result#/$defs/change",
     "table": "",
-    "detail": "parent_session ・ child_session ・ role ・ hint（新しい子を勧める目安）"
+    "detail": "parent_session ・ child_session ・ role ・ hint（新しい子セッションを勧める目安）"
    }
   ]
  },
@@ -1865,7 +1865,7 @@
   },
   {
    "what": "版15 の sessions の型 ・ 終わり方 ・ 開閉と launched_sessions ・ session_turns",
-   "goes_to": "薄い sessions（7列）。子との各回はツールの会話の記録を子の ID でたどる（版16）"
+   "goes_to": "薄い sessions（7列）。子セッションとの各回はツールの会話の記録を子セッションの ID でたどる（版16）"
   },
   {
    "what": "operations（1表）",
@@ -1926,24 +1926,24 @@
    "why": "Abstract の rule term-by-ref が glossary の $anchor を指す。Concrete を書くのに要る型なので SAS が持つ（中身は使う側）"
   },
   {
-   "option": "SAS が子の状態（開閉 ・ 終わり方 ・ 回 ・ 再開の決まり）を持つ（版15）",
-   "why": "セッションの寿命と再開はツールが持つ仕組み（一般）で、SAS が持つと要件を複雑にする。続けるかは親が決めれば足りる"
+   "option": "SAS が子セッションの状態（開閉 ・ 終わり方 ・ 回 ・ 再開の決まり）を持つ（版15）",
+   "why": "セッションの寿命と再開はツールが持つ仕組み（一般）で、SAS が持つと要件を複雑にする。続けるかは親セッションが決めれば足りる"
   },
   {
-   "option": "意味の部分を親の会話の複製（fork）で行う",
-   "why": "親とモデルや設定が違えば親の全履歴を書き直し、同じでも親の履歴の分を毎回読む。非対話の fork は Claude Code と Codex だけ（実測と調査、2026-11-01）"
+   "option": "意味の部分を親セッションの会話の複製（fork）で行う",
+   "why": "親セッションとモデルや設定が違えば親セッションの全履歴を書き直し、同じでも親セッションの履歴の分を毎回読む。非対話の fork は Claude Code と Codex だけ（実測と調査、2026-11-01）"
   },
   {
-   "option": "毎回新しく起動して brief と参照で引き継ぐ（子を続けない）",
+   "option": "毎回新しく起動して brief と参照で引き継ぐ（子セッションを続けない）",
    "why": "参照を毎回読み直す。実測で2回目以降の費用は続けると約1/20（Claude Code）・ 約1/10（Codex）"
   },
   {
-   "option": "検証を書く子で行う",
+   "option": "検証を書き込み用の子セッションで行う",
    "why": "作った人が確かめるのは独立性が無い（qa-advisor：independence-of-testing）"
   },
   {
-   "option": "sessions を持たず、子の ID を記録の行に値で持つ",
-   "why": "役割 ・ 親 ・ ツール ・ モデル ・ 起動の設定は子の性質で、行ごとに書くと重複する。--continue で同じ設定を渡すには起動の設定を1か所に持つ必要がある"
+   "option": "sessions を持たず、子セッションの ID を記録の行に値で持つ",
+   "why": "役割 ・ 親セッション ・ ツール ・ モデル ・ 起動の設定は子セッションの性質で、行ごとに書くと重複する。--continue で同じ設定を渡すには起動の設定を1か所に持つ必要がある"
   },
   {
    "option": "記録を operations 1表にする",
@@ -2022,7 +2022,7 @@
    "b1 コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read） → operation-request.schema.json（コマンドごとの $defs）",
    "b2 コマンドの出力（作った ・ 直した ・ 消した ・ 検証の結果 ・ 描画の結果 ・ 検索の答え ・ セッション ・ 操作 ・ 誤り） → operation-result.schema.json（出力の種類ごとの $defs）",
    "b3 意味の部分を含む操作の返り値（手順のプロンプト） → operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
-   "b4 子のセッション（起動する ・ 続ける） → operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は envelope の child_session ・ role。閉じる ・ 状態を読む ・ fork は持たない（版16）",
+   "b4 子セッション（起動する ・ 続ける） → operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は envelope の child_session ・ role。閉じる ・ 状態を読む ・ fork は持たない（版16）",
    "b5 取り込み（--adopt） → operation-request#/$defs/create ・ update の adopt。出力は #/$defs/change（source = outside）",
    "b6 誤り（unsupported_capability ・ conflict ・ untracked_change ・ missing_view_kinds ほか） → operation-result#/$defs/error",
    "b7 設定のファイル（使うアダプター ・ 上限 ・ Concrete の置き場所） → settings.schema.json",
@@ -2036,7 +2036,7 @@
    "d6 デザインシステム（x-view の種類ごとのテンプレート ・ デザイントークン ・ rule の結果のトークン） → design-system.schema.json",
    "e2 DB の JSON の欄（capabilities ・ tokens ・ grounds ・ details ・ before ・ after） → session#/$defs/tokens ・ sessions.launch ・ agent-answer#/$defs/grounds ・ diff の値",
    "e3 差分（変わった欄の前後 ・ 前後の指紋と版の参照） → diff.schema.json",
-   "e4 セッションの姿（役割 ・ 親 ・ ツール ・ モデル） → session.schema.json"
+   "e4 セッションの姿（役割 ・ 親セッション ・ ツール ・ モデル） → session.schema.json"
   ],
   "no_schema": [
    "a8 Concrete とインスタンスのファイルそのもの：型は既にある。SAS が別の型を足すと2か所になる",
@@ -2063,5 +2063,5 @@
    "view": "利用者の判断（10-31）：DB の中身はコミットせず、終わったセッションの記録は分析に使える程度。復元やタグのために版を残す仕組みは要らない。版を残さないので、Git の掃除の条件は設計に関わらない"
   }
  ],
- "naming_note": "2026-11-01 の名前の見直しと言葉の点検で、使う側が従い読むスキーマ（Abstract の本体 ・ 語彙 ・ 方言 ・ 用語集の型、操作の依頼 ・ 結果、共通の値、受け取りの型）を公開された言葉として published-language/v1 の1か所に置いた。子のセッションとのやりとり（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）は公開された言葉ではない。「意味の操作」は業務領域ではなく、意味の部分（自然言語の rule に照らして中身の意味を書く ・ 判定する ・ 探すこと）を含む操作と呼ぶ。AI の子のセッションは手段"
+ "naming_note": "2026-11-01 の名前の見直しと言葉の点検で、使う側が従い読むスキーマ（Abstract の本体 ・ 語彙 ・ 方言 ・ 用語集の型、操作の依頼 ・ 結果、共通の値、受け取りの型）を公開された言葉として published-language/v1 の1か所に置いた。子セッションとのやりとり（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）は公開された言葉ではない。「意味の操作」は業務領域ではなく、意味の部分（自然言語の rule に照らして中身の意味を書く ・ 判定する ・ 探すこと）を含む操作と呼ぶ。AI の子セッションは手段"
 }

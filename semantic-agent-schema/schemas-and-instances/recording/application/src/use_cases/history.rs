@@ -2,19 +2,19 @@
 
 use crate::ports::{ChangeRow, IdentifyCaller, OperationLog, ValidateRow, WriteRecord};
 
-/// 追記した結果：呼んだ親のセッションと、足した操作の ID（足した順）。
+/// 追記した結果：呼んだ親セッションと、足した操作の ID（足した順）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recorded {
-    /// 呼んだ親のセッションの ID（人なら None）
+    /// 呼んだ親セッションの ID（人なら None）
     pub parent: Option<String>,
     /// 操作の ID
     pub operations: Vec<String>,
 }
 
-/// 呼んだ親を決め、検証を1件ずつ足す。
+/// 呼んだ親セッションを決め、検証を1件ずつ足す。
 ///
 /// # Errors
-/// 置き場所が親の行を書けない ・ 行を拒んだとき。それまでに足した行は消さない。
+/// 置き場所が親セッションの行を書けない ・ 行を拒んだとき。それまでに足した行は消さない。
 pub fn record_validations(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
@@ -28,10 +28,10 @@ pub fn record_validations(
     Ok(Recorded { parent, operations })
 }
 
-/// 呼んだ親を決め、書いた作成 ・ 更新 ・ 削除を1件足す。断った操作は記録しない。
+/// 呼んだ親セッションを決め、書いた作成 ・ 更新 ・ 削除を1件足す。断った操作は記録しない。
 ///
 /// # Errors
-/// 置き場所が親の行を書けない ・ 行を拒んだとき。
+/// 置き場所が親セッションの行を書けない ・ 行を拒んだとき。
 pub fn record_change(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,

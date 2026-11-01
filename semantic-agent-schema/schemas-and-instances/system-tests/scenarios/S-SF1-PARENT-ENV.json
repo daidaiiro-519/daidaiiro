@@ -1,0 +1,46 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-PARENT-ENV",
+ "name": "親セッションの環境変数を外す",
+ "title": "子セッションを起動する前に、ツールの親セッション ID の環境変数を外す。親セッションは呼んだ側の会話のまま記録される",
+ "why": "子セッションの中で打たれたものが、親セッションの操作に見えないようにする。",
+ "traces": [
+  "SF1:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-ok.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--agent",
+   "agent/test-agent.json"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "parent-1"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/parent_session",
+   "equals": "parent-1"
+  },
+  {
+   "of": "when",
+   "file": "agent/env-1.txt",
+   "lacks": "CLAUDE_CODE_SESSION_ID"
+  }
+ ]
+}

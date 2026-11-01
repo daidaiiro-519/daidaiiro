@@ -76,7 +76,7 @@ pub struct Violated {
 /// 作成か更新の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangeResult {
-    /// 呼んだ親のセッションの ID（人なら None）
+    /// 呼んだ親セッションの ID（人なら None）
     pub parent: Option<String>,
     /// 操作の ID
     pub operation: String,

@@ -6,6 +6,7 @@
 //!
 //! rule：
 //! - json-schema：デザインシステムのファイルが受け取りの型に合う
+//! - token-type：どのトークンも種類（$type）が決まり、値が種類の形に合う（Design Tokens Format Module 2025.10）
 //! - token-alias：トークンの別名がすべて解け、輪になっていない
 //! - template-syntax：どのテンプレートも Mustache として読める
 //! - template-loads：部分テンプレートの先が templates の種類にある
@@ -17,9 +18,10 @@
 //!   欄が、その Concrete の形にたどれる（読む所が実行するまで決まらないものは unverified）
 
 use crate::ports::{DataRead, PathSeg, ScriptReader, TemplateNode, TemplateRenderer};
+use crate::use_cases::tokens::{Token, alias_errors, flatten, type_errors};
 use recording_application::ports::{IdentifyCaller, OperationLog, RuleRow, ValidateRow};
 use recording_application::use_cases::history::record_validations;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use validation_application::ports::{DocumentStore, SchemaValidator};
 use validation_application::use_cases::validate::{Corpus, Refused, log_refused, refused};
@@ -45,8 +47,8 @@ pub struct DesignSystem {
     pub template_paths: BTreeMap<String, String>,
     /// 種類 → テンプレートの本文
     pub sources: Vec<(String, String)>,
-    /// トークンの名前（group.token）→ 値
-    pub tokens: BTreeMap<String, Value>,
+    /// トークンの名前（group.token）→ トークン
+    pub tokens: BTreeMap<String, Token>,
     /// rule ごとの結果と、判定が読んだ所（JSON Pointer。"" は全体）
     pub results: Vec<(RuleResult, String)>,
 }
@@ -127,7 +129,23 @@ impl Shape {
         Self::Scalar
     }
 
-    /// トークンの木から（$ で始まる名前は除く。$value を持つものはトークン）。
+    /// 値そのものから（オブジェクトは欄、並びは中身）。
+    #[must_use]
+    pub fn of_value(v: &Value) -> Self {
+        match v {
+            Value::Object(m) => Self::Object(
+                m.iter()
+                    .map(|(k, x)| (k.clone(), Self::of_value(x)))
+                    .collect(),
+            ),
+            Value::Array(a) => {
+                Self::Array(Box::new(a.first().map_or(Self::Unknown, Self::of_value)))
+            }
+            _ => Self::Scalar,
+        }
+    }
+
+    /// トークンの木から（$ で始まる名前は除く。$value を持つものはトークンで、その値の形）。
     #[must_use]
     pub fn of_tokens(v: Option<&Value>) -> Self {
         let Some(m) = v.and_then(Value::as_object) else {
@@ -137,8 +155,8 @@ impl Shape {
             m.iter()
                 .filter(|(k, _)| !k.starts_with('$'))
                 .map(|(k, child)| {
-                    let shape = if child.get("$value").is_some() {
-                        Self::Scalar
+                    let shape = if let Some(v) = child.get("$value") {
+                        Self::of_value(v)
                     } else {
                         Self::of_tokens(Some(child))
                     };
@@ -391,7 +409,22 @@ pub fn check_design_system(
     }
 
     // トークン
-    let tokens = flatten_tokens(value.get("tokens"));
+    let tokens = flatten(value.get("tokens"));
+    let types = type_errors(&tokens);
+    if types.is_empty() {
+        results.push(verified(
+            "token-type",
+            "/tokens",
+            "どのトークンも種類が決まり、値が種類の形（Design Tokens Format Module 2025.10）に合う",
+        ));
+    }
+    for (name, why) in types {
+        results.push(violated(
+            "token-type",
+            &format!("/tokens/{}", name.replace('.', "/")),
+            &why,
+        ));
+    }
     let alias_errors = alias_errors(&tokens);
     if alias_errors.is_empty() {
         results.push(verified(
@@ -656,69 +689,6 @@ pub fn check_design_system(
     })
 }
 
-/// デザイントークンを、名前（group.token）→ $value の並びにする。$value を持たないものは group として降りる。
-#[must_use]
-pub fn flatten_tokens(tokens: Option<&Value>) -> BTreeMap<String, Value> {
-    fn walk(prefix: &str, v: &Map<String, Value>, out: &mut BTreeMap<String, Value>) {
-        for (k, child) in v {
-            if k.starts_with('$') {
-                continue;
-            }
-            let name = if prefix.is_empty() {
-                k.clone()
-            } else {
-                format!("{prefix}.{k}")
-            };
-            if let Some(obj) = child.as_object() {
-                if let Some(value) = obj.get("$value") {
-                    out.insert(name, value.clone());
-                } else {
-                    walk(&name, obj, out);
-                }
-            }
-        }
-    }
-    let mut out = BTreeMap::new();
-    if let Some(m) = tokens.and_then(Value::as_object) {
-        walk("", m, &mut out);
-    }
-    out
-}
-
-/// 別名（{group.token}）の先の名前。別名でなければ None。
-#[must_use]
-pub fn alias_of(v: &Value) -> Option<&str> {
-    v.as_str()
-        .and_then(|s| s.strip_prefix('{'))
-        .and_then(|s| s.strip_suffix('}'))
-}
-
-/// 解けない別名と、輪になった別名。
-fn alias_errors(tokens: &BTreeMap<String, Value>) -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    for (name, value) in tokens {
-        let mut seen = BTreeSet::from([name.clone()]);
-        let mut cur = value;
-        while let Some(target) = alias_of(cur) {
-            match tokens.get(target) {
-                None => {
-                    out.push((
-                        name.clone(),
-                        format!("別名 {{{target}}} の先のトークンが無い"),
-                    ));
-                    break;
-                }
-                Some(_) if !seen.insert(target.to_string()) => {
-                    out.push((name.clone(), format!("別名が輪になっている（{target}）")));
-                    break;
-                }
-                Some(next) => cur = next,
-            }
-        }
-    }
-    out
-}
-
 /// デザインシステム1つの検証の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignTarget {
@@ -737,7 +707,7 @@ pub struct DesignTarget {
 /// デザインシステムの検証の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignValidation {
-    /// 呼んだ親のセッションの ID（人なら None）
+    /// 呼んだ親セッションの ID（人なら None）
     pub parent: Option<String>,
     /// デザインシステムごとの結果（渡した順）
     pub targets: Vec<DesignTarget>,
@@ -768,6 +738,7 @@ pub fn validate_design_systems(
     let rows: Vec<ValidateRow> = checked
         .iter()
         .map(|d| ValidateRow {
+            child_session: None,
             target_path: d.path.clone(),
             hash: Fingerprint::of(d.text.as_bytes()).as_str().to_string(),
             results: d

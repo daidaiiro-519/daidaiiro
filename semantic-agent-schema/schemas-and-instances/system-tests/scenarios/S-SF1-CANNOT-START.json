@@ -1,0 +1,48 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-CANNOT-START",
+ "name": "エージェントを立ち上げられない",
+ "title": "接続の定義のコマンドを起動できなければ、該当の rule を error にして、理由を返す",
+ "why": "起動できないことを判定できなかったこととして見せる。",
+ "traces": [
+  "UC4:拡張:4a"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/broken.json": "{\"$schema\": \"urn:semantic-agent-schema:published-language:agent-connector:v1\", \"name\": \"broken\", \"version\": \"1\", \"commands\": {\"start\": {\"argv\": [\"sas-no-such-agent\"]}}, \"answer\": {\"json_pointer\": \"/result\"}, \"tool_ref\": {\"json_pointer\": \"/session_id\"}}"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--agent",
+   "agent/broken.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/error",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "エージェントを立ち上げられない"
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/id",
+   "equals": null
+  }
+ ]
+}

@@ -40,12 +40,13 @@ fn place(dir: &Path, files: &serde_json::Map<String, Value>) {
             None => content.to_string(),
         };
         let to = dir.join(rel);
-        std::fs::create_dir_all(to.parent().expect("親がある")).expect("フォルダを作れること");
+        std::fs::create_dir_all(to.parent().expect("親セッションがある"))
+            .expect("フォルダを作れること");
         std::fs::write(to, text).expect("ファイルを置けること");
     }
 }
 
-/// 親のセッション ID が入る環境変数の名前（入口の表 callers.json から）。
+/// 親セッション ID が入る環境変数の名前（入口の表 callers.json から）。
 fn session_envs() -> Vec<String> {
     let table: Value = serde_json::from_str(
         &std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("callers.json"))
@@ -80,7 +81,7 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     let mut c = if let Some(args) = strings("args") {
         let mut c = Command::new(env!("CARGO_BIN_EXE_sas"));
         c.args(args);
-        // 試験を動かす環境（AI のツールの中など）の親のセッション ID と記録の置き場所を持ち込まない。
+        // 試験を動かす環境（AI のツールの中など）の親セッション ID と記録の置き場所を持ち込まない。
         // 場面が env で渡したものだけを使う
         for name in session_envs() {
             c.env_remove(name);
@@ -115,16 +116,42 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
     let Some(pointer) = expect.get("pointer").and_then(Value::as_str) else {
         return;
     };
-    let json: Value = serde_json::from_str(stdout.trim())
-        .unwrap_or_else(|e| panic!("{id} {label}: 出力が JSON でない（{e}）: {stdout}"));
-    let errors: Vec<String> = result_schema()
-        .iter_errors(&json)
-        .map(|e| e.to_string())
+    // 出力は1行1つの JSON。どの行も結果の形に従い、見るのは line の行（無ければ最後の行）
+    let lines: Vec<Value> = stdout
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| {
+            serde_json::from_str(l.trim())
+                .unwrap_or_else(|e| panic!("{id} {label}: 出力が JSON でない（{e}）: {stdout}"))
+        })
         .collect();
-    assert!(
-        errors.is_empty(),
-        "{id} {label}: 出力が operation-result.schema.json に従わない {errors:?}"
-    );
+    for line in &lines {
+        let errors: Vec<String> = result_schema()
+            .iter_errors(line)
+            .map(|e| e.to_string())
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "{id} {label}: 出力が operation-result.schema.json に従わない {errors:?}"
+        );
+    }
+    if let Some(n) = expect.get("lines").and_then(Value::as_u64) {
+        assert_eq!(
+            lines.len(),
+            usize::try_from(n).unwrap_or_default(),
+            "{id} {label}: 出力の行の数。{stdout}"
+        );
+    }
+    let json = match expect.get("line").and_then(Value::as_u64) {
+        Some(n) => lines
+            .get(usize::try_from(n).unwrap_or_default())
+            .cloned()
+            .unwrap_or_else(|| panic!("{id} {label}: {n} 行目が無い。{stdout}")),
+        None => lines
+            .last()
+            .cloned()
+            .unwrap_or_else(|| panic!("{id} {label}: 出力が無い")),
+    };
     let got = json.pointer(pointer);
     if let Some(exists) = expect.get("exists").and_then(Value::as_bool) {
         assert_eq!(
@@ -199,6 +226,9 @@ fn play(scenario: &Value) {
         // SAS を通らない書き込み（エディターで直したことの代わり）
         if let Some(w) = step.get("write") {
             let to = dir.join(w["path"].as_str().expect("path は文字列"));
+            if let Some(parent) = to.parent() {
+                std::fs::create_dir_all(parent).expect("フォルダを作れること");
+            }
             std::fs::write(to, w["content"].as_str().expect("content は文字列"))
                 .expect("ファイルを書けること");
             continue;

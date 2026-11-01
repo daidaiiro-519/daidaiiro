@@ -1,7 +1,7 @@
 {
  "description": "いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足す。仮説としての向き（ドメインモデルが育ったときの形）は docs/design/arch/arch-v15.json にあり、要ると分かった時点でここへ移す",
  "context": "schemas-and-instances",
- "context_map": "文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」を分けたが、版16（2026-11-01）で SAS が子の状態を管理しないことにしたので1つに戻した。地図と経緯は docs/design/arch/arch-v15.json の context_map",
+ "context_map": "文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」を分けたが、版16（2026-11-01）で SAS が子セッションの状態を管理しないことにしたので1つに戻した。地図と経緯は docs/design/arch/arch-v15.json の context_map",
  "crate_naming": "crate の名前はフォルダから決める：業務領域を作るモジュールは <モジュール>-<層>（writing-domain など）、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support。文脈は1つなので文脈の名前を前に付けない。製品の名前は CLI の [[bin]]（sas）にだけ残す",
  "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering。ステップ8 で search を足す）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。依存は writing → validation → writing-domain、書く ・ 検証の両方が recording を使う",
  "crates": [
@@ -33,7 +33,7 @@
    "name": "recording-application",
    "path": "schemas-and-instances/recording/application",
    "layer": "application",
-   "role": "操作の記録の追記（use_cases/history.rs。検証と、書いた作成 ・ 更新 ・ 削除。断った操作は記録しない）と、ポート IdentifyCaller（親のセッション ID か人）・ OperationLog"
+   "role": "操作の記録の追記（use_cases/history.rs。検証と、書いた作成 ・ 更新 ・ 削除。断った操作は記録しない）と、ポート IdentifyCaller（親セッション ID か人）・ OperationLog"
   },
   {
    "name": "rendering-application",
@@ -57,7 +57,7 @@
    "name": "outbound-sqlite",
    "path": "schemas-and-instances/adapters/outbound/sqlite",
    "layer": "outbound",
-   "role": "OperationLog の実装。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（親の行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻を作る。request_id と前の判定を引く。断った操作は記録しない"
+   "role": "OperationLog の実装。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（親セッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻を作る。request_id と前の判定を引く。断った操作は記録しない"
   },
   {
    "name": "outbound-git",
@@ -76,6 +76,12 @@
    "path": "schemas-and-instances/adapters/outbound/javascript",
    "layer": "outbound",
    "role": "ScriptReader の実装。JS の構文解析器 boa（boa_parser 0.22.0）を閉じ込める。テンプレートの JS のロジックは見ず、値の入口 sas-data から読む欄だけを取り出す（実行するまで決まらない読み方は追えないものとして返す）"
+  },
+  {
+   "name": "outbound-agents",
+   "path": "schemas-and-instances/adapters/outbound/agents",
+   "layer": "outbound",
+   "role": "ReadMeaning の実装。接続の定義（agent-connector）に従って検証用の子セッションを起動し、続け、答えと子セッションの ID を出力から読む。ツールの名前で分岐しない。起動の前に親セッションの環境変数を外し、時間切れで止め、子セッションごとの鍵で同じ子セッションへの同時の送りを断る"
   },
   {
    "name": "inbound-cli",
@@ -203,6 +209,16 @@
    ]
   },
   {
+   "from": "outbound-agents",
+   "to": [
+    "validation-application"
+   ],
+   "libraries": [
+    "serde_json",
+    "sha2"
+   ]
+  },
+  {
    "from": "inbound-cli",
    "to": [
     "validation-application",
@@ -216,7 +232,8 @@
     "outbound-git",
     "rendering-application",
     "outbound-templates",
-    "outbound-javascript"
+    "outbound-javascript",
+    "outbound-agents"
    ],
    "libraries": [
     "serde_json"

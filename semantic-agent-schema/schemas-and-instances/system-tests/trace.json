@@ -40,7 +40,13 @@
   "UC5:変形:x-view の付け方",
   "UC5:拡張:*a",
   "UC4:変形:デザインシステムを検証する",
-  "UC5:変形:任意の欄が無い"
+  "UC5:変形:任意の欄が無い",
+  "SF1:成功時保証",
+  "SF1:変形:検証用の子セッションを続ける",
+  "SF1:拡張:答えの形が違う",
+  "SF1:拡張:時間切れ",
+  "SF1:拡張:同じ子セッションが処理中",
+  "SF1:拡張:続ける子セッションが無い"
  ],
  "traces": [
   {
@@ -185,6 +191,7 @@
    "id": "UC4:成功時保証",
    "meaning": "範囲のすべての rule に結果があり、判定とセッションが検証の操作の記録に入り、2つの ID（操作とセッション）が返る",
    "scenarios": [
+    "S-SF1-JUDGE",
     "S-UC4-ABSTRACT-NAME",
     "S-UC4-ALL",
     "S-UC4-CONCRETE-OK",
@@ -222,10 +229,11 @@
   },
   {
    "id": "UC4:変形:入力が変わった rule だけ",
-   "meaning": "範囲「入力が変わった rule だけ」：前の判定が読んだ所の指紋といまの指紋が違う rule だけを判定し直す",
+   "meaning": "範囲「入力が変わった rule だけ」：前の判定が読んだ所の指紋といまの指紋が違う rule だけを判定し直す。読んだ所には rule の文（x-prompt の write の1行）も入る",
    "scenarios": [
     "S-UC4-STALE-ONLY",
-    "S-UC4-STALE-OUTSIDE"
+    "S-UC4-STALE-OUTSIDE",
+    "S-UC4-STALE-RULE-CHANGED"
    ]
   },
   {
@@ -349,10 +357,87 @@
    ]
   },
   {
+   "id": "UC4:拡張:4a",
+   "meaning": "指定された Agents を立ち上げられない：該当の rule を error として記録する",
+   "scenarios": [
+    "S-SF1-CANNOT-START"
+   ]
+  },
+  {
+   "id": "UC4:拡張:5a",
+   "meaning": "Agents が時間内に答えない：セッションを止め、該当の rule を error として記録する",
+   "scenarios": [
+    "S-SF1-TIMEOUT-GIVE-UP",
+    "S-SF1-TIMEOUT"
+   ]
+  },
+  {
+   "id": "UC4:拡張:6a",
+   "meaning": "答えが答えの形に合わない：答えをそのまま残し、該当の rule を error にする",
+   "scenarios": [
+    "S-SF1-SHAPE-ERROR"
+   ]
+  },
+  {
+   "id": "UC4:拡張:6c",
+   "meaning": "事前の状態から対象が変わった：判定を記録に入れず、変わったことを返す",
+   "scenarios": [
+    "S-SF1-CONFLICT"
+   ]
+  },
+  {
    "id": "UC5:変形:任意の欄が無い",
    "meaning": "インスタンスに任意の欄が無いとき、その欄のセクションは描かず、反転のセクションを描く（Mustache の仕様）",
    "scenarios": [
     "S-UC5-OPTIONAL-ABSENT"
+   ]
+  },
+  {
+   "id": "SF1:変形:検証用の子セッションを続ける",
+   "meaning": "--continue で記録にある検証用の子セッションを同じ起動の設定で続ける。cache_ttl_s を過ぎたか10回を超えたら新しい子セッションを勧める",
+   "scenarios": [
+    "S-SF1-CONTINUE",
+    "S-SF1-HINT"
+   ]
+  },
+  {
+   "id": "SF1:成功時保証",
+   "meaning": "by: ai の rule × 当たる所ごとの手順のプロンプトを検証用の子セッションに渡し、答えを step ・ rule ・ pointer で突き合わせて記録し、子セッションの ID を返す。by: ai の rule が無ければ子セッションを起動しない。子セッションを起動する前に親セッションの環境変数を外す",
+   "scenarios": [
+    "S-SF1-JUDGE",
+    "S-SF1-NO-AI-RULE",
+    "S-SF1-PARENT-ENV"
+   ]
+  },
+  {
+   "id": "SF1:拡張:同じ子セッションが処理中",
+   "meaning": "SAS の中の同時の送りは子セッションごとの OS の鍵で断り、ツールが処理中と返したら busy で断る",
+   "scenarios": [
+    "S-SF1-BUSY"
+   ]
+  },
+  {
+   "id": "SF1:拡張:時間切れ",
+   "meaning": "新しい子セッションで2回までやり直し、超えたら該当の rule を error にする",
+   "scenarios": [
+    "S-SF1-TIMEOUT-GIVE-UP",
+    "S-SF1-TIMEOUT"
+   ]
+  },
+  {
+   "id": "SF1:拡張:答えの形が違う",
+   "meaning": "同じ子セッションで2回まで直させ、超えたら該当の rule を error にする",
+   "scenarios": [
+    "S-SF1-SHAPE-ERROR",
+    "S-SF1-SHAPE-RETRY"
+   ]
+  },
+  {
+   "id": "SF1:拡張:続ける子セッションが無い",
+   "meaning": "記録に無い子セッションを --continue に渡されたら not_found、起動したときと名前か版が違う接続の定義なら launch_mismatch で断る",
+   "scenarios": [
+    "S-SF1-LAUNCH-MISMATCH",
+    "S-SF1-NOT-RECORDED"
    ]
   }
  ]

@@ -14,8 +14,8 @@ CREATE TABLE changes (
     request_id        TEXT,
     source            TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas', 'outside')),
     cause_id          TEXT REFERENCES changes (id),       -- 原因の削除（参照元の書き換え）
-    parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親。人は NULL
-    child_session_id  TEXT REFERENCES sessions (id),      -- 書いた書く子。機械だけなら NULL
+    parent_session_id TEXT REFERENCES sessions (id),      -- 呼んだ親セッション。人は NULL
+    child_session_id  TEXT REFERENCES sessions (id),      -- 書いた書き込み用の子セッション。機械だけなら NULL
     CHECK ((kind = 'create') = (before_hash IS NULL)),
     CHECK ((kind = 'delete') = (after_hash IS NULL)),
     CHECK (kind <> 'delete' OR intent IS NOT NULL),

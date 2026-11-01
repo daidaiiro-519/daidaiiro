@@ -1,4 +1,4 @@
-//! 表の決まり：追記だけ ・ 親の行は初めて見たときだけ ・ 親の欄は親の行だけ ・ 子の役割 ・ by = human は unverified だけ。
+//! 表の決まり：追記だけ ・ 親セッションの行は初めて見たときだけ ・ 親セッションの欄は親セッションの行だけ ・ 子セッションの役割 ・ by = human は unverified だけ。
 //! あわせて、bundled の SQLite の版が 3.38.0 以上であること（ステップ1 の照合の実地の証拠）。
 
 #![allow(clippy::unwrap_used)]
@@ -8,6 +8,7 @@ use recording_application::ports::{Caller, OperationLog, RuleRow, ValidateRow};
 
 fn row(by: &str, result: &str) -> ValidateRow {
     ValidateRow {
+        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: vec![RuleRow {
@@ -104,7 +105,7 @@ fn rows_against_the_rules_are_refused() {
     );
     // 拒んだ検証の行は残らない（rule の結果と一緒に1つのトランザクションで足す）
     assert_eq!(count(&log, "validations"), 0);
-    // 親の欄は親の行だけを指し、検証は確かめる子だけがする
+    // 親セッションの欄は親セッションの行だけを指し、検証は検証用の子セッションだけがする
     log.connection()
         .execute_batch(
             "INSERT INTO sessions (id, role, tool, first_seen) VALUES ('p', 'caller', 'claude-code', 't'); \
@@ -119,7 +120,7 @@ fn rows_against_the_rules_are_refused() {
         &log,
         "INSERT INTO validations (id, at, target_path, hash, parent_session_id, child_session_id) VALUES ('o-9', 't', 'a', 'h', 'p', 'w')",
     );
-    // 子の親は親の行だけ ・ 親の行は起動の設定を持たない ・ 子は起動の設定を持つ
+    // 子セッションの親セッションは親セッションの行だけ ・ 親セッションの行は起動の設定を持たない ・ 子セッションは起動の設定を持つ
     rejects(
         &log,
         "INSERT INTO sessions (id, role, parent_id, tool, launch, first_seen) VALUES ('c', 'checker', 'w', 'claude-code', '{}', 't')",
@@ -132,6 +133,6 @@ fn rows_against_the_rules_are_refused() {
         &log,
         "INSERT INTO sessions (id, role, parent_id, tool, first_seen) VALUES ('c', 'checker', 'p', 'claude-code', 't')",
     );
-    // 子の ID を親として名乗れない
+    // 子セッションの ID を親セッションとして名乗れない
     assert!(log.parent_session(&parent("w")).is_err());
 }

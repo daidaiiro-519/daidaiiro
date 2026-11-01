@@ -4,8 +4,8 @@
 //! application と domain は時刻に触らない。セッションの ID はツールのもので、ここでは作らない。
 
 use recording_application::ports::{
-    Caller, ChangeRow, FieldRow, Judgment, OperationLog, RuleRow, StoredChange, ValidateRow,
-    WriteRecord,
+    Caller, ChangeRow, ChildRecord, ChildRow, FieldRow, Judgment, OperationLog, RuleRow,
+    StoredChange, ValidateRow, WriteRecord,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use std::path::Path;
@@ -30,7 +30,7 @@ fn err(e: &rusqlite::Error) -> String {
 }
 
 impl SqliteLog {
-    /// path の DB を開き、表が古ければ作る。親のフォルダが無ければ作る。
+    /// path の DB を開き、表が古ければ作る。親セッションのフォルダが無ければ作る。
     ///
     /// # Errors
     /// 開けない ・ 表を作れないとき。
@@ -204,7 +204,7 @@ impl OperationLog for SqliteLog {
             .map_err(|e| err(&e))?;
         if role != "caller" {
             return Err(format!(
-                "セッション {id} は SAS が起動した子（{role}）で、親として名乗れない"
+                "セッション {id} は SAS が起動した子セッション（{role}）で、親セッションとして名乗れない"
             ));
         }
         Ok(Some(id.clone()))
@@ -218,8 +218,9 @@ impl OperationLog for SqliteLog {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
-            "INSERT INTO validations (id, at, target_path, hash, parent_session_id) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, now(), row.target_path, row.hash, parent],
+            "INSERT INTO validations (id, at, target_path, hash, parent_session_id, child_session_id) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![id, now(), row.target_path, row.hash, parent, row.child_session],
         )
         .map_err(|e| err(&e))?;
         for (ord, r) in row.results.iter().enumerate() {
@@ -344,5 +345,72 @@ impl OperationLog for SqliteLog {
         .map_err(|e| err(&e))?
         .collect::<Result<_, _>>()
         .map_err(|e| err(&e))
+    }
+
+    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String> {
+        let existing: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT role FROM sessions WHERE id = ?1",
+                [&child.id],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| err(&e))?;
+        match existing {
+            Some(role) if role == child.role => Ok(()),
+            Some(role) => Err(format!(
+                "セッション {} はすでに {role} として在り、{} にできない",
+                child.id, child.role
+            )),
+            None => self
+                .conn
+                .execute(
+                    "INSERT INTO sessions (id, role, parent_id, tool, model, launch, first_seen) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        child.id,
+                        child.role,
+                        parent,
+                        child.tool,
+                        child.model,
+                        child.launch,
+                        now()
+                    ],
+                )
+                .map(|_| ())
+                .map_err(|e| err(&e)),
+        }
+    }
+
+    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String> {
+        self.conn
+            .query_row(
+                "SELECT s.role, s.parent_id, s.tool, s.model, s.launch, \
+                   (SELECT count(*) FROM validations WHERE child_session_id = s.id) \
+                   + (SELECT count(*) FROM changes WHERE child_session_id = s.id), \
+                   CAST(strftime('%s', 'now') AS INTEGER) - CAST(strftime('%s', coalesce( \
+                     (SELECT max(at) FROM (SELECT at FROM validations WHERE child_session_id = s.id \
+                                           UNION ALL SELECT at FROM changes WHERE child_session_id = s.id)), \
+                     s.first_seen)) AS INTEGER) \
+                 FROM sessions s WHERE s.id = ?1 AND s.role <> 'caller'",
+                [id],
+                |r| {
+                    Ok(ChildRecord {
+                        row: ChildRow {
+                            id: id.to_string(),
+                            role: r.get(0)?,
+                            tool: r.get(2)?,
+                            model: r.get(3)?,
+                            launch: r.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                        },
+                        parent: r.get(1)?,
+                        uses: u64::try_from(r.get::<_, i64>(5)?).unwrap_or_default(),
+                        idle_s: u64::try_from(r.get::<_, i64>(6)?).unwrap_or_default(),
+                    })
+                },
+            )
+            .optional()
+            .map_err(|e| err(&e))
     }
 }

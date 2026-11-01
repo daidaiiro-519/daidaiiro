@@ -1,5 +1,5 @@
 //! ポート IdentifyCaller を、引数と環境変数で実装する。
-//! 親のセッション ID は --session → ツールごとの環境変数（callers.json の表）→ どちらも無ければ人、の順で決める。
+//! 親セッション ID は --session → ツールごとの環境変数（callers.json の表）→ どちらも無ければ人、の順で決める。
 //! 2つ以上のツールの環境変数に値があるとき（ツールの中から別のツールを起動した）は、どちらが打ったかを決めない。
 
 use recording_application::ports::{Caller, IdentifyCaller};
@@ -8,7 +8,7 @@ use serde_json::Value;
 /// ツールごとの環境変数の表（コードに書かず、表に置く）。
 const CALLERS: &str = include_str!("../callers.json");
 
-/// 表の行：ツールの名前と、親のセッション ID が入る環境変数の名前。
+/// 表の行：ツールの名前と、親セッション ID が入る環境変数の名前。
 fn table() -> Vec<(String, String)> {
     serde_json::from_str::<Value>(CALLERS)
         .ok()
@@ -22,6 +22,11 @@ fn table() -> Vec<(String, String)> {
             ))
         })
         .collect()
+}
+
+/// 親セッション ID が入る環境変数の名前（子セッションを起動する前に外す）。
+pub fn session_envs() -> Vec<String> {
+    table().into_iter().map(|(_, env)| env).collect()
 }
 
 /// 引数の --session と環境変数から決める呼び出し元。

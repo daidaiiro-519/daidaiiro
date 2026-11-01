@@ -3,7 +3,7 @@
 /// 操作を呼んだのは誰か。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Caller {
-    /// 親のセッション（AI のエージェント ・ CI ・ オーケストレーター）。--session か、ツールの環境変数で分かった
+    /// 親セッション（AI のエージェント ・ CI ・ オーケストレーター）。--session か、ツールの環境変数で分かった
     Parent {
         /// ツールのセッション ID
         id: String,
@@ -38,10 +38,12 @@ pub struct RuleRow {
 }
 
 /// 検証1件（記録の行）。検証は対象を変えないので、指紋は1つ。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ValidateRow {
     /// リポジトリの根からの経路
     pub target_path: String,
+    /// by: ai の rule を判定した検証用の子セッション ID（機械と人の rule だけなら None）
+    pub child_session: Option<String>,
     /// 判定した中身の指紋
     pub hash: String,
     /// rule ごとの結果
@@ -91,7 +93,7 @@ pub struct ChangeRow {
 pub struct StoredChange {
     /// 操作の ID
     pub operation: String,
-    /// 呼んだ親のセッションの ID（人なら None）
+    /// 呼んだ親セッションの ID（人なら None）
     pub parent: Option<String>,
     /// 行
     pub row: ChangeRow,
@@ -102,7 +104,7 @@ pub struct StoredChange {
 pub struct WriteRecord {
     /// 操作の ID
     pub operation: String,
-    /// 呼んだ親のセッションの ID（人なら None）
+    /// 呼んだ親セッションの ID（人なら None）
     pub parent: Option<String>,
     /// 記録した日時
     pub at: String,
@@ -119,9 +121,37 @@ pub struct Judgment {
     pub rule: RuleRow,
 }
 
+/// SAS が起動した子セッション（記録の行）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChildRow {
+    /// ツールのセッション ID（ツールの出力から読んだもの）
+    pub id: String,
+    /// writer か checker
+    pub role: String,
+    /// ツールの名前（接続の定義の name）
+    pub tool: String,
+    /// モデル（分かれば）
+    pub model: Option<String>,
+    /// 起動の設定（JSON の文字列）。--continue で同じものを渡す
+    pub launch: String,
+}
+
+/// 記録にある子セッション。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChildRecord {
+    /// 行
+    pub row: ChildRow,
+    /// 子セッションを起動させた親セッションの ID（人なら None）
+    pub parent: Option<String>,
+    /// この子セッションを使った操作（検証と変更）の数
+    pub uses: u64,
+    /// この子セッションを最後に使った操作から、いままでの秒（使った操作が無ければ、起動してからの秒）
+    pub idle_s: u64,
+}
+
 /// 操作の記録の置き場所。追記だけを受け付ける。ID と時刻は置き場所が作る。
 pub trait OperationLog {
-    /// 呼んだ親のセッションの ID。初めて見た親なら、親の行（role = caller）を1行足す。人なら None。
+    /// 呼んだ親セッションの ID。初めて見た親なら、親セッションの行（role = caller）を1行足す。人なら None。
     ///
     /// # Errors
     /// 置き場所を読めない ・ 書けないとき。
@@ -169,4 +199,22 @@ pub trait OperationLog {
     /// # Errors
     /// 置き場所を読めないとき。
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
+
+    /// SAS が起動した子セッションを1行足す（初めて見た ID だけ）。親セッションは parent_session が返した ID。
+    ///
+    /// # Errors
+    /// 置き場所が拒んだとき（親セッションが caller でない ・ 同じ ID が別の役割で在る）。
+    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String> {
+        let _ = (parent, child);
+        Err("この置き場所は子セッションを残せない".to_string())
+    }
+
+    /// 子セッションの行と、使われ方。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String> {
+        let _ = id;
+        Ok(None)
+    }
 }

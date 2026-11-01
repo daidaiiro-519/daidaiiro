@@ -1,0 +1,25 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:validation:agent-answer-judgments:v1",
+ "title": "検証用の子セッションの答え（判定）",
+ "description": "手順のプロンプトの steps ごとに、rule に照らした判定を1件ずつ返す。答えはこの JSON だけで、ほかの文を付けない",
+ "type": "object",
+ "required": ["results"],
+ "properties": {
+  "results": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": ["step", "rule", "pointer", "result", "reason"],
+    "properties": {
+     "step": { "type": "integer", "minimum": 1, "description": "手順の steps の no" },
+     "rule": { "type": "string", "description": "rule の id" },
+     "pointer": { "type": "string", "description": "当たる所（JSON Pointer）" },
+     "result": { "enum": ["verified", "violated", "unverified"], "description": "verified：rule を満たす、violated：満たさない、unverified：判定できない" },
+     "reason": { "type": "string", "minLength": 1, "description": "そう判定した理由" },
+     "grounds": { "type": "array", "items": { "type": "string" }, "description": "判定に読んだ欄（JSON Pointer）" }
+    }
+   }
+  }
+ }
+}

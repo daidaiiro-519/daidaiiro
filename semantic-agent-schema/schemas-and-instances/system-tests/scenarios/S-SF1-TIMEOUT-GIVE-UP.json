@@ -1,0 +1,51 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-TIMEOUT-GIVE-UP",
+ "name": "時間切れが続く",
+ "title": "新しい子セッションで2回やり直しても答えなければ、該当の rule を error にする",
+ "why": "答えない子セッションを待ち続けない。",
+ "traces": [
+  "SF1:拡張:時間切れ",
+  "UC4:拡張:5a"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.exit": "124\n",
+   "agent/reply-2.exit": "124\n",
+   "agent/reply-3.exit": "124\n"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/restarts",
+   "equals": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/error",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "時間内に答えない"
+  }
+ ]
+}

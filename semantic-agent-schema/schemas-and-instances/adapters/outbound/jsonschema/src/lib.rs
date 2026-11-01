@@ -8,10 +8,11 @@ use validation_application::ports::SchemaValidator;
 /// 方言が $vocabulary で求める語彙。x- の形は語彙のメタスキーマが決め、意味は SAS が判定する。
 const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocab:v1";
 
-const SHIPPED: [&str; 5] = [
+const SHIPPED: [&str; 6] = [
     include_str!("../../../../published-language/v1/abstract.schema.json"),
     include_str!("../../../../published-language/v1/design-system.schema.json"),
     include_str!("../../../../published-language/v1/template-language.json"),
+    include_str!("../../../../published-language/v1/agent-connector.schema.json"),
     include_str!("../../../../published-language/v1/dialect.schema.json"),
     include_str!("../../../../published-language/v1/vocabulary.schema.json"),
 ];

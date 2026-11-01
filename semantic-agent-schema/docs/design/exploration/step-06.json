@@ -1,0 +1,203 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 6,
+ "date": "2026-11-01",
+ "summary": "SF1（SAS が起動した子セッションで手順を行わせる）と、UC4 の by: ai の rule を作った。sas validate に --agent <接続の定義> と --continue <検証用の子セッション> を足し、by: ai の rule × 当たる所ごとに1ステップの手順のプロンプトを作って検証用の子セッションに渡し、答えを step ・ rule ・ pointer で突き合わせて記録する。子セッションを起動するのは接続の定義（agent-connector）に従う汎用のアダプター（outbound/agents）で、ツールの名前で分岐しない。持ち越し3つも片付けた：rule の文を読んだ所の指紋に入れる（rule の文が変われば --stale で判定し直す）・ デザイントークンの $type を Design Tokens Format Module 2025.10 で照らす（rule token-type）・ ページの書き出しの中断で前のページを戻す（バグ2つを直した）。実際の Claude Code で手で動かし、続けた子セッション ・ 新しい子セッション ・ 順を変えた判定の4通りで判定がそろうことと、キャッシュの読み書きの量を測った。反証役（fork）の20件のうち、正しさの4件（鍵が残る ・ 置き換えが中身に当たる ・ 標準入力で詰まる ・ 記録と違う接続の定義で続ける）と小さい3件を直した",
+ "usecases": [
+  "SF1",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "接続の定義の例（Claude Code と Codex）の非対話の実行 ・ 再開 ・ 出力 ・ 子セッションの ID の取り方",
+   "evidence": [
+    "code.claude.com/docs/en/cli-reference.md（取得 2026-10-31）:138「Use `\"\"` to disable all」（--tools）",
+    "code.claude.com/docs/en/headless.md:403-404「session_id=$(claude -p \"Start a review\" --output-format json | jq -r '.session_id')」「claude -p \"Continue that review\" --resume \"$session_id\"」",
+    "headless.md:186「--output-format json | jq -r '.result'」",
+    "developers.openai.com/codex/noninteractive.md:76「Event types include `thread.started`」、:83 と :86 の thread_id ・ item.completed の例",
+    "developers.openai.com/codex/cli/reference（HTML）の execResumeOptions：PROMPT の型「string | - (read stdin)」",
+    "手元の codex-cli 0.164.0 の `codex exec resume --help`：Usage: codex exec resume [OPTIONS] [SESSION_ID] [PROMPT]、オプションに --json がある（resume の後ろに置く形に直した）",
+    "実測（Claude Code 2.1.316）：--json-schema に draft 2020-12 の $schema を持つ答えの形を渡すと「--json-schema is not a valid JSON Schema」で起動に失敗した。旗を外し、答えの形はプロンプトで渡す",
+    "code.claude.com/docs/en/cli-reference.md:138「The flag doesn't affect MCP tools; to deny those too, use `--disallowedTools \"mcp__*\"`.」。実測（Claude Code 2.1.316、stream-json の init）：--tools \"\" だけでは子セッションが使えるツールが 95件（すべて MCP。acdr の new ・ render など書き込みのできるものを含む）、--disallowedTools \"mcp__*\" を足すと 0件。接続の定義の例に足した"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Copilot と Kiro の子セッションの ID の取り方と、ツール自身のエージェントの中で親セッションの環境変数が変わるか",
+   "evidence": [
+    "接続の定義の例は Claude Code と Codex の2つだけにした。原文の照合と実地の確かめは、それらの例を足すときにする"
+   ],
+   "result": "open"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "SF1 と UC4 の by: ai の rule（validation/application の use_cases/meaning.rs と validate.rs の apply_meaning）",
+   "steps": [
+    "機械の判定（judge_current）を済ませ、by: ai の rule が無ければ子セッションを起動しない",
+    "--continue があれば、記録の子セッションの行を読む。無ければ not_found、書き込み用の子セッションなら writer_as_checker、起動した接続の定義と名前か版が違えば launch_mismatch で断る。最後に使ってから cache_ttl_s を過ぎたか10回以上使った子なら、新しい子セッションを勧める案内を付ける",
+    "対象ごとに、by: ai の rule × 当たる所を1ステップにした手順のプロンプトを作る。渡すのはいまの値と rule と欄の title ・ description だけ（前の判定 ・ 書き込み用の子セッションの答え ・ brief は渡さない）",
+    "子セッションを起動するか続けて、答えを step ・ rule ・ pointer で突き合わせる。形が違えば同じ子セッションで2回まで直させ、超えたら error。時間切れは新しい子セッションで2回までやり直し、超えたら error。起動できなければ error。ツールが処理中と返したら busy で断る",
+    "起動した子セッションを sessions に checker として1行ずつ書く（親セッション ・ ツール ・ 起動の設定）",
+    "答えを待つ間に対象の指紋が変わっていたら、判定を記録に入れずに conflict で断る",
+    "検証の行に判定した子セッションの ID を入れて記録し、結果に child_session（id ・ continued ・ started ・ corrections ・ restarts ・ hint）を返す"
+   ],
+   "rules": [
+    "検証用の子セッションに前の判定を渡さない（同じ中身なら、続けた子セッションにも新しい子セッションにも同じプロンプト）",
+    "書いた子セッションに自分の書いたものを確かめさせない",
+    "SAS はツールの名前で分岐しない。起動 ・ 続ける ・ 答えと子セッションの ID の取り出し方は接続の定義が持つ",
+    "子セッションを起動する前に、親セッション ID の環境変数（callers.json）をすべて外す",
+    "全部か無しか：1つの対象でも断れば、その呼び出しの判定は記録しない"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "by: ai の rule の判定（意味）",
+   "became": "script",
+   "evident_from_start": false,
+   "why": "計画どおり、意味は検証の中の性質で業務領域にしない。use_cases/meaning.rs の手続きと、ポート ReadMeaning"
+  },
+  {
+   "what": "検証用の子セッションの使われ方（uses ・ idle_s）",
+   "became": "script",
+   "evident_from_start": false,
+   "why": "記録から引く値で、検証の手続きが案内を出すのに使うだけ。OperationLog の child が返す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "計画の builds：procedure-prompt ・ session-request ・ session の3つのスキーマと keep_prompt ポート",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "reply のサブコマンドを作らず、SAS が子セッションを起動して答えを受け取る形にしたので、手順のプロンプトは operation-result の $defs.procedure、起動の設定は agent-connector で足りた。プロンプトのファイルはアダプターの中で、{prompt.path} を使う定義のときだけ置いて消す（ポートにしない）。計画を直した"
+  },
+  {
+   "item": "計画の受け入れ条件：sessions に model を書く",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "モデルは接続の定義の model に書いたときだけ分かる（例の2つは書いていない）。計画の文を「分かれば」にした"
+  },
+  {
+   "item": "利用者の問い「--tools \"\" って何？」から：--tools \"\" は組み込みのツールだけを外し、MCP のツールは残る",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "接続の定義 claude-code.json の start と continue に --disallowedTools \"mcp__*\" を足した。実物で、子セッションが使えるツールが 95件から 0件になったことを確かめた"
+  },
+  {
+   "item": "反証役の指摘：止められた sas が子セッションの鍵のファイルを残し、その子セッションはずっと busy になる",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "OS の鍵（File::try_lock）にした。止められても外れる。アダプターの試験 a_child_held_by_another_open_is_busy_and_a_left_file_is_not"
+  },
+  {
+   "item": "反証役の指摘：{名前} の置き換えを順に重ねていて、プロンプトの中身の {tool_ref} などにも当たる",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "1回の走査で埋める（fill_once）。placeholders_inside_the_prompt_are_left_as_they_are"
+  },
+  {
+   "item": "反証役の指摘：子セッションが標準入力を読まないと、大きなプロンプトで時間切れが効かない",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "標準入力も別のスレッドで書き、時間はその前から測る。a_child_that_never_reads_a_large_prompt_still_times_out"
+  },
+  {
+   "item": "反証役の指摘：--continue のときに記録の起動の設定を使わず、いま渡された定義で起動する",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "記録の接続の定義の名前と版がいまの定義と違えば launch_mismatch で断る（S-SF1-LAUNCH-MISMATCH）"
+  },
+  {
+   "item": "反証役の指摘：時間切れで新しい子セッションに替わっても continued が true",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "最後に判定した子セッションが --continue の子セッションのときだけ true にした"
+  },
+  {
+   "item": "反証役の指摘：プロンプトのファイルが消えずにたまる ・ stderr の全文を記録に入れる",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "ファイルは使う定義のときだけ置いて消す。stderr は頭の 500 字だけ"
+  },
+  {
+   "item": "反証役の指摘：--agent と --stale を一緒に使えない ・ 別の親セッションが起動した子セッションも続けられる ・ 2つ目の対象で断ると1つ目の判定も記録しない ・ 子セッションが SAS_DB_PATH を引き継ぐ",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "いまは全部か無しかで一貫している。--stale と意味の判定の組み合わせ、子セッションの親セッションの確かめ、子セッションに渡す環境変数の絞り方は、使う場面が出たときに決める"
+  },
+  {
+   "item": "qa-advisor の観点：続けた子セッションの判定が前の判定に引っぱられないか",
+   "result": "match",
+   "fixed": "none",
+   "note": "代役の試験で、同じ中身なら続けた子セッションにも新しい子セッションにも同じプロンプトが渡ることを確かめた（continued_child_gets_the_same_prompt_as_a_new_child）。意味の変化は代役では見られないので、実物の1回（続けた子セッション ・ 新しい子セッション ・ 順を変えた2通り）で判定がそろうことを見た"
+  },
+  {
+   "item": "新しい子セッションを勧める目安（cache_ttl_s を過ぎたら）",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "実測1回では、続けた子セッションのキャッシュの読みが 649 トークン（書き込み 5430）、新しい子セッションは読み 3974（書き込み 0）で、続けるほうが安くなかった。目安を変えるのは測る回数を増やしてから"
+  },
+  {
+   "item": "値の外を読まないと判定できない rule（例：目的が参照先の ACDR と食い違わない）",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "いまは子セッションに rule と当たる所の値だけを渡し、ツールも使わせない（判定を SAS が渡したものと指紋だけで決めるため）。何を読ませるかは根幹の決め事なので、調査 ・ 反証 ・ アドバイザーを通して別の論点として出す（2026-11-01 利用者と合意して持ち越し）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "検証用の子セッション（checker）",
+   "seen": "sessions.role ・ child_session.role ・ --continue",
+   "drift": "ずれは無い。書き込み用の子セッション（writer）はまだ CLI で作れない"
+  },
+  {
+   "term": "接続の定義",
+   "seen": "agent-connector.schema.json ・ --agent",
+   "drift": "計画では Agents 契約や agent_runtime とも呼んでいた。ポートは ReadMeaning、型は agent-connector にそろえた"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate outbound-agents",
+    "before": "無し",
+    "after": "adapters/outbound/agents（Connector が ReadMeaning を実装。connectors/ に Claude Code と Codex の例）",
+    "why": "子セッションを起動する仕組みを adapter に閉じ込め、ツールの名前で分岐しない"
+   },
+   {
+    "what": "validation-application",
+    "before": "機械と人の rule だけ",
+    "after": "ポート ReadMeaning ・ Reply、use_cases/meaning.rs、validate_with_meaning、答えの形 agent-answer.schema.json",
+    "why": "by: ai の rule の判定は検証の中の性質"
+   },
+   {
+    "what": "recording-application と outbound-sqlite",
+    "before": "親セッションの行だけ",
+    "after": "ChildRow ・ ChildRecord、append_child ・ child（使った数と最後に使ってからの秒）、validations.child_session_id",
+    "why": "続ける子セッションの起動の設定と使われ方を記録から引く"
+   },
+   {
+    "what": "published-language/v1",
+    "before": "agent-connector は無し",
+    "after": "agent-connector.schema.json、operation-result に procedure と child_session、断る理由 busy ・ writer_as_checker ・ launch_mismatch",
+    "why": "接続の定義と出力の形を公開された言葉にする"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "procedure-prompt ・ session-request ・ session のスキーマ、keep_prompt ・ agent_runtime のポート",
+    "why": "SAS が子セッションを起動して答えを受け取る形にしたので要らなかった"
+   },
+   {
+    "what": "書き込み用の子セッション（writer）を起動する道",
+    "why": "UC1 ・ UC2 で AI に書かせるステップで作る"
+   },
+   {
+    "what": "Copilot ・ Kiro ・ Gemini の接続の定義の例",
+    "why": "原文の照合と実地の確かめをしてから足す"
+   }
+  ]
+ }
+}

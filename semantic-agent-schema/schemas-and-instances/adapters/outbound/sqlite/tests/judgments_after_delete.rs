@@ -7,6 +7,7 @@ use recording_application::ports::{ChangeRow, FieldRow, OperationLog, RuleRow, V
 
 fn validate_row() -> ValidateRow {
     ValidateRow {
+        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: vec![RuleRow {

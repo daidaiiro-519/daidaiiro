@@ -5,8 +5,8 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::panic)]
 
 use recording_application::ports::{
-    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, StoredChange, ValidateRow,
-    WriteRecord,
+    Caller, ChangeRow, ChildRecord, ChildRow, IdentifyCaller, Judgment, OperationLog, StoredChange,
+    ValidateRow, WriteRecord,
 };
 use serde_json::{Value, json};
 use std::cell::RefCell;
@@ -77,11 +77,12 @@ impl IdentifyCaller for Tool {
     }
 }
 
-/// 検証と変更を、足した順に1つの並びで持つ代役。
+/// 検証と変更を、足した順に1つの並びで持つ代役。3つ目は子セッションの行。
 #[derive(Default)]
 pub(crate) struct Log(
     pub(crate) Vec<ValidateRow>,
     pub(crate) Vec<(String, ChangeRow)>,
+    pub(crate) Vec<ChildRecord>,
 );
 impl Log {
     fn next(&self) -> String {
@@ -147,6 +148,32 @@ impl OperationLog for Log {
             })
             .collect())
     }
+    fn append_child(&mut self, parent: Option<&str>, child: &ChildRow) -> Result<(), String> {
+        if !self.2.iter().any(|c| c.row.id == child.id) {
+            self.2.push(ChildRecord {
+                row: child.clone(),
+                parent: parent.map(str::to_string),
+                uses: 0,
+                idle_s: 0,
+            });
+        }
+        Ok(())
+    }
+    fn child(&self, id: &str) -> Result<Option<ChildRecord>, String> {
+        Ok(self
+            .2
+            .iter()
+            .find(|c| c.row.id == id)
+            .cloned()
+            .map(|mut c| {
+                c.uses = self
+                    .0
+                    .iter()
+                    .filter(|r| r.child_session.as_deref() == Some(id))
+                    .count() as u64;
+                c
+            }))
+    }
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         // rule ごとに、その rule を最後に判定した検証の行（検証の ID は検証だけの並びの番号）
         let mut latest: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
@@ -184,5 +211,16 @@ pub(crate) fn decided() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC, "properties": {
         "status": {"x-decided-by": "human", "default": "draft"},
         "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "by": "human"}]}}
+    }})
+}
+
+/// 意味の rule（by: ai）を1つ持つ Concrete。goal を検証用の子セッションに判定させる。
+pub(crate) fn meaning() -> Value {
+    json!({"$schema": ABSTRACT, "$id": UC,
+           "x-delegates": {"judge": {"role": "意味の判定役", "run": {"kind": "judging"}}},
+           "properties": {
+        "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
+                 "why": "手段だと果たせたかを決められない。", "test": "結果を表す名詞句か。",
+                 "by": "ai", "agent": "judge"}]}}
     }})
 }

@@ -1,0 +1,13 @@
+{
+ "$schema": "urn:semantic-agent-schema:published-language:agent-connector:v1",
+ "name": "codex",
+ "version": "1",
+ "commands": {
+  "start": { "argv": ["codex", "exec", "--json", "--sandbox", "read-only", "-"], "stdin": "{prompt.text}" },
+  "continue": { "argv": ["codex", "exec", "resume", "--json", "{tool_ref}", "-"], "stdin": "{prompt.text}" }
+ },
+ "answer": { "from": "stdout", "json_pointer": "/item/text", "event_type": "item.completed" },
+ "tool_ref": { "from": "stdout", "json_pointer": "/thread_id", "event_type": "thread.started" },
+ "time_limit_s": 600,
+ "capabilities": { "resume": true }
+}

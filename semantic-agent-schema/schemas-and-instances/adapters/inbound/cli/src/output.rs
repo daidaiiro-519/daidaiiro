@@ -5,7 +5,7 @@ use recording_application::use_cases::history::Interleaved;
 use rendering_application::use_cases::design::DesignValidation;
 use rendering_application::use_cases::render::Rendered;
 use serde_json::{Map, Value, json};
-use validation_application::use_cases::validate::{Refused, Validation};
+use validation_application::use_cases::validate::{MeaningOutcome, Refused, Validation};
 use validation_domain::values::{Counts, RuleResult, Verdict};
 use writing_application::use_cases::write::{ChangeResult, Deletion};
 use writing_domain::values::Diff;
@@ -28,8 +28,23 @@ fn rule_result(r: &RuleResult) -> Value {
     })
 }
 
+/// 手順のプロンプトを1行ずつ出す（by: ai の rule の判定を、検証用の子セッションに渡したもの）。
+pub fn print_procedures(m: &MeaningOutcome) {
+    for p in &m.procedures {
+        let mut line = p.clone();
+        line["$schema"] = json!("urn:semantic-agent-schema:published-language:operation-result:v1");
+        line["child_session"] = json!(m.child);
+        println!("{line}");
+    }
+}
+
 /// 検証の結果を出す。
 pub fn print_validation(v: &Validation) {
+    print_validation_with(v, None);
+}
+
+/// 検証の結果を出す（検証用の子セッションに判定させたときは、その子セッションのことも）。
+pub fn print_validation_with(v: &Validation, meaning: Option<&MeaningOutcome>) {
     let targets: Vec<Value> = v
         .targets
         .iter()
@@ -66,6 +81,19 @@ pub fn print_validation(v: &Validation) {
     if v.stale_only {
         out["stale_only"] = json!(true);
         out["unchanged_targets"] = json!(v.unchanged_targets);
+    }
+    if let Some(m) = meaning {
+        out["child_session"] = json!({
+            "id": m.child,
+            "role": "checker",
+            "continued": m.continued,
+            "started": m.started,
+            "corrections": m.corrections,
+            "restarts": m.restarts,
+        });
+        if let Some(h) = &m.hint {
+            out["child_session"]["hint"] = json!(h);
+        }
     }
     if let Some(u) = v.untracked.first() {
         out["hint"] = json!(format!(

@@ -1,0 +1,44 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SF1-NOT-RECORDED",
+ "name": "記録に無い子セッションを続ける",
+ "title": "記録に無い ID を --continue に渡すと、not_found で断る",
+ "why": "SAS が起動していない会話を、検証用の子セッションとして使わない。",
+ "traces": [
+  "SF1:拡張:続ける子セッションが無い"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--agent",
+   "agent/test-agent.json",
+   "--continue",
+   "child-9"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "when",
+   "file": "agent/count",
+   "exists": false
+  }
+ ]
+}

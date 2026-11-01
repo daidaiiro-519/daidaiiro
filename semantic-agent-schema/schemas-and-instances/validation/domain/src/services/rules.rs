@@ -16,9 +16,11 @@ pub struct AppliedRule {
     pub by: By,
     /// 対象の中の当たる所（JSON Pointer）
     pub pointer: String,
+    /// rule の定義（x-prompt の write の1行）。文が変われば前の判定は効かない
+    pub definition: Value,
 }
 
-fn write_rules(prompt: Option<&Value>) -> Vec<(String, By)> {
+fn write_rules(prompt: Option<&Value>) -> Vec<(String, By, Value)> {
     prompt
         .and_then(|p| p.get("write"))
         .and_then(Value::as_array)
@@ -27,7 +29,7 @@ fn write_rules(prompt: Option<&Value>) -> Vec<(String, By)> {
                 .filter_map(|r| {
                     let id = r.get("id")?.as_str()?.to_string();
                     let by = By::parse(r.get("by")?.as_str()?)?;
-                    Some((id, by))
+                    Some((id, by, r.clone()))
                 })
                 .collect()
         })
@@ -39,21 +41,23 @@ fn write_rules(prompt: Option<&Value>) -> Vec<(String, By)> {
 #[must_use]
 pub fn rules_for_concrete(abstract_doc: &Value, concrete: &ConcreteSchema) -> Vec<AppliedRule> {
     let mut out = Vec::new();
-    for (id, by) in write_rules(abstract_doc.get("x-prompt")) {
+    for (id, by, definition) in write_rules(abstract_doc.get("x-prompt")) {
         out.push(AppliedRule {
             id,
             by,
             pointer: String::new(),
+            definition: definition.clone(),
         });
     }
     if let Some(props) = abstract_doc.get("properties").and_then(Value::as_object) {
         for (name, field) in props {
             if concrete.document().get(name).is_some() {
-                for (id, by) in write_rules(field.get("x-prompt")) {
+                for (id, by, definition) in write_rules(field.get("x-prompt")) {
                     out.push(AppliedRule {
                         id,
                         by,
                         pointer: format!("/{}", escape(name)),
+                        definition: definition.clone(),
                     });
                 }
             }
@@ -62,11 +66,12 @@ pub fn rules_for_concrete(abstract_doc: &Value, concrete: &ConcreteSchema) -> Ve
     if let Some(exts) = abstract_doc.get("x-extensions").and_then(Value::as_object) {
         for (name, def) in exts {
             if concrete.uses(name) {
-                for (id, by) in write_rules(def.get("prompt")) {
+                for (id, by, definition) in write_rules(def.get("prompt")) {
                     out.push(AppliedRule {
                         id,
                         by,
                         pointer: format!("/{}", escape(name)),
+                        definition: definition.clone(),
                     });
                 }
             }
@@ -79,11 +84,12 @@ pub fn rules_for_concrete(abstract_doc: &Value, concrete: &ConcreteSchema) -> Ve
 #[must_use]
 pub fn rules_for_instance(concrete_doc: &Value, instance_doc: &Value) -> Vec<AppliedRule> {
     let mut out = Vec::new();
-    for (id, by) in write_rules(concrete_doc.get("x-prompt")) {
+    for (id, by, definition) in write_rules(concrete_doc.get("x-prompt")) {
         out.push(AppliedRule {
             id,
             by,
             pointer: String::new(),
+            definition: definition.clone(),
         });
     }
     walk(concrete_doc, instance_doc, "", &mut out);
@@ -98,11 +104,12 @@ fn walk(schema: &Value, value: &Value, at: &str, out: &mut Vec<AppliedRule>) {
         for (name, field) in props {
             if let Some(child) = obj.get(name) {
                 let here = format!("{at}/{}", escape(name));
-                for (id, by) in write_rules(field.get("x-prompt")) {
+                for (id, by, definition) in write_rules(field.get("x-prompt")) {
                     out.push(AppliedRule {
                         id,
                         by,
                         pointer: here.clone(),
+                        definition: definition.clone(),
                     });
                 }
                 walk(field, child, &here, out);

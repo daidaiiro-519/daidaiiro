@@ -31,6 +31,7 @@ fn update(request_id: Option<&str>) -> ChangeRow {
 
 fn validate_row() -> ValidateRow {
     ValidateRow {
+        child_session: None,
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
         results: vec![RuleRow {

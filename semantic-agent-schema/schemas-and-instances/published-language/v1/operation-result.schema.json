@@ -14,6 +14,7 @@
   },
   "kind": {
    "enum": [
+    "procedure",
     "validation",
     "change",
     "render",
@@ -22,6 +23,9 @@
   }
  },
  "oneOf": [
+  {
+   "$ref": "#/$defs/procedure"
+  },
   {
    "$ref": "#/$defs/validation"
   },
@@ -271,6 +275,56 @@
      "type": "string",
      "minLength": 1,
      "description": "SAS を通らない変更があったときの、取り込みの案内"
+    },
+    "child_session": {
+     "type": "object",
+     "required": [
+      "id",
+      "role",
+      "continued",
+      "started",
+      "corrections",
+      "restarts"
+     ],
+     "additionalProperties": false,
+     "description": "by: ai の rule を判定した検証用の子セッション（--agent のとき）",
+     "properties": {
+      "id": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "description": "判定した子セッションの ID（起動できなければ null）"
+      },
+      "role": {
+       "const": "checker"
+      },
+      "continued": {
+       "type": "boolean",
+       "description": "--continue で続けた子か"
+      },
+      "started": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "この呼び出しで新しく起動した子セッションの ID"
+      },
+      "corrections": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "答えの形の誤りを直させた回数"
+      },
+      "restarts": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "時間切れで新しい子セッションにした回数"
+      },
+      "hint": {
+       "type": "string",
+       "description": "新しい子セッションを勧める案内"
+      }
+     }
     }
    }
   },
@@ -685,9 +739,12 @@
       "missing_view_kinds",
       "template",
       "out",
-      "invalid_design_system"
+      "invalid_design_system",
+      "busy",
+      "writer_as_checker",
+      "launch_mismatch"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents ・ references_blocked は止めた削除（Concrete に従うインスタンスか指している Concrete がある ・ 参照元の記載を消せない）で、記録せず、blocked に理由になった文書を返す。references_left は対象を消して記録したあと参照元を書けなかったことで、記録した削除の operation と、残った参照元を blocked に返す"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの7つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents ・ references_blocked は止めた削除（Concrete に従うインスタンスか指している Concrete がある ・ 参照元の記載を消せない）で、記録せず、blocked に理由になった文書を返す。references_left は対象を消して記録したあと参照元を書けなかったことで、記録した削除の operation と、残った参照元を blocked に返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前か版が違う）で、記録しない"
     },
     "path": {
      "type": "string"
@@ -973,7 +1030,7 @@
     "null"
    ],
    "minLength": 1,
-   "description": "呼んだ親のセッションの ID（ツールのセッション ID。--session か、ツールの環境変数で決まる）。人なら null"
+   "description": "呼んだ親セッションの ID（ツールのセッション ID。--session か、ツールの環境変数で決まる）。人なら null"
   },
   "render": {
    "type": "object",
@@ -1037,6 +1094,105 @@
         "description": "使った x-view の種類"
        }
       }
+     }
+    }
+   }
+  },
+  "procedure": {
+   "type": "object",
+   "required": [
+    "kind",
+    "operation_kind",
+    "target",
+    "steps",
+    "answer",
+    "constraints"
+   ],
+   "description": "手順のプロンプト（by: ai の rule の判定を検証用の子セッションに渡したもの。出力の1行目から、対象ごとに1行）。答えは step ・ rule ・ pointer で突き合わせる",
+   "properties": {
+    "$schema": true,
+    "kind": {
+     "const": "procedure"
+    },
+    "operation_kind": {
+     "enum": [
+      "validate"
+     ]
+    },
+    "child_session": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "判定した検証用の子セッションの ID"
+    },
+    "target": {
+     "type": "object",
+     "required": [
+      "path",
+      "concrete",
+      "fingerprint"
+     ],
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "concrete": {
+       "type": "string"
+      },
+      "fingerprint": {
+       "$ref": "#/$defs/fingerprint"
+      }
+     }
+    },
+    "steps": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "required": [
+       "no",
+       "action",
+       "pointer",
+       "rules",
+       "current"
+      ],
+      "properties": {
+       "no": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "action": {
+        "enum": [
+         "judge"
+        ]
+       },
+       "pointer": {
+        "type": "string"
+       },
+       "title": {
+        "type": "string"
+       },
+       "description": {
+        "type": "string"
+       },
+       "rules": {
+        "type": "array",
+        "items": {
+         "type": "object"
+        }
+       },
+       "current": true
+      }
+     }
+    },
+    "answer": {
+     "type": "object"
+    },
+    "constraints": {
+     "type": "array",
+     "items": {
+      "type": "string"
      }
     }
    }
