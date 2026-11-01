@@ -41,13 +41,12 @@ impl DocumentStore for Files {
     }
 }
 
-/// 形の検査はいつも通す代役。Abstract は根に by: human と by: machine の rule を1つずつ持つ。
+/// 形の検査はいつも通す代役。Abstract は根に by: human の rule を1つ持つ。
 pub(crate) struct Lenient;
 impl SchemaValidator for Lenient {
     fn shipped(&self, id: &str) -> Option<Value> {
-        (id == ABSTRACT).then(|| {
-            json!({"x-prompt": {"write": [{"id": "unique-id", "by": "machine"}, {"id": "someone-decides", "by": "human"}]}})
-        })
+        (id == ABSTRACT)
+            .then(|| json!({"x-prompt": {"write": [{"id": "someone-decides", "by": "human"}]}}))
     }
     fn check(
         &self,
@@ -210,7 +209,7 @@ pub(crate) fn files(entries: &[(&str, Value)]) -> Files {
 }
 
 pub(crate) fn concrete() -> Value {
-    json!({"$schema": ABSTRACT, "$id": UC, "properties": {"calls": {"items": {"type": "string"}}}})
+    json!({"$schema": ABSTRACT, "$id": UC, "properties": {"$schema": {"const": UC}, "calls": {"items": {"type": "string"}}}})
 }
 
 pub(crate) fn decided() -> Value {

@@ -29,6 +29,7 @@ fn concrete_gets_a_result_for_every_applied_rule() {
         rules,
         [
             ("json-schema", Verdict::Verified),
+            ("instance-schema-name", Verdict::Verified),
             ("unique-id", Verdict::Verified),
             ("someone-decides", Verdict::Unverified)
         ]

@@ -266,7 +266,7 @@ mod tests {
             "x-prompt": {"write": [{"id": "root", "by": "ai"}]},
             "properties": {
                 "goal": {"x-prompt": {"write": [{"id": "goal-rule", "by": "human"}]}},
-                "absent": {"x-prompt": {"write": [{"id": "absent-rule", "by": "machine"}]}}
+                "absent": {"x-prompt": {"write": [{"id": "absent-rule", "by": "ai"}]}}
             }
         });
         let rules = rules_for_instance(&concrete, &json!({"goal": "x"}));

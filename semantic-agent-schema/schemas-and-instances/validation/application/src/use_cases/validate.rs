@@ -584,19 +584,21 @@ fn judge(
                 refused("validator", &d.path, "Concrete として読めない".to_string())
             })?;
             let vocabulary = validator.shipped(VOCABULARY);
+            // JSON Schema で書けない Concrete の決まり2つは、SAS が組み込みで確かめる
+            for id in ["instance-schema-name", "unique-id"] {
+                results.extend(
+                    judge_concrete(&concrete, id, "")
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(whole),
+                );
+            }
             for rule in rules_for_concrete(&abstract_doc, vocabulary.as_ref(), &concrete) {
-                if let Some(rs) = judge_concrete(&concrete, &rule.id, &rule.pointer) {
-                    results.extend(
-                        rs.into_iter()
-                            .map(|r| (r, rule.pointer.clone(), Some(rule.definition.clone()))),
-                    );
-                } else {
-                    results.push((
-                        judge_others(&rule),
-                        rule.pointer.clone(),
-                        Some(rule.definition.clone()),
-                    ));
-                }
+                results.push((
+                    judge_others(&rule),
+                    rule.pointer.clone(),
+                    Some(rule.definition.clone()),
+                ));
             }
         }
         TargetKind::Instance => {
