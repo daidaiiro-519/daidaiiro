@@ -170,7 +170,7 @@ CTXNO = [("「セッション」で文脈を2つに分ける（9519cffa）", "�
          ("前の2つの文脈（検証の文脈・変更の確かめの文脈）", "前は「判定」の2つの意味で2つの文脈に分けていた。意図の判定を使う側へ出したので意味が1つに戻り、1つになった")]
 INV = [("集約 Concrete（書くのモジュール）", "① 申告する Abstract の版は閉じた一覧にある（Abstract の enum）② x-published の欄を同じ版のまま変えない"),
        ("集約 Instance（書くのモジュール）", "① id を変えない ② x-decided-by が human の欄は人の入口からだけ変える（導く値は、Concrete の JSON Schema の if ・ then ・ else が形の確認で見る）"),
-       ("検証の rule（検証のモジュールの業務サービスが判定）", "JSON Schema で書けない Abstract の rule：$schema の const と $id が同じ・rule の id が重ならない・人だけが変える欄。x- の閉じた一覧は語彙の propertyNames（JSON Schema）が見る"),
+       ("検証の rule（検証のモジュールの業務サービスが判定）", "JSON Schema で書けない Abstract の rule：$schema の const と $id が同じ・rule の id が重ならない。人だけが変える欄は書く前に断る（検証の rule にしない）。x- の閉じた一覧は語彙の propertyNames（JSON Schema）が見る"),
        ("書く手順の条件（書くのモジュールの use_cases）", "読んだ時の指紋といまの指紋が一致したときだけ書く・形の確認・機械の検証・指紋の一致がそろったときだけ書く・最後の操作の事後の指紋（値で受け取る）と違えば SAS を通らない変更として知らせる"),
        ("sessions の行（集約ではない）", "追記だけ・子セッションの親セッションは親セッションの行だけ・親セッションは launch を持たず子セッションは必ず持つ（DDL・trigger）"),
        ("記録の行（集約ではない）", "追記だけ・request_id は1回・書き込み用の子セッションは変更だけ・検証用の子セッションは検証だけ（DDL・trigger・一意の索引）")]

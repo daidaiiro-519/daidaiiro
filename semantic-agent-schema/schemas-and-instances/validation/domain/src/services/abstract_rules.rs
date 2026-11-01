@@ -1,6 +1,6 @@
-//! Concrete に当たる Abstract の機械の rule のうち、Concrete の文書だけで決まるもの（instance-schema-name ・ unique-id ・
-//! human-entry-only）を判定する。JSON Schema の構文で書けることは Abstract の JSON Schema が見るので、ここが見るのは
-//! JSON Schema で書けないことだけ（欄どうしの値の一致 ・ 配列の中の id の重なり ・ 書く前に断る振る舞い）。
+//! Concrete に当たる Abstract の機械の rule のうち、Concrete の文書だけで決まるもの（instance-schema-name ・ unique-id）を
+//! 判定する。JSON Schema の構文で書けることは Abstract の JSON Schema が見るので、ここが見るのは
+//! JSON Schema で書けないことだけ（欄どうしの値の一致 ・ 配列の中の id の重なり）。
 //! 集約 Concrete は writing-domain にあり、ここはそれを読んで rule に照らす。
 
 use crate::values::{By, RuleResult, Verdict};
@@ -14,14 +14,6 @@ pub fn judge_concrete(c: &ConcreteSchema, rule: &str, pointer: &str) -> Option<V
     match rule {
         "instance-schema-name" => Some(vec![instance_schema_name(c, pointer)]),
         "unique-id" => Some(unique_id(c, pointer)),
-        // 人が決める欄を、親セッションのある呼び出しが変えようとすると、SAS は書く前に断る（human_field）
-        "human-entry-only" => Some(vec![RuleResult::new(
-            rule,
-            pointer,
-            By::Machine,
-            Verdict::Verified,
-            "親セッションのある呼び出しがこの欄を変えようとすると、SAS は書く前に断る（human_field）",
-        )]),
         _ => None,
     }
 }
