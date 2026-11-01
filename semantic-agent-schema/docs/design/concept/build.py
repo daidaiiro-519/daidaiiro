@@ -620,7 +620,7 @@ T.append(T_NEED)
 T.append(T_VERIFY)
 ORDER = ['overview', 'types', 'uc', 'domain', 'model', 'verify', 'arch', 'data', 'session', 'flow', 'use', 'link', 'schema', 'need', 'decided']
 T = sorted(T, key=lambda t: ORDER.index(t[0]))
-STATUS = [("決まった", "s-ok", "全体像〜スキーマと DB の全部（計画の承認 2026-10-31、版16 の承認 2026-11-01、版28 はコミット済み、版29 はコミット済み（dc769345）、版30 は未コミット）"), ("承認待ち", "s-wait", "土台の文（ACDR 0217）・ガイドのボードへ足す手順")]
+STATUS = [("決まった", "s-ok", "全体像〜スキーマと DB の全部（計画の承認 2026-10-31、版16 の承認 2026-11-01、版28 はコミット済み、版29 はコミット済み（dc769345）、版30 はコミット済み（32268b31））"), ("承認待ち", "s-wait", "土台の文（ACDR 0217）・ガイドのボードへ足す手順")]
 
 CSS = open(os.path.join(H, 'base.css')).read()
 tabs = ''.join(f'<button type="button" role="tab" id="t-{k}" aria-controls="p-{k}" aria-selected="{"true" if i == 0 else "false"}">{n}</button>' for i, (k, n, _) in enumerate(T))
