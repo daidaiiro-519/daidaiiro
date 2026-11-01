@@ -740,6 +740,7 @@ pub fn validate_design_systems(
         .map(|d| ValidateRow {
             target_path: d.path.clone(),
             hash: ContentHash::of(d.text.as_bytes()).as_str().to_string(),
+            schema: Some(DESIGN_SYSTEM.to_string()),
             results: d
                 .results
                 .iter()

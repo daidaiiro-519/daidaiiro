@@ -9,6 +9,7 @@ fn validate_row() -> ValidateRow {
     ValidateRow {
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
+        schema: None,
         results: vec![RuleRow {
             rule: "json-schema".into(),
             pointer: String::new(),
@@ -29,6 +30,7 @@ fn delete_row() -> ChangeRow {
         before: Some("sha256:a".into()),
         after: None,
         intent: Some("消す".into()),
+        schema: None,
         fields: vec![FieldRow {
             pointer: "/id".into(),
             change: "remove".into(),

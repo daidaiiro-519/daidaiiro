@@ -1,0 +1,100 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC7-LOG-FOLDER",
+ "name": "フォルダで絞る",
+ "title": "sas log --folder は、そのフォルダで動いたセッション（sessions の folder）の操作だけを返す。渡したフォルダは実体の絶対の経路に直してから比べる",
+ "why": "別のフォルダ（ワークツリー）に立てたセッションが何をしたかを、そのフォルダの名前で見られないと、並べて動かしたセッションの様子が分からない。",
+ "traces": [
+  "UC7:成功時保証",
+  "UC7:変形:絞って読む"
+ ],
+ "given": {
+  "files": {
+   "a/schemas/review.schema.json": "@fixtures/review.schema.json",
+   "b/schemas/review.schema.json": "@fixtures/review.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/r.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"結果を受け取る\"}"
+    ],
+    "cwd": "a",
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-a",
+     "SAS_DB_PATH": "../log.db"
+    }
+   },
+   {
+    "args": [
+     "create",
+     "items/r.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"結果を受け取る\"}"
+    ],
+    "cwd": "b",
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-b",
+     "SAS_DB_PATH": "../log.db"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log",
+   "--folder",
+   "a"
+  ],
+  "env": {
+   "SAS_DB_PATH": "log.db"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/session/id",
+   "equals": "c-a"
+  },
+  {
+   "of": "after[0]",
+   "lines": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/session/id",
+   "equals": "c-b"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operation",
+   "equals": "o-0002"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--folder",
+    "./a/../b"
+   ],
+   "env": {
+    "SAS_DB_PATH": "log.db"
+   }
+  }
+ ]
+}

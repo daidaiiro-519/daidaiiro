@@ -1,0 +1,143 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 8,
+ "date": "2026-11-01",
+ "summary": "ステップ8〜10 をまとめて作った（版28 の形の上で）。意味で書く手順の answer.schema に書く元のスキーマの本体を入れ、記録を読む sas log（UC7）と検索 sas search（UC6）を足し、公開された言葉7つと UC0〜UC7 のどれにも場面があることを試験で確かめるようにした（場面128本）。検索は業務領域「検索」（補完）のモジュール（search-application。application だけ）で、記録しない。",
+ "usecases": [
+  "UC0",
+  "UC1",
+  "UC2",
+  "UC6",
+  "UC7"
+ ],
+ "factchecks": [
+  {
+   "item": "版28 で子セッションをやめた経緯",
+   "evidence": [
+    "実地 2026-11-01：意味の操作のたびに claude -p で子セッションを起動していたので、画面の無いプロセスが増え、何が起きているか誰にも見えなかった",
+    "ツールを持たない子セッションが、ツールの呼び出しを文字で763回くり返して10分で時間切れになった",
+    "b2ae6ad7：SAS はエージェントを起動せず、打ったセッションに手順を返すだけにした。このステップはこの形の上で作った"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "意味で書く手順に、形の決まりが欠けていた",
+   "evidence": [
+    "実地 2026-11-01：Concrete を意味で書く手順の answer.schema が Abstract の URN だけで、properties の欄に $schema が必要なことが手順のどこにも無く、1回断られて初めて分かった",
+    "write/semantic.rs：answer.schema に書く元のスキーマの本体を入れ、$ref で指すほかの文書は $id を持ったまま $defs に入れる（判定の手順はすでに本体を入れていた）",
+    "場面 S-UC1-SEMANTIC-ANSWER-SCHEMA"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "本物の sas で sas log と sas search を動かす",
+   "evidence": [
+    "実地 2026-11-01：sas log が2件を新しい順に返し、sas log --operation が1件を change ・ validation の形で返した",
+    "sas search --where が一致した所と値を、探した範囲と一緒に返した",
+    "sas search --semantic が範囲の文書ごとの手順を返し、--answer の正しい出どころが通った",
+    "所が無い出どころは invalid_answer、古いハッシュの出どころは conflict で断った",
+    "検索のあと、changes ・ validations の行は増えなかった（検索は記録しない）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC7 操作の記録を読む（recording/application の use_cases/history.rs ・ ポート OperationReader）",
+   "steps": [
+    "絞り方（経路 ・ --by ・ --folder ・ --since ・ --limit）を受け取る。どれも「かつ」",
+    "ビュー operations を新しい順に絞り、sessions を結んで要約（operation）を1行1件で返す",
+    "--operation なら1件の中身（変わった欄か rule ごとの結果）を、書いたとき ・ 検証したときと同じ change ・ validation の形で返す。無い ID は not_found"
+   ],
+   "rules": [
+    "読むだけで、sessions にも行を足さない。記録が無ければ作らない",
+    "--folder は sessions の folder と、正規化した経路で比べる",
+    "打ったセッションで絞るのは --by。--session は打ったセッションの ID を渡すのに使っているので別の名前にした"
+   ]
+  },
+  {
+   "usecase": "UC6 検索する（search/application の use_cases/search.rs）",
+   "steps": [
+    "範囲（経路 ・ --concrete ・ --all のどれか1つ）の文書を読む。範囲が無ければ使い方の誤り",
+    "--where なら、JSON Pointer の所の値がすべての条件に一致した文書の所と値を、範囲（経路とハッシュ）と一緒に返す",
+    "--semantic なら、範囲の中身の合計が 64KB を超えないことを確かめ、範囲の文書ごとに1ステップ（経路 ・ ハッシュ ・ 中身）の手順を返す",
+    "--answer なら、答えの形（search-answer）→ 出どころごとに範囲の中か ・ ハッシュ ・ 所を確かめ、その所のいまの値と一緒に返す"
+   ],
+   "rules": [
+    "範囲の外は探していないと返せるよう、結果に範囲を必ず返す（U26）",
+    "セッションが書いた出どころが、本当にその所にその値であるかを SAS が確かめる（U28）",
+    "範囲の外か所が無い出どころは invalid_answer、ハッシュが違えば conflict（手順の取り直しを案内）",
+    "範囲の中身が上限を超えたら、切り詰めずに range_too_large で断る（書くときの ref_too_large と同じ扱い）",
+    "検索は記録しない"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "検索の手続き（範囲を読む ・ 構造で絞る ・ 手順を作る ・ 出どころを確かめる）",
+   "became": "script",
+   "why": "守る条件を持つ状態が無く、文書を読んで返すだけ。集約は書くのモジュールの Concrete ・ インスタンスを読む"
+  },
+  {
+   "what": "記録を読む手続き（絞る ・ 1件を戻す）",
+   "became": "script",
+   "why": "記録は追記する行のままで、読むのは行の出し入れだけ"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "検索を別の業務領域とする（版18 の「ステップ8 で確かめる」）",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "描画と同じく、モデルを持たずに範囲を読んで返すだけのトランザクションスクリプトなので、業務領域「検索」（補完）のまま置いた。アクターとデータが書く ・ 検証と重なることは、業務領域を分けない理由にしない（描画も同じ Concrete ・ インスタンスを読むが別の業務領域）"
+  },
+  {
+   "item": "記録を読むポート",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "operation_log は足すためのポート。読むだけの OperationReader を記録のモジュールに足した（ポートは9つ）"
+  },
+  {
+   "item": "1件の中身を書いたときと同じ形で返す",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "change の target に従う schema が必要なので、changes ・ validations に schema の欄を足した（0005-read.sql。前の行は空）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "--session と --by",
+   "seen": "sas log の絞り方",
+   "drift": "--session は打ったセッションが自分の ID を渡す引数で、絞る相手のセッションとは別のもの"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "search/application（search-application）",
+    "before": "無し（TREE で予定）",
+    "after": "UC6 の手続きと search-answer.schema.json。依存は writing-domain ・ validation-application ・ recording-application",
+    "why": "UC6 検索する"
+   },
+   {
+    "what": "recording/application のポート",
+    "before": "IdentifyCaller ・ OperationLog",
+    "after": "OperationReader を足した",
+    "why": "UC7 を読むだけのポートにする"
+   },
+   {
+    "what": "記録の表",
+    "before": "changes ・ validations に従う schema が無い",
+    "after": "schema の欄（0005-read.sql）",
+    "why": "sas log --operation で書いたときと同じ形に戻す"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "procedure の operation_kind は validate ・ write、command-result に一覧と検索の形が無い",
+    "after": "procedure に search、command-result に operation ・ search と error の range_too_large（not_found は --operation の無い ID にも返す）",
+    "why": "sas log と sas search の出力"
+   }
+  ]
+ }
+}

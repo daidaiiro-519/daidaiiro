@@ -96,6 +96,7 @@ fn row(hash: &str) -> ValidateRow {
     ValidateRow {
         target_path: "a.json".into(),
         hash: hash.into(),
+        schema: None,
         results: Vec::new(),
     }
 }
@@ -132,6 +133,7 @@ fn change(before: Option<&str>, after: Option<&str>) -> ChangeRow {
         before: before.map(Into::into),
         after: after.map(Into::into),
         intent: None,
+        schema: None,
         fields: Vec::new(),
     }
 }

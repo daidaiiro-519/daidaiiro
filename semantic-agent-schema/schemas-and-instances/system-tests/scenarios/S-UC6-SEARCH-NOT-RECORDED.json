@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-NOT-RECORDED",
+ "name": "検索は記録しない",
+ "title": "sas search は、構造で絞っても、意味の答えを渡しても、変更 ・ 検証の記録に操作を足さない",
+ "why": "検索は対象を変えず、判定もしない。記録に入れると、記録を読む人が検索を変更や検証と取り違える。",
+ "traces": [
+  "UC6:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}",
+   "answers/ok.json": "{\"answer\": \"R2 に出てくる\", \"sources\": [{\"path\": \"items/r2.json\", \"pointer\": \"/goal\", \"hash\": \"sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "search",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--where",
+     "/id=R1"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "search",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--answer",
+     "answers/ok.json"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json"
+  ]
+ },
+ "unchanged": [
+  "items/r1.json",
+  "items/r2.json"
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  }
+ ]
+}

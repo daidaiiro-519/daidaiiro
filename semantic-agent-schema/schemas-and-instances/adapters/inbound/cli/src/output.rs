@@ -1,14 +1,19 @@
-//! 結果を JSON の1行にする（command-result.schema.json の validation ・ change ・ render ・ session ・ error と、
-//! procedure.schema.json の手順）。
+//! 結果を JSON の1行にする（command-result.schema.json の validation ・ change ・ render ・ session ・ operation ・ search ・
+//! error と、procedure.schema.json の手順）。
 
-use recording_application::ports::{SessionRow, WriteRecord};
+use recording_application::ports::{
+    OperationDetail, OperationSummary, RuleRow, SessionRow, WriteRecord,
+};
 use recording_application::use_cases::history::Interleaved;
+use rendering_application::use_cases::design::DESIGN_SYSTEM;
 use rendering_application::use_cases::design::DesignValidation;
 use rendering_application::use_cases::render::Rendered;
+use search_application::use_cases::search::Found;
 use serde_json::{Map, Value, json};
 use validation_application::use_cases::validate::{Refused, Validation};
 use validation_domain::values::{Counts, RuleResult, Verdict};
 use writing_application::use_cases::write::{ChangeResult, Deletion};
+use writing_domain::aggregates::ABSTRACT_VERSIONS;
 use writing_domain::values::Diff;
 
 fn counts(c: &Counts) -> Value {
@@ -319,5 +324,183 @@ pub fn print_render(r: &Rendered) {
         },
         "pages": pages,
     });
+    println!("{out}");
+}
+
+/// 記録にある操作1件の要約（sas log の一覧の1行）。
+pub fn print_operation(o: &OperationSummary) {
+    let mut out = json!({
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
+        "kind": "operation",
+        "operation": o.operation,
+        "at": o.at,
+        "op": o.op,
+        "path": o.path,
+        "session": o.session.as_ref().map(|s| json!({"id": s.id, "tool": s.tool, "folder": s.folder})),
+    });
+    if let Some(i) = &o.intent {
+        out["intent"] = json!(i);
+    }
+    if o.op == "validate" {
+        let mut m = Map::new();
+        for v in Verdict::ALL {
+            let n = o
+                .counts
+                .iter()
+                .find(|(name, _)| name == v.as_str())
+                .map_or(0, |(_, n)| *n);
+            m.insert(v.as_str().to_string(), json!(n));
+        }
+        out["counts"] = Value::Object(m);
+    }
+    println!("{out}");
+}
+
+/// 従う schema から、対象の種類（Concrete ・ インスタンス ・ デザインシステム）を決める。
+fn kind_of(schema: &str) -> &'static str {
+    if ABSTRACT_VERSIONS.contains(&schema) {
+        "concrete"
+    } else if schema == DESIGN_SYSTEM {
+        "design-system"
+    } else {
+        "instance"
+    }
+}
+
+/// 記録の rule の結果1件を、検証の結果と同じ形にする。
+fn rule_row(r: &RuleRow) -> Value {
+    json!({"rule": r.rule, "pointer": r.pointer, "by": r.by, "result": r.result, "reason": r.reason})
+}
+
+/// 記録にある操作1件の中身（sas log --operation）。書いたとき ・ 検証したときと同じ change ・ validation の形で出し、
+/// 記録した日時 at と意図 intent を足す。記録にあるのは差分と判定だけなので、stale_rules と violated_instances は空。
+pub fn print_operation_detail(d: &OperationDetail) {
+    let out = match d {
+        OperationDetail::Change {
+            operation,
+            at,
+            session,
+            row,
+        } => {
+            // 記録の欄の値は JSON の文字列で持つので、読み直して値にする
+            let value = |t: &Option<String>| {
+                t.as_deref()
+                    .and_then(|t| serde_json::from_str::<Value>(t).ok())
+            };
+            let outside = row.source == "outside";
+            let changes: Vec<Value> = row
+                .fields
+                .iter()
+                .map(|f| {
+                    let mut c = json!({"pointer": f.pointer, "change": f.change});
+                    if let Some(b) = value(&f.before) {
+                        c["before"] = b;
+                    }
+                    if f.before_unavailable {
+                        c["before_unavailable"] = json!(true);
+                    }
+                    if let Some(a) = value(&f.after) {
+                        c["after"] = a;
+                    }
+                    c
+                })
+                .collect();
+            let mut diff = json!({"source": row.source});
+            if let Some(b) = &row.before {
+                diff["before"] = json!({"hash": b});
+            }
+            if let Some(a) = &row.after {
+                diff["after"] = json!({"hash": a});
+            }
+            diff["changes"] = json!(changes);
+            if outside && row.kind == "update" {
+                diff["before_unavailable"] = json!(row.fields.iter().any(|f| f.before_unavailable));
+            }
+            let result = match (outside, row.kind.as_str()) {
+                (true, _) => "adopted",
+                (false, "create") => "created",
+                (false, "delete") => "deleted",
+                _ => "updated",
+            };
+            let schema = row.schema.clone().unwrap_or_default();
+            let mut out = json!({
+                "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
+                "kind": "change",
+                "session": session,
+                "operation": operation,
+                "at": at,
+                "result": result,
+                "replayed": false,
+                "target": {"kind": kind_of(&schema), "path": row.target_path, "concrete": schema},
+                "diff": diff,
+                "stale_rules": [],
+                "violated_instances": [],
+            });
+            if let Some(i) = &row.intent {
+                out["intent"] = json!(i);
+            }
+            out
+        }
+        OperationDetail::Validate {
+            operation,
+            at,
+            session,
+            row,
+        } => {
+            let mut m = Map::new();
+            for v in Verdict::ALL {
+                let n = row
+                    .results
+                    .iter()
+                    .filter(|r| r.result == v.as_str())
+                    .count();
+                m.insert(v.as_str().to_string(), json!(n));
+            }
+            let counts = Value::Object(m);
+            let schema = row.schema.clone().unwrap_or_default();
+            json!({
+                "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
+                "kind": "validation",
+                "session": session,
+                "at": at,
+                "operations": [operation],
+                "targets": [{
+                    "path": row.target_path,
+                    "kind": kind_of(&schema),
+                    "schema": schema,
+                    "hash": row.hash,
+                    "operation": operation,
+                    "results": row.results.iter().map(rule_row).collect::<Vec<_>>(),
+                    "counts": counts,
+                }],
+                "counts": counts,
+                "untracked": [],
+            })
+        }
+    };
+    println!("{out}");
+}
+
+/// 検索の結果を1行で出す（構造で絞った一致か、確かめた意味の答えと出どころ）。
+pub fn print_search(f: &Found) {
+    let mut out = json!({
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
+        "kind": "search",
+        "range": f.range.iter().map(|(p, h)| json!({"path": p, "hash": h})).collect::<Vec<_>>(),
+    });
+    if let Some(a) = &f.answer {
+        out["answer"] = json!(a);
+        out["sources"] = f
+            .found
+            .iter()
+            .map(|m| json!({"path": m.path, "pointer": m.pointer, "value": m.value}))
+            .collect();
+    } else {
+        out["matches"] = f
+            .found
+            .iter()
+            .map(|m| json!({"path": m.path, "pointer": m.pointer, "value": m.value}))
+            .collect();
+    }
     println!("{out}");
 }

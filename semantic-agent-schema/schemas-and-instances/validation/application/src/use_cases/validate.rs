@@ -866,22 +866,25 @@ fn run_validate(
     // 対象ごとに検証を記録する（対象を変えないのでハッシュは1つ）
     let rows: Vec<ValidateRow> = judged
         .iter()
-        .map(|(path, _, _, hash, results, reads, _, _)| ValidateRow {
-            target_path: path.clone(),
-            hash: hash.as_str().to_string(),
-            results: results
-                .iter()
-                .zip(reads)
-                .map(|(r, reads)| RuleRow {
-                    rule: r.rule().to_string(),
-                    pointer: r.pointer().to_string(),
-                    by: r.by().as_str().to_string(),
-                    result: r.verdict().as_str().to_string(),
-                    reason: r.reason().to_string(),
-                    reads: reads.clone(),
-                })
-                .collect(),
-        })
+        .map(
+            |(path, _, declared, hash, results, reads, _, _)| ValidateRow {
+                target_path: path.clone(),
+                hash: hash.as_str().to_string(),
+                schema: Some(declared.clone()),
+                results: results
+                    .iter()
+                    .zip(reads)
+                    .map(|(r, reads)| RuleRow {
+                        rule: r.rule().to_string(),
+                        pointer: r.pointer().to_string(),
+                        by: r.by().as_str().to_string(),
+                        result: r.verdict().as_str().to_string(),
+                        reason: r.reason().to_string(),
+                        reads: reads.clone(),
+                    })
+                    .collect(),
+            },
+        )
         .collect();
     let recorded = record_validations(who, log, &rows).map_err(log_refused)?;
     let mut total = Counts::default();

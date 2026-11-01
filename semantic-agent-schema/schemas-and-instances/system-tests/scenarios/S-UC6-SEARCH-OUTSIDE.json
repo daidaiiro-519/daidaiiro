@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-OUTSIDE",
+ "name": "出どころが範囲の外",
+ "title": "答えの出どころが探した範囲の外の文書なら、答えを返さずに invalid_answer で理由を返す（答えの形に合わないときも invalid_answer）",
+ "why": "範囲の外は探していないので、そこを根拠にした答えは、範囲を宣言した検索の答えにならない。",
+ "traces": [
+  "UC6:最低保証",
+  "UC6:拡張:出どころを確かめられない"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}",
+   "answers/out.json": "{\"answer\": \"型に書いてある\", \"sources\": [{\"path\": \"schemas/review.schema.json\", \"pointer\": \"/title\", \"hash\": \"sha256:589e872b9252d0c94acac65675b0cac1962301bb5d2ae81b240a0b246dfaa4cc\"}]}",
+   "answers/bad.json": "{\"answer\": \"\"}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--concrete",
+   "urn:example:sample:review:v1",
+   "--answer",
+   "answers/out.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "範囲の外"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "search",
+    "--concrete",
+    "urn:example:sample:review:v1",
+    "--answer",
+    "answers/bad.json"
+   ]
+  }
+ ]
+}

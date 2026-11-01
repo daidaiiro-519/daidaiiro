@@ -1,0 +1,76 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-NO-RANGE",
+ "name": "範囲が無ければ探さない",
+ "title": "sas search は、範囲（経路 ・ --concrete ・ --all のどれか1つ）と探し方（--where ・ --semantic --question ・ --answer のどれか1つ）が無いと、探さずに使い方の誤りを返す",
+ "why": "範囲を決めずに探すと、何を探したかを結果から言えず、範囲の外を探していないと返せない。",
+ "traces": [
+  "UC6:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--where",
+   "/id=R1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "範囲"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[1]",
+   "exit": 2
+  },
+  {
+   "of": "after[2]",
+   "exit": 2
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "search",
+    "items/r1.json",
+    "--all",
+    "--where",
+    "/id=R1"
+   ]
+  },
+  {
+   "args": [
+    "search",
+    "--all"
+   ]
+  },
+  {
+   "args": [
+    "search",
+    "--all",
+    "--semantic"
+   ]
+  }
+ ]
+}

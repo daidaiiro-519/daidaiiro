@@ -1,0 +1,83 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC7-LOG-READ-ONLY",
+ "name": "読んでも何も変えない",
+ "title": "sas log は記録を読むだけで、打ったセッションの行も足さず、記録のファイルを変えない。記録が無ければ作らずに、無いと返す",
+ "why": "記録を読むたびに記録が変わると、監査の証拠として使えず、読んだセッションが書いたセッションに見える。",
+ "traces": [
+  "UC7:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "empty/README.txt": "記録の無いフォルダ"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/a.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"検証の結果を受け取る\"}",
+     "--intent",
+     "R1 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c-9"
+  }
+ },
+ "unchanged": [
+  ".sas/sas.db"
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/session/id",
+   "equals": "c-1"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "after[0]",
+   "file": "empty/.sas/sas.db",
+   "exists": false
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0001"
+   ],
+   "cwd": "empty"
+  }
+ ]
+}

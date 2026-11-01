@@ -1,0 +1,43 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-NO-POINTER",
+ "name": "出どころの所が無い",
+ "title": "答えの出どころの所（JSON Pointer）が文書に無ければ、答えを返さずに invalid_answer で理由を返す",
+ "why": "無い所を根拠にした答えは、根拠を持たない。",
+ "traces": [
+  "UC6:拡張:出どころを確かめられない"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}",
+   "answers/none.json": "{\"answer\": \"R2 に出てくる\", \"sources\": [{\"path\": \"items/r2.json\", \"pointer\": \"/actors/0\", \"hash\": \"sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff\"}]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--concrete",
+   "urn:example:sample:review:v1",
+   "--answer",
+   "answers/none.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "/actors/0"
+  }
+ ]
+}

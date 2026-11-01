@@ -55,7 +55,19 @@
   "UC2:変形:意味で書く",
   "約束:procedure",
   "UC4:変形:意味の判定",
-  "約束:command-result:session"
+  "約束:command-result:session",
+  "UC6:成功時保証",
+  "UC6:最低保証",
+  "UC6:変形:構造で絞る",
+  "UC6:変形:意味で探す",
+  "UC6:拡張:出どころを確かめられない",
+  "UC6:拡張:範囲の中身が上限を超える",
+  "UC7:成功時保証",
+  "UC7:最低保証",
+  "UC7:変形:絞って読む",
+  "UC7:変形:操作1件の中身を読む",
+  "UC0:成功時保証",
+  "UC0:最低保証"
  ],
  "traces": [
   {
@@ -494,6 +506,7 @@
    "id": "UC1:変形:意味で書く",
    "meaning": "Concrete の rule から SAS が書く手順を組み、書くコマンド（sas create … --value）と一緒に打ったセッションに返す（記録しない）。そのセッションが値を決めてコマンドで渡すと、機械の作成として形に照らしてから書き、記録する",
    "scenarios": [
+    "S-UC1-SEMANTIC-ANSWER-SCHEMA",
     "S-UC1-SEMANTIC-CONCRETE",
     "S-UC1-SEMANTIC-CYCLE",
     "S-UC1-SEMANTIC-NESTED",
@@ -506,6 +519,7 @@
    "id": "UC2:変形:意味で書く",
    "meaning": "いまの値を手順に入れ、手順を組んだときのハッシュを --if-match に持つ書くコマンド（sas update … --patch）と一緒に返す。渡された JSON Patch の欄だけが変わる",
    "scenarios": [
+    "S-UC1-SEMANTIC-ANSWER-SCHEMA",
     "S-UC2-SEMANTIC"
    ]
   },
@@ -513,9 +527,11 @@
    "id": "約束:procedure",
    "meaning": "手順は procedure.schema.json に従い、判定（validate）と書き込み（write）の両方で同じ形を使う。answer の形と、値を渡す command を持つ",
    "scenarios": [
+    "S-UC1-SEMANTIC-ANSWER-SCHEMA",
     "S-UC1-SEMANTIC",
     "S-UC2-SEMANTIC",
-    "S-UC4-SEMANTIC-PROCEDURE"
+    "S-UC4-SEMANTIC-PROCEDURE",
+    "S-UC6-SEARCH-SEMANTIC"
    ]
   },
   {
@@ -537,6 +553,101 @@
     "S-SESSION-ENV",
     "S-SESSION-INIT-FLAG",
     "S-SESSION-INIT"
+   ]
+  },
+  {
+   "id": "UC6:成功時保証",
+   "meaning": "結果に探した範囲（経路とハッシュ）が付き、構造で絞った一致と、意味の答えの出どころは、SAS が文書から読んだその所のいまの値を持つ。検索は記録しない",
+   "scenarios": [
+    "S-UC6-SEARCH-ANSWER",
+    "S-UC6-SEARCH-NOT-RECORDED",
+    "S-UC6-SEARCH-WHERE"
+   ]
+  },
+  {
+   "id": "UC6:最低保証",
+   "meaning": "範囲を渡さなければ探さない。範囲の外は探しておらず、範囲の外を出どころにした答えは返さない",
+   "scenarios": [
+    "S-UC6-SEARCH-NO-RANGE",
+    "S-UC6-SEARCH-OUTSIDE"
+   ]
+  },
+  {
+   "id": "UC6:変形:構造で絞る",
+   "meaning": "--where <JSON Pointer>=<値>（複数は かつ）に一致した文書の所と値を返す。値が JSON として読めなければ文字列として比べる",
+   "scenarios": [
+    "S-UC6-SEARCH-WHERE"
+   ]
+  },
+  {
+   "id": "UC6:変形:意味で探す",
+   "meaning": "--semantic --question で範囲の文書ごとに1ステップの手順（経路 ・ ハッシュ ・ 中身）と答えの形 ・ 答えを渡すコマンドを返し（記録しない）、--answer で渡された答えの出どころを確かめてから返す",
+   "scenarios": [
+    "S-UC6-SEARCH-ANSWER",
+    "S-UC6-SEARCH-SEMANTIC"
+   ]
+  },
+  {
+   "id": "UC6:拡張:出どころを確かめられない",
+   "meaning": "出どころが範囲の外か所が無い：invalid_answer、ハッシュがいまの中身と違う：conflict で手順を取り直すコマンドを返す。どれも答えを返さない",
+   "scenarios": [
+    "S-UC6-SEARCH-HASH",
+    "S-UC6-SEARCH-NO-POINTER",
+    "S-UC6-SEARCH-OUTSIDE"
+   ]
+  },
+  {
+   "id": "UC6:拡張:範囲の中身が上限を超える",
+   "meaning": "意味で探す範囲の中身の合計が上限（64KB）を超える：切り詰めずに range_too_large で断る",
+   "scenarios": [
+    "S-UC6-SEARCH-TOO-LARGE"
+   ]
+  },
+  {
+   "id": "UC7:成功時保証",
+   "meaning": "操作（変更と検証）が新しい順に1行1件で返り、打ったセッション（ID ・ ツール ・ フォルダ）・ 意図 ・ 検証の件数を持つ。読む形は記録の表の形に依らない",
+   "scenarios": [
+    "S-UC7-LOG-FILTER",
+    "S-UC7-LOG-FOLDER",
+    "S-UC7-LOG-OPERATION",
+    "S-UC7-LOG"
+   ]
+  },
+  {
+   "id": "UC7:最低保証",
+   "meaning": "読んでも何も変わらない（セッションの行も足さず、記録が無ければ作らない）。無い ID は not_found で無いと返る",
+   "scenarios": [
+    "S-UC7-LOG-NOT-FOUND",
+    "S-UC7-LOG-READ-ONLY"
+   ]
+  },
+  {
+   "id": "UC7:変形:絞って読む",
+   "meaning": "経路 ・ --by ・ --folder（正規化して sessions の folder と比べる）・ --since ・ --limit で絞り、重ねると かつ になる",
+   "scenarios": [
+    "S-UC7-LOG-FILTER",
+    "S-UC7-LOG-FOLDER"
+   ]
+  },
+  {
+   "id": "UC7:変形:操作1件の中身を読む",
+   "meaning": "--operation <ID> で、書いたとき ・ 検証したときと同じ change ・ validation の形（変わった欄 ・ rule ごとの結果）を返す",
+   "scenarios": [
+    "S-UC7-LOG-OPERATION"
+   ]
+  },
+  {
+   "id": "UC0:成功時保証",
+   "meaning": "作る → 意味の判定を渡す → 直す → 記録を読む が1本で通り、判定を渡したときの検証では使うインスタンスのすべての rule が verified で、その経緯を記録から読める",
+   "scenarios": [
+    "S-UC0-USE"
+   ]
+  },
+  {
+   "id": "UC0:最低保証",
+   "meaning": "入力が変わった判定と、判定を渡していない rule は verified に見えない",
+   "scenarios": [
+    "S-UC0-USE"
    ]
   }
  ]

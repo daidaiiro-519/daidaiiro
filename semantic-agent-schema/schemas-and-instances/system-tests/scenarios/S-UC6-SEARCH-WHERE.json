@@ -1,0 +1,138 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-WHERE",
+ "name": "構造で絞る",
+ "title": "sas search --concrete <URN> --where <JSON Pointer>=<値> は、その Concrete に従うインスタンスのうち条件のすべてに一致したものの所と値を、探した範囲（経路とハッシュ）と一緒に返す。値が JSON として読めなければ文字列として比べる",
+ "why": "範囲を返さないと、見つからなかったのか、探していないのかが分からない。",
+ "traces": [
+  "UC6:成功時保証",
+  "UC6:変形:構造で絞る"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--concrete",
+   "urn:example:sample:review:v1",
+   "--where",
+   "/id=R2"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "search"
+  },
+  {
+   "of": "when",
+   "pointer": "/range",
+   "equals": [
+    {
+     "path": "items/r1.json",
+     "hash": "sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51"
+    },
+    {
+     "path": "items/r2.json",
+     "hash": "sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff"
+    }
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/matches",
+   "equals": [
+    {
+     "path": "items/r2.json",
+     "pointer": "/id",
+     "value": "R2"
+    }
+   ]
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/matches",
+   "count": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/matches/0/path",
+   "equals": "items/r1.json"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/matches/1/value",
+   "equals": []
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/matches",
+   "count": 0
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/range",
+   "count": 1
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/matches/0/pointer",
+   "equals": "/calls/0"
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/range",
+   "count": 3
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "search",
+    "--concrete",
+    "urn:example:sample:review:v1",
+    "--where",
+    "/id=R1",
+    "--where",
+    "/calls=[]"
+   ]
+  },
+  {
+   "args": [
+    "search",
+    "--concrete",
+    "urn:example:sample:review:v1",
+    "--where",
+    "/id=R1",
+    "--where",
+    "/calls/0=R1"
+   ]
+  },
+  {
+   "args": [
+    "search",
+    "items/r2.json",
+    "--where",
+    "/calls/0=R1"
+   ]
+  },
+  {
+   "args": [
+    "search",
+    "--all",
+    "--where",
+    "/id=R1"
+   ]
+  }
+ ]
+}

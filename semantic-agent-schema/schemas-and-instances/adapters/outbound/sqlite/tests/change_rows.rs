@@ -18,6 +18,7 @@ fn update(request_id: Option<&str>) -> ChangeRow {
         before: Some("sha256:a".into()),
         after: Some("sha256:b".into()),
         intent: Some("目標を直す".into()),
+        schema: None,
         fields: vec![FieldRow {
             pointer: "/goal".into(),
             change: "replace".into(),
@@ -32,6 +33,7 @@ fn validate_row() -> ValidateRow {
     ValidateRow {
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
+        schema: None,
         results: vec![RuleRow {
             rule: "goal-is-outcome".into(),
             pointer: "/goal".into(),
@@ -186,7 +188,7 @@ fn a_database_in_a_new_place_is_made_empty() {
         .connection()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 4);
+    assert_eq!(version, 5);
     assert_eq!(log.append_change(None, &update(None)).unwrap(), "o-0001");
     drop(log);
     // 開き直しても行は残り、版は進まない

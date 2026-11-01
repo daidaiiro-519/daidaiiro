@@ -411,6 +411,7 @@ pub fn create(
         before: None,
         after: None,
         intent: request.intent.clone(),
+        schema: Some(request.concrete.clone()),
         fields: Vec::new(),
     };
     let broken = form_violations(validator, kind, &request.concrete, &value, &corpus.more)
@@ -510,6 +511,7 @@ pub fn update(
         before: Some(current.as_str().to_string()),
         after: None,
         intent: request.intent.clone(),
+        schema: Some(declared.clone()),
         fields: Vec::new(),
     };
     // 比べるハッシュ：呼ぶ側が読んだハッシュ（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後のハッシュ。
@@ -598,6 +600,12 @@ pub fn update(
         log,
         &ChangeRow {
             after: Some(after_hash.as_str().to_string()),
+            // 更新で $schema を変えたら、書いたあとの文書が従う schema
+            schema: after
+                .get("$schema")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+                .or(row.schema.clone()),
             fields: field_rows(&diff),
             ..row
         },
@@ -855,6 +863,7 @@ pub fn adopt(
         before: None,
         after: None,
         intent: request.intent.clone(),
+        schema: Some(declared.clone()),
         fields: Vec::new(),
     };
     let found = match &last {

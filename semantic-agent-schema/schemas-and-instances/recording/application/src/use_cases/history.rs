@@ -1,7 +1,8 @@
-//! 操作の記録へ追記する。
+//! 操作の記録へ追記し、記録を読む（UC7）。
 
 use crate::ports::{
-    Caller, ChangeRow, IdentifyCaller, OperationLog, SessionRow, ValidateRow, Via, WriteRecord,
+    Caller, ChangeRow, IdentifyCaller, OperationDetail, OperationFilter, OperationLog,
+    OperationReader, OperationSummary, SessionRow, ValidateRow, Via, WriteRecord,
 };
 
 /// 追記した結果：打ったセッションと、足した操作の ID（足した順）。
@@ -158,4 +159,26 @@ pub fn register_session(
     })?;
     log.session_row(&id)?
         .ok_or_else(|| format!("セッション {id} を登録できなかった"))
+}
+
+/// UC7 操作の記録を読む：絞り方に当たる操作（変更と検証）を新しい順に返す。読むだけで、セッションの行も足さない。
+///
+/// # Errors
+/// 置き場所を読めないとき。
+pub fn read_operations(
+    log: &dyn OperationReader,
+    filter: &OperationFilter,
+) -> Result<Vec<OperationSummary>, String> {
+    log.operations(filter)
+}
+
+/// UC7 の1件：操作の中身（変わった欄 ・ rule ごとの結果）。無い ID は None（呼ぶ側が「無い」と返す）。
+///
+/// # Errors
+/// 置き場所を読めないとき。
+pub fn read_operation(
+    log: &dyn OperationReader,
+    id: &str,
+) -> Result<Option<OperationDetail>, String> {
+    log.operation(id)
 }

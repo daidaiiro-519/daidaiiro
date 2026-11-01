@@ -1,0 +1,134 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC7-LOG",
+ "name": "記録を新しい順に読む",
+ "title": "sas log は、変更と検証を新しい順に1行1件（kind operation）で返す。行は操作の ID ・ 時刻 ・ 種類 ・ 経路 ・ 打ったセッション（人は null）・ 意図、検証なら判定の件数を持つ",
+ "why": "どのセッションが、いつ、何を変えたか ・ 検証したかを読めないと、成果物の経緯をあとから確かめられない。",
+ "traces": [
+  "UC7:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/a.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"検証の結果を受け取る\"}",
+     "--intent",
+     "R1 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "validate",
+     "items/a.json"
+    ]
+   },
+   {
+    "args": [
+     "create",
+     "items/b.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"記録を読む\"}",
+     "--intent",
+     "R2 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-2"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 3
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/kind",
+   "equals": "operation"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/operation",
+   "equals": "o-0003"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/session/id",
+   "equals": "c-2"
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/op",
+   "equals": "validate"
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/session",
+   "equals": null
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/counts/verified",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/counts/unsupported",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "line": 2,
+   "pointer": "/op",
+   "equals": "create"
+  },
+  {
+   "of": "when",
+   "line": 2,
+   "pointer": "/path",
+   "equals": "items/a.json"
+  },
+  {
+   "of": "when",
+   "line": 2,
+   "pointer": "/session/tool",
+   "equals": "claude-code"
+  },
+  {
+   "of": "when",
+   "line": 2,
+   "pointer": "/intent",
+   "equals": "R1 を足す"
+  }
+ ]
+}

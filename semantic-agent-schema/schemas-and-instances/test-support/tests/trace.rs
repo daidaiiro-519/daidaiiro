@@ -1,6 +1,8 @@
 //! system-tests/trace.json ・ untested.json と場面の突き合わせ。
 //! - 範囲（scope）の id は、どれも trace か untested のどちらか一方にある
 //! - trace の場面の並びは、その id を traces に書いた場面と一致する
+//! - 公開された言葉（published-language/v1 のファイル）のどれにも、場面で確かめた約束がある
+//! - UC0〜UC7 のどれにも、成功時保証と最低保証が範囲にあり、場面で確かめている（完了の確認。ステップ10）
 
 #![allow(clippy::expect_used)]
 
@@ -83,4 +85,60 @@ fn trace_matches_scenarios() {
         })
         .collect();
     assert_eq!(from_trace, from_scenarios);
+}
+
+/// 範囲にあり、場面で確かめた id。
+fn traced() -> BTreeSet<String> {
+    let trace = load("trace.json");
+    let scope: BTreeSet<String> = strings(&trace["scope"]).into_iter().collect();
+    trace["traces"]
+        .as_array()
+        .expect("traces が配列であること")
+        .iter()
+        .filter(|t| !strings(&t["scenarios"]).is_empty())
+        .map(|t| t["id"].as_str().expect("id がある").to_string())
+        .filter(|id| scope.contains(id))
+        .collect()
+}
+
+#[test]
+fn every_published_language_has_a_traced_promise() {
+    let traced = traced();
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../published-language/v1");
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .expect("公開された言葉の置き場所を読めること")
+        .map(|e| {
+            e.expect("項目を読めること")
+                .file_name()
+                .to_string_lossy()
+                .to_string()
+        })
+        .filter_map(|n| {
+            n.strip_suffix(".schema.json")
+                .or_else(|| n.strip_suffix(".json"))
+                .map(ToString::to_string)
+        })
+        .collect();
+    names.sort();
+    assert_eq!(names.len(), 7, "公開された言葉は7つ: {names:?}");
+    for name in names {
+        let prefix = format!("約束:{name}");
+        assert!(
+            traced
+                .iter()
+                .any(|id| id == &prefix || id.starts_with(&format!("{prefix}:"))),
+            "{name} の約束を場面で確かめていない"
+        );
+    }
+}
+
+#[test]
+fn every_use_case_has_both_guarantees_traced() {
+    let traced = traced();
+    for n in 0..=7 {
+        for g in ["成功時保証", "最低保証"] {
+            let id = format!("UC{n}:{g}");
+            assert!(traced.contains(&id), "{id} を場面で確かめていない");
+        }
+    }
 }

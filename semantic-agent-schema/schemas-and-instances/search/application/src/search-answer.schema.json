@@ -1,0 +1,63 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:search:agent-answer-search:v1",
+ "title": "検索の答え",
+ "description": "sas search --semantic が出した手順の問いへの答えと、答えの根拠になった値の所（出どころ）を持つ JSON。sas search <同じ範囲> --answer で渡す。SAS は出どころごとに、範囲の中か ・ hash がいまの中身と同じか ・ pointer の所があるかを確かめ、通らなければ答えを返さずに断る",
+ "type": "object",
+ "required": ["answer", "sources"],
+ "additionalProperties": false,
+ "properties": {
+  "answer": {
+   "type": "string",
+   "minLength": 1,
+   "title": "答え",
+   "description": "手順の question への答えの文。範囲の文書だけから答える",
+   "x-prompt": {
+    "read": {
+     "when": "答えを書くときに読む。",
+     "interpret": "範囲の文書に書いてあることだけで答える。範囲に無いことは、無いと答える。"
+    },
+    "write": []
+   }
+  },
+  "sources": {
+   "type": "array",
+   "title": "出どころ",
+   "description": "答えの根拠になった値の所。範囲に根拠が無ければ空",
+   "x-prompt": {
+    "read": {
+     "when": "答えを書いたあとに、根拠の所を並べるときに読む。",
+     "interpret": "答えの文が拠った値ごとに1件。path と hash は手順の steps の path と hash を写し、pointer はその文書の中の値の所を指す。"
+    },
+    "write": []
+   },
+   "items": {
+    "type": "object",
+    "required": ["path", "pointer", "hash"],
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string",
+      "minLength": 1,
+      "title": "経路",
+      "description": "根拠の値がある文書の経路（手順の steps の path）",
+      "x-prompt": { "read": { "when": "出どころを書くときに読む。", "interpret": "steps の path をそのまま写す。" }, "write": [] }
+     },
+     "pointer": {
+      "type": "string",
+      "title": "所",
+      "description": "文書の中の、根拠の値の所（JSON Pointer。\"\" は文書全体）",
+      "x-prompt": { "read": { "when": "出どころを書くときに読む。", "interpret": "答えが拠った値を、できるだけ深い所まで指す。" }, "write": [] }
+     },
+     "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "読んだ中身のハッシュ",
+      "description": "読んだ文書の中身のハッシュ（手順の steps の hash）",
+      "x-prompt": { "read": { "when": "出どころを書くときに読む。", "interpret": "steps の hash をそのまま写す。いまの中身と違えば SAS は断る。" }, "write": [] }
+     }
+    }
+   }
+  }
+ }
+}

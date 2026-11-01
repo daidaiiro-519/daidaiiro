@@ -1,0 +1,94 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-SEMANTIC",
+ "name": "意味で探す手順",
+ "title": "sas search <範囲> --semantic --question <問い> は、範囲の文書ごとに1ステップ（経路 ・ ハッシュ ・ 中身）の手順（operation_kind search）と、答えの形と、答えを渡すコマンドを返して終わる",
+ "why": "SAS はエージェントを起動しない。範囲の中身と答えの形を手順に入れれば、打ったセッションは手順だけで答えられる。",
+ "traces": [
+  "UC6:変形:意味で探す",
+  "約束:procedure"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--concrete",
+   "urn:example:sample:review:v1",
+   "--semantic",
+   "--question",
+   "運用担当が出てくるのは？"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c-1"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation_kind",
+   "equals": "search"
+  },
+  {
+   "of": "when",
+   "pointer": "/question",
+   "equals": "運用担当が出てくるのは？"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/path",
+   "equals": "items/r2.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/hash",
+   "equals": "sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/1/current/goal",
+   "equals": "運用担当が記録を読む"
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/format",
+   "equals": "search"
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/schema/required",
+   "equals": [
+    "answer",
+    "sources"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "equals": "sas search --concrete urn:example:sample:review:v1 --answer <答えの JSON のファイル | ->"
+  }
+ ]
+}

@@ -16,6 +16,7 @@ fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -
         before: before.map(Into::into),
         after: after.map(Into::into),
         intent: Some("エディターで直した".into()),
+        schema: None,
         fields: Vec::new(),
     }
 }
@@ -34,6 +35,7 @@ fn judged(rules: &[(&str, &str)]) -> ValidateRow {
     ValidateRow {
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
+        schema: None,
         results: rules
             .iter()
             .map(|(rule, reads)| RuleRow {

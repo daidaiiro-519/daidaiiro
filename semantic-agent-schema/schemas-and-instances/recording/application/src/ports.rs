@@ -84,6 +84,8 @@ pub struct ValidateRow {
     pub target_path: String,
     /// 判定した中身のハッシュ
     pub hash: String,
+    /// 検証した文書が従う schema の $id（記録を読むときに返す。版5より前の行は None）
+    pub schema: Option<String>,
     /// rule ごとの結果
     pub results: Vec<RuleRow>,
 }
@@ -120,6 +122,8 @@ pub struct ChangeRow {
     pub after: Option<String>,
     /// 意図（なぜその操作をしたか。呼ぶ側が渡したときだけ）
     pub intent: Option<String>,
+    /// 書いた文書が従う schema の $id（削除は消す前の文書のもの。記録を読むときに返す。版5より前の行は None）
+    pub schema: Option<String>,
     /// 変わった欄
     pub fields: Vec<FieldRow>,
 }
@@ -216,4 +220,80 @@ pub trait OperationLog {
     /// # Errors
     /// 置き場所を読めないとき。
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
+}
+
+/// 記録を読むときの絞り方（UC7）。どれも「かつ」で、None ・ 空は絞らない。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct OperationFilter {
+    /// 対象の経路（どれかに当たる操作）
+    pub paths: Vec<String>,
+    /// 打ったセッションの ID
+    pub by: Option<String>,
+    /// 打ったセッションが初めて見えたフォルダ（sessions の folder。正規化した絶対の経路）
+    pub folder: Option<String>,
+    /// この時刻（UTC の RFC 3339。前の部分だけでもよい）より後か同じ
+    pub since: Option<String>,
+    /// 新しいものから何件まで
+    pub limit: Option<usize>,
+}
+
+/// 記録にある操作1件の要約（一覧の1行）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OperationSummary {
+    /// 操作の ID
+    pub operation: String,
+    /// 記録した日時
+    pub at: String,
+    /// create ・ update ・ delete ・ validate
+    pub op: String,
+    /// 対象の経路
+    pub path: String,
+    /// 打ったセッション（人なら None）
+    pub session: Option<SessionRow>,
+    /// 意図（変更で、呼ぶ側が渡したときだけ）
+    pub intent: Option<String>,
+    /// 検証なら、判定の区分ごとの件数（区分の名前 → 件数）。変更なら空
+    pub counts: Vec<(String, usize)>,
+}
+
+/// 記録にある操作1件の中身。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OperationDetail {
+    /// 作成 ・ 更新 ・ 削除
+    Change {
+        /// 操作の ID
+        operation: String,
+        /// 記録した日時
+        at: String,
+        /// 打ったセッションの ID（人なら None）
+        session: Option<String>,
+        /// 行（変わった欄も）
+        row: ChangeRow,
+    },
+    /// 検証
+    Validate {
+        /// 操作の ID
+        operation: String,
+        /// 記録した日時
+        at: String,
+        /// 打ったセッションの ID（人なら None）
+        session: Option<String>,
+        /// 行（rule ごとの結果も）
+        row: ValidateRow,
+    },
+}
+
+/// 操作の記録を読む（UC7）。読むだけで、何も足さない。
+pub trait OperationReader {
+    /// 絞り方に当たる操作（変更と検証）を、新しい順に。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn operations(&self, filter: &OperationFilter) -> Result<Vec<OperationSummary>, String>;
+
+    /// 操作1件の中身。無い ID は None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn operation(&self, id: &str) -> Result<Option<OperationDetail>, String>;
 }

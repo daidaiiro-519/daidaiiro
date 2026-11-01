@@ -1,0 +1,81 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-ANSWER",
+ "name": "出どころ付きの答え",
+ "title": "sas search <範囲> --answer で渡した答えは、出どころが範囲の中で、ハッシュがいまの中身と同じで、所があれば、出どころの所のいまの値と一緒に返る（標準入力からも渡せる）",
+ "why": "セッションが書いた出どころが、本当にその所にその値であることを SAS が保証しないと、答えの根拠を信じられない。",
+ "traces": [
+  "UC6:成功時保証",
+  "UC6:変形:意味で探す"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}",
+   "answers/ok.json": "{\"answer\": \"R2 に出てくる\", \"sources\": [{\"path\": \"items/r2.json\", \"pointer\": \"/goal\", \"hash\": \"sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff\"}]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--concrete",
+   "urn:example:sample:review:v1",
+   "--answer",
+   "answers/ok.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "search"
+  },
+  {
+   "of": "when",
+   "pointer": "/answer",
+   "equals": "R2 に出てくる"
+  },
+  {
+   "of": "when",
+   "pointer": "/sources",
+   "equals": [
+    {
+     "path": "items/r2.json",
+     "pointer": "/goal",
+     "value": "運用担当が記録を読む"
+    }
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/range",
+   "count": 2
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/sources/0/value",
+   "equals": "運用担当が記録を読む"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "search",
+    "--concrete",
+    "urn:example:sample:review:v1",
+    "--answer",
+    "-"
+   ],
+   "stdin": "```json\n{\"answer\": \"R2 に出てくる\", \"sources\": [{\"path\": \"items/r2.json\", \"pointer\": \"/goal\", \"hash\": \"sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff\"}]}\n```"
+  }
+ ]
+}

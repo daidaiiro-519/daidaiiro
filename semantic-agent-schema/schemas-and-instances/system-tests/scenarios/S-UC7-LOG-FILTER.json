@@ -1,0 +1,172 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC7-LOG-FILTER",
+ "name": "記録を絞って読む",
+ "title": "sas log は、経路 ・ --by（打ったセッション）・ --since ・ --limit で絞れて、絞り方を重ねると「かつ」になる。時刻の形でない --since は使い方の誤り",
+ "why": "記録は増え続けるので、対象やセッションで絞れないと、読みたい操作にたどり着けない。",
+ "traces": [
+  "UC7:成功時保証",
+  "UC7:変形:絞って読む"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/a.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"検証の結果を受け取る\"}",
+     "--intent",
+     "R1 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "validate",
+     "items/a.json"
+    ]
+   },
+   {
+    "args": [
+     "create",
+     "items/b.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"記録を読む\"}",
+     "--intent",
+     "R2 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-2"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log",
+   "--by",
+   "c-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "after[0]",
+   "lines": 2
+  },
+  {
+   "of": "after[0]",
+   "line": 0,
+   "pointer": "/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "after[0]",
+   "line": 1,
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "after[1]",
+   "lines": 1
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/operation",
+   "equals": "o-0003"
+  },
+  {
+   "of": "after[2]",
+   "lines": 1
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "after[3]",
+   "lines": 3
+  },
+  {
+   "of": "after[4]",
+   "exit": 2
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[5]",
+   "exit": 0
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "items/a.json"
+   ]
+  },
+  {
+   "args": [
+    "log",
+    "--limit",
+    "1"
+   ]
+  },
+  {
+   "args": [
+    "log",
+    "items/a.json",
+    "--by",
+    "c-1"
+   ]
+  },
+  {
+   "args": [
+    "log",
+    "--since",
+    "2000-01-01"
+   ]
+  },
+  {
+   "args": [
+    "log",
+    "--since",
+    "きのう"
+   ]
+  },
+  {
+   "args": [
+    "log",
+    "items/b.json",
+    "--by",
+    "c-1"
+   ]
+  }
+ ]
+}

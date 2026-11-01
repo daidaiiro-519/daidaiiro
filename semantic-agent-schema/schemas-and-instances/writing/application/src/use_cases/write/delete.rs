@@ -160,6 +160,7 @@ pub fn delete(
         before: Some(current.as_str().to_string()),
         after: None,
         intent: request.intent.clone(),
+        schema: Some(declared.clone()),
         fields: Vec::new(),
     };
 

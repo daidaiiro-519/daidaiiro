@@ -105,10 +105,12 @@ pub fn semantic_procedure(
         ));
     }
     let refs = read_refs(store, &request.refs)?;
+    let schema = bundled(doc, validator, &corpus.more);
     Ok(build_procedure(
         path,
         &declared,
         doc,
+        schema,
         current.as_ref(),
         current_text.as_deref(),
         request,
@@ -271,6 +273,80 @@ fn deref<'a>(
     target.map_or((root, node), |t| (doc, t))
 }
 
+/// 書く元のスキーマの本体に、$ref で指すほかの文書（Concrete か、SAS が入れて出すスキーマ）を $defs へ入れたもの。
+/// 入れた文書は $id を持つので、$ref はそのまま引ける（JSON Schema 2020-12 の束ね方）。手順だけで形の決まりがすべて読めるようにする。
+/// 指す先の文書がさらに指す文書も入れる。引けない文書（JSON Schema のメタスキーマなど）は入れない。
+fn bundled(doc: &Value, validator: &dyn SchemaValidator, others: &[(String, Value)]) -> Value {
+    let own = doc
+        .get("$id")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let mut seen = vec![own];
+    let mut queue = vec![doc.clone()];
+    let mut found: Vec<(String, Value)> = Vec::new();
+    while let Some(d) = queue.pop() {
+        let mut refs = Vec::new();
+        external_refs(&d, &mut refs);
+        for base in refs {
+            if seen.contains(&base) {
+                continue;
+            }
+            seen.push(base.clone());
+            let target = others
+                .iter()
+                .find(|(id, _)| *id == base)
+                .map(|(_, d)| d.clone())
+                .or_else(|| validator.shipped(&base));
+            if let Some(t) = target {
+                queue.push(t.clone());
+                found.push((base, t));
+            }
+        }
+    }
+    let mut out = doc.clone();
+    if found.is_empty() {
+        return out;
+    }
+    if let Some(root) = out.as_object_mut() {
+        let defs = root
+            .entry("$defs")
+            .or_insert_with(|| Value::Object(Map::new()));
+        if let Some(defs) = defs.as_object_mut() {
+            for (id, d) in found {
+                defs.entry(id).or_insert(d);
+            }
+        }
+    }
+    out
+}
+
+/// 文書の中の $ref のうち、ほかの文書を指すもの（# の前が空でない）の文書の名前を、出てきた順に集める。
+fn external_refs(node: &Value, out: &mut Vec<String>) {
+    match node {
+        Value::Object(m) => {
+            for (k, v) in m {
+                if k == "$ref"
+                    && let Some(r) = v.as_str()
+                {
+                    let base = r.split_once('#').map_or(r, |(b, _)| b);
+                    if !base.is_empty() && !out.iter().any(|o| o == base) {
+                        out.push(base.to_string());
+                    }
+                } else {
+                    external_refs(v, out);
+                }
+            }
+        }
+        Value::Array(a) => {
+            for v in a {
+                external_refs(v, out);
+            }
+        }
+        _ => {}
+    }
+}
+
 /// 読まれる欄を先にする（同じなら Concrete の並び）。読み合う欄があれば断る。
 fn order(path: &str, mut units: Vec<Unit>) -> Result<Vec<Unit>, Refused> {
     let names: Vec<String> = units.iter().map(|u| u.name.clone()).collect();
@@ -321,6 +397,7 @@ fn build_procedure(
     path: &str,
     declared: &str,
     doc: &Value,
+    schema: Value,
     current: Option<&Value>,
     current_text: Option<&str>,
     request: &SemanticRequest,
@@ -376,11 +453,11 @@ fn build_procedure(
             s
         })
         .collect();
-    // 作成は文書全体を --value で、更新は書く欄への JSON Patch を --patch で渡す
+    // 作成は文書全体を --value で、更新は書く欄への JSON Patch を --patch で渡す。schema は書いた文書が従うスキーマの本体
     let answer = if current.is_some() {
-        json!({"format": "json-patch", "schema": declared})
+        json!({"format": "json-patch", "schema": schema})
     } else {
-        json!({"format": "document", "schema": declared})
+        json!({"format": "document", "schema": schema})
     };
     let not_written: Vec<Value> = doc
         .get("properties")
@@ -403,6 +480,7 @@ fn build_procedure(
         "command": write_command(path, declared, hash.as_deref(), request, who),
         "constraints": [
             "steps を no の順に行い、pointer の欄の値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例）と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決める（read があればその読み方で、reads があれば先に書いた欄の値を読み、current があればいまの値を直す形で）",
+            "値は answer.schema の形（JSON Schema）に従わせる。steps に無い形の決まり（求める欄 ・ 型 ・ const など）も、そこから読んで守る",
             "optional のステップは、書かないなら値から外してよい",
             "書くのは command の sas だけで、ファイルを直接書かない",
             "steps に無い欄は書かない",

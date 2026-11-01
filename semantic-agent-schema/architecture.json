@@ -3,7 +3,7 @@
  "context": "schemas-and-instances",
  "context_map": "文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」を分けたが、版16（2026-11-01）で SAS がほかのセッションの状態を管理しないことにしたので1つに戻した。地図と経緯は docs/design/arch/arch-v15.json の context_map",
  "crate_naming": "crate の名前はフォルダから決める：業務領域を作るモジュールは <モジュール>-<層>（writing-domain など）、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support。文脈は1つなので文脈の名前を前に付けない。製品の名前は CLI の [[bin]]（sas）にだけ残す",
- "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering。ステップ8 で search を足す）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。依存は writing → validation → writing-domain、書く ・ 検証の両方が recording を使う",
+ "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering ・ search）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。依存は writing → validation → writing-domain、書く ・ 検証の両方が recording を使う。search は検証のモジュールのポートで文書を読み、記録しない",
  "crates": [
   {
    "name": "writing-domain",
@@ -33,13 +33,19 @@
    "name": "recording-application",
    "path": "schemas-and-instances/recording/application",
    "layer": "application",
-   "role": "操作の記録の追記（use_cases/history.rs。検証と、書いた作成 ・ 更新 ・ 削除。断った操作は記録しない）・ sas init のセッションの登録（register_session）と、ポート IdentifyCaller（打ったセッションか人）・ OperationLog"
+   "role": "操作の記録の追記（use_cases/history.rs。検証と、書いた作成 ・ 更新 ・ 削除。断った操作は記録しない）と、記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない）・ sas init のセッションの登録（register_session）と、ポート IdentifyCaller（打ったセッションか人）・ OperationLog ・ OperationReader"
   },
   {
    "name": "rendering-application",
    "path": "schemas-and-instances/rendering/application",
    "layer": "application",
    "role": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らし、sas validate では記録する）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
+  },
+  {
+   "name": "search-application",
+   "path": "schemas-and-instances/search/application",
+   "layer": "application",
+   "role": "UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路 ・ Concrete ・ すべて）の文書を、構造で絞り（JSON Pointer の値の一致）、意味で探す手順を返し、打ったセッションが --answer で渡した答えの出どころ（範囲の中か ・ ハッシュ ・ 所）を確かめる。答えの形は search-answer.schema.json。文書は検証のモジュールのポート DocumentStore で読み、記録しない"
   },
   {
    "name": "outbound-filesystem",
@@ -57,7 +63,7 @@
    "name": "outbound-sqlite",
    "path": "schemas-and-instances/adapters/outbound/sqlite",
    "layer": "outbound",
-   "role": "OperationLog の実装。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻（sas init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。断った操作は記録しない"
+   "role": "OperationLog と OperationReader の実装。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻（sas init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
   },
   {
    "name": "outbound-git",
@@ -81,7 +87,7 @@
    "name": "inbound-cli",
    "path": "schemas-and-instances/adapters/inbound/cli",
    "layer": "inbound",
-   "role": "sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）・ このフォルダで sas init が登録したセッションで実装する。エージェントを起動しない"
+   "role": "sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）・ このフォルダで sas init が登録したセッションで実装する。sas log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
   },
   {
    "name": "test-support",
@@ -141,6 +147,17 @@
    "to": [
     "writing-domain",
     "validation-domain",
+    "validation-application",
+    "recording-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "search-application",
+   "to": [
+    "writing-domain",
     "validation-application",
     "recording-application"
    ],
@@ -216,7 +233,8 @@
     "outbound-git",
     "rendering-application",
     "outbound-templates",
-    "outbound-javascript"
+    "outbound-javascript",
+    "search-application"
    ],
    "libraries": [
     "serde_json"

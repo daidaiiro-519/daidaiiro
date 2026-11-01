@@ -1,0 +1,171 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC0-USE",
+ "name": "確かめた状態で使い続ける",
+ "title": "作る → 意味の判定の手順をもらう → 判定を渡す → 直す → 記録を読む、を1本で通す。記録には3つの操作が新しい順に並び、直したあとの検証では、直した欄の意味の rule は verified に見えない",
+ "why": "成果物を作って確かめ、直し、その経緯を読めることが、型で成果物を使い続けるということである。どれかが欠けると、使っているものが確かめた状態かを言えない。",
+ "traces": [
+  "UC0:成功時保証",
+  "UC0:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/r1.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"検証の結果を受け取る\"}",
+     "--intent",
+     "R1 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "validate",
+     "items/r1.json",
+     "--semantic"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "validate",
+     "items/r1.json",
+     "--answer",
+     "-"
+    ],
+    "stdin": "{\"hash\": \"sha256:79e13b74dd4d833955e4dd1aa82007bb3a8cc174c3d24ab5bdee1b06741a66ce\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"利用者が受け取る結果を書いている\"}]}",
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "update",
+     "items/r1.json",
+     "--patch",
+     "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"検証の結果を受け取って直す\"}]",
+     "--intent",
+     "目的を直す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log",
+   "items/r1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 3
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/op",
+   "equals": "update"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/intent",
+   "equals": "目的を直す"
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/op",
+   "equals": "validate"
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/counts/verified",
+   "equals": 2
+  },
+  {
+   "of": "when",
+   "line": 1,
+   "pointer": "/session/id",
+   "equals": "c-1"
+  },
+  {
+   "of": "when",
+   "line": 2,
+   "pointer": "/op",
+   "equals": "create"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/results/1/result",
+   "equals": "verified"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/hash",
+   "equals": "sha256:79e13b74dd4d833955e4dd1aa82007bb3a8cc174c3d24ab5bdee1b06741a66ce"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/diff/changes/0/after",
+   "equals": "検証の結果を受け取って直す"
+  },
+  {
+   "of": "after[2]",
+   "exit": 0
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/targets/0/counts/verified",
+   "equals": 1
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/targets/0/counts/unsupported",
+   "equals": 1
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0002"
+   ]
+  },
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0003"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "items/r1.json"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,75 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC7-LOG-NOT-FOUND",
+ "name": "無い ID は無いと返す",
+ "title": "sas log --operation に記録に無い ID を渡すと not_found を返す。--operation は経路やほかの絞り方と一緒に渡せない",
+ "why": "無い ID に空の結果を返すと、ID の打ち間違いと、記録が消えたことの見分けがつかない。",
+ "traces": [
+  "UC7:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/a.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"検証の結果を受け取る\"}",
+     "--intent",
+     "R1 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log",
+   "--operation",
+   "o-0042"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "o-0042"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "usage"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0001",
+    "--by",
+    "c-1"
+   ]
+  }
+ ]
+}

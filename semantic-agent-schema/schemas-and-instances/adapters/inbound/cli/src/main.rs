@@ -1,5 +1,6 @@
 //! sas コマンドの入口。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON の1行で返す。
 //! 意味の部分（--semantic）は、結果の代わりに手順（procedure.schema.json）を返す。SAS はエージェントを起動しない。
+//! sas log（UC7）は記録を読むだけで、何も足さない（記録が無ければ作らない）。sas search（UC6）は記録しない。
 //!
 //! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
@@ -17,10 +18,15 @@ use outbound_javascript::Boa;
 use outbound_jsonschema::Validator;
 use outbound_sqlite::SqliteLog;
 use outbound_templates::Mustache;
-use recording_application::ports::{IdentifyCaller, OperationLog};
-use recording_application::use_cases::history::register_session;
+use recording_application::ports::{IdentifyCaller, OperationFilter, OperationLog};
+use recording_application::use_cases::history::{
+    read_operation, read_operations, register_session,
+};
 use rendering_application::use_cases::design::{DESIGN_SYSTEM, validate_design_systems};
 use rendering_application::use_cases::render::{RenderRequest, render};
+use search_application::use_cases::search::{
+    Range, search_procedure, search_where, search_with_answer,
+};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -44,7 +50,12 @@ sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--intent <
 sas update <経路> --semantic --brief <依頼> [--ref <経路>]... [--intent <意図>] [--session <名前>] ／ \
 sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>] ／ \
 sas delete <経路> --intent <意図> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
-sas render <経路>... --design-system <経路> --out <書き出す先>";
+sas render <経路>... --design-system <経路> --out <書き出す先> ／ \
+sas log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
+sas log --operation <ID> ／ \
+sas search (<経路>... | --concrete <URN> | --all) --where <JSON Pointer>=<値> [--where …]... [--session <名前>] ／ \
+sas search (<経路>... | --concrete <URN> | --all) --semantic --question <問い> [--session <名前>] ／ \
+sas search (<経路>... | --concrete <URN> | --all) --answer <答えの JSON のファイル | -> [--session <名前>]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -55,6 +66,8 @@ fn main() -> ExitCode {
         Some("update") => run_change(&args[1..], Command::Update),
         Some("delete") => run_delete(&args[1..]),
         Some("render") => run_render(&args[1..]),
+        Some("log") => run_log(&args[1..]),
+        Some("search") => run_search(&args[1..]),
         Some(other) => {
             eprintln!("sas: 知らないコマンドです: {other}。{USAGE}");
             ExitCode::from(2)
@@ -626,6 +639,252 @@ fn run_render(args: &[String]) -> ExitCode {
     ) {
         Ok(r) => {
             output::print_render(&r);
+            ExitCode::SUCCESS
+        }
+        Err(r) => refuse(&r),
+    }
+}
+
+/// sas log：操作の記録を読む（UC7）。読むだけで、セッションの行も足さない。記録が無ければ作らずに、無いものとして返す。
+fn run_log(args: &[String]) -> ExitCode {
+    let mut filter = OperationFilter::default();
+    let mut operation = None;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        let name = a.as_str();
+        if !name.starts_with("--") {
+            filter.paths.push(a.clone());
+            continue;
+        }
+        let Some(v) = it.next().filter(|v| !v.is_empty()) else {
+            return if ["--by", "--folder", "--since", "--limit", "--operation"].contains(&name) {
+                usage(&format!("{a} に値がありません"))
+            } else {
+                usage(&format!("知らない指定です: {a}"))
+            };
+        };
+        match name {
+            "--by" => filter.by = Some(v.clone()),
+            "--folder" => filter.folder = Some(normalized_folder(v)),
+            "--since" => {
+                if !is_time(v) {
+                    return usage(&format!(
+                        "--since は UTC の RFC 3339 の時刻（2026-11-01 ・ 2026-11-01T09:30:00Z など）で渡してください: {v}"
+                    ));
+                }
+                filter.since = Some(v.clone());
+            }
+            "--limit" => match v.parse::<usize>() {
+                Ok(n) if n > 0 => filter.limit = Some(n),
+                _ => return usage(&format!("--limit は1以上の整数で渡してください: {v}")),
+            },
+            "--operation" => operation = Some(v.clone()),
+            _ => return usage(&format!("知らない指定です: {a}")),
+        }
+    }
+    if operation.is_some() && filter != OperationFilter::default() {
+        return usage("--operation は1件を読むので、経路やほかの絞り方と一緒に渡せません");
+    }
+    let path = db_path(&PathBuf::from("."));
+    // 記録が無ければ、作らずに「無い」として返す（読んでも何も変えない）
+    let log = if path.exists() {
+        match SqliteLog::open(&path) {
+            Ok(l) => Some(l),
+            Err(message) => {
+                return refuse(&Refused {
+                    code: "log",
+                    message,
+                    ..Refused::default()
+                });
+            }
+        }
+    } else {
+        None
+    };
+    if let Some(id) = operation {
+        let found = match &log {
+            Some(l) => read_operation(l, &id),
+            None => Ok(None),
+        };
+        return match found {
+            Ok(Some(d)) => {
+                output::print_operation_detail(&d);
+                ExitCode::SUCCESS
+            }
+            Ok(None) => refuse(&Refused {
+                code: "not_found",
+                message: format!("操作 {id} は記録に無い"),
+                ..Refused::default()
+            }),
+            Err(message) => refuse(&log_refused(message)),
+        };
+    }
+    let found = match &log {
+        Some(l) => read_operations(l, &filter),
+        None => Ok(Vec::new()),
+    };
+    match found {
+        Ok(rows) => {
+            for o in &rows {
+                output::print_operation(o);
+            }
+            ExitCode::SUCCESS
+        }
+        Err(message) => refuse(&log_refused(message)),
+    }
+}
+
+/// --folder の値を、sessions の folder と比べられる形（実体の絶対の経路）にする。無いフォルダは、作業フォルダから引いた絶対の経路。
+fn normalized_folder(given: &str) -> String {
+    let p = PathBuf::from(given);
+    if let Ok(real) = std::fs::canonicalize(&p) {
+        return real.display().to_string();
+    }
+    let absolute = if p.is_absolute() {
+        p
+    } else {
+        std::env::current_dir().unwrap_or_default().join(p)
+    };
+    let mut out = PathBuf::new();
+    for part in absolute.components() {
+        match part {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    out.display().to_string()
+}
+
+/// UC7 の --since に渡せる時刻か（UTC の RFC 3339。日付だけ ・ 分まで ・ 秒まででもよい）。記録の時刻と文字の順で比べる。
+fn is_time(t: &str) -> bool {
+    let shape = "dddd-dd-ddTdd:dd:ddZ";
+    let digits = |s: &str, at: &str| {
+        s.len() == at.len()
+            && s.chars()
+                .zip(at.chars())
+                .all(|(c, a)| if a == 'd' { c.is_ascii_digit() } else { c == a })
+    };
+    [10, 16, 19, 20].into_iter().any(|n| digits(t, &shape[..n]))
+}
+
+/// sas search：呼ぶ側が渡した範囲を、構造で絞るか、意味で探す手順を返すか、渡された答えの出どころを確かめる（UC6）。記録しない。
+fn run_search(args: &[String]) -> ExitCode {
+    let mut session = None;
+    let mut concrete = None;
+    let mut all = false;
+    let mut semantic = false;
+    let mut question = None;
+    let mut answer = None;
+    let mut conditions: Vec<(String, Value)> = Vec::new();
+    let mut paths = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        let slot = match a.as_str() {
+            "--all" => {
+                all = true;
+                continue;
+            }
+            "--semantic" => {
+                semantic = true;
+                continue;
+            }
+            "--session" => &mut session,
+            "--concrete" => &mut concrete,
+            "--question" => &mut question,
+            "--answer" => &mut answer,
+            "--where" => {
+                let Some(w) = it.next().filter(|w| !w.is_empty()) else {
+                    return usage("--where に <JSON Pointer>=<値> がありません");
+                };
+                // 値は JSON として読み、読めなければ文字列として扱う（/level=summary と書ける）
+                let Some((at, raw)) = w.split_once('=') else {
+                    return usage(&format!(
+                        "--where は <JSON Pointer>=<値> の形で渡してください: {w}"
+                    ));
+                };
+                if !at.is_empty() && !at.starts_with('/') {
+                    return usage(&format!(
+                        "--where の所は JSON Pointer（/ で始まる）で渡してください: {at}"
+                    ));
+                }
+                let value = serde_json::from_str::<Value>(raw)
+                    .unwrap_or_else(|_| Value::String(raw.to_string()));
+                conditions.push((at.to_string(), value));
+                continue;
+            }
+            s if s.starts_with("--") => return usage(&format!("知らない指定です: {s}")),
+            p => {
+                paths.push(p.to_string());
+                continue;
+            }
+        };
+        match it.next() {
+            Some(v) if !v.is_empty() => *slot = Some(v.clone()),
+            _ => return usage(&format!("{a} に値がありません")),
+        }
+    }
+    // 範囲は必ず渡す（経路 ・ --concrete ・ --all のどれか1つ）
+    let range = match (paths.is_empty(), concrete, all) {
+        (false, None, false) => Range::Paths(paths),
+        (true, Some(c), false) => Range::Concrete(c),
+        (true, None, true) => Range::All,
+        (true, None, false) => {
+            return usage("探す範囲を、経路 ・ --concrete <URN> ・ --all のどれかで渡してください");
+        }
+        _ => {
+            return usage(
+                "探す範囲は、経路 ・ --concrete ・ --all のどれか1つだけを渡してください",
+            );
+        }
+    };
+    let ways = [!conditions.is_empty(), semantic, answer.is_some()];
+    match ways.iter().filter(|w| **w).count() {
+        0 => {
+            return usage(
+                "探し方を、--where ・ --semantic --question ・ --answer のどれかで渡してください",
+            );
+        }
+        1 => {}
+        _ => return usage("--where ・ --semantic ・ --answer は一緒に渡せません"),
+    }
+    if semantic != question.is_some() {
+        return usage("意味で探すときは、--semantic と --question <問い> を一緒に渡してください");
+    }
+    let answer_text = match &answer {
+        Some(from) => match read_answer(from) {
+            Ok(t) => Some(t),
+            Err(r) => return refuse(&r),
+        },
+        None => None,
+    };
+    if let Some(q) = question {
+        return match run_with(
+            |store, _, who, _| search_procedure(&range, &q, store, who),
+            session,
+        ) {
+            Ok(p) => {
+                output::print_procedure(&p);
+                ExitCode::SUCCESS
+            }
+            Err(r) => refuse(&r),
+        };
+    }
+    let result = match answer_text {
+        Some(text) => run_with(
+            |store, validator, _, _| search_with_answer(&range, &text, store, validator),
+            session,
+        ),
+        None => run_with(
+            |store, _, _, _| search_where(&range, &conditions, store),
+            session,
+        ),
+    };
+    match result {
+        Ok(f) => {
+            output::print_search(&f);
             ExitCode::SUCCESS
         }
         Err(r) => refuse(&r),

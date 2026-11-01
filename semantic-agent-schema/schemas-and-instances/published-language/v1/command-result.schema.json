@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:command-result:v1",
  "title": "sas が返す結果",
- "description": "sas のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ sas init で登録したセッション（session）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。SAS はエージェントを起動しない。$defs はステップごとに足す",
+ "description": "sas のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ sas init で登録したセッション（session）・ sas log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。SAS はエージェントを起動しない。sas log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す。$defs はステップごとに足す",
  "type": "object",
  "required": [
   "$schema",
@@ -18,6 +18,8 @@
     "change",
     "render",
     "session",
+    "operation",
+    "search",
     "error"
    ]
   }
@@ -34,6 +36,12 @@
   },
   {
    "$ref": "#/$defs/session-registered"
+  },
+  {
+   "$ref": "#/$defs/operation"
+  },
+  {
+   "$ref": "#/$defs/search"
   },
   {
    "$ref": "#/$defs/error"
@@ -261,6 +269,11 @@
      "type": "string",
      "minLength": 1,
      "description": "SAS を通らない変更があったときの、取り込みの案内"
+    },
+    "at": {
+     "type": "string",
+     "title": "記録した日時",
+     "description": "操作を記録した日時（UTC の RFC 3339）。sas log --operation で記録から読んだときだけ持つ"
     }
    }
   },
@@ -454,7 +467,7 @@
     },
     "replayed": {
      "type": "boolean",
-     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_rules と violated_instances は空（記録にあるのは差分だけ）"
+     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_rules と violated_instances は空（記録にあるのは差分だけ）。sas log --operation で記録から読んだときは false で、stale_rules と violated_instances は空（記録にあるのは差分だけ）"
     },
     "target": {
      "type": "object",
@@ -534,6 +547,16 @@
        }
       }
      }
+    },
+    "at": {
+     "type": "string",
+     "title": "記録した日時",
+     "description": "操作を記録した日時（UTC の RFC 3339）。sas log --operation で記録から読んだときだけ持つ"
+    },
+    "intent": {
+     "type": "string",
+     "title": "意図",
+     "description": "操作の意図（呼ぶ側が渡したときだけ）。sas log --operation で記録から読んだときだけ持つ"
     }
    },
    "allOf": [
@@ -612,9 +635,10 @@
       "invalid_design_system",
       "reads_cycle",
       "ref_too_large",
-      "invalid_answer"
+      "invalid_answer",
+      "range_too_large"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の reads が読み合う ・ 資料が上限を超える）。invalid_answer は sas validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の reads が読み合う ・ 資料が上限を超える）。invalid_answer は sas validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は sas log --operation の ID が記録に無いときも返す。range_too_large は sas search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。sas search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
     },
     "path": {
      "type": "string"
@@ -971,6 +995,263 @@
      "description": "ID をどこから知ったか。init は sas init が登録したもの"
     }
    }
+  },
+  "operation": {
+   "type": "object",
+   "description": "sas log の一覧の1行。記録にある操作（変更と検証）1件の要約で、新しい順に1行ずつ出す。中身（変わった欄 ・ rule ごとの結果）は sas log --operation <ID> で読む。読む形は記録の表の形に依らない",
+   "required": [
+    "kind",
+    "operation",
+    "at",
+    "op",
+    "path",
+    "session"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "$schema": true,
+    "kind": {
+     "const": "operation"
+    },
+    "operation": {
+     "type": "string",
+     "pattern": "^o-[0-9]{4,}$",
+     "title": "操作の ID",
+     "description": "作成 ・ 更新 ・ 削除 ・ 検証の操作の ID"
+    },
+    "at": {
+     "type": "string",
+     "title": "記録した日時",
+     "description": "操作を記録した日時（UTC の RFC 3339）"
+    },
+    "op": {
+     "enum": [
+      "create",
+      "update",
+      "delete",
+      "validate"
+     ],
+     "title": "操作の種類",
+     "description": "create ・ update ・ delete は書いた変更（取り込みを含む）、validate は検証"
+    },
+    "path": {
+     "type": "string",
+     "title": "対象の経路",
+     "description": "リポジトリの根からの経路"
+    },
+    "session": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "title": "打ったセッション",
+     "description": "操作を打ったセッション（sessions の行）。人なら null",
+     "required": [
+      "id",
+      "tool",
+      "folder"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "id": {
+       "type": "string",
+       "minLength": 1,
+       "title": "セッション ID",
+       "description": "--session ・ ツールの環境変数 ・ sas init で決まった ID"
+      },
+      "tool": {
+       "type": "string",
+       "minLength": 1,
+       "title": "ツールの名前",
+       "description": "claude-code など。分からなければ unknown"
+      },
+      "folder": {
+       "type": "string",
+       "minLength": 1,
+       "title": "フォルダ",
+       "description": "初めて見たときに打ったフォルダ（Git の中なら作業ツリーの根、外なら作業フォルダ）。--folder はこれと比べる"
+      }
+     }
+    },
+    "intent": {
+     "type": "string",
+     "title": "意図",
+     "description": "変更の意図（呼ぶ側が渡したときだけ）"
+    },
+    "counts": {
+     "$ref": "#/$defs/counts",
+     "title": "判定の件数",
+     "description": "検証のときだけ持つ。判定の5つの区分ごとの件数"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "op": {
+        "const": "validate"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "counts"
+      ],
+      "not": {
+       "required": [
+        "intent"
+       ]
+      }
+     },
+     "else": {
+      "not": {
+       "required": [
+        "counts"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "search": {
+   "type": "object",
+   "description": "sas search の結果。探した範囲を必ず返し（範囲の外は探していない）、構造で絞ったときは matches を、意味で探した答えを --answer で渡したときは answer と、SAS が確かめた sources を持つ。検索は記録しない",
+   "required": [
+    "kind",
+    "range"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "$schema": true,
+    "kind": {
+     "const": "search"
+    },
+    "range": {
+     "type": "array",
+     "title": "探した範囲",
+     "description": "探した文書の経路と、そのときの中身のハッシュ（経路の順）",
+     "items": {
+      "type": "object",
+      "required": [
+       "path",
+       "hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "path": {
+        "type": "string",
+        "title": "経路",
+        "description": "リポジトリの根からの経路"
+       },
+       "hash": {
+        "$ref": "#/$defs/hash",
+        "title": "ハッシュ",
+        "description": "探したときの中身のハッシュ"
+       }
+      }
+     }
+    },
+    "matches": {
+     "type": "array",
+     "title": "一致",
+     "description": "--where の条件のすべてに一致した文書の、条件の所と値",
+     "items": {
+      "type": "object",
+      "required": [
+       "path",
+       "pointer",
+       "value"
+      ],
+      "additionalProperties": false,
+      "description": "一致した所1つ",
+      "properties": {
+       "path": {
+        "type": "string",
+        "title": "経路",
+        "description": "値がある文書の経路（範囲の中）"
+       },
+       "pointer": {
+        "type": "string",
+        "title": "所",
+        "description": "文書の中の所（JSON Pointer）"
+       },
+       "value": {
+        "title": "値",
+        "description": "その所のいまの値（SAS が文書から読んだもの）"
+       }
+      }
+     }
+    },
+    "answer": {
+     "type": "string",
+     "minLength": 1,
+     "title": "答え",
+     "description": "打ったセッションが --answer で渡した、問いへの答えの文"
+    },
+    "sources": {
+     "type": "array",
+     "title": "出どころ",
+     "description": "答えの根拠の所。SAS が、範囲の中か ・ ハッシュがいまの中身と同じか ・ 所があるかを確かめ、その所のいまの値を入れた",
+     "items": {
+      "type": "object",
+      "required": [
+       "path",
+       "pointer",
+       "value"
+      ],
+      "additionalProperties": false,
+      "description": "出どころ1つ",
+      "properties": {
+       "path": {
+        "type": "string",
+        "title": "経路",
+        "description": "値がある文書の経路（範囲の中）"
+       },
+       "pointer": {
+        "type": "string",
+        "title": "所",
+        "description": "文書の中の所（JSON Pointer）"
+       },
+       "value": {
+        "title": "値",
+        "description": "その所のいまの値（SAS が文書から読んだもの）"
+       }
+      }
+     }
+    }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "matches"
+     ],
+     "not": {
+      "anyOf": [
+       {
+        "required": [
+         "answer"
+        ]
+       },
+       {
+        "required": [
+         "sources"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "required": [
+      "answer",
+      "sources"
+     ],
+     "not": {
+      "required": [
+       "matches"
+      ]
+     }
+    }
+   ]
   }
  }
 }

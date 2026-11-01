@@ -1,0 +1,116 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-ANSWER-SCHEMA",
+ "name": "手順に書く形の本体",
+ "title": "--semantic で書く手順の answer.schema は、書く元のスキーマの URN ではなく本体（Concrete を書くときは Abstract、インスタンスを書くときは Concrete）で、$ref で指すほかの文書も $id を持ったまま $defs に入る",
+ "why": "名前だけでは、求める欄（$schema など）が手順のどこにも無く、書いて断られて初めて分かる。手順だけで形の決まりがすべて読めれば、1回で書ける。",
+ "traces": [
+  "UC1:変形:意味で書く",
+  "UC2:変形:意味で書く",
+  "約束:procedure"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "schemas/flow.schema.json",
+   "--concrete",
+   "urn:semantic-agent-schema:published-language:abstract:v1",
+   "--semantic",
+   "--brief",
+   "手順の並びを持つ文書の型"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/schema/$id",
+   "equals": "urn:semantic-agent-schema:published-language:abstract:v1"
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/schema/properties/properties",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/schema/required",
+   "contains": "$schema"
+  },
+  {
+   "of": "when",
+   "pointer": "/answer/schema/$defs/urn:semantic-agent-schema:published-language:dialect:v1/$id",
+   "equals": "urn:semantic-agent-schema:published-language:dialect:v1"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/answer/format",
+   "equals": "document"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/answer/schema/$id",
+   "equals": "urn:example:sample:summary:v1"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/answer/schema/properties/summary/x-prompt/write/0/id",
+   "equals": "summary-matches"
+  },
+  {
+   "of": "after[1]",
+   "exit": 0
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/answer/format",
+   "equals": "json-patch"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/answer/schema/$id",
+   "equals": "urn:example:sample:review:v1"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/answer/schema/properties/$schema/const",
+   "equals": "urn:example:sample:review:v1"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "create",
+    "items/s2.json",
+    "--concrete",
+    "urn:example:sample:summary:v1",
+    "--semantic",
+    "--brief",
+    "退会を書く"
+   ]
+  },
+  {
+   "args": [
+    "update",
+    "items/r1.json",
+    "--semantic",
+    "--brief",
+    "目的を直す"
+   ]
+  }
+ ]
+}

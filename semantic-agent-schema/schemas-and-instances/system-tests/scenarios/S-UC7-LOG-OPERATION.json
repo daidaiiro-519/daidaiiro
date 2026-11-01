@@ -1,0 +1,153 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC7-LOG-OPERATION",
+ "name": "1件の中身を読む",
+ "title": "sas log --operation <ID> は、変更なら書いたときと同じ change の形（変わった欄の前後の値）を、検証なら検証したときと同じ validation の形（rule ごとの結果）を、記録した時刻 ・ 意図と一緒に返す",
+ "why": "一覧の要約だけでは、何がどう変わったか ・ どの rule がどう判定されたかが分からない。書いたときと同じ形なら、書いたときの出力と見比べられる。",
+ "traces": [
+  "UC7:成功時保証",
+  "UC7:変形:操作1件の中身を読む"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "items/a.json",
+     "--concrete",
+     "urn:example:sample:review:v1",
+     "--value",
+     "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R1\", \"goal\": \"検証の結果を受け取る\"}",
+     "--intent",
+     "R1 を足す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   },
+   {
+    "args": [
+     "validate",
+     "items/a.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/a.json",
+     "--patch",
+     "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"記録を読んで確かめる\"}]",
+     "--intent",
+     "目的を直す"
+    ],
+    "env": {
+     "CLAUDE_CODE_SESSION_ID": "c-1"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log",
+   "--operation",
+   "o-0003"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "change"
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "updated"
+  },
+  {
+   "of": "when",
+   "pointer": "/session",
+   "equals": "c-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/intent",
+   "equals": "目的を直す"
+  },
+  {
+   "of": "when",
+   "pointer": "/target/concrete",
+   "equals": "urn:example:sample:review:v1"
+  },
+  {
+   "of": "when",
+   "pointer": "/target/kind",
+   "equals": "instance"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/before",
+   "equals": "検証の結果を受け取る"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/after",
+   "equals": "記録を読んで確かめる"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operations/0",
+   "equals": "o-0002"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/schema",
+   "equals": "urn:example:sample:review:v1"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/results/1/rule",
+   "equals": "goal-is-outcome"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/targets/0/results/1/result",
+   "equals": "unsupported"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/counts/verified",
+   "equals": 1
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0002"
+   ]
+  }
+ ]
+}

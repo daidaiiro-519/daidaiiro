@@ -65,15 +65,16 @@ def layers():
     for x in [175, 415, 575, 735, 895]: f.path(f'M500,88 V108 H{x} V128', arrow=True)
     f.note(512, 104, '分解')
     f.box(20, 130, 310, 56, ['書いて検証する（中核）', 'ドメインモデル'], 'focus')
-    f.box(340, 130, 150, 56, ['記録（補完）', 'スクリプト'])
-    f.box(500, 130, 150, 56, ['描画（補完）', 'スクリプト'])
-    f.box(660, 130, 150, 56, ['検索', 'ステップ8 で確かめる'])
+    f.box(340, 130, 150, 56, ['検索（補完）', 'スクリプト'])
+    f.box(500, 130, 150, 56, ['記録（補完）', 'スクリプト'])
+    f.box(660, 130, 150, 56, ['描画（補完）', 'スクリプト'])
     f.box(820, 130, 150, 56, ['一般：版の管理・', '検証・描画の部品'], dashed=True)
     f.area(10, 250, 980, 260, '解決の側（設計する）', tx=136)
     f.bound(24, 280, 952, 124, '文脈「スキーマとインスタンス」（1つ）', tx=136)
-    labs = [['writing/', '書くのモジュール'], ['validation/', '検証のモジュール'], ['recording/', '記録のモジュール'], ['rendering/', '描画のモジュール'], ['search/', '検索のモジュール'], ['published-language/', '公開された言葉']]
+    labs = [['writing/', '書くのモジュール'], ['validation/', '検証のモジュール'], ['search/', '検索のモジュール'], ['recording/', '記録のモジュール'], ['rendering/', '描画のモジュール'], ['published-language/', '公開された言葉']]
     for x, l in zip(xs, labs):
-        f.path(f'M{x+75},186 V280', dashed=True, arrow=False); f.path(f'M{x+75},306 V326', dashed=True)
+        if x < 800: f.path(f'M{x+75},186 V280', dashed=True, arrow=False)
+        f.path(f'M{x+75},306 V326', dashed=True)
         f.box(x, 328, 150, 56, l, 'focus' if x < 300 else '')
     f.note(108, 230, 'モジュール')
     f.path('M895,384 V438', dashed=True); f.note(885, 420, 'アダプターとして渡す', 'end')
@@ -151,7 +152,7 @@ def hexf():
     f.path('M670,128 H690 V388 H662')
     f.path('M440,208 H420 V498 H438', dashed=True); f.note(412, 470, '記録', 'end')
     f.path('M230,391 H320 V128 H438'); f.path('M320,208 H438'); f.path('M320,391 V658 H438'); f.path('M320,498 H438'); f.path('M320,578 H438')
-    PS = [(102, 46, ['ポート（書く）', 'commit_reader']), (170, 66, ['ポート（検証）', 'document_store', 'schema_validator']), (470, 70, ['ポート（記録）', 'identify_caller', 'operation_log']), (556, 46, ['ポート（描画）', 'template_renderer'])]
+    PS = [(102, 46, ['ポート（書く）', 'commit_reader']), (170, 66, ['ポート（検証）', 'document_store', 'schema_validator']), (462, 90, ['ポート（記録）', 'identify_caller', 'operation_log', 'operation_reader']), (562, 46, ['ポート（描画）', 'template_renderer'])]
     for y, h, l in PS: f.box(704, y, 166, h, l)
     for y in [100, 180, 470, 550]: f.path(f'M670,{y+28} H702')
     AD = [(150, 'outbound/filesystem'), (220, 'outbound/git（読むだけ）'), (290, 'outbound/jsonschema'), (470, 'outbound/sqlite'), (560, 'outbound/templates（5）')]
@@ -173,13 +174,13 @@ def cratesf():
     for i, n in enumerate(outs): f.box(30, 136 + i * 92, 260, 56, ['outbound-' + n], dashed=n.endswith('）'))
     f.path('M30,86 H20 V624', arrow=False)
     for i in range(6): f.path(f'M20,{164 + i * 92} H28')
-    apps = [(60, 'writing-application', 'focus', False), (170, 'validation-application', 'focus', False), (400, 'recording-application', '', False), (500, 'rendering-application', '', False), (600, 'search-application（8）', '', True)]
+    apps = [(60, 'writing-application', 'focus', False), (170, 'validation-application', 'focus', False), (400, 'recording-application', '', False), (500, 'rendering-application', '', False), (600, 'search-application', '', False)]
     for y, n, r, d in apps: f.box(390, y, 290, 56, [n], r, dashed=d)
     f.box(940, 60, 270, 56, ['writing-domain'], 'focus')
     f.box(940, 170, 270, 56, ['validation-domain'], 'focus')
     f.path('M680,88 H938'); f.path('M680,198 H938'); f.path('M1075,170 V118')
     f.path('M535,116 V168'); f.path('M535,226 V398')
-    f.path('M680,528 H720 V210 H682', dashed=True); f.path('M680,628 H720 V528', dashed=True, arrow=False)
+    f.path('M680,528 H720 V210 H682'); f.path('M680,628 H720 V528', arrow=False)
     f.path('M290,164 H330', arrow=False)
     for i in range(1, 6): f.path(f'M290,{164 + i * 92} H330', arrow=False)
     f.path('M330,164 V624', arrow=False)
@@ -188,7 +189,7 @@ def cratesf():
     f.note(1075, 300, 'validation-domain は集約を読む', 'middle')
     f.note(160, 700, 'cli だけが outbound に依存', 'middle')
     f.note(610, 676, '線は依存してよい向き：書く → 検証 → 記録、検証の domain → 書くの domain', 'middle')
-    f.note(610, 694, 'いま14、点線はこれから足す', 'middle')
+    f.note(610, 694, 'いま15。描画 ・ 検索 → 検証', 'middle')
     f.note(610, 712, 'outbound は application のポートを実装する', 'middle')
     return f.write('crates', 1000)
 

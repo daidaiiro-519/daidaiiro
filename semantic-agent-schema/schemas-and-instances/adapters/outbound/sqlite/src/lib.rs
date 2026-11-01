@@ -4,8 +4,8 @@
 //! application と domain は時刻に触らない。セッションの ID はツールのもので、ツールから取れないとき（sas init）だけここで作る。
 
 use recording_application::ports::{
-    Caller, ChangeRow, FieldRow, Judgment, OperationLog, RuleRow, SessionRow, StoredChange,
-    ValidateRow, WriteRecord,
+    Caller, ChangeRow, FieldRow, Judgment, OperationDetail, OperationFilter, OperationLog,
+    OperationReader, OperationSummary, RuleRow, SessionRow, StoredChange, ValidateRow, WriteRecord,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use std::hash::{BuildHasher, Hasher};
@@ -13,11 +13,12 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の書き直しはステップ4b の1回だけ：CODING.md）。
-const MIGRATIONS: [&str; 4] = [
+const MIGRATIONS: [&str; 5] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
     include_str!("../migrations/0003-adopt.sql"),
     include_str!("../migrations/0004-delete.sql"),
+    include_str!("../migrations/0005-read.sql"),
 ];
 
 /// SQLite の操作の記録。
@@ -93,7 +94,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent \
+                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent, schema \
                  FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
@@ -105,6 +106,7 @@ impl SqliteLog {
                         before: r.get(4)?,
                         after: r.get(5)?,
                         intent: r.get(6)?,
+                        schema: r.get(7)?,
                         fields: Vec::new(),
                     })
                 },
@@ -251,9 +253,9 @@ impl OperationLog for SqliteLog {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
-            "INSERT INTO validations (id, at, target_path, hash, session_id) \
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, now(), row.target_path, row.hash, session],
+            "INSERT INTO validations (id, at, target_path, hash, session_id, schema) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![id, now(), row.target_path, row.hash, session, row.schema],
         )
         .map_err(|e| err(&e))?;
         for (ord, r) in row.results.iter().enumerate() {
@@ -273,10 +275,10 @@ impl OperationLog for SqliteLog {
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
             "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, \
-             session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+             session_id, schema) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 id, now(), row.kind, row.target_path, row.before, row.after, row.intent, row.request_id,
-                row.source, session
+                row.source, session, row.schema
             ],
         )
         .map_err(|e| err(&e))?;
@@ -365,6 +367,185 @@ impl OperationLog for SqliteLog {
         .map_err(|e| err(&e))?
         .collect::<Result<_, _>>()
         .map_err(|e| err(&e))
+    }
+}
+
+impl SqliteLog {
+    /// 検証1件の行（rule ごとの結果も）を、操作の ID から読む。無ければ None。
+    fn validate_row(
+        &self,
+        operation: &str,
+    ) -> Result<Option<(String, Option<String>, ValidateRow)>, String> {
+        let found = self
+            .conn
+            .query_row(
+                "SELECT at, session_id, target_path, hash, schema FROM validations WHERE id = ?1",
+                [operation],
+                |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, Option<String>>(1)?,
+                        ValidateRow {
+                            target_path: r.get(2)?,
+                            hash: r.get(3)?,
+                            schema: r.get(4)?,
+                            results: Vec::new(),
+                        },
+                    ))
+                },
+            )
+            .optional()
+            .map_err(|e| err(&e))?;
+        let Some((at, session, mut row)) = found else {
+            return Ok(None);
+        };
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT rule_id, pointer, by, result, reason, reads_hash FROM rule_results \
+                 WHERE validation_id = ?1 ORDER BY ord",
+            )
+            .map_err(|e| err(&e))?;
+        row.results = stmt
+            .query_map([operation], |r| {
+                Ok(RuleRow {
+                    rule: r.get(0)?,
+                    pointer: r.get(1)?,
+                    by: r.get(2)?,
+                    result: r.get(3)?,
+                    reason: r.get(4)?,
+                    reads: r.get(5)?,
+                })
+            })
+            .map_err(|e| err(&e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| err(&e))?;
+        Ok(Some((at, session, row)))
+    }
+
+    /// 検証1件の、判定の区分ごとの件数（区分の名前の順）。
+    fn result_counts(&self, operation: &str) -> Result<Vec<(String, usize)>, String> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT result, count(*) FROM rule_results WHERE validation_id = ?1 \
+                 GROUP BY result ORDER BY result",
+            )
+            .map_err(|e| err(&e))?;
+        stmt.query_map([operation], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                usize::try_from(r.get::<_, i64>(1)?).unwrap_or_default(),
+            ))
+        })
+        .map_err(|e| err(&e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| err(&e))
+    }
+}
+
+impl OperationReader for SqliteLog {
+    fn operations(&self, filter: &OperationFilter) -> Result<Vec<OperationSummary>, String> {
+        // 絞り方は SQL の条件にして「かつ」で並べ、値は引数で渡す。新しい順は採番（o-NNNN）の数の大きい順
+        let mut conditions: Vec<String> = Vec::new();
+        let mut args: Vec<String> = Vec::new();
+        if !filter.paths.is_empty() {
+            let marks: Vec<String> = filter
+                .paths
+                .iter()
+                .map(|p| {
+                    args.push(p.clone());
+                    format!("?{}", args.len())
+                })
+                .collect();
+            conditions.push(format!("o.target_path IN ({})", marks.join(", ")));
+        }
+        if let Some(by) = &filter.by {
+            args.push(by.clone());
+            conditions.push(format!("o.session_id = ?{}", args.len()));
+        }
+        if let Some(folder) = &filter.folder {
+            args.push(folder.clone());
+            conditions.push(format!("s.folder = ?{}", args.len()));
+        }
+        if let Some(since) = &filter.since {
+            args.push(since.clone());
+            conditions.push(format!("o.at >= ?{}", args.len()));
+        }
+        let mut sql =
+            "SELECT o.id, o.at, o.kind, o.target_path, o.intent, s.id, s.tool, s.folder, s.via \
+                       FROM operations o LEFT JOIN sessions s ON s.id = o.session_id"
+                .to_string();
+        if !conditions.is_empty() {
+            sql.push_str(" WHERE ");
+            sql.push_str(&conditions.join(" AND "));
+        }
+        sql.push_str(" ORDER BY CAST(substr(o.id, 3) AS INTEGER) DESC");
+        if let Some(n) = filter.limit {
+            sql.push_str(&format!(" LIMIT {n}"));
+        }
+        let mut stmt = self.conn.prepare(&sql).map_err(|e| err(&e))?;
+        let rows: Vec<OperationSummary> = stmt
+            .query_map(rusqlite::params_from_iter(args.iter()), |r| {
+                let session = match r.get::<_, Option<String>>(5)? {
+                    Some(id) => Some(SessionRow {
+                        id,
+                        tool: r.get(6)?,
+                        folder: r.get(7)?,
+                        via: r.get(8)?,
+                    }),
+                    None => None,
+                };
+                Ok(OperationSummary {
+                    operation: r.get(0)?,
+                    at: r.get(1)?,
+                    op: r.get(2)?,
+                    path: r.get(3)?,
+                    session,
+                    intent: r.get(4)?,
+                    counts: Vec::new(),
+                })
+            })
+            .map_err(|e| err(&e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| err(&e))?;
+        rows.into_iter()
+            .map(|mut o| {
+                if o.op == "validate" {
+                    o.counts = self.result_counts(&o.operation)?;
+                }
+                Ok(o)
+            })
+            .collect()
+    }
+
+    fn operation(&self, id: &str) -> Result<Option<OperationDetail>, String> {
+        if let Some((at, session, row)) = self.validate_row(id)? {
+            return Ok(Some(OperationDetail::Validate {
+                operation: id.to_string(),
+                at,
+                session,
+                row,
+            }));
+        }
+        let found: Option<(String, Option<String>)> = self
+            .conn
+            .query_row(
+                "SELECT at, session_id FROM changes WHERE id = ?1",
+                [id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+            .map_err(|e| err(&e))?;
+        let Some((at, session)) = found else {
+            return Ok(None);
+        };
+        Ok(Some(OperationDetail::Change {
+            operation: id.to_string(),
+            at,
+            session,
+            row: self.change_row(id)?,
+        }))
     }
 }
 

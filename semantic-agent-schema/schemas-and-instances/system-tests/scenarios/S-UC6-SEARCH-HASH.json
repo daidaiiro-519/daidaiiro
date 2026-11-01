@@ -1,0 +1,48 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-HASH",
+ "name": "出どころの中身が変わった",
+ "title": "答えの出どころのハッシュがいまの中身と違えば、答えを返さずに conflict で、手順を取り直すコマンドを返す",
+ "why": "手順を出したあとに中身が変わると、答えの根拠の値がもう無いかもしれない。",
+ "traces": [
+  "UC6:拡張:出どころを確かめられない"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}",
+   "answers/old.json": "{\"answer\": \"R2 に出てくる\", \"sources\": [{\"path\": \"items/r2.json\", \"pointer\": \"/goal\", \"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\"}]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "--concrete",
+   "urn:example:sample:review:v1",
+   "--answer",
+   "answers/old.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "conflict"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "items/r2.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "sas search --concrete urn:example:sample:review:v1 --semantic --question"
+  }
+ ]
+}

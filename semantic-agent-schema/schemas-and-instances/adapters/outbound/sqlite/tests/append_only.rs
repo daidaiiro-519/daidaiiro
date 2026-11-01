@@ -11,6 +11,7 @@ fn row(by: &str, result: &str) -> ValidateRow {
     ValidateRow {
         target_path: "u1.json".into(),
         hash: "sha256:a".into(),
+        schema: None,
         results: vec![RuleRow {
             rule: "r".into(),
             pointer: "/goal".into(),

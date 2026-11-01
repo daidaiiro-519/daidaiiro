@@ -1,4 +1,4 @@
-"""Semantic Agent Schema の概念（版27）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
+"""Semantic Agent Schema の概念（版29）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
 図は design-svg の figure と chart exchange で作り、ER 図と3段の型は版5（../sas-role4/）の検査済みの図を使う。"""
 import os, re, json, subprocess, html
 H = os.path.dirname(os.path.abspath(__file__))
@@ -59,8 +59,9 @@ SC = {
  'a': ("エージェント", [("エージェント", "SAS", "U10 を作る（--semantic）"), ("SAS", "エージェント", "書く手順（記録しない）"), ("エージェント", "SAS", "create --value で欄の値"),
        ("SAS", "SAS", "検査して書く・DB へ o-0031"), ("SAS", "エージェント", "created とセッションの ID"), ("エージェント", "SAS", "U10 を検証（--semantic）"),
        ("SAS", "エージェント", "判定の手順（記録しない）"), ("エージェント", "SAS", "--answer で判定"), ("SAS", "SAS", "突き合わせて DB へ o-0032"), ("SAS", "エージェント", "結果")]),
- 'b': ("エージェント", [("エージェント", "SAS", "goal はなぜ？"), ("SAS", "エージェント", "探す手順（記録しない）"),
-       ("エージェント", "エージェント", "手順のとおりに探す")]),
+ 'b': ("エージェント", [("エージェント", "SAS", "範囲と問い（--semantic）"), ("SAS", "エージェント", "探す手順（記録しない）"),
+       ("エージェント", "エージェント", "範囲の文書を読んで答える"), ("エージェント", "SAS", "--answer で答えと出どころ"),
+       ("SAS", "SAS", "出どころを確かめる"), ("SAS", "エージェント", "答えと出どころの値")]),
  'c': ("人", [("人", "人", "直接書き換え"), ("人", "SAS", "U10 を検証"), ("SAS", "SAS", "ハッシュが違う"),
        ("SAS", "人", "通らない変更と案内"), ("人", "SAS", "--adopt で取り込む"), ("SAS", "SAS", "DB へ o-0043")]),
  'd': ("人", [("人", "SAS", "U11 を削除"), ("SAS", "SAS", "従うインスタンスが無いかを見る"), ("SAS", "SAS", "DB へ o-0040"),
@@ -116,9 +117,9 @@ F['tree'] = run('figure', 'ptree', {"direction": "TB", "nodes": [
               {"from": "w", "to": "o1", "label": "child_session_id"}, {"from": "c", "to": "o3", "label": "child_session_id"}]})
 F['er'] = run('figure', 'er16', {"direction": "TB", "nodes": [
     {"id": "s", "label": "sessions：id・tool・folder・via・first_seen", "role": "focus"},
-    {"id": "ch", "label": "changes：id・at・kind・target_path・前後のハッシュ・intent・request_id・source・cause_id・session_id"},
+    {"id": "ch", "label": "changes：id・at・kind・target_path・前後のハッシュ・intent・request_id・source・session_id・schema"},
     {"id": "fc", "label": "field_changes：change_id・pointer・change・before・after"},
-    {"id": "v", "label": "validations：id・at・target_path・hash・session_id"},
+    {"id": "v", "label": "validations：id・at・target_path・hash・session_id・schema"},
     {"id": "rr", "label": "rule_results：validation_id・rule・pointer・by・result・reads_hash"}],
     "edges": [{"from": "s", "to": "ch", "label": "session_id"}, {"from": "s", "to": "v", "label": "session_id"},
               {"from": "ch", "to": "fc", "label": "1 対 多"}, {"from": "v", "to": "rr", "label": "1 対 多"}]})
@@ -156,9 +157,9 @@ def nl(d, i, label=None, role=None):
             if label: x['label'] = label
             if role is not None: x['role'] = role
 SUB = [("書いて検証する（モジュール writing・validation）", "中核", "ドメインモデル（集約 Concrete・インスタンスは writing、集約を読んで rule に照らす業務サービスと判定の区分は validation）", "UC1 作成・UC2 更新・UC3 削除・取り込み・UC4 検証・入力が変わった rule だけ。意味の部分は x-prompt の欄を書くこと（ステップ7）と by: ai の rule を判定すること（ステップ6）", "人・AI のエージェント（打ったセッション）／Git（読むだけ）・JSON Schema のバリデーター／Abstract・Concrete・インスタンスのファイルと判定の結果"),
-       ("記録（モジュール recording）", "補完", "トランザクションスクリプト", "ほかの操作の追記、UC7 操作の記録を読む", "人・AI のエージェント・レビューする人／ツールのセッション ID／sessions・changes・field_changes・validations・rule_results"),
+       ("記録（モジュール recording）", "補完", "トランザクションスクリプト", "ほかの操作の追記、UC7 操作の記録を読む（sas log。読むだけ）", "人・AI のエージェント・レビューする人／ツールのセッション ID／sessions・changes・field_changes・validations・rule_results"),
+       ("検索（モジュール search）", "補完", "トランザクションスクリプト", "UC6（範囲を宣言して、構造で絞る ・ 意味で探す。--answer で出どころを確かめる。記録しない）", "人・AI のエージェント・オーケストレーター／Abstract・Concrete・インスタンスのファイル／書かない"),
        ("描画（モジュール rendering）", "補完", "トランザクションスクリプト", "UC5（ステップ5。デザインシステムとインスタンスの値を受け取り、テンプレートが値を置き、トークンが見た目を決める。同じ入力から同じページ）", "読み手／デザインシステム／書かない"),
-       ("検索（モジュール search）", "ステップ8 で確かめる", "―", "UC6（構造で絞る・意味で探す）", "人・AI のエージェント／書かない"),
        ("版の管理・JSON Schema の検証・描画の部品", "一般", "製品は作らずに使い、アダプターとして渡す。ポートと受け取りの型は、使うモジュールが SAS の中に持つ", "―", "Git・バリデーター・テンプレートの処理系")]
 WORDS = [("同じ言葉（文脈「スキーマとインスタンス」）", "セッション（sas を打ったツールのセッション ID。sessions の1行で指す。状態は持たない）・ハッシュ（中身の sha256。記録の列 before_hash・after_hash の値）・書いた変更・検証・変わった欄・rule の結果・ハッシュ・意図・決めたことの文（brief）・依頼・手順のプロンプト・エージェントの答え"),
          ("意味が違う（境界の外）", "ツールの「セッション」の寿命と再開（ツールと使う側が持つ。SAS は ID を記録するだけ）・Git の「コミット」・使う側の「目的のセッション」（目的・親子・承認・コミットを持つ）")]
@@ -183,18 +184,18 @@ MNO = [("上からだけ（版13：events/・操作の記録の集約2つ・ス�
        ("業務領域ごとに技術方式を分ける（スクリプトはレイヤード）", "1つの文脈に依存の向きが2つでき、スクリプトから引き上げるたびに向きを付け替える"),
        ("domain を1つの crate にする", "1つの crate の中では集約の間の向きを止められない（Book ch07-03:296）"),
        ("イベント履歴式にする", "中身の情報源が Git と履歴の2つになり、SAS を通らない変更で食い違う")]
-PORTS = [["document_store", "validation", "outbound/filesystem", "dyn。コンポジションルートと試験の差し替えを1つの書き方にそろえる。書くのは書くのモジュールの use_cases だけ"], ["schema_validator", "validation", "outbound/jsonschema", "dyn。同上。2020-12 の形の検査。x- の判定は validation-domain"], ["commit_reader", "writing", "outbound/git", "dyn。同上。コミットにある中身を読むだけ（ステップ3 で version_reader から改名）"], ["identify_caller", "recording", "inbound/cli", "dyn。同上。打ったセッションの ID を --session → 環境変数（callers.json）→ このフォルダで sas init が登録したセッションの順で決める。いちばん下に置き、どのモジュールからも使える"], ["operation_log", "recording", "outbound/sqlite", "dyn。同上。sessions（打ったセッション）と changes・validations の行を足す・読む"], ["template_renderer", "rendering", "outbound/templates", "dyn。Mustache（mustache/spec の必須の部分）の処理系。値を置く・繰り返す・有無で出し分けるだけで、ロジックを持たない。描かずに木を読み、検証に使う"], ["script_reader", "rendering", "outbound/javascript", "dyn。JS の構文解析器 boa。テンプレートの JS が値の入口 sas-data から読む欄を取り出す（ステップ5 で足した）"], ["page_writer", "rendering", "outbound/filesystem", "dyn。描いたページを書き出す。入力と実体の経路で重なれば断り、1つでも置けなければどれも置かない（ステップ5 で足した）"]]
+PORTS = [["document_store", "validation", "outbound/filesystem", "dyn。コンポジションルートと試験の差し替えを1つの書き方にそろえる。書くのは書くのモジュールの use_cases だけ"], ["schema_validator", "validation", "outbound/jsonschema", "dyn。同上。2020-12 の形の検査。x- の判定は validation-domain"], ["commit_reader", "writing", "outbound/git", "dyn。同上。コミットにある中身を読むだけ（ステップ3 で version_reader から改名）"], ["identify_caller", "recording", "inbound/cli", "dyn。同上。打ったセッションの ID を --session → 環境変数（callers.json）→ このフォルダで sas init が登録したセッションの順で決める。いちばん下に置き、どのモジュールからも使える"], ["operation_log", "recording", "outbound/sqlite", "dyn。同上。sessions（打ったセッション）と changes・validations の行を足す・読む"], ["operation_reader", "recording", "outbound/sqlite", "dyn。同上。記録にある操作を新しい順に絞って読む・1件の中身を読む（UC7。読むだけ。ステップ9 で足した）"], ["template_renderer", "rendering", "outbound/templates", "dyn。Mustache（mustache/spec の必須の部分）の処理系。値を置く・繰り返す・有無で出し分けるだけで、ロジックを持たない。描かずに木を読み、検証に使う"], ["script_reader", "rendering", "outbound/javascript", "dyn。JS の構文解析器 boa。テンプレートの JS が値の入口 sas-data から読む欄を取り出す（ステップ5 で足した）"], ["page_writer", "rendering", "outbound/filesystem", "dyn。描いたページを書き出す。入力と実体の経路で重なれば断り、1つでも置けなければどれも置かない（ステップ5 で足した）"]]
 LIBS = [["rusqlite", "outbound/sqlite の crate だけが依存", "行の型で変換する（orphan rule）"], ["2020-12 のバリデーターのライブラリ", "outbound/jsonschema の crate だけが依存", "schema_validator を実装。$ref はネットワークから取らない。x- の判定は domain"], ["テンプレートの処理系のライブラリ", "outbound/templates の crate だけが依存", "template_renderer を実装。種類がそろうかは application が確かめる"]]
-RULES_ANY = ["リポジトリの根は製品 Semantic Agent Schema の置き場で、文脈の根にしない。文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下。ここでは schemas-and-instances/）。その中は業務領域を作るモジュール（writing・validation・recording・rendering・search）と adapters で、文脈の根に domain を置かない。名前はその文脈の言葉（スキーマ・インスタンス・書く・検証・記録）から付け、製品の名前を使わない。文脈の中はポートとアダプターで作り、外とのやりとりはすべて application の ports を adapters が実装する（呼び出し元を決めるポートは inbound/cli、ほかは outbound）。本ではポートは業務ロジック層が定義するが、記録と描画はドメインモデルを持たないので application に置く", "業務ロジックの置き方は、上から決めて下から確かめる。守る条件がすでに決定・Abstract の rule・試験の場面に書けている所は初めから domain に置き、それ以外は use_cases にトランザクションスクリプトで書く。引き上げの表で判別し、突き合わせで確かめたものだけを domain に置く", "domain の中は部品の種類でフォルダを分ける：aggregates/（集約ごと）・values/・services/。購読する手続きが無いうちは events/ を作らない", "application の中は use_cases/ と ports/。use_cases/ のファイルは集約か手順のまとまりごとに分け、ユースケースごとのファイルやフォルダは作らない（土台の境界6）", "domain を持つのは、突き合わせで集約・値・サービスが確かめられたモジュールだけ（いまは書く・検証）。集約は書くのモジュール、検証のモジュールは集約を読んで rule に照らすサービスと判定の値を持つ。記録と描画は application だけ", "ポートは、それを使う手順を持つモジュールの application/ports に置く。共有の置き場を作らない。書く・検証・検索が共に使うポートは、書く・検索が依存する検証のモジュールが持つ。呼び出し元を判別するポートは、いちばん下の記録が持つ", "モジュールの間の向きは 書く → 検証 → 書くの domain、書く・検証 → 記録、描画・検索 → 検証 の一方向。同じ文脈の別のモジュールはポートを挟まず application を直接呼ぶ", "外のライブラリ（rusqlite・2020-12 のバリデーター・テンプレートの処理系）は、それを使う outbound の crate だけが依存する", "コンポジションルート（アダプターをポートへ渡す）は入口の1か所だけ", "公開された言葉（Abstract の本体・語彙・方言と CLI の入出力）は文脈の根の published-language/&lt;版&gt;/ に置き、出した版は変えない"]
-RULES_RS = ["依存の向きを強制したい境界と、外のライブラリを閉じ込めたい所だけを crate にし、それ以外はモジュールで分ける。crate の数の基準は原典に無い<span class=\"src\">（Book ch07-01:186・ch14-03:187（基準の記述が無い）・ch07-03:296・Reference visibility:476）</span>", "domain はモジュールごとに crate を分ける（いまは writing-domain と validation-domain。検証が集約を読む向きを crate で強制する）。1つの crate の中では子モジュールが祖先の項目を使えるので、集約の間の向きはモジュールでは止められない<span class=\"src\">（Book ch07-03:296・ch14-03:299）</span>", "根の Cargo.toml は virtual manifest。[workspace] に members と resolver = \"3\" を書く<span class=\"src\">（Cargo workspaces:241・258、Book ch14-03:207〜211）</span>", "外のライブラリの版は [workspace.dependencies] に置き、各 crate は workspace = true で継承する（optional にはできない）。SAS の中の crate どうしは path dependencies<span class=\"src\">（Cargo workspaces:359・363、specifying-dependencies:425）</span>", "crate が使えるのは自分の Cargo.toml に書いた crate だけ。これで domain の無依存と、ライブラリの閉じ込めを強制する<span class=\"src\">（Book ch14-03:299・390）</span>", "domain の lib.rs は pub mod aggregates; pub mod values; pub mod services;（集約の無い validation-domain は values と services だけ。events は作らない）。crate の中だけで使う部品は pub(crate)<span class=\"src\">（Book ch07-02:273、Reference visibility:390・476）</span>", "mod.rs を使わない。src/aggregates.rs と src/aggregates/concrete.rs・instance.rs の形にする<span class=\"src\">（Book ch07-05:251・265・268）</span>", "application の ports.rs が、ポートで使う domain の型を pub use で再公開する。adapters は application だけに依存する<span class=\"src\">（Book ch07-04:392、Reference visibility:564）</span>", "コンポジションルートは cli の main.rs。outbound の crate に依存してよいのは cli だけ<span class=\"src\">（Book ch14-03:299（推論：実装の型の名前を書くので依存が必要））</span>", "ポートは trait で、8つとも dyn で使う。dyn compatible に保つ：型引数のあるメソッド・async fn・関連定数を持たず、Self を receiver 以外で使わない。sealed にしない<span class=\"src\">（Reference traits:412・429・445・459、API Guidelines C-OBJECT:322・324・321、C-SEALED:169）</span>", "集約の欄は private、メソッドだけ pub。ID・ハッシュは newtype で区別する<span class=\"src\">（Book ch07-03:477、API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169）</span>", "adapters で外の trait（rusqlite・serde など）を domain の型に実装しない（orphan rule）。sqlite の crate は自分の行の型を持って変換する<span class=\"src\">（Book ch10-02:302・309・313、Reference implementations:658・659・669）</span>", "依存のグラフは循環させない<span class=\"src\">（Cargo resolver:568・585）</span>"]
-TREE = [["semantic-agent-schema/", "リポジトリ ＝ 製品 Semantic Agent Schema（文脈ではない）。直下に文脈の名前のフォルダと、製品全体のものだけを置く", ""], ["├── Cargo.toml", "［製品全体］virtual manifest：[workspace] members に下の crate のパス（ラベルの付いたフォルダ。いま14）・resolver = \"3\"・[workspace.dependencies]", ""], ["├── architecture.json", "［製品全体］crate の間で許す依存の向きと crate の名前の決め方（検査に使う）", ""], ["├── docs/", "［製品全体］設計の文書（土台・設計のページ）", ""], ["└── schemas-and-instances/", "文脈「スキーマとインスタンス」（区切られた文脈）。中の作り方はポートとアダプター。中は業務領域を作るモジュールと adapters", ""], ["    ├── published-language/v1/", "公開された言葉：Concrete を書く型（abstract ・ vocabulary ・ dialect）・ CLI の出力（command-result）・ 打ったセッションへの手順（procedure）・ 受け取りの型（design-system ・ template-language）の7つ。操作の依頼の型は JSON で依頼する口を作るときに足す", ""], ["    ├── writing/", "業務領域「書いて検証する」の書くモジュール", ""], ["    │   ├── domain/", "依存：無し。aggregates/（Concrete・インスタンスと書く条件）・values/（ハッシュ・差分・書く条件の外れ）", "writing-domain"], ["    │   └── application/", "use_cases/write.rs（作る・直す・取り込む）・write/delete.rs・write/patch.rs・ports.rs（commit_reader）", "writing-application"], ["    ├── validation/", "業務領域「書いて検証する」の検証のモジュール", ""], ["    │   ├── domain/", "依存：writing-domain。values/（判定の5つの区分・rule の結果・by）・services/（当たる rule・Abstract の rule）", "validation-domain"], ["    │   └── application/", "use_cases/validate.rs（機械で検証する・入力が変わった rule だけ）・meaning.rs（意味の判定の手順を組む・判定を突き合わせる）・ports.rs（document_store・schema_validator）", "validation-application"], ["    ├── recording/", "業務領域「記録」のモジュール（トランザクションスクリプト。domain は無い）", ""], ["    │   └── application/", "use_cases/history.rs（打ったセッションを決める・追記する・UC7 を読む）・ports.rs（identify_caller・operation_log）", "recording-application"], ["    ├── rendering/ ・ search/", "業務領域「描画」「検索」のモジュール（ステップ5・8 で足す）", "rendering-application ・ search-application"], ["    ├── adapters/", "アダプターの置き場", ""], ["    │   ├── inbound/cli/", "[[bin]] の名前は sas（製品の名前はここにだけ残す）。main.rs がコンポジションルート。callers.json（セッションの ID の環境変数）。outbound に依存してよいのはここだけ", "inbound-cli"], ["    │   └── outbound/", "filesystem（document_store・page_writer）・git（commit_reader。読むだけ）・jsonschema（schema_validator）・sqlite（operation_log。migrations/）・templates（template_renderer。ステップ5）・javascript（script_reader。ステップ5）", "outbound-&lt;技術&gt;"], ["    ├── system-tests/", "システムテストの場面（scenarios/）・材料（fixtures/）・trace.json・untested.json", ""], ["    └── test-support/", "試験の部品。dev-dependencies からだけ", "test-support"]]
-CRATES = [["writing-domain", "domain", "無し"], ["validation-domain", "domain", "writing-domain（集約を読む）"], ["recording-application", "application", "無し"], ["validation-application", "application", "writing-domain・validation-domain・recording-application"], ["writing-application", "application", "writing-domain・validation-domain・validation-application・recording-application"], ["rendering-application", "application", "writing-domain・validation-domain・validation-application・recording-application"], ["search-application（8）", "application", "writing-domain・validation-application"], ["outbound-filesystem", "adapters", "validation-application（document_store）・ rendering-application（page_writer）"], ["outbound-git", "adapters", "writing-application（commit_reader。読むだけ）"], ["outbound-jsonschema", "adapters", "validation-application（schema_validator。2020-12 のバリデーターのライブラリはここだけ）"], ["outbound-sqlite", "adapters", "recording-application（operation_log。rusqlite はここだけ）"], ["outbound-templates", "adapters", "rendering-application（template_renderer。Mustache の処理系）"], ["outbound-javascript", "adapters", "rendering-application（script_reader。boa はここだけ）"], ["inbound-cli", "adapters（bin・コンポジションルート）", "application と outbound のすべて（main.rs でコンポジションルートを置く。outbound に依存してよいのはここだけ）"]]
-tree_html = ('<div class="legend"><span class="crate">crate</span> Cargo.toml を持つフォルダ。依存の単位で、名前は右のラベルのとおり（いま14個）。ラベルの無いフォルダは、まとめるだけのフォルダか、crate の中のモジュール</div>' + '<div class="fig"><div class="tree">' + ''.join(f'<div class="tl"><code>{html.escape(p)}</code><span>' + (f'<span class="crate">crate</span><code class="cn">{html.escape(c)}</code> ' if c else '') + f'{html.escape(n)}</span></div>' for p, n, c in TREE) + '</div></div>')
+RULES_ANY = ["リポジトリの根は製品 Semantic Agent Schema の置き場で、文脈の根にしない。文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下。ここでは schemas-and-instances/）。その中は業務領域を作るモジュール（writing・validation・recording・rendering・search）と adapters で、文脈の根に domain を置かない。名前はその文脈の言葉（スキーマ・インスタンス・書く・検証・記録）から付け、製品の名前を使わない。文脈の中はポートとアダプターで作り、外とのやりとりはすべて application の ports を adapters が実装する（呼び出し元を決めるポートは inbound/cli、ほかは outbound）。本ではポートは業務ロジック層が定義するが、記録と描画はドメインモデルを持たないので application に置く", "業務ロジックの置き方は、上から決めて下から確かめる。守る条件がすでに決定・Abstract の rule・試験の場面に書けている所は初めから domain に置き、それ以外は use_cases にトランザクションスクリプトで書く。引き上げの表で判別し、突き合わせで確かめたものだけを domain に置く", "domain の中は部品の種類でフォルダを分ける：aggregates/（集約ごと）・values/・services/。購読する手続きが無いうちは events/ を作らない", "application の中は use_cases/ と ports/。use_cases/ のファイルは集約か手順のまとまりごとに分け、ユースケースごとのファイルやフォルダは作らない（土台の境界6）", "domain を持つのは、突き合わせで集約・値・サービスが確かめられたモジュールだけ（いまは書く・検証）。集約は書くのモジュール、検証のモジュールは集約を読んで rule に照らすサービスと判定の値を持つ。記録・描画・検索は application だけ", "ポートは、それを使う手順を持つモジュールの application/ports に置く。共有の置き場を作らない。書く・検証・検索が共に使うポートは、書く・検索が依存する検証のモジュールが持つ。呼び出し元を判別するポートは、いちばん下の記録が持つ", "モジュールの間の向きは 書く → 検証 → 書くの domain、書く・検証・描画・検索 → 記録、描画・検索 → 検証 の一方向。同じ文脈の別のモジュールはポートを挟まず application を直接呼ぶ", "外のライブラリ（rusqlite・2020-12 のバリデーター・テンプレートの処理系）は、それを使う outbound の crate だけが依存する", "コンポジションルート（アダプターをポートへ渡す）は入口の1か所だけ", "公開された言葉（Abstract の本体・語彙・方言と CLI の入出力）は文脈の根の published-language/&lt;版&gt;/ に置き、出した版は変えない"]
+RULES_RS = ["依存の向きを強制したい境界と、外のライブラリを閉じ込めたい所だけを crate にし、それ以外はモジュールで分ける。crate の数の基準は原典に無い<span class=\"src\">（Book ch07-01:186・ch14-03:187（基準の記述が無い）・ch07-03:296・Reference visibility:476）</span>", "domain はモジュールごとに crate を分ける（いまは writing-domain と validation-domain。検証が集約を読む向きを crate で強制する）。1つの crate の中では子モジュールが祖先の項目を使えるので、集約の間の向きはモジュールでは止められない<span class=\"src\">（Book ch07-03:296・ch14-03:299）</span>", "根の Cargo.toml は virtual manifest。[workspace] に members と resolver = \"3\" を書く<span class=\"src\">（Cargo workspaces:241・258、Book ch14-03:207〜211）</span>", "外のライブラリの版は [workspace.dependencies] に置き、各 crate は workspace = true で継承する（optional にはできない）。SAS の中の crate どうしは path dependencies<span class=\"src\">（Cargo workspaces:359・363、specifying-dependencies:425）</span>", "crate が使えるのは自分の Cargo.toml に書いた crate だけ。これで domain の無依存と、ライブラリの閉じ込めを強制する<span class=\"src\">（Book ch14-03:299・390）</span>", "domain の lib.rs は pub mod aggregates; pub mod values; pub mod services;（集約の無い validation-domain は values と services だけ。events は作らない）。crate の中だけで使う部品は pub(crate)<span class=\"src\">（Book ch07-02:273、Reference visibility:390・476）</span>", "mod.rs を使わない。src/aggregates.rs と src/aggregates/concrete.rs・instance.rs の形にする<span class=\"src\">（Book ch07-05:251・265・268）</span>", "application の ports.rs が、ポートで使う domain の型を pub use で再公開する。adapters は application だけに依存する<span class=\"src\">（Book ch07-04:392、Reference visibility:564）</span>", "コンポジションルートは cli の main.rs。outbound の crate に依存してよいのは cli だけ<span class=\"src\">（Book ch14-03:299（推論：実装の型の名前を書くので依存が必要））</span>", "ポートは trait で、9つとも dyn で使う。dyn compatible に保つ：型引数のあるメソッド・async fn・関連定数を持たず、Self を receiver 以外で使わない。sealed にしない<span class=\"src\">（Reference traits:412・429・445・459、API Guidelines C-OBJECT:322・324・321、C-SEALED:169）</span>", "集約の欄は private、メソッドだけ pub。ID・ハッシュは newtype で区別する<span class=\"src\">（Book ch07-03:477、API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169）</span>", "adapters で外の trait（rusqlite・serde など）を domain の型に実装しない（orphan rule）。sqlite の crate は自分の行の型を持って変換する<span class=\"src\">（Book ch10-02:302・309・313、Reference implementations:658・659・669）</span>", "依存のグラフは循環させない<span class=\"src\">（Cargo resolver:568・585）</span>"]
+TREE = [["semantic-agent-schema/", "リポジトリ ＝ 製品 Semantic Agent Schema（文脈ではない）。直下に文脈の名前のフォルダと、製品全体のものだけを置く", ""], ["├── Cargo.toml", "［製品全体］virtual manifest：[workspace] members に下の crate のパス（ラベルの付いたフォルダ。いま15）・resolver = \"3\"・[workspace.dependencies]", ""], ["├── architecture.json", "［製品全体］crate の間で許す依存の向きと crate の名前の決め方（検査に使う）", ""], ["├── docs/", "［製品全体］設計の文書（土台・設計のページ）", ""], ["└── schemas-and-instances/", "文脈「スキーマとインスタンス」（区切られた文脈）。中の作り方はポートとアダプター。中は業務領域を作るモジュールと adapters", ""], ["    ├── published-language/v1/", "公開された言葉：Concrete を書く型（abstract ・ vocabulary ・ dialect）・ CLI の出力（command-result）・ 打ったセッションへの手順（procedure）・ 受け取りの型（design-system ・ template-language）の7つ。操作の依頼の型は JSON で依頼する口を作るときに足す", ""], ["    ├── writing/", "業務領域「書いて検証する」の書くモジュール", ""], ["    │   ├── domain/", "依存：無し。aggregates/（Concrete・インスタンスと書く条件）・values/（ハッシュ・差分・書く条件の外れ）", "writing-domain"], ["    │   └── application/", "use_cases/write.rs（作る・直す・取り込む）・write/delete.rs・write/patch.rs・ports.rs（commit_reader）", "writing-application"], ["    ├── validation/", "業務領域「書いて検証する」の検証のモジュール", ""], ["    │   ├── domain/", "依存：writing-domain。values/（判定の5つの区分・rule の結果・by）・services/（当たる rule・Abstract の rule）", "validation-domain"], ["    │   └── application/", "use_cases/validate.rs（機械で検証する・入力が変わった rule だけ）・meaning.rs（意味の判定の手順を組む・判定を突き合わせる）・ports.rs（document_store・schema_validator）", "validation-application"], ["    ├── recording/", "業務領域「記録」のモジュール（トランザクションスクリプト。domain は無い）", ""], ["    │   └── application/", "use_cases/history.rs（打ったセッションを決める・追記する・UC7 を読む）・ports.rs（identify_caller・operation_log・operation_reader）", "recording-application"], ["    ├── rendering/", "業務領域「描画」のモジュール（domain は無い）", ""], ["    │   └── application/", "use_cases/render.rs・design.rs・ports.rs（template_renderer・script_reader・page_writer）", "rendering-application"], ["    ├── search/", "業務領域「検索」（補完）のモジュール（domain は無い。記録しない）", ""], ["    │   └── application/", "use_cases/search.rs（範囲を読む・構造で絞る・意味で探す手順を作る・答えの出どころを確かめる）・search-answer.schema.json（答えの形。公開しない）", "search-application"], ["    ├── adapters/", "アダプターの置き場", ""], ["    │   ├── inbound/cli/", "[[bin]] の名前は sas（製品の名前はここにだけ残す）。main.rs がコンポジションルート。callers.json（セッションの ID の環境変数）。outbound に依存してよいのはここだけ", "inbound-cli"], ["    │   └── outbound/", "filesystem（document_store・page_writer）・git（commit_reader。読むだけ）・jsonschema（schema_validator）・sqlite（operation_log・operation_reader。migrations/）・templates（template_renderer。ステップ5）・javascript（script_reader。ステップ5）", "outbound-&lt;技術&gt;"], ["    ├── system-tests/", "システムテストの場面（scenarios/）・材料（fixtures/）・trace.json・untested.json", ""], ["    └── test-support/", "試験の部品。dev-dependencies からだけ", "test-support"]]
+CRATES = [["writing-domain", "domain", "無し"], ["validation-domain", "domain", "writing-domain（集約を読む）"], ["recording-application", "application", "無し"], ["validation-application", "application", "writing-domain・validation-domain・recording-application"], ["writing-application", "application", "writing-domain・validation-domain・validation-application・recording-application"], ["rendering-application", "application", "writing-domain・validation-domain・validation-application・recording-application"], ["search-application", "application", "writing-domain・validation-application・recording-application（identify_caller）"], ["outbound-filesystem", "adapters", "validation-application（document_store）・ rendering-application（page_writer）"], ["outbound-git", "adapters", "writing-application（commit_reader。読むだけ）"], ["outbound-jsonschema", "adapters", "validation-application（schema_validator。2020-12 のバリデーターのライブラリはここだけ）"], ["outbound-sqlite", "adapters", "recording-application（operation_log・operation_reader。rusqlite はここだけ）"], ["outbound-templates", "adapters", "rendering-application（template_renderer。Mustache の処理系）"], ["outbound-javascript", "adapters", "rendering-application（script_reader。boa はここだけ）"], ["inbound-cli", "adapters（bin・コンポジションルート）", "application と outbound のすべて（main.rs でコンポジションルートを置く。outbound に依存してよいのはここだけ）"]]
+tree_html = ('<div class="legend"><span class="crate">crate</span> Cargo.toml を持つフォルダ。依存の単位で、名前は右のラベルのとおり（いま15個）。ラベルの無いフォルダは、まとめるだけのフォルダか、crate の中のモジュール</div>' + '<div class="fig"><div class="tree">' + ''.join(f'<div class="tl"><code>{html.escape(p)}</code><span>' + (f'<span class="crate">crate</span><code class="cn">{html.escape(c)}</code> ' if c else '') + f'{html.escape(n)}</span></div>' for p, n, c in TREE) + '</div></div>')
 SCHG = [("Concrete を書くための型", "SAS → Concrete を書く人と AI ・ バリデーター", [("abstract.schema.json", "Abstract の本体。Concrete に書ける x- の4つの値の形（$defs）と、根 ・ 欄 ・ rule の形。JSON Schema で書けることは JSON Schema で書き、書けない2つは SAS の組み込みの検査にする"), ("vocabulary.schema.json", "語彙。入れ子に書ける x- の3つの形と、x- の閉じた一覧（propertyNames）"), ("dialect.schema.json", "方言。2020-12 に SAS の語彙を足す（$dynamicAnchor: meta で入れ子に掛ける）")]),
- ("CLI の出力", "SAS → 呼び出し元", [("command-result.schema.json", "操作の結果。change ・ validation ・ rule-result ・ render ・ session（sas init）・ error（打ったセッションの ID を持つ）")]),
- ("打ったセッションへの手順", "SAS → 打ったセッション", [("procedure.schema.json", "手順。SAS が Concrete の rule と当たる所から組み、--semantic で結果の行の代わりに出す（記録しない）。command に値を渡すコマンド、answer に値の形（format ・ schema）を持つ")]),
+ ("CLI の出力", "SAS → 呼び出し元", [("command-result.schema.json", "操作の結果。change ・ validation ・ rule-result ・ render ・ session（sas init）・ operation（sas log の一覧の1行）・ search ・ error（打ったセッションの ID を持つ）。sas log --operation は change ・ validation の形で返す")]),
+ ("打ったセッションへの手順", "SAS → 打ったセッション", [("procedure.schema.json", "手順。SAS が Concrete の rule と当たる所（検索は範囲の文書）から組み、--semantic で結果の行の代わりに出す（記録しない）。operation_kind は validate ・ write ・ search。command に値を渡すコマンド、answer に値の形（format ・ schema）を持つ。schema は形の本体（書くときは書く元のスキーマ。$ref の先は $id を持ったまま $defs に入れる）")]),
  ("受け取りの型", "使う側 → SAS", [("design-system.schema.json", "デザインシステムの受け取りの型（x-view の種類ごとのテンプレート ・ トークン）"), ("template-language.json", "テンプレートの書き方の契約（Mustache）")]),
- ("判定の答え（公開しない）", "打ったセッション → SAS", [("agent-answer.schema.json（validation/application）", "--answer で渡す判定（hash ・ results）。手順の answer.schema に中身が入る。書く値は --value（文書全体）か --patch（JSON Patch）")]),
+ ("判定と検索の答え（公開しない）", "打ったセッション → SAS", [("agent-answer.schema.json（validation/application）", "--answer で渡す判定（hash ・ results）。手順の answer.schema に中身が入る。書く値は --value（文書全体）か --patch（JSON Patch）"), ("search-answer.schema.json（search/application）", "sas search --answer で渡す答え（answer ・ sources の path ・ pointer ・ hash）。手順の answer.schema に中身が入る")]),
  ("作らないと決めたもの", "版21", [("glossary", "使うステップが無い"), ("command-request", "SAS の入力は CLI の引数で、JSON で依頼する口が無い。口を作るときに足す"), ("session-request", "SAS はセッションを立てない（版28）"), ("session ・ diff", "command-result の中（$defs）"), ("settings", "使う設定が無い")])]
 XTERMS = [("x-prompt", "根と欄", "書き方の rule（write）と読み方（read：interpret ・ when）。read は打ったセッションへの手順に入る", ""),
  ("x-decided-by", "欄", "人が決める欄（human）。セッションの ID がある呼び出しの変更を断る", ""),
@@ -202,11 +203,11 @@ XTERMS = [("x-prompt", "根と欄", "書き方の rule（write）と読み方（
  ("x-view", "根", "描画の種類の名前。デザインシステムのテンプレートの種類と合わせる", ""),
  ("x-relationship（版22）・ x-instance-path ・ x-instance-label ・ x-delegates ・ x-derived-from ・ Concrete の x-extensions", "―", "SAS が振る舞いを持たないか、JSON Schema で書けるので外した。x- を増やさず、意味の決まりは x-prompt の rule に書く", "外した")]
 GONE2 = [("judgment.schema.json", "rule_results（DB）と command-result の rule-result"), ("change.schema.json", "changes・field_changes（DB）と diff"), ("change-summary.schema.json", "使う側（まとめ・承認・コミット）。SAS は読む形で材料を渡す"),
- ("call.schema.json", "役目は残す。手順と値を渡すコマンドは procedure.schema.json"), ("Abstract の output-judging・output-working", "agent-answer（validation/application。公開しない）"), ("x-derived-from", "Concrete の JSON Schema（if ・ then ・ else と const）"), ("x-delegates ・ rule の agent", "外した（版28 で SAS はエージェントを起動しない）"), ("x-instance-path ・ x-instance-label", "外した（検索の範囲はステップ8 で決める）"), ("Concrete の x-extensions", "外した（x- を増やさない）"), ("vocab-meta.schema.json", "vocabulary（改名。x-view を足す）")]
+ ("call.schema.json", "役目は残す。手順と値を渡すコマンドは procedure.schema.json"), ("Abstract の output-judging・output-working", "agent-answer（validation/application。公開しない）"), ("x-derived-from", "Concrete の JSON Schema（if ・ then ・ else と const）"), ("x-delegates ・ rule の agent", "外した（版28 で SAS はエージェントを起動しない）"), ("x-instance-path ・ x-instance-label", "外した（検索の範囲は呼ぶ側が経路 ・ --concrete ・ --all で渡す）"), ("Concrete の x-extensions", "外した（x- を増やさない）"), ("vocab-meta.schema.json", "vocabulary（改名。x-view を足す）")]
 MAPW = [("CLI の引数（--session ・ --intent ・ --request-id）", "sessions ・ changes"), ("環境変数（callers.json）・ sas init", "sessions（id ・ tool ・ folder ・ via）"),
- ("agent-answer の results（--answer）", "rule_results（by = ai）"), ("command-result の diff", "changes の前後のハッシュ・field_changes")]
-MAPR = [("sessions", "session（打ったセッションの ID）・ sas init の結果（id ・ tool ・ folder ・ via）"), ("ビュー operations", "operation（cause_id → cause）"), ("changes＋field_changes", "diff（change・operation の中）"),
- ("rule_results", "rule-result（reads_hash）"), ("changes の最後の after_hash", "validation の untracked・error"), ("ビュー operations（パスごと）", "history")]
+ ("agent-answer の results（--answer）", "rule_results（by = ai）"), ("command-result の diff", "changes の前後のハッシュ・field_changes"), ("書いた ・ 検証した文書の $schema", "changes.schema ・ validations.schema（0005）")]
+MAPR = [("sessions", "session（打ったセッションの ID）・ sas init の結果（id ・ tool ・ folder ・ via）"), ("ビュー operations（新しい順に絞る）＋sessions", "operation（sas log の一覧の1行）"), ("changes＋field_changes", "diff（change・operation の中）"),
+ ("rule_results", "rule-result（reads_hash）"), ("changes の最後の after_hash", "validation の untracked・error"), ("changes＋field_changes ・ validations＋rule_results（1件）と schema", "change ・ validation（sas log --operation。schema は target の concrete）")]
 FACT = [
  ("JSON Schema の出力の形", "json-schema.org Core 2020-12 の12章", "欄名はすべて在った。一覧に absoluteKeywordLocation と error（単数）を足した。出力の形は実装に SHOULD"),
  ("$vocabulary・$dynamicAnchor・$dynamicRef", "Core 2020-12・メタスキーマ", "方言に $dynamicAnchor: meta を置く。true の語彙を知らないバリデーターは方言を断る（MUST）"),
@@ -239,7 +240,7 @@ def schg_html():
 xt_html = '<div class="tw"><table><tr><th>x-</th><th>置く所</th><th>中身</th><th></th></tr>' + ''.join(f'<tr><td><code>{html.escape(a)}</code></td><td>{b}</td><td>{c}</td><td>{"<span class=\"tag t-new2\">"+d+"</span>" if d else ""}</td></tr>' for a, b, c, d in XTERMS) + '</table></div>'
 TABLES5 = ["sessions", "changes", "field_changes", "validations", "rule_results"]
 MAPG = [("CLI の引数", "W", "W", "", "", ""), ("procedure（出力）", "", "", "", "", ""), ("agent-answer", "", "", "", "", "W"), ("diff", "", "WR", "WR", "", ""),
-        ("session（出力）", "R", "", "", "", ""), ("operation・history（出力）", "", "R", "", "R", ""), ("rule-result（出力）", "", "", "", "", "WR"), ("validation（出力）", "", "R", "", "R", "R")]
+        ("session（出力）", "R", "", "", "", ""), ("operation（出力・sas log）", "R", "R", "", "R", "R"), ("change（出力・sas log --operation）", "", "R", "R", "", ""), ("rule-result（出力）", "", "", "", "", "WR"), ("validation（出力）", "", "R", "", "R", "R")]
 map_grid = (f'<div class="need" style="--n:5"><div></div>' + ''.join(f'<div class="nh">{t}</div>' for t in TABLES5)
   + ''.join(f'<div class="nr">{r}</div>' + ''.join(f'<div class="nc{" on" if v else ""}">{ {"W":"書く","R":"読む","WR":"書く・読む"}.get(v,"") }</div>' for v in vs) for r, *vs in MAPG) + '</div>')
 T_NEW = {
@@ -255,7 +256,7 @@ T_NEW = {
   + det('外した案と理由', tbl(['外した案', '理由'], CTXNO))),
  'model': ('model', 'ドメインモデル',
   '<p class="ans">集約は2つ。Concrete・インスタンスで、書くのモジュール（writing/domain）に置く。検証のモジュールは集約を読んで rule に照らす。SAS が立てたセッションの集約は版16 でやめた（版28 で SAS はセッションを立てない）。上から決め、下から確かめて同じ形になったものだけを domain に置く。</p>'
-  + fig(F['model'], '集約・値・サービス', 'writing-domain は何にも依存しない。validation-domain は集約を読む。意味（x-prompt の rule・x-prompt の欄を書く）は検証・書くの中にあり、業務領域にしない。記録と描画はドメインモデルを持たない（業務ロジックは use_cases のトランザクションスクリプト）。点線の箱は use_cases に残すもの。')
+  + fig(F['model'], '集約・値・サービス', 'writing-domain は何にも依存しない。validation-domain は集約を読む。意味（x-prompt の rule・x-prompt の欄を書く）は検証・書くの中にあり、業務領域にしない。記録・描画・検索はドメインモデルを持たない（業務ロジックは use_cases のトランザクションスクリプト）。点線の箱は use_cases に残すもの。')
   + fig(F['datamap'], 'データとドメインモデルの対応', 'ファイルの中身は Git。記録は集約にせず、追記する行のまま。')
   + cards([("2つの集約", "Concrete・インスタンス。1回に書く集約は1つ。sessions と記録は追記する行"),
            ("業務イベントは作らない", "購読する手続きが無い。現れたら足す"),
@@ -264,24 +265,24 @@ T_NEW = {
   + det('値オブジェクトと業務サービス', '<p class="hint">値：' + VAL + '</p>' + tbl(['業務サービス', 'すること'], SVC))
   + det('外した案と理由', tbl(['外した案', '理由'], MNO))),
  'arch': ('arch', 'アーキテクチャ',
-  '<p class="ans">文脈の中をポートとアダプターで作る。内側に domain と4つの application、縁にポート8、外にアダプター6つと入口の CLI。依存の向きは crate で強制する。</p>'
+  '<p class="ans">文脈の中をポートとアダプターで作る。内側に domain と5つの application、縁にポート9、外にアダプター6つと入口の CLI。依存の向きは crate で強制する。</p>'
   + fig(F['hex'], 'ポートとアダプター', 'ポートは application が宣言し、アダプターが実装する（本では業務ロジック層が定義する。記録と描画はドメインモデルを持たないので application に置く）。外のライブラリはそれを使う outbound の crate だけが依存する。同じ文脈のモジュールどうしは application を直接呼ぶ。')
-  + fig(F['crates'], 'crate の層', 'crate はいま14（domain 2・application 4・outbound 6・cli 1・test-support 1）、点線はこれから足す。名前は &lt;モジュール&gt;-&lt;層&gt; と &lt;inbound|outbound&gt;-&lt;技術&gt;（文脈の名前は付けない）。outbound に依存してよいのはコンポジションルートを持つ cli だけ。')
+  + fig(F['crates'], 'crate の層', 'crate はいま15（domain 2・application 5・outbound 6・cli 1・test-support 1）。名前は &lt;モジュール&gt;-&lt;層&gt; と &lt;inbound|outbound&gt;-&lt;技術&gt;（文脈の名前は付けない）。outbound に依存してよいのはコンポジションルートを持つ cli だけ。')
   + tree_html
   + cards([("ポートとアダプター", "データアクセスはレイヤードの語で、ここには無い。外の I/O はスクリプトのモジュールもポートを通す"),
            ("crate とモジュール", "向きを強制したい境界（業務領域 × 層）とライブラリを閉じ込める所だけ crate。集約・値・サービス・ユースケースはモジュール"),
            ("ポートは dyn", "どれも dyn で使い、dyn compatible に保つ（型引数のあるメソッド・async fn・関連定数を持たない）")])
-  + det('crate と依存してよい向き', tbl(['crate（括弧の数字は足すステップ）', '層', '依存してよい crate'], CRATES))
+  + det('crate と依存してよい向き', tbl(['crate', '層', '依存してよい crate'], CRATES))
   + det('ポートの一覧', tbl(['ポート（会話の目的）', '持ち主のモジュール', 'アダプター', '受け渡すもの'], PORTS))
   + det('外のライブラリを閉じ込める所', tbl(['ライブラリ', 'どの crate が依存するか', '扱い'], LIBS))
   + det('言語に依存しない決まり', '<ul class="plain">' + ''.join(f'<li>{x}</li>' for x in RULES_ANY) + '</ul>')
   + det('Rust の決まり（一次情報の頁と行）', '<ul class="plain">' + ''.join(f'<li>{x}</li>' for x in RULES_RS) + '</ul><p class="hint">原文は 2026-10-31 に取得して照合した（The Rust Programming Language・The Cargo Book・The Rust Reference・Rust API Guidelines。識別子33個・引用51件が原文と一致）。crate の数の基準は原文に無い。</p>')),
  'schema': ('schema', 'スキーマと DB',
-  '<p class="ans">公開された言葉は published-language/v1 の7つ（Concrete を書く型3 ・ CLI の出力1 ・ 打ったセッションへの手順1 ・ 受け取りの型2）。JSON Schema で書けることは JSON Schema で書き、x- と SAS の rule は書けないことだけにする。判定の答えの形（agent-answer）は公開しない。DB は5表とビューで公開せず、first_seen のほかのどの欄も CLI の出力の形のどこかに出る。</p>'
+  '<p class="ans">公開された言葉は published-language/v1 の7つ（Concrete を書く型3 ・ CLI の出力1 ・ 打ったセッションへの手順1 ・ 受け取りの型2）。JSON Schema で書けることは JSON Schema で書き、x- と SAS の rule は書けないことだけにする。判定と検索の答えの形（agent-answer ・ search-answer）は公開しない。DB は5表とビューで公開せず、first_seen のほかのどの欄も CLI の出力の形のどこかに出る。</p>'
   + '<h3>自分の $id を持つリソースにするか、$defs の部品にするか</h3><div class="tw"><table><tr><th>問い</th><th>はい</th><th>いいえ</th></tr><tr><td>1. その形を1つの文書として名指しする相手がいるか（$schema で名乗る ・ 別の文書の欄から URN で指す ・ 外の道具へ文書で渡す）</td><td>2へ</td><td>使うリソースの $defs に置く。複数で使うなら意味の持ち主の $defs に置き、ほかは $id#/$defs/名前 で指す</td></tr><tr><td>2. すでにあるリソースと、読み手も変わる理由も同じか</td><td>同じリソースに置く</td><td>自分の $id を持つリソース（ファイル）にする</td></tr></table></div><p class="hint">ファイルは運ぶ単位で、線はリソース（$id）にある（JSON Schema 2020-12 Core 8.2.4 ・ 9.3）。手順（procedure）は打ったセッションが行う指示で、結果を返す command-result と役目が違うので別のリソース。Concrete を書く人への作法は Abstract の rule：one-document-kind（1つの Concrete に1種類の文書）・ no-shape-only-concrete（形だけの Concrete を作らない）・ shape-in-defs（インスタンスの根にならない形は $defs）・ ref-not-copy（ほかの Concrete の形は写さず $ref）。</p>'
   + fig(F['bnd'], 'スキーマの境界', 'JSON で表したい・型で制御したい・意味を持たせたい・決まった型で返したい、のどれかに当たる境界だけをスキーマにする。DB の表と版の管理・バリデーター・テンプレートの処理系はプロセスの外へ JSON が出ないのでスキーマにしない。')
   + schg_html()
-  + cards([("Concrete を書く型", "Concrete に書ける x- は4つ（x-prompt ・ x-decided-by ・ x-published ・ x-view）。x- を増やさず、意味の決まりは x-prompt の rule に書く。参照のパスが要る Concrete は、普通の欄（format: uri-reference と pattern）として書く"), ("判定の答え", "答えの形（agent-answer）は検証のモジュールが持ち、手順の answer.schema で渡す。値を渡すコマンドは手順の command"), ("公開しない", "DB の DDL。出力では DB の名前を直し、DDL を変えても出力のスキーマは変わらない")])
+  + cards([("Concrete を書く型", "Concrete に書ける x- は4つ（x-prompt ・ x-decided-by ・ x-published ・ x-view）。x- を増やさず、意味の決まりは x-prompt の rule に書く。参照のパスが要る Concrete は、普通の欄（format: uri-reference と pattern）として書く"), ("答えの形", "判定の答え（agent-answer）は検証のモジュール、検索の答え（search-answer）は検索のモジュールが持ち、手順の answer.schema で渡す。値を渡すコマンドは手順の command"), ("公開しない", "DB の DDL。出力では DB の名前を直し、DDL を変えても出力のスキーマは変わらない")])
   + '<h3>Concrete を書くための x- 項目</h3>' + xt_html
   + '<h3>意味の部分を含む操作の流れ（どの段でどのスキーマと表を使うか）</h3><div class="two"><div>' + fig(F['fv'], '検証の流れ', '検証。濃い段は DB を書く・読む段。', 1.2) + '</div><div>' + fig(F['fu'], '更新の流れ', '更新。答えの各項目はステップの番号と JSON ポインタを持ち、SAS はステップの欄だけへ書く。', 1.2) + '</div></div>'
   + '<p class="hint">CLI の出力は1行1つの JSON（JSON Lines）。--semantic を付けた操作は、結果の行の代わりに手順（procedure）を出し、記録しない。手順を行うのは打ったセッションで、command のコマンドで値か判定を渡す。SAS はセッションを立てないので、閉じる処理は無い。</p>'
@@ -292,8 +293,8 @@ T_NEW = {
   + det('外したものの行き先', tbl(['外したもの', '行き先'], GONE2))
   + '<h3>原典と照合した結果（2026-10-31）</h3>' + tbl(['項目', '原典（版）', '結果と直した所'], [[f'<span class="tag t-chk">照合済み</span> {a}', b, c] for a, b, c in FACT]) + f'<p class="hint">原文は取得日と sha256 と一緒に残した。{UNREAD}。</p>'),
 }
-UC_FIX = tbl(['ユースケース', '直した保証・足した拡張'], [["UC3 削除する", "対象と、参照している所の記載が、同じ呼び出しの続きの更新（原因は削除）として消える"], ["UC6 検索する", "検索は記録しない。意味で探すときは打ったセッションに手順を返す（ステップ8）"],
-  ["UC1 作成する", "意味の作成は打ったセッションが行う。--semantic（--brief ・ --ref）で手順を返し、セッションが create --value で書く。最低保証は「理由が返る」（断った操作は記録しない）。拡張：断られた → 理由を読んで直し、打ち直す"],
+UC_FIX = tbl(['ユースケース', '直した保証・足した拡張'], [["UC3 削除する", "対象と、参照している所の記載が、同じ呼び出しの続きの更新（原因は削除）として消える"], ["UC6 検索する", "範囲（経路 ・ --concrete ・ --all）を必ず渡し、結果に範囲を返す。検索は記録しない。構造で絞るのは --where の一致だけ。意味で探すときは打ったセッションに手順を返し、--answer の出どころが範囲の中か ・ ハッシュ ・ 所を確かめる。拡張：範囲の外か所が無い → invalid_answer、ハッシュが違う → conflict、範囲の中身が 64KB を超える → range_too_large（切り詰めない）"], ["UC7 操作の記録を読む", "読むだけで、セッションの行も足さない。一覧は新しい順の要約（operation）、1件は書いたとき ・ 検証したときと同じ change ・ validation の形。拡張：無い ID → not_found"],
+  ["UC1 作成する", "意味の作成は打ったセッションが行う。--semantic（--brief ・ --ref）で手順を返し、セッションが create --value で書く。最低保証は「理由が返る」（断った操作は記録しない）。手順の answer.schema は書く元のスキーマの本体で、形の決まりを書く前に読める。拡張：断られた → 理由を読んで直し、打ち直す"],
   ["UC2 更新する", "UC1 と同じ。手順の command は update --patch … --if-match <手順のハッシュ>。中身が変わっていれば conflict"],
   ["UC4 検証する", "変形「意味の判定」：--semantic で判定の手順を返し、打ったセッションが --answer で判定を渡す。拡張：答えの形か突き合わせが違う → invalid_answer、ハッシュが違う → conflict（手順の取り直しを案内）"]])
 
@@ -345,6 +346,8 @@ T_VERIFY = ('verify', '確かめる',
 
 # ---------- 決めたこと・承認 ----------
 DECIDED = [
+ ("版29", "記録を読む ・ 検索 ・ 手順に形を入れる ・ 完了の確認（ステップ8〜10）", "sas log（UC7）は記録にある操作を新しい順に要約（operation）で返し、--operation で1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す（無い ID は not_found）。絞り方は経路 ・ --by ・ --folder ・ --since ・ --limit。読むだけで、changes ・ validations に schema の欄を足した（0005）。ポート operation_reader を足した。sas search（UC6）は範囲（経路 ・ --concrete ・ --all）を必ず渡し、--where で構造で絞るか、--semantic で範囲の文書ごとの手順を返す。--answer の出どころは範囲の中か ・ ハッシュ ・ 所を SAS が確かめる（U28）。範囲の中身が 64KB を超えたら range_too_large。検索は記録しない。検索は業務領域「検索」（補完）のモジュール（search-application。application だけ）。意味で書く手順の answer.schema に、書く元のスキーマの本体を入れた。公開された言葉7つと UC0〜UC7 のどれにも場面があることを試験で確かめる（場面128本。UC0 は S-UC0-USE の1本）"),
+ ("版28", "SAS はエージェントを起動しない（b2ae6ad7）", "意味の操作は、打ったセッションに手順（procedure、command 欄つき）を返すだけにした。子セッション ・ 接続の定義 ・ outbound/agents ・ --agent ・ --continue を外し、sessions は id ・ tool ・ folder ・ via ・ first_seen にした。sas init は環境変数から ID が取れないツールのため"),
  ("版27", "ステップ7 意味で書く", "sas create ・ update --semantic --brief --ref --agent。Concrete の rule から SAS が書く手順（procedure の write）を組み、書き込み用の子セッションに欄を書かせ、答えの形と Concrete の形に照らしてから SAS が書く。人の欄は書かせない。書く順は rule の reads、読み合えば reads_cycle。--ref は SAS が読んで中身を渡す（64KiB まで）。判定は書いたあと sas validate --agent。その前にステップ1〜6 をいまのスキーマ定義と照らして点検し、61件を直した（$ref をたどる rule の当て方 ・ --agent と --stale ・ reads の実装など）"),
  ("版26", "スキーマの分け方の作法", "外に出すかの線はファイルではなくリソース（$id）。名指しする相手がいて、読み手か変わる理由が違うときだけ自分の $id を持つ。Concrete を書く人への作法は Abstract の rule 4つ（one-document-kind ・ no-shape-only-concrete ・ shape-in-defs ・ ref-not-copy）にした。中身の sha256 を指す語を、ふだん使う「ハッシュ」にそろえた"),
  ("版25", "operation-result を command-result に", "SAS のコマンドの出力の抽象の型なので、名前をコマンドにそろえた（記録の操作 operation と取り違えない）。入力は CLI の引数で、command-request は JSON で依頼する口を作るときに足す"),
@@ -420,7 +423,7 @@ APPROVE = [
  ("土台の文の案（ディレクトリと文脈・中の形）", "見解：「文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）」と「中の形は文脈ごとに中をポートとアダプターで作る、上から決めて下から確かめる」に直す。土台は正本なので ACDR 0217 で差分を見せてから直す（0216 を置き換える）"),
  ("ガイドの確かめる段階（ボード Q5）と Q3 に手順を足す", "見解：Q5 に上からと下からの突き合わせの5つの手順、Q3 に「同じ物を2つの目的で別のモデルにしているか」の問いを足す。ボードは次の回で直す"),
 ]
-TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2", "版27": "t-new2"}
+TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2", "版27": "t-new2", "版28": "t-new2", "版29": "t-new2"}
 def tagged(items):
     return '<div class="dec">' + ''.join(f'<div class="dc {TAGC[t]}"><span class="tag">{"版2 のまま" if t == "版2" else t}</span><b>{h}</b><span>{d}</span></div>' for t, h, d in items) + '</div>'
 
@@ -457,8 +460,8 @@ MAP27 = [("残す", "U12 人が読む形で読んで判断する", "UC5 描画�
 
 
 # ---------- 必要十分：ユースケースのステップ × 能力 ----------
-NCOL = ["セッションを決める", "手順を組む", "判定を突き合わせる", "コミットの中身を読む", "差分を求める", "検査する", "デザインシステム", "記録を読む"]
-NROW = [("UC1〜UC7 のはじめ", ["セッションを決める"]),
+NCOL = ["セッションを決める", "範囲で絞る", "手順を組む", "答えを突き合わせる", "コミットの中身を読む", "差分を求める", "検査する", "デザインシステム", "記録を読む"]
+NROW = [("UC1〜UC6 のはじめ", ["セッションを決める"]),
         ("UC1 作成する（機械）", ["検査する"]),
         ("UC1 作成する（意味）", ["手順を組む", "検査する"]),
         ("UC2 更新する", ["差分を求める", "検査する"]),
@@ -466,17 +469,18 @@ NROW = [("UC1〜UC7 のはじめ", ["セッションを決める"]),
         ("UC2 取り込み・UC4 通らない変更", ["コミットの中身を読む", "差分を求める"]),
         ("UC3 削除する", ["検査する"]),
         ("UC4 検証する", ["検査する"]),
-        ("UC4 の変形：意味の判定", ["手順を組む", "判定を突き合わせる"]),
+        ("UC4 の変形：意味の判定", ["手順を組む", "答えを突き合わせる"]),
         ("UC5 描画する", ["デザインシステム"]),
-        ("UC6 検索する", ["手順を組む"]),
-        ("UC7 読む", ["記録を読む", "差分を求める"])]
+        ("UC6 検索する（構造で絞る）", ["範囲で絞る"]),
+        ("UC6 の意味（手順を返し、答えの出どころを確かめる）", ["範囲で絞る", "手順を組む", "答えを突き合わせる", "検査する"]),
+        ("UC7 読む（一覧 ・ 1件）", ["記録を読む"])]
 need_grid = (f'<div class="need" style="--n:{len(NCOL)}"><div></div>' + ''.join(f'<div class="nh">{c}</div>' for c in NCOL)
     + ''.join(f'<div class="nr">{r}</div>' + ''.join(f'<div class="nc{" on" if c in cs else ""}">{"●" if c in cs else ""}</div>' for c in NCOL) for r, cs in NROW)
     + '<div class="nr">使う行の数</div>' + ''.join(f'<div class="nc tot">{sum(c in cs for _, cs in NROW)}</div>' for c in NCOL) + '</div>')
 NOT_HAVE = ["コミット・PR・ブランチ・履歴の検索", "版を残す・復元（Git に書き込むこと）", "目的のセッションを立てて役割ごとに任せる", "エージェントを起動する・セッションの状態を持つ（開閉・終わり方・回・再開の決まり）", "セッションの会話を複製（fork）して行う", "デザインシステムを作る・既定のデザインシステム", "バリデーターを自作する", "断った操作を記録する"]
 T_NEED = ('need', '必要十分',
   '<p class="ans">ユースケースのどのステップも、SAS の契約の能力だけで行える。どの能力もどこかのステップが使い、使わない能力は持たない。</p>'
-  + '<div class="fig">' + need_grid + '</div><p class="hint">● はそのステップが使う能力。最後の行が0の列は無い（余分が無い）。どの行も能力が欠けていない（不足が無い）。人が決める欄は能力を足さず、人の判定を UC4 の入力で受ける。</p>'
+  + '<div class="fig">' + need_grid + '</div><p class="hint">● はそのステップが使う能力。最後の行が0の列は無い（余分が無い）。どの行も能力が欠けていない（不足が無い）。人が決める欄は能力を足さず、人の判定を UC4 の入力で受ける。UC7 は読むだけなので、セッションを決めず行も足さない。</p>'
   + cards([("余分", "使う行が0の能力は無い"), ("不足", "足りない能力は無い"), ("持たない", "コミット・PR、目的のセッション、エージェントの起動、デザインシステムを作ること")])
   + det('持たない能力', '<ul class="plain">' + ''.join(f'<li>{x}</li>' for x in NOT_HAVE) + '</ul>'))
 
@@ -534,7 +538,7 @@ SESS_CMDS = tbl(['誰が', 'すること', '何で'], [
   ['SAS', 'いまのセッションをこのフォルダに登録する（環境変数から ID が取れないツールのため）', '<code>sas init</code>'],
   ['使う側', '目的を分けるとき、フォルダ（ワークツリーなど）を用意してセッションを1つ立てる', '<code>git worktree add</code> と <code>claude -p</code> など'],
   ['使う側', '同じ目的の続きを頼む（同じセッションを再開する）', '<code>claude -p --resume</code> など'],
-  ['使う側', '様子を見る ・ 画面で開く', 'ツールの出力 ・ sas の記録をセッションで絞る ・ <code>claude --resume</code>']])
+  ['使う側', '様子を見る ・ 画面で開く', 'ツールの出力 ・ <code>sas log --folder ・ --by</code>（記録を読むだけ）・ <code>claude --resume</code>']])
 SESS_ROW = tbl(['sessions の列', '中身'], [
   ['id', 'セッション ID（環境変数か --session）'], ['tool', 'どのツールか（どの環境変数から拾ったか）'],
   ['folder', 'そのセッションが動いているフォルダ（ワークツリーを切っていれば、その根）'], ['first_seen', '初めて記録した時刻']])
@@ -563,7 +567,7 @@ T.append(('session', 'セッション',
 T.append(('data', 'データ',
   '<p class="ans">手元の DB は5表とビュー。誰が何で動いたか（sessions）と、書いた変更（changes）・検証（validations）。中身はコミットせず、作り直せるデータとして扱う。</p>'
   + fig(F['er'], 'ER 図')
-  + cards([("1 対 多", "sessions → changes・validations、changes → field_changes、validations → rule_results"), ("中身は Git", "パスとハッシュで指すだけ。Git は読むだけで、版は残さない"), ("空になる列が無い", "変更と検証を別の表にしたので、どの行もすべての欄が埋まる（作成の事前・削除の事後・原因を除く）。断った操作は持たない"), ("置き場所", "&lt;git-common-dir&gt;/sas/sas.db。作業ツリーの外で、ワークツリーをいくつ作っても1つ")])))
+  + cards([("1 対 多", "sessions → changes・validations、changes → field_changes、validations → rule_results"), ("中身は Git", "パスとハッシュで指すだけ。Git は読むだけで、版は残さない"), ("空になる列が無い", "変更と検証を別の表にしたので、どの行もすべての欄が埋まる（作成の事前・削除の事後・原因を除く）。断った操作は持たない"), ("置き場所", "&lt;git-common-dir&gt;/sas/sas.db。作業ツリーの外で、ワークツリーをいくつ作っても1つ"), ("schema の欄（0005）", "changes ・ validations に、書いた ・ 検証した文書が従う $id。sas log --operation で書いたときと同じ形に戻すため。0005 より前の行は空"), ("記録を読む", "sas log がビュー operations を新しい順に絞って読む（UC7）。読むだけで、何も足さない")])))
 T.append(('flow', '意味の部分を含む操作の流れ',
   '<p class="ans">セッションが sas に手順をもらい、自分で値を作って書かせる。断られたら理由を読んで直す。立てた側が受け取るのは最後の答えだけ。SAS はセッションを作らない。ふだんの1セッションでは、いま動いているセッションが同じことを自分で行う。</p>'
   + fig(F['flow'], '意味の部分を含む操作の流れ', 'ユースケースを意味で作る例。main はいま動いているセッション、別のフォルダは使う側が別のフォルダ（ワークツリーなど）に立てたセッション。ふだんの1セッションでは、main が自分で SAS と同じやりとりをする。検証も同じで、validate --semantic で手順をもらい、--answer で判定を渡す。', 1.8)
@@ -572,8 +576,8 @@ SCN = {
  'a': ("場面 a：エージェントが U10 を作り、検証する", "sas create requirements/usecases/U10.json --concrete urn:…:usecase:v1 --semantic --brief \"…\"\nsas create requirements/usecases/U10.json --concrete urn:…:usecase:v1 --value '{…}'\nsas validate requirements/usecases/U10.json --semantic\nsas validate requirements/usecases/U10.json --answer judgments.json",
        '{"kind": "procedure", "operation_kind": "write", "command": "sas create … --value <値の JSON>", …}\n{"kind": "change", "result": "created", "session": "4401cead…", "operation": "o-0031", …}\n{"kind": "procedure", "operation_kind": "validate", "command": "sas validate … --answer <ファイル | ->", …}\n{"kind": "validation", "session": "4401cead…", "counts": {"verified": 2, "unverified": 1}, …}',
        [["sessions", "4401cead…（tool claude-code ・ via env）。最初に sas を打ったときの1行"], ["changes", "o-0031 create U10 ・ session 4401cead…"], ["validations", "o-0032 U10 ・ hash sha256:3f9a… ・ session 4401cead…"], ["rule_results", "goal-phrase ai verified ／ no-design-words machine verified ／ stakeholder-interest human unverified"]]),
- 'b': ("場面 b：エージェントが意味で探す", "sas search --question \"goal はなぜこの句か\" --scope requirements/usecases/",
-       '（探す手順の形はステップ8 で決める。答えは出どころ（操作 o-0031 ・ /goal）を付けてエージェントが作る）',
+ 'b': ("場面 b：エージェントが意味で探す", "sas search --concrete urn:…:usecase:v1 --semantic --question \"goal はなぜこの句か\"\nsas search --concrete urn:…:usecase:v1 --answer answer.json",
+       '{"kind": "procedure", "operation_kind": "search", "question": "goal はなぜこの句か", "range": [{"path": "…/U10.json", "hash": "sha256:3f9a…"}, …], "steps": [{"no": 1, "action": "read", "path": "…/U10.json", "hash": "sha256:3f9a…", "current": {…}}, …], "command": "sas search --concrete urn:…:usecase:v1 --answer <答えの JSON のファイル | ->", …}\n{"kind": "search", "range": [{"path": "…/U10.json", "hash": "sha256:3f9a…"}, …], "answer": "…", "sources": [{"path": "…/U10.json", "pointer": "/goal", "value": "…"}]}\n（出どころが範囲の外か所が無い → invalid_answer、ハッシュが違う → conflict）',
        [["sessions", "打ったセッションの行（初めてのときだけ1つ）"], ["changes・validations", "入らない（検索は記録しない）"]]),
  'c': ("場面 c：SAS を通らない変更があった", "（エディタで U10 の goal を直す）\nsas validate requirements/usecases/U10.json\nsas update requirements/usecases/U10.json --adopt --intent \"goal を短くした\"",
        '{"kind": "validation", "untracked": [{"path": "…/U10.json", "expected": "sha256:3f9a…", "actual": "sha256:91c2…"}], "hint": "意図を付けて取り込む：sas update … --adopt --intent \\"…\\""}\n{"result": "adopted", "diff": {"source": "outside"}}',
@@ -605,7 +609,7 @@ T.append(('uc', 'ユースケース',
   + fig(F['uc'], 'ユースケース')
   + det('8件の機械／意味と主アクター', wfix(tables(v5sec('uc'))[0] if tables(v5sec('uc')) else '').replace('UC7 セッションと操作を読む', 'UC7 操作の記録を読む').replace('<tr><td>SF1 SAS が立てたセッションでエージェントに手順で行わせる（サブ機能）</td><td>意味</td><td>呼び出したユースケースと同じ</td></tr>', '').replace('<td>UC4 検証する</td>', '<td>UC4 検証する（変形：意味の判定）</td>'))
   + det('いまの27件との対応', tbl(['扱い', 'いまのユースケース', '移す先'], MAP27))
-  + det('直した保証と足した拡張（UC1・UC2・UC3・UC4・UC6）', UC_FIX)))
+  + det('直した保証と足した拡張（UC1・UC2・UC3・UC4・UC6・UC7）', UC_FIX)))
 T.append(('decided', '決めたことと承認',
   '<p class="ans">決めたことと承認してほしい決定（「確かめる」は見解付き）。</p><h3>決めたこと</h3>' + tagged(DECIDED)
   + '<h3>承認してほしいこと</h3><div class="dec">' + ''.join(f'<div class="dc t-ask"><span class="tag">承認待ち</span><b>{h}</b><span>{d}</span></div>' for h, d in APPROVE) + '</div>'))
@@ -615,7 +619,7 @@ T.append(T_NEED)
 T.append(T_VERIFY)
 ORDER = ['overview', 'types', 'uc', 'domain', 'model', 'verify', 'arch', 'data', 'session', 'flow', 'use', 'link', 'schema', 'need', 'decided']
 T = sorted(T, key=lambda t: ORDER.index(t[0]))
-STATUS = [("決まった", "s-ok", "全体像〜スキーマと DB の全部（計画の承認 2026-10-31、版16 の承認 2026-11-01）"), ("承認待ち", "s-wait", "セッション ・ 意味の部分を含む操作の流れ（版28：子セッションを外し、sas はセッションを立てない）・土台の文（ACDR 0217）・ガイドのボードへ足す手順")]
+STATUS = [("決まった", "s-ok", "全体像〜スキーマと DB の全部（計画の承認 2026-10-31、版16 の承認 2026-11-01、版28 はコミット済み、版29 は完成イメージの承認 2026-11-01）"), ("承認待ち", "s-wait", "土台の文（ACDR 0217）・ガイドのボードへ足す手順")]
 
 CSS = open(os.path.join(H, 'base.css')).read()
 tabs = ''.join(f'<button type="button" role="tab" id="t-{k}" aria-controls="p-{k}" aria-selected="{"true" if i == 0 else "false"}">{n}</button>' for i, (k, n, _) in enumerate(T))
@@ -632,7 +636,7 @@ JS = '''<script>
 })();
 </script>'''
 page = ('<title>Semantic Agent Schema の概念</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>\n' + CSS + '\n</style>\n<main>'
-        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版28（SAS はエージェントを起動しない。打ったセッションを sessions に記録するだけで、子セッションの概念を外した。承認待ち。版27：ステップ7 意味で書く。版26：スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
+        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版29（記録を読む sas log ・ 検索 sas search ・ 意味で書く手順に形の本体を入れる ・ 完了の確認。版28：SAS はエージェントを起動しない。打ったセッションを sessions に記録するだけで、子セッションの概念を外した。版27：ステップ7 意味で書く。版26：スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
         + status + f'<nav class="tabs" role="tablist" aria-label="内容">{tabs}</nav>' + panels + '</main>\n' + JS)
 page = page.replace('指紋', 'ハッシュ')  # 以前の記録の語も、ふだん使う語で見せる
 open(os.path.join(H, 'index.html'), 'w').write(page)

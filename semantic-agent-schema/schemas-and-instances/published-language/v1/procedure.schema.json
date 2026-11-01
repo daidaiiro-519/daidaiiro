@@ -2,13 +2,12 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:procedure:v1",
  "title": "手順",
- "description": "SAS が Concrete の rule ・ 当たる所から組み、sas を打ったセッションに返す手順。SAS はエージェントを起動しない。sas validate --semantic（判定）と sas create ・ update --semantic（書き込み）が、結果の行の代わりに標準出力へ1行ずつ出し、記録しない。受け取ったセッションは steps を順に行い、answer の形の値を作って command で SAS に渡す。断られたら、SAS の出力の理由を読んで直し、打ち直す",
+ "description": "SAS が Concrete の rule ・ 当たる所から組み、sas を打ったセッションに返す手順。SAS はエージェントを起動しない。sas validate --semantic（判定）と sas create ・ update --semantic（書き込み）と sas search --semantic（意味で探す）が、結果の行の代わりに標準出力へ1行ずつ出し、記録しない。受け取ったセッションは steps を順に行い、answer の形の値を作って command で SAS に渡す。断られたら、SAS の出力の理由を読んで直し、打ち直す",
  "type": "object",
  "required": [
   "$schema",
   "kind",
   "operation_kind",
-  "target",
   "steps",
   "answer",
   "command",
@@ -24,9 +23,10 @@
   "operation_kind": {
    "enum": [
     "validate",
-    "write"
+    "write",
+    "search"
    ],
-   "description": "validate は rule の判定、write は欄の値を書く"
+   "description": "validate は rule の判定、write は欄の値を書く、search は範囲の文書を読んで問いに答える"
   },
   "target": {
    "type": "object",
@@ -46,7 +46,8 @@
      "pattern": "^sha256:[0-9a-f]{64}$",
      "description": "手順を組んだときの対象の中身のハッシュ（SHA-256）。作成には無い。判定では答えの hash に写し、更新では command の --if-match に入る。SAS は渡されたときに、いまの中身のハッシュと比べる"
     }
-   }
+   },
+   "description": "判定 ・ 書き込みの対象。検索には無い（範囲 range を持つ）"
   },
   "steps": {
    "type": "array",
@@ -55,9 +56,7 @@
     "type": "object",
     "required": [
      "no",
-     "action",
-     "pointer",
-     "rules"
+     "action"
     ],
     "properties": {
      "no": {
@@ -67,8 +66,10 @@
      "action": {
       "enum": [
        "judge",
-       "write"
-      ]
+       "write",
+       "read"
+      ],
+      "description": "judge は rule の判定、write は欄の値を書く、read は範囲の文書を読む（検索）"
      },
      "pointer": {
       "type": "string"
@@ -86,7 +87,7 @@
       }
      },
      "current": {
-      "description": "いまの値。判定ではいつもあり、書き込みでは更新のときだけある"
+      "description": "いまの値。判定ではいつもあり、書き込みでは更新のときだけある。検索では文書全体"
      },
      "read": {
       "type": "object",
@@ -133,8 +134,41 @@
      "optional": {
       "type": "boolean",
       "description": "書く元のスキーマが求めない欄。書かないなら答えから外してよい"
+     },
+     "path": {
+      "type": "string",
+      "description": "読む文書の経路。検索のときだけ"
+     },
+     "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "読む文書の中身のハッシュ。検索のときだけで、答えの sources の hash に写す"
      }
-    }
+    },
+    "allOf": [
+     {
+      "if": {
+       "properties": {
+        "action": {
+         "const": "read"
+        }
+       }
+      },
+      "then": {
+       "required": [
+        "path",
+        "hash",
+        "current"
+       ]
+      },
+      "else": {
+       "required": [
+        "pointer",
+        "rules"
+       ]
+      }
+     }
+    ]
    }
   },
   "answer": {
@@ -149,16 +183,17 @@
      "enum": [
       "judgments",
       "document",
-      "json-patch"
+      "json-patch",
+      "search"
      ],
-     "description": "judgments は判定の JSON（schema の形。--answer で渡す）、document は作る文書全体（--value で渡す）、json-patch は steps の欄を直す JSON Patch（RFC 6902。--patch で渡す）"
+     "description": "judgments は判定の JSON（schema の形。--answer で渡す）、document は作る文書全体（--value で渡す）、json-patch は steps の欄を直す JSON Patch（RFC 6902。--patch で渡す）、search は問いへの答えと出どころ（schema の形。sas search --answer で渡す）"
     },
     "schema": {
      "type": [
       "object",
       "string"
      ],
-     "description": "judgments では答えの JSON Schema、document ・ json-patch では書いた文書が従う schema の $id"
+     "description": "値の形の JSON Schema の本体。judgments では判定の答えの形、document ・ json-patch では書いた文書が従うスキーマ（Concrete を書くときは Abstract、インスタンスを書くときは Concrete）。$ref で指すほかの文書は、$id を持ったまま $defs に入れてある。json-patch では、当てたあとの文書がこの形に従う"
     }
    }
   },
@@ -170,7 +205,7 @@
    "x-prompt": {
     "read": {
      "when": "steps を終えて、値を SAS に渡すときに読む。",
-     "interpret": "判定は sas validate <経路> --answer、作成は sas create <経路> --value、更新は sas update <経路> --patch --if-match。<…> のほかの引数は変えずに打つ。"
+     "interpret": "判定は sas validate <経路> --answer、作成は sas create <経路> --value、更新は sas update <経路> --patch --if-match、検索は sas search <範囲> --answer。<…> のほかの引数は変えずに打つ。"
     },
     "write": []
    }
@@ -250,7 +285,55 @@
     "type": "object"
    },
    "description": "文書全体に当たる rule（書く元のスキーマの根の x-prompt の write）。書き込みのときだけ"
+  },
+  "question": {
+   "type": "string",
+   "minLength": 1,
+   "description": "探す問い（--question）。検索のときだけ"
+  },
+  "range": {
+   "type": "array",
+   "description": "探す範囲の文書の経路とハッシュ（経路の順）。検索のときだけ。範囲の外は探さない",
+   "items": {
+    "type": "object",
+    "required": [
+     "path",
+     "hash"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+     }
+    }
+   }
   }
  },
- "additionalProperties": false
+ "additionalProperties": false,
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "operation_kind": {
+      "const": "search"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "question",
+     "range"
+    ]
+   },
+   "else": {
+    "required": [
+     "target"
+    ]
+   }
+  }
+ ]
 }
