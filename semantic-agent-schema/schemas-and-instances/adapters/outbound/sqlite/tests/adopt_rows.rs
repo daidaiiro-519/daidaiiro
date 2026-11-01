@@ -5,7 +5,8 @@
 #![allow(clippy::unwrap_used)]
 
 use outbound_sqlite::SqliteLog;
-use recording_application::ports::{ChangeRow, FieldRow, OperationLog, RuleRow, ValidateRow};
+use validation_domain::values::{RuleRow, ValidateRow};
+use writing_domain::values::{ChangeRow, FieldRow};
 
 fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -> ChangeRow {
     ChangeRow {

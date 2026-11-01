@@ -5,7 +5,8 @@
 //! - SAS を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
 //!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録のどれかの事後と同じ中身のコミットから取る。
 //! - UC3 削除する（機械）：対象を消し、消す前の状態を記録する（delete.rs）。
-//! - 対象の見分け ・ 形の確かめ ・ 検証は、検証のモジュール（validation-application）を使う。
+//! - 対象の見分けは writing-domain の TargetKind、更新のあとに入力が変わった前の判定は validation-domain の判定の基準で決める。
+//!   文書の読み書きと形の検査は、このモジュールのポート（ports.rs）を使う。
 
 mod delete;
 mod patch;
@@ -14,20 +15,240 @@ mod semantic;
 pub use delete::{DeleteRequest, Deletion, delete};
 pub use semantic::{SemanticRequest, semantic_procedure};
 
-use crate::ports::CommitReader;
-use recording_application::ports::{
-    ChangeRow, FieldRow, IdentifyCaller, OperationLog, StoredChange,
-};
-use recording_application::use_cases::history::{interleaved, record_change, untracked_since};
+use crate::ports::{ChangeLog, CommitReader, DocumentStore, SchemaValidator};
 use serde_json::Value;
-use validation_application::ports::{DocumentStore, SchemaValidator};
-use validation_application::use_cases::validate::{
-    Blocked, Corpus, Refused, TargetKind, classify, entry, form_violations, log_refused, reads_now,
-    refused,
-};
+use std::collections::BTreeMap;
+use validation_domain::services::{Judged, concrete_rules, instance_rules, reads_hash};
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
-use writing_domain::values::{Change, ContentHash, Diff, FieldChange};
+use writing_domain::values::{
+    Caller, Change, ChangeRow, ContentHash, Corpus, Diff, FieldChange, FieldRow, StoredChange,
+    TargetKind, WriteRecord, untracked_since,
+};
+
+/// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Refused {
+    /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
+    /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
+    /// 書く手前の判定で断ったもの：invalid_value ・ conflict ・ patch_failed ・ human_field ・ published_changed、
+    /// 止めた削除：has_dependents、意味で書く手順を組めないもの：reads_cycle ・ ref_too_large）
+    pub code: &'static str,
+    /// 対象の経路（あれば）
+    pub path: Option<Box<str>>,
+    /// 理由
+    pub message: String,
+    /// ハッシュが違って断ったとき（conflict）の、間に入った変更
+    pub interleaved: Option<Box<Interleaved>>,
+    /// 次にすることの案内（SAS を通らない変更を取り込むコマンドなど）
+    pub hint: Option<Box<String>>,
+    /// 削除を止めた理由になったもの（Concrete に従うインスタンス）
+    pub blocked: Option<Box<Vec<Blocked>>>,
+}
+
+/// 削除を止めた理由になった文書1つと、それを片付けるコマンドの案内。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Blocked {
+    /// 経路
+    pub path: String,
+    /// 決まった名前（follows）
+    pub code: &'static str,
+    /// 理由
+    pub message: String,
+    /// 次に打つコマンド
+    pub hint: String,
+}
+
+/// 対象の経路を付けて断る。
+#[must_use]
+pub fn refused(code: &'static str, path: &str, message: String) -> Refused {
+    Refused {
+        code,
+        path: Some(path.into()),
+        message,
+        ..Refused::default()
+    }
+}
+
+/// 記録を読み書きできなかったことを、断った理由にする。
+#[must_use]
+pub fn log_refused(e: String) -> Refused {
+    Refused {
+        code: "log",
+        message: e,
+        ..Refused::default()
+    }
+}
+
+/// リポジトリの文書を読む（Concrete の一覧に使う）。読めない文書は除く。
+///
+/// # Errors
+/// 文書の一覧を読めないとき。
+fn load_corpus(store: &dyn DocumentStore) -> Result<Corpus, Refused> {
+    let paths = store.list().map_err(|e| Refused {
+        code: "store",
+        message: e,
+        ..Refused::default()
+    })?;
+    Ok(Corpus::read(
+        paths
+            .into_iter()
+            .filter_map(|p| store.read(&p).ok().map(|t| (p, t))),
+    ))
+}
+
+/// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
+fn classify(
+    concretes: &BTreeMap<String, ConcreteSchema>,
+    path: &str,
+    declared: &str,
+) -> Result<TargetKind, Refused> {
+    TargetKind::classify(concretes, declared)
+        .map_err(|u| refused(u.code(), path, u.message().to_string()))
+}
+
+/// 形（JSON Schema）の外れ（JSON Pointer と理由）。Concrete は申告した Abstract と方言の両方、インスタンスは従う Concrete に照らす。
+///
+/// # Errors
+/// バリデーターが動かないとき。
+fn form_violations(
+    validator: &dyn SchemaValidator,
+    kind: TargetKind,
+    declared: &str,
+    value: &Value,
+    more: &[(String, Value)],
+) -> Result<Vec<(String, String)>, String> {
+    let mut broken: Vec<(String, String)> = Vec::new();
+    for schema in kind.form_schemas(declared) {
+        for v in validator.check(schema, value, more)? {
+            if !broken.contains(&v) {
+                broken.push(v);
+            }
+        }
+    }
+    Ok(broken)
+}
+
+/// 書く前に、呼ぶ側が前提にしたハッシュといまのハッシュが違ったときに返す「間に入った変更」。
+/// 呼ぶ側（人か AI）は、間に入った操作の意図と変わった欄を読んで、直し方を考え直す。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Interleaved {
+    /// 呼ぶ側が前提にしたハッシュ（--if-match か、最後に記録した書いた操作の事後のハッシュ）
+    pub expected: String,
+    /// いまの中身のハッシュ
+    pub current: String,
+    /// 前提のハッシュのあとに記録された、対象を書いた操作（古い順）
+    pub operations: Vec<WriteRecord>,
+    /// いまの中身が、この経路の記録の事後のどれでもない（SAS を通らない変更があった）
+    pub untracked: bool,
+    /// 最後に記録した、対象を書いた操作（無ければ None）
+    pub last_recorded: Option<WriteRecord>,
+}
+
+/// 前提のハッシュからいまのハッシュまでに記録された操作を、事前と事後のハッシュをたどって組む。
+/// writes は経路の対象を書いた操作（記録した順）。前提のハッシュが記録のどこにも無いときは、記録した操作をすべて返す。
+#[must_use]
+pub fn interleaved(writes: &[WriteRecord], expected: &str, current: &str) -> Interleaved {
+    let start = writes
+        .iter()
+        .rposition(|w| w.row.after.as_deref() == Some(expected))
+        .map(|i| i + 1)
+        .or_else(|| {
+            writes
+                .iter()
+                .position(|w| w.row.before.as_deref() == Some(expected))
+        })
+        .unwrap_or(0);
+    let operations: Vec<WriteRecord> = writes[start.min(writes.len())..].to_vec();
+    // いまの中身が記録のどれかの事後なら、SAS を通った中身（ほかのワークツリーが書いた事後を含む）
+    let reached = writes
+        .iter()
+        .any(|w| w.row.after.as_deref() == Some(current));
+    Interleaved {
+        expected: expected.to_string(),
+        current: current.to_string(),
+        untracked: !reached,
+        last_recorded: writes.last().cloned(),
+        operations,
+    }
+}
+
+/// 書いた作成 ・ 更新 ・ 削除を1件記録し、打ったセッションの ID と操作の ID を返す。断った操作は記録しない。
+/// 打ったセッションの行は、入口が先に足している。
+///
+/// # Errors
+/// 置き場所が行を拒んだとき。
+fn record_change(
+    caller: &Caller,
+    log: &mut dyn ChangeLog,
+    row: &ChangeRow,
+) -> Result<(Option<String>, String), Refused> {
+    let session = caller.session_id();
+    let operation = log.append_change(session, row).map_err(log_refused)?;
+    Ok((session.map(ToString::to_string), operation))
+}
+
+/// Abstract の語彙（入れ子に書ける x- の名前と、その値の形の対応を持つ）。
+const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocabulary:v1";
+
+/// いまの中身で、対象に当たる rule ごとの読んだ所のハッシュ（rule の id ・ 当たる所 ・ ハッシュ）。形の検査は除く。
+/// 更新のあと、前の判定のうち判定し直しが要るものを決めるのに使う（検証の --stale と同じ基準：validation-domain の reads_hash）。
+///
+/// # Errors
+/// 対象を読めない ・ 型が決まらない ・ 申告した Abstract をバリデーターが持たないとき。
+fn reads_now(
+    path: &str,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+) -> Result<Vec<(String, String, String)>, Refused> {
+    let corpus = load_corpus(store)?;
+    let text = store
+        .read(path)
+        .map_err(|e| refused("not_found", path, e))?;
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|e| refused("not_json", path, format!("JSON として読めない：{e}")))?;
+    let declared = value
+        .get("$schema")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let judged: Vec<Judged> = match classify(&corpus.concretes, path, &declared)? {
+        TargetKind::Concrete => {
+            let abstract_doc = validator.shipped(&declared).ok_or_else(|| {
+                refused(
+                    "validator",
+                    path,
+                    format!("{declared} をバリデーターが持たない"),
+                )
+            })?;
+            let concrete = ConcreteSchema::read(&value)
+                .ok_or_else(|| refused("validator", path, "Concrete として読めない".to_string()))?;
+            let vocabulary = validator.shipped(VOCABULARY);
+            concrete_rules(&abstract_doc, vocabulary.as_ref(), &concrete)
+        }
+        TargetKind::Instance => {
+            let concrete_doc = corpus
+                .concretes
+                .get(&declared)
+                .map(ConcreteSchema::document)
+                .cloned()
+                .unwrap_or_default();
+            instance_rules(&concrete_doc, &value, &corpus.more)
+        }
+    };
+    Ok(judged
+        .into_iter()
+        .map(|(r, at, definition)| {
+            (
+                r.rule().to_string(),
+                r.pointer().to_string(),
+                reads_hash(&value, &at, definition.as_ref())
+                    .as_str()
+                    .to_string(),
+            )
+        })
+        .collect())
+}
 
 /// 作成か更新か。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -354,8 +575,8 @@ pub fn create(
     request: &CreateRequest,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
+    caller: &Caller,
+    log: &mut dyn ChangeLog,
 ) -> Result<ChangeResult, Refused> {
     let path = request.path.as_str();
     if let Some(id) = &request.request_id
@@ -401,7 +622,7 @@ pub fn create(
             format!("{path} はすでに在る。直すときは update を使う"),
         ));
     }
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let kind = classify(&corpus.concretes, path, &request.concrete)?;
     let row = ChangeRow {
         kind: Written::Created.kind().to_string(),
@@ -432,7 +653,7 @@ pub fn create(
         None,
         &value,
         corpus.concretes.get(&request.concrete),
-        entry(who),
+        caller.entry(),
     ) {
         return Err(refused(code, path, message));
     }
@@ -442,19 +663,18 @@ pub fn create(
         .map_err(|e| refused("store", path, e))?;
     let after = ContentHash::of(text.as_bytes());
     let diff = Diff::between(None, &value);
-    let recorded = record_change(
-        who,
+    let (session, operation) = record_change(
+        caller,
         log,
         &ChangeRow {
             after: Some(after.as_str().to_string()),
             fields: field_rows(&diff),
             ..row
         },
-    )
-    .map_err(log_refused)?;
+    )?;
     Ok(ChangeResult {
-        session: recorded.session,
-        operation: recorded.operations.into_iter().next().unwrap_or_default(),
+        session,
+        operation,
         written: Written::Created,
         kind,
         path: path.to_string(),
@@ -481,8 +701,8 @@ pub fn update(
     request: &UpdateRequest,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
+    caller: &Caller,
+    log: &mut dyn ChangeLog,
 ) -> Result<ChangeResult, Refused> {
     let path = request.path.as_str();
     if let Some(id) = &request.request_id
@@ -500,7 +720,7 @@ pub fn update(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
     let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
@@ -519,12 +739,13 @@ pub fn update(
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
-            untracked_since(log, path, current.as_str()).map_err(log_refused)?,
+            untracked_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
             "SAS が最後に書いた事後の",
         ),
     };
     if let Some(expected) = expected.filter(|e| e != current.as_str()) {
-        let between = interleaved(log, path, &expected, current.as_str()).map_err(log_refused)?;
+        let writes = log.writes(path).map_err(log_refused)?;
+        let between = interleaved(&writes, &expected, current.as_str());
         let mut r = refused(
             "conflict",
             path,
@@ -585,7 +806,7 @@ pub fn update(
         Some(&before),
         &after,
         corpus.concretes.get(&declared),
-        entry(who),
+        caller.entry(),
     ) {
         return Err(refused(code, path, message));
     }
@@ -595,8 +816,8 @@ pub fn update(
         .map_err(|e| refused("store", path, e))?;
     let after_hash = ContentHash::of(new_text.as_bytes());
     let diff = Diff::between(Some(&before), &after);
-    let recorded = record_change(
-        who,
+    let (session, operation) = record_change(
+        caller,
         log,
         &ChangeRow {
             after: Some(after_hash.as_str().to_string()),
@@ -609,8 +830,7 @@ pub fn update(
             fields: field_rows(&diff),
             ..row
         },
-    )
-    .map_err(log_refused)?;
+    )?;
 
     let stale = stale_judgments(log, path, store, validator)?;
     let violated = match &own_id {
@@ -618,8 +838,8 @@ pub fn update(
         None => Vec::new(),
     };
     Ok(ChangeResult {
-        session: recorded.session,
-        operation: recorded.operations.into_iter().next().unwrap_or_default(),
+        session,
+        operation,
         written: Written::Updated,
         kind,
         path: path.to_string(),
@@ -638,7 +858,7 @@ pub fn update(
 /// 前の判定のうち、読んだ所がいまの中身と変わったもの（--stale と同じ基準。rule の reads と rule の文を含む）。
 /// 形の判定は書く前に照らし直したので除く。
 fn stale_judgments(
-    log: &dyn OperationLog,
+    log: &dyn ChangeLog,
     path: &str,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
@@ -770,8 +990,8 @@ pub fn adopt(
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     committed: &dyn CommitReader,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
+    caller: &Caller,
+    log: &mut dyn ChangeLog,
 ) -> Result<ChangeResult, Refused> {
     let path = request.path.as_str();
     let written = match request.as_kind {
@@ -802,7 +1022,7 @@ pub fn adopt(
             format!("ファイルの $schema（{declared}）が --concrete（{c}）と違う"),
         ));
     }
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
     let hash = ContentHash::of(text.as_bytes());
     let writes = log.writes(path).map_err(log_refused)?;
@@ -899,7 +1119,7 @@ pub fn adopt(
         before_value,
         &current,
         corpus.concretes.get(&declared),
-        entry(who),
+        caller.entry(),
     ) {
         let unknown = expected.is_some() && found.is_none();
         let mut r = refused(
@@ -931,8 +1151,8 @@ pub fn adopt(
         (Some(_), Some((_, before, _))) => Diff::between(Some(before), &current),
         (Some(_), None) => Diff::without_before(&current),
     };
-    let recorded = record_change(
-        who,
+    let (session, operation) = record_change(
+        caller,
         log,
         &ChangeRow {
             before: expected.clone(),
@@ -940,8 +1160,7 @@ pub fn adopt(
             fields: field_rows(&diff),
             ..row
         },
-    )
-    .map_err(log_refused)?;
+    )?;
     let stale = stale_judgments(log, path, store, validator)?;
     let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
     let violated = match (&own_id, request.as_kind) {
@@ -958,8 +1177,8 @@ pub fn adopt(
         _ => Vec::new(),
     };
     Ok(ChangeResult {
-        session: recorded.session,
-        operation: recorded.operations.into_iter().next().unwrap_or_default(),
+        session,
+        operation,
         written,
         kind,
         path: path.to_string(),

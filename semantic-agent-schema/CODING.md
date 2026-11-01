@@ -7,9 +7,13 @@
 | 決まり | 理由 |
 |---|---|
 | リポジトリの根は製品の置き場。区切られた文脈は、根の直下の文脈の名前のフォルダ（いまは `schemas-and-instances/`） | 製品と文脈を同じものとして扱わない。事業領域は問題の側の言葉なので、置き場所の名前にしない |
-| 文脈の中はポートとアダプターで作る。外とのやりとりは application の ports を adapters が実装する（呼び出し元を決めるポートは inbound/cli、ほかは outbound）。本ではポートは業務ロジック層が定義するが、記録と描画はドメインモデルを持たないので application に置く | 外の技術を業務ロジックから切り離す |
+| 文脈の中はポートとアダプターで作る。外とのやりとりは application の ports を adapters が実装する（呼び出し元を決めるポートは inbound/cli、ほかは outbound）。本ではポートは業務ロジック層が定義するが、記録と描画はドメインモデルを持たないので application に置く。各モジュールの application は、自分のユースケースが使うポート（と、そのうち使うメソッド）だけを自分の ports.rs に宣言する。ほかのモジュールと同じ形のポート（DocumentStore ・ SchemaValidator）も、それぞれのモジュールに同じ名前で宣言し、1つのアダプターが複数のモジュールのポートを実装する | 外の技術を業務ロジックから切り離す。ポートは使う側が「自分に何が要るか」として宣言するもので、形が同じでも変わる理由はモジュールごと |
+| モジュールの application は、ほかのモジュールの application（ports ・ use_cases）を使わない。使ってよいのは domain の crate と、同じモジュールの中だけで、例外は無い。複数のモジュールが使う判断と値は domain に置く：文書が Concrete かインスタンスかの見分け（TargetKind）・ リポジトリの文書の一覧（Corpus）・ スキーマの所に当たる欄の定義（field_schema）・ 誰が打ったか（Caller）・ 記録にある書いた変更の行（ChangeRow ・ WriteRecord など）と SAS を通らない変更の見分け（untracked_since）は writing-domain、当たる rule と判定が読んだ所のハッシュ（reads_hash）・ 記録にある検証と判定の行（ValidateRow ・ RuleRow ・ Judgment）は validation-domain。答えの JSON の読み方（```json の囲みを外す）やコマンドの1行の組み方のような小さな道具は、使うモジュールごとに置く | 依存の向きを crate の境界で強制し、あるモジュールの手続きを変えてもほかのモジュールが壊れないようにする |
+| 誰が打ったか（人か、名乗ったセッションか）は入口が決めて、値（writing-domain の Caller）でユースケースへ渡す。決める材料（--session ・ ツールの環境変数 ・ sas init の登録）を読むのも、記録をつけるコマンドで sessions に1行足すのも入口で、その手続き（identify ・ register ・ sas init の register_session）は記録のモジュールの use case に置き、CLI からだけ呼ぶ。ユースケースは誰が打ったかを自分で決めない | 外からの入力を読むのは入口のアダプターの責務。誰が打ったかは x-decided-by の欄を変えてよいかを決めるドメインの概念で、記録のモジュールの型にしない |
+| 記録のポートは、使うモジュールが自分の ports.rs に、そのモジュールのユースケースが使うメソッドだけで宣言する（書く ChangeLog ＝ append_change ・ find_request ・ writes ・ last_judgments、検証 ValidationLog ＝ append_validate ・ writes ・ last_judgments、描画 ValidationLog ＝ append_validate）。検索は記録しないので持たない。記録のモジュールに残るのは、記録を読む UC7（OperationReader）と、入口が使う SessionLog ・ IdentifyCaller。sqlite のアダプター（SqliteLog）は1つで、手続きを自分のメソッドに持ち、すべての記録のポートをそれで実装する | 表の側から作った1つの大きな trait にすると、どのモジュールも使わないメソッドにまで依存し、記録のモジュールの application への依存が残る |
+| 断った理由の型（Refused）は、各モジュールの use_cases が、そのモジュールが断るときに使う欄だけで持つ。出力の形（command-result の kind = error）は inbound/cli の output が持ち、各モジュールの Refused を From で移す | CLI の出力の形は入口の事情で、モジュールが互いの断る理由の欄を知らなくてよくする |
 | 文脈の中のフォルダは、業務領域を作るモジュール（`writing/` ・ `validation/` ・ `recording/`、ステップ5 で `rendering/`、ステップ8 で `search/`）と `adapters/`。名前はユースケースと場面で実際に使う言葉から付ける。文脈の根に domain を置かない | 業務領域ごとの手続きの置き場所を、言葉から引けるようにする（名前の見直し） |
-| 集約（Concrete ・ インスタンス）は writing/domain に置く。検証のモジュールは集約を読んで rule に照らす業務サービスと判定の値を validation/domain に持つ。依存は writing-application → validation-application → validation-domain → writing-domain | 集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守る。検証は単独でも使い、書く側は書く前後に検証を呼ぶ |
+| 集約（Concrete ・ インスタンス）は writing/domain に置く。検証のモジュールは集約を読んで rule に照らす業務サービスと判定の値を validation/domain に持つ。依存は writing-application → validation-domain → writing-domain と validation-application → validation-domain → writing-domain（書くモジュールは検証のモジュールの application を使わない） | 集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守る。検証は単独でも使う。書く側は書く前に形を照らし、書いたあとに入力が変わった前の判定を、検証と同じ基準（validation-domain）で決める |
 | 意味（自然言語の rule に照らして中身の意味を書く ・ 判定する ・ 探すこと）は、書く ・ 検証 ・ 検索のそれぞれの中に持つ。業務領域にしない。SAS はエージェントを起動しない：意味の部分は手順を打ったセッションに返し、そのセッションが渡した値と判定を機械の書き込み ・ 検証で確かめる（概念のページ版28） | 意味は仕事の性質で、別の仕事ではない |
 | 業務ロジックは、まず use_cases にトランザクションスクリプトで書く。同じ理由で変わるものだけを domain へ引き上げる。自明なものは最初から domain に置いてよいが、根拠を探索の記録に書く | ドメインモデルは育てるもの |
 | domain の中は部品の種類で分ける（aggregates/・values/・services/）。購読する手続きが無いうちは events/ を作らない | 先取りしない |
@@ -34,7 +38,7 @@
 | 集約の欄は private、メソッドだけ pub。ID とハッシュは newtype | API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169 |
 | adapters で外の trait を domain の型に実装しない（orphan rule） | Reference implementations:658・659・669 |
 | 試験の部品（test-support）は dev-dependencies からだけ使う | `architecture.json` の dev_only と、その検査 |
-| ポートの代役は、使う application の `tests/` に置く（test-support に置くと dev-dependencies が循環する）。書くと検証の試験が共に使う代役は `validation/application/tests/support.rs` に置き、書く側は `#[path]` で読む | 探索の記録 step-01 |
+| ポートの代役は、使う application の `tests/` に置く（test-support に置くと dev-dependencies が循環する）。検証 ・ 書く ・ 検索の試験が共に使う代役の振る舞いは `validation/application/tests/support.rs` に置き、ほかのモジュールの試験は `#[path]` で読む。ポートはモジュールごとに宣言するので、代役をポートに当てる impl は、読む側の試験がそのモジュールのポートに書く | 探索の記録 step-01 |
 | `if let` が入れ子になるときは let chains（`if let … && let …`）で書く | clippy の collapsible_if（edition 2024） |
 | serde_json は `preserve_order` で使い、オブジェクトから欄を除くときは `shift_remove` を使う。書き戻した文書の欄の並びを変えないため | serde_json 1.0.154 src/map.rs:3〜4・160〜164（探索の記録 step-02） |
 | SQLite の表の CHECK を変える移行は、表を作り直して行を移す。移すあいだは外部キーの検査を止め、コミットの前に `pragma_foreign_key_check` で確かめる | SQLite の ALTER TABLE の文書 8節「Making Other Kinds Of Table Schema Changes」の手順（探索の記録 step-02） |

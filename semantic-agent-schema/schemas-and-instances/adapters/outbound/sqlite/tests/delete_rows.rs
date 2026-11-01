@@ -4,7 +4,7 @@
 #![allow(clippy::unwrap_used)]
 
 use outbound_sqlite::SqliteLog;
-use recording_application::ports::{ChangeRow, FieldRow, OperationLog};
+use writing_domain::values::{ChangeRow, FieldRow};
 
 fn row(kind: &str, path: &str, before: Option<&str>, after: Option<&str>) -> ChangeRow {
     ChangeRow {

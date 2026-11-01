@@ -1,0 +1,73 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:published-language:judgment-answer:v1",
+ "title": "判定の答え",
+ "description": "sas validate --semantic が出した手順の steps ごとに、rule に照らした判定を1件ずつ持つ JSON。sas validate <経路> --answer で渡す。hash は手順の target.hash を写したもので、いまの中身のハッシュと違えば SAS は記録せずに断る",
+ "type": "object",
+ "required": ["hash", "results"],
+ "properties": {
+  "hash": {
+   "type": "string",
+   "pattern": "^sha256:[0-9a-f]{64}$",
+   "title": "判定した中身のハッシュ",
+   "description": "判定した中身のハッシュ（手順の target.hash）",
+   "x-prompt": {
+    "read": {
+     "when": "判定を書き始めるときに読む。",
+     "interpret": "手順の target.hash をそのまま写す。いまの中身と違えば SAS は断る。"
+    },
+    "write": []
+   }
+  },
+  "results": {
+   "type": "array",
+   "title": "判定",
+   "description": "手順の steps ごとの判定。steps のどれも1件ずつ持つ",
+   "x-prompt": {
+    "read": {
+     "when": "steps を判定したあとに、判定を並べるときに読む。",
+     "interpret": "steps の1つに1件。step ・ rule ・ pointer は手順のステップを写し、result と reason はそのステップの rule に照らして書く。"
+    },
+    "write": []
+   },
+   "items": {
+    "type": "object",
+    "required": ["step", "rule", "pointer", "result", "reason"],
+    "properties": {
+     "step": {
+      "type": "integer",
+      "minimum": 1,
+      "title": "ステップの番号",
+      "description": "手順の steps の no",
+      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "判定したステップの no をそのまま写す。" }, "write": [] }
+     },
+     "rule": {
+      "type": "string",
+      "title": "rule の id",
+      "description": "rule の id",
+      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "ステップの rules の id をそのまま写す。" }, "write": [] }
+     },
+     "pointer": {
+      "type": "string",
+      "title": "当たる所",
+      "description": "当たる所（JSON Pointer）",
+      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "ステップの pointer をそのまま写す。" }, "write": [] }
+     },
+     "result": {
+      "enum": ["verified", "violated", "unverified"],
+      "title": "判定",
+      "description": "verified：rule を満たす、violated：満たさない、unverified：判定できない",
+      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "ステップの current の値を rules の rule ・ why ・ test に照らして決める。読むものが足りず決められなければ unverified にする。" }, "write": [] }
+     },
+     "reason": {
+      "type": "string",
+      "minLength": 1,
+      "title": "理由",
+      "description": "そう判定した理由",
+      "x-prompt": { "read": { "when": "判定を書くときに読む。", "interpret": "current のどの値が rule のどこに当たるかを書く。" }, "write": [] }
+     }
+    }
+   }
+  }
+ }
+}

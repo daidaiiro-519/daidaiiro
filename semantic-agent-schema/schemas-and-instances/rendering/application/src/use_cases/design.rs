@@ -18,15 +18,13 @@
 //!   欄が、その Concrete の形にたどれる（読む所が実行するまで決まらないものは unverified）
 
 use crate::ports::{DataRead, PathSeg, ScriptReader, TemplateNode, TemplateRenderer};
+use crate::ports::{DocumentStore, SchemaValidator, ValidationLog};
+use crate::use_cases::render::{Refused, load_corpus, log_refused, refused};
 use crate::use_cases::tokens::{Token, alias_errors, flatten, type_errors};
-use recording_application::ports::{IdentifyCaller, OperationLog, RuleRow, ValidateRow};
-use recording_application::use_cases::history::record_validations;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use validation_application::ports::{DocumentStore, SchemaValidator};
-use validation_application::use_cases::validate::{Corpus, Refused, log_refused, refused};
-use validation_domain::values::{By, Counts, RuleResult, Verdict};
-use writing_domain::values::ContentHash;
+use validation_domain::values::{By, Counts, RuleResult, RuleRow, ValidateRow, Verdict};
+use writing_domain::values::{Caller, ContentHash, Corpus};
 
 /// デザインシステムの受け取りの型。
 pub const DESIGN_SYSTEM: &str = "urn:semantic-agent-schema:published-language:design-system:v1";
@@ -715,26 +713,38 @@ pub struct DesignValidation {
     pub counts: Counts,
 }
 
-/// UC4 の対象としてのデザインシステム：受け取りの型とテンプレートの書き方の契約に照らし、検証を記録する。
+/// UC4 の対象としてのデザインシステムの1つ目：受け取りの型とテンプレートの書き方の契約に照らす。記録しない。
+/// 照らした結果は record_design_systems で記録する（入口は、その間に打ったセッションを sessions に足す）。
 ///
 /// # Errors
-/// デザインシステムが無い ・ JSON でない ・ 契約が無い ・ 記録できないとき。
-pub fn validate_design_systems(
+/// デザインシステムが無い ・ JSON でない ・ 契約が無いとき。
+pub fn check_design_systems(
     paths: &[String],
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     renderer: &dyn TemplateRenderer,
     scripts: &dyn ScriptReader,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-) -> Result<DesignValidation, Refused> {
-    let corpus = Corpus::load(store)?;
+) -> Result<Vec<DesignSystem>, Refused> {
+    let corpus = load_corpus(store)?;
     let mut checked = Vec::new();
     for p in paths {
         checked.push(check_design_system(
             p, store, validator, renderer, scripts, &corpus,
         )?);
     }
+    Ok(checked)
+}
+
+/// UC4 の対象としてのデザインシステムの2つ目：照らした結果を、デザインシステムごとに検証の操作として記録する。
+/// 打ったセッションの行は、入口が先に足している。
+///
+/// # Errors
+/// 記録できないとき。
+pub fn record_design_systems(
+    checked: Vec<DesignSystem>,
+    caller: &Caller,
+    log: &mut dyn ValidationLog,
+) -> Result<DesignValidation, Refused> {
     let rows: Vec<ValidateRow> = checked
         .iter()
         .map(|d| ValidateRow {
@@ -757,11 +767,15 @@ pub fn validate_design_systems(
                 .collect(),
         })
         .collect();
-    let recorded = record_validations(who, log, &rows).map_err(log_refused)?;
+    let session = caller.session_id();
+    let mut operations = Vec::new();
+    for row in &rows {
+        operations.push(log.append_validate(session, row).map_err(log_refused)?);
+    }
     let mut total = Counts::default();
     let targets = checked
         .into_iter()
-        .zip(recorded.operations)
+        .zip(operations)
         .map(|(d, operation)| {
             let results: Vec<RuleResult> = d.results.into_iter().map(|(r, _)| r).collect();
             let counts = Counts::of(&results);
@@ -776,7 +790,7 @@ pub fn validate_design_systems(
         })
         .collect();
     Ok(DesignValidation {
-        session: recorded.session,
+        session: session.map(ToString::to_string),
         targets,
         counts: total,
     })

@@ -5,7 +5,8 @@
 #![allow(clippy::unwrap_used)]
 
 use outbound_sqlite::SqliteLog;
-use recording_application::ports::{Caller, OperationLog, RuleRow, ValidateRow, Via};
+use validation_domain::values::{RuleRow, ValidateRow};
+use writing_domain::values::{Caller, Via};
 
 fn row(by: &str, result: &str) -> ValidateRow {
     ValidateRow {

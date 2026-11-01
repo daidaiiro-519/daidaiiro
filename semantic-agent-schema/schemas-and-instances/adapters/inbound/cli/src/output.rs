@@ -1,20 +1,99 @@
 //! 結果を JSON の1行にする（command-result.schema.json の validation ・ change ・ render ・ session ・ operation ・ search ・
 //! error と、procedure.schema.json の手順）。
 
-use recording_application::ports::{
-    OperationDetail, OperationSummary, RuleRow, SessionRow, WriteRecord,
-};
-use recording_application::use_cases::history::Interleaved;
+use recording_application::ports::{OperationDetail, OperationSummary, SessionRow};
 use rendering_application::use_cases::design::DESIGN_SYSTEM;
 use rendering_application::use_cases::design::DesignValidation;
 use rendering_application::use_cases::render::Rendered;
 use search_application::use_cases::search::Found;
 use serde_json::{Map, Value, json};
-use validation_application::use_cases::validate::{Refused, Validation};
-use validation_domain::values::{Counts, RuleResult, Verdict};
-use writing_application::use_cases::write::{ChangeResult, Deletion};
+use validation_application::use_cases::validate::Validation;
+use validation_domain::values::{Counts, RuleResult, RuleRow, Verdict};
+use writing_application::use_cases::write::{Blocked, ChangeResult, Deletion, Interleaved};
 use writing_domain::aggregates::ABSTRACT_VERSIONS;
-use writing_domain::values::Diff;
+use writing_domain::values::{Diff, WriteRecord};
+
+/// 操作を始められなかった ・ 書かなかった理由（出力の kind = error の形）。断る理由の型は各モジュールが持ち、
+/// 入口が出力の形へ移す。入口が自分で断るとき（使い方の誤り ・ 置き場所を開けない）もこの形で返す。
+// 各モジュールの Refused と同じく、まれな欄は Box にして Result の Err を小さく保つ（clippy の result_large_err）
+#[allow(clippy::box_collection)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Refused {
+    /// 決まった名前（各モジュールの Refused の code と、入口の usage ・ invalid_input ・ store ・ validator ・ log ・ not_found など）
+    pub code: &'static str,
+    /// 対象の経路（あれば）
+    pub path: Option<Box<str>>,
+    /// 理由
+    pub message: String,
+    /// ハッシュが違って断ったとき（conflict）の、間に入った変更（書くモジュール）
+    pub interleaved: Option<Box<Interleaved>>,
+    /// 次にすることの案内
+    pub hint: Option<Box<String>>,
+    /// 削除を止めた理由になったもの（書くモジュール）
+    pub blocked: Option<Box<Vec<Blocked>>>,
+    /// デザインシステムに無かった x-view の種類（描画のモジュール）
+    pub missing: Option<Box<Vec<String>>>,
+}
+
+impl From<validation_application::use_cases::validate::Refused> for Refused {
+    fn from(r: validation_application::use_cases::validate::Refused) -> Self {
+        Self {
+            code: r.code,
+            path: r.path,
+            message: r.message,
+            hint: r.hint,
+            ..Self::default()
+        }
+    }
+}
+
+impl From<writing_application::use_cases::write::Refused> for Refused {
+    fn from(r: writing_application::use_cases::write::Refused) -> Self {
+        Self {
+            code: r.code,
+            path: r.path,
+            message: r.message,
+            interleaved: r.interleaved,
+            hint: r.hint,
+            blocked: r.blocked,
+            missing: None,
+        }
+    }
+}
+
+impl From<rendering_application::use_cases::render::Refused> for Refused {
+    fn from(r: rendering_application::use_cases::render::Refused) -> Self {
+        Self {
+            code: r.code,
+            path: r.path,
+            message: r.message,
+            hint: r.hint,
+            missing: r.missing,
+            ..Self::default()
+        }
+    }
+}
+
+impl From<search_application::use_cases::search::Refused> for Refused {
+    fn from(r: search_application::use_cases::search::Refused) -> Self {
+        Self {
+            code: r.code,
+            path: r.path,
+            message: r.message,
+            hint: r.hint,
+            ..Self::default()
+        }
+    }
+}
+
+/// 記録を読み書きできなかったことを、断った理由にする。
+pub fn log_refused(e: String) -> Refused {
+    Refused {
+        code: "log",
+        message: e,
+        ..Refused::default()
+    }
+}
 
 fn counts(c: &Counts) -> Value {
     let mut m = Map::new();

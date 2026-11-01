@@ -5,10 +5,56 @@
 mod support;
 
 use serde_json::json;
-use support::{Human, Lenient, Log, UC, concrete, decided, files};
-use validation_application::ports::DocumentStore;
-use validation_application::use_cases::validate::{Scope, TargetKind, validate, validate_stale};
+use support::{HUMAN, Lenient, Log, UC, concrete, decided, files};
+use validation_application::use_cases::validate::{Scope, validate, validate_stale};
 use validation_domain::values::Verdict;
+use writing_domain::values::TargetKind;
+
+/// 代役を、検証のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
+impl validation_application::ports::DocumentStore for support::Files {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+}
+
+impl validation_application::ports::SchemaValidator for support::Lenient {
+    fn shipped(&self, id: &str) -> Option<serde_json::Value> {
+        Self::shipped(self, id)
+    }
+    fn check(
+        &self,
+        schema: &str,
+        value: &serde_json::Value,
+        more: &[(String, serde_json::Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+}
+
+impl validation_application::ports::ValidationLog for support::Log {
+    fn append_validate(
+        &mut self,
+        session: Option<&str>,
+        row: &validation_domain::values::ValidateRow,
+    ) -> Result<String, String> {
+        Self::append_validate(self, session, row)
+    }
+    fn writes(
+        &self,
+        target_path: &str,
+    ) -> Result<Vec<writing_domain::values::WriteRecord>, String> {
+        Self::writes(self, target_path)
+    }
+    fn last_judgments(
+        &self,
+        target_path: &str,
+    ) -> Result<Vec<validation_domain::values::Judgment>, String> {
+        Self::last_judgments(self, target_path)
+    }
+}
 
 #[test]
 fn concrete_gets_a_result_for_every_applied_rule() {
@@ -18,7 +64,7 @@ fn concrete_gets_a_result_for_every_applied_rule() {
         &Scope::Paths(vec!["c.json".into()]),
         &store,
         &Lenient,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
@@ -49,7 +95,7 @@ fn unlisted_version_is_refused_and_nothing_is_recorded() {
         &Scope::Paths(vec!["c.json".into()]),
         &store,
         &Lenient,
-        &Human,
+        &HUMAN,
         &mut log,
     ) else {
         panic!("断るはず");
@@ -69,7 +115,7 @@ fn all_skips_documents_of_other_schemas() {
         ("u1.json", json!({"$schema": UC, "id": "U1"})),
     ]);
     let mut log = Log::default();
-    let v = validate(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    let v = validate(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
     let paths: Vec<&str> = v.targets.iter().map(|t| t.path.as_str()).collect();
     assert_eq!(paths, ["c.json", "u1.json"]);
 }
@@ -84,19 +130,19 @@ fn stale_validation_rejudges_only_rules_whose_reads_changed() {
         ),
     ]);
     let mut log = Log::default();
-    validate(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    validate(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
     store
         .write(
             "u1.json",
             &json!({"$schema": UC, "id": "U1", "goal": "a", "status": "approved"}).to_string(),
         )
         .unwrap();
-    let v = validate_stale(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    let v = validate_stale(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
     assert_eq!(v.unchanged_targets, ["c.json"]);
     let t = &v.targets[0];
     let rules: Vec<&str> = t.results.iter().map(|r| r.rule()).collect();
     assert_eq!(rules, ["json-schema"], "goal を読む rule は読んだ所が同じ");
     assert_eq!(t.unchanged_rules, ["goal-is-outcome"]);
-    let again = validate_stale(&Scope::All, &store, &Lenient, &Human, &mut log).unwrap();
+    let again = validate_stale(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
     assert!(again.targets.is_empty());
 }

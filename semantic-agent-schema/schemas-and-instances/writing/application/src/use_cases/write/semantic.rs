@@ -9,13 +9,12 @@
 //! - --ref の文書は SAS が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
 //! - 手順を返すだけで、記録しない。
 
-use recording_application::ports::{Caller, IdentifyCaller, Via};
+use super::{Refused, classify, load_corpus, refused};
+use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Map, Value, json};
-use validation_application::ports::{DocumentStore, SchemaValidator};
-use validation_application::use_cases::meaning::{command_line, field_schema};
-use validation_application::use_cases::validate::{Corpus, Refused, TargetKind, classify, refused};
 use writing_domain::aggregates::escape;
-use writing_domain::values::ContentHash;
+use writing_domain::services::field_schema;
+use writing_domain::values::{Caller, ContentHash, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 /// --ref の文書1つの上限（バイト）。
@@ -56,7 +55,7 @@ pub fn semantic_procedure(
     request: &SemanticRequest,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    who: &dyn IdentifyCaller,
+    caller: &Caller,
 ) -> Result<Value, Refused> {
     let path = request.path.as_str();
     let (declared, current, current_text) = match &request.concrete {
@@ -84,7 +83,7 @@ pub fn semantic_procedure(
             (declared, Some(value), Some(text))
         }
     };
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
     // インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く
     let doc: Value = match kind {
@@ -116,7 +115,7 @@ pub fn semantic_procedure(
         request,
         &units,
         &refs,
-        who,
+        caller,
     ))
 }
 
@@ -403,7 +402,7 @@ fn build_procedure(
     request: &SemanticRequest,
     units: &[Unit],
     refs: &[Value],
-    who: &dyn IdentifyCaller,
+    caller: &Caller,
 ) -> Value {
     let mut target = json!({"path": path, "concrete": declared});
     let hash = current_text.map(|t| ContentHash::of(t.as_bytes()).as_str().to_string());
@@ -477,7 +476,7 @@ fn build_procedure(
         "about": about,
         "steps": steps,
         "answer": answer,
-        "command": write_command(path, declared, hash.as_deref(), request, who),
+        "command": write_command(path, declared, hash.as_deref(), request, caller),
         "constraints": [
             "steps を no の順に行い、pointer の欄の値を、rules の rule（rule ・ why ・ test。bad ・ good があれば例）と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決める（read があればその読み方で、reads があれば先に書いた欄の値を読み、current があればいまの値を直す形で）",
             "値は answer.schema の形（JSON Schema）に従わせる。steps に無い形の決まり（求める欄 ・ 型 ・ const など）も、そこから読んで守る",
@@ -513,7 +512,7 @@ fn write_command(
     declared: &str,
     hash: Option<&str>,
     request: &SemanticRequest,
-    who: &dyn IdentifyCaller,
+    caller: &Caller,
 ) -> String {
     let mut args: Vec<&str> = match hash {
         Some(h) => vec![
@@ -541,12 +540,26 @@ fn write_command(
     if let Some(r) = &request.request_id {
         args.extend(["--request-id", r.as_str()]);
     }
-    let caller = who.identify();
-    if let Caller::Session {
-        id, via: Via::Flag, ..
-    } = &caller
-    {
-        args.extend(["--session", id.as_str()]);
+    if let Some(id) = caller.flagged() {
+        args.extend(["--session", id]);
     }
     command_line(&args)
+}
+
+/// 手順に入れるコマンドの1行。空白や記号を含む引数は単一引用符で囲む。<…> は呼ぶ側が埋める所なので、そのまま出す。
+fn command_line(args: &[&str]) -> String {
+    args.iter()
+        .map(|a| {
+            let plain = !a.is_empty()
+                && a.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "-_./:@=+,".contains(c));
+            let placeholder = a.starts_with('<') && a.ends_with('>');
+            if plain || placeholder {
+                (*a).to_string()
+            } else {
+                format!("'{}'", a.replace('\'', "'\\''"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }

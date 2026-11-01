@@ -18,11 +18,14 @@ use outbound_javascript::Boa;
 use outbound_jsonschema::Validator;
 use outbound_sqlite::SqliteLog;
 use outbound_templates::Mustache;
-use recording_application::ports::{IdentifyCaller, OperationFilter, OperationLog};
+use output::{Refused, log_refused};
+use recording_application::ports::OperationFilter;
 use recording_application::use_cases::history::{
-    read_operation, read_operations, register_session,
+    Unidentified, identify, read_operation, read_operations, register, register_session,
 };
-use rendering_application::use_cases::design::{DESIGN_SYSTEM, validate_design_systems};
+use rendering_application::use_cases::design::{
+    DESIGN_SYSTEM, check_design_systems, record_design_systems,
+};
 use rendering_application::use_cases::render::{RenderRequest, render};
 use search_application::use_cases::search::{
     Range, search_procedure, search_where, search_with_answer,
@@ -31,13 +34,13 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use validation_application::use_cases::validate::{
-    Refused, Scope, log_refused, semantic_procedures, validate, validate_stale,
-    validate_with_answer,
+    Scope, semantic_procedures, validate, validate_stale, validate_with_answer,
 };
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
     create, delete, semantic_procedure, update,
 };
+use writing_domain::values::Caller;
 
 const USAGE: &str = "使い方：sas init [--session <ID>] ／ \
 sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
@@ -110,21 +113,10 @@ fn folder() -> String {
         .unwrap_or_else(|| ".".to_string())
 }
 
-/// 呼び出し元：--session ・ ツールごとの環境変数 ・ このフォルダで sas init が登録したセッション。
-/// init は sas init のとき（登録の前なので、前の登録を使わない）。
-fn caller(session: Option<String>, log: &SqliteLog, init: bool) -> Result<FromArguments, Refused> {
-    let folder = folder();
-    let initialized = if init {
-        None
-    } else {
-        log.initialized(&folder).map_err(|message| Refused {
-            code: "log",
-            message,
-            ..Refused::default()
-        })?
-    };
-    FromArguments::new(session, |name| std::env::var(name).ok(), &folder, initialized).map_err(
-        |tools| Refused {
+/// 誰が打ったかを決められなかった理由を、出力の形にする。
+fn unidentified(u: Unidentified) -> Refused {
+    match u {
+        Unidentified::Ambiguous(tools) => Refused {
             code: "usage",
             message: format!(
                 "{} の中で打たれていて、どれが打ったかを決められません。--session <打った会話の ID> で名乗ってください",
@@ -132,7 +124,16 @@ fn caller(session: Option<String>, log: &SqliteLog, init: bool) -> Result<FromAr
             ),
             ..Refused::default()
         },
-    )
+        Unidentified::Log(message) => log_refused(message),
+    }
+}
+
+/// 呼び出し元：--session ・ ツールごとの環境変数 ・ このフォルダで sas init が登録したセッション ・ 人（記録のモジュールの手続きで決める）。
+/// sessions にはまだ足さない（足すのは register）。
+fn caller(session: Option<String>, log: &SqliteLog) -> Result<Caller, Refused> {
+    let folder = folder();
+    let who = FromArguments::new(session, |name| std::env::var(name).ok(), &folder);
+    identify(&who, &folder, log).map_err(unidentified)
 }
 
 /// 置き場所 ・ バリデーター ・ 記録を組み立てる。
@@ -166,22 +167,17 @@ fn run_init(args: &[String]) -> ExitCode {
     }
     let (_, _, mut log) = match adapters() {
         Ok(a) => a,
-        Err(r) => return refuse(&r),
+        Err(r) => return refuse(r),
     };
-    let who = match caller(session, &log, true) {
-        Ok(w) => w,
-        Err(r) => return refuse(&r),
-    };
-    match register_session(&who, &folder(), &mut log) {
+    // 登録の前なので、前の登録を使わない
+    let folder = folder();
+    let who = FromArguments::new(session, |name| std::env::var(name).ok(), &folder);
+    match register_session(&who, &folder, &mut log) {
         Ok(row) => {
             output::print_session(&row);
             ExitCode::SUCCESS
         }
-        Err(message) => refuse(&Refused {
-            code: "log",
-            message,
-            ..Refused::default()
-        }),
+        Err(u) => refuse(unidentified(u)),
     }
 }
 
@@ -234,15 +230,21 @@ fn run_validate(args: &[String]) -> ExitCode {
             }
             let (store, validator, mut log) = match adapters() {
                 Ok(a) => a,
-                Err(r) => return refuse(&r),
+                Err(r) => return refuse(r),
             };
-            let who = match caller(session, &log, false) {
-                Ok(w) => w,
-                Err(r) => return refuse(&r),
+            let caller = match caller(session, &log) {
+                Ok(c) => c,
+                Err(r) => return refuse(r),
             };
-            return match validate_design_systems(
-                paths, &store, &validator, &Mustache, &Boa, &who, &mut log,
-            ) {
+            // 照らしてから、記録する直前に打ったセッションを sessions に足す
+            let checked = match check_design_systems(paths, &store, &validator, &Mustache, &Boa) {
+                Ok(c) => c,
+                Err(r) => return refuse(r),
+            };
+            if let Err(message) = register(&caller, &mut log) {
+                return refuse(log_refused(message));
+            }
+            return match record_design_systems(checked, &caller, &mut log) {
                 Ok(v) => {
                     output::print_design_validation(&v);
                     if v.counts.fails() {
@@ -251,7 +253,7 @@ fn run_validate(args: &[String]) -> ExitCode {
                         ExitCode::SUCCESS
                     }
                 }
-                Err(r) => refuse(&r),
+                Err(r) => refuse(r),
             };
         }
     }
@@ -265,25 +267,25 @@ fn run_validate(args: &[String]) -> ExitCode {
             }
             match read_answer(from) {
                 Ok(t) => Some(t),
-                Err(r) => return refuse(&r),
+                Err(r) => return refuse(r),
             }
         }
         None => None,
     };
     let (store, validator, mut log) = match adapters() {
         Ok(a) => a,
-        Err(r) => return refuse(&r),
+        Err(r) => return refuse(r),
     };
-    let who = match caller(session, &log, false) {
-        Ok(w) => w,
-        Err(r) => return refuse(&r),
+    let caller = match caller(session, &log) {
+        Ok(c) => c,
+        Err(r) => return refuse(r),
     };
-    if let Err(message) = log.session(&who.identify()) {
-        return refuse(&log_refused(message));
+    if let Err(message) = register(&caller, &mut log) {
+        return refuse(log_refused(message));
     }
     if semantic {
         // 判定の手順を出すだけで、記録しない。判定する rule がどの対象にも無ければ、機械の検証をそのまま記録する
-        match semantic_procedures(&scope, stale, &store, &validator, &who, &log) {
+        match semantic_procedures(&scope, stale, &store, &validator, &caller, &log) {
             Ok(procedures) if !procedures.is_empty() => {
                 for p in &procedures {
                     output::print_procedure(p);
@@ -291,15 +293,15 @@ fn run_validate(args: &[String]) -> ExitCode {
                 return ExitCode::SUCCESS;
             }
             Ok(_) => {}
-            Err(r) => return refuse(&r),
+            Err(r) => return refuse(r),
         }
     }
     let result = match (&scope, answer_text) {
-        (Scope::Paths(paths), Some(text)) => {
-            validate_with_answer(&paths[0], stale, &text, &store, &validator, &who, &mut log)
-        }
-        _ if stale => validate_stale(&scope, &store, &validator, &who, &mut log),
-        _ => validate(&scope, &store, &validator, &who, &mut log),
+        (Scope::Paths(paths), Some(text)) => validate_with_answer(
+            &paths[0], stale, &text, &store, &validator, &caller, &mut log,
+        ),
+        _ if stale => validate_stale(&scope, &store, &validator, &caller, &mut log),
+        _ => validate(&scope, &store, &validator, &caller, &mut log),
     };
     match result {
         Ok(v) => {
@@ -310,7 +312,7 @@ fn run_validate(args: &[String]) -> ExitCode {
                 ExitCode::SUCCESS
             }
         }
-        Err(r) => refuse(&r),
+        Err(r) => refuse(r),
     }
 }
 
@@ -424,7 +426,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             request_id,
         };
         let result = run_with(
-            |store, validator, who, _| semantic_procedure(&request, store, validator, who),
+            |store, validator, caller, _| semantic_procedure(&request, store, validator, caller),
             session,
         );
         return match result {
@@ -432,7 +434,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 output::print_procedure(&p);
                 ExitCode::SUCCESS
             }
-            Err(r) => refuse(&r),
+            Err(r) => refuse(r),
         };
     }
     if adopting {
@@ -460,7 +462,9 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         };
         let committed = GitCommits::new(PathBuf::from("."));
         let result = run_with(
-            |store, validator, who, log| adopt(&request, store, validator, &committed, who, log),
+            |store, validator, caller, log| {
+                adopt(&request, store, validator, &committed, caller, log)
+            },
             session,
         );
         return match result {
@@ -468,13 +472,13 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 output::print_change(&c);
                 ExitCode::SUCCESS
             }
-            Err(r) => refuse(&r),
+            Err(r) => refuse(r),
         };
     }
     let json = |name: &str| -> Result<Value, ExitCode> {
         let text = take(name).ok_or_else(|| usage(&format!("{name} を渡してください")))?;
         serde_json::from_str(&text).map_err(|e| {
-            refuse(&Refused {
+            refuse(Refused {
                 code: "invalid_input",
                 path: Some(path.as_str().into()),
                 message: format!("{name} が JSON として読めない：{e}"),
@@ -499,7 +503,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 intent,
             };
             run_with(
-                |store, validator, who, log| create(&request, store, validator, who, log),
+                |store, validator, caller, log| create(&request, store, validator, caller, log),
                 session,
             )
         }
@@ -516,7 +520,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 intent,
             };
             run_with(
-                |store, validator, who, log| update(&request, store, validator, who, log),
+                |store, validator, caller, log| update(&request, store, validator, caller, log),
                 session,
             )
         }
@@ -526,7 +530,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             output::print_change(&c);
             ExitCode::SUCCESS
         }
-        Err(r) => refuse(&r),
+        Err(r) => refuse(r),
     }
 }
 
@@ -571,14 +575,14 @@ fn run_delete(args: &[String]) -> ExitCode {
         intent: Some(intent),
     };
     match run_with(
-        |store, _, who, log| delete(&request, store, who, log),
+        |store, _, caller, log| delete(&request, store, caller, log),
         take("--session"),
     ) {
         Ok(d) => {
             output::print_deletion(&d);
             ExitCode::SUCCESS
         }
-        Err(r) => refuse(&r),
+        Err(r) => refuse(r),
     }
 }
 
@@ -617,7 +621,7 @@ fn run_render(args: &[String]) -> ExitCode {
     let validator = match Validator::new() {
         Ok(v) => v,
         Err(message) => {
-            return refuse(&Refused {
+            return refuse(Refused {
                 code: "validator",
                 message,
                 ..Refused::default()
@@ -641,7 +645,7 @@ fn run_render(args: &[String]) -> ExitCode {
             output::print_render(&r);
             ExitCode::SUCCESS
         }
-        Err(r) => refuse(&r),
+        Err(r) => refuse(r),
     }
 }
 
@@ -691,7 +695,7 @@ fn run_log(args: &[String]) -> ExitCode {
         match SqliteLog::open(&path) {
             Ok(l) => Some(l),
             Err(message) => {
-                return refuse(&Refused {
+                return refuse(Refused {
                     code: "log",
                     message,
                     ..Refused::default()
@@ -711,12 +715,12 @@ fn run_log(args: &[String]) -> ExitCode {
                 output::print_operation_detail(&d);
                 ExitCode::SUCCESS
             }
-            Ok(None) => refuse(&Refused {
+            Ok(None) => refuse(Refused {
                 code: "not_found",
                 message: format!("操作 {id} は記録に無い"),
                 ..Refused::default()
             }),
-            Err(message) => refuse(&log_refused(message)),
+            Err(message) => refuse(log_refused(message)),
         };
     }
     let found = match &log {
@@ -730,7 +734,7 @@ fn run_log(args: &[String]) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        Err(message) => refuse(&log_refused(message)),
+        Err(message) => refuse(log_refused(message)),
     }
 }
 
@@ -856,20 +860,20 @@ fn run_search(args: &[String]) -> ExitCode {
     let answer_text = match &answer {
         Some(from) => match read_answer(from) {
             Ok(t) => Some(t),
-            Err(r) => return refuse(&r),
+            Err(r) => return refuse(r),
         },
         None => None,
     };
     if let Some(q) = question {
         return match run_with(
-            |store, _, who, _| search_procedure(&range, &q, store, who),
+            |store, _, caller, _| search_procedure(&range, &q, store, caller),
             session,
         ) {
             Ok(p) => {
                 output::print_procedure(&p);
                 ExitCode::SUCCESS
             }
-            Err(r) => refuse(&r),
+            Err(r) => refuse(r),
         };
     }
     let result = match answer_text {
@@ -887,7 +891,7 @@ fn run_search(args: &[String]) -> ExitCode {
             output::print_search(&f);
             ExitCode::SUCCESS
         }
-        Err(r) => refuse(&r),
+        Err(r) => refuse(r),
     }
 }
 
@@ -904,18 +908,23 @@ fn is_design_system(path: &str) -> bool {
         .is_some_and(|s| s == DESIGN_SYSTEM)
 }
 
-/// 置き場所と呼び出し元を組み立て、打ったセッションを記録してから f を呼ぶ（最初に sas を打ったときに sessions に1行）。
-fn run_with<T>(
-    f: impl FnOnce(&WorkingTree, &Validator, &FromArguments, &mut SqliteLog) -> Result<T, Refused>,
+/// 置き場所を組み立て、誰が打ったかを決めて sessions に足してから（最初に sas を打ったときに1行）、その値で f を呼ぶ。
+/// f の断った理由（各モジュールの Refused）は、出力の形（output::Refused）へ移して返す。
+fn run_with<T, E>(
+    f: impl FnOnce(&WorkingTree, &Validator, &Caller, &mut SqliteLog) -> Result<T, E>,
     session: Option<String>,
-) -> Result<T, Refused> {
+) -> Result<T, Refused>
+where
+    Refused: From<E>,
+{
     let (store, validator, mut log) = adapters()?;
-    let who = caller(session, &log, false)?;
-    log.session(&who.identify()).map_err(log_refused)?;
-    f(&store, &validator, &who, &mut log)
+    let caller = caller(session, &log)?;
+    register(&caller, &mut log).map_err(log_refused)?;
+    f(&store, &validator, &caller, &mut log).map_err(Refused::from)
 }
 
-fn refuse(r: &Refused) -> ExitCode {
-    output::print_refused(r);
+fn refuse(r: impl Into<Refused>) -> ExitCode {
+    let r = r.into();
+    output::print_refused(&r);
     ExitCode::from(if r.code == "usage" { 2 } else { 1 })
 }

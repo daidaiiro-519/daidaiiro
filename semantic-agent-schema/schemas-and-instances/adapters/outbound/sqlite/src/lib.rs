@@ -1,16 +1,20 @@
-//! ポート OperationLog を SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/sas/sas.db で、コミットしない）。
+//! 操作の記録のポートを SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/sas/sas.db で、コミットしない）。
+//!
+//! 記録のポートは使うモジュールがそれぞれ宣言する（書く ChangeLog ・ 検証 ValidationLog ・ 描画 ValidationLog ・
+//! 記録 SessionLog ・ OperationReader）。手続きはこの型のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。
 //!
 //! 操作の ID（o-0001。changes と validations で同じ採番）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。
 //! application と domain は時刻に触らない。セッションの ID はツールのもので、ツールから取れないとき（sas init）だけここで作る。
 
 use recording_application::ports::{
-    Caller, ChangeRow, FieldRow, Judgment, OperationDetail, OperationFilter, OperationLog,
-    OperationReader, OperationSummary, RuleRow, SessionRow, StoredChange, ValidateRow, WriteRecord,
+    OperationDetail, OperationFilter, OperationReader, OperationSummary, SessionLog, SessionRow,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use std::hash::{BuildHasher, Hasher};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
+use validation_domain::values::{Judgment, RuleRow, ValidateRow};
+use writing_domain::values::{Caller, ChangeRow, FieldRow, StoredChange, WriteRecord};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の書き直しはステップ4b の1回だけ：CODING.md）。
 const MIGRATIONS: [&str; 5] = [
@@ -185,8 +189,13 @@ fn now() -> String {
     )
 }
 
-impl OperationLog for SqliteLog {
-    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+/// 記録の手続き。各モジュールの記録のポートは、これを呼ぶ。
+impl SqliteLog {
+    /// 打ったセッションの ID。初めて見たセッションなら、sessions に1行足す（行は書き換えない）。人なら None。
+    ///
+    /// # Errors
+    /// 置き場所を読めない ・ 書けないとき。
+    pub fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
         let Caller::Session {
             id,
             tool,
@@ -207,7 +216,11 @@ impl OperationLog for SqliteLog {
         Ok(Some(id.clone()))
     }
 
-    fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
+    /// 記録にあるセッションの行。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    pub fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
         self.conn
             .query_row(
                 "SELECT id, tool, folder, via FROM sessions WHERE id = ?1",
@@ -218,7 +231,11 @@ impl OperationLog for SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
+    /// フォルダで sas init が最後に登録したセッション（via = init）。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    pub fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
         self.conn
             .query_row(
                 "SELECT id, tool, folder, via FROM sessions WHERE folder = ?1 AND via = 'init' \
@@ -230,7 +247,9 @@ impl OperationLog for SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    fn new_session_id(&self) -> String {
+    /// 新しいセッション ID（sas init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
+    #[must_use]
+    pub fn new_session_id(&self) -> String {
         // 時刻とプロセスに、プロセスごとに乱数で決まる鍵のハッシュを2つ重ねる（推測できる時刻だけにしない）
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -245,7 +264,11 @@ impl OperationLog for SqliteLog {
         format!("sas-{:016x}{:016x}", part(1), part(2))
     }
 
-    fn append_validate(
+    /// 検証を1件足し（rule ごとの結果も一緒に）、その ID を返す。
+    ///
+    /// # Errors
+    /// 置き場所が拒んだとき（決まりに反する行）。
+    pub fn append_validate(
         &mut self,
         session: Option<&str>,
         row: &ValidateRow,
@@ -270,7 +293,15 @@ impl OperationLog for SqliteLog {
         Ok(id)
     }
 
-    fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+    /// 書いた作成 ・ 更新 ・ 削除を1件足し（変わった欄も一緒に）、その ID を返す。
+    ///
+    /// # Errors
+    /// 置き場所が拒んだとき（同じ request_id ・ 決まりに反する行）。
+    pub fn append_change(
+        &mut self,
+        session: Option<&str>,
+        row: &ChangeRow,
+    ) -> Result<String, String> {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
@@ -294,7 +325,11 @@ impl OperationLog for SqliteLog {
         Ok(id)
     }
 
-    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
+    /// request_id で足した作成 ・ 更新 ・ 削除。無ければ None。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    pub fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
         let found: Option<(String, Option<String>)> = self
             .conn
             .query_row(
@@ -307,7 +342,11 @@ impl OperationLog for SqliteLog {
         Ok(self.stored(found.into_iter().collect())?.pop())
     }
 
-    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+    /// 経路の対象を書いた操作（作成か更新）を、記録した順に。最後に消したより後のものだけ。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    pub fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         let mut stmt = self
             .conn
             .prepare(
@@ -336,7 +375,11 @@ impl OperationLog for SqliteLog {
             .collect()
     }
 
-    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
+    /// 経路の対象の、rule ごとの最後の判定。最後に消したより後の検証だけ。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    pub fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         // rule ごとに、その rule を最後に判定した検証を選び、その検証の行を返す
         let mut stmt = self
             .conn
@@ -546,6 +589,62 @@ impl OperationReader for SqliteLog {
             session,
             row: self.change_row(id)?,
         }))
+    }
+}
+
+impl SessionLog for SqliteLog {
+    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+        Self::session(self, caller)
+    }
+    fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
+        Self::session_row(self, id)
+    }
+    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
+        Self::initialized(self, folder)
+    }
+    fn new_session_id(&self) -> String {
+        Self::new_session_id(self)
+    }
+}
+
+impl writing_application::ports::ChangeLog for SqliteLog {
+    fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+        Self::append_change(self, session, row)
+    }
+    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
+        Self::find_request(self, request_id)
+    }
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+        Self::writes(self, target_path)
+    }
+    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
+        Self::last_judgments(self, target_path)
+    }
+}
+
+impl validation_application::ports::ValidationLog for SqliteLog {
+    fn append_validate(
+        &mut self,
+        session: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String> {
+        Self::append_validate(self, session, row)
+    }
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+        Self::writes(self, target_path)
+    }
+    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
+        Self::last_judgments(self, target_path)
+    }
+}
+
+impl rendering_application::ports::ValidationLog for SqliteLog {
+    fn append_validate(
+        &mut self,
+        session: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String> {
+        Self::append_validate(self, session, row)
     }
 }
 

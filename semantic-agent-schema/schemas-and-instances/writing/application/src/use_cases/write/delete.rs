@@ -4,14 +4,16 @@
 //! Concrete は、従うインスタンスが残っていれば消さずに止める。
 
 use super::{
-    Blocked, Corpus, Refused, TargetKind, classify, field_rows, log_refused, refused, target_of,
+    Blocked, Refused, classify, field_rows, interleaved, load_corpus, log_refused, record_change,
+    refused, target_of,
 };
-use recording_application::ports::{ChangeRow, IdentifyCaller, OperationLog, StoredChange};
-use recording_application::use_cases::history::{interleaved, record_change, untracked_since};
+use crate::ports::{ChangeLog, DocumentStore};
 use serde_json::{Value, json};
-use validation_application::ports::DocumentStore;
 use writing_domain::aggregates::{ConcreteSchema, Instance};
-use writing_domain::values::{Change, ContentHash, Diff, FieldChange};
+use writing_domain::values::{
+    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
+    untracked_since,
+};
 
 /// 削除の依頼。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,7 +70,7 @@ fn replayed(
         ));
     }
     let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
-    let diff_of = |fields: &[recording_application::ports::FieldRow]| {
+    let diff_of = |fields: &[FieldRow]| {
         Diff::from_changes(
             fields
                 .iter()
@@ -130,8 +132,8 @@ fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
 pub fn delete(
     request: &DeleteRequest,
     store: &dyn DocumentStore,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
+    caller: &Caller,
+    log: &mut dyn ChangeLog,
 ) -> Result<Deletion, Refused> {
     let path = request.path.as_str();
     if let Some(id) = &request.request_id
@@ -149,7 +151,7 @@ pub fn delete(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
     let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
@@ -168,12 +170,13 @@ pub fn delete(
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
-            untracked_since(log, path, current.as_str()).map_err(log_refused)?,
+            untracked_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
             "SAS が最後に書いた事後の",
         ),
     };
     if let Some(expected) = expected.filter(|e| e != current.as_str()) {
-        let between = interleaved(log, path, &expected, current.as_str()).map_err(log_refused)?;
+        let writes = log.writes(path).map_err(log_refused)?;
+        let between = interleaved(&writes, &expected, current.as_str());
         let mut r = refused(
             "conflict",
             path,
@@ -226,17 +229,14 @@ pub fn delete(
     // 3. 対象を消し、事前の状態を記録する
     store.remove(path).map_err(|e| refused("store", path, e))?;
     let diff = Diff::between(Some(&before), &json!({}));
-    let recorded = record_change(
-        who,
+    let (session, operation) = record_change(
+        caller,
         log,
         &ChangeRow {
             fields: field_rows(&diff),
             ..row
         },
-    )
-    .map_err(log_refused)?;
-    let session = recorded.session;
-    let operation = recorded.operations.into_iter().next().unwrap_or_default();
+    )?;
 
     Ok(Deletion {
         session,

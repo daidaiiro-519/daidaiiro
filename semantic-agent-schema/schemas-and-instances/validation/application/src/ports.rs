@@ -1,8 +1,10 @@
-//! この業務領域が外に求めるもの。
+//! 検証のモジュールが外に求めるもの（検証のユースケースが使うポートと、そのうち使うメソッドだけを宣言する。実装は adapters/outbound）。
 
 use serde_json::Value;
+use validation_domain::values::{Judgment, ValidateRow};
+use writing_domain::values::WriteRecord;
 
-/// リポジトリの中の文書。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。
+/// リポジトリの中の文書を読む。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。
 pub trait DocumentStore {
     /// 検証の材料になりうる JSON の文書の経路（並びは経路の順）。
     ///
@@ -15,19 +17,6 @@ pub trait DocumentStore {
     /// # Errors
     /// 無い ・ 読めないとき。
     fn read(&self, path: &str) -> Result<String, String>;
-
-    /// 文書を書く。途中で止まっても、前の中身か新しい中身のどちらかが残る（一時ファイルに書いて置き換える）。
-    /// 書くのは SAS の use_cases だけ。
-    ///
-    /// # Errors
-    /// 経路がリポジトリの外か SAS の記録を指す ・ 書けないとき。
-    fn write(&self, path: &str, text: &str) -> Result<(), String>;
-
-    /// 文書を消す。消すのは SAS の use_cases だけ。
-    ///
-    /// # Errors
-    /// 経路がリポジトリの外か SAS の記録を指す ・ 無い ・ 消せないとき。
-    fn remove(&self, path: &str) -> Result<(), String>;
 }
 
 /// JSON Schema 2020-12 のバリデーター。SAS が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）はバリデーターの側が持つ。
@@ -46,17 +35,34 @@ pub trait SchemaValidator {
         value: &Value,
         more: &[(String, Value)],
     ) -> Result<Vec<(String, String)>, String>;
+}
 
-    /// value を、$id が schema のスキーマに照らし、形が通った所の注釈を返す。
-    /// 1つの要素は、インスタンスの所（JSON Pointer）と、そこに当たったサブスキーマの注釈（キーワード → 値）。
-    /// 入れ子 ・ $ref の先 ・ items ・ if/then の先の注釈も、当たったインスタンスの所付きで返る（Core 7.7.1）。
+/// 操作の記録のうち、検証のユースケースが使うもの。追記だけを受け付け、ID と時刻は置き場所が作る。
+/// 打ったセッションの行（sessions）は入口が先に足すので、ここでは扱わない。
+pub trait ValidationLog {
+    /// 検証を1件足し（rule ごとの結果も一緒に）、その ID を返す。session は打ったセッションの ID（人なら None）。
     ///
     /// # Errors
-    /// スキーマを組めないとき。
-    fn annotations(
-        &self,
-        schema: &str,
-        value: &Value,
-        more: &[(String, Value)],
-    ) -> Result<Vec<(String, Value)>, String>;
+    /// 置き場所が拒んだとき（決まりに反する行）。
+    fn append_validate(
+        &mut self,
+        session: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String>;
+
+    /// 経路の対象を書いた操作（作成か更新）を、記録した順に。
+    /// その経路を消した操作があれば、最後に消したより後のものだけ（消すと記録のつながりが切れる）。
+    /// SAS を通らない変更を知らせるのに使う。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String>;
+
+    /// 経路の対象の、rule ごとの最後の判定（その rule を最後に判定した検証の行）。検証が無ければ空。
+    /// 入力が変わった rule だけを検証すると、検証ごとに判定した rule が違うので、検証ではなく rule ごとに引く。
+    /// その経路を消した操作があれば、最後に消したより後の検証だけ（消して作り直した文書に前の判定を当てない）。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
 }

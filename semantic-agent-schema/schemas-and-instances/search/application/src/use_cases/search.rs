@@ -8,21 +8,20 @@
 //! - 意味の答え：そのセッションが渡した答えの出どころごとに、範囲の中か ・ ハッシュがいまの中身と同じか ・ 所があるかを確かめ、
 //!   通ったときだけ、出どころの所のいまの値と一緒に返す
 
-use recording_application::ports::{Caller, IdentifyCaller, Via};
+use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Value, json};
-use validation_application::ports::{DocumentStore, SchemaValidator};
-use validation_application::use_cases::meaning::{answer_json, command_line};
-use validation_application::use_cases::validate::{Corpus, Doc, Refused, classify, refused};
+use std::collections::BTreeMap;
 use writing_domain::aggregates::ConcreteSchema;
-use writing_domain::values::ContentHash;
+use writing_domain::values::{Caller, ContentHash, Corpus, Doc, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 
-/// 意味で探す答えの形（打ったセッションが --answer で渡す JSON）。
-pub const ANSWER_SCHEMA: &str = include_str!("../search-answer.schema.json");
+/// 意味で探す答えの形（打ったセッションが --answer で渡す JSON）。使う側が従う約束なので、公開された言葉に置く。
+pub const ANSWER_SCHEMA: &str =
+    include_str!("../../../../published-language/v1/search-answer.schema.json");
 
 /// 意味で探す答えの形の $id。
-const ANSWER_ID: &str = "urn:semantic-agent-schema:search:agent-answer-search:v1";
+const ANSWER_ID: &str = "urn:semantic-agent-schema:published-language:search-answer:v1";
 
 /// 意味で探すときの、範囲の中身の合計の上限（バイト）。書くときの --ref の上限（REF_LIMIT）と同じ。
 pub const RANGE_LIMIT: usize = 64 * 1024;
@@ -72,9 +71,57 @@ pub struct Found {
     pub found: Vec<Match>,
 }
 
+/// 検索を始められなかった ・ 答えを返さなかった理由。検索は記録しない（理由と案内をその場で返す）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Refused {
+    /// 決まった名前（not_found ・ not_json ・ no_schema ・ schema_not_listed ・ unknown_schema ・ invalid_input ・
+    /// range_too_large ・ store ・ validator、答えが形に合わない ・ 出どころを確かめられないもの：invalid_answer ・ conflict）
+    pub code: &'static str,
+    /// 対象の経路（あれば）
+    pub path: Option<Box<str>>,
+    /// 理由
+    pub message: String,
+    /// 次にすることの案内（答えの直し方 ・ 手順を取り直すコマンド）
+    pub hint: Option<Box<String>>,
+}
+
+/// 対象の経路を付けて断る。
+fn refused(code: &'static str, path: &str, message: String) -> Refused {
+    Refused {
+        code,
+        path: Some(path.into()),
+        message,
+        ..Refused::default()
+    }
+}
+
+/// リポジトリの文書を読む（Concrete の一覧に使う）。読めない文書は除く。
+fn load_corpus(store: &dyn DocumentStore) -> Result<Corpus, Refused> {
+    let paths = store.list().map_err(|e| Refused {
+        code: "store",
+        message: e,
+        ..Refused::default()
+    })?;
+    Ok(Corpus::read(
+        paths
+            .into_iter()
+            .filter_map(|p| store.read(&p).ok().map(|t| (p, t))),
+    ))
+}
+
+/// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
+fn classify(
+    concretes: &BTreeMap<String, ConcreteSchema>,
+    path: &str,
+    declared: &str,
+) -> Result<TargetKind, Refused> {
+    TargetKind::classify(concretes, declared)
+        .map_err(|u| refused(u.code(), path, u.message().to_string()))
+}
+
 /// 範囲の文書を読む（経路の順、重なりなし）。範囲の文書は Concrete かインスタンス。
 fn load(range: &Range, store: &dyn DocumentStore) -> Result<Vec<Doc>, Refused> {
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let mut docs: Vec<Doc> = match range {
         Range::Paths(paths) => {
             let mut out = Vec::new();
@@ -177,7 +224,7 @@ pub fn search_procedure(
     range: &Range,
     question: &str,
     store: &dyn DocumentStore,
-    who: &dyn IdentifyCaller,
+    caller: &Caller,
 ) -> Result<Value, Refused> {
     let docs = load(range, store)?;
     if docs.is_empty() {
@@ -215,7 +262,7 @@ pub fn search_procedure(
         "range": range_rows.iter().map(|(p, h)| json!({"path": p, "hash": h})).collect::<Vec<_>>(),
         "steps": steps,
         "answer": {"format": "search", "schema": schema},
-        "command": answer_command(range, who),
+        "command": answer_command(range, caller),
         "constraints": [
             "steps のすべての文書の current を読み、question に、範囲の文書に書いてあることだけで答える",
             "答えは answer の形の JSON にし、答えの根拠になった値ごとに sources へ path ・ pointer ・ hash（steps の path と hash を写す）を書いて、command で渡す",
@@ -227,17 +274,13 @@ pub fn search_procedure(
 }
 
 /// 答えを渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
-fn answer_command(range: &Range, who: &dyn IdentifyCaller) -> String {
+fn answer_command(range: &Range, caller: &Caller) -> String {
     let range_args = range.args();
     let mut args: Vec<&str> = vec!["sas", "search"];
     args.extend(range_args.iter().map(String::as_str));
     args.extend(["--answer", "<答えの JSON のファイル | ->"]);
-    let caller = who.identify();
-    if let Caller::Session {
-        id, via: Via::Flag, ..
-    } = &caller
-    {
-        args.extend(["--session", id.as_str()]);
+    if let Some(id) = caller.flagged() {
+        args.extend(["--session", id]);
     }
     command_line(&args)
 }
@@ -340,4 +383,34 @@ pub fn search_with_answer(
         answer: Some(v["answer"].as_str().unwrap_or_default().to_string()),
         found,
     })
+}
+
+/// 手順に入れるコマンドの1行。空白や記号を含む引数は単一引用符で囲む。<…> は呼ぶ側が埋める所なので、そのまま出す。
+fn command_line(args: &[&str]) -> String {
+    args.iter()
+        .map(|a| {
+            let plain = !a.is_empty()
+                && a.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "-_./:@=+,".contains(c));
+            let placeholder = a.starts_with('<') && a.ends_with('>');
+            if plain || placeholder {
+                (*a).to_string()
+            } else {
+                format!("'{}'", a.replace('\'', "'\\''"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// 渡された答えを JSON として読む。答えが ```json …``` の囲みで包まれていれば、囲みを外して読む
+/// （モデルによって、答えの形を渡しても囲みを付ける）。
+fn answer_json(answer: &str) -> Result<Value, String> {
+    let t = answer.trim();
+    let inner = t
+        .strip_prefix("```json")
+        .or_else(|| t.strip_prefix("```"))
+        .and_then(|r| r.trim_end().strip_suffix("```"))
+        .unwrap_or(t);
+    serde_json::from_str(inner.trim()).map_err(|e| format!("JSON として読めない（{e}）"))
 }

@@ -1,6 +1,38 @@
-//! この業務領域が外に求めるもの。
+//! 描画のモジュールが外に求めるもの（描画と、デザインシステムの検証のユースケースが使うポートと、そのうち使うメソッドだけを宣言する。実装は adapters/outbound）。
+//! 文書を読む ・ 形を照らすポートは、検証のモジュールにも同じ名前のものがあるが、変わる理由がモジュールごとなので、ここにも宣言する。
 
 use serde_json::Value;
+use validation_domain::values::ValidateRow;
+
+/// リポジトリの中の文書を読む。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。
+pub trait DocumentStore {
+    /// Concrete の一覧の材料になりうる JSON の文書の経路（並びは経路の順）。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn list(&self) -> Result<Vec<String>, String>;
+
+    /// 文書の中身。
+    ///
+    /// # Errors
+    /// 無い ・ 読めないとき。
+    fn read(&self, path: &str) -> Result<String, String>;
+}
+
+/// JSON Schema 2020-12 のバリデーター。デザインシステムを受け取りの型に照らす。
+pub trait SchemaValidator {
+    /// value を、$id が schema のスキーマに照らし、外れた所（JSON Pointer）と理由を返す。
+    /// more はリポジトリの Concrete（$id と文書）で、schema の名前と $ref の先として引ける。
+    ///
+    /// # Errors
+    /// スキーマを組めないとき。
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String>;
+}
 
 /// テンプレートの節（Mustache の木。文字列は持たない）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,4 +147,18 @@ pub trait PageWriter {
         pages: &[(String, String)],
         inputs: &[String],
     ) -> Result<(), PageRefusal>;
+}
+
+/// 操作の記録のうち、デザインシステムの検証が使うもの（検証を足すだけ）。ID と時刻は置き場所が作る。
+/// 打ったセッションの行（sessions）は入口が先に足すので、ここでは扱わない。
+pub trait ValidationLog {
+    /// 検証を1件足し（rule ごとの結果も一緒に）、その ID を返す。session は打ったセッションの ID（人なら None）。
+    ///
+    /// # Errors
+    /// 置き場所が拒んだとき（決まりに反する行）。
+    fn append_validate(
+        &mut self,
+        session: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String>;
 }

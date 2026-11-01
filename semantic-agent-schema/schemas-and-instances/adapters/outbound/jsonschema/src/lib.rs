@@ -1,9 +1,8 @@
-//! ポート SchemaValidator を jsonschema で実装する。
+//! ポート SchemaValidator（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）を jsonschema で実装する。
 //!
 //! Abstract の本体 ・ 方言 ・ 語彙と、デザインシステムの受け取りの型 ・ テンプレートの書き方の契約を実行ファイルに入れて出し、名前（$id）で引く。外へ取りに行かない。
 
 use serde_json::Value;
-use validation_application::ports::SchemaValidator;
 
 /// 方言が $vocabulary で求める語彙。x- の形は語彙のメタスキーマが決め、意味は SAS が判定する。
 const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocab:v1";
@@ -43,15 +42,21 @@ impl Validator {
     }
 }
 
-impl SchemaValidator for Validator {
-    fn shipped(&self, id: &str) -> Option<Value> {
+impl Validator {
+    /// 入れて出すスキーマの文書。無い名前は None。
+    #[must_use]
+    pub fn shipped(&self, id: &str) -> Option<Value> {
         self.shipped
             .iter()
             .find(|(i, _)| i == id)
             .map(|(_, d)| d.clone())
     }
 
-    fn check(
+    /// value を、$id が schema のスキーマに照らし、外れた所（JSON Pointer）と理由を返す。
+    ///
+    /// # Errors
+    /// スキーマを組めないとき。
+    pub fn check(
         &self,
         schema: &str,
         value: &Value,
@@ -64,7 +69,11 @@ impl SchemaValidator for Validator {
             .collect())
     }
 
-    fn annotations(
+    /// value を、$id が schema のスキーマに照らし、形が通った所の注釈（インスタンスの所と、キーワード → 値）を返す。
+    ///
+    /// # Errors
+    /// スキーマを組めないとき。
+    pub fn annotations(
         &self,
         schema: &str,
         value: &Value,
@@ -80,6 +89,67 @@ impl SchemaValidator for Validator {
                 )
             })
             .collect())
+    }
+}
+
+impl writing_application::ports::SchemaValidator for Validator {
+    fn shipped(&self, id: &str) -> Option<Value> {
+        Self::shipped(self, id)
+    }
+
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+
+    fn annotations(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, Value)>, String> {
+        Self::annotations(self, schema, value, more)
+    }
+}
+
+impl validation_application::ports::SchemaValidator for Validator {
+    fn shipped(&self, id: &str) -> Option<Value> {
+        Self::shipped(self, id)
+    }
+
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+}
+
+impl rendering_application::ports::SchemaValidator for Validator {
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+}
+
+impl search_application::ports::SchemaValidator for Validator {
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
     }
 }
 

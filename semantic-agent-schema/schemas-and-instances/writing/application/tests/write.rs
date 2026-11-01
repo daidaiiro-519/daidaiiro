@@ -1,4 +1,5 @@
 //! UC1 ・ UC2 と取り込みの手続きを、ポートの代役で確かめる。代役は検証のモジュールの試験と共に使う（support.rs）。
+//! ポートへの当て方は、書くモジュールのポートにここで書く。
 
 #![allow(clippy::unwrap_used, clippy::panic)]
 
@@ -6,14 +7,67 @@
 mod support;
 
 use serde_json::{Value, json};
-use support::{Human, Lenient, Log, Tool, UC, decided, files};
-use validation_application::ports::DocumentStore;
-use validation_application::use_cases::validate::{Scope, validate};
+use support::{HUMAN, Lenient, Log, UC, decided, files, tool};
+use validation_domain::services::{instance_rules, reads_hash};
+use validation_domain::values::{Judgment, RuleRow, ValidateRow};
 use writing_application::ports::CommitReader;
 use writing_application::use_cases::write::{
-    AdoptAs, AdoptRequest, CreateRequest, UpdateRequest, adopt, create, update,
+    AdoptAs, AdoptRequest, CreateRequest, UpdateRequest, adopt, create, interleaved, update,
 };
-use writing_domain::values::ContentHash;
+use writing_domain::values::{ChangeRow, ContentHash, StoredChange, WriteRecord};
+
+/// 代役を、書くモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
+impl writing_application::ports::DocumentStore for support::Files {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+    fn write(&self, path: &str, text: &str) -> Result<(), String> {
+        Self::write(self, path, text)
+    }
+    fn remove(&self, path: &str) -> Result<(), String> {
+        Self::remove(self, path)
+    }
+}
+
+impl writing_application::ports::SchemaValidator for support::Lenient {
+    fn shipped(&self, id: &str) -> Option<Value> {
+        Self::shipped(self, id)
+    }
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+    fn annotations(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, Value)>, String> {
+        Self::annotations(self, schema, value, more)
+    }
+}
+
+impl writing_application::ports::ChangeLog for support::Log {
+    fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+        Self::append_change(self, session, row)
+    }
+    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
+        Self::find_request(self, request_id)
+    }
+    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+        Self::writes(self, target_path)
+    }
+    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
+        Self::last_judgments(self, target_path)
+    }
+}
 
 fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
     CreateRequest {
@@ -33,7 +87,7 @@ fn create_writes_records_and_returns_the_diff() {
         &create_request(json!({"id": "U1", "status": "draft"}), None),
         &store,
         &Lenient,
-        &Tool,
+        &tool(),
         &mut log,
     )
     .unwrap();
@@ -53,7 +107,7 @@ fn create_refused_by_a_write_rule_writes_and_records_nothing() {
         &create_request(json!({"id": "U1", "status": "approved"}), None),
         &store,
         &Lenient,
-        &Tool,
+        &tool(),
         &mut log,
     )
     .unwrap_err();
@@ -67,8 +121,8 @@ fn same_request_is_one_operation() {
     let store = files(&[("c.json", decided())]);
     let mut log = Log::default();
     let req = create_request(json!({"id": "U1"}), Some("r-1"));
-    let first = create(&req, &store, &Lenient, &Human, &mut log).unwrap();
-    let again = create(&req, &store, &Lenient, &Human, &mut log).unwrap();
+    let first = create(&req, &store, &Lenient, &HUMAN, &mut log).unwrap();
+    let again = create(&req, &store, &Lenient, &HUMAN, &mut log).unwrap();
     assert!(again.replayed);
     assert_eq!((again.operation, again.diff), (first.operation, first.diff));
     assert_eq!(log.1.len(), 1);
@@ -79,7 +133,7 @@ fn same_request_is_one_operation() {
         request_id: Some("r-1".into()),
         intent: None,
     };
-    let r = update(&other, &store, &Lenient, &Human, &mut log).unwrap_err();
+    let r = update(&other, &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "request_reused");
 }
 
@@ -98,12 +152,12 @@ fn update_checks_the_hash_before_writing() {
         request_id: None,
         intent: None,
     };
-    let r = update(&req("sha256:x"), &store, &Lenient, &Human, &mut log).unwrap_err();
+    let r = update(&req("sha256:x"), &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "conflict");
     assert_eq!(store.read("u1.json").unwrap(), before);
     assert!(log.1.is_empty(), "断った操作は記録しない");
     let fp = ContentHash::of(before.as_bytes());
-    let c = update(&req(fp.as_str()), &store, &Lenient, &Human, &mut log).unwrap();
+    let c = update(&req(fp.as_str()), &store, &Lenient, &HUMAN, &mut log).unwrap();
     assert_eq!(c.before, Some(fp));
     assert_eq!(c.diff.changes().len(), 1);
 }
@@ -123,9 +177,9 @@ fn update_without_if_match_compares_with_the_last_write() {
         intent: Some("目標を直す".into()),
     };
     // SAS が一度も書いていないので、比べるハッシュが無く、書く
-    let first = update(&req("b"), &store, &Lenient, &Human, &mut log).unwrap();
+    let first = update(&req("b"), &store, &Lenient, &HUMAN, &mut log).unwrap();
     // 最後に書いたハッシュといまの中身が同じなので、書く
-    update(&req("c"), &store, &Lenient, &Human, &mut log).unwrap();
+    update(&req("c"), &store, &Lenient, &HUMAN, &mut log).unwrap();
     // SAS を通らずに直される
     store
         .write(
@@ -134,7 +188,7 @@ fn update_without_if_match_compares_with_the_last_write() {
         )
         .unwrap();
     let edited = store.read("u1.json").unwrap();
-    let r = update(&req("d"), &store, &Lenient, &Human, &mut log).unwrap_err();
+    let r = update(&req("d"), &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "conflict");
     assert_eq!(store.read("u1.json").unwrap(), edited);
     let i = r.interleaved.unwrap();
@@ -149,7 +203,7 @@ fn update_without_if_match_compares_with_the_last_write() {
         },
         &store,
         &Lenient,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap_err();
@@ -170,15 +224,28 @@ fn update_reports_the_previous_judgments_it_made_stale() {
         ),
     ]);
     let mut log = Log::default();
-    validate(
-        &Scope::Paths(vec!["u1.json".into()]),
-        &store,
-        &Lenient,
-        &Human,
-        &mut log,
-    )
-    .unwrap();
-    let fp = ContentHash::of(store.read("u1.json").unwrap().as_bytes());
+    // 前の検証の判定：検証のモジュールが記録するのと同じ基準（validation-domain）で、いまの中身の rule ごとの読んだ所を記録する
+    let text = store.read("u1.json").unwrap();
+    let before: Value = serde_json::from_str(&text).unwrap();
+    log.0.push(ValidateRow {
+        target_path: "u1.json".into(),
+        hash: ContentHash::of(text.as_bytes()).as_str().into(),
+        schema: Some(UC.into()),
+        results: instance_rules(&decided(), &before, &[(UC.to_string(), decided())])
+            .into_iter()
+            .map(|(r, at, definition)| RuleRow {
+                rule: r.rule().into(),
+                pointer: r.pointer().into(),
+                by: r.by().as_str().into(),
+                result: r.verdict().as_str().into(),
+                reason: r.reason().into(),
+                reads: reads_hash(&before, &at, definition.as_ref())
+                    .as_str()
+                    .into(),
+            })
+            .collect(),
+    });
+    let fp = ContentHash::of(text.as_bytes());
     let c = update(
         &UpdateRequest {
             path: "u1.json".into(),
@@ -189,7 +256,7 @@ fn update_reports_the_previous_judgments_it_made_stale() {
         },
         &store,
         &Lenient,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
@@ -238,7 +305,7 @@ fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
         &store,
         &Lenient,
         &none,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
@@ -256,7 +323,7 @@ fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
         &store,
         &Lenient,
         &commits,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
@@ -297,7 +364,7 @@ fn unreadable_versions_are_refused_as_versions() {
         &store,
         &Lenient,
         &Commits(Vec::new()),
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
@@ -308,7 +375,7 @@ fn unreadable_versions_are_refused_as_versions() {
         &store,
         &Lenient,
         &Unreadable,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap_err();
@@ -331,7 +398,7 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
         &store,
         &Lenient,
         &none,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
@@ -346,7 +413,7 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
         &store,
         &Lenient,
         &none,
-        &Tool,
+        &tool(),
         &mut log,
     )
     .unwrap_err();
@@ -359,10 +426,51 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
         &store,
         &Lenient,
         &none,
-        &Human,
+        &HUMAN,
         &mut log,
     )
     .unwrap();
     assert!(c.diff.before_unavailable());
     assert!(c.diff.changes().iter().all(|f| f.before().is_none()));
+}
+
+fn written(n: usize, before: &str, after: &str) -> WriteRecord {
+    WriteRecord {
+        operation: format!("o-{n}"),
+        session: None,
+        at: "t".into(),
+        row: ChangeRow {
+            kind: "update".into(),
+            source: "sas".into(),
+            target_path: "a.json".into(),
+            request_id: None,
+            before: Some(before.into()),
+            after: Some(after.into()),
+            intent: None,
+            schema: None,
+            fields: Vec::new(),
+        },
+    }
+}
+
+#[test]
+fn interleaved_follows_hashs_from_expected() {
+    let writes = [written(1, "a", "b"), written(2, "b", "c")];
+
+    // 前提の b のあとに、o-2（b → c）が入った
+    let i = interleaved(&writes, "b", "c");
+    let ids: Vec<&str> = i.operations.iter().map(|w| w.operation.as_str()).collect();
+    assert_eq!(ids, ["o-2"]);
+    assert!(!i.untracked);
+
+    // 記録の最後（c）のあとに、記録に無い変更で d になった
+    let i = interleaved(&writes, "c", "d");
+    assert!(i.operations.is_empty());
+    assert!(i.untracked);
+    assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
+
+    // 前提のハッシュが記録に無いときは、記録した操作をすべて返す
+    let i = interleaved(&writes, "z", "c");
+    assert_eq!(i.operations.len(), 2);
+    assert!(!i.untracked);
 }

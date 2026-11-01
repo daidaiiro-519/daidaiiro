@@ -4,15 +4,59 @@
 
 mod support;
 
-use recording_application::ports::{Caller, IdentifyCaller, Via};
 use serde_json::{Value, json};
-use support::{Human, Lenient, Log, UC, files, meaning};
-use validation_application::ports::DocumentStore;
+use support::{HUMAN, Lenient, Log, UC, files, meaning};
 use validation_application::use_cases::validate::{
     Scope, semantic_procedures, validate_with_answer,
 };
 use validation_domain::values::Verdict;
-use writing_domain::values::ContentHash;
+use writing_domain::values::{Caller, ContentHash, Via};
+
+/// 代役を、検証のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
+impl validation_application::ports::DocumentStore for support::Files {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+}
+
+impl validation_application::ports::SchemaValidator for support::Lenient {
+    fn shipped(&self, id: &str) -> Option<serde_json::Value> {
+        Self::shipped(self, id)
+    }
+    fn check(
+        &self,
+        schema: &str,
+        value: &serde_json::Value,
+        more: &[(String, serde_json::Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+}
+
+impl validation_application::ports::ValidationLog for support::Log {
+    fn append_validate(
+        &mut self,
+        session: Option<&str>,
+        row: &validation_domain::values::ValidateRow,
+    ) -> Result<String, String> {
+        Self::append_validate(self, session, row)
+    }
+    fn writes(
+        &self,
+        target_path: &str,
+    ) -> Result<Vec<writing_domain::values::WriteRecord>, String> {
+        Self::writes(self, target_path)
+    }
+    fn last_judgments(
+        &self,
+        target_path: &str,
+    ) -> Result<Vec<validation_domain::values::Judgment>, String> {
+        Self::last_judgments(self, target_path)
+    }
+}
 
 fn store() -> support::Files {
     files(&[
@@ -21,13 +65,13 @@ fn store() -> support::Files {
     ])
 }
 
-fn procedures(store: &support::Files, log: &Log, who: &dyn IdentifyCaller) -> Vec<Value> {
+fn procedures(store: &support::Files, log: &Log, caller: &Caller) -> Vec<Value> {
     semantic_procedures(
         &Scope::Paths(vec!["u1.json".into()]),
         false,
         store,
         &Lenient,
-        who,
+        caller,
         log,
     )
     .unwrap()
@@ -46,7 +90,7 @@ fn answer(hash: &str, rule: &str, verdict: &str, reason: &str) -> String {
 }
 
 fn give(store: &support::Files, log: &mut Log, answer: &str) -> Result<Verdict, &'static str> {
-    validate_with_answer("u1.json", false, answer, store, &Lenient, &Human, log)
+    validate_with_answer("u1.json", false, answer, store, &Lenient, &HUMAN, log)
         .map(|v| {
             v.targets[0]
                 .results
@@ -62,7 +106,7 @@ fn give(store: &support::Files, log: &mut Log, answer: &str) -> Result<Verdict, 
 fn procedure_is_returned_and_nothing_is_recorded() {
     let store = store();
     let log = Log::default();
-    let p = procedures(&store, &log, &Human);
+    let p = procedures(&store, &log, &HUMAN);
     assert_eq!(p.len(), 1);
     assert_eq!(p[0]["steps"][0]["rules"][0]["id"], json!("goal-is-outcome"));
     assert_eq!(p[0]["steps"][0]["current"], json!("注文が届く"));
@@ -76,18 +120,13 @@ fn procedure_is_returned_and_nothing_is_recorded() {
 
 #[test]
 fn a_named_session_names_itself_again_in_the_command() {
-    struct Named;
-    impl IdentifyCaller for Named {
-        fn identify(&self) -> Caller {
-            Caller::Session {
-                id: "ci 1".into(),
-                tool: "unknown".into(),
-                folder: "/w".into(),
-                via: Via::Flag,
-            }
-        }
-    }
-    let p = procedures(&store(), &Log::default(), &Named);
+    let named = Caller::Session {
+        id: "ci 1".into(),
+        tool: "unknown".into(),
+        folder: "/w".into(),
+        via: Via::Flag,
+    };
+    let p = procedures(&store(), &Log::default(), &named);
     assert!(
         p[0]["command"]
             .as_str()
@@ -179,7 +218,7 @@ fn procedure_follows_the_current_content_and_not_the_previous_judgment() {
             &json!({"$schema": UC, "goal": "画面を作る"}).to_string(),
         )
         .unwrap();
-    let text = procedures(&store, &log, &Human)[0].to_string();
+    let text = procedures(&store, &log, &HUMAN)[0].to_string();
     assert!(text.contains("画面を作る"));
     assert!(!text.contains("注文が届く"));
     assert!(!text.contains("前の判定の理由"));
@@ -195,7 +234,7 @@ fn reading_of_the_field_goes_into_the_procedure() {
         ("c.json", c),
         ("u1.json", json!({"$schema": UC, "goal": "注文が届く"})),
     ]);
-    let p = procedures(&store, &Log::default(), &Human);
+    let p = procedures(&store, &Log::default(), &HUMAN);
     assert_eq!(
         p[0]["steps"][0]["read"]["interpret"],
         json!("利用者の言葉で書いた結果として読む")
@@ -204,35 +243,6 @@ fn reading_of_the_field_goes_into_the_procedure() {
         p[0]["steps"][0]["read"]["when"],
         json!("検証するときに読む")
     );
-}
-
-#[test]
-fn field_schema_follows_ref_and_additional_properties() {
-    use validation_application::use_cases::meaning::field_schema;
-    let other = json!({"$defs": {"person": {"properties": {"name": {"title": "名前", "description": "人の名前である。"}}}}});
-    let concrete = json!({
-        "$defs": {"step": {"title": "手順", "properties": {"action": {"title": "動作"}}}},
-        "properties": {
-            "steps": {"items": {"$ref": "#/$defs/step"}},
-            "owner": {"$ref": "urn:example:t:person:v1#/$defs/person", "title": "持ち主"},
-            "tags": {"additionalProperties": {"title": "札"}}
-        }
-    });
-    let others = vec![("urn:example:t:person:v1".to_string(), other)];
-    let title = |p: &str| {
-        field_schema(&concrete, p, &others)
-            .and_then(|f| f.get("title").cloned())
-            .unwrap_or(Value::Null)
-    };
-    assert_eq!(title("/steps/0/action"), json!("動作"));
-    assert_eq!(title("/steps/0"), json!("手順"));
-    assert_eq!(
-        title("/owner"),
-        json!("持ち主"),
-        "$ref と横に並べた欄を先に読む"
-    );
-    assert_eq!(title("/owner/name"), json!("名前"));
-    assert_eq!(title("/tags/a"), json!("札"));
 }
 
 #[test]

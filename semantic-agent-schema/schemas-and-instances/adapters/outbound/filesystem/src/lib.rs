@@ -1,9 +1,8 @@
-//! ポート DocumentStore を、作業ディレクトリのファイルで実装する。描いたページの書き出し先（PageWriter）も持つ。
-//! 書くときは一時ファイルに書いてから置き換える。リポジトリの外と、降りないフォルダには書かない。
+//! ポート DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）を、作業ディレクトリのファイルで実装する。
+//! 描いたページの書き出し先（PageWriter）も持つ。書くときは一時ファイルに書いてから置き換える。リポジトリの外と、降りないフォルダには書かない。
 
 use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
-use validation_application::ports::DocumentStore;
 
 /// 降りないフォルダ（SAS の記録 ・ ビルドの出力 ・ Git の中身）。
 const SKIP: [&str; 3] = [".sas", "target", ".git"];
@@ -45,19 +44,31 @@ fn walk(dir: &Path, rel: &str, out: &mut Vec<String>) -> Result<(), String> {
     Ok(())
 }
 
-impl DocumentStore for WorkingTree {
-    fn list(&self) -> Result<Vec<String>, String> {
+impl WorkingTree {
+    /// 作業ディレクトリの JSON の文書の経路（降りないフォルダを除き、経路の順）。
+    ///
+    /// # Errors
+    /// フォルダを読めないとき。
+    pub fn list(&self) -> Result<Vec<String>, String> {
         let mut out = Vec::new();
         walk(&self.root, "", &mut out)?;
         out.sort();
         Ok(out)
     }
 
-    fn read(&self, path: &str) -> Result<String, String> {
+    /// 文書の中身。
+    ///
+    /// # Errors
+    /// 無い ・ 読めないとき。
+    pub fn read(&self, path: &str) -> Result<String, String> {
         std::fs::read_to_string(self.root.join(path)).map_err(|e| format!("{path} を読めない：{e}"))
     }
 
-    fn write(&self, path: &str, text: &str) -> Result<(), String> {
+    /// 文書を書く（一時ファイルに書いてから置き換える）。
+    ///
+    /// # Errors
+    /// 経路がリポジトリの外か降りないフォルダを指す ・ 書けないとき。
+    pub fn write(&self, path: &str, text: &str) -> Result<(), String> {
         inside(path, "書かない")?;
         let to = self.root.join(path);
         if let Some(dir) = to.parent() {
@@ -77,9 +88,61 @@ impl DocumentStore for WorkingTree {
         })
     }
 
-    fn remove(&self, path: &str) -> Result<(), String> {
+    /// 文書を消す。
+    ///
+    /// # Errors
+    /// 経路がリポジトリの外か降りないフォルダを指す ・ 無い ・ 消せないとき。
+    pub fn remove(&self, path: &str) -> Result<(), String> {
         inside(path, "消さない")?;
         std::fs::remove_file(self.root.join(path)).map_err(|e| format!("{path} を消せない：{e}"))
+    }
+}
+
+impl writing_application::ports::DocumentStore for WorkingTree {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+
+    fn write(&self, path: &str, text: &str) -> Result<(), String> {
+        Self::write(self, path, text)
+    }
+
+    fn remove(&self, path: &str) -> Result<(), String> {
+        Self::remove(self, path)
+    }
+}
+
+impl validation_application::ports::DocumentStore for WorkingTree {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+}
+
+impl rendering_application::ports::DocumentStore for WorkingTree {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+}
+
+impl search_application::ports::DocumentStore for WorkingTree {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
     }
 }
 

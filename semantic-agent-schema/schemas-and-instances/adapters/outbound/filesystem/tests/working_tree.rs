@@ -3,7 +3,6 @@
 #![allow(clippy::unwrap_used)]
 
 use outbound_filesystem::WorkingTree;
-use validation_application::ports::DocumentStore;
 
 #[test]
 fn lists_json_and_skips_records() {

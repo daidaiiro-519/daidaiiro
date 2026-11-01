@@ -2,7 +2,10 @@
 //!
 //! 集約 Concrete ・ インスタンスと、その書く条件、書いたことを表す値（ハッシュ ・ 差分）を持つ。
 //! 集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、書くモジュールに置く。
+//! 文書が Concrete かインスタンスかの見分け（TargetKind）・ リポジトリの文書の一覧（Corpus）・ スキーマの欄の定義の引き方
+//! （field_schema）も、集約の決まりなのでここに置き、書く ・ 検証 ・ 描画 ・ 検索のモジュールが使う。
 //! 検証のモジュール（validation-domain）は、ここの集約を読んで rule に照らす。何にも依存しない。
 
 pub mod aggregates;
+pub mod services;
 pub mod values;

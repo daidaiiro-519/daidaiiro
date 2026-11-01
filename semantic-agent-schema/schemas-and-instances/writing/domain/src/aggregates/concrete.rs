@@ -11,6 +11,9 @@ use serde_json::Value;
 pub const ABSTRACT_VERSIONS: [&str; 1] =
     ["urn:semantic-agent-schema:published-language:abstract:v1"];
 
+/// 方言（Concrete の入れ子の x- の形を決める）。Concrete は Abstract の本体と、この方言の両方に照らす。
+pub const DIALECT: &str = "urn:semantic-agent-schema:published-language:dialect:v1";
+
 /// Concrete の文書。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConcreteSchema {

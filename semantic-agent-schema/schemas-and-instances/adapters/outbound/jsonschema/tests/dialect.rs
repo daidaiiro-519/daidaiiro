@@ -5,7 +5,6 @@
 
 use outbound_jsonschema::Validator;
 use serde_json::json;
-use validation_application::ports::SchemaValidator;
 
 const DIALECT: &str = "urn:semantic-agent-schema:published-language:dialect:v1";
 const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";

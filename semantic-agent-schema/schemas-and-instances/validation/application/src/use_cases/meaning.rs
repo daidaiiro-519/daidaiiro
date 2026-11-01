@@ -12,11 +12,12 @@ use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use validation_domain::values::Verdict;
 
-/// 判定の答えの形（打ったセッションが --answer で渡す JSON）。
-pub const ANSWER_SCHEMA: &str = include_str!("../agent-answer.schema.json");
+/// 判定の答えの形（打ったセッションが --answer で渡す JSON）。使う側が従う約束なので、公開された言葉に置く。
+pub const ANSWER_SCHEMA: &str =
+    include_str!("../../../../published-language/v1/judgment-answer.schema.json");
 
 /// 判定の答えの形の $id。
-const ANSWER_ID: &str = "urn:semantic-agent-schema:validation:agent-answer-judgments:v1";
+const ANSWER_ID: &str = "urn:semantic-agent-schema:published-language:judgment-answer:v1";
 
 /// 判定する1ステップ（rule × 当たる所）。
 #[derive(Debug, Clone)]
@@ -183,65 +184,4 @@ pub fn match_steps(
         return Err(format!("step {} の判定が無い", missing.join(" ・ ")));
     }
     Ok(out)
-}
-
-/// 対象の中の所に当たる欄の定義（title ・ description ・ x-prompt を引くため）。properties ・ additionalProperties ・ items を
-/// たどり、$ref は文書の中（#…）とほかの文書（<$id>#…、others）を引く。$ref と横に並べた欄は、指す先の欄より先に読む。
-#[must_use]
-pub fn field_schema(schema: &Value, pointer: &str, others: &[(String, Value)]) -> Option<Value> {
-    let mut root = schema;
-    let mut cur = schema;
-    for part in pointer.split('/').skip(1) {
-        let part = part.replace("~1", "/").replace("~0", "~");
-        let (r, c) = deref(root, cur, others);
-        root = r;
-        cur = if part.parse::<usize>().is_ok() {
-            c.get("items")?
-        } else {
-            c.get("properties")
-                .and_then(|p| p.get(&part))
-                .or_else(|| c.get("additionalProperties").filter(|a| a.is_object()))?
-        };
-    }
-    let (_, target) = deref(root, cur, others);
-    let mut field = target.clone();
-    if let (Some(f), Some(own)) = (field.as_object_mut(), cur.as_object()) {
-        for (k, v) in own {
-            if k != "$ref" {
-                f.insert(k.clone(), v.clone());
-            }
-        }
-    }
-    Some(field)
-}
-
-/// $ref の先と、その先がある文書。引けなければそのまま。
-fn deref<'a>(
-    root: &'a Value,
-    node: &'a Value,
-    others: &'a [(String, Value)],
-) -> (&'a Value, &'a Value) {
-    let Some(r) = node.get("$ref").and_then(Value::as_str) else {
-        return (root, node);
-    };
-    let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
-    let doc = if base.is_empty() {
-        Some(root)
-    } else {
-        others.iter().find(|(id, _)| id == base).map(|(_, d)| d)
-    };
-    let Some(doc) = doc else {
-        return (root, node);
-    };
-    let target = if fragment.is_empty() {
-        Some(doc)
-    } else if fragment.starts_with('/') {
-        doc.pointer(fragment)
-    } else {
-        doc.get("$defs").and_then(Value::as_object).and_then(|m| {
-            m.values()
-                .find(|d| d.get("$anchor").and_then(Value::as_str) == Some(fragment))
-        })
-    };
-    target.map_or((root, node), |t| (doc, t))
 }

@@ -1,5 +1,5 @@
 //! UC6 検索する（範囲 ・ 構造で絞る ・ 意味で探す手順 ・ 答えの出どころの確かめ）を、ポートの代役で確かめる。
-//! 代役は検証のモジュールの試験と共に使う（support.rs）。
+//! 代役は検証のモジュールの試験と共に使う（support.rs）。ポートへの当て方は、検索のモジュールのポートにここで書く。
 
 #![allow(clippy::unwrap_used, clippy::panic)]
 
@@ -10,9 +10,29 @@ use search_application::use_cases::search::{
     RANGE_LIMIT, Range, search_procedure, search_where, search_with_answer,
 };
 use serde_json::{Value, json};
-use support::{Human, Lenient, UC, files};
-use validation_application::ports::DocumentStore;
+use support::{HUMAN, Lenient, UC, files};
 use writing_domain::values::ContentHash;
+
+/// 代役を、検索のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
+impl search_application::ports::DocumentStore for support::Files {
+    fn list(&self) -> Result<Vec<String>, String> {
+        Self::list(self)
+    }
+    fn read(&self, path: &str) -> Result<String, String> {
+        Self::read(self, path)
+    }
+}
+
+impl search_application::ports::SchemaValidator for support::Lenient {
+    fn check(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, String)>, String> {
+        Self::check(self, schema, value, more)
+    }
+}
 
 fn concrete() -> Value {
     json!({
@@ -104,7 +124,7 @@ fn an_untyped_path_or_unknown_concrete_is_refused() {
 #[test]
 fn the_procedure_has_one_step_per_document_and_the_answer_command() {
     let s = store();
-    let p = search_procedure(&concrete_range(), "運用担当が出てくるのは？", &s, &Human).unwrap();
+    let p = search_procedure(&concrete_range(), "運用担当が出てくるのは？", &s, &HUMAN).unwrap();
     assert_eq!(p["operation_kind"], json!("search"));
     assert_eq!(p["steps"].as_array().unwrap().len(), 2);
     assert_eq!(p["steps"][1]["path"], json!("u1.json"));
@@ -124,7 +144,7 @@ fn a_range_over_the_limit_is_refused_without_cutting() {
         ("c.json", concrete()),
         ("u0.json", json!({"$schema": UC, "level": big})),
     ]);
-    let r = search_procedure(&concrete_range(), "問い", &s, &Human).unwrap_err();
+    let r = search_procedure(&concrete_range(), "問い", &s, &HUMAN).unwrap_err();
     assert_eq!(r.code, "range_too_large");
 }
 

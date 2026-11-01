@@ -13,15 +13,80 @@
 //! 3. Concrete の根の x-view（無ければ page）のテンプレートがそろうことを確かめる（欠けたら全部を集めて断る）。
 //! 4. 描く。すべての対象を描けてから、まとめて書き出す。
 
-use crate::ports::{PageRefusal, PageWriter, ScriptReader, TemplateRenderer};
+use crate::ports::{
+    DocumentStore, PageRefusal, PageWriter, SchemaValidator, ScriptReader, TemplateRenderer,
+};
 use crate::use_cases::design::check_design_system;
 use crate::use_cases::tokens::css_of;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use validation_application::ports::{DocumentStore, SchemaValidator};
-use validation_application::use_cases::validate::{Corpus, Refused, TargetKind, classify, refused};
 use validation_domain::values::Verdict;
-use writing_domain::values::ContentHash;
+use writing_domain::aggregates::ConcreteSchema;
+use writing_domain::values::{ContentHash, Corpus, TargetKind};
+
+/// 描画 ・ デザインシステムの検証を始められなかった ・ 書き出さなかった理由。描画は記録しない（理由と案内をその場で返す）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Refused {
+    /// 決まった名前（not_found ・ not_json ・ no_schema ・ schema_not_listed ・ unknown_schema ・ invalid_input ・ store ・
+    /// validator ・ log、描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out）
+    pub code: &'static str,
+    /// 対象の経路（あれば）
+    pub path: Option<Box<str>>,
+    /// 理由
+    pub message: String,
+    /// 次にすることの案内（デザインシステムを確かめるコマンド）
+    pub hint: Option<Box<String>>,
+    /// デザインシステムに無かった x-view の種類（missing_view_kinds）
+    pub missing: Option<Box<Vec<String>>>,
+}
+
+/// 対象の経路を付けて断る。
+#[must_use]
+pub fn refused(code: &'static str, path: &str, message: String) -> Refused {
+    Refused {
+        code,
+        path: Some(path.into()),
+        message,
+        ..Refused::default()
+    }
+}
+
+/// 記録を読み書きできなかったことを、断った理由にする。
+#[must_use]
+pub fn log_refused(e: String) -> Refused {
+    Refused {
+        code: "log",
+        message: e,
+        ..Refused::default()
+    }
+}
+
+/// リポジトリの文書を読む（Concrete の一覧に使う）。読めない文書は除く。
+///
+/// # Errors
+/// 文書の一覧を読めないとき。
+pub(crate) fn load_corpus(store: &dyn DocumentStore) -> Result<Corpus, Refused> {
+    let paths = store.list().map_err(|e| Refused {
+        code: "store",
+        message: e,
+        ..Refused::default()
+    })?;
+    Ok(Corpus::read(
+        paths
+            .into_iter()
+            .filter_map(|p| store.read(&p).ok().map(|t| (p, t))),
+    ))
+}
+
+/// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
+fn classify(
+    concretes: &BTreeMap<String, ConcreteSchema>,
+    path: &str,
+    declared: &str,
+) -> Result<TargetKind, Refused> {
+    TargetKind::classify(concretes, declared)
+        .map_err(|u| refused(u.code(), path, u.message().to_string()))
+}
 
 /// 描画の依頼。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,7 +147,7 @@ pub fn render(
 ) -> Result<Rendered, Refused> {
     // 1. デザインシステム：受け取りの型とテンプレートの書き方の契約に照らし、外れがあれば描かない
     let ds_path = &request.design_system;
-    let corpus = Corpus::load(store)?;
+    let corpus = load_corpus(store)?;
     let ds = check_design_system(ds_path, store, validator, renderer, scripts, &corpus)?;
     if ds.violated() {
         let broken: Vec<String> = ds

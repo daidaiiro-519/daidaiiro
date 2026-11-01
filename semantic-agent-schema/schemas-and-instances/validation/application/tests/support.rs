@@ -1,38 +1,38 @@
-//! 検証と書くの手続きの試験が共に使う、ポートの代役。代役は試験の側に置く
+//! 検証 ・ 書く ・ 検索の手続きの試験が共に使う、ポートの代役。代役は試験の側に置く
 //! （test-support に置くと、test-support が application に依存し、application の試験が test-support に依存して循環する）。
-//! 書くモジュールの試験は、#[path] でこのファイルを読む。
+//! 書く ・ 検索のモジュールの試験は、#[path] でこのファイルを読む。
+//! 文書の置き場所と形の検査のポートはモジュールごとに宣言するので、ここでは代役の振る舞いだけを持ち、
+//! ポートへの当て方（impl）は読む側の試験が、そのモジュールのポートに書く。記録のポートも、モジュールごとに宣言したものに当てる。
+//! 誰が打ったかは、ユースケースへ値（Caller）で渡す。
 
 #![allow(dead_code, clippy::unwrap_used, clippy::panic)]
 
-use recording_application::ports::{
-    Caller, ChangeRow, IdentifyCaller, Judgment, OperationLog, SessionRow, StoredChange,
-    ValidateRow, Via, WriteRecord,
-};
 use serde_json::{Value, json};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use validation_application::ports::{DocumentStore, SchemaValidator};
+use validation_domain::values::{Judgment, ValidateRow};
+use writing_domain::values::{Caller, ChangeRow, StoredChange, Via, WriteRecord};
 
 pub(crate) const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";
 pub(crate) const UC: &str = "urn:example:t:uc:v1";
 
 pub(crate) struct Files(pub(crate) RefCell<BTreeMap<String, String>>);
-impl DocumentStore for Files {
-    fn list(&self) -> Result<Vec<String>, String> {
+impl Files {
+    pub(crate) fn list(&self) -> Result<Vec<String>, String> {
         Ok(self.0.borrow().keys().cloned().collect())
     }
-    fn read(&self, path: &str) -> Result<String, String> {
+    pub(crate) fn read(&self, path: &str) -> Result<String, String> {
         self.0
             .borrow()
             .get(path)
             .cloned()
             .ok_or_else(|| format!("{path} が無い"))
     }
-    fn write(&self, path: &str, text: &str) -> Result<(), String> {
+    pub(crate) fn write(&self, path: &str, text: &str) -> Result<(), String> {
         self.0.borrow_mut().insert(path.into(), text.into());
         Ok(())
     }
-    fn remove(&self, path: &str) -> Result<(), String> {
+    pub(crate) fn remove(&self, path: &str) -> Result<(), String> {
         self.0
             .borrow_mut()
             .remove(path)
@@ -43,11 +43,11 @@ impl DocumentStore for Files {
 
 /// 形の検査はいつも通す代役。Abstract は根に rule を1つ持つ。
 pub(crate) struct Lenient;
-impl SchemaValidator for Lenient {
-    fn shipped(&self, id: &str) -> Option<Value> {
+impl Lenient {
+    pub(crate) fn shipped(&self, id: &str) -> Option<Value> {
         (id == ABSTRACT).then(|| json!({"x-prompt": {"write": [{"id": "goal-is-ok"}]}}))
     }
-    fn check(
+    pub(crate) fn check(
         &self,
         _: &str,
         _: &Value,
@@ -56,7 +56,7 @@ impl SchemaValidator for Lenient {
         Ok(Vec::new())
     }
     /// 根の欄だけを見る代役：インスタンスにある根の欄ごとに、Concrete のその欄の定義を注釈として返す。
-    fn annotations(
+    pub(crate) fn annotations(
         &self,
         schema: &str,
         value: &Value,
@@ -76,22 +76,16 @@ impl SchemaValidator for Lenient {
     }
 }
 
-pub(crate) struct Human;
-impl IdentifyCaller for Human {
-    fn identify(&self) -> Caller {
-        Caller::Human
-    }
-}
+/// 人の呼び出し。
+pub(crate) const HUMAN: Caller = Caller::Human;
 
-pub(crate) struct Tool;
-impl IdentifyCaller for Tool {
-    fn identify(&self) -> Caller {
-        Caller::Session {
-            id: "agent".into(),
-            tool: "claude-code".into(),
-            folder: "/w".into(),
-            via: Via::Env,
-        }
+/// ツールの環境変数で名乗ったセッション。
+pub(crate) fn tool() -> Caller {
+    Caller::Session {
+        id: "agent".into(),
+        tool: "claude-code".into(),
+        folder: "/w".into(),
+        via: Via::Env,
     }
 }
 
@@ -105,34 +99,25 @@ impl Log {
     fn next(&self) -> String {
         format!("o-{}", self.0.len() + self.1.len() + 1)
     }
-}
-impl OperationLog for Log {
-    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
-        Ok(match caller {
-            Caller::Session { id, .. } => Some(id.clone()),
-            Caller::Human => None,
-        })
-    }
-    fn session_row(&self, _: &str) -> Result<Option<SessionRow>, String> {
-        Ok(None)
-    }
-    fn initialized(&self, _: &str) -> Result<Option<SessionRow>, String> {
-        Ok(None)
-    }
-    fn new_session_id(&self) -> String {
-        "sas-1".into()
-    }
-    fn append_validate(&mut self, _: Option<&str>, row: &ValidateRow) -> Result<String, String> {
+    pub(crate) fn append_validate(
+        &mut self,
+        _: Option<&str>,
+        row: &ValidateRow,
+    ) -> Result<String, String> {
         let id = self.next();
         self.0.push(row.clone());
         Ok(id)
     }
-    fn append_change(&mut self, _: Option<&str>, row: &ChangeRow) -> Result<String, String> {
+    pub(crate) fn append_change(
+        &mut self,
+        _: Option<&str>,
+        row: &ChangeRow,
+    ) -> Result<String, String> {
         let id = self.next();
         self.1.push((id.clone(), row.clone()));
         Ok(id)
     }
-    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
+    pub(crate) fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
         Ok(self
             .1
             .iter()
@@ -143,7 +128,7 @@ impl OperationLog for Log {
                 row: r.clone(),
             }))
     }
-    fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
+    pub(crate) fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         let from = self
             .1
             .iter()
@@ -162,7 +147,7 @@ impl OperationLog for Log {
             })
             .collect())
     }
-    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
+    pub(crate) fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         // rule ごとに、その rule を最後に判定した検証の行（検証の ID は検証だけの並びの番号）
         let mut latest: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
         for (i, r) in self.0.iter().enumerate() {

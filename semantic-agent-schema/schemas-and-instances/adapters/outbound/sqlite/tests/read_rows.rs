@@ -4,10 +4,9 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 
 use outbound_sqlite::SqliteLog;
-use recording_application::ports::{
-    Caller, ChangeRow, FieldRow, OperationDetail, OperationFilter, OperationLog, OperationReader,
-    RuleRow, ValidateRow, Via,
-};
+use recording_application::ports::{OperationDetail, OperationFilter, OperationReader};
+use validation_domain::values::{RuleRow, ValidateRow};
+use writing_domain::values::{Caller, ChangeRow, FieldRow, Via};
 
 fn change(path: &str) -> ChangeRow {
     ChangeRow {

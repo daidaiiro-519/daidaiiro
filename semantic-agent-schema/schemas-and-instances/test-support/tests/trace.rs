@@ -120,7 +120,7 @@ fn every_published_language_has_a_traced_promise() {
         })
         .collect();
     names.sort();
-    assert_eq!(names.len(), 7, "公開された言葉は7つ: {names:?}");
+    assert_eq!(names.len(), 9, "公開された言葉は9つ: {names:?}");
     for name in names {
         let prefix = format!("約束:{name}");
         assert!(

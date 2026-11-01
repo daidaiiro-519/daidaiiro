@@ -4,7 +4,6 @@
 
 use outbound_jsonschema::Validator;
 use serde_json::json;
-use validation_application::ports::SchemaValidator;
 
 #[test]
 fn nested_x_decided_by_comes_with_the_instance_location() {

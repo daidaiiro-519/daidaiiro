@@ -87,14 +87,14 @@ def model():
     f.box(30, 44, 200, 64, ['集約：Concrete', '版は閉じた一覧・公開した版'], 'focus')
     f.box(270, 44, 200, 64, ['集約：インスタンス', '導出値・人の欄・ハッシュ'], 'focus')
     f.path('M270,76 H232', dashed=True); f.note(251, 132, 'URN と版で指す', 'middle')
-    f.box(30, 160, 440, 70, ['値：ハッシュ・差分（欄ごとの前後）・', '書く条件の外れ'])
-    f.box(30, 270, 440, 66, ['サービスは持たない', '（参照を見分けず、文書をまたぐ計算が無い）'], dashed=True)
+    f.box(30, 152, 440, 86, ['値：ハッシュ・差分・書く条件の外れ・', '文書の種類（TargetKind）・文書の一覧（Corpus）・', '誰が打ったか（Caller）・変更の行'])
+    f.box(30, 270, 440, 66, ['サービス：field_schema', '（スキーマの所に当たる欄の定義を引く）'], 'kind-1')
     f.box(30, 370, 440, 66, ['use_cases に残すもの：取り込みの前の値・', '衝突を返す・従うインスタンスがあれば止める'], dashed=True)
     f.area(510, 10, 480, 450, 'validation-domain（検証のモジュール）')
     f.box(530, 44, 440, 64, ['集約は持たない', '← 書くモジュールの集約を読んで rule に照らす'], dashed=True)
-    f.box(530, 160, 440, 56, ['値：判定の5つの区分・rule の結果・誰が判定したか（by）'])
-    f.box(530, 270, 440, 66, ['サービス：当たる rule・', 'Concrete に当たる Abstract の rule'], 'kind-1')
-    f.box(530, 370, 440, 66, ['意味（x-prompt の rule）は同じ検証の中。', '意味を読ませるポートは application（ステップ6）'], dashed=True)
+    f.box(530, 160, 440, 70, ['値：判定の5つの区分・rule の結果・', '誰が判定したか（by）・検証と判定の行'])
+    f.box(530, 270, 440, 66, ['サービス：当たる rule・Abstract の rule・', '判定が読んだ所のハッシュ（reads_hash）'], 'kind-1')
+    f.box(530, 370, 440, 66, ['意味（x-prompt の rule）は同じ検証の中。', '手順を返し、判定は --answer で受け取る（use_cases）'], dashed=True)
     f.path('M530,76 H472')
     return f.write('model')
 
@@ -123,7 +123,7 @@ def gone():
         ('change', 'changes・field_changes・diff', 'focus'),
         ('change-summary', '使う側（まとめ・承認・コミット）', 'muted'),
         ('call', 'procedure（値を渡す command を持つ）', 'focus'),
-        ('output-judging・output-working', 'agent-answer', 'focus'),
+        ('output-judging・output-working', 'judgment-answer（公開された言葉）', 'focus'),
         ('vocab-meta', 'vocabulary（改名・x-view を足す）', 'focus')])
 
 def bnd():
@@ -140,28 +140,39 @@ def bnd():
     return f.write('bnd')
 
 def hexf():
-    f = Fig(1300, 780, 'ポートとアダプター：内側に業務領域を作るモジュール、縁にポート、外にアダプター')
-    f.o.append('<path class="area" d="M300,390 L440,60 L860,60 L1000,390 L860,720 L440,720 Z"/>')
+    f = Fig(1300, 940, 'ポートとアダプター：内側に業務領域を作るモジュール、縁に各モジュールが宣言するポート、外にアダプター')
+    f.o.append('<path class="area" d="M300,470 L440,60 L860,60 L1000,470 L860,880 L440,880 Z"/>')
     f.note(650, 84, '文脈「スキーマとインスタンス」', 'middle', True)
-    f.box(30, 350, 200, 82, ['inbound/cli（sas コマンド）', '入口・main.rs が', 'コンポジションルート'], 'focus')
-    apps = [(100, 'writing', 'application', 'focus'), (180, 'validation', 'application', 'focus'), (470, 'recording', 'application（スクリプト）', ''), (550, 'rendering', 'application（ステップ5）', ''), (630, 'search', 'application（ステップ8）', '')]
-    for y, a, b, r in apps: f.box(440, y, 230, 56, [a, b], r)
-    f.box(470, 262, 190, 50, ['validation-domain', '判定の値・サービス'], 'focus')
-    f.box(470, 360, 190, 56, ['writing-domain', '集約・値'], 'focus')
-    f.path('M555,156 V178'); f.path('M555,236 V260'); f.path('M555,312 V358')
-    f.path('M670,128 H690 V388 H662')
-    f.path('M440,208 H420 V498 H438', dashed=True); f.note(412, 470, '記録', 'end')
-    f.path('M230,391 H320 V128 H438'); f.path('M320,208 H438'); f.path('M320,391 V658 H438'); f.path('M320,498 H438'); f.path('M320,578 H438')
-    PS = [(102, 46, ['ポート（書く）', 'commit_reader']), (170, 66, ['ポート（検証）', 'document_store', 'schema_validator']), (462, 90, ['ポート（記録）', 'identify_caller', 'operation_log', 'operation_reader']), (562, 46, ['ポート（描画）', 'template_renderer'])]
-    for y, h, l in PS: f.box(704, y, 166, h, l)
-    for y in [100, 180, 470, 550]: f.path(f'M670,{y+28} H702')
-    AD = [(150, 'outbound/filesystem'), (220, 'outbound/git（読むだけ）'), (290, 'outbound/jsonschema'), (470, 'outbound/sqlite'), (560, 'outbound/templates（5）')]
-    for y, l in AD: f.box(1080, y, 200, 44, [l])
-    f.note(1180, 60, 'アダプター（outbound）', 'middle', True)
-    C = [(172, 1045, 216), (242, 1030, 125), (312, 1015, 230), (492, 1000, 505), (582, 985, 579)]
-    for ay, lx, ty in C: f.path(f'M1078,{ay} H{lx} V{ty} H872')
-    f.note(1180, 690, 'アダプターがポートを実装する（外 → 内）', 'middle')
-    f.note(1180, 708, 'writing-domain は何にも依存しない', 'middle')
+    f.box(30, 430, 200, 82, ['inbound/cli（sas コマンド）', '入口・main.rs が', 'コンポジションルート'], 'focus')
+    f.note(130, 540, '誰が打ったかを決めて、', 'middle'); f.note(130, 558, '値（Caller）で渡す', 'middle')
+    MS = [(100, 100, 'writing', 'focus', ['ポート（書く）', 'document_store（filesystem）', 'schema_validator（jsonschema）', 'commit_reader（git）', 'change_log（sqlite）']),
+          (214, 82, 'validation', 'focus', ['ポート（検証）', 'document_store（filesystem）', 'schema_validator（jsonschema）', 'validation_log（sqlite）']),
+          (310, 64, 'search', '', ['ポート（検索）', 'document_store（filesystem）', 'schema_validator（jsonschema）']),
+          (388, 136, 'rendering', '', ['ポート（描画）', 'document_store（filesystem）', 'schema_validator（jsonschema）', 'template_renderer（templates）', 'script_reader（javascript）', 'page_writer（filesystem）', 'validation_log（sqlite）']),
+          (538, 82, 'recording', '', ['ポート（記録）', 'identify_caller（inbound/cli）', 'session_log（sqlite）', 'operation_reader（sqlite）'])]
+    f.path('M230,471 H262', arrow=False); f.path(f'M262,{MS[0][0] + MS[0][1] // 2} V{MS[-1][0] + MS[-1][1] // 2}', arrow=False)
+    for y, h, m, r, ps in MS:
+        c = y + h // 2
+        f.box(450, y, 220, h, [m, 'application'], r)
+        f.box(700, y, 240, h, ps)
+        f.path(f'M262,{c} H448'); f.path(f'M670,{c} H698')
+    f.path('M560,620 V688')
+    f.note(574, 650, 'どれも domain だけに依存'); f.note(574, 668, '（検索は writing-domain だけ）')
+    f.box(450, 720, 220, 56, ['validation-domain', '判定の値・サービス'], 'focus')
+    f.box(450, 806, 220, 56, ['writing-domain', '集約・値・Caller'], 'focus')
+    f.path('M560,776 V804')
+    AD = ['outbound/filesystem', 'outbound/git（読むだけ）', 'outbound/jsonschema', 'outbound/sqlite', 'outbound/templates', 'outbound/javascript']
+    TY = ['WorkingTree ・ OutDir', 'GitCommits', 'Validator', 'SqliteLog', 'Mustache', 'Boa']
+    f.note(1180, 116, 'アダプター（outbound）', 'middle', True)
+    for i, (l, t) in enumerate(zip(AD, TY)):
+        y = 140 + i * 110
+        f.box(1080, y, 200, 56, [l, t]); f.path(f'M1080,{y + 28} H1030', arrow=False)
+    f.path(f'M1030,{MS[0][0] + MS[0][1] // 2} V{140 + 5 * 110 + 28}', arrow=False)
+    for y, h, *_ in MS: f.path(f'M1030,{y + h // 2} H942')
+    f.note(30, 800, 'アダプターがポートを実装する（外 → 内）')
+    f.note(30, 818, '1つのアダプターが複数のモジュールの')
+    f.note(30, 836, 'ポートを実装する（ポートの右の括弧）')
+    f.note(30, 860, 'writing-domain は何にも依存しない')
     return f.write('hex', 1100)
 
 def cratesf():
@@ -171,26 +182,28 @@ def cratesf():
     f.area(910, 10, 320, 720, 'domain')
     f.box(30, 46, 260, 56, ['inbound-cli', '（bin・コンポジションルート）'], 'focus')
     outs = ['filesystem', 'git', 'jsonschema', 'sqlite', 'templates', 'javascript']
-    for i, n in enumerate(outs): f.box(30, 136 + i * 92, 260, 56, ['outbound-' + n], dashed=n.endswith('）'))
+    for i, n in enumerate(outs): f.box(30, 136 + i * 92, 260, 56, ['outbound-' + n])
     f.path('M30,86 H20 V624', arrow=False)
     for i in range(6): f.path(f'M20,{164 + i * 92} H28')
-    apps = [(60, 'writing-application', 'focus', False), (170, 'validation-application', 'focus', False), (400, 'recording-application', '', False), (500, 'rendering-application', '', False), (600, 'search-application', '', False)]
-    for y, n, r, d in apps: f.box(390, y, 290, 56, [n], r, dashed=d)
-    f.box(940, 60, 270, 56, ['writing-domain'], 'focus')
-    f.box(940, 170, 270, 56, ['validation-domain'], 'focus')
-    f.path('M680,88 H938'); f.path('M680,198 H938'); f.path('M1075,170 V118')
-    f.path('M535,116 V168'); f.path('M535,226 V398')
-    f.path('M680,528 H720 V210 H682'); f.path('M680,628 H720 V528', arrow=False)
-    f.path('M290,164 H330', arrow=False)
-    for i in range(1, 6): f.path(f'M290,{164 + i * 92} H330', arrow=False)
+    apps = [(60, 'writing-application', 'focus'), (170, 'validation-application', 'focus'), (400, 'recording-application', ''), (500, 'rendering-application', ''), (600, 'search-application', '')]
+    for y, n, r in apps: f.box(390, y, 290, 56, [n], r)
+    f.box(940, 60, 270, 56, ['validation-domain'], 'focus')
+    f.box(940, 170, 270, 56, ['writing-domain'], 'focus')
+    f.path('M1075,116 V168')
+    # 書く ・ 検証 ・ 記録 ・ 描画 → 2つの domain、検索 → writing-domain だけ
+    for y, _, _ in apps[:4]: f.path(f'M680,{y + 28} H760', arrow=False)
+    f.path('M760,88 V528', arrow=False)
+    f.path('M760,88 H938'); f.path('M760,198 H938')
+    f.path('M680,628 H900 V214 H938')
+    for i in range(6): f.path(f'M290,{164 + i * 92} H330', arrow=False)
     f.path('M330,164 V624', arrow=False)
-    for y, _, _, _ in apps: f.path(f'M330,{y + 28} H388')
+    for y, _, _ in apps: f.path(f'M330,{y + 28} H388')
     f.note(1075, 280, 'writing-domain は何にも依存しない', 'middle', True)
     f.note(1075, 300, 'validation-domain は集約を読む', 'middle')
     f.note(160, 700, 'cli だけが outbound に依存', 'middle')
-    f.note(610, 676, '線は依存してよい向き：書く → 検証 → 記録、検証の domain → 書くの domain', 'middle')
-    f.note(610, 694, 'いま15。描画 ・ 検索 → 検証', 'middle')
-    f.note(610, 712, 'outbound は application のポートを実装する', 'middle')
+    f.note(610, 676, '線は依存してよい向き：application → domain だけ。application の間に線は無い', 'middle')
+    f.note(610, 694, 'いま15。検索は writing-domain だけ', 'middle')
+    f.note(610, 712, 'outbound は application のポートを実装する（sqlite は行の型の domain にも依存）', 'middle')
     return f.write('crates', 1000)
 
 def stages():
