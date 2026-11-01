@@ -1,0 +1,90 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 7,
+ "date": "2026-11-01",
+ "summary": "意味で書く（UC1 ・ UC2 の変形）を作った。その前に、ステップ1〜6 をいまのスキーマ定義と照らして点検し（61件）、振る舞い4件（$ref をたどらない rule の当て方 ・ 手順の欄の説明 ・ 更新の stale_rules の基準 ・ --agent と --stale）と古い前提の名残を直した。手順は Concrete の作り手が書かず、SAS が rule ・ 当たる所 ・ reads から組む（アドバイザー3人と反証、x-prompt の項目は増やさない）。書き込み用の子セッションに欄の値を書かせ、答えを答えの形と Concrete の形に照らしてから SAS が書く。子セッションとのやりとりを判定と書き込みで共通の converse にした。実際の Claude Code で、書いた子セッションと別の検証用の子セッションが同じ rule で判定して verified になることを確かめた。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC4",
+  "SF1"
+ ],
+ "factchecks": [
+  {
+   "item": "Codex の子セッションのツールを断てるか",
+   "evidence": [
+    "実地：codex-cli 0.164.0。--ignore-user-config ・ --disable shell_tool ほか ・ -c web_search=\"disabled\" で、起動でも resume でもファイルを読めず書けない。残るツールは apply_patch（read-only）・ 時計 ・ goal ・ 画像の生成。resume に --sandbox は無いので -c sandbox_mode=\"read-only\""
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 ・ UC2 の意味で書く変形（writing/application の write/semantic.rs）",
+   "steps": [
+    "作成なら経路が無いこと、更新ならいまの中身と $schema を読む",
+    "Concrete の x-prompt を持つ根の欄を書く欄にし、人の欄と const の欄を外す",
+    "rule の reads で読まれる欄を先に並べ、読み合えば reads_cycle で断る",
+    "--ref を読み（64KiB まで）、手順のプロンプト（procedure の write）を組む",
+    "書き込み用の子セッションに渡し、答えを答えの形と Concrete の形に照らす。合わなければ同じ子セッションに2回まで直させる",
+    "起動した子セッションを writer として記録し、作成 ・ 更新と同じ手続きで書く（更新は変わった欄だけ、if_match で間の変更を断る）"
+   ],
+   "rules": [
+    "書くのは SAS で、子セッションではない",
+    "人が決める欄は子セッションに書かせない",
+    "子セッションは渡されたものだけで書く（ファイルを開けない）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "子セッションとのやりとり（起動 ・ 続ける ・ 形の直し ・ 時間切れのやり直し）",
+   "became": "script",
+   "why": "判定と書き込みで同じ手続きなので、validation/application の meaning.rs の converse にまとめた。状態を持つ集約にはしない（子セッションの状態は SAS が持たない）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "手順を作り手が書く項目（x-prompt の手順の欄）",
+   "result": "top_premature",
+   "fixed": "none",
+   "note": "要らない。手順は SAS が rule から組む。表せない場面は読み合う欄だけで、Concrete の欄の切り方を直す話"
+  },
+  {
+   "item": "作成の中で検証用の子セッションに判定させる（完成イメージ）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "書くことと判定を1つの操作に混ぜない。判定は書いたあと sas validate --agent"
+  },
+  {
+   "item": "rule を集めるとき $ref ・ allOf ・ ほかの Concrete の $defs をたどる",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "点検の A1。shape-in-defs の作法に従う Concrete ほど漏れていた"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "手順",
+   "seen": "ユーザーの「Write も手続きプロンプト」",
+   "drift": "作り手が書く手順（採らない）と、SAS が組む手順のプロンプト（procedure）"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "writing/application の write/semantic.rs",
+    "before": "無し",
+    "after": "意味で書く手続き",
+    "why": "UC1 ・ UC2 の変形"
+   },
+   {
+    "what": "recording の ChangeRow",
+    "before": "書いた子セッションを持たない",
+    "after": "child（changes.child_session_id）",
+    "why": "書き込み用の子セッションを記録に残す"
+   }
+  ]
+ }
+}

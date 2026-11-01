@@ -1,4 +1,4 @@
-"""Semantic Agent Schema の概念（版26）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
+"""Semantic Agent Schema の概念（版27）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
 図は design-svg の figure と chart exchange で作り、ER 図と3段の型は版5（../sas-role4/）の検査済みの図を使う。"""
 import os, re, json, subprocess, html
 H = os.path.dirname(os.path.abspath(__file__))
@@ -346,6 +346,7 @@ T_VERIFY = ('verify', '確かめる',
 
 # ---------- 決めたこと・承認 ----------
 DECIDED = [
+ ("版27", "ステップ7 意味で書く", "sas create ・ update --semantic --brief --ref --agent。Concrete の rule から SAS が書く手順（procedure の write）を組み、書き込み用の子セッションに欄を書かせ、答えの形と Concrete の形に照らしてから SAS が書く。人の欄は書かせない。書く順は rule の reads、読み合えば reads_cycle。--ref は SAS が読んで中身を渡す（64KiB まで）。判定は書いたあと sas validate --agent。その前にステップ1〜6 をいまのスキーマ定義と照らして点検し、61件を直した（$ref をたどる rule の当て方 ・ --agent と --stale ・ reads の実装など）"),
  ("版26", "スキーマの分け方の作法", "外に出すかの線はファイルではなくリソース（$id）。名指しする相手がいて、読み手か変わる理由が違うときだけ自分の $id を持つ。Concrete を書く人への作法は Abstract の rule 4つ（one-document-kind ・ no-shape-only-concrete ・ shape-in-defs ・ ref-not-copy）にした。中身の sha256 を指す語を、ふだん使う「ハッシュ」にそろえた"),
  ("版25", "operation-result を command-result に", "SAS のコマンドの出力の抽象の型なので、名前をコマンドにそろえた（記録の操作 operation と取り違えない）。入力は CLI の引数で、command-request は JSON で依頼する口を作るときに足す"),
  ("版24", "手順のプロンプトを独立したスキーマに", "手順は SAS が子セッションに渡す指示で、CLI の結果（operation-result）とは相手も役目も違うので、operation-result の $defs から published-language/v1/procedure.schema.json に分けた。公開された言葉は8つ。版21 で「手順は operation-result の中で足りる」とした判断を改めた"),
@@ -420,7 +421,7 @@ APPROVE = [
  ("土台の文の案（ディレクトリと文脈・中の形）", "見解：「文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）」と「中の形は文脈ごとに中をポートとアダプターで作る、上から決めて下から確かめる」に直す。土台は正本なので ACDR 0217 で差分を見せてから直す（0216 を置き換える）"),
  ("ガイドの確かめる段階（ボード Q5）と Q3 に手順を足す", "見解：Q5 に上からと下からの突き合わせの5つの手順、Q3 に「同じ物を2つの目的で別のモデルにしているか」の問いを足す。ボードは次の回で直す"),
 ]
-TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2"}
+TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2", "版24": "t-new2", "版25": "t-new2", "版26": "t-new2", "版27": "t-new2"}
 def tagged(items):
     return '<div class="dec">' + ''.join(f'<div class="dc {TAGC[t]}"><span class="tag">{"版2 のまま" if t == "版2" else t}</span><b>{h}</b><span>{d}</span></div>' for t, h, d in items) + '</div>'
 
@@ -597,7 +598,7 @@ JS = '''<script>
 })();
 </script>'''
 page = ('<title>Semantic Agent Schema の概念</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>\n' + CSS + '\n</style>\n<main>'
-        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版26（スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
+        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版27（ステップ7 意味で書く。版26：スキーマの分け方の作法。版25：operation-result を command-result に改名。版24：手順のプロンプトを procedure.schema.json に分けた。版23：rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
         + status + f'<nav class="tabs" role="tablist" aria-label="内容">{tabs}</nav>' + panels + '</main>\n' + JS)
 page = page.replace('指紋', 'ハッシュ')  # 以前の記録の語も、ふだん使う語で見せる
 open(os.path.join(H, 'index.html'), 'w').write(page)
