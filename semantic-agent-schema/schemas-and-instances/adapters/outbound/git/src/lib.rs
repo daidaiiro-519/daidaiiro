@@ -9,9 +9,9 @@
 //!
 //! リポジトリでない ・ コミットが無い ・ git が無いときは、前の中身のコミットが無いとして空を返す。
 
-use schemas_and_instances_conformance_application::ports::CommitReader;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use writing_application::ports::CommitReader;
 
 /// 作業ディレクトリの Git を読む。
 #[derive(Debug, Clone)]

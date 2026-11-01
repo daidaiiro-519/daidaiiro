@@ -1,0 +1,76 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-UNTRACKED",
+ "name": "SAS を通らない変更で止まる",
+ "title": "SAS が書いたあとにエディターで直されていると、--if-match を省いた更新は直さずに conflict と、記録に無い変更があったことを返す",
+ "why": "記録に無い変更の上に書くと、その変更が黙って消え、記録からも理由を追えない。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+     "--if-match",
+     "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:semantic-agent-schema:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"エディターで直した目標\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果から、直す欄と理由が分かる\"}]"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "conflict"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/untracked",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations",
+   "count": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/last_recorded/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "--adopt --intent"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

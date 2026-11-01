@@ -1,0 +1,63 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-REQUEST-ID",
+ "name": "同じ更新をやり直す",
+ "title": "同じ --request-id で更新を2回呼ぶと、2回目は指紋が変わっていても書かずに1回目の操作を返す",
+ "why": "やり直しを conflict で断ると、呼ぶ側は1回目が書けたかを確かめられない。",
+ "traces": [
+  "UC2:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+     "--if-match",
+     "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b",
+     "--request-id",
+     "r-1"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b",
+   "--request-id",
+   "r-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/replayed",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes",
+   "count": 1
+  }
+ ]
+}

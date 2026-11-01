@@ -1,0 +1,98 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-PARALLEL",
+ "name": "並行するセッションの変更",
+ "title": "2つのセッションが同じ指紋を読み、先のセッションが書いたあとに後のセッションが古い指紋で直そうとすると、先の操作の意図と変えた欄が返る",
+ "why": "間に入った変更の理由が分からないと、後の書き手は上書きしてよいかを決められない。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+     "--if-match",
+     "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b",
+     "--session",
+     "ai-1",
+     "--intent",
+     "目標に、直す所が分かることを足す"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果から、直す欄と理由が分かる\"}]",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b",
+   "--session",
+   "ai-2"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "conflict"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/expected",
+   "equals": "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/untracked",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations/0/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations/0/parent_session",
+   "equals": "ai-1"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations/0/intent",
+   "equals": "目標に、直す所が分かることを足す"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations/0/changes/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/interleaved/operations/0/changes/0/after",
+   "equals": "検証の結果を受け取り、直す所が分かる"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

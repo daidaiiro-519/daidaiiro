@@ -1,0 +1,45 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-EXISTS",
+ "name": "すでに在る",
+ "title": "在るファイルの経路に作ろうとすると、上書きせずに exists を返す",
+ "why": "作成で上書きできると、前の中身が操作の記録に残らないまま消える。",
+ "traces": [
+  "UC1:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "usecases/u1.json",
+   "--concrete",
+   "urn:semantic-agent-schema:sample:usecase:v1",
+   "--value",
+   "{\"id\":\"U2\",\"goal\":\"成果物が型に従って在る\",\"calls\":[]}"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "exists"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "exists": false
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

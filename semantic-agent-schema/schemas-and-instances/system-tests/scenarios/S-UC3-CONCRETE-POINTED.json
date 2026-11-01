@@ -1,0 +1,55 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC3-CONCRETE-POINTED",
+ "name": "指されている Concrete を消す",
+ "title": "メモの Concrete が x-relationship でユースケースの Concrete を指しているとき、ユースケースの Concrete を消そうとすると points_to で止まる",
+ "why": "指す先の型が消えると、メモの型が引けない先を指したままになる。指す先を変えるのは型の設計なので、機械では書き換えない。",
+ "traces": [
+  "UC3:拡張:2a",
+  "UC3:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "schemas/note.schema.json": "@fixtures/note.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "delete",
+   "schemas/usecase.schema.json",
+   "--intent",
+   "ユースケースの型を使わなくなった"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "has_dependents"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/path",
+   "equals": "schemas/note.schema.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/code",
+   "equals": "points_to"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/message",
+   "contains": "/properties/about/x-relationship/to"
+  }
+ ],
+ "unchanged": [
+  "schemas/usecase.schema.json",
+  "schemas/note.schema.json"
+ ]
+}

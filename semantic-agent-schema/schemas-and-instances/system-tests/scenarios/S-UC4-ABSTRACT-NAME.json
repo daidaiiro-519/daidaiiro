@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-ABSTRACT-NAME",
+ "name": "本体の名前を足した",
+ "title": "Concrete が本体の x- と同じ名前を x-extensions に足すと、no-abstract-names が violated で、根拠のポインタを返す",
+ "why": "本体と同じ名前を足せると、同じ x- が2つの意味を持つ。",
+ "traces": [
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/clash.schema.json": "@fixtures/clash.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "schemas/clash.schema.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results/15/rule",
+   "equals": "no-abstract-names"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results/15/pointer",
+   "equals": "/x-extensions/x-prompt"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results/15/result",
+   "equals": "violated"
+  }
+ ]
+}

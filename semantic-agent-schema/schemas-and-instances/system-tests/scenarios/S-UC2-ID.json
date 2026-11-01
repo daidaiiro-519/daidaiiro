@@ -1,0 +1,45 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ID",
+ "name": "id を変える",
+ "title": "インスタンスの id を変えようとすると、直さずに id_changed を返す",
+ "why": "id が変わると、x-relationship でそのインスタンスを指す所が黙って外れる。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/id\",\"value\":\"U9\"}]",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "id_changed"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "exists": false
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

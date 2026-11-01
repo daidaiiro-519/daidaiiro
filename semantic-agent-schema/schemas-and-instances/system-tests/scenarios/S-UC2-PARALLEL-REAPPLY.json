@@ -1,0 +1,95 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-PARALLEL-REAPPLY",
+ "name": "並行するセッションの変更をのせ直す",
+ "title": "後のセッションが止められたとき、結果にのせ直して打ち直すコマンド（いまの指紋付き）が入り、そのとおり打ち直すと書ける",
+ "why": "止まった呼び出し元の AI が、結果だけを読んで次の一手を決められるようにするため。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
+     "--if-match",
+     "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b",
+     "--session",
+     "ai-1",
+     "--intent",
+     "目標に、直す所が分かることを足す"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果から、直す欄と理由が分かる\"}]",
+   "--if-match",
+   "sha256:a309b0b6bfea46263676ac21351805f1bd90f6e223123cb153ee4a9f86dd9d2b",
+   "--session",
+   "ai-2"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "update",
+    "usecases/u1.json",
+    "--patch",
+    "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す欄と理由が分かる\"}]",
+    "--if-match",
+    "sha256:d9cbb5cad159fa7b6da11b5e733885d3c4bc4076ecc9cd015d1f264ffa5cf556",
+    "--session",
+    "ai-2",
+    "--intent",
+    "ai-1 の変更の上に、理由が分かることを足す"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "conflict"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "--if-match sha256:d9cbb5cad159fa7b6da11b5e733885d3c4bc4076ecc9cd015d1f264ffa5cf556"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/result",
+   "equals": "updated"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/diff/changes/0/before",
+   "equals": "検証の結果を受け取り、直す所が分かる"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/diff/changes/0/after",
+   "equals": "検証の結果を受け取り、直す欄と理由が分かる"
+  }
+ ]
+}

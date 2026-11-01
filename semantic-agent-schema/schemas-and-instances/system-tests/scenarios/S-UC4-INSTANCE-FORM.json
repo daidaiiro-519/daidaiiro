@@ -1,0 +1,48 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-INSTANCE-FORM",
+ "name": "インスタンスの形の違反",
+ "title": "インスタンスが Concrete の形に従わないと、json-schema が violated で、違反した所のポインタを返す",
+ "why": "形の違反を見逃すと、読む側が値を誤って解釈する。",
+ "traces": [
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u3.json": "@fixtures/u3-goal-not-text.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u3.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/kind",
+   "equals": "instance"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results/0/rule",
+   "equals": "json-schema"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results/0/result",
+   "equals": "violated"
+  }
+ ]
+}

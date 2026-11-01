@@ -1,0 +1,44 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ADOPT-NOT-RECORDED",
+ "name": "記録の無いものを更新で取り込む",
+ "title": "SAS の記録に無いファイルを update --adopt すると、取り込まずに not_recorded と、作成として取り込む案内を返す",
+ "why": "比べる記録が無いまま更新として取り込むと、事前の指紋を決められない。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--intent",
+   "直した"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_recorded"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "create usecases/u1.json --adopt"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

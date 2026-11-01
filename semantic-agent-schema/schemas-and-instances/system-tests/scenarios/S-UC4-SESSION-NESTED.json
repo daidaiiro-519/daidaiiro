@@ -1,0 +1,82 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SESSION-NESTED",
+ "name": "2つのツールの中から打たれた",
+ "title": "2つのツールの環境変数に親の ID があるとき（ツールの中から別のツールを起動した）は、どちらが打ったかを決めずに --session で名乗るよう返し、--session があれば通る",
+ "why": "外側のツールの ID を親にすると、打った会話とは別の親の記録になる。AI が打ったことは確かなので、人とみなすこともしない。",
+ "traces": [
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "schemas/usecase.schema.json"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c5c5ab7a-4041-4920-8749-7d2a36030744",
+   "CODEX_SESSION_ID": "0199a1b2-0000-7000-8000-000000000001"
+  }
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "--session",
+    "0199a1b2-0000-7000-8000-000000000001",
+    "schemas/usecase.schema.json"
+   ],
+   "env": {
+    "CLAUDE_CODE_SESSION_ID": "c5c5ab7a-4041-4920-8749-7d2a36030744",
+    "CODEX_SESSION_ID": "0199a1b2-0000-7000-8000-000000000001"
+   }
+  },
+  {
+   "args": [
+    "validate",
+    "schemas/usecase.schema.json"
+   ],
+   "env": {
+    "CODEX_SESSION_ID": "0199a1b2-0000-7000-8000-000000000001"
+   }
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "claude-code と codex"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/parent_session",
+   "equals": "0199a1b2-0000-7000-8000-000000000001"
+  },
+  {
+   "of": "after[1]",
+   "exit": 0
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/parent_session",
+   "equals": "0199a1b2-0000-7000-8000-000000000001"
+  }
+ ]
+}

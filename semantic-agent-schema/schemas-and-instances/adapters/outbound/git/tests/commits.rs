@@ -2,10 +2,10 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use schemas_and_instances_adapters_outbound_git::GitCommits;
-use schemas_and_instances_conformance_application::ports::CommitReader;
+use outbound_git::GitCommits;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use writing_application::ports::CommitReader;
 
 fn dir(name: &str) -> PathBuf {
     let d = std::env::temp_dir().join(format!("sas-git-{}-{name}", std::process::id()));

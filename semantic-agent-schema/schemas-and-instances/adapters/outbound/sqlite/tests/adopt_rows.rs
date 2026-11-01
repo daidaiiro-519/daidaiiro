@@ -4,10 +4,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use schemas_and_instances_adapters_outbound_sqlite::SqliteLog;
-use schemas_and_instances_operation_recording_application::ports::{
-    ChangeRow, FieldRow, OperationLog, RuleRow, ValidateRow,
-};
+use outbound_sqlite::SqliteLog;
+use recording_application::ports::{ChangeRow, FieldRow, OperationLog, RuleRow, ValidateRow};
 
 fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -> ChangeRow {
     ChangeRow {

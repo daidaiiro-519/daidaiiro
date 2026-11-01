@@ -21,10 +21,10 @@
   }
  ],
  "names": {
-  "repository_folder": "semantic-agent-schema/（事業領域。名前は変えない）",
+  "repository_folder": "semantic-agent-schema/（製品。名前は変えない）",
   "context_folder": "semantic-agent-schema/schemas-and-instances/（文脈「スキーマとインスタンス」。9519cffa で改名）",
   "cli_bin": "sas（製品の名前は [[bin]] にだけ残す）",
-  "crate_prefix": "schemas-and-instances-<業務領域>-<層>、adapters は schemas-and-instances-adapters-<inbound|outbound>-<名前>"
+  "crate_prefix": "（名前の見直し 2026-11-01 で変更）<モジュール>-<層>、adapters は <inbound|outbound>-<技術>。文脈の名前は前に付けない"
  },
  "1_archive": {
   "decision": "semantic-agent-schema/ を丸ごと archive/semantic-agent-schema-2026-10-31/ へ git mv で移し、移す直前のコミットに注釈付きタグ semantic-agent-schema-archive-2026-10-31 を打つ。未コミットの変更は移す前にコミットする。新しい木へ使うものは、アーカイブから写す別の手順（持ち込み）で入れる",
@@ -94,7 +94,7 @@
     {
      "what": "docs/foundation/（土台）",
      "to": "semantic-agent-schema/docs/foundation/",
-     "why": "どの事業にも使う一般の概念で、作り直しの対象ではない。arch-v15 の木でも docs/ は事業領域の根に置く",
+     "why": "どの事業にも使う共通の概念で、作り直しの対象ではない。arch-v15 の木でも docs/ はリポジトリの根に置く",
      "note": "写すので git log の履歴はアーカイブ側に残る。たどるときは git log -- archive/semantic-agent-schema-2026-10-31/docs/foundation"
     },
     {
@@ -208,7 +208,7 @@
    "with": "操作の記録の最小形（呼び出し元のセッションと validate の操作を追記する）",
    "builds": {
     "schemas": [
-     "semantic-abstract-schema.json",
+     "abstract.schema.json",
      "vocabulary.schema.json",
      "dialect.schema.json",
      "glossary.schema.json",
@@ -223,7 +223,7 @@
      "追記だけ・閉じたセッションに足さない・by = human は unverified だけ の trigger と CHECK"
     ],
     "crates": [
-     "conformance-domain：集約 Concrete（版は閉じた一覧・本体の x- の名前を足さない）、集約インスタンス（読むだけの部分）、値 urn・fingerprint・instance_id・verdict、サービス relationship（指す先の実在）",
+     "conformance-domain：集約 Concrete（版は閉じた一覧・本体の x- の名前を足さない）、集約 Instance（読むだけの部分）、値 urn・fingerprint・instance_id・verdict、サービス relationship（指す先の実在）",
      "conformance-application：use_cases/documents.rs の validate",
      "operation-recording-application：use_cases/history.rs の追記",
      "outbound の files・jsonschema・sqlite・agents（identify_caller だけ）",
@@ -231,7 +231,7 @@
     ],
     "ports": [
      "document_store",
-     "schema_checker",
+     "schema_validator",
      "identify_caller",
      "operation_log"
     ],
@@ -241,14 +241,14 @@
     ],
     "libraries": [
      "serde・serde_json",
-     "2020-12 の検査器（jsonschema。版はこのステップで照合して決める）",
+     "2020-12 のバリデーター（jsonschema。版はこのステップで照合して決める）",
      "rusqlite（bundled）",
      "sha2",
      "ULID を作るライブラリ"
     ]
    },
    "acceptance": [
-    "Concrete が Abstract に従えば、すべての rule が verified で、counts が5つの値ごとに数える",
+    "Concrete が Abstract に従えば、すべての rule が verified で、counts が判定の5つの区分ごとに数える",
     "申告した Abstract の版が閉じた一覧に無ければ schema_not_listed で、取りに行かない",
     "Concrete が本体の x- の名前を足したら violated と根拠のポインタ",
     "インスタンスの形の違反と、x-relationship の先が無いことが violated",
@@ -257,7 +257,7 @@
     "操作は追記だけで、validate の前後の指紋が同じ"
    ],
    "factcheck": [
-    "2020-12 の検査器の crate が、方言の $dynamicAnchor: meta と独自の $vocabulary を扱えるか（crate の文書と小さな試験で確かめる）",
+    "2020-12 のバリデーターの crate が、方言の $dynamicAnchor: meta と独自の $vocabulary を扱えるか（crate の文書と小さな試験で確かめる）",
     "rusqlite の bundled が持つ SQLite の版が 3.38.0 以上か"
    ],
    "decide_in_step": "ID（ULID）と時刻を作る所。見解：outbound の sqlite が行を足すときに作って返す。application と domain は時刻に触らず、試験の代役は続き番号を返す"
@@ -276,7 +276,7 @@
      "operations の create・update、続き番号の trigger、request_id の部分一意索引"
     ],
     "crates": [
-     "集約インスタンスの書く条件（id を変えない・導出値が一致・人の欄は人の入口から・指紋が一致したときだけ書く）",
+     "集約 Instanceの書く条件（id を変えない・導出値が一致・人の欄は人の入口から・指紋が一致したときだけ書く）",
      "集約 Concrete の書く条件（公開した版を変えない）",
      "値 diff（前後の中身から求める）"
     ],
@@ -438,7 +438,7 @@
     "テンプレートの処理系の候補の原文（構文・エスケープの既定・ライセンス）。選ぶのはこのステップ。adapter の中に閉じるので、選び直しても他へ広がらない",
     "Design Tokens Format Module 2025.10 の照合は済み（factcheck-a）"
    ],
-   "fixtures": "SAS は既定のデザインシステムを持たないので、試験用のデザインシステムは test-suite/fixtures/ に置く"
+   "fixtures": "SAS は既定のデザインシステムを持たないので、試験用のデザインシステムは schemas-and-instances/system-tests/fixtures/ に置く"
   },
   {
    "step": "ステップ6",
@@ -458,7 +458,7 @@
      "validations.child_session_id と trigger validations_child_is_checker"
     ],
     "crates": [
-     "semantic-operations-application：use_cases/semantic.rs（子を決める ・ 起動するか続ける ・ 答えを確かめる）。domain は手続きを書いて確かめてから決める",
+     "validation-application：ポート read_meaning ・ keep_prompt と、by: ai の rule を意味で判定する手続き（use_cases/validate.rs の中）。outbound-agents：read_meaning を実装（子を決める ・ 起動するか続ける ・ 答えを受け取る）。意味は検証の中の性質で、業務領域にしない",
      "outbound の agents（Claude Code の組み込みと、接続の定義で動く汎用）・ files（keep_prompt）"
     ],
     "ports": [
@@ -503,7 +503,7 @@
      "changes.child_session_id と trigger changes_child_is_writer"
     ],
     "crates": [
-     "semantic-operations-application：子を決める決まり（--continue ・ --new ・ 直前の子の案内 ・ ロック）"
+     "writing-application：x-prompt の欄を意味で書く手続き（use_cases/write.rs の中）。outbound-agents：子を決める決まり（--continue ・ --new ・ 直前の子の案内 ・ ロック）"
     ],
     "ports": [],
     "cli": [
@@ -535,7 +535,7 @@
      "operation_kind = search のセッションに操作を足さない trigger"
     ],
     "crates": [
-     "conformance-application：use_cases/search.rs（構造で絞る）",
+     "search-application：use_cases/search.rs（構造で絞る ・ 意味で探す）",
      "意味で探すのは SF1 を使う"
     ],
     "ports": [],
@@ -561,7 +561,7 @@
     ],
     "db": [],
     "crates": [
-     "operation-recording-application：use_cases/history.rs の読む側"
+     "recording-application：use_cases/history.rs の読む側"
     ],
     "ports": [],
     "cli": [
@@ -596,7 +596,7 @@
  ],
  "3_schemas_by_step": [
   {
-   "file": "semantic-abstract-schema.json",
+   "file": "abstract.schema.json",
    "step": "ステップ1"
   },
   {
@@ -678,7 +678,7 @@
    "step": "ステップ1"
   },
   {
-   "library": "2020-12 の検査器",
+   "library": "2020-12 のバリデーター",
    "step": "ステップ1"
   },
   {
@@ -705,7 +705,7 @@
    "why": "agent-connector と、エージェントを起動する adapter を書く前に閉じる。ステップ1 の identify_caller は照合済みの Claude Code の環境変数と --session・--caller だけで作り、見つかったものはステップ6 で足す"
   },
   {
-   "item": "2020-12 の検査器の crate の方言と語彙の扱い",
+   "item": "2020-12 のバリデーターの crate の方言と語彙の扱い",
    "step": "ステップ1 のはじめ"
   },
   {
@@ -728,7 +728,7 @@
   },
   {
    "phase": "要求",
-   "do": "ユースケースの主シナリオ・拡張・変形・成功時保証・最低保証を、それぞれシステムテストの場面（test-suite/scenarios/）にする。先に書いて、通らないことを確かめる"
+   "do": "ユースケースの主シナリオ・拡張・変形・成功時保証・最低保証を、それぞれシステムテストの場面（schemas-and-instances/system-tests/scenarios/）にする。先に書いて、通らないことを確かめる"
   },
   {
    "phase": "手続き",
@@ -736,7 +736,7 @@
   },
   {
    "phase": "引き上げ",
-   "do": "書いた手続きを引き上げの表（いつも同時に守る条件 → 集約、意味を持つ値と規則 → 値オブジェクト、いくつかにまたがる判定 → ドメインサービス、データの出し入れだけ → スクリプトのまま、見た目は同じだが変わる理由が違う → 別のもの）で見分ける"
+   "do": "書いた手続きを引き上げの表（いつも同時に守る条件 → 集約、意味を持つ値と規則 → 値オブジェクト、いくつかにまたがる判定 → 業務サービス、データの出し入れだけ → スクリプトのまま、見た目は同じだが変わる理由が違う → 別のもの）で見分ける"
   },
   {
    "phase": "突き合わせ",
@@ -781,15 +781,15 @@
    },
    {
     "ground": "操作の記録はステップ1 から（依頼の並びと違う所）",
-    "detail": "依頼の並びでは記録はセッションのあとだったが、操作の記録は依存の向きのいちばん下で、conformance-application がそれに依存する。また UC4 と UC1 の成功時保証が『操作の記録に入る・ID が返る』なので、最初の検証から最小の形が要る。記録を読む（UC7）だけを後ろに置く"
+    "detail": "依頼の並びでは記録はセッションのあとだったが、記録は依存の向きのいちばん下で、書く ・ 検証のモジュールがそれに依存する。また UC4 と UC1 の成功時保証が『操作の記録に入る・ID が返る』なので、最初の検証から最小の形が要る。記録を読む（UC7）だけを後ろに置く"
    },
    {
-    "ground": "意味の操作は機械の作成・更新・検証のあと",
-    "detail": "エージェントの答えは、機械の検証と指紋の確認を通ったときだけ SAS が書く。semantic-operations-application は conformance-application に依存する"
+    "ground": "意味の部分は機械の作成・更新・検証のあと",
+    "detail": "エージェントの答えは、機械の検証と指紋の確認を通ったときだけ SAS が書く。意味の部分は書く ・ 検証のモジュールの中に足し、子を起動する仕組みは outbound-agents に置く（意味は業務領域ではない。名前の見直し 2026-11-01）"
    },
    {
-    "ground": "描画は意味の操作の前、SAS を通らない変更のあと",
-    "detail": "描画はスキーマへの適合だけに依存し、エージェントを使わない。ただし最低保証『入力が変わった判定を verified と見せない』はステップ3 の stale を使う"
+    "ground": "描画は意味の部分の前、SAS を通らない変更のあと",
+    "detail": "描画は書く ・ 検証のモジュールだけに依存し、エージェントを使わない。ただし最低保証『入力が変わった判定を verified と見せない』はステップ3 の stale を使う"
    },
    {
     "ground": "検索は書く子のあと",
@@ -807,9 +807,9 @@
  },
  "5_risks": [
   {
-   "risk": "2020-12 の検査器が、方言の $dynamicAnchor: meta や独自の語彙を扱えない",
+   "risk": "2020-12 のバリデーターが、方言の $dynamicAnchor: meta や独自の語彙を扱えない",
    "effect": "dialect と vocabulary の設計が変わる",
-   "handling": "ステップ1 のはじめに小さな試験で確かめる。扱えなければ、方言を検査器に渡す形を adapter の中で変えられるかを先に見て、無理なら設計を直す（下の手順）"
+   "handling": "ステップ1 のはじめに小さな試験で確かめる。扱えなければ、方言をバリデーターに渡す形を adapter の中で変えられるかを先に見て、無理なら設計を直す（下の手順）"
   },
   {
    "risk": "ステップ1 が大きい（7スキーマ・3表・8 crate・4ポート）",
@@ -879,12 +879,12 @@
   },
   {
    "no": 7,
-   "do": "土台（docs/foundation）に関わる直しは、SAS のステップと分けて ACDR を起こす（土台は一般の概念で、SAS の実装のステップではない）"
+   "do": "土台（docs/foundation）に関わる直しは、SAS のステップと分けて ACDR を起こす（土台は共通の概念で、SAS の実装のステップではない）"
   }
  ],
  "6_done": [
   "UC0〜UC7・SF1 の主シナリオ・拡張・変形・成功時保証・最低保証が、それぞれ1つ以上の場面で通る。通らないものは untested.json に理由がある（Abstract の版の移し方だけを見込む）",
-  "schemas/v1 の14ファイルがそろい、CLI のすべての出力の行を operation-result で、すべての入力を operation-request で検証する試験が通る",
+  "公開された言葉の11ファイル（published-language/v1）と、子のセッションとのやりとりの3ファイル（ポートの側）がそろい、CLI のすべての出力の行を operation-result で、すべての入力を operation-request で検証する試験が通る",
   "DB の5表とビュー operations が migrations に在り、launch のほかのどの欄も出力のどこかに出る試験が通る",
   "8つのポートに、adapter が1つと試験の代役が1つずつある",
   "概念のページの『必要十分』の格子のどの能力も、どれかの場面が使う",
@@ -892,10 +892,15 @@
   "取得していない頁の確かめが閉じている",
   "試験用のコマンドの接続の定義（Claude 以外）と、Claude Code の組み込みの両方で、意味の検証の場面が通る",
   "docs/design（概念のページ）と docs/usecases が、作ったものと食い違わない",
-  "schemas/v1 を公開した版として扱い始める（以後は変えない）。公開の仕方（タグ・バイナリの配布）は完了のあとに別に決める"
+  "published-language/v1 を公開した版として扱い始める（以後は変えない）。公開の仕方（タグ・バイナリの配布）は完了のあとに別に決める"
  ],
  "open_for_reviewer": [
   "アーカイブの手順と並びを、利用者に見せる前に fork で反証にかける（特に、操作の記録をステップ1 に入れたことと、archive/ の置き場所）"
  ],
- "revised": "2026-11-01：ステップ4b を足し、ステップ6 ・ 7 ・ 9 を親と子のセッションの形に直した（承認のページ XQmeBmywzzsZy3AUgcSK4B 版4）"
+ "revised": "2026-11-01：ステップ4b を足し、ステップ6 ・ 7 ・ 9 を親と子のセッションの形に直した（承認のページ XQmeBmywzzsZy3AUgcSK4B 版4）",
+ "naming_review": {
+  "date": "2026-11-01",
+  "what": "文脈の中のフォルダを、業務領域を作るモジュール（writing ・ validation ・ recording。rendering はステップ5、search はステップ8）と adapters にした。集約は writing/domain、検証は validation/domain。schemas/v1 は published-language/v1（公開された言葉。Abstract も含む）にした。test-suite は schemas-and-instances/system-tests へ。crate の名前は <モジュール>-<層> ・ <inbound|outbound>-<技術>。「意味の操作」は業務領域にせず、意味は書く ・ 検証 ・ 検索の中の性質、AI の子のセッションは手段（outbound-agents）。ステップ0〜4b の記録の中の古い名前は、その時点の記録として残す",
+  "page": "https://claude.ai/artifact/9C9nmWLvzKT6VZoG5UbPTr"
+ }
 }

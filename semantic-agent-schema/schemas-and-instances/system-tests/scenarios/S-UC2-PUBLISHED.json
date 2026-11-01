@@ -1,0 +1,44 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-PUBLISHED",
+ "name": "公開した欄を変える",
+ "title": "x-published の欄の定義を、$id の版を上げずに変えようとすると、直さずに published_changed を返す",
+ "why": "ほかの文脈が読む欄が同じ版のまま変わると、読む側が黙って壊れる。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/decision.schema.json": "@fixtures/decision.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "schemas/decision.schema.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/properties/summary/type\",\"value\":\"array\"}]",
+   "--if-match",
+   "sha256:d92e85b5bef7c7ec3a1dd5fb7775e1e9bb0cab1bab647a1c6fd2769ad0363e5f"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "published_changed"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "/properties/summary"
+  }
+ ],
+ "unchanged": [
+  "schemas/decision.schema.json"
+ ]
+}

@@ -4,7 +4,7 @@
 
 ## 結論
 
-schemas/v1 は14のファイルにする。1つのファイルは1つの境界（誰が書き、誰が読むか）だけを持つ。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理せず、sessions には誰が何で動いたかだけを追記する（版16、2026-11-01）。起動の設定（launch）のほかは、DB のどの欄も CLI の出力のどこかに出る。
+スキーマは14のファイルにする。そのうち使う側が従い読む11（Concrete を書く型・CLI の入出力・共通の値・受け取りの型）は公開された言葉として published-language/v1 に置き、子のセッションとのやりとりの3つ（手順のプロンプト・セッションの依頼・エージェントの答え）は公開された言葉にせず、ステップ6 でポートの側に置く（2026-11-01 の言葉の点検）。1つのファイルは1つの境界（誰が書き、誰が読むか）だけを持つ。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理せず、sessions には誰が何で動いたかだけを追記する（版16、2026-11-01）。起動の設定（launch）のほかは、DB のどの欄も CLI の出力のどこかに出る。
 
 ## 判断基準
 
@@ -15,13 +15,13 @@ schemas/v1 は14のファイルにする。1つのファイルは1つの境界�
 | 3 | 入力や出力に意味を持たせたい |
 | 4 | 出力を決まった JSON の型で返したい |
 
-## スキーマの一覧（schemas/v1）
+## スキーマの一覧（公開された言葉は published-language/v1）
 
 | ファイル | 中身 | 書く側 → 読む側 | 判断基準 |
 |---|---|---|---|
-| semantic-abstract-schema.json | Abstract の本体。x- の10の値の形と、欄 ・ rule ・ 読み方の形 | SAS → Concrete を書く人と AI | 2 ・ 3 |
-| vocabulary.schema.json | 入れ子に掛かる x- の形（vocab-meta から改名） | SAS → 検査器 | 2 |
-| dialect.schema.json | 2020-12 に SAS の語彙を足した方言 | SAS → 検査器 | 2 |
+| abstract.schema.json | Abstract の本体。x- の10の値の形と、欄 ・ rule ・ 読み方の形 | SAS → Concrete を書く人と AI | 2 ・ 3 |
+| vocabulary.schema.json | 入れ子に掛かる x- の形（vocab-meta から改名） | SAS → バリデーター | 2 |
+| dialect.schema.json | 2020-12 に SAS の語彙を足した方言 | SAS → バリデーター | 2 |
 | glossary.schema.json | 用語集の型（中身は使う側） | SAS → Concrete の $ref | 2 ・ 3 |
 | operation-request.schema.json | 操作の依頼。コマンドごとの入力 | 呼び出し元 → CLI | 1 ・ 2 |
 | operation-result.schema.json | 操作の結果。CLI の出力 | CLI → 呼び出し元 | 1 ・ 4 |
@@ -52,7 +52,7 @@ x-prompt はいまの vocab-meta に在る。足すのは x-view だけで、デ
 | 境界 | 理由 |
 |---|---|
 | DB の表 | 公開しない決定。外部キー ・ 一意 ・ 追記だけは DDL と trigger で守る |
-| 版の中身を読むポート ・ 検査器 ・ テンプレートの処理系 | プロセスの外へ JSON が出ない。検査器の出力は SAS の中で rule の結果へ直す |
+| 版の中身を読むポート ・ バリデーター ・ テンプレートの処理系 | プロセスの外へ JSON が出ない。バリデーターの出力は SAS の中で rule の結果へ直す |
 | 手順のプロンプトの文 | 文は型で縛れない。縛る部分は procedure-prompt に出した |
 
 ## DB の表
@@ -79,7 +79,7 @@ DDL は design.json の 4_db.ddl にあり、SQLite で表を作れることと�
 | DB にだけある欄 | launch（ツールの旗をそのまま持つので出さない） |
 | スキーマにだけある欄 | 記録しないと決めたものだけ（描画 ・ 検索の入力、当てる前の patch、決めきれず返した点、検索の答え、ファイルが正本の設定、断った操作の理由） |
 
-## 意味の操作の流れ
+## 意味の部分を含む操作の流れ
 
 | ステップ | 検証 | 更新 |
 |---|---|---|
@@ -113,7 +113,7 @@ DDL は design.json の 4_db.ddl にあり、SQLite で表を作れることと�
 | 項目 | 原典（版） | 結果と、設計で直した所 |
 |---|---|---|
 | JSON Schema の出力の形 | json-schema.org Core 2020-12 の12章 | 欄名はすべて在った。一覧に absoluteKeywordLocation と error（単数）を足した。出力の形は実装に SHOULD |
-| $vocabulary ・ $dynamicAnchor ・ $dynamicRef | Core 2020-12 とメタスキーマ | 方言に `$dynamicAnchor: meta` を置く。true の語彙を知らない検査器は方言を断る（MUST） |
+| $vocabulary ・ $dynamicAnchor ・ $dynamicRef | Core 2020-12 とメタスキーマ | 方言に `$dynamicAnchor: meta` を置く。true の語彙を知らないバリデーターは方言を断る（MUST） |
 | JSON Patch | RFC 6902 | op ・ path ・ value ・ from と op の6つが在った。「確かめる」を外した |
 | Design Tokens | Design Tokens Format Module 2025.10 | 版を固定した。「群」を原典の group に直した |
 | MCP の inputSchema | MCP 2026-07-28 | 根は type: "object"、外の $ref は解かれない。道具ごとに1つのスキーマへ束ねて渡す |

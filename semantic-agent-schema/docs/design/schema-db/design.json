@@ -21,7 +21,7 @@
  "premises": [
   {
    "name": "利用者の判断基準",
-   "value": "JSON Schema にするのは上の4つのどれかに当たる境界だけ。意味の操作では CLI の返り値が手順のプロンプトになり、その流れに沿って該当する所へ操作する。セッションを呼び出す入力と、操作の入力にスキーマを持つ。Concrete を書くためのスキーマ（x- 項目と拡張の仕組み）は SAS が持つ",
+   "value": "JSON Schema にするのは上の4つのどれかに当たる境界だけ。意味の部分を含む操作では CLI の返り値が手順のプロンプトになり、その流れに沿って該当する所へ操作する。セッションを呼び出す入力と、操作の入力にスキーマを持つ。Concrete を書くためのスキーマ（x- 項目と拡張の仕組み）は SAS が持つ",
    "source": "依頼の文"
   },
   {
@@ -51,14 +51,14 @@
   }
  ],
  "decision": {
-  "headline": "schemas/v1 は、境界ごとに読み手と書き手が決まる14のファイルにする。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理しない（版16）",
+  "headline": "スキーマは、境界ごとに読み手と書き手が決まる14のファイルにする。子のセッションとのやりとりの3つのほかは、公開された言葉として published-language/v1 に置く。Concrete を書く型4つ（Abstract の本体 ・ 語彙 ・ 方言 ・ glossary）、CLI の入出力2つ（操作の依頼 ・ 操作の結果）、意味の操作3つ（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）、共通の値2つ（セッション ・ 差分）、差し込む物の契約3つ（エージェントの接続の定義 ・ デザインシステム ・ 設定）。DB は SQLite の5つの表（sessions ・ changes ・ field_changes ・ validations ・ rule_results）とビュー operations で、DDL は公開しない。SAS は子の状態を管理しない（版16）",
   "because": "1つのファイルを1つの境界（誰が書き、誰が読むか）に合わせると、アダプターの作者は session-request と agent-connector だけを、Concrete の作者は Abstract の4つだけを読めばよい。sessions は誰が何で動いたか（役割 ・ 親 ・ ツール ・ モデル ・ 起動の設定）だけを追記で持ち、開閉 ・ 回 ・ 再開の決まりは持たない。次にどの子へ送るかは親が決める。記録は書いた変更（changes）と検証（validations）を別の表にし、どの行もすべての欄が埋まる形にする。断った操作は持たず、理由はその場で返す",
   "revised": "2026-11-01 版16：セッションの4つの型 ・ 5つの操作 ・ session_turns ・ 終わり方をやめ、薄い sessions（7列）と書く子 ・ 確かめる子に。operations 1表を changes と validations に分け、断った操作を持たない。材料：承認のページ XQmeBmywzzsZy3AUgcSK4B 版4、シミュレーション VYeEarjweXihDbJTNxnGhW、ツール6つの調査 KbNCDxxdVA5CipaYG8aFJ5"
  },
  "file_options": [
   {
    "option": "A：境界ごとに1ファイル（14）。共通の値（セッション ・ 差分）は2つ以上のファイルが使うので別ファイル",
-   "effect": "読み手ごとに読むファイルが決まる。アダプターの契約が CLI の出力のファイルに依存しない。$defs の数は多いが、1ファイルの中は1つの境界だけ",
+   "effect": "読み手ごとに読むファイルが決まる。受け取りの型が CLI の出力のファイルに依存しない。$defs の数は多いが、1ファイルの中は1つの境界だけ",
    "chosen": true
   },
   {
@@ -88,14 +88,14 @@
     3
    ],
    "decision": "schema",
-   "where": "semantic-abstract-schema.json",
+   "where": "abstract.schema.json",
    "why": "Concrete はこの型で書かれ、検査される（2）。x-prompt の rule ・ reading が欄に意味を持たせる（3）"
   },
   {
    "id": "a2",
    "group": "a. Concrete を書くとき",
    "name": "入れ子のサブスキーマに掛かる x- の形",
-   "from_to": "SAS → 検査器",
+   "from_to": "SAS → バリデーター",
    "criteria": [
     2
    ],
@@ -107,7 +107,7 @@
    "id": "a3",
    "group": "a. Concrete を書くとき",
    "name": "方言（2020-12 ＋ SAS の語彙）",
-   "from_to": "SAS → 検査器",
+   "from_to": "SAS → バリデーター",
    "criteria": [
     2
    ],
@@ -125,7 +125,7 @@
     3
    ],
    "decision": "schema",
-   "where": "semantic-abstract-schema.json#/$defs/extensions（定義）。値は定義の schema で SAS の機械の rule が検査する",
+   "where": "abstract.schema.json#/$defs/extensions（定義）。値は定義の schema で SAS の機械の rule が検査する",
    "why": "x- の名前 ・ 値の形 ・ 説明 ・ prompt ・ 公開するかを1か所で宣言させ、知らない x- を断る（2）。prompt が x- の意味を持たせる（3）"
   },
   {
@@ -138,7 +138,7 @@
     3
    ],
    "decision": "schema",
-   "where": "semantic-abstract-schema.json#/$defs/delegates ・ delegate",
+   "where": "abstract.schema.json#/$defs/delegates ・ delegate",
    "why": "rule の agent が指す先を型で縛る。どのツールかは書かせない（接続の定義と設定が持つ）"
   },
   {
@@ -164,7 +164,7 @@
     3
    ],
    "decision": "schema",
-   "where": "semantic-abstract-schema.json#/$defs/view と vocabulary",
+   "where": "abstract.schema.json#/$defs/view と vocabulary",
    "why": "デザインシステムの契約が「Concrete が使う x-view の種類」を前提にしているのに、いまの Abstract に x-view が無い（漏れ）。足す"
   },
   {
@@ -208,7 +208,7 @@
   {
    "id": "b3",
    "group": "b. CLI の各コマンド",
-   "name": "意味の操作の返り値（手順のプロンプト）",
+   "name": "意味の部分を含む操作の返り値（手順のプロンプト）",
    "from_to": "SAS → 呼び出し元（と SAS が立てたセッション）",
    "criteria": [
     1,
@@ -217,7 +217,7 @@
    ],
    "decision": "schema",
    "where": "operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
-   "why": "利用者の判断基準：意味の操作の返り値は手順のプロンプト。CLI は JSON Lines で、1行目に手順のプロンプト、最後の行に結果を出す"
+   "why": "利用者の判断基準：意味の部分を含む操作の返り値は手順のプロンプト。CLI は JSON Lines で、1行目に手順のプロンプト、最後の行に結果を出す"
   },
   {
    "id": "b4",
@@ -230,7 +230,7 @@
    ],
    "decision": "schema",
    "where": "operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は operation-result の envelope（child_session ・ role）",
-   "why": "子は操作のために起動するので、意味の操作の指定に入れる。続けるかは親が決めて ID を渡す。閉じる ・ 状態を読む ・ fork はどのツールでも非対話で揃わず、SAS は子の状態を持たない（版16）"
+   "why": "子は操作のために起動するので、意味の部分の指定に入れる。続けるかは親が決めて ID を渡す。閉じる ・ 状態を読む ・ fork はどのツールでも非対話で揃わず、SAS は子の状態を持たない（版16）"
   },
   {
    "id": "b5",
@@ -272,7 +272,7 @@
   },
   {
    "id": "c1",
-   "group": "c. 意味の操作",
+   "group": "c. 意味の部分を含む操作",
    "name": "手順のプロンプトの構造化された部分",
    "from_to": "SAS → SAS が立てたセッションのエージェント",
    "criteria": [
@@ -285,7 +285,7 @@
   },
   {
    "id": "c2",
-   "group": "c. 意味の操作",
+   "group": "c. 意味の部分を含む操作",
    "name": "セッションの依頼（起動する ・ 続ける）",
    "from_to": "SAS → アダプター（組み込み ・ 接続の定義で動く汎用）",
    "criteria": [
@@ -298,7 +298,7 @@
   },
   {
    "id": "c3",
-   "group": "c. 意味の操作",
+   "group": "c. 意味の部分を含む操作",
    "name": "アダプターの返り（ツールの ID ・ 終わり方 ・ 答えの文字列 ・ トークン量）",
    "from_to": "アダプター → SAS",
    "criteria": [
@@ -311,7 +311,7 @@
   },
   {
    "id": "c4",
-   "group": "c. 意味の操作",
+   "group": "c. 意味の部分を含む操作",
    "name": "エージェントの答え（欄の値 ・ rule の判定 ・ 検索の答え）",
    "from_to": "SAS が立てたセッションのエージェント → SAS",
    "criteria": [
@@ -324,7 +324,7 @@
   },
   {
    "id": "c5",
-   "group": "c. 意味の操作",
+   "group": "c. 意味の部分を含む操作",
    "name": "手順のプロンプトの文（テンプレートから組む前置きと指示の文）",
    "from_to": "SAS → エージェント",
    "criteria": [],
@@ -383,12 +383,12 @@
   {
    "id": "d5",
    "group": "d. アダプターとの契約",
-   "name": "JSON Schema の検査器（2020-12）",
-   "from_to": "SAS ⇄ 検査器のライブラリ",
+   "name": "JSON Schema のバリデーター（2020-12）",
+   "from_to": "SAS ⇄ バリデーターのライブラリ",
    "criteria": [],
    "decision": "no-schema",
    "where": "型とインスタンスの data-access のインターフェース",
-   "why": "検査器の出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使う検査器がどの形を出すかを選ぶときに確かめる"
+   "why": "バリデーターの出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使うバリデーターがどの形を出すかを選ぶときに確かめる"
   },
   {
    "id": "d6",
@@ -462,8 +462,8 @@
  ],
  "3_schemas": [
   {
-   "file": "semantic-abstract-schema.json",
-   "id": "urn:semantic-agent-schema:base:semantic-abstract-schema:v1",
+   "file": "abstract.schema.json",
+   "id": "urn:semantic-agent-schema:published-language:abstract:v1",
    "name": "Abstract の本体",
    "writer": "SAS",
    "reader": "Concrete を書く人 ・ AI のエージェント ・ SAS の検査",
@@ -672,17 +672,17 @@
   },
   {
    "file": "vocabulary.schema.json",
-   "id": "urn:semantic-agent-schema:base:vocabulary:v1",
+   "id": "urn:semantic-agent-schema:published-language:vocabulary:v1",
    "name": "Abstract の語彙",
    "writer": "SAS",
-   "reader": "検査器（方言を通して入れ子のすべてのサブスキーマへ）",
+   "reader": "バリデーター（方言を通して入れ子のすべてのサブスキーマへ）",
    "defs": [
     {
      "name": "（根）",
      "fields": [
       "$dynamicAnchor: meta",
       "properties：x- の10の名前 → 本体の $anchor を $ref で指す。いまの9つに x-view を足す",
-      "$vocabulary: {urn:semantic-agent-schema:base:vocab:v1: true}（原文は SHOULD。置く）"
+      "$vocabulary: {urn:semantic-agent-schema:published-language:vocab:v1: true}（原文は SHOULD。置く）"
      ]
     }
    ],
@@ -690,16 +690,16 @@
   },
   {
    "file": "dialect.schema.json",
-   "id": "urn:semantic-agent-schema:base:dialect:v1",
+   "id": "urn:semantic-agent-schema:published-language:dialect:v1",
    "name": "方言",
    "writer": "SAS",
-   "reader": "検査器",
+   "reader": "バリデーター",
    "defs": [
     {
      "name": "（根）",
      "fields": [
       "$dynamicAnchor: meta（2020-12 のメタスキーマの $dynamicRef \"#meta\" がここへ置き換わり、語彙の形が入れ子のサブスキーマに掛かる。Core 8.2.3.2 ・ Appendix D.2 で照合済み）",
-      "$vocabulary：2020-12 の7つ ＋ urn:semantic-agent-schema:base:vocab:v1: true（SAS の検査器はこの語彙を知っている前提。知らない検査器は、この方言のスキーマを断る（Core の MUST））",
+      "$vocabulary：2020-12 の7つ ＋ urn:semantic-agent-schema:published-language:vocab:v1: true（SAS のバリデーターはこの語彙を知っている前提。知らないバリデーターは、この方言のスキーマを断る（Core の MUST））",
       "allOf：2020-12 のメタスキーマと vocabulary"
      ]
     }
@@ -708,7 +708,7 @@
   },
   {
    "file": "glossary.schema.json",
-   "id": "urn:semantic-agent-schema:base:glossary:v1",
+   "id": "urn:semantic-agent-schema:published-language:glossary:v1",
    "name": "用語集の型",
    "writer": "SAS（型）・ 使う側（中身）",
    "reader": "Concrete の $ref ・ 意味の検索",
@@ -728,7 +728,7 @@
   },
   {
    "file": "operation-request.schema.json",
-   "id": "urn:semantic-agent-schema:base:operation-request:v1",
+   "id": "urn:semantic-agent-schema:published-language:operation-request:v1",
    "name": "操作の依頼",
    "writer": "人 ・ AI のエージェント ・ オーケストレーター ・ CI（旗か --input の JSON）",
    "reader": "CLI",
@@ -816,7 +816,7 @@
   },
   {
    "file": "operation-result.schema.json",
-   "id": "urn:semantic-agent-schema:base:operation-result:v1",
+   "id": "urn:semantic-agent-schema:published-language:operation-result:v1",
    "name": "操作の結果（CLI の出力）",
    "writer": "CLI",
    "reader": "呼び出し元",
@@ -826,7 +826,7 @@
      "fields": [
       "kind（必須：下の $defs の名前）",
       "parent_session（呼んだ親の ID。人は null）",
-      "child_session ・ role（意味の操作のとき。子の ID と writer ・ checker）",
+      "child_session ・ role（意味の部分を含む操作のとき。子の ID と writer ・ checker）",
       "hint（次に打つコマンド。止まったとき ・ 新しい子を勧めるとき）"
      ]
     },
@@ -878,7 +878,7 @@
      "fields": [
       "operation",
       "results: [rule-result]",
-      "counts: {5つの値ごとの件数}",
+      "counts: {判定の5つの区分ごとの件数}",
       "untracked: [{path, last_operation, expected, actual}]",
       "hint（取り込みの案内）"
      ]
@@ -937,7 +937,7 @@
   },
   {
    "file": "procedure-prompt.schema.json",
-   "id": "urn:semantic-agent-schema:base:procedure-prompt:v1",
+   "id": "procedure-prompt（公開された言葉ではない。URN と置き場はステップ6 で決める）",
    "name": "手順のプロンプト（構造化された部分）",
    "writer": "SAS",
    "reader": "SAS が立てたセッションのエージェント ・ 呼び出し元（CLI の1行目）",
@@ -976,7 +976,7 @@
   },
   {
    "file": "session-request.schema.json",
-   "id": "urn:semantic-agent-schema:base:session-request:v1",
+   "id": "session-request（公開された言葉ではない。URN と置き場はステップ6 で決める）",
    "name": "セッションの依頼",
    "writer": "SAS",
    "reader": "アダプター（組み込み ・ 接続の定義で動く汎用）",
@@ -1016,7 +1016,7 @@
   },
   {
    "file": "agent-answer.schema.json",
-   "id": "urn:semantic-agent-schema:base:agent-answer:v1",
+   "id": "agent-answer（公開された言葉ではない。URN と置き場はステップ6 で決める）",
    "name": "エージェントの答え",
    "writer": "SAS が立てたセッションのエージェント",
    "reader": "SAS",
@@ -1053,7 +1053,7 @@
   },
   {
    "file": "session.schema.json",
-   "id": "urn:semantic-agent-schema:base:session:v1",
+   "id": "urn:semantic-agent-schema:published-language:session:v1",
    "name": "セッションの姿",
    "writer": "SAS",
    "reader": "呼び出し元（UC7）・ operation-result が値の型を参照",
@@ -1086,7 +1086,7 @@
   },
   {
    "file": "diff.schema.json",
-   "id": "urn:semantic-agent-schema:base:diff:v1",
+   "id": "urn:semantic-agent-schema:published-language:diff:v1",
    "name": "差分",
    "writer": "SAS",
    "reader": "呼び出し元 ・ 手順のプロンプト",
@@ -1116,7 +1116,7 @@
   },
   {
    "file": "agent-connector.schema.json",
-   "id": "urn:semantic-agent-schema:base:agent-connector:v1",
+   "id": "urn:semantic-agent-schema:published-language:agent-connector:v1",
    "name": "エージェントの接続の定義",
    "writer": "使う側 ・ ツールの提供者",
    "reader": "SAS の汎用のアダプター",
@@ -1157,7 +1157,7 @@
   },
   {
    "file": "design-system.schema.json",
-   "id": "urn:semantic-agent-schema:base:design-system:v1",
+   "id": "urn:semantic-agent-schema:published-language:design-system:v1",
    "name": "デザインシステムの受け取りの型",
    "writer": "使う側",
    "reader": "SAS の描画",
@@ -1177,7 +1177,7 @@
   },
   {
    "file": "settings.schema.json",
-   "id": "urn:semantic-agent-schema:base:settings:v1",
+   "id": "urn:semantic-agent-schema:published-language:settings:v1",
    "name": "設定",
    "writer": "使う側",
    "reader": "SAS",
@@ -1457,7 +1457,7 @@
       "result",
       "TEXT",
       "",
-      "5つの値"
+      "判定の5つの区分"
      ],
      [
       "reason",
@@ -1877,12 +1877,12 @@
    "why": "検証に呼び出し元の会話が混ざり、単発 ・ 引き継がないに固定する決定に反する。CI はエージェントを持たない。立てる ・ 時間切れ ・ やり直しを SAS が持てない"
   },
   {
-   "option": "意味の操作の出力を1つの JSON にし、手順のプロンプトは別のコマンドで読む",
+   "option": "意味の部分を含む操作の出力を1つの JSON にし、手順のプロンプトは別のコマンドで読む",
    "why": "利用者の判断基準（返り値は手順のプロンプト）に合わない。JSON Lines の1行目に出せば、待たずに何を頼んだかが見える"
   },
   {
-   "option": "2020-12 の検査器の出力の形をそのまま CLI の出力に出す",
-   "why": "公開の形が検査器の形に縛られ、機械の rule ・ AI ・ 人の結果と別の形になる。rule-result の1つに直す"
+   "option": "2020-12 のバリデーターの出力の形をそのまま CLI の出力に出す",
+   "why": "公開の形がバリデーターの形に縛られ、機械の rule ・ AI ・ 人の結果と別の形になる。rule-result の1つに直す"
   },
   {
    "option": "DB の表を JSON Schema で定義して公開する",
@@ -1913,7 +1913,7 @@
    "why": "セッションの寿命と再開はツールが持つ仕組み（一般）で、SAS が持つと要件を複雑にする。続けるかは親が決めれば足りる"
   },
   {
-   "option": "意味の操作を親の会話の複製（fork）で行う",
+   "option": "意味の部分を親の会話の複製（fork）で行う",
    "why": "親とモデルや設定が違えば親の全履歴を書き直し、同じでも親の履歴の分を毎回読む。非対話の fork は Claude Code と Codex だけ（実測と調査、2026-11-01）"
   },
   {
@@ -1940,7 +1940,7 @@
  "fact_check": [
   {
    "what": "JSON Schema 2020-12 の出力の形の欄の名前（valid ・ keywordLocation ・ absoluteKeywordLocation ・ instanceLocation ・ error ・ errors ・ annotations。Core 12 で照合済み）",
-   "used_by": "schema_checker の中で rule-result へ直す所だけが使う。公開の形には出さない"
+   "used_by": "schema_validator の中で rule-result へ直す所だけが使う。公開の形には出さない"
   },
   {
    "what": "2020-12 の $vocabulary ・ $dynamicAnchor ・ $dynamicRef で語彙を入れ子へ掛ける振る舞い（Core 8.1.2 ・ 8.2.3.2 ・ Appendix D.2 と meta/applicator で照合済み）",
@@ -1982,7 +1982,7 @@
   },
   {
    "what": "CLI の出力",
-   "view": "1行1つの JSON（JSON Lines）。機械の操作は1行、意味の操作は1行目が procedure、最後の行が結果か error"
+   "view": "1行1つの JSON（JSON Lines）。機械だけの操作は1行、意味の部分を含む操作は1行目が procedure、最後の行が結果か error"
   },
   {
    "what": "x-view が無いとき",
@@ -1995,16 +1995,16 @@
  ],
  "2_judgment_summary": {
   "schema": [
-   "a1 Abstract の本体（Concrete の根の決まり ・ 欄 ・ rule ・ x- の値の形） → semantic-abstract-schema.json",
+   "a1 Abstract の本体（Concrete の根の決まり ・ 欄 ・ rule ・ x- の値の形） → abstract.schema.json",
    "a2 入れ子のサブスキーマに掛かる x- の形 → vocabulary.schema.json",
    "a3 方言（2020-12 ＋ SAS の語彙） → dialect.schema.json",
-   "a4 Concrete が足す x- 項目（拡張の仕組み） → semantic-abstract-schema.json#/$defs/extensions（定義）。値は定義の schema で SAS の機械の rule が検査する",
-   "a5 x-delegates（rule を任せる先の立場と種類） → semantic-abstract-schema.json#/$defs/delegates ・ delegate",
+   "a4 Concrete が足す x- 項目（拡張の仕組み） → abstract.schema.json#/$defs/extensions（定義）。値は定義の schema で SAS の機械の rule が検査する",
+   "a5 x-delegates（rule を任せる先の立場と種類） → abstract.schema.json#/$defs/delegates ・ delegate",
    "a6 glossary（文脈の term の辞書） → glossary.schema.json",
-   "a7 x-view（描画の種類の指定） → semantic-abstract-schema.json#/$defs/view と vocabulary",
+   "a7 x-view（描画の種類の指定） → abstract.schema.json#/$defs/view と vocabulary",
    "b1 コマンドの入力（create ・ update ・ delete ・ validate ・ render ・ search ・ read） → operation-request.schema.json（コマンドごとの $defs）",
    "b2 コマンドの出力（作った ・ 直した ・ 消した ・ 検証の結果 ・ 描画の結果 ・ 検索の答え ・ セッション ・ 操作 ・ 誤り） → operation-result.schema.json（出力の種類ごとの $defs）",
-   "b3 意味の操作の返り値（手順のプロンプト） → operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
+   "b3 意味の部分を含む操作の返り値（手順のプロンプト） → operation-result.schema.json#/$defs/procedure が procedure-prompt.schema.json を含む",
    "b4 子のセッション（起動する ・ 続ける） → operation-request#/$defs/semantic（brief ・ ref ・ continue ・ new）。出力は envelope の child_session ・ role。閉じる ・ 状態を読む ・ fork は持たない（版16）",
    "b5 取り込み（--adopt） → operation-request#/$defs/create ・ update の adopt。出力は #/$defs/change（source = outside）",
    "b6 誤り（unsupported_capability ・ conflict ・ untracked_change ・ missing_view_kinds ほか） → operation-result#/$defs/error",
@@ -2025,7 +2025,7 @@
    "a8 Concrete とインスタンスのファイルそのもの：型は既にある。SAS が別の型を足すと2か所になる",
    "c5 手順のプロンプトの文（テンプレートから組む前置きと指示の文）：文は型で縛れない。縛るべき部分は c1 に出してある。文の指紋（prompt_hash）だけを記録する",
    "d4 版を扱う（版を残す ・ 版の中身を取る）：プロセスの外へ JSON が出ない。アダプターは SAS に組み込みで、使う側が書かない。外へ出るのは差分（diff.schema.json）だけ",
-   "d5 JSON Schema の検査器（2020-12）：検査器の出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使う検査器がどの形を出すかを選ぶときに確かめる",
+   "d5 JSON Schema のバリデーター（2020-12）：バリデーターの出力の形（2020-12 の出力の形）は SAS の中で rule の結果へ直し、公開の形に出さない。欄の名前は 2020-12 Core 12 で照合済み。basic ・ detailed は実装にとって SHOULD なので、使うバリデーターがどの形を出すかを選ぶときに確かめる",
    "d7 テンプレートの処理系：プロセスの外へ JSON が出ない",
    "e1 sessions ・ changes ・ field_changes ・ validations ・ rule_results：公開しない決定。外部キー ・ 一意の索引 ・ トランザクション ・ 追記だけの決まりは JSON Schema では書けず、DDL と trigger で守る"
   ]
@@ -2045,5 +2045,6 @@
    "decision": "SAS は版を残さない。差分は、SAS が書いた操作なら書く前後の中身から求め、SAS を通らない変更と継続で対象が変わったときは Git のコミット済みの版を読んで比べる。Git には書かない",
    "view": "利用者の判断（10-31）：DB の中身はコミットせず、終わったセッションの記録は分析に使える程度。復元やタグのために版を残す仕組みは要らない。版を残さないので、Git の掃除の条件は設計に関わらない"
   }
- ]
+ ],
+ "naming_note": "2026-11-01 の名前の見直しと言葉の点検で、使う側が従い読むスキーマ（Abstract の本体 ・ 語彙 ・ 方言 ・ 用語集の型、操作の依頼 ・ 結果、共通の値、受け取りの型）を公開された言葉として published-language/v1 の1か所に置いた。子のセッションとのやりとり（手順のプロンプト ・ セッションの依頼 ・ エージェントの答え）は公開された言葉ではない。「意味の操作」は業務領域ではなく、意味の部分（自然言語の rule に照らして中身の意味を書く ・ 判定する ・ 探すこと）を含む操作と呼ぶ。AI の子のセッションは手段"
 }

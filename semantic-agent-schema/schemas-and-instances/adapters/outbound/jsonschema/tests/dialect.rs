@@ -1,18 +1,18 @@
-//! 検査器が、方言の $dynamicAnchor: meta と独自の $vocabulary を扱えることの実地の証拠（ステップ1 のはじめの照合）。
+//! バリデーターが、方言の $dynamicAnchor: meta と独自の $vocabulary を扱えることの実地の証拠（ステップ1 のはじめの照合）。
 //! 方言を通すと、入れ子のサブスキーマの x- の形にも語彙のメタスキーマが掛かる。
 
 #![allow(clippy::unwrap_used)]
 
-use schemas_and_instances_adapters_outbound_jsonschema::Checker;
-use schemas_and_instances_conformance_application::ports::SchemaChecker;
+use outbound_jsonschema::Validator;
 use serde_json::json;
+use validation_application::ports::SchemaValidator;
 
-const DIALECT: &str = "urn:semantic-agent-schema:base:dialect:v1";
-const ABSTRACT: &str = "urn:semantic-agent-schema:base:semantic-abstract-schema:v1";
+const DIALECT: &str = "urn:semantic-agent-schema:published-language:dialect:v1";
+const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";
 
 #[test]
 fn abstract_follows_dialect() {
-    let c = Checker::new().unwrap();
+    let c = Validator::new().unwrap();
     let body = c.shipped(ABSTRACT).unwrap();
     assert_eq!(
         c.check(DIALECT, &body, &[]).unwrap(),
@@ -22,7 +22,7 @@ fn abstract_follows_dialect() {
 
 #[test]
 fn nested_x_shape_is_checked_through_dialect() {
-    let c = Checker::new().unwrap();
+    let c = Validator::new().unwrap();
     let bad = json!({
         "$schema": ABSTRACT,
         "properties": {"a": {"properties": {"b": {"x-relationship": {"to": 1}}}}}
@@ -38,7 +38,7 @@ fn nested_x_shape_is_checked_through_dialect() {
 
 #[test]
 fn concrete_can_be_used_as_schema() {
-    let c = Checker::new().unwrap();
+    let c = Validator::new().unwrap();
     let concrete = json!({
         "$schema": ABSTRACT, "$id": "urn:semantic-agent-schema:t:thing:v1",
         "title": "もの", "description": "試験のものである。",

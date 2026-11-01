@@ -2,7 +2,7 @@
 //! 親のセッション ID は --session → ツールごとの環境変数（callers.json の表）→ どちらも無ければ人、の順で決める。
 //! 2つ以上のツールの環境変数に値があるとき（ツールの中から別のツールを起動した）は、どちらが打ったかを決めない。
 
-use schemas_and_instances_operation_recording_application::ports::{Caller, IdentifyCaller};
+use recording_application::ports::{Caller, IdentifyCaller};
 use serde_json::Value;
 
 /// ツールごとの環境変数の表（コードに書かず、表に置く）。
@@ -70,7 +70,7 @@ impl IdentifyCaller for FromArguments {
 #[cfg(test)]
 mod tests {
     use super::FromArguments;
-    use schemas_and_instances_operation_recording_application::ports::{Caller, IdentifyCaller};
+    use recording_application::ports::{Caller, IdentifyCaller};
 
     fn with(name: &'static str, value: &'static str) -> impl Fn(&str) -> Option<String> {
         move |n| (n == name).then(|| value.to_string())

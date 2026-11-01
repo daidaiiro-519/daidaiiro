@@ -10,17 +10,18 @@ mod caller;
 mod output;
 
 use caller::FromArguments;
-use schemas_and_instances_adapters_outbound_files::WorkingTree;
-use schemas_and_instances_adapters_outbound_git::GitCommits;
-use schemas_and_instances_adapters_outbound_jsonschema::Checker;
-use schemas_and_instances_adapters_outbound_sqlite::SqliteLog;
-use schemas_and_instances_conformance_application::use_cases::documents::{
-    AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, Refused, Scope, UpdateRequest, adopt,
-    create, delete, update, validate, validate_stale,
-};
+use outbound_filesystem::WorkingTree;
+use outbound_git::GitCommits;
+use outbound_jsonschema::Validator;
+use outbound_sqlite::SqliteLog;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use validation_application::use_cases::validate::{Refused, Scope, validate, validate_stale};
+use writing_application::use_cases::write::{
+    AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, UpdateRequest, adopt, create, delete,
+    update,
+};
 
 const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
@@ -81,11 +82,11 @@ fn caller(session: Option<String>) -> Result<FromArguments, Refused> {
     })
 }
 
-/// 置き場所 ・ 検査器 ・ 記録を組み立てる。
-fn adapters() -> Result<(WorkingTree, Checker, SqliteLog), Refused> {
+/// 置き場所 ・ バリデーター ・ 記録を組み立てる。
+fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
     let root = PathBuf::from(".");
-    let checker = Checker::new().map_err(|message| Refused {
-        code: "checker",
+    let validator = Validator::new().map_err(|message| Refused {
+        code: "validator",
         message,
         ..Refused::default()
     })?;
@@ -94,7 +95,7 @@ fn adapters() -> Result<(WorkingTree, Checker, SqliteLog), Refused> {
         message,
         ..Refused::default()
     })?;
-    Ok((WorkingTree::new(root), checker, log))
+    Ok((WorkingTree::new(root), validator, log))
 }
 
 fn run_validate(args: &[String]) -> ExitCode {
@@ -124,7 +125,7 @@ fn run_validate(args: &[String]) -> ExitCode {
         (false, true) => return usage("検証する経路か --all を渡してください"),
     };
     let run = if stale { validate_stale } else { validate };
-    let (store, checker, mut log) = match adapters() {
+    let (store, validator, mut log) = match adapters() {
         Ok(a) => a,
         Err(r) => return refuse(&r),
     };
@@ -132,7 +133,7 @@ fn run_validate(args: &[String]) -> ExitCode {
         Ok(w) => w,
         Err(r) => return refuse(&r),
     };
-    match run(&scope, &store, &checker, &who, &mut log) {
+    match run(&scope, &store, &validator, &who, &mut log) {
         Ok(v) => {
             output::print_validation(&v);
             if v.counts.fails() {
@@ -215,7 +216,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         };
         let committed = GitCommits::new(PathBuf::from("."));
         let result = run_with(
-            |store, checker, who, log| adopt(&request, store, checker, &committed, who, log),
+            |store, validator, who, log| adopt(&request, store, validator, &committed, who, log),
             session,
         );
         return match result {
@@ -254,7 +255,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 intent,
             };
             run_with(
-                |store, checker, who, log| create(&request, store, checker, who, log),
+                |store, validator, who, log| create(&request, store, validator, who, log),
                 session,
             )
         }
@@ -271,7 +272,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 intent,
             };
             run_with(
-                |store, checker, who, log| update(&request, store, checker, who, log),
+                |store, validator, who, log| update(&request, store, validator, who, log),
                 session,
             )
         }
@@ -326,7 +327,7 @@ fn run_delete(args: &[String]) -> ExitCode {
         intent: Some(intent),
     };
     match run_with(
-        |store, checker, who, log| delete(&request, store, checker, who, log),
+        |store, validator, who, log| delete(&request, store, validator, who, log),
         take("--session"),
     ) {
         Ok(d) => {
@@ -338,11 +339,11 @@ fn run_delete(args: &[String]) -> ExitCode {
 }
 
 fn run_with<T>(
-    f: impl FnOnce(&WorkingTree, &Checker, &FromArguments, &mut SqliteLog) -> Result<T, Refused>,
+    f: impl FnOnce(&WorkingTree, &Validator, &FromArguments, &mut SqliteLog) -> Result<T, Refused>,
     session: Option<String>,
 ) -> Result<T, Refused> {
-    let (store, checker, mut log) = adapters()?;
-    f(&store, &checker, &caller(session)?, &mut log)
+    let (store, validator, mut log) = adapters()?;
+    f(&store, &validator, &caller(session)?, &mut log)
 }
 
 fn refuse(r: &Refused) -> ExitCode {

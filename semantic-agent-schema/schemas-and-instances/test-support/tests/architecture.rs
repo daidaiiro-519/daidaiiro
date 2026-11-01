@@ -2,7 +2,7 @@
 //!
 //! cargo metadata が返すワークスペースの crate と依存を読み、次を確かめる。
 //! - architecture.json の crate と、ワークスペースの members が一致する
-//! - crate の名前が文脈の名前で始まる
+//! - crate の名前がフォルダから決まる（<モジュール>-<層> ・ <inbound|outbound>-<技術> ・ test-support）
 //! - 通常の依存（normal ・ build）は、ワークスペースの crate なら allow の to、外のライブラリなら allow の libraries に書いたものだけ
 //! - dev_only の crate（試験の部品）は dev-dependencies にしか現れない
 
@@ -54,14 +54,32 @@ fn crates_match_members() {
     assert_eq!(names(&arch, "crates"), names(&meta, "packages"));
 }
 
+/// 文脈の中の経路から crate の名前を決める：<モジュール>/<層> → <モジュール>-<層>、
+/// adapters/<inbound|outbound>/<技術> → <inbound|outbound>-<技術>、それ以外は最後のフォルダの名前。
+fn name_from_path(path: &str, context: &str) -> String {
+    let inner = path
+        .strip_prefix(&format!("{context}/"))
+        .expect("crate は文脈のフォルダの中にあること");
+    let parts: Vec<&str> = inner.split('/').collect();
+    match parts.as_slice() {
+        ["adapters", side, tech] => format!("{side}-{tech}"),
+        [module, layer] => format!("{module}-{layer}"),
+        _ => (*parts.last().expect("経路があること")).to_string(),
+    }
+}
+
 #[test]
-fn crate_names_start_with_context() {
+fn crate_names_follow_their_folders() {
     let arch = read_json(root().join("architecture.json"));
-    let prefix = arch["crate_name_prefix"]
-        .as_str()
-        .expect("crate_name_prefix があること");
-    for name in names(&metadata(), "packages") {
-        assert!(name.starts_with(prefix), "{name} は {prefix} で始まらない");
+    let context = arch["context"].as_str().expect("context があること");
+    for c in arch["crates"].as_array().expect("crates が配列であること") {
+        let name = c["name"].as_str().expect("name が文字列であること");
+        let path = c["path"].as_str().expect("path が文字列であること");
+        assert_eq!(
+            name,
+            name_from_path(path, context),
+            "{path} の crate の名前"
+        );
     }
 }
 

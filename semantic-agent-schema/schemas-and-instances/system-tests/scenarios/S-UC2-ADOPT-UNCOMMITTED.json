@@ -1,0 +1,89 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ADOPT-UNCOMMITTED",
+ "name": "前の版が無い",
+ "title": "記録の最後の事後と同じ中身のコミットが無いとき（まだコミットしていない）は、前の値を持たない差分（before_unavailable）で取り込む",
+ "why": "前の版が無いからと取り込めないと、コミットの前に外で直したファイルを SAS がずっと扱えない。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:semantic-agent-schema:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"エディターで直した目的\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--intent",
+   "コミットの前に目的を直した"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "adopted"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before_unavailable",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before/commit",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes",
+   "count": 4
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/2/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/2/before_unavailable",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/2/before",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/2/after",
+   "equals": "エディターで直した目的"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

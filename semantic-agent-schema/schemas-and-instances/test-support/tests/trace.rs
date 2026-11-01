@@ -1,4 +1,4 @@
-//! test-suite/trace.json ・ untested.json と場面の突き合わせ。
+//! system-tests/trace.json ・ untested.json と場面の突き合わせ。
 //! - 範囲（scope）の id は、どれも trace か untested のどちらか一方にある
 //! - trace の場面の並びは、その id を traces に書いた場面と一致する
 
@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 fn suite() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../test-suite")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../system-tests")
 }
 
 fn load(name: &str) -> Value {

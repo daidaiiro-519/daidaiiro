@@ -3,10 +3,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use schemas_and_instances_adapters_outbound_sqlite::SqliteLog;
-use schemas_and_instances_operation_recording_application::ports::{
-    Caller, OperationLog, RuleRow, ValidateRow,
-};
+use outbound_sqlite::SqliteLog;
+use recording_application::ports::{Caller, OperationLog, RuleRow, ValidateRow};
 
 fn row(by: &str, result: &str) -> ValidateRow {
     ValidateRow {

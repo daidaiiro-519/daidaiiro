@@ -3,11 +3,11 @@
 //! 操作の ID（o-0001。changes と validations で同じ採番）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。
 //! application と domain は時刻に触らない。セッションの ID はツールのもので、ここでは作らない。
 
-use rusqlite::{Connection, OptionalExtension, params};
-use schemas_and_instances_operation_recording_application::ports::{
+use recording_application::ports::{
     Caller, ChangeRow, FieldRow, Judgment, OperationLog, RuleRow, StoredChange, ValidateRow,
     WriteRecord,
 };
+use rusqlite::{Connection, OptionalExtension, params};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 

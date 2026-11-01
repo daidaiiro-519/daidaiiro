@@ -26,7 +26,7 @@ fn assert_meta_valid(rel: &str) {
 
 #[test]
 fn scenario_schema_follows_meta_schema() {
-    assert_meta_valid("test-suite/scenario.schema.json");
+    assert_meta_valid("schemas-and-instances/system-tests/scenario.schema.json");
 }
 
 #[test]
@@ -72,16 +72,16 @@ fn broken_record_is_rejected() {
 
 #[test]
 fn shipped_result_schema_follows_meta_schema() {
-    assert_meta_valid("schemas-and-instances/schemas/v1/operation-result.schema.json");
+    assert_meta_valid("schemas-and-instances/published-language/v1/operation-result.schema.json");
 }
 
 #[test]
 fn scenarios_follow_schema() {
-    let schema = load("test-suite/scenario.schema.json");
+    let schema = load("schemas-and-instances/system-tests/scenario.schema.json");
     let validator = jsonschema::validator_for(&schema).expect("場面のスキーマを組めること");
     let mut count = 0;
-    for entry in
-        std::fs::read_dir(root().join("test-suite/scenarios")).expect("場面の置き場所を読めること")
+    for entry in std::fs::read_dir(root().join("schemas-and-instances/system-tests/scenarios"))
+        .expect("場面の置き場所を読めること")
     {
         let path = entry.expect("項目を読めること").path();
         let text = std::fs::read_to_string(&path).expect("場面を読めること");

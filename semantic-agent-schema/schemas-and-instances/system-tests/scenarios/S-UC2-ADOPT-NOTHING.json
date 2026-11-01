@@ -1,0 +1,50 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ADOPT-NOTHING",
+ "name": "外の変更が無い",
+ "title": "記録の最後の事後といまの中身が同じファイルを取り込もうとすると、nothing_to_adopt を返し、何も記録しない",
+ "why": "変わっていないものを取り込みとして記録すると、外で直したという誤った経緯が残る。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--intent",
+   "直した"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "nothing_to_adopt"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "exists": false
+  }
+ ]
+}

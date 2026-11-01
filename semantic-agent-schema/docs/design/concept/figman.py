@@ -61,41 +61,41 @@ def overview():
 def layers():
     f = Fig(1000, 520, '事業領域・業務領域・区切られた文脈')
     f.area(10, 10, 980, 196, '問題の側：業務領域（見つける）')
-    f.box(330, 36, 340, 50, ['事業領域：Semantic Agent Schema（プロダクト全体）'], 'kind-1')
-    xs = [36, 224, 412, 600, 788]
-    for x in xs: f.path(f'M500,86 V108 H{x+88} V128', arrow=True)
-    f.note(512, 102, '分解')
-    f.box(36, 130, 176, 56, ['意味の操作（中核）', 'ドメインモデル'], 'focus')
-    f.box(224, 130, 176, 56, ['スキーマへの適合（中核）', 'ドメインモデル'], 'focus')
-    f.box(412, 130, 176, 56, ['操作の記録（補完）', 'トランザクションスクリプト'])
-    f.box(600, 130, 176, 56, ['描画（補完）', 'トランザクションスクリプト'])
-    f.box(788, 130, 176, 56, ['一般：版の管理・検査・', 'エージェント・描画の部品'], dashed=True)
+    f.box(250, 32, 500, 56, ['事業領域：AI のエージェントが扱う構造化データを、', 'スキーマに従って書き、検証すること'], 'kind-1')
+    xs = [20, 180, 340, 500, 660, 820]
+    for x in [175, 415, 575, 735, 895]: f.path(f'M500,88 V108 H{x} V128', arrow=True)
+    f.note(512, 104, '分解')
+    f.box(20, 130, 310, 56, ['書いて検証する（中核）', 'ドメインモデル'], 'focus')
+    f.box(340, 130, 150, 56, ['記録（補完）', 'スクリプト'])
+    f.box(500, 130, 150, 56, ['描画（補完）', 'スクリプト'])
+    f.box(660, 130, 150, 56, ['検索', 'ステップ8 で確かめる'])
+    f.box(820, 130, 150, 56, ['一般：版の管理・検証・', 'エージェント・部品'], dashed=True)
     f.area(10, 250, 980, 260, '解決の側（設計する）', tx=136)
     f.bound(24, 280, 952, 124, '文脈「スキーマとインスタンス」（1つ）', tx=136)
-    labs = [['意味の操作のモジュール'], ['スキーマへの適合のモジュール'], ['操作の記録のモジュール'], ['描画のモジュール'], ['契約（ポートと SAS の型）']]
+    labs = [['writing/', '書くのモジュール'], ['validation/', '検証のモジュール'], ['recording/', '記録のモジュール'], ['rendering/', '描画のモジュール'], ['search/', '検索のモジュール'], ['published-language/', '公開された言葉']]
     for x, l in zip(xs, labs):
-        f.path(f'M{x+88},186 V280', dashed=True, arrow=False); f.path(f'M{x+88},306 V326', dashed=True)
-        f.box(x, 328, 176, 56, l, 'focus' if x < 400 else '')
-    f.note(132, 230, '対応')
-    f.path('M876,384 V438', dashed=True); f.note(868, 420, 'アダプターとして渡す', 'end')
+        f.path(f'M{x+75},186 V280', dashed=True, arrow=False); f.path(f'M{x+75},306 V326', dashed=True)
+        f.box(x, 328, 150, 56, l, 'focus' if x < 300 else '')
+    f.note(108, 230, 'モジュール')
+    f.path('M895,384 V438', dashed=True); f.note(885, 420, 'アダプターとして渡す', 'end')
     f.bound(24, 440, 952, 56, '外の文脈：製品（Git・コーディングエージェント・バリデーター・テンプレートの処理系）')
     return f.write('layers')
 
 def model():
     f = Fig(1000, 470, '集約・値・サービス（突き合わせで確かめたもの）')
-    f.area(10, 10, 480, 450, 'conformance-domain（スキーマへの適合）')
-    f.box(30, 44, 200, 64, ['集約：Concrete', '版は閉じた一覧・名前を足さない'], 'focus')
+    f.area(10, 10, 480, 450, 'writing-domain（書くのモジュール）')
+    f.box(30, 44, 200, 64, ['集約：Concrete', '版は閉じた一覧・公開した版'], 'focus')
     f.box(270, 44, 200, 64, ['集約：インスタンス', 'id・導出値・人の欄・指紋'], 'focus')
     f.path('M270,76 H232', dashed=True); f.note(251, 132, 'URN と版で指す', 'middle')
-    f.box(30, 160, 440, 70, ['値：指紋・差分・URN と版・インスタンスの id・', '判定の結果（5つの値と数え方）'])
-    f.box(30, 270, 440, 56, ['サービス：x-relationship（指す先の実在・参照元を探す）'], 'kind-1')
-    f.box(30, 370, 440, 66, ['use_cases に残すもの：検索・参照元を消して回る・', '版の移し方・$schema を決める・衝突を返す'], dashed=True)
-    f.area(510, 10, 480, 450, 'semantic-operations（意味の操作。application だけ）')
-    f.box(530, 44, 440, 64, ['domain は置かない（版16）', '子の状態を持たないので集約が無い'], dashed=True)
-    f.box(530, 160, 440, 56, ['値：役割（writer・checker）・起動の設定（launch）'])
-    f.box(530, 270, 440, 56, ['ステップ6 で手続きを書いて確かめてから決める'], 'kind-1')
-    f.box(530, 370, 440, 66, ['use_cases：子を決める・手順のプロンプトを作る・', '起動するか続ける・答えを確かめる'], dashed=True)
-    f.path('M530,188 H472', dashed=True)
+    f.box(30, 160, 440, 70, ['値：指紋・差分（欄ごとの前後）・', '書く条件の外れ'])
+    f.box(30, 270, 440, 56, ['サービス：参照（x-relationship の to・参照元を探す）'], 'kind-1')
+    f.box(30, 370, 440, 66, ['use_cases に残すもの：参照元を消して回る・', '取り込みの前の値・衝突を返す'], dashed=True)
+    f.area(510, 10, 480, 450, 'validation-domain（検証のモジュール）')
+    f.box(530, 44, 440, 64, ['集約は持たない', '← 書くモジュールの集約を読んで rule に照らす'], dashed=True)
+    f.box(530, 160, 440, 56, ['値：判定の5つの区分・rule の結果・誰が判定するか（by）'])
+    f.box(530, 270, 440, 66, ['サービス：当たる rule・Concrete の Abstract の rule・', '参照の先が在るか'], 'kind-1')
+    f.box(530, 370, 440, 66, ['意味（by: ai の rule）は同じ検証の中。', '意味を読ませるポートは application（ステップ6）'], dashed=True)
+    f.path('M530,76 H472')
     return f.write('model')
 
 def rows_map(name, label, lh, rh, rows, W=1000):
@@ -118,7 +118,7 @@ def datamap():
         ('validations・rule_results', '操作の記録の行（検証。判定の結果は値で読む）', '')])
 
 def gone():
-    return rows_map('gone', '外したものと引き継ぐ先', '外す（いまの schemas/v1）', '引き継ぐ先', [
+    return rows_map('gone', '外したものと引き継ぐ先', '外す（版15 の schemas/v1）', '引き継ぐ先', [
         ('judgment', 'rule_results・rule-result', 'focus'),
         ('change', 'changes・field_changes・diff', 'focus'),
         ('change-summary', '使う側（まとめ・承認・コミット）', 'muted'),
@@ -134,7 +134,7 @@ def bnd():
     f.box(370, 170, 260, 56, ['SAS（CLI）'], 'focus')
     f.path('M500,86 V168'); f.note(508, 118, 'operation-request ⇄ operation-result')
     f.path('M170,86 V198 H368'); f.note(178, 132, 'Concrete を書く型')
-    f.path('M830,86 V198 H632'); f.note(822, 152, 'アダプターの契約', 'end')
+    f.path('M830,86 V198 H632'); f.note(822, 152, '受け取りの型', 'end')
     f.box(40, 290, 260, 50, ['手元の DB（5表・公開しない）'], dashed=True)
     f.path('M440,226 V315 H302', dashed=True); f.note(310, 306, 'スキーマにしない')
     f.box(560, 290, 200, 50, ['アダプター'])
@@ -144,54 +144,58 @@ def bnd():
     return f.write('bnd')
 
 def hexf():
-    f = Fig(1300, 760, '1つのヘキサゴナル：内側に domain と4つの application、縁にポート、外にアダプター')
-    f.o.append('<path class="area" d="M300,380 L440,60 L860,60 L1000,380 L860,700 L440,700 Z"/>')
-    f.note(650, 84, '文脈「スキーマとインスタンス」（1つのヘキサゴナル）', 'middle', True)
-    f.box(30, 344, 200, 82, ['inbound/cli（sas コマンド）', '入口・main.rs が', 'コンポジションルート'], 'focus')
-    apps = [(110, 'semantic-operations', 'application'), (200, 'conformance', 'application'), (520, 'operation-recording', 'application（スクリプト）'), (610, 'rendering', 'application（スクリプト）')]
-    for y, a, b in apps: f.box(440, y, 240, 56, [a, b])
-    f.box(470, 300, 210, 110, ['domain（1つの crate）', 'conformance-domain', '集約・値・サービス'], 'focus')
-    f.path('M680,150 H700 V340 H682'); f.path('M600,256 V298')
-    f.path('M560,520 V412', dashed=True); f.note(572, 470, '値だけ')
-    f.path('M230,385 H320 V138 H438'); f.path('M320,228 H438'); f.path('M320,385 V638 H438'); f.path('M320,548 H438')
-    PS = [(100, 90, ['ポート（意味の操作）', 'agent_runtime', 'keep_prompt']), (210, 90, ['ポート（スキーマへの適合）', 'document_store', 'commit_reader', 'schema_checker']), (490, 70, ['ポート（操作の記録）', 'identify_caller', 'operation_log']), (600, 46, ['ポート（描画）', 'template_renderer'])]
-    for y, h, l in PS: f.box(712, y, 166, h, l)
-    for (y, _, _), (py, ph, _) in zip(apps, PS): f.path(f'M680,{y+28} H710')
-    AD = [(78, 'outbound/agents'), (168, 'outbound/files'), (258, 'outbound/sqlite'), (348, 'outbound/git（読むだけ）'), (428, 'outbound/jsonschema'), (598, 'outbound/templates')]
+    f = Fig(1300, 780, 'ポートとアダプター：内側に業務領域を作るモジュール、縁にポート、外にアダプター')
+    f.o.append('<path class="area" d="M300,390 L440,60 L860,60 L1000,390 L860,720 L440,720 Z"/>')
+    f.note(650, 84, '文脈「スキーマとインスタンス」', 'middle', True)
+    f.box(30, 350, 200, 82, ['inbound/cli（sas コマンド）', '入口・main.rs が', 'コンポジションルート'], 'focus')
+    apps = [(100, 'writing', 'application', 'focus'), (180, 'validation', 'application', 'focus'), (470, 'recording', 'application（スクリプト）', ''), (550, 'rendering', 'application（ステップ5）', ''), (630, 'search', 'application（ステップ8）', '')]
+    for y, a, b, r in apps: f.box(440, y, 230, 56, [a, b], r)
+    f.box(470, 262, 190, 50, ['validation-domain', '判定の値・サービス'], 'focus')
+    f.box(470, 360, 190, 56, ['writing-domain', '集約・値・サービス'], 'focus')
+    f.path('M555,156 V178'); f.path('M555,236 V260'); f.path('M555,312 V358')
+    f.path('M670,128 H690 V388 H662')
+    f.path('M440,208 H420 V498 H438', dashed=True); f.note(412, 470, '記録', 'end')
+    f.path('M230,391 H320 V128 H438'); f.path('M320,208 H438'); f.path('M320,391 V658 H438'); f.path('M320,498 H438'); f.path('M320,578 H438')
+    PS = [(102, 46, ['ポート（書く）', 'commit_reader']), (170, 106, ['ポート（検証）', 'document_store', 'schema_validator', 'read_meaning（6）', 'keep_prompt（6）']), (470, 70, ['ポート（記録）', 'identify_caller', 'operation_log']), (556, 46, ['ポート（描画）', 'template_renderer'])]
+    for y, h, l in PS: f.box(704, y, 166, h, l)
+    for y in [100, 180, 470, 550]: f.path(f'M670,{y+28} H702')
+    AD = [(80, 'outbound/agents（6）'), (150, 'outbound/filesystem'), (220, 'outbound/git（読むだけ）'), (290, 'outbound/jsonschema'), (470, 'outbound/sqlite'), (560, 'outbound/templates（5）')]
     for y, l in AD: f.box(1080, y, 200, 44, [l])
     f.note(1180, 60, 'アダプター（outbound）', 'middle', True)
-    C = [(100, 1060, 125), (100, 1048, 515), (190, 1036, 145), (190, 1024, 235), (280, 1000, 530), (370, 988, 255), (450, 976, 275), (620, 964, 623)]
-    for ay, lx, ty in C: f.path(f'M1078,{ay} H{lx} V{ty} H880')
+    C = [(102, 1060, 250), (172, 1045, 230), (242, 1030, 125), (312, 1015, 200), (492, 1000, 505), (582, 985, 579)]
+    for ay, lx, ty in C: f.path(f'M1078,{ay} H{lx} V{ty} H872')
     f.note(1180, 690, 'アダプターがポートを実装する（外 → 内）', 'middle')
-    f.note(1180, 708, 'domain は何にも依存しない', 'middle')
+    f.note(1180, 708, 'writing-domain は何にも依存しない', 'middle')
     return f.write('hex', 1100)
 
 def cratesf():
-    f = Fig(1240, 720, 'crate の層と、依存してよい向き')
-    f.area(10, 10, 300, 700, 'adapters')
-    f.area(350, 10, 520, 700, 'application')
-    f.area(910, 10, 320, 700, 'domain')
-    f.box(30, 46, 260, 56, ['adapters-inbound-cli', '（bin・コンポジションルート）'], 'focus')
-    outs = ['agents', 'files', 'git', 'jsonschema', 'sqlite', 'templates']
-    for i, n in enumerate(outs): f.box(30, 136 + i * 92, 260, 56, ['adapters-outbound-' + n])
+    f = Fig(1240, 740, 'crate の層と、依存してよい向き')
+    f.area(10, 10, 300, 720, 'adapters')
+    f.area(350, 10, 520, 720, 'application')
+    f.area(910, 10, 320, 720, 'domain')
+    f.box(30, 46, 260, 56, ['inbound-cli', '（bin・コンポジションルート）'], 'focus')
+    outs = ['agents（6）', 'filesystem', 'git', 'jsonschema', 'sqlite', 'templates（5）']
+    for i, n in enumerate(outs): f.box(30, 136 + i * 92, 260, 56, ['outbound-' + n], dashed=n.endswith('）'))
     f.path('M30,86 H20 V624', arrow=False)
     for i in range(6): f.path(f'M20,{164 + i * 92} H28')
-    apps = [(60, 'semantic-operations-application'), (220, 'conformance-application'), (400, 'operation-recording-application'), (560, 'rendering-application')]
-    for y, n in apps: f.box(390, y, 290, 56, [n], 'focus' if y < 300 else '')
-    f.box(940, 220, 270, 56, ['conformance-domain'], 'focus')
-    f.path('M680,88 H1075 V218'); f.path('M680,248 H938')
-    f.path('M535,116 V218'); f.path('M535,276 V398'); f.path('M680,588 H720 V262 H682', dashed=True)
-    f.path('M680,428 H760 V264 H938', dashed=True); f.note(768, 360, '値だけ')
+    apps = [(60, 'writing-application', 'focus', False), (170, 'validation-application', 'focus', False), (400, 'recording-application', '', False), (500, 'rendering-application（5）', '', True), (600, 'search-application（8）', '', True)]
+    for y, n, r, d in apps: f.box(390, y, 290, 56, [n], r, dashed=d)
+    f.box(940, 60, 270, 56, ['writing-domain'], 'focus')
+    f.box(940, 170, 270, 56, ['validation-domain'], 'focus')
+    f.path('M680,88 H938'); f.path('M680,198 H938'); f.path('M1075,170 V118')
+    f.path('M535,116 V168'); f.path('M535,226 V398')
+    f.path('M680,528 H720 V210 H682', dashed=True); f.path('M680,628 H720 V528', dashed=True, arrow=False)
     f.path('M290,164 H330', arrow=False)
     for i in range(1, 6): f.path(f'M290,{164 + i * 92} H330', arrow=False)
     f.path('M330,164 V624', arrow=False)
-    for y, _ in apps: f.path(f'M330,{y + 28} H388')
-    f.note(1075, 330, 'conformance-domain は何にも依存しない', 'middle', True)
-    f.note(160, 690, 'cli だけが outbound に依存', 'middle')
-    f.note(610, 670, '線は依存してよい向き（意味の操作 → スキーマへの適合 → 操作の記録）。crate は12', 'middle')
-    f.note(610, 688, 'outbound は application のポートを実装し、domain の型は再公開から使う', 'middle')
+    for y, _, _, _ in apps: f.path(f'M330,{y + 28} H388')
+    f.note(1075, 280, 'writing-domain は何にも依存しない', 'middle', True)
+    f.note(1075, 300, 'validation-domain は集約を読む', 'middle')
+    f.note(160, 700, 'cli だけが outbound に依存', 'middle')
+    f.note(610, 676, '線は依存してよい向き：書く → 検証 → 記録、検証の domain → 書くの domain', 'middle')
+    f.note(610, 694, 'いま11、点線はこれから足す', 'middle')
+    f.note(610, 712, 'outbound は application のポートを実装する', 'middle')
     return f.write('crates', 1000)
-
 
 def stages():
     f = Fig(1000, 440, '探索の4つの段階と、引き上げの表')
@@ -200,7 +204,7 @@ def stages():
         f.box(20 + i * 245, 30, 220, 64, l, 'focus' if i == 3 else '')
         if i < 3: f.path(f'M{240 + i * 245},62 H{263 + i * 245}')
     f.area(20, 120, 960, 310, '引き上げの表（段階4）')
-    RW = [('いつも同時に守らないといけない条件', '集約', 'focus'), ('意味を持つ値と、その値の規則', '値オブジェクト', 'focus'), ('いくつかのものにまたがる判定や計算', 'ドメインサービス', 'kind-1'), ('データの出し入れだけで、ルールが無い', 'スクリプトのまま', ''), ('見た目は同じだが、意味や変わる理由が違う', '別のものとして分ける', '')]
+    RW = [('いつも同時に守らないといけない条件', '集約', 'focus'), ('意味を持つ値と、その値の規則', '値オブジェクト', 'focus'), ('いくつかのものにまたがる判定や計算', '業務サービス', 'kind-1'), ('データの出し入れだけで、ルールが無い', 'スクリプトのまま', ''), ('見た目は同じだが、意味や変わる理由が違う', '別のものとして分ける', '')]
     for i, (a, b, r) in enumerate(RW):
         y = 156 + i * 52
         f.box(50, y, 500, 40, [a]); f.box(640, y, 300, 40, [b], r)

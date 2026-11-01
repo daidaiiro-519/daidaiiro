@@ -1,4 +1,4 @@
-//! システムテスト：test-suite/scenarios/ の場面を1つずつ、空の作業ディレクトリで sas を動かして確かめる。
+//! システムテスト：system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで sas を動かして確かめる。
 //! ネットワークと本物のエージェントは使わない。given の git だけは準備として本物の git を使う。
 //! given の write は、SAS を通らずにファイルを書く（エディターで直したことの代わり）。
 
@@ -9,13 +9,13 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 fn suite() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../test-suite")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../system-tests")
 }
 
 /// sas が返す結果の形（出力のたびに照らす）。
 fn result_schema() -> jsonschema::Validator {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../schemas/v1/operation-result.schema.json");
+        .join("../../../published-language/v1/operation-result.schema.json");
     let schema: Value =
         serde_json::from_str(&std::fs::read_to_string(path).expect("結果の形を読めること"))
             .expect("結果の形が JSON であること");

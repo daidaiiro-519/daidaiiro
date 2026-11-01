@@ -1,0 +1,70 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC3-CONCRETE-FOLLOWED",
+ "name": "インスタンスが従う Concrete を消す",
+ "title": "U1 が従っている Concrete を消そうとすると、何も消さずに has_dependents を返し、従うインスタンスと、先に消すコマンドを返す",
+ "why": "Concrete だけ消すとインスタンスを検証できなくなり、インスタンスごと消すと書いた人の中身が1つの操作で失われる。どちらにするかは機械では決められない。",
+ "traces": [
+  "UC3:拡張:2a",
+  "UC3:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "delete",
+   "schemas/usecase.schema.json",
+   "--intent",
+   "ユースケースの型を使わなくなった"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "has_dependents"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/path",
+   "equals": "usecases/u1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/code",
+   "equals": "follows"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/hint",
+   "equals": "消す：sas delete usecases/u1.json --intent \"…\""
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "sas delete schemas/usecase.schema.json"
+  }
+ ],
+ "unchanged": [
+  "schemas/usecase.schema.json",
+  "usecases/u1.json"
+ ]
+}

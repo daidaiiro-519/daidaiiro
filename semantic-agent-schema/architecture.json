@@ -2,58 +2,71 @@
  "description": "いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足す。仮説としての向き（ドメインモデルが育ったときの形）は docs/design/arch/arch-v15.json にあり、要ると分かった時点でここへ移す",
  "context": "schemas-and-instances",
  "context_map": "文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」を分けたが、版16（2026-11-01）で SAS が子の状態を管理しないことにしたので1つに戻した。地図と経緯は docs/design/arch/arch-v15.json の context_map",
- "crate_name_prefix": "schemas-and-instances-",
+ "crate_naming": "crate の名前はフォルダから決める：業務領域を作るモジュールは <モジュール>-<層>（writing-domain など）、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support。文脈は1つなので文脈の名前を前に付けない。製品の名前は CLI の [[bin]]（sas）にだけ残す",
+ "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording。ステップ5 で rendering、ステップ8 で search を足す）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。依存は writing → validation → writing-domain、書く ・ 検証の両方が recording を使う",
  "crates": [
   {
-   "name": "schemas-and-instances-conformance-domain",
-   "path": "schemas-and-instances/conformance/domain",
+   "name": "writing-domain",
+   "path": "schemas-and-instances/writing/domain",
    "layer": "domain",
-   "role": "業務領域「スキーマへの適合」のドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（指紋 ・ 5つの値 ・ rule の結果 ・ 差分 ・ 書く条件の外れ）、サービス（当たる rule ・ 参照の先 ・ 参照元を探す）"
+   "role": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（指紋 ・ 差分 ・ 書く条件の外れ）、サービス（参照の先 ・ 参照元を探す）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く"
   },
   {
-   "name": "schemas-and-instances-conformance-application",
-   "path": "schemas-and-instances/conformance/application",
+   "name": "validation-domain",
+   "path": "schemas-and-instances/validation/domain",
+   "layer": "domain",
+   "role": "業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の5つの区分 ・ rule の結果 ・ 誰が判定するか）と、集約を読んで rule に照らすサービス（当たる rule ・ Concrete の Abstract の rule ・ 参照の先が在るか）。集約は持たない"
+  },
+  {
+   "name": "validation-application",
+   "path": "schemas-and-instances/validation/application",
    "layer": "application",
-   "role": "UC4 検証する ・ UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/documents.rs と、参照元の記載も消す documents/delete.rs と、JSON Patch を当てる documents/patch.rs）、取り込み（adopt）・ 入力が変わった rule だけの検証（validate_stale）と、ポート DocumentStore ・ SchemaChecker ・ CommitReader"
+   "role": "UC4 検証する（機械。use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_stale）・ SAS を通らない変更の知らせと、ポート DocumentStore ・ SchemaValidator。対象の見分けと形の確かめは、書くモジュールも使う"
   },
   {
-   "name": "schemas-and-instances-operation-recording-application",
-   "path": "schemas-and-instances/operation-recording/application",
+   "name": "writing-application",
+   "path": "schemas-and-instances/writing/application",
+   "layer": "application",
+   "role": "UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、参照元の記載も消す write/delete.rs、JSON Patch を当てる write/patch.rs）・ 取り込み（adopt）と、ポート CommitReader"
+  },
+  {
+   "name": "recording-application",
+   "path": "schemas-and-instances/recording/application",
    "layer": "application",
    "role": "操作の記録の追記（use_cases/history.rs。検証と、書いた作成 ・ 更新 ・ 削除。断った操作は記録しない）と、ポート IdentifyCaller（親のセッション ID か人）・ OperationLog"
   },
   {
-   "name": "schemas-and-instances-adapters-outbound-files",
-   "path": "schemas-and-instances/adapters/outbound/files",
+   "name": "outbound-filesystem",
+   "path": "schemas-and-instances/adapters/outbound/filesystem",
    "layer": "outbound",
    "role": "DocumentStore の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す"
   },
   {
-   "name": "schemas-and-instances-adapters-outbound-jsonschema",
+   "name": "outbound-jsonschema",
    "path": "schemas-and-instances/adapters/outbound/jsonschema",
    "layer": "outbound",
-   "role": "SchemaChecker の実装。入れて出すスキーマを持つ 2020-12 の検査器"
+   "role": "SchemaValidator の実装。入れて出すスキーマを持つ 2020-12 のバリデーター"
   },
   {
-   "name": "schemas-and-instances-adapters-outbound-sqlite",
+   "name": "outbound-sqlite",
    "path": "schemas-and-instances/adapters/outbound/sqlite",
    "layer": "outbound",
    "role": "OperationLog の実装。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（親の行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻を作る。request_id と前の判定を引く。断った操作は記録しない"
   },
   {
-   "name": "schemas-and-instances-adapters-outbound-git",
+   "name": "outbound-git",
    "path": "schemas-and-instances/adapters/outbound/git",
    "layer": "outbound",
    "role": "CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。記録の置き場所に使う共通のフォルダ（rev-parse --git-common-dir）も引く。Git に書き込まない"
   },
   {
-   "name": "schemas-and-instances-adapters-inbound-cli",
+   "name": "inbound-cli",
    "path": "schemas-and-instances/adapters/inbound/cli",
    "layer": "inbound",
-   "role": "sas コマンドの入口。adapter を組み立て、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。IdentifyCaller を --session と、ツールごとの環境変数の表（callers.json）で実装する"
+   "role": "sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。IdentifyCaller を --session と、ツールごとの環境変数の表（callers.json）で実装する"
   },
   {
-   "name": "schemas-and-instances-test-support",
+   "name": "test-support",
    "path": "schemas-and-instances/test-support",
    "layer": "test-support",
    "role": "試験の部品。dev-dependencies からだけ使う。ステップ1 ではスキーマと依存の向きの検査だけを持つ"
@@ -61,7 +74,7 @@
  ],
  "allow": [
   {
-   "from": "schemas-and-instances-conformance-domain",
+   "from": "writing-domain",
    "to": [],
    "libraries": [
     "serde_json",
@@ -69,31 +82,53 @@
    ]
   },
   {
-   "from": "schemas-and-instances-conformance-application",
+   "from": "validation-domain",
    "to": [
-    "schemas-and-instances-conformance-domain",
-    "schemas-and-instances-operation-recording-application"
+    "writing-domain"
    ],
    "libraries": [
     "serde_json"
    ]
   },
   {
-   "from": "schemas-and-instances-operation-recording-application",
+   "from": "validation-application",
+   "to": [
+    "writing-domain",
+    "validation-domain",
+    "recording-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "writing-application",
+   "to": [
+    "writing-domain",
+    "validation-domain",
+    "validation-application",
+    "recording-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "recording-application",
    "to": [],
    "libraries": []
   },
   {
-   "from": "schemas-and-instances-adapters-outbound-files",
+   "from": "outbound-filesystem",
    "to": [
-    "schemas-and-instances-conformance-application"
+    "validation-application"
    ],
    "libraries": []
   },
   {
-   "from": "schemas-and-instances-adapters-outbound-jsonschema",
+   "from": "outbound-jsonschema",
    "to": [
-    "schemas-and-instances-conformance-application"
+    "validation-application"
    ],
    "libraries": [
     "serde_json",
@@ -101,43 +136,45 @@
    ]
   },
   {
-   "from": "schemas-and-instances-adapters-outbound-sqlite",
+   "from": "outbound-sqlite",
    "to": [
-    "schemas-and-instances-operation-recording-application"
+    "recording-application"
    ],
    "libraries": [
     "rusqlite"
    ]
   },
   {
-   "from": "schemas-and-instances-adapters-outbound-git",
+   "from": "outbound-git",
    "to": [
-    "schemas-and-instances-conformance-application"
+    "writing-application"
    ],
    "libraries": []
   },
   {
-   "from": "schemas-and-instances-adapters-inbound-cli",
+   "from": "inbound-cli",
    "to": [
-    "schemas-and-instances-conformance-application",
-    "schemas-and-instances-conformance-domain",
-    "schemas-and-instances-operation-recording-application",
-    "schemas-and-instances-adapters-outbound-files",
-    "schemas-and-instances-adapters-outbound-jsonschema",
-    "schemas-and-instances-adapters-outbound-sqlite",
-    "schemas-and-instances-adapters-outbound-git"
+    "validation-application",
+    "writing-application",
+    "writing-domain",
+    "validation-domain",
+    "recording-application",
+    "outbound-filesystem",
+    "outbound-jsonschema",
+    "outbound-sqlite",
+    "outbound-git"
    ],
    "libraries": [
     "serde_json"
    ]
   },
   {
-   "from": "schemas-and-instances-test-support",
+   "from": "test-support",
    "to": [],
    "libraries": []
   }
  ],
  "dev_only": [
-  "schemas-and-instances-test-support"
+  "test-support"
  ]
 }
