@@ -13,7 +13,7 @@ use writing_application::ports::CommitReader;
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, UpdateRequest, adopt, create, update,
 };
-use writing_domain::values::Fingerprint;
+use writing_domain::values::ContentHash;
 
 fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
     CreateRequest {
@@ -38,7 +38,7 @@ fn create_writes_records_and_returns_the_diff() {
     )
     .unwrap();
     let text = store.read("u1.json").unwrap();
-    assert_eq!(c.after, Fingerprint::of(text.as_bytes()));
+    assert_eq!(c.after, ContentHash::of(text.as_bytes()));
     let pointers: Vec<&str> = c.diff.changes().iter().map(|f| f.pointer()).collect();
     assert_eq!(pointers, ["/$schema", "/id", "/status"]);
     assert_eq!(log.1[0].1.after.as_deref(), Some(c.after.as_str()));
@@ -84,7 +84,7 @@ fn same_request_is_one_operation() {
 }
 
 #[test]
-fn update_checks_the_fingerprint_before_writing() {
+fn update_checks_the_hash_before_writing() {
     let store = files(&[
         ("c.json", decided()),
         ("u1.json", json!({"$schema": UC, "id": "U1", "goal": "a"})),
@@ -102,7 +102,7 @@ fn update_checks_the_fingerprint_before_writing() {
     assert_eq!(r.code, "conflict");
     assert_eq!(store.read("u1.json").unwrap(), before);
     assert!(log.1.is_empty(), "断った操作は記録しない");
-    let fp = Fingerprint::of(before.as_bytes());
+    let fp = ContentHash::of(before.as_bytes());
     let c = update(&req(fp.as_str()), &store, &Lenient, &Human, &mut log).unwrap();
     assert_eq!(c.before, Some(fp));
     assert_eq!(c.diff.changes().len(), 1);
@@ -178,7 +178,7 @@ fn update_reports_the_previous_judgments_it_made_stale() {
         &mut log,
     )
     .unwrap();
-    let fp = Fingerprint::of(store.read("u1.json").unwrap().as_bytes());
+    let fp = ContentHash::of(store.read("u1.json").unwrap().as_bytes());
     let c = update(
         &UpdateRequest {
             path: "u1.json".into(),

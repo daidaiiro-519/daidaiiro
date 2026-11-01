@@ -24,7 +24,7 @@ use validation_application::use_cases::validate::{
 };
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
-use writing_domain::values::{Change, Diff, FieldChange, Fingerprint};
+use writing_domain::values::{Change, ContentHash, Diff, FieldChange};
 
 /// 作成か更新か。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,9 +89,9 @@ pub struct ChangeResult {
     /// 従う Concrete（Concrete なら Abstract の版）の $id
     pub concrete: String,
     /// 事前のハッシュ（作成では None）
-    pub before: Option<Fingerprint>,
+    pub before: Option<ContentHash>,
     /// 事後のハッシュ
-    pub after: Fingerprint,
+    pub after: ContentHash,
     /// 前後の中身から求めた差分
     pub diff: Diff,
     /// 入力が変わった前の判定
@@ -309,7 +309,7 @@ fn replay(
     let after = row
         .after
         .as_deref()
-        .and_then(Fingerprint::parse)
+        .and_then(ContentHash::parse)
         .ok_or_else(|| {
             log_refused(format!(
                 "操作 {} の事後のハッシュを読めない",
@@ -323,7 +323,7 @@ fn replay(
         kind,
         path: row.target_path,
         concrete,
-        before: row.before.as_deref().and_then(Fingerprint::parse),
+        before: row.before.as_deref().and_then(ContentHash::parse),
         after,
         diff: Diff::from_changes(changes),
         stale: Vec::new(),
@@ -436,7 +436,7 @@ pub fn create(
     store
         .write(path, &text)
         .map_err(|e| refused("store", path, e))?;
-    let after = Fingerprint::of(text.as_bytes());
+    let after = ContentHash::of(text.as_bytes());
     let diff = Diff::between(None, &value);
     let recorded = record_change(
         who,
@@ -509,7 +509,7 @@ pub fn update(
         .to_string();
     let corpus = Corpus::load(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
-    let current = Fingerprint::of(text.as_bytes());
+    let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
         kind: Written::Updated.kind().to_string(),
         source: "sas".to_string(),
@@ -599,7 +599,7 @@ pub fn update(
     store
         .write(path, &new_text)
         .map_err(|e| refused("store", path, e))?;
-    let after_fp = Fingerprint::of(new_text.as_bytes());
+    let after_fp = ContentHash::of(new_text.as_bytes());
     let diff = Diff::between(Some(&before), &after);
     let recorded = record_change(
         who,
@@ -741,7 +741,7 @@ fn find_commit(
         let Some(bytes) = committed.read(&rev, path).map_err(store_err)? else {
             continue;
         };
-        let fp = Fingerprint::of(&bytes);
+        let fp = ContentHash::of(&bytes);
         if recorded.iter().any(|r| r == fp.as_str())
             && let Ok(value) = serde_json::from_slice::<Value>(&bytes)
         {
@@ -798,7 +798,7 @@ pub fn adopt(
     }
     let corpus = Corpus::load(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
-    let fingerprint = Fingerprint::of(text.as_bytes());
+    let hash = ContentHash::of(text.as_bytes());
     let writes = log.writes(path).map_err(log_refused)?;
     let recorded: Vec<String> = writes.iter().filter_map(|w| w.row.after.clone()).collect();
 
@@ -828,7 +828,7 @@ pub fn adopt(
             if let Some(same) = writes
                 .iter()
                 .rev()
-                .find(|x| x.row.after.as_deref() == Some(fingerprint.as_str()))
+                .find(|x| x.row.after.as_deref() == Some(hash.as_str()))
             {
                 return Err(refused(
                     "nothing_to_adopt",
@@ -929,7 +929,7 @@ pub fn adopt(
         log,
         &ChangeRow {
             before: expected.clone(),
-            after: Some(fingerprint.as_str().to_string()),
+            after: Some(hash.as_str().to_string()),
             fields: field_rows(&diff),
             ..row
         },
@@ -957,8 +957,8 @@ pub fn adopt(
         kind,
         path: path.to_string(),
         concrete: declared,
-        before: expected.as_deref().and_then(Fingerprint::parse),
-        after: fingerprint,
+        before: expected.as_deref().and_then(ContentHash::parse),
+        after: hash,
         diff,
         stale,
         violated,

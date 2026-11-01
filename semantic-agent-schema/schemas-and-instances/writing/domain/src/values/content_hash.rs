@@ -7,9 +7,9 @@ use std::fmt::Write as _;
 
 /// ファイルの中身のハッシュ（`sha256:` に続く16進）。
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Fingerprint(String);
+pub struct ContentHash(String);
 
-impl Fingerprint {
+impl ContentHash {
     /// 中身のバイト列からハッシュを作る。
     #[must_use]
     pub fn of(bytes: &[u8]) -> Self {
@@ -50,34 +50,34 @@ impl Fingerprint {
 
 #[cfg(test)]
 mod tests {
-    use super::Fingerprint;
+    use super::ContentHash;
     use serde_json::json;
 
     #[test]
-    fn read_fingerprint_depends_on_place_and_value() {
+    fn read_hash_depends_on_place_and_value() {
         let a = json!("x");
         assert_eq!(
-            Fingerprint::of_read("/goal", Some(&a)),
-            Fingerprint::of_read("/goal", Some(&json!("x")))
+            ContentHash::of_read("/goal", Some(&a)),
+            ContentHash::of_read("/goal", Some(&json!("x")))
         );
         assert_ne!(
-            Fingerprint::of_read("/goal", Some(&a)),
-            Fingerprint::of_read("/name", Some(&a))
+            ContentHash::of_read("/goal", Some(&a)),
+            ContentHash::of_read("/name", Some(&a))
         );
         assert_ne!(
-            Fingerprint::of_read("/goal", None),
-            Fingerprint::of_read("/goal", Some(&json!(null)))
+            ContentHash::of_read("/goal", None),
+            ContentHash::of_read("/goal", Some(&json!(null)))
         );
     }
 
     #[test]
-    fn same_bytes_same_fingerprint() {
-        assert_eq!(Fingerprint::of(b"{}"), Fingerprint::of(b"{}"));
-        assert_ne!(Fingerprint::of(b"{}"), Fingerprint::of(b"{ }"));
-        assert!(Fingerprint::of(b"").as_str().starts_with("sha256:"));
-        let fp = Fingerprint::of(b"{}");
-        assert_eq!(Fingerprint::parse(fp.as_str()), Some(fp));
-        assert_eq!(Fingerprint::parse("sha256:00"), None);
-        assert_eq!(Fingerprint::parse("md5:00"), None);
+    fn same_bytes_same_hash() {
+        assert_eq!(ContentHash::of(b"{}"), ContentHash::of(b"{}"));
+        assert_ne!(ContentHash::of(b"{}"), ContentHash::of(b"{ }"));
+        assert!(ContentHash::of(b"").as_str().starts_with("sha256:"));
+        let fp = ContentHash::of(b"{}");
+        assert_eq!(ContentHash::parse(fp.as_str()), Some(fp));
+        assert_eq!(ContentHash::parse("sha256:00"), None);
+        assert_eq!(ContentHash::parse("md5:00"), None);
     }
 }

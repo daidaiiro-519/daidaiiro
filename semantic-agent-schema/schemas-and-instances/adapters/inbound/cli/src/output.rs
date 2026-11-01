@@ -53,7 +53,7 @@ pub fn print_validation_with(v: &Validation, meaning: Option<&MeaningOutcome>) {
                 "path": t.path,
                 "kind": t.kind.as_str(),
                 "schema": t.schema,
-                "fingerprint": t.fingerprint.as_str(),
+                "hash": t.hash.as_str(),
                 "operation": t.operation,
                 "results": t.results.iter().map(rule_result).collect::<Vec<_>>(),
                 "counts": counts(&t.counts),
@@ -118,7 +118,7 @@ pub fn print_design_validation(v: &DesignValidation) {
                 "path": t.path,
                 "kind": "design-system",
                 "schema": "urn:semantic-agent-schema:published-language:design-system:v1",
-                "fingerprint": t.fingerprint.as_str(),
+                "hash": t.hash.as_str(),
                 "operation": t.operation,
                 "results": t.results.iter().map(rule_result).collect::<Vec<_>>(),
                 "counts": counts(&t.counts),
@@ -151,9 +151,9 @@ fn write_record(w: &WriteRecord) -> Value {
     }
     v["at"] = json!(w.at);
     if let Some(b) = &w.row.before {
-        v["before"] = json!({"fingerprint": b});
+        v["before"] = json!({"hash": b});
     }
-    v["after"] = json!({"fingerprint": w.row.after});
+    v["after"] = json!({"hash": w.row.after});
     v["changes"] = w
         .row
         .fields
@@ -187,7 +187,7 @@ fn interleaved(i: &Interleaved) -> Value {
             "operation": w.operation,
             "parent_session": w.parent,
             "at": w.at,
-            "after": {"fingerprint": w.row.after},
+            "after": {"hash": w.row.after},
         });
     }
     v
@@ -250,7 +250,7 @@ pub fn print_deletion(d: &Deletion) {
         "target": {"kind": d.kind.as_str(), "path": d.path, "concrete": d.concrete},
         "diff": {
             "source": "sas",
-            "before": {"fingerprint": d.before.as_str()},
+            "before": {"hash": d.before.as_str()},
             "changes": changes(&d.diff),
         },
         "stale_rules": [],
@@ -263,7 +263,7 @@ pub fn print_deletion(d: &Deletion) {
 pub fn print_change(c: &ChangeResult) {
     let mut diff = json!({
         "source": if c.outside { "outside" } else { "sas" },
-        "after": {"fingerprint": c.after.as_str()},
+        "after": {"hash": c.after.as_str()},
         "changes": c.diff.changes().iter().map(|f| {
             let mut v = json!({"pointer": f.pointer(), "change": f.change().as_str()});
             if let Some(b) = f.before() {
@@ -279,7 +279,7 @@ pub fn print_change(c: &ChangeResult) {
         }).collect::<Vec<_>>(),
     });
     if let Some(b) = &c.before {
-        diff["before"] = json!({"fingerprint": b.as_str()});
+        diff["before"] = json!({"hash": b.as_str()});
         if let Some(v) = &c.before_commit {
             diff["before"]["commit"] = json!(v);
         }
@@ -320,7 +320,7 @@ pub fn print_render(r: &Rendered) {
         "design_system": {
             "name": r.design_system.name,
             "version": r.design_system.version,
-            "fingerprint": r.design_system.fingerprint,
+            "hash": r.design_system.hash,
         },
         "pages": pages,
     });

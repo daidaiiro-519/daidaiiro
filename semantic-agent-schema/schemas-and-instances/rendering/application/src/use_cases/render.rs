@@ -21,7 +21,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use validation_application::ports::{DocumentStore, SchemaValidator};
 use validation_application::use_cases::validate::{Corpus, Refused, TargetKind, classify, refused};
 use validation_domain::values::Verdict;
-use writing_domain::values::Fingerprint;
+use writing_domain::values::ContentHash;
 
 /// 描画の依頼。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,7 +42,7 @@ pub struct UsedDesignSystem {
     /// 版
     pub version: String,
     /// ファイルの中身のハッシュ
-    pub fingerprint: String,
+    pub hash: String,
 }
 
 /// 描いた1ページ。
@@ -117,7 +117,7 @@ pub fn render(
     let used = UsedDesignSystem {
         name: text_of(&ds.value, "name"),
         version: text_of(&ds.value, "version"),
-        fingerprint: Fingerprint::of(ds.text.as_bytes()).as_str().to_string(),
+        hash: ContentHash::of(ds.text.as_bytes()).as_str().to_string(),
     };
     let template_paths = &ds.template_paths;
     let sources = &ds.sources;

@@ -110,7 +110,7 @@ fn change(before: Option<&str>, after: Option<&str>) -> ChangeRow {
 }
 
 #[test]
-fn interleaved_follows_fingerprints_from_expected() {
+fn interleaved_follows_hashs_from_expected() {
     let mut log = Memory::default();
     let human = Fixed(Caller::Human);
     assert_eq!(last_written(&log, "a.json").unwrap(), None);

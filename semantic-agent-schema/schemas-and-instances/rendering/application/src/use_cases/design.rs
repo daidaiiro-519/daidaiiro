@@ -26,7 +26,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use validation_application::ports::{DocumentStore, SchemaValidator};
 use validation_application::use_cases::validate::{Corpus, Refused, log_refused, refused};
 use validation_domain::values::{By, Counts, RuleResult, Verdict};
-use writing_domain::values::Fingerprint;
+use writing_domain::values::ContentHash;
 
 /// デザインシステムの受け取りの型。
 pub const DESIGN_SYSTEM: &str = "urn:semantic-agent-schema:published-language:design-system:v1";
@@ -695,7 +695,7 @@ pub struct DesignTarget {
     /// 経路
     pub path: String,
     /// 検証したときの中身のハッシュ
-    pub fingerprint: Fingerprint,
+    pub hash: ContentHash,
     /// rule ごとの結果
     pub results: Vec<RuleResult>,
     /// 判定の5つの区分ごとの件数
@@ -740,7 +740,7 @@ pub fn validate_design_systems(
         .map(|d| ValidateRow {
             child_session: None,
             target_path: d.path.clone(),
-            hash: Fingerprint::of(d.text.as_bytes()).as_str().to_string(),
+            hash: ContentHash::of(d.text.as_bytes()).as_str().to_string(),
             results: d
                 .results
                 .iter()
@@ -750,7 +750,7 @@ pub fn validate_design_systems(
                     by: r.by().as_str().to_string(),
                     result: r.verdict().as_str().to_string(),
                     reason: r.reason().to_string(),
-                    reads: Fingerprint::of_read(at, d.value.pointer(at))
+                    reads: ContentHash::of_read(at, d.value.pointer(at))
                         .as_str()
                         .to_string(),
                 })
@@ -768,7 +768,7 @@ pub fn validate_design_systems(
             total.merge(&counts);
             DesignTarget {
                 path: d.path,
-                fingerprint: Fingerprint::of(d.text.as_bytes()),
+                hash: ContentHash::of(d.text.as_bytes()),
                 results,
                 counts,
                 operation,

@@ -35,7 +35,7 @@ fn concrete_gets_a_result_for_every_applied_rule() {
         ]
     );
     assert_eq!(log.0.len(), 1);
-    assert_eq!(log.0[0].hash, t.fingerprint.as_str());
+    assert_eq!(log.0[0].hash, t.hash.as_str());
 }
 
 #[test]

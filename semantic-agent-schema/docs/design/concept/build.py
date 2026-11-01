@@ -207,7 +207,7 @@ GONE2 = [("judgment.schema.json", "rule_results（DB）と command-result の ru
 MAPW = [("CLI の引数（--session ・ --intent ・ --request-id）", "sessions（caller）・changes"), ("CLI の引数 --agent（接続の定義）", "sessions の子セッションの行（tool ・ model ・ launch）"),
  ("接続の定義の tool_ref で読んだ子セッションの ID", "sessions の子セッションの行（id）・child_session_id"), ("agent-answer の judgments", "rule_results（by = ai）"), ("command-result の diff", "changes の前後のハッシュ・field_changes")]
 MAPR = [("sessions", "session（parent_id → parent。launch は出さない）"), ("ビュー operations", "operation（cause_id → cause）"), ("changes＋field_changes", "diff（change・operation の中）"),
- ("rule_results", "rule-result（reads_hash → reads_fingerprint）"), ("changes の最後の after_hash", "validation の untracked・error"), ("ビュー operations（パスごと）", "history"), ("sessions と最後の時刻", "error の child_exists（previous_child）")]
+ ("rule_results", "rule-result（reads_hash）"), ("changes の最後の after_hash", "validation の untracked・error"), ("ビュー operations（パスごと）", "history"), ("sessions と最後の時刻", "error の child_exists（previous_child）")]
 FACT = [
  ("JSON Schema の出力の形", "json-schema.org Core 2020-12 の12章", "欄名はすべて在った。一覧に absoluteKeywordLocation と error（単数）を足した。出力の形は実装に SHOULD"),
  ("$vocabulary・$dynamicAnchor・$dynamicRef", "Core 2020-12・メタスキーマ", "方言に $dynamicAnchor: meta を置く。true の語彙を知らないバリデーターは方言を断る（MUST）"),

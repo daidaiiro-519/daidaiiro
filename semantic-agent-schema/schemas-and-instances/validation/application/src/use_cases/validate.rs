@@ -20,7 +20,7 @@ use validation_domain::services::{
 };
 use validation_domain::values::{By, Counts, RuleResult, Verdict};
 use writing_domain::aggregates::{ABSTRACT_VERSIONS, ConcreteSchema, Entry};
-use writing_domain::values::Fingerprint;
+use writing_domain::values::ContentHash;
 
 /// 方言（Concrete の入れ子の x- の形を決める）。Concrete は Abstract の本体と、この方言の両方に照らす。
 pub const DIALECT: &str = "urn:semantic-agent-schema:published-language:dialect:v1";
@@ -64,7 +64,7 @@ pub struct TargetResult {
     /// 従う schema の $id
     pub schema: String,
     /// 検証したときの中身のハッシュ
-    pub fingerprint: Fingerprint,
+    pub hash: ContentHash,
     /// rule ごとの結果
     pub results: Vec<RuleResult>,
     /// 判定の5つの区分ごとの件数
@@ -373,7 +373,7 @@ fn apply_meaning(
             let now = reader.launch();
             if recorded.get("connector") != now.get("connector")
                 || recorded.get("version") != now.get("version")
-                || recorded.get("fingerprint") != now.get("fingerprint")
+                || recorded.get("hash") != now.get("hash")
             {
                 return Err(Refused {
                     code: "launch_mismatch",
@@ -381,10 +381,10 @@ fn apply_meaning(
                         "子セッション {id} は接続の定義 {} 版 {}（{}）で起動した。いまの定義（{} 版 {}、{}）では続けない。同じ定義を --agent に渡す",
                         recorded.get("connector").unwrap_or(&Value::Null),
                         recorded.get("version").unwrap_or(&Value::Null),
-                        recorded.get("fingerprint").unwrap_or(&Value::Null),
+                        recorded.get("hash").unwrap_or(&Value::Null),
                         now.get("connector").unwrap_or(&Value::Null),
                         now.get("version").unwrap_or(&Value::Null),
-                        now.get("fingerprint").unwrap_or(&Value::Null)
+                        now.get("hash").unwrap_or(&Value::Null)
                     ),
                     ..Refused::default()
                 });
@@ -469,7 +469,7 @@ fn apply_meaning(
         if steps.is_empty() {
             continue;
         }
-        let proc = procedure(&c.doc.path, &c.declared, c.fingerprint.as_str(), &steps);
+        let proc = procedure(&c.doc.path, &c.declared, c.hash.as_str(), &steps);
         let judged = judge_meaning(reader, &mut child, &proc, &steps).map_err(|code| Refused {
             code,
             path: Some(c.doc.path.as_str().into()),
@@ -496,15 +496,15 @@ fn apply_meaning(
         // 答えを待つ間に対象が変わっていたら、判定を記録に入れない
         let now = store
             .read(&c.doc.path)
-            .map(|t| Fingerprint::of(t.as_bytes()))
+            .map(|t| ContentHash::of(t.as_bytes()))
             .map_err(|e| refused("not_found", &c.doc.path, e))?;
-        if now != c.fingerprint {
+        if now != c.hash {
             return Err(refused(
                 "conflict",
                 &c.doc.path,
                 format!(
                     "検証用の子セッションが判定している間に中身が変わった（{} → {}）。判定を記録に入れない。もう一度検証する",
-                    c.fingerprint.as_str(),
+                    c.hash.as_str(),
                     now.as_str()
                 ),
             ));
@@ -621,8 +621,8 @@ fn judge(
 
 /// 判定が読んだ所のハッシュ。
 #[must_use]
-pub fn reads_of(document: &Value, at: &str) -> Fingerprint {
-    Fingerprint::of_read(at, document.pointer(at))
+pub fn reads_of(document: &Value, at: &str) -> ContentHash {
+    ContentHash::of_read(at, document.pointer(at))
 }
 
 /// いま判定した対象1つ（記録する前）。
@@ -634,9 +634,9 @@ pub struct Current {
     /// 従う schema の $id
     pub declared: String,
     /// いまの中身のハッシュ
-    pub fingerprint: Fingerprint,
+    pub hash: ContentHash,
     /// rule ごとの結果と、その判定が読んだ所のハッシュ
-    pub results: Vec<(RuleResult, Fingerprint)>,
+    pub results: Vec<(RuleResult, ContentHash)>,
     /// rule ごとの定義（x-prompt の write の1行。results と同じ並び。機械だけの検査は None）
     pub definitions: Vec<Option<Value>>,
 }
@@ -702,7 +702,7 @@ pub fn judge_current(
                 // rule の文も読んだものに入れる（Concrete の rule を書き換えたら、前の判定は効かない）
                 let reads = match definition {
                     Some(def) => {
-                        Fingerprint::of(format!("{}\u{0}{def}", reads.as_str()).as_bytes())
+                        ContentHash::of(format!("{}\u{0}{def}", reads.as_str()).as_bytes())
                     }
                     None => reads,
                 };
@@ -710,7 +710,7 @@ pub fn judge_current(
             })
             .collect();
         current.push(Current {
-            fingerprint: Fingerprint::of(doc.text.as_bytes()),
+            hash: ContentHash::of(doc.text.as_bytes()),
             doc,
             kind,
             declared,
@@ -723,7 +723,7 @@ pub fn judge_current(
 
 /// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。
 /// いまの判定と前の判定で、rule ごとに「読んだ所のハッシュ」の集まりを比べる。
-fn changed_rules(now: &[(RuleResult, Fingerprint)], before: &[Judgment]) -> BTreeSet<String> {
+fn changed_rules(now: &[(RuleResult, ContentHash)], before: &[Judgment]) -> BTreeSet<String> {
     let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for (r, reads) in now {
         current
@@ -767,21 +767,20 @@ fn run_validate(
         doc: d,
         kind,
         declared,
-        fingerprint,
+        hash,
         mut results,
         ..
     } in current
     {
         // SAS を通らない変更：いまの中身が、記録のどの事後とも違う。知らせて、いまの中身を検証する
-        if let Some(expected) =
-            untracked_since(log, &d.path, fingerprint.as_str()).map_err(log_refused)?
+        if let Some(expected) = untracked_since(log, &d.path, hash.as_str()).map_err(log_refused)?
             && let Some(last) = log.writes(&d.path).map_err(log_refused)?.pop()
         {
             untracked.push(Untracked {
                 path: d.path.clone(),
                 last_operation: last.operation,
                 expected,
-                actual: fingerprint.as_str().to_string(),
+                actual: hash.as_str().to_string(),
             });
         }
         let mut unchanged_rules = Vec::new();
@@ -809,7 +808,7 @@ fn run_validate(
             d.path,
             kind,
             declared,
-            fingerprint,
+            hash,
             rules,
             reads,
             counts,
@@ -844,16 +843,13 @@ fn run_validate(
         .into_iter()
         .zip(recorded.operations)
         .map(
-            |(
-                (path, kind, schema, fingerprint, results, _, counts, unchanged_rules),
-                operation,
-            )| {
+            |((path, kind, schema, hash, results, _, counts, unchanged_rules), operation)| {
                 total.merge(&counts);
                 TargetResult {
                     path,
                     kind,
                     schema,
-                    fingerprint,
+                    hash,
                     results,
                     counts,
                     operation,

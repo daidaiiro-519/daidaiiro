@@ -11,7 +11,7 @@ use recording_application::use_cases::history::{interleaved, record_change, untr
 use serde_json::{Value, json};
 use validation_application::ports::DocumentStore;
 use writing_domain::aggregates::{ConcreteSchema, Instance};
-use writing_domain::values::{Change, Diff, FieldChange, Fingerprint};
+use writing_domain::values::{Change, ContentHash, Diff, FieldChange};
 
 /// 削除の依頼。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,7 +40,7 @@ pub struct Deletion {
     /// 従う Concrete（Concrete なら Abstract の版）の $id
     pub concrete: String,
     /// 消す前のハッシュ
-    pub before: Fingerprint,
+    pub before: ContentHash,
     /// 消す前の状態（根の欄ごとの remove）
     pub diff: Diff,
     /// 同じ request_id の操作がすでにあり、消さずにそれを返したか
@@ -85,7 +85,7 @@ fn replayed(
     };
     let fp = |s: &Option<String>, op: &str| {
         s.as_deref()
-            .and_then(Fingerprint::parse)
+            .and_then(ContentHash::parse)
             .ok_or_else(|| log_refused(format!("操作 {op} のハッシュを読めない")))
     };
     let (kind, concrete) = target_of(store, path, &row.fields);
@@ -151,7 +151,7 @@ pub fn delete(
         .to_string();
     let corpus = Corpus::load(store)?;
     let kind = classify(&corpus.concretes, path, &declared)?;
-    let current = Fingerprint::of(text.as_bytes());
+    let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
         kind: "delete".to_string(),
         source: "sas".to_string(),

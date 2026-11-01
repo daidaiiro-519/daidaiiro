@@ -53,11 +53,11 @@ pub struct Step {
 
 /// 対象1つの手順のプロンプト。
 #[must_use]
-pub fn procedure(path: &str, concrete: &str, fingerprint: &str, steps: &[Step]) -> Value {
+pub fn procedure(path: &str, concrete: &str, hash: &str, steps: &[Step]) -> Value {
     json!({
         "kind": "procedure",
         "operation_kind": "validate",
-        "target": {"path": path, "concrete": concrete, "fingerprint": fingerprint},
+        "target": {"path": path, "concrete": concrete, "hash": hash},
         "steps": steps.iter().map(|s| {
             let mut v = json!({
                 "no": s.no,
