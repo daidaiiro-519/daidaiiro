@@ -1,13 +1,83 @@
 {
  "$schema": "urn:semantic-agent-schema:published-language:agent-connector:v1",
  "name": "codex",
- "version": "1",
+ "version": "2",
  "commands": {
-  "start": { "argv": ["codex", "exec", "--json", "--sandbox", "read-only", "-"], "stdin": "{prompt.text}" },
-  "continue": { "argv": ["codex", "exec", "resume", "--json", "{tool_ref}", "-"], "stdin": "{prompt.text}" }
+  "start": {
+   "argv": [
+    "codex",
+    "exec",
+    "--json",
+    "--sandbox",
+    "read-only",
+    "--ignore-user-config",
+    "--disable",
+    "shell_tool",
+    "--disable",
+    "unified_exec",
+    "--disable",
+    "apps",
+    "--disable",
+    "browser_use",
+    "--disable",
+    "computer_use",
+    "--disable",
+    "view_image",
+    "--disable",
+    "skill_search",
+    "--disable",
+    "tool_suggest",
+    "-c",
+    "web_search=\"disabled\"",
+    "-"
+   ],
+   "stdin": "{prompt.text}"
+  },
+  "continue": {
+   "argv": [
+    "codex",
+    "exec",
+    "resume",
+    "--json",
+    "-c",
+    "sandbox_mode=\"read-only\"",
+    "--ignore-user-config",
+    "--disable",
+    "shell_tool",
+    "--disable",
+    "unified_exec",
+    "--disable",
+    "apps",
+    "--disable",
+    "browser_use",
+    "--disable",
+    "computer_use",
+    "--disable",
+    "view_image",
+    "--disable",
+    "skill_search",
+    "--disable",
+    "tool_suggest",
+    "-c",
+    "web_search=\"disabled\"",
+    "{tool_ref}",
+    "-"
+   ],
+   "stdin": "{prompt.text}"
+  }
  },
- "answer": { "from": "stdout", "json_pointer": "/item/text", "event_type": "item.completed" },
- "tool_ref": { "from": "stdout", "json_pointer": "/thread_id", "event_type": "thread.started" },
+ "answer": {
+  "from": "stdout",
+  "json_pointer": "/item/text",
+  "event_type": "item.completed"
+ },
+ "tool_ref": {
+  "from": "stdout",
+  "json_pointer": "/thread_id",
+  "event_type": "thread.started"
+ },
  "time_limit_s": 600,
- "capabilities": { "resume": true }
+ "capabilities": {
+  "resume": true
+ }
 }
