@@ -1,4 +1,4 @@
-//! 結果を JSON の1行にする（operation-result.schema.json の validation ・ change ・ render ・ error）。
+//! 結果を JSON の1行にする（command-result.schema.json の validation ・ change ・ render ・ error）。
 
 use recording_application::ports::WriteRecord;
 use recording_application::use_cases::history::Interleaved;
@@ -65,7 +65,7 @@ pub fn print_validation_with(v: &Validation, meaning: Option<&MeaningOutcome>) {
         })
         .collect();
     let mut out = json!({
-        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "validation",
         "parent_session": v.parent,
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
@@ -126,7 +126,7 @@ pub fn print_design_validation(v: &DesignValidation) {
         })
         .collect();
     let out = json!({
-        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "validation",
         "parent_session": v.parent,
         "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
@@ -196,7 +196,7 @@ fn interleaved(i: &Interleaved) -> Value {
 /// 始められなかった理由を出す。
 pub fn print_refused(r: &Refused) {
     let mut out = json!({
-        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "error",
         "code": r.code,
         "message": r.message,
@@ -241,7 +241,7 @@ fn changes(d: &Diff) -> Value {
 /// 削除の結果を出す。diff は消す前の状態（根の欄ごとの remove）で、事後を持たない。
 pub fn print_deletion(d: &Deletion) {
     let out = json!({
-        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "change",
         "parent_session": d.parent,
         "operation": d.operation,
@@ -288,7 +288,7 @@ pub fn print_change(c: &ChangeResult) {
         diff["before_unavailable"] = json!(c.diff.before_unavailable());
     }
     let out = json!({
-        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "change",
         "parent_session": c.parent,
         "operation": c.operation,
@@ -315,7 +315,7 @@ pub fn print_render(r: &Rendered) {
         .map(|p| json!({"target": p.target, "page_path": p.page_path, "views": p.views}))
         .collect();
     let out = json!({
-        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "render",
         "design_system": {
             "name": r.design_system.name,

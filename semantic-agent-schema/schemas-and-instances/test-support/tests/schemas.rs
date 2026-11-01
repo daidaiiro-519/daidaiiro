@@ -72,7 +72,7 @@ fn broken_record_is_rejected() {
 
 #[test]
 fn shipped_result_schema_follows_meta_schema() {
-    assert_meta_valid("schemas-and-instances/published-language/v1/operation-result.schema.json");
+    assert_meta_valid("schemas-and-instances/published-language/v1/command-result.schema.json");
 }
 
 #[test]

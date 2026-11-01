@@ -14,7 +14,7 @@ fn suite() -> PathBuf {
 
 /// sas が返す結果の形（出力のたびに照らす）。
 fn result_schema() -> jsonschema::Validator {
-    published("operation-result.schema.json")
+    published("command-result.schema.json")
 }
 
 /// 子セッションに渡した手順の形（意味の部分を含む操作で、結果の行の前に出る）。
@@ -139,7 +139,7 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
         let (schema, name) = if line.get("kind").and_then(Value::as_str) == Some("procedure") {
             (procedure_schema(), "procedure.schema.json")
         } else {
-            (result_schema(), "operation-result.schema.json")
+            (result_schema(), "command-result.schema.json")
         };
         let errors: Vec<String> = schema.iter_errors(line).map(|e| e.to_string()).collect();
         assert!(

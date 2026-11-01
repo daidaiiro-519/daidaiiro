@@ -6,7 +6,7 @@ JSON Schema を Semantic に拡張し、その型（Abstract → Concrete → �
 |---|---|
 | このフォルダ | 製品 Semantic Agent Schema のリポジトリ。区切られた文脈ではない（事業領域は「AI のエージェントが扱う構造化データを、スキーマに従って書き、検証すること」） |
 | `schemas-and-instances/` | 区切られた文脈「スキーマとインスタンス」。中の作り方はポートとアダプター |
-| `schemas-and-instances/published-language/v1/` | 公開された言葉（使う側が従い、読む通信規約）。Abstract の本体（abstract.schema.json）・ 語彙 ・ 方言と、CLI の出力（operation-result）。操作の依頼も作るステップでここに置く |
+| `schemas-and-instances/published-language/v1/` | 公開された言葉（使う側が従い、読む通信規約）。Abstract の本体（abstract.schema.json）・ 語彙 ・ 方言と、CLI の出力（command-result）。操作の依頼も作るステップでここに置く |
 | `schemas-and-instances/writing/` ・ `validation/` ・ `recording/` ・ `rendering/` | writing と validation は業務領域「書いて検証する」（中核）を作る2つのモジュール（domain と application）。recording は業務領域「記録」、rendering は業務領域「描画」（どちらも補完）のモジュール（application だけ）。集約は writing/domain |
 | `schemas-and-instances/adapters/` | 入口（inbound/cli、sas）と外の技術（outbound/filesystem ・ git ・ jsonschema ・ sqlite ・ templates ・ javascript） |
 | `schemas-and-instances/system-tests/` | システムテストの場面（`scenarios/`）と材料（`fixtures/`）、保証 ・ 拡張との突き合わせ（`trace.json` ・ `untested.json`） |
