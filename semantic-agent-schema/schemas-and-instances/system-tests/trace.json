@@ -7,7 +7,7 @@
   "UC2:成功時保証",
   "UC2:最低保証",
   "UC2:拡張:Concrete の更新でインスタンスが violated になった",
-  "UC2:拡張:申告する Abstract の版を変えた",
+  "UC2:拡張:パッチが申告する Abstract の版を変える",
   "UC2:変形:SAS を通らない変更を取り込む",
   "UC3:成功時保証",
   "UC3:最低保証",
@@ -15,7 +15,6 @@
   "UC3:拡張:2a",
   "UC4:成功時保証",
   "UC4:最低保証",
-  "UC4:拡張:*a",
   "UC4:拡張:3a",
   "UC4:拡張:6a",
   "UC4:拡張:6b",
@@ -35,7 +34,6 @@
   "UC5:拡張:6b",
   "UC5:変形:対象が複数",
   "UC5:変形:x-view の付け方",
-  "UC5:拡張:*a",
   "UC4:変形:デザインシステムを検証する",
   "UC5:変形:任意の欄が無い",
   "約束:abstract:root",
@@ -125,6 +123,7 @@
    "id": "UC2:最低保証",
    "meaning": "取り込めない更新は対象を変えない",
    "scenarios": [
+    "S-UC2-ABSTRACT-NOT-LISTED",
     "S-UC2-ADOPT-HUMAN-FIELD",
     "S-UC2-ADOPT-INVALID",
     "S-UC2-CONFLICT",
@@ -146,6 +145,13 @@
    "meaning": "インスタンスに UC2 を呼ぶ（SAS は外れたインスタンスを返し、呼ぶ側が UC2 を呼ぶ）",
    "scenarios": [
     "S-UC2-CONCRETE-VIOLATES"
+   ]
+  },
+  {
+   "id": "UC2:拡張:パッチが申告する Abstract の版を変える",
+   "meaning": "一覧に無い版なら schema_not_listed で断る（移すコマンドは v2 を出すときに作る）",
+   "scenarios": [
+    "S-UC2-ABSTRACT-NOT-LISTED"
    ]
   },
   {
@@ -215,13 +221,14 @@
   },
   {
    "id": "UC4:最低保証",
-   "meaning": "対象の内容は変わらない。判定を取れなかった rule は verified に数えない。手順に合わない判定は記録しない",
+   "meaning": "対象の内容は変わらない。判定を取れなかった rule は verified に数えない。手順に合わない判定は記録しない。判定は1回の記録で入り、途中で止まっても半端な判定の行は残らない",
    "scenarios": [
     "S-UC4-AI-UNVERIFIED",
     "S-UC4-ANSWER-SHAPE",
     "S-UC4-NOT-LISTED",
     "S-UC4-USAGE"
-   ]
+   ],
+   "note": "判定の記録が途中で失敗したら validations も rule_results も1行も残らないことは、outbound の sqlite の試験（validate_atomic.rs）で確かめる"
   },
   {
    "id": "UC4:拡張:3a",
@@ -269,11 +276,12 @@
   },
   {
    "id": "UC5:最低保証",
-   "meaning": "インスタンス ・ Concrete ・ デザインシステムは変わらず、記録も作らない。止まったときは1ページも書かず、理由を返す",
+   "meaning": "入力 ・ デザインシステム ・ 記録は変わらない。ページは1枚ずつ前か新しいかのどちらかで、止まったときは理由を返す。打ち直せばそろい、作業用のファイルも消える",
    "scenarios": [
     "S-UC5-MANY-ONE-FAILS",
     "S-UC5-UNCHANGED"
-   ]
+   ],
+   "note": "置き換えの途中の失敗で前のページに戻すこと、止められたあと（退避だけがある ・ ページが無い）に打ち直すとページがそろい作業用のファイルが消えることは、outbound の filesystem の試験（out_dir.rs）で確かめる"
   },
   {
    "id": "UC5:拡張:1a",
@@ -532,6 +540,7 @@
     "S-UC1-SEMANTIC-ANSWER-SCHEMA",
     "S-UC1-SEMANTIC",
     "S-UC2-SEMANTIC",
+    "S-UC4-SEMANTIC-CHANGED",
     "S-UC4-SEMANTIC-PROCEDURE",
     "S-UC6-SEARCH-SEMANTIC"
    ]
@@ -554,10 +563,12 @@
   },
   {
    "id": "UC4:変形:意味の判定",
-   "meaning": "--semantic で意味の rule の判定の手順（対象のハッシュ ・ 判定を渡すコマンド）を返して記録せず、--answer で渡された判定を形 ・ ハッシュ ・ step ・ rule ・ pointer で確かめてから、機械の結果と合わせて打ったセッションの検証として記録する",
+   "meaning": "--semantic で意味の rule の判定の手順（対象のハッシュ ・ 判定を渡すコマンド）を返して記録せず、--answer で渡された判定を形 ・ ハッシュ ・ step ・ rule ・ pointer で確かめてから、機械の結果と合わせて打ったセッションの検証として記録する。判定済みの対象では、前の判定から読んだ所が変わった rule と前に判定できなかった rule だけを手順に入れ、--all-rules ですべてを入れる。rule の全文は手順の rules に1回だけ書き、ステップは rule の id で指す",
    "scenarios": [
     "S-UC4-ANSWER-MISMATCH",
     "S-UC4-ANSWER",
+    "S-UC4-SEMANTIC-ALL-RULES",
+    "S-UC4-SEMANTIC-CHANGED",
     "S-UC4-SEMANTIC-NO-RULE",
     "S-UC4-SEMANTIC-PROCEDURE",
     "S-UC4-SEMANTIC-READS",

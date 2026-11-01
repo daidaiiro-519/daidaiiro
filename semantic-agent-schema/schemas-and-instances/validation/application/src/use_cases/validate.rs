@@ -182,21 +182,40 @@ pub fn validate_stale(
     run_validate(scope, true, store, validator, caller, log, None)
 }
 
+/// 意味の判定（--semantic ・ --answer）で、どの rule を手順に入れるか。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Selection {
+    /// --all-rules：前の判定にかかわらず、すべての rule を入れる。無ければ、前の判定から読んだ所が変わった rule と、
+    /// 前に判定できなかった rule だけ（前の判定が無い対象はすべて）
+    pub all_rules: bool,
+    /// --stale を渡したか（渡すコマンドにも付ける）。選び方は all_rules で決まる
+    pub stale: bool,
+}
+
+impl Selection {
+    /// 変わった rule だけを入れるか。
+    const fn changed_only(self) -> bool {
+        !self.all_rules
+    }
+}
+
 /// UC4 の意味の部分の1つ目：機械の検証をしたうえで、意味の rule（ai）の判定の手順を対象ごとに返す。記録しない。
 /// 判定する rule が無い対象の手順は無い（どの対象にも無ければ空）。
-/// 入力が変わった rule だけ（stale_only）のときは、前に判定できなかった rule も手順に入れる。
+/// 既定では、前の判定から読んだ所（reads_hash）が変わった rule と、前に判定できなかった rule だけを手順に入れる
+/// （前の判定が無い対象はすべて）。--all-rules なら、すべての rule を入れる。
 ///
 /// # Errors
 /// validate と同じ。
 pub fn semantic_procedures(
     scope: &Scope,
-    stale_only: bool,
+    selection: Selection,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     caller: &Caller,
     log: &dyn ValidationLog,
 ) -> Result<Vec<Value>, Refused> {
-    let (corpus, current, _) = current_for(scope, stale_only, true, store, validator, log)?;
+    let (corpus, current, _) =
+        current_for(scope, selection.changed_only(), true, store, validator, log)?;
     Ok(current
         .iter()
         .filter_map(|c| {
@@ -204,7 +223,7 @@ pub fn semantic_procedures(
             if steps.is_empty() {
                 return None;
             }
-            let command = answer_command(&c.doc.path, stale_only, caller);
+            let command = answer_command(&c.doc.path, selection, caller);
             Some(procedure(
                 &c.doc.path,
                 &c.declared,
@@ -218,12 +237,13 @@ pub fn semantic_procedures(
 
 /// UC4 の意味の部分の2つ目：打ったセッションが渡した判定（answer）を、形 ・ 手順のハッシュ ・ step ・ rule ・ pointer で
 /// 確かめ、機械の結果と合わせて記録する。合わなければ記録せずに断る。
+/// 手順を組んだときと同じ選び方（selection）で rule を選ぶので、既定では変わった rule だけを記録する。
 ///
 /// # Errors
 /// validate と同じ。ほかに、答えが形に合わない ・ 手順と突き合わない（invalid_answer）・ 手順のハッシュがいまの中身と違う（conflict）とき。
 pub fn validate_with_answer(
     path: &str,
-    stale_only: bool,
+    selection: Selection,
     answer: &str,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
@@ -232,21 +252,19 @@ pub fn validate_with_answer(
 ) -> Result<Validation, Refused> {
     run_validate(
         &Scope::Paths(vec![path.to_string()]),
-        stale_only,
+        selection.changed_only(),
         store,
         validator,
         caller,
         log,
-        Some(answer),
+        Some((answer, selection)),
     )
 }
 
 /// 判定を渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
-fn answer_command(path: &str, stale_only: bool, caller: &Caller) -> String {
+fn answer_command(path: &str, selection: Selection, caller: &Caller) -> String {
     let mut args = vec!["sas", "validate", path];
-    if stale_only {
-        args.push("--stale");
-    }
+    args.extend(selection_args(selection));
     args.extend(["--answer", "<判定の JSON のファイル | ->"]);
     if let Some(id) = caller.flagged() {
         args.extend(["--session", id]);
@@ -255,13 +273,23 @@ fn answer_command(path: &str, stale_only: bool, caller: &Caller) -> String {
 }
 
 /// 手順を取り直すコマンド。
-fn procedure_command(path: &str, stale_only: bool) -> String {
+fn procedure_command(path: &str, selection: Selection) -> String {
     let mut args = vec!["sas", "validate", path];
-    if stale_only {
-        args.push("--stale");
-    }
+    args.extend(selection_args(selection));
     args.push("--semantic");
     command_line(&args)
+}
+
+/// 選び方を、続けて打つコマンドの引数にする。
+fn selection_args(selection: Selection) -> Vec<&'static str> {
+    let mut args = Vec::new();
+    if selection.stale {
+        args.push("--stale");
+    }
+    if selection.all_rules {
+        args.push("--all-rules");
+    }
+    args
 }
 
 /// 対象1つの、意味の rule（ai）を判定するステップと、そのステップが当たる results の位置。
@@ -328,7 +356,7 @@ fn apply_answer(
     corpus: &Corpus,
     validator: &dyn SchemaValidator,
     answer: &str,
-    stale_only: bool,
+    selection: Selection,
 ) -> Result<(), Refused> {
     let [c] = current else {
         return Err(Refused {
@@ -363,7 +391,7 @@ fn apply_answer(
         );
         r.hint = Some(Box::new(format!(
             "いまの中身で手順を取り直して判定し直す：{}",
-            procedure_command(&path, stale_only)
+            procedure_command(&path, selection)
         )));
         return Err(r);
     }
@@ -611,12 +639,12 @@ fn run_validate(
     validator: &dyn SchemaValidator,
     caller: &Caller,
     log: &mut dyn ValidationLog,
-    answer: Option<&str>,
+    answer: Option<(&str, Selection)>,
 ) -> Result<Validation, Refused> {
     let (corpus, mut current, mut unchanged) =
         current_for(scope, stale_only, answer.is_some(), store, validator, log)?;
-    if let Some(answer) = answer {
-        apply_answer(&mut current, &corpus, validator, answer, stale_only)?;
+    if let Some((answer, selection)) = answer {
+        apply_answer(&mut current, &corpus, validator, answer, selection)?;
     }
     // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();

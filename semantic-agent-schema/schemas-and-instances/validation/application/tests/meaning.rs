@@ -7,7 +7,7 @@ mod support;
 use serde_json::{Value, json};
 use support::{HUMAN, Lenient, Log, UC, files, meaning};
 use validation_application::use_cases::validate::{
-    Scope, semantic_procedures, validate_with_answer,
+    Scope, Selection, semantic_procedures, validate_with_answer,
 };
 use validation_domain::values::Verdict;
 use writing_domain::values::{Caller, ContentHash, Via};
@@ -58,6 +58,12 @@ impl validation_application::ports::ValidationLog for support::Log {
     }
 }
 
+/// 既定の選び方（前の判定から変わった rule だけ。前の判定が無ければすべて）。
+const CHANGED: Selection = Selection {
+    all_rules: false,
+    stale: false,
+};
+
 fn store() -> support::Files {
     files(&[
         ("c.json", meaning()),
@@ -68,7 +74,7 @@ fn store() -> support::Files {
 fn procedures(store: &support::Files, log: &Log, caller: &Caller) -> Vec<Value> {
     semantic_procedures(
         &Scope::Paths(vec!["u1.json".into()]),
-        false,
+        CHANGED,
         store,
         &Lenient,
         caller,
@@ -90,7 +96,7 @@ fn answer(hash: &str, rule: &str, verdict: &str, reason: &str) -> String {
 }
 
 fn give(store: &support::Files, log: &mut Log, answer: &str) -> Result<Verdict, &'static str> {
-    validate_with_answer("u1.json", false, answer, store, &Lenient, &HUMAN, log)
+    validate_with_answer("u1.json", CHANGED, answer, store, &Lenient, &HUMAN, log)
         .map(|v| {
             v.targets[0]
                 .results
@@ -108,7 +114,8 @@ fn procedure_is_returned_and_nothing_is_recorded() {
     let log = Log::default();
     let p = procedures(&store, &log, &HUMAN);
     assert_eq!(p.len(), 1);
-    assert_eq!(p[0]["steps"][0]["rules"][0]["id"], json!("goal-is-outcome"));
+    assert_eq!(p[0]["steps"][0]["rule"], json!("goal-is-outcome"));
+    assert_eq!(p[0]["rules"][0]["id"], json!("goal-is-outcome"));
     assert_eq!(p[0]["steps"][0]["current"], json!("注文が届く"));
     assert_eq!(p[0]["target"]["hash"], json!(hash(&store)));
     assert_eq!(

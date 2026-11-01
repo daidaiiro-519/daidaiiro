@@ -1,0 +1,707 @@
+{
+  "$schema": "brainstorming/round@v1",
+  "kind": "round",
+  "id": "1",
+  "board": "sas-open-decisions",
+  "round": 1,
+  "at": "2026-11-01T14:46:58Z",
+  "snapshot": {
+    "$schema": "brainstorming/board@v1",
+    "kind": "board",
+    "id": "sas-open-decisions",
+    "title": "SAS 版30 のあとに残った決め事",
+    "intro": "Semantic Agent Schema の版30 のあとに残った5つの決め事を、調査 ・ アドバイザー ・ 反証 ・ 実測で1つに絞った答えで決める。",
+    "round": 1,
+    "opened": "2026-11-01",
+    "queue": [
+      {
+        "topic": "Q1",
+        "why": "前提にする論点が無く、答えを同じ手順 ・ 同じモデルの実測で1つに絞れたので開いた"
+      },
+      {
+        "topic": "Q2",
+        "why": "前提にする論点が無く、qa-advisor の答えと反証で1つに絞れたので開いた"
+      },
+      {
+        "topic": "Q3",
+        "why": "前提にする論点が無く、いまの振る舞いを流して欠陥まで確かめたので開いた"
+      },
+      {
+        "topic": "Q4",
+        "why": "前提にする論点が無く、usecase-advisor と qa-advisor の答えが同じ結論だったので開いた"
+      },
+      {
+        "topic": "Q5",
+        "why": "前提にする論点が無く、platform-advisor の水準と反証でコードの穴まで絞れたので開いた"
+      }
+    ],
+    "topics": [
+      {
+        "id": "Q1",
+        "name": "判定の手順の量",
+        "status": "open",
+        "question": "意味の判定の手順（sas validate --semantic）で判定にかかる時間を縮めるために、手順の何を変えるか",
+        "answer": {
+          "text": "判定の手順の constraints に「verified の reason は短い確認でよい。violated と unverified の reason は、どこがどう外れているかを書く」を1文足す。",
+          "details": [
+            "足すのは validation の meaning.rs が返す constraints の6行目だけで、公開された言葉（procedure ・ judgment-answer）の形は変えない",
+            "steps は今までどおり当たる所ごとに並べ、rule ごとにまとめない",
+            "reason はどの結果でも必須（minLength 1）のままで、verified でも空にはしない",
+            "効き目は実測で確かめた：同じ手順 ・ 同じモデルで2回ずつ測り、時間も出力のトークンも約25%減り、violated になった rule は変わらない"
+          ]
+        },
+        "images": [
+          {
+            "kind": "diff",
+            "caption": "判定の手順の constraints に1行だけ足す",
+            "path": "semantic-agent-schema/schemas-and-instances/validation/application/src/use_cases/meaning.rs",
+            "language": "rust",
+            "before": "        \"constraints\": [\n            \"steps のそれぞれを、rules の rule（rule ・ why ・ test。bad ・ good があれば違反する例と満たす例）に照らして current の値で判定する（read があればその読み方で、reads があればその値も読む）\",\n            \"判定は answer の形の JSON にし、hash には target.hash を写して、command で渡す\",\n            \"ファイルを書かない\",\n            \"ステップに無い欄に触れない\",\n            \"断られたら、出力の理由を読んで直し、打ち直す（hash が違うと言われたら、手順を取り直す）\",\n        ],",
+            "after": "        \"constraints\": [\n            \"steps のそれぞれを、rules の rule（rule ・ why ・ test。bad ・ good があれば違反する例と満たす例）に照らして current の値で判定する（read があればその読み方で、reads があればその値も読む）\",\n            \"判定は answer の形の JSON にし、hash には target.hash を写して、command で渡す\",\n            \"ファイルを書かない\",\n            \"ステップに無い欄に触れない\",\n            \"断られたら、出力の理由を読んで直し、打ち直す（hash が違うと言われたら、手順を取り直す）\",\n            \"verified の reason は短い確認でよい。violated と unverified の reason は、どこがどう外れているかを書く\",\n        ],"
+          }
+        ],
+        "assumptions": [
+          "判定は打ったセッションが手順を読み、1回の出力で判定の JSON を返す（版28）",
+          "判定にかかる時間は出力のトークンの数でほぼ決まり、入力の多くはキャッシュから読まれる"
+        ],
+        "checks": [
+          {
+            "target": "constraints の文言「短い確認でよい」",
+            "ask": "実測は「満たす」の一言でよい、という文言で測った。答えの「短い確認でよい」に言い換えてよいか",
+            "view": "どちらも verified の reason を1文に収める指示で、効き目は同じと見る",
+            "basis": [
+              "short-reason.json",
+              "out-short-1/2.json"
+            ],
+            "why": "言い換えた文言で出力が同じだけ減るかは、測り直すまで分からない"
+          },
+          {
+            "target": "rule ごとに1ステップにまとめる案を外すこと",
+            "ask": "入力が30%減る案を採らないでよいか",
+            "view": "時間は出力で決まり縮まないので、形を変える割に得るものが無い",
+            "basis": [
+              "out-per-rule-1/2.json",
+              "per-rule.json"
+            ],
+            "why": "入力のトークンの料金をどこまで重く見るかは、使う側の事情で変わる"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "時間と出力が約25%減る",
+            "basis": "いまの形は 65.0秒 ・ 出力 7,808 トークンと 62.3秒 ・ 7,434。1文足した形は 49.5秒 ・ 5,870 と 44.4秒 ・ 5,499",
+            "tag": "measured",
+            "source": "study23/vol/out-per-target-1.json ・ out-per-target-2.json ・ out-short-1.json ・ out-short-2.json の duration_ms と usage.output_tokens（同じ手順 ・ 同じモデルで2回ずつ）"
+          },
+          {
+            "supports": "violated になった rule は変わらない",
+            "basis": "4回とも consequence ・ json-schema-first ・ trigger が violated。ほかに、いまの形の1回目だけ state-based、1文足した形の1回目だけ checkable が violated",
+            "tag": "measured",
+            "source": "study23/vol/out-per-target-1.json ・ out-per-target-2.json ・ out-short-1.json ・ out-short-2.json の result の results"
+          },
+          {
+            "supports": "比べた手順は constraints の1行だけが違う",
+            "basis": "2つの手順は同じ対象 schemas/incident.schema.json ・ 同じハッシュ ・ steps 56件で、1文足した形は constraints の6行目「verified の reason は「満たす」の一言でよい。…」だけが違う",
+            "tag": "measured",
+            "source": "study23/vol/per-target.json ・ short-reason.json の constraints と steps"
+          },
+          {
+            "supports": "rule ごとにまとめても時間は縮まない",
+            "basis": "rule ごとの形は steps 16件 ・ 入力 16,255 トークン（いまの形は 22,921〜23,667）で、59.1秒 ・ 出力 7,005 と 66.1秒 ・ 7,986",
+            "tag": "measured",
+            "source": "study23/vol/per-rule.json ・ out-per-rule-1.json ・ out-per-rule-2.json の duration_ms と usage"
+          },
+          {
+            "supports": "足す場所と、reason が必須であること",
+            "basis": "constraints はいま5行で meaning.rs が返す。judgment-answer の results の各要素は reason を必須にしている",
+            "tag": "primary",
+            "source": "semantic-agent-schema/schemas-and-instances/validation/application/src/use_cases/meaning.rs（82〜88行）・ published-language/v1/judgment-answer.schema.json の results の required"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "rule ごとに1ステップにまとめる（steps 56件 → 16件）",
+            "reason": "入力は約30%減るが、時間は出力で決まり 59〜66秒と縮まない。手順の形が変わり使う側の読み方も変わる割に、得るものが無い"
+          },
+          {
+            "option": "何も足さない",
+            "reason": "1回の判定に 62〜65秒 ・ 出力 7,400〜7,800 トークンかかったままで、違反の無い rule の reason も長く書かれる"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "constraints に1文足す",
+              "cost": "手順の文言が1行増えるだけで、公開された言葉の形も場面も変わらない"
+            }
+          ],
+          "history": [
+            "最初、rule ごとにまとめた形で「判定の揺れが6件→1件に減った」と読んだが、当たる所の数で数えた誤りだった",
+            "rule の単位で数え直すと、いまの形は state-based、rule ごとの形は ref-not-copy（unverified）と、どちらも1つの rule が振れただけだった"
+          ],
+          "out_of_scope": [
+            {
+              "item": "外の作業：承認のあと meaning.rs に1行足し、同じ手順で判定を2回流して、時間と出力が減ることを試す",
+              "treatment": "out",
+              "note": "答えの効き目を、言い換えた文言で確かめる"
+            }
+          ]
+        }
+      },
+      {
+        "id": "Q2",
+        "name": "作成者の判定",
+        "status": "open",
+        "question": "書いたセッションが、自分で書いた対象の意味の rule を判定して --answer で渡したとき、SAS は何をするか",
+        "answer": {
+          "text": "断らずに記録し、判定を渡したセッションの変更の行がその対象に1つでもあれば、--answer の結果に「独立性なし（作成者が判定）」の hint を出す。",
+          "details": [
+            "比べるのは、判定を渡したセッションの ID と、その対象の変更の行（作成 ・ 更新 ・ 取り込み）の session である",
+            "変更の行は、検証の ValidationLog が既に持つ writes で読める。ポートは足さない",
+            "判定を渡した側にセッションの ID が無い（人が打った）ときは比べず、hint を出さない",
+            "セッションが違っても「独立」とは出さない。同じモデル ・ 同じ指示のセッションは、ID が違っても独立とは言えない",
+            "sas log に新しい欄は足さない。変更の行と検証の行に session が既に出ているので、2つを並べれば読める",
+            "hint は validation の結果の既存の欄で、形は変えず説明だけを広げる。SAS を通らない変更の案内と重なるときは、2つの文を続けて入れる",
+            "どの水準の判定を求めるかは、使う側（オーケストレーター）のテスト計画が決める。SAS は見えるようにするまでを受け持つ",
+            "場面 S-UC4-SELF-JUDGED を足し、同じセッションなら hint が出て、別のセッションなら出ないことを確かめる"
+          ]
+        },
+        "images": [
+          {
+            "kind": "diff",
+            "name": "hint の説明",
+            "caption": "validation の結果の hint の説明に、作成者が判定したときの知らせを足す（形は変えない）",
+            "path": "semantic-agent-schema/schemas-and-instances/published-language/v1/command-result.schema.json",
+            "language": "json",
+            "before": "    \"hint\": {\n     \"type\": \"string\",\n     \"minLength\": 1,\n     \"description\": \"SAS を通らない変更があったときの、取り込みの案内\"\n    },",
+            "after": "    \"hint\": {\n     \"type\": \"string\",\n     \"minLength\": 1,\n     \"description\": \"SAS を通らない変更があったときの、取り込みの案内。判定を渡したセッションがその対象を書いていたときの「独立性なし（作成者が判定）」の知らせ\"\n    },"
+          },
+          {
+            "kind": "code",
+            "name": "足す場面",
+            "caption": "同じセッションで書いて判定すると hint が出て、別のセッションでは出ないことを確かめる場面",
+            "path": "semantic-agent-schema/schemas-and-instances/system-tests/scenarios/S-UC4-SELF-JUDGED.json",
+            "language": "json",
+            "text": "{\n \"$schema\": \"urn:semantic-agent-schema:system-tests:scenario:v1\",\n \"id\": \"S-UC4-SELF-JUDGED\",\n \"name\": \"書いたセッションが判定する\",\n \"title\": \"判定を渡したセッションがその対象を書いていれば、断らずに記録し、hint で「独立性なし（作成者が判定）」と知らせる。別のセッションなら何も足さない\",\n \"traces\": [\"UC4:成功時保証\"],\n \"given\": {\n  \"files\": {\n   \"schemas/review.schema.json\": \"@fixtures/review.schema.json\",\n   \"items/r1.json\": \"@fixtures/r1.json\",\n   \"answers/ok.json\": \"（S-UC4-ANSWER と同じ判定）\"\n  },\n  \"steps\": [\n   {\"args\": [\"create\", \"items/r1.json\", \"--adopt\"], \"env\": {\"CLAUDE_CODE_SESSION_ID\": \"c-1\"}}\n  ]\n },\n \"when\": {\n  \"args\": [\"validate\", \"items/r1.json\", \"--answer\", \"answers/ok.json\"],\n  \"env\": {\"CLAUDE_CODE_SESSION_ID\": \"c-1\"}\n },\n \"then\": [\n  {\"of\": \"when\", \"exit\": 0},\n  {\"of\": \"when\", \"pointer\": \"/hint\", \"contains\": \"独立性なし（作成者が判定）\"},\n  {\"of\": \"after[0]\", \"exit\": 0},\n  {\"of\": \"after[0]\", \"pointer\": \"/hint\", \"exists\": false}\n ],\n \"after\": [\n  {\n   \"args\": [\"validate\", \"items/r1.json\", \"--answer\", \"answers/ok.json\"],\n   \"env\": {\"CLAUDE_CODE_SESSION_ID\": \"c-2\"}\n  }\n ]\n}",
+            "highlight": [
+              14,
+              19,
+              23,
+              25
+            ],
+            "note": "強調した行は、書いたセッション c-1 と、hint が出る ・ 出ないことの確かめである"
+          }
+        ],
+        "assumptions": [
+          "誰が書き、誰が判定したかは、セッションの ID で記録に残っている（版28）",
+          "セッションを分けて判定させるかは、使う側（オーケストレーター）が決める"
+        ],
+        "checks": [
+          {
+            "target": "hint の文言「独立性なし（作成者が判定）」",
+            "ask": "この言い方で、使う側がどの水準の判定かを読み取れるか",
+            "view": "JSTQB の独立性のレベルの表の語をそのまま使うので読み取れる",
+            "basis": [
+              "independence-of-testing"
+            ],
+            "why": "使う側のテスト計画がどの語で水準を書くかで、合う言い方が変わる"
+          },
+          {
+            "target": "セッションが違うときに何も出さないこと",
+            "ask": "別のセッションの判定に「独立」と出さないでよいか",
+            "view": "違う ID は独立を示さないので、何も足さないのが正しい",
+            "basis": [
+              "qa-advisor の cautions"
+            ],
+            "why": "使う側が別のモデルで判定させる運用を始めると、示せることが変わる"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "断らない",
+            "basis": "「作業成果物をテストする人：作成者 ・ 独立性：独立性なし」「開発担当者は、自分のコードにある多くの欠陥を効率的に発見できる」",
+            "tag": "rule",
+            "source": "qa-advisor の答え study23/qa/q1-self-judgment.json の grounds（independence-of-testing の1件目 ・ 2件目）と path の1問目"
+          },
+          {
+            "supports": "どの水準を求めるかは使う側が決める",
+            "basis": "「テスト計画書に記述するテストアプローチの例に、テストの独立性がある」",
+            "tag": "rule",
+            "source": "study23/qa/q1-self-judgment.json の grounds（independence-of-testing の3件目）と path の2問目"
+          },
+          {
+            "supports": "何もしないのでなく、見えるようにする",
+            "basis": "「テストの監査が容易になる」。ID が残るだけでは、どの水準で判定したかが報告に出てこない",
+            "tag": "rule",
+            "source": "study23/qa/q1-self-judgment.json の grounds（traceability）と comparison の (a) ・ path の3問目"
+          },
+          {
+            "supports": "違うセッションに「独立」と出さない",
+            "basis": "同じモデル ・ 同じ指示ならバイアスが近い可能性があり、違う ID は独立性が高いことを示さない（推測）",
+            "tag": "assumption",
+            "source": "study23/qa/q1-self-judgment.json の cautions の1件目と path の4問目"
+          },
+          {
+            "supports": "新しいポートも新しい欄も要らない",
+            "basis": "検証の ValidationLog は writes(target_path) を持ち、WriteRecord は session を持つ。validation の結果には hint の欄がある",
+            "tag": "primary",
+            "source": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/src/lib.rs（ValidationLog の impl）・ writing/domain/src/values/change_record.rs（WriteRecord）・ published-language/v1/command-result.schema.json（268〜272行）"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "断る",
+            "reason": "作成者のテストも正当な水準で、それが使えなくなる。別のセッションを立てれば通るので、独立性は形だけになる"
+          },
+          {
+            "option": "何もしない（ID が記録に残るだけ）",
+            "reason": "どの水準で判定したかは、読み手が2つの ID を自分で突き合わせない限り見えない"
+          },
+          {
+            "option": "sas log に「独立性」の欄を足す",
+            "reason": "変更の行と検証の行に session が既に出ている。既にあるもので読めるので足さない"
+          },
+          {
+            "option": "使う側が求める水準を宣言したときだけ断る",
+            "reason": "いまそれを要る場面が無く、hint で使う側が確かめられる。守らせる仕組みを SAS に足す理由が無い"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "断らずに hint で知らせる",
+              "cost": "--answer で記録を読む処理が1つ増え、場面を1本足す"
+            }
+          ],
+          "history": [
+            "会話の中で作成者のセッションが全件 verified にした例は、スクリプトで作った JSON で判定していなかったので根拠にしない（反証で分かった）",
+            "qa-advisor は sas log の読み出しにも印を付けるとしたが、変更と検証の行に session が既に出ているので足さない"
+          ],
+          "out_of_scope": [
+            {
+              "item": "外の作業：承認のあと --answer に hint を足し、場面 S-UC4-SELF-JUDGED を流して試す",
+              "treatment": "out",
+              "note": "同じセッションなら hint が出て、別のセッションなら出ないことを見る"
+            }
+          ]
+        }
+      },
+      {
+        "id": "Q3",
+        "name": "UC2 の版の変更",
+        "status": "open",
+        "question": "UC2 の拡張「申告する Abstract の版を変えた」を、Abstract の v2 がまだ無いいま、どう書き、いまの振る舞いのどこを直すか",
+        "answer": {
+          "text": "条件を SAS が検出できる「パッチが申告する Abstract の版を変える」に書き直し、一覧に無い版なら対象を変えずに schema_not_listed で断る。",
+          "details": [
+            "拡張の文：パッチが申告する Abstract の版を変える：SAS は、申告された版が閉じた一覧に無いとき、対象を変えずに schema_not_listed を返す",
+            "v2 への移し方は問いのまま本文に残す：（v2 が出たら、機械で移せる箇所をどこまで移し、残りを打ったセッションへの手順で返すか？）",
+            "直す欠陥：いまは schema_not_listed ではなく code validator で、検査のライブラリの英語のメッセージがそのまま返る",
+            "直し方：update は当てる前の $schema だけで種類を見分けている。当てたあとの $schema も TargetKind::classify に通し、形を照らす前に断る",
+            "場面 S-UC2-ABSTRACT-NOT-LISTED を足して trace.json に結び、untested.json からこの行を消す"
+          ]
+        },
+        "images": [
+          {
+            "kind": "run",
+            "name": "いまの出力",
+            "caption": "いまは版を v2 へ変えるパッチに、外の検査のライブラリの英語の文言が code validator で返る",
+            "cwd": "（v1 の Concrete を1つ置いた作業用のフォルダ）",
+            "command": "sas update schemas/usecase.schema.json --patch '[{\"op\":\"replace\",\"path\":\"/$schema\",\"value\":\"urn:semantic-agent-schema:published-language:abstract:v2\"}]' --if-match sha256:31b9ca2f9f56c02a2b76f93b789edbd10f3c64da026520aba996389b41b7ceee",
+            "output": "{\"$schema\":\"urn:semantic-agent-schema:published-language:command-result:v1\",\"kind\":\"error\",\"code\":\"validator\",\"message\":\"Unknown meta-schema: 'urn:semantic-agent-schema:published-language:abstract:v2'. Custom meta-schemas must be registered in the registry before use\",\"path\":\"schemas/usecase.schema.json\"}",
+            "exit": 1
+          },
+          {
+            "kind": "code",
+            "name": "足す場面",
+            "caption": "直したあとは、同じパッチを schema_not_listed で断り、対象を変えないことを確かめる場面",
+            "path": "semantic-agent-schema/schemas-and-instances/system-tests/scenarios/S-UC2-ABSTRACT-NOT-LISTED.json",
+            "language": "json",
+            "text": "{\n \"$schema\": \"urn:semantic-agent-schema:system-tests:scenario:v1\",\n \"id\": \"S-UC2-ABSTRACT-NOT-LISTED\",\n \"name\": \"一覧に無い版へ変える\",\n \"title\": \"パッチが申告する Abstract の版を一覧に無い版へ変えると、対象を変えずに schema_not_listed で断る\",\n \"why\": \"知らない版を受け入れると、Concrete が SAS の知らない型に従うことになる。外の検査のライブラリの文言を出すと、使う側が code で分けられない。\",\n \"traces\": [\n  \"UC2:拡張:パッチが申告する Abstract の版を変える\",\n  \"UC2:最低保証\"\n ],\n \"given\": {\n  \"files\": {\n   \"schemas/usecase.schema.json\": \"@fixtures/usecase.schema.json\"\n  }\n },\n \"when\": {\n  \"args\": [\n   \"update\",\n   \"schemas/usecase.schema.json\",\n   \"--patch\",\n   \"[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/$schema\\\",\\\"value\\\":\\\"urn:semantic-agent-schema:published-language:abstract:v2\\\"}]\",\n   \"--if-match\",\n   \"sha256:31b9ca2f9f56c02a2b76f93b789edbd10f3c64da026520aba996389b41b7ceee\"\n  ]\n },\n \"then\": [\n  {\"of\": \"when\", \"exit\": 1},\n  {\"of\": \"when\", \"pointer\": \"/code\", \"equals\": \"schema_not_listed\"},\n  {\"of\": \"when\", \"pointer\": \"/operation\", \"exists\": false}\n ],\n \"unchanged\": [\n  \"schemas/usecase.schema.json\"\n ]\n}",
+            "highlight": [
+              8,
+              28
+            ],
+            "note": "強調した行は、結ぶ拡張の id と、断るときの code である"
+          }
+        ],
+        "assumptions": [
+          "SAS が入れて出す Abstract は v1 だけである（ABSTRACT_VERSIONS）",
+          "Abstract の v2 を出すことは SAS を作る側の作業で、ユースケースから外してある"
+        ],
+        "checks": [
+          {
+            "target": "v2 への移し方を問いのまま本文に残すこと",
+            "ask": "処理を書かずに、問いの形で拡張の下に置いてよいか",
+            "view": "処理が決まらない拡張は、問いのまま本文に残すのが原典の書き方",
+            "basis": [
+              "extension（usecase-advisor）"
+            ],
+            "why": "v2 を出す時期と、移し方を SAS が持つかがまだ決まっていない"
+          },
+          {
+            "target": "validator を schema_not_listed に直すこと",
+            "ask": "条件の書き直しと同じ論点で、コードの直しまで決めてよいか",
+            "view": "UC2 の最低保証の道筋そのものなので、同じ答えに入れる",
+            "basis": [
+              "いまの出力（実測）",
+              "write.rs の update"
+            ],
+            "why": "ほかの操作に外のライブラリの文言が出る所があるかは、実装で確かめる"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "直す欠陥",
+            "basis": "版を v2 へ変えるパッチに、code validator と「Unknown meta-schema: … Custom meta-schemas must be registered in the registry before use」が返り、終了コード 1、対象のハッシュは変わらない",
+            "tag": "measured",
+            "source": "版30 の target/debug/sas で、v1 の Concrete（fixtures/usecase.schema.json）に update を打った（反証で流し、この回で打ち直して同じ出力を確かめた）"
+          },
+          {
+            "supports": "条件を検出できる形に書き直す",
+            "basis": "「問い：システムはその条件を検出できるか ・ どう判断するか：検出できない出来事には反応できない。検出できる同等の条件に置き換えられないかも考える」",
+            "tag": "rule",
+            "source": "usecase-advisor の答え study23/uc/uc2-abstract-version.json の grounds（extension の1件目）と path の1問目"
+          },
+          {
+            "supports": "v2 への移し方を問いのまま残す",
+            "basis": "「処理が決まらない拡張は、例のユースケースでも「（この場合はどうすればよいか？）」と問いのまま本文に残している」",
+            "tag": "rule",
+            "source": "study23/uc/uc2-abstract-version.json の grounds（extension の4件目）と path の4問目"
+          },
+          {
+            "supports": "処理はいまの振る舞い（schema_not_listed）",
+            "basis": "「問い：ほかの条件と、システムの振る舞いが同じにならないか ・ どう判断するか：同じなら1つにまとめられる」。一覧に無い版は UC1 ・ UC4 と同じく断る",
+            "tag": "rule",
+            "source": "study23/uc/uc2-abstract-version.json の grounds（extension の3件目）と path の3問目"
+          },
+          {
+            "supports": "直す場所",
+            "basis": "update は当てる前の $schema で classify し、当てたあとの中身を form_violations に渡す。その失敗を validator で返す",
+            "tag": "primary",
+            "source": "semantic-agent-schema/schemas-and-instances/writing/application/src/use_cases/write.rs（724行の classify、790〜791行）・ writing/domain/src/values/target_kind.rs の classify"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "いまのまま残し、untested.json に「v2 を出すとき」と置く",
+            "reason": "本文の処理（移す）といまの振る舞いが食い違い、版を変える更新を断る振る舞いがどの場面でも確かめられないまま残る"
+          },
+          {
+            "option": "拡張を外し、v2 を出すときに書き足す",
+            "reason": "版を変えるパッチは今日も打てるのに、その条件がユースケースから消え、UC2 の最低保証の道筋が1つ記述から落ちる"
+          },
+          {
+            "option": "条件を書き直すだけで、code は validator のままにする",
+            "reason": "外のライブラリの英語の文言と内部の語（registry）が CLI の出力に出て、使う側が code で断った理由を分けられない"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "条件を書き直し、いまの振る舞いで書き、schema_not_listed に直す",
+              "cost": "update で classify を1回増やし、場面を1本足す"
+            }
+          ],
+          "history": [
+            "反証で「いまの振る舞いを流して確かめてから書く」とされ、流したところ schema_not_listed ではなく validator が返った"
+          ],
+          "out_of_scope": [
+            {
+              "item": "外の作業：承認のあと update で当てたあとの $schema も classify に通し、場面 S-UC2-ABSTRACT-NOT-LISTED を流して試す",
+              "treatment": "out",
+              "note": "code が schema_not_listed になり、対象が変わらないことを見る"
+            }
+          ]
+        }
+      },
+      {
+        "id": "Q4",
+        "name": "UC4 の中断",
+        "status": "open",
+        "question": "UC4 の拡張 *a「呼ぶ側が中断した」を、SAS が判定を待たなくなったいま、どう扱うか",
+        "answer": {
+          "text": "*a を外し、最低保証に「判定は1回の記録で入り、途中で止まっても半端な判定の行は残らない」を足して、sqlite のアダプターの試験で確かめる。",
+          "details": [
+            "外す理由を UC4 の注に書く：--semantic のあと SAS は動いていないので、呼ぶ側が判定を渡さないことを検出できない",
+            "判定が来ない rule は既存の最低保証で verified に見えず、遅れた判定は 6c、形の違う判定は 6a が受ける",
+            "足す1文は場面では止められないので、sqlite の試験で確かめ、trace.json の UC4:最低保証 の note に試験の名前を書いて結ぶ",
+            "試験：判定の2つ目の rule の結果を決まりに無い値にし、append_validate が断ったあと validations と rule_results がどちらも0行であること",
+            "いまの rows_against_the_rules_are_refused は rule が1つで、validations が0行であることだけを見ている",
+            "untested.json から UC4:拡張:*a の行を消し、trace.json の scope からも消す。「止める操作を足すとき」という将来の作業も消える"
+          ]
+        },
+        "images": [
+          {
+            "kind": "diff",
+            "name": "最低保証",
+            "caption": "UC4 の最低保証に1文足し、確かめる試験を note で結ぶ",
+            "path": "semantic-agent-schema/schemas-and-instances/system-tests/trace.json",
+            "language": "json",
+            "before": "  {\n   \"id\": \"UC4:最低保証\",\n   \"meaning\": \"対象の内容は変わらない。判定を取れなかった rule は verified に数えない。手順に合わない判定は記録しない\",\n   \"scenarios\": [\n    \"S-UC4-AI-UNVERIFIED\",\n    \"S-UC4-ANSWER-SHAPE\",\n    \"S-UC4-NOT-LISTED\",\n    \"S-UC4-USAGE\"\n   ]\n  },",
+            "after": "  {\n   \"id\": \"UC4:最低保証\",\n   \"meaning\": \"対象の内容は変わらない。判定を取れなかった rule は verified に数えない。手順に合わない判定は記録しない。判定は1回の記録で入り、途中で止まっても半端な判定の行は残らない\",\n   \"scenarios\": [\n    \"S-UC4-AI-UNVERIFIED\",\n    \"S-UC4-ANSWER-SHAPE\",\n    \"S-UC4-NOT-LISTED\",\n    \"S-UC4-USAGE\"\n   ],\n   \"note\": \"判定が1回の記録で入ることは、場面では止められないので、outbound の sqlite の試験 append_only.rs の a_judgment_that_fails_midway_leaves_no_rows で確かめる\"\n  },"
+          },
+          {
+            "kind": "code",
+            "name": "足す試験",
+            "caption": "判定の途中で失敗したら、検証の行も rule の結果の行も残らないことを確かめる試験",
+            "path": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/tests/append_only.rs",
+            "language": "rust",
+            "text": "#[test]\nfn a_judgment_that_fails_midway_leaves_no_rows() {\n    let mut log = SqliteLog::in_memory().unwrap();\n    let mut r = row(\"ai\", \"verified\");\n    // 2つ目の rule の結果を決まりに無い値にし、rule_results の2行目で失敗させる\n    r.results.push(RuleRow {\n        rule: \"r2\".into(),\n        pointer: \"/goal\".into(),\n        by: \"ai\".into(),\n        result: \"決まりに無い結果\".into(),\n        reason: \"理由\".into(),\n        reads: \"sha256:r\".into(),\n    });\n    assert!(log.append_validate(None, &r).is_err());\n    assert_eq!(count(&log, \"validations\"), 0);\n    assert_eq!(count(&log, \"rule_results\"), 0, \"1行目の判定が残った\");\n}",
+            "highlight": [
+              14,
+              15,
+              16
+            ],
+            "note": "強調した行は、断ったあとに2つの表がどちらも0行であることの確かめである"
+          }
+        ],
+        "assumptions": [
+          "append_validate は validations と rule_results を1つのトランザクションで書く",
+          "--semantic は手順を返して終わり、--answer は判定を1回で記録する（版28）"
+        ],
+        "checks": [
+          {
+            "target": "*a を外すこと",
+            "ask": "呼ぶ側の中断を、拡張でなく最低保証で受けてよいか",
+            "view": "SAS が検出できない出来事は拡張の条件にならず、最低保証で受ける",
+            "basis": [
+              "extension",
+              "minimal-guarantee"
+            ],
+            "why": "長い処理を止める操作を将来足すかで、拡張が要るかが変わる"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "*a を外す",
+            "basis": "「例：「顧客がキャッシュカードを忘れる」 ・ 判定：取り除く ・ 理由：検出できる同等の条件が無い」。--semantic のあと SAS は動いていない",
+            "tag": "rule",
+            "source": "usecase-advisor の答え study23/uc/uc4-interrupt.json の grounds（extension の1件目 ・ 2件目）と path の2問目 ・ 3問目"
+          },
+          {
+            "supports": "最低保証に1文足す",
+            "basis": "「問い：ユースケースがどう終わっても、その文は真になるか ・ 何が分かるか：最低保証として書けるかが分かる」",
+            "tag": "rule",
+            "source": "study23/uc/uc4-interrupt.json の grounds（minimal-guarantee の3件目）と path の4問目 ・ records の2件目"
+          },
+          {
+            "supports": "残すとカバレッジを読み誤る",
+            "basis": "中断される長い処理が無いので、テストベースとして成り立たない。確かめられない行がカバレッジの分母に残る",
+            "tag": "rule",
+            "source": "qa-advisor の答え study23/qa/q2-untested-extensions.json の path の (2) ・ cautions の1件目 ・ grounds（traceability「要件がテストケースでカバーされていること」）"
+          },
+          {
+            "supports": "いまの実装で真になる",
+            "basis": "append_validate は transaction を開き、validations と rule_results を足してから commit する",
+            "tag": "primary",
+            "source": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/src/lib.rs（271〜294行の append_validate）"
+          },
+          {
+            "supports": "試験を1本足す",
+            "basis": "いまの試験は rule が1つの判定で validations の行数だけを見ており、rule の結果の1行目が残らないことは確かめていない",
+            "tag": "primary",
+            "source": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/tests/append_only.rs の rows_against_the_rules_are_refused"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "いまのまま残し、止める操作を足すときに確かめる",
+            "reason": "SAS が持たないセッションを「止める」と約束し続け、試験できない拡張と、要るか分からない将来の作業が残る"
+          },
+          {
+            "option": "条件を「手順を出したのに判定が渡されない」に書き換え、時間切れで記録する",
+            "reason": "SAS は待たないので時間を測る主体が無く、手順を出したことを見張る仕組みを新しく足すことになる"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "*a を外し、最低保証の1文を sqlite の試験で確かめる",
+              "cost": "試験を1本足し、trace.json に note を1つ書く"
+            }
+          ],
+          "out_of_scope": [
+            {
+              "item": "外の作業：承認のあと sqlite の試験 a_judgment_that_fails_midway_leaves_no_rows を足して流し、trace の試験で結びを試す",
+              "treatment": "out",
+              "note": "2つの表がどちらも0行であることを見る"
+            },
+            {
+              "item": "外の作業：ほかのユースケースに版28 より前の名残（セッションを止める ・ SAS が直させる ・ 子セッション）が残っていないかの確かめ",
+              "treatment": "out",
+              "note": "後で決めることではない。この5つの論点の承認のあと、実装の作業で一緒に確かめる外の作業である"
+            }
+          ],
+          "history": [
+            "*a の処理の文「セッションを止め」は、版16〜27 の子セッションの名残だった"
+          ]
+        }
+      },
+      {
+        "id": "Q5",
+        "name": "UC5 の中断",
+        "status": "open",
+        "question": "UC5 の拡張 *a「読み手が中断した」と、sas render がプロセスごと止められたときの書き出す先の約束を、どう書き、どう作るか",
+        "answer": {
+          "text": "*a を外して最低保証を打ち直せばそろう約束に書き直し、止められたあとに打ち直しても .sas-bak が残る穴を、同じコミットで直す。",
+          "details": [
+            "最低保証：入力 ・ デザインシステム ・ 記録は変わらない。ページは1枚ずつ前か新しいかのどちらか。同じ sas render を打ち直せば全部新しいページにそろい、作業用のファイルも消える",
+            "いまの「止まったときは1ページも書かず」は、プロセスごと止められたときに偽なので消す",
+            "SAS が自分で止めたとき（6a 書き出せない）は、置き換えたページを戻すいまの振る舞いのままにする",
+            "穴：退避の rename と一時ファイルの rename の間で止められると、本来の名前のページが無く .sas-bak だけが残る",
+            "打ち直すと had が偽なので replaced に退避先が入らず、その .sas-bak が消えない（OutDir::write_pages）",
+            "直し：全部を置き換えたあと、置き換えた各ページの隣の .sas-bak を、had に関わらず消す",
+            "試験：止められたあとの状態をフォルダに置いてから write_pages を呼ぶ部品の試験を1本足し、trace.json の UC5:最低保証 の note に結ぶ",
+            "保証の書き換えとコードの直しと試験は、同じコミットにする。untested.json から UC5:拡張:*a の行を消す",
+            "水準は非機能要求グレードの「社会的影響が殆ど無いシステム」で、RPO は復旧不要、復旧は同じコマンドの打ち直しである"
+          ]
+        },
+        "images": [
+          {
+            "kind": "diff",
+            "name": "最低保証",
+            "caption": "UC5 の最低保証を、プロセスごと止められても真になる文に書き直す",
+            "path": "semantic-agent-schema/schemas-and-instances/system-tests/trace.json",
+            "language": "json",
+            "before": "  {\n   \"id\": \"UC5:最低保証\",\n   \"meaning\": \"インスタンス ・ Concrete ・ デザインシステムは変わらず、記録も作らない。止まったときは1ページも書かず、理由を返す\",\n   \"scenarios\": [\n    \"S-UC5-MANY-ONE-FAILS\",\n    \"S-UC5-UNCHANGED\"\n   ]\n  },",
+            "after": "  {\n   \"id\": \"UC5:最低保証\",\n   \"meaning\": \"入力 ・ デザインシステム ・ 記録は変わらない。ページは1枚ずつ前か新しいかのどちらか。同じ sas render を打ち直せば全部新しいページにそろい、作業用のファイルも消える\",\n   \"scenarios\": [\n    \"S-UC5-MANY-ONE-FAILS\",\n    \"S-UC5-UNCHANGED\"\n   ],\n   \"note\": \"プロセスごと止められたあとの打ち直しは、場面では止められないので、outbound の filesystem の試験 out_dir.rs の a_rerun_after_a_kill_replaces_every_page_and_leaves_no_work_files で確かめる\"\n  },"
+          },
+          {
+            "kind": "diff",
+            "name": "書き出しの直し",
+            "caption": "全部を置き換えたあと、前の回が残した .sas-bak も消す",
+            "path": "semantic-agent-schema/schemas-and-instances/adapters/outbound/filesystem/src/lib.rs",
+            "language": "rust",
+            "before": "            replaced.push((to.clone(), had.then_some(backup)));\n        }\n        for (_, saved) in replaced {\n            if let Some(b) = saved {\n                let _ = std::fs::remove_file(b);\n            }\n        }\n        Ok(())",
+            "after": "            replaced.push((to.clone(), had.then_some(backup)));\n        }\n        // 前の回が止められて残した退避も消す（本来の名前のページが無く had が偽でも、.sas-bak は在りうる）\n        for (page, _) in replaced {\n            let _ = std::fs::remove_file(sibling(&page, \"sas-bak\"));\n        }\n        Ok(())"
+          },
+          {
+            "kind": "code",
+            "name": "足す試験",
+            "caption": "止められたあとの状態から打ち直すと、全部が新しいページになり作業用のファイルが残らないことを確かめる試験",
+            "path": "semantic-agent-schema/schemas-and-instances/adapters/outbound/filesystem/tests/out_dir.rs",
+            "language": "rust",
+            "text": "#[test]\nfn a_rerun_after_a_kill_replaces_every_page_and_leaves_no_work_files() {\n    let root = temp(\"rerun\");\n    let site = root.join(\"site\");\n    std::fs::create_dir_all(&site).unwrap();\n    // b.html を退避した直後に止められた状態：a は新しく、b は本来の名前に無い\n    std::fs::write(site.join(\"a.html\"), \"新しい a\").unwrap();\n    std::fs::write(site.join(\".b.html.sas-bak\"), \"前の b\").unwrap();\n    std::fs::write(site.join(\".b.html.sas-tmp\"), \"新しい b\").unwrap();\n    let pages = vec![\n        (\"a.html\".to_string(), \"新しい a\".to_string()),\n        (\"b.html\".to_string(), \"新しい b\".to_string()),\n    ];\n    OutDir::new(root.clone()).write_pages(\"site\", &pages, &[]).unwrap();\n    assert_eq!(std::fs::read_to_string(site.join(\"a.html\")).unwrap(), \"新しい a\");\n    assert_eq!(std::fs::read_to_string(site.join(\"b.html\")).unwrap(), \"新しい b\");\n    assert!(leftovers(&site).is_empty(), \"作業用のファイルが残った：{:?}\", leftovers(&site));\n}",
+            "highlight": [
+              6,
+              7,
+              8,
+              9,
+              17
+            ],
+            "note": "強調した行は、止められたあとの状態の置き方と、作業用のファイルが残らないことの確かめである"
+          }
+        ],
+        "assumptions": [
+          "1ページの置き換え（同じフォルダの中の rename）は、そのページについて不可分である",
+          "書き出す先を、Web サーバーなどがそのまま他人へ配っていない",
+          "描画は記録せず、同じ入力からバイト列まで同じページを作る"
+        ],
+        "checks": [
+          {
+            "target": "書き出す先を他人へ配っていないという前提",
+            "ask": "この前提で、水準を「社会的影響が殆ど無い」にしてよいか",
+            "view": "いまは手元で開くか AI が読むだけで、前提は成り立つ",
+            "basis": [
+              "A.1.3.1 RPO",
+              "A.4.1.1 復旧作業"
+            ],
+            "why": "書き出す先をそのまま公開する使い方が出ると、求める水準が変わる"
+          },
+          {
+            "target": "終了コードを保証に入れないこと",
+            "ask": "「止められたら終了コードが成功でない」を保証から外してよいか",
+            "view": "kill -9 の終了コードは SAS が決めないので、保証に入れない",
+            "basis": [
+              "反証"
+            ],
+            "why": "打った側が止まったと気づけるかは、呼ぶシェルやツールで変わる"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "最低保証を書き直す",
+            "basis": "「問い：ユースケースがどう終わっても、その文は真になるか」。「1ページも書かない」はプロセスごと止められたときに偽になる",
+            "tag": "rule",
+            "source": "usecase-advisor の答え study23/uc/uc5-interrupt.json の grounds（minimal-guarantee の2件目）と conclusion"
+          },
+          {
+            "supports": "*a を外す",
+            "basis": "「検出できない出来事には反応できない」。プロセスごと止められることは SAS が検出できない",
+            "tag": "rule",
+            "source": "study23/uc/uc5-interrupt.json の grounds（extension の1件目）と comparison の C"
+          },
+          {
+            "supports": "求める水準",
+            "basis": "A.1.3.1 RPO はレベル0「復旧不要」（社会的影響が殆ど無いシステムの [-]「データを持たず、復旧が不要な場合」）。A.4.1.1 復旧作業はレベル1「復旧用製品は使用しない手作業の復旧」で、自作ツールも手作業に含める",
+            "tag": "rule",
+            "source": "platform-advisor の答え study23/platform/answer.json の grade_grounds（a-1 の1件目 ・ 2件目、a-4 の1件目 ・ 2件目）"
+          },
+          {
+            "supports": "打ち直しを唯一の復旧の手段にする",
+            "basis": "rel-11「通常モードでも障害モードでも、ワークロードの動きが変わらない」・ rel-04「同じリクエストが何度届いても、効き目は1回分だけである」",
+            "tag": "rule",
+            "source": "study23/platform/answer.json の grounds（rel-11 の1件目 ・ rel-04）と path の4問目"
+          },
+          {
+            "supports": "止められたあとの状態から試験する",
+            "basis": "設計原則「リカバリ手順をテストする」。プロセスを外から止める試験でなく、部品の試験で状態を置いて確かめる",
+            "tag": "rule",
+            "source": "study23/platform/answer.json の grounds（reliability の1件目）と path の6問目 ・ qa-advisor の study23/qa/q2-untested-extensions.json の cautions の2件目"
+          },
+          {
+            "supports": "直す穴",
+            "basis": "had が偽のページは replaced に None が入り、最後の後片付けは Some の退避先だけを消す",
+            "tag": "primary",
+            "source": "semantic-agent-schema/schemas-and-instances/adapters/outbound/filesystem/src/lib.rs の OutDir::write_pages（268〜306行）・ study23/platform/answer.json の premises（もう一度打ったときに残るもの）"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "書き出す先をフォルダごと1回の rename で置き換える",
+            "reason": "書き出す先にある利用者のファイルと描画の入力を巻き込む。フォルダの上書きの手段は OS ごとに違う"
+          },
+          {
+            "option": "目録（ページとハッシュ）を最後に書き、読む側が混ざりを検出する",
+            "reason": "読むのはブラウザで開く人とエージェントで、目録を照らす読み手がいない。検出しても直す手段は打ち直しと同じである"
+          },
+          {
+            "option": "SIGINT を捕まえて、置き換えを終えるか戻してから止まる",
+            "reason": "kill -9 と電源断は捕まえられず、結局いまの最低保証と打ち直しが要る"
+          },
+          {
+            "option": "「止められたら終了コードが成功でない」を保証に入れる",
+            "reason": "kill -9 の終了コードは OS と呼ぶ側が決め、SAS が決めない。platform-advisor の答えは入れていたが、反証で外した"
+          },
+          {
+            "option": "いまのまま「止まったときは1ページも書かず」を残す",
+            "reason": "プロセスごと止められたときに偽になる約束が残り、場面でも試験でも確かめられない"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "最低保証を書き直し、.sas-bak の後片付けを直して試験を1本足す",
+              "cost": "書き出しの後片付けの数行と試験1本で、OS ごとの分岐も、書き出す先に増えるファイルも無い"
+            }
+          ],
+          "out_of_scope": [
+            {
+              "item": "外の作業：承認のあと write_pages の後片付けを直し、試験 a_rerun_after_a_kill_replaces_every_page_and_leaves_no_work_files を流して試す",
+              "treatment": "out",
+              "note": "保証の書き換えと同じコミットにする"
+            }
+          ]
+        }
+      }
+    ],
+    "changes": [],
+    "log": [
+      {
+        "date": "2026-11-01",
+        "text": "ボードを出した"
+      }
+    ]
+  }
+}

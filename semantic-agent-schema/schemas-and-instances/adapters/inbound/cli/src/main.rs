@@ -34,7 +34,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use validation_application::use_cases::validate::{
-    Scope, semantic_procedures, validate, validate_stale, validate_with_answer,
+    Scope, Selection, semantic_procedures, validate, validate_stale, validate_with_answer,
 };
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
@@ -44,8 +44,8 @@ use writing_domain::values::Caller;
 
 const USAGE: &str = "使い方：sas init [--session <ID>] ／ \
 sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
-sas validate [--session <名前>] [--stale] (<経路>... | --all) --semantic ／ \
-sas validate <経路> [--stale] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
+sas validate [--session <名前>] [--stale | --all-rules] (<経路>... | --all) --semantic ／ \
+sas validate <経路> [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas create <経路> --concrete <URN> --semantic [--brief <依頼>] [--ref <経路>]... [--intent <意図>] [--session <名前>] ／ \
 sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
@@ -185,6 +185,7 @@ fn run_validate(args: &[String]) -> ExitCode {
     let mut session = None;
     let mut all = false;
     let mut stale = false;
+    let mut all_rules = false;
     let mut semantic = false;
     let mut answer = None;
     let mut paths = Vec::new();
@@ -193,6 +194,7 @@ fn run_validate(args: &[String]) -> ExitCode {
         match a.as_str() {
             "--all" => all = true,
             "--stale" => stale = true,
+            "--all-rules" => all_rules = true,
             "--semantic" => semantic = true,
             "--answer" => match it.next() {
                 Some(s) if !s.is_empty() => answer = Some(s.clone()),
@@ -211,6 +213,16 @@ fn run_validate(args: &[String]) -> ExitCode {
             "--semantic と --answer は一緒に渡せません（--semantic で手順を受け取り、判定を --answer で渡す）",
         );
     }
+    if all_rules && !semantic && answer.is_none() {
+        return usage("--all-rules は --semantic か --answer と一緒に渡してください");
+    }
+    if all_rules && stale {
+        return usage(
+            "--all-rules と --stale は一緒に渡せません（--all-rules はすべての rule、--stale は変わった rule だけ）",
+        );
+    }
+    // 意味の判定は、既定では前の判定から読んだ所が変わった rule だけ。--all-rules ならすべて
+    let selection = Selection { all_rules, stale };
     let scope = match (all, paths.is_empty()) {
         (true, true) => Scope::All,
         (false, false) => Scope::Paths(paths),
@@ -223,7 +235,7 @@ fn run_validate(args: &[String]) -> ExitCode {
     if let Scope::Paths(paths) = &scope {
         let design: Vec<bool> = paths.iter().map(|p| is_design_system(p)).collect();
         if design.iter().any(|d| *d) {
-            if !design.iter().all(|d| *d) || stale || semantic || answer.is_some() {
+            if !design.iter().all(|d| *d) || stale || all_rules || semantic || answer.is_some() {
                 return usage(
                     "デザインシステムは、ほかの対象や --stale ・ --semantic ・ --answer と一緒に渡さずに、それだけで検証してください",
                 );
@@ -285,7 +297,7 @@ fn run_validate(args: &[String]) -> ExitCode {
     }
     if semantic {
         // 判定の手順を出すだけで、記録しない。判定する rule がどの対象にも無ければ、機械の検証をそのまま記録する
-        match semantic_procedures(&scope, stale, &store, &validator, &caller, &log) {
+        match semantic_procedures(&scope, selection, &store, &validator, &caller, &log) {
             Ok(procedures) if !procedures.is_empty() => {
                 for p in &procedures {
                     output::print_procedure(p);
@@ -298,9 +310,12 @@ fn run_validate(args: &[String]) -> ExitCode {
     }
     let result = match (&scope, answer_text) {
         (Scope::Paths(paths), Some(text)) => validate_with_answer(
-            &paths[0], stale, &text, &store, &validator, &caller, &mut log,
+            &paths[0], selection, &text, &store, &validator, &caller, &mut log,
         ),
-        _ if stale => validate_stale(&scope, &store, &validator, &caller, &mut log),
+        // 判定する rule が無いときの意味の判定は、手順と同じ選び方で機械の検証を記録する
+        _ if stale || (semantic && !all_rules) => {
+            validate_stale(&scope, &store, &validator, &caller, &mut log)
+        }
         _ => validate(&scope, &store, &validator, &caller, &mut log),
     };
     match result {

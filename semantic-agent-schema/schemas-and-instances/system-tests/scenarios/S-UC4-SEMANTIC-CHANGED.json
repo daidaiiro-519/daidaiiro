@@ -1,0 +1,77 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-CHANGED",
+ "name": "変わった所だけを判定する",
+ "title": "判定済みの対象に validate --semantic を打つと、前の判定から読んだ所が変わった rule（要約を直したので summary-matches）だけが手順に入り、rule の全文は rules に1回だけ書かれる",
+ "why": "書いて直すたびに検証するので、1か所直すたびにすべての所を判定し直すと、欄が増えるほど待つ時間が延びる。",
+ "traces": [
+  "UC4:変形:意味の判定",
+  "約束:procedure"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "answers/summary.json": "{\"hash\": \"sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"結果を書いている\"}, {\"step\": 2, \"rule\": \"summary-matches\", \"pointer\": \"/summary\", \"result\": \"verified\", \"reason\": \"目的に食い違わない\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/s1.json",
+     "--answer",
+     "answers/summary.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/s1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/summary\",\"value\":\"検証の結果を受け取るための約束\"}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/s1.json",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/rule",
+   "equals": "summary-matches"
+  },
+  {
+   "of": "when",
+   "pointer": "/rules",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "equals": "sas validate items/s1.json --answer <判定の JSON のファイル | ->"
+  }
+ ],
+ "unchanged": [
+  "items/s1.json"
+ ]
+}

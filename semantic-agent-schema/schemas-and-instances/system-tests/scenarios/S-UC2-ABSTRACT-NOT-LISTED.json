@@ -1,0 +1,48 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ABSTRACT-NOT-LISTED",
+ "name": "一覧に無い版へ変える",
+ "title": "Concrete の $schema を、SAS が入れて出す一覧に無い Abstract の版（v2）へ変えるパッチは、検査のライブラリの文ではなく schema_not_listed で断り、対象を変えない",
+ "why": "外のライブラリの英語の文が返ると、使う側は何が悪くてどう直すのかが分からない。",
+ "traces": [
+  "UC2:最低保証",
+  "UC2:拡張:パッチが申告する Abstract の版を変える"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "schemas/review.schema.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/$schema\",\"value\":\"urn:semantic-agent-schema:published-language:abstract:v2\"}]"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "error"
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "schema_not_listed"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "abstract:v2"
+  }
+ ],
+ "unchanged": [
+  "schemas/review.schema.json"
+ ]
+}

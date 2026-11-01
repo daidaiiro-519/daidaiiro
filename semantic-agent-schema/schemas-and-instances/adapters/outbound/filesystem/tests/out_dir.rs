@@ -117,3 +117,34 @@ fn a_page_on_an_input_file_writes_nothing() {
         "テンプレート"
     );
 }
+
+#[test]
+fn rewriting_after_an_interrupted_write_leaves_no_backup() {
+    let root = temp("interrupted");
+    let site = root.join("site");
+    std::fs::create_dir_all(&site).unwrap();
+    // 前の書き出しが置き換えの途中で止められたあと：a は前のページを退避したまま新しいページが無く、b は置き換え済みで退避が残る
+    std::fs::write(site.join(".a.html.sas-bak"), "前の a").unwrap();
+    std::fs::write(site.join("b.html"), "新しい b").unwrap();
+    std::fs::write(site.join(".b.html.sas-bak"), "前の b").unwrap();
+    let pages = vec![
+        ("a.html".to_string(), "新しい a".to_string()),
+        ("b.html".to_string(), "新しい b".to_string()),
+    ];
+    OutDir::new(root.clone())
+        .write_pages("site", &pages, &[])
+        .unwrap();
+    assert_eq!(
+        std::fs::read_to_string(site.join("a.html")).unwrap(),
+        "新しい a"
+    );
+    assert_eq!(
+        std::fs::read_to_string(site.join("b.html")).unwrap(),
+        "新しい b"
+    );
+    assert!(
+        leftovers(&site).is_empty(),
+        "打ち直したのに作業用のファイルが残った：{:?}",
+        leftovers(&site)
+    );
+}

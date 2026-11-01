@@ -299,10 +299,10 @@ impl PageWriter for OutDir {
             }
             replaced.push((to.clone(), had.then_some(backup)));
         }
-        for (_, saved) in replaced {
-            if let Some(b) = saved {
-                let _ = std::fs::remove_file(b);
-            }
+        // 書き終えたら、置き換えたページの隣の退避を消す。前の書き出しが置き換えの途中で止められて残った退避
+        // （前のページが無く、退避だけがある）も、ここで消える
+        for (page, _) in replaced {
+            let _ = std::fs::remove_file(sibling(&page, "sas-bak"));
         }
         Ok(())
     }

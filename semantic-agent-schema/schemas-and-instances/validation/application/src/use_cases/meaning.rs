@@ -1,7 +1,9 @@
 //! rule の意味の判定（UC4 の意味の部分）：判定の手順を組み、打ったセッションが渡した判定を読む。
 //!
 //! - rule × 当たる所ごとに1ステップの手順を作る。入れるのはいまの中身と rule と rule の reads の値だけで、
-//!   前の判定は入れない
+//!   前の判定は入れない。rule の全文は手順の rules に1回だけ書き、ステップは rule の id で指す
+//! - 判定は書いたときとは別の文脈で行い、判定用の会話はキャッシュの有効時間のうちは続けて使うよう、constraints で求める。
+//!   SAS は判定したのが誰かを見分けない
 //! - SAS はエージェントを起動しない。手順は sas validate --semantic で打ったセッションに返し、そのセッションが判定して
 //!   sas validate --answer で渡す
 //! - 渡された判定は、答えの形 ・ 手順のハッシュ ・ step ・ rule ・ pointer で突き合わせる。合わなければ記録せずに理由を返す
@@ -46,17 +48,27 @@ pub struct Step {
 #[must_use]
 pub fn procedure(path: &str, concrete: &str, hash: &str, steps: &[Step], command: &str) -> Value {
     let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
+    // rule の全文は、ステップに出てきた順に id ごとに1回だけ書く
+    let mut rules: Vec<&Value> = Vec::new();
+    let mut seen: Vec<&str> = Vec::new();
+    for s in steps {
+        if !seen.contains(&s.rule.as_str()) {
+            seen.push(&s.rule);
+            rules.push(&s.definition);
+        }
+    }
     json!({
         "$schema": "urn:semantic-agent-schema:published-language:procedure:v1",
         "kind": "procedure",
         "operation_kind": "validate",
         "target": {"path": path, "concrete": concrete, "hash": hash},
+        "rules": rules,
         "steps": steps.iter().map(|s| {
             let mut v = json!({
                 "no": s.no,
                 "action": "judge",
                 "pointer": s.pointer,
-                "rules": [s.definition],
+                "rule": s.rule,
                 "current": s.current,
             });
             if let Some(t) = &s.title {
@@ -80,11 +92,13 @@ pub fn procedure(path: &str, concrete: &str, hash: &str, steps: &[Step], command
         "answer": {"format": "judgments", "schema": schema},
         "command": command,
         "constraints": [
-            "steps のそれぞれを、rules の rule（rule ・ why ・ test。bad ・ good があれば違反する例と満たす例）に照らして current の値で判定する（read があればその読み方で、reads があればその値も読む）",
+            "steps のそれぞれを、ステップの rule（rule の id）で rules から引いた rule（rule ・ why ・ test。bad ・ good があれば違反する例と満たす例）に照らして current の値で判定する（read があればその読み方で、reads があればその値も読む）",
             "判定は answer の形の JSON にし、hash には target.hash を写して、command で渡す",
             "ファイルを書かない",
             "ステップに無い欄に触れない",
             "断られたら、出力の理由を読んで直し、打ち直す（hash が違うと言われたら、手順を取り直す）",
+            "判定は、書いたときとは別の文脈（サブエージェントなど）で行う",
+            "判定用の会話は、キャッシュの有効時間のうちは同じものを続けて使い、変わった所の手順だけを渡す",
         ],
     })
 }

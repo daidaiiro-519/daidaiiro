@@ -1,0 +1,67 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-ALL-RULES",
+ "name": "すべての所を判定し直す",
+ "title": "判定済みの対象でも、validate --semantic --all-rules は変わっていない rule を含むすべての所を手順に入れ、判定を渡すコマンドにも --all-rules を付ける",
+ "why": "rule の文ではなく判定する側の基準を変えたときは、変わった所だけでは前の判定が残る。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "answers/summary.json": "{\"hash\": \"sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"結果を書いている\"}, {\"step\": 2, \"rule\": \"summary-matches\", \"pointer\": \"/summary\", \"result\": \"verified\", \"reason\": \"目的に食い違わない\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/s1.json",
+     "--answer",
+     "answers/summary.json"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "items/s1.json",
+     "--patch",
+     "[{\"op\":\"replace\",\"path\":\"/summary\",\"value\":\"検証の結果を受け取るための約束\"}]"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/s1.json",
+   "--semantic",
+   "--all-rules"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/rules",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "contains": "--all-rules --answer"
+  }
+ ],
+ "unchanged": [
+  "items/s1.json"
+ ]
+}

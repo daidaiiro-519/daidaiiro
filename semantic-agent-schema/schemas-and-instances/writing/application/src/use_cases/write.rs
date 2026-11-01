@@ -777,6 +777,20 @@ pub fn update(
             ));
         }
     };
+    // Concrete の申告する Abstract の版を、SAS が入れて出す一覧に無い版へ変えるパッチは、形に照らす前に断る
+    // （版を移す手続きは、Abstract の新しい版を出すときに作る）
+    if kind == TargetKind::Concrete
+        && let Some(to) = after.get("$schema").and_then(Value::as_str)
+        && to != declared
+        && let Err(u) = TargetKind::classify(&corpus.concretes, to)
+        && u.code() == "schema_not_listed"
+    {
+        return Err(refused(
+            u.code(),
+            path,
+            format!("{}。パッチを当てていない（対象は変えない）", u.message()),
+        ));
+    }
     // Concrete を直すときは、新しい中身を同じ $id の Concrete として照らす
     let own_id = ConcreteSchema::read(&before).and_then(|c| c.id().map(ToString::to_string));
     let mut more: Vec<(String, Value)> = corpus

@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-SEMANTIC-PROCEDURE",
  "name": "判定の手順を受け取る",
- "title": "validate --semantic は、機械の検証をしたうえで、意味の rule の判定の手順（rule × 当たる所ごとのステップ ・ 対象のハッシュ ・ 判定を渡すコマンド）を出し、記録しない",
+ "title": "validate --semantic は、機械の検証をしたうえで、意味の rule の判定の手順（rule × 当たる所ごとのステップ ・ rule の全文の一覧 ・ 対象のハッシュ ・ 判定を渡すコマンド ・ 判定を書いたときとは別の文脈で行うこと）を出し、記録しない",
  "why": "判定するのは sas を打ったセッション自身なので、SAS は何を判定するかだけを渡す。記録しないので、判定を渡す前の検証が記録に混ざらない。",
  "traces": [
   "UC4:変形:意味の判定",
@@ -53,8 +53,23 @@
   },
   {
    "of": "when",
-   "pointer": "/steps/0/rules/0/id",
+   "pointer": "/steps/0/rule",
    "equals": "goal-is-outcome"
+  },
+  {
+   "of": "when",
+   "pointer": "/rules/0/id",
+   "equals": "goal-is-outcome"
+  },
+  {
+   "of": "when",
+   "pointer": "/constraints",
+   "contains": "書いたときとは別の文脈"
+  },
+  {
+   "of": "when",
+   "pointer": "/constraints",
+   "contains": "キャッシュの有効時間のうちは同じものを続けて使い"
   },
   {
    "of": "when",

@@ -26,7 +26,7 @@
     "write",
     "search"
    ],
-   "description": "validate は rule の判定、write は欄の値を書く、search は範囲の文書を読んで問いに答える"
+   "description": "validate は rule の判定、write は欄の値を書く、search は範囲の文書を読んで問いに答える。判定の手順は、既定では前の判定から読んだ所が変わった rule と前に判定できなかった rule だけを持ち（前の判定が無い対象はすべて）、--all-rules ですべてを持つ"
   },
   "target": {
    "type": "object",
@@ -80,11 +80,16 @@
      "description": {
       "type": "string"
      },
+     "rule": {
+      "type": "string",
+      "description": "判定する rule の id。手順の rules から、同じ id の rule の全文を引く。判定のときだけ"
+     },
      "rules": {
       "type": "array",
       "items": {
        "type": "object"
-      }
+      },
+      "description": "当たる rule（x-prompt の write の1行）。書き込みのときだけ"
      },
      "current": {
       "description": "いまの値。判定ではいつもあり、書き込みでは更新のときだけある。検索では文書全体"
@@ -160,8 +165,33 @@
         "hash",
         "current"
        ]
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "action": {
+         "const": "judge"
+        }
+       }
       },
-      "else": {
+      "then": {
+       "required": [
+        "pointer",
+        "rule",
+        "current"
+       ]
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "action": {
+         "const": "write"
+        }
+       }
+      },
+      "then": {
        "required": [
         "pointer",
         "rules"
@@ -284,7 +314,7 @@
    "items": {
     "type": "object"
    },
-   "description": "文書全体に当たる rule（書く元のスキーマの根の x-prompt の write）。書き込みのときだけ"
+   "description": "rule の全文（x-prompt の write の1行）。判定では、steps が rule の id で指す rule を、id ごとに1回だけ持つ。書き込みでは、文書全体に当たる rule（書く元のスキーマの根の x-prompt の write）"
   },
   "question": {
    "type": "string",
