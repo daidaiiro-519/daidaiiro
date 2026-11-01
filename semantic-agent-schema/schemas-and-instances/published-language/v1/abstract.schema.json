@@ -21,14 +21,6 @@
         "test": "欄の値の形と使われ方から、interpret ・ when が必要なのに無い欄が無いかを見る。"
       },
       {
-        "id": "no-prompt-on-leaf",
-        "rule": "入れ子の奥の葉には x-prompt を書かない。",
-        "why": "親の x-prompt が葉まで案内するので、葉にも書くと同じ決まりが2か所に並ぶ。",
-        "test": "x-prompt を持つ葉の親が、同じ決まりを持っていないかを見る。",
-        "bad": "verification.passed[].option に x-prompt を書く。",
-        "good": "verification.passed の x-prompt に、option の書き方も書く。"
-      },
-      {
         "id": "list-as-array",
         "rule": "並びになる値は、文字列に詰めず配列の型にする。",
         "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
@@ -164,7 +156,7 @@
   "$defs": {
     "shape": {
       "type": "object",
-      "description": "$defs の形1つ。プロパティを持つなら、その書く単位に説明と案内を求める",
+      "description": "$defs の形と配列の要素の形1つ。プロパティを持つなら、その書く単位（値を入れる欄）に説明と案内を求める",
       "properties": {
         "properties": {
           "$ref": "#/$defs/fields"
@@ -188,7 +180,7 @@
     },
     "field": {
       "type": "object",
-      "description": "書く単位1つ。欄に書ける x- は x-prompt ・ x-decided-by ・ x-published の3つ",
+      "description": "書く単位1つ（値を入れる欄）。入れ子のどの深さでも、値を入れる欄は title ・ description ・ x-prompt を持つ。欄に書ける x- は x-prompt ・ x-decided-by ・ x-published の3つ",
       "required": [
         "title",
         "description",
@@ -226,6 +218,12 @@
               }
             ]
           }
+        },
+        "properties": {
+          "$ref": "#/$defs/fields"
+        },
+        "items": {
+          "$ref": "#/$defs/shape"
         }
       }
     },

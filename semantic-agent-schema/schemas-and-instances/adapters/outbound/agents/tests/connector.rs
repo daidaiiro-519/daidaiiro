@@ -74,10 +74,18 @@ fn a_child_held_by_another_open_is_busy_and_a_left_file_is_not() {
         Reply::Busy
     ));
     drop(held);
-    assert!(matches!(
-        c.resume("c-1", &Value::Null, "a", &json!({})),
-        Reply::Answered { .. }
-    ));
+    // 手放したあとも、別の試験の起動の瞬間は記述子の複製で鍵が一時的に取れないので、答えるまで待つ
+    let mut tries = 0;
+    loop {
+        match c.resume("c-1", &Value::Null, "a", &json!({})) {
+            Reply::Answered { .. } => break,
+            Reply::Busy if tries < 500 => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            other => panic!("手放したあとに答えない：{other:?}"),
+        }
+    }
 }
 
 #[test]
