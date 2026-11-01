@@ -31,7 +31,7 @@ fn concrete_gets_a_result_for_every_applied_rule() {
             ("json-schema", Verdict::Verified),
             ("instance-schema-name", Verdict::Verified),
             ("unique-id", Verdict::Verified),
-            ("someone-decides", Verdict::Unverified)
+            ("goal-is-ok", Verdict::Unsupported)
         ]
     );
     assert_eq!(log.0.len(), 1);

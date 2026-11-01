@@ -1,4 +1,4 @@
-//! 当たる rule を集め、機械で判定できないものを、by ごとに決まった値にする。
+//! 当たる rule を集める。rule はどれも検証用の子セッション（AI）が判定する。
 //!
 //! rule は x-prompt.write にある。欄の rule は欄に、x- の rule はその x- の値の形（Abstract の $defs）に書く。
 //! 当たるのは、対象の文書にその欄や x- が実際にあるときだけ。Abstract の $defs の中の rule も、$ref でたどって当てる。
@@ -12,15 +12,13 @@ use writing_domain::aggregates::{ConcreteSchema, escape};
 pub struct AppliedRule {
     /// rule の id
     pub id: String,
-    /// 誰が判定するか
-    pub by: By,
     /// 対象の中の当たる所（JSON Pointer）
     pub pointer: String,
     /// rule の定義（x-prompt の write の1行）。文が変われば前の判定は効かない
     pub definition: Value,
 }
 
-fn write_rules(prompt: Option<&Value>) -> Vec<(String, By, Value)> {
+fn write_rules(prompt: Option<&Value>) -> Vec<(String, Value)> {
     prompt
         .and_then(|p| p.get("write"))
         .and_then(Value::as_array)
@@ -28,8 +26,7 @@ fn write_rules(prompt: Option<&Value>) -> Vec<(String, By, Value)> {
             rs.iter()
                 .filter_map(|r| {
                     let id = r.get("id")?.as_str()?.to_string();
-                    let by = By::parse(r.get("by")?.as_str()?)?;
-                    Some((id, by, r.clone()))
+                    Some((id, r.clone()))
                 })
                 .collect()
         })
@@ -60,10 +57,9 @@ pub fn rules_for_concrete(
 }
 
 fn push_rules(schema: &Value, at: &str, out: &mut Vec<AppliedRule>) {
-    for (id, by, definition) in write_rules(schema.get("x-prompt")) {
+    for (id, definition) in write_rules(schema.get("x-prompt")) {
         out.push(AppliedRule {
             id,
-            by,
             pointer: at.to_string(),
             definition,
         });
@@ -198,10 +194,9 @@ fn keywords(
 #[must_use]
 pub fn rules_for_instance(concrete_doc: &Value, instance_doc: &Value) -> Vec<AppliedRule> {
     let mut out = Vec::new();
-    for (id, by, definition) in write_rules(concrete_doc.get("x-prompt")) {
+    for (id, definition) in write_rules(concrete_doc.get("x-prompt")) {
         out.push(AppliedRule {
             id,
-            by,
             pointer: String::new(),
             definition: definition.clone(),
         });
@@ -218,10 +213,9 @@ fn walk(schema: &Value, value: &Value, at: &str, out: &mut Vec<AppliedRule>) {
         for (name, field) in props {
             if let Some(child) = obj.get(name) {
                 let here = format!("{at}/{}", escape(name));
-                for (id, by, definition) in write_rules(field.get("x-prompt")) {
+                for (id, definition) in write_rules(field.get("x-prompt")) {
                     out.push(AppliedRule {
                         id,
-                        by,
                         pointer: here.clone(),
                         definition: definition.clone(),
                     });
@@ -237,65 +231,59 @@ fn walk(schema: &Value, value: &Value, at: &str, out: &mut Vec<AppliedRule>) {
     }
 }
 
-/// 機械の判定が無い rule を、by ごとに決まった値にする。
-/// 人は unverified（人が決める。人の判定は使う側のセッションで行う）、AI は unsupported（エージェントはまだつながっていない）、
-/// 判定の手続きが無い機械の rule は unsupported。
+/// 子セッションにつながっていないときの rule の結果：unsupported（エージェントがつながっていない）。
 #[must_use]
 pub fn judge_others(rule: &AppliedRule) -> RuleResult {
-    let (verdict, reason) = match rule.by {
-        By::Human => (Verdict::Unverified, "人が決める"),
-        By::Ai => (Verdict::Unsupported, "エージェントがまだつながっていない"),
-        By::Machine => (
-            Verdict::Unsupported,
-            "この rule を判定する手続きが、まだ無い",
-        ),
-    };
-    RuleResult::new(&rule.id, &rule.pointer, rule.by, verdict, reason)
+    RuleResult::new(
+        &rule.id,
+        &rule.pointer,
+        By::Ai,
+        Verdict::Unsupported,
+        "エージェントがつながっていない（--agent で接続の定義を渡す）",
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::{judge_others, rules_for_concrete, rules_for_instance};
-    use crate::values::{By, Verdict};
+    use crate::values::Verdict;
     use serde_json::json;
     use writing_domain::aggregates::ConcreteSchema;
 
     #[test]
     fn rules_follow_present_fields_only() {
         let concrete = json!({
-            "x-prompt": {"write": [{"id": "root", "by": "ai"}]},
+            "x-prompt": {"write": [{"id": "root"}]},
             "properties": {
-                "goal": {"x-prompt": {"write": [{"id": "goal-rule", "by": "human"}]}},
-                "absent": {"x-prompt": {"write": [{"id": "absent-rule", "by": "ai"}]}}
+                "goal": {"x-prompt": {"write": [{"id": "goal-rule"}]}},
+                "absent": {"x-prompt": {"write": [{"id": "absent-rule"}]}}
             }
         });
         let rules = rules_for_instance(&concrete, &json!({"goal": "x"}));
         let ids: Vec<&str> = rules.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["root", "goal-rule"]);
         assert_eq!(rules[1].pointer, "/goal");
-        assert_eq!(rules[1].by, By::Human);
-        assert_eq!(judge_others(&rules[1]).verdict(), Verdict::Unverified);
-        assert_eq!(judge_others(&rules[0]).verdict(), Verdict::Unsupported);
+        assert_eq!(judge_others(&rules[1]).verdict(), Verdict::Unsupported);
     }
 
     #[test]
     fn abstract_rules_inside_defs_reach_the_concrete() {
         // Abstract の $defs の中の rule（欄の title、rule の欄）も、$ref と x- の値の形をたどって当たる
         let abstract_doc = json!({
-            "x-prompt": {"write": [{"id": "root-rule", "by": "ai"}]},
+            "x-prompt": {"write": [{"id": "root-rule"}]},
             "properties": {"properties": {"$ref": "#/$defs/fields"}},
             "$defs": {
                 "fields": {"additionalProperties": {"$ref": "#/$defs/field"}},
-                "field": {"properties": {"title": {"x-prompt": {"write": [{"id": "title-rule", "by": "ai"}]}}}},
+                "field": {"properties": {"title": {"x-prompt": {"write": [{"id": "title-rule"}]}}}},
                 "prompt": {"$anchor": "prompt", "properties": {"write": {"items": {"$ref": "#/$defs/rule"}}}},
-                "rule": {"properties": {"why": {"$ref": "#/$defs/sentence", "x-prompt": {"write": [{"id": "why-rule", "by": "ai"}]}}}},
+                "rule": {"properties": {"why": {"$ref": "#/$defs/sentence", "x-prompt": {"write": [{"id": "why-rule"}]}}}},
                 "sentence": {"type": "string"}
             }
         });
         let vocabulary = json!({"properties": {"x-prompt": {"$ref": "urn:semantic-agent-schema:published-language:abstract:v1#prompt"}}});
         let concrete = ConcreteSchema::read(&json!({
             "$schema": "urn:semantic-agent-schema:published-language:abstract:v1", "$id": "urn:example:a:v1",
-            "properties": {"goal": {"title": "目的", "x-prompt": {"write": [{"id": "r", "why": "w", "by": "ai"}]}}}
+            "properties": {"goal": {"title": "目的", "x-prompt": {"write": [{"id": "r", "why": "w"}]}}}
         }))
         .unwrap();
         let got: Vec<(String, String)> =

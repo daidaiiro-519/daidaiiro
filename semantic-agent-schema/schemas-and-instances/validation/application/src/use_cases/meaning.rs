@@ -1,4 +1,4 @@
-//! by: ai の rule を、SAS が起動した検証用の子セッションに判定させる（SF1 と UC4 の意味の部分）。
+//! rule を、SAS が起動した検証用の子セッションに判定させる（SF1 と UC4 の意味の部分）。
 //!
 //! - rule × 当たる所ごとに1ステップの手順のプロンプトを作る。渡すのはいまの中身と rule だけで、前の判定 ・ 書き込み用の子セッションの答え ・
 //!   brief は渡さない
@@ -173,7 +173,7 @@ pub fn read_answer(
 
 /// 1つの対象の判定を子セッションに頼んだ結果。
 pub struct Judged {
-    /// step の no → 判定の結果（by: ai）
+    /// step の no → 判定の結果
     pub results: BTreeMap<usize, RuleResult>,
     /// 判定した子セッションの ID（起動できなければ None）
     pub child: Option<String>,

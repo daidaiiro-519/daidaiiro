@@ -36,9 +36,9 @@ fn validate_row() -> ValidateRow {
         results: vec![RuleRow {
             rule: "goal-is-outcome".into(),
             pointer: "/goal".into(),
-            by: "human".into(),
+            by: "ai".into(),
             result: "unverified".into(),
-            reason: "人が決める".into(),
+            reason: "判定できない".into(),
             reads: "sha256:r".into(),
         }],
     }

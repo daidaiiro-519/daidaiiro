@@ -76,8 +76,7 @@ fn a_parent_is_written_once_and_a_human_has_no_row() {
         "o-0001"
     );
     assert_eq!(
-        log.append_validate(None, &row("human", "unverified"))
-            .unwrap(),
+        log.append_validate(None, &row("ai", "unverified")).unwrap(),
         "o-0002"
     );
 }
@@ -100,7 +99,7 @@ fn records_cannot_be_changed_or_removed() {
 fn rows_against_the_rules_are_refused() {
     let mut log = SqliteLog::in_memory().unwrap();
     assert!(
-        log.append_validate(None, &row("human", "verified"))
+        log.append_validate(None, &row("person", "verified"))
             .is_err()
     );
     // 拒んだ検証の行は残らない（rule の結果と一緒に1つのトランザクションで足す）

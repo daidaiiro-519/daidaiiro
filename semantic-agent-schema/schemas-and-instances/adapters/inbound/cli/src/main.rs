@@ -209,7 +209,7 @@ fn run_validate(args: &[String]) -> ExitCode {
     }
 }
 
-/// by: ai の rule を、接続の定義のエージェントの検証用の子セッションに判定させる検証。
+/// rule を、接続の定義のエージェントの検証用の子セッションに判定させる検証。
 fn run_validate_with_agent(
     scope: &Scope,
     agent: &str,

@@ -2,7 +2,7 @@
   "$schema": "urn:semantic-agent-schema:published-language:dialect:v1",
   "$id": "urn:semantic-agent-schema:published-language:abstract:v1",
   "title": "SAS の Abstract v1",
-  "description": "使う側が書く Concrete（JSON Schema）が従う、SAS の Abstract の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりと、x- の値の形（$defs。その x- の読み方と rule を x-prompt に持つ）を持つ。Concrete は x- を足さない。Concrete に書ける x- は x-prompt ・ x-decided-by ・ x-published ・ x-view の4つだけで、意味の決まりを広げるときは、欄の x-prompt の rule（by: ai）に書く。JSON Schema の構文で書けることは JSON Schema で書く。JSON Schema で書けない Concrete の決まりは2つで、SAS が検証のたびに組み込みで確かめる：根の properties の $schema の const は $id と同じ（instance-schema-name。SAS はインスタンスの $schema で従う Concrete を引く）・ rule の id は Concrete のどこでも重ならない（unique-id。判定の記録は名前で rule を指す）。",
+  "description": "使う側が書く Concrete（JSON Schema）が従う、SAS の Abstract の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりと、x- の値の形（$defs。その x- の読み方と rule を x-prompt に持つ）を持つ。Concrete は x- を足さない。Concrete に書ける x- は x-prompt ・ x-decided-by ・ x-published ・ x-view の4つだけで、意味の決まりを広げるときは、欄の x-prompt の rule に書く。JSON Schema の構文で書けることは JSON Schema で書く。JSON Schema で書けない Concrete の決まりは2つで、SAS が検証のたびに組み込みで確かめる：根の properties の $schema の const は $id と同じ（instance-schema-name。SAS はインスタンスの $schema で従う Concrete を引く）・ rule の id は Concrete のどこでも重ならない（unique-id。判定の記録は名前で rule を指す）。",
   "allOf": [
     {
       "$ref": "urn:semantic-agent-schema:published-language:dialect:v1"
@@ -18,15 +18,13 @@
         "id": "read-perspectives",
         "rule": "値の形だけで解釈が決まらない欄には interpret を、読む時が決まっている欄には when を書く。",
         "why": "description だけでは、同じ値を人と AI が別の意味に読む。",
-        "test": "欄の値の形と使われ方から、interpret ・ when が必要なのに無い欄が無いかを見る。",
-        "by": "ai"
+        "test": "欄の値の形と使われ方から、interpret ・ when が必要なのに無い欄が無いかを見る。"
       },
       {
         "id": "no-prompt-on-leaf",
         "rule": "入れ子の奥の葉には x-prompt を書かない。",
         "why": "親の x-prompt が葉まで案内するので、葉にも書くと同じ決まりが2か所に並ぶ。",
         "test": "x-prompt を持つ葉の親が、同じ決まりを持っていないかを見る。",
-        "by": "ai",
         "bad": "verification.passed[].option に x-prompt を書く。",
         "good": "verification.passed の x-prompt に、option の書き方も書く。"
       },
@@ -34,8 +32,7 @@
         "id": "list-as-array",
         "rule": "並びになる値は、文字列に詰めず配列の型にする。",
         "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
-        "test": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。",
-        "by": "ai"
+        "test": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。"
       }
     ]
   },
@@ -86,7 +83,6 @@
             "rule": "インスタンスが何であるかを、名詞で書く。",
             "why": "読む人は題だけで、何のインスタンスかを判断する。",
             "test": "題が名詞で終わっているかを見る。",
-            "by": "ai",
             "bad": "意思決定を記録するためのもの",
             "good": "意思決定の記録"
           }
@@ -104,8 +100,7 @@
             "id": "what-and-not",
             "rule": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を書く。",
             "why": "書かないものが分からないと、ほかのスキーマと同じことを2か所に書く。",
-            "test": "説明に、書かないものが1つ以上あるかを見る。",
-            "by": "ai"
+            "test": "説明に、書かないものが1つ以上あるかを見る。"
           }
         ]
       }
@@ -185,8 +180,7 @@
                 "id": "what-goes-here",
                 "rule": "何を入れる欄かを名詞で書く。",
                 "why": "読む人は名前で、欄の中身を判断する。",
-                "test": "名前が名詞で、欄の値と合っているかを見る。",
-                "by": "ai"
+                "test": "名前が名詞で、欄の値と合っているかを見る。"
               }
             ]
           }
@@ -202,8 +196,7 @@
                 "id": "noun-sentence",
                 "rule": "値が何であるかを、名詞で終わる1文で書く。",
                 "why": "読む人は、まず何の値かで判断する。",
-                "test": "1文で、値の中身と合っているかを見る。",
-                "by": "ai"
+                "test": "1文で、値の中身と合っているかを見る。"
               }
             ]
           }
@@ -237,8 +230,7 @@
             "id": "freeze-only-relied",
             "rule": "インスタンスやほかの仕組みが頼っていて、変わると困る欄だけを true にする。",
             "why": "true の欄は、版を上げないと変えられない。",
-            "test": "true の欄が、変わると困る欄かを見る。",
-            "by": "ai"
+            "test": "true の欄が、変わると困る欄かを見る。"
           }
         ]
       }
@@ -259,8 +251,7 @@
             "id": "same-look-same-kind",
             "rule": "同じ見せ方にしたい Concrete には、同じ種類の名前を付ける。",
             "why": "種類ごとにテンプレートを1つ用意すれば、どの Concrete のインスタンスも同じデザインで描ける。",
-            "test": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。",
-            "by": "ai"
+            "test": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。"
           }
         ]
       }
@@ -293,8 +284,7 @@
                 "id": "one-rule-per-item",
                 "rule": "1つの決まりに1つのことだけを書く。",
                 "why": "2つ混ぜると、どちらで違反したかが分からない。",
-                "test": "rule の文に、2つの決まりが並んでいないかを見る。",
-                "by": "ai"
+                "test": "rule の文に、2つの決まりが並んでいないかを見る。"
               }
             ]
           }
@@ -324,8 +314,7 @@
                 "id": "ambiguity-only",
                 "rule": "形だけでは読み違えうる点だけを書く。",
                 "why": "形で分かることまで書くと、必要な点が埋もれる。",
-                "test": "書いた点が、型や pattern で決まっていないことかを見る。",
-                "by": "ai"
+                "test": "書いた点が、型や pattern で決まっていないことかを見る。"
               }
             ]
           }
@@ -340,8 +329,7 @@
                 "id": "trigger",
                 "rule": "読む時と、そのとき決めることを書く。",
                 "why": "読む時が分かれば、読み手が決まる。",
-                "test": "時と決めることの両方があるかを見る。",
-                "by": "ai"
+                "test": "時と決めることの両方があるかを見る。"
               }
             ]
           }
@@ -350,13 +338,12 @@
     },
     "rule": {
       "type": "object",
-      "description": "書くときの決まり1件",
+      "description": "書くときの決まり1件。書く AI への指示であり、検証では SAS が起動した子セッションがこの決まりに照らして判定する（レビューの観点）。",
       "required": [
         "id",
         "rule",
         "why",
-        "test",
-        "by"
+        "test"
       ],
       "additionalProperties": false,
       "properties": {
@@ -386,8 +373,13 @@
                 "id": "state-based",
                 "rule": "決まりは、ある時点のインスタンスを見れば判定できる状態として書き、操作（手段）を書かない。",
                 "why": "状態で書けば、どの経路でその状態になったかに判定が左右されない（TLA+ の invariant の考え方）。",
-                "test": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。",
-                "by": "ai"
+                "test": "文が「〜するときは」ではなく「〜なら、〜である」の形かを見る。"
+              },
+              {
+                "id": "json-schema-first",
+                "rule": "値だけで決まる決まりは、行ではなく JSON Schema のキーワードで書き、行には書けないものだけを残す。",
+                "why": "JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる。",
+                "test": "値だけで決まる決まりを、if ・ then や pattern で書かずに rule にしていないかを見る。"
               }
             ]
           }
@@ -402,8 +394,7 @@
                 "id": "consequence",
                 "rule": "守らないと何が起きるかを書く。",
                 "why": "理由が無いと、決まりを直してよいかを判断できない。",
-                "test": "起きることが書かれているかを見る。",
-                "by": "ai"
+                "test": "起きることが書かれているかを見る。"
               }
             ]
           }
@@ -418,27 +409,7 @@
                 "id": "checkable",
                 "rule": "何を見れば合否が決まるかを書く。",
                 "why": "確かめ方が無いと、判定する人で結果が変わる。",
-                "test": "見る場所と、合否の分かれ目があるかを見る。",
-                "by": "ai"
-              }
-            ]
-          }
-        },
-        "by": {
-          "enum": [
-            "ai",
-            "human"
-          ],
-          "title": "判定する者",
-          "description": "ai（SAS が起動した子セッション）・ human（人）のどちらが判定するかである。値だけで決まる決まりは rule にせず、JSON Schema で書く。",
-          "x-prompt": {
-            "write": [
-              {
-                "id": "json-schema-first",
-                "rule": "値だけで決まる決まりは、行ではなく JSON Schema のキーワードで書き、行には書けないものだけを残す。",
-                "why": "JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる。",
-                "test": "値だけで決まる決まりを、if ・ then や pattern で書かずに行に書いていないかを見る。",
-                "by": "ai"
+                "test": "見る場所と、合否の分かれ目があるかを見る。"
               }
             ]
           }
@@ -456,8 +427,7 @@
                 "id": "minimal-reads",
                 "rule": "判定に必要な欄だけを並べる。",
                 "why": "読む範囲を絞ると、意味の判定がぶれない。",
-                "test": "並べた欄が、決まりの文に出てくるかを見る。",
-                "by": "ai"
+                "test": "並べた欄が、決まりの文に出てくるかを見る。"
               }
             ]
           }
@@ -473,8 +443,7 @@
                 "id": "bad-violates",
                 "rule": "この決まりで violated になる値を書く。",
                 "why": "破らない例は、決まりの意味を示さない。",
-                "test": "例がこの決まりで violated になるかを見る。",
-                "by": "ai"
+                "test": "例がこの決まりで violated になるかを見る。"
               }
             ]
           }
@@ -490,8 +459,7 @@
                 "id": "good-passes",
                 "rule": "この決まりで verified になる値を書く。",
                 "why": "守らない例は、決まりの意味を示さない。",
-                "test": "例がこの決まりで verified になるかを見る。",
-                "by": "ai"
+                "test": "例がこの決まりで verified になるかを見る。"
               }
             ]
           }

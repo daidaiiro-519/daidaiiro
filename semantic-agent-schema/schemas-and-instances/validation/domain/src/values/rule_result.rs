@@ -7,31 +7,17 @@ use super::Verdict;
 pub enum By {
     /// 機械（SAS か JSON Schema のバリデーター）
     Machine,
-    /// AI（エージェント）
+    /// AI（SAS が起動した検証用の子セッション）
     Ai,
-    /// 人
-    Human,
 }
 
 impl By {
-    /// rule の by の文字列から読む。知らない値は None。
-    #[must_use]
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "machine" => Some(Self::Machine),
-            "ai" => Some(Self::Ai),
-            "human" => Some(Self::Human),
-            _ => None,
-        }
-    }
-
     /// 公開された言葉での名前。
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Machine => "machine",
             Self::Ai => "ai",
-            Self::Human => "human",
         }
     }
 }
@@ -47,14 +33,9 @@ pub struct RuleResult {
 }
 
 impl RuleResult {
-    /// 結果を作る。人が決める rule は、何を渡しても unverified になる（人の判定は使う側のセッションで行う）。
+    /// 結果を作る。
     #[must_use]
     pub fn new(rule: &str, pointer: &str, by: By, verdict: Verdict, reason: &str) -> Self {
-        let verdict = if by == By::Human {
-            Verdict::Unverified
-        } else {
-            verdict
-        };
         Self {
             rule: rule.to_string(),
             pointer: pointer.to_string(),
@@ -139,12 +120,6 @@ impl Counts {
 #[cfg(test)]
 mod tests {
     use super::{By, Counts, RuleResult, Verdict};
-
-    #[test]
-    fn human_rule_is_always_unverified() {
-        let r = RuleResult::new("x", "", By::Human, Verdict::Verified, "");
-        assert_eq!(r.verdict(), Verdict::Unverified);
-    }
 
     #[test]
     fn counts_each_value() {

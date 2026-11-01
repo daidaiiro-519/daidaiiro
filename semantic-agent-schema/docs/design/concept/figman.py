@@ -92,9 +92,9 @@ def model():
     f.box(30, 370, 440, 66, ['use_cases に残すもの：取り込みの前の値・', '衝突を返す・従うインスタンスがあれば止める'], dashed=True)
     f.area(510, 10, 480, 450, 'validation-domain（検証のモジュール）')
     f.box(530, 44, 440, 64, ['集約は持たない', '← 書くモジュールの集約を読んで rule に照らす'], dashed=True)
-    f.box(530, 160, 440, 56, ['値：判定の5つの区分・rule の結果・誰が判定するか（by）'])
+    f.box(530, 160, 440, 56, ['値：判定の5つの区分・rule の結果・誰が判定したか（by）'])
     f.box(530, 270, 440, 66, ['サービス：当たる rule・', 'Concrete に当たる Abstract の rule'], 'kind-1')
-    f.box(530, 370, 440, 66, ['意味（by: ai の rule）は同じ検証の中。', '意味を読ませるポートは application（ステップ6）'], dashed=True)
+    f.box(530, 370, 440, 66, ['意味（x-prompt の rule）は同じ検証の中。', '意味を読ませるポートは application（ステップ6）'], dashed=True)
     f.path('M530,76 H472')
     return f.write('model')
 

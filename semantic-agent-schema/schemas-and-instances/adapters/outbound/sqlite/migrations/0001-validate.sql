@@ -1,6 +1,6 @@
 -- ステップ1：誰が何で動いたか（sessions）と、検証（validations）と rule ごとの結果（rule_results）。
 -- ステップ4b で書き直した（公開前なので移行の番号は足さない）。セッションは状態を持たない：開閉 ・ 終わり方 ・ 続き番号は無い。
--- どの表も追記だけ（UPDATE ・ DELETE を trigger で拒む）。by = human は unverified だけ。
+-- どの表も追記だけ（UPDATE ・ DELETE を trigger で拒む）。
 
 -- 親セッションは SAS が初めて見たときに1行（role = caller）。子セッション（writer ・ checker）は起動したときに1行で、ステップ6 から書く
 CREATE TABLE sessions (
@@ -45,12 +45,11 @@ CREATE TABLE rule_results (
     ord           INTEGER NOT NULL,
     rule_id       TEXT NOT NULL,
     pointer       TEXT NOT NULL,
-    by            TEXT NOT NULL CHECK (by IN ('machine', 'ai', 'human')),
+    by            TEXT NOT NULL CHECK (by IN ('machine', 'ai')),
     result        TEXT NOT NULL CHECK (result IN ('verified', 'violated', 'unverified', 'error', 'unsupported')),
     reason        TEXT NOT NULL,
     reads_hash    TEXT NOT NULL,
-    PRIMARY KEY (validation_id, ord),
-    CHECK (by IS NOT 'human' OR result = 'unverified')
+    PRIMARY KEY (validation_id, ord)
 ) STRICT;
 
 CREATE TRIGGER validations_parent_is_caller BEFORE INSERT ON validations

@@ -28,7 +28,7 @@ fn rule_result(r: &RuleResult) -> Value {
     })
 }
 
-/// 手順のプロンプトを1行ずつ出す（by: ai の rule の判定を、検証用の子セッションに渡したもの）。
+/// 手順のプロンプトを1行ずつ出す（rule の判定を、検証用の子セッションに渡したもの）。
 pub fn print_procedures(m: &MeaningOutcome) {
     for p in &m.procedures {
         let mut line = p.clone();

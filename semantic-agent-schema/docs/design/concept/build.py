@@ -1,4 +1,4 @@
-"""Semantic Agent Schema の概念（版22）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
+"""Semantic Agent Schema の概念（版23）。土台・設計のページと同じ作り（タブ・結論の1文・図・カード・details の表）で、版5 の決定を図を主役に組み直す。
 図は design-svg の figure と chart exchange で作り、ER 図と3段の型は版5（../sas-role4/）の検査済みの図を使う。"""
 import os, re, json, subprocess, html
 H = os.path.dirname(os.path.abspath(__file__))
@@ -170,14 +170,14 @@ CTXNO = [("「セッション」で文脈を2つに分ける（9519cffa）", "�
          ("前の2つの文脈（検証の文脈・変更の確かめの文脈）", "前は「判定」の2つの意味で2つの文脈に分けていた。意図の判定を使う側へ出したので意味が1つに戻り、1つになった")]
 INV = [("集約 Concrete（書くのモジュール）", "① 申告する Abstract の版は閉じた一覧にある（Abstract の enum）② x-published の欄を同じ版のまま変えない"),
        ("集約 Instance（書くのモジュール）", "① id を変えない ② x-decided-by が human の欄は人の入口からだけ変える（導く値は、Concrete の JSON Schema の if ・ then ・ else が形の確認で見る）"),
-       ("組み込みの検査（検証のモジュールの業務サービスが判定）", "JSON Schema で書けない Concrete の決まり2つ：$schema の const と $id が同じ（instance-schema-name）・rule の id が重ならない（unique-id）。x-prompt の rule ではなく、Concrete の検証のたびに SAS が確かめる。rule の by は ai と human だけ。人だけが変える欄は書く前に断る。x- の閉じた一覧は語彙の propertyNames（JSON Schema）が見る"),
+       ("組み込みの検査（検証のモジュールの業務サービスが判定）", "JSON Schema で書けない Concrete の決まり2つ：$schema の const と $id が同じ（instance-schema-name）・rule の id が重ならない（unique-id）。x-prompt の rule ではなく、Concrete の検証のたびに SAS が確かめる。x-prompt の rule はどれも検証用の子セッションが判定する（判定できなければ unverified）。人だけが変える欄は書く前に断る。x- の閉じた一覧は語彙の propertyNames（JSON Schema）が見る"),
        ("書く手順の条件（書くのモジュールの use_cases）", "読んだ時の指紋といまの指紋が一致したときだけ書く・形の確認・機械の検証・指紋の一致がそろったときだけ書く・最後の操作の事後の指紋（値で受け取る）と違えば SAS を通らない変更として知らせる"),
        ("sessions の行（集約ではない）", "追記だけ・子セッションの親セッションは親セッションの行だけ・親セッションは launch を持たず子セッションは必ず持つ（DDL・trigger）"),
        ("記録の行（集約ではない）", "追記だけ・request_id は1回・書き込み用の子セッションは変更だけ・検証用の子セッションは検証だけ（DDL・trigger・一意の索引）")]
 CMD = [("Concrete", "作る／版を変える（公開した版は変えない）"),
        ("インスタンス", "作る／直す（指紋を確かめる）／消す（ほかの文書は変えない。Concrete は従うインスタンスがあれば止める）／取り込む（--adopt）"),
        ("子セッション（集約ではない。use_cases の手順）", "起動する／--continue で同じ設定のまま続ける／直前の子セッションを案内する（child_exists）／処理中は送らない（busy）")]
-VAL = "書くのモジュール：指紋・差分（欄ごとの前後）・書く条件の外れ。検証のモジュール：判定の結果（判定の5つの区分と、何を verified に数えるか）・誰が判定するか（by）。sessions の役割（writer・checker）と起動の設定（launch）は記録の行の値。業務イベントは作らない（購読する手続きが無い）"
+VAL = "書くのモジュール：指紋・差分（欄ごとの前後）・書く条件の外れ。検証のモジュール：判定の結果（判定の5つの区分と、何を verified に数えるか）・誰が判定したか（形の検査と組み込みの検査は machine、rule は ai）。sessions の役割（writer・checker）と起動の設定（launch）は記録の行の値。業務イベントは作らない（購読する手続きが無い）"
 SVC = [("当たる rule・Abstract の rule（検証のモジュール）", "集約を読んで rule に照らす。書くのモジュールはサービスを持たない（参照を見分けない）")]
 MNO = [("上からだけ（版13：events/・操作の記録の集約2つ・スキーマへの適合をアクティブレコード）", "購読者の無い業務イベントと、守る条件の無い集約が残る。x- の規則が作成・更新・削除・取り込みの4本のスクリプトに重複する"),
        ("下からだけ（すべてスクリプトで書いてから引き上げる）", "守る条件がすでに書けているスキーマへの適合と SAS が立てたセッションまで、いったんスクリプトに重複して書く"),
@@ -223,7 +223,7 @@ def flow(name, steps):
         if n["role"] is None: del n["role"]
     return run('figure', name, {"direction": "TB", "nodes": ns, "edges": [{"from": f"s{i}", "to": f"s{i+1}"} for i in range(len(steps) - 1)]})
 F['fv'] = flow('fv', [("CLI の入力", "sas validate の引数（--agent ・ --continue）", False), ("親セッションを決める", "--session か環境変数 → sessions（caller）", True), ("SAS を通らない変更", "changes の最後の after_hash と比べる", True),
-  ("機械と人の rule", "バリデーター → rule-result（by: human は unverified）", False), ("子セッションを決める", "書き込み用の子セッションの ID なら断る・処理中なら busy", False), ("検証用の子セッション", "起動して sessions（checker・launch）か、launch のまま続ける", True),
+  ("形の検査と組み込みの検査", "バリデーター → rule-result（by: machine）", False), ("子セッションを決める", "書き込み用の子セッションの ID なら断る・処理中なら busy", False), ("検証用の子セッション", "起動して sessions（checker・launch）か、launch のまま続ける", True),
   ("答え", "agent-answer の judgments", False), ("指紋を確かめる", "違えば書かずに conflict", False), ("記録", "validations・rule_results（1つのトランザクション）", True), ("CLI の最後の行", "operation-result の validation（親セッションと子セッションの ID）", False)])
 F['fu'] = flow('fu', [("CLI の入力", "sas update の引数（--intent。意味で書くときはステップ7）", False), ("親セッションを決める", "sessions（caller）", True), ("SAS を通らない変更", "違えば直さずに断る", True),
   ("子セッションを決める", "--continue か、直前の子セッションがあれば child_exists", True), ("手順のプロンプト", "operation-result の procedure（write。続けるときは差分の指示だけ）", False), ("書き込み用の子セッション", "起動して sessions（writer・launch）か、launch のまま続ける", True),
@@ -255,7 +255,7 @@ T_NEW = {
   + det('外した案と理由', tbl(['外した案', '理由'], CTXNO))),
  'model': ('model', 'ドメインモデル',
   '<p class="ans">集約は2つ。Concrete・インスタンスで、書くのモジュール（writing/domain）に置く。検証のモジュールは集約を読んで rule に照らす。SAS が立てたセッションの集約は版16 でやめた（子セッションの状態を持たない）。上から決め、下から確かめて同じ形になったものだけを domain に置く。</p>'
-  + fig(F['model'], '集約・値・サービス', 'writing-domain は何にも依存しない。validation-domain は集約を読む。意味（by: ai の rule・x-prompt の欄を書く）は検証・書くの中にあり、業務領域にしない。記録と描画はドメインモデルを持たない（業務ロジックは use_cases のトランザクションスクリプト）。点線の箱は use_cases に残すもの。')
+  + fig(F['model'], '集約・値・サービス', 'writing-domain は何にも依存しない。validation-domain は集約を読む。意味（x-prompt の rule・x-prompt の欄を書く）は検証・書くの中にあり、業務領域にしない。記録と描画はドメインモデルを持たない（業務ロジックは use_cases のトランザクションスクリプト）。点線の箱は use_cases に残すもの。')
   + fig(F['datamap'], 'データとドメインモデルの対応', 'ファイルの中身は Git。記録は集約にせず、追記する行のまま。')
   + cards([("2つの集約", "Concrete・インスタンス。1回に書く集約は1つ。sessions と記録は追記する行"),
            ("業務イベントは作らない", "購読する手続きが無い。現れたら足す"),
@@ -344,6 +344,7 @@ T_VERIFY = ('verify', '確かめる',
 
 # ---------- 決めたこと・承認 ----------
 DECIDED = [
+ ("版23", "rule の by をなくした", "x-prompt の rule は、書く AI への指示であり、検証では子セッションが判定するレビューの観点である。by: machine は SAS に実行する手段が無くいつも unsupported、by: human は unverified を返すだけで、どちらも空の約束だった。値だけで決まる決まりは JSON Schema、JSON Schema で書けない Concrete の決まり2つ（instance-schema-name ・ unique-id）は SAS の組み込みの検査、承認は x-decided-by の欄、子セッションが決められないときは unverified。人だけが変える欄の rule human-entry-only も外した"),
  ("版22", "スキーマの形の未決5つを決めた", "x-extensions を一覧ごと外し、各 x- の説明と rule を値の形（$defs）へ移した。x-view は根だけに書ける（深い所は $dynamicAnchor meta で断る）。x-decided-by ・ x-published は Concrete のどこに書いても守る。x-relationship を外した：Abstract に参照パスが要るかは Concrete ごとに違うので、Abstract の約束にしていたのは責務過多だった。参照のパスが要る Concrete は普通の欄（format: uri-reference と pattern）として書き、SAS は参照を見分けない。削除はほかの文書を変えず、参照元の書き換え ・ cause_id ・ 参照先の検査 ・ id_changed を外した。reads はそのインスタンスの中だけ。Concrete に書ける x- は4つ"),
  ("版21", "Abstract を導き直した", "Abstract は以前の基盤のスキーマの写し（rule 52件のうち51件が同じ）だったので、SAS の能力から Concrete を書く人への約束を導き直した。JSON Schema 2020-12 で書けることは JSON Schema で書き（$schema の enum ・ $id の pattern と not ・ 欄の required ・ x- の閉じた一覧の propertyNames ・ 導く値の if ・ then ・ else）、x- と SAS の rule は書けないことだけにした。Concrete に書ける x- は5つ（x-prompt ・ x-relationship ・ x-decided-by ・ x-published ・ x-view）で、x- を増やさない。x-delegates ・ x-instance-path ・ x-instance-label ・ x-derived-from ・ Concrete の x-extensions ・ output-judging ・ output-working を外した。SAS の機械の rule は4つ（$schema の const と $id ・ rule の id ・ 参照先 ・ 人だけが変える欄）で、どれも判定する。Abstract の $defs の中の rule も Concrete に当てる。x-published の欄があっても削除は止めない。公開された言葉は7つ（作らないと決めたもの：glossary ・ operation-request ・ procedure-prompt ・ session-request ・ session ・ diff ・ settings）"),
  ("版20", "検証用の子セッション（ステップ6）", "SF1 と UC4 の意味の rule（by: ai）を作った。sas validate --agent <接続の定義> で、rule × 当たる所ごとの手順のプロンプトを SAS が起動した検証用の子セッションに渡し、答えを step ・ rule ・ pointer で突き合わせて記録する。子セッションの起動 ・ 続け方 ・ 答えと子セッションの ID の取り出し方は接続の定義（agent-connector）が持ち、SAS はツールの名前で分岐しない。--continue で記録にある検証用の子セッションを同じ接続の定義で続ける。前の判定は渡さない。ポート keep_prompt は作らず、ポートは9つ"),
@@ -414,7 +415,7 @@ APPROVE = [
  ("土台の文の案（ディレクトリと文脈・中の形）", "見解：「文脈の根は、文脈の名前のフォルダ（リポジトリの根の直下）」と「中の形は文脈ごとに中をポートとアダプターで作る、上から決めて下から確かめる」に直す。土台は正本なので ACDR 0217 で差分を見せてから直す（0216 を置き換える）"),
  ("ガイドの確かめる段階（ボード Q5）と Q3 に手順を足す", "見解：Q5 に上からと下からの突き合わせの5つの手順、Q3 に「同じ物を2つの目的で別のモデルにしているか」の問いを足す。ボードは次の回で直す"),
 ]
-TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2"}
+TAGC = {"足した": "t-new", "変更": "t-chg", "照合": "t-chk", "版2": "t-old", "版16": "t-new2", "版17": "t-new2", "版18": "t-new2", "版19": "t-new2", "版20": "t-new2", "版21": "t-new2", "版22": "t-new2", "版23": "t-new2"}
 def tagged(items):
     return '<div class="dec">' + ''.join(f'<div class="dc {TAGC[t]}"><span class="tag">{"版2 のまま" if t == "版2" else t}</span><b>{h}</b><span>{d}</span></div>' for t, h, d in items) + '</div>'
 
@@ -422,7 +423,7 @@ def tagged(items):
 CAP = [("作成", "人やツールが値を書く", "x-prompt を指示に値を書く", "残る（create）"),
        ("更新", "人やツールが書き換える", "x-prompt を指示に書き換える", "残る（update）"),
        ("削除", "対象だけを消す（ほかの文書は変えない）", None, "残る（delete）"),
-       ("検証", "JSON Schema と by: machine の rule", "by: ai の rule を判定する", "残る（validate と rule ごとの結果）"),
+       ("検証", "JSON Schema と組み込みの検査2つ", "x-prompt の rule を判定する", "残る（validate と rule ごとの結果）"),
        ("描画", "テンプレートとトークンを注入し、その場で描く", None, "残らない（コミットしない）"),
        ("検索", "構造で絞る", "意味で探す", "残らない（子セッションの行は sessions に残る）")]
 cap_grid = '<div class="mx"><div class="mh"></div><div class="mh">機械で</div><div class="mh">意味で（エージェント）</div><div class="mh">操作として</div>' + ''.join(
@@ -526,7 +527,7 @@ T.append(('data', 'データ',
 T.append(('flow', '意味の部分を含む操作の流れ',
   '<p class="ans">親セッションが依頼し、SAS が子セッションを起動するか続けて手順を渡し、確かめてから記録して返す。OK かは親セッションが決める。</p>'
   + fig(F['flow'], '意味の部分を含む操作の流れ', '検証の例。意味の作成・更新・検索も同じ手順で、作成・更新は書き込み用の子セッションが行う。', 1.8)
-  + cards([("判定はその時のもの", "結果は親セッションに返る。コミットしない"), ("by: human", "「人が決める」と返し、判断は親セッション"), ("CI", "機械の検証だけを毎回行う")])))
+  + cards([("判定はその時のもの", "結果は親セッションに返る。コミットしない"), ("判定できない rule", "子セッションが決められなければ unverified（人が決める点）として返し、判断は親セッション"), ("CI", "機械の検証だけを毎回行う")])))
 SCN = {
  'a': ("場面 a：エージェントが U10 を作り、検証する", "sas create requirements/usecases/U10.json --concrete urn:…:usecase:v1 --semantic /goal --brief \"…\"\nsas validate requirements/usecases/U10.json",
        '{"result": "created", "parent_session": "4401cead…", "child_session": "31cca313…", "role": "writer"}\n{"kind": "validation", "parent_session": "4401cead…", "child_session": "3ff0f03a…", "role": "checker", "counts": {"verified": 2, "unverified": 1}}',
@@ -591,7 +592,7 @@ JS = '''<script>
 })();
 </script>'''
 page = ('<title>Semantic Agent Schema の概念</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>\n' + CSS + '\n</style>\n<main>'
-        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版22（スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
+        '<h1>Semantic Agent Schema の概念</h1><p class="read">SAS が何をし、何を記録し、どう使われるか。2026-11-01 版23（rule の by をなくし、rule はどれも子セッションが判定する。版22：スキーマの形の未決5つ：x-relationship を外し、参照は Concrete の普通の欄に。Concrete に書ける x- は4つ。版21：Abstract を導き直した：JSON Schema で書けることは JSON Schema で。版20：ステップ6 検証用の子セッション。版19：描画。版18：言葉を本の定義にそろえた：公開された言葉を1か所に、書くと検証で1つの業務領域、リポジトリの根は製品、ポートとアダプター。版17：文脈の中を業務領域を作るモジュール（書く・検証・記録）にし、集約は書くのモジュールへ。意味の操作は業務領域にしない。版16：SAS は子セッションの状態を管理しない。書き込み用の子セッションと検証用の子セッションを --continue で続けて使い、fork は使わない。薄い sessions と、changes・validations に分けた記録。文脈は1つに戻した）。要求を書く（全体像〜ユースケース）→ 見つける（事業領域と文脈）→ 設計する（ドメインモデル〜スキーマと DB）の順に並べた。</p>'
         + status + f'<nav class="tabs" role="tablist" aria-label="内容">{tabs}</nav>' + panels + '</main>\n' + JS)
 open(os.path.join(H, 'index.html'), 'w').write(page)
 for n, r in REPORT: print(n, r)

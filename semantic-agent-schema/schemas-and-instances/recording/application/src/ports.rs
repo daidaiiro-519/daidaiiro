@@ -42,7 +42,7 @@ pub struct RuleRow {
 pub struct ValidateRow {
     /// リポジトリの根からの経路
     pub target_path: String,
-    /// by: ai の rule を判定した検証用の子セッション ID（機械と人の rule だけなら None）
+    /// rule を判定した検証用の子セッション ID（rule を子セッションに判定させなかったなら None）
     pub child_session: Option<String>,
     /// 判定した中身の指紋
     pub hash: String,

@@ -317,7 +317,7 @@ pub struct MeaningOutcome {
     pub hint: Option<String>,
 }
 
-/// UC4 の検証に、by: ai の rule の意味の判定を足す（SF1）。by: ai の rule が無ければ子セッションを起動しない。
+/// UC4 の検証に、rule の意味の判定を足す（SF1）。rule が無ければ子セッションを起動しない。
 ///
 /// # Errors
 /// validate と同じ。ほかに、続ける子セッションが記録に無い（not_found）・ 書き込み用の子セッション（writer_as_checker）・ 処理中（busy）・
@@ -333,7 +333,7 @@ pub fn validate_with_meaning(
     run_validate(scope, false, store, validator, who, log, Some(call))
 }
 
-/// by: ai の rule を子セッションに判定させ、current の結果を置き換える。対象の経路 → 判定した子セッションの ID を返す。
+/// rule を子セッションに判定させ、current の結果を置き換える。対象の経路 → 判定した子セッションの ID を返す。
 fn apply_meaning(
     current: &mut [Current],
     corpus: &Corpus,

@@ -41,12 +41,11 @@ impl DocumentStore for Files {
     }
 }
 
-/// 形の検査はいつも通す代役。Abstract は根に by: human の rule を1つ持つ。
+/// 形の検査はいつも通す代役。Abstract は根に rule を1つ持つ。
 pub(crate) struct Lenient;
 impl SchemaValidator for Lenient {
     fn shipped(&self, id: &str) -> Option<Value> {
-        (id == ABSTRACT)
-            .then(|| json!({"x-prompt": {"write": [{"id": "someone-decides", "by": "human"}]}}))
+        (id == ABSTRACT).then(|| json!({"x-prompt": {"write": [{"id": "goal-is-ok"}]}}))
     }
     fn check(
         &self,
@@ -215,16 +214,16 @@ pub(crate) fn concrete() -> Value {
 pub(crate) fn decided() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC, "properties": {
         "status": {"x-decided-by": "human", "default": "draft"},
-        "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "by": "human"}]}}
+        "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome"}]}}
     }})
 }
 
-/// 意味の rule（by: ai）を1つ持つ Concrete。goal を検証用の子セッションに判定させる。
+/// 意味の ruleを1つ持つ Concrete。goal を検証用の子セッションに判定させる。
 pub(crate) fn meaning() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC,
            "properties": {
         "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
                  "why": "手段だと果たせたかを決められない。", "test": "結果を表す名詞句か。",
-                 "by": "ai", "reads": ["/goal"]}]}}
+                 "reads": ["/goal"]}]}}
     }})
 }
