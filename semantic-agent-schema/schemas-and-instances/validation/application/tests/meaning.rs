@@ -84,6 +84,7 @@ fn run(
     };
     validate_with_meaning(
         &Scope::Paths(vec!["u1.json".into()]),
+        false,
         store,
         &Lenient,
         &Human,
@@ -190,4 +191,33 @@ fn reading_of_the_field_goes_to_the_child_session() {
     let sent = reader.sent.borrow();
     assert!(sent[0].1.contains("利用者の言葉で書いた結果として読む"));
     assert!(sent[0].1.contains("検証するときに読む"));
+}
+
+#[test]
+fn field_schema_follows_ref_and_additional_properties() {
+    use validation_application::use_cases::meaning::field_schema;
+    let other = json!({"$defs": {"person": {"properties": {"name": {"title": "名前", "description": "人の名前である。"}}}}});
+    let concrete = json!({
+        "$defs": {"step": {"title": "手順", "properties": {"action": {"title": "動作"}}}},
+        "properties": {
+            "steps": {"items": {"$ref": "#/$defs/step"}},
+            "owner": {"$ref": "urn:example:t:person:v1#/$defs/person", "title": "持ち主"},
+            "tags": {"additionalProperties": {"title": "札"}}
+        }
+    });
+    let others = vec![("urn:example:t:person:v1".to_string(), other)];
+    let title = |p: &str| {
+        field_schema(&concrete, p, &others)
+            .and_then(|f| f.get("title").cloned())
+            .unwrap_or(Value::Null)
+    };
+    assert_eq!(title("/steps/0/action"), json!("動作"));
+    assert_eq!(title("/steps/0"), json!("手順"));
+    assert_eq!(
+        title("/owner"),
+        json!("持ち主"),
+        "$ref と横に並べた欄を先に読む"
+    );
+    assert_eq!(title("/owner/name"), json!("名前"));
+    assert_eq!(title("/tags/a"), json!("札"));
 }

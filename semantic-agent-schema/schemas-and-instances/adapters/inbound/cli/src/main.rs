@@ -181,11 +181,8 @@ fn run_validate(args: &[String]) -> ExitCode {
     if continue_child.is_some() && agent.is_none() {
         return usage("--continue は --agent と一緒に渡してください");
     }
-    if agent.is_some() && stale {
-        return usage("--agent と --stale は一緒に渡せません");
-    }
     if let Some(agent) = agent {
-        return run_validate_with_agent(&scope, &agent, continue_child, session);
+        return run_validate_with_agent(&scope, stale, &agent, continue_child, session);
     }
     let run = if stale { validate_stale } else { validate };
     let (store, validator, mut log) = match adapters() {
@@ -212,6 +209,7 @@ fn run_validate(args: &[String]) -> ExitCode {
 /// rule を、接続の定義のエージェントの検証用の子セッションに判定させる検証。
 fn run_validate_with_agent(
     scope: &Scope,
+    stale: bool,
     agent: &str,
     continue_child: Option<String>,
     session: Option<String>,
@@ -272,7 +270,7 @@ fn run_validate_with_agent(
         reader: &reader,
         continue_child,
     };
-    match validate_with_meaning(scope, &store, &validator, &who, &mut log, &call) {
+    match validate_with_meaning(scope, stale, &store, &validator, &who, &mut log, &call) {
         Ok((v, meaning)) => {
             if let Some(m) = &meaning {
                 output::print_procedures(m);

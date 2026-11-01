@@ -47,6 +47,7 @@ pub fn rules_for_concrete(
     shape(
         abstract_doc,
         abstract_doc,
+        &[],
         concrete.document(),
         "",
         &mut out,
@@ -80,20 +81,40 @@ fn lookup<'a>(root: &'a Value, fragment: &str) -> Option<&'a Value> {
         .find(|d| d.get("$anchor").and_then(Value::as_str) == Some(fragment))
 }
 
-/// schema が文書の中を $ref で指していれば、その先。指していなければ schema のまま。
-fn resolve<'a>(root: &'a Value, schema: &'a Value) -> &'a Value {
-    schema
-        .get("$ref")
-        .and_then(Value::as_str)
-        .and_then(|r| r.strip_prefix('#'))
-        .and_then(|f| lookup(root, f))
-        .unwrap_or(schema)
+/// schema が $ref で指していれば、その先と、その先がある文書。指していなければ schema のまま。
+/// 文書の中（#…）と、ほかの Concrete（<$id>#/$defs/…）を引く。
+fn resolve<'a>(
+    root: &'a Value,
+    schema: &'a Value,
+    others: &'a [(String, Value)],
+) -> (&'a Value, &'a Value) {
+    let Some(r) = schema.get("$ref").and_then(Value::as_str) else {
+        return (root, schema);
+    };
+    let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
+    let doc = if base.is_empty() {
+        Some(root)
+    } else {
+        others.iter().find(|(id, _)| id == base).map(|(_, d)| d)
+    };
+    let target = doc.and_then(|d| {
+        if fragment.is_empty() {
+            Some(d)
+        } else {
+            lookup(d, fragment)
+        }
+    });
+    match (doc, target) {
+        (Some(d), Some(t)) => (d, t),
+        _ => (root, schema),
+    }
 }
 
 /// schema を value の形としてたどり、子の所に当たる rule を集める（その所の rule は呼ぶ側が集める）。
 fn shape(
     root: &Value,
     schema: &Value,
+    others: &[(String, Value)],
     value: &Value,
     at: &str,
     out: &mut Vec<AppliedRule>,
@@ -102,14 +123,14 @@ fn shape(
     if depth > 16 {
         return;
     }
-    let schema = resolve(root, schema);
+    let (root, schema) = resolve(root, schema, others);
     for sub in schema
         .get("allOf")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
     {
-        shape(root, sub, value, at, out, depth + 1);
+        shape(root, sub, others, value, at, out, depth + 1);
     }
     if let Some(obj) = value.as_object() {
         let props = schema.get("properties").and_then(Value::as_object);
@@ -122,25 +143,25 @@ fn shape(
                 .or_else(|| schema.get("additionalProperties").filter(|a| a.is_object()));
             if let Some(sub) = sub {
                 let here = format!("{at}/{}", escape(name));
-                let sub_r = resolve(root, sub);
+                let (sub_root, sub_r) = resolve(root, sub, others);
                 // $ref と横に並べた x-prompt と、$ref の先の x-prompt の両方
                 push_rules(sub, &here, out);
                 if !std::ptr::eq(sub, sub_r) {
                     push_rules(sub_r, &here, out);
                 }
-                shape(root, sub_r, child, &here, out, depth + 1);
+                shape(sub_root, sub_r, others, child, &here, out, depth + 1);
             }
         }
     }
     if let (Some(items), Some(arr)) = (schema.get("items"), value.as_array()) {
-        let items_r = resolve(root, items);
+        let (items_root, items_r) = resolve(root, items, others);
         for (i, child) in arr.iter().enumerate() {
             let here = format!("{at}/{i}");
             push_rules(items, &here, out);
             if !std::ptr::eq(items, items_r) {
                 push_rules(items_r, &here, out);
             }
-            shape(root, items_r, child, &here, out, depth + 1);
+            shape(items_root, items_r, others, child, &here, out, depth + 1);
         }
     }
 }
@@ -174,7 +195,7 @@ fn keywords(
                 if k.starts_with("x-") {
                     if let Some(form) = form_of(abstract_doc, vocabulary, k) {
                         push_rules(form, &here, out);
-                        shape(abstract_doc, form, child, &here, out, 0);
+                        shape(abstract_doc, form, &[], child, &here, out, 0);
                     }
                 } else {
                     keywords(abstract_doc, vocabulary, child, &here, out);
@@ -190,45 +211,27 @@ fn keywords(
     }
 }
 
-/// インスタンスに当たる Concrete の rule：根と、インスタンスにある欄（入れ子の properties と items も）。
+/// インスタンスに当たる Concrete の rule：根と、インスタンスにある欄。Concrete を値の形としてたどり、入れ子の properties ・
+/// additionalProperties ・ items ・ allOf と、$ref の先（Concrete の $defs と、ほかの Concrete の $defs）の rule を当てる。
+/// others はリポジトリの Concrete（$id と文書）。
 #[must_use]
-pub fn rules_for_instance(concrete_doc: &Value, instance_doc: &Value) -> Vec<AppliedRule> {
+pub fn rules_for_instance(
+    concrete_doc: &Value,
+    instance_doc: &Value,
+    others: &[(String, Value)],
+) -> Vec<AppliedRule> {
     let mut out = Vec::new();
-    for (id, definition) in write_rules(concrete_doc.get("x-prompt")) {
-        out.push(AppliedRule {
-            id,
-            pointer: String::new(),
-            definition: definition.clone(),
-        });
-    }
-    walk(concrete_doc, instance_doc, "", &mut out);
+    push_rules(concrete_doc, "", &mut out);
+    shape(
+        concrete_doc,
+        concrete_doc,
+        others,
+        instance_doc,
+        "",
+        &mut out,
+        0,
+    );
     out
-}
-
-fn walk(schema: &Value, value: &Value, at: &str, out: &mut Vec<AppliedRule>) {
-    if let (Some(props), Some(obj)) = (
-        schema.get("properties").and_then(Value::as_object),
-        value.as_object(),
-    ) {
-        for (name, field) in props {
-            if let Some(child) = obj.get(name) {
-                let here = format!("{at}/{}", escape(name));
-                for (id, definition) in write_rules(field.get("x-prompt")) {
-                    out.push(AppliedRule {
-                        id,
-                        pointer: here.clone(),
-                        definition: definition.clone(),
-                    });
-                }
-                walk(field, child, &here, out);
-            }
-        }
-    }
-    if let (Some(items), Some(arr)) = (schema.get("items"), value.as_array()) {
-        for (i, child) in arr.iter().enumerate() {
-            walk(items, child, &format!("{at}/{i}"), out);
-        }
-    }
 }
 
 /// 子セッションにつながっていないときの rule の結果：unsupported（エージェントがつながっていない）。
@@ -259,11 +262,39 @@ mod tests {
                 "absent": {"x-prompt": {"write": [{"id": "absent-rule"}]}}
             }
         });
-        let rules = rules_for_instance(&concrete, &json!({"goal": "x"}));
+        let rules = rules_for_instance(&concrete, &json!({"goal": "x"}), &[]);
         let ids: Vec<&str> = rules.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, ["root", "goal-rule"]);
         assert_eq!(rules[1].pointer, "/goal");
         assert_eq!(judge_others(&rules[1]).verdict(), Verdict::Unsupported);
+    }
+
+    #[test]
+    fn instance_rules_follow_ref_into_defs_and_other_concretes() {
+        let other = json!({"$id": "urn:example:t:person:v1", "$defs": {"person": {"properties": {
+            "name": {"x-prompt": {"write": [{"id": "name-rule"}]}}}}}});
+        let concrete = json!({
+            "$defs": {"step": {"properties": {"action": {"x-prompt": {"write": [{"id": "action-rule"}]}}}}},
+            "properties": {
+                "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}},
+                "owner": {"$ref": "urn:example:t:person:v1#/$defs/person"}
+            }
+        });
+        let others = vec![("urn:example:t:person:v1".to_string(), other)];
+        let doc = json!({"steps": [{"action": "a"}, {"action": "b"}], "owner": {"name": "n"}});
+        let mut got: Vec<(String, String)> = rules_for_instance(&concrete, &doc, &others)
+            .into_iter()
+            .map(|r| (r.id, r.pointer))
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            [
+                ("action-rule".to_string(), "/steps/0/action".to_string()),
+                ("action-rule".to_string(), "/steps/1/action".to_string()),
+                ("name-rule".to_string(), "/owner/name".to_string()),
+            ]
+        );
     }
 
     #[test]

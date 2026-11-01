@@ -20,7 +20,8 @@ use recording_application::use_cases::history::{interleaved, record_change, untr
 use serde_json::Value;
 use validation_application::ports::{DocumentStore, SchemaValidator};
 use validation_application::use_cases::validate::{
-    Blocked, Corpus, Refused, TargetKind, classify, entry, form_violations, log_refused, refused,
+    Blocked, Corpus, Refused, TargetKind, classify, entry, form_violations, log_refused, reads_now,
+    refused,
 };
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
@@ -466,17 +467,6 @@ pub fn create(
     })
 }
 
-/// 2つの JSON Pointer の一方が他方を含むか（根 "" はすべてを含む）。
-fn overlaps(a: &str, b: &str) -> bool {
-    let within = |inner: &str, outer: &str| {
-        inner == outer
-            || inner
-                .strip_prefix(outer)
-                .is_some_and(|r| r.starts_with('/'))
-    };
-    within(a, b) || within(b, a)
-}
-
 /// UC2 更新する（機械）：いまの中身のハッシュを確かめ、JSON Patch を当て、型と集約の書く条件を確かめてから書き、
 /// 前後の中身から求めた差分と一緒に更新の操作を記録する。前の判定のうち入力が変わったものと、
 /// Concrete の更新で外れたインスタンスを返す。
@@ -612,7 +602,7 @@ pub fn update(
     )
     .map_err(log_refused)?;
 
-    let stale = stale_judgments(log, path, &diff)?;
+    let stale = stale_judgments(log, path, store, validator)?;
     let violated = match &own_id {
         Some(id) => violated_instances(validator, &corpus, path, id, &more)?,
         None => Vec::new(),
@@ -635,17 +625,23 @@ pub fn update(
     })
 }
 
-/// 前の判定のうち、読む所が変えた欄と重なるもの（形の判定は書く前に照らし直したので除く）。
-fn stale_judgments(log: &dyn OperationLog, path: &str, diff: &Diff) -> Result<Vec<Stale>, Refused> {
+/// 前の判定のうち、読んだ所がいまの中身と変わったもの（--stale と同じ基準。rule の reads と rule の文を含む）。
+/// 形の判定は書く前に照らし直したので除く。
+fn stale_judgments(
+    log: &dyn OperationLog,
+    path: &str,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+) -> Result<Vec<Stale>, Refused> {
+    let now = reads_now(path, store, validator)?;
     Ok(log
         .last_judgments(path)
         .map_err(log_refused)?
         .into_iter()
         .filter(|j| j.rule.rule != "json-schema")
         .filter(|j| {
-            diff.changes()
-                .iter()
-                .any(|c| overlaps(&j.rule.pointer, c.pointer()))
+            !now.iter()
+                .any(|(r, p, h)| *r == j.rule.rule && *p == j.rule.pointer && *h == j.rule.reads)
         })
         .map(|j| Stale {
             rule: j.rule.rule,
@@ -935,7 +931,7 @@ pub fn adopt(
         },
     )
     .map_err(log_refused)?;
-    let stale = stale_judgments(log, path, &diff)?;
+    let stale = stale_judgments(log, path, store, validator)?;
     let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
     let violated = match (&own_id, request.as_kind) {
         (Some(id), AdoptAs::Update) => {

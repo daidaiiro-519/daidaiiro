@@ -324,13 +324,39 @@ pub struct MeaningOutcome {
 /// 答えを待つ間に対象が変わった（conflict）とき。
 pub fn validate_with_meaning(
     scope: &Scope,
+    stale_only: bool,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
     call: &MeaningCall<'_>,
 ) -> Result<(Validation, Option<MeaningOutcome>), Refused> {
-    run_validate(scope, false, store, validator, who, log, Some(call))
+    run_validate(scope, stale_only, store, validator, who, log, Some(call))
+}
+
+/// いまの中身で、対象の rule ごとの読んだ所のハッシュ（rule の id ・ 当たる所 ・ ハッシュ）。
+/// 更新のあと、前の判定のうち判定し直しが要るものを決めるのに使う（--stale と同じ基準）。
+///
+/// # Errors
+/// 対象を読めない ・ 型が決まらないとき。
+pub fn reads_now(
+    path: &str,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+) -> Result<Vec<(String, String, String)>, Refused> {
+    let (_, current) = judge_current(&Scope::Paths(vec![path.to_string()]), store, validator)?;
+    Ok(current
+        .into_iter()
+        .flat_map(|c| {
+            c.results.into_iter().map(|(r, h)| {
+                (
+                    r.rule().to_string(),
+                    r.pointer().to_string(),
+                    h.as_str().to_string(),
+                )
+            })
+        })
+        .collect())
 }
 
 /// rule を子セッションに判定させ、current の結果を置き換える。対象の経路 → 判定した子セッションの ID を返す。
@@ -439,7 +465,8 @@ fn apply_meaning(
             if r.by() != By::Ai {
                 continue;
             }
-            let field = field_schema(&schema_doc, r.pointer());
+            let field = field_schema(&schema_doc, r.pointer(), &corpus.more);
+            let field = field.as_ref();
             steps.push(Step {
                 no: steps.len() + 1,
                 rule: r.rule().to_string(),
@@ -614,7 +641,7 @@ fn judge(
                 .map(ConcreteSchema::document)
                 .cloned()
                 .unwrap_or_default();
-            for rule in rules_for_instance(&concrete_doc, &d.value) {
+            for rule in rules_for_instance(&concrete_doc, &d.value, more) {
                 results.push((
                     judge_others(&rule),
                     rule.pointer.clone(),
@@ -749,9 +776,14 @@ pub fn judge_current(
     Ok((corpus, current))
 }
 
-/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。
+/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。子セッションがつながっているとき
+/// （retry_unjudged）は、前に判定できなかった（unsupported ・ error）rule も入る。
 /// いまの判定と前の判定で、rule ごとに「読んだ所のハッシュ」の集まりを比べる。
-fn changed_rules(now: &[(RuleResult, ContentHash)], before: &[Judgment]) -> BTreeSet<String> {
+fn changed_rules(
+    now: &[(RuleResult, ContentHash)],
+    before: &[Judgment],
+    retry_unjudged: bool,
+) -> BTreeSet<String> {
     let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for (r, reads) in now {
         current
@@ -760,7 +792,10 @@ fn changed_rules(now: &[(RuleResult, ContentHash)], before: &[Judgment]) -> BTre
             .insert(reads.as_str().to_string());
     }
     let mut previous: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
-    for j in before {
+    for j in before
+        .iter()
+        .filter(|j| !retry_unjudged || (j.rule.result != "unsupported" && j.rule.result != "error"))
+    {
         previous
             .entry(j.rule.rule.as_str())
             .or_default()
@@ -783,6 +818,29 @@ fn run_validate(
     call: Option<&MeaningCall<'_>>,
 ) -> Result<(Validation, Option<MeaningOutcome>), Refused> {
     let (corpus, mut current) = judge_current(scope, store, validator)?;
+    // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を、子セッションに渡す前に除く
+    let mut unchanged: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    if stale_only {
+        for c in &mut current {
+            let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
+            let changed = changed_rules(&c.results, &before, call.is_some());
+            let rules = unchanged.entry(c.doc.path.clone()).or_default();
+            for (r, _) in &c.results {
+                if !changed.contains(r.rule()) && !rules.iter().any(|u| u == r.rule()) {
+                    rules.push(r.rule().to_string());
+                }
+            }
+            let keep: Vec<bool> = c
+                .results
+                .iter()
+                .map(|(r, _)| changed.contains(r.rule()))
+                .collect();
+            let mut k = keep.iter();
+            c.results.retain(|_| *k.next().unwrap_or(&false));
+            let mut k = keep.iter();
+            c.definitions.retain(|_| *k.next().unwrap_or(&false));
+        }
+    }
     let (children, meaning) = match call {
         Some(call) => apply_meaning(&mut current, &corpus, store, validator, who, log, call)?,
         None => (BTreeMap::new(), None),
@@ -796,7 +854,7 @@ fn run_validate(
         kind,
         declared,
         hash,
-        mut results,
+        results,
         ..
     } in current
     {
@@ -811,20 +869,10 @@ fn run_validate(
                 actual: hash.as_str().to_string(),
             });
         }
-        let mut unchanged_rules = Vec::new();
-        if stale_only {
-            let before = log.last_judgments(&d.path).map_err(log_refused)?;
-            let changed = changed_rules(&results, &before);
-            for (r, _) in &results {
-                if !changed.contains(r.rule()) && !unchanged_rules.iter().any(|u| u == r.rule()) {
-                    unchanged_rules.push(r.rule().to_string());
-                }
-            }
-            results.retain(|(r, _)| changed.contains(r.rule()));
-            if results.is_empty() {
-                unchanged_targets.push(d.path);
-                continue;
-            }
+        let unchanged_rules = unchanged.remove(&d.path).unwrap_or_default();
+        if stale_only && results.is_empty() {
+            unchanged_targets.push(d.path);
+            continue;
         }
         let rules: Vec<RuleResult> = results.iter().map(|(r, _)| r.clone()).collect();
         let reads: Vec<String> = results
