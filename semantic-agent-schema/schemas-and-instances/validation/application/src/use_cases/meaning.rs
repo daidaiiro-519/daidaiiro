@@ -36,7 +36,7 @@ pub struct MeaningCall<'a> {
 }
 
 /// 子セッションとのやりとりの途中を、呼んだ人に知らせる先（CLI は手順を標準出力へすぐ出し、途中を標準エラーへ出す）。
-pub trait Progress {
+pub trait Progress: Sync {
     /// 子セッションに渡す前の手順のプロンプト
     fn procedure(&self, procedure: &Value);
     /// 起動 ・ 待機 ・ 直させる ・ やり直す ・ 受け取る
@@ -233,6 +233,30 @@ pub struct Child {
     pub launch: Value,
 }
 
+/// 答えを待つ間の知らせの間隔。
+const WAITING_NOTE: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// f（子セッションに渡して答えを待つ）を行う間、一定の間隔で待った時間を知らせる。
+fn waiting<R>(progress: &dyn Progress, f: impl FnOnce() -> R) -> R {
+    let (done, stop) = std::sync::mpsc::channel::<()>();
+    std::thread::scope(|s| {
+        s.spawn(move || {
+            let started = std::time::Instant::now();
+            while let Err(std::sync::mpsc::RecvTimeoutError::Timeout) =
+                stop.recv_timeout(WAITING_NOTE)
+            {
+                progress.note(&format!(
+                    "まだ答えを待っている（{}秒）",
+                    started.elapsed().as_secs()
+                ));
+            }
+        });
+        let r = f();
+        drop(done);
+        r
+    })
+}
+
 /// 子セッションとのやりとりの結果。
 pub struct Conversed<T> {
     /// 読めた答え。読めなければ、なぜ読めなかったか（起動できない ・ 時間切れ ・ 形が合わない）
@@ -267,14 +291,16 @@ pub fn converse<T>(
         let reply = match &child.tool_ref {
             Some(id) => {
                 progress.note(&format!("子セッション {id} に渡した。答えを待っている"));
-                reader.resume(id, &child.launch, &prompt, schema)
+                waiting(progress, || {
+                    reader.resume(id, &child.launch, &prompt, schema)
+                })
             }
             None => {
                 progress.note(&format!(
                     "子セッションを起動して渡した（{}）。答えを待っている",
                     reader.tool()
                 ));
-                reader.start(&prompt, schema)
+                waiting(progress, || reader.start(&prompt, schema))
             }
         };
         match reply {
