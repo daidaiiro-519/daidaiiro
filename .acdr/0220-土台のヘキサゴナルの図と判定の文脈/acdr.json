@@ -1,0 +1,107 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0220",
+ "title": "土台のヘキサゴナルの図と判定の文脈を直す",
+ "date": "2026-11-02",
+ "status": "accepted",
+ "decision": "抽象概念の土台のヘキサゴナルの図を、矢印が呼び出し ・ 依存 ・ 実装の向きだけを表し、ポートが六角形の縁に並ぶ形にし、セッションのタブの判定の手順に、別の文脈で判定するよう書くことを足す。",
+ "why": "ヘキサゴナルの図は、domain から application への上向きの矢印で「domain はポートを知らない」と依存の向きに反していた。application からの線は3つのポートのうち1つにしか届かず、ポートの箱は六角形の外に置かれ、API の矢印は application の箱の下の何も無い所を指していた。セッションのタブは、Semantic Agent Schema の版31 でボード sas-open-decisions の Q2 が決めた「判定の手順に、別の文脈で判定するよう書き、判定したのが誰かは見分けない」を持っていなかった。図をポートとアダプターの型に、タブの文を Q2 の決定の一般の形に合わせる。",
+ "shift": [
+  {
+   "what": "domain と application の間の矢印",
+   "from": "application → domain と domain → application の2本。",
+   "to": "application → domain の1本だけ（依存の向き）。"
+  },
+  {
+   "what": "application からポートへの線",
+   "from": "3つのポートのうち1つにだけ届く。",
+   "to": "3つのポートそれぞれに1本ずつ届く。"
+  },
+  {
+   "what": "ポートの位置",
+   "from": "六角形の外。",
+   "to": "六角形の縁にかかる位置。アダプターは外。"
+  },
+  {
+   "what": "API の矢印",
+   "from": "application の箱の下の何も無い所を指す。",
+   "to": "application の箱を指す。"
+  },
+  {
+   "what": "判定の手順",
+   "from": "手順を返して判定を記録するだけ。",
+   "to": "別の文脈で判定するよう手順に書き、判定したのが誰かは見分けない。"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は矢印が双方向でポートが六角形の外にあり、変更後は矢印が一方向でポートが縁に並び、application から3つのポートへ線が届く。",
+ "alternatives": [
+  {
+   "option": "domain から application への矢印を残し、「値を返す」と説明を足す。",
+   "why_not": "依存の向きと戻り値の流れが同じ記号になり、「domain はポートを知らない」と読み分けられない。"
+  },
+  {
+   "option": "application からポートへの線を1本のまま、ポートを束ねる囲みに向ける。",
+   "why_not": "どのモジュールがどのポートを使うかが読めない。"
+  },
+  {
+   "option": "ポートの箱を六角形の内側に入れる。",
+   "why_not": "ポートは中と外の境の約束で、縁に置く型と合わない。アダプターとの間も遠くなる。"
+  },
+  {
+   "option": "判定した人を見分けて、書いた本人の判定を断る。",
+   "why_not": "サブエージェントの ID は親の会話と同じなので見分けがつかず、作成者のテストも正当な水準である（Q2 の反証）。"
+  },
+  {
+   "option": "判定のたびに新しい文脈を立てるよう手順に書く。",
+   "why_not": "毎回すべてを読み直し、プロンプトキャッシュが効かない（Q2 の実測）。続けて使うかは Semantic Agent Schema の具体に置く。"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "foundation",
+   "tab": "抽象概念の土台",
+   "file": "semantic-agent-schema/docs/foundation/index.html",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "判定の手順には、書いたときとは別の文脈で判定するよう書く。判定したのが誰かは見分けない",
+     "before": "（無し）",
+     "why": "書いた本人の判定は、書いたときの見落としを繰り返しやすい。Semantic Agent Schema の版31 は、ボード sas-open-decisions の Q2 の決定で判定の手順に別の文脈で判定するよう書き、判定したのが誰かを見分けない形にした。その一般の形を土台に戻す。"
+    }
+   ]
+  },
+  {
+   "key": "build",
+   "tab": "build.py（正本）",
+   "file": "semantic-agent-schema/docs/foundation/build.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "道具は判定の手順を返し、判定を記録するだけ。判定の手順には、書いたときとは別の文脈で判定するよう書く。判定したのが誰かは見分けない",
+     "before": "道具は判定の手順を返し、判定を記録するだけ",
+     "why": "セッションのタブの「確かめる」の行に、1つ目の面の印と同じ文を足した。型は1行の文字列なので、差分は1行の差し替えになる。当て直すときは、変更前の文を印の文に置き換える。"
+    }
+   ]
+  },
+  {
+   "key": "hexagon",
+   "tab": "ヘキサゴナルの図",
+   "file": "semantic-agent-schema/docs/foundation/hexagon.source.svg",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<svg viewBox=\"0 0 1080 600\" width=\"100%\" style=\"min-width:960px;max-width:1080px;display:block;margin:0 auto\" role=\"img\" aria-label=\"ヘキサゴナル：入口が値で渡し、各モジュールが使うポートを宣言し、アダプターが実装する\"><path class=\"area\" d=\"M250,300 L350,40 L660,40 L760,300 L660,560 L350,560 Z\"/><text class=\"note\" x=\"505\" y=\"66\" text-anchor=\"middle\">コア（domain と application）</text><rect class=\"box focus\" x=\"330\" y=\"104\" width=\"290\" height=\"180\"/><text class=\"title focus\" x=\"345\" y=\"128\" text-anchor=\"start\">application（使う場面）</text><text class=\"label\" x=\"345\" y=\"152\" text-anchor=\"start\">モジュールごとの use_cases</text><text class=\"label\" x=\"345\" y=\"170\" text-anchor=\"start\">ユーザー目的とサブ機能</text><text class=\"label\" x=\"345\" y=\"188\" text-anchor=\"start\">使うポート（ports）を自分で宣言する</text><rect class=\"box kind-2\" x=\"360\" y=\"330\" width=\"290\" height=\"90\"/><text class=\"title kind-2\" x=\"375\" y=\"354\" text-anchor=\"start\">domain（概念）</text><text class=\"label\" x=\"375\" y=\"376\" text-anchor=\"start\">集約 ・ 値 ・ ドメインサービス</text><text class=\"label\" x=\"375\" y=\"394\" text-anchor=\"start\">複数のモジュールが使う判断も置く</text><text class=\"label\" x=\"375\" y=\"412\" text-anchor=\"start\">ポートを知らない</text><path class=\"flow\" d=\"M475,284 V328\"/><text class=\"note\" x=\"95\" y=\"96\" text-anchor=\"middle\">駆動する側（inbound）</text><text class=\"label small\" x=\"10\" y=\"122\" text-anchor=\"start\">外の入力を読み取り、値で渡す</text><rect class=\"box\" x=\"10\" y=\"140\" width=\"170\" height=\"56\"/><text class=\"title\" x=\"22\" y=\"162\" text-anchor=\"start\">CLI</text><text class=\"label small\" x=\"22\" y=\"182\" text-anchor=\"start\">人 ・ CI</text><path class=\"flow\" d=\"M180,168 H328\"/><rect class=\"boundary\" x=\"10\" y=\"214\" width=\"170\" height=\"56\"/><text class=\"title\" x=\"22\" y=\"236\" text-anchor=\"start\">API など</text><text class=\"label small\" x=\"22\" y=\"256\" text-anchor=\"start\">ほかのシステム</text><path class=\"flow\" d=\"M180,242 H328\"/><text class=\"note\" x=\"750\" y=\"26\" text-anchor=\"middle\">駆動される側のポート（宣言するモジュール）</text><text class=\"note\" x=\"970\" y=\"26\" text-anchor=\"middle\">outbound</text><rect class=\"box\" x=\"650\" y=\"104\" width=\"200\" height=\"52\"/><text class=\"label\" x=\"662\" y=\"125\" text-anchor=\"start\">変更を記録に足す</text><text class=\"label small\" x=\"662\" y=\"144\" text-anchor=\"start\">モジュール A</text><path class=\"flow\" d=\"M620,130 H648\"/><rect class=\"box\" x=\"650\" y=\"168\" width=\"200\" height=\"52\"/><text class=\"label\" x=\"662\" y=\"189\" text-anchor=\"start\">検証を記録に足す</text><text class=\"label small\" x=\"662\" y=\"208\" text-anchor=\"start\">モジュール B</text><path class=\"flow\" d=\"M620,194 H648\"/><rect class=\"box\" x=\"650\" y=\"232\" width=\"200\" height=\"52\"/><text class=\"label\" x=\"662\" y=\"253\" text-anchor=\"start\">文書を読む</text><text class=\"label small\" x=\"662\" y=\"272\" text-anchor=\"start\">モジュール C</text><path class=\"flow\" d=\"M620,258 H648\"/><rect class=\"box\" x=\"900\" y=\"112\" width=\"140\" height=\"100\"/><text class=\"label small\" x=\"970\" y=\"166\" text-anchor=\"middle\">db</text><path class=\"flow\" d=\"M900,130 H852\"/><path class=\"flow\" d=\"M900,194 H852\"/><rect class=\"box\" x=\"900\" y=\"240\" width=\"140\" height=\"36\"/><text class=\"label small\" x=\"970\" y=\"262\" text-anchor=\"middle\">fs</text><path class=\"flow\" d=\"M900,258 H852\"/><text class=\"label small\" x=\"10\" y=\"574\" text-anchor=\"start\">ポートは、それを使うユースケースを持つモジュールの application が宣言し、六角形の縁に置く。1つのアダプター（db）が複数のモジュールのポートを実装してよい</text><text class=\"label small\" x=\"10\" y=\"592\" text-anchor=\"start\">矢印は、呼び出しと依存の向き（入口 → application → ポート ・ application → domain）と、実装する向き（アダプター → ポート）</text></svg>",
+     "before": "<svg viewBox=\"0 0 1190 600\" width=\"100%\" style=\"min-width:1040px;max-width:1190px;display:block;margin:0 auto\" role=\"img\" aria-label=\"ヘキサゴナル：入口が値で渡し、各モジュールが使うポートを宣言し、アダプターが実装する\"><path class=\"area\" d=\"M250,300 L350,40 L660,40 L760,300 L660,560 L350,560 Z\"/><text class=\"note\" x=\"505\" y=\"66\" text-anchor=\"middle\">コア（domain と application）</text><rect class=\"box focus\" x=\"330\" y=\"150\" width=\"350\" height=\"100\"/><text class=\"title focus\" x=\"345\" y=\"174\" text-anchor=\"start\">application（使う場面）</text><text class=\"label\" x=\"345\" y=\"196\" text-anchor=\"start\">モジュールごとの use_cases</text><text class=\"label\" x=\"345\" y=\"213\" text-anchor=\"start\">ユーザー目的とサブ機能</text><text class=\"label\" x=\"345\" y=\"230\" text-anchor=\"start\">使うポート（ports）を自分で宣言する</text><rect class=\"box kind-2\" x=\"360\" y=\"300\" width=\"290\" height=\"90\"/><text class=\"title kind-2\" x=\"375\" y=\"324\" text-anchor=\"start\">domain（概念）</text><text class=\"label\" x=\"375\" y=\"346\" text-anchor=\"start\">集約 ・ 値 ・ ドメインサービス</text><text class=\"label\" x=\"375\" y=\"364\" text-anchor=\"start\">複数のモジュールが使う判断も置く</text><text class=\"label\" x=\"375\" y=\"382\" text-anchor=\"start\">ポートを知らない</text><path class=\"flow\" d=\"M480,250 V298\"/><path class=\"flow\" d=\"M530,298 V252\"/><text class=\"note\" x=\"95\" y=\"110\" text-anchor=\"middle\">駆動する側（inbound）</text><rect class=\"box\" x=\"10\" y=\"160\" width=\"170\" height=\"56\"/><text class=\"title\" x=\"22\" y=\"182\" text-anchor=\"start\">CLI</text><text class=\"label small\" x=\"22\" y=\"202\" text-anchor=\"start\">人 ・ CI</text><path class=\"flow\" d=\"M180,188 H328\"/><rect class=\"boundary\" x=\"10\" y=\"250\" width=\"170\" height=\"56\"/><text class=\"title\" x=\"22\" y=\"272\" text-anchor=\"start\">API など</text><text class=\"label small\" x=\"22\" y=\"292\" text-anchor=\"start\">ほかのシステム</text><path class=\"flow\" d=\"M180,278 H328\"/><text class=\"label small\" x=\"10\" y=\"140\" text-anchor=\"start\">外の入力を読み取り、値で渡す</text><text class=\"note\" x=\"885\" y=\"26\" text-anchor=\"middle\">駆動される側のポート（宣言するモジュール）</text><text class=\"note\" x=\"1110\" y=\"26\" text-anchor=\"middle\">outbound</text><rect class=\"box\" x=\"770\" y=\"104\" width=\"230\" height=\"52\"/><text class=\"label\" x=\"782\" y=\"125\" text-anchor=\"start\">変更を記録に足す</text><text class=\"label small\" x=\"782\" y=\"144\" text-anchor=\"start\">モジュール A</text><rect class=\"box\" x=\"1040\" y=\"112\" width=\"140\" height=\"100\"/><text class=\"label small\" x=\"1110\" y=\"166\" text-anchor=\"middle\">db</text><path class=\"flow\" d=\"M1040,130 H1002\"/><rect class=\"box\" x=\"770\" y=\"168\" width=\"230\" height=\"52\"/><text class=\"label\" x=\"782\" y=\"189\" text-anchor=\"start\">検証を記録に足す</text><text class=\"label small\" x=\"782\" y=\"208\" text-anchor=\"start\">モジュール B</text><path class=\"flow\" d=\"M1040,194 H1002\"/><rect class=\"box\" x=\"770\" y=\"232\" width=\"230\" height=\"52\"/><text class=\"label\" x=\"782\" y=\"253\" text-anchor=\"start\">文書を読む</text><text class=\"label small\" x=\"782\" y=\"272\" text-anchor=\"start\">モジュール C</text><rect class=\"box\" x=\"1040\" y=\"240\" width=\"140\" height=\"36\"/><text class=\"label small\" x=\"1110\" y=\"262\" text-anchor=\"middle\">fs</text><path class=\"flow\" d=\"M1040,258 H1002\"/><path class=\"flow\" d=\"M680,200 H768\"/><text class=\"label small\" x=\"10\" y=\"580\" text-anchor=\"start\">ポートは、それを使うユースケースを持つモジュールの application が宣言する。1つのアダプター（db）が複数のモジュールのポートを実装してよい。矢印はアダプター → ポート（実装する向き）</text></svg>",
+     "why": "図の4つの食い違いを直した。domain から application への上向きの矢印（M530,298 V252）は依存の向きに反するので外した。application からポートへの線を3つのポートそれぞれに引き、ポートの箱を六角形の縁へ寄せ、API の矢印を application の箱へ向けた。ファイルは1行なので、当て直すときは変更前の全文を印の全文に置き換え、design-svg resolve で hexagon.svg を作る。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "foundation": "e4eb049a22060a0a0ff19d429079e0bb297153d4d3b980852cc9092f8e49e70c",
+  "build": "cfd13c1440f9641b10b0cc0bce0d20849979052920d56e3dce3073840800f32b",
+  "hexagon": "d6dc60c3dc75965b5b16b0c4dccefdbe8d02cf1d7209c82b16d68434a0a29523"
+ }
+}
