@@ -173,8 +173,34 @@ fn pretty(value: &Value, depth: usize, out: &mut String) {
     }
 }
 
+/// 書く手前の判定に要るもの：形を照らすバリデーターと、リポジトリの Concrete。
+struct Judge<'a> {
+    validator: &'a dyn SchemaValidator,
+    more: &'a [(String, Value)],
+}
+
+/// 人が決める欄の所と default。前と後の中身のどちらかで、x-decided-by: human が当たった所（入れ子 ・ $ref の先も）。
+fn human_fields(
+    judge: &Judge<'_>,
+    concrete: &str,
+    values: &[&Value],
+) -> Result<Vec<(String, Option<Value>)>, String> {
+    let mut out: Vec<(String, Option<Value>)> = Vec::new();
+    for v in values {
+        for (at, a) in judge.validator.annotations(concrete, v, judge.more)? {
+            if a.get("x-decided-by").and_then(Value::as_str) == Some("human")
+                && !out.iter().any(|(p, _)| *p == at)
+            {
+                out.push((at, a.get("default").cloned()));
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// 集約の書く条件。
 fn check_write(
+    judge: &Judge<'_>,
     kind: TargetKind,
     before: Option<&Value>,
     after: &Value,
@@ -186,14 +212,17 @@ fn check_write(
             Some(c) => c.check_write(before.and_then(ConcreteSchema::read).as_ref()),
             None => return Ok(()),
         },
-        TargetKind::Instance => match (Instance::read(after), concrete) {
-            (Some(i), Some(c)) => i.check_write(
-                before.and_then(Instance::read).as_ref(),
-                c.document(),
-                entry,
-            ),
-            _ => return Ok(()),
-        },
+        TargetKind::Instance => {
+            match (Instance::read(after), concrete.and_then(ConcreteSchema::id)) {
+                (Some(i), Some(id)) => {
+                    let values: Vec<&Value> =
+                        before.into_iter().chain(std::iter::once(after)).collect();
+                    let human = human_fields(judge, id, &values).map_err(|e| ("validator", e))?;
+                    i.check_write(before.and_then(Instance::read).as_ref(), &human, entry)
+                }
+                _ => return Ok(()),
+            }
+        }
     };
     r.map_err(|v| (v.code(), v.message().to_string()))
 }
@@ -386,6 +415,10 @@ pub fn create(
         ));
     }
     if let Err((code, message)) = check_write(
+        &Judge {
+            validator,
+            more: &corpus.more,
+        },
         kind,
         None,
         &value,
@@ -545,6 +578,10 @@ pub fn update(
         ));
     }
     if let Err((code, message)) = check_write(
+        &Judge {
+            validator,
+            more: &more,
+        },
         kind,
         Some(&before),
         &after,
@@ -842,6 +879,10 @@ pub fn adopt(
     // （ツールからの取り込みで人の欄が default 以外なら、外で人の欄が変わったかを確かめられないので断る）
     let before_value = found.as_ref().map(|(_, v, _)| v);
     if let Err((code, message)) = check_write(
+        &Judge {
+            validator,
+            more: &corpus.more,
+        },
         kind,
         before_value,
         &current,

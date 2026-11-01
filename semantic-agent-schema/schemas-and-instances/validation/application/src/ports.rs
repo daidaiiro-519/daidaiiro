@@ -46,6 +46,19 @@ pub trait SchemaValidator {
         value: &Value,
         more: &[(String, Value)],
     ) -> Result<Vec<(String, String)>, String>;
+
+    /// value を、$id が schema のスキーマに照らし、形が通った所の注釈を返す。
+    /// 1つの要素は、インスタンスの所（JSON Pointer）と、そこに当たったサブスキーマの注釈（キーワード → 値）。
+    /// 入れ子 ・ $ref の先 ・ items ・ if/then の先の注釈も、当たったインスタンスの所付きで返る（Core 7.7.1）。
+    ///
+    /// # Errors
+    /// スキーマを組めないとき。
+    fn annotations(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, Value)>, String>;
 }
 
 /// SAS が起動した子セッションの返り。

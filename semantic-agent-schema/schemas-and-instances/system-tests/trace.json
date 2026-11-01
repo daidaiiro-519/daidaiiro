@@ -45,7 +45,23 @@
   "SF1:拡張:答えの形が違う",
   "SF1:拡張:時間切れ",
   "SF1:拡張:同じ子セッションが処理中",
-  "SF1:拡張:続ける子セッションが無い"
+  "SF1:拡張:続ける子セッションが無い",
+  "約束:abstract:root",
+  "約束:abstract:field",
+  "約束:abstract:x-decided-by",
+  "約束:abstract:x-published",
+  "約束:abstract:x-view",
+  "約束:abstract:x-prompt",
+  "約束:abstract:rule",
+  "約束:vocabulary:closed",
+  "約束:agent-connector",
+  "約束:design-system",
+  "約束:template-language",
+  "約束:abstract:instance-schema-name",
+  "約束:abstract:unique-id",
+  "約束:abstract:human-entry-only",
+  "約束:dialect:nested",
+  "約束:operation-result"
  ],
  "traces": [
   {
@@ -103,11 +119,13 @@
     "S-UC2-ADOPT-INVALID",
     "S-UC2-CONFLICT",
     "S-UC2-DERIVED",
+    "S-UC2-HUMAN-FIELD-NESTED",
     "S-UC2-HUMAN-FIELD",
     "S-UC2-INVALID",
     "S-UC2-PARALLEL-REAPPLY",
     "S-UC2-PARALLEL",
     "S-UC2-PATCH-FAILED",
+    "S-UC2-PUBLISHED-NESTED",
     "S-UC2-PUBLISHED",
     "S-UC2-UNTRACKED",
     "S-UC2-USAGE"
@@ -178,6 +196,7 @@
     "S-UC4-ABSTRACT-NAME",
     "S-UC4-ALL",
     "S-UC4-CONCRETE-OK",
+    "S-UC4-DEEP-VIEW",
     "S-UC4-INSTANCE-FORM",
     "S-UC4-RULE-ID-RESERVED",
     "S-UC4-SESSION-NESTED",
@@ -422,6 +441,113 @@
     "S-SF1-LAUNCH-EDITED",
     "S-SF1-LAUNCH-MISMATCH",
     "S-SF1-NOT-RECORDED"
+   ]
+  },
+  {
+   "id": "約束:abstract:root",
+   "meaning": "Concrete の根：$schema は閉じた一覧の版 ・ $id は版付きの URN ・ title ・ description ・ properties を持つ",
+   "scenarios": [
+    "S-UC1-CREATE-CONCRETE",
+    "S-UC4-CONCRETE-OK",
+    "S-UC4-NOT-LISTED"
+   ]
+  },
+  {
+   "id": "約束:abstract:field",
+   "meaning": "欄は title ・ description ・ x-prompt を持つ",
+   "scenarios": [
+    "S-UC4-CONCRETE-OK"
+   ]
+  },
+  {
+   "id": "約束:abstract:x-decided-by",
+   "meaning": "x-decided-by: human の欄は、親セッションのある呼び出し（AI）からは default のまま作るほか変えられない",
+   "scenarios": [
+    "S-UC1-CREATE-BY-TOOL",
+    "S-UC1-HUMAN-FIELD",
+    "S-UC2-ADOPT-HUMAN-FIELD",
+    "S-UC2-HUMAN-FIELD-NESTED",
+    "S-UC2-HUMAN-FIELD",
+    "S-UC2-HUMAN-UPDATE"
+   ]
+  },
+  {
+   "id": "約束:abstract:x-published",
+   "meaning": "x-published の欄の定義は、同じ版（$id）のあいだ変えない。削除は止めない",
+   "scenarios": [
+    "S-UC2-PUBLISHED-NESTED",
+    "S-UC2-PUBLISHED",
+    "S-UC3-CONCRETE-PUBLISHED"
+   ]
+  },
+  {
+   "id": "約束:abstract:x-view",
+   "meaning": "x-view は根だけに書き、デザインシステムのテンプレートの種類を選ぶ",
+   "scenarios": [
+    "S-UC4-DEEP-VIEW",
+    "S-UC5-MISSING-VIEW",
+    "S-UC5-VIEW-KINDS"
+   ]
+  },
+  {
+   "id": "約束:abstract:x-prompt",
+   "meaning": "x-prompt の write の rule は当たる所の値で判定され、read は子セッションへの手順に入る",
+   "scenarios": [
+    "S-SF1-JUDGE",
+    "S-UC2-STALE"
+   ]
+  },
+  {
+   "id": "約束:abstract:rule",
+   "meaning": "rule は by で判定する者が決まり（human は unverified）、id は Concrete の中で重ならず json-schema を使わない",
+   "scenarios": [
+    "S-UC4-HUMAN-RULE",
+    "S-UC4-RULE-ID-RESERVED",
+    "S-UC4-STALE-RULE-CHANGED"
+   ]
+  },
+  {
+   "id": "約束:vocabulary:closed",
+   "meaning": "x- は閉じた一覧（x-prompt ・ x-decided-by ・ x-published ・ x-view）だけで、ほかの x- は形の検査で断る",
+   "scenarios": [
+    "S-UC4-ABSTRACT-NAME",
+    "S-UC4-UNKNOWN-KEYWORD"
+   ]
+  },
+  {
+   "id": "約束:agent-connector",
+   "meaning": "子セッションの起動 ・ 続け方 ・ 答えと ID の取り出し方は接続の定義に従い、続けるときは名前 ・ 版 ・ 中身の指紋を比べる",
+   "scenarios": [
+    "S-SF1-JUDGE",
+    "S-SF1-LAUNCH-EDITED",
+    "S-SF1-LAUNCH-MISMATCH"
+   ]
+  },
+  {
+   "id": "約束:design-system",
+   "meaning": "デザインシステムは型 ・ トークン ・ テンプレートの経路の決まりに従い、Concrete と合う",
+   "scenarios": [
+    "S-UC4-DESIGN-OK",
+    "S-UC4-DESIGN-VIOLATED",
+    "S-UC5-DS-INVALID"
+   ]
+  },
+  {
+   "id": "約束:template-language",
+   "meaning": "テンプレートは書き方の契約（Mustache の部分集合）に従い、値はエスケープして入る",
+   "scenarios": [
+    "S-UC4-DESIGN-VIOLATED",
+    "S-UC5-ESCAPE",
+    "S-UC5-TEMPLATE-FAILED"
+   ]
+  },
+  {
+   "id": "約束:dialect:nested",
+   "meaning": "x- の形は入れ子のどの深さでも掛かり、x-view は根より内側で断る。入れ子の x-decided-by ・ x-published も守る",
+   "scenarios": [
+    "S-UC2-HUMAN-FIELD-NESTED",
+    "S-UC2-PUBLISHED-NESTED",
+    "S-UC4-DEEP-VIEW"
    ]
   }
  ]

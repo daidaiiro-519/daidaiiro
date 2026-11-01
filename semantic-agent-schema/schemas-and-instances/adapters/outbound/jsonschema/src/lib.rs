@@ -58,6 +58,39 @@ impl SchemaValidator for Validator {
         value: &Value,
         more: &[(String, Value)],
     ) -> Result<Vec<(String, String)>, String> {
+        Ok(self
+            .validator(schema, more)?
+            .iter_errors(value)
+            .map(|e| (e.instance_path().as_str().to_string(), e.to_string()))
+            .collect())
+    }
+
+    fn annotations(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, Value)>, String> {
+        let evaluation = self.validator(schema, more)?.evaluate(value);
+        Ok(evaluation
+            .iter_annotations()
+            .map(|a| {
+                (
+                    a.instance_location.as_str().to_string(),
+                    a.annotations.value().clone(),
+                )
+            })
+            .collect())
+    }
+}
+
+impl Validator {
+    /// $id が schema のスキーマを、入れて出すスキーマと more を引ける形で組む。
+    fn validator(
+        &self,
+        schema: &str,
+        more: &[(String, Value)],
+    ) -> Result<jsonschema::Validator, String> {
         let mut builder = jsonschema::Registry::new();
         for (id, doc) in self.shipped.iter().chain(more) {
             builder = builder
@@ -72,15 +105,11 @@ impl SchemaValidator for Validator {
             .find(|(i, _)| i == schema)
             .map(|(_, d)| d.clone())
             .ok_or_else(|| format!("{schema} を引けない"))?;
-        let validator = jsonschema::options()
+        jsonschema::options()
             .with_draft(jsonschema::Draft::Draft202012)
             .with_vocabulary(VOCABULARY)
             .with_registry(&registry)
             .build(&doc)
-            .map_err(|e| format!("{schema} をバリデーターに組めない：{e}"))?;
-        Ok(validator
-            .iter_errors(value)
-            .map(|e| (e.instance_path().as_str().to_string(), e.to_string()))
-            .collect())
+            .map_err(|e| format!("{schema} をバリデーターに組めない：{e}"))
     }
 }

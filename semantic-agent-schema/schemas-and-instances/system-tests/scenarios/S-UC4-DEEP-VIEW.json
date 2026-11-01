@@ -1,0 +1,34 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-DEEP-VIEW",
+ "name": "欄に書いた x-view",
+ "title": "Concrete の欄（根より内側）に x-view を書くと、形の検査（json-schema）が violated になる",
+ "why": "x-view はページ全体の描き方を選ぶ。欄ごとに書けると、どのテンプレートで描くかが決まらない。",
+ "traces": [
+  "UC4:成功時保証",
+  "約束:abstract:x-view",
+  "約束:dialect:nested"
+ ],
+ "given": {
+  "files": {
+   "schemas/deep-view.schema.json": "@fixtures/deep-view.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "schemas/deep-view.schema.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 1
+  }
+ ]
+}

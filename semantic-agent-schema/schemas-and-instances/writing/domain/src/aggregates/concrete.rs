@@ -77,7 +77,7 @@ impl ConcreteSchema {
 
 impl ConcreteSchema {
     /// この中身を書いてよいか（ステップ2）。before は直す前の中身（作成なら None）。
-    /// 直す前に x-published: true だった根の欄は、$id（版）を変えずには変えない ・ 消さない。
+    /// 直す前に x-published: true だった欄（入れ子 ・ items ・ $defs の中も）は、$id（版）を変えずには変えない ・ 消さない。
     ///
     /// # Errors
     /// 公開した欄を同じ版のまま変えたとき（最初に見つけた1つ）。
@@ -88,23 +88,23 @@ impl ConcreteSchema {
         if b.id() != self.id() {
             return Ok(());
         }
-        let now = self.document.get("properties");
-        for (name, field) in b
-            .document
-            .get("properties")
-            .and_then(Value::as_object)
-            .into_iter()
-            .flatten()
-        {
-            if field.get("x-published").and_then(Value::as_bool) == Some(true)
-                && now.and_then(|p| p.get(name)) != Some(field)
+        for (keyword, at) in b.used_keywords() {
+            if keyword != "x-published" {
+                continue;
+            }
+            let field = at.strip_suffix("/x-published").unwrap_or_default();
+            let was = b.document.pointer(field);
+            if was
+                .and_then(|f| f.get("x-published"))
+                .and_then(Value::as_bool)
+                == Some(true)
+                && self.document.pointer(field) != was
             {
-                let at = format!("/properties/{}", escape(name));
                 return Err(WriteViolation::new(
                     "published_changed",
-                    &at,
+                    field,
                     &format!(
-                        "{at} は x-published: true の欄で、同じ版のあいだ変えない。変えるときは $id の版を上げる（いまの版：{}）",
+                        "{field} は x-published: true の欄で、同じ版のあいだ変えない。変えるときは $id の版を上げる（いまの版：{}）",
                         self.id().unwrap_or("（無し）")
                     ),
                 ));
@@ -179,5 +179,23 @@ mod tests {
         );
         assert!(next.check_write(Some(&before)).is_ok());
         assert!(changed.check_write(None).is_ok());
+    }
+
+    #[test]
+    fn nested_published_field_needs_new_version_too() {
+        let abs = "urn:semantic-agent-schema:published-language:abstract:v1";
+        let doc = |t: &str| {
+            ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
+                "properties": {"steps": {"type": "array", "items": {"properties": {
+                    "kind": {"x-published": true, "type": t}}}}},
+                "$defs": {"d": {"x-published": true, "type": t}}}))
+            .unwrap()
+        };
+        let before = doc("string");
+        let changed = doc("number");
+        let v = changed.check_write(Some(&before)).err().unwrap();
+        assert_eq!(v.code(), "published_changed");
+        assert_eq!(v.pointer(), "/properties/steps/items/properties/kind");
+        assert!(doc("string").check_write(Some(&before)).is_ok());
     }
 }

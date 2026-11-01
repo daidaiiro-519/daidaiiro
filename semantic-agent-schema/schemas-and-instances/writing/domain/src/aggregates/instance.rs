@@ -4,7 +4,6 @@
 //! 指紋が一致したときだけ書く条件は、いまの中身を読む手続き（use_cases）の側で確かめる。
 //! 欄は根の properties だけを見る（入れ子の欄はまだ見ない）。
 
-use crate::aggregates::escape;
 use crate::values::WriteViolation;
 use serde_json::Value;
 
@@ -54,38 +53,34 @@ impl Instance {
         &self.document
     }
 
-    /// この中身を書いてよいか。before は直す前の中身（作成なら None）、concrete は従う Concrete の文書。
+    /// この中身を書いてよいか。before は直す前の中身（作成なら None）、human は人が決める欄
+    /// （x-decided-by: human が当たったインスタンスの所と、その default）。所は入れ子のどこでもよい。
     ///
     /// # Errors
-    /// 人の欄を人でない入口から決めた ・ 導出値と違う値を書いたとき（最初に見つけた1つ）。
+    /// 人の欄を人でない入口から決めたとき（最初に見つけた1つ）。
     pub fn check_write(
         &self,
         before: Option<&Self>,
-        concrete: &Value,
+        human: &[(String, Option<Value>)],
         entry: Entry,
     ) -> Result<(), WriteViolation> {
-        let Some(properties) = concrete.get("properties").and_then(Value::as_object) else {
+        if entry != Entry::Tool {
             return Ok(());
-        };
-        for (name, field) in properties {
-            let at = format!("/{}", escape(name));
-            let now = self.document.get(name);
-            if entry == Entry::Tool
-                && field.get("x-decided-by").and_then(Value::as_str) == Some("human")
-            {
-                let changed = match before {
-                    Some(b) => b.document.get(name) != now,
-                    None => now.is_some() && now != field.get("default"),
-                };
-                if changed {
-                    return Err(WriteViolation::new(
-                        "human_field",
-                        &at,
-                        &format!(
-                            "{at} は x-decided-by: human の欄で、人の入口（--session を付けない呼び出し）からだけ決める"
-                        ),
-                    ));
-                }
+        }
+        for (at, default) in human {
+            let now = self.document.pointer(at);
+            let changed = match before {
+                Some(b) => b.document.pointer(at) != now,
+                None => now.is_some() && now != default.as_ref(),
+            };
+            if changed {
+                return Err(WriteViolation::new(
+                    "human_field",
+                    at,
+                    &format!(
+                        "{at} は x-decided-by: human の欄で、人の入口（--session を付けない呼び出し）からだけ決める"
+                    ),
+                ));
             }
         }
         Ok(())
@@ -97,10 +92,12 @@ mod tests {
     use super::{Entry, Instance};
     use serde_json::{Value, json};
 
-    fn concrete() -> Value {
-        json!({"properties": {
-            "status": {"x-decided-by": "human", "default": "draft"}
-        }})
+    /// 人の欄：根の status と、入れ子の steps/0/approved。
+    fn human() -> Vec<(String, Option<Value>)> {
+        vec![
+            ("/status".to_string(), Some(json!("draft"))),
+            ("/steps/0/approved".to_string(), Some(json!(false))),
+        ]
     }
 
     fn inst(v: &Value) -> Instance {
@@ -117,21 +114,36 @@ mod tests {
     fn human_field_from_tool_only_default_on_create() {
         let draft = inst(&json!({"$schema": "c", "id": "D1", "status": "draft"}));
         let approved = inst(&json!({"$schema": "c", "id": "D1", "status": "approved"}));
+        assert_eq!(code(draft.check_write(None, &human(), Entry::Tool)), "ok");
         assert_eq!(
-            code(draft.check_write(None, &concrete(), Entry::Tool)),
-            "ok"
-        );
-        assert_eq!(
-            code(approved.check_write(None, &concrete(), Entry::Tool)),
+            code(approved.check_write(None, &human(), Entry::Tool)),
             "human_field"
         );
         assert_eq!(
-            code(approved.check_write(Some(&draft), &concrete(), Entry::Tool)),
+            code(approved.check_write(Some(&draft), &human(), Entry::Tool)),
             "human_field"
         );
         assert_eq!(
-            code(approved.check_write(Some(&draft), &concrete(), Entry::Human)),
+            code(approved.check_write(Some(&draft), &human(), Entry::Human)),
             "ok"
+        );
+    }
+
+    #[test]
+    fn nested_human_field_is_kept_too() {
+        let before =
+            inst(&json!({"$schema": "c", "status": "draft", "steps": [{"approved": false}]}));
+        let after =
+            inst(&json!({"$schema": "c", "status": "draft", "steps": [{"approved": true}]}));
+        assert_eq!(
+            code(after.check_write(Some(&before), &human(), Entry::Tool)),
+            "human_field"
+        );
+        let removed = inst(&json!({"$schema": "c", "status": "draft", "steps": [{}]}));
+        assert_eq!(
+            code(removed.check_write(Some(&before), &human(), Entry::Tool)),
+            "human_field",
+            "消すのも変えること"
         );
     }
 }

@@ -57,6 +57,25 @@ impl SchemaValidator for Lenient {
     ) -> Result<Vec<(String, String)>, String> {
         Ok(Vec::new())
     }
+    /// 根の欄だけを見る代役：インスタンスにある根の欄ごとに、Concrete のその欄の定義を注釈として返す。
+    fn annotations(
+        &self,
+        schema: &str,
+        value: &Value,
+        more: &[(String, Value)],
+    ) -> Result<Vec<(String, Value)>, String> {
+        let Some((_, doc)) = more.iter().find(|(id, _)| id == schema) else {
+            return Ok(Vec::new());
+        };
+        Ok(doc
+            .get("properties")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .filter(|(name, _)| value.get(name.as_str()).is_some())
+            .map(|(name, field)| (format!("/{name}"), field.clone()))
+            .collect())
+    }
 }
 
 pub(crate) struct Human;

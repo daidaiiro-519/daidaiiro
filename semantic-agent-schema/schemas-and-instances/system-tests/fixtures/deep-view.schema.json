@@ -1,0 +1,98 @@
+{
+ "$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
+ "$id": "urn:example:sample:deep-view:v1",
+ "title": "決定",
+ "description": "決めたことと、その状態である。",
+ "type": "object",
+ "required": [
+  "$schema",
+  "id",
+  "summary"
+ ],
+ "properties": {
+  "$schema": {
+   "const": "urn:example:sample:deep-view:v1"
+  },
+  "id": {
+   "title": "ID",
+   "description": "決定を区別する名前である。",
+   "x-prompt": {
+    "write": []
+   },
+   "type": "string",
+   "pattern": "^D[0-9]+$"
+  },
+  "summary": {
+   "title": "要約",
+   "description": "決めたことを1文で書く。同じ版のあいだ定義を変えない。",
+   "x-prompt": {
+    "write": []
+   },
+   "x-published": true,
+   "type": "string",
+   "x-view": "card"
+  },
+  "status": {
+   "title": "状態",
+   "description": "決定が承認されたかである。人が決める。",
+   "x-prompt": {
+    "write": []
+   },
+   "x-decided-by": "human",
+   "type": "string",
+   "enum": [
+    "draft",
+    "approved"
+   ],
+   "default": "draft"
+  },
+  "risk": {
+   "title": "影響",
+   "description": "決定が外れたときの影響の大きさである。",
+   "x-prompt": {
+    "write": []
+   },
+   "type": "string",
+   "enum": [
+    "low",
+    "high"
+   ]
+  },
+  "review": {
+   "title": "確かめ方",
+   "description": "影響から導く、確かめ方である。影響が high なら by-two、それ以外は by-one（根の if ・ then ・ else）。",
+   "x-prompt": {
+    "write": []
+   },
+   "type": "string",
+   "enum": [
+    "by-one",
+    "by-two"
+   ]
+  }
+ },
+ "if": {
+  "properties": {
+   "risk": {
+    "const": "high"
+   }
+  },
+  "required": [
+   "risk"
+  ]
+ },
+ "then": {
+  "properties": {
+   "review": {
+    "const": "by-two"
+   }
+  }
+ },
+ "else": {
+  "properties": {
+   "review": {
+    "const": "by-one"
+   }
+  }
+ }
+}

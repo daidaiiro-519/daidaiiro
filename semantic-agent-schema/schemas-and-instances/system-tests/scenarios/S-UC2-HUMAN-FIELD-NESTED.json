@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-HUMAN-FIELD-NESTED",
+ "name": "ツールが入れ子の人の欄を変える",
+ "title": "名乗ったツールが、配列の要素の中にある人の欄（x-decided-by: human）を変えようとすると、直さずに human_field と所を返す",
+ "why": "人の欄を根に置くか入れ子に置くかは Concrete の作り手が決める。入れ子で守られないと、置き場所しだいで承認していない値が承認済みに見える。",
+ "traces": [
+  "UC2:最低保証",
+  "約束:abstract:x-decided-by",
+  "約束:dialect:nested"
+ ],
+ "given": {
+  "files": {
+   "schemas/checked-decision.schema.json": "@fixtures/checked-decision.schema.json",
+   "decisions/d2.json": "@fixtures/d2-checked.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "decisions/d2.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/checks/0/signed\",\"value\":true}]",
+   "--session",
+   "agent-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "human_field"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "/checks/0/signed"
+  }
+ ],
+ "unchanged": [
+  "decisions/d2.json"
+ ]
+}
