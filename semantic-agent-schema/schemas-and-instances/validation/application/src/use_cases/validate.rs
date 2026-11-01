@@ -463,6 +463,13 @@ fn apply_meaning(
                     .pointer(r.pointer())
                     .cloned()
                     .unwrap_or(Value::Null),
+                reads: rule_reads(def.as_ref())
+                    .into_iter()
+                    .map(|p| {
+                        let v = c.doc.value.pointer(&p).cloned().unwrap_or(Value::Null);
+                        (p, v)
+                    })
+                    .collect(),
             });
             at.push(i);
         }
@@ -625,6 +632,20 @@ pub fn reads_of(document: &Value, at: &str) -> ContentHash {
     ContentHash::of_read(at, document.pointer(at))
 }
 
+/// rule の定義の reads（判定のときに一緒に読む所。このインスタンスの中の JSON Pointer）。
+fn rule_reads(definition: Option<&Value>) -> Vec<String> {
+    definition
+        .and_then(|d| d.get("reads"))
+        .and_then(Value::as_array)
+        .map(|a| {
+            a.iter()
+                .filter_map(Value::as_str)
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// いま判定した対象1つ（記録する前）。
 pub struct Current {
     /// 対象の文書
@@ -698,7 +719,14 @@ pub fn judge_current(
         let results = judged
             .into_iter()
             .map(|(r, at, definition)| {
-                let reads = reads_of(&doc.value, &at);
+                // 当たる所の値に、rule の reads が指す所の値を足す（読む欄が変われば、前の判定は効かない）
+                let mut reads = reads_of(&doc.value, &at);
+                for p in rule_reads(definition.as_ref()) {
+                    let more = reads_of(&doc.value, &p);
+                    reads = ContentHash::of(
+                        format!("{}\u{0}{}", reads.as_str(), more.as_str()).as_bytes(),
+                    );
+                }
                 // rule の文も読んだものに入れる（Concrete の rule を書き換えたら、前の判定は効かない）
                 let reads = match definition {
                     Some(def) => {

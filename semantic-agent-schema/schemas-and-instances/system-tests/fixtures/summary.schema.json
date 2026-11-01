@@ -1,0 +1,59 @@
+{
+ "$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
+ "$id": "urn:example:sample:summary:v1",
+ "title": "要約付きの決めごと",
+ "description": "目的と、それを1文で言った要約である。",
+ "type": "object",
+ "required": [
+  "$schema",
+  "id",
+  "goal"
+ ],
+ "properties": {
+  "$schema": {
+   "const": "urn:example:sample:summary:v1"
+  },
+  "id": {
+   "title": "ID",
+   "description": "ユースケースを区別する名前である。",
+   "x-prompt": {
+    "write": []
+   },
+   "type": "string",
+   "pattern": "^R[0-9]+$"
+  },
+  "goal": {
+   "title": "目的",
+   "description": "利用者が果たしたいことである。",
+   "x-prompt": {
+    "write": [
+     {
+      "id": "goal-is-outcome",
+      "rule": "利用者が得る結果を書く。",
+      "why": "手段を書くと、目的が果たせたかを決められない。",
+      "test": "結果を表す名詞句かを見る。"
+     }
+    ]
+   },
+   "type": "string"
+  },
+  "summary": {
+   "title": "要約",
+   "description": "目的を1文で言ったものである。",
+   "type": "string",
+   "x-prompt": {
+    "write": [
+     {
+      "id": "summary-matches",
+      "rule": "目的に食い違わない1文にする。",
+      "why": "要約だけ読んだ人が、違うことを決める。",
+      "test": "目的に無いことを書いていないかを見る。",
+      "reads": [
+       "/goal"
+      ]
+     }
+    ]
+   }
+  }
+ }
+}
