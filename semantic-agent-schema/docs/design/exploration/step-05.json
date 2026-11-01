@@ -1,0 +1,218 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 5,
+ "date": "2026-11-01",
+ "summary": "UC5 描画する（機械だけ）を作った。描画が受け取るのは3つだけ：デザインシステム（x-view の種類ごとのテンプレートとデザイントークン）、Concrete（SAS の契約で作った JSON Schema）、それに従うインスタンスの JSON。JSON が渡すのは値だけで、値の置き方はテンプレート（HTML ・ JS）が、見た目はデザイントークンの CSS が決める。SAS は Concrete の根の x-view（無ければ page）でテンプレートを選び、値（$schema を除く）とトークンの CSS を入れて描くだけである。テンプレートどうしは種類の名前で読み込める。同じ入力からはバイト列まで同じページになる。SAS はデザインを組み立てる部品も既定のデザインシステムも持たず、判定 ・ 記録は扱わない。はじめは UC5 の元の本文（内容と rule ごとの結果が一緒に見える ・ 入力が変わった判定を verified と見せない）どおり、記録の最後の判定をページに入れて stale を見せる形で作り、シミュレーターで見せた。利用者から「描画する必要のないものが混ざっている。SAS が担うのはデザインシステムを受け取り、Json の内容を埋め込んで決められたデザインで冪等に描画すること」と差し戻され、判定 ・ 記録 ・ 指紋をページから外し、記録も読まないようにした。計画の受け入れ基準も直した。UC5 の本文は usecase-advisor に起こしてもらい（判定にかかわる拡張は外した）、場面20件にした（中断は untested）。反証役（fork）の指摘のうち、描画に残るもの（エスケープを位置で決める ・ 書き出す先の重なりを実体の経路で比べる ・ 置き換えの退避 ・ テンプレートが無いときの not_found ・ 同じ対象の重なり）は直した。消して作り直した文書に前の判定を当てない直し（sqlite の last_judgments）は、validate --stale のために残した。Abstract に x-view を足し（x- は10）、デザインシステムの受け取りの型を published-language/v1 に置いた。テンプレートの処理系は minijinja 3.0.5 を outbound/templates に閉じ込めた。手順の順番について：このステップは場面より先に手続きを書いたので、前のステップの sas で場面が失敗することは、render を知らずに全部止まることでしか確かめていない。2回目の差し戻し：利用者から「Json で提供するのは値だけ。テンプレートに HTML と js を含み、デザイントークンで CSS が当たる。今の例だと求めるデザインができているのか怪しい」と言われ、SAS が欄を並べて見出しを付ける組み立てと欄ごとのテンプレートをやめ、x-view を Concrete の根だけにした（語彙から外し、Abstract の根の properties に置いた）。試験のデザインシステムを、レイアウト ・ 書体 ・ 配色 ・ ダークモード ・ JS（ID のコピー）を持つ実際のデザインにした。3回目：テンプレートの書き方を選び直した。はじめは Rust のライブラリの性質だけで minijinja を選んでいたので、テンプレートを書く人の側の基準で4つ（Jinja2 系 ・ Mustache ・ Handlebars ・ Liquid）を原文で照合し（引用68件 ・ 識別子25個）、いったん Mustache を見解にした。利用者と話して、テンプレートのロジックは描くときに動かし、書き出した HTML がそれだけで完成するべきこと、書き方が決まっていることはお作法として良いことが分かり、Jinja2（minijinja 3.0.5）を契約として明記することにした。さらに利用者の「作法を検証できる仕組みがないと安定しない」を受けて、書き方の契約（template-language.json）を機械が読める形で置き、sas validate でデザインシステムを契約に照らし（7つの rule）、描画はそれに通ったデザインシステムでだけ描くようにした。4回目：利用者の要件「テンプレートが表現したいロジックや UI ・ UX は SAS で持たない。SAS は JSON の契約で値を反映して描く部分と、その validate だけ。テンプレートが増えるたびに基盤を変えたくない。JS も JSON の契約を守っていればよく、それを lint のように確かめたい」に照らし、Jinja2 をやめた（フィルターなどを SAS の処理系が実行するので、デザインが増えると SAS を変えることになる）。テンプレートの書き方は Mustache（mustache/spec の必須の部分。処理系は自分で持ち、仕様の試験 136件を通す）、渡すのは value ・ json ・ tokens ・ css。JS の lint は boa 0.22.0 で値の入口 sas-data から読む欄を取り出し、Concrete の形にたどれるかを見る（実行するまで決まらない読み方は unverified）",
+ "usecases": [
+  "UC5"
+ ],
+ "factchecks": [
+  {
+   "item": "テンプレートの処理系の候補（minijinja ・ tera ・ handlebars）の版 ・ ライセンス ・ エスケープの既定 ・ エスケープしない値の渡し方 ・ 未定義の名前の扱い ・ 依存の数 ・ ファイルへのアクセス",
+   "evidence": [
+    "crates.io API と .crate（取得 2026-11-01）：minijinja 3.0.5（commit 68ab5b6c）・ tera 2.4.0（6ead3c0f）・ handlebars 6.4.4（ddcc3324）。置き場所 scratchpad step5/sources/",
+    "minijinja value/mod.rs:1070「A safe string is one that will bypass auto escaping.」（quote で照合。Value::from_safe_string）",
+    "minijinja environment.rs:498「default is [`UndefinedBehavior::Lenient`].」と utils.rs:286「Complains very quickly about undefined values.」（Strict。quote で照合）",
+    "minijinja defaults.rs:40 拡張子 html ・ htm ・ xml で AutoEscape::Html（set_auto_escape_callback で名前に関わらず Html にした）",
+    "handlebars に値の単位でエスケープしない型は原文に無い（registry.rs の no_escape は Registry 全体）",
+    "依存の数（実測、cargo tree）：minijinja 1 ・ tera 3 ・ handlebars 36",
+    "識別子45個を identifier、引用34件を quote で照合し、すべて在った"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "テンプレートの書き方の候補（Jinja2 系 ・ Mustache ・ Handlebars ・ Liquid）の仕様 ・ 実装 ・ エスケープ ・ JS への受け渡し ・ 冪等",
+   "evidence": [
+    "mustache/spec e8ec001d README.md:1「The repository at https://github.com/mustache/spec is the formal standard for」",
+    "mozilla/nunjucks a3e90a92 docs/faq.md:26「Kind of. There are enough differences that it might take some work.」",
+    "Shopify/liquid gh-pages date.md:46「To get the current time, pass the special word `\"now\"` (or `\"today\"`) to `date`.」",
+    "pallets/jinja templates.rst:629「The default configuration is no automatic escaping; for various reasons:」",
+    "引用68件を quote、識別子25個を identifier で照合し、すべて在った（scratchpad step5/lang-sources/quotes.tsv）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "JS の構文解析器の候補（oxc ・ swc ・ boa ・ ressa ・ tree-sitter-javascript）の版 ・ ライセンス ・ MSRV ・ 対応する ES ・ Visitor ・ 依存の重さ ・ 版の安定性",
+   "evidence": [
+    "crates.io API と公開版のソース（取得 2026-11-01、sha256 は scratchpad step5/js-sources/crates/SHA256SUMS）",
+    "boa_parser lib.rs:1「Boa's **`boa_parser`** crate is a parser targeting the latest [ECMAScript language specification][spec].」（quote）",
+    "boa_ast visitor.rs:225「pub trait Visitor<'ast>: Sized {」（quote）",
+    "boa 0.22.0：license Unlicense OR MIT、rust_version 1.91.0。2025-11-01 以降の公開 2回、互換の無い上げ 1回（oxc は 60回、swc は parser で 20回）",
+    "実測：依存 62（重複を除く）、release ビルド 6.6 秒。data.goal ・ data.calls[0].id ・ 分割代入 ・ data[k] を取り出せた",
+    "識別子 93個 ・ 引用 53件を照合し、すべて在った"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Mustache の仕様の必須の部分を、自分の処理系が満たすか",
+   "evidence": [
+    "mustache/spec e8ec001d の specs/{comments,delimiters,interpolation,inverted,partials,sections}.json（MIT）を adapters/outbound/templates/tests/mustache-spec に写した",
+    "試験 tests/spec.rs：136件をそのまま通す"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC5 描画する（rendering/application の use_cases/render.rs）",
+   "steps": [
+    "デザインシステムを読み、受け取りの型（design-system:v1）に照らす。トークンを :root のカスタムプロパティにする（別名は var() に解く）。テンプレートをすべて読む（デザインシステムのフォルダの中の相対の経路だけ）",
+    "対象を読み、従う Concrete を決める。Concrete なら断る（描くのはインスタンスだけ）。同じ対象は1つにする",
+    "Concrete の根の x-view（無ければ page）の種類のテンプレートがあるかを確かめる。無い種類をすべて集め、あれば missing_view_kinds で断る",
+    "テンプレートをすべて種類の名前で登録し、選んだテンプレートに value（インスタンスの値。$schema を除く）と css（トークン）を入れて描く。値はエスケープし、JS へは tojson で渡す",
+    "すべての対象を描けてから、書き出すページが入力と実体の経路で重ならないことを確かめ、一時ファイルに全部書き、前のページを退避して置き換える（失敗したら戻す）"
+   ],
+   "rules": [
+    "受け取るのはデザインシステムとインスタンスの JSON（と、従う Concrete）だけ。テンプレートに渡すのは値とトークンの CSS だけで、値の置き方はテンプレートが決める",
+    "同じ入力からは同じページ（時刻 ・ 乱数を使わない。欄はインスタンスの並び、トークンは名前の順）",
+    "描画は記録しない。記録も読まない",
+    "1つでも止まれば1ページも書かない",
+    "SAS は既定のデザインシステムもデザインの部品も持たない"
+   ]
+  },
+  {
+   "usecase": "UC4 の変形：デザインシステムを検証する（rendering/application の use_cases/design.rs）",
+   "steps": [
+    "デザインシステムを受け取りの型に照らす（json-schema）",
+    "トークンの別名がすべて解け、輪になっていないかを見る（token-alias）",
+    "テンプレートを Mustache として読む（template-syntax）。部分テンプレートの先が templates にあるか（template-loads）",
+    "値の入口が <script type=\"application/json\" id=\"sas-data\">{{{json}}}</script> だけで、JS の中に Mustache のタグが無く、JS として読めるか（script-entry）",
+    "根の x-view がこのデザインシステムの種類を選ぶ Concrete ごとに、テンプレート（部分を含む）が置く名前が value ・ json ・ tokens ・ css にたどれるか（template-names）、JS が入口から読む欄が Concrete の形にたどれるか（script-reads。実行するまで決まらない読み方は unverified）",
+    "sas validate では記録し、描画では外れがあれば invalid_design_system で断る"
+   ],
+   "rules": [
+    "テンプレートの書き方は template-language.json（Mustache）が契約。テンプレートが表現するロジックと UI ・ UX は JS が持ち、SAS は持たない",
+    "作法の検証に通ったデザインシステムでだけ描く"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "x-view からテンプレートを選ぶこと",
+   "became": "script",
+   "evident_from_start": false,
+   "why": "描画だけが読む。Concrete の根の1つの値を引くだけ"
+  },
+  {
+   "what": "デザイントークンを CSS のカスタムプロパティにすること",
+   "became": "script",
+   "evident_from_start": false,
+   "why": "デザインシステムの値の変換だけで、業務の決まりではない"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "概念のページ「確かめる」の下からの表：UC5 は判定の結果を使い、描く",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "利用者の要望（2026-11-01）で、描画は判定の結果を使わないことにした。受け取るのはデザインシステムとインスタンスの JSON だけで、判定を見るのは UC4。概念のページの表を直した"
+  },
+  {
+   "item": "UC5 の元の本文と計画の受け入れ基準：内容と rule ごとの結果が一緒に見える ・ 入力が変わった判定を verified と見せない",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "同上。計画の受け入れ基準を「値とデザインだけ」「冪等」「欠けた種類をすべて返す」「デザインの部品を持たない」に直した"
+  },
+  {
+   "item": "design.json の operation-request の render.design_system「無ければ設定」",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "SAS は既定を持たない。--design-system を必須にした"
+  },
+  {
+   "item": "design.json の design-system の result_tokens",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "描画が判定を扱わないので外した"
+  },
+  {
+   "item": "ポート template_renderer と outbound/templates",
+   "result": "match",
+   "fixed": "none",
+   "note": "名前は TemplateRenderer。処理系の選び直しは adapter の中で閉じる"
+  },
+  {
+   "item": "書き出し先のポート",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "最低保証「1ページも書かない」を use_cases が守るために PageWriter を足し、outbound/filesystem の OutDir が実装する。入力と実体の経路で重なれば断り、退避して置き換える"
+  },
+  {
+   "item": "x-view（Abstract の本体と語彙）",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "design.json のとおり足した（x- は10）"
+  },
+  {
+   "item": "反証役の指摘：消して作り直した文書に、消す前の判定が当たる",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "描画からは外れたが、validate --stale も同じ読み方をするので、sqlite の last_judgments を最後の削除より後だけにした（judgments_after_delete.rs）"
+  },
+  {
+   "item": "x-view を入れ子のどこでも書ける語彙にしていた（design.json の 1_boundaries と語彙）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "値の置き方はテンプレートが決めるので、欄ごとの種類は要らない。x-view は Concrete の根だけにし、語彙から外して Abstract の根の properties に置いた"
+  },
+  {
+   "item": "テンプレートの書き方とその検証",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "仮説はテンプレートの処理系を adapter に閉じ込めるだけで、書き方を契約にすることも、デザインシステムを検証することも無かった。template-language.json（Mustache）を足し、UC4 の対象にデザインシステムを足した。JS が JSON の契約を守っているかの lint（outbound/javascript）も足した（場面 S-UC4-DESIGN-OK ・ VIOLATED ・ MIXED ・ JS-UNTRACEABLE ・ S-UC5-DESIGN-INVALID）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "描画の種類（x-view）",
+   "seen": "x-view ・ templates のキー ・ missing_view_kinds ・ views",
+   "drift": "ずれは無い。種類は x-view の値か、無いときの page と JSON の型の名前"
+  },
+  {
+   "term": "描画",
+   "seen": "UC5 ・ rendering ・ sas render",
+   "drift": "「内容と判定を一緒に見せること」から「受け取ったデザインに値を入れること」へ、さらに「値はテンプレートが置く。SAS は値とトークンを渡すだけ」へ狭めた（利用者の要望 2回）"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate rendering-application",
+    "before": "無し",
+    "after": "rendering/application（use_cases/render.rs ・ design.rs、ポート TemplateRenderer（render ・ inspect）・ PageWriter）",
+    "why": "UC5 の手続きの置き場所（業務領域「描画」のモジュール）"
+   },
+   {
+    "what": "crate outbound-templates",
+    "before": "無し",
+    "after": "adapters/outbound/templates（Mustache の処理系 mustache.rs。仕様の試験 136件を通す）",
+    "why": "テンプレートの処理系を adapter に閉じ込める"
+   },
+   {
+    "what": "outbound-filesystem",
+    "before": "DocumentStore だけ",
+    "after": "OutDir（PageWriter）も持つ",
+    "why": "ページの書き出しもファイルの入出力"
+   },
+   {
+    "what": "validation-application の検証",
+    "before": "判定と記録が1つの手続き",
+    "after": "judge_current（記録しない判定）を分け、検証と描画が使う",
+    "why": "判定と記録を分けて読みやすくした（描画は使わなくなったが、分けたままにした）"
+   },
+   {
+    "what": "outbound-sqlite",
+    "before": "last_judgments は経路のすべての検証から引く",
+    "after": "最後の削除より後の検証だけから引く",
+    "why": "消して作り直した文書に前の判定を当てない（validate --stale）"
+   },
+   {
+    "what": "crate outbound-javascript",
+    "before": "無し",
+    "after": "adapters/outbound/javascript（boa 0.22.0 を閉じ込め、ScriptReader を実装）",
+    "why": "JS が値の入口から読む欄を取り出し、Concrete と突き合わせる"
+   }
+  ]
+ }
+}

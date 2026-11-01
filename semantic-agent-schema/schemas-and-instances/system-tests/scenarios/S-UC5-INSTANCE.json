@@ -1,0 +1,108 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-INSTANCE",
+ "name": "インスタンスを描く",
+ "title": "インスタンスの値を、Concrete の根の x-view（無ければ page）の Mustache のテンプレートに置き、トークンの CSS を当てて描く。ページに入るのはインスタンスの値とデザインだけで、JS は値を sas-data から読む",
+ "why": "SAS はデザインを組み立てず、受け取ったデザインに値を埋め込むだけにする。",
+ "traces": [
+  "UC5:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "render"
+  },
+  {
+   "of": "when",
+   "pointer": "/pages",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/pages/0/page_path",
+   "equals": "usecases/u1.html"
+  },
+  {
+   "of": "when",
+   "pointer": "/pages/0/views",
+   "equals": [
+    "page"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/design_system/fingerprint",
+   "contains": "sha256:"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "<h1 class=\"uc-goal\">検証の結果を受け取る</h1>"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "ほかのユースケースを呼ばない"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "--color-light-accent: #b4532a;"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "--font-family-base: \"Noto Sans JP\""
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "<script type=\"application/json\" id=\"sas-data\">{\"id\":\"U1\",\"goal\":\"検証の結果を受け取る\",\"calls\":[]}</script>"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "sha256:"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "urn:semantic-agent-schema"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "verified"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "ユースケースのデザイン"
+  }
+ ]
+}

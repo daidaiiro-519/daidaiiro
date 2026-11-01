@@ -10,10 +10,14 @@ mod caller;
 mod output;
 
 use caller::FromArguments;
-use outbound_filesystem::WorkingTree;
+use outbound_filesystem::{OutDir, WorkingTree};
 use outbound_git::GitCommits;
+use outbound_javascript::Boa;
 use outbound_jsonschema::Validator;
 use outbound_sqlite::SqliteLog;
+use outbound_templates::Mustache;
+use rendering_application::use_cases::design::{DESIGN_SYSTEM, validate_design_systems};
+use rendering_application::use_cases::render::{RenderRequest, render};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -28,7 +32,8 @@ sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--sessi
 sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --patch <JSON Patch> [--if-match <指紋>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>] ／ \
-sas delete <経路> --intent <意図> [--if-match <指紋>] [--session <名前>] [--request-id <ID>]";
+sas delete <経路> --intent <意図> [--if-match <指紋>] [--session <名前>] [--request-id <ID>] ／ \
+sas render <経路>... --design-system <経路> --out <書き出す先>";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -37,6 +42,7 @@ fn main() -> ExitCode {
         Some("create") => run_change(&args[1..], Command::Create),
         Some("update") => run_change(&args[1..], Command::Update),
         Some("delete") => run_delete(&args[1..]),
+        Some("render") => run_render(&args[1..]),
         Some(other) => {
             eprintln!("sas: 知らないコマンドです: {other}。{USAGE}");
             ExitCode::from(2)
@@ -124,6 +130,38 @@ fn run_validate(args: &[String]) -> ExitCode {
         (false, true) if stale => Scope::All,
         (false, true) => return usage("検証する経路か --all を渡してください"),
     };
+    // デザインシステムは、受け取りの型とテンプレートの書き方の契約に照らす（描画のモジュール）
+    if let Scope::Paths(paths) = &scope {
+        let design: Vec<bool> = paths.iter().map(|p| is_design_system(p)).collect();
+        if design.iter().any(|d| *d) {
+            if !design.iter().all(|d| *d) || stale {
+                return usage(
+                    "デザインシステムは、ほかの対象や --stale と一緒に渡さずに、それだけで検証してください",
+                );
+            }
+            let (store, validator, mut log) = match adapters() {
+                Ok(a) => a,
+                Err(r) => return refuse(&r),
+            };
+            let who = match caller(session) {
+                Ok(w) => w,
+                Err(r) => return refuse(&r),
+            };
+            return match validate_design_systems(
+                paths, &store, &validator, &Mustache, &Boa, &who, &mut log,
+            ) {
+                Ok(v) => {
+                    output::print_design_validation(&v);
+                    if v.counts.fails() {
+                        ExitCode::from(1)
+                    } else {
+                        ExitCode::SUCCESS
+                    }
+                }
+                Err(r) => refuse(&r),
+            };
+        }
+    }
     let run = if stale { validate_stale } else { validate };
     let (store, validator, mut log) = match adapters() {
         Ok(a) => a,
@@ -336,6 +374,82 @@ fn run_delete(args: &[String]) -> ExitCode {
         }
         Err(r) => refuse(&r),
     }
+}
+
+fn run_render(args: &[String]) -> ExitCode {
+    let mut design_system = None;
+    let mut out = None;
+    let mut targets = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        let slot = match a.as_str() {
+            "--design-system" => &mut design_system,
+            "--out" => &mut out,
+            s if s.starts_with("--") => return usage(&format!("知らない指定です: {s}")),
+            p => {
+                targets.push(p.to_string());
+                continue;
+            }
+        };
+        match it.next() {
+            Some(v) if !v.is_empty() => *slot = Some(v.clone()),
+            _ => return usage(&format!("{a} に値がありません")),
+        }
+    }
+    if targets.is_empty() {
+        return usage("描く対象の経路を1つ以上渡してください");
+    }
+    let Some(design_system) = design_system else {
+        return usage(
+            "--design-system でデザインシステムのファイルを渡してください（SAS は既定を持たない）",
+        );
+    };
+    let Some(out) = out else {
+        return usage("--out で書き出す先を渡してください");
+    };
+    let root = PathBuf::from(".");
+    let validator = match Validator::new() {
+        Ok(v) => v,
+        Err(message) => {
+            return refuse(&Refused {
+                code: "validator",
+                message,
+                ..Refused::default()
+            });
+        }
+    };
+    let request = RenderRequest {
+        targets,
+        design_system,
+        out,
+    };
+    match render(
+        &request,
+        &WorkingTree::new(root.clone()),
+        &validator,
+        &Mustache,
+        &Boa,
+        &OutDir::new(root),
+    ) {
+        Ok(r) => {
+            output::print_render(&r);
+            ExitCode::SUCCESS
+        }
+        Err(r) => refuse(&r),
+    }
+}
+
+/// 経路のファイルが、デザインシステムの受け取りの型を申告しているか。
+fn is_design_system(path: &str) -> bool {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| {
+            v.get("$schema")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+        .is_some_and(|s| s == DESIGN_SYSTEM)
 }
 
 fn run_with<T>(

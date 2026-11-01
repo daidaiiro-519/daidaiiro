@@ -3,7 +3,7 @@
  "context": "schemas-and-instances",
  "context_map": "文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」を分けたが、版16（2026-11-01）で SAS が子の状態を管理しないことにしたので1つに戻した。地図と経緯は docs/design/arch/arch-v15.json の context_map",
  "crate_naming": "crate の名前はフォルダから決める：業務領域を作るモジュールは <モジュール>-<層>（writing-domain など）、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support。文脈は1つなので文脈の名前を前に付けない。製品の名前は CLI の [[bin]]（sas）にだけ残す",
- "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording。ステップ5 で rendering、ステップ8 で search を足す）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。依存は writing → validation → writing-domain、書く ・ 検証の両方が recording を使う",
+ "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering。ステップ8 で search を足す）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。依存は writing → validation → writing-domain、書く ・ 検証の両方が recording を使う",
  "crates": [
   {
    "name": "writing-domain",
@@ -36,10 +36,16 @@
    "role": "操作の記録の追記（use_cases/history.rs。検証と、書いた作成 ・ 更新 ・ 削除。断った操作は記録しない）と、ポート IdentifyCaller（親のセッション ID か人）・ OperationLog"
   },
   {
+   "name": "rendering-application",
+   "path": "schemas-and-instances/rendering/application",
+   "layer": "application",
+   "role": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らし、sas validate では記録する）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
+  },
+  {
    "name": "outbound-filesystem",
    "path": "schemas-and-instances/adapters/outbound/filesystem",
    "layer": "outbound",
-   "role": "DocumentStore の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す"
+   "role": "DocumentStore の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す。描いたページの書き出し先 OutDir（PageWriter。一時ファイルに全部書いてから置き換える）も持つ"
   },
   {
    "name": "outbound-jsonschema",
@@ -58,6 +64,18 @@
    "path": "schemas-and-instances/adapters/outbound/git",
    "layer": "outbound",
    "role": "CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。記録の置き場所に使う共通のフォルダ（rev-parse --git-common-dir）も引く。Git に書き込まない"
+  },
+  {
+   "name": "outbound-templates",
+   "path": "schemas-and-instances/adapters/outbound/templates",
+   "layer": "outbound",
+   "role": "TemplateRenderer の実装。Mustache（mustache/spec の必須の部分）の処理系を自分で持ち（mustache.rs）、仕様の試験 136件をそのまま通す（tests/mustache-spec、commit e8ec001d）。値は HTML としてエスケープする（& \" < >）"
+  },
+  {
+   "name": "outbound-javascript",
+   "path": "schemas-and-instances/adapters/outbound/javascript",
+   "layer": "outbound",
+   "role": "ScriptReader の実装。JS の構文解析器 boa（boa_parser 0.22.0）を閉じ込める。テンプレートの JS のロジックは見ず、値の入口 sas-data から読む欄だけを取り出す（実行するまで決まらない読み方は追えないものとして返す）"
   },
   {
    "name": "inbound-cli",
@@ -119,9 +137,22 @@
    "libraries": []
   },
   {
+   "from": "rendering-application",
+   "to": [
+    "writing-domain",
+    "validation-domain",
+    "validation-application",
+    "recording-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
    "from": "outbound-filesystem",
    "to": [
-    "validation-application"
+    "validation-application",
+    "rendering-application"
    ],
    "libraries": []
   },
@@ -152,6 +183,26 @@
    "libraries": []
   },
   {
+   "from": "outbound-templates",
+   "to": [
+    "rendering-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "outbound-javascript",
+   "to": [
+    "rendering-application"
+   ],
+   "libraries": [
+    "boa_parser",
+    "boa_ast",
+    "boa_interner"
+   ]
+  },
+  {
    "from": "inbound-cli",
    "to": [
     "validation-application",
@@ -162,7 +213,10 @@
     "outbound-filesystem",
     "outbound-jsonschema",
     "outbound-sqlite",
-    "outbound-git"
+    "outbound-git",
+    "rendering-application",
+    "outbound-templates",
+    "outbound-javascript"
    ],
    "libraries": [
     "serde_json"

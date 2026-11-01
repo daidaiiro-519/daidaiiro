@@ -1,6 +1,7 @@
-//! ポート DocumentStore を、作業ディレクトリのファイルで実装する。
+//! ポート DocumentStore を、作業ディレクトリのファイルで実装する。描いたページの書き出し先（PageWriter）も持つ。
 //! 書くときは一時ファイルに書いてから置き換える。リポジトリの外と、降りないフォルダには書かない。
 
+use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
 use validation_application::ports::DocumentStore;
 
@@ -99,4 +100,148 @@ fn inside(path: &str, verb: &str) -> Result<(), String> {
         ));
     }
     Ok(())
+}
+
+/// 描いたページの書き出し先（作業ディレクトリからの相対か、絶対の経路）。リポジトリの外にも書ける。
+#[derive(Debug, Clone)]
+pub struct OutDir {
+    root: PathBuf,
+}
+
+impl OutDir {
+    /// 相対の経路は root（作業ディレクトリ）から引く。
+    #[must_use]
+    pub const fn new(root: PathBuf) -> Self {
+        Self { root }
+    }
+}
+
+/// まだ無いかもしれないファイルの実体の経路（在るフォルダまでを実体にし、残りを足す）。
+fn real_path(p: &Path) -> PathBuf {
+    if let Ok(real) = std::fs::canonicalize(p) {
+        return real;
+    }
+    match (p.parent(), p.file_name()) {
+        (Some(dir), Some(name)) if !dir.as_os_str().is_empty() => real_path(dir).join(name),
+        _ => p.to_path_buf(),
+    }
+}
+
+impl PageWriter for OutDir {
+    /// 入力と重なるページが無いことを実体の経路で確かめてから、全部のページを一時ファイルに書く。
+    /// 全部書けたら、前から在ったページを退避して置き換える。途中で失敗したら、置き換えたページを退避から戻し、
+    /// 一時ファイルと、このとき作ったフォルダを消す。
+    fn write_pages(
+        &self,
+        out: &str,
+        pages: &[(String, String)],
+        inputs: &[String],
+    ) -> Result<(), PageRefusal> {
+        let base = self.root.join(out);
+        let real_inputs: Vec<(PathBuf, &String)> = inputs
+            .iter()
+            .map(|i| (real_path(&self.root.join(i)), i))
+            .collect();
+        for (rel, _) in pages {
+            if rel
+                .split('/')
+                .any(|p| p.is_empty() || p == "." || p == "..")
+            {
+                return Err(PageRefusal::Failed(format!("{rel} は書き出す先の外を指す")));
+            }
+            let page = real_path(&base.join(rel));
+            if let Some((_, input)) = real_inputs.iter().find(|(r, _)| *r == page) {
+                return Err(PageRefusal::Overlaps {
+                    page: rel.clone(),
+                    input: (*input).clone(),
+                });
+            }
+        }
+        let mut made: Vec<PathBuf> = Vec::new();
+        let mut staged: Vec<(PathBuf, PathBuf)> = Vec::new();
+        let undo = |staged: &[(PathBuf, PathBuf)], made: &[PathBuf]| {
+            for (tmp, _) in staged {
+                let _ = std::fs::remove_file(tmp);
+            }
+            for dir in made.iter().rev() {
+                let _ = std::fs::remove_dir(dir);
+            }
+        };
+        for (rel, html) in pages {
+            let to = base.join(rel);
+            if let Some(dir) = to.parent() {
+                let mut missing: Vec<PathBuf> = dir
+                    .ancestors()
+                    .take_while(|a| !a.as_os_str().is_empty() && !a.exists())
+                    .map(Path::to_path_buf)
+                    .collect();
+                if let Err(e) = std::fs::create_dir_all(dir) {
+                    undo(&staged, &made);
+                    return Err(PageRefusal::Failed(format!(
+                        "{} を作れない：{e}",
+                        dir.display()
+                    )));
+                }
+                missing.reverse();
+                made.extend(missing);
+            }
+            let tmp = sibling(&to, "sas-tmp");
+            if let Err(e) = std::fs::write(&tmp, html) {
+                undo(&staged, &made);
+                return Err(PageRefusal::Failed(format!(
+                    "{} を書けない：{e}",
+                    to.display()
+                )));
+            }
+            staged.push((tmp, to));
+        }
+        let mut replaced: Vec<(PathBuf, Option<PathBuf>)> = Vec::new();
+        for (i, (tmp, to)) in staged.iter().enumerate() {
+            let backup = sibling(to, "sas-bak");
+            let had = to.exists();
+            let moved = if had {
+                std::fs::rename(to, &backup)
+            } else {
+                Ok(())
+            };
+            let result = moved.and_then(|()| std::fs::rename(tmp, to));
+            if let Err(e) = result {
+                if had && backup.exists() {
+                    let _ = std::fs::rename(&backup, to);
+                }
+                for (page, saved) in replaced.iter().rev() {
+                    match saved {
+                        Some(b) => {
+                            let _ = std::fs::rename(b, page);
+                        }
+                        None => {
+                            let _ = std::fs::remove_file(page);
+                        }
+                    }
+                }
+                undo(&staged[i..], &made);
+                return Err(PageRefusal::Failed(format!(
+                    "{} を置き換えられない：{e}",
+                    to.display()
+                )));
+            }
+            replaced.push((to.clone(), had.then_some(backup)));
+        }
+        for (_, saved) in replaced {
+            if let Some(b) = saved {
+                let _ = std::fs::remove_file(b);
+            }
+        }
+        Ok(())
+    }
+}
+
+/// 同じフォルダの、隠した作業用のファイル（.<名前>.<印>）。
+fn sibling(to: &Path, mark: &str) -> PathBuf {
+    to.with_file_name(format!(
+        ".{}.{mark}",
+        to.file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default()
+    ))
 }

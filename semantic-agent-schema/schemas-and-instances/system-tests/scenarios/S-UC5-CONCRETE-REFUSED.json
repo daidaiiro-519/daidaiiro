@@ -1,0 +1,46 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-CONCRETE-REFUSED",
+ "name": "Concrete は描かない",
+ "title": "Concrete を渡すと、描くのはインスタンスだけだと断り、何も書かない",
+ "why": "描画は Concrete に従うインスタンスの値を埋め込むもの。",
+ "traces": [
+  "UC5:拡張:3b"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "schemas/usecase.schema.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_input"
+  },
+  {
+   "of": "when",
+   "file": "site/schemas/usecase.schema.html",
+   "exists": false
+  }
+ ]
+}

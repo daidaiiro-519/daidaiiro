@@ -1,0 +1,54 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-TEMPLATE-FAILED",
+ "name": "部分テンプレートの読み込みが止まらない",
+ "title": "自分を読み込み続ける部分テンプレートは、描くときに深さの上限で止め、template とテンプレートの経路を付けて断り、何も書かない",
+ "why": "読み込みの輪は、データしだいで止まることもあるので検証では断らない。描くときに上限で止め、ページを書かない。",
+ "traces": [
+  "UC5:拡張:5a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds-loop.json": "@fixtures/ds-loop.json",
+   "design/loop.html": "@fixtures/loop.html"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds-loop.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "template"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "design/loop.html"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "深すぎる"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  }
+ ]
+}

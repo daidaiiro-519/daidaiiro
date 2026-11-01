@@ -24,7 +24,23 @@
   "UC4:拡張:6b",
   "UC4:拡張:6c",
   "UC4:変形:入力が変わった rule だけ",
-  "UC4:変形:SAS を通らない変更を見つける"
+  "UC4:変形:SAS を通らない変更を見つける",
+  "UC5:成功時保証",
+  "UC5:最低保証",
+  "UC5:拡張:1a",
+  "UC5:拡張:1b",
+  "UC5:拡張:2a",
+  "UC5:拡張:3a",
+  "UC5:拡張:3b",
+  "UC5:拡張:4a",
+  "UC5:拡張:5a",
+  "UC5:拡張:6a",
+  "UC5:拡張:6b",
+  "UC5:変形:対象が複数",
+  "UC5:変形:x-view の付け方",
+  "UC5:拡張:*a",
+  "UC4:変形:デザインシステムを検証する",
+  "UC5:変形:任意の欄が無い"
  ],
  "traces": [
   {
@@ -220,6 +236,123 @@
     "S-UC4-STALE-OUTSIDE",
     "S-UC4-UNTRACKED",
     "S-UC4-WORKTREE"
+   ]
+  },
+  {
+   "id": "UC5:成功時保証",
+   "meaning": "渡したインスタンスごとに1ページがある。テンプレート（Mustache）に渡すのはインスタンスの値（$schema を除く）・ その JSON ・ トークン ・ トークンの CSS だけで、値の置き方はテンプレートが、UI ・ UX のロジックはテンプレートの JS が、見た目はトークンが決める。同じ入力からはバイト列まで同じページになる。使ったデザインシステムの名前 ・ 版 ・ 指紋と、ページの経路 ・ 使った種類は出力にだけ返る",
+   "scenarios": [
+    "S-UC5-ESCAPE",
+    "S-UC5-IDEMPOTENT",
+    "S-UC5-INSTANCE"
+   ]
+  },
+  {
+   "id": "UC5:最低保証",
+   "meaning": "インスタンス ・ Concrete ・ デザインシステムは変わらず、記録も作らない。止まったときは1ページも書かず、理由を返す",
+   "scenarios": [
+    "S-UC5-MANY-ONE-FAILS",
+    "S-UC5-UNCHANGED"
+   ]
+  },
+  {
+   "id": "UC5:拡張:1a",
+   "meaning": "インスタンス ・ デザインシステム ・ 書き出す先のどれかが無い：使い方の誤りを返す",
+   "scenarios": [
+    "S-UC5-USAGE"
+   ]
+  },
+  {
+   "id": "UC5:拡張:1b",
+   "meaning": "書き出すページが入力のファイルと同じ所を指す（実体の経路で比べる）：invalid_input を返す",
+   "scenarios": [
+    "S-UC5-OUT-OVERLAPS",
+    "S-UC5-OUT-RELATIVE-OVERLAPS"
+   ]
+  },
+  {
+   "id": "UC5:拡張:2a",
+   "meaning": "デザインシステムかテンプレートが無い、または受け取りの型 ・ テンプレートの書き方の契約に合わない：not_found か invalid_input か invalid_design_system を返す",
+   "scenarios": [
+    "S-UC5-DESIGN-INVALID",
+    "S-UC5-DS-INVALID",
+    "S-UC5-DS-NOT-FOUND",
+    "S-UC5-TEMPLATE-NOT-FOUND"
+   ]
+  },
+  {
+   "id": "UC5:拡張:3a",
+   "meaning": "対象が無い ・ 読めない ・ 従う型が決まらない：UC4 と同じ code を返す",
+   "scenarios": [
+    "S-UC5-NOT-FOUND"
+   ]
+  },
+  {
+   "id": "UC5:拡張:3b",
+   "meaning": "対象が Concrete：描くのはインスタンスだけなので invalid_input を返す",
+   "scenarios": [
+    "S-UC5-CONCRETE-REFUSED"
+   ]
+  },
+  {
+   "id": "UC5:拡張:4a",
+   "meaning": "Concrete の根の x-view の種類のテンプレートが無い：欠けた種類をすべて missing で返す",
+   "scenarios": [
+    "S-UC5-MISSING-VIEW"
+   ]
+  },
+  {
+   "id": "UC5:拡張:5a",
+   "meaning": "テンプレートを描けない（部分テンプレートの読み込みが深すぎる）：template とテンプレートの経路を返す",
+   "scenarios": [
+    "S-UC5-TEMPLATE-FAILED"
+   ]
+  },
+  {
+   "id": "UC5:拡張:6a",
+   "meaning": "書き出せない：out を返す",
+   "scenarios": [
+    "S-UC5-OUT-UNWRITABLE"
+   ]
+  },
+  {
+   "id": "UC5:拡張:6b",
+   "meaning": "前のページがある：新しいページで置き換える",
+   "scenarios": [
+    "S-UC5-OVERWRITE"
+   ]
+  },
+  {
+   "id": "UC5:変形:対象が複数",
+   "meaning": "インスタンスごとに1ページ。1つでも止まれば1ページも書かない。同じ対象は1ページ",
+   "scenarios": [
+    "S-UC5-MANY-ONE-FAILS",
+    "S-UC5-MANY",
+    "S-UC5-SAME-TARGET"
+   ]
+  },
+  {
+   "id": "UC5:変形:x-view の付け方",
+   "meaning": "Concrete の根の x-view でテンプレートを選ぶ（無ければ page）。テンプレートはほかのテンプレートを種類の名前で読み込める",
+   "scenarios": [
+    "S-UC5-VIEW-KINDS"
+   ]
+  },
+  {
+   "id": "UC4:変形:デザインシステムを検証する",
+   "meaning": "デザインシステムを、受け取りの型とテンプレートの書き方の契約（Mustache。template-language.json）に照らし、rule ごとの結果を記録する（ステップ5）",
+   "scenarios": [
+    "S-UC4-DESIGN-JS-UNTRACEABLE",
+    "S-UC4-DESIGN-MIXED",
+    "S-UC4-DESIGN-OK",
+    "S-UC4-DESIGN-VIOLATED"
+   ]
+  },
+  {
+   "id": "UC5:変形:任意の欄が無い",
+   "meaning": "インスタンスに任意の欄が無いとき、その欄のセクションは描かず、反転のセクションを描く（Mustache の仕様）",
+   "scenarios": [
+    "S-UC5-OPTIONAL-ABSENT"
    ]
   }
  ]

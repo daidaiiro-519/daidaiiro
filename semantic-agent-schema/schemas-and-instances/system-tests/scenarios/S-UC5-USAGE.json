@@ -1,0 +1,44 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-USAGE",
+ "name": "デザインシステムを渡さない",
+ "title": "--design-system を渡さないと、使い方の誤りで何も書かない",
+ "why": "SAS は既定のデザインシステムを持たない。",
+ "traces": [
+  "UC5:拡張:1a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  }
+ ]
+}

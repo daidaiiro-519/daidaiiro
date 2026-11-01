@@ -1,0 +1,54 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-MISSING-VIEW",
+ "name": "テンプレートが欠ける",
+ "title": "Concrete が使う x-view の種類のテンプレートが無いと、欠けた種類をすべて返し、1ページも書かない",
+ "why": "欠けた種類を1つずつ知らされると、直すたびに描き直すことになる。",
+ "traces": [
+  "UC5:拡張:4a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/ds-missing.json": "@fixtures/ds-missing.json",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds-missing.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "missing_view_kinds"
+  },
+  {
+   "of": "when",
+   "pointer": "/missing",
+   "equals": [
+    "page"
+   ]
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  }
+ ]
+}

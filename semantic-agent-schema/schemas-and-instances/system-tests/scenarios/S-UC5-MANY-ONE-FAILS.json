@@ -1,0 +1,48 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-MANY-ONE-FAILS",
+ "name": "複数のうち1つが無い",
+ "title": "対象を2つ渡して1つが無いと、もう1つのページも書かない",
+ "why": "一部だけ書くと、どれが描けたかを読み手が確かめることになる。",
+ "traces": [
+  "UC5:最低保証",
+  "UC5:変形:対象が複数"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "usecases/u9.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  }
+ ]
+}

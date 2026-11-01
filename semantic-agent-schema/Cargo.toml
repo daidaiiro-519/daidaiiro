@@ -1,5 +1,5 @@
-# 事業領域 Semantic Agent Schema のワークスペース（virtual manifest）。
-# 区切られた文脈は schemas-and-instances/（文脈「スキーマとインスタンス」）の1つ。中は業務領域に対応するモジュール（writing ・ validation ・ recording）と adapters。
+# 製品 Semantic Agent Schema のワークスペース（virtual manifest）。
+# 区切られた文脈は schemas-and-instances/（文脈「スキーマとインスタンス」）の1つ。中は業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering）と adapters。
 # crate は、ユースケースを作る中で要ると分かった時点で members に足す。
 [workspace]
 members = [
@@ -8,11 +8,14 @@ members = [
     "schemas-and-instances/validation/domain",
     "schemas-and-instances/validation/application",
     "schemas-and-instances/recording/application",
+    "schemas-and-instances/rendering/application",
     "schemas-and-instances/adapters/inbound/cli",
     "schemas-and-instances/adapters/outbound/filesystem",
     "schemas-and-instances/adapters/outbound/jsonschema",
     "schemas-and-instances/adapters/outbound/sqlite",
     "schemas-and-instances/adapters/outbound/git",
+    "schemas-and-instances/adapters/outbound/templates",
+    "schemas-and-instances/adapters/outbound/javascript",
     "schemas-and-instances/test-support",
 ]
 resolver = "3"
@@ -28,6 +31,9 @@ serde_json = { version = "1", features = ["preserve_order"] }
 jsonschema = { version = "=0.58.6", default-features = false }
 sha2 = "=0.10.9"
 rusqlite = { version = "=0.32.1", features = ["bundled"] }
+boa_parser = { version = "=0.22.0" }
+boa_ast = { version = "=0.22.0" }
+boa_interner = { version = "=0.22.0" }
 
 [workspace.lints.rust]
 missing_docs = "deny"

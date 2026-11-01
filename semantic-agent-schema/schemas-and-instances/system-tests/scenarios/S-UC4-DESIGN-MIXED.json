@@ -1,0 +1,38 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-DESIGN-MIXED",
+ "name": "デザインシステムとほかの対象を混ぜない",
+ "title": "デザインシステムとインスタンスを一緒に渡すと、使い方の誤りで断る",
+ "why": "照らす契約が違うものを1回の結果に混ぜない。",
+ "traces": [
+  "UC4:変形:デザインシステムを検証する"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "design/ds.json",
+   "usecases/u1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  }
+ ]
+}

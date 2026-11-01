@@ -1,0 +1,49 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-OUT-OVERLAPS",
+ "name": "書き出す先が入力と重なる",
+ "title": "書き出すページがテンプレートのファイルと同じ所を指すと、何も書かずに断る",
+ "why": "描画で入力のテンプレートを上書きすると、次の描画の見た目が変わる。",
+ "traces": [
+  "UC5:拡張:1b"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "design/page.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "unchanged": [
+  "design/page.html"
+ ],
+ "when": {
+  "args": [
+   "render",
+   "design/page.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "."
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_input"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "design/page.html"
+  }
+ ]
+}

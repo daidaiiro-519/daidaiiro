@@ -1,0 +1,46 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-OPTIONAL-ABSENT",
+ "name": "任意の欄が無い",
+ "title": "インスタンスに任意の欄（calls）が無いと、その欄のセクションは描かず、反転のセクション（{{^value.calls}}）を描く",
+ "why": "任意の欄の有無の出し分けは、テンプレートが Mustache のセクションで持つ。SAS は値を置くだけ。",
+ "traces": [
+  "UC5:変形:任意の欄が無い"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1-no-calls.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "ほかのユースケースを呼ばない"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "<ul class=\"uc-calls\"></ul>"
+  }
+ ]
+}

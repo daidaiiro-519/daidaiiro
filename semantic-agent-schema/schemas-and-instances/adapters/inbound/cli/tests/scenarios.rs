@@ -153,6 +153,33 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
     }
 }
 
+/// 書き出したファイル（作業ディレクトリからの経路）の有無と中身。すべてのコマンドのあとで見る。
+fn check_file(id: &str, dir: &Path, file: &str, expect: &Value) {
+    let text = std::fs::read_to_string(dir.join(file)).ok();
+    if let Some(exists) = expect.get("exists").and_then(Value::as_bool) {
+        assert_eq!(text.is_some(), exists, "{id}: {file} の有無");
+    }
+    if let Some(want) = expect.get("contains").and_then(Value::as_str) {
+        let text = text
+            .as_deref()
+            .unwrap_or_else(|| panic!("{id}: {file} が無い"));
+        assert!(text.contains(want), "{id}: {file} に {want} が無い。{text}");
+    }
+    if let Some(other) = expect.get("same_as").and_then(Value::as_str) {
+        assert_eq!(
+            std::fs::read(dir.join(file)).ok(),
+            std::fs::read(dir.join(other)).ok(),
+            "{id}: {file} と {other} のバイト列が違う"
+        );
+    }
+    if let Some(no) = expect.get("lacks").and_then(Value::as_str) {
+        let text = text
+            .as_deref()
+            .unwrap_or_else(|| panic!("{id}: {file} が無い"));
+        assert!(!text.contains(no), "{id}: {file} に {no} がある。{text}");
+    }
+}
+
 fn play(scenario: &Value) {
     let id = scenario["id"].as_str().expect("id がある");
     let dir = workdir(id);
@@ -204,6 +231,10 @@ fn play(scenario: &Value) {
         .map(|c| run(&dir, c))
         .collect();
     for expect in scenario["then"].as_array().expect("then がある") {
+        if let Some(file) = expect.get("file").and_then(Value::as_str) {
+            check_file(id, &dir, file, expect);
+            continue;
+        }
         let of = expect["of"].as_str().expect("of がある");
         let out = if of == "when" {
             &when

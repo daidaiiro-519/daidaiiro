@@ -227,6 +227,30 @@
         ]
       },
       "published": true
+    },
+    "x-view": {
+      "schema": {
+        "$ref": "#/$defs/view"
+      },
+      "title": "描画の種類",
+      "description": "インスタンスを、デザインシステムのどのテンプレートで描くかの名前である。Concrete の根にだけ書く。",
+      "prompt": {
+        "read": {
+          "when": "描画する前に読む。",
+          "interpret": "x-view。Concrete の根に書く、ページのテンプレートの種類の名前。無ければ page。値の置き方はテンプレートが決める"
+        },
+        "write": [
+          {
+            "id": "same-look-same-kind",
+            "rule": "同じ見せ方にしたい Concrete には、同じ種類の名前を付ける。",
+            "why": "種類ごとにテンプレートを1つ用意すれば、どの Concrete のインスタンスも同じデザインで描ける。",
+            "test": "同じ種類の名前の Concrete が、同じ見せ方を求める中身かを見る。",
+            "by": "ai",
+            "agent": "judge"
+          }
+        ]
+      },
+      "published": true
     }
   },
   "x-delegates": {
@@ -411,6 +435,9 @@
     },
     "x-instance-label": {
       "$ref": "#/$defs/instance-label"
+    },
+    "x-view": {
+      "$ref": "#/$defs/view"
     },
     "x-delegates": {
       "$ref": "#/$defs/delegates"
@@ -664,6 +691,12 @@
     "published": {
       "$anchor": "published",
       "type": "boolean"
+    },
+    "view": {
+      "$anchor": "view",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "x-view の値の形。デザインシステムの templates のキー（英小文字 ・ 数字 ・ ハイフン）。Concrete の根にだけ書く"
     },
     "prompt": {
       "$anchor": "prompt",

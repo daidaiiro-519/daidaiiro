@@ -1,0 +1,53 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-VIEW-KINDS",
+ "name": "x-view でテンプレートを選ぶ",
+ "title": "Concrete の根の x-view が card なら、card のテンプレートで描く。テンプレートは styles を種類の名前で読み込める",
+ "why": "Concrete ごとに見せ方を選び、組み立てはデザインの側に置く。",
+ "traces": [
+  "UC5:変形:x-view の付け方"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase-view.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/pages/0/views",
+   "equals": [
+    "card"
+   ]
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "<article class=\"card\">"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": ".uc-calls a:hover"
+  }
+ ]
+}

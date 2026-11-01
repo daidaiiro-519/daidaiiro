@@ -1,0 +1,49 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-OUT-RELATIVE-OVERLAPS",
+ "name": "書き出す先が入力と重なる（.. を含む経路）",
+ "title": "--out が .. を含んでいても、書き出すページがテンプレートの実体と同じなら何も書かずに断る",
+ "why": "経路の書き方でテンプレートの上書きをすり抜けさせない。",
+ "traces": [
+  "UC5:拡張:1b"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "design/page.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "unchanged": [
+  "design/page.html"
+ ],
+ "when": {
+  "args": [
+   "render",
+   "design/page.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "design/.."
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_input"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "design/page.html"
+  }
+ ]
+}

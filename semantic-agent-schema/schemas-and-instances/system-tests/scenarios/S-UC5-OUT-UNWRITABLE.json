@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-OUT-UNWRITABLE",
+ "name": "書き出せない",
+ "title": "書き出す先がファイルで書けないと、out で断る",
+ "why": "書けなかったことを成功と返さない。",
+ "traces": [
+  "UC5:拡張:6a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "site": "ファイル",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "out"
+  },
+  {
+   "of": "when",
+   "file": "site",
+   "contains": "ファイル"
+  }
+ ]
+}

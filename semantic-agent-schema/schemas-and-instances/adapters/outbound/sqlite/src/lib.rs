@@ -321,6 +321,8 @@ impl OperationLog for SqliteLog {
                 "SELECT v.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash \
                  FROM rule_results r JOIN validations v ON v.id = r.validation_id \
                  WHERE v.target_path = ?1 \
+                   AND CAST(substr(v.id, 3) AS INTEGER) > coalesce((SELECT max(CAST(substr(id, 3) AS INTEGER)) FROM changes \
+                                         WHERE kind = 'delete' AND target_path = ?1), 0) \
                    AND v.rowid = (SELECT max(v2.rowid) FROM rule_results r2 JOIN validations v2 ON v2.id = r2.validation_id \
                                   WHERE v2.target_path = ?1 AND r2.rule_id = r.rule_id) \
                  ORDER BY v.rowid, r.ord",

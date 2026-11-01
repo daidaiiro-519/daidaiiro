@@ -410,35 +410,42 @@
   },
   {
    "step": "ステップ5",
-   "usecase": "UC5 描画する（機械だけ。その場で描き、コミットしない）",
+   "usecase": "UC5 描画する（機械だけ。その場で描き、コミットも記録もしない）",
    "builds": {
     "schemas": [
-     "design-system.schema.json",
-     "operation-request の render",
-     "operation-result の render と error の missing_view_kinds"
+     "design-system.schema.json（テンプレート ・ トークン ・ 書き方の契約の申告）",
+     "template-language.json（テンプレートの書き方の契約：Mustache（mustache/spec の必須の部分 @e8ec001d）、渡す名前 value ・ json ・ tokens ・ css、JS の値の入口 sas-data）",
+     "x-view（Abstract の根）",
+     "operation-result の render と error の missing_view_kinds ・ invalid_design_system、target の kind design-system"
     ],
     "db": [],
     "crates": [
-     "rendering-application：use_cases/render.rs",
-     "outbound の templates（テンプレートの処理系を閉じ込める）"
+     "rendering-application：use_cases/render.rs ・ design.rs",
+     "outbound/templates（Mustache の処理系を自分で持ち、仕様の試験 136件を通す）",
+     "outbound/javascript（JS の構文解析器 boa 0.22.0 を閉じ込める）"
     ],
     "ports": [
-     "template_renderer"
+     "template_renderer",
+     "script_reader",
+     "page_writer"
     ],
     "cli": [
      "sas render <パス>... --design-system <パス> --out <先>"
     ]
    },
    "acceptance": [
-    "内容と rule ごとの結果が一緒に見える",
-    "Concrete が使う x-view の種類がテンプレートに欠けていれば、1ページも書かずに欠けた種類を返す",
-    "入力が変わった判定を verified と見せない（最低保証）"
+    "SAS が持つのは、JSON の値をテンプレートに埋め込んで描く契約と、その契約の検証だけ。テンプレートが表現するロジックと UI ・ UX は SAS が持たない（テンプレートが増えても SAS の描画は変わらない）",
+    "テンプレートは Mustache（ロジックを持たない）で書き、渡すのは value ・ json ・ tokens ・ css だけ。UI ・ UX のロジックはテンプレートの JS が持ち、値は sas-data から読む",
+    "同じ入力からは、バイト列まで同じページになる（冪等）",
+    "sas validate で、デザインシステム（型 ・ トークン ・ テンプレート ・ JS）を契約に照らせる：テンプレートが置く名前と JS が読む欄が Concrete の形にたどれるか。読む所が実行するまで決まらないものは unverified。外れたデザインシステムでは描かない",
+    "Concrete の根の x-view の種類がテンプレートに欠けていれば、1ページも書かずに欠けた種類をすべて返す"
    ],
    "factcheck": [
     "テンプレートの処理系の候補の原文（構文・エスケープの既定・ライセンス）。選ぶのはこのステップ。adapter の中に閉じるので、選び直しても他へ広がらない",
     "Design Tokens Format Module 2025.10 の照合は済み（factcheck-a）"
    ],
-   "fixtures": "SAS は既定のデザインシステムを持たないので、試験用のデザインシステムは schemas-and-instances/system-tests/fixtures/ に置く"
+   "fixtures": "SAS は既定のデザインシステムを持たないので、試験用のデザインシステムは schemas-and-instances/system-tests/fixtures/ に置く",
+   "revised": "2026-11-01 利用者の要望で受け入れ基準を2回直した：(1)「内容と rule ごとの結果が一緒に見える」「入力が変わった判定を verified と見せない」をやめ、描画はデザインシステムとインスタンスを受け取って埋め込むだけにした（判定を見るのは UC4）。(2) JSON が渡すのは値だけで、値の置き方はテンプレートが決める。SAS が欄を並べて見出しを付けることも、欄ごとのテンプレートもやめ、x-view は Concrete の根だけにした。(3) テンプレートの書き方を minijinja 3 の Jinja2 として契約に明記し（template-language.json）、インスタンスを Concrete で検証するのと同じく、デザインシステムも契約に照らして検証できるようにした（利用者：「決定論的に決めようと思うと何かの作法があってそれを検証できる仕組みがないと安定しない」）。(4) 利用者の要件「テンプレートが表現したいロジックや UI ・ UX は SAS で持たない。SAS は JSON の契約のもとで値をテンプレートに反映して描く部分と、その validate だけを持つ。テンプレートが増えるたびに基盤を変えたくない」に照らし、Jinja2（SAS の処理系のフィルターにデザインが頼る）をやめて Mustache にし、JS が JSON の契約を守っているかを見る lint（boa で値の入口から読む欄を取り出す）を足した"
   },
   {
    "step": "ステップ6",

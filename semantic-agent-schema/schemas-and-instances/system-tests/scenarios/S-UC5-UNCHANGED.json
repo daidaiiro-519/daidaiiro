@@ -1,0 +1,52 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-UNCHANGED",
+ "name": "描いても何も変えない",
+ "title": "描画はインスタンス ・ Concrete ・ デザインシステムを変えず、記録も作らない",
+ "why": "描画は入力から作り直せるので、残すものが無い。",
+ "traces": [
+  "UC5:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "unchanged": [
+  "usecases/u1.json",
+  "schemas/usecase.schema.json",
+  "design/ds.json",
+  "design/page.html"
+ ],
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "file": ".sas/sas.db",
+   "exists": false
+  }
+ ]
+}

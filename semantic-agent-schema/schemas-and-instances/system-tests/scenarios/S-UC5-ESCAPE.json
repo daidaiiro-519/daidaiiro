@@ -1,0 +1,56 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-ESCAPE",
+ "name": "利用者のデータはエスケープする",
+ "title": "インスタンスの値にタグや閉じる script があっても、HTML ではエスケープし、JS へ渡す json では \\u の形にする",
+ "why": "利用者のデータがそのまま HTML になると、読み手のブラウザで動く。",
+ "traces": [
+  "UC5:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1-markup.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "&lt;b&gt;太字"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "<b>太字"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "\\u003cscript\\u003ealert(1)\\u003c/script\\u003e"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "<script>alert"
+  }
+ ]
+}

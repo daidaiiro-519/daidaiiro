@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-OVERWRITE",
+ "name": "前のページを置き換える",
+ "title": "書き出す先に同じ対象の前のページがあれば、新しいページで置き換える",
+ "why": "前のページが残ると、いまの中身と違うものを読む。",
+ "traces": [
+  "UC5:拡張:6b"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "site/usecases/u1.html": "古いページ",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "lacks": "古いページ"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "contains": "検証の結果を受け取る"
+  }
+ ]
+}

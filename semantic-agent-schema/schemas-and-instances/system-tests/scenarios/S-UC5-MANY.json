@@ -1,0 +1,58 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-MANY",
+ "name": "対象が複数",
+ "title": "対象を2つ渡すと、対象ごとに1ページを書く",
+ "why": "読み手は関係する対象をまとめて読む。",
+ "traces": [
+  "UC5:変形:対象が複数"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "usecases/u2.json": "@fixtures/u2-calls-u1.json",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "usecases/u2.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/pages",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u2.html",
+   "contains": "記録を読む"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u2.html",
+   "contains": "<a href=\"U1.html\">U1</a>"
+  }
+ ]
+}

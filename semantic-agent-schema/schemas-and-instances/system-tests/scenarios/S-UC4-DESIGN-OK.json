@@ -1,0 +1,72 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-DESIGN-OK",
+ "name": "デザインシステムを検証する",
+ "title": "契約どおりに書いたデザインシステムを検証すると、型 ・ トークン ・ テンプレートの書き方 ・ Concrete との合い方の機械の rule がすべて verified になり、記録される",
+ "why": "テンプレートとトークンも、インスタンスと同じく描く前に作法を確かめられるようにする。",
+ "traces": [
+  "UC4:変形:デザインシステムを検証する"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "design/ds.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/kind",
+   "equals": "design-system"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/operations",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "template-names"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "urn:semantic-agent-schema:sample:usecase:v1 の欄と契約の名前だけを置く"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "token-alias"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "JS は urn:semantic-agent-schema:sample:usecase:v1 の欄だけを読む"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "値は sas-data から読み、JS にタグが無く、JS として読める"
+  }
+ ]
+}

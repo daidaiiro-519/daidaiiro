@@ -1,0 +1,97 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:published-language:design-system:v1",
+ "title": "デザインシステムの受け取りの型",
+ "description": "使う側が描画に渡すデザインシステムの形。x-view の種類ごとのテンプレートと、デザイントークンを持つ。SAS は既定のデザインシステムを持たず、デザインを組み立てる部品も持たない。描く前に、Concrete が使う種類のテンプレートがそろうかを確かめる。指紋は SAS がファイルの中身から求めるので、ここには書かない",
+ "type": "object",
+ "required": [
+  "name",
+  "version",
+  "template_language",
+  "templates"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:semantic-agent-schema:published-language:design-system:v1",
+   "description": "この型の URN"
+  },
+  "name": {
+   "type": "string",
+   "minLength": 1,
+   "description": "デザインシステムの名前"
+  },
+  "version": {
+   "type": "string",
+   "minLength": 1,
+   "description": "デザインシステムの版"
+  },
+  "template_language": {
+   "const": "urn:semantic-agent-schema:published-language:template-language:v1",
+   "description": "テンプレートが従う書き方の契約（template-language.json）。描く前と sas validate で照らす"
+  },
+  "templates": {
+   "type": "object",
+   "description": "x-view の種類 → テンプレートのファイルの経路（このファイルからの相対）。x-view が無いときの page と、JSON の型の名前（object ・ array ・ string ・ number ・ integer ・ boolean ・ null）も種類として扱う",
+   "minProperties": 1,
+   "propertyNames": {
+    "pattern": "^[a-z][a-z0-9-]*$"
+   },
+   "additionalProperties": {
+    "type": "string",
+    "minLength": 1
+   }
+  },
+  "tokens": {
+   "$ref": "#/$defs/group",
+   "description": "デザイントークン（Design Tokens Format Module 2025.10 の形）。$value を持つものがトークン、持たないものが group。別名は {group.token}"
+  }
+ },
+ "$defs": {
+  "group": {
+   "type": "object",
+   "description": "group：$ から始まらない名前の子は、トークンか group",
+   "properties": {
+    "$type": {
+     "type": "string"
+    },
+    "$description": {
+     "type": "string"
+    }
+   },
+   "not": {
+    "required": [
+     "$value"
+    ]
+   },
+   "patternProperties": {
+    "^[^${}.][^{}.]*$": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/token"
+      },
+      {
+       "$ref": "#/$defs/group"
+      }
+     ]
+    }
+   }
+  },
+  "token": {
+   "type": "object",
+   "description": "トークン：$value を持つ",
+   "required": [
+    "$value"
+   ],
+   "properties": {
+    "$value": true,
+    "$type": {
+     "type": "string"
+    },
+    "$description": {
+     "type": "string"
+    }
+   }
+  }
+ }
+}

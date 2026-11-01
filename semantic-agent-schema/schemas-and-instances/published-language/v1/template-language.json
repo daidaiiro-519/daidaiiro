@@ -1,0 +1,36 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:published-language:template-language:v1",
+ "title": "テンプレートの書き方",
+ "description": "デザインシステムのテンプレートが従う書き方の契約。テンプレートは Mustache（mustache/spec の必須の部分）で書き、ロジックを持たない：値を置く ・ 繰り返す ・ 有無で出し分けるだけ。UI ・ UX のロジックはテンプレートの JS が持ち、SAS は持たない。テンプレートに渡すのは value ・ json ・ tokens ・ css の4つで、置ける名前はこの4つからたどれるものだけ。値は HTML としてエスケープされ（& \" < >）、{{{ }}} と {{& }} で生で置くときはテンプレートが引き受ける。JS は値を json から読む（<script type=\"application/json\" id=\"sas-data\">{{{json}}}</script>）。SAS は描く前と sas validate で、この契約に照らす",
+ "x-language": {
+  "name": "Mustache",
+  "spec": "https://github.com/mustache/spec",
+  "commit": "e8ec001db7f594521e773c34866aca2b5d6b0037",
+  "modules": [
+   "comments",
+   "delimiters",
+   "interpolation",
+   "inverted",
+   "partials",
+   "sections"
+  ],
+  "not_used": [
+   "~lambdas",
+   "~inheritance",
+   "~dynamic-names"
+  ]
+ },
+ "x-names": {
+  "value": "インスタンスの値（$schema を除く）。Concrete の欄の形でたどる",
+  "json": "value を JSON の文字列にしたもの。<script> に入れても閉じないよう < > & ' を \\u の形にしてある。{{{json}}} で置く",
+  "tokens": "デザイントークンの値（tokens.color.accent のように、$ で始まる名前を除いた木）",
+  "css": "トークンを :root のカスタムプロパティにした CSS。{{{css}}} で置く"
+ },
+ "x-data-entry": {
+  "element": "script",
+  "type": "application/json",
+  "id": "sas-data",
+  "content": "{{{json}}}"
+ }
+}

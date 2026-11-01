@@ -393,7 +393,7 @@
   {
    "id": "d6",
    "group": "d. アダプターとの契約",
-   "name": "デザインシステム（x-view の種類ごとのテンプレート ・ デザイントークン ・ rule の結果のトークン）",
+   "name": "デザインシステム（x-view の種類ごとのテンプレート ・ デザイントークン）",
    "from_to": "使う側 → SAS",
    "criteria": [
     1,
@@ -526,7 +526,7 @@
      "name": "x-view",
      "type": "#/$defs/view",
      "required": false,
-     "note": "インスタンスのページの種類（足す）"
+     "note": "インスタンスを描くテンプレートの種類（Concrete の根だけ。ステップ5）"
     },
     {
      "name": "properties",
@@ -564,8 +564,7 @@
       "x-relationship",
       "x-derived-from",
       "x-decided-by",
-      "x-published",
-      "x-view（足す）"
+      "x-published"
      ]
     },
     {
@@ -625,7 +624,7 @@
     {
      "name": "view",
      "fields": [
-      "string（英小文字とハイフン。デザインシステムのテンプレートの種類の名前）。無ければ根は page、欄は JSON の型の名前（object ・ array ・ string ・ number ・ integer ・ boolean）"
+      "string（英小文字 ・ 数字 ・ ハイフン。デザインシステムの templates のキー）。Concrete の根にだけ書く。無ければ page"
      ]
     },
     {
@@ -686,7 +685,7 @@
      ]
     }
    ],
-   "changes": "vocab-meta.schema.json から名前を改める（v1 は未公開と見る）。x-view を足す（x-prompt はいまの vocab-meta に在る）"
+   "changes": "vocab-meta.schema.json から名前を改める（v1 は未公開と見る）。x-view は根だけなので語彙には入れない（ステップ5 で決めた。x-prompt はいまの vocab-meta に在る）"
   },
   {
    "file": "dialect.schema.json",
@@ -792,9 +791,9 @@
     {
      "name": "render",
      "fields": [
-      "targets（必須）",
-      "design_system（デザインシステムのファイルのパス。無ければ設定）",
-      "out（書き出す先。コミットしない）"
+      "targets（必須。描くインスタンスの経路）",
+      "design_system（必須。デザインシステムのファイルの経路。SAS は既定を持たない。ステップ5）",
+      "out（必須。書き出す先。コミットしない）"
      ]
     },
     {
@@ -886,8 +885,8 @@
     {
      "name": "render",
      "fields": [
-      "design_system: {name, version, fingerprint}",
-      "pages: [{target, page_path, views}]"
+      "design_system: {name, version, fingerprint}（出力にだけ返し、ページには入れない）",
+      "pages: [{target, page_path, views}]（ステップ5）"
      ]
     },
     {
@@ -923,9 +922,9 @@
     {
      "name": "error",
      "fields": [
-      "code（invalid_input ・ not_found ・ unsupported_capability ・ untracked_change ・ conflict ・ invalid_output ・ timeout ・ failed ・ cancelled ・ missing_view_kinds ・ schema_not_listed ・ busy ・ writer_as_checker ・ child_exists）",
+      "code（invalid_input ・ not_found ・ unsupported_capability ・ untracked_change ・ conflict ・ invalid_output ・ timeout ・ failed ・ cancelled ・ missing_view_kinds ・ template ・ out ・ schema_not_listed ・ busy ・ writer_as_checker ・ child_exists）",
       "message",
-      "missing: [能力 ・ x-view の種類]",
+      "missing: [x-view の種類]（missing_view_kinds のとき。欠けたすべて。ステップ5）",
       "hint",
       "blocked: [{path, code, message, hint}]（削除を止めた理由になった文書：従うインスタンス follows ・ 指している Concrete points_to ・ 記載を消せない参照元。has_dependents ・ references_blocked ・ references_left だけ。ステップ4）",
       "（session ・ operation の欄は持たない：断った操作は記録しない。版16）",
@@ -1167,13 +1166,13 @@
      "fields": [
       "name",
       "version",
+      "template_language（テンプレートの書き方の契約 template-language.json の $id。ステップ5）",
       "templates: {x-view の種類 → テンプレートのパス}（page と JSON の型の名前を含む）",
-      "tokens（Design Tokens Format Module 2025.10 の形：$value を持つものがトークン、持たないものが group。$type ・ $description は任意。別名は {group.token}、JSON Pointer は $ref）",
-      "result_tokens: {verified, violated, unverified, unsupported, error, stale}"
+      "tokens（Design Tokens Format Module 2025.10 の形：$value を持つものがトークン、持たないものが group。$type ・ $description は任意。別名は {group.token}、JSON Pointer は $ref）"
      ]
     }
    ],
-   "changes": "新しく作る。指紋は SAS が求め、ファイルに書かせない"
+   "changes": "ステップ5 で作った。templates のキーは x-view の種類（英小文字 ・ 数字 ・ ハイフン）、値はこのファイルからの相対の経路。tokens は Design Tokens Format Module の形。判定の区分のトークン（result_tokens）は、描画が判定を扱わないので外した（利用者の要望 2026-11-01）。指紋は SAS が求め、ファイルに書かせない"
   },
   {
    "file": "settings.schema.json",
@@ -1199,6 +1198,24 @@
     }
    ],
    "changes": "新しく作る（いまの crates の settings を型にする）"
+  },
+  {
+   "file": "template-language.json",
+   "id": "urn:semantic-agent-schema:published-language:template-language:v1",
+   "name": "テンプレートの書き方の契約",
+   "writer": "SAS",
+   "reader": "デザインシステムを作る人 ・ SAS の検証と描画",
+   "defs": [
+    {
+     "name": "（根）",
+     "fields": [
+      "x-language：Mustache（mustache/spec の必須の部分。commit e8ec001d）",
+      "x-names：value ・ json ・ tokens ・ css",
+      "x-data-entry：<script type=\"application/json\" id=\"sas-data\">{{{json}}}</script>"
+     ]
+    }
+   ],
+   "changes": "ステップ5 で作った。はじめは minijinja 3 の Jinja2 とその一覧にしたが、テンプレートのロジックを SAS の処理系に頼らせないために Mustache にした。仕様の試験（adapters/outbound/templates/tests/mustache-spec）を全部通す"
   }
  ],
  "4_db": {
@@ -1986,7 +2003,7 @@
   },
   {
    "what": "x-view が無いとき",
-   "view": "根は page、欄は JSON の型の名前。デザインシステムはそれらのテンプレートを持つ"
+   "view": "page のテンプレートで描く。x-view は Concrete の根にだけ書き、欄ごとのテンプレートは持たない（値の置き方はテンプレートが決める。ステップ5）"
   },
   {
    "what": "v1 の名前を改めること",

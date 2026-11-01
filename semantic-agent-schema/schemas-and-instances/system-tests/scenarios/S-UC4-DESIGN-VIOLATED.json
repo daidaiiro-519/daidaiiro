@@ -1,0 +1,69 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-DESIGN-VIOLATED",
+ "name": "作法から外れたデザインシステム",
+ "title": "Concrete に無い欄 ・ 契約に無い名前、無い部分テンプレート、解けない別名と輪になった別名、JS の中のタグ、JS が読む Concrete に無い欄を、それぞれ violated で返す",
+ "why": "外れた所を描く前に知らせ、どこを直すかを rule ごとに示す。",
+ "traces": [
+  "UC4:変形:デザインシステムを検証する"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css",
+   "design/ds-bad.json": "@fixtures/ds-bad.json",
+   "design/bad.html": "@fixtures/bad.html"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "design/ds-bad.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 7
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "置けない名前：secret ・ value.owner"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "templates に無い部分テンプレート：missing-part"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "color.nothing"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "輪になっている"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "JS の中に Mustache のタグがある"
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "に無い欄を読む：data.owner"
+  }
+ ]
+}

@@ -1,0 +1,57 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-TEMPLATE-NOT-FOUND",
+ "name": "テンプレートのファイルが無い",
+ "title": "デザインシステムが指すテンプレートのファイルが無いと、デザインシステムの検証に外れて描かず、何も書かない",
+ "why": "無いテンプレートを空で描かない。",
+ "traces": [
+  "UC5:拡張:2a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/ds-nofile.json": "@fixtures/ds-nofile.json",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds-nofile.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_design_system"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "design/ds-nofile.json"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "design/nothing.html が無い"
+  }
+ ]
+}

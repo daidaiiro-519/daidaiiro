@@ -110,6 +110,7 @@ pub struct Validation {
 pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ commits ・ log、
+    /// 描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out、
     /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ references_blocked ・ conflict ・ patch_failed ・
     /// id_changed ・ human_field ・ derived_mismatch ・ published_changed、書いた途中で止まったもの：references_left）
     pub code: &'static str,
@@ -125,6 +126,8 @@ pub struct Refused {
     pub hint: Option<Box<String>>,
     /// 削除を止めた理由になったもの（従うインスタンス ・ 指している Concrete ・ 記載を消せない参照元）と、残った参照元
     pub blocked: Option<Box<Vec<Blocked>>>,
+    /// 描画で、デザインシステムに無かった x-view の種類（missing_view_kinds）
+    pub missing: Option<Box<Vec<String>>>,
 }
 
 /// 削除を止めた理由になった文書1つと、それを片付けるコマンドの案内。
@@ -403,46 +406,36 @@ fn judge(
 }
 
 /// 判定が読んだ所の指紋。
-fn reads_of(document: &Value, at: &str) -> Fingerprint {
+#[must_use]
+pub fn reads_of(document: &Value, at: &str) -> Fingerprint {
     Fingerprint::of_read(at, document.pointer(at))
 }
 
-/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。
-/// いまの判定と前の判定で、rule ごとに「読んだ所の指紋」の集まりを比べる。
-fn changed_rules(document: &Value, now: &[Judged], before: &[Judgment]) -> BTreeSet<String> {
-    let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
-    for (r, at) in now {
-        current
-            .entry(r.rule())
-            .or_default()
-            .insert(reads_of(document, at).as_str().to_string());
-    }
-    let mut previous: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
-    for j in before {
-        previous
-            .entry(j.rule.rule.as_str())
-            .or_default()
-            .insert(j.rule.reads.clone());
-    }
-    current
-        .into_iter()
-        .filter(|(rule, reads)| previous.get(rule) != Some(reads))
-        .map(|(rule, _)| rule.to_string())
-        .collect()
+/// いま判定した対象1つ（記録する前）。
+pub struct Current {
+    /// 対象の文書
+    pub doc: Doc,
+    /// 種類
+    pub kind: TargetKind,
+    /// 従う schema の $id
+    pub declared: String,
+    /// いまの中身の指紋
+    pub fingerprint: Fingerprint,
+    /// rule ごとの結果と、その判定が読んだ所の指紋
+    pub results: Vec<(RuleResult, Fingerprint)>,
 }
 
-fn run_validate(
+/// 対象を決めて種類を見分け、いまの中身ですべての rule を判定する。記録しない（描画も使う）。
+///
+/// # Errors
+/// 対象を読めない ・ 申告した Abstract の版が閉じた一覧に無い ・ 従う schema が分からない ・ バリデーターが動かないとき。
+pub fn judge_current(
     scope: &Scope,
-    stale_only: bool,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    who: &dyn IdentifyCaller,
-    log: &mut dyn OperationLog,
-) -> Result<Validation, Refused> {
+) -> Result<(Corpus, Vec<Current>), Refused> {
     let corpus = Corpus::load(store)?;
     let concretes = &corpus.concretes;
-
-    // 対象を決め、種類を見分ける
     let targets: Vec<Doc> = match scope {
         Scope::Paths(paths) => {
             let mut out = Vec::new();
@@ -482,15 +475,73 @@ fn run_validate(
         let kind = classify(concretes, &d.path, &declared)?;
         classified.push((d, kind, declared));
     }
-
-    // 判定する。入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut known_concretes: BTreeSet<String> = concretes.keys().cloned().collect();
     known_concretes.extend(ABSTRACT_VERSIONS.iter().map(ToString::to_string));
+    let mut current = Vec::new();
+    for (doc, kind, declared) in classified {
+        let results = judge(&doc, kind, &declared, validator, &corpus, &known_concretes)?
+            .into_iter()
+            .map(|(r, at)| {
+                let reads = reads_of(&doc.value, &at);
+                (r, reads)
+            })
+            .collect();
+        current.push(Current {
+            fingerprint: Fingerprint::of(doc.text.as_bytes()),
+            doc,
+            kind,
+            declared,
+            results,
+        });
+    }
+    Ok((corpus, current))
+}
+
+/// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。
+/// いまの判定と前の判定で、rule ごとに「読んだ所の指紋」の集まりを比べる。
+fn changed_rules(now: &[(RuleResult, Fingerprint)], before: &[Judgment]) -> BTreeSet<String> {
+    let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+    for (r, reads) in now {
+        current
+            .entry(r.rule())
+            .or_default()
+            .insert(reads.as_str().to_string());
+    }
+    let mut previous: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+    for j in before {
+        previous
+            .entry(j.rule.rule.as_str())
+            .or_default()
+            .insert(j.rule.reads.clone());
+    }
+    current
+        .into_iter()
+        .filter(|(rule, reads)| previous.get(rule) != Some(reads))
+        .map(|(rule, _)| rule.to_string())
+        .collect()
+}
+
+fn run_validate(
+    scope: &Scope,
+    stale_only: bool,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    who: &dyn IdentifyCaller,
+    log: &mut dyn OperationLog,
+) -> Result<Validation, Refused> {
+    let (_, current) = judge_current(scope, store, validator)?;
+    // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();
     let mut untracked = Vec::new();
     let mut unchanged_targets = Vec::new();
-    for (d, kind, declared) in classified {
-        let fingerprint = Fingerprint::of(d.text.as_bytes());
+    for Current {
+        doc: d,
+        kind,
+        declared,
+        fingerprint,
+        mut results,
+    } in current
+    {
         // SAS を通らない変更：いまの中身が、記録のどの事後とも違う。知らせて、いまの中身を検証する
         if let Some(expected) =
             untracked_since(log, &d.path, fingerprint.as_str()).map_err(log_refused)?
@@ -503,11 +554,10 @@ fn run_validate(
                 actual: fingerprint.as_str().to_string(),
             });
         }
-        let mut results = judge(&d, kind, &declared, validator, &corpus, &known_concretes)?;
         let mut unchanged_rules = Vec::new();
         if stale_only {
             let before = log.last_judgments(&d.path).map_err(log_refused)?;
-            let changed = changed_rules(&d.value, &results, &before);
+            let changed = changed_rules(&results, &before);
             for (r, _) in &results {
                 if !changed.contains(r.rule()) && !unchanged_rules.iter().any(|u| u == r.rule()) {
                     unchanged_rules.push(r.rule().to_string());
@@ -522,7 +572,7 @@ fn run_validate(
         let rules: Vec<RuleResult> = results.iter().map(|(r, _)| r.clone()).collect();
         let reads: Vec<String> = results
             .iter()
-            .map(|(_, at)| reads_of(&d.value, at).as_str().to_string())
+            .map(|(_, reads)| reads.as_str().to_string())
             .collect();
         let counts = Counts::of(&rules);
         judged.push((

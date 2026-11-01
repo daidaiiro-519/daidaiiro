@@ -1,0 +1,53 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-DESIGN-INVALID",
+ "name": "作法から外れたデザインシステムでは描かない",
+ "title": "契約に合わないデザインシステムでは描かず、invalid_design_system と検証の案内を返し、1ページも書かない",
+ "why": "作法を確かめていないテンプレートで描くと、同じ入力から同じページになる保証が無い。",
+ "traces": [
+  "UC5:拡張:2a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css",
+   "design/ds-bad.json": "@fixtures/ds-bad.json",
+   "design/bad.html": "@fixtures/bad.html"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds-bad.json",
+   "--out",
+   "site"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_design_system"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "equals": "sas validate design/ds-bad.json"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  }
+ ]
+}

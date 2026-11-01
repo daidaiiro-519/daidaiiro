@@ -1,7 +1,9 @@
-//! 結果を JSON の1行にする（operation-result.schema.json の validation ・ change ・ error）。
+//! 結果を JSON の1行にする（operation-result.schema.json の validation ・ change ・ render ・ error）。
 
 use recording_application::ports::WriteRecord;
 use recording_application::use_cases::history::Interleaved;
+use rendering_application::use_cases::design::DesignValidation;
+use rendering_application::use_cases::render::Rendered;
 use serde_json::{Map, Value, json};
 use validation_application::use_cases::validate::{Refused, Validation};
 use validation_domain::values::{Counts, RuleResult, Verdict};
@@ -75,6 +77,35 @@ pub fn print_validation(v: &Validation) {
             }
         ));
     }
+    println!("{out}");
+}
+
+/// デザインシステムの検証の結果を出す（検証と同じ形。種類は design-system）。
+pub fn print_design_validation(v: &DesignValidation) {
+    let targets: Vec<Value> = v
+        .targets
+        .iter()
+        .map(|t| {
+            json!({
+                "path": t.path,
+                "kind": "design-system",
+                "schema": "urn:semantic-agent-schema:published-language:design-system:v1",
+                "fingerprint": t.fingerprint.as_str(),
+                "operation": t.operation,
+                "results": t.results.iter().map(rule_result).collect::<Vec<_>>(),
+                "counts": counts(&t.counts),
+            })
+        })
+        .collect();
+    let out = json!({
+        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "kind": "validation",
+        "parent_session": v.parent,
+        "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
+        "targets": targets,
+        "counts": counts(&v.counts),
+        "untracked": [],
+    });
     println!("{out}");
 }
 
@@ -159,6 +190,9 @@ pub fn print_refused(r: &Refused) {
             .iter()
             .map(|b| json!({"path": b.path, "code": b.code, "message": b.message, "hint": b.hint}))
             .collect();
+    }
+    if let Some(missing) = &r.missing {
+        out["missing"] = json!(missing.as_slice());
     }
     println!("{out}");
 }
@@ -255,6 +289,26 @@ pub fn print_change(c: &ChangeResult) {
             "path": v.path,
             "results": v.results.iter().map(rule_result).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
+    });
+    println!("{out}");
+}
+
+/// 描画の結果を1行で出す。
+pub fn print_render(r: &Rendered) {
+    let pages: Vec<Value> = r
+        .pages
+        .iter()
+        .map(|p| json!({"target": p.target, "page_path": p.page_path, "views": p.views}))
+        .collect();
+    let out = json!({
+        "$schema": "urn:semantic-agent-schema:published-language:operation-result:v1",
+        "kind": "render",
+        "design_system": {
+            "name": r.design_system.name,
+            "version": r.design_system.version,
+            "fingerprint": r.design_system.fingerprint,
+        },
+        "pages": pages,
     });
     println!("{out}");
 }

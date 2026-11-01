@@ -34,7 +34,7 @@
   {
    "crate": "rendering-application",
    "layer": "application",
-   "may_depend_on": "writing-domain ・ validation-application（ステップ5）"
+   "may_depend_on": "writing-domain ・ validation-domain ・ validation-application ・ recording-application"
   },
   {
    "crate": "search-application",
@@ -49,7 +49,7 @@
   {
    "crate": "outbound-filesystem",
    "layer": "adapters",
-   "may_depend_on": "validation-application（document_store ・ keep_prompt）"
+   "may_depend_on": "validation-application（document_store ・ keep_prompt）・ rendering-application（page_writer）"
   },
   {
    "crate": "outbound-git",
@@ -69,7 +69,7 @@
   {
    "crate": "outbound-templates",
    "layer": "adapters",
-   "may_depend_on": "rendering-application（template_renderer。ステップ5）"
+   "may_depend_on": "rendering-application（template_renderer）"
   },
   {
    "crate": "inbound-cli",
@@ -132,7 +132,14 @@
    "owner": "rendering（application）",
    "adapter": "outbound/templates",
    "use": "dyn",
-   "why": "ステップ5"
+   "why": "テンプレートの処理系を閉じ込める。値はエスケープし、use_cases が挙げた位置（描いた欄 ・ トークンの CSS）だけを描いたものとして渡す"
+  },
+  {
+   "port": "page_writer",
+   "owner": "rendering（application）",
+   "adapter": "outbound/filesystem",
+   "use": "dyn",
+   "why": "描いたページを書き出す。入力と実体の経路で重なれば断り、1つでも置けなければどれも置かない（ステップ5 で足した）"
   }
  ],
  "rules_language_neutral": [
@@ -276,12 +283,12 @@
   },
   {
    "path": "    ├── rendering/",
-   "desc": "業務領域「描画」のモジュール（ステップ5）",
+   "desc": "業務領域「描画」のモジュール。まとめるだけのフォルダ",
    "crate": ""
   },
   {
    "path": "    │   └── application/",
-   "desc": "use_cases/render.rs ・ ports.rs（template_renderer）",
+   "desc": "依存：writing-domain ・ validation-domain ・ validation-application ・ recording-application。use_cases/render.rs（UC5。機械だけ、記録しない）・ ports（TemplateRenderer ・ PageWriter）",
    "crate": "rendering-application"
   },
   {
@@ -306,7 +313,7 @@
   },
   {
    "path": "    │   └── outbound/",
-   "desc": "agents（read_meaning。ステップ6）・ filesystem（document_store ・ keep_prompt）・ git（commit_reader）・ jsonschema（schema_validator）・ sqlite（operation_log。migrations/）・ templates（template_renderer。ステップ5）",
+   "desc": "agents（read_meaning。ステップ6）・ filesystem（document_store ・ keep_prompt ・ page_writer）・ git（commit_reader）・ jsonschema（schema_validator）・ sqlite（operation_log。migrations/）・ templates（template_renderer。ステップ5）",
    "crate": ""
   },
   {

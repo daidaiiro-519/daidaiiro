@@ -1,0 +1,53 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-IDEMPOTENT",
+ "name": "同じ入力から同じページ",
+ "title": "同じインスタンスとデザインシステムを2回描くと、バイト列まで同じページになる",
+ "why": "描くたびにページが変わると、変わったのが中身かデザインかを見分けられない。",
+ "traces": [
+  "UC5:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  },
+  "steps": [
+   {
+    "args": [
+     "render",
+     "usecases/u1.json",
+     "--design-system",
+     "design/ds.json",
+     "--out",
+     "site"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site2"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "file": "site2/usecases/u1.html",
+   "same_as": "site/usecases/u1.html"
+  }
+ ]
+}

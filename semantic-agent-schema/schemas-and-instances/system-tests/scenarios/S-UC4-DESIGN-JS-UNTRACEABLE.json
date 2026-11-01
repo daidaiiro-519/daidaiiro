@@ -1,0 +1,40 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-DESIGN-JS-UNTRACEABLE",
+ "name": "JS が読む欄が実行するまで決まらない",
+ "title": "JS が data[field] のように読む欄を実行時に決めると、violated にせず unverified（確かめられない）で返す",
+ "why": "機械で言い切れないものを、合格とも外れとも言わない。",
+ "traces": [
+  "UC4:変形:デザインシステムを検証する"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "design/ds-dynamic.json": "@fixtures/ds-dynamic.json",
+   "design/dynamic.html": "@fixtures/dynamic.html"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "design/ds-dynamic.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/unverified",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "data[field]"
+  }
+ ]
+}

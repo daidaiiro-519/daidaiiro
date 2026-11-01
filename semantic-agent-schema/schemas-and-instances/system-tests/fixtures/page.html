@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{value.id}} {{value.goal}}</title>
+<style>{{{css}}}
+{{> styles}}</style>
+</head>
+<body>
+<main class="uc">
+  <header class="uc-head">
+    <span class="uc-id">{{value.id}}</span>
+    <button class="copy" type="button">ID をコピー</button>
+  </header>
+  <p class="uc-label">目的</p>
+  <h1 class="uc-goal">{{value.goal}}</h1>
+  <p class="uc-label">呼ぶユースケース</p>
+  <ul class="uc-calls">{{#value.calls}}<li><a href="{{.}}.html">{{.}}</a></li>{{/value.calls}}</ul>
+  {{^value.calls}}<p class="empty">ほかのユースケースを呼ばない</p>{{/value.calls}}
+</main>
+<script type="application/json" id="sas-data">{{{json}}}</script>
+<script>
+  // UI ・ UX のロジックはテンプレートの JS が持つ。値は sas-data から読む
+  const data = JSON.parse(document.getElementById('sas-data').textContent);
+  for (const a of document.querySelectorAll('.uc-calls a')) {
+    a.href = a.textContent.toLowerCase() + '.html';
+  }
+  document.querySelector('.copy').addEventListener('click', (e) => {
+    navigator.clipboard?.writeText(data.id).catch(() => {});
+    e.target.textContent = 'コピーした';
+  });
+</script>
+</body>
+</html>
