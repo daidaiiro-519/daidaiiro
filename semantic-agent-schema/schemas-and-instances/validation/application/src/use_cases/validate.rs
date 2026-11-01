@@ -307,8 +307,6 @@ pub struct MeaningOutcome {
     pub continued: bool,
     /// この呼び出しで新しく起動した子セッションの ID
     pub started: Vec<String>,
-    /// 対象ごとの手順のプロンプト
-    pub procedures: Vec<Value>,
     /// 形の誤りを直させた回数
     pub corrections: u32,
     /// 時間切れで新しい子セッションにした回数
@@ -445,7 +443,6 @@ fn apply_meaning(
         child: None,
         continued: call.continue_child.is_some(),
         started: Vec::new(),
-        procedures: Vec::new(),
         corrections: 0,
         restarts: 0,
         hint,
@@ -504,17 +501,16 @@ fn apply_meaning(
             continue;
         }
         let proc = procedure(&c.doc.path, &c.declared, c.hash.as_str(), &steps);
-        let judged =
-            judge_meaning(reader, validator, &mut child, &proc, &steps).map_err(|code| {
-                Refused {
-                    code,
-                    path: Some(c.doc.path.as_str().into()),
-                    message: format!(
-                        "子セッション {} は処理中。終わってから打ち直す",
-                        child.tool_ref.clone().unwrap_or_default()
-                    ),
-                    ..Refused::default()
-                }
+        call.progress.procedure(&proc);
+        let judged = judge_meaning(reader, validator, &mut child, &proc, &steps, call.progress)
+            .map_err(|code| Refused {
+                code,
+                path: Some(c.doc.path.as_str().into()),
+                message: format!(
+                    "子セッション {} は処理中。終わってから打ち直す",
+                    child.tool_ref.clone().unwrap_or_default()
+                ),
+                ..Refused::default()
             })?;
         let launch = child.launch.to_string();
         for id in &judged.started {
@@ -558,7 +554,6 @@ fn apply_meaning(
         outcome.started.extend(judged.started);
         outcome.corrections += judged.corrections;
         outcome.restarts += judged.restarts;
-        outcome.procedures.push(proc);
     }
     // 時間切れで新しい子セッションに替わったら、続けたとは言わない
     outcome.continued = call.continue_child.is_some() && outcome.child == call.continue_child;

@@ -31,6 +31,23 @@ pub struct MeaningCall<'a> {
     pub reader: &'a dyn ReadMeaning,
     /// 続ける検証用の子セッションの ID（--continue）。無ければ新しい子セッションを起動する
     pub continue_child: Option<String>,
+    /// 手順と、子セッションとのやりとりの途中を知らせる先
+    pub progress: &'a dyn Progress,
+}
+
+/// 子セッションとのやりとりの途中を、呼んだ人に知らせる先（CLI は手順を標準出力へすぐ出し、途中を標準エラーへ出す）。
+pub trait Progress {
+    /// 子セッションに渡す前の手順のプロンプト
+    fn procedure(&self, procedure: &Value);
+    /// 起動 ・ 待機 ・ 直させる ・ やり直す ・ 受け取る
+    fn note(&self, line: &str);
+}
+
+/// 何も知らせない。
+pub struct Silent;
+impl Progress for Silent {
+    fn procedure(&self, _: &Value) {}
+    fn note(&self, _: &str) {}
 }
 
 /// 判定させる1ステップ（rule × 当たる所）。
@@ -60,6 +77,7 @@ pub struct Step {
 #[must_use]
 pub fn procedure(path: &str, concrete: &str, hash: &str, steps: &[Step]) -> Value {
     json!({
+        "$schema": "urn:semantic-agent-schema:published-language:procedure:v1",
         "kind": "procedure",
         "operation_kind": "validate",
         "target": {"path": path, "concrete": concrete, "hash": hash},
@@ -120,6 +138,21 @@ pub fn correction_text(why: &str) -> String {
     )
 }
 
+/// 子セッションの答えを JSON として読む。答えが ```json …``` の囲みで包まれていれば、囲みを外して読む
+/// （モデルによって、答えの形を渡しても囲みを付ける）。
+///
+/// # Errors
+/// JSON として読めないとき。
+pub fn answer_json(answer: &str) -> Result<Value, String> {
+    let t = answer.trim();
+    let inner = t
+        .strip_prefix("```json")
+        .or_else(|| t.strip_prefix("```"))
+        .and_then(|r| r.trim_end().strip_suffix("```"))
+        .unwrap_or(t);
+    serde_json::from_str(inner.trim()).map_err(|e| format!("JSON として読めない（{e}）"))
+}
+
 /// 答えを読み、形を子セッションに渡したのと同じ答えの形（JSON Schema）に照らしてから、steps と突き合わせる。
 /// 合えば (step の no → 判定と理由)。合わなければ理由。
 ///
@@ -130,8 +163,7 @@ pub fn read_answer(
     answer: &str,
     steps: &[Step],
 ) -> Result<BTreeMap<usize, (Verdict, String)>, String> {
-    let v: Value =
-        serde_json::from_str(answer.trim()).map_err(|e| format!("JSON として読めない（{e}）"))?;
+    let v = answer_json(answer)?;
     let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
     let broken = validator.check(ANSWER_ID, &v, &[(ANSWER_ID.to_string(), schema)])?;
     if !broken.is_empty() {
@@ -226,18 +258,29 @@ pub fn converse<T>(
     first: &str,
     schema: &Value,
     parse: &dyn Fn(&str) -> Result<T, String>,
+    progress: &dyn Progress,
 ) -> Result<Conversed<T>, &'static str> {
     let mut prompt = first.to_string();
     let (mut corrections, mut restarts) = (0, 0);
     let mut started: Vec<String> = Vec::new();
     loop {
         let reply = match &child.tool_ref {
-            Some(id) => reader.resume(id, &child.launch, &prompt, schema),
-            None => reader.start(&prompt, schema),
+            Some(id) => {
+                progress.note(&format!("子セッション {id} に渡した。答えを待っている"));
+                reader.resume(id, &child.launch, &prompt, schema)
+            }
+            None => {
+                progress.note(&format!(
+                    "子セッションを起動して渡した（{}）。答えを待っている",
+                    reader.tool()
+                ));
+                reader.start(&prompt, schema)
+            }
         };
         match reply {
             Reply::Busy => return Err("busy"),
             Reply::Failed(why) => {
+                progress.note(&format!("子セッションを起動できない：{why}"));
                 return Ok(Conversed {
                     outcome: Err(format!("エージェントを立ち上げられない：{why}")),
                     child: child.tool_ref.clone(),
@@ -265,6 +308,9 @@ pub fn converse<T>(
                     });
                 }
                 restarts += 1;
+                progress.note(&format!(
+                    "時間内に答えなかった。新しい子セッションでやり直す（{restarts}/{MAX_RESTARTS}）"
+                ));
                 child.tool_ref = None;
                 prompt = first.to_string();
             }
@@ -275,6 +321,7 @@ pub fn converse<T>(
                 child.tool_ref = Some(tool_ref.clone());
                 match parse(&answer) {
                     Ok(v) => {
+                        progress.note(&format!("子セッション {tool_ref} から答えを受け取った"));
                         return Ok(Conversed {
                             outcome: Ok(v),
                             child: Some(tool_ref),
@@ -296,6 +343,9 @@ pub fn converse<T>(
                             });
                         }
                         corrections += 1;
+                        progress.note(&format!(
+                            "答えが形に合わない。同じ子セッションに直させる（{corrections}/{MAX_CORRECTIONS}）：{why}"
+                        ));
                         prompt = correction_text(&why);
                     }
                 }
@@ -314,12 +364,18 @@ pub fn judge(
     child: &mut Child,
     procedure: &Value,
     steps: &[Step],
+    progress: &dyn Progress,
 ) -> Result<Judged, &'static str> {
     let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
     let first = prompt_text(procedure, &schema);
-    let c = converse(reader, child, &first, &schema, &|a| {
-        read_answer(validator, a, steps)
-    })?;
+    let c = converse(
+        reader,
+        child,
+        &first,
+        &schema,
+        &|a| read_answer(validator, a, steps),
+        progress,
+    )?;
     let results = match c.outcome {
         Ok(map) => steps
             .iter()

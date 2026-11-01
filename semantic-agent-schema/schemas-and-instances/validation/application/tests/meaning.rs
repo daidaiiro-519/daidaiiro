@@ -81,6 +81,7 @@ fn run(
     let call = MeaningCall {
         reader,
         continue_child: continue_child.map(str::to_string),
+        progress: &validation_application::use_cases::meaning::Silent,
     };
     validate_with_meaning(
         &Scope::Paths(vec!["u1.json".into()]),
@@ -220,4 +221,15 @@ fn field_schema_follows_ref_and_additional_properties() {
     );
     assert_eq!(title("/owner/name"), json!("名前"));
     assert_eq!(title("/tags/a"), json!("札"));
+}
+
+#[test]
+fn answer_in_a_code_fence_is_read() {
+    use validation_application::use_cases::meaning::answer_json;
+    assert_eq!(
+        answer_json("```json\n{\"a\": 1}\n```").unwrap(),
+        json!({"a": 1})
+    );
+    assert_eq!(answer_json(" {\"a\": 1} ").unwrap(), json!({"a": 1}));
+    assert!(answer_json("```\nnot json\n```").is_err());
 }

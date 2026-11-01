@@ -13,7 +13,9 @@ use super::{ChangeResult, CreateRequest, UpdateRequest, create, update, violatio
 use recording_application::ports::{ChildRow, IdentifyCaller, OperationLog};
 use serde_json::{Map, Value, json};
 use validation_application::ports::{DocumentStore, ReadMeaning, SchemaValidator};
-use validation_application::use_cases::meaning::{Child, converse, field_schema};
+use validation_application::use_cases::meaning::{
+    Child, Progress, answer_json, converse, field_schema,
+};
 use validation_application::use_cases::validate::{
     Corpus, Refused, TargetKind, classify, form_violations, log_refused, refused,
 };
@@ -48,11 +50,9 @@ pub struct SemanticRequest {
     pub continue_child: Option<String>,
 }
 
-/// 意味で書いた結果：渡した手順と、書き込み用の子セッションのこと。
+/// 意味で書いた結果：書き込み用の子セッションのこと（手順は Progress が子セッションに渡す前に受け取る）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct SemanticOutcome {
-    /// 渡した手順のプロンプト
-    pub procedure: Value,
     /// 書いた子セッションの ID（起動できなければ None）
     pub child: Option<String>,
     /// 新しく起動した子セッションの ID
@@ -87,6 +87,7 @@ pub fn semantic_write(
     who: &dyn IdentifyCaller,
     log: &mut dyn OperationLog,
     reader: &dyn ReadMeaning,
+    progress: &dyn Progress,
 ) -> Result<(ChangeResult, SemanticOutcome), Refused> {
     let path = request.path.as_str();
     let (declared, current, current_text) = match &request.concrete {
@@ -147,33 +148,41 @@ pub fn semantic_write(
     );
     let schema: Value = serde_json::from_str(WRITER_ANSWER_SCHEMA).unwrap_or_default();
     let first = prompt_text(&procedure, &schema);
+    progress.procedure(&procedure);
     let base = current
         .clone()
         .unwrap_or_else(|| json!({"$schema": declared}));
     let mut child = continued_child(log, reader, path, request.continue_child.as_deref())?;
-    let conversed = converse(reader, &mut child, &first, &schema, &|answer| {
-        let candidate = read_values(validator, answer, &units, &base)?;
-        let mut broken = form_violations(validator, kind, &declared, &candidate, &corpus.more)?;
-        // Concrete は JSON Schema で書けない組み込みの検査にも合わせる
-        if kind == TargetKind::Concrete
-            && let Some(c) = ConcreteSchema::read(&candidate)
-        {
-            broken.extend(
-                builtin_checks(&c)
-                    .into_iter()
-                    .filter(|r| r.verdict() == Verdict::Violated)
-                    .map(|r| (r.pointer().to_string(), r.reason().to_string())),
-            );
-        }
-        if broken.is_empty() {
-            Ok(candidate)
-        } else {
-            Err(format!(
-                "書く元のスキーマの形に合わない：{}",
-                violations_message(&broken)
-            ))
-        }
-    })
+    let conversed = converse(
+        reader,
+        &mut child,
+        &first,
+        &schema,
+        &|answer| {
+            let candidate = read_values(validator, answer, &units, &base)?;
+            let mut broken = form_violations(validator, kind, &declared, &candidate, &corpus.more)?;
+            // Concrete は JSON Schema で書けない組み込みの検査にも合わせる
+            if kind == TargetKind::Concrete
+                && let Some(c) = ConcreteSchema::read(&candidate)
+            {
+                broken.extend(
+                    builtin_checks(&c)
+                        .into_iter()
+                        .filter(|r| r.verdict() == Verdict::Violated)
+                        .map(|r| (r.pointer().to_string(), r.reason().to_string())),
+                );
+            }
+            if broken.is_empty() {
+                Ok(candidate)
+            } else {
+                Err(format!(
+                    "書く元のスキーマの形に合わない：{}",
+                    violations_message(&broken)
+                ))
+            }
+        },
+        progress,
+    )
     .map_err(|code| refused(code, path, "書き込み用の子セッションが処理中".to_string()))?;
     let parent = log.parent_session(&who.identify()).map_err(log_refused)?;
     let launch = child.launch.to_string();
@@ -191,7 +200,6 @@ pub fn semantic_write(
         .map_err(log_refused)?;
     }
     let outcome = SemanticOutcome {
-        procedure,
         child: conversed.child.clone(),
         started: conversed.started.clone(),
         corrections: conversed.corrections,
@@ -618,8 +626,7 @@ fn read_values(
     units: &[Unit],
     base: &Value,
 ) -> Result<Value, String> {
-    let v: Value =
-        serde_json::from_str(answer.trim()).map_err(|e| format!("JSON として読めない（{e}）"))?;
+    let v = answer_json(answer)?;
     let schema: Value = serde_json::from_str(WRITER_ANSWER_SCHEMA).unwrap_or_default();
     let broken = validator.check(
         WRITER_ANSWER_ID,

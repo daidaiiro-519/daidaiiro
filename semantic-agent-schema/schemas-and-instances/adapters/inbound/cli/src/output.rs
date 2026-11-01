@@ -5,6 +5,7 @@ use recording_application::use_cases::history::Interleaved;
 use rendering_application::use_cases::design::DesignValidation;
 use rendering_application::use_cases::render::Rendered;
 use serde_json::{Map, Value, json};
+use validation_application::use_cases::meaning::Progress;
 use validation_application::use_cases::validate::{MeaningOutcome, Refused, Validation};
 use validation_domain::values::{Counts, RuleResult, Verdict};
 use writing_application::use_cases::write::{ChangeResult, Deletion, SemanticOutcome};
@@ -28,13 +29,14 @@ fn rule_result(r: &RuleResult) -> Value {
     })
 }
 
-/// 手順のプロンプトを1行ずつ出す（rule の判定を、検証用の子セッションに渡したもの）。
-pub fn print_procedures(m: &MeaningOutcome) {
-    for p in &m.procedures {
-        let mut line = p.clone();
-        line["$schema"] = json!("urn:semantic-agent-schema:published-language:procedure:v1");
-        line["child_session"] = json!(m.child);
-        println!("{line}");
+/// 手順は子セッションに渡す前に標準出力へ1行で出し、子セッションとのやりとりの途中は標準エラーへ出す。
+pub struct Live;
+impl Progress for Live {
+    fn procedure(&self, procedure: &Value) {
+        println!("{procedure}");
+    }
+    fn note(&self, line: &str) {
+        eprintln!("sas: {line}");
     }
 }
 
@@ -264,11 +266,8 @@ pub fn print_change(c: &ChangeResult) {
     println!("{}", change_json(c));
 }
 
-/// 意味で書いた結果を出す：1行目に子セッションに渡した手順、最後の行に変更の結果（書いた子セッションを添える）。
+/// 意味で書いた結果を出す：変更の結果に書いた子セッションを添える（手順は子セッションに渡す前に Live が出した）。
 pub fn print_semantic(c: &ChangeResult, o: &SemanticOutcome) {
-    let mut p = o.procedure.clone();
-    p["child_session"] = json!(o.child);
-    println!("{p}");
     let mut out = change_json(c);
     out["child_session"] = json!({
         "id": o.child, "role": "writer", "continued": o.continued, "started": o.started,

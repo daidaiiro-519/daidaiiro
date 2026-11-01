@@ -229,12 +229,10 @@ fn run_validate_with_agent(
     let call = MeaningCall {
         reader: &reader,
         continue_child,
+        progress: &output::Live,
     };
     match validate_with_meaning(scope, stale, &store, &validator, &who, &mut log, &call) {
         Ok((v, meaning)) => {
-            if let Some(m) = &meaning {
-                output::print_procedures(m);
-            }
             output::print_validation_with(&v, meaning.as_ref());
             if v.counts.fails() {
                 ExitCode::from(1)
@@ -399,7 +397,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         let result = run_with(
             |store, validator, who, log| {
                 let reader = load_connector(&agent, validator)?;
-                semantic_write(&request, store, validator, who, log, &reader)
+                semantic_write(&request, store, validator, who, log, &reader, &output::Live)
             },
             session,
         );
