@@ -1,0 +1,114 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC",
+ "name": "意味で作る",
+ "title": "--semantic で作ると、Concrete の rule から書く手順を組み（reads で読まれる欄を先に、資料は中身ごと）、書き込み用の子セッションの答えを形に照らしてから SAS が書き、書いた子セッションを記録に残す",
+ "why": "作り手が書いたのは Concrete だけで、手順は SAS が組む。子セッションは渡されたものだけで書き、書くのは SAS なので、形に外れた値は書かれない。",
+ "traces": [
+  "UC1:変形:意味で書く",
+  "約束:procedure"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "docs/withdraw.md": "@fixtures/withdraw.md",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-write-ok.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/s2.json",
+   "--concrete",
+   "urn:example:sample:summary:v1",
+   "--semantic",
+   "--brief",
+   "会員が退会する流れを書く",
+   "--ref",
+   "docs/withdraw.md",
+   "--agent",
+   "agent/test-agent.json",
+   "--intent",
+   "退会を足す"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 2
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/operation_kind",
+   "equals": "write"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/1/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/2/pointer",
+   "equals": "/summary"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/2/reads/0/pointer",
+   "equals": "/goal"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/refs/0/path",
+   "equals": "docs/withdraw.md"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/refs/0/text",
+   "contains": "マイページ"
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/brief",
+   "equals": "会員が退会する流れを書く"
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "created"
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/role",
+   "equals": "writer"
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/id",
+   "equals": "writer-1"
+  },
+  {
+   "of": "when",
+   "file": "items/s2.json",
+   "contains": "退会の手続きが完了した"
+  },
+  {
+   "of": "when",
+   "file": "agent/prompt-1.txt",
+   "contains": "書き込み用の子セッション"
+  }
+ ]
+}

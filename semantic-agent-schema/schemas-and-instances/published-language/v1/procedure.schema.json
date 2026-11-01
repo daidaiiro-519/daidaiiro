@@ -22,8 +22,10 @@
   },
   "operation_kind": {
    "enum": [
-    "validate"
-   ]
+    "validate",
+    "write"
+   ],
+   "description": "validate は rule の判定、write は欄の値を書かせる"
   },
   "child_session": {
    "type": [
@@ -36,8 +38,7 @@
    "type": "object",
    "required": [
     "path",
-    "concrete",
-    "hash"
+    "concrete"
    ],
    "properties": {
     "path": {
@@ -49,7 +50,7 @@
     "hash": {
      "type": "string",
      "pattern": "^sha256:[0-9a-f]{64}$",
-     "description": "判定や書き込みの対象の中身のハッシュ（SHA-256）"
+     "description": "対象の中身のハッシュ（SHA-256）。作成には無い。SAS は答えを受けたときに対象が変わっていないかを比べる"
     }
    }
   },
@@ -62,8 +63,7 @@
      "no",
      "action",
      "pointer",
-     "rules",
-     "current"
+     "rules"
     ],
     "properties": {
      "no": {
@@ -72,7 +72,8 @@
      },
      "action": {
       "enum": [
-       "judge"
+       "judge",
+       "write"
       ]
      },
      "pointer": {
@@ -90,19 +91,20 @@
        "type": "object"
       }
      },
-     "current": true,
+     "current": {
+      "description": "いまの値。判定ではいつもあり、書き込みでは更新のときだけある"
+     },
      "read": {
       "type": "object",
       "description": "欄の読み方（x-prompt の read）"
      },
      "reads": {
       "type": "array",
-      "description": "rule の reads が指す所と、その値。判定のときに一緒に読む",
+      "description": "rule の reads が指す所。判定では値も入る。書き込みでは先に書く欄",
       "items": {
        "type": "object",
        "required": [
-        "pointer",
-        "value"
+        "pointer"
        ],
        "properties": {
         "pointer": {
@@ -122,6 +124,69 @@
    "type": "array",
    "items": {
     "type": "string"
+   }
+  },
+  "about": {
+   "type": "object",
+   "description": "書く文書（Concrete の title ・ description ・ read）。書き込みのときだけ",
+   "properties": {
+    "title": {
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "read": {
+     "type": "object"
+    }
+   }
+  },
+  "brief": {
+   "type": "string",
+   "description": "何を書くかの依頼（--brief）。書き込みのときだけ"
+  },
+  "refs": {
+   "type": "array",
+   "description": "SAS が読んだ資料（--ref）。子セッションはファイルを開けないので中身を入れる",
+   "items": {
+    "type": "object",
+    "required": [
+     "path",
+     "hash",
+     "text"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+     },
+     "text": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "not_written": {
+   "type": "array",
+   "description": "子セッションに書かせない欄と、その理由",
+   "items": {
+    "type": "object",
+    "required": [
+     "pointer",
+     "why"
+    ],
+    "properties": {
+     "pointer": {
+      "type": "string"
+     },
+     "why": {
+      "type": "string"
+     }
+    }
    }
   }
  },

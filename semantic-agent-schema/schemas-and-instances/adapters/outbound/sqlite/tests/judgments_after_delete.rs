@@ -37,6 +37,7 @@ fn delete_row() -> ChangeRow {
             after: None,
             before_unavailable: false,
         }],
+        child: None,
     }
 }
 

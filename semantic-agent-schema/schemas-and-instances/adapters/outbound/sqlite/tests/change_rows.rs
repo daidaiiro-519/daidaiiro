@@ -25,6 +25,7 @@ fn update(request_id: Option<&str>) -> ChangeRow {
             after: Some("null".into()),
             before_unavailable: false,
         }],
+        child: None,
     }
 }
 

@@ -16,6 +16,7 @@ fn row(kind: &str, path: &str, before: Option<&str>, after: Option<&str>) -> Cha
         after: after.map(Into::into),
         intent: Some("消す".into()),
         fields: Vec::new(),
+        child: None,
     }
 }
 

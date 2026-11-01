@@ -161,6 +161,7 @@ pub fn delete(
         after: None,
         intent: request.intent.clone(),
         fields: Vec::new(),
+        child: None,
     };
 
     // 1. 消す前提のハッシュ（更新と同じ決まり）

@@ -84,6 +84,8 @@ pub struct ChangeRow {
     pub intent: Option<String>,
     /// 変わった欄
     pub fields: Vec<FieldRow>,
+    /// 書いた書き込み用の子セッションの ID（意味で書いたときだけ）
+    pub child: Option<String>,
 }
 
 /// 記録にある作成 ・ 更新 ・ 削除の操作。

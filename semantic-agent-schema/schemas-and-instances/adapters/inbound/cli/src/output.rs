@@ -7,7 +7,7 @@ use rendering_application::use_cases::render::Rendered;
 use serde_json::{Map, Value, json};
 use validation_application::use_cases::validate::{MeaningOutcome, Refused, Validation};
 use validation_domain::values::{Counts, RuleResult, Verdict};
-use writing_application::use_cases::write::{ChangeResult, Deletion};
+use writing_application::use_cases::write::{ChangeResult, Deletion, SemanticOutcome};
 use writing_domain::values::Diff;
 
 fn counts(c: &Counts) -> Value {
@@ -261,6 +261,23 @@ pub fn print_deletion(d: &Deletion) {
 
 /// 作成か更新の結果を出す。
 pub fn print_change(c: &ChangeResult) {
+    println!("{}", change_json(c));
+}
+
+/// 意味で書いた結果を出す：1行目に子セッションに渡した手順、最後の行に変更の結果（書いた子セッションを添える）。
+pub fn print_semantic(c: &ChangeResult, o: &SemanticOutcome) {
+    let mut p = o.procedure.clone();
+    p["child_session"] = json!(o.child);
+    println!("{p}");
+    let mut out = change_json(c);
+    out["child_session"] = json!({
+        "id": o.child, "role": "writer", "started": o.started,
+        "corrections": o.corrections, "restarts": o.restarts,
+    });
+    println!("{out}");
+}
+
+fn change_json(c: &ChangeResult) -> Value {
     let mut diff = json!({
         "source": if c.outside { "outside" } else { "sas" },
         "after": {"hash": c.after.as_str()},
@@ -304,7 +321,7 @@ pub fn print_change(c: &ChangeResult) {
             "results": v.results.iter().map(rule_result).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
     });
-    println!("{out}");
+    out
 }
 
 /// 描画の結果を1行で出す。

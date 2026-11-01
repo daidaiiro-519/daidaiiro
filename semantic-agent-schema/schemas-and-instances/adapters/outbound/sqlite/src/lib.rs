@@ -92,7 +92,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent \
+                "SELECT kind, source, target_path, request_id, before_hash, after_hash, intent, child_session_id \
                  FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
@@ -105,6 +105,7 @@ impl SqliteLog {
                         after: r.get(5)?,
                         intent: r.get(6)?,
                         fields: Vec::new(),
+                        child: r.get(7)?,
                     })
                 },
             )
@@ -239,10 +240,10 @@ impl OperationLog for SqliteLog {
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
             "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, intent, request_id, source, \
-             parent_session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+             parent_session_id, child_session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 id, now(), row.kind, row.target_path, row.before, row.after, row.intent, row.request_id,
-                row.source, parent
+                row.source, parent, row.child
             ],
         )
         .map_err(|e| err(&e))?;

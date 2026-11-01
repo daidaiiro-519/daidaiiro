@@ -22,6 +22,7 @@ fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
         value,
         request_id: request_id.map(Into::into),
         intent: None,
+        writer: None,
     }
 }
 
@@ -78,6 +79,7 @@ fn same_request_is_one_operation() {
         if_match: Some(first.after.as_str().into()),
         request_id: Some("r-1".into()),
         intent: None,
+        writer: None,
     };
     let r = update(&other, &store, &Lenient, &Human, &mut log).unwrap_err();
     assert_eq!(r.code, "request_reused");
@@ -97,6 +99,7 @@ fn update_checks_the_hash_before_writing() {
         if_match: Some(if_match.into()),
         request_id: None,
         intent: None,
+        writer: None,
     };
     let r = update(&req("sha256:x"), &store, &Lenient, &Human, &mut log).unwrap_err();
     assert_eq!(r.code, "conflict");
@@ -121,6 +124,7 @@ fn update_without_if_match_compares_with_the_last_write() {
         if_match: None,
         request_id: None,
         intent: Some("目標を直す".into()),
+        writer: None,
     };
     // SAS が一度も書いていないので、比べるハッシュが無く、書く
     let first = update(&req("b"), &store, &Lenient, &Human, &mut log).unwrap();
@@ -186,6 +190,7 @@ fn update_reports_the_previous_judgments_it_made_stale() {
             if_match: Some(fp.as_str().into()),
             request_id: None,
             intent: None,
+            writer: None,
         },
         &store,
         &Lenient,

@@ -17,6 +17,7 @@ fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -
         after: after.map(Into::into),
         intent: Some("エディターで直した".into()),
         fields: Vec::new(),
+        child: None,
     }
 }
 

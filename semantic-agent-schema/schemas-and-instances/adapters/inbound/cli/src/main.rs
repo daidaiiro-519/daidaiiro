@@ -28,8 +28,8 @@ use validation_application::use_cases::validate::{
     Refused, Scope, validate, validate_stale, validate_with_meaning,
 };
 use writing_application::use_cases::write::{
-    AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, UpdateRequest, adopt, create, delete,
-    update,
+    AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
+    create, delete, semantic_write, update,
 };
 
 const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
@@ -222,50 +222,10 @@ fn run_validate_with_agent(
         Ok(w) => w,
         Err(r) => return refuse(&r),
     };
-    let def: Value = match std::fs::read_to_string(agent)
-        .map_err(|e| format!("{agent} を読めない：{e}"))
-        .and_then(|t| serde_json::from_str(&t).map_err(|e| format!("{agent} が JSON でない：{e}")))
-    {
-        Ok(v) => v,
-        Err(message) => {
-            return refuse(&Refused {
-                code: "invalid_input",
-                path: Some(agent.into()),
-                message,
-                ..Refused::default()
-            });
-        }
+    let reader = match load_connector(agent, &validator) {
+        Ok(r) => r,
+        Err(r) => return refuse(&r),
     };
-    match validator.check(AGENT_CONNECTOR, &def, &[]) {
-        Ok(broken) if broken.is_empty() => {}
-        Ok(broken) => {
-            return refuse(&Refused {
-                code: "invalid_input",
-                path: Some(agent.into()),
-                message: format!(
-                    "接続の定義が型に合わない：{}",
-                    broken
-                        .iter()
-                        .map(|(at, why)| format!("{at} {why}"))
-                        .collect::<Vec<_>>()
-                        .join(" ／ ")
-                ),
-                ..Refused::default()
-            });
-        }
-        Err(message) => {
-            return refuse(&Refused {
-                code: "validator",
-                message,
-                ..Refused::default()
-            });
-        }
-    }
-    let root = PathBuf::from(".");
-    let work = db_path(&root)
-        .parent()
-        .map_or_else(|| root.join(".sas"), Path::to_path_buf);
-    let reader = Connector::new(def, caller::session_envs(), work);
     let call = MeaningCall {
         reader: &reader,
         continue_child,
@@ -286,6 +246,46 @@ fn run_validate_with_agent(
     }
 }
 
+/// 接続の定義を読み、型に照らして、子セッションを起動するアダプターにする。
+fn load_connector(agent: &str, validator: &Validator) -> Result<Connector, Refused> {
+    let def: Value = std::fs::read_to_string(agent)
+        .map_err(|e| format!("{agent} を読めない：{e}"))
+        .and_then(|t| serde_json::from_str(&t).map_err(|e| format!("{agent} が JSON でない：{e}")))
+        .map_err(|message| Refused {
+            code: "invalid_input",
+            path: Some(agent.into()),
+            message,
+            ..Refused::default()
+        })?;
+    let broken = validator
+        .check(AGENT_CONNECTOR, &def, &[])
+        .map_err(|message| Refused {
+            code: "validator",
+            message,
+            ..Refused::default()
+        })?;
+    if !broken.is_empty() {
+        return Err(Refused {
+            code: "invalid_input",
+            path: Some(agent.into()),
+            message: format!(
+                "接続の定義が型に合わない：{}",
+                broken
+                    .iter()
+                    .map(|(at, why)| format!("{at} {why}"))
+                    .collect::<Vec<_>>()
+                    .join(" ／ ")
+            ),
+            ..Refused::default()
+        });
+    }
+    let root = PathBuf::from(".");
+    let work = db_path(&root)
+        .parent()
+        .map_or_else(|| root.join(".sas"), Path::to_path_buf);
+    Ok(Connector::new(def, caller::session_envs(), work))
+}
+
 /// エージェントの接続の定義の型。
 const AGENT_CONNECTOR: &str = "urn:semantic-agent-schema:published-language:agent-connector:v1";
 
@@ -296,9 +296,23 @@ enum Command {
 }
 
 fn run_change(args: &[String], command: Command) -> ExitCode {
-    // --adopt は値を取らない旗なので、先に抜き出す
+    // --adopt ・ --semantic は値を取らない旗、--ref は何度でも渡せるので、先に抜き出す
     let adopting = args.iter().any(|a| a == "--adopt");
-    let args: Vec<String> = args.iter().filter(|a| *a != "--adopt").cloned().collect();
+    let semantic = args.iter().any(|a| a == "--semantic");
+    let mut refs = Vec::new();
+    let mut rest = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--adopt" | "--semantic" => {}
+            "--ref" => match it.next() {
+                Some(v) if !v.is_empty() => refs.push(v.clone()),
+                _ => return usage("--ref に値がありません"),
+            },
+            _ => rest.push(a.clone()),
+        }
+    }
+    let args = rest;
     let mut flags: Vec<(&str, Option<String>)> = match command {
         Command::Create => vec![("--concrete", None), ("--value", None)],
         Command::Update => vec![("--patch", None), ("--if-match", None)],
@@ -307,6 +321,8 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         ("--intent", None),
         ("--session", None),
         ("--request-id", None),
+        ("--brief", None),
+        ("--agent", None),
     ]);
     let mut paths = Vec::new();
     let mut it = args.iter();
@@ -334,6 +350,62 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     let session = take("--session");
     let request_id = take("--request-id");
     let intent = take("--intent");
+    if !semantic
+        && let Some(name) = ["--brief", "--agent"]
+            .into_iter()
+            .find(|n| take(n).is_some())
+    {
+        return usage(&format!("{name} は --semantic と一緒に渡してください"));
+    }
+    if !semantic && !refs.is_empty() {
+        return usage("--ref は --semantic と一緒に渡してください");
+    }
+    if semantic {
+        // 意味で書く：値と JSON Patch は子セッションが決めるので受けない
+        if adopting {
+            return usage("--semantic と --adopt は一緒に渡せません");
+        }
+        if let Some(name) = ["--value", "--patch", "--if-match"]
+            .into_iter()
+            .find(|n| take(n).is_some())
+        {
+            return usage(&format!("--semantic と {name} は一緒に渡せません"));
+        }
+        let Some(agent) = take("--agent") else {
+            return usage(
+                "--semantic には、書き込み用の子セッションを起動する接続の定義を --agent で渡してください",
+            );
+        };
+        let concrete = match command {
+            Command::Create => match take("--concrete") {
+                Some(c) => Some(c),
+                None => return usage("--concrete を渡してください"),
+            },
+            Command::Update => None,
+        };
+        let request = SemanticRequest {
+            path: path.clone(),
+            concrete,
+            brief: take("--brief"),
+            refs,
+            intent,
+            request_id,
+        };
+        let result = run_with(
+            |store, validator, who, log| {
+                let reader = load_connector(&agent, validator)?;
+                semantic_write(&request, store, validator, who, log, &reader)
+            },
+            session,
+        );
+        return match result {
+            Ok((c, outcome)) => {
+                output::print_semantic(&c, &outcome);
+                ExitCode::SUCCESS
+            }
+            Err(r) => refuse(&r),
+        };
+    }
     if adopting {
         // 取り込みはファイルを書かないので、書く中身（--value ・ --patch）と前提のハッシュ（--if-match）を受けない
         if let Some(name) = ["--value", "--patch", "--if-match"]
@@ -396,6 +468,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 value,
                 request_id,
                 intent,
+                writer: None,
             };
             run_with(
                 |store, validator, who, log| create(&request, store, validator, who, log),
@@ -413,6 +486,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 if_match: take("--if-match"),
                 request_id,
                 intent,
+                writer: None,
             };
             run_with(
                 |store, validator, who, log| update(&request, store, validator, who, log),

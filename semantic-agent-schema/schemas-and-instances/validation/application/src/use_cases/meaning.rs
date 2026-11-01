@@ -201,46 +201,45 @@ pub struct Child {
     pub launch: Value,
 }
 
-/// 子セッションに1つの対象の判定を頼む。
+/// 子セッションとのやりとりの結果。
+pub struct Conversed<T> {
+    /// 読めた答え。読めなければ、なぜ読めなかったか（起動できない ・ 時間切れ ・ 形が合わない）
+    pub outcome: Result<T, String>,
+    /// 答えた ・ 最後に使った子セッションの ID
+    pub child: Option<String>,
+    /// 新しく起動した子セッションの ID の並び
+    pub started: Vec<String>,
+    /// 形の誤りを直させた回数
+    pub corrections: u32,
+    /// 時間切れで新しい子セッションにした回数
+    pub restarts: u32,
+}
+
+/// 子セッションに手順を渡し、答えを parse で読む。形が合わなければ同じ子セッションに2回まで直させ、
+/// 時間切れなら新しい子セッションで2回までやり直す（判定でも書き込みでも同じ）。
 ///
 /// # Errors
 /// 子セッションが処理中（busy）のとき。
-pub fn judge(
+pub fn converse<T>(
     reader: &dyn ReadMeaning,
-    validator: &dyn SchemaValidator,
     child: &mut Child,
-    procedure: &Value,
-    steps: &[Step],
-) -> Result<Judged, &'static str> {
-    let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
-    let first = prompt_text(procedure, &schema);
-    let mut prompt = first.clone();
+    first: &str,
+    schema: &Value,
+    parse: &dyn Fn(&str) -> Result<T, String>,
+) -> Result<Conversed<T>, &'static str> {
+    let mut prompt = first.to_string();
     let (mut corrections, mut restarts) = (0, 0);
-    let mut started = Vec::new();
-    let all = |verdict: Verdict, reason: &str| -> BTreeMap<usize, RuleResult> {
-        steps
-            .iter()
-            .map(|s| {
-                (
-                    s.no,
-                    RuleResult::new(&s.rule, &s.pointer, By::Ai, verdict, reason),
-                )
-            })
-            .collect()
-    };
+    let mut started: Vec<String> = Vec::new();
     loop {
         let reply = match &child.tool_ref {
-            Some(id) => reader.resume(id, &child.launch, &prompt, &schema),
-            None => reader.start(&prompt, &schema),
+            Some(id) => reader.resume(id, &child.launch, &prompt, schema),
+            None => reader.start(&prompt, schema),
         };
         match reply {
             Reply::Busy => return Err("busy"),
             Reply::Failed(why) => {
-                return Ok(Judged {
-                    results: all(
-                        Verdict::Error,
-                        &format!("エージェントを立ち上げられない：{why}"),
-                    ),
+                return Ok(Conversed {
+                    outcome: Err(format!("エージェントを立ち上げられない：{why}")),
                     child: child.tool_ref.clone(),
                     started,
                     corrections,
@@ -254,10 +253,10 @@ pub fn judge(
                     started.push(id);
                 }
                 if restarts >= MAX_RESTARTS {
-                    return Ok(Judged {
-                        results: all(
-                            Verdict::Error,
-                            "エージェントが時間内に答えない（新しい子セッションで2回やり直した）",
+                    return Ok(Conversed {
+                        outcome: Err(
+                            "エージェントが時間内に答えない（新しい子セッションで2回やり直した）"
+                                .to_string(),
                         ),
                         child: started.last().cloned().or_else(|| child.tool_ref.clone()),
                         started,
@@ -267,25 +266,17 @@ pub fn judge(
                 }
                 restarts += 1;
                 child.tool_ref = None;
-                prompt = first.clone();
+                prompt = first.to_string();
             }
             Reply::Answered { tool_ref, answer } => {
                 if child.tool_ref.is_none() {
                     started.push(tool_ref.clone());
                 }
                 child.tool_ref = Some(tool_ref.clone());
-                match read_answer(validator, &answer, steps) {
-                    Ok(map) => {
-                        let results = steps
-                            .iter()
-                            .filter_map(|s| {
-                                map.get(&s.no).map(|(v, why)| {
-                                    (s.no, RuleResult::new(&s.rule, &s.pointer, By::Ai, *v, why))
-                                })
-                            })
-                            .collect();
-                        return Ok(Judged {
-                            results,
+                match parse(&answer) {
+                    Ok(v) => {
+                        return Ok(Conversed {
+                            outcome: Ok(v),
                             child: Some(tool_ref),
                             started,
                             corrections,
@@ -294,13 +285,10 @@ pub fn judge(
                     }
                     Err(why) => {
                         if corrections >= MAX_CORRECTIONS {
-                            return Ok(Judged {
-                                results: all(
-                                    Verdict::Error,
-                                    &format!(
-                                        "答えが答えの形に合わない（同じ子セッションで2回直させた）：{why}"
-                                    ),
-                                ),
+                            return Ok(Conversed {
+                                outcome: Err(format!(
+                                    "答えが答えの形に合わない（同じ子セッションで2回直させた）：{why}"
+                                )),
                                 child: Some(tool_ref),
                                 started,
                                 corrections,
@@ -314,6 +302,49 @@ pub fn judge(
             }
         }
     }
+}
+
+/// 子セッションに1つの対象の判定を頼む。
+///
+/// # Errors
+/// 子セッションが処理中（busy）のとき。
+pub fn judge(
+    reader: &dyn ReadMeaning,
+    validator: &dyn SchemaValidator,
+    child: &mut Child,
+    procedure: &Value,
+    steps: &[Step],
+) -> Result<Judged, &'static str> {
+    let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
+    let first = prompt_text(procedure, &schema);
+    let c = converse(reader, child, &first, &schema, &|a| {
+        read_answer(validator, a, steps)
+    })?;
+    let results = match c.outcome {
+        Ok(map) => steps
+            .iter()
+            .filter_map(|s| {
+                map.get(&s.no)
+                    .map(|(v, why)| (s.no, RuleResult::new(&s.rule, &s.pointer, By::Ai, *v, why)))
+            })
+            .collect(),
+        Err(why) => steps
+            .iter()
+            .map(|s| {
+                (
+                    s.no,
+                    RuleResult::new(&s.rule, &s.pointer, By::Ai, Verdict::Error, &why),
+                )
+            })
+            .collect(),
+    };
+    Ok(Judged {
+        results,
+        child: c.child,
+        started: c.started,
+        corrections: c.corrections,
+        restarts: c.restarts,
+    })
 }
 
 /// 対象の中の所に当たる欄の定義（title ・ description ・ x-prompt を引くため）。properties ・ additionalProperties ・ items を

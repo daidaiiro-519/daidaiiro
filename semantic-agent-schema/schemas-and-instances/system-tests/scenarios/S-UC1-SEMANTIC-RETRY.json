@@ -1,0 +1,56 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-RETRY",
+ "name": "形に外れた答えを直させる",
+ "title": "書き込み用の子セッションの答えが Concrete の形に外れると、書かずに同じ子セッションに理由を渡して直させ、直った答えで書く",
+ "why": "形に外れた値を書くと、そのファイルを読む人とツールが壊れる。同じ子セッションなら前の答えを踏まえて直せる。",
+ "traces": [
+  "UC1:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-write-bad.json",
+   "agent/reply-2.json": "@fixtures/reply-write-ok.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/s2.json",
+   "--concrete",
+   "urn:example:sample:summary:v1",
+   "--semantic",
+   "--agent",
+   "agent/test-agent.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/child_session/corrections",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "file": "agent/call-2.txt",
+   "contains": "continue writer-1"
+  },
+  {
+   "of": "when",
+   "file": "agent/prompt-2.txt",
+   "contains": "/id"
+  },
+  {
+   "of": "when",
+   "file": "items/s2.json",
+   "contains": "R7"
+  }
+ ]
+}

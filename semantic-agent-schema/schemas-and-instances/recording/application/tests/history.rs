@@ -112,6 +112,7 @@ fn change(before: Option<&str>, after: Option<&str>) -> ChangeRow {
         after: after.map(Into::into),
         intent: None,
         fields: Vec::new(),
+        child: None,
     }
 }
 

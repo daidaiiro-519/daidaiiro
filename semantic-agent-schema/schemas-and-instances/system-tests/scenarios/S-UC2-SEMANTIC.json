@@ -1,0 +1,60 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-SEMANTIC",
+ "name": "意味で直す",
+ "title": "--semantic で直すと、手順の各ステップにいまの値が入り、子セッションの答えのうち変わった欄だけを JSON Patch として当てる",
+ "why": "いまの値を見せずに書かせると、直す必要の無い欄まで書き換わる。変わらない欄を差分に出すと、何を直したかが読めない。",
+ "traces": [
+  "UC2:変形:意味で書く",
+  "約束:procedure"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "agent/test-agent.sh": "@fixtures/test-agent.sh",
+   "agent/test-agent.json": "@fixtures/test-agent.json",
+   "agent/reply-1.json": "@fixtures/reply-write-update.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "items/s1.json",
+   "--semantic",
+   "--brief",
+   "要約を目的に合わせる",
+   "--agent",
+   "agent/test-agent.json",
+   "--intent",
+   "要約を直す"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "line": 0,
+   "pointer": "/steps/1/current",
+   "equals": "検証の結果を受け取る"
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "updated"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/changes/0/pointer",
+   "equals": "/summary"
+  }
+ ]
+}

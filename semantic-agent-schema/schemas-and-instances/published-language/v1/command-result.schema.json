@@ -580,6 +580,43 @@
        }
       }
      }
+    },
+    "child_session": {
+     "type": "object",
+     "required": [
+      "id",
+      "role",
+      "started",
+      "corrections",
+      "restarts"
+     ],
+     "additionalProperties": false,
+     "description": "欄を書いた書き込み用の子セッション（--semantic のとき）",
+     "properties": {
+      "id": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "role": {
+       "const": "writer"
+      },
+      "started": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "corrections": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "restarts": {
+       "type": "integer",
+       "minimum": 0
+      }
+     }
     }
    },
    "allOf": [
@@ -658,9 +695,12 @@
       "invalid_design_system",
       "busy",
       "writer_as_checker",
-      "launch_mismatch"
+      "launch_mismatch",
+      "reads_cycle",
+      "ref_too_large",
+      "writer_failed"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前 ・ 版 ・ 中身のハッシュのどれかが違う）で、記録しない"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前 ・ 版 ・ 中身のハッシュのどれかが違う）で、記録しない。reads_cycle ・ ref_too_large ・ writer_failed は意味で書くのを始められなかった ・ 答えを得られなかったこと（rule の reads が読み合う ・ 資料が上限を超える ・ 子セッションが答えない ・ 形に合う答えを返さない）で、記録しない（起動した子セッションの行だけは残る）"
     },
     "path": {
      "type": "string"
