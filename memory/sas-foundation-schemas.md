@@ -1,6 +1,6 @@
 ---
 name: sas-foundation-schemas
-description: semantic-agent-schema の現在地。ステップ6（子セッションで意味の rule を判定）をコミット済み、次はステップ7（2026-11-01 更新）
+description: semantic-agent-schema の現在地。Abstract を導き直してコミット済み（461847bd）、次はステップ7（2026-11-01 更新）
 metadata:
   node_type: memory
   type: project
@@ -68,6 +68,7 @@ metadata:
 
 ## 次にすること
 - 2026-10-31：文脈を言葉のずれから引き直し、承認を受けてコミット 9519cffa。文脈は2つ ── スキーマとインスタンス（schemas-and-instances/：スキーマへの適合・操作の記録・描画）と立てたセッション（launched-sessions/：意味の操作、ステップ6 で作る）。根拠は「セッション」で同じ物を2つのモデルで持っていたこと。地図は docs/design/arch/arch-v15.json の context_map。承認のページ https://claude.ai/artifact/6v6k3qEciCCvsyTLYKKLhm 版6（シミュレーターの URL を使い回した。材料 scratchpad ctx-meaning/answer.json・review.json）。
+00. Abstract を導き直した（461847bd、ACDR 0218、概念のページ版21、探索の記録 step-06b）。Abstract は以前の基盤の写しだったので、能力から約束を導き直し、JSON Schema 2020-12 で書けることは JSON Schema で書く。Concrete に書ける x- は5つ（x-prompt ・ x-relationship ・ x-decided-by ・ x-published ・ x-view）、x- を増やさない。SAS の機械の rule は4つ（instance-schema-name ・ unique-id ・ human-entry-only ・ target-exists）。公開された言葉は7つ。判定のページ https://claude.ai/artifact/PBDkvahCbDzdYjHsMmVmTw 、全文の差分 https://claude.ai/artifact/FrgGX5PFrGK1ofLSuFVkWh 。残り：docs/design/schema-db/design.json は14ファイルの前提のまま（README で概念のページへ案内）。持ち越し：値の外を読む rule（reads をどこまで指せるか、子セッションのツールと MCP）はステップ7 の前に論点として決める。
 0. ステップ6（SF1 と UC4 の意味の rule）はコミット済み cc911474。`sas validate … --agent <接続の定義> [--continue <子セッションの ID>]`。接続の定義は published-language/v1/agent-connector.schema.json（例 adapters/outbound/agents/connectors/ の claude-code.json ・ codex.json。Claude Code は --tools "" と --disallowedTools "mcp__*" で子セッションのツール0件）。シミュレーター 6v6k3q… 版20（1枚目「どう振る舞うか」）、概念のページ版20（Fpx9h… アーティファクト版22）、探索の記録 step-06.json。呼び方は子セッション ・ 親セッションと checker ・ writer（「確かめる子」は使わない）。持ち越し：値の外を読まないと判定できない rule（何を読ませるか）は根幹の論点として調査 ・ 反証 ・ アドバイザーを通して出す、--agent と --stale の併用、Copilot ・ Kiro の接続の定義、キャッシュの実測を増やす。次は計画 plan.json の ステップ7。
 1. ステップ5（UC5 描画する）はコミット済み d18ac2cf（試験 97件 ・ 場面 93件）。SAS が持つのは JSON の値をテンプレートに埋め込む契約とその検証だけで、UI ・ UX のロジックはテンプレートの JS が持つ（利用者の要件）。テンプレートは Mustache（自前の処理系、mustache/spec @e8ec001d の試験 136件を通す。契約 published-language/v1/template-language.json）、渡すのは value ・ json ・ tokens ・ css。sas validate <デザインシステム> で7つの rule（テンプレートが置く名前と JS が sas-data から読む欄が Concrete にあるか。JS は boa 0.22.0）。シミュレーター 6v6k3q… 版16、テンプレートの書き方のページ VYeEarjweXihDbJTNxnGhW 版7、概念のページ版19（Fpx9h…）。次はステップ6（子のセッションの起動 ・ 意味の判定。持ち越し：ai ・ human の rule の読んだ所の指紋に rule の文が入っていない、トークンの $type の値の検査、中断の場面）。
    1. 名前の見直しと言葉の点検はコミット済み fd14bf93（テスト86件）。文脈 schemas-and-instances/ の中は業務領域を作るモジュール（writing・validation＝業務領域「書いて検証する」、recording＝記録）と adapters、根に domain を置かない。公開された言葉は published-language/v1 の1か所（Abstract の本体 abstract.schema.json・語彙・方言と operation-result。URN は urn:semantic-agent-schema:published-language:…）。子のセッションとのやりとりの3スキーマは公開された言葉に入れず、ステップ6 でポートの側に置く（URN もそのとき決める）。リポジトリの根は製品、ポートとアダプター、業務サービス、SchemaValidator（拒否のコード validator）。概念のページ版18（Fpx9h… アーティファクト版16）、言葉の点検のページ 9C9nmWLvzKT6VZoG5UbPTr 版5。docs/design/concept/src/index.html（版5 の古い場面・使われていない）は直していない。次はステップ5（UC5 描画する、rendering/）。
