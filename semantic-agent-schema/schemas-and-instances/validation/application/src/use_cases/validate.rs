@@ -20,9 +20,7 @@ use validation_domain::services::{
     rules_for_instance,
 };
 use validation_domain::values::{By, Counts, RuleResult, Verdict};
-use writing_domain::aggregates::{
-    ABSTRACT_VERSIONS, ConcreteSchema, Entry, Instance, extension_names,
-};
+use writing_domain::aggregates::{ABSTRACT_VERSIONS, ConcreteSchema, Entry, Instance};
 use writing_domain::values::Fingerprint;
 
 /// 方言（Concrete の入れ子の x- の形を決める）。Concrete は Abstract の本体と、この方言の両方に照らす。
@@ -115,7 +113,7 @@ pub struct Refused {
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ commits ・ log、
     /// 描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out、
     /// 書く手前の判定で断ったもの：invalid_value ・ has_dependents ・ references_blocked ・ conflict ・ patch_failed ・
-    /// id_changed ・ human_field ・ derived_mismatch ・ published_changed、書いた途中で止まったもの：references_left）
+    /// id_changed ・ human_field ・ published_changed、書いた途中で止まったもの：references_left）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
@@ -138,7 +136,7 @@ pub struct Refused {
 pub struct Blocked {
     /// 経路
     pub path: String,
-    /// 決まった名前（follows ・ points_to ・ conflict ・ invalid_value ・ human_field ・ id_changed ・ derived_mismatch ・ left）
+    /// 決まった名前（follows ・ points_to ・ conflict ・ invalid_value ・ human_field ・ id_changed ・ left）
     pub code: &'static str,
     /// 理由
     pub message: String,
@@ -464,6 +462,10 @@ fn apply_meaning(
                     .and_then(|f| f.get("description"))
                     .and_then(Value::as_str)
                     .map(ToString::to_string),
+                read: field
+                    .and_then(|f| f.pointer("/x-prompt/read"))
+                    .filter(|r| r.as_object().is_some_and(|m| !m.is_empty()))
+                    .cloned(),
                 current: c
                     .doc
                     .value
@@ -588,12 +590,11 @@ fn judge(
                     format!("{declared} をバリデーターが持たない"),
                 )
             })?;
-            let names = extension_names(&abstract_doc);
             let concrete = ConcreteSchema::read(&d.value).ok_or_else(|| {
                 refused("validator", &d.path, "Concrete として読めない".to_string())
             })?;
             for rule in rules_for_concrete(&abstract_doc, &concrete) {
-                if let Some(rs) = judge_concrete(&concrete, &rule.id, &rule.pointer, &names) {
+                if let Some(rs) = judge_concrete(&concrete, &rule.id, &rule.pointer) {
                     results.extend(
                         rs.into_iter()
                             .map(|r| (r, rule.pointer.clone(), Some(rule.definition.clone()))),

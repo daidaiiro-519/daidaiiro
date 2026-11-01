@@ -1,12 +1,11 @@
 {
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC3-CONCRETE-PUBLISHED",
- "name": "公開した Concrete を消す",
- "title": "x-published: true の欄を持つ Concrete を消そうとすると、published_changed で止まる",
- "why": "公開した欄はほかの文脈が読むので、黙って消えると読む側が壊れる。",
+ "name": "変えない欄を持つ Concrete を消す",
+ "title": "x-published: true の欄を持つ Concrete でも、従うインスタンスと指す Concrete が無ければ消せる",
+ "why": "x-published は同じ版のあいだ欄を変えない約束で、消すことは止めない。頼っている文書があれば、has_dependents が止める。",
  "traces": [
-  "UC3:拡張:2a",
-  "UC3:最低保証"
+  "UC3:成功時保証"
  ],
  "given": {
   "files": {
@@ -24,20 +23,17 @@
  "then": [
   {
    "of": "when",
-   "exit": 1
+   "exit": 0
   },
   {
    "of": "when",
-   "pointer": "/code",
-   "equals": "published_changed"
+   "pointer": "/result",
+   "equals": "deleted"
   },
   {
    "of": "when",
-   "pointer": "/operation",
+   "file": "schemas/decision.schema.json",
    "exists": false
   }
- ],
- "unchanged": [
-  "schemas/decision.schema.json"
  ]
 }

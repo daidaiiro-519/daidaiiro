@@ -9,7 +9,7 @@
 | `advisors/impl-ddd.json` | 上から決めて下から確かめた結果（集約・値・サービス・スクリプトのまま） | 仮説 |
 | `advisors/re-uc.json` | ユースケース8件（UC0〜UC7・SF1）と意味の検証の流れ | 正 |
 | `advisors/general-ddd.json` | 一般の能力の契約（セッションの4つの型・差分・JSON Schema の検査・デザインシステム） | 正 |
-| `schema-db/design.json`・`design.md` | schemas/v1 の14ファイル・x- 10個・DB 5表 | 仮説。ステップごとに必要なものだけ作る |
+| `schema-db/design.json`・`design.md` | schemas/v1 の14ファイル・x- 10個・DB 5表 | 仮説（版21 で Abstract を導き直し、公開された言葉は7つ、Concrete に書ける x- は5つになった。いまの形は概念のページのスキーマと DB のタブ） |
 | `schema-db/factcheck-*.json`・`sources.json` | 原典との照合の結果と、原文の取得の記録 | 正 |
 | `rust/factcheck-rust.json`・`sources.json` | Rust の一次情報との照合 | 正 |
 | `plan/plan.json`・`review.json` | 作り直しの計画と、その反証 | 正 |

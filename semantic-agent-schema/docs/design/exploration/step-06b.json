@@ -1,0 +1,106 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": "6b",
+ "date": "2026-11-01",
+ "summary": "Abstract を導き直した。利用者の問い「今の Abstract は正しい抽象概念として正しいスキーマか。既存にとらわれていないか」で調べると、Abstract は以前の基盤のスキーマの写し（rule 52件のうち51件が archive の semantic-abstract-schema.json と同じ）で、10-31 の作り直しでも導き直さずに持ち込んでいた。SAS の能力から Concrete を書く人への約束を導き、JSON Schema 2020-12（原典の Core ・ Validation で照合）で書けることは JSON Schema で書き、x- と SAS の rule は書けないことだけにした。Concrete に書ける x- は5つ（x-prompt ・ x-relationship ・ x-decided-by ・ x-published ・ x-view）にし、x- を増やさない（利用者の方針）。SAS の機械の rule は4つにし、どれも判定する。Abstract の $defs の中の rule が Concrete に当たっていなかった（ステップ1 からの後回し）のを直した。4人のアドバイザー（DDD ・ 具体と抽象 ・ ユースケース ・ 非機能）と反証役（3回）を通した",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "JSON Schema 2020-12 で書けること（検証と注釈のキーワード）と、readOnly ・ format ・ uniqueItems ・ dependentRequired の意味",
+   "evidence": [
+    "json-schema.org/draft/2020-12/json-schema-validation（取得 2026-11-01、3,185 行）：9.4 readOnly「managed exclusively by the owning authority …」、7.2.1 format「MUST be disabled by default」、6.4.3 uniqueItems、6.5.4 dependentRequired（quote で4件照合）",
+    "json-schema.org/draft/2020-12/json-schema-core（取得 2026-11-01）：節の一覧（applicator ・ unevaluated ・ $dynamicRef）",
+    "検査器（python jsonschema）で7つのスキーマのメタスキーマとの合否、x-delegates ・ 入れ子の x-view ・ id の欠け ・ rule の agent ・ urn:semantic-agent-schema: の $id ・ 一覧に無い版が断られること、if ・ then ・ else が x-derived-from と同じ合否になることを確かめた"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 の Concrete の検証（validation/domain の rules.rs ・ abstract_rules.rs）",
+   "steps": [
+    "Abstract を Concrete の形としてたどり、properties ・ additionalProperties ・ items ・ allOf の先（$ref で指す $defs と、$ref と横に並べた x-prompt を含む）の rule を、Concrete にある所ごとに当てる",
+    "Concrete のどこかで使う x- ごとに、その x- の定義の rule と値の形（$defs）の rule を当てる",
+    "機械の rule のうち JSON Schema で書けないもの（instance-schema-name ・ unique-id ・ human-entry-only ・ target-exists）を判定する"
+   ],
+   "rules": [
+    "JSON Schema で書けることは JSON Schema で書き、SAS の rule にしない",
+    "Concrete は x- を足さない。意味の決まりを広げるときは x-prompt の rule に書く"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "Abstract（以前の基盤の写し）",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "x-delegates ・ x-instance-path ・ x-instance-label ・ x-derived-from ・ Concrete の x-extensions ・ output-judging ・ output-working ・ kind と、rule 13件（closed-list ・ urn-with-version ・ never-reuse ・ prompt-per-unit ・ prompt-like-field ・ shape-only ・ what-it-means ・ instance-path-and-kind ・ term-by-ref ・ rule-agent ・ agent-exists ・ abstract-keywords-closed ・ no-abstract-names など）を外した"
+  },
+  {
+   "item": "概念のページの14ファイル",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "公開された言葉は7つ。glossary ・ operation-request ・ procedure-prompt ・ session-request ・ session ・ diff ・ settings は作らないと決めた（概念のページ版21）"
+  },
+  {
+   "item": "Abstract の $defs の中の rule が Concrete に当たっていない（rules.rs のコメント「まだ集めない（step-01）」）",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "$ref をたどって当てる。試験 abstract_rules_inside_defs_reach_the_concrete"
+  },
+  {
+   "item": "x-published の欄を持つ Concrete は永久に消せなかった",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "x-published は同じ版のあいだ変えない約束で、削除は止めない。頼っている文書があれば has_dependents が止める（S-UC3-CONCRETE-PUBLISHED を書き換えた）"
+  },
+  {
+   "item": "x-prompt の read を子セッションに渡していない",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "interpret ・ when を手順のプロンプトに入れる。shown は外した（試験 reading_of_the_field_goes_to_the_child_session）"
+  },
+  {
+   "item": "x-decided-by を標準の readOnly に置き換える案",
+   "result": "match",
+   "fixed": "none",
+   "note": "反証役の指摘で取り下げた。readOnly は「誰も入力しない値」と読まれ、人が値を入れる欄に合わない"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "x-published",
+   "seen": "Abstract の x-extensions",
+   "drift": "「他の文脈へ見せる」（以前の基盤）から「同じ版のあいだ変えない」（SAS が守る約束）へ"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "validation-domain の rules.rs",
+    "before": "根の rule と根の properties の rule だけ",
+    "after": "Abstract を Concrete の形としてたどり、$defs の中の rule も当てる",
+    "why": "Abstract のどこに書いた約束も判定する"
+   },
+   {
+    "what": "validation-domain の abstract_rules.rs",
+    "before": "closed-list ・ no-abstract-names ・ abstract-keywords-closed",
+    "after": "instance-schema-name ・ unique-id ・ human-entry-only",
+    "why": "JSON Schema で書けないことだけを SAS の rule にする"
+   },
+   {
+    "what": "writing-domain",
+    "before": "x-derived-from の一致を確かめる ・ x-published の Concrete の削除を止める",
+    "after": "どちらも外した",
+    "why": "導く値は JSON Schema の if ・ then ・ else が見る。削除は止めない"
+   }
+  ]
+ }
+}

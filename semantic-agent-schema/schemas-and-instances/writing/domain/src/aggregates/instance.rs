@@ -100,43 +100,8 @@ impl Instance {
                     ));
                 }
             }
-            if let Some(rule) = field.get("x-derived-from") {
-                let target = rule.get("declared").and_then(Value::as_str).unwrap_or(name);
-                let derived = derive(rule, &self.document);
-                if let Some(written) = self.document.get(target)
-                    && Some(written) != derived
-                {
-                    let at = format!("/{}", escape(target));
-                    return Err(WriteViolation::new(
-                        "derived_mismatch",
-                        &at,
-                        &format!(
-                            "{at} は {written} だが、x-derived-from で導く値は {}",
-                            derived.map_or_else(|| "（無し）".to_string(), Value::to_string)
-                        ),
-                    ));
-                }
-            }
         }
         Ok(())
-    }
-}
-
-/// x-derived-from の決まりを上から当て、最初に当たった then、どれにも当たらなければ otherwise を返す。
-fn derive<'a>(rule: &'a Value, document: &Value) -> Option<&'a Value> {
-    let hit = rule
-        .get("rules")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .find(|r| {
-            r.get("when")
-                .and_then(Value::as_object)
-                .is_some_and(|when| when.iter().all(|(k, v)| document.get(k) == Some(v)))
-        });
-    match hit {
-        Some(r) => r.get("then"),
-        None => rule.get("otherwise"),
     }
 }
 
@@ -147,8 +112,7 @@ mod tests {
 
     fn concrete() -> Value {
         json!({"properties": {
-            "status": {"x-decided-by": "human", "default": "draft"},
-            "review": {"x-derived-from": {"rules": [{"when": {"risk": "high"}, "then": "by-two"}], "otherwise": "by-one"}}
+            "status": {"x-decided-by": "human", "default": "draft"}
         }})
     }
 
@@ -190,22 +154,6 @@ mod tests {
         );
         assert_eq!(
             code(approved.check_write(Some(&draft), &concrete(), Entry::Human)),
-            "ok"
-        );
-    }
-
-    #[test]
-    fn derived_value_must_match() {
-        let ok = inst(&json!({"$schema": "c", "risk": "high", "review": "by-two"}));
-        let bad = inst(&json!({"$schema": "c", "risk": "high", "review": "by-one"}));
-        let absent = inst(&json!({"$schema": "c", "risk": "high"}));
-        assert_eq!(code(ok.check_write(None, &concrete(), Entry::Human)), "ok");
-        assert_eq!(
-            code(bad.check_write(None, &concrete(), Entry::Human)),
-            "derived_mismatch"
-        );
-        assert_eq!(
-            code(absent.check_write(None, &concrete(), Entry::Human)),
             "ok"
         );
     }

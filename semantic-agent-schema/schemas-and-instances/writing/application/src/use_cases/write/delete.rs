@@ -276,9 +276,6 @@ pub fn delete(
     match kind {
         TargetKind::Concrete => {
             let concrete = ConcreteSchema::read(&before);
-            if let Some(Err(v)) = concrete.as_ref().map(ConcreteSchema::check_delete) {
-                return Err(refused(v.code(), path, v.message().to_string()));
-            }
             let own = concrete
                 .as_ref()
                 .and_then(|c| c.id().map(ToString::to_string));

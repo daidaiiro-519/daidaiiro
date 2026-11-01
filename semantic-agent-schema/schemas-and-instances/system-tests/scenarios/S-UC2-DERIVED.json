@@ -2,8 +2,8 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC2-DERIVED",
  "name": "導出値が古いまま",
- "title": "導く元の欄だけを変えて導出値を変えないと、直さずに derived_mismatch を返す",
- "why": "元の答えだけが変わると、導いた値が前の答えのまま残る。",
+ "title": "根の if ・ then ・ else で導く値と違う値で直そうとすると、書かずに invalid_value と期待した値を返す",
+ "why": "導ける値を手で違えて書けると、同じ答えから別の結論が残る。導く決まりは JSON Schema の if ・ then ・ else で書く。",
  "traces": [
   "UC2:最低保証"
  ],
@@ -20,7 +20,7 @@
    "--patch",
    "[{\"op\":\"replace\",\"path\":\"/risk\",\"value\":\"high\"}]",
    "--if-match",
-   "sha256:d7ef0cf6166d824a6113c9e9ae9fd123fcfbf9b7163043e558e7850b96123003"
+   "sha256:da5cc215c456a669443fc2f07aa7b7817e7c1f39812490c6f6c1fec7a8ac743a"
   ]
  },
  "then": [
@@ -31,7 +31,7 @@
   {
    "of": "when",
    "pointer": "/code",
-   "equals": "derived_mismatch"
+   "equals": "invalid_value"
   },
   {
    "of": "when",

@@ -2,8 +2,8 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:vocabulary:v1",
  "$dynamicAnchor": "meta",
- "title": "Semantic Abstract Schema の語彙",
- "description": "入れ子のどこでも書ける x- の9つのキーワードの形だけを決めるメタスキーマ。$dynamicAnchor meta により、方言を通して入れ子のすべてのサブスキーマに掛かる。ほかのキーワードは禁じない。形の本体は Abstract の本体の $defs にあり、名前（$anchor）で指す",
+ "title": "Abstract の語彙",
+ "description": "入れ子のどこでも書ける x- の4つのキーワード（x-prompt ・ x-relationship ・ x-decided-by ・ x-published）の形を決め、x- で始まるキーをこの一覧と x-view ・ x-extensions（Abstract の本体だけ）に閉じるメタスキーマ。$dynamicAnchor meta により、方言を通して入れ子のすべてのサブスキーマに掛かる。x- で始まらないキーワードは禁じない。形の本体は Abstract の本体の $defs にあり、名前（$anchor）で指す",
  "type": [
   "object",
   "boolean"
@@ -15,26 +15,33 @@
   "x-relationship": {
    "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#relationship"
   },
-  "x-derived-from": {
-   "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#derived"
-  },
   "x-decided-by": {
    "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#decided"
   },
   "x-published": {
    "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#published"
   },
-  "x-instance-path": {
-   "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#instance-path"
-  },
-  "x-instance-label": {
-   "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#instance-label"
-  },
-  "x-delegates": {
-   "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#delegates"
-  },
   "x-extensions": {
    "$ref": "urn:semantic-agent-schema:published-language:abstract:v1#extensions"
   }
+ },
+ "propertyNames": {
+  "anyOf": [
+   {
+    "not": {
+     "pattern": "^x-"
+    }
+   },
+   {
+    "enum": [
+     "x-prompt",
+     "x-relationship",
+     "x-decided-by",
+     "x-published",
+     "x-view",
+     "x-extensions"
+    ]
+   }
+  ]
  }
 }

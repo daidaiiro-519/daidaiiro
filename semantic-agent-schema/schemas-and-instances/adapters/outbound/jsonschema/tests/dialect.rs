@@ -40,17 +40,13 @@ fn nested_x_shape_is_checked_through_dialect() {
 fn concrete_can_be_used_as_schema() {
     let c = Validator::new().unwrap();
     let concrete = json!({
-        "$schema": ABSTRACT, "$id": "urn:semantic-agent-schema:t:thing:v1",
+        "$schema": ABSTRACT, "$id": "urn:example:t:thing:v1",
         "title": "もの", "description": "試験のものである。",
         "type": "object", "properties": {"n": {"title": "数", "description": "数である。", "x-prompt": {}, "type": "integer"}}
     });
-    let more = vec![("urn:semantic-agent-schema:t:thing:v1".to_string(), concrete)];
+    let more = vec![("urn:example:t:thing:v1".to_string(), concrete)];
     let errors = c
-        .check(
-            "urn:semantic-agent-schema:t:thing:v1",
-            &json!({"n": "x"}),
-            &more,
-        )
+        .check("urn:example:t:thing:v1", &json!({"n": "x"}), &more)
         .unwrap();
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].0, "/n");

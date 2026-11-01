@@ -45,6 +45,8 @@ pub struct Step {
     pub title: Option<String>,
     /// 欄の説明
     pub description: Option<String>,
+    /// 欄の読み方（x-prompt の read：interpret ・ when）
+    pub read: Option<Value>,
     /// いまの値
     pub current: Value,
 }
@@ -70,6 +72,9 @@ pub fn procedure(path: &str, concrete: &str, fingerprint: &str, steps: &[Step]) 
             if let Some(d) = &s.description {
                 v["description"] = json!(d);
             }
+            if let Some(r) = &s.read {
+                v["read"] = r.clone();
+            }
             v
         }).collect::<Vec<_>>(),
         "answer": {"schema": "judgments"},
@@ -86,7 +91,7 @@ pub fn procedure(path: &str, concrete: &str, fingerprint: &str, steps: &[Step]) 
 pub fn prompt_text(procedure: &Value, answer_schema: &Value) -> String {
     format!(
         "あなたは SAS（Semantic Agent Schema）が起動した検証用の子セッションです。\n\
-         次の手順のプロンプトの steps のそれぞれについて、rules の rule（rule ・ why ・ test）に照らして current の値を判定し、\n\
+         次の手順のプロンプトの steps のそれぞれについて、rules の rule（rule ・ why ・ test）に照らして current の値を判定し（read があれば、その読み方で値を読む）、\n\
          答えの形に合う JSON だけを返してください。ファイルを書かず、ステップに無い欄に触れないでください。\n\n\
          手順のプロンプト：\n{}\n\n答えの形：\n{}\n",
         serde_json::to_string_pretty(procedure).unwrap_or_default(),

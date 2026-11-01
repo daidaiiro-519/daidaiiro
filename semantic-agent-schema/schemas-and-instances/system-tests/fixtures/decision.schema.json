@@ -1,6 +1,6 @@
 {
  "$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
- "$id": "urn:semantic-agent-schema:sample:decision:v1",
+ "$id": "urn:example:sample:decision:v1",
  "title": "決定",
  "description": "決めたことと、その状態である。",
  "type": "object",
@@ -11,7 +11,7 @@
  ],
  "properties": {
   "$schema": {
-   "const": "urn:semantic-agent-schema:sample:decision:v1"
+   "const": "urn:example:sample:decision:v1"
   },
   "id": {
    "title": "ID",
@@ -59,26 +59,39 @@
   },
   "review": {
    "title": "確かめ方",
-   "description": "影響から導く、確かめ方である。",
+   "description": "影響から導く、確かめ方である。影響が high なら by-two、それ以外は by-one（根の if ・ then ・ else）。",
    "x-prompt": {
     "write": []
-   },
-   "x-derived-from": {
-    "rules": [
-     {
-      "when": {
-       "risk": "high"
-      },
-      "then": "by-two"
-     }
-    ],
-    "otherwise": "by-one"
    },
    "type": "string",
    "enum": [
     "by-one",
     "by-two"
    ]
+  }
+ },
+ "if": {
+  "properties": {
+   "risk": {
+    "const": "high"
+   }
+  },
+  "required": [
+   "risk"
+  ]
+ },
+ "then": {
+  "properties": {
+   "review": {
+    "const": "by-two"
+   }
+  }
+ },
+ "else": {
+  "properties": {
+   "review": {
+    "const": "by-one"
+   }
   }
  }
 }

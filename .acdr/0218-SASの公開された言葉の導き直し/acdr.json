@@ -1,0 +1,632 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0218",
+ "title": "SAS の公開された言葉の導き直し",
+ "date": "2026-11-01",
+ "status": "accepted",
+ "decision": "SAS の公開された言葉のうち Abstract（と語彙 ・ 方言）を、以前の基盤の写しから、SAS の能力ごとに Concrete を書く人へ約束することだけを持つ形に導き直し、受け取りの型の穴を閉じる。",
+ "why": "いまの Abstract は rule 52件のうち51件が、以前の基盤のスキーマ（archive の semantic-abstract-schema.json）と同じである。10-31 の作り直しでも、導き直さずに持ち込んだ。そのため、書けるのに SAS が何もしない約束が残った。x-delegates ・ rule の agent ・ x-instance-path ・ x-instance-label ・ kind ・ output-judging ・ output-working である。以前の語（基盤 ・ Semantic Schema Resolver ・ I33 ・ ETag ・ ボードの論点番号）も残り、使う側の URN も通らなかった。概念のページ（版20）の能力 ・ ユースケースと、利用者の要望「既存にとらわれず、正しい抽象概念として正しいスキーマか見る」に一致させる。v1 は未公開なので v1 のまま直す。",
+ "shift": [
+  {
+   "what": "Abstract に置くもの",
+   "from": "以前の基盤の項目をそのまま（根の x- 7つ ・ $defs 20 ・ rule 40件）",
+   "to": "SAS がその約束どおりに振る舞う項目だけ。Concrete に書ける x- は5つ（x-prompt ・ x-relationship ・ x-decided-by ・ x-published ・ x-view）"
+  },
+  {
+   "what": "誰に判定させるか",
+   "from": "Concrete の x-delegates と rule の agent（SAS は読まない）",
+   "to": "Concrete には書かない。--agent の接続の定義が決める"
+  },
+  {
+   "what": "インスタンスを見分ける約束",
+   "from": "x-instance-path があるときだけ kind ・ $schema ・ id を必須",
+   "to": "どの Concrete にも $schema（const）と id を必須。kind は無い"
+  },
+  {
+   "what": "判定が読む所",
+   "from": "rule の reads はあるが SAS は読まない",
+   "to": "（案、T1 で確定）SAS が reads を読んで子セッションに渡し、指紋に含める"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前と変更後の Abstract の根の x- 項目と数",
+ "alternatives": [
+  {
+   "option": "いまの項目を1つずつ棚卸しして、残すか外すかを決める",
+   "why_not": "反証役の指摘：「使っているから残す」「後で使うから残す」が混ざり、残す側も以前の写しのままになる。能力から約束を導いて突き合わせる順にした"
+  },
+  {
+   "option": "x-delegates の run.argv ・ run.session だけを外し、role と kind を残す",
+   "why_not": "role ・ kind も SAS は読まず、子セッションに渡してもいない。約束だけあって振る舞いが無い"
+  },
+  {
+   "option": "x-instance-path ・ x-instance-label を残す（具体と抽象の観点の見解）",
+   "why_not": "どの能力の約束でもなく、SAS が何もしない。検索の範囲はステップ8 で約束を決めるときに足す（v1 未公開なので足すのは後からできる）"
+  },
+  {
+   "option": "operation-request.schema.json を足す",
+   "why_not": "SAS の入力は CLI の引数で、JSON で依頼する口が無い。口が無いまま型を公開すると空の約束になる"
+  },
+  {
+   "option": "dialect の $vocabulary の名前（…:vocab:v1）を vocabulary の $id にそろえる",
+   "why_not": "JSON Schema の $vocabulary は語彙の識別子で、メタスキーマの $id と同じである必要がない。jsonschema のアダプターもこの名前を使う"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "abstract",
+   "tab": "abstract.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/abstract.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"SAS の Abstract v1\"",
+     "why": "いまの Abstract は以前の基盤のスキーマ（archive の semantic-abstract-schema.json）の写しで。題と説明が以前の名前（Semantic Abstract Schema ・ Semantic Concrete Schema）のままだった。SAS の Abstract の名前にそろえる",
+     "before": "  \"title\": \"Semantic Abstract Schema v1 の本体\",\n  \"description\": \"Semantic Concrete Schema が従う契約の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりを持つ。x- は、本体のものも Concrete が足すものも、x-extensions の一覧で定義する。\",\n    \"x-instance-path\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/instance-path\"\n      },\n      \"title\": \"インスタンスの置き場所\",\n      \"description\": \"このスキーマのインスタンスを置く場所である。\",\n      \"prompt\": {\n        \"read\": {\n          \"interpret\": \"{…} の部分は、id などの欄の値が入る所である。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"level1-template\",\n            \"rule\": \"名前の入る所を {欄の名前} にして、インスタンスのファイルの置き場所を書く。\",\n            \"why\": \"読む人とツールが、同じ置き場所に作る。\",\n            \"test\": \"{…} の中が根の properties にある欄の名前で、ほかの部分が実際の置き場所と同じかを見る。\",\n            \"by\": \"machine\"\n          },\n          {\n            \"id\": \"only-for-instances\",\n            \"rule\": \"インスタンスを作らない部品のスキーマには書かない。\",\n            \"why\": \"書くと、作られないインスタンスの kind を探すことになる。\",\n            \"test\": \"$defs だけを持つスキーマに x-instance-path が無いかを見る。\",\n            \"by\": \"machine\"\n          }\n        ]\n      },\n      \"published\": true\n    },\n    \"x-instance-label\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/instance-label\"\n      },\n      \"title\": \"インスタンスの名前の型\",\n      \"description\": \"インスタンスを名前で見せるときの型である。\",\n      \"prompt\": {\n        \"read\": {\n          \"shown\": \"他から指された所と、変更を見せる画面に出る。\",\n          \"interpret\": \"{…} の部分に、その欄の値が入る。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"label-fields-exist\",\n            \"rule\": \"{…} の中には、根の properties にある欄の名前だけを書く。\",\n            \"why\": \"無い欄を書くと、名前を作れない。\",\n            \"test\": \"{…} の中の名前が、根の properties にあるかを見る。\",\n            \"by\": \"machine\",\n            \"bad\": \"論点 {番号}\",\n            \"good\": \"論点 {id}「{name}」\"\n          }\n        ]\n      },\n      \"published\": true\n    },\n    \"x-delegates\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/delegates\"\n      },\n      \"title\": \"任せる先の一覧\",\n      \"description\": \"この Concrete が任せる先の一覧である。名前から、立場 ・ 起動のしかた ・ 出力の拡張を引く。\",\n      \"prompt\": {\n        \"read\": {\n          \"when\": \"行の agent が指す先を確かめるときと、基盤が任せる先を起動するときに読む。\",\n          \"interpret\": \"kind が judging なら判定させ、working なら作業させる。argv があればその CLI をプロセスとして起動し、無ければコーディングエージェントで起動する。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"own-only\",\n            \"rule\": \"この Concrete が任せる自分の定義だけを書き、ほかの Concrete の URN を書かない。\",\n            \"why\": \"ほかの文脈を名指しすると、文脈どうしが依存する。\",\n            \"test\": \"各項目に Concrete の URN が無いかを見る。\",\n            \"by\": \"machine\"\n          },\n          {\n            \"id\": \"by-matches-kind\",\n            \"rule\": \"by が ai か machine の行は judging の任せる先を指す。machine の行の先は argv を持つ決定的な CLI（ネットワーク ・ 時刻 ・ 乱数を使わない）にする。\",\n            \"why\": \"判定する者と起動のしかたが食い違うと、基盤が起動できない。\",\n            \"test\": \"行の by と、指す先の kind と argv の有無の組を見る。\",\n            \"by\": \"machine\"\n          }\n        ]\n      },\n      \"published\": true\n    },"
+    },
+    {
+     "find": "\"id\": \"level1-template\"",
+     "why": "x-instance-path ・ x-instance-label ・ x-delegates を Abstract から外すので、x-extensions の一覧からもその定義を外す。中の rule（level1-template ・ only-for-instances ・ label-fields-exist ・ own-only ・ by-matches-kind）も一緒に消える。どれも SAS の能力の約束に当たらず、実装も読んでいない。",
+     "before": "  \"title\": \"Semantic Abstract Schema v1 の本体\",\n  \"description\": \"Semantic Concrete Schema が従う契約の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりを持つ。x- は、本体のものも Concrete が足すものも、x-extensions の一覧で定義する。\",\n    \"x-instance-path\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/instance-path\"\n      },\n      \"title\": \"インスタンスの置き場所\",\n      \"description\": \"このスキーマのインスタンスを置く場所である。\",\n      \"prompt\": {\n        \"read\": {\n          \"interpret\": \"{…} の部分は、id などの欄の値が入る所である。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"level1-template\",\n            \"rule\": \"名前の入る所を {欄の名前} にして、インスタンスのファイルの置き場所を書く。\",\n            \"why\": \"読む人とツールが、同じ置き場所に作る。\",\n            \"test\": \"{…} の中が根の properties にある欄の名前で、ほかの部分が実際の置き場所と同じかを見る。\",\n            \"by\": \"machine\"\n          },\n          {\n            \"id\": \"only-for-instances\",\n            \"rule\": \"インスタンスを作らない部品のスキーマには書かない。\",\n            \"why\": \"書くと、作られないインスタンスの kind を探すことになる。\",\n            \"test\": \"$defs だけを持つスキーマに x-instance-path が無いかを見る。\",\n            \"by\": \"machine\"\n          }\n        ]\n      },\n      \"published\": true\n    },\n    \"x-instance-label\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/instance-label\"\n      },\n      \"title\": \"インスタンスの名前の型\",\n      \"description\": \"インスタンスを名前で見せるときの型である。\",\n      \"prompt\": {\n        \"read\": {\n          \"shown\": \"他から指された所と、変更を見せる画面に出る。\",\n          \"interpret\": \"{…} の部分に、その欄の値が入る。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"label-fields-exist\",\n            \"rule\": \"{…} の中には、根の properties にある欄の名前だけを書く。\",\n            \"why\": \"無い欄を書くと、名前を作れない。\",\n            \"test\": \"{…} の中の名前が、根の properties にあるかを見る。\",\n            \"by\": \"machine\",\n            \"bad\": \"論点 {番号}\",\n            \"good\": \"論点 {id}「{name}」\"\n          }\n        ]\n      },\n      \"published\": true\n    },\n    \"x-delegates\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/delegates\"\n      },\n      \"title\": \"任せる先の一覧\",\n      \"description\": \"この Concrete が任せる先の一覧である。名前から、立場 ・ 起動のしかた ・ 出力の拡張を引く。\",\n      \"prompt\": {\n        \"read\": {\n          \"when\": \"行の agent が指す先を確かめるときと、基盤が任せる先を起動するときに読む。\",\n          \"interpret\": \"kind が judging なら判定させ、working なら作業させる。argv があればその CLI をプロセスとして起動し、無ければコーディングエージェントで起動する。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"own-only\",\n            \"rule\": \"この Concrete が任せる自分の定義だけを書き、ほかの Concrete の URN を書かない。\",\n            \"why\": \"ほかの文脈を名指しすると、文脈どうしが依存する。\",\n            \"test\": \"各項目に Concrete の URN が無いかを見る。\",\n            \"by\": \"machine\"\n          },\n          {\n            \"id\": \"by-matches-kind\",\n            \"rule\": \"by が ai か machine の行は judging の任せる先を指す。machine の行の先は argv を持つ決定的な CLI（ネットワーク ・ 時刻 ・ 乱数を使わない）にする。\",\n            \"why\": \"判定する者と起動のしかたが食い違うと、基盤が起動できない。\",\n            \"test\": \"行の by と、指す先の kind と argv の有無の組を見る。\",\n            \"by\": \"machine\"\n          }\n        ]\n      },\n      \"published\": true\n    },"
+    },
+    {
+     "find": "Abstract の7つの x- と同じ名前を使わない",
+     "why": "x- の数を、外したあとの7つ（x-prompt ・ x-relationship ・ x-derived-from ・ x-decided-by ・ x-published ・ x-view ・ x-extensions）にそろえる。前は「9つ」で、x-view を足した後も数が合っていなかった",
+     "before": "            \"rule\": \"本体の外のスキーマでは、Abstract の9つの x- と同じ名前を使わない。\","
+    },
+    {
+     "find": "\"agent\": \"judge\"",
+     "why": "rule の agent は、誰に判定させるかを x-delegates の名前で指す欄だったが、SAS は読まず、子セッションの起動は --agent の接続の定義が決める（ステップ6）。約束は by: ai だけで足りるので、Abstract 自身の rule からも外す",
+     "before": "            \"by\": \"ai\",\n            \"agent\": \"judge\""
+    },
+    {
+     "find": "人が決める欄の値は、人の操作（親セッションの無い呼び出し）でだけ変わる",
+     "why": "human-entry-only の文が、以前の基盤の「承認」と I33（変更の意図の判定）を条件にしていた。承認は使う側が持つと決め（版16）、I33 は無い。SAS が実際に守っている約束（人が決める欄は人の操作でだけ変わる。S-UC1-HUMAN-FIELD）に書き直す",
+     "before": "            \"rule\": \"この欄の値が変わった変更の記録には、本人の承認（人の判定）がある。作成時の default の値はそのまま書いてよい。\",\n            \"why\": \"人の入口を通らずに変えた変更は、取り込めない理由に出る。\",\n            \"test\": \"この欄が default 以外の値に変わった変更の記録に、I33 への人の判定があるかを見る。\","
+    },
+    {
+     "find": "\"judge\": {",
+     "why": "Abstract 自身が持っていた x-delegates（judge）を外す。x-delegates を Abstract から外すので、自分の rule の任せる先も要らない",
+     "before": "            \"by\": \"ai\",\n            \"agent\": \"judge\"\n  \"x-delegates\": {\n    \"judge\": {\n      \"role\": \"意味の判定役\",\n      \"run\": {\n        \"kind\": \"judging\"\n      }\n    }\n  },"
+    },
+    {
+     "find": "\"id\": \"instance-path-and-kind\"",
+     "why": "「基盤は kind でインスタンスの種類を判定する」は以前の基盤の手順で、SAS は $schema で種類を決め、kind はどの実装も読まない。インスタンスを見分ける約束は instance-schema-name（$schema の const と id）に1つにする",
+     "before": "      {\n        \"id\": \"instance-path-and-kind\",\n        \"rule\": \"インスタンスを作るスキーマには x-instance-path を書き、根の properties に kind（const）と id を置く。\",\n        \"why\": \"基盤は kind でインスタンスの種類を判定する。\",\n        \"test\": \"x-instance-path を持つスキーマの根に、kind の const と id があるかを見る。\",\n        \"by\": \"machine\"\n      },\n        \"rule\": \"インスタンスを作るスキーマは、根の properties に $schema を置き、const にこのスキーマの $id を書く。\",\n        \"why\": \"インスタンスの $schema に、このスキーマの名前以外が書かれるのを、書いたその場で止める。\",\n        \"test\": \"properties.$schema.const が $id と同じかを見る。\","
+    },
+    {
+     "find": "\"id\": \"term-by-ref\"",
+     "why": "glossary（用語集）のスキーマは公開された言葉に無く、どのユースケースのステップも使わない。Semantic Schema Resolver も以前の基盤の部品",
+     "before": "      },\n      {\n        \"id\": \"term-by-ref\",\n        \"rule\": \"欄が glossary の term を指すときは、標準の $ref で glossary の URN と $anchor を指す。\",\n        \"why\": \"Semantic Schema Resolver は、$ref の指す先から欄の term を静的にたどる。\",\n        \"test\": \"term を指す $ref の先が、閉じた一覧の glossary の $anchor かを見る。\",\n        \"by\": \"machine\"\n      },\n      {\n        \"id\": \"rule-agent\",\n        \"rule\": \"どの決まりにも by を書く。by が ai なら agent に judging の任せる先を、by が machine で CLI に任せるなら argv を持つ決定的な CLI の judging の任せる先を書く。\",\n        \"why\": \"agent の名前から、基盤が任せる先を引く。\",\n        \"test\": \"agent が x-delegates にあり、by と kind が対応しているかを見る。\",\n        \"by\": \"machine\"\n    \"description\""
+    },
+    {
+     "find": "\"id\": \"rule-agent\"",
+     "why": "by: machine の rule を「argv を持つ外の CLI に任せる」前提の rule。機械の rule は SAS が判定し、AI の rule は --agent の接続の定義で起動するので、任せる先を書く約束は無い",
+     "before": "      },\n      {\n        \"id\": \"term-by-ref\",\n        \"rule\": \"欄が glossary の term を指すときは、標準の $ref で glossary の URN と $anchor を指す。\",\n        \"why\": \"Semantic Schema Resolver は、$ref の指す先から欄の term を静的にたどる。\",\n        \"test\": \"term を指す $ref の先が、閉じた一覧の glossary の $anchor かを見る。\",\n        \"by\": \"machine\"\n      },\n      {\n        \"id\": \"rule-agent\",\n        \"rule\": \"どの決まりにも by を書く。by が ai なら agent に judging の任せる先を、by が machine で CLI に任せるなら argv を持つ決定的な CLI の judging の任せる先を書く。\",\n        \"why\": \"agent の名前から、基盤が任せる先を引く。\",\n        \"test\": \"agent が x-delegates にあり、by と kind が対応しているかを見る。\",\n        \"by\": \"machine\"\n    \"description\""
+    },
+    {
+     "find": "SAS は閉じた一覧に無い $schema を取りに行かずに断る",
+     "why": "以前の語「基盤」を SAS にする",
+     "before": "            \"why\": \"基盤は閉じた一覧に無い $schema を取りに行かずに断る。\","
+    },
+    {
+     "find": "\"pattern\": \"^urn:[a-z0-9][a-z0-9-]*(:[a-z0-9][a-z0-9-]*)+:v[0-9]+$\"",
+     "why": "$id と x-relationship の to が urn:semantic-agent-schema: に固定され。使う側の Concrete の URN（概念のページの例 urn:example:purpose-session:v1）が通らなかった。Concrete は使う側が書くので、名前空間は使う側のものにし、版で終わることだけを約束する",
+     "before": "      \"pattern\": \"^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$\",\n          \"interpret\": \"urn:semantic-agent-schema:<持ち主>:<種類>:v<版> の形で、版は v と数字である。\"\n            \"id\": \"owner-kind-version\",\n            \"rule\": \"urn:semantic-agent-schema:<持ち主>:<種類>:v<版> の形で書く。持ち主は 基盤のファイルなら base、文脈なら Skill か Agent の名前にする。\",\n            \"why\": \"Semantic Schema Resolver は、Skill と Agent の置き場所から、この名前でスキーマを引く。\",\n            \"test\": \"持ち主が base（基盤のファイル）か、このスキーマを持つ Skill か Agent のフォルダの名前かを見る。\","
+    },
+    {
+     "find": "\"id\": \"urn-with-version\"",
+     "why": "owner-kind-version は「持ち主は base か Skill か Agent の名前」という以前の基盤の置き場所の決まりで、Abstract 自身の $id（持ち主 published-language）も違反していた。URN で版で終わる、という約束に書き直す",
+     "before": "      \"pattern\": \"^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$\",\n          \"interpret\": \"urn:semantic-agent-schema:<持ち主>:<種類>:v<版> の形で、版は v と数字である。\"\n            \"id\": \"owner-kind-version\",\n            \"rule\": \"urn:semantic-agent-schema:<持ち主>:<種類>:v<版> の形で書く。持ち主は 基盤のファイルなら base、文脈なら Skill か Agent の名前にする。\",\n            \"why\": \"Semantic Schema Resolver は、Skill と Agent の置き場所から、この名前でスキーマを引く。\",\n            \"test\": \"持ち主が base（基盤のファイル）か、このスキーマを持つ Skill か Agent のフォルダの名前かを見る。\","
+    },
+    {
+     "find": "\"x-instance-path\": {",
+     "why": "x-instance-path ・ x-instance-label は SAS が何もしない（検索の範囲はステップ8 で約束を決めるときに足す）。x-delegates は振る舞いが無く、起動のしかたは接続の定義と二重で、Concrete を書いた人が受け取った人の手元で任意のプログラムを起動できる形だった",
+     "before": "  \"title\": \"Semantic Abstract Schema v1 の本体\",\n  \"description\": \"Semantic Concrete Schema が従う契約の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりを持つ。x- は、本体のものも Concrete が足すものも、x-extensions の一覧で定義する。\",\n    \"x-instance-path\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/instance-path\"\n      },\n      \"title\": \"インスタンスの置き場所\",\n      \"description\": \"このスキーマのインスタンスを置く場所である。\",\n      \"prompt\": {\n        \"read\": {\n          \"interpret\": \"{…} の部分は、id などの欄の値が入る所である。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"level1-template\",\n            \"rule\": \"名前の入る所を {欄の名前} にして、インスタンスのファイルの置き場所を書く。\",\n            \"why\": \"読む人とツールが、同じ置き場所に作る。\",\n            \"test\": \"{…} の中が根の properties にある欄の名前で、ほかの部分が実際の置き場所と同じかを見る。\",\n            \"by\": \"machine\"\n          },\n          {\n            \"id\": \"only-for-instances\",\n            \"rule\": \"インスタンスを作らない部品のスキーマには書かない。\",\n            \"why\": \"書くと、作られないインスタンスの kind を探すことになる。\",\n            \"test\": \"$defs だけを持つスキーマに x-instance-path が無いかを見る。\",\n            \"by\": \"machine\"\n          }\n        ]\n      },\n      \"published\": true\n    },\n    \"x-instance-label\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/instance-label\"\n      },\n      \"title\": \"インスタンスの名前の型\",\n      \"description\": \"インスタンスを名前で見せるときの型である。\",\n      \"prompt\": {\n        \"read\": {\n          \"shown\": \"他から指された所と、変更を見せる画面に出る。\",\n          \"interpret\": \"{…} の部分に、その欄の値が入る。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"label-fields-exist\",\n            \"rule\": \"{…} の中には、根の properties にある欄の名前だけを書く。\",\n            \"why\": \"無い欄を書くと、名前を作れない。\",\n            \"test\": \"{…} の中の名前が、根の properties にあるかを見る。\",\n            \"by\": \"machine\",\n            \"bad\": \"論点 {番号}\",\n            \"good\": \"論点 {id}「{name}」\"\n          }\n        ]\n      },\n      \"published\": true\n    },\n    \"x-delegates\": {\n      \"schema\": {\n        \"$ref\": \"#/$defs/delegates\"\n      },\n      \"title\": \"任せる先の一覧\",\n      \"description\": \"この Concrete が任せる先の一覧である。名前から、立場 ・ 起動のしかた ・ 出力の拡張を引く。\",\n      \"prompt\": {\n        \"read\": {\n          \"when\": \"行の agent が指す先を確かめるときと、基盤が任せる先を起動するときに読む。\",\n          \"interpret\": \"kind が judging なら判定させ、working なら作業させる。argv があればその CLI をプロセスとして起動し、無ければコーディングエージェントで起動する。\"\n        },\n        \"write\": [\n          {\n            \"id\": \"own-only\",\n            \"rule\": \"この Concrete が任せる自分の定義だけを書き、ほかの Concrete の URN を書かない。\",\n            \"why\": \"ほかの文脈を名指しすると、文脈どうしが依存する。\",\n            \"test\": \"各項目に Concrete の URN が無いかを見る。\",\n            \"by\": \"machine\"\n          },\n          {\n            \"id\": \"by-matches-kind\",\n            \"rule\": \"by が ai か machine の行は judging の任せる先を指す。machine の行の先は argv を持つ決定的な CLI（ネットワーク ・ 時刻 ・ 乱数を使わない）にする。\",\n            \"why\": \"判定する者と起動のしかたが食い違うと、基盤が起動できない。\",\n            \"test\": \"行の by と、指す先の kind と argv の有無の組を見る。\",\n            \"by\": \"machine\"\n          }\n        ]\n      },\n      \"published\": true\n    },"
+    },
+    {
+     "find": "\"required\": [\n        \"$schema\",",
+     "why": "インスタンスを見分ける約束（$schema の const と id）を、x-instance-path があるときだけ（if ・ then）でなく、どの Concrete にも掛ける。SAS は $schema で Concrete を引き、id で文書を指す",
+     "before": "      },\n      {\n        \"id\": \"term-by-ref\",\n        \"rule\": \"欄が glossary の term を指すときは、標準の $ref で glossary の URN と $anchor を指す。\",\n        \"why\": \"Semantic Schema Resolver は、$ref の指す先から欄の term を静的にたどる。\",\n        \"test\": \"term を指す $ref の先が、閉じた一覧の glossary の $anchor かを見る。\",\n        \"by\": \"machine\"\n      },\n      {\n        \"id\": \"rule-agent\",\n        \"rule\": \"どの決まりにも by を書く。by が ai なら agent に judging の任せる先を、by が machine で CLI に任せるなら argv を持つ決定的な CLI の judging の任せる先を書く。\",\n        \"why\": \"agent の名前から、基盤が任せる先を引く。\",\n        \"test\": \"agent が x-delegates にあり、by と kind が対応しているかを見る。\",\n        \"by\": \"machine\"\n    \"description\""
+    },
+    {
+     "find": "\"if\": {",
+     "why": "条件付きの必須（x-instance-path があれば kind ・ $schema ・ id）を外し、上の properties の必須に置き換える。kind は無くす",
+     "before": "  \"if\": {\n    \"required\": [\n      \"x-instance-path\"\n    ]\n  },\n  \"then\": {\n    \"required\": [\n      \"properties\",\n      \"$id\"\n    ],\n    \"properties\": {\n      \"properties\": {\n        \"required\": [\n          \"kind\",\n          \"$schema\",\n          \"id\"\n        ],\n        \"properties\": {\n          \"kind\": {\n            \"required\": [\n              \"const\"\n            ]\n          },\n          \"$schema\": {\n            \"required\": [\n              \"const\"\n            ]\n          }\n        }\n      }\n    }\n  },"
+    },
+    {
+     "find": "根の properties に $schema を置いて const にこのスキーマの $id を書き、id を置く",
+     "why": "instance-schema-name を、インスタンスを見分ける約束（$schema と id）の1つの rule にする",
+     "before": "      {\n        \"id\": \"instance-path-and-kind\",\n        \"rule\": \"インスタンスを作るスキーマには x-instance-path を書き、根の properties に kind（const）と id を置く。\",\n        \"why\": \"基盤は kind でインスタンスの種類を判定する。\",\n        \"test\": \"x-instance-path を持つスキーマの根に、kind の const と id があるかを見る。\",\n        \"by\": \"machine\"\n      },\n        \"rule\": \"インスタンスを作るスキーマは、根の properties に $schema を置き、const にこのスキーマの $id を書く。\",\n        \"why\": \"インスタンスの $schema に、このスキーマの名前以外が書かれるのを、書いたその場で止める。\",\n        \"test\": \"properties.$schema.const が $id と同じかを見る。\","
+    },
+    {
+     "find": "親の x-prompt",
+     "why": "no-prompt-on-leaf の「親セッションの x-prompt」は、木の親を「親セッション」に置き換えた一括置換の誤り。木の親に戻す",
+     "before": "        \"by\": \"ai\",\n        \"agent\": \"judge\"\n        \"why\": \"親セッションの x-prompt が葉まで案内するので、葉にも書くと同じ決まりが2か所に並ぶ。\",\n        \"agent\": \"judge\","
+    },
+    {
+     "find": "x-extensions が説明する x- のキーは、書く単位として扱わない",
+     "why": "説明に残っていたボードの論点番号（Q7 #7）を外す",
+     "before": "      \"description\": \"書く単位の並び。$schema と入れ物（properties ・ $defs）と、x-extensions が説明する x- のキーは、書く単位として扱わない（Q7 #7）\","
+    },
+    {
+     "find": "判定するときに読む欄（このインスタンスの中の JSON Pointer）の並びである",
+     "why": "案（T1 で確定）：rule の reads は Abstract にあったのに SAS が読んでいなかった。SAS がここを読んで判定に渡し、読んだ所の指紋に含める約束にする。インスタンスの外を指せるようにするかは T1 で決める",
+     "before": "          \"description\": \"判定するときに読む欄の場所（JSON Pointer）の並びである。\",\n                \"why\": \"読む範囲を絞ると、意味の判定がぶれない（Q0 #2）。\",\n                \"by\": \"ai\",\n                \"agent\": \"judge\"\n              }\n            ]\n          }\n        },\n        \"agent\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[a-z0-9]+(-[a-z0-9]+)*$\",\n          \"title\": \"任せる先\",\n          \"description\": \"この決まりを判定する、x-delegates の名前である。\",\n          \"x-prompt\": {\n            \"write\": [\n              {\n                \"id\": \"agent-exists\",\n                \"rule\": \"このスキーマか本体の x-delegates にある名前を書く。\",\n                \"why\": \"無い名前は起動できない。\",\n                \"test\": \"名前が、このスキーマか本体の x-delegates にあるかを見る。\",\n                \"by\": \"machine\""
+    },
+    {
+     "find": "\"$anchor\": \"relationship\"",
+     "why": "x-relationship の version（ほかの文脈の公開された言葉を指すときの版）は、どの実装も読まない。外す",
+     "before": "（無い。足した行）"
+    },
+    {
+     "find": "\"$anchor\": \"delegate\"",
+     "why": "x-delegates の値の形（delegate ・ delegates：role ・ run.kind ・ run.argv ・ run.session ・ output）を外す。run.session（single ・ continuous）は、版16 で外した子セッションの型の残り",
+     "before": "（無い。足した行）"
+    },
+    {
+     "find": "\"$anchor\": \"output-judging\"",
+     "why": "子セッションの答えの形は、概念のページで「Abstract の output-judging ・ output-working → agent-answer」と決め。ステップ6 で validation/application の agent-answer.schema.json（ポートの側）に作った。Abstract の側の写しを外す。output-working（書いた対象と ETag）は「書くのは SAS だけ」にも反する",
+     "before": "    },\n    \"output-judging\": {\n      \"$anchor\": \"output-judging\",\n      \"type\": \"object\",\n      \"required\": [\n        \"results\"\n      ],\n      \"additionalProperties\": false,\n      \"title\": \"judging の任せる先が返す形。基盤は rule ごとの結果を判定の5つの区分にまとめ、判定の記録に残す\",\n      \"description\": \"任せた rule ごとの結果の並びである。details は任せる先の output が足す形で、基盤は判定の5つの区分の判定に使わない。\",\n      \"x-prompt\": {\n        \"write\": []\n      },\n      \"properties\": {\n        \"results\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": [\n              \"rule\",\n              \"result\",\n              \"reason\",\n              \"grounds\"\n            ],\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"rule\": {\n                \"type\": \"string\",\n                \"minLength\": 1,\n                \"title\": \"判定した rule の id\",\n                \"description\": \"判定した rule の id である。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              },\n              \"result\": {\n                \"enum\": [\n                  \"verified\",\n                  \"violated\",\n                  \"unverified\"\n                ],\n                \"title\": \"判定の結果\",\n                \"description\": \"判定の結果である。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              },\n              \"reason\": {\n                \"type\": \"string\",\n                \"minLength\": 1,\n                \"title\": \"根拠の文\",\n                \"description\": \"結果の根拠の文である。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              },\n              \"grounds\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"string\"\n                },\n                \"title\": \"根拠にした値の場所（渡した値の JSON Pointer）\",\n                \"description\": \"根拠にした値の場所（渡した値の JSON Pointer）の並びである。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              },\n              \"details\": {\n                \"title\": \"任せる先が足す詳細\",\n                \"description\": \"任せる先の output が足す詳細で、基盤は判定の5つの区分の判定に使わない。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              }\n            }\n          },\n          \"title\": \"rule ごとの結果の並び\",\n          \"description\": \"任せた rule ごとの判定の結果の並びである。\",\n          \"x-prompt\": {\n            \"write\": []\n          }\n        }\n      }\n    },\n    \"output-working\": {\n      \"$anchor\": \"output-working\",\n      \"type\": \"object\",\n      \"required\": [\n        \"done\",\n        \"written\"\n      ],\n      \"additionalProperties\": false,\n      \"title\": \"working の任せる先が終わったときに呼んだ主体へ返す形。基盤はこれを記録しない（書く操作は基盤のコマンドで記録される）\",\n      \"description\": \"終えたこと ・ 書いた対象 ・ 決めきれず返す点の並びである。details は任せる先の output が足す形で、基盤は解釈しない。\",\n      \"x-prompt\": {\n        \"write\": []\n      },\n      \"properties\": {\n        \"done\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"title\": \"終えたこと1文\",\n          \"description\": \"終えたことの1文である。\",\n          \"x-prompt\": {\n            \"write\": []\n          }\n        },\n        \"written\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": [\n              \"path\",\n              \"etag\"\n            ],\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"path\": {\n                \"type\": \"string\",\n                \"minLength\": 1,\n                \"title\": \"書いたファイルの置き場所\",\n                \"description\": \"書いたファイルの置き場所である。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              },\n              \"etag\": {\n                \"type\": \"string\",\n                \"minLength\": 1,\n                \"title\": \"書いたあとの ETag \",\n                \"description\": \"書いたあとの ETag である。\",\n                \"x-prompt\": {\n                  \"write\": []\n                }\n              }\n            }\n          },\n          \"title\": \"書いた対象と、書いたあとの ETag\",\n          \"description\": \"書いた対象と、書いたあとの ETag の並びである。\",\n          \"x-prompt\": {\n    "
+    },
+    {
+     "find": "\"$anchor\": \"instance-path\"",
+     "why": "x-instance-path ・ x-instance-label の値の形を外す",
+     "before": "      },\n      \"allOf\": [\n        {\n          \"if\": {\n            \"properties\": {\n              \"by\": {\n                \"const\": \"ai\"\n              }\n            },\n            \"required\": [\n              \"by\"\n            ]\n          },\n          \"then\": {\n            \"required\": [\n              \"agent\"\n            ]\n          }\n        },\n        {\n          \"if\": {\n            \"properties\": {\n              \"by\": {\n                \"const\": \"human\"\n              }\n            },\n            \"required\": [\n              \"by\"\n            ]\n          },\n          \"then\": {\n            \"not\": {\n              \"required\": [\n                \"agent\"\n              ]\n            }\n          }\n        }\n      ]\n    \"delegate\": {\n      \"type\": \"object\",\n      \"description\": \"任せる先1件。種別（kind：何をさせたいか）・ 起動のしかた（argv の有無）・ 出力の拡張（output）を持つ\",\n      \"required\": [\n        \"role\",\n        \"run\"\n      ],\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"role\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"title\": \"立場\",\n          \"description\": \"任せる先が働く立場の文である。\",\n          \"x-prompt\": {\n            \"write\": [\n              {\n                \"id\": \"one-stance\",\n                \"rule\": \"立場を1つだけ、名詞で書く。\",\n                \"why\": \"立場が2つあると、どちらで判断したかが決まらない。\",\n                \"test\": \"読点や「と」で2つの立場を並べていないかを見る。\",\n                \"by\": \"ai\",\n                \"agent\": \"judge\"\n              }\n            ]\n          }\n        },\n        \"run\": {\n          \"type\": \"object\",\n          \"required\": [\n            \"kind\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"enum\": [\n                \"judging\",\n                \"working\"\n              ],\n              \"title\": \"種別：何をさせたいか\",\n              \"description\": \"判定させる（judging）か、この Concrete のインスタンスを書かせる（working）かである。\",\n              \"x-prompt\": {\n                \"write\": [\n                  {\n                    \"id\": \"purpose\",\n                    \"rule\": \"rule の合否だけを決めさせるなら judging、この Concrete のインスタンスを書かせるなら working にする。助言 ・ 調査など答えを作らせるだけの相手は x-delegates に書かない。\",\n                    \"why\": \"種別によって、基盤と呼んだ主体が出力を受け取る形が違う。答えを作らせるだけの相手は、基盤のどの記録にも入らない。\",\n                    \"test\": \"任せる先の role と kind が合っているかを見る。\",\n                    \"by\": \"ai\",\n                    \"agent\": \"judge\"\n                  }\n                ]\n              }\n            },\n            \"argv\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"string\",\n                \"pattern\": \"^[^|;&`$<>]*$\"\n              },\n              \"title\": \"起動のしかた：あればプロセス（CLI）として起動し、無ければコーディングエージェントで起動する\",\n              \"description\": \"CLI として起動するときの引数の配列である。\",\n              \"x-prompt\": {\n                \"read\": {\n                  \"when\": \"基盤が任せる先を起動するときに読む。\"\n                },\n                \"write\": []\n              }\n            },\n            \"session\": {\n              \"enum\": [\n                \"single\",\n                \"continuous\"\n              ],\n              \"title\": \"セッションの型（working だけ）\",\n              \"description\": \"working の任せる先を単発で呼ぶか（single）、役割の名前で登録して再開するか（continuous）である。judging は単発に固定で、書かない。\",\n              \"x-prompt\": {\n                \"write\": []\n              }\n            }\n          },\n          \"title\": \"起動のしかた\",\n          \"description\": \"目的（judging ・ working）と、CLI なら argv である。\",\n          \"x-prompt\": {\n            \"write\": []\n          }\n        },\n        \"output\": {\n          \"type\": \"object\",\n          \"title\": \"出力に足す details の形\",\n          \"description\": \"種別の出力（output-judging ・ output-working）の details に入る形（JSON Schema）である。基盤は解釈しない。\",\n          \"x-prompt\": {\n            \"read\": {\n              \"when\": \"基盤が任せる先の出力を検査するときに読む。\"\n            },\n            \"write\": [\n              {\n                \"id\": \"output-inline\",\n                \"rule\": \"出力の拡張は output の中に書き切り、$ref を使わない。\",\n                \"why\": \"output は基盤が出力の検査に組み込む形で、ほかの場所を指すと検査の範囲が output の外へ広がる。\",\n                \"test\": \"output の中に $ref が無いかを見る。\",\n                \"by\": \"machine\"\n         "
+    },
+    {
+     "find": "「（Q",
+     "why": "ボードの論点番号（Q0 #2 ・ Q0 #8）を rule の why から外す",
+     "before": "（無い。足した行）"
+    },
+    {
+     "find": "\"by\": \"ai\"\n",
+     "why": "（上の agent の削除と同じ）",
+     "before": "            \"by\": \"ai\",\n            \"agent\": \"judge\""
+    },
+    {
+     "find": "\"rule\": \"ほかの文脈が読む欄だけを true にする。\"",
+     "before": "            \"by\": \"ai\",\n            \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"並びになる値は、文字列に詰めず配列の型にする。\"",
+     "before": "        \"by\": \"ai\",\n        \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"why\": \"読む人は題だけで、何のインスタンスかを判断する。\"",
+     "before": "            \"agent\": \"judge\",",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を書く。\"",
+     "before": "            \"by\": \"ai\",\n            \"agent\": \"judge\"\n    \"x-instance-path\": {\n      \"$ref\": \"#/$defs/instance-path\"\n    },\n    \"x-instance-label\": {\n      \"$ref\": \"#/$defs/instance-label\"\n    },\n    \"x-delegates\": {\n      \"$ref\": \"#/$defs/delegates\"\n    },",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"$ref\": \"#/$defs/fields\"",
+     "before": "      \"$ref\": \"#/$defs/fields\"",
+     "why": "外す項目（x-instance-path ・ x-instance-label ・ x-delegates ・ output-*）の続き"
+    },
+    {
+     "find": "\"rule\": \"何を入れる欄かを名詞で書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"値が何であるかを、名詞で終わる1文で書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"to\": {",
+     "before": "          \"pattern\": \"^urn:semantic-agent-schema:[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*:v[0-9]+$\",\n        },\n        \"version\": {\n          \"type\": \"string\",\n          \"pattern\": \"^v[0-9]+$\",\n          \"title\": \"公開された版\",\n          \"description\": \"ほかの文脈の公開された言葉を指すときの版である。\",\n          \"x-prompt\": {\n            \"read\": {\n              \"when\": \"ほかの文脈を指すときだけ読む。\"\n            },\n            \"write\": []\n          }",
+     "why": "外す項目（x-instance-path ・ x-instance-label ・ x-delegates ・ output-*）の続き"
+    },
+    {
+     "find": "\"rule\": \"上の決まりほど条件を狭くする。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"1つの決まりに1つのことだけを書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"人や AI がその値を見る場所を書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"形だけでは読み違えうる点だけを書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"読む時と、そのとき決めることを書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"決まりは、ある時点のインスタンスを見れば判定できる状態として書き、操作（手段）を書かない。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"守らないと何が起きるかを書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"何を見れば合否が決まるかを書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"id\": \"json-schema-first\"",
+     "before": "                \"why\": \"JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる（Q0 #8）。\",\n                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"この決まりで violated になる値を書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"この決まりで verified になる値を書く。\"",
+     "before": "                \"by\": \"ai\",\n                \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"値の形だけを書き、意味は description と prompt に書く。\"",
+     "before": "                  \"by\": \"ai\",\n                  \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"何を宣言するキーワードかを書く。\"",
+     "before": "                  \"by\": \"ai\",\n                  \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "\"rule\": \"ほかの文脈が使う x- だけを true にする。\"",
+     "before": "                  \"by\": \"ai\",\n                  \"agent\": \"judge\"",
+     "why": "rule の agent を外す（理由は最初の agent の削除と同じ。誰に判定させるかは --agent の接続の定義が決め、SAS は agent を読まない）"
+    },
+    {
+     "find": "Concrete は x- を足さない",
+     "before": "（差分の - の行）",
+     "why": "利用者の方針「x- 項目を増やす運用はやめる」。Concrete に書ける x- を5つに閉じ、意味の決まりを広げるときは欄の x-prompt の rule（by: ai）に書く。JSON Schema の構文で書けることは JSON Schema で書く"
+    },
+    {
+     "find": "\"x-extensions\": false",
+     "before": "（差分の - の行）",
+     "why": "Concrete の根に x-extensions を書けなくする。Concrete が足した x- に SAS は名前の確認しかせず、値の形も rule も当てていなかった。Abstract の本体の x-extensions は、SAS 自身の x- の定義の一覧としてだけ残す"
+    },
+    {
+     "find": "\"title\": \"版のあいだ変えない欄\"",
+     "before": "（差分の - の行）",
+     "why": "x-published の意味が以前の基盤の「他の文脈へ見せる」のままだった。SAS は誰が読むかを知らないので、SAS が守る約束「同じ版（$id）のあいだ変えない」の言葉に書き直す"
+    },
+    {
+     "find": "\"id\": \"freeze-only-relied\"",
+     "before": "（差分の - の行）",
+     "why": "x-published の書き方の rule を、版のあいだ変えない約束に合わせて書き直す"
+    },
+    {
+     "find": "\"$anchor\": \"derived\"",
+     "before": "（差分の - の行）",
+     "why": "x-derived-from を外す。実装は導いた値と書かれた値が一致するかを確かめるだけで、値を埋めない。同じことは JSON Schema の if ・ then ・ else と const で書ける（検査器で同じ合否を確かめた）"
+    },
+    {
+     "find": "\"id\": \"only-mechanical\"",
+     "before": "（差分の - の行）",
+     "why": "x-derived-from を外すので、その定義を一覧から外す"
+    },
+    {
+     "find": "\"id\": \"no-abstract-names\"",
+     "before": "（差分の - の行）",
+     "why": "Concrete が x- を足さないので、足した x- の名前の決まり（no-abstract-names ・ no-ref-into-extensions）を持つ x-extensions の定義を一覧から外す"
+    },
+    {
+     "find": "\"published\": true",
+     "before": "（差分の - の行）",
+     "why": "SAS の x- の定義を「他の文脈へ見せる」かの印は、以前の基盤の文脈の話。外す"
+    },
+    {
+     "find": "欄に書ける x- は x-prompt ・ x-relationship ・ x-decided-by ・ x-published の4つ",
+     "before": "（差分の - の行）",
+     "why": "欄に書ける x- の数を、x-derived-from を外したあとの4つにそろえる"
+    },
+    {
+     "find": "\"id\": \"abstract-keywords-closed\"",
+     "before": "（差分の - の行）",
+     "why": "x- の閉じた一覧を、独自の rule でなく語彙（vocabulary）の propertyNames で JSON Schema として書くので、この rule は要らない"
+    },
+    {
+     "find": "値の形だけで解釈が決まらない欄には interpret を、読む時が決まっている欄には when を書く",
+     "before": "（差分の - の行）",
+     "why": "x-prompt の read から shown（画面に出る所）を外したので、書き方の rule も interpret ・ when だけにする"
+    },
+    {
+     "find": "\"where-shown\"",
+     "before": "（差分の - の行）",
+     "why": "shown を外す。描画はテンプレートが値の置き方を決めるので、SAS のどの振る舞いにもならない。interpret ・ when は、子セッションが判定 ・ 書くときの手がかりとして手順のプロンプトに入れる"
+    },
+    {
+     "find": "欄に title ・ description ・ x-prompt を書く。入れ物には書かない。",
+     "before": "（差分の - の行）",
+     "why": "x-extensions の書き方を外したので、prompt-per-unit の文を欄の部分だけにする"
+    },
+    {
+     "find": "x-published。true の欄を変えるときは、$id の版を上げた新しい Concrete にする。",
+     "before": "（差分の - の行）",
+     "why": "x-published の読み方を、版のあいだ変えない約束にそろえる。「ほかの文脈から指されたとき」は以前の基盤の文脈の話なので when を外す"
+    },
+    {
+     "find": "根の properties の各欄に title ・ description ・ x-prompt があるかを見る。",
+     "before": "（差分の - の行）",
+     "why": "prompt-per-unit の test を、x-extensions の部分を外した rule にそろえる"
+    },
+    {
+     "find": "\"$id\",",
+     "before": "（差分の - の行）",
+     "why": "インスタンスを見分ける約束のため、Concrete の根に $id と properties を必須にする"
+    },
+    {
+     "find": "\"properties\"\n",
+     "before": "（差分の - の行）",
+     "why": "同上"
+    },
+    {
+     "find": "URN で、最後が :v<版>（v と数字）である。持ち主の名前空間（urn: の次）は使う側が決める。",
+     "before": "（差分の - の行）",
+     "why": "$id の読み方を、使う側の URN を許す形にそろえる"
+    },
+    {
+     "find": "JSON Schema で書けば、AI もエンジンも使わず、毎回同じ答えになる。",
+     "before": "（差分の - の行）",
+     "why": "ボードの論点番号（Q0 #8）を外す"
+    },
+    {
+     "find": "読む範囲を絞ると、意味の判定がぶれない。",
+     "before": "（差分の - の行）",
+     "why": "ボードの論点番号（Q0 #2）を外す"
+    },
+    {
+     "find": "\"enum\": [\n        \"urn:semantic-agent-schema:published-language:abstract:v1\"",
+     "before": "（差分の - の行）",
+     "why": "$schema の閉じた一覧を、独自の rule（closed-list）でなく JSON Schema の enum で書く。format: uri は既定では合否に使われない（Validation 7.2.1）"
+    },
+    {
+     "find": "\"not\": {",
+     "before": "（差分の - の行）",
+     "why": "使う側の Concrete が urn:semantic-agent-schema: を使わないことを、独自の rule（urn-with-version）でなく JSON Schema の not と pattern で書く"
+    },
+    {
+     "find": "\"id\": \"never-reuse\"",
+     "before": "（差分の - の行）",
+     "why": "SAS は「公開した版」を記録しないので判定できない。版のあいだ変えない約束は x-published が持つ"
+    },
+    {
+     "find": "\"id\": \"prompt-per-unit\"",
+     "before": "（差分の - の行）",
+     "why": "欄に title ・ description ・ x-prompt があることは $defs/field の required で JSON Schema が見ているので、rule は二重"
+    },
+    {
+     "find": "根の properties の $schema の const に、このスキーマの $id と同じ値を書く。",
+     "before": "（差分の - の行）",
+     "why": "instance-schema-name を、JSON Schema で書けない「const と $id が同じ」だけを見る rule にする（$schema と id の必須は required が見る）"
+    },
+    {
+     "find": "\"x-view\": false",
+     "before": "（差分の - の行）",
+     "why": "欄の中の x-extensions と x-view が JSON Schema で断られていなかった（反証役の指摘）。欄の形で閉じる"
+    },
+    {
+     "find": "\"id\": \"shape-only\"",
+     "before": "（差分の - の行）",
+     "why": "Concrete が x-extensions を書けなくなったので、足した x- の書き方の rule（shape-only ・ what-it-means ・ prompt-like-field）は当たる相手がいない"
+    },
+    {
+     "find": "\"format\": \"uri\",",
+     "before": "\"format\": \"uri\",",
+     "why": "format は既定では注釈で合否に使われない（Validation 7.2.1）。$schema は enum で閉じたので、format に頼らない"
+    },
+    {
+     "find": "\"published\": true",
+     "before": "      },\n      \"published\": true",
+     "why": "SAS の x- の定義の published（他の文脈へ見せる印）は以前の基盤の文脈の話なので外す"
+    },
+    {
+     "find": "\"read\": {",
+     "before": "        \"read\": {\n          \"shown\": \"描画したページの題と、Concrete を照らした結果に出る。\"\n        },",
+     "why": "x-prompt の read から shown を外したので、shown だけだった read を外す"
+    }
+   ]
+  },
+  {
+   "key": "vocabulary",
+   "tab": "vocabulary.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/vocabulary.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Abstract の語彙",
+     "why": "以前の名前（Semantic Abstract Schema）を SAS の Abstract の語にする",
+     "before": " \"title\": \"Semantic Abstract Schema の語彙\",\n \"description\": \"入れ子のどこでも書ける x- の9つのキーワードの形だけを決めるメタスキーマ。$dynamicAnchor meta により、方言を通して入れ子のすべてのサブスキーマに掛かる。ほかのキーワードは禁じない。形の本体は Abstract の本体の $defs にあり、名前（$anchor）で指す\","
+    },
+    {
+     "find": "6つ",
+     "why": "入れ子に書ける x- から x-instance-path ・ x-instance-label ・ x-delegates を外したので6つにする（前は9つと書いて実際は9つあった）",
+     "before": " \"title\": \"Semantic Abstract Schema の語彙\",\n \"description\": \"入れ子のどこでも書ける x- の9つのキーワードの形だけを決めるメタスキーマ。$dynamicAnchor meta により、方言を通して入れ子のすべてのサブスキーマに掛かる。ほかのキーワードは禁じない。形の本体は Abstract の本体の $defs にあり、名前（$anchor）で指す\","
+    },
+    {
+     "find": "\"x-instance-path\": {",
+     "why": "Abstract から外した3つの x- を語彙からも外す",
+     "before": "  \"x-instance-path\": {\n   \"$ref\": \"urn:semantic-agent-schema:published-language:abstract:v1#instance-path\"\n  },\n  \"x-instance-label\": {\n   \"$ref\": \"urn:semantic-agent-schema:published-language:abstract:v1#instance-label\"\n  },\n  \"x-delegates\": {\n   \"$ref\": \"urn:semantic-agent-schema:published-language:abstract:v1#delegates\"\n  },"
+    },
+    {
+     "find": "\"propertyNames\"",
+     "before": "（差分の - の行）",
+     "why": "x- で始まるキーを、この一覧の名前だけに閉じる（JSON Schema の構文。根でも入れ子でも効く）。前は独自の rule が根だけを見ていた"
+    },
+    {
+     "find": "\"x-derived-from\"",
+     "before": "（差分の - の行）",
+     "why": "x-derived-from を外す（JSON Schema の if ・ then ・ else で書く）"
+    }
+   ]
+  },
+  {
+   "key": "dialect",
+   "tab": "dialect.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/dialect.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Abstract の方言",
+     "why": "以前の名前を SAS の Abstract の語にし、x- の数を語彙と同じ6つにする",
+     "before": " \"title\": \"Semantic Abstract Schema の方言\",\n \"description\": \"JSON Schema 2020-12 に Semantic Abstract Schema の語彙（x- の9つ）を足した方言。Abstract の本体と、本体に従う Concrete の入れ子は、この方言で検査される\","
+    },
+    {
+     "find": "入れ子に書ける x- の4つと、x- の閉じた一覧",
+     "before": "（差分の - の行）",
+     "why": "方言の説明を、語彙の中身（4つと閉じた一覧）にそろえる"
+    }
+   ]
+  },
+  {
+   "key": "connector",
+   "tab": "agent-connector.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/agent-connector.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "起動した子セッションの記録に残す",
+     "why": "公開された言葉の説明が DB の列名（sessions.tool ・ sessions.model）を名指ししていた。DB は公開しないので、何に使うかで書く",
+     "before": "  \"name\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"ツールの名前（sessions.tool に書く）\" },\n  \"version\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"この定義の版\" },\n  \"model\": { \"type\": \"string\", \"description\": \"子セッションのモデル（分かれば。sessions.model に書く）\" },"
+    },
+    {
+     "find": "定義の中身の指紋（sha256）と比べ",
+     "why": "非機能の観点の指摘：名前と版だけを比べると、版を上げずに argv を変えた定義（許可の違う子セッション）で続けられる。中身の指紋も比べる約束にする（実装も合わせる）",
+     "before": "  \"name\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"ツールの名前（sessions.tool に書く）\" },\n  \"version\": { \"type\": \"string\", \"minLength\": 1, \"description\": \"この定義の版\" },\n  \"model\": { \"type\": \"string\", \"description\": \"子セッションのモデル（分かれば。sessions.model に書く）\" },"
+    }
+   ]
+  },
+  {
+   "key": "design",
+   "tab": "design-system.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/design-system.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "デザインシステムのフォルダの中の相対の経路",
+     "why": "非機能の観点の指摘：templates の経路が長さだけの決まりで、../ や絶対の経路を書けた。デザインシステムのフォルダの中に限る",
+     "before": "    \"minLength\": 1"
+    }
+   ]
+  },
+  {
+   "key": "fixture",
+   "tab": "Concrete の例（review.schema.json）",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/fixtures/review.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"/goal\"",
+     "why": "Concrete を書く人から見た変化：x-delegates と agent を書かず、判定が読む所を reads に書く（案）",
+     "before": "      \"agent\": \"judge\""
+    },
+    {
+     "find": "\"x-delegates\": {",
+     "why": "Abstract から x-delegates を外したので、試験の材料の Concrete からも外す",
+     "before": " },\n \"x-delegates\": {\n  \"judge\": {\n   \"role\": \"意味の判定役\",\n   \"run\": {\n    \"kind\": \"judging\"\n   }\n  }"
+    },
+    {
+     "find": "urn:example:sample:",
+     "before": "urn:semantic-agent-schema:sample:…",
+     "why": "使う側の Concrete は urn:semantic-agent-schema: を使わない約束にしたので、試験の材料の URN を使う側の名前空間（urn:example:）にする"
+    },
+    {
+     "find": "\"const\": \"urn:semantic-agent-schema:sample:review:v1\"",
+     "before": "   \"const\": \"urn:semantic-agent-schema:sample:review:v1\"",
+     "why": "使う側の Concrete は urn:semantic-agent-schema: を使わない約束にしたので、試験の材料の URN を urn:example: にする"
+    }
+   ]
+  },
+  {
+   "key": "support",
+   "tab": "試験の部品（support.rs）",
+   "file": "semantic-agent-schema/schemas-and-instances/validation/application/tests/support.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"reads\": [\"/goal\"]",
+     "why": "試験の部品の Concrete も、x-delegates と agent を外して reads を書く形にそろえる",
+     "before": "           \"x-delegates\": {\"judge\": {\"role\": \"意味の判定役\", \"run\": {\"kind\": \"judging\"}}},\n                 \"by\": \"ai\", \"agent\": \"judge\"}]}}"
+    },
+    {
+     "find": "x-delegates",
+     "why": "同上",
+     "before": "           \"x-delegates\": {\"judge\": {\"role\": \"意味の判定役\", \"run\": {\"kind\": \"judging\"}}},\n                 \"by\": \"ai\", \"agent\": \"judge\"}]}}"
+    },
+    {
+     "find": "pub(crate) const UC: &str = \"urn:semantic-agent-schema:t:uc:v1\";",
+     "before": "pub(crate) const UC: &str = \"urn:semantic-agent-schema:t:uc:v1\";",
+     "why": "使う側の Concrete は urn:semantic-agent-schema: を使わない約束にしたので、試験の材料の URN を urn:example: にする"
+    },
+    {
+     "find": "json!({\"x-prompt\": {\"write\": [{\"id\": \"closed-list\", \"by\": \"machine\"}, {\"id\": \"someone-decides\", \"by\": \"human\"}]}",
+     "before": "            json!({\"x-prompt\": {\"write\": [{\"id\": \"closed-list\", \"by\": \"machine\"}, {\"id\": \"someone-decides\", \"by\": \"human\"}]},",
+     "why": "試験の部品の Abstract の機械の rule を、外した closed-list から、残した unique-id にする"
+    }
+   ]
+  },
+  {
+   "key": "decision",
+   "tab": "Concrete の例（decision.schema.json）",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/fixtures/decision.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"if\": {",
+     "before": "（x-derived-from の rules と otherwise）",
+     "why": "x-derived-from で書いていた「影響が high なら by-two、それ以外は by-one」を、JSON Schema の if ・ then ・ else で書く"
+    },
+    {
+     "find": "\"x-derived-from\": {",
+     "before": "（差分の - の行）",
+     "why": "同上"
+    },
+    {
+     "find": "影響が high なら by-two、それ以外は by-one（根の if ・ then ・ else）",
+     "before": "（差分の - の行）",
+     "why": "導き方が根の if ・ then ・ else に移ったことを、欄の説明に書く（欄から決まりが離れるため）"
+    },
+    {
+     "find": "urn:example:sample:",
+     "before": "urn:semantic-agent-schema:sample:…",
+     "why": "使う側の Concrete は urn:semantic-agent-schema: を使わない約束にしたので、試験の材料の URN を使う側の名前空間（urn:example:）にする"
+    },
+    {
+     "find": "\"const\": \"urn:semantic-agent-schema:sample:decision:v1\"",
+     "before": "   \"const\": \"urn:semantic-agent-schema:sample:decision:v1\"",
+     "why": "使う側の Concrete は urn:semantic-agent-schema: を使わない約束にしたので、試験の材料の URN を urn:example: にする"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "abstract": "6be9c2d772326501d7aceacb2936826629a8623c1244102544615658069d5dbc",
+  "vocabulary": "e0ef529bc98171baea561f33b99e95db7ce71b713f40bde3e37eac66f7612a45",
+  "dialect": "f21bb8612575590391e7d71bfce840658693a45ba29b8432040b97f2a563da8e",
+  "connector": "e24f69f4af264fdc02729b4b2ecb3b555b8d991a165c5f96a167e4b93f1081f0",
+  "design": "c09c5e6e2eb12e9a55637a14b9fbd9819a2c2f0a1f7c46cd710cff727e773d90",
+  "fixture": "c32b8b02862e642e9cf121a55531fc2f73236f28b3555748a306ddd2070779bf",
+  "support": "ed01de17cce4101a36f70aaf1cc54f4f080bd55790c76b88d599012147e7822b",
+  "decision": "d011e3005bc00054b0e7c545090362f7ba6c59a1a55c8f1bf04a317af7ae4d7d"
+ }
+}

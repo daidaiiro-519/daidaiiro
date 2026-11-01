@@ -92,17 +92,15 @@ mod tests {
     #[test]
     fn references_to_finds_scalar_and_array_items() {
         let concrete = json!({"properties": {
-            "calls": {"type": "array", "items": {"type": "string", "x-relationship": {"to": "urn:semantic-agent-schema:t:uc:v1"}}},
-            "parent": {"type": "string", "x-relationship": {"to": "urn:semantic-agent-schema:t:uc:v1"}},
-            "owner": {"type": "string", "x-relationship": {"to": "urn:semantic-agent-schema:t:actor:v1"}}}});
+            "calls": {"type": "array", "items": {"type": "string", "x-relationship": {"to": "urn:example:t:uc:v1"}}},
+            "parent": {"type": "string", "x-relationship": {"to": "urn:example:t:uc:v1"}},
+            "owner": {"type": "string", "x-relationship": {"to": "urn:example:t:actor:v1"}}}});
         let doc = json!({"calls": ["U1", "U2", "U1"], "parent": "U1", "owner": "U1"});
         assert_eq!(
-            references_to(&concrete, &doc, "urn:semantic-agent-schema:t:uc:v1", "U1"),
+            references_to(&concrete, &doc, "urn:example:t:uc:v1", "U1"),
             vec!["/calls/0", "/calls/2", "/parent"]
         );
-        assert!(
-            references_to(&concrete, &doc, "urn:semantic-agent-schema:t:uc:v1", "U9").is_empty()
-        );
+        assert!(references_to(&concrete, &doc, "urn:example:t:uc:v1", "U9").is_empty());
     }
 
     #[test]

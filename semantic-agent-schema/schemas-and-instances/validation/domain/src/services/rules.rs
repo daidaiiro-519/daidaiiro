@@ -1,7 +1,7 @@
 //! 当たる rule を集め、機械で判定できないものを、by ごとに決まった値にする。
 //!
 //! rule は x-prompt.write（欄に書く）と、x-extensions の prompt.write（x- の名前に書く）にある。
-//! 当たるのは、対象の文書にその欄や x- が実際にあるときだけ。
+//! 当たるのは、対象の文書にその欄や x- が実際にあるときだけ。Abstract の $defs の中の rule も、$ref でたどって当てる。
 
 use crate::values::{By, RuleResult, Verdict};
 use serde_json::Value;
@@ -36,48 +36,147 @@ fn write_rules(prompt: Option<&Value>) -> Vec<(String, By, Value)> {
         .unwrap_or_default()
 }
 
-/// Concrete に当たる Abstract の rule：根、Concrete にある根の欄、Concrete が使う x-。
-/// $defs の中の rule（入れ子の欄ごとに当たるもの）は、まだ集めない（探索の記録 step-01）。
+/// Concrete に当たる Abstract の rule。Abstract を Concrete の形としてたどり、Concrete にある所ごとに当てる：
+/// 根の rule、properties ・ additionalProperties ・ items ・ allOf の先（$ref で指す $defs を含む）の rule、
+/// Concrete のどこかで使う x- の値の形（x-extensions の schema が指す $defs）の rule と、その x- の定義の rule。
 #[must_use]
 pub fn rules_for_concrete(abstract_doc: &Value, concrete: &ConcreteSchema) -> Vec<AppliedRule> {
     let mut out = Vec::new();
-    for (id, by, definition) in write_rules(abstract_doc.get("x-prompt")) {
+    push_rules(abstract_doc, "", &mut out);
+    shape(
+        abstract_doc,
+        abstract_doc,
+        concrete.document(),
+        "",
+        &mut out,
+        0,
+    );
+    keywords(abstract_doc, concrete.document(), "", &mut out);
+    out
+}
+
+fn push_rules(schema: &Value, at: &str, out: &mut Vec<AppliedRule>) {
+    for (id, by, definition) in write_rules(schema.get("x-prompt")) {
         out.push(AppliedRule {
             id,
             by,
-            pointer: String::new(),
-            definition: definition.clone(),
+            pointer: at.to_string(),
+            definition,
         });
     }
-    if let Some(props) = abstract_doc.get("properties").and_then(Value::as_object) {
-        for (name, field) in props {
-            if concrete.document().get(name).is_some() {
-                for (id, by, definition) in write_rules(field.get("x-prompt")) {
-                    out.push(AppliedRule {
-                        id,
-                        by,
-                        pointer: format!("/{}", escape(name)),
-                        definition: definition.clone(),
-                    });
+}
+
+/// 文書の中の "#/$defs/名前" と "#名前"（$anchor）を引く。
+fn resolve<'a>(root: &'a Value, schema: &'a Value) -> &'a Value {
+    let Some(r) = schema.get("$ref").and_then(Value::as_str) else {
+        return schema;
+    };
+    if let Some(p) = r.strip_prefix('#')
+        && !p.is_empty()
+    {
+        if p.starts_with('/') {
+            return root.pointer(p).unwrap_or(schema);
+        }
+        if let Some(defs) = root.get("$defs").and_then(Value::as_object) {
+            for d in defs.values() {
+                if d.get("$anchor").and_then(Value::as_str) == Some(p) {
+                    return d;
                 }
             }
         }
     }
-    if let Some(exts) = abstract_doc.get("x-extensions").and_then(Value::as_object) {
-        for (name, def) in exts {
-            if concrete.uses(name) {
-                for (id, by, definition) in write_rules(def.get("prompt")) {
-                    out.push(AppliedRule {
-                        id,
-                        by,
-                        pointer: format!("/{}", escape(name)),
-                        definition: definition.clone(),
-                    });
+    schema
+}
+
+/// schema を value の形としてたどり、子の所に当たる rule を集める（その所の rule は呼ぶ側が集める）。
+fn shape(
+    root: &Value,
+    schema: &Value,
+    value: &Value,
+    at: &str,
+    out: &mut Vec<AppliedRule>,
+    depth: usize,
+) {
+    if depth > 16 {
+        return;
+    }
+    let schema = resolve(root, schema);
+    for sub in schema
+        .get("allOf")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        shape(root, sub, value, at, out, depth + 1);
+    }
+    if let Some(obj) = value.as_object() {
+        let props = schema.get("properties").and_then(Value::as_object);
+        for (name, child) in obj {
+            if name.starts_with("x-") {
+                continue;
+            }
+            let sub = props
+                .and_then(|p| p.get(name))
+                .or_else(|| schema.get("additionalProperties").filter(|a| a.is_object()));
+            if let Some(sub) = sub {
+                let here = format!("{at}/{}", escape(name));
+                let sub_r = resolve(root, sub);
+                // $ref と横に並べた x-prompt と、$ref の先の x-prompt の両方
+                push_rules(sub, &here, out);
+                if !std::ptr::eq(sub, sub_r) {
+                    push_rules(sub_r, &here, out);
                 }
+                shape(root, sub_r, child, &here, out, depth + 1);
             }
         }
     }
-    out
+    if let (Some(items), Some(arr)) = (schema.get("items"), value.as_array()) {
+        let items_r = resolve(root, items);
+        for (i, child) in arr.iter().enumerate() {
+            let here = format!("{at}/{i}");
+            push_rules(items, &here, out);
+            if !std::ptr::eq(items, items_r) {
+                push_rules(items_r, &here, out);
+            }
+            shape(root, items_r, child, &here, out, depth + 1);
+        }
+    }
+}
+
+/// Concrete のどこかで使う x- ごとに、その x- の定義の rule と、値の形（$defs）の rule を当てる。
+fn keywords(abstract_doc: &Value, value: &Value, at: &str, out: &mut Vec<AppliedRule>) {
+    match value {
+        Value::Object(m) => {
+            for (k, child) in m {
+                let here = format!("{at}/{}", escape(k));
+                if k.starts_with("x-")
+                    && let Some(def) = abstract_doc.pointer(&format!("/x-extensions/{}", escape(k)))
+                {
+                    for (id, by, definition) in write_rules(def.get("prompt")) {
+                        out.push(AppliedRule {
+                            id,
+                            by,
+                            pointer: here.clone(),
+                            definition,
+                        });
+                    }
+                    if let Some(form) = def.get("schema") {
+                        let form = resolve(abstract_doc, form);
+                        shape(abstract_doc, form, child, &here, out, 0);
+                    }
+                }
+                if !k.starts_with("x-") {
+                    keywords(abstract_doc, child, &here, out);
+                }
+            }
+        }
+        Value::Array(a) => {
+            for (i, child) in a.iter().enumerate() {
+                keywords(abstract_doc, child, &format!("{at}/{i}"), out);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// インスタンスに当たる Concrete の rule：根と、インスタンスにある欄（入れ子の properties と items も）。
@@ -141,9 +240,10 @@ pub fn judge_others(rule: &AppliedRule) -> RuleResult {
 
 #[cfg(test)]
 mod tests {
-    use super::{judge_others, rules_for_instance};
+    use super::{judge_others, rules_for_concrete, rules_for_instance};
     use crate::values::{By, Verdict};
     use serde_json::json;
+    use writing_domain::aggregates::ConcreteSchema;
 
     #[test]
     fn rules_follow_present_fields_only() {
@@ -161,5 +261,37 @@ mod tests {
         assert_eq!(rules[1].by, By::Human);
         assert_eq!(judge_others(&rules[1]).verdict(), Verdict::Unverified);
         assert_eq!(judge_others(&rules[0]).verdict(), Verdict::Unsupported);
+    }
+
+    #[test]
+    fn abstract_rules_inside_defs_reach_the_concrete() {
+        // Abstract の $defs の中の rule（欄の title、rule の欄）も、$ref と x- の値の形をたどって当たる
+        let abstract_doc = json!({
+            "x-prompt": {"write": [{"id": "root-rule", "by": "ai"}]},
+            "properties": {"properties": {"$ref": "#/$defs/fields"}},
+            "x-extensions": {"x-prompt": {"schema": {"$ref": "#/$defs/prompt"}}},
+            "$defs": {
+                "fields": {"additionalProperties": {"$ref": "#/$defs/field"}},
+                "field": {"properties": {"title": {"x-prompt": {"write": [{"id": "title-rule", "by": "ai"}]}}}},
+                "prompt": {"properties": {"write": {"items": {"$ref": "#/$defs/rule"}}}},
+                "rule": {"properties": {"why": {"$ref": "#/$defs/sentence", "x-prompt": {"write": [{"id": "why-rule", "by": "ai"}]}}}},
+                "sentence": {"type": "string"}
+            }
+        });
+        let concrete = ConcreteSchema::read(&json!({
+            "$schema": "urn:semantic-agent-schema:published-language:abstract:v1", "$id": "urn:example:a:v1",
+            "properties": {"goal": {"title": "目的", "x-prompt": {"write": [{"id": "r", "why": "w", "by": "ai"}]}}}
+        }))
+        .unwrap();
+        let got: Vec<(String, String)> = rules_for_concrete(&abstract_doc, &concrete)
+            .into_iter()
+            .map(|r| (r.id, r.pointer))
+            .collect();
+        assert!(got.contains(&("root-rule".into(), String::new())));
+        assert!(got.contains(&("title-rule".into(), "/properties/goal/title".into())));
+        assert!(got.contains(&(
+            "why-rule".into(),
+            "/properties/goal/x-prompt/write/0/why".into()
+        )));
     }
 }

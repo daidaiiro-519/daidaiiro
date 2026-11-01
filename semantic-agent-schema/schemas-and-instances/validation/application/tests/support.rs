@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use validation_application::ports::{DocumentStore, SchemaValidator};
 
 pub(crate) const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";
-pub(crate) const UC: &str = "urn:semantic-agent-schema:t:uc:v1";
+pub(crate) const UC: &str = "urn:example:t:uc:v1";
 
 pub(crate) struct Files(pub(crate) RefCell<BTreeMap<String, String>>);
 impl DocumentStore for Files {
@@ -46,7 +46,7 @@ pub(crate) struct Lenient;
 impl SchemaValidator for Lenient {
     fn shipped(&self, id: &str) -> Option<Value> {
         (id == ABSTRACT).then(|| {
-            json!({"x-prompt": {"write": [{"id": "closed-list", "by": "machine"}, {"id": "someone-decides", "by": "human"}]},
+            json!({"x-prompt": {"write": [{"id": "unique-id", "by": "machine"}, {"id": "someone-decides", "by": "human"}]},
                    "x-extensions": {"x-prompt": {}, "x-relationship": {}}})
         })
     }
@@ -217,10 +217,9 @@ pub(crate) fn decided() -> Value {
 /// 意味の rule（by: ai）を1つ持つ Concrete。goal を検証用の子セッションに判定させる。
 pub(crate) fn meaning() -> Value {
     json!({"$schema": ABSTRACT, "$id": UC,
-           "x-delegates": {"judge": {"role": "意味の判定役", "run": {"kind": "judging"}}},
            "properties": {
         "goal": {"x-prompt": {"write": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
                  "why": "手段だと果たせたかを決められない。", "test": "結果を表す名詞句か。",
-                 "by": "ai", "agent": "judge"}]}}
+                 "by": "ai", "reads": ["/goal"]}]}}
     }})
 }

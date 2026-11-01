@@ -112,12 +112,9 @@ mod tests {
 
     #[test]
     fn missing_target_is_violated() {
-        let concrete = json!({"properties": {"calls": {"type": "array", "items": {"type": "string", "x-relationship": {"to": "urn:semantic-agent-schema:t:uc:v1"}}}}});
-        let known: BTreeSet<(String, String)> = [(
-            "urn:semantic-agent-schema:t:uc:v1".to_string(),
-            "U1".to_string(),
-        )]
-        .into();
+        let concrete = json!({"properties": {"calls": {"type": "array", "items": {"type": "string", "x-relationship": {"to": "urn:example:t:uc:v1"}}}}});
+        let known: BTreeSet<(String, String)> =
+            [("urn:example:t:uc:v1".to_string(), "U1".to_string())].into();
         let r = check_relationships(&concrete, &json!({"calls": ["U1", "U9"]}), &known);
         assert_eq!(r[0].verdict(), Verdict::Verified);
         assert_eq!(r[1].verdict(), Verdict::Violated);
@@ -126,7 +123,8 @@ mod tests {
 
     #[test]
     fn unknown_target_concrete_is_violated() {
-        let concrete = json!({"properties": {"a": {"x-relationship": {"to": "urn:semantic-agent-schema:t:x:v1"}}}});
+        let concrete =
+            json!({"properties": {"a": {"x-relationship": {"to": "urn:example:t:x:v1"}}}});
         let r = check_targets(&concrete, &BTreeSet::new());
         assert_eq!(r[0].verdict(), Verdict::Violated);
         assert_eq!(r[0].pointer(), "/properties/a/x-relationship/to");

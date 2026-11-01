@@ -173,3 +173,21 @@ impl SeedChild for Log {
         .unwrap();
     }
 }
+
+#[test]
+fn reading_of_the_field_goes_to_the_child_session() {
+    // x-prompt の read（interpret ・ when）は、子セッションが値を読む手がかりとして手順に入る
+    let mut c = meaning();
+    c["properties"]["goal"]["x-prompt"]["read"] =
+        json!({"interpret": "利用者の言葉で書いた結果として読む", "when": "検証するときに読む"});
+    let store = files(&[
+        ("c.json", c),
+        ("u1.json", json!({"$schema": UC, "goal": "注文が届く"})),
+    ]);
+    let mut log = Log::default();
+    let reader = Scripted::new("verified", "結果を書いている");
+    run(&store, &mut log, &reader, None).unwrap();
+    let sent = reader.sent.borrow();
+    assert!(sent[0].1.contains("利用者の言葉で書いた結果として読む"));
+    assert!(sent[0].1.contains("検証するときに読む"));
+}
