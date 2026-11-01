@@ -1,5 +1,5 @@
 -- ステップ4：削除。ステップ4b で書き直した。
--- 削除は事前の状態を変わった欄（根の欄ごとの remove）として残し、事後の指紋を持たない（0002 の CHECK）。
+-- 削除は事前の状態を変わった欄（根の欄ごとの remove）として残し、事後のハッシュを持たない（0002 の CHECK）。
 
 -- 削除の変わった欄は、事前の根の欄ごとの remove だけ
 CREATE TRIGGER field_changes_delete_removes BEFORE INSERT ON field_changes

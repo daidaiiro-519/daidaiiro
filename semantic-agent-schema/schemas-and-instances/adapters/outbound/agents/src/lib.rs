@@ -56,7 +56,7 @@ impl Connector {
             .unwrap_or_default()
     }
 
-    /// 内容の指紋で名前を付けて、作業用のフォルダに置く。手放すと消える。
+    /// 内容のハッシュで名前を付けて、作業用のフォルダに置く。手放すと消える。
     fn keep(&self, kind: &str, text: &str) -> Result<Kept, String> {
         let dir = self.work_dir.join("prompts");
         std::fs::create_dir_all(&dir).map_err(|e| format!("{} を作れない：{e}", dir.display()))?;

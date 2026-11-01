@@ -223,7 +223,7 @@
     },
     "untracked": {
      "type": "array",
-     "description": "SAS を通らない変更があった対象。記録の最後の事後と、いまの中身の指紋が違う。いまの中身を検証した",
+     "description": "SAS を通らない変更があった対象。記録の最後の事後と、いまの中身のハッシュが違う。いまの中身を検証した",
      "items": {
       "type": "object",
       "required": [
@@ -244,11 +244,11 @@
        },
        "expected": {
         "$ref": "#/$defs/fingerprint",
-        "description": "その操作の事後の指紋"
+        "description": "その操作の事後のハッシュ"
        },
        "actual": {
         "$ref": "#/$defs/fingerprint",
-        "description": "いまの中身の指紋"
+        "description": "いまの中身のハッシュ"
        }
       }
      }
@@ -660,7 +660,7 @@
       "writer_as_checker",
       "launch_mismatch"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前 ・ 版 ・ 中身の指紋のどれかが違う）で、記録しない"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。busy ・ writer_as_checker ・ launch_mismatch は検証用の子セッションを続けられないこと（同じ子セッションが処理中 ・ 書き込み用の子セッションを渡された ・ 子セッションを起動した接続の定義といまの定義の名前 ・ 版 ・ 中身のハッシュのどれかが違う）で、記録しない"
     },
     "path": {
      "type": "string"
@@ -832,7 +832,7 @@
     },
     "before": {
      "$ref": "#/$defs/side",
-     "description": "事前の指紋。作成では無い"
+     "description": "事前のハッシュ。作成では無い"
     },
     "after": {
      "$ref": "#/$defs/side"
@@ -847,7 +847,7 @@
   },
   "interleaved": {
    "type": "object",
-   "description": "指紋が違って断ったときの、間に入った変更。呼ぶ側は、意図と変わった欄を読んでから直し方を決め直す",
+   "description": "ハッシュが違って断ったときの、間に入った変更。呼ぶ側は、意図と変わった欄を読んでから直し方を決め直す",
    "required": [
     "expected",
     "current",
@@ -858,11 +858,11 @@
    "properties": {
     "expected": {
      "$ref": "#/$defs/fingerprint",
-     "description": "比べた指紋（--if-match か、SAS が最後に書いた事後の指紋）"
+     "description": "比べたハッシュ（--if-match か、SAS が最後に書いた事後のハッシュ）"
     },
     "current": {
      "$ref": "#/$defs/fingerprint",
-     "description": "いまの中身の指紋"
+     "description": "いまの中身のハッシュ"
     },
     "untracked": {
      "type": "boolean",
@@ -873,7 +873,7 @@
      "items": {
       "$ref": "#/$defs/written-operation"
      },
-     "description": "比べた指紋のあとに記録された、対象を書いた操作（古い順）。事前と事後の指紋をたどって組む"
+     "description": "比べたハッシュのあとに記録された、対象を書いた操作（古い順）。事前と事後のハッシュをたどって組む"
     },
     "last_recorded": {
      "type": "object",

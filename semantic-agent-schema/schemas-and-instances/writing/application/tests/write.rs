@@ -122,9 +122,9 @@ fn update_without_if_match_compares_with_the_last_write() {
         request_id: None,
         intent: Some("目標を直す".into()),
     };
-    // SAS が一度も書いていないので、比べる指紋が無く、書く
+    // SAS が一度も書いていないので、比べるハッシュが無く、書く
     let first = update(&req("b"), &store, &Lenient, &Human, &mut log).unwrap();
-    // 最後に書いた指紋といまの中身が同じなので、書く
+    // 最後に書いたハッシュといまの中身が同じなので、書く
     update(&req("c"), &store, &Lenient, &Human, &mut log).unwrap();
     // SAS を通らずに直される
     store
@@ -141,7 +141,7 @@ fn update_without_if_match_compares_with_the_last_write() {
     assert!(i.untracked);
     assert!(i.operations.is_empty());
     assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
-    // 古い指紋を --if-match で渡すと、そのあとの操作が意図と一緒に返る
+    // 古いハッシュを --if-match で渡すと、そのあとの操作が意図と一緒に返る
     let r = update(
         &UpdateRequest {
             if_match: Some(first.before.unwrap().as_str().into()),

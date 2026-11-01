@@ -18,7 +18,7 @@ use writing_domain::values::{Change, Diff, FieldChange, Fingerprint};
 pub struct DeleteRequest {
     /// 消す経路
     pub path: String,
-    /// 消す前に読んだ中身の指紋。無ければ、いまの中身が記録のどれかの事後かを確かめる
+    /// 消す前に読んだ中身のハッシュ。無ければ、いまの中身が記録のどれかの事後かを確かめる
     pub if_match: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
@@ -39,7 +39,7 @@ pub struct Deletion {
     pub path: String,
     /// 従う Concrete（Concrete なら Abstract の版）の $id
     pub concrete: String,
-    /// 消す前の指紋
+    /// 消す前のハッシュ
     pub before: Fingerprint,
     /// 消す前の状態（根の欄ごとの remove）
     pub diff: Diff,
@@ -86,7 +86,7 @@ fn replayed(
     let fp = |s: &Option<String>, op: &str| {
         s.as_deref()
             .and_then(Fingerprint::parse)
-            .ok_or_else(|| log_refused(format!("操作 {op} の指紋を読めない")))
+            .ok_or_else(|| log_refused(format!("操作 {op} のハッシュを読めない")))
     };
     let (kind, concrete) = target_of(store, path, &row.fields);
     Ok(Deletion {
@@ -121,11 +121,11 @@ fn refuse_with(path: &str, code: &'static str, blocked: Vec<Blocked>) -> Refused
     r
 }
 
-/// UC3 削除する（機械）：前提の指紋と、Concrete なら従うインスタンスが無いことを確かめてから、対象を消して記録する。
+/// UC3 削除する（機械）：前提のハッシュと、Concrete なら従うインスタンスが無いことを確かめてから、対象を消して記録する。
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない（何も記録しない）。
-/// 指紋が違う ・ 公開した Concrete ・ 頼っている文書がある（何も変えない）。
+/// ハッシュが違う ・ 公開した Concrete ・ 頼っている文書がある（何も変えない）。
 /// 消せない ・ 記録できないとき。
 pub fn delete(
     request: &DeleteRequest,
@@ -163,7 +163,7 @@ pub fn delete(
         fields: Vec::new(),
     };
 
-    // 1. 消す前提の指紋（更新と同じ決まり）
+    // 1. 消す前提のハッシュ（更新と同じ決まり）
     let (expected, from) = match &request.if_match {
         Some(fp) => (Some(fp.clone()), "--if-match の"),
         None => (
@@ -177,7 +177,7 @@ pub fn delete(
             "conflict",
             path,
             format!(
-                "いまの中身の指紋は {}。{from}指紋 {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
+                "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
                 current.as_str(),
                 if between.untracked {
                     "。SAS を通らない変更がある"

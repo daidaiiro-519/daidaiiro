@@ -63,7 +63,7 @@ pub struct TargetResult {
     pub kind: TargetKind,
     /// 従う schema の $id
     pub schema: String,
-    /// 検証したときの中身の指紋
+    /// 検証したときの中身のハッシュ
     pub fingerprint: Fingerprint,
     /// rule ごとの結果
     pub results: Vec<RuleResult>,
@@ -82,9 +82,9 @@ pub struct Untracked {
     pub path: String,
     /// 対象を最後に書いた操作の ID
     pub last_operation: String,
-    /// その操作の事後の指紋
+    /// その操作の事後のハッシュ
     pub expected: String,
-    /// いまの中身の指紋
+    /// いまの中身のハッシュ
     pub actual: String,
 }
 
@@ -118,7 +118,7 @@ pub struct Refused {
     pub path: Option<Box<str>>,
     /// 理由
     pub message: String,
-    /// 指紋が違って断ったとき（conflict）の、間に入った変更
+    /// ハッシュが違って断ったとき（conflict）の、間に入った変更
     pub interleaved: Option<Box<Interleaved>>,
     /// 次にすることの案内（SAS を通らない変更を取り込むコマンドなど）
     pub hint: Option<Box<String>>,
@@ -283,7 +283,7 @@ pub fn validate(
     run_validate(scope, false, store, validator, who, log, None).map(|(v, _)| v)
 }
 
-/// UC4 の範囲「入力が変わった rule だけ」：rule ごとに、前の判定が読んだ所の指紋といまの指紋を比べ、
+/// UC4 の範囲「入力が変わった rule だけ」：rule ごとに、前の判定が読んだ所のハッシュといまのハッシュを比べ、
 /// 違う rule（前の判定が無い rule を含む）だけを判定して記録する。変わった rule が1つも無い対象は記録しない。
 ///
 /// # Errors
@@ -619,7 +619,7 @@ fn judge(
     Ok(results)
 }
 
-/// 判定が読んだ所の指紋。
+/// 判定が読んだ所のハッシュ。
 #[must_use]
 pub fn reads_of(document: &Value, at: &str) -> Fingerprint {
     Fingerprint::of_read(at, document.pointer(at))
@@ -633,9 +633,9 @@ pub struct Current {
     pub kind: TargetKind,
     /// 従う schema の $id
     pub declared: String,
-    /// いまの中身の指紋
+    /// いまの中身のハッシュ
     pub fingerprint: Fingerprint,
-    /// rule ごとの結果と、その判定が読んだ所の指紋
+    /// rule ごとの結果と、その判定が読んだ所のハッシュ
     pub results: Vec<(RuleResult, Fingerprint)>,
     /// rule ごとの定義（x-prompt の write の1行。results と同じ並び。機械だけの検査は None）
     pub definitions: Vec<Option<Value>>,
@@ -722,7 +722,7 @@ pub fn judge_current(
 }
 
 /// 前の判定のあと、読んだ所が変わった rule の id。前の判定が無い rule も入る。
-/// いまの判定と前の判定で、rule ごとに「読んだ所の指紋」の集まりを比べる。
+/// いまの判定と前の判定で、rule ごとに「読んだ所のハッシュ」の集まりを比べる。
 fn changed_rules(now: &[(RuleResult, Fingerprint)], before: &[Judgment]) -> BTreeSet<String> {
     let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for (r, reads) in now {
@@ -817,7 +817,7 @@ fn run_validate(
         ));
     }
 
-    // 対象ごとに検証を記録する（対象を変えないので指紋は1つ）
+    // 対象ごとに検証を記録する（対象を変えないのでハッシュは1つ）
     let rows: Vec<ValidateRow> = judged
         .iter()
         .map(|(path, _, _, fp, results, reads, _, _)| ValidateRow {

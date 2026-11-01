@@ -694,7 +694,7 @@ pub fn check_design_system(
 pub struct DesignTarget {
     /// 経路
     pub path: String,
-    /// 検証したときの中身の指紋
+    /// 検証したときの中身のハッシュ
     pub fingerprint: Fingerprint,
     /// rule ごとの結果
     pub results: Vec<RuleResult>,

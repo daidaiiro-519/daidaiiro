@@ -88,9 +88,9 @@ pub struct ChangeResult {
     pub path: String,
     /// 従う Concrete（Concrete なら Abstract の版）の $id
     pub concrete: String,
-    /// 事前の指紋（作成では None）
+    /// 事前のハッシュ（作成では None）
     pub before: Option<Fingerprint>,
-    /// 事後の指紋
+    /// 事後のハッシュ
     pub after: Fingerprint,
     /// 前後の中身から求めた差分
     pub diff: Diff,
@@ -128,7 +128,7 @@ pub struct UpdateRequest {
     pub path: String,
     /// JSON Patch（RFC 6902）の操作の並び
     pub patch: Value,
-    /// 直す前に読んだ中身の指紋。無ければ、SAS が最後に書いた事後の指紋と比べる
+    /// 直す前に読んだ中身のハッシュ。無ければ、SAS が最後に書いた事後のハッシュと比べる
     pub if_match: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
@@ -310,7 +310,12 @@ fn replay(
         .after
         .as_deref()
         .and_then(Fingerprint::parse)
-        .ok_or_else(|| log_refused(format!("操作 {} の事後の指紋を読めない", stored.operation)))?;
+        .ok_or_else(|| {
+            log_refused(format!(
+                "操作 {} の事後のハッシュを読めない",
+                stored.operation
+            ))
+        })?;
     Ok(ChangeResult {
         parent: stored.parent,
         operation: stored.operation,
@@ -472,13 +477,13 @@ fn overlaps(a: &str, b: &str) -> bool {
     within(a, b) || within(b, a)
 }
 
-/// UC2 更新する（機械）：いまの中身の指紋を確かめ、JSON Patch を当て、型と集約の書く条件を確かめてから書き、
+/// UC2 更新する（機械）：いまの中身のハッシュを確かめ、JSON Patch を当て、型と集約の書く条件を確かめてから書き、
 /// 前後の中身から求めた差分と一緒に更新の操作を記録する。前の判定のうち入力が変わったものと、
 /// Concrete の更新で外れたインスタンスを返す。
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない（何も記録しない）。
-/// 指紋が違う ・ 差分を当てられない ・ 形や書く条件に外れる（書かずに記録する）。書けない ・ 記録できないとき。
+/// ハッシュが違う ・ 差分を当てられない ・ 形や書く条件に外れる（書かずに記録する）。書けない ・ 記録できないとき。
 pub fn update(
     request: &UpdateRequest,
     store: &dyn DocumentStore,
@@ -515,8 +520,8 @@ pub fn update(
         intent: request.intent.clone(),
         fields: Vec::new(),
     };
-    // 比べる指紋：呼ぶ側が読んだ指紋（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後の指紋。
-    // SAS が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べる指紋が無く、そのまま書く
+    // 比べるハッシュ：呼ぶ側が読んだハッシュ（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後のハッシュ。
+    // SAS が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べるハッシュが無く、そのまま書く
     let (expected, from) = match &request.if_match {
         Some(fp) => (Some(fp.clone()), "--if-match の"),
         None => (
@@ -530,7 +535,7 @@ pub fn update(
             "conflict",
             path,
             format!(
-                "いまの中身の指紋は {}。{from}指紋 {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
+                "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
                 current.as_str(),
                 if between.untracked {
                     "。SAS を通らない変更がある"
@@ -720,7 +725,7 @@ pub struct AdoptRequest {
 /// 前の中身を探すコミットの数の上限。
 pub const COMMITS_TO_SEARCH: usize = 50;
 
-/// 中身の指紋が記録のどれかの事後と同じコミットを、新しい順に探す。見つかればコミットと中身と、その指紋。
+/// 中身のハッシュが記録のどれかの事後と同じコミットを、新しい順に探す。見つかればコミットと中身と、そのハッシュ。
 /// DB はワークツリーで1つなので、最後の事後だけでなく、この経路の記録のどの事後でもよい
 /// （このワークツリーの履歴にあるのは、ほかのワークツリーが書く前の事後かもしれない）。
 fn find_commit(
@@ -858,7 +863,7 @@ pub fn adopt(
         Some(_) => find_commit(committed, path, &recorded)?,
         None => None,
     };
-    // 事前：前の中身のコミットが見つかればその指紋（記録のどれかの事後）、無ければ記録の最後の事後
+    // 事前：前の中身のコミットが見つかればそのハッシュ（記録のどれかの事後）、無ければ記録の最後の事後
     let expected: Option<String> = match (&found, &last) {
         (Some((_, _, fp)), _) => Some(fp.clone()),
         (None, l) => l.clone(),

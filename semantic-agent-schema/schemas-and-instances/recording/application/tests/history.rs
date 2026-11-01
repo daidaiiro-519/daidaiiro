@@ -130,7 +130,7 @@ fn interleaved_follows_fingerprints_from_expected() {
     assert!(i.untracked);
     assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
 
-    // 前提の指紋が記録に無いときは、記録した操作をすべて返す
+    // 前提のハッシュが記録に無いときは、記録した操作をすべて返す
     let i = interleaved(&log, "a.json", "z", "c").unwrap();
     assert_eq!(i.operations.len(), 2);
     assert!(!i.untracked);

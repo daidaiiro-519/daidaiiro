@@ -33,18 +33,18 @@ pub struct RuleRow {
     pub result: String,
     /// 理由
     pub reason: String,
-    /// 判定が読んだ所の指紋（読んだ所と値から作る）
+    /// 判定が読んだ所のハッシュ（読んだ所と値から作る）
     pub reads: String,
 }
 
-/// 検証1件（記録の行）。検証は対象を変えないので、指紋は1つ。
+/// 検証1件（記録の行）。検証は対象を変えないので、ハッシュは1つ。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ValidateRow {
     /// リポジトリの根からの経路
     pub target_path: String,
     /// rule を判定した検証用の子セッション ID（rule を子セッションに判定させなかったなら None）
     pub child_session: Option<String>,
-    /// 判定した中身の指紋
+    /// 判定した中身のハッシュ
     pub hash: String,
     /// rule ごとの結果
     pub results: Vec<RuleRow>,
@@ -76,9 +76,9 @@ pub struct ChangeRow {
     pub target_path: String,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
-    /// 事前の指紋（作成では None）
+    /// 事前のハッシュ（作成では None）
     pub before: Option<String>,
-    /// 事後の指紋（削除では None）
+    /// 事後のハッシュ（削除では None）
     pub after: Option<String>,
     /// 意図（なぜその操作をしたか。呼ぶ側が渡したときだけ）
     pub intent: Option<String>,

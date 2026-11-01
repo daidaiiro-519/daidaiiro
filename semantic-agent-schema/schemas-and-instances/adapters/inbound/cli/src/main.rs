@@ -36,9 +36,9 @@ const USAGE: &str = "使い方：sas validate [--session <名前>] [--stale] (<�
 sas validate (<経路>... | --all) --agent <接続の定義> [--continue <検証用の子セッション>] [--session <名前>] ／ \
 sas create <経路> --concrete <URN> --value <JSON> [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas create <経路> --adopt [--concrete <URN>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --patch <JSON Patch> [--if-match <指紋>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
+sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--intent <意図>] [--session <名前>] [--request-id <ID>] ／ \
 sas update <経路> --adopt --intent <意図> [--session <名前>] [--request-id <ID>] ／ \
-sas delete <経路> --intent <意図> [--if-match <指紋>] [--session <名前>] [--request-id <ID>] ／ \
+sas delete <経路> --intent <意図> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
 sas render <経路>... --design-system <経路> --out <書き出す先>";
 
 fn main() -> ExitCode {
@@ -337,7 +337,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     let request_id = take("--request-id");
     let intent = take("--intent");
     if adopting {
-        // 取り込みはファイルを書かないので、書く中身（--value ・ --patch）と前提の指紋（--if-match）を受けない
+        // 取り込みはファイルを書かないので、書く中身（--value ・ --patch）と前提のハッシュ（--if-match）を受けない
         if let Some(name) = ["--value", "--patch", "--if-match"]
             .into_iter()
             .find(|n| take(n).is_some())

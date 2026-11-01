@@ -27,7 +27,7 @@ CREATE TRIGGER sessions_parent_is_caller BEFORE INSERT ON sessions
 WHEN NEW.parent_id IS NOT NULL AND (SELECT role FROM sessions WHERE id = NEW.parent_id) IS NOT 'caller'
 BEGIN SELECT RAISE(ABORT, 'the parent must be a caller session'); END;
 
--- 検証。対象を変えないので指紋は1つ。ID は changes と同じ採番（o-NNNN）から振る
+-- 検証。対象を変えないのでハッシュは1つ。ID は changes と同じ採番（o-NNNN）から振る
 CREATE TABLE validations (
     id                TEXT PRIMARY KEY,
     at                TEXT NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE validations (
 
 CREATE INDEX validations_by_target ON validations (target_path, id);
 
--- rule ごとの結果。reads_hash は判定が読んだ所の指紋（入力が変わった rule だけを検証するときに比べる）
+-- rule ごとの結果。reads_hash は判定が読んだ所のハッシュ（入力が変わった rule だけを検証するときに比べる）
 CREATE TABLE rule_results (
     validation_id TEXT NOT NULL REFERENCES validations (id),
     ord           INTEGER NOT NULL,

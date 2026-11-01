@@ -115,7 +115,7 @@ fn a_create_has_no_before_and_an_update_has_one() {
     create.kind = "create".into();
     assert!(
         log.append_change(None, &create).is_err(),
-        "作成に事前の指紋"
+        "作成に事前のハッシュ"
     );
     create.before = None;
     create.fields[0].change = "add".into();
@@ -125,13 +125,13 @@ fn a_create_has_no_before_and_an_update_has_one() {
     no_before.before = None;
     assert!(
         log.append_change(None, &no_before).is_err(),
-        "更新に事前の指紋が無い"
+        "更新に事前のハッシュが無い"
     );
     let mut no_after = update(None);
     no_after.after = None;
     assert!(
         log.append_change(None, &no_after).is_err(),
-        "更新に事後の指紋が無い"
+        "更新に事後のハッシュが無い"
     );
 }
 
