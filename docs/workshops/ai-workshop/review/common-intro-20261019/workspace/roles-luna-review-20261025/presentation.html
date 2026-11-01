@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>目的の把握</title>
+<style>
+  :root{
+    --ground:#0E1823;
+    --surface:#152534;
+    --surface-2:#1B2F41;
+    --paper:#F3EFE7;
+    --ink:#EAF0F5;
+    --dim:#8CA3B8;
+    --faint:#5E7488;
+    --line:#26394C;
+    --accent:#63D2BC;
+    --accent-dim:#2E7A6D;
+    --alert:#EE8A63;
+    --gold:#DFB86A;
+    --serif:'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',YuMincho,serif;
+    --sans:'Noto Sans JP','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+    --mono:'JetBrains Mono','Noto Sans JP',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-feature-settings:"palt" 1;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent-dim); color:var(--ink);}
+
+  .deck{ position:absolute; inset:0; overflow:hidden; }
+  .stage{ position:absolute; left:50%; top:50%; width:1280px; height:720px; transform-origin:center center; }
+  .slide{
+    position:absolute; inset:0;
+    display:none; flex-direction:column; justify-content:flex-start;
+    padding:96px 86.4px 78px;
+  }
+  .slide.on{ display:flex; animation:in .3s cubic-bezier(.2,.7,.3,1); }
+  @keyframes in{ from{opacity:0; transform:translateY(9px);} to{opacity:1; transform:none;} }
+  @media (prefers-reduced-motion:reduce){ .slide.on{animation:none;} }
+
+  .kicker{
+    font-family:var(--mono); font-size:11.5px;
+    letter-spacing:.2em; color:var(--accent); text-transform:uppercase;
+    margin-bottom:14px; display:flex; align-items:center; gap:.9rem;
+  }
+  .kicker::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .kicker.warm{ color:var(--alert); }
+  h1{ font-family:var(--serif); font-weight:600; font-size:69.1px; line-height:1.26; text-wrap:balance; }
+  h2{ font-family:var(--serif); font-weight:600; font-size:36px; line-height:1.36; text-wrap:balance; margin-bottom:16px; }
+  h3{ font-size:18.4px; font-weight:700; line-height:1.5; margin-bottom:.45rem; }
+  p{ font-size:16.7px; line-height:1.85; color:var(--dim); max-width:56ch; }
+  p + p{ margin-top:.9em; }
+  strong{ color:var(--ink); font-weight:700; }
+  .lede{ color:var(--ink); font-size:20.7px; max-width:46ch; }
+  em{ font-style:normal; color:var(--accent); }
+  .mono{ font-family:var(--mono); }
+  .alert{ color:var(--alert); }
+  .gold{ color:var(--gold); }
+  .ac{ color:var(--accent); }
+
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:40.3px; align-items:start; }
+  .cols.w{ grid-template-columns:1fr 1.1fr; align-items:stretch; }
+  .cols.w > div{ display:flex; flex-direction:column; }
+  .cols-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:23.0px; }
+  .stack{ display:flex; flex-direction:column; gap:17.3px; }
+  .body{ flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .slide.center{ justify-content:center; align-items:center; text-align:center; }
+  .center{ align-items:center; text-align:center; }
+  .center p{ max-width:48ch; }
+
+  .cav{ font-size:13px; line-height:1.75; color:var(--faint); margin-top:12px;
+        border-top:1px solid var(--line); padding-top:10px; }
+  .cav b{ color:var(--alert); font-weight:400; }
+  .fmrow{ display:grid; grid-template-columns:auto 1fr; gap:0 18px; align-items:baseline;
+          border-left:2px solid var(--line); padding-left:16px; }
+  .fmrow.top{ border-left-color:var(--accent); }
+  .fmrow .lss{ font-family:var(--serif); font-size:26px; line-height:1.2; color:var(--ink);
+               font-variant-numeric:tabular-nums; grid-row:span 2; }
+  .fmrow.top .lss{ color:var(--accent); }
+  .fmrow .nm2{ font-size:15px; font-weight:700; color:var(--ink); }
+  .fmrow .de{ font-family:var(--mono); font-size:11px; line-height:1.65; color:var(--faint); }
+  .fmlist{ display:flex; flex-direction:column; gap:15px; }
+
+  .recap{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; width:100%; max-width:1000px; }
+  .rc{ border-top:1px solid var(--line); padding-top:12px; text-align:left; }
+  .rc .rcn{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--accent); margin-bottom:6px; }
+  .rc .rct{ display:block; font-size:14px; line-height:1.7; color:var(--dim); }
+  .turnline{ font-family:var(--mono); font-size:13px; color:var(--alert); letter-spacing:.1em; }
+  .branch{ display:flex; flex-direction:column; gap:12px; }
+  .bnode{ border:1px solid var(--line); border-radius:2px; padding:12px 14px; background:var(--surface); }
+  .bnode .bt{ display:block; font-size:15px; line-height:1.6; color:var(--ink); }
+  .bnode .bs{ display:block; font-family:var(--mono); font-size:11px; color:var(--faint); margin-top:5px; }
+  .bsplit{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .bx{ font-family:var(--mono); font-size:12px; color:var(--alert); text-align:center; }
+  .pairfig{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; }
+  .pbox{ border:1px solid var(--line); border-radius:2px; padding:12px 14px; background:var(--surface);
+         font-size:14px; line-height:1.6; color:var(--ink); text-align:center; }
+  .pbox small{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:4px; }
+  .plink{ font-family:var(--mono); font-size:11px; color:var(--faint); text-align:center; white-space:nowrap; }
+  .plink.q{ color:var(--alert); font-size:20px; }
+  .pcard{ border-left:2px solid var(--accent-dim); padding:0 0 0 18px; }
+  .pcard .ph{ display:block; font-size:14.5px; font-weight:700; color:var(--ink); margin-bottom:2px; }
+  .pcard .pm{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-bottom:9px; }
+  .pcard .prow{ display:block; font-size:13.5px; line-height:1.5; color:var(--dim); padding:7px 0;
+                border-top:1px solid var(--line); }
+  .pcard .prow b{ color:var(--ink); font-weight:700; }
+  .pcard .prow i{ font-style:normal; font-family:var(--mono); font-size:10.5px; color:var(--faint); display:block; }
+  .mir{ display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
+  .mc{ display:flex; flex-direction:column; gap:20px; }
+  .mlab{ font-size:15px; color:var(--dim); max-width:none; }
+  .mlab b{ color:var(--ink); font-weight:700; }
+  .mir .pairfig{ grid-template-columns:1fr 54px 1fr; gap:0; }
+  .mir .pbox{ min-height:80px; display:flex; flex-direction:column; justify-content:center; font-size:15px; }
+  .mir .plink{ min-width:54px; }
+  .mtrio{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .mtrio .pbox{ min-height:80px; }
+  .mclaim{ font-family:var(--serif); font-size:22px; line-height:1.5; color:var(--ink);
+           border-left:2px solid var(--accent-dim); padding-left:18px; }
+  .mc.hot .mclaim{ border-left-color:var(--alert); color:var(--alert); }
+  .mrows{ display:flex; flex-direction:column; gap:16px; }
+  .mrow{ border-left:2px solid var(--line); padding-left:18px; }
+  .mrow .mt{ display:block; font-size:15px; line-height:1.6; color:var(--ink); }
+  .mrow .ms{ display:block; font-family:var(--mono); font-size:10.5px; line-height:1.7;
+             color:var(--faint); margin-top:5px; }
+  .mc.hot .mrow .ms{ font-family:var(--sans); font-size:12.5px; color:var(--dim); }
+  .axis{ display:flex; flex-direction:column; gap:26px; }
+  .ax{ border-left:2px solid var(--accent-dim); padding-left:18px; }
+  .mc.hot .ax{ border-left-color:var(--alert); }
+  .ax .axl{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:.18em;
+            color:var(--faint); margin-bottom:7px; }
+  .ax .axt{ display:block; font-family:var(--serif); font-size:22px; line-height:1.45; color:var(--ink); }
+  .mc.hot .ax .axt{ color:var(--alert); }
+  .ax .axs{ display:block; font-size:13.5px; line-height:1.75; color:var(--dim); margin-top:9px; }
+  .ax .axc{ display:block; font-family:var(--mono); font-size:10.5px; line-height:1.7;
+            color:var(--faint); margin-top:6px; }
+  .qlist{ display:flex; flex-direction:column; gap:26px; }
+  .qrow{ display:grid; grid-template-columns:auto 1fr; gap:0 20px; align-items:baseline;
+         border-left:2px solid var(--accent-dim); padding-left:20px; }
+  .qrow.hot{ border-left-color:var(--alert); }
+  .qn{ font-family:var(--mono); font-size:15px; letter-spacing:.1em; color:var(--accent); }
+  .qrow.hot .qn{ color:var(--alert); }
+  .qt{ display:block; font-family:var(--serif); font-size:23px; line-height:1.55; color:var(--ink); }
+  .qs{ display:block; font-size:13.5px; line-height:1.7; color:var(--faint); margin-top:7px; }
+  .qs b{ font-family:var(--mono); font-size:11.5px; color:var(--accent); font-weight:400; letter-spacing:.06em; }
+  .qrow.hot .qs b{ color:var(--alert); }
+  .dots{ display:flex; gap:5px; margin-top:14px; }
+  .dots span{ width:16px; height:16px; border-radius:2px; border:1px solid var(--line); display:block; }
+  .dots span.on{ background:var(--accent); border-color:var(--accent); }
+  .dots.dim span.on{ background:var(--dim); border-color:var(--dim); }
+  .dotcap{ font-size:13px; line-height:1.75; color:var(--dim); margin-top:10px; max-width:none; }
+  .cvt2{ font-size:15px; color:var(--ink); margin-bottom:12px; max-width:none; }
+  .cvcap2{ font-size:13px; line-height:1.8; color:var(--faint); margin-top:12px; max-width:none; }
+  .cvcap2 b{ color:var(--ink); font-weight:700; }
+  .cvcap2 span{ display:block; font-family:var(--mono); font-size:10px; margin-top:6px; }
+  .runs2{ display:flex; flex-direction:column; gap:12px; }
+  .rbox{ background:#0A1119; border:1px solid var(--line); border-radius:2px; padding:12px 14px; }
+  .rbox .rl{ display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.16em;
+             color:var(--faint); margin-bottom:7px; }
+  .rbox pre{ font-family:var(--mono); font-size:11px; line-height:1.75; color:var(--dim);
+             white-space:pre; overflow-x:auto; }
+  .rbox pre i{ font-style:normal; color:var(--accent); }
+  .rbox pre b{ font-weight:400; color:var(--alert); }
+  .conv{ display:flex; flex-direction:column; gap:22px; }
+  .cvblk .cvh{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+  .cvblk .cvv{ font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.08em; }
+  .cvblk .cvt{ font-size:14px; color:var(--ink); }
+  .cvruns{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .cvrun{ display:flex; flex-direction:column; gap:4px; }
+  .cvrun span{ height:5px; border-radius:1px; background:var(--accent-dim); display:block; }
+  .cvrun.x span{ background:#6E5A55; }
+  .cvcap{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+          font-family:var(--mono); font-size:10px; color:var(--faint); margin-top:8px; max-width:none; }
+  .fmt{ display:flex; flex-direction:column; gap:14px; }
+  .fm{ border-left:2px solid var(--line); padding-left:16px; }
+  .fm .fmn{ display:block; font-size:15px; color:var(--ink); font-weight:700; }
+  .fm .fmd{ display:block; font-family:var(--mono); font-size:11.5px; line-height:1.7; color:var(--faint); margin-top:4px; }
+  .fm .fmd i{ font-style:normal; color:var(--accent); }
+  .src1{ font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:22px; max-width:none; }
+  .close{ font-size:16px; line-height:1.85; color:var(--dim); margin-top:34px; max-width:none; }
+  .close .s2{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:8px; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start; }
+  .fig2{ display:flex; flex-direction:column; border-left:2px solid var(--accent-dim); padding-left:22px; }
+  .fig2 .fv{ font-family:var(--serif); font-size:76px; line-height:1; font-weight:600; color:var(--ink); }
+  .fig2 .fv i{ font-style:normal; font-size:.38em; color:var(--accent); margin-left:.12em; }
+  .fig2 .fl{ font-size:15px; line-height:1.8; color:var(--dim); margin-top:16px; }
+  .fig2 .fs{ font-family:var(--mono); font-size:10.5px; line-height:1.7; color:var(--faint); margin-top:14px; }
+  .flowv{ display:flex; flex-direction:column; gap:10px; }
+  .fr{ display:grid; grid-template-columns:1fr; gap:2px; border-left:2px solid var(--line); padding-left:18px; }
+  .fr .ft{ font-size:17px; line-height:1.6; color:var(--ink); }
+  .fr .fn{ font-family:var(--mono); font-size:10.5px; color:var(--faint); }
+  .farr{ font-family:var(--mono); font-size:14px; color:var(--faint); padding-left:6px; }
+  .fq{ border-left:2px solid var(--alert); padding-left:18px; }
+  .fq .ft{ font-family:var(--serif); font-size:24px; line-height:1.5; color:var(--alert); }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:19.6px 21.9px; }
+  .card.lit{ border-left:3px solid var(--accent); }
+  .card.hot{ border-left:3px solid var(--alert); }
+  .card p{ font-size:13.8px; line-height:1.75; }
+  .src{ font-family:var(--mono); font-size:10.2px; color:var(--faint); margin-top:.6rem; }
+
+  .stat{ font-family:var(--serif); font-size:92.2px; line-height:1; font-weight:600; }
+  .stat.sm{ font-size:48.0px; }
+  .stat-cap{ font-size:13.2px; color:var(--dim); margin-top:.5rem; line-height:1.65; }
+
+  .paper{
+    background:var(--paper); color:#1A1F26; border-radius:2px;
+    padding:18.4px 21.9px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.72;
+    box-shadow:0 10px 30px -12px rgba(0,0,0,.6);
+  }
+  .paper .tag{ display:block; font-size:.74em; color:#6C7480; letter-spacing:.08em; margin-bottom:.35rem; }
+  .paper strong{ color:#1A1F26; }
+  .paper mark{ background:#F4D8A8; color:#1A1F26; padding:0 .18em; }
+
+  .code{
+    background:#0A1119; border:1px solid var(--line); border-radius:2px;
+    padding:18.4px 21.9px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.8; color:var(--dim);
+    white-space:pre-wrap;
+  }
+  .code .c{ color:var(--faint); } .code .k{ color:var(--accent); } .code .w{ color:var(--alert); }
+
+  ul.plain{ list-style:none; display:flex; flex-direction:column; gap:.7rem; }
+  ul.plain li{ font-size:15.4px; line-height:1.75; color:var(--dim); padding-left:1.5rem; position:relative; }
+  ul.plain li::before{ content:""; position:absolute; left:0; top:.72em; width:.5rem; height:1px; background:var(--accent); }
+  ul.plain li.x::before{ background:var(--alert); }
+  ul.num{ list-style:none; display:flex; flex-direction:column; gap:.65rem; counter-reset:n; }
+  ul.num li{ font-size:15.0px; line-height:1.7; color:var(--dim); padding-left:2rem; position:relative; counter-increment:n; }
+  ul.num li::before{ content:"H" counter(n); position:absolute; left:0; top:.05em; font-family:var(--mono); font-size:.82em; color:var(--gold); }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.7px; }
+  th{ text-align:left; font-family:var(--mono); font-size:9.9px; letter-spacing:.09em; color:var(--faint); text-transform:uppercase; font-weight:400; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  td{ padding:.5rem .6rem; border-bottom:1px solid var(--line); color:var(--dim); vertical-align:top; }
+  td.num{ font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--ink); text-align:right; }
+  td.nm{ color:var(--ink); font-weight:700; white-space:nowrap; }
+  tr.hi td{ color:var(--ink); } tr.hi td:first-child{ color:var(--accent); }
+  table.tight td, table.tight th{ padding:.38rem .55rem; }
+
+  .flow{ display:grid; grid-template-columns:repeat(4,1fr); gap:.65rem; }
+  .step{ background:var(--surface); border:1px solid var(--line); border-top:2px solid var(--accent-dim); border-radius:2px; padding:16.1px; }
+  .step .n{ font-family:var(--mono); font-size:10.2px; color:var(--accent); letter-spacing:.1em; }
+  .step .t{ font-size:13.6px; font-weight:700; margin:.3rem 0 .35rem; line-height:1.45; }
+  .step .d{ font-size:11.3px; color:var(--faint); line-height:1.6; }
+
+  .matrix{ display:grid; grid-template-columns:auto 1fr 1fr; gap:.5rem; align-items:stretch; }
+  .mh{ font-family:var(--mono); font-size:10.6px; color:var(--faint); display:flex; align-items:center; justify-content:center; text-align:center; padding:.4rem; line-height:1.5; }
+  .mh.side{ writing-mode:vertical-rl; }
+  .cell{ background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:15.0px; }
+  .cell .cl{ font-family:var(--mono); font-size:10.4px; color:var(--faint); letter-spacing:.08em; }
+  .cell .ct{ font-size:13.8px; font-weight:700; margin:.25rem 0 .3rem; }
+  .cell .cd{ font-size:11.5px; color:var(--faint); line-height:1.55; }
+  .cell.full{ border-color:var(--accent-dim); border-width:1px 1px 1px 3px; border-left-color:var(--accent); }
+
+  .vs{ display:grid; grid-template-columns:1fr auto 1fr; gap:16.1px; align-items:stretch; }
+  .vs .arrow{ display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:23.0px; color:var(--alert); }
+  .vs-lbl{ font-family:var(--mono); font-size:9.9px; letter-spacing:.12em; margin-bottom:.3rem; }
+  .vs-spec .vs-lbl{ color:var(--faint); }
+  .vs-impl .vs-lbl{ color:var(--alert); }
+  .vs-box{ background:var(--paper); color:#1A1F26; border-radius:2px; padding:15.0px 17.3px; font-family:var(--mono); font-size:11.7px; line-height:1.68; height:100%; }
+  .vs-box.dark{ background:#0A1119; color:var(--dim); border:1px solid var(--line); }
+  .vs-box mark{ background:#F4D8A8; color:#1A1F26; padding:0 .18em; }
+  .vs-box .w{ color:var(--alert); }
+  .vs-row{ margin-bottom:16.1px; }
+  .vs-row:last-child{ margin-bottom:0; }
+  .vs-cap{ font-size:12.1px; color:var(--faint); margin-bottom:.35rem; }
+  .chrome{ position:absolute; left:0; right:0; bottom:0; height:41.5px; display:flex; align-items:center; justify-content:space-between; padding:0 40.3px; font-family:var(--mono); font-size:9.9px; color:var(--faint); letter-spacing:.1em; pointer-events:none; z-index:5; }
+  .progress{ position:absolute; top:0; left:0; height:2px; background:var(--accent); z-index:6; transition:width .3s cubic-bezier(.2,.7,.3,1); }
+  .hint{ opacity:.45; }
+  .navzone{ position:absolute; top:0; bottom:0; width:20%; z-index:4; cursor:pointer; }
+  .navzone.prev{ left:0; } .navzone.next{ right:0; }
+
+
+</style><style>
+  .cite{ font-family:var(--mono); font-size:9.9px; color:var(--faint);
+         letter-spacing:.04em; margin-top:.7rem; line-height:1.7; border-top:1px solid var(--line);
+         padding-top:.5rem; }
+  .cite b{ color:var(--dim); font-weight:400; }
+  .gap{ display:flex; align-items:baseline; gap:.9rem; margin-bottom:.55rem; }
+  .gap .gn{ font-family:var(--mono); font-size:18.4px; color:var(--alert); flex:none; }
+  .big{ display:flex; flex-direction:column; gap:.25rem; }
+  .big .v{ font-family:var(--serif); font-size:57.6px; line-height:1; font-weight:600; }
+  .big .l{ font-size:12.1px; color:var(--faint); line-height:1.6; }
+  .big.warn .v{ color:var(--alert); }
+  .big.good .v{ color:var(--accent); }
+  .obs{ display:flex; flex-direction:column; gap:23.0px; }
+  .ob{ display:grid; grid-template-columns:46.1px 1fr; align-items:baseline; gap:23.0px;
+       border-left:2px solid var(--line); padding-left:23.0px; }
+  .obn{ font-family:var(--mono); font-size:19.6px; color:var(--accent); }
+  .obt{ font-family:var(--serif); font-size:26px; line-height:1.45; color:var(--ink); display:block; }
+  .obs2{ display:block; font-family:var(--sans); font-size:13.5px;
+         color:var(--faint); line-height:1.75; margin-top:.5rem; max-width:48ch; }
+  .byline{ font-family:var(--mono); font-size:12.1px;
+           letter-spacing:.16em; color:var(--faint); margin-top:51.8px; }
+  .submit{ font-family:var(--mono); font-size:10.4px;
+           letter-spacing:.1em; color:var(--faint); opacity:.7; margin-top:.7rem;
+           font-variant-numeric:tabular-nums; white-space:nowrap; max-width:none; }
+</style>
+
+
+<style>
+  .obs{ display:flex; flex-direction:column; gap:23.0px; }
+  .ob{ display:grid; grid-template-columns:46.1px 1fr; align-items:baseline; gap:23.0px;
+       border-left:2px solid var(--line); padding-left:23.0px; }
+  .obn{ font-family:var(--mono); font-size:19.6px; color:var(--accent); }
+  .obt{ font-family:var(--serif); font-size:26px; line-height:1.45; color:var(--ink); display:block; }
+  .obs2{ display:block; font-family:var(--sans); font-size:13.5px;
+         color:var(--faint); line-height:1.75; margin-top:.5rem; max-width:34ch; }
+
+  .take{ margin-top:20.7px; border-left:2px solid var(--accent-dim);
+          padding-left:23.0px; }
+  .verdict{ font-family:var(--serif); font-size:19px; line-height:1.6; color:var(--ink);
+            border-top:1px solid var(--line); padding-top:11px; }
+  .tlbl{ font-family:var(--mono); font-size:10.4px; letter-spacing:.18em;
+         color:var(--faint); margin-bottom:.6rem; }
+  .take p{ font-size:15px; line-height:1.75; max-width:42ch; }
+  .take p + p{ margin-top:.35em; }
+  .take .turn{ font-family:var(--serif); font-size:19px;
+               color:var(--ink); margin-top:.6em; }
+  .conseq{ display:flex; flex-direction:column; gap:13px;
+           border-left:1px solid var(--line); padding-left:34.6px; }
+  .conseq .lbl{ font-family:var(--mono); font-size:10.4px;
+                letter-spacing:.18em; color:var(--faint); }
+  .loop{ width:100%; max-width:360px; height:auto; }
+  .punch{ font-family:var(--serif); font-size:22px; line-height:1.6;
+          color:var(--ink); max-width:30ch; }
+  .punch b{ color:var(--alert); font-weight:600; }
+  .punch .sub{ display:block; margin-top:.55em; font-size:.75em; color:var(--dim); }
+  .who{ display:flex; gap:.5rem; }
+  .who span{ font-family:var(--mono); font-size:10.9px; color:var(--alert);
+             border:1px solid var(--alert); border-radius:2px; padding:.2em .7em; }
+  .aside{ font-family:var(--mono); font-size:10.6px; line-height:1.8;
+          color:var(--faint); border-top:1px solid var(--line); padding-top:.8rem; }
+</style>
+<style>
+:root{--ground:#f4f1e8;--surface:#e9e5da;--paper:#fffaf2;--on-paper:#252b29;--on-paper-dim:#5b625c;--mark:#f7e2bc;--ink:#252b29;--dim:#59605a;--faint:#686f65;--line:#d5d6c9;--accent:#ae3f23;--accent-dim:#873f2b;--alert:#ae3f23;--gold:#8a6a2f;--canvas:#deded3;--diagram-line:#6f7a63;--on-accent:#fffaf2;--on-accent-dim:#fff1e9;--serif:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--sans:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--mono:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--surface-2:var(--canvas)}
+body{font-feature-settings:normal;background:var(--canvas)}
+.stage{background:var(--ground)}
+.slide{padding:84px 84px 78px}
+.kicker{font-family:var(--sans);font-size:14px;letter-spacing:.06em;color:var(--dim);margin-bottom:20px;gap:12px}
+.kicker::after{display:none}
+.ws-mark{display:inline-block;width:12px;height:12px;border:2px solid var(--diagram-line);border-radius:50%;position:relative}
+.ws-mark::after{content:'';position:absolute;left:16px;top:3px;width:13px;height:2px;background:var(--line)}
+.ws-kicker-label{padding-left:17px}
+h1,h2{font-family:var(--sans);font-weight:700;text-wrap:initial;letter-spacing:-.03em}
+h1{font-size:51px;line-height:1.43} h2{font-size:36px;line-height:1.46;margin-bottom:16px}
+.ws-intro{font-size:20px;line-height:1.7;max-width:none;color:var(--dim)}
+.body{justify-content:flex-start;padding-top:35px;gap:16px;min-height:0}
+.ws-cover .body{padding-top:29px}
+.ws-cover .ws-intro{font-size:19px;margin-top:14px}
+.ws-cover h2{font-size:47px;line-height:1.43}
+.ws-titlepage{padding-top:215px}
+.ws-titlepage .kicker{display:none}
+.ws-titlepage h1{font-size:61px;line-height:1.4}
+.ws-titlepage .ws-intro{font-size:21px;margin-top:19px}
+.ws-titlepage .body{padding-top:48px}
+.ws-title-art{width:100%;height:130px;display:block;flex:none}
+.ws-abstraction .body{padding-top:20px}
+.ws-abstraction-fig{width:100%;height:auto;display:block;flex:none;font-family:var(--sans)}
+.ws-flow{width:100%;height:auto;max-height:184px;display:block;flex:none;font-family:var(--sans)}
+.ws-note{font-size:16px;line-height:1.8;max-width:none;color:var(--dim);margin-top:8px}
+.ws-table{font-family:var(--sans);width:100%;font-size:20px;border-collapse:collapse;table-layout:fixed}
+.ws-table th{font-family:var(--sans);font-size:15px;color:var(--dim);font-weight:500;letter-spacing:0;text-transform:none;padding:0 16px 15px;border-bottom:1px solid var(--line);line-height:1.5}
+.ws-table td{padding:19px 16px;color:var(--ink);border-bottom:1px solid var(--line);font-size:19px;line-height:1.65}
+.ws-table td:first-child{font-weight:500}.ws-table b{color:var(--accent)}
+.ws-split{display:grid;grid-template-columns:1.06fr 1fr;gap:54px;align-items:start}
+.ws-split .ws-flow{height:165px;max-height:none;margin-top:24px}
+.ws-split .ws-table td{font-size:18px;padding:16px 10px}.ws-split .ws-table th{padding-left:10px;padding-right:10px}
+.ws-skill-link{display:flex;justify-content:center;align-items:center;gap:20px;font-size:20px;padding:8px 0}
+.ws-pill{display:inline-block;padding:10px 24px;border:1px solid var(--diagram-line);border-radius:30px;font-size:17px;color:var(--dim)}
+.ws-eyebrow{font-size:16px;margin-bottom:18px;color:var(--dim)}
+.ws-copy{font-size:22px;line-height:1.8;max-width:none;color:var(--ink);margin-top:14px}
+.ws-phases{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;position:relative;padding-top:16px}
+.ws-phases>div{position:relative;padding:29px 25px;background:var(--surface);border-radius:8px}
+.ws-phase-path{position:absolute;left:0;top:16px;width:100%;height:240px;pointer-events:none}
+.ws-phases>.ws-phase-hot{background:var(--accent);color:var(--paper)}
+.ws-date{font-size:18px;color:var(--dim);margin-bottom:21px}
+.ws-phases h3{font-size:23px;margin-bottom:16px}.ws-phases p:not(.ws-date){font-size:18px;line-height:1.9;max-width:none}
+.ws-phase-hot p{color:var(--on-accent-dim)}.ws-phase-hot h3{color:var(--paper)}
+.ws-groups{width:100%;height:258px;display:block}
+.ws-plain-stack{display:flex;flex-direction:column;gap:37px;padding-top:19px}
+.ws-plain-stack h3{font-size:25px;margin-bottom:10px}.ws-plain-stack p{font-size:20px;line-height:1.85}
+.ws-hours{display:flex;align-items:baseline;gap:18px;padding-top:3px}.ws-hours span{font-size:76px;line-height:1.3;color:var(--accent);font-weight:700;letter-spacing:-.05em}.ws-hours small{font-size:22px}
+.ws-source{font-size:14px;line-height:1.8;color:var(--dim);max-width:none;margin-top:16px}
+.ws-source a{color:inherit;text-decoration:underline;text-underline-offset:3px;position:relative;z-index:6}
+.ws-form .body{padding-top:18px;gap:10px}.ws-form .ws-table td{font-size:17px;padding:10px 12px;line-height:1.55}.ws-form .ws-table th{padding-bottom:10px}.ws-form .ws-note{font-size:14px;line-height:1.6}.ws-form .ws-table th:first-child{width:48%}
+.ws-q4 .ws-table th:first-child{width:26%}
+.ws-tight .ws-table td{font-size:16px;padding:8px 12px;line-height:1.5}.ws-q4 .ws-table td{font-size:16px;padding:9px 10px}
+.ws-eval .ws-table td{padding-top:13px;padding-bottom:13px}
+.ws-ask .ws-table th:first-child{width:34%}.ws-ask .ws-table td{font-size:17px;padding:11px 12px}.ws-ask .ws-note{font-size:15px}
+.ws-fm{display:grid;grid-template-columns:1fr;gap:8px;width:100%}.ws-fm2{grid-template-columns:1fr 1fr}
+.ws-fq{display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:7px 12px}
+.ws-fn{flex:none;min-width:28px;height:28px;padding:0 6px;border-radius:14px;background:var(--accent);color:var(--paper);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ws-fb{flex:1;min-width:0}.ws-ft{font-size:14px;line-height:1.45;font-weight:700;color:var(--ink);margin:2px 0 4px;max-width:none}
+.ws-fo{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:0}.ws-fc{font-size:13px;color:var(--dim);display:inline-flex;align-items:center;gap:5px;line-height:1.5}
+.ws-fc.ws-r::before{content:'';width:10px;height:10px;border:1.5px solid var(--dim);border-radius:50%}
+.ws-fc.ws-k::before{content:'';width:10px;height:10px;border:1.5px solid var(--dim);border-radius:2px}
+.ws-fl{font-size:12px;font-weight:700;color:var(--accent);margin-right:2px}
+.ws-fa{font-size:13px;color:var(--dim);border-bottom:1.5px dashed var(--line);padding:2px 0 4px}
+.ws-fsame .ws-fn{background:var(--dim)}
+.ws-formcards .ws-note{margin-top:8px}
+.ws-eval .ws-table th:first-child{width:25%}
+.ws-survey-core .ws-table th:first-child,.ws-survey-pm .ws-table th:first-child{width:18%}
+.ws-survey-core .ws-table td{font-size:18px;padding:12px;line-height:1.65}
+.ws-survey-pm .body{padding-top:20px;gap:10px}
+.ws-survey-pm .ws-table td{font-size:18px;padding:6px 12px;line-height:1.6}
+.ws-survey-core .ws-note,.ws-survey-pm .ws-note{font-size:15px;line-height:1.8}
+.ws-sharing .ws-table th:first-child{width:30%}
+.ws-visual{width:100%;height:auto;display:block;flex:none;font-family:var(--sans)}
+.ws-diagram .body{padding-top:18px;gap:8px}
+.ws-diagram .ws-note{font-size:15px;line-height:1.6;margin-top:0}
+.chrome{font-family:var(--sans);font-size:12px;letter-spacing:0;height:48px;padding:0 42px;color:var(--faint)}
+.hint{opacity:1}.progress{height:2px;background:var(--line)}
+.ws-nav{background:none;border:0;color:inherit;font:inherit;cursor:pointer;pointer-events:auto;padding:7px 15px}
+.navzone{width:6%;opacity:0}
+@media print{
+ @page{size:1280px 720px;margin:0}
+ html,body{height:auto;overflow:visible;background:var(--ground)}
+ .deck{position:static;overflow:visible}.stage{position:static;width:1280px;height:auto;transform:none!important}
+ .slide{position:relative;display:flex!important;height:720px;break-after:page;animation:none!important}
+ .chrome,.progress,.navzone{display:none}
+}
+</style></head><body>
+<div class="navzone prev" id="zprev"></div>
+<div class="navzone next" id="znext"></div>
+
+<div class="deck" id="deck"><div class="stage" id="stage">
+<div class="progress" id="progress"></div>
+
+<section class="slide ws-titlepage"><h1>はじめに</h1><p class="ws-intro">経費精算システムの刷新を題材に、三つの教材の学びを紹介します。</p><div class="body"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 92" style="min-width:470px" role="img" aria-label="教材1は目的と要件の明確化、教材2は業務のモデル化と設計、教材3はAI活用の実践と改善。目的を定め、業務の対象・関係・条件を設計へ反映し、AgentsとSkillsで実行と改善を行う。"><defs data-dsvg="marker"><marker id="dsvg-88883ed6-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="92.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="6" width="194" height="80" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M22 22 H36 L42 28 V48 H22 Z M36 22 V28 H42 M26 34 H36 M26 40 H36" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="54" y="32" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">教材1</text>
+<text class="title" x="54" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">目的と要件の明確化</text>
+<text class="note" x="18" y="75" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">目的・範囲・完了条件を考える</text>
+<path class="flow" d="M203 46 H220" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-88883ed6-arrow-252b29)"/>
+<rect class="field" x="224" y="6" width="194" height="80" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M246 22 H258 V32 H246 Z M240 42 H250 V52 H240 Z M260 42 H270 V52 H260 Z M252 32 V37 M245 37 H265 M245 37 V42 M265 37 V42" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="282" y="32" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">教材2</text>
+<text class="title" x="282" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">業務のモデル化と設計</text>
+<text class="note" x="236" y="75" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">業務の対象・関係・条件を設計へ</text>
+<path class="flow" d="M421 46 H438" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-88883ed6-arrow-252b29)"/>
+<rect class="field" x="442" y="6" width="194" height="80" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M458 25 H480 V44 H458 Z M469 25 V19 M463 30 V34 M475 30 V34 M463 39 H475" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="492" y="32" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">教材3</text>
+<text class="title" x="492" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">AI活用の実践と改善</text>
+<text class="note" x="454" y="75" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">Agents・Skillsで実行・改善</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容1枚目（確認用）</span></div><h2>経費精算システムの刷新で、チームとしてAIを活用します</h2><p class="ws-intro">業務ルールを引き継ぎ、システムの構成と仕様・設計資料を更新する刷新案件です。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="経費精算システム刷新チームに新しい開発者が参加する。業務ルールを引き継ぎながら、画面・API・業務処理の構成を見直し、刷新後の仕様書と設計資料も更新する。チームは要件と設計からAIを活用し、品質を満たし、確認と修正を含む開発全体の時間を短くすることを目指す。"><defs data-dsvg="marker"><marker id="dsvg-86e0b596-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="4" width="340" height="186" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="20" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">経費精算システム刷新チーム</text>
+<rect class="boundary" x="18" y="37" width="196" height="115" fill="none" stroke="#252b29" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<text class="note" x="30" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">既存メンバー</text>
+<g transform="translate(52 85) scale(.5)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="note" x="52" y="128" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">PM・PL</text>
+<g transform="translate(116 85) scale(.5)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="note" x="116" y="128" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">開発担当</text>
+<g transform="translate(180 85) scale(.5)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="note" x="180" y="128" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">業務担当</text>
+<rect class="box focus" x="226" y="37" width="108" height="115" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="5"/>
+<text class="note" x="280" y="54" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">新しく参加</text>
+<g transform="translate(280 80) scale(.5)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<rect class="badge" x="256" y="101" width="48" height="21" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="note" x="280" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">AI</text>
+<text class="label" x="280" y="140" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">開発者</text>
+<rect class="badge" x="18" y="160" width="316" height="22" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="note" x="176" y="175" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">要件・設計からチーム全体でAIを活用</text>
+<rect class="field" x="370" y="4" width="264" height="186" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="384" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">今回の刷新</text>
+<rect class="badge" x="382" y="37" width="240" height="45" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M394 45 h18 v28 h-18 z M398 52 h10 M398 58 h10 M398 65 h6" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="425" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">引き継ぐ業務ルール</text>
+<text class="note" x="425" y="71" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">旧仕様・既存コードを確認</text>
+<path class="flow" d="M502 84 V96" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-86e0b596-arrow-252b29)"/>
+<rect class="badge" x="382" y="99" width="240" height="81" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="395" y="115" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">見直す構成と更新する資料</text>
+<path class="link" d="M394 127 h24 v18 h-24 z M406 145 v4 M399 149 h14 M422 136 h6 M430 130 h9 v11 h-9 z M430 145 h9 v10 h-9 z M434 141 v4" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="448" y="143" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">画面・API・業務処理</text>
+<rect class="badge" x="394" y="151" width="15" height="21" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="400" y="155" width="15" height="21" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M404 161 h7 M404 167 h7 M404 172 h5" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="430" y="170" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">刷新後の仕様・設計も更新</text>
+<rect class="badge" x="6" y="202" width="628" height="43" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="18" y="219" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">チームのAI活用目標：必要な品質を満たす</text>
+<text class="label" x="18" y="237" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">確認・修正を含む開発全体の時間を短くする</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容2枚目（確認用）</span></div><h2>AIで実装とレビューが短時間で進みました</h2><p class="ws-intro">刷新後の資料と実装をAIで作成し、人は変更差分とAIの説明・テスト結果を確認しました。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="仕様書と既存コードを確認し、承認後は変更不可という条件をAIに伝える。開発者とAIでコード、単体テスト、変更説明を作成し、テストを通過。AIは指摘なし、人は業務ルールを理解しているが、変更差分とAIの説明、テスト結果を手掛かりに確認し、短時間でレビュー承認まで進む。その後、変更を取り込み、結合テストで業務の流れを確かめる。"><defs data-dsvg="marker"><marker id="dsvg-2cbd8f63-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="badge" x="6" y="4" width="628" height="46" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="18" y="14" width="18" height="25" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="27" y="18" width="18" height="25" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M32 24 h8 M32 30 h8 M32 36 h5" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="58" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">旧仕様・既存コード</text>
+<text class="note" x="58" y="41" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">開発者が確認</text>
+<path class="flow" d="M210 27 H246" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-2cbd8f63-arrow-252b29)"/>
+<rect class="badge" x="250" y="11" width="372" height="32" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M264 26 v-5 a5 5 0 0 1 10 0 v5 M262 26 h14 v11 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="290" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">作業条件・PR記載：「承認後は変更不可」</text>
+<text class="note" x="290" y="40" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">どの承認段階かは、PRに記載なし</text>
+<rect class="field" x="6" y="64" width="220" height="141" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="18" y="83" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">1 開発者とAIで作成</text>
+<g transform="translate(36 109) scale(.46)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<rect class="badge" x="61" y="95" width="38" height="31" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M72 101 h16 v10 h-16 z M80 101 v-3 M76 105 v2 M84 105 v2" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="80" y="122" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">AI</text>
+<path class="flow" d="M101 111 H122" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-2cbd8f63-arrow-252b29)"/>
+<rect class="badge" x="124" y="92" width="65" height="38" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="130" y="98" width="65" height="38" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="136" y="104" width="65" height="38" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="142" y="110" width="65" height="38" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M158 119 l-6 6 6 6 M190 119 l6 6 -6 6 M163 140 h23" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="116" y="163" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">コード・単体テスト</text>
+<text class="note" x="116" y="177" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">刷新後の仕様・設計・変更説明</text>
+<rect class="badge" x="18" y="184" width="196" height="15" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M27 189 l3 3 6 -7" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="46" y="195" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">単体・既存テスト：全件通過</text>
+<path class="flow" d="M228 134 H250" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-2cbd8f63-arrow-252b29)"/>
+<rect class="field" x="252" y="64" width="220" height="141" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="264" y="83" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">2 AIと人がレビュー</text>
+<rect class="badge" x="264" y="95" width="196" height="40" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M276 107 h20 v14 h-20 z M286 107 v-5 M281 111 v3 M291 111 v3 M282 118 h8" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="310" y="122" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">AI：指摘なし</text>
+<rect class="badge" x="264" y="145" width="196" height="48" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(281 164) scale(.35)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<path class="link" d="M298 157 h15 v24 h-15 z M302 164 h7 M302 170 h7 M302 176 h5" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="324" y="165" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">PR条件・差分を確認</text>
+<text class="label" x="324" y="184" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">AI説明・テストを確認</text>
+<path class="flow" d="M474 134 H496" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-2cbd8f63-arrow-252b29)"/>
+<rect class="box focus" x="498" y="64" width="136" height="141" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="5"/>
+<text class="title" x="510" y="83" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">3 レビュー承認</text>
+<path class="link" d="M586 128 a20 20 0 1 1 -40 0 a20 20 0 1 1 40 0" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M554 128 l8 8 16 -19" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="566" y="174" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">短時間で到達</text>
+<rect class="badge" x="6" y="219" width="628" height="26" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M23 224 v14 M35 224 v5 l-12 6 M20 224 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0 M32 224 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0 M20 238 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="52" y="237" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">次：変更を取り込み、結合テストで業務の流れを確認</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容3枚目（確認用）</span></div><h2>上長承認後も申請内容を変更できる不具合が見つかりました</h2><p class="ws-intro">上長承認が済み、経理承認前の申請を、申請者が変更できてしまいました。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="本来の仕様では上長承認後に変更できないが、今回の実装では経理承認前に申請内容を変更できた。テストに含まれていなかった状態を示し、修正と再確認の流れを示す。"><defs data-dsvg="marker"><marker id="dsvg-d5345f56-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="4" width="304" height="169" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="20" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">本来の仕様</text>
+<text class="label" x="20" y="43" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長承認後から変更不可</text>
+<rect class="badge" x="18" y="55" width="76" height="63" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="56" y="72" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">申請</text>
+<path class="link" d="M51 88 v-5 a5 5 0 0 1 10 0 M49 88 h14 v9 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="56" y="111" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更可</text>
+<path class="flow" d="M96 83 H110" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-d5345f56-arrow-252b29)"/>
+<rect class="badge" x="112" y="55" width="76" height="63" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="150" y="72" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長承認</text>
+<path class="link" d="M145 88 v-5 a5 5 0 0 1 10 0 v5 M143 88 h14 v9 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="150" y="111" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更不可</text>
+<path class="flow" d="M190 83 H204" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-d5345f56-arrow-252b29)"/>
+<rect class="badge" x="206" y="55" width="76" height="63" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="244" y="72" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経理承認</text>
+<path class="link" d="M239 88 v-5 a5 5 0 0 1 10 0 v5 M237 88 h14 v9 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="244" y="111" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更不可</text>
+<g transform="translate(29 130) scale(.25)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<path class="link" d="M40 133 l5 -8 3 2 -5 8 -4 1 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="57" y="133" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">12,000円 → 18,000円に変更</text>
+<rect class="badge" x="18" y="140" width="280" height="26" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="30" y="158" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">12,000円のまま</text>
+<rect class="badge" x="212" y="144" width="75" height="18" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="note" x="249.5" y="157" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">保存不可</text>
+<rect class="field" x="330" y="4" width="304" height="169" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="344" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">今回の実装</text>
+<text class="label" x="344" y="43" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経理承認後から変更不可</text>
+<rect class="badge" x="342" y="55" width="76" height="63" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="380" y="72" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">申請</text>
+<path class="link" d="M375 88 v-5 a5 5 0 0 1 10 0 M373 88 h14 v9 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="380" y="111" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更可</text>
+<path class="flow" d="M420 83 H434" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-d5345f56-arrow-252b29)"/>
+<rect class="box focus" x="436" y="55" width="76" height="63" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="5"/>
+<text class="label" x="474" y="72" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長承認</text>
+<path class="link" d="M469 88 v-5 a5 5 0 0 1 10 0 M467 88 h14 v9 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="474" y="111" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更可</text>
+<path class="flow" d="M514 83 H528" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-d5345f56-arrow-252b29)"/>
+<rect class="badge" x="530" y="55" width="76" height="63" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="568" y="72" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経理承認</text>
+<path class="link" d="M563 88 v-5 a5 5 0 0 1 10 0 v5 M561 88 h14 v9 h-14 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="568" y="111" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更不可</text>
+<g transform="translate(353 130) scale(.25)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<path class="link" d="M364 133 l5 -8 3 2 -5 8 -4 1 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="381" y="133" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">12,000円 → 18,000円に変更</text>
+<rect class="badge" x="342" y="140" width="280" height="26" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="354" y="158" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">18,000円に変更</text>
+<rect class="badge" x="536" y="144" width="75" height="18" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="note" x="573.5" y="157" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">保存完了</text>
+<rect class="field" x="6" y="185" width="628" height="60" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M18 193 h17 v31 h-17 z M22 199 h5 v5 h-5 z M22 210 h9 M22 217 h9" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="46" y="202" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">取り込み前のテストで未確認：上長承認後・経理確認前の変更</text>
+<rect class="badge" x="46" y="214" width="165" height="23" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M55 219 l-4 5 4 5 M65 219 l4 5 -4 5" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="78" y="230" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更制限を修正</text>
+<path class="flow" d="M213 225 H238" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-d5345f56-arrow-252b29)"/>
+<rect class="badge" x="240" y="214" width="165" height="23" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M249 218 h13 v15 h-13 z M252 224 h7 M255 221 v7" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="274" y="230" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">テストケース追加</text>
+<path class="flow" d="M407 225 H432" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-d5345f56-arrow-252b29)"/>
+<rect class="badge" x="434" y="214" width="188" height="23" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(449 225) scale(.22)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="note" x="466" y="230" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">再テスト・再レビュー</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容4枚目（確認用）</span></div><h2>二つの判断を設計で分けず、確認が複数の処理に広がりました</h2><p class="ws-intro">上長承認と経理確認を一つにした設計のまま、証憑の差し戻しと再提出を追加しました。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="設計では上長の支出承認と経理の証憑確認を一つの承認済み状態で扱い、何を維持し、何をやり直すか区別できない。証憑再提出の業務ルールを差し戻し・変更制限・再提出の各処理に個別追加したため、レビュー担当は三つの処理と対応するテストを読み合わせて全体の正しさを確かめる。"><defs data-dsvg="marker"><marker id="dsvg-632693f9-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="4" width="174" height="208" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="18" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">設計に残った混同</text>
+<rect class="badge" x="18" y="36" width="68" height="40" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="30" y="52" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長</text>
+<text class="note" x="30" y="68" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">支出承認</text>
+<rect class="badge" x="100" y="36" width="68" height="40" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="112" y="52" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経理</text>
+<text class="note" x="112" y="68" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">証憑確認</text>
+<path class="link" d="M52 78 V84 H134 V78" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="flow" d="M93 84 V106" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-632693f9-arrow-252b29)"/>
+<rect class="badge" x="28" y="110" width="130" height="41" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="52" y="128" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">承認済み</text>
+<text class="note" x="52" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">一つの状態</text>
+<rect class="badge" x="18" y="162" width="150" height="37" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="note" x="28" y="177" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">何を維持し、何を</text>
+<text class="note" x="28" y="191" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">やり直すか表せない</text>
+<path class="flow" d="M183 117 H210" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-632693f9-arrow-252b29)"/>
+
+<rect class="field" x="214" y="4" width="286" height="208" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="226" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">各処理に条件を追加</text>
+<path class="badge" d="M226 35 H380 L394 49 V83 H226 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M380 35 V49 H394" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="238" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">差し戻し</text>
+<text class="note" x="238" y="72" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">上長承認を維持</text>
+<path class="link" d="M397 59 H408" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="badge" d="M412 39 H470 L480 49 V79 H412 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M470 39 V49 H480 M426 52 l4 4 8 -9" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="424" y="71" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">テスト</text>
+<path class="badge" d="M226 94 H380 L394 108 V142 H226 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M380 94 V108 H394" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="238" y="113" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">変更制限</text>
+<text class="note" x="238" y="131" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">証憑だけ編集できる</text>
+<path class="link" d="M397 118 H408" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="badge" d="M412 98 H470 L480 108 V138 H412 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M470 98 V108 H480 M426 111 l4 4 8 -9" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="424" y="130" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">テスト</text>
+<path class="badge" d="M226 153 H380 L394 167 V201 H226 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M380 153 V167 H394" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="238" y="172" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">再提出</text>
+<text class="note" x="238" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">経理確認を再開</text>
+<path class="link" d="M397 177 H408" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="badge" d="M412 157 H470 L480 167 V197 H412 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M470 157 V167 H480 M426 170 l4 4 8 -9" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="424" y="189" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">テスト</text>
+<path class="link" d="M482 59 H515 M482 118 H515 M482 177 H515 M515 59 V177" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="flow" d="M515 118 H531" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-632693f9-arrow-252b29)"/>
+<rect class="field focus" x="534" y="4" width="100" height="208" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="3"/>
+<text class="title" x="544" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">全体を確認</text>
+<circle class="badge" cx="580" cy="53" r="10" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M558 94 V85 C558 66 602 66 602 85 V94" fill="none" stroke="#252b29" stroke-width="1"/>
+<rect class="badge" x="581" y="77" width="28" height="34" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M588 88 l4 4 9 -10 M588 99 H601" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="545" y="133" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">3つの処理と</text>
+<text class="label" x="545" y="152" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">各テストを</text>
+<text class="label" x="545" y="171" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">読み合わせる</text>
+
+<rect class="field" x="6" y="219" width="628" height="25" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="18" y="236" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">守る業務ルール：上長承認は維持し、経理確認だけをやり直す</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容5枚目（確認用）</span></div><h2>設計を見直さず変更を重ねると、確認範囲が広がる可能性があります</h2><p class="ws-intro">ここからは想定例です。既存処理の関係が分かりにくいまま、別の担当者が機能を追加した場合を考えます。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 556 216" style="min-width:420px" role="img" aria-label="想定例。設計を見直さず機能追加を続けると、別の担当者が既存処理の関係を把握しきれず似た処理を新たに作り、同じ業務ルールが複数の実装に分かれる可能性がある。関係を確かめずに増えると、変更の影響を調べるコード・資料・テストも広がり、動いていても業務ルール・設計・実装の対応を確かめにくくなる。"><defs data-dsvg="marker"><marker id="dsvg-50765f5d-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="556.0" height="216.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="14" width="164" height="156" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="18" y="36" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">別の担当者が追加</text>
+<g transform="translate(38 76) scale(.55)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<path class="flow" d="M58 78 H76" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-50765f5d-arrow-252b29)"/>
+<rect class="badge" x="80" y="55" width="74" height="48" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M94 69 l-5 5 5 5 M137 69 l5 5 -5 5 M102 90 h24" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="18" y="127" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">関連する処理を把握しきれず</text>
+<text class="note" x="18" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">AIで似た処理を新しく作る</text>
+<path class="flow" d="M172 91 H194" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-50765f5d-arrow-252b29)"/>
+
+<rect class="field" x="196" y="14" width="164" height="156" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="208" y="36" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">同じルールが分散</text>
+<path class="badge" d="M208 50 H334 L344 60 V90 H208 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M334 50 V60 H344" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="220" y="66" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">既存の処理</text>
+<text class="label" x="220" y="83" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長承認を維持</text>
+<path class="badge" d="M208 98 H334 L344 108 V138 H208 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M334 98 V108 H344" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="220" y="114" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">新しく作った処理</text>
+<text class="label" x="220" y="131" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長承認を維持</text>
+<text class="note" x="208" y="157" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">関係を確かめずに増える</text>
+<path class="flow" d="M362 91 H384" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-50765f5d-arrow-252b29)"/>
+
+<rect class="field" x="386" y="14" width="164" height="156" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="398" y="36" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">確認する対象が増える</text>
+<rect class="badge" x="398" y="55" width="88" height="42" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="403" y="60" width="88" height="42" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<rect class="badge" x="408" y="65" width="88" height="42" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="note" x="418" y="80" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">コード・資料</text>
+<text class="note" x="418" y="94" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">テスト</text>
+<g transform="translate(523 86) scale(.45)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="note" x="398" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">影響を探し、照合する</text>
+<text class="note" x="398" y="157" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">確認や修正の負担が増える</text>
+
+<rect class="box focus" x="6" y="183" width="544" height="31" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="5"/>
+<text class="label" x="278" y="203" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">動いていても、業務ルール・設計・実装の対応を確かめにくい</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容6枚目（確認用）</span></div><h2>教材1では、何のために、どこまでを実現するかを考えます</h2><p class="ws-intro">申請者が達成したい目的からシステムに必要な要件を整理し、AIに任せる開発作業へつなげます。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="申請者の目的の大きさを、経費精算全体と、一回の作業で達成する申請の修正・再提出に分けて示す。目的を満たす要件は既存仕様などで確認し、証憑だけの再提出では上長承認を維持し、経理が再確認する。要件から矢印で開発者の目的と作業へつなぎ、仕様確認、設計・実装・テスト、要件・設計と照合するレビューを示す。"><defs data-dsvg="marker"><marker id="dsvg-e5206f51-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="4" width="294" height="162" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(29 20) scale(.42)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="title" x="50" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">申請者の目的</text>
+<rect class="badge" x="18" y="38" width="270" height="39" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M30 47 h19 v27 h-19 z M34 54 h11 M34 60 h11 M34 67 h7" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="62" y="53" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">複数の作業を含む目的</text>
+<text class="label" x="62" y="69" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">申請した経費を精算する</text>
+<path class="flow" d="M153 79 V101" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-e5206f51-arrow-252b29)"/>
+<rect class="box focus" x="18" y="105" width="270" height="54" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="5"/>
+<path class="link" d="M30 118 h19 v32 h-19 z M34 125 h11 M34 131 h8 M42 143 l10 -13 4 3 -10 13 -6 2 z" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="67" y="120" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">一回の作業で達成する目的</text>
+<text class="label" x="67" y="137" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">差し戻された申請を修正し、</text>
+<text class="label" x="67" y="154" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">再提出を完了する</text>
+<path class="flow" d="M302 132 H328" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-e5206f51-arrow-252b29)"/>
+<rect class="field" x="330" y="4" width="304" height="162" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="344" y="25" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">業務知識・既存仕様で確かめる要件</text>
+<rect class="badge" x="342" y="38" width="280" height="40" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M353 46 h19 v27 l-3 -2 -3 2 -3 -2 -3 2 -3 -2 -4 2 z M357 53 h11 M357 59 h11 M357 65 h7" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="385" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">支出の目的・金額を変えず、</text>
+<text class="note" x="385" y="70" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">証憑だけを修正して再提出する場合</text>
+<rect class="badge" x="342" y="87" width="280" height="32" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(357 102) scale(.28)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<path class="link" d="M367 102 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 M371 102 l3 3 5 -6" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="395" y="108" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長の承認を維持する</text>
+<rect class="badge" x="342" y="127" width="280" height="32" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(357 142) scale(.28)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<path class="link" d="M370 134 h11 v17 h-11 z M373 139 h5 M373 144 h5 M383 136 a8 8 0 0 1 0 14 M383 150 h4 M383 150 v-4" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="395" y="148" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経理が証憑を確認し直す</text>
+<path class="flow" d="M482 169 V190" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-e5206f51-arrow-252b29)"/>
+<rect class="field" x="6" y="194" width="628" height="51" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(25 207) scale(.28)"><path class="link" d="M12 -14 a12 12 0 1 1 -24 0 a12 12 0 1 1 24 0 M-24 28 v-6 c0 -27 48 -27 48 0 v6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="43" y="209" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">開発者の目的：要件を満たす変更を、確認の根拠とともに完成させる</text>
+<rect class="badge" x="18" y="219" width="176" height="21" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M26 222 h12 v16 h-12 z M29 227 h6 M29 232 h6" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="46" y="234" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">要件と既存仕様を確認</text>
+<path class="flow" d="M196 230 H216" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-e5206f51-arrow-252b29)"/>
+<rect class="badge" x="218" y="219" width="176" height="21" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M226 222 h15 v15 h-15 z M231 226 l-3 3 3 3 M237 226 l3 3 -3 3" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="249" y="234" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">設計・実装・テスト</text>
+<path class="flow" d="M396 230 H416" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-e5206f51-arrow-252b29)"/>
+<rect class="badge" x="418" y="219" width="204" height="21" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<path class="link" d="M426 222 h12 v16 h-12 z M429 227 h6 M429 233 l2 2 4 -4" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="448" y="234" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">要件・設計と照合しレビュー</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容7枚目（確認用）</span></div><h2>教材2では、目的と要件から業務のモデルと設計を考えます</h2><p class="ws-intro">申請・証憑・承認の関係と、業務上守る条件を整理し、状態や処理の設計へ反映します。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="教材1で定めた目的と確認した要件から、業務知識と既存仕様を照合して業務モデルを考え、設計へ反映する。目的は申請の修正と再提出。要件は目的金額を変えず証憑だけを修正し、上長承認は維持、経理は再確認。モデルでは経費申請、支出内容、証憑とそれぞれの判断の関係を表す。その関係と守る条件を、状態、処理や変更条件、テストとレビューへ反映する。"><defs data-dsvg="marker"><marker id="dsvg-efdad222-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="field" x="6" y="4" width="170" height="208" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="18" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">教材1：目的・要件</text>
+<path class="badge" d="M18 38 H150 L164 52 V102 H18 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M150 38 V52 H164" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="30" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">申請者の目的</text>
+<text class="label" x="30" y="75" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">申請の不備を直し、</text>
+<text class="label" x="30" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">再提出を完了する</text>
+<path class="badge" d="M18 113 H150 L164 127 V199 H18 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M150 113 V127 H164" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="note" x="30" y="129" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">確かめた要件</text>
+<text class="note" x="30" y="147" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">証憑だけを修正</text>
+<text class="note" x="30" y="162" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">支出の目的・金額は維持</text>
+<text class="note" x="30" y="177" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">上長承認は維持</text>
+<text class="note" x="30" y="192" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">経理は再確認</text>
+<path class="flow" d="M179 117 H202" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-efdad222-arrow-252b29)"/>
+
+<rect class="field" x="206" y="4" width="250" height="208" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="title" x="218" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">業務モデルの例：対象と関係</text>
+<text class="note" x="218" y="38" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">業務知識・既存仕様と照合</text>
+<rect class="badge" x="218" y="48" width="226" height="25" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="331" y="65" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経費申請</text>
+<path class="link" d="M331 74 V82 M270 82 H392 M270 82 V89 M392 82 V89" fill="none" stroke="#252b29" stroke-width="1"/>
+<rect class="badge" x="218" y="91" width="104" height="39" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="230" y="107" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">支出内容</text>
+<text class="note" x="230" y="122" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">目的・金額</text>
+<rect class="badge" x="340" y="91" width="104" height="39" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="352" y="107" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">証憑</text>
+<text class="note" x="352" y="122" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">領収書など</text>
+<path class="link" d="M270 131 V149 M392 131 V149" fill="none" stroke="#252b29" stroke-width="1"/>
+<rect class="badge" x="218" y="151" width="104" height="32" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="230" y="172" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長の承認</text>
+<rect class="badge" x="340" y="151" width="104" height="32" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="352" y="172" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">経理の確認</text>
+<text class="note" x="218" y="202" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">判断が何に結びつき、いつ有効か</text>
+<path class="flow" d="M459 117 H482" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-efdad222-arrow-252b29)"/>
+
+<rect class="field focus" x="486" y="4" width="148" height="208" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="3"/>
+<text class="title" x="498" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">設計へ反映</text>
+<path class="badge" d="M498 39 H610 L622 51 V82 H498 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M610 39 V51 H622" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="510" y="57" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">状態の表し方</text>
+<text class="note" x="510" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">有効な判断を区別</text>
+<path class="badge" d="M498 97 H610 L622 109 V140 H498 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M610 97 V109 H622" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="510" y="115" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">処理・変更条件</text>
+<text class="note" x="510" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">変更時の条件を守る</text>
+<path class="badge" d="M498 155 H610 L622 167 V198 H498 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M610 155 V167 H622" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="label" x="510" y="173" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">テスト・レビュー</text>
+<text class="note" x="510" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">業務ルールと照合</text>
+
+<rect class="field" x="6" y="219" width="628" height="25" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<text class="label" x="18" y="236" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">上長承認を維持するなら、承認した目的・金額と申請内容の一致を守る</text>
+</svg></div></section><section class="slide ws-diagram"><div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">3教材共通 はじめに ／ 内容8枚目（確認用）</span></div><h2>教材3では、AgentsがSkillsを使って開発を進める方法を学びます</h2><p class="ws-intro">要件定義・設計・実装・テストの各工程でSkillsを使い、作成・検討とAIレビューを進めます。</p><div class="body"><svg class="ws-visual" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 248" style="min-width:470px" role="img" aria-label="一つのAgentが、要件定義、設計、実装、テストの各工程に応じてSkillsを使用して開発を進める。上段に作業を進めるAgent、下段の各工程内に使用するSkillsを描く。工程ごとに別のAgentを配置しない。各工程でレビューし、人が根拠と結果を確認して改善する。"><defs data-dsvg="marker"><marker id="dsvg-305c2c9d-arrow-252b29" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#252b29"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="640.0" height="248.0" fill="#f4f1e8" rx="8"/>
+<rect class="field focus" x="6" y="4" width="628" height="51" fill="#fffaf2" stroke="#ae3f23" stroke-width="2" rx="3"/>
+<path class="link" d="M22 19 H44 V38 H22 Z M33 19 V13 M27 24 V28 M39 24 V28 M27 33 H39" fill="none" stroke="#252b29" stroke-width="1"/>
+<text class="title" x="58" y="26" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">Agent：目的・業務モデルに沿って開発を進める</text>
+<text class="note" x="58" y="47" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">作業を進めながら、工程に応じて必要なSkillsを使用</text>
+<path class="link" d="M320 56 V63 M80 63 H560" fill="none" stroke="#252b29" stroke-width="1"/>
+<path class="flow" d="M80 63 V79" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-305c2c9d-arrow-252b29)"/>
+<rect class="field" x="6" y="82" width="148" height="127" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(18 86)"><path class="link" d="M2 1 H13 L17 5 V18 H2 Z M13 1 V5 H17 M5 8 H13 M5 12 H13 M5 15 H10" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="title" x="46" y="102" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">要件定義</text>
+<path class="badge" d="M18 113 H126 L142 129 V198 H18 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M126 113 V129 H142" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(30 117)"><path class="link" d="M3 0 H16 V15 H3 Z M0 3 V18 H13 M6 4 H13 M6 8 H13 M6 12 H10" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="54" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">Skills</text>
+<text class="note" x="30" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">要件を整理</text>
+<path class="link" d="M30 158 H130" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(30 163)"><path class="link" d="M1 0 H12 L16 4 V16 H1 Z M12 0 V4 H16 M4 9 L7 12 L13 6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="54" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">AIレビュー</text>
+<text class="note" x="30" y="191" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">目的・仕様と照合</text>
+<path class="flow" d="M240 63 V79" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-305c2c9d-arrow-252b29)"/>
+<rect class="field" x="166" y="82" width="148" height="127" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(178 86)"><path class="link" d="M6 1 H14 V7 H6 Z M1 12 H7 V18 H1 Z M13 12 H19 V18 H13 Z M10 7 V10 M4 10 H16 M4 10 V12 M16 10 V12" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="title" x="206" y="102" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">設計</text>
+<path class="badge" d="M178 113 H286 L302 129 V198 H178 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M286 113 V129 H302" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(190 117)"><path class="link" d="M3 0 H16 V15 H3 Z M0 3 V18 H13 M6 4 H13 M6 8 H13 M6 12 H10" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="214" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">Skills</text>
+<text class="note" x="190" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">モデル・設計を検討</text>
+<path class="link" d="M190 158 H290" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(190 163)"><path class="link" d="M1 0 H12 L16 4 V16 H1 Z M12 0 V4 H16 M4 9 L7 12 L13 6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="214" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">AIレビュー</text>
+<text class="note" x="190" y="191" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">要件・モデルと照合</text>
+<path class="flow" d="M400 63 V79" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-305c2c9d-arrow-252b29)"/>
+<rect class="field" x="326" y="82" width="148" height="127" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(338 86)"><path class="link" d="M1 1 H19 V18 H1 Z M1 5 H19 M7 8 L4 11 L7 14 M13 8 L16 11 L13 14" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="title" x="366" y="102" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">実装</text>
+<path class="badge" d="M338 113 H446 L462 129 V198 H338 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M446 113 V129 H462" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(350 117)"><path class="link" d="M3 0 H16 V15 H3 Z M0 3 V18 H13 M6 4 H13 M6 8 H13 M6 12 H10" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="374" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">Skills</text>
+<text class="note" x="350" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">設計に沿って実装</text>
+<path class="link" d="M350 158 H450" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(350 163)"><path class="link" d="M1 0 H12 L16 4 V16 H1 Z M12 0 V4 H16 M4 9 L7 12 L13 6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="374" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">AIレビュー</text>
+<text class="note" x="350" y="191" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">設計とコードを照合</text>
+<path class="flow" d="M560 63 V79" fill="none" stroke="#252b29" stroke-width="1.5" marker-end="url(#dsvg-305c2c9d-arrow-252b29)"/>
+<rect class="field" x="486" y="82" width="148" height="127" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(498 86)"><path class="link" d="M1 1 H19 V19 H1 Z M4 6 L6 8 L9 4 M12 6 H16 M4 14 L6 16 L9 12 M12 14 H16" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="title" x="526" y="102" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#252b29">テスト</text>
+<path class="badge" d="M498 113 H606 L622 129 V198 H498 Z" fill="#fffaf2" stroke="#252b29" stroke-width="1"/>
+<path class="link" d="M606 113 V129 H622" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(510 117)"><path class="link" d="M3 0 H16 V15 H3 Z M0 3 V18 H13 M6 4 H13 M6 8 H13 M6 12 H10" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="534" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">Skills</text>
+<text class="note" x="510" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">テスト作成・実行</text>
+<path class="link" d="M510 158 H610" fill="none" stroke="#252b29" stroke-width="1"/>
+<g transform="translate(510 163)"><path class="link" d="M1 0 H12 L16 4 V16 H1 Z M12 0 V4 H16 M4 9 L7 12 L13 6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="534" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">AIレビュー</text>
+<text class="note" x="510" y="191" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#252b29">要件とケースを照合</text>
+<rect class="field" x="6" y="220" width="628" height="24" fill="#fffaf2" stroke="#252b29" stroke-width="1" rx="3"/>
+<g transform="translate(24 232)"><path class="link" d="M3 -5 a3 3 0 1 1 -6 0 a3 3 0 1 1 6 0 M-6 6 V4 C-6 -2 6 -2 6 4 V6" fill="none" stroke="#252b29" stroke-width="1"/></g>
+<text class="label" x="39" y="237" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#252b29">人が根拠と結果を確認して判断し、設計・成果物・Skillsを改善</text>
+</svg></div></section><div class="chrome">
+  <span id="label"></span>
+  <span class="hint">← → でめくる</span>
+  <span><span id="cur">1</span> / <span id="total">2</span></span>
+</div>
+</div></div>
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  const elCur = document.getElementById('cur');
+  const elTotal = document.getElementById('total');
+  const elBar = document.getElementById('progress');
+  const elLabel = document.getElementById('label');
+  const LABELS = ["表紙：はじめに", "本文1：経費精算システムの刷新で、チームとしてAIを活用します", "本文2：AIで実装とレビューが短時間で進みました", "本文3：上長承認後も申請内容を変更できる不具合が見つかりました", "本文4：二つの判断を設計で分けず、確認が複数の処理に広がりました", "本文5：設計を見直さず変更を重ねると、確認範囲が広がる可能性があります", "本文6：教材1では、何のために、どこまでを実現するかを考えます", "本文7：教材2では、目的と要件から業務のモデルと設計を考えます", "本文8：教材3では、AgentsがSkillsを使って開発を進める方法を学びます"];
+  let i = 0;
+  elTotal.textContent = total;
+  function show(n){
+    i = Math.max(0, Math.min(total-1, n));
+    slides.forEach((s,k)=> s.classList.toggle('on', k===i));
+    elCur.textContent = i+1;
+    elBar.style.width = ((i+1)/total*100) + '%';
+    elLabel.textContent = LABELS[i] || '';
+    shrink(slides[i]);
+    try{ location.hash = String(i+1); }catch(e){}
+  }
+  const next = ()=> show(i+1);
+  const prev = ()=> show(i-1);
+  addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1),10)-1;if(Number.isFinite(n)&&n!==i)show(n);});
+  document.addEventListener('keydown', e=>{
+    if(['ArrowRight','ArrowDown',' ','PageDown','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Home'){ e.preventDefault(); show(0); }
+    else if(e.key==='End'){ e.preventDefault(); show(total-1); }
+  });
+  document.getElementById('znext').addEventListener('click', next);
+  document.getElementById('zprev').addEventListener('click', prev);
+  let tx=null;
+  document.addEventListener('touchstart', e=>{ tx = e.changedTouches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    if(tx===null) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if(Math.abs(dx) > 45){ dx < 0 ? next() : prev(); }
+    tx = null;
+  }, {passive:true});
+  const stage=document.getElementById('stage');
+  const deck=document.getElementById('deck');
+  const shrink=(sl)=>{
+    if(!sl) return;
+    const b=sl.querySelector('.body'); if(!b) return;
+    b.style.transform=''; b.style.width='';
+    const avail=b.clientHeight, need=b.scrollHeight;
+    if(need>avail+1){
+      const k=Math.max(.72, avail/need);
+      b.style.transformOrigin='top left';
+      b.style.transform='scale('+k+')';
+      b.style.width=(100/k)+'%';
+    }
+  };
+  const fit=()=>{
+    const w=deck.clientWidth||innerWidth, h=deck.clientHeight||innerHeight;
+    stage.style.transform='translate(-50%,-50%) scale('+Math.min(w/1280,h/720)+')';
+    shrink(document.querySelector('.slide.on'));
+  };
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  if(window.visualViewport) visualViewport.addEventListener('resize',fit);
+  if(window.ResizeObserver) new ResizeObserver(fit).observe(deck);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  fit();
+  const start = parseInt((location.hash||'').replace('#',''),10);
+  show(Number.isFinite(start) && start>0 ? start-1 : 0);
+})();
+</script>
+
+</body></html>
