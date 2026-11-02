@@ -1,0 +1,266 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 2,
+ "date": "2026-11-03",
+ "summary": "UC1 Skill を作るを、場面を先に書いて失敗を確かめてから書いた。creator は AI を起動しないので、new は作る手順（問1〜問3 ・ 別の場面2つ ・ 値を組む決まり ・ 書く sas create ・ そのあとの build → check → confirm）を返すだけにし、build は skill.json から決まった形の SKILL.md を作り、confirm は確認の1画面の材料と別の会話に任せる手順を返す。UC4 の check に、SKILL.md が build の出力と同じかを足した",
+ "usecases": [
+  "UC1",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "作る手順に写す決まりが、Concrete（skill.schema.json）の項目ごとの説明 ・ 読み方 ・ rule と一致する",
+   "evidence": [
+    "試験 skills/application/tests/make.rs の the_procedure_copies_the_rules_of_the_concrete_and_answers_only_purpose_and_role（purpose の rule の最初が purpose-standalone）",
+    "場面 S-UC1-NEW-PROCEDURE（compose に purpose-standalone と criterion-not-content がある）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "build の出力が同じ入力から同じになる",
+   "evidence": [
+    "場面 S-UC1-BUILD：fact-check の skill.json から作った SKILL.md が、試験の具体 fixtures/fact-check/SKILL.md とバイト列まで同じで、2回目の build は changed が false",
+    "実地：fixtures/fact-check に build を打つと changed が false（書き換えない）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "試験の具体 fact-check の例 E1 の from が中身と合う",
+   "evidence": [
+    "E1 の中身はサブエージェントの項目名3つの照合なのに、from が「作るときの場面（hooks の項目名）」だった。sas update で「作るときの場面（サブエージェントの項目名）」に直した（SAS の記録に更新の操作と理由が残る）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作る：作る手順を返す（skills/application/src/use_cases/new.rs の new_procedure）",
+   "steps": [
+    "問1〜問3 を、1往復に1問ずつ聞く順に並べ、それぞれの答えを入れる所（purpose の who ・ when ・ gets、role の does ・ does_not）と、答えの扱いを書く",
+    "別の場面2つの出し方：同じ目的のまま2つを出し、「同じ」は examples に足し、「違う」は examples に入れず、理由が言われたら受け持たないことの候補にする",
+    "「分からない」の扱い：会話を止めずに「分からない」と入れて進める",
+    "値を組む決まり：Concrete の項目ごとに、答えから入れる（purpose ・ role）か導く（ほか）かと、何から導くか（domain の表 derivation から引く）、Concrete の title ・ description ・ meaning ・ when ・ rule を写す",
+    "書くコマンド sas create <置き場所>/<name>/skill.json --concrete urn:agents-skills-creator:skill:v1 --value <JSON> と、そのあとの build → check → confirm を返す。何も書かない"
+   ],
+   "rules": [
+    "creator は AI を起動しない。聞くのも値を組むのも、手順を受け取ったセッションがする",
+    "creator は skill.json を書かない。SAS に書かせる",
+    "作る人の答えから入れるのは purpose と role だけで、ほかの項目はすべて導く（推測）",
+    "name は聞かず、AI が付けて確認に出す"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：SKILL.md を作る（use_cases/build.rs の build と、skills-domain の skill_md::render）",
+   "steps": [
+    "フォルダの skill.json を読む。無ければ not_found、JSON でなければ invalid_input",
+    "frontmatter（name ・ description、あれば compatibility）と、目的 ・ 役割 ・ 事前条件 ・ 入力と出力（inputs と outputs。名前と、形 ・ 置き場所）・ 手順（ステップごとの完了条件と、ステップの番号に結んだ例外）・ 守ること ・ 最低保証 ・ 完了条件 ・ 例の節を、skill.json の順のまま作る。無い項目の節は書かない",
+    "前の SKILL.md と同じなら書かず、違えば一時ファイルに書いてから置き換える"
+   ],
+   "rules": [
+    "同じ skill.json からは、同じ SKILL.md になる",
+    "SKILL.md に項目を足さない（skill.json にあることだけを書く）",
+    "frontmatter の値が YAML で別の意味になる文字を含むなら、二重引用符の文字列にする",
+    "語が英数字で終わるとき、助詞のあいだに空白を入れる（「人か AI が」）",
+    "SKILL.md に入力と出力の節を、事前条件の次に置く（Skill に従う AI が、受け取るものと返すものを読めるように）"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：確認の1画面の材料を返す（use_cases/confirm.rs の confirm）",
+   "steps": [
+    "description、完成イメージ（examples の expected）、振る舞い（behavior のある例だけ）、構造（inputs ・ steps ・ edge_cases ・ outputs ・ does ・ does_not を skill.json の値のまま）を並べる",
+    "推測の一覧を skill.json から機械で作る：「分からない」と答えた所を先頭に、そのあと 受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → そのほか の順に、件ごとに所 ・ 中身 ・ 何から推測したか",
+    "何から推測したかは、件の from、無ければもとにした例（examples の id）、それも無ければ domain の表 derivation（new と同じ表）",
+    "目的の who と gets が分からない（空か「分からない」）なら、承認できない理由を返す",
+    "別の会話に任せる手順を返す：(a) sas validate <skill.json> --semantic の判定、(b) 各例を SKILL.md に従って動かし expected と比べる"
+   ],
+   "rules": [
+    "答えたのは purpose と role だけなので、それ以外の所はすべて推測とみなす",
+    "受け持たないことは、作る人の答え（問1〜問3）を from に持たない件だけを推測とする",
+    "目的の誰がと何を得るかが分からないままなら、承認を受け付けない",
+    "図は描かず、構造のデータだけを返す",
+    "目的の who ・ gets の値が「分からない」なら approvable を false にする（場面 S-UC1-CONFIRM-UNKNOWN と単体の試験 an_unknown_purpose_comes_first_and_cannot_be_approved）"
+   ]
+  },
+  {
+   "usecase": "UC4 確かめる：SKILL.md が build の出力と同じか（use_cases/check.rs の skill_md_built）",
+   "steps": [
+    "skill.json を読んで SKILL.md を作り、フォルダの SKILL.md と比べる。無ければ violated で build で作るよう返し、違えば violated で作り直すよう返す。skill.json を読めなければ error"
+   ],
+   "rules": [
+    "AI ツールが読むのは SKILL.md なので、skill.json を直しただけでは使われる Skill は直らない"
+   ]
+  },
+  {
+   "usecase": "UC1 の最低保証：既にある Skill の場所に書くコマンドを打つ（場面 S-UC1-EXISTING）",
+   "steps": [
+    "new が返した書くコマンドの形で、既にある skills/fact-check/skill.json に sas create を打つと、SAS が exists で断る"
+   ],
+   "rules": [
+    "既にある Skill は、作るコマンドでは上書きされない（SAS の作成が断る。creator は skill.json を書かない）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "skill.json から SKILL.md を作る形",
+   "became": "service",
+   "why": "build（作る）と check（確かめる）の2つのユースケースが、同じ理由（SKILL.md の形が変わる）で一緒に変わる。ステップ1 の見直しの条件（同じ判断が2つのユースケースに現れた）に当たったので、文脈 skills の domain（skills-domain）のサービス skill_md に引き上げた"
+  },
+  {
+   "what": "推測の一覧（並べる順と、何から推測したか）",
+   "became": "script",
+   "why": "confirm でしか使わない。並べる順（損失の大きい順）と所ごとの決まりは、直す（UC3）で層を選ぶときにも使う見込みなので、そのときに domain へ引き上げるかを見直す"
+  },
+  {
+   "what": "項目ごとに答えから何を導くかの表（値を組む決まりと、推測の一覧の何から推測したか）",
+   "became": "service",
+   "why": "new（値を組む決まり）と confirm（何から推測したか）の2か所に同じ表を書いていた。同じ理由（項目の導き方が変わる）で一緒に変わるので、domain のサービス derivation に1つ置き、両方がそれを引く"
+  },
+  {
+   "what": "「分からない」という値",
+   "became": "script",
+   "why": "new と confirm の両方が使うが、いまは文字列の決まりだけで、値として振る舞いを持たない。confirm の定数 UNKNOWN を new が使う"
+  },
+  {
+   "what": "name とフォルダ名 ・ name の重なり ・ リンクの先",
+   "became": "script",
+   "why": "ステップ1 のまま。UC5 配布する で同じ判断が現れたら見直す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "作るときの体験：問1〜問3 を1往復に1問、別の場面2つに「同じ ・ 違う」、AI が目的と役割から埋める、別の会話で例を1回動かす、確認の1画面、承認か一言",
+   "result": "match",
+   "fixed": "none",
+   "note": "creator は AI を起動しないので、体験はどれも new の手順と confirm の材料として返し、打ったセッションが進める。例を動かすのと意味の判定は confirm の delegate に置いた"
+  },
+  {
+   "item": "確認の1画面に並べるもの（完成イメージ ・ 振る舞い ・ 構造イメージ ・ 推測の一覧）",
+   "result": "match",
+   "fixed": "none",
+   "note": "構造イメージは図にせず、inputs ・ steps ・ edge_cases ・ outputs ・ does ・ does_not のデータだけを返した（図にするのは画面を出す側）"
+  },
+  {
+   "item": "推測の一覧の順（受け持たないこと → 最低保証 → rules → 完了条件 → 手順）",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "答えたのは purpose と role だけ、という決まりのままだと、受け持たないこと（role）は推測に入らず、順の先頭が空になる。受け持たないことは、作る人の答え（問1〜問3）を from に持たない件（AI が足した隣の仕事）だけを推測とした。5つの順のあとに、そのほかの所（name ・ description ・ compatibility ・ preconditions ・ inputs ・ outputs ・ edge_cases ・ examples）を並べた"
+  },
+  {
+   "item": "「分からない」の扱い",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "仮説は「その項目に推測の印を付ける」だったが、skill.json に印の欄は無い（Concrete は変えない）。答えの所に「分からない」という値を入れ、confirm がそれを推測の一覧の先頭に出す形にした"
+  },
+  {
+   "item": "SKILL.md の形（完成イメージ①の右側）",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "完成イメージ①には inputs ・ outputs の節が無いが、それだと Skill に従う AI が受け取るものと返すものを読めないので、「入力と出力」の節を事前条件の次に足した。fact-check の試験の具体の SKILL.md は build で作り直した。compatibility は Agent Skills の公開の仕様の frontmatter の欄なので、あれば frontmatter に入れた"
+  },
+  {
+   "item": "答えから skill.json の値を組む決まりは Concrete の x-prompt を参照する",
+   "result": "match",
+   "fixed": "none",
+   "note": "Concrete はこの文脈の公開された言葉なので、application に埋め込んで読み、項目ごとの title ・ description ・ meaning ・ when ・ rule を手順に写した"
+  },
+  {
+   "item": "UC1 の最低保証「既にある Skill は変わらない ・ どこまで書いたかが分かる」",
+   "result": "match",
+   "fixed": "none",
+   "note": "new と confirm は何も書かず、build は SKILL.md だけを書き、skill.json は SAS が書く。既にある Skill の場所に new の書くコマンドを打つと SAS が exists で断り、skill.json は変わらない（場面 S-UC1-EXISTING。場面から sas を直に打てるよう、場面の形に sas のコマンドを足した）。どこまで書いたかは、SAS の記録とフォルダの中身から分かる"
+  },
+  {
+   "item": "UC1 の成功時保証「どの AI ツールでも読め、単独で成り立つ」",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "SKILL.md は Agent Skills の公開の仕様の frontmatter で作るが、ツールごとの置き場所と形（配布）は UC5 で確かめる"
+  },
+  {
+   "item": "ポートはモジュールごとに、使う操作だけを宣言する",
+   "result": "match",
+   "fixed": "none",
+   "note": "SKILL.md を書くために GeneratedFiles（write だけ）を足した。skill.json を書くポートは無い（SAS が書く）"
+  },
+  {
+   "item": "UC4 の check：SKILL.md が build の出力と同じ",
+   "result": "match",
+   "fixed": "none",
+   "note": "creator の検査 skill-md-built を4つ目に足した。SKILL.md が無ければ violated で build で作るよう返す"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "推測",
+   "seen": "confirm の guesses",
+   "drift": "体験の説明では「答えた項目は目的と役割だけなので、それ以外は全部が推測」だが、損失の順の先頭の「受け持たないこと」は役割の中にある。役割の中でも、作る人が選んだ件と、AI が足した件で意味が分かれる"
+  },
+  {
+   "term": "構造イメージ",
+   "seen": "confirm の structure",
+   "drift": "ページでは図（構造イメージ）だが、creator が返すのは図のもとのデータだけ。図にするのは画面を出す側"
+  },
+  {
+   "term": "答え",
+   "seen": "confirm の推測の一覧と、受け持たないこと",
+   "drift": "「答えたのは purpose と role だけ」の答えは項目の単位だが、受け持たないことは件の単位で、from が問1〜問3 の件を答えとみなし、ほかを推測とする"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate",
+    "before": "skills-application ・ outbound-sas ・ outbound-filesystem ・ inbound-cli ・ test-support の5つ",
+    "after": "skills-domain を足して6つ",
+    "why": "SKILL.md の形（build と check）と、項目ごとに答えから何を導くかの表（new と confirm）を、それぞれ2つのユースケースが同じ理由で使うので、domain のサービス（skill_md ・ derivation）に引き上げた"
+   },
+   {
+    "what": "ポート",
+    "before": "SkillValidator ・ SkillFiles",
+    "after": "GeneratedFiles（SKILL.md を書く）を足した",
+    "why": "build が SKILL.md を書く。skill.json を書くポートは足さない（SAS が書く）"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "skill.schema ・ check-result",
+    "after": "new-procedure（作る手順）・ build-result（SKILL.md を作った結果）・ confirm（確認の1画面の材料）を足し、check-result の検査に skill-md-built を足した",
+    "why": "コマンドごとの出力の形を、場面の試験で出力の $schema の形に照らすため"
+   },
+   {
+    "what": "場面の形と試験",
+    "before": "出力の形は check-result だけ、ファイルを見る期待は無い",
+    "after": "出力の $schema で公開された言葉の形を選んで照らし、ファイルの中身を見る期待（file ・ same_as ・ exists ・ contains）を足した。場面のコマンドに、sas を直に打つ sas を足した（creator が返した書くコマンドを打つため。sas の出力の形は SAS の試験が確かめるので、creator の形には照らさない）",
+    "why": "build が書いた SKILL.md を、試験の具体と比べるため"
+   },
+   {
+    "what": "試験の具体",
+    "before": "fixtures/fact-check/skill.json だけ",
+    "after": "fixtures/fact-check/SKILL.md（build の出力。入力と出力の節を含む）を足し、skill.json の例 E1 の from を sas update で中身に合わせた",
+    "why": "本物の Skill は SKILL.md も持つ。check の skill-md-built と、build が同じ出力を作ることを確かめる"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "ツールごとの変換と配布先の出口",
+    "why": "UC5 配布する で足す"
+   },
+   {
+    "what": "直す（UC3）と、「〇〇は違う、△△」から変わった行だけ出し直すこと",
+    "why": "UC3 で足す。いまは confirm を打ち直せば全部が出る"
+   },
+   {
+    "what": "承認の記録（BR4：承認していないものは配布しない）",
+    "why": "承認を残す仕組みは、配布（UC5）で承認していないものを止めるときに要る。SAS の人が決める欄で持つ案を、そのとき試す"
+   },
+   {
+    "what": "Agent を作るときの問い（UC2）",
+    "why": "agent.schema を作る UC2 のステップで足す"
+   },
+   {
+    "what": "trace.json ・ untested.json",
+    "why": "ステップ3 で置く"
+   }
+  ]
+ }
+}

@@ -1,7 +1,7 @@
-//! ポート SkillFiles を、作業ディレクトリのファイルとシンボリックリンクで実装する。読むだけで、書かない
-//! （skill.json は SAS が書く）。
+//! ポート SkillFiles を、作業ディレクトリのファイルとシンボリックリンクで実装する。ポート GeneratedFiles で書くのは
+//! creator が作るファイル（SKILL.md）だけで、skill.json は書かない（SAS が書く）。
 
-use skills_application::ports::SkillFiles;
+use skills_application::ports::{GeneratedFiles, SkillFiles};
 use std::path::{Path, PathBuf};
 
 /// 作業ディレクトリ（経路の根）。
@@ -92,5 +92,19 @@ impl SkillFiles for WorkingTree {
         walk(&self.root.join(folder), folder, &mut out)?;
         out.sort();
         Ok(out)
+    }
+}
+
+impl GeneratedFiles for WorkingTree {
+    fn write(&self, path: &str, text: &str) -> Result<(), String> {
+        // 一時ファイルに書いてから置き換える（途中で止まっても、前の中身か新しい中身のどちらかが残る）
+        let to = self.root.join(path);
+        let (parent, name) = split(path);
+        let tmp = self.root.join(join(parent, &format!(".{name}.asc-tmp")));
+        std::fs::write(&tmp, text).map_err(|e| format!("{path} を書けない：{e}"))?;
+        std::fs::rename(&tmp, &to).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            format!("{path} を置き換えられない：{e}")
+        })
     }
 }

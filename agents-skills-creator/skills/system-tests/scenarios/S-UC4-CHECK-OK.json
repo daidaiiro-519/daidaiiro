@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC4-CHECK-OK",
  "name": "使える Skill を確かめる",
- "title": "名前がフォルダ名と同じで、ほかと重ならず、リンクの先がそろう Skill（fact-check）を確かめると、SAS の検証の結果をそのまま入れ、creator の3つの検査がどれも verified になり、終了コード 0 で返す。確かめても Skill のファイルは変わらない（SAS の記録には検証の操作が1件足される）",
+ "title": "名前がフォルダ名と同じで、ほかと重ならず、リンクの先がそろう Skill（fact-check）を確かめると、SAS の検証の結果をそのまま入れ、creator の4つの検査（SKILL.md が build の出力と同じかを含む）がどれも verified になり、終了コード 0 で返す。確かめても Skill のファイルは変わらない（SAS の記録には検証の操作が1件足される）",
  "why": "使えるかどうかが分からないと、作る人は配布してよいかを決められない。",
  "traces": [
   "UC4:成功時保証",
@@ -12,7 +12,8 @@
  "given": {
   "files": {
    "published-language/v1/skill.schema.json": "@published/skill.schema.json",
-   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json"
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
+   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md"
   }
  },
  "when": {
@@ -69,7 +70,7 @@
   {
    "of": "when",
    "pointer": "/skills/0/creator",
-   "count": 3
+   "count": 4
   },
   {
    "of": "when",
@@ -100,9 +101,20 @@
    "of": "when",
    "pointer": "/skills/0/creator/2/result",
    "equals": "verified"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/3/check",
+   "equals": "skill-md-built"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/3/result",
+   "equals": "verified"
   }
  ],
  "unchanged": [
-  "skills/fact-check/skill.json"
+  "skills/fact-check/skill.json",
+  "skills/fact-check/SKILL.md"
  ]
 }

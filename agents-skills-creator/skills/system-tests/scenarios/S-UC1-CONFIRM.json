@@ -1,0 +1,118 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-CONFIRM",
+ "name": "確認の材料を受け取る",
+ "title": "confirm は、description ・ 完成イメージ（examples の expected）・ 振る舞い（behavior）・ 構造（inputs ・ steps ・ edge_cases ・ outputs ・ 受け持つ ・ 受け持たない）・ 推測の一覧（損失の大きい順）と、別の会話に任せる手順（意味の判定 ・ 例を動かす）を返す",
+ "why": "作る人は項目を読まずに、完成イメージと振る舞いと構造で承認を決める。推測した所が分からないと、どこを確かめればよいかが分からない。",
+ "traces": [
+  "UC1:成功時保証",
+  "約束:confirm"
+ ],
+ "given": {
+  "files": {
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
+   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md"
+  }
+ },
+ "when": {
+  "args": [
+   "confirm",
+   "skills/fact-check"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "confirm"
+  },
+  {
+   "of": "when",
+   "pointer": "/name",
+   "equals": "fact-check"
+  },
+  {
+   "of": "when",
+   "pointer": "/description",
+   "contains": "真偽は判定しない"
+  },
+  {
+   "of": "when",
+   "pointer": "/images",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/images/0/example",
+   "equals": "E1"
+  },
+  {
+   "of": "when",
+   "pointer": "/behaviors/0/who",
+   "equals": "設計書を書く人"
+  },
+  {
+   "of": "when",
+   "pointer": "/structure/steps",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/structure/does_not",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/guesses/0/field",
+   "equals": "/minimal_guarantees/0"
+  },
+  {
+   "of": "when",
+   "pointer": "/guesses/1/field",
+   "equals": "/rules/0"
+  },
+  {
+   "of": "when",
+   "pointer": "/guesses/2/field",
+   "equals": "/completion_criteria/0"
+  },
+  {
+   "of": "when",
+   "pointer": "/guesses/2/from",
+   "equals": "問2 の答え"
+  },
+  {
+   "of": "when",
+   "pointer": "/guesses/4/field",
+   "equals": "/steps/0"
+  },
+  {
+   "of": "when",
+   "pointer": "/approvable",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/delegate",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/delegate/0/command",
+   "equals": "sas validate skills/fact-check/skill.json --semantic"
+  },
+  {
+   "of": "when",
+   "pointer": "/delegate/1/examples",
+   "count": 2
+  }
+ ],
+ "unchanged": [
+  "skills/fact-check/skill.json",
+  "skills/fact-check/SKILL.md"
+ ]
+}

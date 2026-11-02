@@ -43,7 +43,7 @@
    "minItems": 1,
    "items": {
     "type": "string",
-    "pattern": "^(UC[0-6]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:(check-result|skill)(:[a-z0-9-]+)?)$"
+    "pattern": "^(UC[0-6]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:(check-result|build-result|confirm|new-procedure|skill)(:[a-z0-9-]+)?)$"
    },
    "description": "確かめるユースケースの保証と拡張（例：UC4:成功時保証）と、公開された言葉の約束（約束:<ファイル名>:<約束の名前>）"
   },
@@ -95,9 +95,6 @@
  "$defs": {
   "command": {
    "type": "object",
-   "required": [
-    "args"
-   ],
    "additionalProperties": false,
    "properties": {
     "args": {
@@ -107,6 +104,13 @@
      },
      "description": "agents-skills-creator に渡す引数"
     },
+    "sas": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "sas に渡す引数（creator が返した書くコマンドを打つときなど。sas は試験と同じ PATH から探す）"
+    },
     "env": {
      "type": "object",
      "additionalProperties": {
@@ -114,7 +118,19 @@
      },
      "description": "渡す環境変数。試験を動かす環境の AI のツールのセッション ID と SAS_DB_PATH は渡さず、ここに書いたものだけを渡す"
     }
-   }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "args"
+     ]
+    },
+    {
+     "required": [
+      "sas"
+     ]
+    }
+   ]
   },
   "expect": {
    "type": "object",
@@ -150,6 +166,14 @@
     },
     "exists": {
      "type": "boolean"
+    },
+    "file": {
+     "type": "string",
+     "description": "作業ディレクトリからのファイルの経路。書くと、exists ・ contains ・ same_as は出力ではなくこのファイルを見る（すべてのコマンドのあとで見る）"
+    },
+    "same_as": {
+     "type": "string",
+     "description": "ファイルが、この中身とバイト列まで同じこと（@fixtures/… でファイルを指す）"
     }
    }
   }

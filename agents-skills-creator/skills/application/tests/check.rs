@@ -5,6 +5,7 @@
 use serde_json::json;
 use skills_application::ports::{SasRun, SkillFiles, SkillValidator};
 use skills_application::use_cases::check::{Outcome, check};
+use skills_domain::services::skill_md;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
@@ -17,11 +18,13 @@ struct Files {
 }
 
 impl Files {
+    /// skill.json と、そこから build で作る SKILL.md を置く。
     fn skill(mut self, folder: &str, name: &str) -> Self {
-        self.files.insert(
-            format!("{folder}/skill.json"),
-            json!({"$schema": "urn:agents-skills-creator:skill:v1", "name": name}).to_string(),
-        );
+        let value = json!({"$schema": "urn:agents-skills-creator:skill:v1", "name": name});
+        self.files
+            .insert(format!("{folder}/skill.json"), value.to_string());
+        self.files
+            .insert(format!("{folder}/SKILL.md"), skill_md::render(&value));
         self
     }
 }
@@ -106,7 +109,8 @@ fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
         [
             ("name-is-folder", Outcome::Verified),
             ("name-unique", Outcome::Verified),
-            ("links-resolve", Outcome::Verified)
+            ("links-resolve", Outcome::Verified),
+            ("skill-md-built", Outcome::Verified)
         ]
     );
     // SAS には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
@@ -169,7 +173,8 @@ fn dangling_links_and_a_missing_folder_are_reported() {
         [
             ("name-is-folder", Outcome::Error),
             ("name-unique", Outcome::Error),
-            ("links-resolve", Outcome::Violated)
+            ("links-resolve", Outcome::Violated),
+            ("skill-md-built", Outcome::Error)
         ]
     );
 }
@@ -203,4 +208,21 @@ impl AllVerified for skills_application::use_cases::check::Checked {
             .flat_map(|s| &s.creator)
             .all(|f| f.outcome == Outcome::Verified)
     }
+}
+
+#[test]
+fn a_stale_or_missing_skill_md_is_reported() {
+    let mut files = Files::default().skill("skills/fact-check", "fact-check");
+    files
+        .files
+        .insert("skills/fact-check/SKILL.md".to_string(), "古い".to_string());
+    let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
+    let md = &c.skills[0].creator[3];
+    assert_eq!(
+        (md.check, md.outcome),
+        ("skill-md-built", Outcome::Violated)
+    );
+    files.files.remove("skills/fact-check/SKILL.md");
+    let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
+    assert!(c.skills[0].creator[3].reason.contains("build"));
 }

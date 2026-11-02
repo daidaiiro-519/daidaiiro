@@ -6,9 +6,13 @@
 //! - name-is-folder：skill.json の name がフォルダ名と同じ（Agent Skills の仕様。SAS は文書1つしか見ない）
 //! - name-unique：同じ親フォルダにある Skill のあいだで name が重ならない（複数の Skill をまたぐ）
 //! - links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある（ファイルの外の事実）
+//! - skill-md-built：SKILL.md が、skill.json から build で作るものと同じ（AI ツールが読むのは SKILL.md）
 
 use crate::ports::{SasRun, SkillFiles, SkillValidator};
+pub use crate::use_cases::Refused;
+use crate::use_cases::{read_skill, trimmed};
 use serde_json::Value;
+use skills_domain::services::skill_md;
 
 /// creator の検査の結果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,21 +82,6 @@ impl Checked {
     pub fn detected(&self) -> bool {
         self.skills.iter().any(SkillChecked::detected)
     }
-}
-
-/// 始められなかった理由。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Refused {
-    /// 決まった名前（usage ・ sas_unavailable）
-    pub code: &'static str,
-    /// 理由
-    pub message: String,
-}
-
-/// フォルダの経路の末尾の / を除く。
-fn trimmed(folder: &str) -> &str {
-    let t = folder.trim_end_matches('/');
-    if t.is_empty() { folder } else { t }
 }
 
 /// フォルダ名（経路の最後の部分）。
@@ -208,7 +197,43 @@ fn name_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
     out
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査3つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
+/// SKILL.md が、skill.json から build で作るものと同じか。
+fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
+    const CHECK: &str = "skill-md-built";
+    let path = format!("{}/{}", trimmed(folder), skill_md::FILE);
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => return finding(CHECK, Outcome::Error, None, r.message),
+    };
+    match files.read(&path) {
+        Err(_) => finding(
+            CHECK,
+            Outcome::Violated,
+            Some(path),
+            format!(
+                "SKILL.md が無い（agents-skills-creator build {} で作る）",
+                trimmed(folder)
+            ),
+        ),
+        Ok(text) if text == skill_md::render(&skill) => finding(
+            CHECK,
+            Outcome::Verified,
+            None,
+            "SKILL.md が、skill.json から build で作るものと同じ".to_string(),
+        ),
+        Ok(_) => finding(
+            CHECK,
+            Outcome::Violated,
+            Some(path),
+            format!(
+                "SKILL.md が、skill.json から build で作るものと違う（agents-skills-creator build {} で作り直す）",
+                trimmed(folder)
+            ),
+        ),
+    }
+}
+
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査4つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
 ///
 /// # Errors
 /// フォルダが1つも無い（usage）・ sas を呼べない（sas_unavailable）とき。
@@ -227,6 +252,7 @@ pub fn check(
     for folder in folders {
         let mut creator = name_checks(files, folder);
         creator.extend(links_resolve(files, folder));
+        creator.push(skill_md_built(files, folder));
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {

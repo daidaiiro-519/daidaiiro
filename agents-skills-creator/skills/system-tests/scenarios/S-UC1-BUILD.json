@@ -1,0 +1,64 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-BUILD",
+ "name": "SKILL.md を作る",
+ "title": "build は skill.json から決まった形の SKILL.md（frontmatter の name ・ description と、目的 ・ 役割 ・ 事前条件 ・ 手順 ・ 守ること ・ 最低保証 ・ 完了条件 ・ 例）を同じフォルダに書き、同じ入力からは同じ出力になる（2回目は changed が false）",
+ "why": "AI ツールが読むのは SKILL.md なので、skill.json から決まった形で作れないと、同じ項目から違う Skill が配られる。",
+ "traces": [
+  "UC1:成功時保証",
+  "約束:build-result"
+ ],
+ "given": {
+  "files": {
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "build",
+   "skills/fact-check"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "build",
+    "skills/fact-check"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "build"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "skills/fact-check/SKILL.md"
+  },
+  {
+   "of": "when",
+   "pointer": "/changed",
+   "equals": true
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/changed",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "file": "skills/fact-check/SKILL.md",
+   "same_as": "@fixtures/fact-check/SKILL.md"
+  }
+ ],
+ "unchanged": [
+  "skills/fact-check/skill.json"
+ ]
+}

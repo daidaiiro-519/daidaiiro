@@ -1,0 +1,73 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-USAGE",
+ "name": "作るコマンドの使い方",
+ "title": "build ・ confirm にフォルダを渡さないと使い方の誤り（終了コード 2）、skill.json の無いフォルダを渡すと not_found（終了コード 1）を返し、何も書かない",
+ "why": "何を作ったか ・ 確かめたかが分からない結果を返すと、作っていないのに作れたと読まれる。",
+ "traces": [
+  "UC1:最低保証",
+  "約束:build-result",
+  "約束:confirm"
+ ],
+ "given": {
+  "files": {}
+ },
+ "when": {
+  "args": [
+   "build"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "confirm"
+   ]
+  },
+  {
+   "args": [
+    "build",
+    "skills/none"
+   ]
+  },
+  {
+   "args": [
+    "confirm",
+    "skills/none"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "after[1]",
+   "exit": 1
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "when",
+   "file": "skills/none/SKILL.md",
+   "exists": false
+  }
+ ]
+}

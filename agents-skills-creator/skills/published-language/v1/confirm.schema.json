@@ -1,0 +1,355 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:skills:confirm:v1",
+ "title": "確認の1画面の材料",
+ "description": "agents-skills-creator confirm が標準出力に返す JSON（1つ）。作る人が承認するかを決める確認の1画面の材料（説明 ・ 完成イメージ ・ 振る舞い ・ 構造 ・ 推測の一覧）と、別の会話に任せる手順。図は描かず、データだけを返す",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:skills:confirm:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "confirm は結果、error は始められなかった（使い方の誤り ・ 読めない）",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "confirm",
+    "error"
+   ]
+  },
+  "folder": {
+   "title": "フォルダ",
+   "description": "渡した Skill のフォルダ（渡されたまま）",
+   "x-prompt": {
+    "meaning": "どの Skill の確認かを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "name": {
+   "title": "名前",
+   "description": "skill.json の name（AI が付けた名前）",
+   "x-prompt": {
+    "meaning": "名前を確かめる。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "description": {
+   "title": "説明",
+   "description": "skill.json の description（ほかの AI が Skill を選ぶときに読む文）",
+   "x-prompt": {
+    "meaning": "選ぶ文として読めるかを見る。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "images": {
+   "title": "完成イメージ",
+   "description": "examples の expected（できあがるもの）の並び",
+   "x-prompt": {
+    "meaning": "何ができあがるかを見る。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/image"
+   }
+  },
+  "behaviors": {
+   "title": "振る舞い",
+   "description": "examples の behavior（誰が ・ 何をすると ・ 何が起きるか）の並び。behavior の無い例は入らない",
+   "x-prompt": {
+    "meaning": "使われる場面で何が変わるかを見る。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/behavior"
+   }
+  },
+  "structure": {
+   "title": "構造",
+   "description": "inputs ・ steps ・ edge_cases ・ outputs ・ role の受け持つこと ・ 受け持たないこと。項目は足さず、図は描かない",
+   "x-prompt": {
+    "meaning": "受け持つ範囲と手順の形を見る。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "object",
+   "required": [
+    "inputs",
+    "steps",
+    "edge_cases",
+    "outputs",
+    "does",
+    "does_not"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "inputs": {
+     "type": "array"
+    },
+    "steps": {
+     "type": "array"
+    },
+    "edge_cases": {
+     "type": "array"
+    },
+    "outputs": {
+     "type": "array"
+    },
+    "does": {
+     "type": "array"
+    },
+    "does_not": {
+     "type": "array"
+    }
+   }
+  },
+  "guesses": {
+   "title": "推測で埋めた所",
+   "description": "作る人が答えていない（purpose と role の答えのほかの）所の一覧。分からないと答えた所が先頭で、そのあとは損失の大きい順（受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → そのほか）",
+   "x-prompt": {
+    "meaning": "違う所を「〇〇は違う、△△」と一言で返す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/guess"
+   }
+  },
+  "approvable": {
+   "title": "承認できるか",
+   "description": "目的の「誰が」（purpose.who）と「何を得るか」（purpose.gets）が分かっているか。分からないままなら false で、承認を受け付けない",
+   "x-prompt": {
+    "meaning": "false なら承認を求めず、下書きとして残す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "boolean"
+  },
+  "not_approvable": {
+   "title": "承認できない理由",
+   "description": "approvable が false のときの理由の並び",
+   "x-prompt": {
+    "meaning": "何を答えれば承認できるかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "delegate": {
+   "title": "別の会話に任せる手順",
+   "description": "(a) 意味の rule の判定、(b) 例を SKILL.md に従って動かして expected と比べること。creator は AI を起動しないので、打ったセッションが別の会話に任せる",
+   "x-prompt": {
+    "meaning": "別の会話を立てて任せる。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/task"
+   }
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、not_found は skill.json を読めない、invalid_input は skill.json が JSON でない",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "not_found",
+    "invalid_input"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "confirm"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "name",
+     "description",
+     "images",
+     "behaviors",
+     "structure",
+     "guesses",
+     "approvable",
+     "delegate"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ],
+ "$defs": {
+  "image": {
+   "type": "object",
+   "required": [
+    "example",
+    "expected"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "example": {
+     "type": "string",
+     "description": "例の id"
+    },
+    "expected": {
+     "type": "string",
+     "description": "できあがるもの"
+    }
+   }
+  },
+  "behavior": {
+   "type": "object",
+   "required": [
+    "example",
+    "who",
+    "does",
+    "then"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "example": {
+     "type": "string"
+    },
+    "who": {
+     "type": "string"
+    },
+    "does": {
+     "type": "string"
+    },
+    "then": {
+     "type": "string"
+    }
+   }
+  },
+  "guess": {
+   "type": "object",
+   "required": [
+    "field",
+    "content",
+    "from",
+    "unknown"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "field": {
+     "type": "string",
+     "description": "推測で埋めた所（skill.json の中の JSON Pointer）"
+    },
+    "content": {
+     "type": "string",
+     "description": "中身（1行）"
+    },
+    "from": {
+     "type": "string",
+     "description": "何から推測したか（その件の from、もとにした例、または Concrete の決まり）"
+    },
+    "unknown": {
+     "type": "boolean",
+     "description": "作る人が「分からない」と答えた所か"
+    }
+   }
+  },
+  "task": {
+   "type": "object",
+   "required": [
+    "id",
+    "what",
+    "how"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "enum": [
+      "a",
+      "b"
+     ]
+    },
+    "what": {
+     "type": "string"
+    },
+    "how": {
+     "type": "string"
+    },
+    "command": {
+     "type": "string",
+     "description": "(a) で打つコマンド"
+    },
+    "examples": {
+     "type": "array",
+     "description": "(b) で動かす例（id ・ given ・ input ・ expected）",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "given",
+       "input",
+       "expected"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "given": {
+        "type": "string"
+       },
+       "input": {
+        "type": "string"
+       },
+       "expected": {
+        "type": "string"
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

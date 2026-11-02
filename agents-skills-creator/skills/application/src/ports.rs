@@ -1,4 +1,4 @@
-//! UC4 確かめるが外に求めるもの（使う操作だけを宣言する。実装は adapters/outbound）。
+//! UC1 作る ・ UC4 確かめるが外に求めるもの（使う操作だけを宣言する。実装は adapters/outbound）。
 
 use serde_json::Value;
 
@@ -42,4 +42,13 @@ pub trait SkillFiles {
     /// # Errors
     /// フォルダを読めないとき。
     fn dangling_links(&self, folder: &str) -> Result<Vec<String>, String>;
+}
+
+/// creator が作るファイル（SKILL.md）を書く。skill.json は書かない（SAS が書く）。
+pub trait GeneratedFiles {
+    /// ファイルを書く。途中で止まっても、前の中身か新しい中身のどちらかが残る。
+    ///
+    /// # Errors
+    /// 書けないとき。
+    fn write(&self, path: &str, text: &str) -> Result<(), String>;
 }

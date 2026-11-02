@@ -1,0 +1,108 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:skills:build-result:v1",
+ "title": "SKILL.md を作った結果",
+ "description": "agents-skills-creator build が標準出力に返す JSON（1つ）。skill.json から決まった形の SKILL.md を作り、同じフォルダに書いた結果",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:skills:build-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "build は結果、error は始められなかった（使い方の誤り ・ 読めない）",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "build",
+    "error"
+   ]
+  },
+  "folder": {
+   "title": "フォルダ",
+   "description": "渡した Skill のフォルダ（渡されたまま）",
+   "x-prompt": {
+    "meaning": "どの Skill の結果かを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "path": {
+   "title": "書いた所",
+   "description": "書いた SKILL.md の経路",
+   "x-prompt": {
+    "meaning": "AI ツールが読むファイルの所として読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "changed": {
+   "title": "変わったか",
+   "description": "書く前の SKILL.md と中身が違ったか（無かったときも true）",
+   "x-prompt": {
+    "meaning": "false なら、skill.json から作り直しても同じだったと読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "boolean"
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、not_found は skill.json を読めない、invalid_input は skill.json が JSON でない",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "not_found",
+    "invalid_input"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "build"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "path",
+     "changed"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ]
+}
