@@ -1,0 +1,96 @@
+//! ポート SkillFiles を、作業ディレクトリのファイルとシンボリックリンクで実装する。読むだけで、書かない
+//! （skill.json は SAS が書く）。
+
+use skills_application::ports::SkillFiles;
+use std::path::{Path, PathBuf};
+
+/// 作業ディレクトリ（経路の根）。
+#[derive(Debug, Clone)]
+pub struct WorkingTree {
+    root: PathBuf,
+}
+
+impl WorkingTree {
+    /// root を根にする。
+    #[must_use]
+    pub const fn new(root: PathBuf) -> Self {
+        Self { root }
+    }
+}
+
+/// 経路の親と最後の部分（/ で区切る）。
+fn split(path: &str) -> (&str, &str) {
+    match path.rsplit_once('/') {
+        Some((parent, last)) => (parent, last),
+        None => ("", path),
+    }
+}
+
+fn join(parent: &str, name: &str) -> String {
+    if parent.is_empty() {
+        name.to_string()
+    } else {
+        format!("{parent}/{name}")
+    }
+}
+
+/// フォルダの中を降りて、先の無いシンボリックリンクを集める（リンクの先のフォルダの中へは降りない）。
+fn walk(dir: &Path, rel: &str, out: &mut Vec<String>) -> Result<(), String> {
+    let entries = std::fs::read_dir(dir).map_err(|e| format!("{rel} を読めない：{e}"))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("{rel} を読めない：{e}"))?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        let here = join(rel, &name);
+        let kind = entry
+            .file_type()
+            .map_err(|e| format!("{here} を読めない：{e}"))?;
+        if kind.is_symlink() {
+            if std::fs::metadata(entry.path()).is_err() {
+                out.push(here);
+            }
+        } else if kind.is_dir() {
+            walk(&entry.path(), &here, out)?;
+        }
+    }
+    Ok(())
+}
+
+impl SkillFiles for WorkingTree {
+    fn exists(&self, path: &str) -> bool {
+        self.root.join(path).exists()
+    }
+
+    fn read(&self, path: &str) -> Result<String, String> {
+        std::fs::read_to_string(self.root.join(path)).map_err(|e| format!("{path} を読めない：{e}"))
+    }
+
+    fn siblings(&self, folder: &str) -> Result<Vec<String>, String> {
+        let (parent, me) = split(folder);
+        let dir = if parent.is_empty() {
+            self.root.clone()
+        } else {
+            self.root.join(parent)
+        };
+        let entries = std::fs::read_dir(&dir).map_err(|e| {
+            format!(
+                "{} を読めない：{e}",
+                if parent.is_empty() { "." } else { parent }
+            )
+        })?;
+        let mut out: Vec<String> = entries
+            .filter_map(Result::ok)
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n != me && dir.join(n).is_dir())
+            .map(|n| join(parent, &n))
+            .collect();
+        out.sort();
+        Ok(out)
+    }
+
+    fn dangling_links(&self, folder: &str) -> Result<Vec<String>, String> {
+        let mut out = Vec::new();
+        walk(&self.root.join(folder), folder, &mut out)?;
+        out.sort();
+        Ok(out)
+    }
+}

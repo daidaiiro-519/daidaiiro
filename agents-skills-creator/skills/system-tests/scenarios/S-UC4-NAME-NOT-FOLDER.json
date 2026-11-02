@@ -1,0 +1,54 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-NAME-NOT-FOLDER",
+ "name": "名前とフォルダ名が違う",
+ "title": "skill.json の name（fact-check）がフォルダ名（name-mismatch）と違う Skill を確かめると、SAS の検証は通っても、creator の name-is-folder が violated になり、終了コード 1 で返す",
+ "why": "Agent Skills の仕様では name がフォルダ名と同じでないと、AI ツールが Skill を見つけられない。SAS は文書1つしか見ないので、フォルダ名と比べられない。",
+ "traces": [
+  "UC4:成功時保証",
+  "約束:check-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/name-mismatch/skill.json": "@fixtures/fact-check/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "check",
+   "skills/name-mismatch"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/detected",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas_exit",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/0/check",
+   "equals": "name-is-folder"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/0/result",
+   "equals": "violated"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/0/reason",
+   "contains": "name-mismatch"
+  }
+ ]
+}

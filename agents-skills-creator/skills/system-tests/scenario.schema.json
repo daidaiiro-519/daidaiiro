@@ -1,0 +1,157 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "title": "システムテストの場面",
+ "description": "1つの場面を1つのファイルに書く（SAS の system-tests の場面と同じ形）。空の作業ディレクトリに given のファイルとリンクを置き、when を1回実行して、then の期待と unchanged を確かめる。traces はユースケースの保証と拡張を指す",
+ "type": "object",
+ "required": [
+  "id",
+  "name",
+  "title",
+  "why",
+  "traces",
+  "when",
+  "then"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^S-[A-Z0-9-]+$",
+   "description": "場面の id"
+  },
+  "name": {
+   "type": "string",
+   "minLength": 1,
+   "maxLength": 24,
+   "description": "短い名前。一覧と見出しに出す（24字まで）"
+  },
+  "title": {
+   "type": "string",
+   "description": "何を確かめる場面か"
+  },
+  "why": {
+   "type": "string",
+   "minLength": 1,
+   "description": "なぜこの能力が要るか。無いと何が困るかを1文で書く"
+  },
+  "traces": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "string",
+    "pattern": "^(UC[0-6]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:(check-result|skill)(:[a-z0-9-]+)?)$"
+   },
+   "description": "確かめるユースケースの保証と拡張（例：UC4:成功時保証）と、公開された言葉の約束（約束:<ファイル名>:<約束の名前>）"
+  },
+  "given": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "files": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     },
+     "description": "作業ディレクトリに置くファイル（相対の経路 → 中身。system-tests/fixtures/ を指すときは @fixtures/…、公開された言葉を指すときは @published/…）"
+    },
+    "links": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     },
+     "description": "作業ディレクトリに置くシンボリックリンク（相対の経路 → リンクの先。先は無くてもよい）"
+    }
+   }
+  },
+  "when": {
+   "$ref": "#/$defs/command"
+  },
+  "after": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/command"
+   },
+   "description": "状態を読むコマンド。then の after[n] で参照する"
+  },
+  "then": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/expect"
+   }
+  },
+  "unchanged": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "when の前と後で中身が変わらないファイル"
+  }
+ },
+ "$defs": {
+  "command": {
+   "type": "object",
+   "required": [
+    "args"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "args": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "agents-skills-creator に渡す引数"
+    },
+    "env": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     },
+     "description": "渡す環境変数。試験を動かす環境の AI のツールのセッション ID と SAS_DB_PATH は渡さず、ここに書いたものだけを渡す"
+    }
+   }
+  },
+  "expect": {
+   "type": "object",
+   "required": [
+    "of"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "of": {
+     "type": "string",
+     "pattern": "^(when|after\\[\\d+\\])$",
+     "description": "どのコマンドの結果か"
+    },
+    "exit": {
+     "type": "integer",
+     "enum": [
+      0,
+      1,
+      2
+     ]
+    },
+    "pointer": {
+     "type": "string",
+     "description": "出力の JSON の中の JSON Pointer"
+    },
+    "equals": {},
+    "contains": {
+     "type": "string"
+    },
+    "count": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "exists": {
+     "type": "boolean"
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,213 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 1,
+ "date": "2026-11-03",
+ "summary": "UC4 確かめる（Skill だけ）を、場面を先に書いて失敗を確かめてから、文脈 skills の application にトランザクションスクリプトとして書いた。SAS の検証の結果は書き換えずに入れ、SAS が文書1つでは判定できない creator の検査3つ（name とフォルダ名 ・ name の重なり ・ リンクの先）を別の欄で返す",
+ "usecases": [
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "sas が Concrete を見つける範囲",
+   "evidence": [
+    "実地：agents-skills-creator/ で sas validate skills/system-tests/fixtures/fact-check/skill.json を打つと、skills/published-language/v1/skill.schema.json を Concrete として引いて検証した（形 verified、意味の rule 17件 not-judged）",
+    "実地の場面 S-UC4-SAS-OUTSIDE：打った場所の中に skill.schema が無いと unknown_schema で断る",
+    "原典 semantic-agent-schema/schemas-and-instances/adapters/outbound/filesystem/src/lib.rs の WorkingTree::list：打った場所（作業ディレクトリ）から下をたどって文書を集める"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "sas validate が、確かめた Skill の項目を変えない",
+   "evidence": [
+    "場面 S-UC4-CHECK-OK の unchanged（skills/fact-check/skill.json がバイト列まで同じ）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 確かめる（Skill だけ）：skills/application/src/use_cases/check.rs の check",
+   "steps": [
+    "渡したフォルダが1つも無ければ、使い方の誤り（usage）で断る",
+    "フォルダごとに：skill.json を読んで name を取る。読めない ・ JSON でない ・ name が無ければ、name の検査2つは error にする",
+    "name-is-folder：name と、フォルダの経路の最後の部分（末尾の / は除く）を比べる",
+    "name-unique：同じ親フォルダにあるほかのフォルダのうち、skill.json の name を読めるものを Skill とみなし、name が同じものを、重なった相手として返す",
+    "links-resolve：フォルダそのものの先があるか（リンクはたどる）。あれば、フォルダの中を降りて先の無いシンボリックリンクを集める（リンクの先のフォルダの中へは降りない）",
+    "SAS の検証：sas validate <フォルダ>/skill.json を打ち、終了コードと出力の JSON を書き換えずに持つ。sas は PATH だけで探し、無い ・ 呼べなければ sas_unavailable で断る",
+    "渡した順に Skill ごとの結果を返す。SAS の終了コードが 0 でないか、creator の検査に verified でない結果があれば、検出あり（終了コード 1）"
+   ],
+   "rules": [
+    "Skill の name はフォルダ名と同じ（Agent Skills の仕様。SAS は文書1つしか見ないので確かめられない）",
+    "同じ親フォルダの Skill のあいだで name が重ならない（skill.json の無いフォルダは Skill として数えない）",
+    "Skill のフォルダそのものと、フォルダの中のリンクの先がある。リンクの先のフォルダの中は、その Skill のものとして数えない",
+    "SAS の結果は書き換えない。creator の検査の結果とは別の欄に入れる",
+    "確かめても、Skill のファイルは変わらない（SAS の記録 .git/sas/sas.db には検証の操作が1件足される）",
+    "検出の有無は、SAS の終了コードと creator の検査の両方で決める",
+    "sas は環境に1つで、PATH だけで探す（Skill は使う版の範囲だけを宣言する）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "name とフォルダ名を比べる ・ name の重なり ・ リンクの先",
+   "became": "script",
+   "why": "どれも check の中でしか使わず、ファイルの外の事実（フォルダ名 ・ 隣のフォルダ ・ リンク）に依る。UC5 配布する でも「読めない所 ・ 壊れたリンク ・ 名前の重なり」を見るので、同じ判断が2つのユースケースに現れた時点で、domain の service に引き上げるかを見直す"
+  },
+  {
+   "what": "検査の結果（verified ・ violated ・ error）と検出の有無",
+   "became": "script",
+   "why": "いまは出力の形のためだけに使う。SAS の判定の区分と同じ語を使い、値として引き上げるのは、ほかのユースケース（UC1 の書いたあとの確かめ ・ UC5 の配布前の確かめ）でも同じ結果を使うと分かったとき"
+  },
+  {
+   "what": "Skill（フォルダと skill.json の組）",
+   "became": "script",
+   "why": "ステップ1 では読むだけで、不変条件を守る操作（作る ・ 直す ・ 配る）が無い。集約にするかは UC1 作る ・ UC5 配布する で見る"
+  },
+  {
+   "what": "SAS の結果をそのまま持つ（SasRun）",
+   "became": "separate",
+   "why": "SAS の公開された言葉（command-result）を解かずに JSON のまま持つ。共用サービスに変換を挟まずに従うので、creator の言葉にしない"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "文脈は skills と agents の2つ。いまは skills だけ",
+   "result": "match",
+   "fixed": "none",
+   "note": "crate はどれも skills/ の下に置いた。agents は UC2 のステップで置く"
+  },
+  {
+   "item": "業務領域の候補（作って確かめる ・ 配布）はモジュールにしない",
+   "result": "match",
+   "fixed": "none",
+   "note": "手続きは文脈の直下の skills-application に置いた。crate の名前は <文脈>-<層> にし、依存の向きの検査の名前の決まりに足した"
+  },
+  {
+   "item": "ヘキサゴナル。ポートはモジュールごとに、使う操作だけを宣言する",
+   "result": "match",
+   "fixed": "none",
+   "note": "ポートは SkillValidator（validate だけ）と SkillFiles（exists ・ read ・ siblings ・ dangling_links）の2つで、どちらも check が使う操作だけ"
+  },
+  {
+   "item": "SAS は共用サービスで、変換を挟まずに従う。sas の結果は書き換えずに返す。creator の検査の結果とは別の行で返す",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "仮説は「別の行」だったが、依頼は「返す JSON は1つ」なので、Skill ごとの結果の中で sas と creator を別の欄にした。sas の出力は JSON のまま sas の欄に入れる"
+  },
+  {
+   "item": "sas を呼ぶ出口は、共有のコードにせず文脈ごとに置く",
+   "result": "match",
+   "fixed": "none",
+   "note": "outbound-sas を skills/adapters/outbound/sas に置いた"
+  },
+  {
+   "item": "ポートの名前と数（SchemaService ・ FileTree ・ ToolLayout）はユースケースから見つける",
+   "result": "match",
+   "fixed": "none",
+   "note": "UC4 から見つけたのは SkillValidator と SkillFiles の2つ。ToolLayout（ツールごとの変換）は UC4 には要らなかった"
+  },
+  {
+   "item": "作られた Skill が SAS を包む形と、配ったあとの Skill から sas が Concrete を見つけられる形（探索の最初に解く問い）",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "sas は打った場所の中から Concrete を探すので、Concrete が打った場所の外にあると unknown_schema になる（場面 S-UC4-SAS-OUTSIDE）。今回は直さず、出力にそのまま出る形にした。UC5 配布する か、SAS に Concrete の置き場所を渡す方法を足すステップで解く"
+  },
+  {
+   "item": "UC4 の成功時保証「使えるか、どこが何に反するかが分かる」",
+   "result": "match",
+   "fixed": "none",
+   "note": "creator の検査は path と reason で、SAS の検証は rule ・ pointer ・ reason で、どこが何に反するかを返す"
+  },
+  {
+   "item": "UC4 の最低保証「確かめても変わらない」",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "最低保証を「確かめても、Skill のファイルは変わらない（SAS の記録 .git/sas/sas.db には検証の操作が1件足される）」と書く。記録が増えるのは SAS の範囲で、Skill のファイルは場面 S-UC4-CHECK-OK と S-UC4-SAS-UNAVAILABLE の unchanged で確かめる"
+  },
+  {
+   "item": "UC4 の「機械と意味の判定（別の会話）」",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "ステップ1 は sas validate（機械の検証）だけで、意味の rule は not-judged のまま返る。--semantic の手順を返して別の会話で判定させるのは、UC1 の例を動かすステップで足す"
+  },
+  {
+   "item": "sas の置き場所",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "はじめは PATH に無ければ手元で作った SAS の固定の経路を使っていたが、外した。sas は環境に1つ、Skill は版の範囲だけを宣言する（platform-advisor の答え）に合わせ、PATH だけで探す。試験は、リポジトリの隣の semantic-agent-schema/target/debug に sas があれば、CARGO_MANIFEST_DIR からの相対の経路で PATH の前に足して流す。無ければ sas_unavailable で止まる（場面 S-UC4-SAS-UNAVAILABLE）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "検出",
+   "seen": "終了コード 1 の意味",
+   "drift": "SAS は「violated か error がある」で終了コード 1 を返し、creator は「SAS の終了コードが 0 でないか、creator の検査に verified でないものがある」で返す。同じ終了コードの意味が、SAS と creator で範囲が違う"
+  },
+  {
+   "term": "同じ親フォルダ",
+   "seen": "name-unique",
+   "drift": "手続きは「渡したフォルダの親」で重なりを数える。実際の置き場所（リポジトリの skills/ ・ .claude/skills/）では親が Skill の置き場所そのものなので、利用者の言う「Skill の置き場所」と一致する。試験の具体の置き場所（system-tests/fixtures/）は Skill の置き場所ではないので、本物の Skill（fact-check）だけを置き、名前の不一致と重なりは場面の given.files でその場で作る"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate",
+    "before": "無し（ステップ0 はスキーマと具体だけ）",
+    "after": "skills-application ・ outbound-sas ・ outbound-filesystem ・ inbound-cli ・ test-support の5つ（ワークスペースの根は agents-skills-creator/）",
+    "why": "UC4 の手続きと、それが使うポート2つの出口と、入口が要ると分かったので足した"
+   },
+   {
+    "what": "architecture.json と依存の向きの検査",
+    "before": "無し",
+    "after": "SAS の architecture.json と同じ形で置き、test-support の architecture.rs が cargo metadata と照らす。crate の名前の決まりに <文脈>-<層> を足した",
+    "why": "業務領域のモジュールをまだ作らないので、文脈の直下の層の名前が要った"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "skill.schema.json だけ",
+    "after": "check-result.schema.json（確かめた結果の形）を足した",
+    "why": "出力の形を場面の試験で毎回照らすため（SAS の command-result と同じ役目）"
+   },
+   {
+    "what": "場面の形",
+    "before": "無し",
+    "after": "skills/system-tests/scenario.schema.json（SAS の場面の形を写し、given にシンボリックリンク links ・ 公開された言葉を指す @published/ を足した）",
+    "why": "壊れたリンクの具体は、ファイルとしては置けないので、場面の中で作る"
+   },
+   {
+    "what": "試験の具体",
+    "before": "fact-check だけ",
+    "after": "fact-check だけ（本物の Skill の具体）。名前の不一致と重なりは、場面の given.files で fact-check をほかのフォルダ名の下に置いてその場で作り、壊れたリンクは given.links で作る",
+    "why": "fixtures に name の重なる具体を置くと、fixtures の fact-check を確かめたときに、わざと重ねた具体と重なって検出される。いったん sas create で置いた name-mismatch は sas delete で外した"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "文脈 agents/ と、Agent の検査（配下のリンクと受け渡し）",
+    "why": "agent.schema を作る UC2 のステップで置く"
+   },
+   {
+    "what": "業務領域のモジュール（作って確かめる ・ 配布）と domain の crate",
+    "why": "ステップ1 の判断はどれもスクリプトのままで足りた（引き上げの表）"
+   },
+   {
+    "what": "意味の判定（--semantic の手順を返し、別の会話の判定を渡す）",
+    "why": "UC1 で例を動かすステップで足す"
+   },
+   {
+    "what": "ツールごとの変換（ToolLayout）と配布先の出口",
+    "why": "UC5 配布する で足す"
+   },
+   {
+    "what": "trace.json ・ untested.json（保証と場面の突き合わせの表）",
+    "why": "ユースケースが UC4 の1つだけで、場面の traces で足りた。2つ目のユースケースを足すステップで置く"
+   },
+   {
+    "what": "creator の入口の MCP",
+    "why": "使う場面がまだ無い（設計の仮説）"
+   }
+  ]
+ }
+}

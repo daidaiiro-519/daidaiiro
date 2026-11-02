@@ -1,0 +1,61 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-FOLDER-LINK-BROKEN",
+ "name": "フォルダが壊れたリンク",
+ "title": "Skill のフォルダそのものが先の無いシンボリックリンクだと、creator の links-resolve が violated になり、skill.json を読めないので name の検査は error、SAS の結果（not_found）はそのまま入る",
+ "why": "手元の Skill はリンクで置くので、リンクの先が消えると Skill ごと読めなくなる。",
+ "traces": [
+  "UC4:成功時保証",
+  "約束:check-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json"
+  },
+  "links": {
+   "skills/fact-check": "../agents/fact-check"
+  }
+ },
+ "when": {
+  "args": [
+   "check",
+   "skills/fact-check"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/0/result",
+   "equals": "error"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/result",
+   "equals": "violated"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/path",
+   "equals": "skills/fact-check"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas/kind",
+   "equals": "error"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas_exit",
+   "equals": 1
+  }
+ ]
+}

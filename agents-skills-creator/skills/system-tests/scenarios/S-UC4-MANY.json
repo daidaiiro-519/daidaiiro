@@ -1,0 +1,60 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-MANY",
+ "name": "複数の Skill を確かめる",
+ "title": "2つのフォルダを渡すと、渡した順に Skill ごとの結果を返し、1つでも検出があれば終了コード 1 になる（2つは name が重なり、name-mismatch はフォルダ名とも違う）",
+ "why": "まとめて確かめないと、どの Skill を直せばよいかを1つずつ打って調べることになる。",
+ "traces": [
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
+   "skills/name-mismatch/skill.json": "@fixtures/fact-check/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "check",
+   "skills/fact-check",
+   "skills/name-mismatch"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/skills",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/folder",
+   "equals": "skills/fact-check"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/1/folder",
+   "equals": "skills/name-mismatch"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/1/creator/0/result",
+   "equals": "violated"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/1/creator/1/result",
+   "equals": "violated"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/1/creator/1/path",
+   "equals": "skills/fact-check"
+  }
+ ]
+}

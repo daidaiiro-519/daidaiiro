@@ -1,0 +1,45 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-SAS-UNAVAILABLE",
+ "name": "sas が無い",
+ "title": "PATH に sas が無いと、確かめずに sas_unavailable（kind = error）で止まり、終了コード 1 を返す",
+ "why": "SAS の検証をせずに creator の検査だけを返すと、形と意味の rule を確かめていないのに使えると読まれる。",
+ "traces": [
+  "UC4:最低保証",
+  "約束:check-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "check",
+   "skills/fact-check"
+  ],
+  "env": {
+   "PATH": ""
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "error"
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "sas_unavailable"
+  }
+ ],
+ "unchanged": [
+  "skills/fact-check/skill.json"
+ ]
+}

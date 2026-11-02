@@ -1,0 +1,83 @@
+{
+ "description": "いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足す。設計の仮説（文脈 skills ・ agents、業務領域の候補）は探索の記録 docs/design/exploration/ と突き合わせ、要ると分かった時点でここへ移す（SAS の architecture.json と同じ決まり）",
+ "context": "skills",
+ "context_map": "事業領域 agents-skills-creator の文脈は skills（上流。公開された言葉 skill.schema を出す）と agents（下流。UC2 のステップで置く）の2つ。いまは skills だけ。SAS は両方にとっての共用サービスで、変換を挟まずに従い、sas の結果は書き換えずに返す",
+ "crate_naming": "crate の名前はフォルダから決める：文脈の直下の層は <文脈>-<層>（skills-application。業務領域のモジュールはまだ作らない）、業務領域のモジュールを作ったら <モジュール>-<層>、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support",
+ "modules": "業務領域の候補（作って確かめる ・ 配布）は、まだモジュールにしない。UC4 確かめるの手続きは文脈 skills の application（skills-application）に置く。application は、自分のユースケースが使うポート（と、そのうち使う操作）だけを ports.rs に宣言する。SAS を呼ぶ出口は、共有のコードにせず文脈ごとに置く",
+ "crates": [
+  {
+   "name": "skills-application",
+   "path": "skills/application",
+   "layer": "application",
+   "role": "UC4 確かめる（Skill だけ。use_cases/check.rs）。渡した Skill のフォルダごとに、SAS の検証の結果（書き換えない）と、SAS が文書1つでは判定できない creator の検査3つ（name-is-folder ・ name-unique ・ links-resolve）を返す。ポート SkillValidator（SAS で skill.json を検証する）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）を宣言する"
+  },
+  {
+   "name": "outbound-sas",
+   "path": "skills/adapters/outbound/sas",
+   "layer": "outbound",
+   "role": "SkillValidator の実装。sas を PATH だけで探し（sas は環境に1つ）、外の実行ファイルとして呼んで、sas validate の出力を書き換えずに返す。打った場所と環境変数はそのまま渡す"
+  },
+  {
+   "name": "outbound-filesystem",
+   "path": "skills/adapters/outbound/filesystem",
+   "layer": "outbound",
+   "role": "SkillFiles の実装。作業ディレクトリのフォルダ ・ skill.json ・ シンボリックリンクを読むだけで、書かない（skill.json は SAS が書く）"
+  },
+  {
+   "name": "inbound-cli",
+   "path": "skills/adapters/inbound/cli",
+   "layer": "inbound",
+   "role": "agents-skills-creator コマンドの入口（check）。コンポジションルートを持ち、結果を check-result.schema.json の JSON 1つで返す"
+  },
+  {
+   "name": "test-support",
+   "path": "skills/test-support",
+   "layer": "test-support",
+   "role": "試験の部品。dev-dependencies からだけ使う。依存の向きの検査を持つ"
+  }
+ ],
+ "allow": [
+  {
+   "from": "skills-application",
+   "to": [],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "outbound-sas",
+   "to": [
+    "skills-application"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "outbound-filesystem",
+   "to": [
+    "skills-application"
+   ],
+   "libraries": []
+  },
+  {
+   "from": "inbound-cli",
+   "to": [
+    "skills-application",
+    "outbound-sas",
+    "outbound-filesystem"
+   ],
+   "libraries": [
+    "serde_json"
+   ]
+  },
+  {
+   "from": "test-support",
+   "to": [],
+   "libraries": []
+  }
+ ],
+ "dev_only": [
+  "test-support"
+ ]
+}

@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-BROKEN-LINK",
+ "name": "リンクの先が無い",
+ "title": "Skill のフォルダの中に、先の無いシンボリックリンク（references → ../../shared/references）があると、creator の links-resolve が violated になり、そのリンクを path に返す",
+ "why": "先の無いリンクを持つ Skill は、配布先で読めない所ができる。ファイルの外の事実なので、SAS の検証では見つからない。",
+ "traces": [
+  "UC4:成功時保証",
+  "約束:check-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json"
+  },
+  "links": {
+   "skills/fact-check/references": "../../shared/references"
+  }
+ },
+ "when": {
+  "args": [
+   "check",
+   "skills/fact-check"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/check",
+   "equals": "links-resolve"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/result",
+   "equals": "violated"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/path",
+   "equals": "skills/fact-check/references"
+  }
+ ]
+}

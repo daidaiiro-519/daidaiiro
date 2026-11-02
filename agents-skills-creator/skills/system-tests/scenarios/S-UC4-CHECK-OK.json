@@ -1,0 +1,108 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-CHECK-OK",
+ "name": "使える Skill を確かめる",
+ "title": "名前がフォルダ名と同じで、ほかと重ならず、リンクの先がそろう Skill（fact-check）を確かめると、SAS の検証の結果をそのまま入れ、creator の3つの検査がどれも verified になり、終了コード 0 で返す。確かめても Skill のファイルは変わらない（SAS の記録には検証の操作が1件足される）",
+ "why": "使えるかどうかが分からないと、作る人は配布してよいかを決められない。",
+ "traces": [
+  "UC4:成功時保証",
+  "UC4:最低保証",
+  "約束:check-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "check",
+   "skills/fact-check"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "check"
+  },
+  {
+   "of": "when",
+   "pointer": "/detected",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "pointer": "/skills",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/folder",
+   "equals": "skills/fact-check"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas/$schema",
+   "equals": "urn:semantic-agent-schema:published-language:command-result:v1"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas/kind",
+   "equals": "validation"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas/targets/0/path",
+   "equals": "skills/fact-check/skill.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/sas_exit",
+   "equals": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator",
+   "count": 3
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/0/check",
+   "equals": "name-is-folder"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/0/result",
+   "equals": "verified"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/1/check",
+   "equals": "name-unique"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/1/result",
+   "equals": "verified"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/check",
+   "equals": "links-resolve"
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator/2/result",
+   "equals": "verified"
+  }
+ ],
+ "unchanged": [
+  "skills/fact-check/skill.json"
+ ]
+}
