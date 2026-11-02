@@ -20,8 +20,8 @@
 | 業務ロジックは、まず use_cases にトランザクションスクリプトで書く。同じ理由で変わるものだけを domain へ引き上げる。自明なものは最初から domain に置いてよいが、根拠を探索の記録に書く | ドメインモデルは育てるもの |
 | domain の中は部品の種類で分ける（aggregates/・values/・services/）。購読する手続きが無いうちは events/ を作らない | 先取りしない |
 | ユースケースごとのファイルやフォルダは作らない | 土台の境界6 |
-| crate・モジュール・ポートは、必要と分かった時点で足す。足したら `architecture.json` にも足す | 最初に構造を全部作らない |
-| 外のライブラリは、`architecture.json` の allow の libraries に書いた crate だけが使う（rusqlite は outbound の sqlite、jsonschema は outbound の jsonschema） | 外の技術を adapter に閉じ込めたことを、依存の検査で確かめる |
+| crate・モジュール・ポートは、必要と分かった時点で足す。crate を足したら `architecture.json`（architecture-lint の規則）の components と allow にも足す | 最初に構造を全部作らない |
+| 外のライブラリも `architecture.json` の component にし、allow で向きを許した crate だけが使う（rusqlite は outbound の sqlite、jsonschema は outbound の jsonschema）。試験だけで使う向きは kinds を dev にして許す | 外の技術を adapter に閉じ込めたことを、依存の検査（architecture-lint）で確かめる |
 | ユースケースは、先に `schemas-and-instances/system-tests/scenarios/` に場面を書き、失敗を確かめてから作る。場面と保証 ・ 拡張の突き合わせは `system-tests/trace.json`、まだ確かめないものは `untested.json` に理由と一緒に置く | 保証と拡張のどれを確かめたかを、試験で数えられるようにする |
 | SAS の DB（`<git-common-dir>/sas/sas.db`、Git が無ければ `.sas/`）はコミットしない。ID と時刻は outbound の sqlite が作り、application と domain は時刻に触らない | 決定的な試験のため |
 | リポジトリの文書を書くのは use_cases だけで、形と集約の書く条件を確かめてから DocumentStore の write で書く。書く手前で断ったものは記録せず、理由 ・ 案内 ・ 間に入った変更をその場で返す | 書くのは SAS だけ。型に従わないものは作らず、理由を返す（UC1 の最低保証）。断った操作の記録は SAS が読まず、コミットしない記録は監査の証拠にもならない（探索の記録 step-04b） |
@@ -39,7 +39,7 @@
 | ポートは trait で dyn で使い、dyn compatible に保つ。実装が単純になるほうを選ぶ：手続きは `&dyn` を受け取るだけで型引数を持たず、アダプターは cli の main.rs で選んで渡す。呼び先はファイル ・ SQLite ・ git コマンドなので、dyn の呼び出しの手間は効かない | Reference traits:412・429・445・459 |
 | 集約の欄は private、メソッドだけ pub。ID とハッシュは newtype | API Guidelines C-STRUCT-PRIVATE:218・C-NEWTYPE:169 |
 | adapters で外の trait を domain の型に実装しない（orphan rule） | Reference implementations:658・659・669 |
-| 試験の部品（test-support）は dev-dependencies からだけ使う | `architecture.json` の dev_only と、その検査 |
+| 試験の部品（test-support）は dev-dependencies からだけ使う | `architecture.json` が test-support へ向かう辺を許していないので、architecture-lint が通常の依存を止める。dev-dependencies から使うときは、その辺だけを kinds dev で許す |
 | ポートの代役は、使う application の `tests/` に置く（test-support に置くと dev-dependencies が循環する）。検証 ・ 書く ・ 検索の試験が共に使う代役の振る舞いは `validation/application/tests/support.rs` に置き、ほかのモジュールの試験は `#[path]` で読む。ポートはモジュールごとに宣言するので、代役をポートに当てる impl は、読む側の試験がそのモジュールのポートに書く | 探索の記録 step-01 |
 | `if let` が入れ子になるときは let chains（`if let … && let …`）で書く | clippy の collapsible_if（edition 2024） |
 | serde_json は `preserve_order` で使い、オブジェクトから欄を除くときは `shift_remove` を使う。書き戻した文書の欄の並びを変えないため | serde_json 1.0.154 src/map.rs:3〜4・160〜164（探索の記録 step-02） |
@@ -54,4 +54,4 @@
 
 ## 確かめるコマンド
 
-`cargo build`・`cargo test`（依存の向きとスキーマの検査を含む）・`cargo fmt --all -- --check`・`cargo clippy --workspace --all-targets -- -D warnings`
+`cargo build`・`cargo test`（依存の向きとスキーマの検査を含む。依存の向きは architecture-lint を起動するので、PATH に入れるか `../architecture-lint` で `cargo build` しておく）・`cargo fmt --all -- --check`・`cargo clippy --workspace --all-targets -- -D warnings`

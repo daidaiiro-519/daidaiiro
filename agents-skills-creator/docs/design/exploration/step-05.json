@@ -1,0 +1,120 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 5,
+ "date": "2026-11-03",
+ "summary": "依存の向きの検査を、試験に写したコードから architecture-lint へ移した。architecture.json を architecture-lint の規則の形（components と allow）に書き直し、規則でない説明（文脈 ・ 文脈の地図 ・ crate の名前の付け方 ・ モジュールの分け方）は docs/design/structure.json へ、crate の役割は component の description へ移した。architecture.json の独自の形 docs/design/architecture.schema.json は消した",
+ "usecases": [],
+ "factchecks": [
+  {
+   "item": "architecture-lint が規則の $schema を読む",
+   "evidence": [
+    "architecture-lint の rules.schema.json に $schema（const urn:architecture-lint:rules:v1）を足し、違う値なら終了コード 2 になることを tests/check.rs の試験で確かめた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "いまの依存が規則に従う",
+   "evidence": [
+    "実地：architecture-lint check --rules architecture.json --cargo . が「違反なし」（終了コード 0）",
+    "実地：architecture-lint graph --cargo . の辺 18本のうち dev の辺は inbound-cli → serde_json ・ jsonschema と test-support → serde_json ・ jsonschema の4本"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "依存の向きの検査（test-support の architecture.rs）",
+   "steps": [
+    "architecture-lint を PATH から探し、無ければリポジトリの中の ../architecture-lint/target/debug から使う",
+    "architecture-lint check --rules architecture.json --cargo . を打ち、終了コード 0 を確かめる（違反と誤りは出力をそのまま試験の失敗に載せる）",
+    "architecture-lint graph --cargo . のグラフの node に、規則の component の node がどれもあることを確かめる",
+    "cargo metadata の各 crate の置き場所（文脈 skills/ の中）から名前を決め、crate の名前と同じことを確かめる"
+   ],
+   "rules": [
+    "許す向きと外のライブラリの閉じ込めは architecture-lint の規則で持ち、試験に検査の手続きを写さない",
+    "試験の部品（test-support）へ向かう辺は allow に書かない。書かない辺はすべて禁止なので、通常の依存も dev の依存も止まる",
+    "試験だけで使う外のライブラリの向きは kinds dev で許し、なぜ許すかを description に書く"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "依存の向きの検査（allow ・ libraries ・ dev_only を読んで cargo metadata と照らす手続き）",
+   "became": "separate",
+   "why": "SAS と creator が同じ手続きを写して持っていた。製品に寄らない CLI の architecture-lint に任せ、試験はそれを起動するだけにした"
+  },
+  {
+   "what": "crate の名前とフォルダの一致",
+   "became": "script",
+   "why": "名前の付け方は製品ごと（creator は <文脈>-<層> を持ち、SAS は持たない）で、architecture-lint は名前の付け方を知らない。試験の中に残した"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "architecture.json の形",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "ステップ4 で作った独自の形（urn:agents-skills-creator:design:architecture:v1）をやめ、architecture-lint の規則の形 urn:architecture-lint:rules:v1 にした。形と検査は architecture-lint が持つので、files.rs の対象から外した"
+  },
+  {
+   "item": "SAS の側の architecture.json の schema（ステップ4 で持ち越し）",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "SAS の architecture.json も同じく architecture-lint の規則の形にし、$schema で urn:architecture-lint:rules:v1 を指す"
+  },
+  {
+   "item": "dev_only（試験の部品は dev-dependencies からだけ）",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "欄で持たず、test-support へ向かう辺を許さないことで表す。dev の辺も止まるので、前より強い"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "component",
+   "seen": "architecture-lint の規則",
+   "drift": "前の architecture.json の crates（crate の一覧）と libraries（外のライブラリ）を、どちらも component として同じ欄で持つ。crate か外のライブラリかは、グラフの node の external で分かる"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "architecture.json",
+    "before": "独自の形（context ・ context_map ・ crate_naming ・ modules ・ crates ・ allow の to と libraries ・ dev_only）",
+    "after": "architecture-lint の規則の形（$schema ・ version ・ description ・ components 9つ ・ allow）。crate の役割は component の description",
+    "why": "依存の向きの検査を architecture-lint に任せるため"
+   },
+   {
+    "what": "規則でない説明の置き場所",
+    "before": "architecture.json の context ・ context_map ・ crate_naming ・ modules",
+    "after": "docs/design/structure.json（同じ文をそのまま移した）",
+    "why": "規則のファイルには architecture-lint が読む欄だけを置く"
+   },
+   {
+    "what": "設計のファイルの schema",
+    "before": "docs/design/architecture.schema.json があり、files.rs が architecture.json を照らす",
+    "after": "消した。files.rs は trace.json と untested.json だけを照らす",
+    "why": "形は architecture-lint の rules.schema.json が持ち、読めない規則は architecture-lint が終了コード 2 で止める"
+   },
+   {
+    "what": "test-support の architecture.rs",
+    "before": "cargo metadata を読んで allow ・ libraries ・ dev_only と照らす手続きを写して持つ",
+    "after": "architecture-lint の check と graph を起動し、名前とフォルダの一致だけを自分で確かめる",
+    "why": "同じ手続きを製品ごとに写さない"
+   },
+   {
+    "what": "docs/design/structure.json の形",
+    "before": "形が無かった",
+    "after": "docs/design/structure.schema.json（urn:agents-skills-creator:design:structure:v1）を $schema で指し、files.rs が従うかを確かめる",
+    "why": "利用者の決まり「JSON を伴う場合は schema がいる」に、移した説明のファイルも従わせるため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "architecture-lint を CI で入れる手順",
+    "why": "いまは PATH か隣のフォルダの target/debug から使う。公開の関門を作るときに決める"
+   }
+  ]
+ }
+}

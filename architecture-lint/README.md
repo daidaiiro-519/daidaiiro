@@ -42,6 +42,7 @@ architecture-lint --version
 
 ```json
 {
+  "$schema": "urn:architecture-lint:rules:v1",
   "version": 1,
   "components": [
     {"name": "domain", "nodes": ["myapp-domain-*"]},
@@ -57,6 +58,7 @@ architecture-lint --version
 
 | 欄 | 決まり |
 |---|---|
+| `$schema` | この形の名前 `urn:architecture-lint:rules:v1`（`rules.schema.json` の `$id`）。任意。書くなら、この値でなければ規則の誤り（終了コード 2） |
 | `components` | node の名前の集まり。`nodes` は完全一致か、末尾の `*` で前方一致。1つの node が2つ以上の component に当たると規則の誤り（終了コード 2） |
 | `allow` | 許す辺。`from` の component から `to` の component へ。書いていない辺はすべて禁止で、同じ component の中の辺も書かなければ禁止 |
 | `kinds` | 許す辺の種類。省けばすべての種類を許す |

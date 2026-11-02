@@ -1,77 +1,90 @@
 {
- "$schema": "urn:agents-skills-creator:design:architecture:v1",
- "description": "いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足す。設計の仮説（文脈 skills ・ agents、業務領域の候補）は探索の記録 docs/design/exploration/ と突き合わせ、要ると分かった時点でここへ移す（SAS の architecture.json と同じ決まり）",
- "context": "skills",
- "context_map": "事業領域 agents-skills-creator の文脈は skills（上流。公開された言葉 skill.schema を出す）と agents（下流。UC2 のステップで置く）の2つ。いまは skills だけ。SAS は両方にとっての共用サービスで、変換を挟まずに従い、sas の結果は書き換えずに返す",
- "crate_naming": "crate の名前はフォルダから決める：文脈の直下の層は <文脈>-<層>（skills-domain ・ skills-application。業務領域のモジュールはまだ作らない）、業務領域のモジュールを作ったら <モジュール>-<層>、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support",
- "modules": "業務領域の候補（作って確かめる ・ 配布）は、まだモジュールにしない。UC1 作る ・ UC4 確かめるの手続きは文脈 skills の application（skills-application）に置き、2つのユースケースが同じ理由で使う判断（SKILL.md の形 ・ 項目ごとに何を導くか）は文脈 skills の domain（skills-domain）に置く。application は、自分のユースケースが使うポート（と、そのうち使う操作）だけを ports.rs に宣言する。SAS を呼ぶ出口は、共有のコードにせず文脈ごとに置く",
- "crates": [
+ "$schema": "urn:architecture-lint:rules:v1",
+ "version": 1,
+ "description": "いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きはすべて禁止。crate か外のライブラリを足したら、ここにも足す。文脈 ・ モジュールの分け方と crate の名前の付け方は docs/design/structure.json にある（SAS の architecture.json と同じ決まり）",
+ "components": [
   {
    "name": "skills-domain",
-   "path": "skills/domain",
-   "layer": "domain",
-   "role": "文脈 skills のドメインモデル。サービス skill_md：Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る（同じ項目からは同じ文字列）。作る（build）と確かめる（check の skill-md-built）が使う。サービス derivation：項目ごとに、作る人の答え（目的 ・ 役割 ・ 資料の問い）から何を導くかの1つの表と、作る人の答えを指す from の見分け（is_answer）。作る手順（new）と確認の推測の一覧（confirm）が使う"
+   "nodes": [
+    "skills-domain"
+   ],
+   "description": "文脈 skills のドメインモデル。サービス skill_md：Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る（同じ項目からは同じ文字列）。作る（build）と確かめる（check の skill-md-built）が使う。サービス derivation：項目ごとに、作る人の答え（目的 ・ 役割 ・ 資料の問い）から何を導くかの1つの表と、作る人の答えを指す from の見分け（is_answer）。作る手順（new）と確認の推測の一覧（confirm）が使う"
   },
   {
    "name": "skills-application",
-   "path": "skills/application",
-   "layer": "application",
-   "role": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs。creator の検査は name-is-folder ・ name-unique ・ links-resolve ・ skill-md-built ・ references-exist ・ json-schema-conforms）。ポート SkillValidator（SAS で検証する ・ SAS が Concrete を引けるか）・ JsonSchemaChecker（ふつうの JSON Schema で確かめる）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
+   "nodes": [
+    "skills-application"
+   ],
+   "description": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs。creator の検査は name-is-folder ・ name-unique ・ links-resolve ・ skill-md-built ・ references-exist ・ json-schema-conforms）。ポート SkillValidator（SAS で検証する ・ SAS が Concrete を引けるか）・ JsonSchemaChecker（ふつうの JSON Schema で確かめる）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
   },
   {
    "name": "outbound-sas",
-   "path": "skills/adapters/outbound/sas",
-   "layer": "outbound",
-   "role": "SkillValidator の実装。sas を PATH だけで探し（sas は環境に1つ）、外の実行ファイルとして呼んで、sas validate の出力を書き換えずに返す。Concrete を引けるかは sas search --concrete で見る。打った場所と環境変数はそのまま渡す"
+   "nodes": [
+    "outbound-sas"
+   ],
+   "description": "SkillValidator の実装。sas を PATH だけで探し（sas は環境に1つ）、外の実行ファイルとして呼んで、sas validate の出力を書き換えずに返す。Concrete を引けるかは sas search --concrete で見る。打った場所と環境変数はそのまま渡す"
   },
   {
    "name": "outbound-filesystem",
-   "path": "skills/adapters/outbound/filesystem",
-   "layer": "outbound",
-   "role": "SkillFiles ・ GeneratedFiles の実装。作業ディレクトリのフォルダ ・ skill.json ・ シンボリックリンクを読み、creator が作る SKILL.md だけを書く（一時ファイルに書いてから置き換える）。skill.json は書かない（SAS が書く）"
+   "nodes": [
+    "outbound-filesystem"
+   ],
+   "description": "SkillFiles ・ GeneratedFiles の実装。作業ディレクトリのフォルダ ・ skill.json ・ シンボリックリンクを読み、creator が作る SKILL.md だけを書く（一時ファイルに書いてから置き換える）。skill.json は書かない（SAS が書く）"
   },
   {
    "name": "outbound-jsonschema",
-   "path": "skills/adapters/outbound/jsonschema",
-   "layer": "outbound",
-   "role": "JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いたふつうの JSON Schema で、参照する資料の中身を確かめる"
+   "nodes": [
+    "outbound-jsonschema"
+   ],
+   "description": "JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いたふつうの JSON Schema で、参照する資料の中身を確かめる"
   },
   {
    "name": "inbound-cli",
-   "path": "skills/adapters/inbound/cli",
-   "layer": "inbound",
-   "role": "agents-skills-creator コマンドの入口（new ・ build ・ confirm ・ check）。コンポジションルートを持ち、結果を公開された言葉の形（new-procedure ・ build-result ・ confirm ・ check-result）の JSON 1つで返す"
+   "nodes": [
+    "inbound-cli"
+   ],
+   "description": "agents-skills-creator コマンドの入口（new ・ build ・ confirm ・ check）。コンポジションルートを持ち、結果を公開された言葉の形（new-procedure ・ build-result ・ confirm ・ check-result）の JSON 1つで返す"
   },
   {
    "name": "test-support",
-   "path": "skills/test-support",
-   "layer": "test-support",
-   "role": "試験の部品。dev-dependencies からだけ使う。依存の向きの検査（architecture.rs）・ 保証と場面の突き合わせ（trace.rs）・ 設計のファイルが自分の schema に従うかの検査（files.rs）を持つ"
+   "nodes": [
+    "test-support"
+   ],
+   "description": "試験の部品。依存の向きの検査（architecture.rs。architecture-lint を起動する）・ 保証と場面の突き合わせ（trace.rs）・ 設計のファイルが自分の schema に従うかの検査（files.rs）を持つ。allow でこの crate へ向かう辺を許していないので、通常の依存からも dev-dependencies からも使えない。dev-dependencies から使うときは、その辺だけを kinds dev で許す"
+  },
+  {
+   "name": "serde_json",
+   "nodes": [
+    "serde_json"
+   ],
+   "description": "JSON の値。domain から入口までが使う"
+  },
+  {
+   "name": "jsonschema",
+   "nodes": [
+    "jsonschema"
+   ],
+   "description": "JSON Schema のバリデーター（SAS と同じ版）。outbound-jsonschema に閉じ込める"
   }
  ],
  "allow": [
   {
    "from": "skills-domain",
-   "to": [],
-   "libraries": [
+   "to": [
     "serde_json"
    ]
   },
   {
    "from": "skills-application",
    "to": [
-    "skills-domain"
-   ],
-   "libraries": [
+    "skills-domain",
     "serde_json"
    ]
   },
   {
    "from": "outbound-sas",
    "to": [
-    "skills-application"
-   ],
-   "libraries": [
+    "skills-application",
     "serde_json"
    ]
   },
@@ -79,15 +92,12 @@
    "from": "outbound-filesystem",
    "to": [
     "skills-application"
-   ],
-   "libraries": []
+   ]
   },
   {
    "from": "outbound-jsonschema",
    "to": [
-    "skills-application"
-   ],
-   "libraries": [
+    "skills-application",
     "serde_json",
     "jsonschema"
    ]
@@ -98,19 +108,30 @@
     "skills-application",
     "outbound-sas",
     "outbound-filesystem",
-    "outbound-jsonschema"
-   ],
-   "libraries": [
+    "outbound-jsonschema",
     "serde_json"
    ]
   },
   {
+   "from": "inbound-cli",
+   "to": [
+    "jsonschema"
+   ],
+   "kinds": [
+    "dev"
+   ],
+   "description": "出力が公開された言葉の形に従うことを、試験で jsonschema に照らす"
+  },
+  {
    "from": "test-support",
-   "to": [],
-   "libraries": []
+   "to": [
+    "serde_json",
+    "jsonschema"
+   ],
+   "kinds": [
+    "dev"
+   ],
+   "description": "依存の向き ・ 対応表 ・ 設計のファイルの検査が JSON を読み、形に照らす"
   }
- ],
- "dev_only": [
-  "test-support"
  ]
 }

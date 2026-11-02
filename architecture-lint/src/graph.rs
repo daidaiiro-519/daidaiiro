@@ -8,9 +8,15 @@ use crate::core;
 /// いま読める形の版。欄を足すだけなら同じ版、意味を変えるなら上げる
 pub const VERSION: u32 = 1;
 
+/// 規則の形の名前（rules.schema.json の $id）。規則のファイルが $schema で指す
+pub const RULES_ID: &str = "urn:architecture-lint:rules:v1";
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RulesDoc {
+    /// この形を指す名前（任意）。書くなら RULES_ID と同じ
+    #[serde(rename = "$schema", default, skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
     pub version: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -92,6 +98,13 @@ pub fn parse_rules(text: &str) -> Result<core::Rules, String> {
     let doc: RulesDoc =
         serde_json::from_str(text).map_err(|e| format!("規則の JSON が形に合わない：{e}"))?;
     check_version("規則", doc.version)?;
+    if let Some(id) = &doc.schema {
+        if id != RULES_ID {
+            return Err(format!(
+                "規則の $schema {id} は読めない（読めるのは {RULES_ID}）"
+            ));
+        }
+    }
     Ok(core::Rules {
         components: doc
             .components

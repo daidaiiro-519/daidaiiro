@@ -1,0 +1,1091 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0222",
+ "title": "依存の向きの検査を architecture-lint に任せる",
+ "date": "2026-11-03",
+ "status": "accepted",
+ "decision": "SAS と agents-skills-creator の依存の向きは、architecture-lint の規則の形で architecture.json に書く。確かめるのは、試験から呼ぶ architecture-lint である。",
+ "why": "依存の向きの検査の道具 architecture-lint（ACDR 0200）があるのに、SAS と creator は独自の形の architecture.json と、検査の写し（architecture.rs）で確かめていた。architecture.json は architecture-lint の規則のファイルなので（利用者の指摘）、形と検査の持ち主を architecture-lint に一致させ、写しを外す。",
+ "shift": [
+  {
+   "what": "architecture.json の形",
+   "from": "製品ごとの独自の形（context ・ crates ・ allow ・ libraries ・ dev_only など）。形の schema は無い。",
+   "to": "architecture-lint の規則の形（components ・ allow ・ kinds）。$schema で urn:architecture-lint:rules:v1 を指す。"
+  },
+  {
+   "what": "依存の向きの検査",
+   "from": "製品ごとに写した Rust の検査（architecture.rs）。",
+   "to": "試験が architecture-lint check を呼ぶ。名前の付け方の検査（製品ごとに違う）と、規則に残った消えた crate の検査だけを試験に残す。"
+  },
+  {
+   "what": "試験だけで使う依存",
+   "from": "dev_only の欄で test-support を区別し、dev の依存は止めなかった。",
+   "to": "test-support へ向かう辺を allow に書かないので、dev の依存も止まる。要る辺だけを kinds dev で許す（前より強い）。"
+  },
+  {
+   "what": "規則でない説明（文脈の地図 ・ 名前の付け方 ・ モジュール）",
+   "from": "architecture.json の中。",
+   "to": "SAS は arch-v15.json と CODING.md（既に同じ中身がある）、creator は docs/design/structure.json（schema を持つ）。crate の役目は component の description。"
+  },
+  {
+   "what": "architecture-lint の規則の形",
+   "from": "$schema の欄を受けない（追加の欄を禁止）。",
+   "to": "$schema を任意の欄で受け、urn:architecture-lint:rules:v1 以外なら終了コード 2。"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は製品ごとに独自の形の architecture.json と検査の写しを持ち、変更後はどちらも architecture-lint の規則の形で書いて architecture-lint が確かめる。",
+ "alternatives": [
+  {
+   "option": "architecture.json に製品ごとの schema を新しく作る（ACDR 0221 の版1 の案）",
+   "why_not": "形の持ち主が architecture-lint と製品の2人になり、規則の書き方が食い違う。"
+  },
+  {
+   "option": "architecture-lint を使わず、検査の写しを残す",
+   "why_not": "同じ検査を製品の数だけ持ち、直すときに写し漏れる。architecture-lint を作った目的（ACDR 0200）と食い違う。"
+  }
+ ],
+ "docs": [
+  {
+   "key": "rules",
+   "tab": "rules.schema.json",
+   "file": "architecture-lint/rules.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:architecture-lint:rules:v1",
+     "before": "（コードの面は差分が示す）",
+     "why": "規則のファイルが $schema で自分の形を名乗れるようにした。追加の欄を禁止していたので、$schema を任意の欄として足した。"
+    }
+   ]
+  },
+  {
+   "key": "graph",
+   "tab": "graph.rs",
+   "file": "architecture-lint/src/graph.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 規則の形の名前（rules.schema.json の $id）。規則のファイルが $schema で指す",
+     "before": "（コードの面は差分が示す）",
+     "why": "$schema の値を規則の形の名前と照らし、違えば規則の誤りとして止めるため。"
+    },
+    {
+     "find": "if let Some(id) = &doc.schema {",
+     "before": "（コードの面は差分が示す）",
+     "why": "$schema の値を規則の形の名前と照らし、違えば規則の誤りとして止めるため。"
+    }
+   ]
+  },
+  {
+   "key": "lreadme",
+   "tab": "README.md（lint）",
+   "file": "architecture-lint/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "この形の名前",
+     "before": "（行が無い）",
+     "why": "規則の欄の表に $schema の行を足した。例の規則にも $schema を足した。"
+    }
+   ]
+  },
+  {
+   "key": "ltest",
+   "tab": "check.rs（lint）",
+   "file": "architecture-lint/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "読めない規則と使い方の誤りは終了コード_2",
+     "before": "（コードの面は差分が示す）",
+     "why": "違う $schema の規則を終了コード 2 で止めることを確かめる試験を足した。"
+    }
+   ]
+  },
+  {
+   "key": "lex",
+   "tab": "examples（lint）",
+   "file": "architecture-lint/examples/semantic-agent-schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "例の規則にも $schema を足した。"
+    }
+   ]
+  },
+  {
+   "key": "sarch",
+   "tab": "architecture.json（SAS）",
+   "file": "semantic-agent-schema/architecture.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"context\": \"schemas-and-instances\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"context_map\": \"文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"crate_naming\": \"crate の名前はフォルダから決める：業務領域を作るモジュールは <モジュール>-<層>（writing-domain など",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"modules\": \"文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"crates\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"$schema\": \"urn:architecture-lint:rules:v1\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"version\": 1,",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きは",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"components\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/writing/domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"layer\": \"domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"nodes\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"writing-domain\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハ",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/validation/domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の5つの区分 ・ rule の結果 ・ 誰が判定するか ・ 記録にある検",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"validation-domain\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の5つの区分 ・ rule の結果 ・ 誰が判定するか ・",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/validation/application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"layer\": \"application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"UC4 検証する（use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_stale）・ 意味",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"validation-application\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"UC4 検証する（use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_sta",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/writing/application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、write/delete.rs、JS",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"writing-application\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、write/delet",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/recording/application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない。ポート OperationRea",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"recording-application\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない。ポート Opera",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/rendering/application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテ",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"rendering-application\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/search/application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路 ・ Concrete ・ すべて）の文書を、構造で絞り（",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"search-application\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路 ・ Concrete ・ すべて）の文書を",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/outbound/filesystem\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"layer\": \"outbound\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。作業ディレクトリの JSON を読み、一",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"outbound-filesystem\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。作業ディレクトリの JSO",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/outbound/jsonschema\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"SchemaValidator（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。入れて出すスキーマを持つ 2020-",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"outbound-jsonschema\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"SchemaValidator（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。入れて出すスキーマを持",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/outbound/sqlite\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの V",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"outbound-sqlite\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモ",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/outbound/git\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。記録の置",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"outbound-git\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読む",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/outbound/templates\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"TemplateRenderer の実装。Mustache（mustache/spec の必須の部分）の処理系を自分で持ち（mustache.",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"outbound-templates\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"TemplateRenderer の実装。Mustache（mustache/spec の必須の部分）の処理系を自分で持ち（mu",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/outbound/javascript\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"ScriptReader の実装。JS の構文解析器 boa（boa_parser 0.22.0）を閉じ込める。テンプレートの JS のロジッ",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"outbound-javascript\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"ScriptReader の実装。JS の構文解析器 boa（boa_parser 0.22.0）を閉じ込める。テンプレートの ",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/adapters/inbound/cli\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"layer\": \"inbound\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sa",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"inbound-cli\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"path\": \"schemas-and-instances/test-support\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"layer\": \"test-support\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"role\": \"試験の部品。dev-dependencies からだけ使う。スキーマ ・ 依存の向き ・ 対応表（trace.json）の検査を持つ\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"test-support\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"試験の部品。dev-dependencies からだけ使う。スキーマ ・ 依存の向き ・ 対応表（trace.json）の検査を",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"serde_json\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"serde_json\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"JSON の値。domain から入口までが使う\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"sha2\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"ハッシュ。writing-domain だけが使う\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"jsonschema\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"jsonschema\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"JSON Schema 2020-12 のバリデーター。outbound-jsonschema に閉じ込める\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"rusqlite\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"rusqlite\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"SQLite。outbound-sqlite に閉じ込める\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"boa_parser\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"boa_parser\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"JS の構文解析器 boa。outbound-javascript に閉じ込める\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"boa_ast\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"boa_ast\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"boa の構文木。outbound-javascript に閉じ込める\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"name\": \"boa_interner\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"boa_interner\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"boa の名前の表。outbound-javascript に閉じ込める\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"to\": [],",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"libraries\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"to\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"writing-domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"validation-domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"libraries\": []",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"search-application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"rendering-application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"from\": \"inbound-cli\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"kinds\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"出力が公開された言葉の形に従うことを、試験で jsonschema に照らす\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"from\": \"search-application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"試験の代役（検証のモジュールの tests/support.rs）が、記録の行の形を使う\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"serde_json\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"description\": \"スキーマ ・ 対応表 ・ 依存の向きの検査が JSON を読み、形に照らす\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    },
+    {
+     "find": "\"dev_only\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "SAS の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した（独自の形から architecture-lint の規則の形へ）。"
+    }
+   ]
+  },
+  {
+   "key": "scoding",
+   "tab": "CODING.md（SAS）",
+   "file": "semantic-agent-schema/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "architecture-lint の規則",
+     "before": "crate・モジュール・ポートは、必要と分かった時点で足す。足したら `architecture.json` にも足す",
+     "why": "architecture.json の欄の名前（libraries ・ dev_only）で書いていた決まりを、規則の形（component ・ allow ・ kinds dev）で書き直した。"
+    }
+   ]
+  },
+  {
+   "key": "stest",
+   "tab": "architecture.rs（SAS）",
+   "file": "semantic-agent-schema/schemas-and-instances/test-support/tests/architecture.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! crate の依存の向きを、ワークスペースの根の architecture.json（architecture-",
+     "before": "（コードの面は差分が示す）",
+     "why": "写した依存の向きの検査を外し、architecture-lint を呼ぶ試験と、名前の付け方 ・ 消えた crate の試験に置き換えた。"
+    },
+    {
+     "find": "let out = Command::new(env!(\"CARGO\"))",
+     "before": "（コードの面は差分が示す）",
+     "why": "写した依存の向きの検査を外し、architecture-lint を呼ぶ試験と、名前の付け方 ・ 消えた crate の試験に置き換えた。"
+    }
+   ]
+  },
+  {
+   "key": "carch",
+   "tab": "architecture.json（creator）",
+   "file": "agents-skills-creator/architecture.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"urn:agents-skills-creator:design:architecture:v1\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"context\": \"skills\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"context_map\": \"事業領域 agents-skills-creator の文脈は skills（上流。公開された言葉 skill.schema を",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"crate_naming\": \"crate の名前はフォルダから決める：文脈の直下の層は <文脈>-<層>（skills-domain ・ skills-ap",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"modules\": \"業務領域の候補（作って確かめる ・ 配布）は、まだモジュールにしない。UC1 作る ・ UC4 確かめるの手続きは文脈 skills の",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"crates\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"$schema\": \"urn:architecture-lint:rules:v1\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"version\": 1,",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きは",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"components\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"layer\": \"domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"文脈 skills のドメインモデル。サービス skill_md：Skill の項目（skill.json）から、AI ツールが読む SKIL",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"nodes\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"skills-domain\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"文脈 skills のドメインモデル。サービス skill_md：Skill の項目（skill.json）から、AI ツールが",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"layer\": \"application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"skills-application\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/adapters/outbound/sas\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"layer\": \"outbound\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"SkillValidator の実装。sas を PATH だけで探し（sas は環境に1つ）、外の実行ファイルとして呼んで、sas vali",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"outbound-sas\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"SkillValidator の実装。sas を PATH だけで探し（sas は環境に1つ）、外の実行ファイルとして呼んで、s",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/adapters/outbound/filesystem\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"SkillFiles ・ GeneratedFiles の実装。作業ディレクトリのフォルダ ・ skill.json ・ シンボリックリンクを",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"outbound-filesystem\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"SkillFiles ・ GeneratedFiles の実装。作業ディレクトリのフォルダ ・ skill.json ・ シンボ",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/adapters/outbound/jsonschema\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いたふつうの JSO",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"outbound-jsonschema\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いたふ",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/adapters/inbound/cli\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"layer\": \"inbound\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"agents-skills-creator コマンドの入口（new ・ build ・ confirm ・ check）。コンポジションルート",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"inbound-cli\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"agents-skills-creator コマンドの入口（new ・ build ・ confirm ・ check）。コンポ",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"path\": \"skills/test-support\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"layer\": \"test-support\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"role\": \"試験の部品。dev-dependencies からだけ使う。依存の向きの検査（architecture.rs）・ 保証と場面の突き合わせ（tr",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"test-support\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"試験の部品。依存の向きの検査（architecture.rs。architecture-lint を起動する）・ 保証と場面の突",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"name\": \"serde_json\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"serde_json\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"JSON の値。domain から入口までが使う\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"name\": \"jsonschema\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"jsonschema\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"JSON Schema のバリデーター（SAS と同じ版）。outbound-jsonschema に閉じ込める\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"to\": [],",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"libraries\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"to\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"skills-domain\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"skills-application\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"libraries\": []",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"outbound-jsonschema\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"from\": \"inbound-cli\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"kinds\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"出力が公開された言葉の形に従うことを、試験で jsonschema に照らす\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"serde_json\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"description\": \"依存の向き ・ 対応表 ・ 設計のファイルの検査が JSON を読み、形に照らす\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    },
+    {
+     "find": "\"dev_only\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "creator の crate と外のライブラリを component に、許す向きを allow に、試験だけの向きを kinds dev に書き直した。"
+    }
+   ]
+  },
+  {
+   "key": "ctest",
+   "tab": "architecture.rs（creator）",
+   "file": "agents-skills-creator/skills/test-support/tests/architecture.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! crate の依存の向きを、ワークスペースの根の architecture.json（architecture-",
+     "before": "（コードの面は差分が示す）",
+     "why": "写した依存の向きの検査を外し、architecture-lint を呼ぶ試験と、名前の付け方 ・ 消えた crate の試験に置き換えた。"
+    },
+    {
+     "find": "let out = Command::new(env!(\"CARGO\"))",
+     "before": "（コードの面は差分が示す）",
+     "why": "写した依存の向きの検査を外し、architecture-lint を呼ぶ試験と、名前の付け方 ・ 消えた crate の試験に置き換えた。"
+    }
+   ]
+  },
+  {
+   "key": "cstruct",
+   "tab": "structure.json（creator、新）",
+   "file": "agents-skills-creator/docs/design/structure.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "urn:agents-skills-creator:design:structure:v1",
+     "before": "（ファイルが無い）",
+     "why": "規則でない説明（文脈の地図 ・ 名前の付け方 ・ モジュール）の移し先。JSON なので schema（structure.schema.json）を指し、試験が従うかを確かめる。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "rules": "4e3b3354fe2edf8cdaf49a6c9d2dfc45afb2e646238de065da508c8abb72a0df",
+  "graph": "5914a0337a48e55db252e752bbe395559805462ab5e85abe03ef65bd081435d4",
+  "lreadme": "807864c8d43c7923834e9e7c9fa5216afde978741fc8f05241219ce82e5b06ce",
+  "ltest": "8209cbafc3b85577859395849a6635eb62529de407793bc35a22b1e45e022ec0",
+  "lex": "f90b2ee25061494a3fd0b9b9040391df36428bd27398ebeaa5065717f71b2d4f",
+  "sarch": "1f3e2fc89a41892a00fd6d66b1371a27b2d158605bbfc29cb083fbc249fc8cd8",
+  "scoding": "e12ba6c8dbdc2c52f1a92051cc63fa627b0bdf0686158cb1840c0d38346c4421",
+  "stest": "1e7ac1bfc6ae515eb24d6f5f9ffbf0072f94e5a275692ca2e3a6fdf38d2115ac",
+  "carch": "ea171db088e6aef8c4e69b7dc34d9f3d96a034cdfcfa3561e55688d12268ca1f",
+  "ctest": "aae46ee3275d8303583d6eaeab24ff7cbc76860ed3620c1dd6f200921d7591b6",
+  "cstruct": "edc1e90ca20cbbe2b11d45cbf4e5b2eb89df686546c8c8baa7de14607dbbfd1f"
+ }
+}

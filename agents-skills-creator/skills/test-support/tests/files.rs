@@ -1,4 +1,5 @@
-//! 設計のファイル（architecture.json ・ system-tests/trace.json ・ untested.json）が、$schema で指す自分の schema に従う。
+//! 試験の突き合わせのファイル（system-tests/trace.json ・ untested.json）が、$schema で指す自分の schema に従う。
+//! architecture.json は architecture-lint の規則のファイルで、その形と検査は architecture-lint が持つ。
 
 #![allow(clippy::expect_used, clippy::panic)]
 
@@ -19,7 +20,10 @@ fn read(path: &PathBuf) -> Value {
 
 /// ファイルと、その $schema の形を置いた所。
 const FILES: [(&str, &str); 3] = [
-    ("architecture.json", "docs/design/architecture.schema.json"),
+    (
+        "docs/design/structure.json",
+        "docs/design/structure.schema.json",
+    ),
     (
         "skills/system-tests/trace.json",
         "skills/system-tests/trace.schema.json",

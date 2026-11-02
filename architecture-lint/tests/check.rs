@@ -217,6 +217,39 @@ fn 規則の例は_rules_schema_に合う() {
 }
 
 #[test]
+fn 規則の_schema_は形の名前なら読め_違えば終了コード_2() {
+    let ws = workspace("schema", &good());
+    let text = fs::read_to_string(rules()).unwrap();
+    assert!(
+        text.contains("\"$schema\": \"urn:architecture-lint:rules:v1\""),
+        "例が形の名前を指す"
+    );
+    let other = std::env::temp_dir().join(format!(
+        "architecture-lint-schema-{}.json",
+        std::process::id()
+    ));
+    fs::write(
+        &other,
+        text.replace("urn:architecture-lint:rules:v1", "urn:example:other:v1"),
+    )
+    .unwrap();
+    let out = run(&[
+        "check",
+        "--rules",
+        other.to_str().unwrap(),
+        "--cargo",
+        ws.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2), "ほかの形を名乗る規則");
+    let v: serde_json::Value = serde_json::from_str(&fs::read_to_string(&other).unwrap()).unwrap();
+    assert!(
+        !schema("rules.schema.json").is_valid(&v),
+        "形も、ほかの名前を断る"
+    );
+    let _ = fs::remove_file(other);
+}
+
+#[test]
 fn 読めない規則と使い方の誤りは終了コード_2() {
     let ws = workspace("err", &good());
     let bad =

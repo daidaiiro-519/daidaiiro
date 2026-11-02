@@ -1,106 +1,167 @@
 {
- "description": "いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリ。crate を足したら、ここにも足す。仮説としての向き（ドメインモデルが育ったときの形）は docs/design/arch/arch-v15.json にあり、要ると分かった時点でここへ移す",
- "context": "schemas-and-instances",
- "context_map": "文脈は「スキーマとインスタンス」（schemas-and-instances/）の1つ。9519cffa で「立てたセッション」を分けたが、版16（2026-11-01）で SAS がほかのセッションの状態を管理しないことにしたので1つに戻した。地図と経緯は docs/design/arch/arch-v15.json の context_map",
- "crate_naming": "crate の名前はフォルダから決める：業務領域を作るモジュールは <モジュール>-<層>（writing-domain など）、アダプターは <inbound|outbound>-<技術>、試験の部品は test-support。文脈は1つなので文脈の名前を前に付けない。製品の名前は CLI の [[bin]]（sas）にだけ残す",
- "modules": "文脈の中のフォルダは、業務領域を作るモジュール（writing ・ validation ・ recording ・ rendering ・ search）と adapters。集約は writing-domain に置き、validation-domain はそれを読んで rule に照らす。各モジュールの application は、自分のユースケースが使うポート（と、そのうち使うメソッド）を自分の ports.rs に宣言し、ほかのモジュールの application には依存しない（使ってよいのは domain の crate だけ。例外は無い）。記録のポートも、追記するモジュールがそれぞれ宣言する（書く ChangeLog ・ 検証 ValidationLog ・ 描画 ValidationLog）。誰が打ったか（Caller）は writing-domain の値で、入口が決めて（記録のモジュールの手続きで sessions に登録して）ユースケースへ値で渡す。同じ形のポート（DocumentStore ・ SchemaValidator）はモジュールごとに宣言し、1つのアダプターがそれらを実装する。search は記録しない",
- "crates": [
+ "$schema": "urn:architecture-lint:rules:v1",
+ "version": 1,
+ "description": "いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きはすべて禁止。crate か外のライブラリを足したら、ここにも足す。仮説としての向き（ドメインモデルが育ったときの形）は docs/design/arch/arch-v15.json にあり、要ると分かった時点でここへ移す。文脈とモジュールの分け方と crate の名前の付け方は CODING.md、文脈の地図と経緯は arch-v15.json の context_map にある",
+ "components": [
   {
    "name": "writing-domain",
-   "path": "schemas-and-instances/writing/domain",
-   "layer": "domain",
-   "role": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差分 ・ 書く条件の外れ ・ 文書が Concrete かインスタンスかの見分け TargetKind ・ リポジトリの文書の一覧 Corpus ・ 誰が打ったか Caller ・ 記録にある書いた変更の行 ChangeRow ・ WriteRecord と SAS を通らない変更の見分け unrecorded_since）、サービス（スキーマの所に当たる欄の定義を引く field_schema）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く。誰が打ったか（人か、名乗ったセッションか）は x-decided-by の欄の書く条件の入口なので、ここに置く。見分け方 ・ 文書の一覧 ・ 欄の定義の引き方 ・ 誰が打ったかは、書く ・ 検証 ・ 描画 ・ 検索 ・ 記録のモジュールがここから使う"
+   "nodes": [
+    "writing-domain"
+   ],
+   "description": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差分 ・ 書く条件の外れ ・ 文書が Concrete かインスタンスかの見分け TargetKind ・ リポジトリの文書の一覧 Corpus ・ 誰が打ったか Caller ・ 記録にある書いた変更の行 ChangeRow ・ WriteRecord と SAS を通らない変更の見分け unrecorded_since）、サービス（スキーマの所に当たる欄の定義を引く field_schema）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く。誰が打ったか（人か、名乗ったセッションか）は x-decided-by の欄の書く条件の入口なので、ここに置く。見分け方 ・ 文書の一覧 ・ 欄の定義の引き方 ・ 誰が打ったかは、書く ・ 検証 ・ 描画 ・ 検索 ・ 記録のモジュールがここから使う"
   },
   {
    "name": "validation-domain",
-   "path": "schemas-and-instances/validation/domain",
-   "layer": "domain",
-   "role": "業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の5つの区分 ・ rule の結果 ・ 誰が判定するか ・ 記録にある検証と rule ごとの判定の行 ValidateRow ・ RuleRow ・ Judgment）と、集約を読んで rule に照らすサービス（当たる rule を集める ・ 組み込みの検査 instance-schema-name ・ unique-id ・ example-related ・ 判定が読んだ所のハッシュ reads_hash）。集約は持たない。書くモジュールは、更新で入力が変わった前の判定を、ここの同じ基準で決める"
+   "nodes": [
+    "validation-domain"
+   ],
+   "description": "業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の5つの区分 ・ rule の結果 ・ 誰が判定するか ・ 記録にある検証と rule ごとの判定の行 ValidateRow ・ RuleRow ・ Judgment）と、集約を読んで rule に照らすサービス（当たる rule を集める ・ 組み込みの検査 instance-schema-name ・ unique-id ・ example-related ・ 判定が読んだ所のハッシュ reads_hash）。集約は持たない。書くモジュールは、更新で入力が変わった前の判定を、ここの同じ基準で決める"
   },
   {
    "name": "validation-application",
-   "path": "schemas-and-instances/validation/application",
-   "layer": "application",
-   "role": "UC4 検証する（use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_stale）・ 意味の判定の手順を返し、打ったセッションが --answer で渡した判定を確かめて記録する（semantic_procedures ・ validate_with_answer、手順と答えの読み方は use_cases/meaning.rs。答えの形は公開された言葉 judgment-answer.schema.json）・ SAS を通らない変更の知らせ。ポート DocumentStore（読む）・ SchemaValidator（入れて出すスキーマ ・ 形の検査）・ ValidationLog（append_validate ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取る"
+   "nodes": [
+    "validation-application"
+   ],
+   "description": "UC4 検証する（use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_stale）・ 意味の判定の手順を返し、打ったセッションが --answer で渡した判定を確かめて記録する（semantic_procedures ・ validate_with_answer、手順と答えの読み方は use_cases/meaning.rs。答えの形は公開された言葉 judgment-answer.schema.json）・ SAS を通らない変更の知らせ。ポート DocumentStore（読む）・ SchemaValidator（入れて出すスキーマ ・ 形の検査）・ ValidationLog（append_validate ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取る"
   },
   {
    "name": "writing-application",
-   "path": "schemas-and-instances/writing/application",
-   "layer": "application",
-   "role": "UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、write/delete.rs、JSON Patch を当てる write/patch.rs）・ 意味で書く手順を返す（write/semantic.rs。記録しない）・ 取り込み（adopt）。ポート DocumentStore（読む ・ 書く ・ 消す）・ SchemaValidator（入れて出すスキーマ ・ 形の検査 ・ 注釈）・ CommitReader ・ ChangeLog（append_change ・ find_request ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取り、人の欄を変えてよいかの入口にする。間に入った変更（Interleaved）もここで組む。更新で入力が変わった前の判定は validation-domain の基準で決め、検証のモジュールの application は使わない"
+   "nodes": [
+    "writing-application"
+   ],
+   "description": "UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、write/delete.rs、JSON Patch を当てる write/patch.rs）・ 意味で書く手順を返す（write/semantic.rs。記録しない）・ 取り込み（adopt）。ポート DocumentStore（読む ・ 書く ・ 消す）・ SchemaValidator（入れて出すスキーマ ・ 形の検査 ・ 注釈）・ CommitReader ・ ChangeLog（append_change ・ find_request ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取り、人の欄を変えてよいかの入口にする。間に入った変更（Interleaved）もここで組む。更新で入力が変わった前の判定は validation-domain の基準で決め、検証のモジュールの application は使わない"
   },
   {
    "name": "recording-application",
-   "path": "schemas-and-instances/recording/application",
-   "layer": "application",
-   "role": "記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない。ポート OperationReader）と、入口（CLI）だけが呼ぶ「誰が打ったかを決めて sessions に登録する」手続き（identify ・ register ・ sas init の register_session。ポート IdentifyCaller ・ SessionLog）。検証と変更の追記は持たない（追記するモジュールがそれぞれのポートで行う）"
+   "nodes": [
+    "recording-application"
+   ],
+   "description": "記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない。ポート OperationReader）と、入口（CLI）だけが呼ぶ「誰が打ったかを決めて sessions に登録する」手続き（identify ・ register ・ sas init の register_session。ポート IdentifyCaller ・ SessionLog）。検証と変更の追記は持たない（追記するモジュールがそれぞれのポートで行う）"
   },
   {
    "name": "rendering-application",
-   "path": "schemas-and-instances/rendering/application",
-   "layer": "application",
-   "role": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らし、sas validate では記録する）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter と、文書を読む DocumentStore ・ 形を照らす SchemaValidator ・ デザインシステムの検証を記録する ValidationLog（append_validate）を自分で宣言する。照らす（check_design_systems）と記録する（record_design_systems）を分け、入口がその間に打ったセッションを sessions に足す。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
+   "nodes": [
+    "rendering-application"
+   ],
+   "description": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らし、sas validate では記録する）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter と、文書を読む DocumentStore ・ 形を照らす SchemaValidator ・ デザインシステムの検証を記録する ValidationLog（append_validate）を自分で宣言する。照らす（check_design_systems）と記録する（record_design_systems）を分け、入口がその間に打ったセッションを sessions に足す。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
   },
   {
    "name": "search-application",
-   "path": "schemas-and-instances/search/application",
-   "layer": "application",
-   "role": "UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路 ・ Concrete ・ すべて）の文書を、構造で絞り（JSON Pointer の値の一致）、意味で探す手順を返し、打ったセッションが --answer で渡した答えの出どころ（範囲の中か ・ ハッシュ ・ 所）を確かめる。答えの形は公開された言葉 search-answer.schema.json。ポート DocumentStore（読む）・ SchemaValidator（形の検査）を自分で宣言し、記録しない（記録のポートを持たない）"
+   "nodes": [
+    "search-application"
+   ],
+   "description": "UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路 ・ Concrete ・ すべて）の文書を、構造で絞り（JSON Pointer の値の一致）、意味で探す手順を返し、打ったセッションが --answer で渡した答えの出どころ（範囲の中か ・ ハッシュ ・ 所）を確かめる。答えの形は公開された言葉 search-answer.schema.json。ポート DocumentStore（読む）・ SchemaValidator（形の検査）を自分で宣言し、記録しない（記録のポートを持たない）"
   },
   {
    "name": "outbound-filesystem",
-   "path": "schemas-and-instances/adapters/outbound/filesystem",
-   "layer": "outbound",
-   "role": "DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す。描いたページの書き出し先 OutDir（PageWriter。一時ファイルに全部書いてから置き換える）も持つ"
+   "nodes": [
+    "outbound-filesystem"
+   ],
+   "description": "DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す。描いたページの書き出し先 OutDir（PageWriter。一時ファイルに全部書いてから置き換える）も持つ"
   },
   {
    "name": "outbound-jsonschema",
-   "path": "schemas-and-instances/adapters/outbound/jsonschema",
-   "layer": "outbound",
-   "role": "SchemaValidator（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。入れて出すスキーマを持つ 2020-12 のバリデーター"
+   "nodes": [
+    "outbound-jsonschema"
+   ],
+   "description": "SchemaValidator（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。入れて出すスキーマを持つ 2020-12 のバリデーター"
   },
   {
    "name": "outbound-sqlite",
-   "path": "schemas-and-instances/adapters/outbound/sqlite",
-   "layer": "outbound",
-   "role": "操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの ValidationLog ・ 記録のモジュールの SessionLog と OperationReader。手続きは SqliteLog のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻（sas init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
+   "nodes": [
+    "outbound-sqlite"
+   ],
+   "description": "操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの ValidationLog ・ 記録のモジュールの SessionLog と OperationReader。手続きは SqliteLog のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻（sas init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
   },
   {
    "name": "outbound-git",
-   "path": "schemas-and-instances/adapters/outbound/git",
-   "layer": "outbound",
-   "role": "CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。記録の置き場所に使う共通のフォルダ（rev-parse --git-common-dir）と、セッションを打ったフォルダ（rev-parse --show-toplevel）も引く。Git に書き込まない"
+   "nodes": [
+    "outbound-git"
+   ],
+   "description": "CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。記録の置き場所に使う共通のフォルダ（rev-parse --git-common-dir）と、セッションを打ったフォルダ（rev-parse --show-toplevel）も引く。Git に書き込まない"
   },
   {
    "name": "outbound-templates",
-   "path": "schemas-and-instances/adapters/outbound/templates",
-   "layer": "outbound",
-   "role": "TemplateRenderer の実装。Mustache（mustache/spec の必須の部分）の処理系を自分で持ち（mustache.rs）、仕様の試験 136件をそのまま通す（tests/mustache-spec、commit e8ec001d）。値は HTML としてエスケープする（& \" < >）"
+   "nodes": [
+    "outbound-templates"
+   ],
+   "description": "TemplateRenderer の実装。Mustache（mustache/spec の必須の部分）の処理系を自分で持ち（mustache.rs）、仕様の試験 136件をそのまま通す（tests/mustache-spec、commit e8ec001d）。値は HTML としてエスケープする（& \" < >）"
   },
   {
    "name": "outbound-javascript",
-   "path": "schemas-and-instances/adapters/outbound/javascript",
-   "layer": "outbound",
-   "role": "ScriptReader の実装。JS の構文解析器 boa（boa_parser 0.22.0）を閉じ込める。テンプレートの JS のロジックは見ず、値の入口 sas-data から読む欄だけを取り出す（実行するまで決まらない読み方は追えないものとして返す）"
+   "nodes": [
+    "outbound-javascript"
+   ],
+   "description": "ScriptReader の実装。JS の構文解析器 boa（boa_parser 0.22.0）を閉じ込める。テンプレートの JS のロジックは見ず、値の入口 sas-data から読む欄だけを取り出す（実行するまで決まらない読み方は追えないものとして返す）"
   },
   {
    "name": "inbound-cli",
-   "path": "schemas-and-instances/adapters/inbound/cli",
-   "layer": "inbound",
-   "role": "sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（このフォルダで sas init が登録したセッションを引く ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。sas log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
+   "nodes": [
+    "inbound-cli"
+   ],
+   "description": "sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（このフォルダで sas init が登録したセッションを引く ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。sas log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
   },
   {
    "name": "test-support",
-   "path": "schemas-and-instances/test-support",
-   "layer": "test-support",
-   "role": "試験の部品。dev-dependencies からだけ使う。スキーマ ・ 依存の向き ・ 対応表（trace.json）の検査を持つ"
+   "nodes": [
+    "test-support"
+   ],
+   "description": "試験の部品。dev-dependencies からだけ使う。スキーマ ・ 依存の向き ・ 対応表（trace.json）の検査を持つ。allow でこの crate へ向かう辺を許していないので、通常の依存からも dev-dependencies からも使えない。dev-dependencies から使うときは、その辺だけを kinds dev で許す"
+  },
+  {
+   "name": "serde_json",
+   "nodes": [
+    "serde_json"
+   ],
+   "description": "JSON の値。domain から入口までが使う"
+  },
+  {
+   "name": "sha2",
+   "nodes": [
+    "sha2"
+   ],
+   "description": "ハッシュ。writing-domain だけが使う"
+  },
+  {
+   "name": "jsonschema",
+   "nodes": [
+    "jsonschema"
+   ],
+   "description": "JSON Schema 2020-12 のバリデーター。outbound-jsonschema に閉じ込める"
+  },
+  {
+   "name": "rusqlite",
+   "nodes": [
+    "rusqlite"
+   ],
+   "description": "SQLite。outbound-sqlite に閉じ込める"
+  },
+  {
+   "name": "boa_parser",
+   "nodes": [
+    "boa_parser"
+   ],
+   "description": "JS の構文解析器 boa。outbound-javascript に閉じ込める"
+  },
+  {
+   "name": "boa_ast",
+   "nodes": [
+    "boa_ast"
+   ],
+   "description": "boa の構文木。outbound-javascript に閉じ込める"
+  },
+  {
+   "name": "boa_interner",
+   "nodes": [
+    "boa_interner"
+   ],
+   "description": "boa の名前の表。outbound-javascript に閉じ込める"
   }
  ],
  "allow": [
   {
    "from": "writing-domain",
-   "to": [],
-   "libraries": [
+   "to": [
     "serde_json",
     "sha2"
    ]
@@ -108,9 +169,7 @@
   {
    "from": "validation-domain",
    "to": [
-    "writing-domain"
-   ],
-   "libraries": [
+    "writing-domain",
     "serde_json"
    ]
   },
@@ -118,9 +177,7 @@
    "from": "validation-application",
    "to": [
     "writing-domain",
-    "validation-domain"
-   ],
-   "libraries": [
+    "validation-domain",
     "serde_json"
    ]
   },
@@ -128,9 +185,7 @@
    "from": "writing-application",
    "to": [
     "writing-domain",
-    "validation-domain"
-   ],
-   "libraries": [
+    "validation-domain",
     "serde_json"
    ]
   },
@@ -139,25 +194,20 @@
    "to": [
     "writing-domain",
     "validation-domain"
-   ],
-   "libraries": []
+   ]
   },
   {
    "from": "rendering-application",
    "to": [
     "writing-domain",
-    "validation-domain"
-   ],
-   "libraries": [
+    "validation-domain",
     "serde_json"
    ]
   },
   {
    "from": "search-application",
    "to": [
-    "writing-domain"
-   ],
-   "libraries": [
+    "writing-domain",
     "serde_json"
    ]
   },
@@ -168,8 +218,7 @@
     "validation-application",
     "rendering-application",
     "search-application"
-   ],
-   "libraries": []
+   ]
   },
   {
    "from": "outbound-jsonschema",
@@ -177,9 +226,7 @@
     "writing-application",
     "validation-application",
     "rendering-application",
-    "search-application"
-   ],
-   "libraries": [
+    "search-application",
     "serde_json",
     "jsonschema"
    ]
@@ -192,9 +239,7 @@
     "validation-application",
     "rendering-application",
     "writing-domain",
-    "validation-domain"
-   ],
-   "libraries": [
+    "validation-domain",
     "rusqlite"
    ]
   },
@@ -202,24 +247,19 @@
    "from": "outbound-git",
    "to": [
     "writing-application"
-   ],
-   "libraries": []
+   ]
   },
   {
    "from": "outbound-templates",
    "to": [
-    "rendering-application"
-   ],
-   "libraries": [
+    "rendering-application",
     "serde_json"
    ]
   },
   {
    "from": "outbound-javascript",
    "to": [
-    "rendering-application"
-   ],
-   "libraries": [
+    "rendering-application",
     "boa_parser",
     "boa_ast",
     "boa_interner"
@@ -240,19 +280,40 @@
     "rendering-application",
     "outbound-templates",
     "outbound-javascript",
-    "search-application"
-   ],
-   "libraries": [
+    "search-application",
     "serde_json"
    ]
   },
   {
+   "from": "inbound-cli",
+   "to": [
+    "jsonschema"
+   ],
+   "kinds": [
+    "dev"
+   ],
+   "description": "出力が公開された言葉の形に従うことを、試験で jsonschema に照らす"
+  },
+  {
+   "from": "search-application",
+   "to": [
+    "validation-domain"
+   ],
+   "kinds": [
+    "dev"
+   ],
+   "description": "試験の代役（検証のモジュールの tests/support.rs）が、記録の行の形を使う"
+  },
+  {
    "from": "test-support",
-   "to": [],
-   "libraries": []
+   "to": [
+    "serde_json",
+    "jsonschema"
+   ],
+   "kinds": [
+    "dev"
+   ],
+   "description": "スキーマ ・ 対応表 ・ 依存の向きの検査が JSON を読み、形に照らす"
   }
- ],
- "dev_only": [
-  "test-support"
  ]
 }
