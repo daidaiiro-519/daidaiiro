@@ -1,0 +1,65 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:system-tests:trace:v1",
+ "title": "保証と場面の突き合わせの表",
+ "description": "system-tests/trace.json の形。範囲（scope）の保証 ・ 拡張 ・ 変形 ・ 約束ごとに、それを確かめる場面を持つ。test-support の trace.rs が、場面の traces と食い違わないことを確かめる",
+ "type": "object",
+ "required": [
+  "$schema",
+  "description",
+  "scope",
+  "traces"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:semantic-agent-schema:system-tests:trace:v1"
+  },
+  "description": {
+   "type": "string"
+  },
+  "scope": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^(UC[0-7]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:[a-z-]+(:[a-z0-9-]+)?)$"
+   },
+   "description": "範囲にある id（trace か untested のどちらか一方にある）"
+  },
+  "traces": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "meaning",
+     "scenarios"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^(UC[0-7]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:[a-z-]+(:[a-z0-9-]+)?)$"
+     },
+     "meaning": {
+      "type": "string",
+      "minLength": 1,
+      "description": "保証 ・ 拡張 ・ 変形 ・ 約束の中身"
+     },
+     "scenarios": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "pattern": "^S-[A-Z0-9-]+$"
+      },
+      "description": "確かめる場面の id（場面のファイルの並び順）"
+     },
+     "note": {
+      "type": "string",
+      "description": "場面のほかに確かめている所や、確かめていない部分"
+     }
+    }
+   }
+  }
+ }
+}

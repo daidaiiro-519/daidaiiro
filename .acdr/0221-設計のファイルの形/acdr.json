@@ -1,0 +1,111 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0221",
+ "title": "SAS の試験の突き合わせのファイルに形（schema）を置く",
+ "date": "2026-11-03",
+ "status": "accepted",
+ "decision": "SAS の試験の突き合わせのファイル（trace.json ・ untested.json）は、それぞれの形（JSON Schema）を $schema で指し、中身が形に従うことを試験で確かめる。",
+ "why": "「JSON を伴う場合は schema がいる」（利用者の指摘）に、SAS の試験の突き合わせのファイル2つが反していた。agents-skills-creator で同じ2つのファイルに形を作ったので、その形を写し、SAS の $id とユースケースの番号の範囲（UC0〜UC7）に合わせた。形を置くだけでは中身がずれても気づかないので、従うことを試験で確かめる。architecture.json は architecture-lint の規則のファイルなので、ここでは扱わない（ACDR 0222）。",
+ "shift": [
+  {
+   "what": "試験の突き合わせのファイル2つ",
+   "from": "形が無く、何を書いてよいかは中身を読んで推し量る。",
+   "to": "$schema で形を指し、試験が中身を形に照らす。"
+  },
+  {
+   "what": "試験",
+   "from": "135件。突き合わせのファイルの形は確かめない。",
+   "to": "136件。test-support の files.rs が、2つの $schema と中身を確かめる。"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は2つのファイルに形が無く、変更後はそれぞれが $schema で形を指し、試験が従うかを確かめる。",
+ "alternatives": [
+  {
+   "option": "creator の形をそのまま指す（SAS から agents-skills-creator の $id を参照する）",
+   "why_not": "SAS は共用サービスで、上流が下流（creator）に依存する向きになる。形は SAS が自分で持つ。"
+  },
+  {
+   "option": "形を置き、試験は足さない",
+   "why_not": "中身が形からずれても、誰も気づかない。"
+  },
+  {
+   "option": "architecture.json にも新しい形を作る",
+   "why_not": "architecture.json は architecture-lint の規則のファイルで、形は architecture-lint の rules.schema.json が持つ。2つ目の形を作ると持ち主が2人になる（ACDR 0222 で扱う）。"
+  }
+ ],
+ "docs": [
+  {
+   "key": "trace",
+   "tab": "trace.json",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/trace.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"urn:semantic-agent-schema:system-tests:trace:v1\"",
+     "why": "保証と場面の突き合わせの表に形が無かった。形の $id を指した。",
+     "before": "（$schema の行が無い）"
+    }
+   ]
+  },
+  {
+   "key": "traces",
+   "tab": "trace.schema.json（新）",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/trace.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$id\": \"urn:semantic-agent-schema:system-tests:trace:v1\"",
+     "why": "creator の形を写し、ユースケースの番号の範囲を SAS の UC0〜UC7 にし、拡張を含む言い方に直した。",
+     "before": "（ファイルが無い）"
+    }
+   ]
+  },
+  {
+   "key": "untested",
+   "tab": "untested.json",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/untested.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"urn:semantic-agent-schema:system-tests:untested:v1\"",
+     "why": "まだ確かめていない保証と拡張の一覧に形が無かった。形の $id を指した。",
+     "before": "（$schema の行が無い）"
+    }
+   ]
+  },
+  {
+   "key": "untesteds",
+   "tab": "untested.schema.json（新）",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/untested.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$id\": \"urn:semantic-agent-schema:system-tests:untested:v1\"",
+     "why": "creator の形を写し、題を SAS の untested.json の言葉（保証と拡張）に合わせた。",
+     "before": "（ファイルが無い）"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "files.rs（新）",
+   "file": "semantic-agent-schema/schemas-and-instances/test-support/tests/files.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "trace_files_follow_their_schema",
+     "why": "2つのファイルの $schema が形の $id と同じで、中身が形に従うことを確かめる。形を置くだけでは、ずれても気づかないため。",
+     "before": "（ファイルが無い）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "trace": "a78c4d6c38c26cb142c5c46c641c3240f91831fcb91fe37b8d7622b551403087",
+  "traces": "d3e509ce49ec545b537e4ca3e196fc91f338279ffed94e856334cee39ca70ce7",
+  "untested": "1d604a4239b61af66d8587e0df935314057ec363a2c313b63e223702c6fc65e8",
+  "untesteds": "8605b0b5d180e85ac4af0bce52b5312ef233274581b33b589bdc953bc548878a",
+  "test": "875285be4cadd9281ca3e5137b1aa76768b536a6433f4356176537e3970dc405"
+ }
+}

@@ -1,0 +1,54 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:system-tests:untested:v1",
+ "title": "まだ確かめていない保証と拡張",
+ "description": "system-tests/untested.json の形。範囲にあるが場面で確かめていない保証 ・ 拡張 ・ 変形の id ごとに、理由と、確かめるステップを持つ",
+ "type": "object",
+ "required": [
+  "$schema",
+  "description",
+  "untested"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:semantic-agent-schema:system-tests:untested:v1"
+  },
+  "description": {
+   "type": "string"
+  },
+  "untested": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "meaning",
+     "why",
+     "step"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^(UC[0-7]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:[a-z-]+(:[a-z0-9-]+)?)$"
+     },
+     "meaning": {
+      "type": "string",
+      "minLength": 1
+     },
+     "why": {
+      "type": "string",
+      "minLength": 1,
+      "description": "まだ確かめていない理由"
+     },
+     "step": {
+      "type": "string",
+      "minLength": 1,
+      "description": "確かめるステップ"
+     }
+    }
+   }
+  }
+ }
+}

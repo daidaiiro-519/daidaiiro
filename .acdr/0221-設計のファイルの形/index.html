@@ -1,0 +1,434 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAS の試験の突き合わせのファイルに形（schema）を置く</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code td.cd code{background:none;padding:0;border-radius:0;font-size:inherit;font-family:inherit;white-space:inherit}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper);overflow-x:auto}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0221 ・ 2026-11-03 ・ <span class="tag">承認</span></p><h1>SAS の試験の突き合わせのファイルに形（schema）を置く</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">SAS の試験の突き合わせのファイル（trace.json ・ untested.json）は、それぞれの形（JSON Schema）を $schema で指し、中身が形に従うことを試験で確かめる。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>「JSON を伴う場合は schema がいる」（利用者の指摘）に、SAS の試験の突き合わせのファイル2つが反していた。agents-skills-creator で同じ2つのファイルに形を作ったので、その形を写し、SAS の $id とユースケースの番号の範囲（UC0〜UC7）に合わせた。形を置くだけでは中身がずれても気づかないので、従うことを試験で確かめる。architecture.json は architecture-lint の規則のファイルなので、ここでは扱わない（ACDR 0222）。</p></section><section class="block"><h2>どう変わるか</h2><figure><figcaption>変更前は2つのファイルに形が無く、変更後はそれぞれが $schema で形を指し、試験が従うかを確かめる。</figcaption><svg class="wf-fig dsvg" viewBox="0 0 253 474" width="253" height="474" role="img"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .badge{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-ink,#111D1A)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .label.focus.small{fill:var(--dsvg-accent,#0D5C55);font-size:10px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg #dsvg-9303fa0a-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-9303fa0a-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="253.0" height="474.0" fill="#FFFFFF" rx="8"/><g transform="translate(6.0,6.0)"><path class="flow" d="M123.0,144.5 L120.7,223.5" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9303fa0a-arrow-5B6B66)"/><rect class="badge" x="66.8" y="174.0" width="110.0" height="16.0" fill="#F3F7F5" stroke="#111D1A" stroke-width="1" rx="3"/><text class="note small" x="121.8" y="187.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">$schema で形を指す</text><g class="wf-node" transform="translate(0.0,0.0)"><rect class="area" x="0.0" y="16.0" width="241.4" height="128.0" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect class="box" x="0" y="0" width="178.0" height="32.0" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="89.0" y="20.3" text-anchor="middle" font-weight="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">trace.json（形が無い）</text></g></g><g class="wf-node" transform="translate(0.0,56.0)"><g class="svg-box" role="plain"><rect class="box" x="0" y="0" width="201.4" height="32.0" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="100.7" y="20.3" text-anchor="middle" font-weight="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">untested.json（形が無い）</text></g></g></g></g><rect class="badge" x="8.0" y="7.0" width="38.0" height="15.0" fill="#F3F7F5" stroke="#111D1A" stroke-width="1" rx="3"/><text class="label small focus" x="27.0" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#0D5C55">変更前</text></g><g class="wf-node" transform="translate(8.7,208.0)"><rect class="area" x="0.0" y="16.0" width="224.0" height="238.0" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="focus"><rect class="box focus" x="0" y="0" width="160.6" height="50.0" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label focus" x="80.3" y="20.3" text-anchor="middle" font-weight="600" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">trace.json → </text><text class="label focus" x="80.3" y="38.3" text-anchor="middle" font-weight="600" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">trace.schema.json</text></g></g><g class="wf-node" transform="translate(0.0,74.0)"><g class="svg-box" role="focus"><rect class="box focus" x="0" y="0" width="184.0" height="50.0" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label focus" x="92.0" y="20.3" text-anchor="middle" font-weight="600" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">untested.json → </text><text class="label focus" x="92.0" y="38.3" text-anchor="middle" font-weight="600" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">untested.schema.json</text></g></g><g class="wf-node" transform="translate(0.0,148.0)"><g class="svg-box" role="plain"><rect class="box" x="0" y="0" width="173.8" height="50.0" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="86.9" y="20.3" text-anchor="middle" font-weight="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">試験 files.rs が、2つ</text><text class="label" x="86.9" y="38.3" text-anchor="middle" font-weight="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">とも形に従うかを確かめる</text></g></g></g></g><rect class="badge" x="8.0" y="7.0" width="38.0" height="15.0" fill="#F3F7F5" stroke="#111D1A" stroke-width="1" rx="3"/><text class="label small focus" x="27.0" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#0D5C55">変更後</text></g></g></svg></figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>試験の突き合わせのファイル2つ</td><td>形が無く、何を書いてよいかは中身を読んで推し量る。</td><td>$schema で形を指し、試験が中身を形に照らす。</td></tr><tr><td>試験</td><td>135件。突き合わせのファイルの形は確かめない。</td><td>136件。test-support の files.rs が、2つの $schema と中身を確かめる。</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>creator の形をそのまま指す（SAS から agents-skills-creator の $id を参照する）</td><td>SAS は共用サービスで、上流が下流（creator）に依存する向きになる。形は SAS が自分で持つ。</td></tr><tr><td>形を置き、試験は足さない</td><td>中身が形からずれても、誰も気づかない。</td></tr><tr><td>architecture.json にも新しい形を作る</td><td>architecture.json は architecture-lint の規則のファイルで、形は architecture-lint の rules.schema.json が持つ。2つ目の形を作ると持ち主が2人になる（ACDR 0222 で扱う）。</td></tr></tbody></table></div></section></div><p class="bridge">ここから下は、この決定で<b>変わるファイルごとの差分</b>である。タブでファイルを切り替える。</p>
+<p class="lede"></p>
+
+<section class="diffs">
+<div id="bar"><b>変更 5 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="trace">trace.json<span class="n">1</span></button><button class="tab" role="tab" data-t="traces">trace.schema.json（新）<span class="n">1</span></button><button class="tab" role="tab" data-t="untested">untested.json<span class="n">1</span></button><button class="tab" role="tab" data-t="untesteds">untested.schema.json（新）<span class="n">1</span></button><button class="tab" role="tab" data-t="test">files.rs（新）<span class="n">1</span></button></div>
+<section class="pane code-pane" data-k="trace" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">保証と場面の突き合わせの表に形が無かった。形の $id を指した。</div><div class="at"><span class="lbl">場所</span><code>&quot;$schema&quot;: &quot;urn:semantic-agent-schema:sy</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 1 ／ 新 1 @@</td></tr><tr class="r"><td class="ln">1</td><td class="ln">1</td><td class="mk"> </td><td class="cd"><code>{</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">2</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（$schema の行が無い）" data-w="保証と場面の突き合わせの表に形が無かった。形の $id を指した。"> <span class="t-s">"$schema"</span>: <span class="t-s">"urn:semantic-agent-schema:system-tests:trace:v1"</span>,</mark></code></td></tr><tr class="r"><td class="ln">2</td><td class="ln">3</td><td class="mk"> </td><td class="cd"><code> <span class="t-s">"description"</span>: <span class="t-s">"ユースケースの保証と拡張を、それを確かめる場面と突き合わせる表。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。CLI の出力が command-result に従うことは、場面を流す試験（adapters/inbound/cli/tests/scenarios.rs）がすべての出力の行で照らすので、形の約束の行を持たない（打ったセッションの決め方は 約束:command-result:session で持つ）"</span>,</code></td></tr><tr class="r"><td class="ln">3</td><td class="ln">4</td><td class="mk"> </td><td class="cd"><code> <span class="t-s">"scope"</span>: [</code></td></tr><tr class="r"><td class="ln">4</td><td class="ln">5</td><td class="mk"> </td><td class="cd"><code>  <span class="t-s">"UC1:成功時保証"</span>,</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="traces" hidden><div class="lane code-lane"><b>コードの全文</b><span class="how">変更前を取得できないので、全文を置く</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">creator の形を写し、ユースケースの番号の範囲を SAS の UC0〜UC7 にし、拡張を含む言い方に直した。</div><div class="at"><span class="lbl">場所</span><code>&quot;$id&quot;: &quot;urn:semantic-agent-schema:system</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code" data-lang="json"><table><tbody><tr id="L1"><td class="ln">1</td><td class="cd"><code>{</code></td></tr><tr id="L2"><td class="ln">2</td><td class="cd"><code> <span class="t-s">"$schema"</span>: <span class="t-s">"https://json-schema.org/draft/2020-12/schema"</span>,</code></td></tr><tr id="L3"><td class="ln">3</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（ファイルが無い）" data-w="creator の形を写し、ユースケースの番号の範囲を SAS の UC0〜UC7 にし、拡張を含む言い方に直した。"> <span class="t-s">"$id"</span>: <span class="t-s">"urn:semantic-agent-schema:system-tests:trace:v1"</span>,</mark></code></td></tr><tr id="L4"><td class="ln">4</td><td class="cd"><code> <span class="t-s">"title"</span>: <span class="t-s">"保証と場面の突き合わせの表"</span>,</code></td></tr><tr id="L5"><td class="ln">5</td><td class="cd"><code> <span class="t-s">"description"</span>: <span class="t-s">"system-tests/trace.json の形。範囲（scope）の保証 ・ 拡張 ・ 変形 ・ 約束ごとに、それを確かめる場面を持つ。test-support の trace.rs が、場面の traces と食い違わないことを確かめる"</span>,</code></td></tr><tr id="L6"><td class="ln">6</td><td class="cd"><code> <span class="t-s">"type"</span>: <span class="t-s">"object"</span>,</code></td></tr><tr id="L7"><td class="ln">7</td><td class="cd"><code> <span class="t-s">"required"</span>: [</code></td></tr><tr id="L8"><td class="ln">8</td><td class="cd"><code>  <span class="t-s">"$schema"</span>,</code></td></tr><tr id="L9"><td class="ln">9</td><td class="cd"><code>  <span class="t-s">"description"</span>,</code></td></tr><tr id="L10"><td class="ln">10</td><td class="cd"><code>  <span class="t-s">"scope"</span>,</code></td></tr><tr id="L11"><td class="ln">11</td><td class="cd"><code>  <span class="t-s">"traces"</span></code></td></tr><tr id="L12"><td class="ln">12</td><td class="cd"><code> ],</code></td></tr><tr id="L13"><td class="ln">13</td><td class="cd"><code> <span class="t-s">"additionalProperties"</span>: <span class="t-k">false</span>,</code></td></tr><tr id="L14"><td class="ln">14</td><td class="cd"><code> <span class="t-s">"properties"</span>: {</code></td></tr><tr id="L15"><td class="ln">15</td><td class="cd"><code>  <span class="t-s">"$schema"</span>: {</code></td></tr><tr id="L16"><td class="ln">16</td><td class="cd"><code>   <span class="t-s">"const"</span>: <span class="t-s">"urn:semantic-agent-schema:system-tests:trace:v1"</span></code></td></tr><tr id="L17"><td class="ln">17</td><td class="cd"><code>  },</code></td></tr><tr id="L18"><td class="ln">18</td><td class="cd"><code>  <span class="t-s">"description"</span>: {</code></td></tr><tr id="L19"><td class="ln">19</td><td class="cd"><code>   <span class="t-s">"type"</span>: <span class="t-s">"string"</span></code></td></tr><tr id="L20"><td class="ln">20</td><td class="cd"><code>  },</code></td></tr><tr id="L21"><td class="ln">21</td><td class="cd"><code>  <span class="t-s">"scope"</span>: {</code></td></tr><tr id="L22"><td class="ln">22</td><td class="cd"><code>   <span class="t-s">"type"</span>: <span class="t-s">"array"</span>,</code></td></tr><tr id="L23"><td class="ln">23</td><td class="cd"><code>   <span class="t-s">"items"</span>: {</code></td></tr><tr id="L24"><td class="ln">24</td><td class="cd"><code>    <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L25"><td class="ln">25</td><td class="cd"><code>    <span class="t-s">"pattern"</span>: <span class="t-s">"^(UC[0-7]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:[a-z-]+(:[a-z0-9-]+)?)$"</span></code></td></tr><tr id="L26"><td class="ln">26</td><td class="cd"><code>   },</code></td></tr><tr id="L27"><td class="ln">27</td><td class="cd"><code>   <span class="t-s">"description"</span>: <span class="t-s">"範囲にある id（trace か untested のどちらか一方にある）"</span></code></td></tr><tr id="L28"><td class="ln">28</td><td class="cd"><code>  },</code></td></tr><tr id="L29"><td class="ln">29</td><td class="cd"><code>  <span class="t-s">"traces"</span>: {</code></td></tr><tr id="L30"><td class="ln">30</td><td class="cd"><code>   <span class="t-s">"type"</span>: <span class="t-s">"array"</span>,</code></td></tr><tr id="L31"><td class="ln">31</td><td class="cd"><code>   <span class="t-s">"items"</span>: {</code></td></tr><tr id="L32"><td class="ln">32</td><td class="cd"><code>    <span class="t-s">"type"</span>: <span class="t-s">"object"</span>,</code></td></tr><tr id="L33"><td class="ln">33</td><td class="cd"><code>    <span class="t-s">"required"</span>: [</code></td></tr><tr id="L34"><td class="ln">34</td><td class="cd"><code>     <span class="t-s">"id"</span>,</code></td></tr><tr id="L35"><td class="ln">35</td><td class="cd"><code>     <span class="t-s">"meaning"</span>,</code></td></tr><tr id="L36"><td class="ln">36</td><td class="cd"><code>     <span class="t-s">"scenarios"</span></code></td></tr><tr id="L37"><td class="ln">37</td><td class="cd"><code>    ],</code></td></tr><tr id="L38"><td class="ln">38</td><td class="cd"><code>    <span class="t-s">"additionalProperties"</span>: <span class="t-k">false</span>,</code></td></tr><tr id="L39"><td class="ln">39</td><td class="cd"><code>    <span class="t-s">"properties"</span>: {</code></td></tr><tr id="L40"><td class="ln">40</td><td class="cd"><code>     <span class="t-s">"id"</span>: {</code></td></tr><tr id="L41"><td class="ln">41</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L42"><td class="ln">42</td><td class="cd"><code>      <span class="t-s">"pattern"</span>: <span class="t-s">"^(UC[0-7]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:[a-z-]+(:[a-z0-9-]+)?)$"</span></code></td></tr><tr id="L43"><td class="ln">43</td><td class="cd"><code>     },</code></td></tr><tr id="L44"><td class="ln">44</td><td class="cd"><code>     <span class="t-s">"meaning"</span>: {</code></td></tr><tr id="L45"><td class="ln">45</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L46"><td class="ln">46</td><td class="cd"><code>      <span class="t-s">"minLength"</span>: <span class="t-n">1</span>,</code></td></tr><tr id="L47"><td class="ln">47</td><td class="cd"><code>      <span class="t-s">"description"</span>: <span class="t-s">"保証 ・ 拡張 ・ 変形 ・ 約束の中身"</span></code></td></tr><tr id="L48"><td class="ln">48</td><td class="cd"><code>     },</code></td></tr><tr id="L49"><td class="ln">49</td><td class="cd"><code>     <span class="t-s">"scenarios"</span>: {</code></td></tr><tr id="L50"><td class="ln">50</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"array"</span>,</code></td></tr><tr id="L51"><td class="ln">51</td><td class="cd"><code>      <span class="t-s">"items"</span>: {</code></td></tr><tr id="L52"><td class="ln">52</td><td class="cd"><code>       <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L53"><td class="ln">53</td><td class="cd"><code>       <span class="t-s">"pattern"</span>: <span class="t-s">"^S-[A-Z0-9-]+$"</span></code></td></tr><tr id="L54"><td class="ln">54</td><td class="cd"><code>      },</code></td></tr><tr id="L55"><td class="ln">55</td><td class="cd"><code>      <span class="t-s">"description"</span>: <span class="t-s">"確かめる場面の id（場面のファイルの並び順）"</span></code></td></tr><tr id="L56"><td class="ln">56</td><td class="cd"><code>     },</code></td></tr><tr id="L57"><td class="ln">57</td><td class="cd"><code>     <span class="t-s">"note"</span>: {</code></td></tr><tr id="L58"><td class="ln">58</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L59"><td class="ln">59</td><td class="cd"><code>      <span class="t-s">"description"</span>: <span class="t-s">"場面のほかに確かめている所や、確かめていない部分"</span></code></td></tr><tr id="L60"><td class="ln">60</td><td class="cd"><code>     }</code></td></tr><tr id="L61"><td class="ln">61</td><td class="cd"><code>    }</code></td></tr><tr id="L62"><td class="ln">62</td><td class="cd"><code>   }</code></td></tr><tr id="L63"><td class="ln">63</td><td class="cd"><code>  }</code></td></tr><tr id="L64"><td class="ln">64</td><td class="cd"><code> }</code></td></tr><tr id="L65"><td class="ln">65</td><td class="cd"><code>}</code></td></tr><tr id="L66"><td class="ln">66</td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="untested" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">まだ確かめていない保証と拡張の一覧に形が無かった。形の $id を指した。</div><div class="at"><span class="lbl">場所</span><code>&quot;$schema&quot;: &quot;urn:semantic-agent-schema:sy</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 1 ／ 新 1 @@</td></tr><tr class="r"><td class="ln">1</td><td class="ln">1</td><td class="mk"> </td><td class="cd"><code>{</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">2</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（$schema の行が無い）" data-w="まだ確かめていない保証と拡張の一覧に形が無かった。形の $id を指した。"> <span class="t-s">"$schema"</span>: <span class="t-s">"urn:semantic-agent-schema:system-tests:untested:v1"</span>,</mark></code></td></tr><tr class="r"><td class="ln">2</td><td class="ln">3</td><td class="mk"> </td><td class="cd"><code> <span class="t-s">"description"</span>: <span class="t-s">"範囲にあるが、まだ場面で確かめていない保証と拡張。理由と、確かめるステップを書く"</span>,</code></td></tr><tr class="r"><td class="ln">3</td><td class="ln">4</td><td class="mk"> </td><td class="cd"><code> <span class="t-s">"untested"</span>: []</code></td></tr><tr class="r"><td class="ln">4</td><td class="ln">5</td><td class="mk"> </td><td class="cd"><code>}</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="untesteds" hidden><div class="lane code-lane"><b>コードの全文</b><span class="how">変更前を取得できないので、全文を置く</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">creator の形を写し、題を SAS の untested.json の言葉（保証と拡張）に合わせた。</div><div class="at"><span class="lbl">場所</span><code>&quot;$id&quot;: &quot;urn:semantic-agent-schema:system</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code" data-lang="json"><table><tbody><tr id="L1"><td class="ln">1</td><td class="cd"><code>{</code></td></tr><tr id="L2"><td class="ln">2</td><td class="cd"><code> <span class="t-s">"$schema"</span>: <span class="t-s">"https://json-schema.org/draft/2020-12/schema"</span>,</code></td></tr><tr id="L3"><td class="ln">3</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（ファイルが無い）" data-w="creator の形を写し、題を SAS の untested.json の言葉（保証と拡張）に合わせた。"> <span class="t-s">"$id"</span>: <span class="t-s">"urn:semantic-agent-schema:system-tests:untested:v1"</span>,</mark></code></td></tr><tr id="L4"><td class="ln">4</td><td class="cd"><code> <span class="t-s">"title"</span>: <span class="t-s">"まだ確かめていない保証と拡張"</span>,</code></td></tr><tr id="L5"><td class="ln">5</td><td class="cd"><code> <span class="t-s">"description"</span>: <span class="t-s">"system-tests/untested.json の形。範囲にあるが場面で確かめていない保証 ・ 拡張 ・ 変形の id ごとに、理由と、確かめるステップを持つ"</span>,</code></td></tr><tr id="L6"><td class="ln">6</td><td class="cd"><code> <span class="t-s">"type"</span>: <span class="t-s">"object"</span>,</code></td></tr><tr id="L7"><td class="ln">7</td><td class="cd"><code> <span class="t-s">"required"</span>: [</code></td></tr><tr id="L8"><td class="ln">8</td><td class="cd"><code>  <span class="t-s">"$schema"</span>,</code></td></tr><tr id="L9"><td class="ln">9</td><td class="cd"><code>  <span class="t-s">"description"</span>,</code></td></tr><tr id="L10"><td class="ln">10</td><td class="cd"><code>  <span class="t-s">"untested"</span></code></td></tr><tr id="L11"><td class="ln">11</td><td class="cd"><code> ],</code></td></tr><tr id="L12"><td class="ln">12</td><td class="cd"><code> <span class="t-s">"additionalProperties"</span>: <span class="t-k">false</span>,</code></td></tr><tr id="L13"><td class="ln">13</td><td class="cd"><code> <span class="t-s">"properties"</span>: {</code></td></tr><tr id="L14"><td class="ln">14</td><td class="cd"><code>  <span class="t-s">"$schema"</span>: {</code></td></tr><tr id="L15"><td class="ln">15</td><td class="cd"><code>   <span class="t-s">"const"</span>: <span class="t-s">"urn:semantic-agent-schema:system-tests:untested:v1"</span></code></td></tr><tr id="L16"><td class="ln">16</td><td class="cd"><code>  },</code></td></tr><tr id="L17"><td class="ln">17</td><td class="cd"><code>  <span class="t-s">"description"</span>: {</code></td></tr><tr id="L18"><td class="ln">18</td><td class="cd"><code>   <span class="t-s">"type"</span>: <span class="t-s">"string"</span></code></td></tr><tr id="L19"><td class="ln">19</td><td class="cd"><code>  },</code></td></tr><tr id="L20"><td class="ln">20</td><td class="cd"><code>  <span class="t-s">"untested"</span>: {</code></td></tr><tr id="L21"><td class="ln">21</td><td class="cd"><code>   <span class="t-s">"type"</span>: <span class="t-s">"array"</span>,</code></td></tr><tr id="L22"><td class="ln">22</td><td class="cd"><code>   <span class="t-s">"items"</span>: {</code></td></tr><tr id="L23"><td class="ln">23</td><td class="cd"><code>    <span class="t-s">"type"</span>: <span class="t-s">"object"</span>,</code></td></tr><tr id="L24"><td class="ln">24</td><td class="cd"><code>    <span class="t-s">"required"</span>: [</code></td></tr><tr id="L25"><td class="ln">25</td><td class="cd"><code>     <span class="t-s">"id"</span>,</code></td></tr><tr id="L26"><td class="ln">26</td><td class="cd"><code>     <span class="t-s">"meaning"</span>,</code></td></tr><tr id="L27"><td class="ln">27</td><td class="cd"><code>     <span class="t-s">"why"</span>,</code></td></tr><tr id="L28"><td class="ln">28</td><td class="cd"><code>     <span class="t-s">"step"</span></code></td></tr><tr id="L29"><td class="ln">29</td><td class="cd"><code>    ],</code></td></tr><tr id="L30"><td class="ln">30</td><td class="cd"><code>    <span class="t-s">"additionalProperties"</span>: <span class="t-k">false</span>,</code></td></tr><tr id="L31"><td class="ln">31</td><td class="cd"><code>    <span class="t-s">"properties"</span>: {</code></td></tr><tr id="L32"><td class="ln">32</td><td class="cd"><code>     <span class="t-s">"id"</span>: {</code></td></tr><tr id="L33"><td class="ln">33</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L34"><td class="ln">34</td><td class="cd"><code>      <span class="t-s">"pattern"</span>: <span class="t-s">"^(UC[0-7]:(成功時保証|最低保証|拡張:(\\*|[0-9]+)[a-z]|(拡張|変形):[^0-9*:][^:]*)|約束:[a-z-]+(:[a-z0-9-]+)?)$"</span></code></td></tr><tr id="L35"><td class="ln">35</td><td class="cd"><code>     },</code></td></tr><tr id="L36"><td class="ln">36</td><td class="cd"><code>     <span class="t-s">"meaning"</span>: {</code></td></tr><tr id="L37"><td class="ln">37</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L38"><td class="ln">38</td><td class="cd"><code>      <span class="t-s">"minLength"</span>: <span class="t-n">1</span></code></td></tr><tr id="L39"><td class="ln">39</td><td class="cd"><code>     },</code></td></tr><tr id="L40"><td class="ln">40</td><td class="cd"><code>     <span class="t-s">"why"</span>: {</code></td></tr><tr id="L41"><td class="ln">41</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L42"><td class="ln">42</td><td class="cd"><code>      <span class="t-s">"minLength"</span>: <span class="t-n">1</span>,</code></td></tr><tr id="L43"><td class="ln">43</td><td class="cd"><code>      <span class="t-s">"description"</span>: <span class="t-s">"まだ確かめていない理由"</span></code></td></tr><tr id="L44"><td class="ln">44</td><td class="cd"><code>     },</code></td></tr><tr id="L45"><td class="ln">45</td><td class="cd"><code>     <span class="t-s">"step"</span>: {</code></td></tr><tr id="L46"><td class="ln">46</td><td class="cd"><code>      <span class="t-s">"type"</span>: <span class="t-s">"string"</span>,</code></td></tr><tr id="L47"><td class="ln">47</td><td class="cd"><code>      <span class="t-s">"minLength"</span>: <span class="t-n">1</span>,</code></td></tr><tr id="L48"><td class="ln">48</td><td class="cd"><code>      <span class="t-s">"description"</span>: <span class="t-s">"確かめるステップ"</span></code></td></tr><tr id="L49"><td class="ln">49</td><td class="cd"><code>     }</code></td></tr><tr id="L50"><td class="ln">50</td><td class="cd"><code>    }</code></td></tr><tr id="L51"><td class="ln">51</td><td class="cd"><code>   }</code></td></tr><tr id="L52"><td class="ln">52</td><td class="cd"><code>  }</code></td></tr><tr id="L53"><td class="ln">53</td><td class="cd"><code> }</code></td></tr><tr id="L54"><td class="ln">54</td><td class="cd"><code>}</code></td></tr><tr id="L55"><td class="ln">55</td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="test" hidden><div class="lane code-lane"><b>コードの全文</b><span class="how">変更前を取得できないので、全文を置く</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">2つのファイルの $schema が形の $id と同じで、中身が形に従うことを確かめる。形を置くだけでは、ずれても気づかないため。</div><div class="at"><span class="lbl">場所</span><code>trace_files_follow_their_schema</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code" data-lang="rust"><table><tbody><tr id="L1"><td class="ln">1</td><td class="cd"><code><span class="t-c">//! 試験の突き合わせのファイル（system-tests/trace.json ・ untested.json）が、$schema で指す自分の schema に従う。</span></code></td></tr><tr id="L2"><td class="ln">2</td><td class="cd"><code><span class="t-c">//! architecture.json は architecture-lint の規則のファイルで、その形と検査は architecture-lint が持つ。</span></code></td></tr><tr id="L3"><td class="ln">3</td><td class="cd"><code>&nbsp;</code></td></tr><tr id="L4"><td class="ln">4</td><td class="cd"><code>#![allow(clippy::expect_used, clippy::panic)]</code></td></tr><tr id="L5"><td class="ln">5</td><td class="cd"><code>&nbsp;</code></td></tr><tr id="L6"><td class="ln">6</td><td class="cd"><code><span class="t-k">use</span> serde_json::Value;</code></td></tr><tr id="L7"><td class="ln">7</td><td class="cd"><code><span class="t-k">use</span> std::path::PathBuf;</code></td></tr><tr id="L8"><td class="ln">8</td><td class="cd"><code>&nbsp;</code></td></tr><tr id="L9"><td class="ln">9</td><td class="cd"><code><span class="t-k">fn</span> root() -&gt; PathBuf {</code></td></tr><tr id="L10"><td class="ln">10</td><td class="cd"><code>    PathBuf::from(env!(<span class="t-s">"CARGO_MANIFEST_DIR"</span>)).join(<span class="t-s">"../.."</span>)</code></td></tr><tr id="L11"><td class="ln">11</td><td class="cd"><code>}</code></td></tr><tr id="L12"><td class="ln">12</td><td class="cd"><code>&nbsp;</code></td></tr><tr id="L13"><td class="ln">13</td><td class="cd"><code><span class="t-k">fn</span> read(path: &amp;PathBuf) -&gt; Value {</code></td></tr><tr id="L14"><td class="ln">14</td><td class="cd"><code>    serde_json::from_str(</code></td></tr><tr id="L15"><td class="ln">15</td><td class="cd"><code>        &amp;std::fs::read_to_string(path)</code></td></tr><tr id="L16"><td class="ln">16</td><td class="cd"><code>            .unwrap_or_else(|e| panic!(<span class="t-s">"{} を読めない: {e}"</span>, path.display())),</code></td></tr><tr id="L17"><td class="ln">17</td><td class="cd"><code>    )</code></td></tr><tr id="L18"><td class="ln">18</td><td class="cd"><code>    .unwrap_or_else(|e| panic!(<span class="t-s">"{} が JSON でない: {e}"</span>, path.display()))</code></td></tr><tr id="L19"><td class="ln">19</td><td class="cd"><code>}</code></td></tr><tr id="L20"><td class="ln">20</td><td class="cd"><code>&nbsp;</code></td></tr><tr id="L21"><td class="ln">21</td><td class="cd"><code><span class="t-c">/// ファイルと、その $schema の形を置いた所（リポジトリの根から）。</span></code></td></tr><tr id="L22"><td class="ln">22</td><td class="cd"><code><span class="t-k">const</span> FILES: [(&amp;str, &amp;str); <span class="t-n">2</span>] = [</code></td></tr><tr id="L23"><td class="ln">23</td><td class="cd"><code>    (</code></td></tr><tr id="L24"><td class="ln">24</td><td class="cd"><code>        <span class="t-s">"schemas-and-instances/system-tests/trace.json"</span>,</code></td></tr><tr id="L25"><td class="ln">25</td><td class="cd"><code>        <span class="t-s">"schemas-and-instances/system-tests/trace.schema.json"</span>,</code></td></tr><tr id="L26"><td class="ln">26</td><td class="cd"><code>    ),</code></td></tr><tr id="L27"><td class="ln">27</td><td class="cd"><code>    (</code></td></tr><tr id="L28"><td class="ln">28</td><td class="cd"><code>        <span class="t-s">"schemas-and-instances/system-tests/untested.json"</span>,</code></td></tr><tr id="L29"><td class="ln">29</td><td class="cd"><code>        <span class="t-s">"schemas-and-instances/system-tests/untested.schema.json"</span>,</code></td></tr><tr id="L30"><td class="ln">30</td><td class="cd"><code>    ),</code></td></tr><tr id="L31"><td class="ln">31</td><td class="cd"><code>];</code></td></tr><tr id="L32"><td class="ln">32</td><td class="cd"><code>&nbsp;</code></td></tr><tr id="L33"><td class="ln">33</td><td class="cd"><code>#[test]</code></td></tr><tr id="L34"><td class="ln">34</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="（ファイルが無い）" data-w="2つのファイルの $schema が形の $id と同じで、中身が形に従うことを確かめる。形を置くだけでは、ずれても気づかないため。"><span class="t-k">fn</span> trace_files_follow_their_schema() {</mark></code></td></tr><tr id="L35"><td class="ln">35</td><td class="cd"><code>    <span class="t-k">for</span> (file, schema) <span class="t-k">in</span> FILES {</code></td></tr><tr id="L36"><td class="ln">36</td><td class="cd"><code>        <span class="t-k">let</span> value = read(&amp;root().join(file));</code></td></tr><tr id="L37"><td class="ln">37</td><td class="cd"><code>        <span class="t-k">let</span> schema = read(&amp;root().join(schema));</code></td></tr><tr id="L38"><td class="ln">38</td><td class="cd"><code>        assert_eq!(</code></td></tr><tr id="L39"><td class="ln">39</td><td class="cd"><code>            value.get(<span class="t-s">"$schema"</span>),</code></td></tr><tr id="L40"><td class="ln">40</td><td class="cd"><code>            schema.get(<span class="t-s">"$id"</span>),</code></td></tr><tr id="L41"><td class="ln">41</td><td class="cd"><code>            <span class="t-s">"{file} の $schema が、形の $id と違う"</span></code></td></tr><tr id="L42"><td class="ln">42</td><td class="cd"><code>        );</code></td></tr><tr id="L43"><td class="ln">43</td><td class="cd"><code>        <span class="t-k">let</span> v = jsonschema::validator_for(&amp;schema).expect(<span class="t-s">"形を組めること"</span>);</code></td></tr><tr id="L44"><td class="ln">44</td><td class="cd"><code>        <span class="t-k">let</span> errors: Vec&lt;String&gt; = v.iter_errors(&amp;value).map(|e| e.to_string()).collect();</code></td></tr><tr id="L45"><td class="ln">45</td><td class="cd"><code>        assert!(errors.is_empty(), <span class="t-s">"{file} が形に従わない: {errors:?}"</span>);</code></td></tr><tr id="L46"><td class="ln">46</td><td class="cd"><code>    }</code></td></tr><tr id="L47"><td class="ln">47</td><td class="cd"><code>}</code></td></tr><tr id="L48"><td class="ln">48</td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section>
+</section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 対象の文書も、同じ名前の変数（--move など）を持っていることがある。
+     印と欄にだけ、この道具の値を直に持たせる ── 文書の側の見た目は変えない */
+  var VARS = (MARKCSS.match(/--[\w-]+(?=:)/g) || []).filter(function(v, i, a){ return a.indexOf(v) === i; });
+  function ownVars(el){
+    var cs = getComputedStyle(document.documentElement);
+    VARS.forEach(function(v){ var x = cs.getPropertyValue(v); if (x) el.style.setProperty(v, x.trim()); });
+  }
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く。
+     **この道具が付けた印（data-acdr）だけを扱う。** 対象の文書が自分の印を
+     同じ class で持っていることがある（brainstorming-board のボード） */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-acdr]").forEach(function(m){
+      var p = doc.createElement("div");
+      /* **初めから開いて出す。** 閉じて出すと、どこが変わったかを1件ずつ押して探すことになる */
+      p.className = "pop"; p.hidden = false;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        /* 表のセルの中の印は、セルの中へ置く。<td> の隣へ置くと、列が1つ増えて見える */
+        var cell = m.closest("td,th");
+        if (cell) cell.appendChild(p);
+        else {
+          var host = m.closest("li") || m.parentNode;
+          if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+          else host.parentNode.appendChild(p);
+        }
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      /* 対象の文書の script も、同じ印に開閉を付けていることがある。
+         捕捉の段で受けて止め、この道具の開閉だけを動かす */
+      m.addEventListener("click", function(e){ e.stopImmediatePropagation(); tg(); }, true);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+      m.setAttribute("aria-expanded", "true");
+      if (doc !== document) { ownVars(m); ownVars(p); }
+      /* 印を囲む畳まれた節も開く。タブ（hidden）は開かない ── 面の切り替えが壊れる */
+      for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+        if (e.tagName === "DETAILS") e.open = true;
+      }
+    });
+  }
+
+  var frames = [];
+  /* 中の高さに合わせて iframe を伸ばす。**中の高さが iframe の高さで決まる文書（vh で組んだスライドなど）は、
+     伸ばすたびに中も同じだけ伸び、止まらなくなる。** 同じ幅で3回続けて伸びたら、そうした文書とみなし、
+     幅の16:9の高さで止める */
+  function resizeOne(f){
+    try {
+      var d = f.contentDocument;
+      if (!d || !d.body || f._fixed) return;
+      var next = d.documentElement.scrollHeight + 8;
+      var now = f._h || 0;
+      if (next === now) return;
+      var grow = next - now;
+      f._streak = (now && grow > 0 && grow === f._grow) ? (f._streak || 0) + 1 : 0;
+      f._grow = grow;
+      if (f._streak >= 2) {
+        f._fixed = true;
+        f.style.height = Math.round(f.clientWidth * 9 / 16) + "px";
+        return;
+      }
+      f._h = next;
+      f.style.height = next + "px";
+    } catch(e){}
+  }
+  function resizeAll(){ frames.forEach(resizeOne); }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  /* **見えているかを offsetParent で判定しない。**
+     閉じた <details> の中でも、Chromium は offsetParent を返す。
+     checkVisibility が在ればそれを使う */
+  function shown(m){
+    return m.checkVisibility ? m.checkVisibility() : !!m.offsetParent;
+  }
+
+  function reveal(m){
+    if (shown(m)) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (shown(m)) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (shown(m)) return true;
+      ins[i].checked = was;
+    }
+    return shown(m);
+  }
+
+  /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg[data-acdr]")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その箇所へ移動" : "表示されていない箇所";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンのファイル */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>
