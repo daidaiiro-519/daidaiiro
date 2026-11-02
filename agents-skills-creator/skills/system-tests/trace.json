@@ -13,28 +13,69 @@
   "約束:skill:references",
   "約束:skill:schema",
   "UC1:変形:例を別の会話で動かす",
-  "UC4:変形:意味の判定"
+  "UC4:変形:意味の判定",
+  "UC1:拡張:2a",
+  "UC1:拡張:2a1a",
+  "UC1:拡張:2a2a",
+  "UC1:拡張:4a",
+  "約束:skill:same-shape-as"
  ],
  "traces": [
   {
    "id": "UC1:成功時保証",
-   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（問いと値を組む決まり）・ skill.json から決まった形で作る SKILL.md（参照する資料の節を含む）・ 確認の1画面の材料",
+   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（問いと値を組む決まり）・ skill.json から決まった形で作る SKILL.md（参照する資料の節を含む）・ 確認の1画面の材料。同じ形で作った Skill は、元の Skill が無くても使え、作る人が答えた所でだけ元と違い、どの Skill と同じ形かが分かる（confirm の same_shape）",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-BUILD",
     "S-UC1-CONFIRM-REFERENCES",
     "S-UC1-CONFIRM",
+    "S-UC1-LIKE-ADDED",
+    "S-UC1-LIKE-NO-ORIGIN",
+    "S-UC1-LIKE-WRITE",
     "S-UC1-NEW-PROCEDURE"
    ],
    "note": "AI ツールごとの置き場所と形（配布）は UC5 で確かめる"
   },
   {
    "id": "UC1:最低保証",
-   "meaning": "既にある Skill は変わらない ・ どこまで書いたかが分かる。目的の誰がと何を得るかが分からないままなら承認を受け付けない",
+   "meaning": "既にある Skill は変わらない ・ どこまで書いたかが分かる。目的の誰がと何を得るかが分からないままなら承認を受け付けない。同じ形で作るとき、示した元の Skill は変わらない",
    "scenarios": [
     "S-UC1-CONFIRM-UNKNOWN",
     "S-UC1-EXISTING",
+    "S-UC1-LIKE-PROCEDURE",
+    "S-UC1-LIKE-USAGE",
+    "S-UC1-LIKE-WRITE",
     "S-UC1-USAGE"
+   ]
+  },
+  {
+   "id": "UC1:拡張:2a",
+   "meaning": "作る人が既にある Skill を同じ形として示した：creator は元の Skill を読み、同じ形かを確かめる問いを先に置き、分野と場面 ・ 原典と知見で変わる所だけを聞き、ほかは元の値のまま既定にする（new --like）",
+   "scenarios": [
+    "S-UC1-LIKE-PROCEDURE",
+    "S-UC1-LIKE-WRITE"
+   ]
+  },
+  {
+   "id": "UC1:拡張:2a1a",
+   "meaning": "役割や手順が違う：違う所を示し、ふつうの new の3問へ戻る（手順の q0 の how が指す）",
+   "scenarios": [
+    "S-UC1-LIKE-PROCEDURE"
+   ]
+  },
+  {
+   "id": "UC1:拡張:2a2a",
+   "meaning": "元の Skill に無いものが要る：資料の問いの答えとして足し、確認で足した所（added）として示して承認してもらう",
+   "scenarios": [
+    "S-UC1-LIKE-ADDED",
+    "S-UC1-LIKE-PROCEDURE"
+   ]
+  },
+  {
+   "id": "UC1:拡張:4a",
+   "meaning": "creator が同じ形の Skill に気づいた：new が置き場所の Skill を existing に並べ、同じ形なら示して選ばせ、new --like へ移る",
+   "scenarios": [
+    "S-UC1-NEW-SAME-SHAPE"
    ]
   },
   {
@@ -103,6 +144,9 @@
     "S-UC1-CONFIRM-REFERENCES",
     "S-UC1-CONFIRM-UNKNOWN",
     "S-UC1-CONFIRM",
+    "S-UC1-LIKE-ADDED",
+    "S-UC1-LIKE-NO-ORIGIN",
+    "S-UC1-LIKE-WRITE",
     "S-UC1-USAGE"
    ]
   },
@@ -110,7 +154,10 @@
    "id": "約束:new-procedure",
    "meaning": "new の手順は new-procedure.schema.json に従う",
    "scenarios": [
-    "S-UC1-NEW-PROCEDURE"
+    "S-UC1-LIKE-PROCEDURE",
+    "S-UC1-LIKE-USAGE",
+    "S-UC1-NEW-PROCEDURE",
+    "S-UC1-NEW-SAME-SHAPE"
    ]
   },
   {
@@ -131,6 +178,13 @@
     "S-UC4-JSON-SCHEMA-BROKEN",
     "S-UC4-JSON-SCHEMA-OK",
     "S-UC4-JSON-SCHEMA-URN"
+   ]
+  },
+  {
+   "id": "約束:skill:same-shape-as",
+   "meaning": "skill.json の same_shape_as（同じ形の元の Skill の name）を SAS が受け付け、build の SKILL.md には出さない",
+   "scenarios": [
+    "S-UC1-LIKE-WRITE"
    ]
   }
  ]

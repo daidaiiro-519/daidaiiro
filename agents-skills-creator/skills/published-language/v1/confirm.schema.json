@@ -127,7 +127,7 @@
   },
   "guesses": {
    "title": "推測で埋めた所",
-   "description": "作る人が答えていない（purpose と role の答えのほかの）所の一覧。分からないと答えた所が先頭で、そのあとは損失の大きい順（受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → 参照する資料 → そのほか）。件ごとに from を持つ所（受け持たないこと ・ 参照する資料）は、from が作る人の答え（問1〜問3 ・ 資料の問い）の件を答えとみなして出さない",
+   "description": "作る人が答えていない（purpose と role の答えのほかの）所の一覧。分からないと答えた所が先頭で、そのあとは損失の大きい順（受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → 参照する資料 → そのほか）。件ごとに from を持つ所（受け持たないこと ・ 参照する資料）は、from が作る人の答え（問1〜問3 ・ 資料の問い）の件を答えとみなして出さない。同じ形の元の Skill と同じ値の件は、from を「元の Skill（same_shape_as：<name>）から」にする",
    "x-prompt": {
     "meaning": "違う所を「〇〇は違う、△△」と一言で返す。",
     "when": "結果を受け取ったときに読む。",
@@ -172,6 +172,69 @@
    "type": "array",
    "items": {
     "$ref": "#/$defs/task"
+   }
+  },
+  "same_shape": {
+   "title": "同じ形の元",
+   "description": "same_shape_as がある Skill のときだけ。元の Skill の name と、探したフォルダ（同じ置き場所）、読めたか、元と違う所の一覧。違う所ごとに、作る人が答えた所（分野と場面 ・ 原典と知見で変わる所）かを answered に持つ。元が無くても確認はでき、found が false で違う所は空",
+   "x-prompt": {
+    "meaning": "違う所が作る人の答えた所だけか（answered が false の行が無いか）と、足した所（added）を作る人に示す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "object",
+   "required": [
+    "name",
+    "folder",
+    "found",
+    "differences"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "folder": {
+     "type": "string"
+    },
+    "found": {
+     "type": "boolean"
+    },
+    "differences": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "field",
+       "change",
+       "content",
+       "answered"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "field": {
+        "type": "string",
+        "description": "skill.json の中の所（JSON Pointer）"
+       },
+       "change": {
+        "enum": [
+         "differs",
+         "added",
+         "removed"
+        ],
+        "description": "differs は値が違う、added は元に無い件を足した、removed は元にある件が無い"
+       },
+       "content": {
+        "type": "string",
+        "description": "中身（1行。removed は元の中身）"
+       },
+       "answered": {
+        "type": "boolean",
+        "description": "作る人が答えた所か。false なら、答えていない所で元と違う"
+       }
+      }
+     }
+    }
    }
   },
   "code": {

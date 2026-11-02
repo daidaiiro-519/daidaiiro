@@ -5,11 +5,15 @@
 //! 機械で作る（項目を足さない）。件ごとに from を持つ所（受け持たないこと ・ 参照する資料）は、作る人の答え（問1〜問3 ・
 //! 資料の問い）を from に持たない件だけを推測とする。
 //! 「分からない」と答えた所は一覧の先頭に出し、目的の who と gets が分からないままなら承認を受け付けない。
+//!
+//! 同じ形で作った Skill（same_shape_as がある）は、同じ置き場所の元の Skill を読み、元と同じ値の推測を「元の Skill から」と
+//! 出し、元と違う所の一覧を返す（UC1 の拡張 2a）。違う所ごとに、作る人が答えた所か（domain の表で Basis が Shape でない）を
+//! 付ける。元の Skill が無くても、確認はできる。
 
 use crate::ports::SkillFiles;
 use crate::use_cases::{Refused, read_skill, trimmed};
 use serde_json::Value;
-use skills_domain::services::derivation::{derived_from, is_answer};
+use skills_domain::services::derivation::{ANSWERS, Basis, basis_at, derived_from, is_answer};
 
 /// 作る人が答えられなかった所に入れる値。
 pub const UNKNOWN: &str = "分からない";
@@ -42,6 +46,32 @@ pub struct Delegate {
     pub examples: Vec<[String; 4]>,
 }
 
+/// 元の Skill と違う所の1行。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Difference {
+    /// skill.json の中の所（JSON Pointer）
+    pub field: String,
+    /// differs（値が違う）・ added（元に無い件を足した）・ removed（元にある件が無い）
+    pub change: &'static str,
+    /// 中身（1行。removed は元の中身）
+    pub content: String,
+    /// 作る人が答えた所（分野と場面 ・ 原典と知見で変わる所）か
+    pub answered: bool,
+}
+
+/// 同じ形の元の Skill。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SameShape {
+    /// same_shape_as の name
+    pub name: String,
+    /// 元の Skill を探したフォルダ（同じ置き場所）
+    pub folder: String,
+    /// 元の Skill を読めたか
+    pub found: bool,
+    /// 元と違う所（読めなければ空）
+    pub differences: Vec<Difference>,
+}
+
 /// 確認の1画面の材料。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Confirmation {
@@ -63,6 +93,8 @@ pub struct Confirmation {
     pub not_approvable: Vec<String>,
     /// 別の会話に任せる手順
     pub delegate: Vec<Delegate>,
+    /// 同じ形の元の Skill（same_shape_as があるときだけ）
+    pub same_shape: Option<SameShape>,
 }
 
 /// 推測の一覧に並べる所（損失の大きい順）：受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → 参照する資料 → そのほか。
@@ -167,8 +199,58 @@ fn unknowns(v: &Value, at: &str, out: &mut Vec<String>) {
     }
 }
 
-/// 推測の一覧を、skill.json から機械で作る。
-fn guesses(skill: &Value) -> Vec<Guess> {
+/// 元と比べる所：purpose は欄ごと、ほかは skill.json の根の項目ごと（same_shape_as は除く）。
+fn compared_fields(skill: &Value, original: &Value) -> Vec<String> {
+    let mut fields: Vec<String> = ANSWERS.iter().map(|(f, _)| format!("/{f}")).collect();
+    for v in [skill, original] {
+        for k in v.as_object().into_iter().flat_map(serde_json::Map::keys) {
+            let f = format!("/{k}");
+            if !matches!(k.as_str(), "$schema" | "purpose" | "role" | "same_shape_as")
+                && !fields.contains(&f)
+            {
+                fields.push(f);
+            }
+        }
+    }
+    fields
+}
+
+/// 元の Skill と違う所。配列は件ごとに（同じ番号の件と）比べる。
+fn differences(skill: &Value, original: &Value) -> Vec<Difference> {
+    let mut out = Vec::new();
+    let mut push = |field: String, change: &'static str, v: &Value| {
+        let top = field.split('/').take(2).collect::<Vec<_>>().join("/");
+        out.push(Difference {
+            content: content(&top, v),
+            answered: basis_at(&field) != Some(Basis::Shape),
+            field,
+            change,
+        });
+    };
+    for field in compared_fields(skill, original) {
+        match (skill.pointer(&field), original.pointer(&field)) {
+            (Some(Value::Array(now)), Some(Value::Array(before))) => {
+                for i in 0..now.len().max(before.len()) {
+                    let at = format!("{field}/{i}");
+                    match (now.get(i), before.get(i)) {
+                        (Some(a), Some(b)) if a != b => push(at, "differs", a),
+                        (Some(a), None) => push(at, "added", a),
+                        (None, Some(b)) => push(at, "removed", b),
+                        _ => {}
+                    }
+                }
+            }
+            (Some(a), Some(b)) if a != b => push(field, "differs", a),
+            (Some(a), None) => push(field, "added", a),
+            (None, Some(b)) => push(field, "removed", b),
+            _ => {}
+        }
+    }
+    out
+}
+
+/// 推測の一覧を、skill.json から機械で作る。元の Skill（同じ形）があれば、元と同じ値の件は「元の Skill から」とする。
+fn guesses(skill: &Value, original: Option<(&str, &Value)>) -> Vec<Guess> {
     let mut out = Vec::new();
     let mut unknown_at = Vec::new();
     unknowns(skill, "", &mut unknown_at);
@@ -204,10 +286,16 @@ fn guesses(skill: &Value) -> Vec<Guess> {
             if matches!(field, "/role/does_not" | "/references") && is_answer(s(x, "from")) {
                 continue;
             }
+            let from = match original {
+                Some((name, o)) if o.pointer(&at) == Some(x) => {
+                    format!("元の Skill（same_shape_as：{name}）から")
+                }
+                _ => guessed_from(x, rule),
+            };
             out.push(Guess {
                 field: at,
                 content: content(field, x),
-                from: guessed_from(x, rule),
+                from,
                 unknown: false,
             });
         }
@@ -317,6 +405,30 @@ pub fn confirm(folder: Option<&str>, files: &dyn SkillFiles) -> Result<Confirmat
                 .collect(),
         },
     ];
+    // 同じ形の元の Skill は、同じ置き場所の same_shape_as の名前のフォルダにある
+    let same_shape = skill
+        .get("same_shape_as")
+        .and_then(Value::as_str)
+        .map(|name| {
+            let here = trimmed(folder);
+            let origin = here
+                .rsplit_once('/')
+                .map_or_else(|| name.to_string(), |(p, _)| format!("{p}/{name}"));
+            (name.to_string(), read_skill(files, &origin).ok(), origin)
+        });
+    let original = same_shape
+        .as_ref()
+        .and_then(|(name, o, _)| o.as_ref().map(|o| (name.as_str(), o)));
+    let guesses = guesses(&skill, original);
+    let same_shape = same_shape.map(|(name, o, origin)| SameShape {
+        differences: o
+            .as_ref()
+            .map(|o| differences(&skill, o))
+            .unwrap_or_default(),
+        found: o.is_some(),
+        name,
+        folder: origin,
+    });
     Ok(Confirmation {
         folder: folder.to_string(),
         name: text(&skill, "/name"),
@@ -324,8 +436,9 @@ pub fn confirm(folder: Option<&str>, files: &dyn SkillFiles) -> Result<Confirmat
         images,
         behaviors,
         structure,
-        guesses: guesses(&skill),
+        guesses,
         not_approvable,
         delegate,
+        same_shape,
     })
 }

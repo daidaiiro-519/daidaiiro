@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use skills_application::ports::{GeneratedFiles, SkillFiles};
 use skills_application::use_cases::build::build;
 use skills_application::use_cases::confirm::confirm;
-use skills_application::use_cases::new::new_procedure;
+use skills_application::use_cases::new::{new_like_procedure, new_procedure};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
@@ -35,6 +35,21 @@ impl SkillFiles for Files {
     }
     fn siblings(&self, _: &str) -> Result<Vec<String>, String> {
         Ok(Vec::new())
+    }
+    fn folders(&self, place: &str) -> Result<Vec<String>, String> {
+        let mut out: Vec<String> = self
+            .0
+            .borrow()
+            .keys()
+            .filter_map(|k| {
+                let rest = k.strip_prefix(&format!("{place}/"))?;
+                let (first, _) = rest.split_once('/')?;
+                Some(format!("{place}/{first}"))
+            })
+            .collect();
+        out.sort();
+        out.dedup();
+        Ok(out)
     }
     fn dangling_links(&self, _: &str) -> Result<Vec<String>, String> {
         Ok(Vec::new())
@@ -127,7 +142,7 @@ fn an_unknown_purpose_comes_first_and_cannot_be_approved() {
 
 #[test]
 fn the_procedure_copies_the_rules_of_the_concrete_and_answers_purpose_role_and_references() {
-    let p = new_procedure(Some("skills/"));
+    let p = new_procedure(Some("skills/"), &Files::default());
     let compose = p["compose"].as_array().unwrap();
     let answered: Vec<&str> = compose
         .iter()
@@ -142,7 +157,7 @@ fn the_procedure_copies_the_rules_of_the_concrete_and_answers_purpose_role_and_r
         json!("agents-skills-creator build skills/<name>")
     );
     assert_eq!(
-        new_procedure(None)["write"]["command"],
+        new_procedure(None, &Files::default())["write"]["command"],
         json!(
             "sas create <Skill の置き場所>/<name>/skill.json --concrete urn:agents-skills-creator:skill:v1 --value <JSON>"
         )
@@ -162,7 +177,90 @@ fn answered_references_are_not_guesses_and_the_reference_question_is_asked_only_
     assert!(!fields.contains(&"/references/0"));
     // 完了条件は from が「問2 の答え」でも、答えから導いたものなので推測のまま
     assert!(fields.contains(&"/completion_criteria/0"));
-    let q4 = &new_procedure(None)["questions"][3];
+    let q4 = &new_procedure(None, &Files::default())["questions"][3];
     assert_eq!(q4["id"], json!("q4"));
     assert!(q4["when"].as_str().unwrap().contains("資料"));
+}
+
+#[test]
+fn the_like_procedure_keeps_the_shape_and_asks_only_the_domain_and_material() {
+    let files = Files::with("skills/s/skill.json", &skill());
+    let before = files.read("skills/s/skill.json").unwrap();
+    let p = new_like_procedure(Some("skills/s/"), None, &files).unwrap();
+    assert_eq!(p["like"]["name"], json!("s"));
+    assert_eq!(p["like"]["ask"], json!(["/purpose/when", "/references"]));
+    assert_eq!(
+        p["like"]["derive"],
+        json!(["/name", "/description", "/examples"])
+    );
+    let kept: Vec<&str> = p["like"]["keep"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|k| k["field"].as_str().unwrap())
+        .collect();
+    // 元に無い項目（inputs など）は keep に出さない
+    assert_eq!(
+        kept,
+        [
+            "/purpose/who",
+            "/purpose/gets",
+            "/role",
+            "/steps",
+            "/rules",
+            "/minimal_guarantees",
+            "/completion_criteria"
+        ]
+    );
+    // 元は資料を持たないので、資料の問いは条件つき
+    assert!(p["questions"][2]["when"].as_str().unwrap().contains("2a2a"));
+    assert_eq!(
+        p["write"]["command"],
+        json!(
+            "sas create skills/<name>/skill.json --concrete urn:agents-skills-creator:skill:v1 --value <JSON>"
+        )
+    );
+    assert_eq!(files.read("skills/s/skill.json").unwrap(), before);
+    assert_eq!(
+        new_like_procedure(None, None, &files).unwrap_err().code,
+        "usage"
+    );
+    assert_eq!(
+        new_like_procedure(Some("skills/none"), None, &files)
+            .unwrap_err()
+            .code,
+        "not_found"
+    );
+}
+
+#[test]
+fn confirm_tells_the_differences_from_the_same_shape() {
+    let files = Files::with("skills/s/skill.json", &skill());
+    let mut t = skill();
+    t["name"] = json!("t");
+    t["purpose"]["when"] = json!("別の分野で書くとき");
+    t["steps"][0]["do"] = json!("取って直す");
+    t["same_shape_as"] = json!("s");
+    files
+        .0
+        .borrow_mut()
+        .insert("skills/t/skill.json".to_string(), t.to_string());
+    let c = confirm(Some("skills/t"), &files).unwrap();
+    let same = c.same_shape.unwrap();
+    assert!(same.found);
+    let rows: Vec<(&str, &str, bool)> = same
+        .differences
+        .iter()
+        .map(|d| (d.field.as_str(), d.change, d.answered))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            ("/purpose/when", "differs", true),
+            ("/name", "differs", true),
+            ("/steps/0", "differs", false)
+        ]
+    );
+    let rule = c.guesses.iter().find(|g| g.field == "/rules/0").unwrap();
+    assert_eq!(rule.from, "元の Skill（same_shape_as：s）から");
 }

@@ -52,6 +52,12 @@ pub trait SkillFiles {
     /// 親フォルダを読めないとき。
     fn siblings(&self, folder: &str) -> Result<Vec<String>, String>;
 
+    /// フォルダの中にあるフォルダの経路（経路の順）。
+    ///
+    /// # Errors
+    /// フォルダを読めないとき。
+    fn folders(&self, place: &str) -> Result<Vec<String>, String>;
+
     /// フォルダの中にある、先の無いシンボリックリンクの経路（経路の順。リンクの先のフォルダの中へは降りない）。
     ///
     /// # Errors

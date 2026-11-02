@@ -26,9 +26,71 @@
     "error"
    ]
   },
+  "like": {
+   "title": "同じ形の元",
+   "description": "new --like のときだけ。元の Skill（folder ・ name）と、項目ごとの扱い：元の値のまま使う所（keep。所と値）・ 作る人に聞く所（ask）・ 新しい答えから作り直す所（derive）。どの項目がどれになるかは、項目が何によって決まるか（目的の種類 ・ 役割 ・ 手順 ・ 決まりか、分野と場面か、原典と知見か）で決まる",
+   "x-prompt": {
+    "meaning": "keep の値は書き換えずに使い、ask だけを聞き、derive は新しい答えから作り直す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "object",
+   "required": [
+    "folder",
+    "name",
+    "keep",
+    "ask",
+    "derive"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "folder": {
+     "type": "string",
+     "description": "元の Skill のフォルダ"
+    },
+    "name": {
+     "type": "string",
+     "description": "元の Skill の name（書く値の same_shape_as に入れる）"
+    },
+    "keep": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "field",
+       "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "field": {
+        "type": "string",
+        "description": "skill.json の中の所（JSON Pointer）"
+       },
+       "value": {
+        "description": "元の Skill の値"
+       }
+      }
+     }
+    },
+    "ask": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "作る人に聞く所（JSON Pointer）"
+    },
+    "derive": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "新しい答えから作り直す所（JSON Pointer）"
+    }
+   }
+  },
   "questions": {
    "title": "問いの並び",
-   "description": "作る人に聞く問い（問1〜問3 と、条件つきの資料の問い q4）。1往復に1問ずつ、この順に聞く。どの問いも「分からない」を選べる",
+   "description": "作る人に聞く問い（問1〜問3 と、条件つきの資料の問い q4。new --like では、同じ形かを確かめる q0 ・ 場面の q1 ・ 資料の q4）。1往復に1問ずつ、この順に聞く。どの問いも「分からない」を選べる",
    "x-prompt": {
     "meaning": "順に聞き、答えを fills の所に入れる。",
     "when": "結果を受け取ったときに読む。",
@@ -138,6 +200,36 @@
     "type": "string"
    }
   },
+  "existing": {
+   "title": "置き場所にある Skill",
+   "description": "ふつうの new で置き場所を渡したとき、そこにある Skill（skill.json を読めるフォルダ）の folder ・ name ・ description。同じ形の Skill に気づいたら示して選ばせる（UC1 の拡張 4a）",
+   "x-prompt": {
+    "meaning": "問いの答えと目的の種類 ・ 役割 ・ 手順が同じ Skill を探す。",
+    "when": "問1〜問3 の答えを受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "folder",
+     "name",
+     "description"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "folder": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     }
+    }
+   }
+  },
   "code": {
    "title": "断った理由の名前",
    "description": "usage は使い方の誤り、not_found は skill.json を読めない、invalid_input は skill.json が JSON でない",
@@ -203,6 +295,7 @@
    "properties": {
     "id": {
      "enum": [
+      "q0",
       "q1",
       "q2",
       "q3",
@@ -244,9 +337,10 @@
     "source": {
      "enum": [
       "answer",
-      "derive"
+      "derive",
+      "keep"
      ],
-     "description": "answer は作る人の答えから入れる、derive は AI が答えから導く（確認で推測として出る）"
+     "description": "answer は作る人の答えから入れる、derive は AI が答えから導く（確認で推測として出る）、keep は同じ形の元の Skill の値をそのまま使う（new --like）"
     },
     "from": {
      "type": "string",

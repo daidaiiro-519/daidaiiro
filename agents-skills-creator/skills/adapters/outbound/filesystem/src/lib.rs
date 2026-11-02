@@ -87,6 +87,20 @@ impl SkillFiles for WorkingTree {
         Ok(out)
     }
 
+    fn folders(&self, place: &str) -> Result<Vec<String>, String> {
+        let place = place.trim_end_matches('/');
+        let dir = self.root.join(place);
+        let entries = std::fs::read_dir(&dir).map_err(|e| format!("{place} を読めない：{e}"))?;
+        let mut out: Vec<String> = entries
+            .filter_map(Result::ok)
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| dir.join(n).is_dir())
+            .map(|n| join(place, &n))
+            .collect();
+        out.sort();
+        Ok(out)
+    }
+
     fn dangling_links(&self, folder: &str) -> Result<Vec<String>, String> {
         let mut out = Vec::new();
         walk(&self.root.join(folder), folder, &mut out)?;

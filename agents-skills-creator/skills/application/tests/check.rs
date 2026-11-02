@@ -43,6 +43,9 @@ impl SkillFiles for Files {
             .cloned()
             .ok_or_else(|| format!("{path} が無い"))
     }
+    fn folders(&self, _: &str) -> Result<Vec<String>, String> {
+        Ok(Vec::new())
+    }
     fn siblings(&self, folder: &str) -> Result<Vec<String>, String> {
         let (parent, _) = folder.rsplit_once('/').unwrap_or(("", folder));
         let mut out: Vec<String> = self

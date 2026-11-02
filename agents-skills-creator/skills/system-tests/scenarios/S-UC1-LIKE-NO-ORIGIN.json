@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-LIKE-NO-ORIGIN",
+ "name": "元の Skill が無い",
+ "title": "same_shape_as の元の Skill が無い所でも、confirm と build は使え、confirm は元が見つからない（found が false）と出す",
+ "why": "配った Skill は元の Skill と一緒に配られるとは限らない。元が無いと使えないなら、単独で成り立たない。",
+ "traces": [
+  "UC1:成功時保証",
+  "約束:confirm"
+ ],
+ "given": {
+  "files": {
+   "skills/usecase-advisor/skill.json": "@fixtures/usecase-advisor/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "confirm",
+   "skills/usecase-advisor"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "build",
+    "skills/usecase-advisor"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/same_shape/name",
+   "equals": "ddd-advisor"
+  },
+  {
+   "of": "when",
+   "pointer": "/same_shape/found",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "pointer": "/same_shape/differences",
+   "count": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/guesses",
+   "lacks": "元の Skill"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "file": "skills/usecase-advisor/SKILL.md",
+   "of": "after[0]",
+   "lacks": "ddd-advisor"
+  }
+ ]
+}

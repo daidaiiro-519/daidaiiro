@@ -1,0 +1,159 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 6,
+ "date": "2026-11-03",
+ "summary": "UC1 の拡張「既にある Skill と同じ形で作る」（2a ・ 2a1a ・ 2a2a ・ 4a）を、新しいファイルの形もコマンドも足さずに作った。new --like は元の skill.json を読み、同じ形の Skill の間で同じになる項目を元の値のまま既定にし、分野と場面 ・ 原典と知見で変わる所だけを聞く。confirm は元の Skill を示し、元と違う所を、作る人が答えた所かと一緒に返す。build は same_shape_as を SKILL.md に出さない",
+ "usecases": [
+  "UC1"
+ ],
+ "factchecks": [
+  {
+   "item": "Concrete に same_shape_as がある",
+   "evidence": [
+    "published-language/v1/skill.schema.json の properties.same_shape_as（title「同じ形の元」、pattern ^[a-z0-9]+(-[a-z0-9]+)*$。sas update で足されたもの。このステップでは変えていない）",
+    "実地：場面 S-UC1-LIKE-WRITE で、same_shape_as を持つ値を sas create が受け付けた（終了コード 0）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "同じ形の2つの Skill は、作る人が答えた所でだけ違う",
+   "evidence": [
+    "実地：trial/skills/ddd-advisor と usecase-advisor の skill.json の違いは name ・ purpose.when ・ description ・ examples の場面 ・ references の holds だけ（diff）。同じ組を fixtures にした場面 S-UC1-LIKE-WRITE で、confirm の違う所がどれも answered になった"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作る：同じ形で作る手順（use_cases/new.rs の new_like_procedure）",
+   "steps": [
+    "--like のフォルダの skill.json を読む（読めなければ not_found、フォルダが無ければ usage）",
+    "項目ごとに、domain の表（derivation の Basis）で扱いを決める：Shape は元の値のまま（like.keep に所と値）、Domain のうち作る人の答えから入れる所は聞く、答えから導く所は新しい答えから作り直す、Material は聞く",
+    "問いを q0（同じ形か。違えば 2a1a で3問へ戻る）・ q1（この分野の場面）・ q4（元の資料に当たる資料。元に無い資料は足して確認で示す 2a2a）の3つにする",
+    "compose の keep の項目の source を keep にし、same_shape_as を問0 の答えにする",
+    "書くコマンドと、そのあとの build → check → confirm を返す。置き場所を渡さなければ元の Skill と同じ置き場所"
+   ],
+   "rules": [
+    "同じ形の Skill の間で同じになる項目は、元の値を書き換えない",
+    "聞く所と作り直す所は domain の1つの表から決め、手続きに写さない",
+    "元の Skill には何も書かない（最低保証）"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：同じ形に気づく（new の existing）",
+   "steps": [
+    "置き場所のフォルダを読み、skill.json を読めるフォルダの folder ・ name ・ description を existing に並べる",
+    "問いの答えが existing のどれかと同じ形なら、示して選ばせ、new --like に移る、と constraints に書く"
+   ],
+   "rules": [
+    "同じ形かを判定するのは打ったセッションで、作る人が同意する（BR7）。creator は材料を返すだけ"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：確認で元との違いを返す（use_cases/confirm.rs）",
+   "steps": [
+    "same_shape_as があれば、同じ置き場所の同じ名前のフォルダの skill.json を読む",
+    "purpose は欄ごと、ほかは根の項目ごとに比べ、配列は件ごとに比べて differs ・ added ・ removed を出す",
+    "違う所ごとに、domain の表で Shape でなければ answered を true にする",
+    "推測の一覧で、元と同じ値の件の from を「元の Skill（same_shape_as：<name>）から」にする",
+    "元が読めなければ found を false にし、ほかの確認は同じに返す"
+   ],
+   "rules": [
+    "作る人が答えていない所で元と違えば、answered が false の行として見える（成功時保証「作る人が答えた所でだけ元と違う」を確かめる材料）",
+    "元の Skill が無くても確認と build はできる（成功時保証「元が無くても使える」）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "項目が何によって決まるか（Shape ・ Domain ・ Material）",
+   "became": "service",
+   "why": "同じ形で作る手順（new --like）と、元との違いの見分け（confirm）が同じ理由（用語「同じ形」の定義）で変わる。既にある derivation の表に列を足し、basis ・ basis_at で引く"
+  },
+  {
+   "what": "元との違いの比べ方（項目ごと ・ 件ごと）",
+   "became": "script",
+   "why": "confirm でしか使わない"
+  },
+  {
+   "what": "置き場所にある Skill の一覧（existing）",
+   "became": "script",
+   "why": "new でしか使わない。check の name-unique の兄弟の読み方とは、読む範囲が違う（ポート SkillFiles に folders を足した）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "用語「同じ形」：目的の種類 ・ 役割 ・ 手順 ・ 決まりが同じで、分野と原典 ・ 知見だけが違う",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "derivation の表の Basis にそのまま写した（Shape ＝ 目的の種類 ・ 役割 ・ 手順 ・ 決まり、Domain ＝ 分野と場面、Material ＝ 原典と知見）"
+  },
+  {
+   "item": "新しいファイルの形とコマンドを足さない",
+   "result": "match",
+   "fixed": "none",
+   "note": "new に --like を足し、new-procedure と confirm の形に欄（like ・ existing ・ same_shape と、q0 ・ source の keep）を足しただけ。形の版は変えていない"
+  },
+  {
+   "item": "拡張の番号 2a1a ・ 2a2a",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "場面と突き合わせの表の形の pattern が、拡張の番号を1段（2a）までしか受け付けなかった。2段以上（2a1a）も受け付けるようにした"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "同じ形",
+   "seen": "same_shape_as と confirm の same_shape",
+   "drift": "「同じ形」は、目的の種類 ・ 役割 ・ 手順 ・ 決まりが同じこと。項目の値がすべて同じことではない（description ・ examples は同じ形でも変わる）"
+  },
+  {
+   "term": "keep",
+   "seen": "new-procedure の source",
+   "drift": "answer（作る人の答え）でも derive（推測）でもなく、元の Skill の値。confirm では推測の一覧に「元の Skill から」として出る"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "domain の derivation",
+    "before": "項目と、何から導くかの表",
+    "after": "表に Basis の列を足し、作る人の答えの項目（ANSWERS）も同じ列で持つ。basis ・ basis_at を足した",
+    "why": "同じ形で作る手順と、元との違いの見分けが同じ表を使うため"
+   },
+   {
+    "what": "ポート SkillFiles",
+    "before": "exists ・ read ・ siblings ・ dangling_links",
+    "after": "folders を足した",
+    "why": "new が置き場所にある Skill を並べるため（4a）"
+   },
+   {
+    "what": "CLI",
+    "before": "new [<置き場所>]",
+    "after": "new --like <フォルダ> [<置き場所>] を足した",
+    "why": "既にある Skill と同じ形で作る手順を返すため（2a）"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "new-procedure（q1〜q4、source は answer ・ derive）・ confirm",
+    "after": "new-procedure に like ・ existing ・ q0 ・ source keep、confirm に same_shape を足した",
+    "why": "同じ形の手順と、元との違いを返すため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "examples の id を元と同じ並びに保つことの検査",
+    "why": "rules ・ edge_cases ・ completion_criteria が指す例の id が残ることは、手順（q1 の how）で求めるだけ。外れた id は SAS の検証か check で見つける形が要るかを、外れが出たときに決める"
+   },
+   {
+    "what": "check（UC4）で same_shape_as の元の Skill を見ること",
+    "why": "元が無くても使える Skill なので、元が無いことは違反にしない。同じ形の Skill をまとめて直す場面（UC3）で要るかを決める"
+   },
+   {
+    "what": "配列の並び替えを見分けること",
+    "why": "違いは同じ番号の件と比べるので、並びを変えると differs に見える。並びを変えるのも答えていない所での違いなので、いまはそのまま示す"
+   }
+  ]
+ }
+}

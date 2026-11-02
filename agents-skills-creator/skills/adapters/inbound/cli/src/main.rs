@@ -1,6 +1,6 @@
 //! agents-skills-creator コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
-//! コマンド：new（UC1 作る手順を返す）・ build（skill.json から SKILL.md を作る）・ confirm（確認の1画面の材料を返す）・
+//! コマンド：new（UC1 作る手順を返す。--like で既にある Skill と同じ形で作る手順）・ build（skill.json から SKILL.md を作る）・ confirm（確認の1画面の材料を返す）・
 //! check（UC4 確かめる、Skill だけ）。creator は AI を起動せず、skill.json を書かない（SAS が書く）。
 //! 終了コード：0 = 正常（check は検出が無い）／ 1 = check で検出がある、sas を呼べない、skill.json を読めない ／ 2 = 使い方の誤り。
 
@@ -14,11 +14,12 @@ use skills_application::use_cases::Refused;
 use skills_application::use_cases::build::build;
 use skills_application::use_cases::check::check;
 use skills_application::use_cases::confirm::confirm;
-use skills_application::use_cases::new::{PROCEDURE, new_procedure};
+use skills_application::use_cases::new::{PROCEDURE, new_like_procedure, new_procedure};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 const USAGE: &str = "使い方：agents-skills-creator new [<Skill の置き場所>] ／ \
+agents-skills-creator new --like <同じ形にする Skill のフォルダ> [<Skill の置き場所>] ／ \
 agents-skills-creator build <Skill のフォルダ> ／ \
 agents-skills-creator confirm <Skill のフォルダ> ／ \
 agents-skills-creator check <Skill のフォルダ>...";
@@ -118,11 +119,30 @@ fn one(args: &[String], schema: &str) -> Result<Option<String>, ExitCode> {
 }
 
 fn run_new(args: &[String]) -> ExitCode {
+    let tree = WorkingTree::new(PathBuf::from("."));
+    if args.first().map(String::as_str) == Some("--like") {
+        // --like <フォルダ> [<置き場所>]。フォルダが無ければ使い方の誤り
+        let (like, rest) = match args.get(1) {
+            Some(f) if !f.starts_with("--") => (Some(f.as_str()), &args[2..]),
+            _ => (None, &args[1..]),
+        };
+        let place = match one(rest, PROCEDURE) {
+            Ok(p) => p,
+            Err(code) => return code,
+        };
+        return match new_like_procedure(like, place.as_deref(), &tree) {
+            Ok(p) => {
+                output::print_procedure(&p);
+                ExitCode::SUCCESS
+            }
+            Err(r) => refuse(PROCEDURE, &r),
+        };
+    }
     let place = match one(args, PROCEDURE) {
         Ok(p) => p,
         Err(code) => return code,
     };
-    output::print_procedure(&new_procedure(place.as_deref()));
+    output::print_procedure(&new_procedure(place.as_deref(), &tree));
     ExitCode::SUCCESS
 }
 

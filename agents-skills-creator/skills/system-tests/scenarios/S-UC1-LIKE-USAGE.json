@@ -1,0 +1,49 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-LIKE-USAGE",
+ "name": "同じ形の使い方の誤り",
+ "title": "new --like にフォルダを渡さないと使い方の誤り（終了コード 2）、skill.json の無いフォルダを渡すと not_found（終了コード 1）を返し、何も書かない",
+ "why": "元を読めないまま手順を返すと、元の値の無い手順で作り始めてしまう。",
+ "traces": [
+  "UC1:最低保証",
+  "約束:new-procedure"
+ ],
+ "given": {
+  "files": {}
+ },
+ "when": {
+  "args": [
+   "new",
+   "--like"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "new",
+    "--like",
+    "skills/none"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "not_found"
+  }
+ ]
+}

@@ -104,6 +104,14 @@ pub fn print_confirmation(c: &Confirmation) {
         "approvable": c.not_approvable.is_empty(),
         "delegate": delegate,
     });
+    if let Some(s) = &c.same_shape {
+        out["same_shape"] = json!({
+            "name": s.name,
+            "folder": s.folder,
+            "found": s.found,
+            "differences": s.differences.iter().map(|d| json!({"field": d.field, "change": d.change, "content": d.content, "answered": d.answered})).collect::<Vec<_>>(),
+        });
+    }
     if !c.not_approvable.is_empty() {
         out["not_approvable"] = json!(c.not_approvable);
     }
