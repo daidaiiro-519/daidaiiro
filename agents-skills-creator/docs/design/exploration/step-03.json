@@ -1,0 +1,171 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 3,
+ "date": "2026-11-03",
+ "summary": "ddd-advisor を作る体験で、手順が読む知見が Skill のどこにも無く根拠を記憶から推定したので、Concrete に足した references（参照する資料）を、build（SKILL.md の参照する資料の節と手順の行）・ check（references-exist）・ new（資料の問い）・ derivation ・ confirm（構造と推測の一覧）に通した。保証と場面の突き合わせの表 trace.json を置いた",
+ "usecases": [
+  "UC1",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "references の無い Skill の SKILL.md は変わらない",
+   "evidence": [
+    "場面 S-UC1-BUILD：fact-check の SKILL.md が試験の具体とバイト列まで同じで、参照する資料の節が無い"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Concrete の references の形（name ・ path ・ holds ・ form ・ read_by ・ from、path はフォルダの外を指さない）",
+   "evidence": [
+    "skills/published-language/v1/skill.schema.json の properties/references（sas update で足されたもの。このステップでは変えていない）",
+    "場面 S-UC4-REFERENCES-MISSING：../ で始まる path は SAS の形の検査でも外れる（sas_exit 1）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作る：SKILL.md に参照する資料を出す（skills-domain の skill_md::render）",
+   "steps": [
+    "「入力と出力」の次に「参照する資料」の節を置き、1件を「- 名前（置き場所）：中身。形。手順 n で読む」の1行にする（中身と形の末尾の句点は重ねない。読むステップが複数なら n ・ m）",
+    "手順の各行に、read_by にそのステップの番号を持つ資料の名前を「（読む資料：名前）」として添え、そのあとに完了条件を書く",
+    "references が無い Skill では、節も手順の添え書きも出さない"
+   ],
+   "rules": [
+    "Skill に従う AI が、どのステップでどの資料を読むかを SKILL.md から読める",
+    "資料を持たない Skill の SKILL.md は、資料を足す前と同じ"
+   ]
+  },
+  {
+   "usecase": "UC4 確かめる：参照する資料がある（use_cases/check.rs の references_exist）",
+   "steps": [
+    "skill.json の references を読む。無ければ verified を1件",
+    "資料ごとに：path が空 ・ / で始まる ・ .. を含むなら violated（フォルダの外を指す）。そうでなければ <フォルダ>/<path> があるかを見て、無ければ violated、あれば verified"
+   ],
+   "rules": [
+    "参照する資料は、Skill のフォルダの中にある（配った先に一緒に届く）",
+    "資料ごとに結果を返す"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：資料の問い（use_cases/new.rs の q4）",
+   "steps": [
+    "問1 の答えの役割（does）に、資料 ・ 原典 ・ 知見に基づく仕事が入るときだけ、問3 のあとに「元にする資料は何か（名前と、手元の置き場所）」を1問聞く",
+    "答えの資料を Skill のフォルダの中に置き、references の1件に name ・ path を入れ、holds ・ form ・ read_by は steps から導き、from を「資料の問いの答え」にする"
+   ],
+   "rules": [
+    "資料の問いは、役割が資料に基づくときだけ聞く（聞くかどうかは手順を受け取ったセッションが決める）",
+    "references は、資料の問いの答えから入れる（値を組む決まりでは answer）"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：確認（use_cases/confirm.rs）",
+   "steps": [
+    "構造に references を足す",
+    "推測の一覧で、参照する資料を手順のあとに並べ、from が「資料の問いの答え」の件は答えとして出さない"
+   ],
+   "rules": [
+    "件ごとに from を持つ所（受け持たないこと ・ 参照する資料）だけ、from が作る人の答えの件を答えとみなす。完了条件の from「問2 の答え」は、答えから導いたものなので推測のまま"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "作る人の答えを指す from の一覧（問1〜問3 ・ 資料の問い）と、その見分け",
+   "became": "service",
+   "why": "confirm（推測にしない件）と new（from に入れる値）が同じ語を使い、資料の問いのように答えの種類が増えると一緒に変わる。domain の derivation に ANSWERED_FROM と is_answer として置いた"
+  },
+  {
+   "what": "項目ごとに何から導くかの表（references を足した）",
+   "became": "service",
+   "why": "ステップ2 で引き上げた derivation のまま、references の行を足した。new と confirm の両方がこの1つの表を引く"
+  },
+  {
+   "what": "資料がフォルダの中にあるかの見分け（.. ・ / で始まる）",
+   "became": "script",
+   "why": "check でしか使わない。配布（UC5）でもフォルダの外を指すものを見るので、そのとき引き上げを見直す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "アドバイザーは、形が同じで references の値だけが違う Skill（利用者の言葉）",
+   "result": "match",
+   "fixed": "none",
+   "note": "SKILL.md の形は1つのままで、references の値が節と手順の添え書きに出る。資料を持たない Skill の SKILL.md は変わらない"
+  },
+  {
+   "item": "作る人に聞くのは3問と別の場面2つだけ",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "役割が資料 ・ 原典 ・ 知見に基づくときは、4問目として資料の問いを聞く。聞かないと、Skill に従う AI が根拠を記憶から推定する（ddd-advisor を作る体験で起きた）"
+  },
+  {
+   "item": "答えたのは purpose と role だけ",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "資料の問いの答え（references）も答えとみなす。値を組む決まりでは references を answer にし、推測の一覧では from が「資料の問いの答え」の件を出さない"
+  },
+  {
+   "item": "trace.json（保証と場面の突き合わせ）を置く時期",
+   "result": "match",
+   "fixed": "none",
+   "note": "ステップ2 で決めたとおり、このステップで置いた。範囲は UC1 ・ UC4 の保証と、公開された言葉5つの約束。まだ確かめていない変形2つ（例を別の会話で動かす ・ 意味の判定）は untested.json に理由と一緒に置いた"
+  },
+  {
+   "item": "UC4 の creator の検査",
+   "result": "match",
+   "fixed": "none",
+   "note": "references-exist を5つ目に足した。資料ごとに1件を返すので、creator の結果の件数は資料の数で変わる"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "資料 ・ 原典 ・ 知見",
+   "seen": "資料の問いの条件と references の説明",
+   "drift": "利用者の言葉では「知見」、Concrete では「参照する資料（references）」と「判断のもとになる知見」、資料の問いでは「元にする資料」。同じ物を3つの語で呼んでいる"
+  },
+  {
+   "term": "答え",
+   "seen": "推測の一覧",
+   "drift": "項目の単位（purpose ・ role ・ references が答え）と、件の単位（from が答えを指す件）が混ざる。完了条件は from が「問2 の答え」でも推測のまま"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "公開された言葉",
+    "before": "check-result の検査は4つ、confirm の構造に資料が無い、new の問いは3つ",
+    "after": "check-result に references-exist、confirm の構造に references、new-procedure の問いに q4（条件 when つき）を足した",
+    "why": "Concrete に足した references を、出力の形にも通した"
+   },
+   {
+    "what": "場面と試験",
+    "before": "場面17本、保証と場面の突き合わせの表が無い",
+    "after": "場面21本。system-tests/trace.json ・ untested.json と、test-support の trace.rs（SAS の同じ試験を写し、公開された言葉5つの約束と、範囲にあるユースケースの保証を確かめる）を置いた。場面の期待に lacks を足した",
+    "why": "2つ目のユースケースを足したので、保証と場面の対応を数えられるようにした"
+   },
+   {
+    "what": "domain の derivation",
+    "before": "項目ごとに何から導くかの表",
+    "after": "references の行と、作る人の答えを指す from の一覧（ANSWERED_FROM ・ is_answer）を足した",
+    "why": "confirm と new が同じ語で答えを見分けるため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "資料そのものの形の検査（criteria.schema.json などに従うか）",
+    "why": "資料の形は Skill ごとに違う。SAS に資料の Concrete を置いて検証するかは、アドバイザーを2つ目に作るときに決める"
+   },
+   {
+    "what": "read_by の番号が steps にあるかの検査",
+    "why": "Concrete の rule reference-read-by-step（SAS の意味の判定）が持つ。機械で確かめるかは決めていない"
+   },
+   {
+    "what": "試験の具体としての ddd-advisor",
+    "why": "trial/ はコミットしない場所なので、場面は fact-check に references を足したものをその場で作って確かめた"
+   }
+  ]
+ }
+}

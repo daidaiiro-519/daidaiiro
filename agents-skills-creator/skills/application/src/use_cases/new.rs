@@ -1,9 +1,10 @@
 //! UC1 作るの new：Skill を新しく作る手順を返す。creator は AI を起動しないので、打ったセッションがこの手順で作る人に
-//! 問1〜問3 を1往復に1問ずつ聞き、別の場面2つに「同じ ・ 違う」を聞き、答えから skill.json の値を組んで SAS に書かせ、
+//! 問1〜問3（役割が資料に基づくときは資料の問いも）を1往復に1問ずつ聞き、別の場面2つに「同じ ・ 違う」を聞き、答えから skill.json の値を組んで SAS に書かせ、
 //! build → check → confirm を打つ。何も書かない。
 //!
 //! 値を組む決まりは、Concrete（published-language/v1/skill.schema.json）の項目ごとの説明 ・ 読み方 ・ rule を写す。
-//! 作る人の答えから入れるのは purpose と role だけで、ほかは導く（confirm で推測として見せる）。
+//! 作る人の答えから入れるのは purpose と role（と、資料の問いに答えたときの references）だけで、ほかは導く
+//! （confirm で推測として見せる）。
 
 use crate::use_cases::confirm::UNKNOWN;
 use serde_json::{Value, json};
@@ -25,6 +26,11 @@ fn source(field: &str) -> (&'static str, &'static str) {
         "role" => (
             "answer",
             "問1（does）と問3（does_not。AI が挙げた隣の仕事の候補から選んだもの）の答え",
+        ),
+        // 参照する資料は、資料の問いの答え（名前と置き場所）から入れる
+        "references" => (
+            "answer",
+            derived_from("references").unwrap_or("資料の問いの答えから"),
         ),
         other => (
             "derive",
@@ -90,7 +96,12 @@ pub fn new_procedure(place: Option<&str>) -> Value {
             {"id": "q3",
              "ask": "似ているけれど、させないことを選んでください。",
              "fills": ["/role/does_not"],
-             "how": "AI が、取り違えやすい隣の仕事の候補を3つほど挙げ、作る人が選ぶ。選んだものを does_not に入れ、from を「問3 の答え」にする"}
+             "how": "AI が、取り違えやすい隣の仕事の候補を3つほど挙げ、作る人が選ぶ。選んだものを does_not に入れ、from を「問3 の答え」にする"},
+            {"id": "q4",
+             "ask": "元にする資料は何ですか（名前と、手元の置き場所）。",
+             "fills": ["/references"],
+             "when": "問1 の答えの役割（does）に、資料 ・ 原典 ・ 知見に基づく仕事が入るときだけ、問3 のあとに聞く。入らなければ聞かず、references を書かない",
+             "how": "答えの資料を Skill のフォルダの中（references/ など）に置き、references の1件に name ・ path（Skill のフォルダからの相対）を入れ、holds ・ form ・ read_by（読むステップの番号）は steps から導き、from を「資料の問いの答え」にする"}
         ],
         "scenes": {
             "count": 2,

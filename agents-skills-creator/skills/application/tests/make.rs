@@ -126,7 +126,7 @@ fn an_unknown_purpose_comes_first_and_cannot_be_approved() {
 }
 
 #[test]
-fn the_procedure_copies_the_rules_of_the_concrete_and_answers_only_purpose_and_role() {
+fn the_procedure_copies_the_rules_of_the_concrete_and_answers_purpose_role_and_references() {
     let p = new_procedure(Some("skills/"));
     let compose = p["compose"].as_array().unwrap();
     let answered: Vec<&str> = compose
@@ -134,7 +134,7 @@ fn the_procedure_copies_the_rules_of_the_concrete_and_answers_only_purpose_and_r
         .filter(|f| f["source"] == "answer")
         .map(|f| f["field"].as_str().unwrap())
         .collect();
-    assert_eq!(answered, ["/purpose", "/role"]);
+    assert_eq!(answered, ["/purpose", "/role", "/references"]);
     let purpose = compose.iter().find(|f| f["field"] == "/purpose").unwrap();
     assert_eq!(purpose["rules"][0]["id"], json!("purpose-standalone"));
     assert_eq!(
@@ -147,4 +147,22 @@ fn the_procedure_copies_the_rules_of_the_concrete_and_answers_only_purpose_and_r
             "sas create <Skill の置き場所>/<name>/skill.json --concrete urn:agents-skills-creator:skill:v1 --value <JSON>"
         )
     );
+}
+
+#[test]
+fn answered_references_are_not_guesses_and_the_reference_question_is_asked_only_when_needed() {
+    let mut v = skill();
+    v["references"] = json!([
+        {"name": "判断基準", "path": "references/c.json", "holds": "h", "form": "JSON", "read_by": [1], "from": "資料の問いの答え"},
+        {"name": "用語集", "path": "references/t.json", "holds": "h", "form": "JSON", "read_by": [1], "from": "AI が足した"}]);
+    let files = Files::with("skills/s/skill.json", &v);
+    let c = confirm(Some("skills/s"), &files).unwrap();
+    let fields: Vec<&str> = c.guesses.iter().map(|g| g.field.as_str()).collect();
+    assert!(fields.contains(&"/references/1"));
+    assert!(!fields.contains(&"/references/0"));
+    // 完了条件は from が「問2 の答え」でも、答えから導いたものなので推測のまま
+    assert!(fields.contains(&"/completion_criteria/0"));
+    let q4 = &new_procedure(None)["questions"][3];
+    assert_eq!(q4["id"], json!("q4"));
+    assert!(q4["when"].as_str().unwrap().contains("資料"));
 }

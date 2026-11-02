@@ -110,7 +110,8 @@ fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
             ("name-is-folder", Outcome::Verified),
             ("name-unique", Outcome::Verified),
             ("links-resolve", Outcome::Verified),
-            ("skill-md-built", Outcome::Verified)
+            ("skill-md-built", Outcome::Verified),
+            ("references-exist", Outcome::Verified)
         ]
     );
     // SAS には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
@@ -174,7 +175,8 @@ fn dangling_links_and_a_missing_folder_are_reported() {
             ("name-is-folder", Outcome::Error),
             ("name-unique", Outcome::Error),
             ("links-resolve", Outcome::Violated),
-            ("skill-md-built", Outcome::Error)
+            ("skill-md-built", Outcome::Error),
+            ("references-exist", Outcome::Error)
         ]
     );
 }
@@ -225,4 +227,38 @@ fn a_stale_or_missing_skill_md_is_reported() {
     files.files.remove("skills/fact-check/SKILL.md");
     let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
     assert!(c.skills[0].creator[3].reason.contains("build"));
+}
+
+#[test]
+fn references_must_be_inside_the_folder_and_exist() {
+    let mut files = Files::default();
+    let value = json!({"$schema": "urn:agents-skills-creator:skill:v1", "name": "s", "references": [
+        {"name": "ある", "path": "references/a.json"},
+        {"name": "無い", "path": "references/b.json"},
+        {"name": "外", "path": "../shared/c.json"}]});
+    files
+        .files
+        .insert("skills/s/skill.json".to_string(), value.to_string());
+    files
+        .files
+        .insert("skills/s/SKILL.md".to_string(), skill_md::render(&value));
+    files
+        .files
+        .insert("skills/s/references/a.json".to_string(), "[]".to_string());
+    files
+        .files
+        .insert("skills/shared/c.json".to_string(), "[]".to_string());
+    let c = check(&["skills/s".to_string()], &Sas::ok(), &files).unwrap();
+    let refs: Vec<(Outcome, Option<&str>)> = c.skills[0].creator[4..]
+        .iter()
+        .map(|f| (f.outcome, f.path.as_deref()))
+        .collect();
+    assert_eq!(
+        refs,
+        [
+            (Outcome::Verified, None),
+            (Outcome::Violated, Some("skills/s/references/b.json")),
+            (Outcome::Violated, Some("skills/s/../shared/c.json"))
+        ]
+    );
 }

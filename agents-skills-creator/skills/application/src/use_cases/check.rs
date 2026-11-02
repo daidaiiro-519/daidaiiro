@@ -7,6 +7,7 @@
 //! - name-unique：同じ親フォルダにある Skill のあいだで name が重ならない（複数の Skill をまたぐ）
 //! - links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある（ファイルの外の事実）
 //! - skill-md-built：SKILL.md が、skill.json から build で作るものと同じ（AI ツールが読むのは SKILL.md）
+//! - references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（ファイルの外の事実）
 
 use crate::ports::{SasRun, SkillFiles, SkillValidator};
 pub use crate::use_cases::Refused;
@@ -233,7 +234,61 @@ fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
     }
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査4つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
+/// 参照する資料の各 path が、Skill のフォルダの中にあり、ファイルがあるか。資料が無ければ verified。
+fn references_exist(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
+    const CHECK: &str = "references-exist";
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => return vec![finding(CHECK, Outcome::Error, None, r.message)],
+    };
+    let references = skill
+        .get("references")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if references.is_empty() {
+        return vec![finding(
+            CHECK,
+            Outcome::Verified,
+            None,
+            "references が無い（参照する資料を持たない Skill）".to_string(),
+        )];
+    }
+    references
+        .iter()
+        .map(|r| {
+            let name = r.get("name").and_then(Value::as_str).unwrap_or_default();
+            let rel = r.get("path").and_then(Value::as_str).unwrap_or_default();
+            let path = format!("{}/{rel}", trimmed(folder));
+            // フォルダの外を指す経路（/ で始まる ・ .. を含む）は、配った先に一緒に届かない
+            if rel.is_empty() || rel.starts_with('/') || rel.split('/').any(|p| p == "..") {
+                return finding(
+                    CHECK,
+                    Outcome::Violated,
+                    Some(path),
+                    format!("資料 {name} の置き場所 {rel} が、Skill のフォルダの外を指す"),
+                );
+            }
+            if files.exists(&path) {
+                finding(
+                    CHECK,
+                    Outcome::Verified,
+                    None,
+                    format!("資料 {name} が {path} にある"),
+                )
+            } else {
+                finding(
+                    CHECK,
+                    Outcome::Violated,
+                    Some(path.clone()),
+                    format!("資料 {name} が {path} に無い"),
+                )
+            }
+        })
+        .collect()
+}
+
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査5つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
 ///
 /// # Errors
 /// フォルダが1つも無い（usage）・ sas を呼べない（sas_unavailable）とき。
@@ -253,6 +308,7 @@ pub fn check(
         let mut creator = name_checks(files, folder);
         creator.extend(links_resolve(files, folder));
         creator.push(skill_md_built(files, folder));
+        creator.extend(references_exist(files, folder));
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {

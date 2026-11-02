@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC1-NEW-PROCEDURE",
  "name": "作る手順を受け取る",
- "title": "new に Skill の置き場所を渡すと、問1〜問3（1往復に1問）・ 別の場面2つの出し方 ・ 答えから skill.json の値を組む決まり（Concrete の rule を含む）・ 書く sas create のコマンド ・ そのあとの build → check → confirm を返し、何も書かない",
+ "title": "new に Skill の置き場所を渡すと、問1〜問3（1往復に1問）と、役割が資料に基づくときだけ聞く資料の問い・ 別の場面2つの出し方 ・ 答えから skill.json の値を組む決まり（Concrete の rule を含む）・ 書く sas create のコマンド ・ そのあとの build → check → confirm を返し、何も書かない",
  "why": "creator は AI を起動しないので、打ったセッションが手順だけで作る人に聞き、SAS に書かせられないと、Skill を作れない。",
  "traces": [
   "UC1:成功時保証",
@@ -30,7 +30,7 @@
   {
    "of": "when",
    "pointer": "/questions",
-   "count": 3
+   "count": 4
   },
   {
    "of": "when",
@@ -96,6 +96,31 @@
    "of": "when",
    "pointer": "/then/2",
    "equals": "agents-skills-creator confirm skills/<name>"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/3/id",
+   "equals": "q4"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/3/fills/0",
+   "equals": "/references"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/3/when",
+   "contains": "資料"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/3/how",
+   "contains": "資料の問いの答え"
+  },
+  {
+   "of": "when",
+   "pointer": "/compose",
+   "contains": "/references"
   }
  ]
 }

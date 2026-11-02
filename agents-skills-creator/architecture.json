@@ -9,13 +9,13 @@
    "name": "skills-domain",
    "path": "skills/domain",
    "layer": "domain",
-   "role": "文脈 skills のドメインモデル。サービス skill_md：Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る（同じ項目からは同じ文字列）。作る（build）と確かめる（check の skill-md-built）が使う。サービス derivation：項目ごとに、作る人の答え（目的と役割）から何を導くかの1つの表。作る手順（new）と確認の推測の一覧（confirm）が使う"
+   "role": "文脈 skills のドメインモデル。サービス skill_md：Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る（同じ項目からは同じ文字列）。作る（build）と確かめる（check の skill-md-built）が使う。サービス derivation：項目ごとに、作る人の答え（目的 ・ 役割 ・ 資料の問い）から何を導くかの1つの表と、作る人の答えを指す from の見分け（is_answer）。作る手順（new）と確認の推測の一覧（confirm）が使う"
   },
   {
    "name": "skills-application",
    "path": "skills/application",
    "layer": "application",
-   "role": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs）。ポート SkillValidator（SAS で skill.json を検証する）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
+   "role": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs。creator の検査は name-is-folder ・ name-unique ・ links-resolve ・ skill-md-built ・ references-exist）。ポート SkillValidator（SAS で skill.json を検証する）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
   },
   {
    "name": "outbound-sas",
@@ -39,7 +39,7 @@
    "name": "test-support",
    "path": "skills/test-support",
    "layer": "test-support",
-   "role": "試験の部品。dev-dependencies からだけ使う。依存の向きの検査を持つ"
+   "role": "試験の部品。dev-dependencies からだけ使う。依存の向きの検査（architecture.rs）と、保証と場面の突き合わせ（trace.rs）を持つ"
   }
  ],
  "allow": [

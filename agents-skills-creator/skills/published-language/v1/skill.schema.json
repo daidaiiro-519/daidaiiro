@@ -1163,6 +1163,163 @@
      "caller"
     ]
    }
+  },
+  "references": {
+   "title": "参照する資料",
+   "description": "Skill が手順の中で読む資料の並びである。",
+   "x-prompt": {
+    "meaning": "Skill の判断のもとになる知見（原典の判断基準など）を持つファイルである。同じ形の Skill どうしで違うのは、ここの値だけになることがある（アドバイザーなど）。",
+    "when": "Skill に従って作業する AI が、read_by のステップで、資料のどこを当てるかを決めるときに読む。作る人が「元にする資料」を答えたときに書く。",
+    "rules": [
+     {
+      "id": "reference-read-by-step",
+      "rule": "read_by に挙げた番号は、steps にあるステップの番号である。",
+      "why": "読むステップに結ばない資料は、AI がいつ読めばよいか分からず、読まれないまま推測で答えられる。",
+      "check": "read_by の各番号が、steps の id にあるかを見る。",
+      "related_fields": [
+       "/steps"
+      ],
+      "bad": [
+       {
+        "value": {
+         "name": "判断基準",
+         "path": "references/criteria.json",
+         "holds": "…",
+         "form": "…",
+         "read_by": [
+          9
+         ],
+         "from": "資料の問いの答え"
+        },
+        "note": "steps に9番が無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "name": "判断基準",
+         "path": "references/criteria.json",
+         "holds": "…",
+         "form": "…",
+         "read_by": [
+          2
+         ],
+         "from": "資料の問いの答え"
+        }
+       }
+      ]
+     },
+     {
+      "id": "reference-holds-what-step-takes",
+      "rule": "holds は、読むステップが資料から何を取り出すかが分かる文である。",
+      "why": "中身が分からないと、AI は資料のどこを読めばよいかを決められない。",
+      "check": "holds に、取り出すものの単位（判断基準1件と id など）が書かれているかを見る。",
+      "bad": [
+       {
+        "value": {
+         "name": "判断基準",
+         "path": "references/criteria.json",
+         "holds": "資料",
+         "form": "JSON",
+         "read_by": [
+          2
+         ],
+         "from": "資料の問いの答え"
+        },
+        "note": "何を取り出すかが分からない。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "name": "判断基準",
+         "path": "references/criteria.json",
+         "holds": "原典が名前を付けた判断基準の並び。1件は id ・ 題 ・ 要点 ・ 原典の箇所を持つ",
+         "form": "JSON（criteria.schema.json に従う）",
+         "read_by": [
+          2
+         ],
+         "from": "資料の問いの答え"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "name",
+     "path",
+     "holds",
+     "form",
+     "read_by",
+     "from"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "title": "名前",
+      "description": "資料の名前である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "path": {
+      "title": "置き場所",
+      "description": "Skill のフォルダからの相対の置き場所である。",
+      "x-prompt": {
+       "meaning": "Skill のフォルダを起点に読む。作業フォルダ（outputs の where の起点）を起点にしない。",
+       "rules": []
+      },
+      "type": "string",
+      "pattern": "^(?!/)(?!(.*/)?\\.\\.(/|$)).+$"
+     },
+     "holds": {
+      "title": "中身",
+      "description": "資料に何が入っているかである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "form": {
+      "title": "形",
+      "description": "資料の形である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "read_by": {
+      "title": "読むステップ",
+      "description": "この資料を読むステップの番号の並びである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "minItems": 1
+     },
+     "from": {
+      "title": "出どころ",
+      "description": "作る人のどの答えから取ったかの出どころである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   }
   }
  },
  "$defs": {

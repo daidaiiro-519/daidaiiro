@@ -1,6 +1,7 @@
 //! Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る。同じ項目からは同じ文字列になる。
 //!
-//! 形：frontmatter（name ・ description、あれば compatibility）と、目的 ・ 役割 ・ 事前条件 ・ 入力と出力 ・ 手順（完了条件と例外）・
+//! 形：frontmatter（name ・ description、あれば compatibility）と、目的 ・ 役割 ・ 事前条件 ・ 入力と出力 ・ 参照する資料 ・
+//! 手順（読む資料と完了条件と例外）・
 //! 守ること ・ 最低保証 ・ 完了条件 ・ 例の節。項目に無い節は書かない。項目を足さない（skill.json にあることだけを書く）。
 
 use serde_json::Value;
@@ -131,13 +132,42 @@ pub fn render(skill: &Value) -> String {
     );
     section(&mut out, "入力と出力", &lines);
 
+    // 参照する資料：Skill に従う AI が、どのステップでどの資料を読むかを読めるように
+    let references = items(skill, "references");
+    let steps_of = |r: &Value| -> Vec<String> { items(r, "read_by").iter().map(plain).collect() };
+    let lines: Vec<String> = references
+        .iter()
+        .map(|r| {
+            format!(
+                "- {}（{}）：{}。{}。手順 {} で読む",
+                text(r, "name"),
+                text(r, "path"),
+                text(r, "holds").trim_end_matches('。'),
+                text(r, "form").trim_end_matches('。'),
+                steps_of(r).join(" ・ ")
+            )
+        })
+        .collect();
+    section(&mut out, "参照する資料", &lines);
+
     // 手順と、ステップ番号に結んだ例外（id の数字の部分がステップの番号）
     let edges = items(skill, "edge_cases");
     let mut lines = Vec::new();
     for s in items(skill, "steps") {
         let no = plain(s.get("id").unwrap_or(&Value::Null));
+        // このステップが読む資料（references の read_by にこの番号があるもの）
+        let read: Vec<&str> = references
+            .iter()
+            .filter(|r| steps_of(r).contains(&no))
+            .map(|r| text(r, "name"))
+            .collect();
+        let reads = if read.is_empty() {
+            String::new()
+        } else {
+            format!("（読む資料：{}）", read.join(" ・ "))
+        };
         lines.push(format!(
-            "{no}. {}（完了条件：{}）",
+            "{no}. {}{reads}（完了条件：{}）",
             text(s, "do"),
             text(s, "completion")
         ));
@@ -214,5 +244,19 @@ mod tests {
         assert!(a.contains("人が、書くときに、分かった状態を得る。"));
         assert!(a.contains("1. 取る（完了条件：ある）\n   - 1a 無い → 止める（止める）\n"));
         assert!(!a.contains("## 最低保証"));
+        assert!(!a.contains("## 参照する資料"));
+    }
+
+    #[test]
+    fn references_are_listed_and_named_on_the_steps_that_read_them() {
+        let skill = json!({"name": "a", "description": "d",
+                           "steps": [{"id": 1, "do": "見分ける", "completion": "ある"}, {"id": 2, "do": "読む", "completion": "読んだ"}],
+                           "references": [{"name": "判断基準", "path": "references/criteria.json", "holds": "判断基準の並び。", "form": "JSON",
+                                           "read_by": [2], "from": "資料の問いの答え"}]});
+        let a = render(&skill);
+        assert!(a.contains("## 参照する資料\n\n- 判断基準（references/criteria.json）：判断基準の並び。JSON。手順 2 で読む\n"));
+        assert!(a.contains(
+            "1. 見分ける（完了条件：ある）\n2. 読む（読む資料：判断基準）（完了条件：読んだ）\n"
+        ));
     }
 }

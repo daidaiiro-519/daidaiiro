@@ -2,13 +2,14 @@
 //! 返す。図は描かず、データだけを返す。何も書かない。
 //!
 //! 作る人が答えるのは目的（purpose）と役割（role）だけなので、それ以外の所はすべて推測とみなし、推測の一覧はそこから
-//! 機械で作る（項目を足さない）。役割の受け持たないことは、作る人の答え（問1〜問3）を from に持たない件だけを推測とする。
+//! 機械で作る（項目を足さない）。件ごとに from を持つ所（受け持たないこと ・ 参照する資料）は、作る人の答え（問1〜問3 ・
+//! 資料の問い）を from に持たない件だけを推測とする。
 //! 「分からない」と答えた所は一覧の先頭に出し、目的の who と gets が分からないままなら承認を受け付けない。
 
 use crate::ports::SkillFiles;
 use crate::use_cases::{Refused, read_skill, trimmed};
 use serde_json::Value;
-use skills_domain::services::derivation::derived_from;
+use skills_domain::services::derivation::{derived_from, is_answer};
 
 /// 作る人が答えられなかった所に入れる値。
 pub const UNKNOWN: &str = "分からない";
@@ -64,14 +65,15 @@ pub struct Confirmation {
     pub delegate: Vec<Delegate>,
 }
 
-/// 推測の一覧に並べる所（損失の大きい順）：受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → そのほか。
+/// 推測の一覧に並べる所（損失の大きい順）：受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → 参照する資料 → そのほか。
 /// 件に from も例も無いときの「何から推測したか」は、domain の1つの表（derivation）から引く。
-const ORDER: [&str; 13] = [
+const ORDER: [&str; 14] = [
     "role/does_not",
     "minimal_guarantees",
     "rules",
     "completion_criteria",
     "steps",
+    "references",
     "name",
     "description",
     "compatibility",
@@ -91,6 +93,7 @@ fn content(field: &str, v: &Value) -> String {
     match (field, v) {
         (_, Value::String(t)) => t.clone(),
         ("/role/does_not", _) => s(v, "what").to_string(),
+        ("/references", _) => format!("{}（{}）", s(v, "name"), s(v, "path")),
         ("/rules", _) => s(v, "rule").to_string(),
         ("/completion_criteria", _) => s(v, "criterion").to_string(),
         ("/steps", _) => s(v, "do").to_string(),
@@ -196,8 +199,9 @@ fn guesses(skill: &Value) -> Vec<Guess> {
             if has_unknown(x) {
                 continue;
             }
-            // 受け持たないことは、作る人の答え（問1〜問3）から取った件は推測ではない
-            if field == "/role/does_not" && s(x, "from").starts_with('問') {
+            // 受け持たないこと（role）と参照する資料は、作る人の答え（問1〜問3 ・ 資料の問い）から取った件は推測ではない。
+            // ほかの所（完了条件の from「問2 の答え」など）は、答えから導いたものなので推測のまま
+            if matches!(field, "/role/does_not" | "/references") && is_answer(s(x, "from")) {
                 continue;
             }
             out.push(Guess {
@@ -267,6 +271,7 @@ pub fn confirm(folder: Option<&str>, files: &dyn SkillFiles) -> Result<Confirmat
         ("outputs", array(&skill, "/outputs")),
         ("does", array(&skill, "/role/does")),
         ("does_not", array(&skill, "/role/does_not")),
+        ("references", array(&skill, "/references")),
     ];
     let mut not_approvable = Vec::new();
     for (pointer, label) in [

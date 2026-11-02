@@ -184,6 +184,13 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
             "{id} {label}: {pointer} に {want} が無い。{json}"
         );
     }
+    if let Some(no) = expect.get("lacks").and_then(Value::as_str) {
+        let text = got.map(Value::to_string).unwrap_or_default();
+        assert!(
+            !text.contains(no),
+            "{id} {label}: {pointer} に {no} がある。{json}"
+        );
+    }
     if let Some(want) = expect.get("count").and_then(Value::as_u64) {
         let n = got.and_then(Value::as_array).map(Vec::len);
         assert_eq!(
@@ -205,6 +212,12 @@ fn check_file(id: &str, dir: &Path, file: &str, expect: &Value) {
             .as_deref()
             .unwrap_or_else(|| panic!("{id}: {file} が無い"));
         assert!(text.contains(want), "{id}: {file} に {want} が無い。{text}");
+    }
+    if let Some(no) = expect.get("lacks").and_then(Value::as_str) {
+        let text = text
+            .as_deref()
+            .unwrap_or_else(|| panic!("{id}: {file} が無い"));
+        assert!(!text.contains(no), "{id}: {file} に {no} がある。{text}");
     }
     if let Some(want) = expect.get("same_as").and_then(Value::as_str) {
         let text = text
