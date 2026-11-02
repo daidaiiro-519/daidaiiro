@@ -1,0 +1,178 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 4,
+ "date": "2026-11-03",
+ "summary": "利用者の指摘「JSON を伴う場合は schema がいる」を受け、Concrete に足された references と outputs の schema を、check（json-schema-conforms）と build（形に schema を添える）に通した。creator の設計のファイル（architecture.json ・ trace.json ・ untested.json）にも schema を作り、$schema で指して、従うことを試験で確かめるようにした",
+ "usecases": [
+  "UC1",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "指摘「JSON を伴う場合は schema がいる」",
+   "evidence": [
+    "Concrete skill.schema.json の references と outputs の items：schema の欄があり、form が JSON で始まるときは if/then で schema が必須（sas update で足されたもの。このステップでは変えていない）",
+    "試験の具体 fact-check の outputs/0 に schema references/verify-result.schema.json と、そのファイル（fact-check verify --json の出力から書いたもの）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "試しの ddd-advisor の資料が、その schema に従う",
+   "evidence": [
+    "実地：trial/skills/ddd-advisor に check を打つと、json-schema-conforms が「資料 判断基準 が references/criteria.schema.json に従う」で verified（references/criteria.json は 677KB）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "jsonschema の版",
+   "evidence": [
+    "workspace の jsonschema =0.58.6（SAS の Cargo.lock と同じ版）。outbound-jsonschema の単体の試験で、外れた所が /items/1 のように JSON Pointer で返ることを確かめた"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 確かめる：資料と出力の schema（use_cases/check.rs の json_schema_conforms）",
+   "steps": [
+    "skill.json の references と outputs のうち schema を持つ件を順に見る（資料が先、出力があと）。schema を持つ件が無ければ verified を1件",
+    "schema が URN（urn: で始まる）なら、SAS が打った場所の中の Concrete として引けるかを sas search --concrete で見る。引けなければ violated",
+    "URN の資料は、資料の $schema がその URN であることを見てから sas validate で確かめる（終了コード 0 なら verified）",
+    "schema が置き場所なら、Skill のフォルダの中を指し、ファイルがあることを見る",
+    "置き場所の schema を持つ JSON の資料（form が JSON で始まる）は、中身をその schema に照らす（ふつうの JSON Schema。外れた所と理由を3か所まで返す）",
+    "出力は実行するまで中身が無いので、schema があるかだけを見る"
+   ],
+   "rules": [
+    "JSON を伴う資料と出力は schema を持つ（Concrete が if/then で求める）",
+    "SAS の Concrete に従う資料は SAS で確かめ、creator は別に確かめない（結果が食い違わないように）",
+    "ふつうの JSON Schema の資料は、creator がその場で確かめる",
+    "schema の置き場所も、Skill のフォルダの外を指さない"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：SKILL.md の形に schema を添える（skills-domain の skill_md）",
+   "steps": [
+    "入力と出力の行の形に「（schema：置き場所か URN）」を添える",
+    "参照する資料の行の形を「形：JSON（schema：…）」にする"
+   ],
+   "rules": [
+    "Skill に従う AI が、JSON の資料と出力の形を SKILL.md から読める"
+   ]
+  },
+  {
+   "usecase": "設計のファイルの形（test-support の files.rs）",
+   "steps": [
+    "architecture.json ・ system-tests/trace.json ・ untested.json に $schema を置き、それぞれの形（docs/design/architecture.schema.json ・ system-tests/trace.schema.json ・ untested.schema.json）の $id を指す",
+    "試験で、$schema が形の $id と同じで、中身が形に従うことを確かめる"
+   ],
+   "rules": [
+    "JSON の設計のファイルも、自分の schema を持つ（指摘を creator 自身にも当てた）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "schema が URN か置き場所かの見分けと、置き場所がフォルダの外を指すかの見分け",
+   "became": "script",
+   "why": "check でしか使わない。配布（UC5）で同じ見分けが要れば、資料の置き場所の見分けと一緒に引き上げる"
+  },
+  {
+   "what": "形に schema を添える（form_with_schema）",
+   "became": "service",
+   "evident_from_start": true,
+   "why": "SKILL.md の形の一部なので、skills-domain の skill_md に置いた"
+  },
+  {
+   "what": "JSON Schema の検査",
+   "became": "separate",
+   "why": "外のライブラリ（jsonschema）を閉じ込める出口 outbound-jsonschema として分けた。ポート JsonSchemaChecker は check が使う操作（check）だけ"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "指摘：JSON を伴う場合は schema がいる",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "Concrete に schema を足し（sas update 済み）、check と build に通した。資料は中身まで、出力は schema があるかまでを確かめる"
+  },
+  {
+   "item": "SAS は共用サービスで、変換を挟まずに従う",
+   "result": "match",
+   "fixed": "none",
+   "note": "URN の資料は sas validate、Concrete を引けるかは sas search --concrete に任せ、creator は SAS の判断をまねない"
+  },
+  {
+   "item": "ポートはモジュールごとに、使う操作だけを宣言する",
+   "result": "match",
+   "fixed": "none",
+   "note": "SkillValidator に knows_concrete を足し、JsonSchemaChecker（check だけ）を足した"
+  },
+  {
+   "item": "creator の設計のファイルの schema",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "architecture.json の形は SAS と同じ考え方で設計の置き場所（docs/design/）に、試験の側のもの（trace ・ untested）は system-tests/ に置いた"
+  },
+  {
+   "item": "SAS の側の architecture.json ・ trace.json ・ untested.json の schema",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "持ち越し。SAS の同じ3つのファイルにも schema が無い（$schema で指していない）。SAS の側を直すかは、SAS の作業として決める"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "schema",
+   "seen": "references と outputs の schema",
+   "drift": "SAS の Concrete の $id（URN）と、Skill のフォルダに置いたふつうの JSON Schema の置き場所の2つを、同じ欄で指す。前者は SAS が確かめ、後者は creator が確かめる"
+  },
+  {
+   "term": "形",
+   "seen": "form と schema",
+   "drift": "form は「JSON」のような人が読む言葉で、schema は機械で確かめる形。SKILL.md では「形：JSON（schema：…）」と並べる"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate",
+    "before": "6つ",
+    "after": "outbound-jsonschema を足して7つ",
+    "why": "ふつうの JSON Schema で資料を確かめるため（jsonschema は SAS と同じ版）"
+   },
+   {
+    "what": "ポート",
+    "before": "SkillValidator（validate）・ SkillFiles ・ GeneratedFiles",
+    "after": "SkillValidator に knows_concrete を足し、JsonSchemaChecker を足した",
+    "why": "URN の schema を SAS が引けるかと、置き場所の schema で資料を確かめるため"
+   },
+   {
+    "what": "設計のファイルの schema",
+    "before": "architecture.json ・ trace.json ・ untested.json に schema が無い",
+    "after": "docs/design/architecture.schema.json ・ skills/system-tests/trace.schema.json ・ untested.schema.json を作り、3つのファイルが $schema で指す。test-support の files.rs が従うことを確かめる",
+    "why": "指摘を creator 自身の JSON にも当てた"
+   },
+   {
+    "what": "試験の具体",
+    "before": "fact-check の SKILL.md に schema が無い",
+    "after": "fact-check の SKILL.md を build で作り直した（出力の形に schema を添えた）",
+    "why": "fixture の outputs/0 に schema が足されたため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "出力の中身が schema に従うかの検査",
+    "why": "出力は実行するまで無い。例を別の会話で動かした結果を受け取るステップで確かめる"
+   },
+   {
+    "what": "SAS の側の3つのファイルの schema",
+    "why": "持ち越し（突き合わせの表）"
+   },
+   {
+    "what": "資料の schema が別のファイルを $ref で指すときの解決",
+    "why": "いまの資料の schema（criteria.schema.json ・ verify-result.schema.json）は外を $ref で指さない。指すものが出たときに足す"
+   }
+  ]
+ }
+}

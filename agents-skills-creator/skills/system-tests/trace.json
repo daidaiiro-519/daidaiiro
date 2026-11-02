@@ -1,4 +1,5 @@
 {
+ "$schema": "urn:agents-skills-creator:system-tests:trace:v1",
  "description": "ユースケースの保証と変形を、それを確かめる場面と突き合わせる表（SAS の system-tests/trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。creator の出力が公開された言葉の形に従うことは、場面を流す試験（adapters/inbound/cli/tests/scenarios.rs）がすべての出力で照らす",
  "scope": [
   "UC1:成功時保証",
@@ -10,6 +11,7 @@
   "約束:confirm",
   "約束:new-procedure",
   "約束:skill:references",
+  "約束:skill:schema",
   "UC1:変形:例を別の会話で動かす",
   "UC4:変形:意味の判定"
  ],
@@ -37,11 +39,14 @@
   },
   {
    "id": "UC4:成功時保証",
-   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が build の出力と同じ ・ 参照する資料がある）を別の欄で返す",
+   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が build の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う）を別の欄で返す",
    "scenarios": [
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
     "S-UC4-FOLDER-LINK-BROKEN",
+    "S-UC4-JSON-SCHEMA-BROKEN",
+    "S-UC4-JSON-SCHEMA-OK",
+    "S-UC4-JSON-SCHEMA-URN",
     "S-UC4-MANY",
     "S-UC4-NAME-NOT-FOLDER",
     "S-UC4-NAME-OVERLAP",
@@ -68,6 +73,9 @@
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
     "S-UC4-FOLDER-LINK-BROKEN",
+    "S-UC4-JSON-SCHEMA-BROKEN",
+    "S-UC4-JSON-SCHEMA-OK",
+    "S-UC4-JSON-SCHEMA-URN",
     "S-UC4-NAME-NOT-FOLDER",
     "S-UC4-NAME-OVERLAP",
     "S-UC4-REFERENCES-MISSING",
@@ -113,6 +121,16 @@
     "S-UC1-CONFIRM-REFERENCES",
     "S-UC4-REFERENCES-MISSING",
     "S-UC4-REFERENCES-OK"
+   ]
+  },
+  {
+   "id": "約束:skill:schema",
+   "meaning": "skill.schema の references と outputs の schema（JSON の形なら必須）は、SKILL.md の形に添えて出し、check が schema があるか（URN なら SAS が引けるか）と、JSON の資料がそれに従うかを確かめる",
+   "scenarios": [
+    "S-UC1-BUILD-REFERENCES",
+    "S-UC4-JSON-SCHEMA-BROKEN",
+    "S-UC4-JSON-SCHEMA-OK",
+    "S-UC4-JSON-SCHEMA-URN"
    ]
   }
  ]

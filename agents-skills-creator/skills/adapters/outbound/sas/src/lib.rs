@@ -34,10 +34,11 @@ impl Sas {
     }
 }
 
-impl SkillValidator for Sas {
-    fn validate(&self, skill_json: &str) -> Result<SasRun, String> {
+impl Sas {
+    /// sas を打ち、終了コードと出力の JSON（1行なら1つ、複数の行なら行の並び）を返す。
+    fn run(&self, args: &[&str]) -> Result<SasRun, String> {
         let out = Command::new(&self.program)
-            .args(["validate", skill_json])
+            .args(args)
             .output()
             .map_err(|e| format!("{} を起動できない：{e}", self.program.display()))?;
         let stdout = String::from_utf8_lossy(&out.stdout);
@@ -63,5 +64,30 @@ impl SkillValidator for Sas {
             exit: out.status.code().unwrap_or(-1),
             output,
         })
+    }
+}
+
+impl SkillValidator for Sas {
+    fn validate(&self, skill_json: &str) -> Result<SasRun, String> {
+        self.run(&["validate", skill_json])
+    }
+
+    fn knows_concrete(&self, urn: &str) -> Result<bool, String> {
+        // その Concrete に従う文書を、範囲を Concrete にして構造で探す。SAS が Concrete を引けなければ unknown_schema で断る
+        let r = self.run(&[
+            "search",
+            "--concrete",
+            urn,
+            "--where",
+            &format!("/$schema={urn}"),
+        ])?;
+        match (
+            r.output.get("kind").and_then(Value::as_str),
+            r.output.get("code").and_then(Value::as_str),
+        ) {
+            (Some("search"), _) => Ok(true),
+            (Some("error"), Some("unknown_schema" | "schema_not_listed")) => Ok(false),
+            _ => Err(format!("sas search の結果を読めない：{}", r.output)),
+        }
     }
 }

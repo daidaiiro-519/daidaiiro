@@ -1,0 +1,113 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:design:architecture:v1",
+ "title": "crate と依存の向き",
+ "description": "ワークスペースの根の architecture.json の形。いまある crate と、その間で許す依存の向き、各 crate が使ってよい外のライブラリを持つ。test-support の architecture.rs が cargo metadata と照らす（SAS の architecture.json と同じ中身）",
+ "type": "object",
+ "required": [
+  "$schema",
+  "description",
+  "context",
+  "crates",
+  "allow",
+  "dev_only"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:design:architecture:v1"
+  },
+  "description": {
+   "type": "string",
+   "description": "このファイルが何か"
+  },
+  "context": {
+   "type": "string",
+   "description": "crate を置く文脈のフォルダ（crate の名前の決まりの起点）"
+  },
+  "context_map": {
+   "type": "string",
+   "description": "文脈の地図と関係"
+  },
+  "crate_naming": {
+   "type": "string",
+   "description": "crate の名前の決まり"
+  },
+  "modules": {
+   "type": "string",
+   "description": "モジュールとポートの決まり"
+  },
+  "crates": {
+   "type": "array",
+   "description": "ワークスペースの crate（members と一致する）",
+   "items": {
+    "type": "object",
+    "required": [
+     "name",
+     "path",
+     "layer",
+     "role"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+     },
+     "path": {
+      "type": "string"
+     },
+     "layer": {
+      "enum": [
+       "domain",
+       "application",
+       "inbound",
+       "outbound",
+       "test-support"
+      ]
+     },
+     "role": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "allow": {
+   "type": "array",
+   "description": "crate ごとに許す依存の向き（to）と、使ってよい外のライブラリ（libraries）",
+   "items": {
+    "type": "object",
+    "required": [
+     "from",
+     "to",
+     "libraries"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "from": {
+      "type": "string"
+     },
+     "to": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "libraries": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  },
+  "dev_only": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "dev-dependencies にしか現れない crate"
+  }
+ }
+}

@@ -427,6 +427,7 @@
       "title": "形",
       "description": "返すものか作るものの形である。",
       "x-prompt": {
+       "meaning": "JSON のものは JSON で始める（schema が要る）。",
        "rules": []
       },
       "type": "string",
@@ -441,8 +442,21 @@
       },
       "type": "string",
       "minLength": 1
+     },
+     "schema": {
+      "$ref": "#/$defs/schema-ref",
+      "title": "従う schema",
+      "description": "JSON の資料か出力が従う schema の名前か置き場所である。",
+      "x-prompt": {
+       "rules": []
+      }
      }
-    }
+    },
+    "allOf": [
+     {
+      "$ref": "#/$defs/json-needs-schema"
+     }
+    ]
    }
   },
   "steps": {
@@ -1291,6 +1305,7 @@
       "title": "形",
       "description": "資料の形である。",
       "x-prompt": {
+       "meaning": "JSON の資料は JSON で始める（schema が要る）。",
        "rules": []
       },
       "type": "string",
@@ -1317,8 +1332,21 @@
       },
       "type": "string",
       "minLength": 1
+     },
+     "schema": {
+      "$ref": "#/$defs/schema-ref",
+      "title": "従う schema",
+      "description": "JSON の資料か出力が従う schema の名前か置き場所である。",
+      "x-prompt": {
+       "rules": []
+      }
      }
-    }
+    },
+    "allOf": [
+     {
+      "$ref": "#/$defs/json-needs-schema"
+     }
+    ]
    }
   }
  },
@@ -1334,6 +1362,38 @@
    "description": "もとにした examples の id の並びである。",
    "x-prompt": {
     "rules": []
+   }
+  },
+  "schema-ref": {
+   "type": "string",
+   "minLength": 1,
+   "title": "従う schema",
+   "description": "JSON の資料か出力が従う schema の名前か置き場所である。",
+   "x-prompt": {
+    "meaning": "SAS の Concrete なら $id の URN、ふつうの JSON Schema なら Skill のフォルダからの置き場所として読む。",
+    "rules": []
+   }
+  },
+  "json-needs-schema": {
+   "title": "JSON なら schema が要る",
+   "description": "形が JSON で始まる件には schema の欄が要る、という条件である。",
+   "x-prompt": {
+    "rules": []
+   },
+   "if": {
+    "properties": {
+     "form": {
+      "pattern": "^JSON"
+     }
+    },
+    "required": [
+     "form"
+    ]
+   },
+   "then": {
+    "required": [
+     "schema"
+    ]
    }
   }
  }

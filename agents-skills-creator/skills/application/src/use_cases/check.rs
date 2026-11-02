@@ -8,8 +8,11 @@
 //! - links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある（ファイルの外の事実）
 //! - skill-md-built：SKILL.md が、skill.json から build で作るものと同じ（AI ツールが読むのは SKILL.md）
 //! - references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（ファイルの外の事実）
+//! - json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、
+//!   JSON の資料は中身がその schema に従う（URN なら sas validate、置き場所なら JSON Schema で確かめる）。出力は実行する
+//!   まで中身が無いので、schema があるかだけを見る
 
-use crate::ports::{SasRun, SkillFiles, SkillValidator};
+use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
 pub use crate::use_cases::Refused;
 use crate::use_cases::{read_skill, trimmed};
 use serde_json::Value;
@@ -261,7 +264,7 @@ fn references_exist(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
             let rel = r.get("path").and_then(Value::as_str).unwrap_or_default();
             let path = format!("{}/{rel}", trimmed(folder));
             // フォルダの外を指す経路（/ で始まる ・ .. を含む）は、配った先に一緒に届かない
-            if rel.is_empty() || rel.starts_with('/') || rel.split('/').any(|p| p == "..") {
+            if outside(rel) {
                 return finding(
                     CHECK,
                     Outcome::Violated,
@@ -288,7 +291,218 @@ fn references_exist(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
         .collect()
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査5つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
+/// Skill のフォルダからの経路が、フォルダの外を指すか（/ で始まる ・ .. を含む ・ 空）。
+fn outside(rel: &str) -> bool {
+    rel.is_empty() || rel.starts_with('/') || rel.split('/').any(|p| p == "..")
+}
+
+/// 参照する資料と出力のうち schema を持つ件ごとに、schema があるか、JSON の資料がそれに従うか。
+fn json_schema_conforms(
+    files: &dyn SkillFiles,
+    sas: &dyn SkillValidator,
+    schemas: &dyn JsonSchemaChecker,
+    folder: &str,
+) -> Vec<Finding> {
+    const CHECK: &str = "json-schema-conforms";
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => return vec![finding(CHECK, Outcome::Error, None, r.message)],
+    };
+    let dir = trimmed(folder);
+    let mut out = Vec::new();
+    for (field, label) in [("references", "資料"), ("outputs", "出力")] {
+        for item in skill
+            .get(field)
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            let Some(schema) = item.get("schema").and_then(Value::as_str) else {
+                continue;
+            };
+            let name = item.get("name").and_then(Value::as_str).unwrap_or_default();
+            let is_json = item
+                .get("form")
+                .and_then(Value::as_str)
+                .is_some_and(|f| f.starts_with("JSON"));
+            let content = (field == "references" && is_json)
+                .then(|| item.get("path").and_then(Value::as_str))
+                .flatten()
+                .filter(|p| !outside(p))
+                .map(|p| format!("{dir}/{p}"));
+            out.push(conforms(
+                files, sas, schemas, dir, label, name, schema, content,
+            ));
+        }
+    }
+    if out.is_empty() {
+        out.push(finding(
+            CHECK,
+            Outcome::Verified,
+            None,
+            "schema を持つ資料と出力が無い".to_string(),
+        ));
+    }
+    out
+}
+
+/// 1件の schema と、（JSON の資料なら）その中身を確かめる。content は資料の経路（出力 ・ JSON でない資料は None）。
+#[allow(clippy::too_many_arguments)]
+fn conforms(
+    files: &dyn SkillFiles,
+    sas: &dyn SkillValidator,
+    schemas: &dyn JsonSchemaChecker,
+    dir: &str,
+    label: &str,
+    name: &str,
+    schema: &str,
+    content: Option<String>,
+) -> Finding {
+    const CHECK: &str = "json-schema-conforms";
+    let bad = |path: String, reason: String| finding(CHECK, Outcome::Violated, Some(path), reason);
+    let error = |reason: String| finding(CHECK, Outcome::Error, None, reason);
+    if schema.starts_with("urn:") {
+        // SAS の Concrete：SAS が引けるか。資料なら、資料の $schema がその URN で、sas validate が通るか
+        match sas.knows_concrete(schema) {
+            Ok(true) => {}
+            Ok(false) => {
+                return bad(
+                    format!("{dir}/skill.json"),
+                    format!(
+                        "{label} {name} の schema {schema} を、SAS が打った場所の中の Concrete として引けない"
+                    ),
+                );
+            }
+            Err(e) => return error(e),
+        }
+        let Some(path) = content else {
+            return finding(
+                CHECK,
+                Outcome::Verified,
+                None,
+                format!("{label} {name} の schema {schema} を SAS が引ける"),
+            );
+        };
+        let declared = files
+            .read(&path)
+            .ok()
+            .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+            .and_then(|v| {
+                v.get("$schema")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string)
+            });
+        if declared.as_deref() != Some(schema) {
+            return bad(
+                path,
+                format!(
+                    "資料 {name} の $schema（{}）が、schema {schema} と違う",
+                    declared.unwrap_or_default()
+                ),
+            );
+        }
+        return match sas.validate(&path) {
+            Ok(r) if r.exit == 0 => finding(
+                CHECK,
+                Outcome::Verified,
+                None,
+                format!("資料 {name} が {schema} に従う（sas validate）"),
+            ),
+            Ok(r) => bad(
+                path,
+                format!(
+                    "資料 {name} が {schema} に従わない（sas validate の終了コード {}：{}）",
+                    r.exit,
+                    summary(&r.output)
+                ),
+            ),
+            Err(e) => error(e),
+        };
+    }
+    // Skill のフォルダに置いた、ふつうの JSON Schema
+    let schema_path = format!("{dir}/{schema}");
+    if outside(schema) {
+        return bad(
+            schema_path,
+            format!("{label} {name} の schema {schema} が、Skill のフォルダの外を指す"),
+        );
+    }
+    let Ok(text) = files.read(&schema_path) else {
+        return bad(
+            schema_path.clone(),
+            format!("{label} {name} の schema が {schema_path} に無い"),
+        );
+    };
+    let Some(path) = content else {
+        return finding(
+            CHECK,
+            Outcome::Verified,
+            None,
+            format!("{label} {name} の schema が {schema_path} にある"),
+        );
+    };
+    let schema_value: Value = match serde_json::from_str(&text) {
+        Ok(v) => v,
+        Err(e) => {
+            return bad(
+                schema_path,
+                format!("schema {schema} が JSON として読めない：{e}"),
+            );
+        }
+    };
+    let value: Value = match files.read(&path).map(|t| serde_json::from_str(&t)) {
+        Ok(Ok(v)) => v,
+        Ok(Err(e)) => return bad(path, format!("資料 {name} が JSON として読めない：{e}")),
+        Err(e) => return bad(path, format!("資料 {name} を読めない：{e}")),
+    };
+    match schemas.check(&schema_value, &value) {
+        Ok(broken) if broken.is_empty() => finding(
+            CHECK,
+            Outcome::Verified,
+            None,
+            format!("資料 {name} が {schema} に従う"),
+        ),
+        Ok(broken) => {
+            let first: Vec<String> = broken
+                .iter()
+                .take(3)
+                .map(|(at, why)| format!("{}：{why}", if at.is_empty() { "/" } else { at }))
+                .collect();
+            bad(
+                path,
+                format!(
+                    "資料 {name} が {schema} に従わない（{} か所。{}）",
+                    broken.len(),
+                    first.join(" ／ ")
+                ),
+            )
+        }
+        Err(e) => bad(schema_path, e),
+    }
+}
+
+/// sas の出力の要点（断ったなら code と message、検証なら件数）。
+fn summary(output: &Value) -> String {
+    match output.get("kind").and_then(Value::as_str) {
+        Some("error") => format!(
+            "{} {}",
+            output
+                .get("code")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            output
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+        ),
+        _ => output
+            .get("counts")
+            .map(Value::to_string)
+            .unwrap_or_default(),
+    }
+}
+
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査6つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
 ///
 /// # Errors
 /// フォルダが1つも無い（usage）・ sas を呼べない（sas_unavailable）とき。
@@ -296,6 +510,7 @@ pub fn check(
     folders: &[String],
     sas: &dyn SkillValidator,
     files: &dyn SkillFiles,
+    schemas: &dyn JsonSchemaChecker,
 ) -> Result<Checked, Refused> {
     if folders.is_empty() {
         return Err(Refused {
@@ -309,6 +524,7 @@ pub fn check(
         creator.extend(links_resolve(files, folder));
         creator.push(skill_md_built(files, folder));
         creator.extend(references_exist(files, folder));
+        creator.extend(json_schema_conforms(files, sas, schemas, folder));
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {

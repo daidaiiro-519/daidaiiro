@@ -7,6 +7,7 @@
 mod output;
 
 use outbound_filesystem::WorkingTree;
+use outbound_jsonschema::JsonSchema;
 use outbound_sas::Sas;
 use output::{BUILD, CHECK, CONFIRM};
 use skills_application::use_cases::Refused;
@@ -74,7 +75,12 @@ fn run_check(args: &[String]) -> ExitCode {
             },
         );
     };
-    match check(args, &sas, &WorkingTree::new(PathBuf::from("."))) {
+    match check(
+        args,
+        &sas,
+        &WorkingTree::new(PathBuf::from(".")),
+        &JsonSchema,
+    ) {
         Ok(c) => {
             output::print_checked(&c);
             if c.detected() {

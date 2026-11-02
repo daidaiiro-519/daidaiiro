@@ -23,7 +23,7 @@ compatibility: 原文を取るために、外の URL へ接続できること
 
 - 入力：調べる対象（URL）
 - 入力：識別子の一覧（1行1個のテキスト）
-- 出力：照合の結果（JSON ・ 標準出力）
+- 出力：照合の結果（JSON（schema：references/verify-result.schema.json） ・ 標準出力）
 - 出力：原文（sources/）
 
 ## 手順

@@ -18,6 +18,21 @@ pub trait SkillValidator {
     /// # Errors
     /// sas を呼べない ・ 出力が JSON でないとき。
     fn validate(&self, skill_json: &str) -> Result<SasRun, String>;
+
+    /// SAS が、打った場所の中にある Concrete として、この $id（URN）を引けるか。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn knows_concrete(&self, urn: &str) -> Result<bool, String>;
+}
+
+/// ふつうの JSON Schema（2020-12）で、値を確かめる。
+pub trait JsonSchemaChecker {
+    /// value を schema に照らし、外れた所（JSON Pointer）と理由を返す（従えば空）。
+    ///
+    /// # Errors
+    /// schema を JSON Schema として組めないとき。
+    fn check(&self, schema: &Value, value: &Value) -> Result<Vec<(String, String)>, String>;
 }
 
 /// Skill のフォルダとファイルとリンクを読む（書かない）。経路は打った場所からの経路で、区切りは /。

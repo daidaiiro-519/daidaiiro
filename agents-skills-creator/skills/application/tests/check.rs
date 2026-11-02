@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 
 use serde_json::json;
-use skills_application::ports::{SasRun, SkillFiles, SkillValidator};
+use skills_application::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
 use skills_application::use_cases::check::{Outcome, check};
 use skills_domain::services::skill_md;
 use std::cell::RefCell;
@@ -84,7 +84,31 @@ impl Sas {
     }
 }
 
+/// 根の required の欄が値にあるかだけを見る、JSON Schema の検査器の代役。
+struct Schemas;
+
+impl JsonSchemaChecker for Schemas {
+    fn check(
+        &self,
+        schema: &serde_json::Value,
+        value: &serde_json::Value,
+    ) -> Result<Vec<(String, String)>, String> {
+        Ok(schema
+            .get("required")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_str)
+            .filter(|k| value.get(k).is_none())
+            .map(|k| (String::new(), format!("{k} が無い")))
+            .collect())
+    }
+}
+
 impl SkillValidator for Sas {
+    fn knows_concrete(&self, urn: &str) -> Result<bool, String> {
+        Ok(urn == "urn:example:known:v1")
+    }
     fn validate(&self, skill_json: &str) -> Result<SasRun, String> {
         self.asked.borrow_mut().push(skill_json.to_string());
         Ok(SasRun {
@@ -102,7 +126,7 @@ fn outcomes(c: &skills_application::use_cases::check::SkillChecked) -> Vec<(&str
 fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
     let files = Files::default().skill("skills/fact-check", "fact-check");
     let sas = Sas::ok();
-    let c = check(&["skills/fact-check/".to_string()], &sas, &files).unwrap();
+    let c = check(&["skills/fact-check/".to_string()], &sas, &files, &Schemas).unwrap();
     assert!(!c.detected());
     assert_eq!(
         outcomes(&c.skills[0]),
@@ -111,7 +135,8 @@ fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
             ("name-unique", Outcome::Verified),
             ("links-resolve", Outcome::Verified),
             ("skill-md-built", Outcome::Verified),
-            ("references-exist", Outcome::Verified)
+            ("references-exist", Outcome::Verified),
+            ("json-schema-conforms", Outcome::Verified)
         ]
     );
     // SAS には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
@@ -132,7 +157,7 @@ fn name_must_be_the_folder_name_and_must_not_overlap() {
     let files = Files::default()
         .skill("skills/fact-check", "fact-check")
         .skill("skills/old", "fact-check");
-    let c = check(&["skills/old".to_string()], &Sas::ok(), &files).unwrap();
+    let c = check(&["skills/old".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
     assert!(c.detected());
     let f = &c.skills[0].creator;
     assert_eq!(f[0].outcome, Outcome::Violated);
@@ -147,7 +172,13 @@ fn folders_that_are_not_skills_do_not_overlap() {
     files
         .files
         .insert("skills/notes/readme.md".to_string(), "メモ".to_string());
-    let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
+    let c = check(
+        &["skills/fact-check".to_string()],
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     assert_eq!(c.skills[0].creator[1].outcome, Outcome::Verified);
 }
 
@@ -157,7 +188,13 @@ fn dangling_links_and_a_missing_folder_are_reported() {
     files
         .dangling
         .push("skills/fact-check/references".to_string());
-    let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
+    let c = check(
+        &["skills/fact-check".to_string()],
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     let link = &c.skills[0].creator[2];
     assert_eq!(
         (link.check, link.outcome, link.path.as_deref()),
@@ -168,7 +205,13 @@ fn dangling_links_and_a_missing_folder_are_reported() {
         )
     );
 
-    let c = check(&["skills/gone".to_string()], &Sas::ok(), &Files::default()).unwrap();
+    let c = check(
+        &["skills/gone".to_string()],
+        &Sas::ok(),
+        &Files::default(),
+        &Schemas,
+    )
+    .unwrap();
     assert_eq!(
         outcomes(&c.skills[0]),
         [
@@ -176,7 +219,8 @@ fn dangling_links_and_a_missing_folder_are_reported() {
             ("name-unique", Outcome::Error),
             ("links-resolve", Outcome::Violated),
             ("skill-md-built", Outcome::Error),
-            ("references-exist", Outcome::Error)
+            ("references-exist", Outcome::Error),
+            ("json-schema-conforms", Outcome::Error)
         ]
     );
 }
@@ -188,14 +232,14 @@ fn a_sas_detection_alone_is_a_detection() {
         exit: 1,
         asked: RefCell::new(Vec::new()),
     };
-    let c = check(&["skills/fact-check".to_string()], &sas, &files).unwrap();
+    let c = check(&["skills/fact-check".to_string()], &sas, &files, &Schemas).unwrap();
     assert!(c.creator_all_verified());
     assert!(c.detected());
 }
 
 #[test]
 fn nothing_to_check_is_a_usage_error() {
-    let r = check(&[], &Sas::ok(), &Files::default()).unwrap_err();
+    let r = check(&[], &Sas::ok(), &Files::default(), &Schemas).unwrap_err();
     assert_eq!(r.code, "usage");
 }
 
@@ -218,14 +262,26 @@ fn a_stale_or_missing_skill_md_is_reported() {
     files
         .files
         .insert("skills/fact-check/SKILL.md".to_string(), "古い".to_string());
-    let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
+    let c = check(
+        &["skills/fact-check".to_string()],
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     let md = &c.skills[0].creator[3];
     assert_eq!(
         (md.check, md.outcome),
         ("skill-md-built", Outcome::Violated)
     );
     files.files.remove("skills/fact-check/SKILL.md");
-    let c = check(&["skills/fact-check".to_string()], &Sas::ok(), &files).unwrap();
+    let c = check(
+        &["skills/fact-check".to_string()],
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     assert!(c.skills[0].creator[3].reason.contains("build"));
 }
 
@@ -248,8 +304,8 @@ fn references_must_be_inside_the_folder_and_exist() {
     files
         .files
         .insert("skills/shared/c.json".to_string(), "[]".to_string());
-    let c = check(&["skills/s".to_string()], &Sas::ok(), &files).unwrap();
-    let refs: Vec<(Outcome, Option<&str>)> = c.skills[0].creator[4..]
+    let c = check(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let refs: Vec<(Outcome, Option<&str>)> = c.skills[0].creator[4..7]
         .iter()
         .map(|f| (f.outcome, f.path.as_deref()))
         .collect();
@@ -259,6 +315,55 @@ fn references_must_be_inside_the_folder_and_exist() {
             (Outcome::Verified, None),
             (Outcome::Violated, Some("skills/s/references/b.json")),
             (Outcome::Violated, Some("skills/s/../shared/c.json"))
+        ]
+    );
+}
+
+#[test]
+fn json_resources_must_follow_their_schema_and_output_schemas_must_exist() {
+    let mut files = Files::default();
+    let value = json!({"$schema": "urn:agents-skills-creator:skill:v1", "name": "s",
+        "references": [
+            {"name": "従う", "path": "references/a.json", "form": "JSON", "schema": "references/a.schema.json"},
+            {"name": "従わない", "path": "references/b.json", "form": "JSON", "schema": "references/a.schema.json"},
+            {"name": "SAS", "path": "references/c.json", "form": "JSON", "schema": "urn:example:known:v1"}],
+        "outputs": [
+            {"name": "引けない", "form": "JSON", "schema": "urn:example:unknown:v1"},
+            {"name": "無い", "form": "JSON", "schema": "references/out.schema.json"}]});
+    for (p, t) in [
+        ("skills/s/skill.json", value.to_string()),
+        ("skills/s/SKILL.md", skill_md::render(&value)),
+        (
+            "skills/s/references/a.schema.json",
+            json!({"required": ["id"]}).to_string(),
+        ),
+        ("skills/s/references/a.json", json!({"id": "x"}).to_string()),
+        ("skills/s/references/b.json", json!({}).to_string()),
+        (
+            "skills/s/references/c.json",
+            json!({"$schema": "urn:example:known:v1"}).to_string(),
+        ),
+    ] {
+        files.files.insert(p.to_string(), t);
+    }
+    let c = check(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let got: Vec<(Outcome, Option<&str>)> = c.skills[0]
+        .creator
+        .iter()
+        .filter(|f| f.check == "json-schema-conforms")
+        .map(|f| (f.outcome, f.path.as_deref()))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            (Outcome::Verified, None),
+            (Outcome::Violated, Some("skills/s/references/b.json")),
+            (Outcome::Verified, None),
+            (Outcome::Violated, Some("skills/s/skill.json")),
+            (
+                Outcome::Violated,
+                Some("skills/s/references/out.schema.json")
+            )
         ]
     );
 }

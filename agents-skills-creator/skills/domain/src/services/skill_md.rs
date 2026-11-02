@@ -1,6 +1,7 @@
 //! Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る。同じ項目からは同じ文字列になる。
 //!
-//! 形：frontmatter（name ・ description、あれば compatibility）と、目的 ・ 役割 ・ 事前条件 ・ 入力と出力 ・ 参照する資料 ・
+//! 形：frontmatter（name ・ description、あれば compatibility）と、目的 ・ 役割 ・ 事前条件 ・ 入力と出力（形に schema を添える）・
+//! 参照する資料（形に schema を添える）・
 //! 手順（読む資料と完了条件と例外）・
 //! 守ること ・ 最低保証 ・ 完了条件 ・ 例の節。項目に無い節は書かない。項目を足さない（skill.json にあることだけを書く）。
 
@@ -48,6 +49,16 @@ fn particle(word: &str, p: &str) -> String {
         format!("{word} {p}")
     } else {
         format!("{word}{p}")
+    }
+}
+
+/// 形に、従う schema を添える（「JSON（schema：references/criteria.schema.json）」）。schema が無ければ形のまま。
+fn form_with_schema(v: &Value) -> String {
+    let form = text(v, "form");
+    match v.get("schema").and_then(Value::as_str) {
+        Some(schema) if form.is_empty() => format!("（schema：{schema}）"),
+        Some(schema) => format!("{}（schema：{schema}）", form.trim_end_matches('。')),
+        None => form.to_string(),
     }
 }
 
@@ -110,9 +121,9 @@ pub fn render(skill: &Value) -> String {
 
     // Skill に従う AI が、受け取るものと返すものを読めるように
     let with_form = |v: &Value| {
-        let more: Vec<&str> = ["form", "where"]
+        let form = form_with_schema(v);
+        let more: Vec<&str> = [form.as_str(), text(v, "where")]
             .into_iter()
-            .map(|k| text(v, k))
             .filter(|t| !t.is_empty())
             .collect();
         if more.is_empty() {
@@ -139,11 +150,11 @@ pub fn render(skill: &Value) -> String {
         .iter()
         .map(|r| {
             format!(
-                "- {}（{}）：{}。{}。手順 {} で読む",
+                "- {}（{}）：{}。形：{}。手順 {} で読む",
                 text(r, "name"),
                 text(r, "path"),
                 text(r, "holds").trim_end_matches('。'),
-                text(r, "form").trim_end_matches('。'),
+                form_with_schema(r).trim_end_matches('。'),
                 steps_of(r).join(" ・ ")
             )
         })
@@ -254,7 +265,7 @@ mod tests {
                            "references": [{"name": "判断基準", "path": "references/criteria.json", "holds": "判断基準の並び。", "form": "JSON",
                                            "read_by": [2], "from": "資料の問いの答え"}]});
         let a = render(&skill);
-        assert!(a.contains("## 参照する資料\n\n- 判断基準（references/criteria.json）：判断基準の並び。JSON。手順 2 で読む\n"));
+        assert!(a.contains("## 参照する資料\n\n- 判断基準（references/criteria.json）：判断基準の並び。形：JSON。手順 2 で読む\n"));
         assert!(a.contains(
             "1. 見分ける（完了条件：ある）\n2. 読む（読む資料：判断基準）（完了条件：読んだ）\n"
         ));

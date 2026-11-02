@@ -1,0 +1,75 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "references/verify-result.schema.json",
+ "title": "照合の結果",
+ "description": "fact-check verify --json が標準出力へ返す、照合の結果である。",
+ "type": "object",
+ "required": [
+  "ok",
+  "findings",
+  "data"
+ ],
+ "properties": {
+  "ok": {
+   "type": "boolean",
+   "description": "道具が動いたかである。照合の合否ではない。"
+  },
+  "findings": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "見つかったことの並びである。"
+  },
+  "data": {
+   "type": "object",
+   "required": [
+    "path",
+    "how",
+    "checked",
+    "missing",
+    "unreadable"
+   ],
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "照合した原文の置き場所である。"
+    },
+    "how": {
+     "enum": [
+      "identifier",
+      "quote",
+      "text"
+     ],
+     "description": "照合の種類である。"
+    },
+    "lines": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "人が読む結果の行である。"
+    },
+    "checked": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "照合した数である。"
+    },
+    "missing": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "読めた範囲に無かった数である。"
+    },
+    "unreadable": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "読めなかった範囲の数である。"
+    },
+    "can_conclude_absent": {
+     "type": "boolean",
+     "description": "無いと結論してよいか（読めなかった範囲が無いか）である。"
+    }
+   }
+  }
+ }
+}
