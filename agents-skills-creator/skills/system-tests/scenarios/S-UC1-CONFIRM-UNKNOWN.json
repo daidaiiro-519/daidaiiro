@@ -2,11 +2,11 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC1-CONFIRM-UNKNOWN",
  "name": "誰がが分からない",
- "title": "目的の「誰が」を「分からない」と答えたままだと、confirm はその所を推測の一覧の先頭に出し、承認を受け付けない（approvable が false）",
+ "title": "目的の「誰が」を「分からない」と答えたままだと、validate は、承認の材料としてその所を推測の一覧の先頭に出し、承認を受け付けない（approvable が false）",
  "why": "誰が使うかが分からない Skill は、単独で成り立つかを確かめられず、配ってはいけない。",
  "traces": [
   "UC1:最低保証",
-  "約束:confirm"
+  "約束:validate-result"
  ],
  "given": {
   "files": {
@@ -15,33 +15,29 @@
  },
  "when": {
   "args": [
-   "confirm",
+   "validate",
    "skills/fact-check"
   ]
  },
  "then": [
   {
    "of": "when",
-   "exit": 0
-  },
-  {
-   "of": "when",
-   "pointer": "/approvable",
+   "pointer": "/skills/0/approval/approvable",
    "equals": false
   },
   {
    "of": "when",
-   "pointer": "/not_approvable/0",
+   "pointer": "/skills/0/approval/not_approvable/0",
    "contains": "purpose.who"
   },
   {
    "of": "when",
-   "pointer": "/guesses/0/field",
+   "pointer": "/skills/0/approval/guesses/0/field",
    "equals": "/purpose/who"
   },
   {
    "of": "when",
-   "pointer": "/guesses/0/unknown",
+   "pointer": "/skills/0/approval/guesses/0/unknown",
    "equals": true
   }
  ]

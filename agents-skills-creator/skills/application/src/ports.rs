@@ -26,6 +26,21 @@ pub trait SkillValidator {
     fn knows_concrete(&self, urn: &str) -> Result<bool, String>;
 }
 
+/// SAS（共用サービス）に、Skill の項目を書かせる。結果は書き換えずに返す。
+pub trait SkillWriter {
+    /// sas create <経路> --concrete <URN> --semantic：意味で書く手順を受け取る（何も書かない）。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn create_semantic(&self, path: &str, concrete: &str) -> Result<SasRun, String>;
+
+    /// sas create <経路> --concrete <URN> --value <JSON>：値を書かせる。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<SasRun, String>;
+}
+
 /// ふつうの JSON Schema（2020-12）で、値を確かめる。
 pub trait JsonSchemaChecker {
     /// value を schema に照らし、外れた所（JSON Pointer）と理由を返す（従えば空）。
@@ -51,12 +66,6 @@ pub trait SkillFiles {
     /// # Errors
     /// 親フォルダを読めないとき。
     fn siblings(&self, folder: &str) -> Result<Vec<String>, String>;
-
-    /// フォルダの中にあるフォルダの経路（経路の順）。
-    ///
-    /// # Errors
-    /// フォルダを読めないとき。
-    fn folders(&self, place: &str) -> Result<Vec<String>, String>;
 
     /// フォルダの中にある、先の無いシンボリックリンクの経路（経路の順。リンクの先のフォルダの中へは降りない）。
     ///

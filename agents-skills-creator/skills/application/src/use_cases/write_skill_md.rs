@@ -1,4 +1,4 @@
-//! UC1 作るの build：Skill の項目（skill.json）から SKILL.md を決まった形で作り、同じフォルダに書く。
+//! UC1 作るの write-skill-md：Skill の項目（skill.json）から SKILL.md を決まった形で作り、同じフォルダに書く。
 //! 同じ項目からは同じ SKILL.md になる。前と同じ中身なら書かない。skill.json は変えない。
 
 use crate::ports::{GeneratedFiles, SkillFiles};
@@ -20,7 +20,7 @@ pub struct Built {
 ///
 /// # Errors
 /// フォルダが無い（usage）・ skill.json を読めない（not_found）・ JSON でない（invalid_input）・ 書けない（not_found）とき。
-pub fn build(
+pub fn write_skill_md(
     folder: Option<&str>,
     files: &dyn SkillFiles,
     out: &dyn GeneratedFiles,

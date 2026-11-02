@@ -1,0 +1,147 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 7,
+ "date": "2026-11-03",
+ "summary": "ステップ6 の new --like（具体を写して作る）を利用者が退けたので、new --like ・ confirm ・ same_shape_as を外した。コマンドを文脈 skills とユースケースの動詞にして SAS の言葉にそろえ（skills create ・ validate ・ write-skill-md）、承認の材料は validate の出力に移した。Skill の種類（UC7 ・ UC1 の拡張 2a ・ BR7〜11）は、利用者の指示で creator を仕上げたあとに回した",
+ "usecases": [
+  "UC1",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "利用者の判断",
+   "evidence": [
+    "new --like について「抽象じゃない、たまたま元があっただけ」「コマンド名がセマンティックでない、なんだ new って」",
+    "範囲の変更：creator を仕上げるのを先にし、アドバイザーの「Skill の種類」は後に回す"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "sas create --semantic の結果を書き換えずに返せる",
+   "evidence": [
+    "実地：場面 S-UC1-CREATE-PROCEDURE で、skill.schema に sas create skills/<name>/skill.json --concrete urn:agents-skills-creator:skill:v1 --semantic を打たせ、SAS の手順（kind procedure、target.path skills/<name>/skill.json）がそのまま sas に入った"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "skill.schema の中身を $defs/skill に移した形では、sas create --semantic が手順を返さない",
+   "evidence": [
+    "実地（一時ディレクトリ）：根の properties が $schema だけの skill.schema に sas create --semantic を打つと、invalid_input「x-prompt を持ち、意味で書いてよい欄が無い」で断った。$defs/skill に $ref で従い const を持つ種類の Concrete では、const の欄を除いた欄だけが手順に入った"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作る：skills create（use_cases/create.rs）",
+   "steps": [
+    "--semantic なら <置き場所>/<name>/skill.json を経路にして sas create --concrete <URN> --semantic を打つ。URN が skill.schema のときだけ、問いの順番（問1〜問3 と資料の問い）・ 別の場面の出し方 ・ 分からないの扱いを添える",
+    "--value なら <Skill のフォルダ>/skill.json を経路にして sas create --concrete <URN> --value <JSON> を打つ",
+    "sas の結果は書き換えずに sas と sas_exit に入れる。sas が断ったら終了コード 1"
+   ],
+   "rules": [
+    "書くのは SAS だけで、creator は結果を書き換えない（BR6）",
+    "置き場所かフォルダ ・ Concrete ・ 書き方のどれかが無ければ使い方の誤り（終了コード 2）"
+   ]
+  },
+  {
+   "usecase": "UC4 確かめると承認の材料：skills validate（use_cases/validate.rs ・ approval.rs）",
+   "steps": [
+    "フォルダごとに creator の検査6つと sas validate をする（前の check と同じ）",
+    "skill.json を読めたら、承認の材料（説明 ・ 完成イメージ ・ 振る舞い ・ 構造 ・ 推測の一覧 ・ 承認できるか ・ 別の会話に任せる手順）を approval に入れる（前の confirm の中身）"
+   ],
+   "rules": [
+    "承認の材料も、確かめた結果と同じ1つの出力で読む"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "Agent Skill の Concrete で作るときの問いの順番",
+   "became": "script",
+   "why": "create でしか使わない。種類の Concrete では SAS の手順そのものが変わる所だけを返すので、問いを添えるのは skill.schema のときだけ"
+  },
+  {
+   "what": "項目が何によって決まるか（Basis：Shape ・ Domain ・ Material）",
+   "became": "script",
+   "why": "外した。new --like と元との違いの見分けのために作ったもので、使う手続きが無くなった。種類の取り出し（UC7）の候補にも使わない：BR9 で共通の所と変わる所は作る人が決め、creator は元と同じになるかを確かめるので、項目ごとに決め打ちした表は BR9 に反し、退けられた「たまたま元があった」形をもう一度持ち込む"
+  },
+  {
+   "what": "Skill の見分け方（$schema が skill.schema か、その $defs/skill に従う Concrete か）",
+   "became": "script",
+   "why": "一度 domain のサービスにしたが、範囲の変更で外した。Skill の種類を扱うステップで、もう一度決める"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "new --like（具体を写して作る）",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "利用者が退けた（BR8 具体から具体を写さない）。new --like ・ same_shape_as ・ like ・ existing ・ 元との違い（same_shape）を外した"
+  },
+  {
+   "item": "コマンドの名前",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "new ・ build ・ confirm ・ check を、文脈 skills とユースケースの動詞で SAS にそろえた skills create ・ write-skill-md ・ validate にした。実行ファイルの名前も skills にした"
+  },
+  {
+   "item": "Skill の種類（UC7 ・ UC1 の拡張 2a ・ BR7〜11）",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "利用者の指示で、creator を仕上げたあとに扱う。突き合わせの表では、まだ確かめていない（untested）に理由と一緒に置いた"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "承認の材料",
+   "seen": "validate の approval",
+   "drift": "前の confirm（確認）の中身。確認は作る人がすることで、creator が返すのはその材料なので、出力の欄の名前を approval にした"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "CLI",
+    "before": "agents-skills-creator new [--like] ・ build ・ confirm ・ check",
+    "after": "skills create <置き場所> --concrete <URN> --semantic ／ skills create <フォルダ> --concrete <URN> --value <JSON> ／ skills validate <フォルダ>... ／ skills write-skill-md <フォルダ>",
+    "why": "文脈とユースケースの動詞にし、SAS の言葉にそろえる"
+   },
+   {
+    "what": "use_cases",
+    "before": "new ・ build ・ confirm ・ check",
+    "after": "create ・ write_skill_md ・ approval（validate が使う）・ validate",
+    "why": "コマンドに合わせた。confirm は承認の材料として validate に入れた"
+   },
+   {
+    "what": "ポート",
+    "before": "SkillValidator ・ SkillFiles（folders を含む）・ GeneratedFiles ・ JsonSchemaChecker",
+    "after": "SkillWriter（create_semantic ・ create_value）を足し、SkillFiles の folders を外した",
+    "why": "create が sas create を打つため。folders は new の existing だけが使っていた"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "new-procedure ・ build-result ・ confirm ・ check-result",
+    "after": "create-result ・ write-skill-md-result ・ validate-result（承認の材料を含む）",
+    "why": "コマンドの名前に合わせ、confirm を validate に入れた"
+   },
+   {
+    "what": "domain の derivation",
+    "before": "Basis の列と ANSWERS ・ basis ・ basis_at",
+    "after": "ステップ5 の形（項目と何から導くかの表）に戻した",
+    "why": "使う手続きが無くなった（promotions を見る）"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "Skill の種類（UC7 ・ UC1 の拡張 2a ・ 2a1a ・ 2a2a ・ 4a ・ 4b）",
+    "why": "creator を仕上げたあとに扱う（利用者の指示）"
+   },
+   {
+    "what": "skill.schema の $defs/skill の形",
+    "why": "範囲の変更で戻した（sas update はコーディネーターがする）。この形のときは sas create --semantic が手順を返さないことを確かめた（factchecks）"
+   }
+  ]
+ }
+}

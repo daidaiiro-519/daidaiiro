@@ -1,0 +1,191 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:skills:create-result:v1",
+ "title": "SAS に書かせた結果",
+ "description": "skills create が標準出力に返す JSON（1つ）。中で打った sas create の結果を書き換えずに sas に入れる。--semantic で Agent Skill の Concrete（skill.schema）を渡したときだけ、作る人に聞く問いの順番と別の場面の出し方を先頭に添える",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:skills:create-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "create は sas create を打った（SAS が断ったときも create で、sas に SAS の断った理由が入る）、error は打てなかった（使い方の誤り ・ sas を呼べない）",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。create なら sas を SAS の結果として読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "create",
+    "error"
+   ]
+  },
+  "questions": {
+   "title": "問いの並び",
+   "description": "作る人に聞く問い（問1〜問3 と、条件つきの資料の問い q4）。1往復に1問ずつ、この順に聞く。どの問いも「分からない」を選べる。Agent Skill の Concrete で --semantic のときだけ",
+   "x-prompt": {
+    "meaning": "順に聞き、答えを fills の所に入れる。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/question"
+   }
+  },
+  "scenes": {
+   "title": "別の場面の出し方",
+   "description": "問いのあとに出す別の場面と、その答えの扱い",
+   "x-prompt": {
+    "meaning": "場面を出して「同じ ・ 違う」だけを聞く。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "object",
+   "required": [
+    "count",
+    "ask",
+    "same",
+    "different"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "count": {
+     "type": "integer"
+    },
+    "ask": {
+     "type": "string"
+    },
+    "same": {
+     "type": "string"
+    },
+    "different": {
+     "type": "string"
+    }
+   }
+  },
+  "unknown": {
+   "title": "分からないの扱い",
+   "description": "「分からない」と答えた所の扱い",
+   "x-prompt": {
+    "meaning": "会話を止めずに進める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "sas": {
+   "title": "SAS の結果",
+   "description": "sas create の出力を、書き換えずにそのまま入れたもの（--semantic なら SAS の書く手順、--value なら書いた変更か断った理由）",
+   "x-prompt": {
+    "meaning": "SAS の結果として読み、手順なら手順に従って値を組む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": [
+    "object",
+    "array"
+   ]
+  },
+  "sas_exit": {
+   "title": "SAS の終了コード",
+   "description": "sas create の終了コード（0 は手順を返したか書けた）",
+   "x-prompt": {
+    "meaning": "0 でなければ、SAS が断ったこととして sas を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "integer"
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、sas_unavailable は sas を呼べなかった",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "sas_unavailable"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "create"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "sas",
+     "sas_exit"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ],
+ "$defs": {
+  "question": {
+   "type": "object",
+   "required": [
+    "id",
+    "ask",
+    "fills"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "enum": [
+      "q1",
+      "q2",
+      "q3",
+      "q4"
+     ]
+    },
+    "ask": {
+     "type": "string"
+    },
+    "fills": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "答えを入れる所（skill.json の中の JSON Pointer）"
+    },
+    "when": {
+     "type": "string",
+     "description": "この問いを聞く条件。無ければいつも聞く（q4 の資料の問いは、役割が資料 ・ 原典 ・ 知見に基づくときだけ）"
+    },
+    "how": {
+     "type": "string"
+    }
+   }
+  }
+ }
+}

@@ -2,7 +2,8 @@
 //! - 範囲（scope）の id は、どれも trace か untested のどちらか一方にある
 //! - trace の場面の並びは、その id を traces に書いた場面と一致する
 //! - 公開された言葉（published-language/v1 のファイル）のどれにも、場面で確かめた約束がある
-//! - 範囲にあるユースケースのどれにも、成功時保証と最低保証があり、場面で確かめている
+//! - 範囲にあるユースケースのどれにも、成功時保証と最低保証があり、場面で確かめている（どちらも untested に理由があるユースケース、
+//!   つまりまだ作っていないものは除く）
 //!
 //! SAS の trace.rs を写したもの。
 
@@ -143,7 +144,20 @@ fn every_use_case_in_scope_has_both_guarantees_traced() {
         .filter(|uc| uc.starts_with("UC"))
         .collect();
     assert!(!usecases.is_empty(), "範囲にユースケースが無い");
+    // 成功時保証と最低保証のどちらも untested に理由がある（まだ作っていない）ユースケースは除く
+    let explained: BTreeSet<String> = load("untested.json")["untested"]
+        .as_array()
+        .expect("untested が配列であること")
+        .iter()
+        .map(|t| t["id"].as_str().expect("id がある").to_string())
+        .collect();
     for uc in usecases {
+        if ["成功時保証", "最低保証"]
+            .iter()
+            .all(|g| explained.contains(&format!("{uc}:{g}")))
+        {
+            continue;
+        }
         for g in ["成功時保証", "最低保証"] {
             let id = format!("{uc}:{g}");
             assert!(traced.contains(&id), "{id} を場面で確かめていない");

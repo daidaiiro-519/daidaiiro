@@ -4,7 +4,7 @@
 
 use serde_json::json;
 use skills_application::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
-use skills_application::use_cases::check::{Outcome, check};
+use skills_application::use_cases::validate::{Outcome, validate};
 use skills_domain::services::skill_md;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -18,7 +18,7 @@ struct Files {
 }
 
 impl Files {
-    /// skill.json と、そこから build で作る SKILL.md を置く。
+    /// skill.json と、そこから write-skill-md で作る SKILL.md を置く。
     fn skill(mut self, folder: &str, name: &str) -> Self {
         let value = json!({"$schema": "urn:agents-skills-creator:skill:v1", "name": name});
         self.files
@@ -42,9 +42,6 @@ impl SkillFiles for Files {
             .get(path)
             .cloned()
             .ok_or_else(|| format!("{path} が無い"))
-    }
-    fn folders(&self, _: &str) -> Result<Vec<String>, String> {
-        Ok(Vec::new())
     }
     fn siblings(&self, folder: &str) -> Result<Vec<String>, String> {
         let (parent, _) = folder.rsplit_once('/').unwrap_or(("", folder));
@@ -121,7 +118,7 @@ impl SkillValidator for Sas {
     }
 }
 
-fn outcomes(c: &skills_application::use_cases::check::SkillChecked) -> Vec<(&str, Outcome)> {
+fn outcomes(c: &skills_application::use_cases::validate::SkillChecked) -> Vec<(&str, Outcome)> {
     c.creator.iter().map(|f| (f.check, f.outcome)).collect()
 }
 
@@ -129,7 +126,7 @@ fn outcomes(c: &skills_application::use_cases::check::SkillChecked) -> Vec<(&str
 fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
     let files = Files::default().skill("skills/fact-check", "fact-check");
     let sas = Sas::ok();
-    let c = check(&["skills/fact-check/".to_string()], &sas, &files, &Schemas).unwrap();
+    let c = validate(&["skills/fact-check/".to_string()], &sas, &files, &Schemas).unwrap();
     assert!(!c.detected());
     assert_eq!(
         outcomes(&c.skills[0]),
@@ -160,7 +157,7 @@ fn name_must_be_the_folder_name_and_must_not_overlap() {
     let files = Files::default()
         .skill("skills/fact-check", "fact-check")
         .skill("skills/old", "fact-check");
-    let c = check(&["skills/old".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let c = validate(&["skills/old".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
     assert!(c.detected());
     let f = &c.skills[0].creator;
     assert_eq!(f[0].outcome, Outcome::Violated);
@@ -175,7 +172,7 @@ fn folders_that_are_not_skills_do_not_overlap() {
     files
         .files
         .insert("skills/notes/readme.md".to_string(), "メモ".to_string());
-    let c = check(
+    let c = validate(
         &["skills/fact-check".to_string()],
         &Sas::ok(),
         &files,
@@ -191,7 +188,7 @@ fn dangling_links_and_a_missing_folder_are_reported() {
     files
         .dangling
         .push("skills/fact-check/references".to_string());
-    let c = check(
+    let c = validate(
         &["skills/fact-check".to_string()],
         &Sas::ok(),
         &files,
@@ -208,7 +205,7 @@ fn dangling_links_and_a_missing_folder_are_reported() {
         )
     );
 
-    let c = check(
+    let c = validate(
         &["skills/gone".to_string()],
         &Sas::ok(),
         &Files::default(),
@@ -235,14 +232,14 @@ fn a_sas_detection_alone_is_a_detection() {
         exit: 1,
         asked: RefCell::new(Vec::new()),
     };
-    let c = check(&["skills/fact-check".to_string()], &sas, &files, &Schemas).unwrap();
+    let c = validate(&["skills/fact-check".to_string()], &sas, &files, &Schemas).unwrap();
     assert!(c.creator_all_verified());
     assert!(c.detected());
 }
 
 #[test]
 fn nothing_to_check_is_a_usage_error() {
-    let r = check(&[], &Sas::ok(), &Files::default(), &Schemas).unwrap_err();
+    let r = validate(&[], &Sas::ok(), &Files::default(), &Schemas).unwrap_err();
     assert_eq!(r.code, "usage");
 }
 
@@ -250,7 +247,7 @@ trait AllVerified {
     fn creator_all_verified(&self) -> bool;
 }
 
-impl AllVerified for skills_application::use_cases::check::Checked {
+impl AllVerified for skills_application::use_cases::validate::Checked {
     fn creator_all_verified(&self) -> bool {
         self.skills
             .iter()
@@ -265,7 +262,7 @@ fn a_stale_or_missing_skill_md_is_reported() {
     files
         .files
         .insert("skills/fact-check/SKILL.md".to_string(), "古い".to_string());
-    let c = check(
+    let c = validate(
         &["skills/fact-check".to_string()],
         &Sas::ok(),
         &files,
@@ -278,14 +275,14 @@ fn a_stale_or_missing_skill_md_is_reported() {
         ("skill-md-built", Outcome::Violated)
     );
     files.files.remove("skills/fact-check/SKILL.md");
-    let c = check(
+    let c = validate(
         &["skills/fact-check".to_string()],
         &Sas::ok(),
         &files,
         &Schemas,
     )
     .unwrap();
-    assert!(c.skills[0].creator[3].reason.contains("build"));
+    assert!(c.skills[0].creator[3].reason.contains("write-skill-md"));
 }
 
 #[test]
@@ -307,7 +304,7 @@ fn references_must_be_inside_the_folder_and_exist() {
     files
         .files
         .insert("skills/shared/c.json".to_string(), "[]".to_string());
-    let c = check(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let c = validate(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
     let refs: Vec<(Outcome, Option<&str>)> = c.skills[0].creator[4..7]
         .iter()
         .map(|f| (f.outcome, f.path.as_deref()))
@@ -349,7 +346,7 @@ fn json_resources_must_follow_their_schema_and_output_schemas_must_exist() {
     ] {
         files.files.insert(p.to_string(), t);
     }
-    let c = check(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let c = validate(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
     let got: Vec<(Outcome, Option<&str>)> = c.skills[0]
         .creator
         .iter()

@@ -1,10 +1,10 @@
-//! ポート SkillValidator を、SAS の sas コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
+//! ポート SkillValidator ・ SkillWriter を、SAS の sas コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
 //!
 //! sas は PATH だけで探す（sas は環境に1つ。Skill は使う版の範囲だけを宣言する）。打った場所（作業ディレクトリ）と
 //! 環境変数はそのまま渡す（sas は打った場所の中から Concrete を探し、打ったセッションを環境変数で決める）。
 
 use serde_json::Value;
-use skills_application::ports::{SasRun, SkillValidator};
+use skills_application::ports::{SasRun, SkillValidator, SkillWriter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -89,5 +89,15 @@ impl SkillValidator for Sas {
             (Some("error"), Some("unknown_schema" | "schema_not_listed")) => Ok(false),
             _ => Err(format!("sas search の結果を読めない：{}", r.output)),
         }
+    }
+}
+
+impl SkillWriter for Sas {
+    fn create_semantic(&self, path: &str, concrete: &str) -> Result<SasRun, String> {
+        self.run(&["create", path, "--concrete", concrete, "--semantic"])
+    }
+
+    fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<SasRun, String> {
+        self.run(&["create", path, "--concrete", concrete, "--value", value])
     }
 }

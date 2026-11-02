@@ -1,12 +1,12 @@
 //! UC4 確かめる（Skill だけ）：渡した Skill のフォルダごとに、SAS の検証の結果（書き換えない）と、SAS が文書1つでは
-//! 判定できない creator の検査3つの結果を返す。確かめても Skill のファイルは変えない（SAS の記録 .git/sas/sas.db には
+//! 判定できない creator の検査の結果と、承認の材料（approval）を返す。確かめても Skill のファイルは変えない（SAS の記録 .git/sas/sas.db には
 //! 検証の操作が1件足される）。
 //!
 //! creator の検査：
 //! - name-is-folder：skill.json の name がフォルダ名と同じ（Agent Skills の仕様。SAS は文書1つしか見ない）
 //! - name-unique：同じ親フォルダにある Skill のあいだで name が重ならない（複数の Skill をまたぐ）
 //! - links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある（ファイルの外の事実）
-//! - skill-md-built：SKILL.md が、skill.json から build で作るものと同じ（AI ツールが読むのは SKILL.md）
+//! - skill-md-built：SKILL.md が、skill.json から write-skill-md で作るものと同じ（AI ツールが読むのは SKILL.md）
 //! - references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（ファイルの外の事実）
 //! - json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、
 //!   JSON の資料は中身がその schema に従う（URN なら sas validate、置き場所なら JSON Schema で確かめる）。出力は実行する
@@ -14,6 +14,7 @@
 
 use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
 pub use crate::use_cases::Refused;
+use crate::use_cases::approval::{Approval, approval};
 use crate::use_cases::{read_skill, trimmed};
 use serde_json::Value;
 use skills_domain::services::skill_md;
@@ -63,6 +64,8 @@ pub struct SkillChecked {
     pub sas: SasRun,
     /// creator の検査の結果（検査の順）
     pub creator: Vec<Finding>,
+    /// 承認の材料（skill.json を読めたときだけ）
+    pub approval: Option<Approval>,
 }
 
 impl SkillChecked {
@@ -201,7 +204,7 @@ fn name_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
     out
 }
 
-/// SKILL.md が、skill.json から build で作るものと同じか。
+/// SKILL.md が、skill.json から write-skill-md で作るものと同じか。
 fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
     const CHECK: &str = "skill-md-built";
     let path = format!("{}/{}", trimmed(folder), skill_md::FILE);
@@ -215,7 +218,7 @@ fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
             Outcome::Violated,
             Some(path),
             format!(
-                "SKILL.md が無い（agents-skills-creator build {} で作る）",
+                "SKILL.md が無い（skills write-skill-md {} で作る）",
                 trimmed(folder)
             ),
         ),
@@ -223,14 +226,14 @@ fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
             CHECK,
             Outcome::Verified,
             None,
-            "SKILL.md が、skill.json から build で作るものと同じ".to_string(),
+            "SKILL.md が、skill.json から write-skill-md で作るものと同じ".to_string(),
         ),
         Ok(_) => finding(
             CHECK,
             Outcome::Violated,
             Some(path),
             format!(
-                "SKILL.md が、skill.json から build で作るものと違う（agents-skills-creator build {} で作り直す）",
+                "SKILL.md が、skill.json から write-skill-md で作るものと違う（skills write-skill-md {} で作り直す）",
                 trimmed(folder)
             ),
         ),
@@ -502,11 +505,12 @@ fn summary(output: &Value) -> String {
     }
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査6つと SAS の検証をして、渡した順に返す。Skill のファイルは変えない。
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査6つと SAS の検証をして、承認の材料と一緒に渡した順に返す。
+/// Skill のファイルは変えない。
 ///
 /// # Errors
 /// フォルダが1つも無い（usage）・ sas を呼べない（sas_unavailable）とき。
-pub fn check(
+pub fn validate(
     folders: &[String],
     sas: &dyn SkillValidator,
     files: &dyn SkillFiles,
@@ -531,10 +535,12 @@ pub fn check(
                 code: "sas_unavailable",
                 message,
             })?;
+        let skill = read_skill(files, folder).ok();
         skills.push(SkillChecked {
             folder: folder.clone(),
             sas: run,
             creator,
+            approval: skill.map(|v| approval(folder, &v)),
         });
     }
     Ok(Checked { skills })

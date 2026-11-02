@@ -1,9 +1,9 @@
 //! ユースケースの手続き（トランザクションスクリプト）。
 
-pub mod build;
-pub mod check;
-pub mod confirm;
-pub mod new;
+pub mod approval;
+pub mod create;
+pub mod validate;
+pub mod write_skill_md;
 
 use crate::ports::SkillFiles;
 use serde_json::Value;

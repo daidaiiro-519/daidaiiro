@@ -1,18 +1,19 @@
-//! 結果を JSON 1つにする（published-language/v1 の check-result ・ build-result ・ confirm ・ new-procedure）。
+//! 結果を JSON 1つにする（published-language/v1 の create-result ・ validate-result ・ write-skill-md-result）。
 //! SAS の結果は書き換えずに入れる。
 
 use serde_json::{Value, json};
 use skills_application::use_cases::Refused;
-use skills_application::use_cases::build::Built;
-use skills_application::use_cases::check::{Checked, Finding};
-use skills_application::use_cases::confirm::Confirmation;
+use skills_application::use_cases::approval::Approval;
+use skills_application::use_cases::create::Created;
+use skills_application::use_cases::validate::{Checked, Finding};
+use skills_application::use_cases::write_skill_md::Built;
 
-/// check の結果の形（使い方の誤りもこの形で返す）。
-pub const CHECK: &str = "urn:agents-skills-creator:skills:check-result:v1";
-/// build の結果の形。
-pub const BUILD: &str = "urn:agents-skills-creator:skills:build-result:v1";
-/// confirm の結果の形。
-pub const CONFIRM: &str = "urn:agents-skills-creator:skills:confirm:v1";
+/// create の結果の形。
+pub const CREATE: &str = "urn:agents-skills-creator:skills:create-result:v1";
+/// validate の結果の形（知らないコマンドの誤りもこの形で返す）。
+pub const VALIDATE: &str = "urn:agents-skills-creator:skills:validate-result:v1";
+/// write-skill-md の結果の形。
+pub const WRITE_SKILL_MD: &str = "urn:agents-skills-creator:skills:write-skill-md-result:v1";
 
 fn finding(f: &Finding) -> Value {
     let mut v = json!({"check": f.check, "result": f.outcome.as_str()});
@@ -24,23 +25,40 @@ fn finding(f: &Finding) -> Value {
 }
 
 /// 確かめた結果を出す。
-pub fn print_checked(c: &Checked) {
+pub fn print_validated(c: &Checked) {
     let skills: Vec<Value> = c
         .skills
         .iter()
         .map(|s| {
-            json!({
+            let mut v = json!({
                 "folder": s.folder,
                 "sas": s.sas.output,
                 "sas_exit": s.sas.exit,
                 "creator": s.creator.iter().map(finding).collect::<Vec<_>>(),
-            })
+            });
+            if let Some(a) = &s.approval {
+                v["approval"] = approval(a);
+            }
+            v
         })
         .collect();
     println!(
         "{}",
-        json!({"$schema": CHECK, "kind": "check", "skills": skills, "detected": c.detected()})
+        json!({"$schema": VALIDATE, "kind": "validate", "skills": skills, "detected": c.detected()})
     );
+}
+
+/// SAS に書かせた結果を出す。
+pub fn print_created(c: &Created) {
+    let mut out = json!({"$schema": CREATE, "kind": "create"});
+    if let Some(Value::Object(q)) = &c.questions {
+        for (k, v) in q {
+            out[k] = v.clone();
+        }
+    }
+    out["sas"] = c.sas.output.clone();
+    out["sas_exit"] = json!(c.sas.exit);
+    println!("{out}");
 }
 
 /// 始められなかった理由を、schema の形で出す。
@@ -51,21 +69,16 @@ pub fn print_refused(schema: &str, r: &Refused) {
     );
 }
 
-/// SKILL.md を作った結果を出す。
-pub fn print_built(b: &Built) {
+/// SKILL.md を書いた結果を出す。
+pub fn print_written(b: &Built) {
     println!(
         "{}",
-        json!({"$schema": BUILD, "kind": "build", "folder": b.folder, "path": b.path, "changed": b.changed})
+        json!({"$schema": WRITE_SKILL_MD, "kind": "write-skill-md", "folder": b.folder, "path": b.path, "changed": b.changed})
     );
 }
 
-/// 手順を出す。
-pub fn print_procedure(p: &Value) {
-    println!("{p}");
-}
-
-/// 確認の1画面の材料を出す。
-pub fn print_confirmation(c: &Confirmation) {
+/// 承認の材料（確認の1画面の材料）を JSON にする。
+fn approval(c: &Approval) -> Value {
     let structure: serde_json::Map<String, Value> = c
         .structure
         .iter()
@@ -92,9 +105,6 @@ pub fn print_confirmation(c: &Confirmation) {
         })
         .collect();
     let mut out = json!({
-        "$schema": CONFIRM,
-        "kind": "confirm",
-        "folder": c.folder,
         "name": c.name,
         "description": c.description,
         "images": c.images.iter().map(|(id, e)| json!({"example": id, "expected": e})).collect::<Vec<_>>(),
@@ -104,16 +114,8 @@ pub fn print_confirmation(c: &Confirmation) {
         "approvable": c.not_approvable.is_empty(),
         "delegate": delegate,
     });
-    if let Some(s) = &c.same_shape {
-        out["same_shape"] = json!({
-            "name": s.name,
-            "folder": s.folder,
-            "found": s.found,
-            "differences": s.differences.iter().map(|d| json!({"field": d.field, "change": d.change, "content": d.content, "answered": d.answered})).collect::<Vec<_>>(),
-        });
-    }
     if !c.not_approvable.is_empty() {
         out["not_approvable"] = json!(c.not_approvable);
     }
-    println!("{out}");
+    out
 }

@@ -52,9 +52,5 @@ fn siblings_are_the_other_folders_of_the_same_parent() {
     std::fs::write(root.join("skills/readme.md"), "x").unwrap();
     let tree = WorkingTree::new(root.clone());
     assert_eq!(tree.siblings("skills/b").unwrap(), ["skills/a", "skills/c"]);
-    assert_eq!(
-        tree.folders("skills").unwrap(),
-        ["skills/a", "skills/b", "skills/c"]
-    );
     std::fs::remove_dir_all(root).unwrap();
 }

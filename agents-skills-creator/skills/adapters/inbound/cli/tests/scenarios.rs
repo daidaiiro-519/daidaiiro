@@ -104,10 +104,7 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     // args は agents-skills-creator、sas は SAS（creator が返した書くコマンドを打つときなど）に渡す
     let (program, key) = match cmd.get("sas") {
         Some(_) => ("sas".to_string(), "sas"),
-        None => (
-            env!("CARGO_BIN_EXE_agents-skills-creator").to_string(),
-            "args",
-        ),
+        None => (env!("CARGO_BIN_EXE_skills").to_string(), "args"),
     };
     let args: Vec<String> = cmd[key]
         .as_array()

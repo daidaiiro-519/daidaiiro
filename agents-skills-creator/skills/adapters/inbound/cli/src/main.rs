@@ -1,177 +1,182 @@
-//! agents-skills-creator コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
+//! skills コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
-//! コマンド：new（UC1 作る手順を返す。--like で既にある Skill と同じ形で作る手順）・ build（skill.json から SKILL.md を作る）・ confirm（確認の1画面の材料を返す）・
-//! check（UC4 確かめる、Skill だけ）。creator は AI を起動せず、skill.json を書かない（SAS が書く）。
-//! 終了コード：0 = 正常（check は検出が無い）／ 1 = check で検出がある、sas を呼べない、skill.json を読めない ／ 2 = 使い方の誤り。
+//! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。sas create を呼ぶ）・
+//! validate（UC4 確かめる。sas validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
+//! creator は AI を起動せず、skill.json を書かない（SAS が書く）。
+//! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、sas が断った、sas を呼べない、skill.json を
+//! 読めない ／ 2 = 使い方の誤り。
 
 mod output;
 
 use outbound_filesystem::WorkingTree;
 use outbound_jsonschema::JsonSchema;
 use outbound_sas::Sas;
-use output::{BUILD, CHECK, CONFIRM};
+use output::{CREATE, VALIDATE, WRITE_SKILL_MD};
 use skills_application::use_cases::Refused;
-use skills_application::use_cases::build::build;
-use skills_application::use_cases::check::check;
-use skills_application::use_cases::confirm::confirm;
-use skills_application::use_cases::new::{PROCEDURE, new_like_procedure, new_procedure};
+use skills_application::use_cases::create::{Mode, create};
+use skills_application::use_cases::validate::validate;
+use skills_application::use_cases::write_skill_md::write_skill_md;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "使い方：agents-skills-creator new [<Skill の置き場所>] ／ \
-agents-skills-creator new --like <同じ形にする Skill のフォルダ> [<Skill の置き場所>] ／ \
-agents-skills-creator build <Skill のフォルダ> ／ \
-agents-skills-creator confirm <Skill のフォルダ> ／ \
-agents-skills-creator check <Skill のフォルダ>...";
+const USAGE: &str = "使い方：skills create <置き場所> --concrete <URN> --semantic ／ \
+skills create <Skill のフォルダ> --concrete <URN> --value <JSON> ／ \
+skills validate <Skill のフォルダ>... ／ \
+skills write-skill-md <Skill のフォルダ>";
+
+fn usage(message: String) -> Refused {
+    Refused {
+        code: "usage",
+        message,
+    }
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
-        Some("check") => run_check(&args[1..]),
-        Some("new") => run_new(&args[1..]),
-        Some("build") => run_build(&args[1..]),
-        Some("confirm") => run_confirm(&args[1..]),
+        Some("create") => run_create(&args[1..]),
+        Some("validate") => run_validate(&args[1..]),
+        Some("write-skill-md") => run_write_skill_md(&args[1..]),
         Some(other) => refuse(
-            CHECK,
-            &Refused {
-                code: "usage",
-                message: format!("知らないコマンドです: {other}。{USAGE}"),
-            },
+            VALIDATE,
+            &usage(format!("知らないコマンドです: {other}。{USAGE}")),
         ),
         None => refuse(
-            CHECK,
-            &Refused {
-                code: "usage",
-                message: format!("コマンドを指定してください。{USAGE}"),
-            },
+            VALIDATE,
+            &usage(format!("コマンドを指定してください。{USAGE}")),
         ),
     }
 }
 
-fn run_check(args: &[String]) -> ExitCode {
+fn locate() -> Result<Sas, Refused> {
+    Sas::locate().ok_or_else(|| Refused {
+        code: "sas_unavailable",
+        message: "sas が PATH に無い（SAS を入れて、PATH に置いてください）".to_string(),
+    })
+}
+
+fn run_create(args: &[String]) -> ExitCode {
+    let mut target = None;
+    let mut concrete = None;
+    let mut mode = None;
+    let mut rest = args.iter();
+    while let Some(a) = rest.next() {
+        match a.as_str() {
+            "--concrete" => match rest.next() {
+                Some(v) => concrete = Some(v.as_str()),
+                None => {
+                    return refuse(
+                        CREATE,
+                        &usage(format!("--concrete に URN を渡してください。{USAGE}")),
+                    );
+                }
+            },
+            "--semantic" => mode = Some(Mode::Semantic),
+            "--value" => match rest.next() {
+                Some(v) => mode = Some(Mode::Value(v.clone())),
+                None => {
+                    return refuse(
+                        CREATE,
+                        &usage(format!("--value に JSON を渡してください。{USAGE}")),
+                    );
+                }
+            },
+            flag if flag.starts_with("--") => {
+                return refuse(CREATE, &usage(format!("知らない指定です: {flag}。{USAGE}")));
+            }
+            _ if target.is_none() => target = Some(a.as_str()),
+            _ => {
+                return refuse(
+                    CREATE,
+                    &usage(format!(
+                        "置き場所かフォルダは1つだけ渡してください。{USAGE}"
+                    )),
+                );
+            }
+        }
+    }
+    if target.is_none() || concrete.is_none() || mode.is_none() {
+        return refuse(
+            CREATE,
+            &usage(format!(
+                "置き場所かフォルダと、--concrete <URN> と、--semantic か --value <JSON> を渡してください。{USAGE}"
+            )),
+        );
+    }
+    let sas = match locate() {
+        Ok(s) => s,
+        Err(r) => return refuse(CREATE, &r),
+    };
+    match create(target, concrete, mode, &sas) {
+        Ok(c) => {
+            output::print_created(&c);
+            if c.sas.exit == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(r) => refuse(CREATE, &r),
+    }
+}
+
+fn run_validate(args: &[String]) -> ExitCode {
     if let Some(flag) = args.iter().find(|a| a.starts_with("--")) {
         return refuse(
-            CHECK,
-            &Refused {
-                code: "usage",
-                message: format!("知らない指定です: {flag}。{USAGE}"),
-            },
+            VALIDATE,
+            &usage(format!("知らない指定です: {flag}。{USAGE}")),
         );
     }
     if args.is_empty() {
         return refuse(
-            CHECK,
-            &Refused {
-                code: "usage",
-                message: format!("確かめる Skill のフォルダを1つ以上渡してください。{USAGE}"),
-            },
+            VALIDATE,
+            &usage(format!(
+                "確かめる Skill のフォルダを1つ以上渡してください。{USAGE}"
+            )),
         );
     }
-    let Some(sas) = Sas::locate() else {
-        return refuse(
-            CHECK,
-            &Refused {
-                code: "sas_unavailable",
-                message: "sas が PATH に無い（SAS を入れて、PATH に置いてください）".to_string(),
-            },
-        );
+    let sas = match locate() {
+        Ok(s) => s,
+        Err(r) => return refuse(VALIDATE, &r),
     };
-    match check(
-        args,
-        &sas,
-        &WorkingTree::new(PathBuf::from(".")),
-        &JsonSchema,
-    ) {
+    let tree = WorkingTree::new(PathBuf::from("."));
+    match validate(args, &sas, &tree, &JsonSchema) {
         Ok(c) => {
-            output::print_checked(&c);
+            output::print_validated(&c);
             if c.detected() {
                 ExitCode::from(1)
             } else {
                 ExitCode::SUCCESS
             }
         }
-        Err(r) => refuse(CHECK, &r),
+        Err(r) => refuse(VALIDATE, &r),
     }
 }
 
-/// 引数がちょうど1つ（フォルダか置き場所）で、旗が無いか。無ければ None、多ければ使い方の誤り。
-fn one(args: &[String], schema: &str) -> Result<Option<String>, ExitCode> {
+fn run_write_skill_md(args: &[String]) -> ExitCode {
     if let Some(flag) = args.iter().find(|a| a.starts_with("--")) {
-        return Err(refuse(
-            schema,
-            &Refused {
-                code: "usage",
-                message: format!("知らない指定です: {flag}。{USAGE}"),
-            },
-        ));
+        return refuse(
+            WRITE_SKILL_MD,
+            &usage(format!("知らない指定です: {flag}。{USAGE}")),
+        );
     }
-    match args {
-        [] => Ok(None),
-        [one] => Ok(Some(one.clone())),
-        _ => Err(refuse(
-            schema,
-            &Refused {
-                code: "usage",
-                message: format!("フォルダは1つだけ渡してください。{USAGE}"),
-            },
-        )),
-    }
-}
-
-fn run_new(args: &[String]) -> ExitCode {
-    let tree = WorkingTree::new(PathBuf::from("."));
-    if args.first().map(String::as_str) == Some("--like") {
-        // --like <フォルダ> [<置き場所>]。フォルダが無ければ使い方の誤り
-        let (like, rest) = match args.get(1) {
-            Some(f) if !f.starts_with("--") => (Some(f.as_str()), &args[2..]),
-            _ => (None, &args[1..]),
-        };
-        let place = match one(rest, PROCEDURE) {
-            Ok(p) => p,
-            Err(code) => return code,
-        };
-        return match new_like_procedure(like, place.as_deref(), &tree) {
-            Ok(p) => {
-                output::print_procedure(&p);
-                ExitCode::SUCCESS
-            }
-            Err(r) => refuse(PROCEDURE, &r),
-        };
-    }
-    let place = match one(args, PROCEDURE) {
-        Ok(p) => p,
-        Err(code) => return code,
-    };
-    output::print_procedure(&new_procedure(place.as_deref(), &tree));
-    ExitCode::SUCCESS
-}
-
-fn run_build(args: &[String]) -> ExitCode {
-    let folder = match one(args, BUILD) {
-        Ok(f) => f,
-        Err(code) => return code,
+    let folder = match args {
+        [] => None,
+        [one] => Some(one.as_str()),
+        _ => {
+            return refuse(
+                WRITE_SKILL_MD,
+                &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
+            );
+        }
     };
     let tree = WorkingTree::new(PathBuf::from("."));
-    match build(folder.as_deref(), &tree, &tree) {
+    match write_skill_md(folder, &tree, &tree) {
         Ok(b) => {
-            output::print_built(&b);
+            output::print_written(&b);
             ExitCode::SUCCESS
         }
-        Err(r) => refuse(BUILD, &r),
-    }
-}
-
-fn run_confirm(args: &[String]) -> ExitCode {
-    let folder = match one(args, CONFIRM) {
-        Ok(f) => f,
-        Err(code) => return code,
-    };
-    match confirm(folder.as_deref(), &WorkingTree::new(PathBuf::from("."))) {
-        Ok(c) => {
-            output::print_confirmation(&c);
-            ExitCode::SUCCESS
-        }
-        Err(r) => refuse(CONFIRM, &r),
+        Err(r) => refuse(WRITE_SKILL_MD, &r),
     }
 }
 

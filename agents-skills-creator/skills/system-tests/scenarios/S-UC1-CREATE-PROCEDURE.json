@@ -1,0 +1,99 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-CREATE-PROCEDURE",
+ "name": "Skill を作る手順",
+ "title": "create に置き場所と Skill の Concrete（skill.schema）と --semantic を渡すと、sas create --semantic の結果を書き換えずに sas に入れ、先頭に3問の順番（問1〜問3、役割が資料に基づくときだけ聞く資料の問い）と別の場面2つの出し方を添え、何も書かない",
+ "why": "creator は AI を起動しないので、打ったセッションが問いの順番と SAS の書く手順だけで作る人に聞き、SAS に書かせられないと、Skill を作れない。",
+ "traces": [
+  "UC1:成功時保証",
+  "約束:create-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "skills",
+   "--concrete",
+   "urn:agents-skills-creator:skill:v1",
+   "--semantic"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "create"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions",
+   "count": 4
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/0/id",
+   "equals": "q1"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/0/fills",
+   "contains": "/purpose/who"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/1/fills/0",
+   "equals": "/purpose/gets"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/2/fills/0",
+   "equals": "/role/does_not"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/3/id",
+   "equals": "q4"
+  },
+  {
+   "of": "when",
+   "pointer": "/questions/3/when",
+   "contains": "資料"
+  },
+  {
+   "of": "when",
+   "pointer": "/scenes/count",
+   "equals": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/target/path",
+   "equals": "skills/<name>/skill.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/target/schema",
+   "equals": "urn:agents-skills-creator:skill:v1"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas_exit",
+   "equals": 0
+  }
+ ],
+ "unchanged": [
+  "published-language/v1/skill.schema.json"
+ ]
+}

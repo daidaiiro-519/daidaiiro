@@ -6,10 +6,9 @@
   "UC1:最低保証",
   "UC4:成功時保証",
   "UC4:最低保証",
-  "約束:check-result",
-  "約束:build-result",
-  "約束:confirm",
-  "約束:new-procedure",
+  "約束:create-result",
+  "約束:validate-result",
+  "約束:write-skill-md-result",
   "約束:skill:references",
   "約束:skill:schema",
   "UC1:変形:例を別の会話で動かす",
@@ -18,69 +17,35 @@
   "UC1:拡張:2a1a",
   "UC1:拡張:2a2a",
   "UC1:拡張:4a",
-  "約束:skill:same-shape-as"
+  "UC1:拡張:4b",
+  "UC7:成功時保証",
+  "UC7:最低保証"
  ],
  "traces": [
   {
    "id": "UC1:成功時保証",
-   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（問いと値を組む決まり）・ skill.json から決まった形で作る SKILL.md（参照する資料の節を含む）・ 確認の1画面の材料。同じ形で作った Skill は、元の Skill が無くても使え、作る人が答えた所でだけ元と違い、どの Skill と同じ形かが分かる（confirm の same_shape）",
+   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（create が添える問いの順番と、SAS の書く手順）・ skill.json から決まった形で書く SKILL.md（参照する資料の節を含む）・ 承認の材料（validate）",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-BUILD",
     "S-UC1-CONFIRM-REFERENCES",
     "S-UC1-CONFIRM",
-    "S-UC1-LIKE-ADDED",
-    "S-UC1-LIKE-NO-ORIGIN",
-    "S-UC1-LIKE-WRITE",
-    "S-UC1-NEW-PROCEDURE"
+    "S-UC1-CREATE-PROCEDURE"
    ],
    "note": "AI ツールごとの置き場所と形（配布）は UC5 で確かめる"
   },
   {
    "id": "UC1:最低保証",
-   "meaning": "既にある Skill は変わらない ・ どこまで書いたかが分かる。目的の誰がと何を得るかが分からないままなら承認を受け付けない。同じ形で作るとき、示した元の Skill は変わらない",
+   "meaning": "既にある Skill は変わらない ・ どこまで書いたかが分かる。目的の誰がと何を得るかが分からないままなら承認を受け付けない",
    "scenarios": [
     "S-UC1-CONFIRM-UNKNOWN",
     "S-UC1-EXISTING",
-    "S-UC1-LIKE-PROCEDURE",
-    "S-UC1-LIKE-USAGE",
-    "S-UC1-LIKE-WRITE",
     "S-UC1-USAGE"
    ]
   },
   {
-   "id": "UC1:拡張:2a",
-   "meaning": "作る人が既にある Skill を同じ形として示した：creator は元の Skill を読み、同じ形かを確かめる問いを先に置き、分野と場面 ・ 原典と知見で変わる所だけを聞き、ほかは元の値のまま既定にする（new --like）",
-   "scenarios": [
-    "S-UC1-LIKE-PROCEDURE",
-    "S-UC1-LIKE-WRITE"
-   ]
-  },
-  {
-   "id": "UC1:拡張:2a1a",
-   "meaning": "役割や手順が違う：違う所を示し、ふつうの new の3問へ戻る（手順の q0 の how が指す）",
-   "scenarios": [
-    "S-UC1-LIKE-PROCEDURE"
-   ]
-  },
-  {
-   "id": "UC1:拡張:2a2a",
-   "meaning": "元の Skill に無いものが要る：資料の問いの答えとして足し、確認で足した所（added）として示して承認してもらう",
-   "scenarios": [
-    "S-UC1-LIKE-ADDED",
-    "S-UC1-LIKE-PROCEDURE"
-   ]
-  },
-  {
-   "id": "UC1:拡張:4a",
-   "meaning": "creator が同じ形の Skill に気づいた：new が置き場所の Skill を existing に並べ、同じ形なら示して選ばせ、new --like へ移る",
-   "scenarios": [
-    "S-UC1-NEW-SAME-SHAPE"
-   ]
-  },
-  {
    "id": "UC4:成功時保証",
-   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が build の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う）を別の欄で返す",
+   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う）を別の欄で返す",
    "scenarios": [
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
@@ -108,9 +73,21 @@
    ]
   },
   {
-   "id": "約束:check-result",
-   "meaning": "check の結果は check-result.schema.json に従う",
+   "id": "約束:create-result",
+   "meaning": "create の結果は create-result.schema.json に従い、sas create の結果を書き換えずに入れる",
    "scenarios": [
+    "S-UC1-CREATE-PROCEDURE",
+    "S-UC1-EXISTING",
+    "S-UC1-USAGE"
+   ]
+  },
+  {
+   "id": "約束:validate-result",
+   "meaning": "validate の結果は validate-result.schema.json に従う（承認の材料を含む）",
+   "scenarios": [
+    "S-UC1-CONFIRM-REFERENCES",
+    "S-UC1-CONFIRM-UNKNOWN",
+    "S-UC1-CONFIRM",
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
     "S-UC4-FOLDER-LINK-BROKEN",
@@ -129,8 +106,8 @@
    ]
   },
   {
-   "id": "約束:build-result",
-   "meaning": "build の結果は build-result.schema.json に従う",
+   "id": "約束:write-skill-md-result",
+   "meaning": "write-skill-md の結果は write-skill-md-result.schema.json に従う",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-BUILD",
@@ -138,31 +115,8 @@
    ]
   },
   {
-   "id": "約束:confirm",
-   "meaning": "confirm の結果は confirm.schema.json に従う",
-   "scenarios": [
-    "S-UC1-CONFIRM-REFERENCES",
-    "S-UC1-CONFIRM-UNKNOWN",
-    "S-UC1-CONFIRM",
-    "S-UC1-LIKE-ADDED",
-    "S-UC1-LIKE-NO-ORIGIN",
-    "S-UC1-LIKE-WRITE",
-    "S-UC1-USAGE"
-   ]
-  },
-  {
-   "id": "約束:new-procedure",
-   "meaning": "new の手順は new-procedure.schema.json に従う",
-   "scenarios": [
-    "S-UC1-LIKE-PROCEDURE",
-    "S-UC1-LIKE-USAGE",
-    "S-UC1-NEW-PROCEDURE",
-    "S-UC1-NEW-SAME-SHAPE"
-   ]
-  },
-  {
    "id": "約束:skill:references",
-   "meaning": "skill.schema の references（参照する資料）は、SKILL.md の参照する資料の節と手順の行に出て、check がフォルダの中にあるかを確かめ、confirm が構造に入れ、資料の問いの答えを推測にしない",
+   "meaning": "skill.schema の references（参照する資料）は、SKILL.md の参照する資料の節と手順の行に出て、validate がフォルダの中にあるかを確かめ、承認の材料の構造に入れ、資料の問いの答えを推測にしない",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-CONFIRM-REFERENCES",
@@ -172,19 +126,12 @@
   },
   {
    "id": "約束:skill:schema",
-   "meaning": "skill.schema の references と outputs の schema（JSON の形なら必須）は、SKILL.md の形に添えて出し、check が schema があるか（URN なら SAS が引けるか）と、JSON の資料がそれに従うかを確かめる",
+   "meaning": "skill.schema の references と outputs の schema（JSON の形なら必須）は、SKILL.md の形に添えて出し、validate が schema があるか（URN なら SAS が引けるか）と、JSON の資料がそれに従うかを確かめる",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC4-JSON-SCHEMA-BROKEN",
     "S-UC4-JSON-SCHEMA-OK",
     "S-UC4-JSON-SCHEMA-URN"
-   ]
-  },
-  {
-   "id": "約束:skill:same-shape-as",
-   "meaning": "skill.json の same_shape_as（同じ形の元の Skill の name）を SAS が受け付け、build の SKILL.md には出さない",
-   "scenarios": [
-    "S-UC1-LIKE-WRITE"
    ]
   }
  ]

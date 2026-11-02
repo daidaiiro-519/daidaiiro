@@ -2,11 +2,11 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC1-CONFIRM-REFERENCES",
  "name": "参照する資料を確かめる",
- "title": "confirm は構造に references を入れ、推測の一覧では、from が「資料の問いの答え」の資料を答えとみなして出さず、AI が足した資料だけを推測として出す",
+ "title": "validate は、承認の材料として構造に references を入れ、推測の一覧では、from が「資料の問いの答え」の資料を答えとみなして出さず、AI が足した資料だけを推測として出す",
  "why": "作る人が答えた資料まで推測として並べると、確かめるべき所が埋もれる。AI が足した資料を見せないと、知らない資料に基づく Skill を承認してしまう。",
  "traces": [
   "UC1:成功時保証",
-  "約束:confirm",
+  "約束:validate-result",
   "約束:skill:references"
  ],
  "given": {
@@ -16,28 +16,24 @@
  },
  "when": {
   "args": [
-   "confirm",
+   "validate",
    "skills/fact-check"
   ]
  },
  "then": [
   {
    "of": "when",
-   "exit": 0
-  },
-  {
-   "of": "when",
-   "pointer": "/structure/references",
+   "pointer": "/skills/0/approval/structure/references",
    "count": 2
   },
   {
    "of": "when",
-   "pointer": "/guesses",
+   "pointer": "/skills/0/approval/guesses",
    "contains": "/references/1"
   },
   {
    "of": "when",
-   "pointer": "/guesses",
+   "pointer": "/skills/0/approval/guesses",
    "lacks": "/references/0"
   }
  ]
