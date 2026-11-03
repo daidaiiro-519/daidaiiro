@@ -1,6 +1,6 @@
 {
  "$schema": "urn:agents-skills-creator:system-tests:trace:v1",
- "description": "ユースケースの保証と変形を、それを確かめる場面と突き合わせる表（SAS の system-tests/trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。creator の出力が公開された言葉の形に従うことは、場面を流す試験（adapters/inbound/cli/tests/skills_scenarios.rs）がすべての出力で照らす",
+ "description": "ユースケースの保証と変形を、それを確かめる場面と突き合わせる表（Semantic Agent Schema の system-tests/trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。creator の出力が公開された言葉の形に従うことは、場面を流す試験（adapters/inbound/cli/tests/skills_scenarios.rs）がすべての出力で照らす",
  "scope": [
   "UC1:成功時保証",
   "UC1:最低保証",
@@ -39,7 +39,7 @@
  "traces": [
   {
    "id": "UC1:成功時保証",
-   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（create に Skill のフォルダを渡すと添える作る流れ：目的の仮説 ・ 完成の像 ・ 構造の像 ・ 推奨付きの問いを先に見せ、完成の像を変え、ほかから決まらない所だけを聞く。と、SAS の書く手順）・ skill.json から決まった形で書く SKILL.md（参照する資料の節を含む）・ 承認の材料（validate。構造の像の4つを含む）",
+   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（create に Skill のフォルダを渡すと添える作る流れ：目的の仮説 ・ 完成の像 ・ 構造の像 ・ 推奨付きの問いを先に見せ、完成の像を変え、ほかから決まらない所だけを聞く。と、Semantic Agent Schema の書く手順）・ skill.json から決まった形で書く SKILL.md（参照する資料の節を含む）・ 承認の材料（validate。構造の像の4つを含む）",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-BUILD",
@@ -64,7 +64,7 @@
   },
   {
    "id": "UC4:成功時保証",
-   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う ・ 資料の grounds_for の名前が outputs の name にある ・ 道具と資源のファイルがある ・ 道具の does が role.does にある ・ 道具の受け渡しが Skill の inputs ・ outputs にある）を別の欄で返す。承認の材料は、SAS の検証で検出があるか意味の rule の not-judged が残れば承認を受け付けず（終了コードは変えない）、そのまま打てる承認のコマンドを返す",
+   "meaning": "使えるか、どこが何に反するかが分かる。Semantic Agent Schema の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う ・ 資料の grounds_for の名前が outputs の name にある ・ 道具と資源のファイルがある ・ 道具の does が role.does にある ・ 道具の受け渡しが Skill の inputs ・ outputs にある）を別の欄で返す。承認の材料は、Semantic Agent Schema の検証で検出があるか意味の rule の not-judged が残れば承認を受け付けず（終了コードは変えない）、そのまま打てる承認のコマンドを返す",
    "scenarios": [
     "S-UC1-CREATOR-ITSELF",
     "S-UC1-TOOLS",
@@ -81,7 +81,7 @@
     "S-UC4-NAME-OVERLAP",
     "S-UC4-REFERENCES-MISSING",
     "S-UC4-REFERENCES-OK",
-    "S-UC4-SAS-OUTSIDE",
+    "S-UC4-SEMANTIC-AGENT-SCHEMA-OUTSIDE",
     "S-UC4-SKILL-MD-MISSING",
     "S-UC4-SKILL-MD-STALE",
     "S-UC4-TOOL-IO-BROKEN",
@@ -90,12 +90,12 @@
   },
   {
    "id": "UC4:最低保証",
-   "meaning": "確かめても、Skill のファイルは変わらない（SAS の記録 .git/sas/sas.db には検証の操作が1件足される）。semantic-agent-schema が無い ・ 使い方を誤ったときは確かめずに止まる",
+   "meaning": "確かめても、Skill のファイルは変わらない（Semantic Agent Schema の記録 .git/sas/sas.db には検証の操作が1件足される）。semantic-agent-schema が無い ・ 使い方を誤ったときは確かめずに止まる",
    "scenarios": [
     "S-UC4-CHECK-OK",
     "S-UC4-EXAMPLE-MISSED",
     "S-UC4-EXAMPLES-DISTINCT",
-    "S-UC4-SAS-UNAVAILABLE",
+    "S-UC4-SEMANTIC-AGENT-SCHEMA-UNAVAILABLE",
     "S-UC4-USAGE"
    ]
   },
@@ -133,8 +133,8 @@
     "S-UC4-NAME-OVERLAP",
     "S-UC4-REFERENCES-MISSING",
     "S-UC4-REFERENCES-OK",
-    "S-UC4-SAS-OUTSIDE",
-    "S-UC4-SAS-UNAVAILABLE",
+    "S-UC4-SEMANTIC-AGENT-SCHEMA-OUTSIDE",
+    "S-UC4-SEMANTIC-AGENT-SCHEMA-UNAVAILABLE",
     "S-UC4-SKILL-MD-MISSING",
     "S-UC4-SKILL-MD-STALE",
     "S-UC4-TOOL-IO-BROKEN",
@@ -164,7 +164,7 @@
   },
   {
    "id": "約束:skill:schema",
-   "meaning": "skill.schema の references と outputs の schema（JSON の形なら必須）は、SKILL.md の形に添えて出し、validate が schema があるか（URN なら SAS が引けるか）と、JSON の資料がそれに従うかを確かめる",
+   "meaning": "skill.schema の references と outputs の schema（JSON の形なら必須）は、SKILL.md の形に添えて出し、validate が schema があるか（URN なら Semantic Agent Schema が引けるか）と、JSON の資料がそれに従うかを確かめる",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC4-JSON-SCHEMA-BROKEN",
@@ -174,7 +174,7 @@
   },
   {
    "id": "UC3:成功時保証",
-   "meaning": "直した Skill が使え、選んだ層が記録されている。creator が確かめるのは、そのための材料：直す流れ（外れた具体を examples に足す形 ・ 層の案と導き直し ・ 層を --reason に残す記録 ・ 承認してから書く）と、--patch の結果（SAS の結果を書き換えない）と、validate の承認の材料の changes（前の確かめからの操作ごとの理由の層と、所ごとの前と後）",
+   "meaning": "直した Skill が使え、選んだ層が記録されている。creator が確かめるのは、そのための材料：直す流れ（外れた具体を examples に足す形 ・ 層の案と導き直し ・ 層を --reason に残す記録 ・ 承認してから書く）と、--patch の結果（Semantic Agent Schema の結果を書き換えない）と、validate の承認の材料の changes（前の確かめからの操作ごとの理由の層と、所ごとの前と後）",
    "scenarios": [
     "S-UC1-VALUE-FROM-FILE",
     "S-UC3-UPDATE-PATCH",
@@ -183,7 +183,7 @@
   },
   {
    "id": "UC3:最低保証",
-   "meaning": "作る人が承認するまで、Skill は書き換わらない。--semantic は何も書かず、--patch は --if-match と「層：<名前>」の理由が無ければ semantic-agent-schema を打たず、中身が変わっていれば SAS が断る",
+   "meaning": "作る人が承認するまで、Skill は書き換わらない。--semantic は何も書かず、--patch は --if-match と「層：<名前>」の理由が無ければ semantic-agent-schema を打たず、中身が変わっていれば Semantic Agent Schema が断る",
    "scenarios": [
     "S-UC3-UPDATE-PROCEDURE",
     "S-UC3-UPDATE-REFUSED"
@@ -208,7 +208,7 @@
   },
   {
    "id": "UC5:最低保証",
-   "meaning": "配布先のほかの Skill は変わらない（置き場所にほかのものがあれば置かず、同じリンクなら何もしない）。承認していないもの（approved が無いか、承認のあとに書き換えた）は配布しない（BR4）。承認は人の欄（x-decided-by: human）で、AI のセッションからは SAS が書かせない",
+   "meaning": "配布先のほかの Skill は変わらない（置き場所にほかのものがあれば置かず、同じリンクなら何もしない）。承認していないもの（approved が無いか、承認のあとに書き換えた）は配布しない（BR4）。承認は人の欄（x-decided-by: human）で、AI のセッションからは Semantic Agent Schema が書かせない",
    "scenarios": [
     "S-UC4-APPROVE-COMMAND",
     "S-UC5-APPROVAL-STALE",

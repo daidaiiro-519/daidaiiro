@@ -11,7 +11,7 @@ pub struct Run {
     pub output: Value,
 }
 
-/// SAS（共用サービス）で Agent の項目を検証する。
+/// Semantic Agent Schema（共用サービス）で Agent の項目を検証する。
 pub trait AgentValidator {
     /// semantic-agent-schema validate <経路>。
     ///
@@ -20,7 +20,7 @@ pub trait AgentValidator {
     fn validate(&self, path: &str) -> Result<Run, String>;
 }
 
-/// SAS に Agent の項目を書かせる。
+/// Semantic Agent Schema に Agent の項目を書かせる。
 pub trait AgentWriter {
     /// semantic-agent-schema create <経路> --concrete <URN> --semantic。
     ///
@@ -53,7 +53,7 @@ pub trait AgentWriter {
     ) -> Result<Run, String>;
 }
 
-/// SAS の記録を読む（書かない）。
+/// Semantic Agent Schema の記録を読む（書かない）。
 pub trait AgentHistory {
     /// semantic-agent-schema log <経路>（新しい順）。
     ///
@@ -92,7 +92,7 @@ pub trait AgentFiles {
     fn resolve(&self, path: &str) -> Option<String>;
 }
 
-/// creator が作るファイル（AGENT.md ・ codex.toml）を書く。agent.json は書かない（SAS が書く）。
+/// creator が作るファイル（AGENT.md ・ codex.toml）を書く。agent.json は書かない（Semantic Agent Schema が書く）。
 pub trait GeneratedFiles {
     /// ファイルを書く。
     ///

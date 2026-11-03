@@ -1,8 +1,8 @@
-//! crate の依存の向きを、ワークスペースの根の architecture.json（architecture-lint の規則）と照らす（SAS の同じ検査を写したもの）。
+//! crate の依存の向きを、ワークスペースの根の architecture.json（architecture-lint の規則）と照らす（Semantic Agent Schema の同じ検査を写したもの）。
 //!
 //! - 依存の辺が規則の allow にあり、どの crate と外のライブラリも component に入る（architecture-lint check）
 //! - 規則の component の node は、どれもワークスペースのグラフにある（消した crate を規則に残さない）
-//! - crate の名前がフォルダから決まる（SAS と同じ付け方。文脈の中は <文脈>-<層>（domain ・ application）か <モジュール>-<層>、
+//! - crate の名前がフォルダから決まる（Semantic Agent Schema と同じ付け方。文脈の中は <文脈>-<層>（domain ・ application）か <モジュール>-<層>、
 //!   文脈の外の adapters/<inbound|outbound>/<技術> は <inbound|outbound>-<技術>、根の test-support/ は test-support）
 //!
 //! architecture-lint は PATH から探し、無ければリポジトリの中の ../architecture-lint/target/debug から使う。

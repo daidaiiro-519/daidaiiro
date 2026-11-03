@@ -1,7 +1,7 @@
 {
  "$schema": "urn:architecture-lint:rules:v1",
  "version": 1,
- "description": "いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きはすべて禁止。crate か外のライブラリを足したら、ここにも足す。置き場所と crate の名前の付け方は docs/design/structure.json にある（SAS と同じヘキサゴナルの形：文脈の中は domain と application だけ、アダプターは文脈の外の adapters/ に入口と出口で1つずつ）。文脈 agents の crate から文脈 skills の crate への向きは許さない（agents は skills の公開された言葉＝skills コマンドの結果だけに従う）。アダプターは application に向く（SAS の architecture.json と同じ決まり）",
+ "description": "いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きはすべて禁止。crate か外のライブラリを足したら、ここにも足す。置き場所と crate の名前の付け方は docs/design/structure.json にある（Semantic Agent Schema と同じヘキサゴナルの形：文脈の中は domain と application だけ、アダプターは文脈の外の adapters/ に入口と出口で1つずつ）。文脈 agents の crate から文脈 skills の crate への向きは許さない（agents は skills の公開された言葉＝skills コマンドの結果だけに従う）。アダプターは application に向く（Semantic Agent Schema の architecture.json と同じ決まり）",
  "components": [
   {
    "name": "skills-domain",
@@ -15,7 +15,7 @@
    "nodes": [
     "skills-application"
    ],
-   "description": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs。creator の検査は name-is-folder ・ name-unique ・ links-resolve ・ skill-md-built ・ references-exist ・ json-schema-conforms）。ポート SkillValidator（SAS で検証する ・ SAS が Concrete を引けるか）・ JsonSchemaChecker（ふつうの JSON Schema で確かめる）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
+   "description": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs。creator の検査は name-is-folder ・ name-unique ・ links-resolve ・ skill-md-built ・ references-exist ・ json-schema-conforms）。ポート SkillValidator（Semantic Agent Schema で検証する ・ Semantic Agent Schema が Concrete を引けるか）・ JsonSchemaChecker（ふつうの JSON Schema で確かめる）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
   },
   {
    "name": "agents-domain",
@@ -29,7 +29,7 @@
    "nodes": [
     "agents-application"
    ],
-   "description": "文脈 agents の application。UC2 Agent を作る（create ・ write-agent-md ・ validate と承認の材料 ・ distribute ・ withdraw）。ポート AgentValidator ・ AgentWriter ・ AgentHistory（SAS）・ SkillsCli（文脈 skills の公開された言葉：skills validate の結果）・ AgentFiles ・ GeneratedFiles ・ Destinations を宣言する。文脈 skills の crate には依存しない"
+   "description": "文脈 agents の application。UC2 Agent を作る（create ・ write-agent-md ・ validate と承認の材料 ・ distribute ・ withdraw）。ポート AgentValidator ・ AgentWriter ・ AgentHistory（Semantic Agent Schema）・ SkillsCli（文脈 skills の公開された言葉：skills validate の結果）・ AgentFiles ・ GeneratedFiles ・ Destinations を宣言する。文脈 skills の crate には依存しない"
   },
   {
    "name": "inbound-cli",
@@ -43,21 +43,21 @@
    "nodes": [
     "outbound-semantic-agent-schema"
    ],
-   "description": "出口：SAS。文脈 skills の SkillValidator ・ SkillWriter ・ SkillHistory と、文脈 agents の AgentValidator ・ AgentWriter ・ AgentHistory を、モジュール skills ・ agents で実装する。semantic-agent-schema を PATH から探し、外の実行ファイルとして呼んで、出力を書き換えずに返す"
+   "description": "出口：Semantic Agent Schema。文脈 skills の SkillValidator ・ SkillWriter ・ SkillHistory と、文脈 agents の AgentValidator ・ AgentWriter ・ AgentHistory を、モジュール skills ・ agents で実装する。semantic-agent-schema を PATH から探し、外の実行ファイルとして呼んで、出力を書き換えずに返す"
   },
   {
    "name": "outbound-filesystem",
    "nodes": [
     "outbound-filesystem"
    ],
-   "description": "出口：作業ディレクトリのファイル。文脈 skills の SkillFiles ・ GeneratedFiles ・ Destinations と、文脈 agents の AgentFiles ・ GeneratedFiles ・ Destinations を、モジュール skills ・ agents で実装する。フォルダ ・ 項目のファイル ・ シンボリックリンクを読み、SKILL.md ・ AGENT.md ・ codex.toml を書き、配布先にリンクを置く ・ 外す。skill.json ・ agent.json は書かない（SAS が書く）"
+   "description": "出口：作業ディレクトリのファイル。文脈 skills の SkillFiles ・ GeneratedFiles ・ Destinations と、文脈 agents の AgentFiles ・ GeneratedFiles ・ Destinations を、モジュール skills ・ agents で実装する。フォルダ ・ 項目のファイル ・ シンボリックリンクを読み、SKILL.md ・ AGENT.md ・ codex.toml を書き、配布先にリンクを置く ・ 外す。skill.json ・ agent.json は書かない（Semantic Agent Schema が書く）"
   },
   {
    "name": "outbound-jsonschema",
    "nodes": [
     "outbound-jsonschema"
    ],
-   "description": "出口：ふつうの JSON Schema。文脈 skills の JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いた JSON Schema で、参照する資料の中身を確かめる"
+   "description": "出口：ふつうの JSON Schema。文脈 skills の JsonSchemaChecker の実装。jsonschema（Semantic Agent Schema と同じ版）を閉じ込め、Skill のフォルダに置いた JSON Schema で、参照する資料の中身を確かめる"
   },
   {
    "name": "outbound-skills",
@@ -85,7 +85,7 @@
    "nodes": [
     "jsonschema"
    ],
-   "description": "JSON Schema のバリデーター（SAS と同じ版）。outbound-jsonschema に閉じ込める（場面の試験と test-support は dev で使う）"
+   "description": "JSON Schema のバリデーター（Semantic Agent Schema と同じ版）。outbound-jsonschema に閉じ込める（場面の試験と test-support は dev で使う）"
   }
  ],
  "allow": [

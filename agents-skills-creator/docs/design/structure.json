@@ -1,6 +1,6 @@
 {
  "$schema": "urn:agents-skills-creator:design:structure:v1",
- "description": "置き場所（ディレクトリ構成）と、文脈 ・ モジュールの分け方と crate の名前の付け方。SAS（semantic-agent-schema/schemas-and-instances/）と同じヘキサゴナルの形：文脈の中は domain と application だけ、アダプターは文脈の外の adapters/ に入口（inbound）と出口（outbound）で1つずつ、公開された言葉とシステムテストも文脈の外に1つずつ置く。依存の向きの規則は根の architecture.json（architecture-lint の規則）が持つ。設計の仮説（業務領域の候補）は探索の記録 docs/design/exploration/ と突き合わせ、要ると分かった時点でここと architecture.json へ移す",
+ "description": "置き場所（ディレクトリ構成）と、文脈 ・ モジュールの分け方と crate の名前の付け方。Semantic Agent Schema（semantic-agent-schema/schemas-and-instances/）と同じヘキサゴナルの形：文脈の中は domain と application だけ、アダプターは文脈の外の adapters/ に入口（inbound）と出口（outbound）で1つずつ、公開された言葉とシステムテストも文脈の外に1つずつ置く。依存の向きの規則は根の architecture.json（architecture-lint の規則）が持つ。設計の仮説（業務領域の候補）は探索の記録 docs/design/exploration/ と突き合わせ、要ると分かった時点でここと architecture.json へ移す",
  "context": "skills ・ agents",
  "layout": {
   "skills/domain": "文脈 skills のドメインモデル（crate skills-domain）。SKILL.md の形（skill_md）と、項目ごとに何を導くかの表（derivation）",
@@ -8,16 +8,16 @@
   "agents/domain": "文脈 agents のドメインモデル（crate agents-domain）。AGENT.md と codex.toml の形（agent_md）",
   "agents/application": "文脈 agents のユースケースと、それが使うポート（crate agents-application）。文脈 skills の crate には依存しない",
   "adapters/inbound/cli": "入口（crate inbound-cli）。実行ファイル agents-skills-creator。モジュール skills ・ agents がそれぞれの文脈のサブコマンドとコンポジションルートを持ち、main が振り分ける。場面の試験（tests/skills_scenarios.rs ・ agents_scenarios.rs）もここ",
-  "adapters/outbound/semantic-agent-schema": "出口：SAS（crate outbound-semantic-agent-schema）。両方の文脈の SAS のポートを、モジュール skills ・ agents で実装する",
+  "adapters/outbound/semantic-agent-schema": "出口：Semantic Agent Schema（crate outbound-semantic-agent-schema）。両方の文脈の Semantic Agent Schema のポートを、モジュール skills ・ agents で実装する",
   "adapters/outbound/filesystem": "出口：作業ディレクトリのファイル（crate outbound-filesystem）。両方の文脈のファイルのポートを、モジュール skills ・ agents で実装する",
   "adapters/outbound/jsonschema": "出口：ふつうの JSON Schema（crate outbound-jsonschema）。文脈 skills の JsonSchemaChecker",
   "adapters/outbound/skills": "出口：文脈 skills の公開された言葉（crate outbound-skills）。文脈 agents の SkillsCli。agents-skills-creator skills validate の結果を外のプロセスとして呼んで読む",
-  "published-language/v1": "公開された言葉。Concrete の skill.schema.json ・ agent.schema.json（SAS が管理する）を根に、コマンドの結果の形を skills/ ・ agents/ の下に置く。URN（urn:agents-skills-creator:…）は置き場所に依らない",
+  "published-language/v1": "公開された言葉。Concrete の skill.schema.json ・ agent.schema.json（Semantic Agent Schema が管理する）を根に、コマンドの結果の形を skills/ ・ agents/ の下に置く。URN（urn:agents-skills-creator:…）は置き場所に依らない",
   "system-tests": "システムテスト。場面の形（scenario.schema.json ・ trace.schema.json ・ untested.schema.json）を根に、文脈ごとの scenarios/ ・ fixtures/ ・ trace.json ・ untested.json を skills/ ・ agents/ の下に置く",
   "test-support": "試験の部品（crate test-support）。依存の向き（architecture.rs）・ 保証と場面の突き合わせ（trace.rs）・ 設計のファイルの形（files.rs）の検査",
   "docs/design": "設計のファイル（この structure.json と探索の記録 exploration/）"
  },
- "context_map": "事業領域 agents-skills-creator の文脈は skills（上流。公開された言葉 skill.schema と skills コマンドの結果を出す）と agents（下流。skills の公開された言葉だけに従う）の2つ。agents が読める Skill の項目は name ・ description ・ inputs ・ outputs だけで、agents-skills-creator skills validate の結果から読む（出口 outbound-skills）。SAS は両方にとっての共用サービスで、変換を挟まずに従い、semantic-agent-schema の結果は書き換えずに返す",
- "crate_naming": "crate の名前はフォルダから決める（SAS と同じ付け方）：文脈の直下の層は <文脈>-<層>（skills-domain ・ agents-application など。業務領域のモジュールはまだ作らない）、業務領域のモジュールを作ったら <モジュール>-<層>、アダプターは adapters/<inbound|outbound>/<技術> で <inbound|outbound>-<技術>（同じ技術のアダプターは文脈をまたいで1つにし、文脈ごとのポートはモジュールで分ける）、試験の部品は test-support。実行ファイルの名前は agents-skills-creator（crate inbound-cli の bin）",
+ "context_map": "事業領域 agents-skills-creator の文脈は skills（上流。公開された言葉 skill.schema と skills コマンドの結果を出す）と agents（下流。skills の公開された言葉だけに従う）の2つ。agents が読める Skill の項目は name ・ description ・ inputs ・ outputs だけで、agents-skills-creator skills validate の結果から読む（出口 outbound-skills）。Semantic Agent Schema は両方にとっての共用サービスで、変換を挟まずに従い、semantic-agent-schema の結果は書き換えずに返す",
+ "crate_naming": "crate の名前はフォルダから決める（Semantic Agent Schema と同じ付け方）：文脈の直下の層は <文脈>-<層>（skills-domain ・ agents-application など。業務領域のモジュールはまだ作らない）、業務領域のモジュールを作ったら <モジュール>-<層>、アダプターは adapters/<inbound|outbound>/<技術> で <inbound|outbound>-<技術>（同じ技術のアダプターは文脈をまたいで1つにし、文脈ごとのポートはモジュールで分ける）、試験の部品は test-support。実行ファイルの名前は agents-skills-creator（crate inbound-cli の bin）",
  "modules": "業務領域の候補（作って確かめる ・ 配布）は、まだモジュールにしない。ユースケースの手続きは文脈の application に置き、複数のユースケースが同じ理由で使う判断（SKILL.md ・ AGENT.md の形、項目ごとに何を導くか）は文脈の domain に置く。application は、自分のユースケースが使うポート（と、そのうち使う操作）だけを ports.rs に宣言する。アダプターは application（と domain）に向き、1つのアダプターが両方の文脈のポートを実装するときは、文脈ごとのモジュールに分ける"
 }

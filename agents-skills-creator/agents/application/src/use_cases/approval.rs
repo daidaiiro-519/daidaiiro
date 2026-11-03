@@ -68,7 +68,7 @@ pub fn approval(folder: &str, agent: &Value) -> Value {
         },
         "delegate": [
             {"id": "a", "what": "意味の rule の判定", "how": format!("書いたときとは別の会話で、このコマンドの手順を受け取って判定し、答えを、手順の answer.schema に従う JSON（hash に手順の target.hash、results に rule ごとの step ・ rule ・ pointer ・ result ・ reason。example-runs-as-expected だけは b の会話の判定を入れる）として作業場所の中のファイルに書き、semantic-agent-schema validate {agent_json} --answer <ファイル> で渡す。そのあと validate を打ち直す"), "command": format!("semantic-agent-schema validate {agent_json} --semantic")},
-            {"id": "b", "what": "例を動かす", "how": format!("別の会話に {}/{} だけを読ませ、例ごとに given を手で用意して input で頼み、実際の答えを expected と比べる。その会話が、意味の rule example-runs-as-expected（pointer /examples）を判定し、reason に例ごとの実際の答えを書く。この判定は a の判定と1つの答えのファイルにまとめて semantic-agent-schema validate {agent_json} --answer <ファイル> で渡す（rule が1つでも欠けた答えは SAS が断る）。そのあと validate を打ち直す", trimmed(folder), agent_md::FILE),
+            {"id": "b", "what": "例を動かす", "how": format!("別の会話に {}/{} だけを読ませ、例ごとに given を手で用意して input で頼み、実際の答えを expected と比べる。その会話が、意味の rule example-runs-as-expected（pointer /examples）を判定し、reason に例ごとの実際の答えを書く。この判定は a の判定と1つの答えのファイルにまとめて semantic-agent-schema validate {agent_json} --answer <ファイル> で渡す（rule が1つでも欠けた答えは Semantic Agent Schema が断る）。そのあと validate を打ち直す", trimmed(folder), agent_md::FILE),
              "examples": examples.iter().map(|e| json!({"id": s(e, "id"), "given": s(e, "given"), "input": s(e, "input"), "expected": s(e, "expected")})).collect::<Vec<_>>()}
         ]
     })

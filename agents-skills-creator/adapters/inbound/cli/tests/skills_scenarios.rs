@@ -8,7 +8,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と SAS の記録の置き場所）。
+/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semantic Agent Schema の記録の置き場所）。
 /// 持ち込むと、semantic-agent-schema の出力のセッションが試験を動かす環境で変わる。
 const NOT_INHERITED: [&str; 5] = [
     "CLAUDE_CODE_SESSION_ID",
@@ -96,7 +96,7 @@ fn link(dir: &Path, links: &serde_json::Map<String, Value>) {
     }
 }
 
-/// 試験で使う semantic-agent-schema の置き場所：このリポジトリの隣の SAS で作った semantic-agent-schema があれば、それを PATH の前に足す。
+/// 試験で使う semantic-agent-schema の置き場所：このリポジトリの隣の Semantic Agent Schema のリポジトリで作った semantic-agent-schema があれば、それを PATH の前に足す。
 /// 無ければ、試験を動かす環境の PATH のまま（そこにも無ければ sas_unavailable で止まる）。
 fn path_with_sas() -> std::ffi::OsString {
     let built = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -113,7 +113,7 @@ fn path_with_sas() -> std::ffi::OsString {
 
 fn run(dir: &Path, cmd: &Value) -> Output {
     // args は agents-skills-creator skills のあと、creator は agents-skills-creator のあと（approve ・ --help など）、
-    // semantic-agent-schema は SAS（人が承認を書くときなど）に渡す
+    // semantic-agent-schema は Semantic Agent Schema（人が承認を書くときなど）に渡す
     let (program, key) = match (cmd.get("semantic_agent_schema"), cmd.get("creator")) {
         (Some(_), _) => ("semantic-agent-schema".to_string(), "semantic_agent_schema"),
         (None, Some(_)) => (
@@ -178,7 +178,7 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
     // 出力は JSON が1つ。どの出力も結果の形に従う
     let json: Value = serde_json::from_str(stdout.trim())
         .unwrap_or_else(|e| panic!("{id} {label}: 出力が JSON 1つでない（{e}）: {stdout}"));
-    // creator の出力は公開された言葉の形に照らす。semantic-agent-schema の出力の形は SAS の試験が確かめる
+    // creator の出力は公開された言葉の形に照らす。semantic-agent-schema の出力の形は Semantic Agent Schema の試験が確かめる
     let schema_id = json["$schema"].as_str().unwrap_or_default().to_string();
     if schema_id.starts_with("urn:agents-skills-creator:") {
         let errors: Vec<String> = result_schema(&schema_id)

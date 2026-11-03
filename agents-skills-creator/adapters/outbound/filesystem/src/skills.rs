@@ -1,5 +1,5 @@
 //! ポート SkillFiles ・ Destinations を、作業ディレクトリのファイルとシンボリックリンクで実装する。ポート GeneratedFiles で書くのは
-//! creator が作るファイル（SKILL.md）だけで、skill.json は書かない（SAS が書く）。
+//! creator が作るファイル（SKILL.md）だけで、skill.json は書かない（Semantic Agent Schema が書く）。
 
 use skills_application::ports::{Destinations, GeneratedFiles, SkillFiles};
 use std::path::{Path, PathBuf};

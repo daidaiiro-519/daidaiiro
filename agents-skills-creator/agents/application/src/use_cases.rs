@@ -36,7 +36,7 @@ pub enum Outcome {
 }
 
 impl Outcome {
-    /// 出力に書く名前（SAS の判定の区分と同じ語）。
+    /// 出力に書く名前（Semantic Agent Schema の判定の区分と同じ語）。
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -111,7 +111,7 @@ pub fn strings(v: &Value, key: &str) -> Vec<String> {
         .collect()
 }
 
-/// SAS の手順を、creator のコマンドで書く形にする：command を creator のコマンドに置き換え、constraints の
+/// Semantic Agent Schema の手順を、creator のコマンドで書く形にする：command を creator のコマンドに置き換え、constraints の
 /// 「command の semantic-agent-schema」を「command の <creator のコマンド>」にする（semantic-agent-schema を直に打つ形を出さない）。手順でなければ変えない。
 pub fn as_creator_procedure(output: &mut serde_json::Value, command: String, bin: &str) {
     if output.get("kind").and_then(serde_json::Value::as_str) != Some("procedure") {

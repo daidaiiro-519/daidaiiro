@@ -38,12 +38,12 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 ## 外の道具
 
 - agents-skills-creator（>=0.1.0, <0.2.0）：Skill ・ Agent を作り、直し、確かめ、配り、配布の取り下げの影響を示す（サブコマンド skills ・ agents）。承認は人が approve で打つ
-- semantic-agent-schema（>=0.1.0, <0.2.0）：意味の rule の判定を渡す（semantic-agent-schema validate --answer）。agents-skills-creator が中で SAS に書かせ、確かめさせ、記録を読む
+- semantic-agent-schema（>=0.1.0, <0.2.0）：意味の rule の判定を渡す（semantic-agent-schema validate --answer）。agents-skills-creator が中で Semantic Agent Schema に書かせ、確かめさせ、記録を読む
 
 ## 資源
 
-- Skill の Concrete（assets/skill.schema.json）：Agent Skill の項目の形（urn:agents-skills-creator:skill:v1）。形：JSON（SAS の Concrete）（schema：urn:semantic-agent-schema:published-language:abstract:v1）
-- Agent の Concrete（assets/agent.schema.json）：Agent の項目の形（urn:agents-skills-creator:agent:v1）。形：JSON（SAS の Concrete）（schema：urn:semantic-agent-schema:published-language:abstract:v1）
+- Skill の Concrete（assets/skill.schema.json）：Agent Skill の項目の形（urn:agents-skills-creator:skill:v1）。形：JSON（Semantic Agent Schema の Concrete）（schema：urn:semantic-agent-schema:published-language:abstract:v1）
+- Agent の Concrete（assets/agent.schema.json）：Agent の項目の形（urn:agents-skills-creator:agent:v1）。形：JSON（Semantic Agent Schema の Concrete）（schema：urn:semantic-agent-schema:published-language:abstract:v1）
 
 ## 手順
 
@@ -51,11 +51,11 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
    - 1a 束ねたい Skill が足りない → 足りない Skill を先に Skill として作る（ステップ1へ戻る）
    - 1b 使わなくしたい → withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ（止める）（使う道具：agents-skills-creator）
 2. 書く手順を --semantic で受け取り、返る flow に従って最初の返事を見せる（作るときは目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問い、直すときは外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨）（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：作るときは作る人が目的の仮説で進めてよいと答えて問いに答え、直すときは作る人が直す層を選んだ）
-3. SAS に項目を書かせる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：semantic-agent-schema の結果が created か updated である）
+3. Semantic Agent Schema に項目を書かせる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：semantic-agent-schema の結果が created か updated である）
 4. SKILL.md（Agent なら AGENT.md と codex.toml）を作る（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある）
 5. validate で確かめる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：validate の終了コードが 0 である）
 6. 意味の rule を別の会話で判定させる（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：example-runs-as-expected のほかの意味の rule に、判定がある）
-7. 別の会話で例を動かし、実際の答えを完成の像と並べて見せ、手順6の判定と1つの答えのファイルにまとめて SAS に渡す（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：どの例にも実際の答えが期待と並び、validate の承認の材料の approvable が true である）
+7. 別の会話で例を動かし、実際の答えを完成の像と並べて見せ、手順6の判定と1つの答えのファイルにまとめて Semantic Agent Schema に渡す（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：どの例にも実際の答えが期待と並び、validate の承認の材料の approvable が true である）
    - 7a 例の実際の答えが期待と違う → 一つ広い層で直す（外れた具体として、直す層を選んでもらう）（ステップ2へ戻る）
 8. 承認のコマンド（agents-skills-creator approve <フォルダ>）を作る人に示し、人に打ってもらう（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：skill.json（Agent なら agent.json）に approved がある）
 9. 作る人が選んだ配布先に置く（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：distribute の placed-readable が verified である）
@@ -69,7 +69,7 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 
 - 作る人が承認するまで、配布先は変わらない
 - 既にある Skill ・ Agent は、直すと言われた所のほかは変わらない
-- どこで止まっても、作るフォルダと配布先の外は変わらない（SAS の記録 <git-common-dir>/sas/sas.db を除く。記録は作業場所の Git の中に残り、git status には出ない）
+- どこで止まっても、作るフォルダと配布先の外は変わらない（Semantic Agent Schema の記録 <git-common-dir>/sas/sas.db を除く。記録は作業場所の Git の中に残り、git status には出ない）
 
 ## 完了条件
 

@@ -1,4 +1,4 @@
-//! ポート SkillValidator ・ SkillWriter ・ SkillHistory を、SAS の semantic-agent-schema コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
+//! ポート SkillValidator ・ SkillWriter ・ SkillHistory を、semantic-agent-schema コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
 //!
 //! semantic-agent-schema は PATH だけで探す（semantic-agent-schema は環境に1つ。Skill は使う版の範囲だけを宣言する）。打った場所（作業ディレクトリ）と
 //! 環境変数はそのまま渡す（semantic-agent-schema は打った場所の中から Concrete を探し、打ったセッションを環境変数で決める）。
@@ -73,7 +73,7 @@ impl SkillValidator for Sas {
     }
 
     fn knows_concrete(&self, urn: &str) -> Result<bool, String> {
-        // その Concrete に従う文書を、範囲を Concrete にして構造で探す。SAS が Concrete を引けなければ unknown_schema で断る
+        // その Concrete に従う文書を、範囲を Concrete にして構造で探す。Semantic Agent Schema が Concrete を引けなければ unknown_schema で断る
         let r = self.run(&[
             "search",
             "--concrete",

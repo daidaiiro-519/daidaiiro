@@ -1,10 +1,10 @@
 //! skills コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
-//! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。semantic-agent-schema create を呼ぶ）・
+//! コマンドは文脈 skills とユースケースの動詞で、Semantic Agent Schema の言葉にそろえる：create（UC1 作る。semantic-agent-schema create を呼ぶ）・
 //! update（UC3 直す。semantic-agent-schema update を呼ぶ）・ distribute（UC5 配布する。確かめてからツールの置き場所にリンクを置く）・
 //! withdraw（UC6 使わなくする。配布を取り下げ、置いたリンクを外す。人が打ったときだけ）・
 //! validate（UC4 確かめる。semantic-agent-schema validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
-//! creator は AI を起動せず、skill.json を書かない（SAS が書く）。
+//! creator は AI を起動せず、skill.json を書かない（Semantic Agent Schema が書く）。
 //! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、semantic-agent-schema が断った、semantic-agent-schema を呼べない、skill.json を
 //! 読めない ／ 2 = 使い方の誤り。
 
@@ -105,7 +105,7 @@ pub fn run(args: &[String]) -> ExitCode {
 fn locate() -> Result<Sas, Refused> {
     Sas::locate().ok_or_else(|| Refused {
         code: "semantic_agent_schema_unavailable",
-        message: "semantic-agent-schema が PATH に無い（SAS を入れて、PATH に置いてください）"
+        message: "semantic-agent-schema が PATH に無い（Semantic Agent Schema を入れて、PATH に置いてください）"
             .to_string(),
     })
 }
@@ -348,7 +348,7 @@ fn run_distribute(args: &[String]) -> ExitCode {
     }
 }
 
-/// AI のツールのセッションを見分ける表（SAS の callers.json と同じ行）。
+/// AI のツールのセッションを見分ける表（Semantic Agent Schema の callers.json と同じ行）。
 const CALLERS: &str = include_str!("../callers.json");
 
 /// 人が打ったか：表のどの環境変数にも値が無ければ人。表を読めなければ、人とみなさない。

@@ -32,7 +32,7 @@ agents-skills-creator approve <Agent のフォルダ>（人が打つ） ／ \
 agents-skills-creator agents distribute <Agent のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
 agents-skills-creator agents withdraw <Agent のフォルダ> --reason <理由>";
 
-/// AI のツールのセッションを見分ける表（SAS の callers.json と同じ行）。
+/// AI のツールのセッションを見分ける表（Semantic Agent Schema の callers.json と同じ行）。
 const CALLERS: &str = include_str!("../callers.json");
 
 fn usage(message: String) -> Refused {
@@ -50,7 +50,7 @@ fn refuse(schema: &str, r: &Refused) -> ExitCode {
 fn sas() -> Result<Sas, Refused> {
     Sas::locate().ok_or_else(|| Refused {
         code: "semantic_agent_schema_unavailable",
-        message: "semantic-agent-schema が PATH に無い（SAS を入れて、PATH に置いてください）"
+        message: "semantic-agent-schema が PATH に無い（Semantic Agent Schema を入れて、PATH に置いてください）"
             .to_string(),
     })
 }

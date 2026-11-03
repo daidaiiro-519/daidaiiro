@@ -1,4 +1,4 @@
-//! UC2 Agent を作るの validate（UC4 確かめるの Agent の側）：渡した Agent のフォルダごとに、SAS の検証の結果（書き換えない）と、
+//! UC2 Agent を作るの validate（UC4 確かめるの Agent の側）：渡した Agent のフォルダごとに、Semantic Agent Schema の検証の結果（書き換えない）と、
 //! creator の検査の結果と、承認の材料を返す。確かめても Agent のファイルは変えない。
 //!
 //! creator の検査：
@@ -11,11 +11,11 @@
 //! - agent-md-built：AGENT.md と codex.toml が、agent.json から write-agent-md で作るものと同じ
 //! - examples-distinct：given と input が同じ例が2つない（Skill と同じ見方）
 //!
-//! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
+//! 承認の材料は、Semantic Agent Schema の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
 //! error が0の validate の操作）が記録に無ければ、承認を受け付けない（approvable が false。終了コードは変えない）。
 //! 承認できるときだけ、そのまま打てる承認のコマンドを approve に出す。
 //!
-//! いまの中身のハッシュで最後に渡された判定（--answer の操作）を SAS の記録から読んで approval.judgments に重ね、判定が
+//! いまの中身のハッシュで最後に渡された判定（--answer の操作）を Semantic Agent Schema の記録から読んで approval.judgments に重ね、判定が
 //! そろっていれば delegate を出さない。approved が判定まで済んだ確かめを指し、そのあと人が承認を書いたほかに書き換えて
 //! いなければ approval.approved_by にその操作 ID を出す（Skill と同じ見方）。
 
@@ -33,7 +33,7 @@ use std::collections::BTreeMap;
 pub struct AgentChecked {
     /// 渡されたフォルダ（渡されたまま）
     pub folder: String,
-    /// SAS の検証の結果（書き換えない）
+    /// Semantic Agent Schema の検証の結果（書き換えない）
     pub sas: Run,
     /// creator の検査の結果（検査の順）
     pub creator: Vec<Finding>,
@@ -42,7 +42,7 @@ pub struct AgentChecked {
 }
 
 impl AgentChecked {
-    /// SAS か creator のどちらかで検出があったか。
+    /// Semantic Agent Schema か creator のどちらかで検出があったか。
     #[must_use]
     pub fn detected(&self) -> bool {
         self.sas.exit != 0 || self.creator.iter().any(|f| f.outcome != Outcome::Verified)
@@ -276,7 +276,7 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
     )
 }
 
-/// 意味の判定まで済んだ確かめ：SAS の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
+/// 意味の判定まで済んだ確かめ：Semantic Agent Schema の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
 /// どれも 0 のもの（semantic-agent-schema validate --answer で判定を渡した確かめ）の ID。
 pub(crate) fn judged_validation(history: &dyn AgentHistory, path: &str) -> Option<String> {
     let log = history.log(path).ok().filter(|r| r.exit == 0)?;
@@ -303,7 +303,7 @@ pub(crate) fn judged_validation(history: &dyn AgentHistory, path: &str) -> Optio
     None
 }
 
-/// SAS の検証の結果のうち、判定を渡していない（not-judged）件数。
+/// Semantic Agent Schema の検証の結果のうち、判定を渡していない（not-judged）件数。
 fn count_not_judged(output: &Value) -> usize {
     let one = |v: &Value| -> usize {
         v.get("targets")
@@ -368,7 +368,7 @@ fn examples_distinct(agent: &Value) -> Finding {
     )
 }
 
-/// SAS の記録の行（semantic-agent-schema log。新しい順）。読めなければ None。
+/// Semantic Agent Schema の記録の行（semantic-agent-schema log。新しい順）。読めなければ None。
 fn log_rows(history: &dyn AgentHistory, path: &str) -> Option<Vec<Value>> {
     let log = history.log(path).ok().filter(|r| r.exit == 0)?;
     Some(match log.output {
@@ -561,7 +561,7 @@ pub fn validate(
             let mut ap = approval(folder, &a);
             let mut not = Vec::new();
             if run.exit != 0 {
-                not.push(format!("SAS の検証で検出がある（semantic-agent-schema validate の終了コード {}）", run.exit));
+                not.push(format!("Semantic Agent Schema の検証で検出がある（semantic-agent-schema validate の終了コード {}）", run.exit));
             }
             if judged.is_none() && approved.is_none() {
                 not.push(match &judgments {
@@ -588,7 +588,7 @@ pub fn validate(
             if not.is_empty() && judged.is_some() && approved.is_none() {
                 ap["approve"] = serde_json::json!({
                     "command": format!("agents-skills-creator approve {folder}"),
-                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ。判定まで済んだ確かめの操作 ID とハッシュは approve が引く（AI のセッションから打つと、SAS が human_field で断る）",
+                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ。判定まで済んだ確かめの操作 ID とハッシュは approve が引く（AI のセッションから打つと、Semantic Agent Schema が human_field で断る）",
                 });
             }
             if !not.is_empty() {

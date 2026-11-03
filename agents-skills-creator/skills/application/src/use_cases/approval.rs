@@ -62,11 +62,11 @@ pub struct Approval {
     pub guesses: Vec<Guess>,
     /// 承認できない理由（空なら承認できる）
     pub not_approvable: Vec<String>,
-    /// そのまま打てる承認のコマンドと、打ち方（validate が SAS の結果から作る）
+    /// そのまま打てる承認のコマンドと、打ち方（validate が Semantic Agent Schema の結果から作る）
     pub approve: Option<(String, String)>,
     /// 別の会話に任せる手順（判定がそろったか承認済みなら空）
     pub delegate: Vec<Delegate>,
-    /// いまの中身のハッシュで最後に渡された意味の判定（どの操作の判定かと、rule ごとの結果。validate が SAS の記録から重ねる）
+    /// いまの中身のハッシュで最後に渡された意味の判定（どの操作の判定かと、rule ごとの結果。validate が Semantic Agent Schema の記録から重ねる）
     pub judgments: Option<Value>,
     /// 承認済みなら、承認した確かめの操作 ID（approved が判定まで済んだ確かめを指し、そのあと人が承認を書いたほかに書き換えていない）
     pub approved_by: Option<String>,
@@ -399,7 +399,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
             id: "b",
             what: "例を動かす".to_string(),
             how: format!(
-                "別の会話に {}/SKILL.md だけを読ませ、例ごとに given を手で用意して input で頼み、実際の答えを expected と比べる。その会話が、意味の rule example-runs-as-expected（pointer /examples）を判定し、reason に例ごとの実際の答えを書く。この判定は a の判定と1つの答えのファイルにまとめて semantic-agent-schema validate {skill_json} --answer <ファイル> で渡す（rule が1つでも欠けた答えは SAS が断る）。そのあと validate を打ち直す",
+                "別の会話に {}/SKILL.md だけを読ませ、例ごとに given を手で用意して input で頼み、実際の答えを expected と比べる。その会話が、意味の rule example-runs-as-expected（pointer /examples）を判定し、reason に例ごとの実際の答えを書く。この判定は a の判定と1つの答えのファイルにまとめて semantic-agent-schema validate {skill_json} --answer <ファイル> で渡す（rule が1つでも欠けた答えは Semantic Agent Schema が断る）。そのあと validate を打ち直す",
                 trimmed(folder)
             ),
             command: None,

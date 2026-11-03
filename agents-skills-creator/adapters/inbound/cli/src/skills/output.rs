@@ -1,5 +1,5 @@
 //! 結果を JSON 1つにする（published-language/v1 の create-result ・ validate-result ・ write-skill-md-result）。
-//! SAS の結果は書き換えずに入れる。
+//! Semantic Agent Schema の結果は書き換えずに入れる。
 
 use serde_json::{Value, json};
 use skills_application::use_cases::Refused;
@@ -98,7 +98,7 @@ pub fn print_distributed(d: &Distributed, tool: &str, scope: &str) {
     println!("{out}");
 }
 
-/// SAS に直させた結果を出す。
+/// Semantic Agent Schema に直させた結果を出す。
 pub fn print_updated(u: &Updated) {
     let mut out = json!({"$schema": UPDATE, "kind": "update"});
     if let Some(flow) = &u.flow {
@@ -109,7 +109,7 @@ pub fn print_updated(u: &Updated) {
     println!("{out}");
 }
 
-/// SAS に書かせた結果を出す。
+/// Semantic Agent Schema に書かせた結果を出す。
 pub fn print_created(c: &Created) {
     let mut out = json!({"$schema": CREATE, "kind": "create"});
     if let Some(flow) = &c.flow {

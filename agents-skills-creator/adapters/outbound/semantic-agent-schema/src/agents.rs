@@ -1,4 +1,4 @@
-//! ポート AgentValidator ・ AgentWriter ・ AgentHistory を、SAS の semantic-agent-schema コマンドを外の実行ファイルとして呼んで実装する。
+//! ポート AgentValidator ・ AgentWriter ・ AgentHistory を、semantic-agent-schema コマンドを外の実行ファイルとして呼んで実装する。
 //! 出力は書き換えずに返す。semantic-agent-schema は PATH だけで探す。打った場所と環境変数はそのまま渡す。
 
 use agents_application::ports::{AgentHistory, AgentValidator, AgentWriter, Run};

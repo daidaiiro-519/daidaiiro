@@ -1,12 +1,12 @@
-//! UC1 作るの create：SAS に Skill の項目を書かせる。中で semantic-agent-schema create を呼び、結果は書き換えずに返す。
+//! UC1 作るの create：Semantic Agent Schema に Skill の項目を書かせる。中で semantic-agent-schema create を呼び、結果は書き換えずに返す。
 //!
 //! どちらの書き方も Skill のフォルダを受け取り、<フォルダ>/skill.json を経路にする。名前がまだ決まっていないときは
-//! skills/<name> のように、決まっていない所を <name> のまま渡してよい（--semantic は何も書かないので、SAS は経路の
+//! skills/<name> のように、決まっていない所を <name> のまま渡してよい（--semantic は何も書かないので、Semantic Agent Schema は経路の
 //! 名前を決めずに手順を返し、手順の書くコマンドに同じ経路が入る）。
 //!
 //! - --semantic：意味で書く手順を受け取る（何も書かない）。Concrete が
 //!   Agent Skill の Concrete（skill.schema）のときだけ、作る流れ（最初の返事で見せる目的の仮説 ・ 完成の像 ・ 構造の像 ・
-//!   推奨付きの問い、聞く所の見分け方、2往復目から、仕上げ、守ること）を添える。ほかの Concrete のときは、SAS の手順そのままにする
+//!   推奨付きの問い、聞く所の見分け方、2往復目から、仕上げ、守ること）を添える。ほかの Concrete のときは、Semantic Agent Schema の手順そのままにする
 //! - --value：値を書かせる
 
 use crate::ports::{SasRun, SkillWriter};
@@ -31,7 +31,7 @@ pub enum Mode {
 pub struct Created {
     /// 作る流れ（Agent Skill の Concrete で --semantic のときだけ）
     pub flow: Option<Value>,
-    /// SAS の結果（書き換えない）
+    /// Semantic Agent Schema の結果（書き換えない）
     pub sas: SasRun,
 }
 
@@ -69,7 +69,7 @@ fn flow() -> Value {
         ],
         "later_rounds": "2往復目からは、変わった所だけを「前 → 後」で出し、残りの問いの数を付ける。作る人が「ここが違う」と言った所は、そのまま直して見せる",
         "finish": [
-            "値を組み、semantic-agent-schema の手順の書くコマンドの代わりに agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせ（--concrete は省ける）、agents-skills-creator skills write-skill-md と agents-skills-creator skills validate を打つ",
+            "値を組み、semantic-agent-schema の手順の書くコマンドの代わりに agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>> で Semantic Agent Schema に書かせ（--concrete は省ける）、agents-skills-creator skills write-skill-md と agents-skills-creator skills validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べて見せる",
             "作る前と後の振る舞い（使い手が何をすると、何が変わるか）を出し、作る人に承認（agents-skills-creator approve）を打ってもらうか、「ここが違う」の一言を受け取る"
         ],
@@ -79,14 +79,14 @@ fn flow() -> Value {
             "像は判断してもらう手段で、目的ではない。作る人が「ここが違う」と言える所だけを見せる",
             "作る人が既に言ったことは聞き直さない",
             "推測した所には必ず印を付ける。作る人が答えた件の from は「作る人の答え」にする",
-            "creator は AI を起動せず、skill.json を書かない（SAS が書く）"
+            "creator は AI を起動せず、skill.json を書かない（Semantic Agent Schema が書く）"
         ],
         "presentation": "チャットの中で見せるので、表 ・ コードブロック ・ 木構造で出す。図を出せるツールなら図でもよい",
         "unknown": format!("作る人は「{UNKNOWN}」と答えてよい。会話を止めず、その所に「{UNKNOWN}」と入れて進める（validate の承認の材料で推測の一覧の先頭に出る）")
     })
 }
 
-/// SAS に Skill の項目を書かせる。
+/// Semantic Agent Schema に Skill の項目を書かせる。
 ///
 /// # Errors
 /// 置き場所かフォルダか Concrete が無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。

@@ -1,4 +1,4 @@
-//! UC2 Agent を作るの create：SAS に Agent の項目を書かせる。中で semantic-agent-schema create を呼び、結果は書き換えずに返す。
+//! UC2 Agent を作るの create：Semantic Agent Schema に Agent の項目を書かせる。中で semantic-agent-schema create を呼び、結果は書き換えずに返す。
 //! どちらの書き方も Agent のフォルダを受け取り、<フォルダ>/agent.json を経路にする（名前が決まっていなければ
 //! agents/<name> のように渡す）。Concrete が Agent の Concrete で --semantic のときだけ、作る流れを添える。
 
@@ -26,7 +26,7 @@ pub enum Mode {
 pub struct Created {
     /// 作る流れ（Agent の Concrete で --semantic のときだけ）
     pub flow: Option<Value>,
-    /// SAS の結果（書き換えない）
+    /// Semantic Agent Schema の結果（書き換えない）
     pub sas: Run,
 }
 
@@ -52,7 +52,7 @@ fn flow() -> Value {
         ],
         "otherwise": format!("ask_only_when のどちらかを満たさない所は、AI が決め、{GUESS}を付けて像の中に出す"),
         "finish": [
-            "値を組み、agents-skills-creator agents create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせる（--concrete は省ける）",
+            "値を組み、agents-skills-creator agents create <フォルダ> --value <JSON か @<ファイル>> で Semantic Agent Schema に書かせる（--concrete は省ける）",
             "Agent のフォルダの skills/ に、配下の Skill のフォルダへのシンボリックリンクを同じ名前で置き、agents-skills-creator agents write-agent-md と agents-skills-creator agents validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べ、作る人に承認（agents-skills-creator approve）を打ってもらう"
         ],
@@ -61,13 +61,13 @@ fn flow() -> Value {
             "承認の前に自分で気づいた直しも、agents-skills-creator agents update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層> で書かせる",
             "Agent は作業の中身を持たず、配下の Skill を呼ぶステップと、人に結果を確かめてもらうステップ（kind approve）だけを持つ",
             "足りない Skill は agents-skills-creator skills create で先に作る（Agent の中に書かない）",
-            "creator は AI を起動せず、agent.json を書かない（SAS が書く）"
+            "creator は AI を起動せず、agent.json を書かない（Semantic Agent Schema が書く）"
         ],
         "presentation": "チャットの中で見せるので、表 ・ コードブロック ・ 木構造で出す。図を出せるツールなら図でもよい"
     })
 }
 
-/// SAS に Agent の項目を書かせる。
+/// Semantic Agent Schema に Agent の項目を書かせる。
 ///
 /// # Errors
 /// フォルダ ・ Concrete ・ 書き方が無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。

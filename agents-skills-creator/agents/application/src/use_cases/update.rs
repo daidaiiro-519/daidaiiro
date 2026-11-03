@@ -4,8 +4,8 @@
 //!   直す層の案 ・ 選んだ層より下の導き直し ・ 層の記録 ・ 作る人が層を選んで進めてよいと答えたあと1回だけ書く ・ 例を全部動かす）を添える。足す例は返事で見せるだけで、
 //!   書くのは作る人が層を選んで進めてよいと答えたあと1回
 //! - --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>：作る人が層を選んで進めてよいと答えた直しを書かせる。理由は「層：<名前>」で
-//!   始め、選んだ層を SAS の記録に残す（新しい欄は足さない）。--if-match で、手順を受け取ったときの中身から変わって
-//!   いないことを SAS に確かめさせる
+//!   始め、選んだ層を Semantic Agent Schema の記録に残す（新しい欄は足さない）。--if-match で、手順を受け取ったときの中身から変わって
+//!   いないことを Semantic Agent Schema に確かめさせる
 //!
 //! 作る人が層を選んで進めてよいと答えるまで Agent は書き換えない（最低保証）。書くのはそのあとの --patch だけ。
 
@@ -88,7 +88,7 @@ pub enum Mode {
 pub struct Updated {
     /// 直す流れ（--semantic のときだけ）
     pub flow: Option<Value>,
-    /// SAS の結果（書き換えない）
+    /// Semantic Agent Schema の結果（書き換えない）
     pub sas: Run,
 }
 
@@ -107,7 +107,7 @@ fn flow(folder: &str) -> Value {
         "layers": layers,
         "choose": format!("外れ方から、直す層を推奨付きで1つ示す（examples が最も狭く、purpose が最も広く直る）。基準：既にある決まりが外れた振る舞いをすでに言っている → examples（その決まりに例を結ぶ）／言っている決まりが無い → rules／分かれ道が無い → edge_cases／受け持つ範囲の外 → role か purpose。直したあと例を動かしてまだ外れるなら、一つ広い層で直す。外れた例が一度も直されていない（作るときに書いたまま）なら、起点は examples とみなし、次は edge_cases から選ぶ。ただし層の選び方の基準で決まる層がそれより広ければそちら。層ごとに、直す前と後の像（完成の像の、頼む文と返る答え）を並べ、作る人が1つ選ぶ。推測した所には{GUESS}を付ける"),
         "rederive": "選んだ層を直したら、その層の rederive に並ぶ項目を、直した値から導き直す（examples の層は、足した例の id を当たる決まりか分かれ道の examples に足すだけ）。rederive に無い項目は変えない",
-        "record": format!("書くときの --reason を「{LAYER_PREFIX}<選んだ層の id>」で始める（例：{LAYER_PREFIX}examples）。SAS の記録に残り、validate の承認の材料の changes に出る"),
+        "record": format!("書くときの --reason を「{LAYER_PREFIX}<選んだ層の id>」で始める（例：{LAYER_PREFIX}examples）。Semantic Agent Schema の記録に残り、validate の承認の材料の changes に出る"),
         "write_after_choice": format!("直す前と後（semantic-agent-schema の手順の current と、直した値）を所ごとに並べて見せ、作る人が層を選んで進めてよいと答えたあと1回だけ、agents-skills-creator agents update {folder} --patch <JSON Patch> --if-match <semantic-agent-schema の手順の target.hash> --reason {LAYER_PREFIX}<層> で書かせる。進めてよいと答える前には書かない"),
         "finish": [
             format!("agents-skills-creator agents write-agent-md {folder} と agents-skills-creator agents validate {folder} を打つ"),
@@ -158,7 +158,7 @@ pub fn check_mode(mode: &Mode) -> Result<(), Refused> {
     Ok(())
 }
 
-/// SAS に Agent の項目を直させる。
+/// Semantic Agent Schema に Agent の項目を直させる。
 ///
 /// # Errors
 /// フォルダか直し方が無い ・ --patch に --if-match か「層：<名前>」の理由が無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。

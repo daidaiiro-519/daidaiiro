@@ -1,6 +1,6 @@
 //! 承認（人が打つ）：agents-skills-creator approve <Agent のフォルダ>。判定まで済んだ確かめ（最後に書いたあとの、
-//! not-judged ・ violated ・ error が0の validate の操作）の ID と、そのときの中身のハッシュを SAS の記録から引き、
-//! semantic-agent-schema update で /approved に書かせる。承認できなければ理由を返して書かない。AI のセッションから打つと SAS が断る
+//! not-judged ・ violated ・ error が0の validate の操作）の ID と、そのときの中身のハッシュを Semantic Agent Schema の記録から引き、
+//! semantic-agent-schema update で /approved に書かせる。承認できなければ理由を返して書かない。AI のセッションから打つと Semantic Agent Schema が断る
 //! （/approved は人が決める欄）ので、そのときは人が打つコマンドを返す。
 
 use crate::ports::{AgentFiles, AgentHistory, AgentWriter, Run};
@@ -15,9 +15,9 @@ pub struct Approved {
     pub folder: String,
     /// 承認した確かめの操作 ID
     pub operation: String,
-    /// SAS の結果（書き換えない）
+    /// Semantic Agent Schema の結果（書き換えない）
     pub sas: Run,
-    /// SAS が断ったとき（AI のセッションから打たれたなど）の、人が打つコマンド
+    /// Semantic Agent Schema が断ったとき（AI のセッションから打たれたなど）の、人が打つコマンド
     pub next: Option<String>,
 }
 
@@ -58,7 +58,7 @@ pub fn approve(
         })
         .ok_or_else(|| {
             not(format!(
-                "確かめ {op} の中身のハッシュを、SAS の記録から引けない"
+                "確かめ {op} の中身のハッシュを、Semantic Agent Schema の記録から引けない"
             ))
         })?;
     let verb = if agent.get("approved").is_some() {
@@ -74,7 +74,7 @@ pub fn approve(
             message,
         })?;
     let next = (run.exit != 0).then(|| {
-        format!("作る人が承認するなら、人が自分の端末で agents-skills-creator approve {folder} を打つ（AI のセッションからは SAS が断る）")
+        format!("作る人が承認するなら、人が自分の端末で agents-skills-creator approve {folder} を打つ（AI のセッションからは Semantic Agent Schema が断る）")
     });
     Ok(Approved {
         folder: folder.to_string(),

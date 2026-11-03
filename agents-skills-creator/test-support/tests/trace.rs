@@ -5,7 +5,7 @@
 //! - 範囲にあるユースケースのどれにも、成功時保証と最低保証があり、場面で確かめている（どちらも untested に理由があるユースケース、
 //!   つまりまだ作っていないものは除く）
 //!
-//! SAS の trace.rs を写したもの。
+//! Semantic Agent Schema の trace.rs を写したもの。
 
 #![allow(clippy::expect_used)]
 

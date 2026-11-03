@@ -99,7 +99,7 @@ impl Distributed {
 /// 承認の書き方（人が自分の端末で打つ）。
 fn how_to_approve(folder: &str) -> String {
     format!(
-        "作る人が validate の結果を承認したら、人が自分の端末で agents-skills-creator approve {folder} を打つ（AI のセッションから打つと、SAS が human_field で断る）"
+        "作る人が validate の結果を承認したら、人が自分の端末で agents-skills-creator approve {folder} を打つ（AI のセッションから打つと、Semantic Agent Schema が human_field で断る）"
     )
 }
 

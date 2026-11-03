@@ -4,7 +4,7 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 「承認」は、`agents-skills-creator approve` で approved を書くことだけを指す。目的の仮説は、作る人が「進めてよい」と答えて決まる。
 
-SAS の記録は <git-common-dir>/sas/sas.db に書かれ、作業場所の Git の中に残る（git status には出ない）。最低保証の「作るフォルダと配布先の外は変わらない」は、この記録を除く。
+Semantic Agent Schema の記録は <git-common-dir>/sas/sas.db に書かれ、作業場所の Git の中に残る（git status には出ない）。最低保証の「作るフォルダと配布先の外は変わらない」は、この記録を除く。
 
 控えのファイル（値・JSON Patch・判定の答えなど）は、どのコマンドの出力も作業場所の中に置き、終わったら消す（作業場所は打った場所。外の /tmp などに置かない）。値の組み方そのものは、`agents-skills-creator skills create`・`agents-skills-creator agents create`・`agents-skills-creator skills update`・`agents-skills-creator agents update` の `--semantic` が返す手順（各欄の説明・読み方・rule と、打つコマンド）に従う。手順の番号は SKILL.md の手順の番号（手順1〜9）で指す。
 
@@ -69,12 +69,12 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 ## §3 書かせて確かめる（手順3〜7。承認の前）
 
-- 手順3：作る人が目的の仮説で進めてよいと答え、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`semantic-agent-schema.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で SAS に書かせる。
+- 手順3：作る人が目的の仮説で進めてよいと答え、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`semantic-agent-schema.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で Semantic Agent Schema に書かせる。
 - 手順4：`agents-skills-creator skills write-skill-md <フォルダ>`（Agent なら `agents-skills-creator agents write-agent-md`）を打つ。
 - 手順5：`agents-skills-creator skills validate <フォルダ>`（Agent なら `agents-skills-creator agents validate`）を打ち、検出があれば直す。
 - 手順6：意味の rule の判定。semantic-agent-schema validate <ファイル> --semantic で判定の手順を受け取り、別の会話で判定する（承認の材料の delegate の a）。examples の rule example-runs-as-expected だけは、手順7で例を動かした会話が判定する。
 - 手順7：例を動かす。承認の材料の delegate の b のとおり、別の会話に SKILL.md（Agent なら AGENT.md）だけを読ませて例を動かし、その会話が example-runs-as-expected を判定する（reason に例ごとの実際の答えを書く）。実際の答えは完成の像と並べて見せる。
-- 手順6と手順7の判定は、1つの答えのファイルにまとめて渡す（手順の answer.schema に従う JSON。rule が1つでも欠けた答えは SAS が断るので、a と b で分けて渡せない）：`semantic-agent-schema validate <ファイル> --answer <答えのファイル>`。そのあと validate を打ち直すと、渡した判定が `approval.judgments` に、どの操作の判定かと一緒に出る。判定がそろえば delegate は出ない。violated があれば `approvable` は false のままなので、§6 の層の選び方で直す。`approvable` が true になるまで承認を求めない。
+- 手順6と手順7の判定は、1つの答えのファイルにまとめて渡す（手順の answer.schema に従う JSON。rule が1つでも欠けた答えは Semantic Agent Schema が断るので、a と b で分けて渡せない）：`semantic-agent-schema validate <ファイル> --answer <答えのファイル>`。そのあと validate を打ち直すと、渡した判定が `approval.judgments` に、どの操作の判定かと一緒に出る。判定がそろえば delegate は出ない。violated があれば `approvable` は false のままなので、§6 の層の選び方で直す。`approvable` が true になるまで承認を求めない。
 
 ### 承認の前の直し
 
@@ -86,7 +86,7 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 ## §4 承認と配布（手順8・9）
 
-- 手順8：承認は人が書く。validate の承認の材料に `approvable` が true で出る `approve.command`（`agents-skills-creator approve <フォルダ>`）を作る人に示し、人が自分の端末で打つ。approve は、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドが返る。承認したあとの validate は、承認した確かめの操作 ID を `approval.approved_by` に出す。
+- 手順8：承認は人が書く。validate の承認の材料に `approvable` が true で出る `approve.command`（`agents-skills-creator approve <フォルダ>`）を作る人に示し、人が自分の端末で打つ。approve は、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと Semantic Agent Schema が断り、人が打つコマンドが返る。承認したあとの validate は、承認した確かめの操作 ID を `approval.approved_by` に出す。
 - 手順9：配る。`agents-skills-creator skills distribute <フォルダ> --tool <claude-code|codex> --scope <repository|user>`（Agent なら `agents-skills-creator agents distribute`）。
 
 ## §5 取り下げ（分かれ道 1b）

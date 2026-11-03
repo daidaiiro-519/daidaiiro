@@ -1,4 +1,4 @@
-//! UC4 確かめる（Skill だけ）の手続きを、ポートの代役で確かめる。代役は使う application の tests/ に置く（SAS と同じ）。
+//! UC4 確かめる（Skill だけ）の手続きを、ポートの代役で確かめる。代役は使う application の tests/ に置く（Semantic Agent Schema と同じ）。
 
 #![allow(clippy::unwrap_used, clippy::panic)]
 
@@ -71,7 +71,7 @@ impl SkillFiles for Files {
     }
 }
 
-/// 渡された経路を覚え、決まった結果を返す SAS の代役。
+/// 渡された経路を覚え、決まった結果を返す Semantic Agent Schema の代役。
 struct Sas {
     exit: i32,
     asked: RefCell<Vec<String>>,
@@ -170,7 +170,7 @@ fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
             ("examples-distinct", Outcome::Verified)
         ]
     );
-    // SAS には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
+    // Semantic Agent Schema には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
     assert_eq!(
         sas.asked.borrow().as_slice(),
         ["skills/fact-check/skill.json"]
@@ -390,7 +390,7 @@ fn json_resources_must_follow_their_schema_and_output_schemas_must_exist() {
         "references": [
             {"name": "従う", "path": "references/a.json", "form": "JSON", "schema": "references/a.schema.json"},
             {"name": "従わない", "path": "references/b.json", "form": "JSON", "schema": "references/a.schema.json"},
-            {"name": "SAS", "path": "references/c.json", "form": "JSON", "schema": "urn:example:known:v1"}],
+            {"name": "Semantic Agent Schema", "path": "references/c.json", "form": "JSON", "schema": "urn:example:known:v1"}],
         "outputs": [
             {"name": "引けない", "form": "JSON", "schema": "urn:example:unknown:v1"},
             {"name": "無い", "form": "JSON", "schema": "references/out.schema.json"}]});

@@ -1,6 +1,6 @@
 //! ポート AgentFiles ・ GeneratedFiles ・ Destinations を、作業ディレクトリのファイルとシンボリックリンクで実装する。
 //! 配布先には、Agent の定義のファイルを写して置く。
-//! GeneratedFiles で書くのは creator が作るファイル（AGENT.md ・ codex.toml）だけで、agent.json は書かない（SAS が書く）。
+//! GeneratedFiles で書くのは creator が作るファイル（AGENT.md ・ codex.toml）だけで、agent.json は書かない（Semantic Agent Schema が書く）。
 
 use agents_application::ports::{AgentFiles, Destinations, GeneratedFiles};
 use std::path::PathBuf;

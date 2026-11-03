@@ -1,5 +1,5 @@
 //! 結果を JSON 1つにする（published-language/v1 の create-result ・ validate-result ・ write-agent-md-result ・
-//! distribute-result ・ withdraw-result）。SAS と skills の結果は書き換えずに入れる。
+//! distribute-result ・ withdraw-result）。Semantic Agent Schema と skills の結果は書き換えずに入れる。
 
 use agents_application::use_cases::approve::Approved;
 use agents_application::use_cases::create::Created;

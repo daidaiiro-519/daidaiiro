@@ -44,7 +44,7 @@ pub fn read_skill(files: &dyn SkillFiles, folder: &str) -> Result<Value, Refused
     })
 }
 
-/// SAS の手順を、creator のコマンドで書く形にする：command を creator のコマンドに置き換え、constraints の
+/// Semantic Agent Schema の手順を、creator のコマンドで書く形にする：command を creator のコマンドに置き換え、constraints の
 /// 「command の semantic-agent-schema」を「command の <creator のコマンド>」にする（semantic-agent-schema を直に打つ形を出さない）。手順でなければ変えない。
 pub fn as_creator_procedure(output: &mut serde_json::Value, command: String, bin: &str) {
     if output.get("kind").and_then(serde_json::Value::as_str) != Some("procedure") {
