@@ -32,7 +32,8 @@
   "UC6:成功時保証",
   "UC6:最低保証",
   "約束:withdraw-result",
-  "UC6:変形:リンクしている Agent を示す"
+  "UC6:変形:リンクしている Agent を示す",
+  "約束:skill:tools"
  ],
  "traces": [
   {
@@ -43,7 +44,9 @@
     "S-UC1-BUILD",
     "S-UC1-CONFIRM-REFERENCES",
     "S-UC1-CONFIRM",
-    "S-UC1-CREATE-PROCEDURE"
+    "S-UC1-CREATE-PROCEDURE",
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS"
    ],
    "note": "AI ツールごとの置き場所と形（配布）は UC5 で確かめる"
   },
@@ -58,8 +61,10 @@
   },
   {
    "id": "UC4:成功時保証",
-   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う ・ 資料の grounds_for の名前が outputs の name にある）を別の欄で返す",
+   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う ・ 資料の grounds_for の名前が outputs の name にある ・ 道具と資源のファイルがある ・ 道具の does が role.does にある ・ 道具の受け渡しが Skill の inputs ・ outputs にある）を別の欄で返す",
    "scenarios": [
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
     "S-UC4-FOLDER-LINK-BROKEN",
@@ -74,7 +79,9 @@
     "S-UC4-REFERENCES-OK",
     "S-UC4-SAS-OUTSIDE",
     "S-UC4-SKILL-MD-MISSING",
-    "S-UC4-SKILL-MD-STALE"
+    "S-UC4-SKILL-MD-STALE",
+    "S-UC4-TOOL-IO-BROKEN",
+    "S-UC4-TOOLS-BROKEN"
    ]
   },
   {
@@ -102,6 +109,8 @@
     "S-UC1-CONFIRM-REFERENCES",
     "S-UC1-CONFIRM-UNKNOWN",
     "S-UC1-CONFIRM",
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
     "S-UC3-UPDATE-PATCH",
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
@@ -118,6 +127,8 @@
     "S-UC4-SAS-UNAVAILABLE",
     "S-UC4-SKILL-MD-MISSING",
     "S-UC4-SKILL-MD-STALE",
+    "S-UC4-TOOL-IO-BROKEN",
+    "S-UC4-TOOLS-BROKEN",
     "S-UC4-USAGE"
    ]
   },
@@ -229,6 +240,16 @@
     "S-UC6-USAGE",
     "S-UC6-WITHDRAW-BY-AI",
     "S-UC6-WITHDRAW"
+   ]
+  },
+  {
+   "id": "約束:skill:tools",
+   "meaning": "skill.schema の tools（scripts/ の道具）・ uses（外の道具）・ assets（assets/ の資源）は、SKILL.md の道具 ・ 外の道具 ・ 資源の節に出て、validate が道具 ・ 資源のファイルがあるか（tools-exist ・ assets-exist）、道具の does が role.does にあるか（tools-in-role）、道具の受け渡しが Skill の inputs ・ outputs にあるか（tool-io-declared）を確かめ、承認の材料の受け持つ範囲に出る",
+   "scenarios": [
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
+    "S-UC4-TOOL-IO-BROKEN",
+    "S-UC4-TOOLS-BROKEN"
    ]
   }
  ]

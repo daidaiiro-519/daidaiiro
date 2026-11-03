@@ -161,7 +161,11 @@ fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
             ("skill-md-built", Outcome::Verified),
             ("references-exist", Outcome::Verified),
             ("json-schema-conforms", Outcome::Verified),
-            ("grounds-are-outputs", Outcome::Verified)
+            ("grounds-are-outputs", Outcome::Verified),
+            ("tools-exist", Outcome::Verified),
+            ("assets-exist", Outcome::Verified),
+            ("tools-in-role", Outcome::Verified),
+            ("tool-io-declared", Outcome::Verified)
         ]
     );
     // SAS には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
@@ -256,7 +260,11 @@ fn dangling_links_and_a_missing_folder_are_reported() {
             ("skill-md-built", Outcome::Error),
             ("references-exist", Outcome::Error),
             ("json-schema-conforms", Outcome::Error),
-            ("grounds-are-outputs", Outcome::Error)
+            ("grounds-are-outputs", Outcome::Error),
+            ("tools-exist", Outcome::Error),
+            ("assets-exist", Outcome::Error),
+            ("tools-in-role", Outcome::Error),
+            ("tool-io-declared", Outcome::Error)
         ]
     );
 }

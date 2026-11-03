@@ -267,7 +267,7 @@
       },
       "structure_image": {
        "title": "構造の像",
-       "description": "作る流れと同じ4つを、skill.json から機械で作れる所まで：受け持つ範囲（scope：入力 ・ 使い手がすること ・ 出力 ・ 外に置くもの）・ 資料と出力の関係（materials_to_outputs：資料ごとに読むステップと、grounds_for に書いた根拠になる出力。grounds_for が無い資料は note でそう示す）・ 手順と分かれ道（steps_and_branches：拡張の id の数字を分かれるステップとする）・ 共通の所と変わる所（common_and_variable：Skill の種類を扱うまで空）",
+       "description": "作る流れと同じ4つを、skill.json から機械で作れる所まで：受け持つ範囲（scope：入力 ・ 使い手がすること ・ 出力 ・ 外に置くもの ・ 道具 ・ 外の道具）・ 資料と出力の関係（materials_to_outputs：資料ごとに読むステップと、grounds_for に書いた根拠になる出力。grounds_for が無い資料は note でそう示す）・ 手順と分かれ道（steps_and_branches：拡張の id の数字を分かれるステップとする）・ 共通の所と変わる所（common_and_variable：Skill の種類を扱うまで空）",
        "x-prompt": {
         "meaning": "表 ・ 木構造 ・ 図にして作る人に見せ、「ここが違う」と言える所を示す。",
         "when": "結果を受け取ったときに読む。",
@@ -288,7 +288,9 @@
           "inputs",
           "does",
           "outputs",
-          "outside"
+          "outside",
+          "tools",
+          "uses"
          ],
          "additionalProperties": false,
          "properties": {
@@ -311,6 +313,35 @@
            }
           },
           "outside": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "tools": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "required": [
+             "name",
+             "does",
+             "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+             "name": {
+              "type": "string"
+             },
+             "does": {
+              "type": "string"
+             },
+             "path": {
+              "type": "string"
+             }
+            }
+           }
+          },
+          "uses": {
            "type": "array",
            "items": {
             "type": "string"
@@ -570,7 +601,7 @@
    "properties": {
     "check": {
      "title": "検査の名前",
-     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は sas validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）",
+     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は sas validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある",
      "x-prompt": {
       "meaning": "どの検査の結果かを読む。",
       "when": "結果を受け取ったときに読む。",
@@ -583,7 +614,11 @@
       "skill-md-built",
       "references-exist",
       "json-schema-conforms",
-      "grounds-are-outputs"
+      "grounds-are-outputs",
+      "tools-exist",
+      "assets-exist",
+      "tools-in-role",
+      "tool-io-declared"
      ]
     },
     "result": {

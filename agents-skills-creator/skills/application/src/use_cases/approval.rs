@@ -297,6 +297,14 @@ fn structure_image(skill: &Value) -> Value {
             "does": strings_at(skill, "/role/does", None),
             "outputs": strings_at(skill, "/outputs", Some("name")),
             "outside": strings_at(skill, "/role/does_not", Some("what")),
+            "tools": skill
+                .get("tools")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .map(|t| serde_json::json!({"name": s(t, "name"), "does": s(t, "does"), "path": s(t, "path")}))
+                .collect::<Vec<_>>(),
+            "uses": strings_at(skill, "/uses", Some("name")),
         },
         "materials_to_outputs": materials,
         "steps_and_branches": {

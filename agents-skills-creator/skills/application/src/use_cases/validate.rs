@@ -13,6 +13,9 @@
 //!   まで中身が無いので、schema があるかだけを見る
 //! - grounds-are-outputs：参照する資料の grounds_for（資料が根拠になる出力）の各名前が、outputs の name にある
 //!   （名前どうしの突き合わせで機械で決まる。references と grounds_for が無ければ verified が1件）
+//! - tools-exist ・ assets-exist：道具（tools）・ 資源（assets）の各 path にファイルがある（references-exist と同じ考え）
+//! - tools-in-role：道具の does が role.does のどれかと同じ文字列
+//! - tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある
 
 use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillHistory, SkillValidator};
 pub use crate::use_cases::Refused;
@@ -366,6 +369,156 @@ fn grounds_are_outputs(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
     out
 }
 
+/// 道具（tools）か資源（assets）の各 path に、ファイルがあるか（references-exist と同じ考え）。
+fn files_exist(
+    files: &dyn SkillFiles,
+    folder: &str,
+    field: &str,
+    check: &'static str,
+    label: &str,
+) -> Vec<Finding> {
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => return vec![finding(check, Outcome::Error, None, r.message)],
+    };
+    let list = skill
+        .get(field)
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if list.is_empty() {
+        return vec![finding(
+            check,
+            Outcome::Verified,
+            None,
+            format!("{field} が無い（{label}を持たない Skill）"),
+        )];
+    }
+    list.iter()
+        .map(|t| {
+            let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
+            let rel = t.get("path").and_then(Value::as_str).unwrap_or_default();
+            let path = format!("{}/{rel}", trimmed(folder));
+            if outside(rel) {
+                finding(
+                    check,
+                    Outcome::Violated,
+                    Some(path),
+                    format!("{label} {name} の置き場所 {rel} が、Skill のフォルダの外を指す"),
+                )
+            } else if files.exists(&path) {
+                finding(
+                    check,
+                    Outcome::Verified,
+                    None,
+                    format!("{label} {name} が {path} にある"),
+                )
+            } else {
+                finding(
+                    check,
+                    Outcome::Violated,
+                    Some(path.clone()),
+                    format!("{label} {name} が {path} に無い"),
+                )
+            }
+        })
+        .collect()
+}
+
+/// 道具の does が role.does のどれかと同じか（tools-in-role）と、道具の受け取るもの ・ 返すものが Skill の inputs ・
+/// outputs の name にあるか（tool-io-declared）。
+fn tool_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => {
+            return vec![
+                finding("tools-in-role", Outcome::Error, None, r.message.clone()),
+                finding("tool-io-declared", Outcome::Error, None, r.message),
+            ];
+        }
+    };
+    let strs = |v: Option<&Value>| -> Vec<String> {
+        v.and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(ToString::to_string)
+            .collect()
+    };
+    let names = |key: &str| -> Vec<String> {
+        skill
+            .get(key)
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|x| x.get("name").and_then(Value::as_str))
+            .map(ToString::to_string)
+            .collect()
+    };
+    let does = strs(skill.pointer("/role/does"));
+    let (inputs, outputs) = (names("inputs"), names("outputs"));
+    let tools: Vec<Value> = skill
+        .get("tools")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut role = Vec::new();
+    let mut io = Vec::new();
+    for (i, t) in tools.iter().enumerate() {
+        let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
+        let at = format!("{}/skill.json#/tools/{i}", trimmed(folder));
+        let d = t.get("does").and_then(Value::as_str).unwrap_or_default();
+        if !does.iter().any(|x| x == d) {
+            role.push(finding(
+                "tools-in-role",
+                Outcome::Violated,
+                Some(at.clone()),
+                format!("道具 {name} の does「{d}」が、role.does に無い"),
+            ));
+        }
+        for (key, declared, label) in [
+            ("inputs", &inputs, "受け取るもの"),
+            ("outputs", &outputs, "返すもの"),
+        ] {
+            for n in strs(t.get(key)).iter().filter(|n| !declared.contains(n)) {
+                io.push(finding(
+                    "tool-io-declared",
+                    Outcome::Violated,
+                    Some(format!("{at}/{key}")),
+                    format!("道具 {name} の{label} {n} が、Skill の {key} の name に無い"),
+                ));
+            }
+        }
+    }
+    if role.is_empty() {
+        role.push(finding(
+            "tools-in-role",
+            Outcome::Verified,
+            None,
+            if tools.is_empty() {
+                "tools が無い".to_string()
+            } else {
+                "道具の does は、どれも role.does にある".to_string()
+            },
+        ));
+    }
+    if io.is_empty() {
+        io.push(finding(
+            "tool-io-declared",
+            Outcome::Verified,
+            None,
+            if tools.is_empty() {
+                "tools が無い".to_string()
+            } else {
+                "道具の受け取るもの ・ 返すものは、どれも Skill の inputs ・ outputs にある"
+                    .to_string()
+            },
+        ));
+    }
+    role.extend(io);
+    role
+}
+
 /// Skill のフォルダからの経路が、フォルダの外を指すか（/ で始まる ・ .. を含む ・ 空）。
 fn outside(rel: &str) -> bool {
     rel.is_empty() || rel.starts_with('/') || rel.split('/').any(|p| p == "..")
@@ -385,7 +538,11 @@ fn json_schema_conforms(
     };
     let dir = trimmed(folder);
     let mut out = Vec::new();
-    for (field, label) in [("references", "資料"), ("outputs", "出力")] {
+    for (field, label) in [
+        ("references", "資料"),
+        ("assets", "資源"),
+        ("outputs", "出力"),
+    ] {
         for item in skill
             .get(field)
             .and_then(Value::as_array)
@@ -400,7 +557,7 @@ fn json_schema_conforms(
                 .get("form")
                 .and_then(Value::as_str)
                 .is_some_and(|f| f.starts_with("JSON"));
-            let content = (field == "references" && is_json)
+            let content = (field != "outputs" && is_json)
                 .then(|| item.get("path").and_then(Value::as_str))
                 .flatten()
                 .filter(|p| !outside(p))
@@ -421,6 +578,9 @@ fn json_schema_conforms(
     out
 }
 
+/// SAS 自身の公開された言葉の URN の頭（Abstract ・ 語彙など。SAS に入っている）。
+const SAS_PUBLISHED: &str = "urn:semantic-agent-schema:published-language:";
+
 /// 1件の schema と、（JSON の資料なら）その中身を確かめる。content は資料の経路（出力 ・ JSON でない資料は None）。
 #[allow(clippy::too_many_arguments)]
 fn conforms(
@@ -438,7 +598,13 @@ fn conforms(
     let error = |reason: String| finding(CHECK, Outcome::Error, None, reason);
     if schema.starts_with("urn:") {
         // SAS の Concrete：SAS が引けるか。資料なら、資料の $schema がその URN で、sas validate が通るか
-        match sas.knows_concrete(schema) {
+        // SAS 自身の公開された言葉（Abstract など）は、リポジトリに置かなくても SAS が知っている
+        let builtin = schema.starts_with(SAS_PUBLISHED);
+        match if builtin {
+            Ok(true)
+        } else {
+            sas.knows_concrete(schema)
+        } {
             Ok(true) => {}
             Ok(false) => {
                 return bad(
@@ -621,7 +787,7 @@ fn changes_since_last_validation(history: &dyn SkillHistory, path: &str) -> Opti
     Some(serde_json::json!({"since": since, "operations": operations}))
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査7つと SAS の検証をして、承認の材料と一緒に渡した順に返す。
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査11と SAS の検証をして、承認の材料と一緒に渡した順に返す。
 /// Skill のファイルは変えない。
 ///
 /// # Errors
@@ -647,6 +813,9 @@ pub fn validate(
         creator.extend(references_exist(files, folder));
         creator.extend(json_schema_conforms(files, sas, schemas, folder));
         creator.extend(grounds_are_outputs(files, folder));
+        creator.extend(files_exist(files, folder, "tools", "tools-exist", "道具"));
+        creator.extend(files_exist(files, folder, "assets", "assets-exist", "資源"));
+        creator.extend(tool_checks(files, folder));
         // 前の確かめから変わった所は、この確かめを記録する前に読む
         let changes =
             changes_since_last_validation(history, &format!("{}/skill.json", trimmed(folder)));

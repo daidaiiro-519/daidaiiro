@@ -1,0 +1,321 @@
+{
+ "$schema": "urn:agents-skills-creator:skill:v1",
+ "name": "agents-skills-creator",
+ "purpose": {
+  "who": "AI ツールの会話の中で、作業を Skill か Agent に任せたい人",
+  "when": "作りたい作業を思いついたとき、使われて外れた具体を直したいとき、配りたいとき",
+  "gets": "作りたい作業を言うだけで、使える Agent Skill か Agent が手元にある状態"
+ },
+ "role": {
+  "does": [
+   "Skill か Agent を作る",
+   "Skill か Agent を直す",
+   "Skill か Agent が使える状態かを確かめる",
+   "Skill か Agent を配る",
+   "Skill か Agent の配布を取り下げる"
+  ],
+  "does_not": [
+   {
+    "what": "作った Skill ・ Agent の作業そのものをする",
+    "from": "作る人の答え"
+   },
+   {
+    "what": "承認を書く（承認は人が書く）",
+    "from": "作る人の答え"
+   },
+   {
+    "what": "コミットする",
+    "from": "作る人の答え"
+   }
+  ]
+ },
+ "description": "作りたい作業を言うだけで、使える Agent Skill か Agent を作るときに使う。1つの Skill で終わるか、複数の Skill を束ねるかを見分け、目的の仮説 ・ 完成の像 ・ 構造の像を見せて作り、直し、確かめ、配り、配布を取り下げる。作った Skill の作業そのもの ・ 承認 ・ コミットはしない。",
+ "compatibility": "sas（Semantic Agent Schema）が PATH にあること",
+ "preconditions": [
+  "作りたい作業か、使われて外れた具体を言える",
+  "Git のリポジトリの中で使う"
+ ],
+ "inputs": [
+  {
+   "name": "作りたい作業",
+   "form": "文（最近それを手でした場面があればなおよい）"
+  },
+  {
+   "name": "使われて外れた具体",
+   "form": "文（頼んだこと ・ 出たもの ・ 期待したもの）"
+  }
+ ],
+ "outputs": [
+  {
+   "name": "Skill か Agent のフォルダ",
+   "form": "skill.json ・ SKILL.md（Agent なら agent.json ・ AGENT.md ・ codex.toml）",
+   "where": "skills/<name>/ か agents/<name>/"
+  },
+  {
+   "name": "配布先の置き場所",
+   "form": "Skill はフォルダへのリンク、Agent は定義の写し",
+   "where": ".claude/skills ・ .agents/skills ・ .claude/agents ・ .codex/agents（リポジトリか HOME の下）"
+  }
+ ],
+ "steps": [
+  {
+   "id": 1,
+   "do": "作りたい作業が、1つの Skill で終わるか、複数の Skill を束ねる Agent かを見分ける",
+   "completion": "見分けた結果と理由を作る人に示した"
+  },
+  {
+   "id": 2,
+   "do": "目的の仮説 ・ 完成の像 ・ 構造の像と、推奨付きの問いを見せ、作る人に決めてもらう",
+   "completion": "作る人が目的の仮説を承認し、問いに答えた"
+  },
+  {
+   "id": 3,
+   "do": "SAS に項目を書かせ、SKILL.md（Agent なら AGENT.md）を作って確かめる",
+   "completion": "validate の終了コードが 0 である"
+  },
+  {
+   "id": 4,
+   "do": "別の会話で例を動かし、実際の答えを完成の像と並べて承認を受ける",
+   "completion": "作る人の承認か、直す所の一言がある"
+  },
+  {
+   "id": 5,
+   "do": "作る人が選んだ配布先に置く",
+   "completion": "distribute の placed-readable が verified である"
+  }
+ ],
+ "edge_cases": [
+  {
+   "id": "1a",
+   "when": "束ねたい Skill が足りない",
+   "then": "足りない Skill を先に Skill として作る",
+   "end": "ステップ1へ戻る",
+   "examples": [
+    "E2"
+   ]
+  },
+  {
+   "id": "4a",
+   "when": "使われて外れた具体を受け取った",
+   "then": "skills update の流れで、外れた具体を examples に足し、直す層を選んでもらって直す",
+   "end": "ステップ3へ戻る",
+   "examples": [
+    "E3"
+   ]
+  },
+  {
+   "id": "5a",
+   "when": "使わなくしたい",
+   "then": "skills withdraw か agents withdraw で、影響を示し、人が打って取り下げる",
+   "end": "止める",
+   "examples": [
+    "E1"
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "rule": "目的は AI が仮説として示し、作る人が承認して決める",
+   "why": "問題の輪郭を言葉にするのは人の領域で、AI が決めると作る人の作業とずれる",
+   "bad": "作る人の答えを待たずに、AI が決めた目的で skill.json を書く",
+   "examples": [
+    "E1",
+    "E2"
+   ]
+  },
+  {
+   "rule": "承認と配布の取り下げは、人が打つ",
+   "why": "AI が承認や取り下げをすると、作る人が確かめていない Skill が配られるか、使えなくなる",
+   "bad": "AI のセッションから approved を書く",
+   "examples": [
+    "E1"
+   ]
+  }
+ ],
+ "minimal_guarantees": [
+  "作る人が承認するまで、配布先は変わらない",
+  "既にある Skill ・ Agent は、直すと言われた所のほかは変わらない"
+ ],
+ "completion_criteria": [
+  {
+   "id": "C1",
+   "criterion": "作ったものが validate を通る",
+   "check": "skills validate か agents validate の終了コードが 0",
+   "from": "目的の仮説（得るもの）から"
+  },
+  {
+   "id": "C2",
+   "criterion": "作る人が完成の像を見て承認した",
+   "check": "skill.json か agent.json に approved がある",
+   "from": "目的の仮説（得るもの）から"
+  }
+ ],
+ "examples": [
+  {
+   "id": "E1",
+   "from": "作るときの場面",
+   "covers": [
+    "C1",
+    "C2",
+    "5a"
+   ],
+   "caller": "人が直接",
+   "given": "Claude Code のサブエージェントの頁の URL と、項目名3つを照合したいという作業の説明がある",
+   "input": "外の原文と、書き写す項目名を照合する Skill が欲しい",
+   "expected": "1つの Skill で終わると見分け、目的の仮説 ・ 完成の像（URL と項目名を渡すと、ある ・ 無いが返る）・ 構造の像を見せ、承認のあと fact-check のフォルダに skill.json と SKILL.md ができ、validate が通る",
+   "behavior": {
+    "who": "設計書を書く人",
+    "does": "項目名を照合する Skill を頼む",
+    "then": "会話の中で、使える Skill が手に入る"
+   }
+  },
+  {
+   "id": "E2",
+   "from": "作る人が挙げた別の場面",
+   "covers": [
+    "C1",
+    "1a"
+   ],
+   "caller": "人が直接",
+   "given": "6つのアドバイザーの Skill が skills/ にある",
+   "input": "設計で迷ったとき、アドバイザーたちに同時に聞いてまとめる Agent が欲しい",
+   "expected": "複数の Skill を束ねる Agent だと見分け、呼ぶ Skill と受け渡しの像を見せ、承認のあと consult-advisors のフォルダに agent.json と AGENT.md ができ、agents validate が通る",
+   "behavior": {
+    "who": "設計を決める人",
+    "does": "アドバイザーを束ねる Agent を頼む",
+    "then": "複数の見解が1つにまとまる Agent が手に入る"
+   }
+  },
+  {
+   "id": "E3",
+   "from": "作る人が挙げた別の場面",
+   "covers": [
+    "C1",
+    "4a"
+   ],
+   "caller": "人が直接",
+   "given": "fact-check が、全角の空白を含む項目名に「無い」と返した",
+   "input": "この外れた具体で fact-check を直して",
+   "expected": "外れた具体が examples に足され、直す層の案が推奨付きで出て、承認のあと「層：examples」の理由で直され、validate が通る",
+   "behavior": {
+    "who": "設計書を書く人",
+    "does": "外れた具体を渡す",
+    "then": "直した層が記録され、同じ外れが起きない"
+   }
+  }
+ ],
+ "references": [
+  {
+   "name": "作る流れの手引き",
+   "path": "references/create-flow.md",
+   "holds": "見分け方 ・ 最初の返事で見せる4つ ・ 聞く所の見分け方 ・ 書かせて確かめる順 ・ 承認と配布 ・ 直し方",
+   "form": "Markdown",
+   "read_by": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "from": "作る人の答え",
+   "grounds_for": [
+    "Skill か Agent のフォルダ",
+    "配布先の置き場所"
+   ]
+  }
+ ],
+ "tools": [
+  {
+   "name": "skills create",
+   "does": "Skill か Agent を作る",
+   "path": "scripts/skills",
+   "inputs": [
+    "作りたい作業"
+   ],
+   "outputs": [
+    "Skill か Agent のフォルダ"
+   ]
+  },
+  {
+   "name": "skills update",
+   "does": "Skill か Agent を直す",
+   "path": "scripts/skills",
+   "inputs": [
+    "使われて外れた具体"
+   ],
+   "outputs": [
+    "Skill か Agent のフォルダ"
+   ]
+  },
+  {
+   "name": "skills validate",
+   "does": "Skill か Agent が使える状態かを確かめる",
+   "path": "scripts/skills"
+  },
+  {
+   "name": "skills distribute",
+   "does": "Skill か Agent を配る",
+   "path": "scripts/skills",
+   "outputs": [
+    "配布先の置き場所"
+   ]
+  },
+  {
+   "name": "skills withdraw",
+   "does": "Skill か Agent の配布を取り下げる",
+   "path": "scripts/skills"
+  },
+  {
+   "name": "agents create",
+   "does": "Skill か Agent を作る",
+   "path": "scripts/agents",
+   "inputs": [
+    "作りたい作業"
+   ],
+   "outputs": [
+    "Skill か Agent のフォルダ"
+   ]
+  },
+  {
+   "name": "agents validate",
+   "does": "Skill か Agent が使える状態かを確かめる",
+   "path": "scripts/agents"
+  },
+  {
+   "name": "agents distribute",
+   "does": "Skill か Agent を配る",
+   "path": "scripts/agents",
+   "outputs": [
+    "配布先の置き場所"
+   ]
+  },
+  {
+   "name": "agents withdraw",
+   "does": "Skill か Agent の配布を取り下げる",
+   "path": "scripts/agents"
+  }
+ ],
+ "uses": [
+  {
+   "name": "sas",
+   "versions": ">=0.1.0, <0.2.0",
+   "for": "Skill ・ Agent の項目を書かせ、確かめさせ、記録を読む"
+  }
+ ],
+ "assets": [
+  {
+   "name": "Skill の Concrete",
+   "path": "assets/skill.schema.json",
+   "holds": "Agent Skill の項目の形（urn:agents-skills-creator:skill:v1）",
+   "form": "JSON（SAS の Concrete）",
+   "schema": "urn:semantic-agent-schema:published-language:abstract:v1"
+  },
+  {
+   "name": "Agent の Concrete",
+   "path": "assets/agent.schema.json",
+   "holds": "Agent の項目の形（urn:agents-skills-creator:agent:v1）",
+   "form": "JSON（SAS の Concrete）",
+   "schema": "urn:semantic-agent-schema:published-language:abstract:v1"
+  }
+ ]
+}

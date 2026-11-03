@@ -1,0 +1,156 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 13,
+ "date": "2026-11-03",
+ "summary": "creator 自身を、1つの Agent Skill「agents-skills-creator」として、creator の決まりで作った。公開の仕様のフォルダ（scripts/ に skills と agents、references/ に作る流れの手引き、assets/ に Skill と Agent の Concrete）に置き、skills write-skill-md と skills validate を通した。あわせて write-skill-md ・ validate ・ 承認の材料を、Concrete に足された tools ・ uses ・ assets に合わせた",
+ "usecases": [
+  "UC0",
+  "UC1",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "Skill のフォルダの分け方",
+   "evidence": [
+    "agentskills.io/specification.md 211行目「## Optional directories」：scripts/（Contains executable code that agents can run）・ references/（Contains additional documentation that agents can read when needed）・ assets/"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "creator 自身が creator の検査を通る",
+   "evidence": [
+    "実地：一時ディレクトリで skills create --semantic の手順（steps：name ・ purpose ・ role ・ description ・ compatibility ・ preconditions ・ inputs ・ outputs ・ steps ・ minimal_guarantees ・ completion_criteria ・ examples ・ edge_cases ・ rules ・ references ・ tools ・ uses ・ assets）に従って値を組み、skills create --value で書き、write-skill-md と validate を打った。SAS の検証の違反 0、creator の検査 21件すべて verified",
+    "場面 S-UC1-CREATOR-ITSELF で、同じことを試験として確かめる"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "SAS の Abstract は、リポジトリの Concrete として引けない",
+   "evidence": [
+    "実地：sas search --concrete urn:semantic-agent-schema:published-language:abstract:v1 は unknown_schema「はリポジトリの Concrete に無い」で断る。assets の Concrete の schema に Abstract の URN を書くので、creator の json-schema-conforms は SAS 自身の公開された言葉（urn:semantic-agent-schema:published-language: で始まる URN）を、引けるかを見ずに sas validate で確かめる"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作る：SKILL.md の道具 ・ 外の道具 ・ 資源の節（skills-domain の skill_md）",
+   "steps": [
+    "道具：- <name>（<path>）：<does>。受け取る：… 。返す：…",
+    "外の道具：- <name>（<versions>）：<for>",
+    "資源：- <name>（<path>）：<holds>。形：<form（schema）>"
+   ],
+   "rules": [
+    "項目を足さない（skill.json にあることだけを書く）"
+   ]
+  },
+  {
+   "usecase": "UC4 確かめる：道具と資源の検査（use_cases/validate.rs）",
+   "steps": [
+    "tools-exist ・ assets-exist：各 path にファイルがあるか（フォルダの外を指せば violated）",
+    "tools-in-role：道具の does が role.does のどれかと同じ文字列か",
+    "tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にあるか",
+    "json-schema-conforms に assets を足し、JSON の資源は schema に照らす"
+   ],
+   "rules": [
+    "名前どうしの突き合わせとファイルの有無で機械で決まることは、AI の判定（意味の rule）にせず creator の検査にする"
+   ]
+  },
+  {
+   "usecase": "UC0 ・ UC1：creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "目的と役割は、利用者が承認した仮説（作りたい作業を言うだけで、使える Agent Skill か Agent が手に入る。受け持つ：作る ・ 直す ・ 確かめる ・ 配る ・ 取り下げる。受け持たない：作った Skill の作業そのもの ・ 承認 ・ コミット）",
+    "手順：1 Skill か Agent かを見分ける（BR1）→ 2 目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問い → 3 SAS に書かせて確かめる → 4 別の会話で例を動かして承認 → 5 配る。分かれ道は 1a 足りない Skill ・ 4a 外れた具体 ・ 5a 取り下げ",
+    "道具は skills と agents のコマンドごとに9つ（does は role.does の1件）、外の道具は sas、資源は2つの Concrete、資料は作る流れの手引き"
+   ],
+   "rules": [
+    "実行ファイルはリポジトリに置かない。場面では、同じ workspace で作った skills と agents へのリンクを scripts/ に置く（@bin/）",
+    "assets の Concrete は、製品の公開された言葉へのリンクにし、写しを持たない"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "道具と資源の検査",
+   "became": "script",
+   "why": "validate でしか使わない"
+  },
+  {
+   "what": "SKILL.md の道具 ・ 外の道具 ・ 資源の節",
+   "became": "service",
+   "why": "SKILL.md の形の一部なので skill_md に置いた（write-skill-md と skill-md-built が同じ理由で変わる）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "creator 自身の置き場所",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "skills/system-tests/fixtures/agents-skills-creator/ にした。製品の根の skills/ は文脈 skills の Rust のコードの置き場所で、Skill の実体を混ぜると、crate と Skill のフォルダが同じフォルダに並ぶ。creator の Skill の本当の置き場所は、作られる Skill の置き場所（配る先のリポジトリ）で、製品のリポジトリの中ではない。fixtures に置けば、場面がビルドした実行ファイルと Concrete を組み合わせて、creator の決まりで通ることを毎回確かめられる"
+  },
+  {
+   "item": "手順の行に使う道具を添える",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "tools に、どのステップで使うかの欄が無い（references の read_by に当たるもの）。SKILL.md の手順の行に道具を添えるには、tools の各件に used_by（ステップの番号の並び）を sas update で足す必要がある。いまは道具の節にだけ出している"
+  },
+  {
+   "item": "tools の path ・ assets の path ・ uses の versions の形",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "判定役の指摘で、tools の path は ^scripts/、assets の path は ^assets/、uses の versions は semver の範囲（Cargo の書き方）とした（sas update 済み）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "道具 ・ 外の道具 ・ 資源",
+   "seen": "tools ・ uses ・ assets",
+   "drift": "道具は Skill の scripts/ に入る自分のコード、外の道具は環境に入っていて Skill には入れないもの（sas）、資源は assets/ の静的なファイル（schema を含む）。手順の途中で読む文書は資料（references）"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "creator の検査",
+    "before": "8つ（grounds-are-outputs まで）",
+    "after": "tools-exist ・ assets-exist ・ tools-in-role ・ tool-io-declared を足して11",
+    "why": "tools ・ assets が Concrete に足された"
+   },
+   {
+    "what": "SKILL.md",
+    "before": "資料の節まで",
+    "after": "道具 ・ 外の道具 ・ 資源の節を足した",
+    "why": "同じ"
+   },
+   {
+    "what": "承認の材料の受け持つ範囲",
+    "before": "inputs ・ does ・ outputs ・ outside",
+    "after": "tools ・ uses を足した",
+    "why": "道具を受け持つ範囲に出す"
+   },
+   {
+    "what": "creator 自身",
+    "before": "無し",
+    "after": "skills/system-tests/fixtures/agents-skills-creator/（skill.json ・ SKILL.md ・ references/create-flow.md ・ assets/ に2つの Concrete へのリンク）",
+    "why": "creator を1つの Agent Skill にする"
+   },
+   {
+    "what": "場面の書式",
+    "before": "links の先は文字のまま",
+    "after": "@bin/<名前> で、同じ workspace で作った実行ファイルを指せる",
+    "why": "実行ファイルをリポジトリに置かずに scripts/ を組むため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "別の会話で creator の例を動かすこと（コーディネーターがする）",
+    "why": "creator は AI を起動しない。確かめる手順と見る所は下の confirm に書く。手順：一時ディレクトリに skills/agents-skills-creator（scripts/ に skills と agents、assets/ に2つの Concrete）を置き、sas と一緒に PATH を通し、別の会話に SKILL.md を読ませて E1 ・ E2 ・ E3 の input で頼む。E1：given の URL と項目名3つ。見る所：最初の返事で、Skill と見分けた理由 ・ 目的の仮説（【推測】付き）・ 完成の像（URL と項目名 → ある ・ 無い）・ 構造の像の4つ ・ 問いは0〜2個で推奨付き、が出るか。承認のあと skills create --value ・ write-skill-md ・ validate が打たれ、validate が通るか。approved を AI が書こうとしないか。E2：given の6つのアドバイザーの Skill。見る所：Agent と見分けるか、呼ぶ Skill と受け渡し（見解と根拠）の像が出るか、agents create ・ write-agent-md ・ validate が通るか。E3：fact-check と外れた具体。見る所：skills update --semantic の流れで、外れた具体が examples に足され、層の案が推奨付きで前と後の像と一緒に出て、承認の前に書かず、--reason が「層：<層>」で始まるか。意味の rule の判定は sas validate skills/agents-skills-creator/skill.json --semantic の手順で別の会話に任せ、--answer で渡す"
+   },
+   {
+    "what": "持ち越し（1か所にまとめる）",
+    "why": "(1) SAS の置き場所と探し方：creator は sas を PATH だけで探す。配った先で sas が無いときの案内と、uses の versions（semver の範囲）を実際の sas の版と照らすことは作っていない。(2) AI の見分けの表の重なり：callers.json が SAS ・ skills ・ agents の3か所。SAS に誰が打ったかを返すコマンドがあれば1か所にできる。Gemini CLI のように環境変数で見分けられないツールは人として通る。(3) 承認がいまの中身に当たるかの見分けを、skills と agents に写して持つ。(4) Agent の推測の一覧（Skill の derivation に当たる表が Agent に無い）。(5) Agent の purpose ・ role ・ examples を skill.schema から $ref で指すこと（skill.schema の形を $defs に移しても sas create --semantic が手順を返すかを確かめてから）。(6) Agent ごとの tools（subagent の tools の決め打ち）。(7) Codex で配下の Skill に絞ること（原文に手段が無い）。(8) プラグインで配ること（Skill ・ Agent とも）。(9) Skill の種類（UC7 ・ UC1 の拡張 2a ・ BR7〜11）。(10) 例を別の会話で動かした結果を受け取って承認の材料に載せること。(11) 手順の行に使う道具を添えること（tools の used_by）。(12) agents の試験は同じ workspace で作った skills を使う（agents の crate だけの試験では skills がまだ作られていないことがある）。creator 自身の場面も、同じ workspace で作った agents を使う"
+   }
+  ]
+ }
+}

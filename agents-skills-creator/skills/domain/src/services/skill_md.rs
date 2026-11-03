@@ -1,7 +1,7 @@
 //! Skill の項目（skill.json）から、AI ツールが読む SKILL.md を決まった形で作る。同じ項目からは同じ文字列になる。
 //!
 //! 形：frontmatter（name ・ description、あれば compatibility）と、目的 ・ 役割 ・ 事前条件 ・ 入力と出力（形に schema を添える）・
-//! 参照する資料（形に schema を添える）・
+//! 参照する資料（形に schema を添える）・ 道具（scripts/）・ 外の道具 ・ 資源（assets/。形に schema を添える）・
 //! 手順（読む資料と完了条件と例外）・
 //! 守ること ・ 最低保証 ・ 完了条件 ・ 例の節。項目に無い節は書かない。項目を足さない（skill.json にあることだけを書く）。
 
@@ -160,6 +160,63 @@ pub fn render(skill: &Value) -> String {
         })
         .collect();
     section(&mut out, "参照する資料", &lines);
+
+    // 自分の道具（scripts/）・ 外の道具 ・ 資源（assets/）
+    let lines: Vec<String> = items(skill, "tools")
+        .iter()
+        .map(|t| {
+            let mut l = format!(
+                "- {}（{}）：{}",
+                text(t, "name"),
+                text(t, "path"),
+                text(t, "does")
+            );
+            let ins: Vec<String> = items(t, "inputs").iter().map(plain).collect();
+            let outs: Vec<String> = items(t, "outputs").iter().map(plain).collect();
+            if !ins.is_empty() {
+                l.push_str(&format!("。受け取る：{}", ins.join(" ・ ")));
+            }
+            if !outs.is_empty() {
+                l.push_str(&format!("。返す：{}", outs.join(" ・ ")));
+            }
+            l
+        })
+        .collect();
+    section(&mut out, "道具", &lines);
+    let lines: Vec<String> = items(skill, "uses")
+        .iter()
+        .map(|u| {
+            format!(
+                "- {}（{}）：{}",
+                text(u, "name"),
+                text(u, "versions"),
+                text(u, "for")
+            )
+        })
+        .collect();
+    section(&mut out, "外の道具", &lines);
+    let lines: Vec<String> = items(skill, "assets")
+        .iter()
+        .map(|a| {
+            let form = form_with_schema(a);
+            if form.is_empty() {
+                format!(
+                    "- {}（{}）：{}",
+                    text(a, "name"),
+                    text(a, "path"),
+                    text(a, "holds")
+                )
+            } else {
+                format!(
+                    "- {}（{}）：{}。形：{form}",
+                    text(a, "name"),
+                    text(a, "path"),
+                    text(a, "holds")
+                )
+            }
+        })
+        .collect();
+    section(&mut out, "資源", &lines);
 
     // 手順と、ステップ番号に結んだ例外（id の数字の部分がステップの番号）
     let edges = items(skill, "edge_cases");

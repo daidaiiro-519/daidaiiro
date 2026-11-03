@@ -80,8 +80,16 @@ fn link(dir: &Path, links: &serde_json::Map<String, Value>) {
         let at = dir.join(rel);
         std::fs::create_dir_all(at.parent().expect("親のフォルダがある"))
             .expect("フォルダを作れること");
-        std::os::unix::fs::symlink(target.as_str().expect("先は文字列"), at)
-            .expect("リンクを置けること");
+        let target = target.as_str().expect("先は文字列");
+        // @bin/<名前> は、この workspace で作った実行ファイル（skills と同じ置き場所）を指す
+        let target = match target.strip_prefix("@bin/") {
+            Some(name) => PathBuf::from(env!("CARGO_BIN_EXE_skills"))
+                .parent()
+                .expect("実行ファイルの置き場所がある")
+                .join(name),
+            None => PathBuf::from(target),
+        };
+        std::os::unix::fs::symlink(target, at).expect("リンクを置けること");
     }
 }
 

@@ -1371,6 +1371,229 @@
    "x-decided-by": "human",
    "type": "string",
    "pattern": "^o-[0-9]+$"
+  },
+  "tools": {
+   "title": "自分の道具",
+   "description": "この Skill が scripts/ に持ち、手順で使う道具の並びである。",
+   "x-prompt": {
+    "meaning": "Skill 自身のコードの道具である。外の道具（sas など）は uses に書く。",
+    "when": "Skill に従って作業する AI が、手順でどの道具を打つかを決めるときに読む。",
+    "rules": [
+     {
+      "id": "tool-does-is-role",
+      "rule": "does は、role.does のどれか1件と同じ文字列である。",
+      "why": "受け持つことに結び付かない道具は、何のためにあるかが分からず、役割の外の仕事をする。",
+      "check": "does の文字列が role.does にあるかを見る。",
+      "related_fields": [
+       "/role/does"
+      ],
+      "bad": [
+       {
+        "value": {
+         "name": "fetch",
+         "does": "原文を取る",
+         "path": "scripts/fetch"
+        },
+        "note": "role.does に「原文を取る」が無い（role.does は「原文を取って、取った日と sha256 と一緒に残す」）。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "name": "fetch",
+         "does": "原文を取って、取った日と sha256 と一緒に残す",
+         "path": "scripts/fetch"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "name",
+     "does",
+     "path"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "title": "名前",
+      "description": "道具の名前である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "does": {
+      "title": "受け持つこと",
+      "description": "この道具が受け持つ、role.does の1件である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "path": {
+      "title": "置き場所",
+      "description": "Skill のフォルダからの道具の置き場所である。",
+      "x-prompt": {
+       "meaning": "Skill のフォルダを起点に読む。",
+       "rules": []
+      },
+      "type": "string",
+      "pattern": "^scripts/(?!(.*/)?\\.\\.(/|$)).+$"
+     },
+     "inputs": {
+      "title": "受け取るもの",
+      "description": "道具が受け取る inputs の名前の並びである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "array",
+      "items": {
+       "type": "string",
+       "minLength": 1
+      }
+     },
+     "outputs": {
+      "title": "返すもの",
+      "description": "道具が返す outputs の名前の並びである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "array",
+      "items": {
+       "type": "string",
+       "minLength": 1
+      }
+     }
+    }
+   }
+  },
+  "uses": {
+   "title": "外の道具",
+   "description": "この Skill が使う、Skill の外にある道具の並びである。",
+   "x-prompt": {
+    "meaning": "環境に入っている道具（sas など）で、Skill には入れない。無ければ、それを使う手順だけが止まる。",
+    "when": "配る前と、動かす環境に道具があるかを決めるときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "name",
+     "versions",
+     "for"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "title": "名前",
+      "description": "外の道具の名前である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "versions": {
+      "title": "使える版の範囲",
+      "description": "使える版の範囲である。",
+      "x-prompt": {
+       "meaning": "semver の範囲の書き方（Cargo の依存の版と同じ。例：\">=0.3, <1\"）で読む。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "for": {
+      "title": "使い道",
+      "description": "この Skill が外の道具を何に使うかの説明である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   }
+  },
+  "assets": {
+   "title": "静的な資源",
+   "description": "この Skill が assets/ に持つ静的な資源の並びである。",
+   "x-prompt": {
+    "meaning": "テンプレート ・ 画像 ・ データファイル（schema を含む）である（Agent Skills の公開の仕様の assets/）。手順で読む文書は references に書く。",
+    "when": "Skill に従って作業する AI が、どの資源を使うかを決めるときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "name",
+     "path",
+     "holds"
+    ],
+    "additionalProperties": false,
+    "allOf": [
+     {
+      "$ref": "#/$defs/json-needs-schema"
+     }
+    ],
+    "properties": {
+     "name": {
+      "title": "名前",
+      "description": "資源の名前である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "path": {
+      "title": "置き場所",
+      "description": "Skill のフォルダからの資源の置き場所である。",
+      "x-prompt": {
+       "meaning": "Skill のフォルダを起点に読む。",
+       "rules": []
+      },
+      "type": "string",
+      "pattern": "^assets/(?!(.*/)?\\.\\.(/|$)).+$"
+     },
+     "holds": {
+      "title": "中身",
+      "description": "資源に何が入っているかである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "form": {
+      "title": "形",
+      "description": "資源の形である。",
+      "x-prompt": {
+       "meaning": "JSON のものは JSON で始める（schema が要る）。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "schema": {
+      "$ref": "#/$defs/schema-ref",
+      "title": "従う schema",
+      "description": "JSON の資源が従う schema の名前か置き場所である。",
+      "x-prompt": {
+       "rules": []
+      }
+     }
+    }
+   }
   }
  },
  "$defs": {
