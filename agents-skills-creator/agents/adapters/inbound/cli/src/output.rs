@@ -1,6 +1,7 @@
 //! 結果を JSON 1つにする（published-language/v1 の create-result ・ validate-result ・ write-agent-md-result ・
 //! distribute-result ・ withdraw-result）。SAS と skills の結果は書き換えずに入れる。
 
+use agents_application::use_cases::approve::Approved;
 use agents_application::use_cases::create::Created;
 use agents_application::use_cases::distribute::Distributed;
 use agents_application::use_cases::update::Updated;
@@ -10,6 +11,8 @@ use agents_application::use_cases::write_agent_md::Written;
 use agents_application::use_cases::{Finding, Refused};
 use serde_json::{Value, json};
 
+/// approve の結果の形。
+pub const APPROVE: &str = "urn:agents-skills-creator:agents:approve-result:v1";
 /// create の結果の形。
 pub const CREATE: &str = "urn:agents-skills-creator:agents:create-result:v1";
 /// update の結果の形。
@@ -114,5 +117,14 @@ pub fn print_withdrawn(w: &Withdrawn) {
         out["next"] = json!(n);
     }
     out["after"] = w.after.iter().map(finding).collect();
+    println!("{out}");
+}
+
+/// 承認を書かせた結果を出す。
+pub fn print_approved(a: &Approved) {
+    let mut out = json!({"$schema": APPROVE, "kind": "approve", "folder": a.folder, "approved": a.operation, "sas": a.sas.output, "sas_exit": a.sas.exit});
+    if let Some(n) = &a.next {
+        out["next"] = json!(n);
+    }
     println!("{out}");
 }

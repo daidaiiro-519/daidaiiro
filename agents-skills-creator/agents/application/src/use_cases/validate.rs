@@ -3,11 +3,11 @@
 //!
 //! creator の検査：
 //! - name-is-folder：agent.json の name がフォルダ名と同じ
-//! - skills-linked：skills の各名前が、配下の skills/ に同じ名前のリンクとしてあり、その先が Skill として skills validate を
+//! - skills-linked：skills の各名前が、配下の skills/ に同じ名前のリンクとしてあり、その先が Skill として agents-skills-creator skills validate を
 //!   通る（文脈 skills の公開された言葉で確かめる）。skills/ にあって skills に無いものも violated
 //! - calls-are-linked：ステップが呼ぶ Skill が、skills にある
 //! - passes-are-outputs：ステップが渡すものの名前が、そのステップで呼んだ Skill の outputs の name にある（outputs は
-//!   skills validate の結果の承認の材料から読む。Skill の項目を直接読まない）
+//!   agents-skills-creator skills validate の結果の承認の材料から読む。Skill の項目を直接読まない）
 //! - agent-md-built：AGENT.md と codex.toml が、agent.json から write-agent-md で作るものと同じ
 //!
 //! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
@@ -59,7 +59,7 @@ impl Checked {
     }
 }
 
-/// skills validate の結果の要点：Skill として通ったか、理由、outputs の名前。
+/// agents-skills-creator skills validate の結果の要点：Skill として通ったか、理由、outputs の名前。
 fn skill_result(run: &Run) -> (bool, String, Vec<String>) {
     let one = run.output.pointer("/skills/0").cloned().unwrap_or_default();
     let outputs: Vec<String> = one
@@ -87,10 +87,13 @@ fn skill_result(run: &Run) -> (bool, String, Vec<String>) {
     let why = if ok {
         String::new()
     } else if one.is_null() {
-        format!("skills validate の結果を読めない：{}", run.output)
+        format!(
+            "agents-skills-creator skills validate の結果を読めない：{}",
+            run.output
+        )
     } else {
         format!(
-            "skills validate で検出（creator：{}、sas の終了コード {sas_exit}）",
+            "agents-skills-creator skills validate で検出（creator：{}、sas の終了コード {sas_exit}）",
             failed.join(" ・ ")
         )
     };
@@ -241,7 +244,7 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
                     Outcome::Violated,
                     Some(path),
                     format!(
-                        "{name} が、agent.json から write-agent-md で作るものと違う（agents write-agent-md {folder} で作り直す）"
+                        "{name} が、agent.json から write-agent-md で作るものと違う（agents-skills-creator agents write-agent-md {folder} で作り直す）"
                     ),
                 );
             }
@@ -250,7 +253,9 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
                     CHECK,
                     Outcome::Violated,
                     Some(path),
-                    format!("{name} が無い（agents write-agent-md {folder} で作る）"),
+                    format!(
+                        "{name} が無い（agents-skills-creator agents write-agent-md {folder} で作る）"
+                    ),
                 );
             }
         }
@@ -265,7 +270,7 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
 
 /// 意味の判定まで済んだ確かめ：SAS の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
 /// どれも 0 のもの（sas validate --answer で判定を渡した確かめ）の ID。
-fn judged_validation(history: &dyn AgentHistory, path: &str) -> Option<String> {
+pub(crate) fn judged_validation(history: &dyn AgentHistory, path: &str) -> Option<String> {
     let log = history.log(path).ok().filter(|r| r.exit == 0)?;
     let rows: Vec<Value> = match log.output {
         Value::Array(rows) => rows,
@@ -386,15 +391,10 @@ pub fn validate(
             }
             ap["approvable"] = Value::Bool(not.is_empty());
             // 承認のコマンドは、承認できるときだけ出す
-            if let (true, Some(op), Some(hash)) = (
-                not.is_empty(),
-                judged.as_deref(),
-                run.output.pointer("/targets/0/hash").and_then(Value::as_str),
-            ) {
-                let verb = if a.get("approved").is_some() { "replace" } else { "add" };
+            if not.is_empty() && judged.is_some() {
                 ap["approve"] = serde_json::json!({
-                    "command": format!("sas update {folder}/{AGENT_JSON} --patch '[{{\"op\":\"{verb}\",\"path\":\"/approved\",\"value\":\"{op}\"}}]' --if-match {hash}"),
-                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）。承認する直前に validate を打ち直し、そのとき出たコマンドを使う（あいだに書き換えがあれば、操作 ID とハッシュが変わる）",
+                    "command": format!("agents-skills-creator approve {folder}"),
+                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ。判定まで済んだ確かめの操作 ID とハッシュは approve が引く（AI のセッションから打つと、SAS が human_field で断る）",
                 });
             }
             if !not.is_empty() {

@@ -1,6 +1,6 @@
 {
  "$schema": "urn:agents-skills-creator:system-tests:trace:v1",
- "description": "ユースケースの保証と変形を、それを確かめる場面と突き合わせる表（SAS の system-tests/trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。creator の出力が公開された言葉の形に従うことは、場面を流す試験（adapters/inbound/cli/tests/scenarios.rs）がすべての出力で照らす",
+ "description": "ユースケースの保証と変形を、それを確かめる場面と突き合わせる表（SAS の system-tests/trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。creator の出力が公開された言葉の形に従うことは、場面を流す試験（製品の根の cli/tests/skills_scenarios.rs）がすべての出力で照らす",
  "scope": [
   "UC1:成功時保証",
   "UC1:最低保証",
@@ -33,7 +33,8 @@
   "UC6:最低保証",
   "約束:withdraw-result",
   "UC6:変形:リンクしている Agent を示す",
-  "約束:skill:tools"
+  "約束:skill:tools",
+  "約束:approve-result"
  ],
  "traces": [
   {
@@ -205,6 +206,7 @@
    "id": "UC5:最低保証",
    "meaning": "配布先のほかの Skill は変わらない（置き場所にほかのものがあれば置かず、同じリンクなら何もしない）。承認していないもの（approved が無いか、承認のあとに書き換えた）は配布しない（BR4）。承認は人の欄（x-decided-by: human）で、AI のセッションからは SAS が書かせない",
    "scenarios": [
+    "S-UC4-APPROVE-COMMAND",
     "S-UC5-APPROVAL-STALE",
     "S-UC5-APPROVE-BY-AI",
     "S-UC5-DISTRIBUTE",
@@ -257,6 +259,13 @@
     "S-UC1-TOOLS",
     "S-UC4-TOOL-IO-BROKEN",
     "S-UC4-TOOLS-BROKEN"
+   ]
+  },
+  {
+   "id": "約束:approve-result",
+   "meaning": "agents-skills-creator approve の結果は approve-result.schema.json に従い、中で打った sas update の結果を書き換えずに入れる",
+   "scenarios": [
+    "S-UC4-APPROVE-COMMAND"
    ]
   }
  ]

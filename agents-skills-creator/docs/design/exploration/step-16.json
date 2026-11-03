@@ -1,0 +1,150 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 16,
+ "date": "2026-11-03",
+ "summary": "creator のコマンドを、sas と同じく PATH に置く1つの実行ファイル agents-skills-creator にし、skills と agents をその下のサブコマンドにした。人が打つ承認 approve を足し、--concrete を省けるようにし、コマンド名が出る所をすべて新しい形にした。creator 自身は scripts/ の道具を持たず、外の道具 agents-skills-creator と sas を used_by 付きで使う",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC4",
+  "UC5"
+ ],
+ "factchecks": [
+  {
+   "item": "利用者の言葉",
+   "evidence": [
+    "「Skills もコマンドと分かるように、sas コマンドのように実行するイメージ」"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Concrete の更新",
+   "evidence": [
+    "skill.schema：sas update の操作 o-0112（--reason 付き）。uses（外の道具）に used_by（使うステップの番号か分かれ道の id）を足した。sas validate の機械の判定で違反 0"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "creator 自身の更新",
+   "evidence": [
+    "一時ディレクトリの SAS の記録で o-0016（tools を外し、uses を agents-skills-creator と sas の2つに used_by 付きで、compatibility、手順8 の do）と o-0021（完了条件と例のコマンドを新しい形に）。agents-skills-creator skills validate で SAS の違反 0、creator の検査 14件すべて verified"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "実行ファイル agents-skills-creator（製品の根の cli/）",
+   "steps": [
+    "agents-skills-creator skills … は skills-inbound-cli の run へ、agents-skills-creator agents … は agents-inbound-cli の run へ、引数をそのまま渡す",
+    "agents-skills-creator approve <フォルダ> は、フォルダに skill.json があれば skills へ、agent.json があれば agents へ渡す",
+    "--help ・ help は全体の使い方を返して終了コード 0。サブコマンドが無いか知らなければ使い方の誤り（終了コード 2）"
+   ],
+   "rules": [
+    "振り分けるだけで、ユースケースは持たない。2つの文脈の入口だけに依存し、文脈どうしの向きは変えない"
+   ]
+  },
+  {
+   "usecase": "承認（approve。skills ・ agents の application の use_cases/approve.rs）",
+   "steps": [
+    "sas log から判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・ error が0の validate の操作）を引く。無ければ not_approvable で断り、書かない",
+    "その操作の中身のハッシュを sas log --operation から引く",
+    "sas update <経路> --patch '[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"<操作 ID>\"}]' --if-match <ハッシュ> --reason 承認：<操作 ID>",
+    "SAS が断ったら（AI のセッションから打たれた human_field など）、結果をそのまま返し、人が打つコマンド agents-skills-creator approve <フォルダ> を next に返す（終了コード 1）"
+   ],
+   "rules": [
+    "承認は人が打つ。validate の承認の材料の approve.command も agents-skills-creator approve <フォルダ>"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "サブコマンドの振り分け",
+   "became": "separate",
+   "why": "製品の根の cli/ の crate agents-skills-creator（文脈の外）に置いた。どちらの文脈にも属さないので、文脈の中に置くと、その文脈がもう一方の文脈の入口に依存する"
+  },
+  {
+   "what": "承認（approve）",
+   "became": "script",
+   "why": "skills と agents の application にそれぞれ置く（判定まで済んだ確かめの見分け方は validate と同じ関数を使う）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "agents が skills validate の出力を読む所（決まり2）",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "同じ実行ファイルの agents-skills-creator skills validate を外のプロセスとして呼ぶ（自分自身を呼ぶ）形にした。理由：agents の crate は skills の crate に依存しない（architecture.json に agents → skills の向きが無い）ので、プロセスをまたがずに呼ぶには、振り分けの crate（cli/）で skills の入口を包む SkillsCli の実装を作って agents に渡すことになる。その形は、振り分けの crate がユースケースの組み立てまで持ち、skills の入口に「出力を返す」入り口を足すことにもなる。外のプロセスとして呼べば、境界は今と同じ公開された言葉（validate-result の JSON）のままで、どの crate の依存の向きも変わらない。費用は配下の Skill ごとにプロセスを1つ起こすことだけ。実行ファイルは、いま動いている agents-skills-creator を先に使い、無ければ PATH のもの"
+  },
+  {
+   "item": "--concrete",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "省ける。skills は urn:agents-skills-creator:skill:v1、agents は urn:agents-skills-creator:agent:v1 を既定にし、渡されたらそれを使う"
+  },
+  {
+   "item": "creator 自身の道具",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "scripts/ に実行ファイルを置く形をやめ、PATH の agents-skills-creator と sas を外の道具（uses）として used_by 付きで書いた（Concrete の uses に used_by を足した、o-0112）。SKILL.md の手順と分かれ道の行に、使う外の道具を添える"
+  },
+  {
+   "item": "置き場所（インストール先）",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "決めない。SAS のインストール先と一緒に別の ACDR で決める。いまは target/debug を PATH に足して使う"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "サブコマンド",
+   "seen": "agents-skills-creator skills ・ agents ・ approve",
+   "drift": "skills と agents は文脈の名前で、Skill と Agent のどちらを扱うかを表す。approve は文脈をまたぐ人の操作で、フォルダの中身で振り分ける"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "実行ファイル",
+    "before": "skills と agents の2つ（それぞれの入口の crate の bin）",
+    "after": "agents-skills-creator の1つ（製品の根の cli/ の crate）。入口の crate（skills-inbound-cli ・ agents-inbound-cli）は lib になり、pub fn run を持つ",
+    "why": "sas と同じく PATH に置く1つのコマンドにする"
+   },
+   {
+    "what": "場面の試験",
+    "before": "それぞれの入口の crate の tests/scenarios.rs",
+    "after": "cli/tests/skills_scenarios.rs ・ agents_scenarios.rs。場面の args は agents-skills-creator <文脈> のあとに渡し、creator（新しい欄）は agents-skills-creator のあとにそのまま渡す。@bin/ の場面は無くなった",
+    "why": "実行ファイルが cli/ の crate にあるため"
+   },
+   {
+    "what": "architecture.json",
+    "before": "文脈の crate だけ",
+    "after": "agents-skills-creator（cli/）を足し、skills-inbound-cli と agents-inbound-cli への向きだけを許した。文脈どうしの向きは変えていない（architecture-lint で確かめる）",
+    "why": "振り分けの置き場所"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "approve が無い",
+    "after": "skills ・ agents の approve-result.schema.json を足した",
+    "why": "人が打つ承認"
+   },
+   {
+    "what": "creator 自身",
+    "before": "tools（scripts/ の skills ・ agents の12）",
+    "after": "tools 無し。uses は agents-skills-creator（used_by 2 ・ 3 ・ 4 ・ 5 ・ 8 ・ 9 ・ 1b）と sas（used_by 6）。compatibility は「sas と agents-skills-creator が PATH にあること」",
+    "why": "同じ"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "インストール先",
+    "why": "SAS のインストール先と一緒に別の ACDR で決める"
+   },
+   {
+    "what": "持ち越し",
+    "why": "step-13 の持ち越しのうち (12) の「同じ workspace で作った skills を使う」は、実行ファイルが1つになって無くなった（agents は自分自身を呼ぶ）。ほかはそのまま"
+   }
+  ]
+ }
+}

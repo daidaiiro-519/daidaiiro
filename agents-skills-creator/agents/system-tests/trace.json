@@ -1,6 +1,6 @@
 {
  "$schema": "urn:agents-skills-creator:system-tests:trace:v1",
- "description": "文脈 agents のユースケースの保証と変形を、それを確かめる場面と突き合わせる表（skills の trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。agents の出力が公開された言葉の形に従うことは、場面を流す試験（agents/adapters/inbound/cli/tests/scenarios.rs）がすべての出力で照らす",
+ "description": "文脈 agents のユースケースの保証と変形を、それを確かめる場面と突き合わせる表（skills の trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。agents の出力が公開された言葉の形に従うことは、場面を流す試験（製品の根の cli/tests/agents_scenarios.rs）がすべての出力で照らす",
  "scope": [
   "UC2:成功時保証",
   "UC2:最低保証",
@@ -23,12 +23,13 @@
   "UC6:変形:リンクしている Agent を示す",
   "UC3:成功時保証",
   "UC3:最低保証",
-  "約束:update-result"
+  "約束:update-result",
+  "約束:approve-result"
  ],
  "traces": [
   {
    "id": "UC2:成功時保証",
-   "meaning": "呼ぶ Skill がすべて配下にリンクでそろい、どれも単独で成り立つ。agents validate が、配下の skills/ の各リンクの先が skills validate を通り（文脈 skills の公開された言葉で確かめる）、ステップが呼ぶ Skill が配下にあり、渡すものが呼んだ Skill の outputs にあることを確かめる。作る手順（create の作る流れと SAS の書く手順）・ AGENT.md と codex.toml ・ 承認の材料・ 配布（Claude Code の subagent ・ Codex の custom agent）",
+   "meaning": "呼ぶ Skill がすべて配下にリンクでそろい、どれも単独で成り立つ。agents-skills-creator agents validate が、配下の skills/ の各リンクの先が agents-skills-creator skills validate を通り（文脈 skills の公開された言葉で確かめる）、ステップが呼ぶ Skill が配下にあり、渡すものが呼んだ Skill の outputs にあることを確かめる。作る手順（create の作る流れと SAS の書く手順）・ AGENT.md と codex.toml ・ 承認の材料・ 配布（Claude Code の subagent ・ Codex の custom agent）",
    "scenarios": [
     "S-UC2-CREATE-PROCEDURE",
     "S-UC2-DISTRIBUTE",
@@ -41,6 +42,7 @@
    "id": "UC2:最低保証",
    "meaning": "既にある Skill ・ Agent は変わらない。確かめても Agent のファイルと配下の Skill は変わらない。承認していない Agent は配布せず、取り下げは人が打ったときだけ creator が置いたリンクを外す",
    "scenarios": [
+    "S-UC2-APPROVE",
     "S-UC2-DISTRIBUTE",
     "S-UC2-HELP",
     "S-UC2-NOT-APPROVED",
@@ -57,7 +59,7 @@
   },
   {
    "id": "約束:create-result",
-   "meaning": "agents create の結果は create-result.schema.json に従う",
+   "meaning": "agents-skills-creator agents create の結果は create-result.schema.json に従う",
    "scenarios": [
     "S-UC2-CREATE-PROCEDURE",
     "S-UC2-USAGE",
@@ -66,8 +68,9 @@
   },
   {
    "id": "約束:validate-result",
-   "meaning": "agents validate の結果は validate-result.schema.json に従う",
+   "meaning": "agents-skills-creator agents validate の結果は validate-result.schema.json に従う",
    "scenarios": [
+    "S-UC2-APPROVE",
     "S-UC2-USAGE",
     "S-UC2-VALIDATE-BROKEN",
     "S-UC2-VALIDATE"
@@ -75,7 +78,7 @@
   },
   {
    "id": "約束:write-agent-md-result",
-   "meaning": "agents write-agent-md の結果は write-agent-md-result.schema.json に従う",
+   "meaning": "agents-skills-creator agents write-agent-md の結果は write-agent-md-result.schema.json に従う",
    "scenarios": [
     "S-UC2-USAGE",
     "S-UC2-VALIDATE"
@@ -83,7 +86,7 @@
   },
   {
    "id": "約束:distribute-result",
-   "meaning": "agents distribute の結果は distribute-result.schema.json に従う",
+   "meaning": "agents-skills-creator agents distribute の結果は distribute-result.schema.json に従う",
    "scenarios": [
     "S-UC2-DISTRIBUTE",
     "S-UC2-NOT-APPROVED",
@@ -94,7 +97,7 @@
   },
   {
    "id": "約束:withdraw-result",
-   "meaning": "agents withdraw の結果は withdraw-result.schema.json に従う",
+   "meaning": "agents-skills-creator agents withdraw の結果は withdraw-result.schema.json に従う",
    "scenarios": [
     "S-UC2-DISTRIBUTE",
     "S-UC2-OTHER-AGENT-FILE",
@@ -105,7 +108,7 @@
   },
   {
    "id": "UC4:成功時保証",
-   "meaning": "Agent も、使えるか、どこが何に反するかが分かる（agents validate：SAS の検証の結果と、配下のリンクと受け渡しの検査を別の欄で返す）",
+   "meaning": "Agent も、使えるか、どこが何に反するかが分かる（agents-skills-creator agents validate：SAS の検証の結果と、配下のリンクと受け渡しの検査を別の欄で返す）",
    "scenarios": [
     "S-UC2-VALIDATE-BROKEN",
     "S-UC2-VALIDATE"
@@ -137,7 +140,7 @@
   },
   {
    "id": "UC6:成功時保証",
-   "meaning": "Agent も、配布先から外れている（agents withdraw が、印がこの Agent のフォルダを指す写し（中身が古い版でもよい）だけを外し、残っていないことを確かめる。直してから取り下げても前の版の写しが外れる。Agent の実体は消さない）",
+   "meaning": "Agent も、配布先から外れている（agents-skills-creator agents withdraw が、印がこの Agent のフォルダを指す写し（中身が古い版でもよい）だけを外し、残っていないことを確かめる。直してから取り下げても前の版の写しが外れる。Agent の実体は消さない）",
    "scenarios": [
     "S-UC2-DISTRIBUTE",
     "S-UC2-WITHDRAW-AFTER-UPDATE"
@@ -155,7 +158,7 @@
   },
   {
    "id": "UC3:成功時保証",
-   "meaning": "Agent も、直した Agent が使え、選んだ層が記録されている（agents update：--semantic で直す流れを添え、--patch は --if-match と「層：<層>」の理由がそろったときだけ書かせる）",
+   "meaning": "Agent も、直した Agent が使え、選んだ層が記録されている（agents-skills-creator agents update：--semantic で直す流れを添え、--patch は --if-match と「層：<層>」の理由がそろったときだけ書かせる）",
    "scenarios": [
     "S-UC2-UPDATE"
    ]
@@ -169,9 +172,16 @@
   },
   {
    "id": "約束:update-result",
-   "meaning": "agents update の結果は update-result.schema.json に従い、sas update の結果を書き換えずに入れる",
+   "meaning": "agents-skills-creator agents update の結果は update-result.schema.json に従い、sas update の結果を書き換えずに入れる",
    "scenarios": [
     "S-UC2-UPDATE"
+   ]
+  },
+  {
+   "id": "約束:approve-result",
+   "meaning": "agents-skills-creator approve（agent.json のフォルダ）の結果は approve-result.schema.json に従い、中で打った sas update の結果を書き換えずに入れる",
+   "scenarios": [
+    "S-UC2-APPROVE"
    ]
   }
  ]

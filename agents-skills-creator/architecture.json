@@ -88,6 +88,13 @@
    "description": "agents コマンドの入口（create ・ validate ・ write-agent-md ・ distribute ・ withdraw）。コンポジションルートを持ち、AI のセッションを callers.json の表で見分ける"
   },
   {
+   "name": "agents-skills-creator",
+   "nodes": [
+    "agents-skills-creator"
+   ],
+   "description": "実行ファイル agents-skills-creator（製品の根の cli/）。サブコマンド skills ・ agents をそれぞれの文脈の入口へ、approve を skill.json か agent.json かで振り分けるだけで、ユースケースは持たない。2つの文脈の入口だけに依存し、文脈どうしの向きは変えない"
+  },
+  {
    "name": "test-support",
    "nodes": [
     "test-support"
@@ -155,16 +162,6 @@
    ]
   },
   {
-   "from": "skills-inbound-cli",
-   "to": [
-    "jsonschema"
-   ],
-   "kinds": [
-    "dev"
-   ],
-   "description": "出力が公開された言葉の形に従うことを、試験で jsonschema に照らす"
-  },
-  {
    "from": "test-support",
    "to": [
     "serde_json",
@@ -219,14 +216,22 @@
    ]
   },
   {
-   "from": "agents-inbound-cli",
+   "from": "agents-skills-creator",
+   "to": [
+    "skills-inbound-cli",
+    "agents-inbound-cli",
+    "serde_json"
+   ]
+  },
+  {
+   "from": "agents-skills-creator",
    "to": [
     "jsonschema"
    ],
    "kinds": [
     "dev"
    ],
-   "description": "出力が公開された言葉の形に従うことを、試験で jsonschema に照らす"
+   "description": "場面の試験で、出力が公開された言葉の形に従うことを jsonschema に照らす"
   }
  ]
 }

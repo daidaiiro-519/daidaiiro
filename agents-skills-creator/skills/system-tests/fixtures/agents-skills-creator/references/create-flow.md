@@ -1,6 +1,6 @@
 # 作る流れの手引き
 
-Skill か Agent を作るとき、直すとき、配るときに、この手引きの順で進める。値の組み方そのものは、`scripts/skills create`・`scripts/agents create`・`scripts/skills update`・`scripts/agents update` の `--semantic` が返す手順（各欄の説明・読み方・rule と、打つコマンド）に従う。手順の番号は SKILL.md の手順の番号（手順1〜9）で指す。
+Skill か Agent を作るとき、直すとき、配るときに、この手引きの順で進める。使うコマンドは、sas と同じく PATH に置く `agents-skills-creator` で、サブコマンド `skills`（Skill）・ `agents`（Agent）・ `approve`（人が打つ承認）を持つ。`--concrete` は省ける（Skill は urn:agents-skills-creator:skill:v1、Agent は urn:agents-skills-creator:agent:v1）。値の組み方そのものは、`agents-skills-creator skills create`・`agents-skills-creator agents create`・`agents-skills-creator skills update`・`agents-skills-creator agents update` の `--semantic` が返す手順（各欄の説明・読み方・rule と、打つコマンド）に従う。手順の番号は SKILL.md の手順の番号（手順1〜9）で指す。
 
 ## §1 作るか直すか、Skill か Agent かを見分ける（手順1）
 
@@ -12,8 +12,8 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 | 作りたい作業 | 作るもの |
 |---|---|
-| 1つの Skill で終わる | Skill（`scripts/skills`） |
-| 複数の Skill を束ね、どの順に呼び、結果をどうまとめ、どこで人が承認するかが要る | Agent（`scripts/agents`）。束ねたい Skill が skills/ に無ければ、先にそれを Skill として作る |
+| 1つの Skill で終わる | Skill（`agents-skills-creator skills`） |
+| 複数の Skill を束ね、どの順に呼び、結果をどうまとめ、どこで人が承認するかが要る | Agent（`agents-skills-creator agents`）。束ねたい Skill が skills/ に無ければ、先にそれを Skill として作る |
 
 見分けた結果と理由を、最初の返事で作る人に示す。
 
@@ -27,8 +27,8 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 最初の返事を作る前に、次を打つ。
 
-- Skill：`scripts/skills create skills/<name> --concrete urn:agents-skills-creator:skill:v1 --semantic`
-- Agent：`scripts/agents create agents/<name> --concrete urn:agents-skills-creator:agent:v1 --semantic`
+- Skill：`agents-skills-creator skills create skills/<name> --semantic`
+- Agent：`agents-skills-creator agents create agents/<name> --semantic`
 
 返る `flow`（最初の返事で見せる4つ・構造の像・聞く所の見分け方・問いの形）と `sas`（書く手順。`command` は値を書かせる creator のコマンド）に従って、最初の返事を作る。
 
@@ -52,14 +52,14 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 ### Agent のとき
 
-- 配下の Skill は、`scripts/skills validate skills/<Skill の名前>` の結果のうち、`.skills[0].approval.name`・`.skills[0].approval.description`・`.skills[0].approval.structure.inputs`・`.skills[0].approval.structure.outputs` だけを見て選ぶ（skill.json を直接読まない）。
+- 配下の Skill は、`agents-skills-creator skills validate skills/<Skill の名前>` の結果のうち、`.skills[0].approval.name`・`.skills[0].approval.description`・`.skills[0].approval.structure.inputs`・`.skills[0].approval.structure.outputs` だけを見て選ぶ（skill.json を直接読まない）。
 - `agents/<name>/skills/` に、配下の Skill のフォルダへのシンボリックリンクを、Skill と同じ名前で、相対の経路で張る（例：`agents/<name>/skills/<Skill の名前>` → `../../../skills/<Skill の名前>`）。
 
 ## §3 書かせて確かめる（手順3〜7。承認の前）
 
-- 手順3：作る人が目的の仮説を承認し、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`sas.command` のとおり `scripts/skills create <フォルダ> --concrete <URN> --value <JSON か @<ファイル>>`（Agent なら `scripts/agents create`）で SAS に書かせる。
-- 手順4：`scripts/skills write-skill-md <フォルダ>`（Agent なら `scripts/agents write-agent-md`）を打つ。
-- 手順5：`scripts/skills validate <フォルダ>`（Agent なら `scripts/agents validate`）を打ち、検出があれば直す。
+- 手順3：作る人が目的の仮説を承認し、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`sas.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で SAS に書かせる。
+- 手順4：`agents-skills-creator skills write-skill-md <フォルダ>`（Agent なら `agents-skills-creator agents write-agent-md`）を打つ。
+- 手順5：`agents-skills-creator skills validate <フォルダ>`（Agent なら `agents-skills-creator agents validate`）を打ち、検出があれば直す。
 - 手順6：意味の rule の判定。承認の材料の delegate の a のとおり、別の会話で判定し、`sas validate <経路> --answer <ファイル>` で渡す。そのあと validate を打ち直し、`approvable` が true になるまで承認を求めない。
 - 手順7：例を動かす。承認の材料の delegate の b のとおり、別の会話で例を動かし、実際の答えを完成の像と並べて見せる。
 
@@ -69,16 +69,16 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 ## §4 承認と配布（手順8・9）
 
-- 手順8：承認は人が書く。承認する直前に validate を打ち直し、そのとき承認の材料に出た `approve.command`（判定まで済んだ確かめの操作 ID とハッシュ入り。`approvable` が true のときだけ出る）を作る人に示し、人が自分の端末で打つ。AI のセッションから打つと SAS が断る。
-- 手順9：配る。`scripts/skills distribute <フォルダ> --tool <claude-code|codex> --scope <repository|user>`（Agent なら `scripts/agents distribute`）。
+- 手順8：承認は人が書く。validate の承認の材料に `approvable` が true で出る `approve.command`（`agents-skills-creator approve <フォルダ>`）を作る人に示し、人が自分の端末で打つ。approve は、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドが返る。
+- 手順9：配る。`agents-skills-creator skills distribute <フォルダ> --tool <claude-code|codex> --scope <repository|user>`（Agent なら `agents-skills-creator agents distribute`）。
 
 ## §5 取り下げ（分かれ道 1b）
 
-`scripts/skills withdraw <フォルダ> --reason <理由>`（Agent なら `scripts/agents withdraw`）を打ち、返る影響（配布先の置き場所）と、人が打つコマンドを作る人に示す。外すのは、影響を見た人が自分の端末で打ったときだけ。
+`agents-skills-creator skills withdraw <フォルダ> --reason <理由>`（Agent なら `agents-skills-creator agents withdraw`）を打ち、返る影響（配布先の置き場所）と、人が打つコマンドを作る人に示す。外すのは、影響を見た人が自分の端末で打ったときだけ。
 
 ## §6 直す（手順2〜9）
 
-使われて外れた具体を受け取ったら、最初の返事の前に `scripts/skills update <フォルダ> --semantic --task <外れた具体>`（Agent なら `scripts/agents update`）を打ち、返る `flow` に従う。
+使われて外れた具体を受け取ったら、最初の返事の前に `agents-skills-creator skills update <フォルダ> --semantic --task <外れた具体>`（Agent なら `agents-skills-creator agents update`）を打ち、返る `flow` に従う。
 
 ### 直すときの最初の返事（手順2）
 
@@ -89,4 +89,4 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 | 層ごとの前と後 | examples → edge_cases → rules → role → purpose の層ごとに、直す前と後の像 |
 | 推奨 | 外れ方から、どの層で直すかを推奨付きで1つ |
 
-作る人が層を選んで承認したら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは承認のあと1回：`sas.command` のとおり `scripts/skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。
+作る人が層を選んで承認したら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは承認のあと1回：`sas.command` のとおり `agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。

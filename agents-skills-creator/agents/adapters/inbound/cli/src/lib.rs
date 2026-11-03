@@ -7,6 +7,7 @@
 
 mod output;
 
+use agents_application::use_cases::approve::approve;
 use agents_application::use_cases::create::{Mode, create};
 use agents_application::use_cases::distribute::{Scope, Tool, distribute};
 use agents_application::use_cases::update::{self, update};
@@ -17,18 +18,19 @@ use agents_application::use_cases::{Outcome, Refused};
 use agents_outbound_filesystem::WorkingTree;
 use agents_outbound_sas::Sas;
 use agents_outbound_skills::Skills;
-use output::{CREATE, DISTRIBUTE, UPDATE, VALIDATE, WITHDRAW, WRITE_AGENT_MD};
+use output::{APPROVE, CREATE, DISTRIBUTE, UPDATE, VALIDATE, WITHDRAW, WRITE_AGENT_MD};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "使い方：agents create <Agent のフォルダ> --concrete <URN> --semantic ／ \
-agents create <Agent のフォルダ> --concrete <URN> --value <JSON> ／ \
-agents update <Agent のフォルダ> --semantic --task <外れた具体> ／ \
-agents update <Agent のフォルダ> --patch <JSON Patch> --if-match <ハッシュ> --reason 層：<層> ／ \
-agents validate <Agent のフォルダ>... ／ \
-agents write-agent-md <Agent のフォルダ> ／ \
-agents distribute <Agent のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
-agents withdraw <Agent のフォルダ> --reason <理由>";
+const USAGE: &str = "使い方：agents-skills-creator agents create <Agent のフォルダ> [--concrete <URN>] --semantic ／ \
+agents-skills-creator agents create <Agent のフォルダ> [--concrete <URN>] --value <JSON か @<ファイル>> ／ \
+agents-skills-creator agents update <Agent のフォルダ> --semantic --task <外れた具体> ／ \
+agents-skills-creator agents update <Agent のフォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層> ／ \
+agents-skills-creator agents validate <Agent のフォルダ>... ／ \
+agents-skills-creator agents write-agent-md <Agent のフォルダ> ／ \
+agents-skills-creator approve <Agent のフォルダ>（人が打つ） ／ \
+agents-skills-creator agents distribute <Agent のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
+agents-skills-creator agents withdraw <Agent のフォルダ> --reason <理由>";
 
 /// AI のツールのセッションを見分ける表（SAS の callers.json と同じ行）。
 const CALLERS: &str = include_str!("callers.json");
@@ -55,7 +57,7 @@ fn sas() -> Result<Sas, Refused> {
 fn skills() -> Result<Skills, Refused> {
     Skills::locate().ok_or_else(|| Refused {
         code: "skills_unavailable",
-        message: "skills が PATH に無い（agents-skills-creator の skills を入れて、PATH に置いてください）".to_string(),
+        message: "agents-skills-creator を見つけられない（PATH に置いてください）".to_string(),
     })
 }
 
@@ -130,7 +132,10 @@ fn help_for(command: &str) -> String {
     let lines: Vec<&str> = USAGE
         .trim_start_matches("使い方：")
         .split(" ／ ")
-        .filter(|l| l.split_whitespace().nth(1) == Some(command))
+        .filter(|l| {
+            let mut w = l.split_whitespace().skip(1);
+            w.next() == Some(command) || w.next() == Some(command)
+        })
         .collect();
     format!("使い方：{}", lines.join("\n使い方："))
 }
@@ -148,8 +153,10 @@ fn from_file(value: &str, schema: &str) -> Result<String, ExitCode> {
     }
 }
 
-fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+/// サブコマンド（agents-skills-creator agents のあとの引数）を読んで、ユースケースを呼び、結果を JSON 1つで出す。
+#[must_use]
+pub fn run(args: &[String]) -> ExitCode {
+    let args: Vec<String> = args.to_vec();
     // コマンドの後ろの --help は、そのコマンドの使い方を返す
     if let Some(command) = args.first()
         && args.iter().skip(1).any(|a| a == "--help")
@@ -165,6 +172,7 @@ fn main() -> ExitCode {
         }
         Some("create") => run_create(rest),
         Some("update") => run_update(rest),
+        Some("approve") => run_approve(rest),
         Some("validate") => run_validate(rest),
         Some("write-agent-md") => run_write(rest),
         Some("distribute") => run_distribute(rest),
@@ -194,11 +202,11 @@ fn run_create(args: &[String]) -> ExitCode {
         },
         _ => None,
     };
-    if folder.is_none() || value(&values, "--concrete").is_none() || mode.is_none() {
+    if folder.is_none() || mode.is_none() {
         return refuse(
             CREATE,
             &usage(format!(
-                "Agent のフォルダと、--concrete <URN> と、--semantic か --value <JSON> のどちらか一方を渡してください。{USAGE}"
+                "Agent のフォルダと、--semantic か --value <JSON> のどちらか一方を渡してください。{USAGE}"
             )),
         );
     }
@@ -276,6 +284,41 @@ fn run_update(args: &[String]) -> ExitCode {
             }
         }
         Err(r) => refuse(UPDATE, &r),
+    }
+}
+
+fn run_approve(args: &[String]) -> ExitCode {
+    if let Some(flag) = args.iter().find(|a| a.starts_with("--")) {
+        return refuse(
+            APPROVE,
+            &usage(format!("知らない指定です: {flag}。{USAGE}")),
+        );
+    }
+    if args.len() > 1 {
+        return refuse(
+            APPROVE,
+            &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
+        );
+    }
+    let sas = match sas() {
+        Ok(s) => s,
+        Err(r) => return refuse(APPROVE, &r),
+    };
+    match approve(
+        args.first().map(String::as_str),
+        &WorkingTree::new(PathBuf::from(".")),
+        &sas,
+        &sas,
+    ) {
+        Ok(a) => {
+            output::print_approved(&a);
+            if a.sas.exit == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(r) => refuse(APPROVE, &r),
     }
 }
 

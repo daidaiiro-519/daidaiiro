@@ -4,6 +4,7 @@
 use serde_json::{Value, json};
 use skills_application::use_cases::Refused;
 use skills_application::use_cases::approval::Approval;
+use skills_application::use_cases::approve::Approved;
 use skills_application::use_cases::create::Created;
 use skills_application::use_cases::distribute::Distributed;
 use skills_application::use_cases::update::Updated;
@@ -11,6 +12,8 @@ use skills_application::use_cases::validate::{Checked, Finding, SkillChecked};
 use skills_application::use_cases::withdraw::Withdrawn;
 use skills_application::use_cases::write_skill_md::Built;
 
+/// approve の結果の形。
+pub const APPROVE: &str = "urn:agents-skills-creator:skills:approve-result:v1";
 /// create の結果の形。
 pub const CREATE: &str = "urn:agents-skills-creator:skills:create-result:v1";
 /// withdraw の結果の形。
@@ -178,4 +181,13 @@ fn approval(c: &Approval) -> Value {
         out["approve"] = json!({"command": command, "how": how});
     }
     out
+}
+
+/// 承認を書かせた結果を出す。
+pub fn print_approved(a: &Approved) {
+    let mut out = json!({"$schema": APPROVE, "kind": "approve", "folder": a.folder, "approved": a.operation, "sas": a.sas.output, "sas_exit": a.sas.exit});
+    if let Some(n) = &a.next {
+        out["next"] = json!(n);
+    }
+    println!("{out}");
 }

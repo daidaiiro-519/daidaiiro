@@ -2,7 +2,7 @@
 //!
 //! - 依存の辺が規則の allow にあり、どの crate と外のライブラリも component に入る（architecture-lint check）
 //! - 規則の component の node は、どれもワークスペースのグラフにある（消した crate を規則に残さない）
-//! - crate の名前がフォルダから決まる（<文脈>-<層> ・ <モジュール>-<層> ・ <文脈>-<inbound|outbound>-<技術> ・ test-support）
+//! - crate の名前がフォルダから決まる（製品の根の cli/ は agents-skills-creator。文脈の中は <文脈>-<層> ・ <モジュール>-<層> ・ <文脈>-<inbound|outbound>-<技術> ・ test-support）
 //!
 //! architecture-lint は PATH から探し、無ければリポジトリの中の ../architecture-lint/target/debug から使う。
 
@@ -125,6 +125,11 @@ fn crate_names_follow_their_folders() {
         let parent = manifest
             .parent()
             .expect("Cargo.toml はフォルダの中にあること");
+        // 製品の根の cli/ は、実行ファイル agents-skills-creator（文脈の外。2つの文脈の入口へ振り分けるだけ）
+        if parent == workspace.join("cli") {
+            assert_eq!(name, "agents-skills-creator", "cli/ の crate の名前");
+            continue;
+        }
         let (context, dir) = CONTEXTS
             .iter()
             .find_map(|c| parent.strip_prefix(workspace.join(c)).ok().map(|d| (*c, d)))

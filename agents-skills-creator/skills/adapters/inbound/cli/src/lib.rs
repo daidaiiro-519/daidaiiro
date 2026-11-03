@@ -10,8 +10,9 @@
 
 mod output;
 
-use output::{CREATE, DISTRIBUTE, UPDATE, VALIDATE, WITHDRAW, WRITE_SKILL_MD};
+use output::{APPROVE, CREATE, DISTRIBUTE, UPDATE, VALIDATE, WITHDRAW, WRITE_SKILL_MD};
 use skills_application::use_cases::Refused;
+use skills_application::use_cases::approve::approve;
 use skills_application::use_cases::create::{Mode, create};
 use skills_application::use_cases::distribute::{Scope, Tool, distribute};
 use skills_application::use_cases::update::{self, update};
@@ -24,14 +25,15 @@ use skills_outbound_sas::Sas;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "使い方：skills create <Skill のフォルダ> --concrete <URN> --semantic ／ \
-skills create <Skill のフォルダ> --concrete <URN> --value <JSON> ／ \
-skills update <Skill のフォルダ> --semantic --task <外れた具体> ／ \
-skills update <Skill のフォルダ> --patch <JSON Patch> --if-match <ハッシュ> --reason 層：<層> ／ \
-skills validate <Skill のフォルダ>... ／ \
-skills distribute <Skill のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
-skills withdraw <Skill のフォルダ> --reason <理由> ／ \
-skills write-skill-md <Skill のフォルダ>";
+const USAGE: &str = "使い方：agents-skills-creator skills create <Skill のフォルダ> [--concrete <URN>] --semantic ／ \
+agents-skills-creator skills create <Skill のフォルダ> [--concrete <URN>] --value <JSON か @<ファイル>> ／ \
+agents-skills-creator skills update <Skill のフォルダ> --semantic --task <外れた具体> ／ \
+agents-skills-creator skills update <Skill のフォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層> ／ \
+agents-skills-creator skills validate <Skill のフォルダ>... ／ \
+agents-skills-creator skills distribute <Skill のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
+agents-skills-creator skills withdraw <Skill のフォルダ> --reason <理由> ／ \
+agents-skills-creator skills write-skill-md <Skill のフォルダ> ／ \
+agents-skills-creator approve <Skill のフォルダ>（人が打つ）";
 
 fn usage(message: String) -> Refused {
     Refused {
@@ -45,7 +47,10 @@ fn help_for(command: &str) -> String {
     let lines: Vec<&str> = USAGE
         .trim_start_matches("使い方：")
         .split(" ／ ")
-        .filter(|l| l.split_whitespace().nth(1) == Some(command))
+        .filter(|l| {
+            let mut w = l.split_whitespace().skip(1);
+            w.next() == Some(command) || w.next() == Some(command)
+        })
         .collect();
     format!("使い方：{}", lines.join("\n使い方："))
 }
@@ -63,8 +68,10 @@ fn from_file(value: &str, schema: &str) -> Result<String, ExitCode> {
     }
 }
 
-fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+/// サブコマンド（agents-skills-creator skills のあとの引数）を読んで、ユースケースを呼び、結果を JSON 1つで出す。
+#[must_use]
+pub fn run(args: &[String]) -> ExitCode {
+    let args: Vec<String> = args.to_vec();
     // コマンドの後ろの --help は、そのコマンドの使い方を返す
     if let Some(command) = args.first()
         && args.iter().skip(1).any(|a| a == "--help")
@@ -79,6 +86,7 @@ fn main() -> ExitCode {
         }
         Some("create") => run_create(&args[1..]),
         Some("update") => run_update(&args[1..]),
+        Some("approve") => run_approve(&args[1..]),
         Some("distribute") => run_distribute(&args[1..]),
         Some("withdraw") => run_withdraw(&args[1..]),
         Some("validate") => run_validate(&args[1..]),
@@ -142,11 +150,11 @@ fn run_create(args: &[String]) -> ExitCode {
             }
         }
     }
-    if target.is_none() || concrete.is_none() || mode.is_none() {
+    if target.is_none() || mode.is_none() {
         return refuse(
             CREATE,
             &usage(format!(
-                "Skill のフォルダと、--concrete <URN> と、--semantic か --value <JSON> を渡してください。{USAGE}"
+                "Skill のフォルダと、--semantic か --value <JSON> のどちらか一方を渡してください。{USAGE}"
             )),
         );
     }
@@ -400,6 +408,41 @@ fn run_withdraw(args: &[String]) -> ExitCode {
             }
         }
         Err(r) => refuse(WITHDRAW, &r),
+    }
+}
+
+fn run_approve(args: &[String]) -> ExitCode {
+    if let Some(flag) = args.iter().find(|a| a.starts_with("--")) {
+        return refuse(
+            APPROVE,
+            &usage(format!("知らない指定です: {flag}。{USAGE}")),
+        );
+    }
+    if args.len() > 1 {
+        return refuse(
+            APPROVE,
+            &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
+        );
+    }
+    let sas = match locate() {
+        Ok(s) => s,
+        Err(r) => return refuse(APPROVE, &r),
+    };
+    match approve(
+        args.first().map(String::as_str),
+        &WorkingTree::new(PathBuf::from(".")),
+        &sas,
+        &sas,
+    ) {
+        Ok(a) => {
+            output::print_approved(&a);
+            if a.sas.exit == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(r) => refuse(APPROVE, &r),
     }
 }
 

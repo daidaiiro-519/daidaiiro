@@ -42,7 +42,7 @@ fn flow() -> Value {
         ],
         "structure_image": [
             {"id": "scope", "show": "受け持つ範囲", "how": "入力 → Agent がすること → 出力 と、外に置くもの（Skill がすること ・ Agent がしないこと）"},
-            {"id": "calls", "show": "呼ぶ Skill と受け渡し", "how": "どのステップで、どの Skill を同時に呼び、どの出力（Skill の outputs の name）を次へ渡すか。配下の Skill は skills validate の結果の name ・ description ・ inputs ・ outputs だけで選ぶ"},
+            {"id": "calls", "show": "呼ぶ Skill と受け渡し", "how": "どのステップで、どの Skill を同時に呼び、どの出力（Skill の outputs の name）を次へ渡すか。配下の Skill は agents-skills-creator skills validate の結果の name ・ description ・ inputs ・ outputs だけで選ぶ"},
             {"id": "steps", "show": "手順と分かれ道", "how": "Skill を呼ぶステップと人が承認するステップの並びと、分かれ道"},
             {"id": "merge", "show": "まとめ方", "how": "呼んだ Skill の出力をどうまとめるか（rules）。Agent は作業の中身を持たない"}
         ],
@@ -52,14 +52,14 @@ fn flow() -> Value {
         ],
         "otherwise": format!("ask_only_when のどちらかを満たさない所は、AI が決め、{GUESS}を付けて像の中に出す"),
         "finish": [
-            "値を組み、agents create <フォルダ> --concrete <URN> --value <JSON> で SAS に書かせる",
-            "Agent のフォルダの skills/ に、配下の Skill のフォルダへのシンボリックリンクを同じ名前で置き、agents write-agent-md と agents validate を打つ",
+            "値を組み、agents-skills-creator agents create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせる（--concrete は省ける）",
+            "Agent のフォルダの skills/ に、配下の Skill のフォルダへのシンボリックリンクを同じ名前で置き、agents-skills-creator agents write-agent-md と agents-skills-creator agents validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べ、承認を受ける"
         ],
         "rules": [
             "目的は AI が仮説として示し、作る人が承認して決める",
             "Agent は作業の中身を持たず、配下の Skill を呼ぶステップと、人が承認するステップだけを持つ",
-            "足りない Skill は skills create で先に作る（Agent の中に書かない）",
+            "足りない Skill は agents-skills-creator skills create で先に作る（Agent の中に書かない）",
             "creator は AI を起動せず、agent.json を書かない（SAS が書く）"
         ],
         "presentation": "チャットの中で見せるので、表 ・ コードブロック ・ 木構造で出す。図を出せるツールなら図でもよい"
@@ -83,8 +83,8 @@ pub fn create(
     let folder = folder.ok_or_else(|| {
         usage("Agent のフォルダを渡してください（名前が決まっていなければ agents/<name> のように）")
     })?;
-    let concrete =
-        concrete.ok_or_else(|| usage("--concrete で、従う Concrete の URN を渡してください"))?;
+    // --concrete を省いたら、Agent の Concrete
+    let concrete = concrete.unwrap_or(AGENT_ID);
     let mode =
         mode.ok_or_else(|| usage("--semantic か --value <JSON> のどちらかを渡してください"))?;
     let unavailable = |message: String| Refused {
@@ -98,7 +98,7 @@ pub fn create(
             as_creator_procedure(
                 &mut run.output,
                 format!(
-                    "agents create {} --concrete {concrete} --value <JSON か @<ファイル>>",
+                    "agents-skills-creator agents create {} --concrete {concrete} --value <JSON か @<ファイル>>",
                     trimmed(folder)
                 ),
                 "agents",

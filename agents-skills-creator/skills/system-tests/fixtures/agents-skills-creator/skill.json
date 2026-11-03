@@ -30,7 +30,7 @@
   ]
  },
  "description": "作りたい作業を思いついたとき、使われて外れた具体で直したいとき、配りたいときに使う。作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分け、目的の仮説 ・ 完成の像 ・ 構造の像を見せて作り、直し、確かめ、配る。配布の取り下げは影響を示し、人が打つ。作った Skill の作業そのもの ・ 承認 ・ コミットはしない。",
- "compatibility": "sas（Semantic Agent Schema）が PATH にあること",
+ "compatibility": "sas と agents-skills-creator が PATH にあること",
  "preconditions": [
   "作りたい作業か、使われて外れた具体を言える",
   "Git のリポジトリの中で使う"
@@ -95,7 +95,7 @@
   },
   {
    "id": 8,
-   "do": "承認のコマンドを作る人に示し、人に承認を打ってもらう",
+   "do": "承認のコマンド（agents-skills-creator approve <フォルダ>）を作る人に示し、人に打ってもらう",
    "completion": "skill.json（Agent なら agent.json）に approved がある"
   },
   {
@@ -161,7 +161,7 @@
   {
    "id": "C1",
    "criterion": "作ったものが validate を通る",
-   "check": "skills validate か agents validate の終了コードが 0",
+   "check": "agents-skills-creator skills validate か agents-skills-creator agents validate の終了コードが 0",
    "from": "目的の仮説（得るもの）から"
   },
   {
@@ -198,7 +198,7 @@
    "caller": "人が直接",
    "given": "6つのアドバイザーの Skill が skills/ にある",
    "input": "設計で迷ったとき、アドバイザーたちに同時に聞いてまとめる Agent が欲しい",
-   "expected": "複数の Skill を束ねる Agent だと見分け、呼ぶ Skill と受け渡しの像を見せ、承認のあと consult-advisors のフォルダに agent.json と AGENT.md ができ、agents validate が通る",
+   "expected": "複数の Skill を束ねる Agent だと見分け、呼ぶ Skill と受け渡しの像を見せ、承認のあと consult-advisors のフォルダに agent.json と AGENT.md ができ、agents-skills-creator agents validate が通る",
    "behavior": {
     "who": "設計を決める人",
     "does": "アドバイザーを束ねる Agent を頼む",
@@ -279,143 +279,28 @@
    ]
   }
  ],
- "tools": [
-  {
-   "name": "skills create",
-   "does": "Skill か Agent を作る",
-   "path": "scripts/skills",
-   "used_by": [
-    2,
-    3
-   ],
-   "inputs": [
-    "作りたい作業"
-   ],
-   "outputs": [
-    "Skill か Agent のフォルダ"
-   ]
-  },
-  {
-   "name": "skills update",
-   "does": "Skill か Agent を直す",
-   "path": "scripts/skills",
-   "used_by": [
-    2,
-    3
-   ],
-   "inputs": [
-    "使われて外れた具体"
-   ],
-   "outputs": [
-    "Skill か Agent のフォルダ"
-   ]
-  },
-  {
-   "name": "skills write-skill-md",
-   "does": "Skill か Agent を作る",
-   "path": "scripts/skills",
-   "used_by": [
-    4
-   ]
-  },
-  {
-   "name": "skills validate",
-   "does": "Skill か Agent が使える状態かを確かめる",
-   "path": "scripts/skills",
-   "used_by": [
-    5
-   ]
-  },
-  {
-   "name": "skills distribute",
-   "does": "Skill か Agent を配る",
-   "path": "scripts/skills",
-   "used_by": [
-    9
-   ],
-   "outputs": [
-    "配布先の置き場所"
-   ]
-  },
-  {
-   "name": "skills withdraw",
-   "does": "Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す",
-   "path": "scripts/skills",
-   "used_by": [
-    "1b"
-   ]
-  },
-  {
-   "name": "agents create",
-   "does": "Skill か Agent を作る",
-   "path": "scripts/agents",
-   "used_by": [
-    2,
-    3
-   ],
-   "inputs": [
-    "作りたい作業"
-   ],
-   "outputs": [
-    "Skill か Agent のフォルダ"
-   ]
-  },
-  {
-   "name": "agents update",
-   "does": "Skill か Agent を直す",
-   "path": "scripts/agents",
-   "used_by": [
-    2,
-    3
-   ],
-   "inputs": [
-    "使われて外れた具体"
-   ],
-   "outputs": [
-    "Skill か Agent のフォルダ"
-   ]
-  },
-  {
-   "name": "agents write-agent-md",
-   "does": "Skill か Agent を作る",
-   "path": "scripts/agents",
-   "used_by": [
-    4
-   ]
-  },
-  {
-   "name": "agents validate",
-   "does": "Skill か Agent が使える状態かを確かめる",
-   "path": "scripts/agents",
-   "used_by": [
-    5
-   ]
-  },
-  {
-   "name": "agents distribute",
-   "does": "Skill か Agent を配る",
-   "path": "scripts/agents",
-   "used_by": [
-    9
-   ],
-   "outputs": [
-    "配布先の置き場所"
-   ]
-  },
-  {
-   "name": "agents withdraw",
-   "does": "Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す",
-   "path": "scripts/agents",
-   "used_by": [
-    "1b"
-   ]
-  }
- ],
  "uses": [
+  {
+   "name": "agents-skills-creator",
+   "versions": ">=0.1.0, <0.2.0",
+   "for": "Skill ・ Agent を作り、直し、確かめ、配り、配布の取り下げの影響を示す（サブコマンド skills ・ agents）。承認は人が approve で打つ",
+   "used_by": [
+    2,
+    3,
+    4,
+    5,
+    8,
+    9,
+    "1b"
+   ]
+  },
   {
    "name": "sas",
    "versions": ">=0.1.0, <0.2.0",
-   "for": "Skill ・ Agent の項目を書かせ、確かめさせ、記録を読む"
+   "for": "意味の rule の判定を渡す（sas validate --answer）。agents-skills-creator が中で SAS に書かせ、確かめさせ、記録を読む",
+   "used_by": [
+    6
+   ]
   }
  ],
  "assets": [

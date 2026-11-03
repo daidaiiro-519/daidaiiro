@@ -237,6 +237,7 @@ pub fn render(skill: &Value) -> String {
         // このステップで使う道具（tools の used_by にこの番号があるもの）
         let used: Vec<&str> = items(skill, "tools")
             .iter()
+            .chain(items(skill, "uses"))
             .filter(|t| {
                 items(t, "used_by")
                     .iter()
@@ -260,6 +261,7 @@ pub fn render(skill: &Value) -> String {
                 // この分かれ道で使う道具（tools の used_by にこの id があるもの）
                 let used: Vec<&str> = items(skill, "tools")
                     .iter()
+                    .chain(items(skill, "uses"))
                     .filter(|t| items(t, "used_by").iter().any(|u| u.as_str() == Some(id)))
                     .map(|t| text(t, "name"))
                     .collect();

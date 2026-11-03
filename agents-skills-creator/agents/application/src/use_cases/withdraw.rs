@@ -1,4 +1,4 @@
-//! UC6 使わなくする（Agent の側）：agents withdraw。配布を取り下げる（distribute の対）。Skill の取り下げと同じ考えで、
+//! UC6 使わなくする（Agent の側）：agents-skills-creator agents withdraw。配布を取り下げる（distribute の対）。Skill の取り下げと同じ考えで、
 //! distribute が置く4か所（Claude Code ・ Codex × repository ・ user）のうち在るものを、この Agent から作った写し（ふつうの
 //! ファイルで、印がこの Agent のフォルダを指す。中身が古い版でもよい）か、ほかのもの（印が無い ・ ほかの Agent を指す ・
 //! リンク ・ フォルダ）かに分けて示し、人が打ったときだけ、この Agent から作った写しを外す。直してから取り下げても、
@@ -103,7 +103,7 @@ pub fn withdraw(
             removed: Vec::new(),
             withdrawn: false,
             next: Some(format!(
-                "作る人が影響（places）を見て承認したら、人が自分の端末で agents withdraw {folder} --reason \"{reason}\" を打つ（AI のセッションから打つと外さない）"
+                "作る人が影響（places）を見て承認したら、人が自分の端末で agents-skills-creator agents withdraw {folder} --reason \"{reason}\" を打つ（AI のセッションから打つと外さない）"
             )),
             after: Vec::new(),
         });

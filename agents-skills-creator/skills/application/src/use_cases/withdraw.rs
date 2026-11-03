@@ -1,4 +1,4 @@
-//! UC6 使わなくする：skills withdraw。配布を取り下げる（distribute の対）。
+//! UC6 使わなくする：agents-skills-creator skills withdraw。配布を取り下げる（distribute の対）。
 //!
 //! 影響を示す：distribute が置く4か所（Claude Code ・ Codex × repository ・ user）のうち、いま在るものを、creator が置いた
 //! リンク（Skill のフォルダを指すシンボリックリンク）か、ほかのものかに分けて返す。
@@ -106,7 +106,7 @@ pub fn withdraw(
             removed: Vec::new(),
             withdrawn: false,
             next: Some(format!(
-                "作る人が影響（places）を見て承認したら、人が自分の端末で skills withdraw {folder} --reason \"{reason}\" を打つ（AI のセッションから打つと外さない）"
+                "作る人が影響（places）を見て承認したら、人が自分の端末で agents-skills-creator skills withdraw {folder} --reason \"{reason}\" を打つ（AI のセッションから打つと外さない）"
             )),
             after: Vec::new(),
         });

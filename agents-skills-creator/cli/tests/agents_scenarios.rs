@@ -1,6 +1,6 @@
-//! システムテスト（文脈 agents）：agents/system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで agents を動かして
-//! 確かめる（skills の場面と同じ形）。sas と skills は本物を外の実行ファイルとして呼ぶ（skills は同じ workspace で作ったもの）。
-//! ネットワークと AI は使わない。
+//! システムテスト（文脈 agents）：agents/system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで実行ファイル
+//! agents-skills-creator を動かして確かめる。場面の args は agents-skills-creator agents のあとに渡す。sas は本物を外の
+//! 実行ファイルとして呼ぶ。ネットワークと AI は使わない。
 
 #![allow(clippy::expect_used, clippy::panic)]
 
@@ -19,16 +19,16 @@ const NOT_INHERITED: [&str; 5] = [
 ];
 
 fn suite() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../system-tests")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../agents/system-tests")
 }
 
 fn published_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../published-language/v1")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../agents/published-language/v1")
 }
 
 /// 文脈 skills の公開された言葉（skill.schema を場面に置くとき）。
 fn skills_published_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../skills/published-language/v1")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../skills/published-language/v1")
 }
 
 /// creator が返す結果の形（出力のたびに、出力の $schema の形に照らす）。公開された言葉の $id → 形。
@@ -96,15 +96,11 @@ fn link(dir: &Path, links: &serde_json::Map<String, Value>) {
 /// 試験で使う sas の置き場所：このリポジトリの隣の SAS で作った sas があれば、それを PATH の前に足す。
 /// 無ければ、試験を動かす環境の PATH のまま（そこにも無ければ sas_unavailable で止まる）。
 fn path_with_sas() -> std::ffi::OsString {
-    let built = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../../../semantic-agent-schema/target/debug");
+    let built =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../semantic-agent-schema/target/debug");
     let mut dirs: Vec<PathBuf> = Vec::new();
     if built.join("sas").is_file() {
         dirs.push(built);
-    }
-    // skills は同じ workspace で作ったもの（agents と同じ置き場所）
-    if let Some(here) = PathBuf::from(env!("CARGO_BIN_EXE_agents")).parent() {
-        dirs.push(here.to_path_buf());
     }
     if let Some(path) = std::env::var_os("PATH") {
         dirs.extend(std::env::split_paths(&path));
@@ -113,17 +109,28 @@ fn path_with_sas() -> std::ffi::OsString {
 }
 
 fn run(dir: &Path, cmd: &Value) -> Output {
-    // args は agents-skills-creator、sas は SAS（creator が返した書くコマンドを打つときなど）に渡す
-    let (program, key) = match cmd.get("sas") {
-        Some(_) => ("sas".to_string(), "sas"),
-        None => (env!("CARGO_BIN_EXE_agents").to_string(), "args"),
+    // args は agents-skills-creator agents のあと、creator は agents-skills-creator のあと（approve ・ --help など）、
+    // sas は SAS（人が承認を書くときなど）に渡す
+    let (program, key) = match (cmd.get("sas"), cmd.get("creator")) {
+        (Some(_), _) => ("sas".to_string(), "sas"),
+        (None, Some(_)) => (
+            env!("CARGO_BIN_EXE_agents-skills-creator").to_string(),
+            "creator",
+        ),
+        (None, None) => (
+            env!("CARGO_BIN_EXE_agents-skills-creator").to_string(),
+            "args",
+        ),
     };
-    let args: Vec<String> = cmd[key]
+    let mut args: Vec<String> = cmd[key]
         .as_array()
-        .expect("args か sas がある")
+        .expect("args か creator か sas がある")
         .iter()
         .map(|s| s.as_str().expect("引数は文字列").to_string())
         .collect();
+    if key == "args" {
+        args.insert(0, "agents".to_string());
+    }
     let path = path_with_sas();
     let program = if key == "sas" {
         std::env::split_paths(&path)

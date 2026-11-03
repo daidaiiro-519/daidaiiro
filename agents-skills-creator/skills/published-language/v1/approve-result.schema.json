@@ -1,0 +1,135 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:skills:approve-result:v1",
+ "title": "承認を書かせた結果",
+ "description": "agents-skills-creator approve が、Skill のフォルダ（skill.json）を承認したときに標準出力に返す JSON（1つ）。判定まで済んだ確かめの操作 ID（approved）と、中で打った sas update の結果を書き換えずに入れる。SAS が断ったら（AI のセッションから打たれたなど）、人が打つコマンドを next に返す",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:skills:approve-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "approve は sas update を打った（SAS が断ったときも approve）、error は打てなかった",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "approve",
+    "error"
+   ]
+  },
+  "folder": {
+   "title": "フォルダ",
+   "description": "承認した Skill のフォルダ",
+   "x-prompt": {
+    "meaning": "どれの承認かを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "approved": {
+   "title": "承認した確かめ",
+   "description": "判定まで済んだ確かめ（validate の操作）の ID",
+   "x-prompt": {
+    "meaning": "承認がどの確かめを指すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string",
+   "pattern": "^o-[0-9]+$"
+  },
+  "sas": {
+   "title": "SAS の結果",
+   "description": "sas update の出力を書き換えずに入れたもの",
+   "x-prompt": {
+    "meaning": "SAS の結果として読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": [
+    "object",
+    "array"
+   ]
+  },
+  "sas_exit": {
+   "title": "SAS の終了コード",
+   "description": "0 は承認が書けた",
+   "x-prompt": {
+    "meaning": "0 でなければ SAS が断った。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "integer"
+  },
+  "next": {
+   "title": "人が打つコマンド",
+   "description": "SAS が断ったときだけ",
+   "x-prompt": {
+    "meaning": "作る人に示し、AI は打たない。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、not_approvable は判定まで済んだ確かめが無い、not_found ・ invalid_input は読めない、sas_unavailable は sas を呼べない",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "not_approvable",
+    "not_found",
+    "invalid_input",
+    "sas_unavailable"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "approve"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "approved",
+     "sas",
+     "sas_exit"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ]
+}

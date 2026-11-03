@@ -69,7 +69,7 @@ fn flow() -> Value {
         ],
         "later_rounds": "2往復目からは、変わった所だけを「前 → 後」で出し、残りの問いの数を付ける。作る人が「ここが違う」と言った所は、そのまま直して見せる",
         "finish": [
-            "値を組み、sas の手順の書くコマンドの代わりに skills create <フォルダ> --concrete <URN> --value <JSON> で SAS に書かせ、skills write-skill-md と skills validate を打つ",
+            "値を組み、sas の手順の書くコマンドの代わりに agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせ（--concrete は省ける）、agents-skills-creator skills write-skill-md と agents-skills-creator skills validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べて見せる",
             "承認の前と後の振る舞い（使い手が何をすると、何が変わるか）を出し、承認するか「ここが違う」の一言を受け取る"
         ],
@@ -102,8 +102,8 @@ pub fn create(
     let target = target.ok_or_else(|| {
         usage("Skill のフォルダを渡してください（名前が決まっていなければ skills/<name> のように）")
     })?;
-    let concrete =
-        concrete.ok_or_else(|| usage("--concrete で、従う Concrete の URN を渡してください"))?;
+    // --concrete を省いたら、Agent Skill の Concrete
+    let concrete = concrete.unwrap_or(SKILL_ID);
     let mode =
         mode.ok_or_else(|| usage("--semantic か --value <JSON> のどちらかを渡してください"))?;
     let unavailable = |message: String| Refused {
@@ -117,7 +117,7 @@ pub fn create(
             as_creator_procedure(
                 &mut run.output,
                 format!(
-                    "skills create {} --concrete {concrete} --value <JSON か @<ファイル>>",
+                    "agents-skills-creator skills create {} --concrete {concrete} --value <JSON か @<ファイル>>",
                     trimmed(target)
                 ),
                 "skills",

@@ -2,11 +2,13 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC4-APPROVE-COMMAND",
  "name": "そのまま打てる承認のコマンド",
- "title": "意味の判定を渡した（sas validate --answer で not-judged が無い）確かめのあとに validate を打つと、承認を受け付け（approvable が true）、そのまま打てる承認のコマンド（approved に判定を渡した確かめの操作 ID、--if-match にいまの中身のハッシュ）と、承認の直前に validate を打ち直してそのとき出たコマンドを使うことを返す。人がそれを打つと承認が書ける。判定を渡す前は承認のコマンドを出さない",
+ "title": "意味の判定を渡した（sas validate --answer で not-judged が無い）確かめのあとに validate を打つと、承認を受け付け、承認のコマンド agents-skills-creator approve <フォルダ> を返す。approve は判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドを返す。判定を渡す前は承認のコマンドを出さず、approve も断る",
  "why": "承認のコマンドを人が組み立てると、操作 ID やハッシュを写し間違え、承認が書けないか、違う確かめを承認する。",
  "traces": [
   "UC4:成功時保証",
-  "約束:validate-result"
+  "UC5:最低保証",
+  "約束:validate-result",
+  "約束:approve-result"
  ],
  "given": {
   "files": {
@@ -32,6 +34,12 @@
    ]
   },
   {
+   "creator": [
+    "approve",
+    "skills/fact-check"
+   ]
+  },
+  {
    "sas": [
     "validate",
     "skills/fact-check/skill.json",
@@ -46,13 +54,18 @@
    ]
   },
   {
-   "sas": [
-    "update",
-    "skills/fact-check/skill.json",
-    "--patch",
-    "[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0003\"}]",
-    "--if-match",
-    "sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9"
+   "creator": [
+    "approve",
+    "skills/fact-check"
+   ],
+   "env": {
+    "CLAUDE_CODE_SESSION_ID": "agent-1"
+   }
+  },
+  {
+   "creator": [
+    "approve",
+    "skills/fact-check"
    ]
   }
  ],
@@ -69,31 +82,64 @@
   },
   {
    "of": "after[1]",
-   "exit": 0
+   "exit": 1
   },
   {
    "of": "after[1]",
+   "pointer": "/code",
+   "equals": "not_approvable"
+  },
+  {
+   "of": "after[2]",
+   "exit": 0
+  },
+  {
+   "of": "after[2]",
    "pointer": "/operations/0",
    "equals": "o-0003"
   },
   {
-   "of": "after[2]",
+   "of": "after[3]",
    "pointer": "/skills/0/approval/approvable",
    "equals": true
   },
   {
-   "of": "after[2]",
-   "pointer": "/skills/0/approval/approve/command",
-   "equals": "sas update skills/fact-check/skill.json --patch '[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0003\"}]' --if-match sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9"
-  },
-  {
-   "of": "after[2]",
-   "pointer": "/skills/0/approval/approve/how",
-   "contains": "承認する直前に validate を打ち直し"
-  },
-  {
    "of": "after[3]",
+   "pointer": "/skills/0/approval/approve/command",
+   "equals": "agents-skills-creator approve skills/fact-check"
+  },
+  {
+   "of": "after[4]",
+   "exit": 1
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/kind",
+   "equals": "approve"
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/sas/code",
+   "equals": "human_field"
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/next",
+   "contains": "agents-skills-creator approve skills/fact-check"
+  },
+  {
+   "of": "after[5]",
    "exit": 0
+  },
+  {
+   "of": "after[5]",
+   "pointer": "/approved",
+   "equals": "o-0003"
+  },
+  {
+   "of": "after[5]",
+   "pointer": "/sas/kind",
+   "equals": "change"
   },
   {
    "of": "when",

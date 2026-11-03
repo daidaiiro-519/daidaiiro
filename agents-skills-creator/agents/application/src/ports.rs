@@ -68,9 +68,9 @@ pub trait AgentHistory {
     fn operation(&self, id: &str) -> Result<Run, String>;
 }
 
-/// 文脈 skills の公開された言葉を読む：skills validate <フォルダ> の結果（validate-result）。
+/// 文脈 skills の公開された言葉を読む：agents-skills-creator skills validate <フォルダ> の結果（validate-result）。
 pub trait SkillsCli {
-    /// skills validate <フォルダ>。
+    /// agents-skills-creator skills validate <フォルダ>。
     ///
     /// # Errors
     /// skills を呼べない ・ 出力が JSON でないとき。

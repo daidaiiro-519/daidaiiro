@@ -1,4 +1,4 @@
-//! UC3 直す（Agent の側）：agents update。skills update と同じ形。中で sas update を呼び、結果は書き換えずに返す。
+//! UC3 直す（Agent の側）：agents-skills-creator agents update。agents-skills-creator skills update と同じ形。中で sas update を呼び、結果は書き換えずに返す。
 //!
 //! - --semantic --task <外れた具体の文>：意味で直す手順を受け取る（何も書かない）。直す流れ（外れた具体を examples に足す形 ・
 //!   直す層の案 ・ 選んだ層より下の導き直し ・ 層の記録 ・ 承認してから書く ・ 例を全部動かす）を添える。足す例は返事で見せるだけで、
@@ -104,9 +104,9 @@ fn flow(folder: &str) -> Value {
         "choose": format!("外れ方から、直す層を推奨付きで1つ示す（examples が最も狭く、purpose が最も広く直る）。層ごとに、直す前と後の像（完成の像の、頼む文と返る答え）を並べ、作る人が1つ選ぶ。推測した所には{GUESS}を付ける"),
         "rederive": "選んだ層を直したら、その層の rederive に並ぶ項目を、直した値から導き直す。rederive に無い項目は変えない",
         "record": format!("書くときの --reason を「{LAYER_PREFIX}<選んだ層の id>」で始める（例：{LAYER_PREFIX}examples）。SAS の記録に残り、validate の承認の材料の changes に出る"),
-        "approve_then_write": format!("直す前と後（sas の手順の current と、直した値）を所ごとに並べて見せ、作る人が承認してから、agents update {folder} --patch <JSON Patch> --if-match <sas の手順の target.hash> --reason {LAYER_PREFIX}<層> で書かせる。承認の前には書かない"),
+        "approve_then_write": format!("直す前と後（sas の手順の current と、直した値）を所ごとに並べて見せ、作る人が承認してから、agents-skills-creator agents update {folder} --patch <JSON Patch> --if-match <sas の手順の target.hash> --reason {LAYER_PREFIX}<層> で書かせる。承認の前には書かない"),
         "finish": [
-            format!("agents write-agent-md {folder} と agents validate {folder} を打つ"),
+            format!("agents-skills-creator agents write-agent-md {folder} と agents-skills-creator agents validate {folder} を打つ"),
             "validate の承認の材料の delegate のとおり、別の会話で例を全部（足した例を含む）動かして判定させる",
             "承認の材料の changes（前と後）と、例の結果を並べて見せ、作る人が承認するか「ここが違う」の一言を受け取る"
         ],
@@ -193,7 +193,7 @@ pub fn update(
             as_creator_procedure(
                 &mut run.output,
                 format!(
-                    "agents update {folder} --patch <JSON Patch か @<ファイル>> --if-match {hash} --reason {LAYER_PREFIX}<層>"
+                    "agents-skills-creator agents update {folder} --patch <JSON Patch か @<ファイル>> --if-match {hash} --reason {LAYER_PREFIX}<層>"
                 ),
                 "agents",
             );

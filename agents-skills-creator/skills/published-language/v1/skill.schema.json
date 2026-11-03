@@ -1501,7 +1501,7 @@
    "title": "外の道具",
    "description": "この Skill が使う、Skill の外にある道具の並びである。",
    "x-prompt": {
-    "meaning": "環境に入っている道具（sas など）で、Skill には入れない。無ければ、それを使う手順だけが止まる。",
+    "meaning": "環境に入っている道具（sas など）で、Skill には入れない。無ければ、それを使う手順だけが止まる。 used_by があれば、SKILL.md の手順の行か分かれ道の行に、使う道具として添える。",
     "when": "配る前と、動かす環境に道具があるかを決めるときに読む。",
     "rules": []
    },
@@ -1542,6 +1542,28 @@
       },
       "type": "string",
       "minLength": 1
+     },
+     "used_by": {
+      "title": "使うステップ",
+      "description": "この外の道具を使うステップの番号か、分かれ道の id の並びである。",
+      "x-prompt": {
+       "meaning": "番号は steps の id、分かれ道の id（1b など）は edge_cases の id にあるものだけである。SKILL.md の手順の行か分かれ道の行に、使う道具として添える。",
+       "rules": []
+      },
+      "type": "array",
+      "items": {
+       "oneOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "string",
+         "pattern": "^[0-9]+[a-z]+$"
+        }
+       ]
+      },
+      "uniqueItems": true
      }
     }
    }

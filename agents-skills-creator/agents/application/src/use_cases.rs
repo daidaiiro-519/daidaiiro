@@ -1,6 +1,7 @@
 //! ユースケースの手続き（トランザクションスクリプト）。
 
 pub mod approval;
+pub mod approve;
 pub mod create;
 pub mod distribute;
 pub mod update;

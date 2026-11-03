@@ -1,4 +1,4 @@
-//! UC5 配布する（Agent の側）：agents distribute。配る前に確かめ（validate の検査と sas validate に、承認がいまの中身に
+//! UC5 配布する（Agent の側）：agents-skills-creator agents distribute。配る前に確かめ（validate の検査と sas validate に、承認がいまの中身に
 //! 当たるか approval-current と、置き場所が空いているか destination-free を足す）、検出が無ければ、ツールと範囲ごとの
 //! 置き場所に、agent.json から write-agent-md と同じ形で作った定義を写して置き、置いたファイルの中身が同じか
 //! （placed-readable）を確かめる。
@@ -154,7 +154,7 @@ impl Distributed {
 
 fn how_to_approve(folder: &str) -> String {
     format!(
-        "作る人が agents validate の結果を承認したら、人が自分の端末で sas update {folder}/{AGENT_JSON} --patch '[{{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"<承認した validate の操作 ID>\"}}]' --if-match <いまの中身のハッシュ> を打つ（AI のセッションから打つと、SAS が human_field で断る）"
+        "作る人が validate の結果を承認したら、人が自分の端末で agents-skills-creator approve {folder} を打つ（AI のセッションから打つと、SAS が human_field で断る）"
     )
 }
 

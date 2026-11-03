@@ -16,7 +16,7 @@
 //! - tools-exist ・ assets-exist：道具（tools）・ 資源（assets）の各 path にファイルがある（references-exist と同じ考え）
 //! - tools-in-role：道具の does が role.does のどれかと同じ文字列
 //! - tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある
-//! - tools-used-by：道具の used_by のステップの番号が steps に、分かれ道の id が edge_cases にある
+//! - tools-used-by：道具（tools）・ 外の道具（uses）の used_by のステップの番号が steps に、分かれ道の id が edge_cases にある
 //!
 //! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
 //! error が0の validate の操作。sas validate --answer で判定を渡したもの）が記録に無ければ、承認を受け付けない
@@ -236,7 +236,7 @@ fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
             Outcome::Violated,
             Some(path),
             format!(
-                "SKILL.md が無い（skills write-skill-md {} で作る）",
+                "SKILL.md が無い（agents-skills-creator skills write-skill-md {} で作る）",
                 trimmed(folder)
             ),
         ),
@@ -251,7 +251,7 @@ fn skill_md_built(files: &dyn SkillFiles, folder: &str) -> Finding {
             Outcome::Violated,
             Some(path),
             format!(
-                "SKILL.md が、skill.json から write-skill-md で作るものと違う（skills write-skill-md {} で作り直す）",
+                "SKILL.md が、skill.json から write-skill-md で作るものと違う（agents-skills-creator skills write-skill-md {} で作り直す）",
                 trimmed(folder)
             ),
         ),
@@ -536,10 +536,20 @@ fn tool_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
         .flatten()
         .filter_map(|e| e.get("id").and_then(Value::as_str))
         .collect();
+    let uses: Vec<Value> = skill
+        .get("uses")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let mut used_by = Vec::new();
-    for (i, t) in tools.iter().enumerate() {
+    let both = tools
+        .iter()
+        .enumerate()
+        .map(|(i, t)| ("tools", i, t))
+        .chain(uses.iter().enumerate().map(|(i, t)| ("uses", i, t)));
+    for (field, i, t) in both {
         let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
-        let at = format!("{}/skill.json#/tools/{i}/used_by", trimmed(folder));
+        let at = format!("{}/skill.json#/{field}/{i}/used_by", trimmed(folder));
         for u in t
             .get("used_by")
             .and_then(Value::as_array)
@@ -572,7 +582,7 @@ fn tool_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
             "tools-used-by",
             Outcome::Verified,
             None,
-            "道具の used_by のステップの番号と分かれ道の id は、どれも steps と edge_cases にある"
+            "道具 ・ 外の道具の used_by のステップの番号と分かれ道の id は、どれも steps と edge_cases にある"
                 .to_string(),
         ));
     }
@@ -898,25 +908,13 @@ pub(crate) fn judged_validation(history: &dyn SkillHistory, path: &str) -> Optio
     None
 }
 
-/// そのまま打てる承認のコマンド：意味の判定まで済んだ確かめの操作 ID を approved に入れ、いまの中身のハッシュを
-/// --if-match に入れる。ハッシュが読めなければ None。
-fn approve_command(
-    path: &str,
-    op: &str,
-    output: &Value,
-    skill: &Value,
-) -> Option<(String, String)> {
-    let hash = output.pointer("/targets/0/hash").and_then(Value::as_str)?;
-    let verb = if skill.get("approved").is_some() {
-        "replace"
-    } else {
-        "add"
-    };
-    let patch = format!("[{{\"op\":\"{verb}\",\"path\":\"/approved\",\"value\":\"{op}\"}}]");
-    Some((
-        format!("sas update {path} --patch '{patch}' --if-match {hash}"),
-        "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）。承認する直前に validate を打ち直し、そのとき出たコマンドを使う（あいだに書き換えがあれば、操作 ID とハッシュが変わる）".to_string(),
-    ))
+/// そのまま打てる承認のコマンド（agents-skills-creator approve <フォルダ>）。approve が、判定まで済んだ確かめの操作 ID と
+/// ハッシュを自分で引いて書く。
+fn approve_command(folder: &str) -> (String, String) {
+    (
+        format!("agents-skills-creator approve {folder}"),
+        "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ。判定まで済んだ確かめの操作 ID とハッシュは approve が引く（AI のセッションから打つと、SAS が human_field で断る）".to_string(),
+    )
 }
 
 /// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査11と SAS の検証をして、承認の材料と一緒に渡した順に返す。
@@ -976,9 +974,7 @@ pub fn validate(
             }
             // 承認のコマンドは、承認できるときだけ出す
             if a.not_approvable.is_empty() {
-                a.approve = judged.as_deref().and_then(|op| {
-                    approve_command(&format!("{}/skill.json", trimmed(folder)), op, &run.output, v)
-                });
+                a.approve = judged.as_ref().map(|_| approve_command(trimmed(folder)));
             }
             a
         });

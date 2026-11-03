@@ -252,9 +252,12 @@ fn create_adds_the_flow_only_for_the_skill_concrete_and_passes_sas_through() {
     .unwrap();
     assert_eq!(v.sas.output["path"], json!("skills/s/skill.json"));
     assert!(v.flow.is_none());
+    // --concrete を省くと、Agent Skill の Concrete
+    let d = create(Some("skills/s"), None, Some(Mode::Semantic), &Writer).unwrap();
+    assert_eq!(d.sas.output["schema"], json!(skill));
+    assert!(d.flow.is_some());
     for (t, c, m) in [
         (None, Some(skill), Some(Mode::Semantic)),
-        (Some("skills"), None, Some(Mode::Semantic)),
         (Some("skills"), Some(skill), None),
     ] {
         assert_eq!(create(t, c, m, &Writer).unwrap_err().code, "usage");

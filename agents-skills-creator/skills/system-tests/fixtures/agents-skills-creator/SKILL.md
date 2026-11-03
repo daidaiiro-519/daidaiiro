@@ -1,7 +1,7 @@
 ---
 name: agents-skills-creator
 description: 作りたい作業を思いついたとき、使われて外れた具体で直したいとき、配りたいときに使う。作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分け、目的の仮説 ・ 完成の像 ・ 構造の像を見せて作り、直し、確かめ、配る。配布の取り下げは影響を示し、人が打つ。作った Skill の作業そのもの ・ 承認 ・ コミットはしない。
-compatibility: sas（Semantic Agent Schema）が PATH にあること
+compatibility: sas と agents-skills-creator が PATH にあること
 ---
 
 ## 目的
@@ -35,24 +35,10 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 
 - 作る流れの手引き（references/create-flow.md）：見分け方 ・ 最初の返事で見せる4つ ・ 聞く所の見分け方 ・ 書かせて確かめる順 ・ 承認と配布 ・ 直し方。形：Markdown。手順 1 ・ 2 ・ 3 ・ 4 ・ 5 ・ 6 ・ 7 ・ 8 ・ 9 で読む
 
-## 道具
-
-- skills create（scripts/skills）：Skill か Agent を作る。受け取る：作りたい作業。返す：Skill か Agent のフォルダ
-- skills update（scripts/skills）：Skill か Agent を直す。受け取る：使われて外れた具体。返す：Skill か Agent のフォルダ
-- skills write-skill-md（scripts/skills）：Skill か Agent を作る
-- skills validate（scripts/skills）：Skill か Agent が使える状態かを確かめる
-- skills distribute（scripts/skills）：Skill か Agent を配る。返す：配布先の置き場所
-- skills withdraw（scripts/skills）：Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す
-- agents create（scripts/agents）：Skill か Agent を作る。受け取る：作りたい作業。返す：Skill か Agent のフォルダ
-- agents update（scripts/agents）：Skill か Agent を直す。受け取る：使われて外れた具体。返す：Skill か Agent のフォルダ
-- agents write-agent-md（scripts/agents）：Skill か Agent を作る
-- agents validate（scripts/agents）：Skill か Agent が使える状態かを確かめる
-- agents distribute（scripts/agents）：Skill か Agent を配る。返す：配布先の置き場所
-- agents withdraw（scripts/agents）：Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す
-
 ## 外の道具
 
-- sas（>=0.1.0, <0.2.0）：Skill ・ Agent の項目を書かせ、確かめさせ、記録を読む
+- agents-skills-creator（>=0.1.0, <0.2.0）：Skill ・ Agent を作り、直し、確かめ、配り、配布の取り下げの影響を示す（サブコマンド skills ・ agents）。承認は人が approve で打つ
+- sas（>=0.1.0, <0.2.0）：意味の rule の判定を渡す（sas validate --answer）。agents-skills-creator が中で SAS に書かせ、確かめさせ、記録を読む
 
 ## 資源
 
@@ -63,16 +49,16 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 
 1. 作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分ける（読む資料：作る流れの手引き）（完了条件：見分けた結果と理由を作る人に示した）
    - 1a 束ねたい Skill が足りない → 足りない Skill を先に Skill として作る（ステップ1へ戻る）
-   - 1b 使わなくしたい → withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ（止める）（使う道具：skills withdraw ・ agents withdraw）
-2. 書く手順を --semantic で受け取り、返る flow に従って最初の返事を見せる（作るときは目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問い、直すときは外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨）（使う道具：skills create ・ skills update ・ agents create ・ agents update）（読む資料：作る流れの手引き）（完了条件：作るときは作る人が目的の仮説を承認して問いに答え、直すときは作る人が直す層を選んだ）
-3. SAS に項目を書かせる（使う道具：skills create ・ skills update ・ agents create ・ agents update）（読む資料：作る流れの手引き）（完了条件：sas の結果が created か updated である）
-4. SKILL.md（Agent なら AGENT.md と codex.toml）を作る（使う道具：skills write-skill-md ・ agents write-agent-md）（読む資料：作る流れの手引き）（完了条件：write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある）
-5. validate で確かめる（使う道具：skills validate ・ agents validate）（読む資料：作る流れの手引き）（完了条件：validate の終了コードが 0 である）
-6. 意味の rule を別の会話で判定させ、判定を SAS に渡す（読む資料：作る流れの手引き）（完了条件：validate の承認の材料の approvable が true である）
+   - 1b 使わなくしたい → withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ（止める）（使う道具：agents-skills-creator）
+2. 書く手順を --semantic で受け取り、返る flow に従って最初の返事を見せる（作るときは目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問い、直すときは外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨）（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：作るときは作る人が目的の仮説を承認して問いに答え、直すときは作る人が直す層を選んだ）
+3. SAS に項目を書かせる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：sas の結果が created か updated である）
+4. SKILL.md（Agent なら AGENT.md と codex.toml）を作る（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある）
+5. validate で確かめる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：validate の終了コードが 0 である）
+6. 意味の rule を別の会話で判定させ、判定を SAS に渡す（使う道具：sas）（読む資料：作る流れの手引き）（完了条件：validate の承認の材料の approvable が true である）
 7. 別の会話で例を動かし、実際の答えを完成の像と並べて見せる（読む資料：作る流れの手引き）（完了条件：どの例にも、実際の答えが期待と並んでいる）
    - 7a 例の実際の答えが期待と違う → 外れた具体として直す層を選んでもらう（ステップ2へ戻る）
-8. 承認のコマンドを作る人に示し、人に承認を打ってもらう（読む資料：作る流れの手引き）（完了条件：skill.json（Agent なら agent.json）に approved がある）
-9. 作る人が選んだ配布先に置く（使う道具：skills distribute ・ agents distribute）（読む資料：作る流れの手引き）（完了条件：distribute の placed-readable が verified である）
+8. 承認のコマンド（agents-skills-creator approve <フォルダ>）を作る人に示し、人に打ってもらう（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：skill.json（Agent なら agent.json）に approved がある）
+9. 作る人が選んだ配布先に置く（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：distribute の placed-readable が verified である）
 
 ## 守ること
 
@@ -87,7 +73,7 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 
 ## 完了条件
 
-- C1 作ったものが validate を通る（確かめ方：skills validate か agents validate の終了コードが 0）
+- C1 作ったものが validate を通る（確かめ方：agents-skills-creator skills validate か agents-skills-creator agents validate の終了コードが 0）
 - C2 作る人が完成の像を見て承認した（確かめ方：skill.json か agent.json に approved がある）
 
 ## 例
@@ -95,7 +81,7 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 - E1（人が直接）：Claude Code のサブエージェントの頁の URL と、項目名3つを照合したいという作業の説明がある。「外の原文と、書き写す項目名を照合する Skill が欲しい」
   → 1つの Skill で終わると見分け、目的の仮説 ・ 完成の像（URL と項目名を渡すと、ある ・ 無いが返る）・ 構造の像を見せ、承認のあと fact-check のフォルダに skill.json と SKILL.md ができ、validate が通る
 - E2（人が直接）：6つのアドバイザーの Skill が skills/ にある。「設計で迷ったとき、アドバイザーたちに同時に聞いてまとめる Agent が欲しい」
-  → 複数の Skill を束ねる Agent だと見分け、呼ぶ Skill と受け渡しの像を見せ、承認のあと consult-advisors のフォルダに agent.json と AGENT.md ができ、agents validate が通る
+  → 複数の Skill を束ねる Agent だと見分け、呼ぶ Skill と受け渡しの像を見せ、承認のあと consult-advisors のフォルダに agent.json と AGENT.md ができ、agents-skills-creator agents validate が通る
 - E3（人が直接）：fact-check が、全角の空白を含む項目名に「無い」と返した。「この外れた具体で fact-check を直して」
   → 外れた具体が examples に足され、直す層の案が推奨付きで出て、承認のあと「層：examples」の理由で直され、validate が通る
 - E4（人が直接）：fact-check が .claude/skills に配られている。「fact-check を使わなくしたい」
