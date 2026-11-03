@@ -384,7 +384,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
             id: "a",
             what: "意味の rule の判定".to_string(),
             how: format!(
-                "書いたときとは別の会話で、このコマンドの手順を受け取って判定し、sas validate {skill_json} --answer で渡す"
+                "書いたときとは別の会話で、このコマンドの手順を受け取って判定し、答えを、手順の answer.schema に従う JSON（hash に手順の target.hash、results に rule ごとの step ・ rule ・ pointer ・ result ・ reason）として作業場所の中のファイルに書き、sas validate {skill_json} --answer <ファイル> で渡す。そのあと validate を打ち直す"
             ),
             command: Some(format!("sas validate {skill_json} --semantic")),
             examples: Vec::new(),

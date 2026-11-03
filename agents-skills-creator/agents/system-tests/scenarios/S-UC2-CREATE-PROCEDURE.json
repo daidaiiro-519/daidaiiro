@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC2-CREATE-PROCEDURE",
  "name": "Agent を作る手順",
- "title": "agents create に Agent のフォルダ（名前の決まっていない agents/<name> でもよい）と Agent の Concrete と --semantic を渡すと、sas create --semantic の結果を書き換えずに sas に入れ、作る流れ（目的の仮説 ・ 完成の像 ・ 構造の像：受け持つ範囲 ・ 呼ぶ Skill と受け渡し ・ 手順と分かれ道 ・ まとめ方）を添え、何も書かない。--concrete を省くと、Agent の Concrete を使う",
+ "title": "agents create に Agent のフォルダ（名前の決まっていない agents/<name> でもよい）と Agent の Concrete と --semantic を渡すと、sas create --semantic の結果を書き換えずに sas に入れ、作る流れ（目的の仮説 ・ 完成の像 ・ 構造の像：受け持つ範囲 ・ 呼ぶ Skill と受け渡し ・ 手順と分かれ道 ・ まとめ方）を添え、何も書かない。--concrete を省くと、Agent の Concrete を使う。既定の Concrete なら command に --concrete を付けない。constraints は返す手順に無い欄（inner_rules ・ 手順の rules）を指さない。目的の仮説は「進めてよいと答える」で決まり、「承認」の語を使わない（承認は approve だけ）",
  "why": "Agent は配下の Skill をどう呼んでまとめるかを持つので、作る人に呼ぶ Skill と受け渡しの像を見せずに書くと、Agent が作業の中身を持ち始める。",
  "traces": [
   "UC2:成功時保証",
@@ -64,7 +64,7 @@
   {
    "of": "when",
    "pointer": "/flow/rules",
-   "contains": "人が承認するステップだけ"
+   "contains": "人に結果を確かめてもらうステップ（kind approve）だけ"
   },
   {
    "of": "when",
@@ -89,12 +89,37 @@
   {
    "of": "when",
    "pointer": "/sas/command",
-   "equals": "agents-skills-creator agents create agents/<name> --concrete urn:agents-skills-creator:agent:v1 --value <JSON か @<ファイル>>"
+   "equals": "agents-skills-creator agents create agents/<name> --value <JSON か @<ファイル>>"
   },
   {
    "of": "when",
    "pointer": "/sas/constraints",
    "lacks": "command の sas"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/constraints",
+   "lacks": "inner_rules"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/constraints",
+   "lacks": "手順の rules"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow",
+   "lacks": "作る人の承認で"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow",
+   "lacks": "承認して決める"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/first_reply/0/how",
+   "contains": "進めてよい"
   }
  ]
 }

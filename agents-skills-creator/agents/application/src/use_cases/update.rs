@@ -19,7 +19,11 @@ use serde_json::{Value, json};
 
 /// 直す層（上ほど狭く、下ほど広く直る）と、選んだときに導き直す項目。
 pub const LAYERS: [(&str, &str, &[&str]); 5] = [
-    ("examples", "例だけを足す。ほかの項目は変えない", &[]),
+    (
+        "examples",
+        "例を足し、その例が確かめる既にある決まり（rules）か分かれ道（edge_cases）の examples に、その例の id を足して結ぶ。中身の文は変えない",
+        &["/rules/*/examples", "/edge_cases/*/examples"],
+    ),
     ("edge_cases", "分かれ道を足す ・ 直す", &["/examples"]),
     (
         "rules",
@@ -101,8 +105,8 @@ fn flow(folder: &str) -> Value {
             "how": "外れた具体（頼んだこと ・ 出たもの ・ 期待したもの）から、examples に足す例の形を作り、直す前と後の像と一緒に返事で見せる。書くのは承認のあと1回（--patch に、足す例と選んだ層の直しを一緒に入れる）。input は頼んだこと、expected は期待したもの、given は頼んだときに手元にあったもの、behavior は使い手が何をすると何が変わるか。covers は、この例が確かめる完了条件か分かれ道の id"
         },
         "layers": layers,
-        "choose": format!("外れ方から、直す層を推奨付きで1つ示す（examples が最も狭く、purpose が最も広く直る）。層ごとに、直す前と後の像（完成の像の、頼む文と返る答え）を並べ、作る人が1つ選ぶ。推測した所には{GUESS}を付ける"),
-        "rederive": "選んだ層を直したら、その層の rederive に並ぶ項目を、直した値から導き直す。rederive に無い項目は変えない",
+        "choose": format!("外れ方から、直す層を推奨付きで1つ示す（examples が最も狭く、purpose が最も広く直る）。基準：既にある決まりが外れた振る舞いをすでに言っている → examples（その決まりに例を結ぶ）／言っている決まりが無い → rules／分かれ道が無い → edge_cases／受け持つ範囲の外 → role か purpose。直したあと例を動かしてまだ外れるなら、一つ広い層で直す。層ごとに、直す前と後の像（完成の像の、頼む文と返る答え）を並べ、作る人が1つ選ぶ。推測した所には{GUESS}を付ける"),
+        "rederive": "選んだ層を直したら、その層の rederive に並ぶ項目を、直した値から導き直す（examples の層は、足した例の id を当たる決まりか分かれ道の examples に足すだけ）。rederive に無い項目は変えない",
         "record": format!("書くときの --reason を「{LAYER_PREFIX}<選んだ層の id>」で始める（例：{LAYER_PREFIX}examples）。SAS の記録に残り、validate の承認の材料の changes に出る"),
         "approve_then_write": format!("直す前と後（sas の手順の current と、直した値）を所ごとに並べて見せ、作る人が承認してから、agents-skills-creator agents update {folder} --patch <JSON Patch> --if-match <sas の手順の target.hash> --reason {LAYER_PREFIX}<層> で書かせる。承認の前には書かない"),
         "finish": [

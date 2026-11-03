@@ -283,7 +283,16 @@ pub fn render(skill: &Value) -> String {
 
     let lines: Vec<String> = items(skill, "rules")
         .iter()
-        .map(|r| format!("- {}（{}）", text(r, "rule"), text(r, "why")))
+        .map(|r| {
+            // この決まりに結ばれた例の id（examples）を添える
+            let ex: Vec<String> = items(r, "examples").iter().map(plain).collect();
+            let ex = if ex.is_empty() {
+                String::new()
+            } else {
+                format!("（例：{}）", ex.join(" ・ "))
+            };
+            format!("- {}（{}）{ex}", text(r, "rule"), text(r, "why"))
+        })
         .collect();
     section(&mut out, "守ること", &lines);
 

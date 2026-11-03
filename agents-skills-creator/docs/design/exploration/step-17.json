@@ -1,0 +1,127 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 17,
+ "date": "2026-11-03",
+ "summary": "新しいコマンドの形で E1〜E3 を3回目に動かして残った所を直した。examples の層は例を足して既にある決まりか分かれ道に結ぶ形にし、SKILL.md の守ることに結ばれた例の id を添え、層の選び方の基準を書いた。あわせて名前の順 ・ Agent のリンクの時機 ・ --semantic の出力の読む所 ・ 控えのファイル ・ command の既定の --concrete ・ constraints の無い欄 ・ 「承認」の語 ・ 例の expected の順 ・ 判定の答えの形 ・ uses と compatibility の分け方を直した",
+ "usecases": [
+  "UC1",
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "3回目に E1〜E3 を動かした結果（コーディネーターが動かし、利用者が直しを承認）",
+   "evidence": [
+    "どれも validate まで手順どおり進んだ",
+    "E3：examples の層で直しても振る舞いが変わらず、足した例が決まりに結ばれなかった",
+    "E1 ・ E2：名前の順、リンクを張る時機、--semantic の出力のどこを読むか、控えのファイル、command に残る --concrete、constraints が手順に無い欄（inner_rules ・ 手順の rules）を指す、「承認」が2つの意味、例の expected の順、判定の答えの形、uses と compatibility の分け方"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "constraints が手順に無い欄を指す",
+   "evidence": [
+    "SAS の sas create --semantic の constraints の1件目は、手順に inner_rules が無く、手順の rules が空でも「inner_rules の rule …と、手順の rules（文書全体に当たる rule）を守って」と書く。creator は書き換えるときにこの2つの句を外す。SAS 側の出力そのものの問題なので、持ち越しに SAS 側として書く"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC3 直す：examples の層（skills ・ agents の update の flow.layers）",
+   "steps": [
+    "例を足し、その例が確かめる既にある決まり（rules）か分かれ道（edge_cases）の examples に、その例の id を足して結ぶ（rederive は /rules/*/examples と /edge_cases/*/examples）。中身の文は変えない",
+    "層の選び方：既にある決まりが外れた振る舞いをすでに言っている → examples／言っている決まりが無い → rules／分かれ道が無い → edge_cases／受け持つ範囲の外 → role か purpose。手順7で例を動かしてまだ外れるなら、一つ広い層へ（分かれ道 7a）"
+   ],
+   "rules": [
+    "結ぶだけの直しでは、決まりの文を書き換えない"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：SKILL.md の守ること",
+   "steps": [
+    "各行に、その決まりの examples の id を「（例：E1 ・ E2）」として添える"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "UC1 ・ UC3：--semantic の手順（as_creator_procedure）",
+   "steps": [
+    "既定の Concrete のときは command に --concrete を付けない",
+    "constraints から、返す手順に無い欄を指す句（どの step にも inner_rules が無ければ inner_rules の句、手順の rules が空なら手順の rules の句）を外す"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "承認の材料：delegate a（skills ・ agents）",
+   "steps": [
+    "判定の答えは、手順の answer.schema に従う JSON（hash に手順の target.hash、results に rule ごとの step ・ rule ・ pointer ・ result ・ reason）を作業場所の中のファイルに書き、sas validate <経路> --answer <ファイル> で渡し、validate を打ち直す"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "skills update --patch @… --reason「層：rules …」で直した（一時ディレクトリの SAS の記録で o-0026）：rules の1つ目と手順2の完了条件を「進めてよいと答える」に、7a の then を「一つ広い層で直す」に、E1〜E3 の expected を実際の順（書かせる → SKILL.md → validate → 意味の判定と例を動かす → 承認のコマンド）に",
+    "作る流れの手引き：冒頭に「承認」の語の使い方と控えのファイルの決まり、§2 に名前の順（最初の返事の前に AI が【推測】で付けて --semantic、構造の像で見せ、変えたら打ち直す）・ 読む所（最初の返事は flow、書くのは sas の各 step の current ・ rules と command）・ Agent のリンクの時機（--value のあと、write-agent-md の前）・ 道具と環境の書き分け（PATH のコマンドは uses、AI ツールの機能や環境は compatibility）、§6 に層の選び方"
+   ],
+   "rules": [
+    "「承認」は approve で approved を書くことだけを指す。目的の仮説は、作る人が進めてよいと答えて決まる"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "examples の層",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "「例だけを足す」は、例が決まりに結ばれず振る舞いを変えなかった（E3）。足した例を既にある決まりか分かれ道に結ぶ形にした"
+  },
+  {
+   "item": "「承認」の語",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "目的の仮説を決めることと approve の両方に「承認」を使っていた（E1）。approve だけに使い、flow ・ 作る流れの手引き ・ creator 自身の文をそろえた。Agent の手順の kind approve は「人に結果を確かめてもらうステップ」と書いた。Concrete の purpose ・ role の meaning に残る「作る人が承認して決める」は直していない（持ち越し）"
+  },
+  {
+   "item": "推測の一覧の名前の出どころ",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "derivation の name を「最初の返事の前に、作業の動詞と対象から AI が付け、構造の像で見せる（作る人が変えたら --semantic を打ち直す）」にし、作る流れの手引きと食い違わないようにした"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "承認",
+   "seen": "flow ・ 作る流れの手引き ・ creator 自身",
+   "drift": "approve で approved を書くことだけ。目的の仮説は「進めてよいと答える」"
+  },
+  {
+   "term": "結ぶ",
+   "seen": "examples の層",
+   "drift": "足した例の id を、既にある決まりか分かれ道の examples に足すこと。決まりの文は変えない"
+  }
+ ],
+ "structure": {
+  "changed": false,
+  "not_built": [
+   {
+    "what": "持ち越し：推測の一覧（guesses）が広すぎる",
+    "why": "E1 の実例では推測の一覧が24件あり、作る人の答え（目的の仮説で進めてよいと答えた所など）まで入っていた。Skill の derivation の見直しと、Agent の推測の一覧と一緒に扱う"
+   },
+   {
+    "what": "持ち越し（SAS 側）：constraints が手順に無い欄を指す",
+    "why": "sas の --semantic の constraints は、手順に inner_rules や手順の rules が無くても、それを守るよう書く。creator は書き換えるときに外しているが、sas を直に使うときは残る"
+   },
+   {
+    "what": "持ち越し：Concrete の meaning の「承認」",
+    "why": "skill.schema ・ agent.schema の purpose ・ role の meaning に「作る人が承認して決める」が残る。sas update で直す"
+   },
+   {
+    "what": "持ち越し",
+    "why": "step-13 の持ち越しのうち、ここまでで作ったもののほかはそのまま"
+   }
+  ]
+ }
+}

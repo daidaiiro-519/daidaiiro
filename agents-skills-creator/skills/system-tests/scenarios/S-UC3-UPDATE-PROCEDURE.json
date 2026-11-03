@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC3-UPDATE-PROCEDURE",
  "name": "直す手順",
- "title": "update に Skill のフォルダと --semantic と外れた具体の文を渡すと、sas update --semantic の結果を書き換えずに sas に入れ、先頭に直す流れ（外れた具体を examples に足す形 ・ 直す層の案5つと推奨の出し方 ・ 選んだ層より下の導き直し ・ 層を --reason に残す記録 ・ 承認してから書く ・ 例を全部動かす）を添え、Skill は変えない",
+ "title": "update に Skill のフォルダと --semantic と外れた具体の文を渡すと、sas update --semantic の結果を書き換えずに sas に入れ、先頭に直す流れ（外れた具体を examples に足す形 ・ 直す層の案5つと推奨の出し方 ・ 選んだ層より下の導き直し ・ 層を --reason に残す記録 ・ 承認してから書く ・ 例を全部動かす）を添え、Skill は変えない。examples の層は、例を足し、その例が確かめる既にある決まりか分かれ道の examples に例の id を足して結ぶ（中身の文は変えない）。層の選び方の基準を choose に持つ",
  "why": "外れた具体を受け取っても、どの層で直すかを選べず、承認の前に書き換わると、作る人は直し方を決められず、直したあとに何が変わったかも分からない。",
  "traces": [
   "UC3:成功時保証",
@@ -133,6 +133,24 @@
    "of": "when",
    "pointer": "/sas/constraints",
    "lacks": "command の sas"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/layers/0/fixes",
+   "contains": "結ぶ"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/layers/0/rederive",
+   "equals": [
+    "/rules/*/examples",
+    "/edge_cases/*/examples"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/choose",
+   "contains": "既にある決まり"
   }
  ],
  "unchanged": [

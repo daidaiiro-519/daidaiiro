@@ -35,7 +35,7 @@ fn flow() -> Value {
     json!({
         "guess_mark": GUESS,
         "first_reply": [
-            {"id": "purpose", "show": "目的の仮説", "how": format!("作る人が言ったことから、誰が ・ どんな場面で ・ 何を得るかを1文の仮説にする。決めるのは作る人の承認で、仮説には{GUESS}を付ける")},
+            {"id": "purpose", "show": "目的の仮説", "how": format!("作る人が言ったことから、誰が ・ どんな場面で ・ 何を得るかを1文の仮説にする。作る人が「この目的で進めてよい」と答えて決まる。仮説には{GUESS}を付ける")},
             {"id": "completion", "show": "完成の像（頼む文と返る答え）", "how": "使い手がこう頼むと、こう返る、を具体の文で見せる。返る答えの各行に、どの Skill の出力から来たかを付ける"},
             {"id": "structure", "show": "構造の像", "how": "structure_image の4つを見せる"},
             {"id": "questions", "show": "推奨付きの問い 0〜2個", "how": "ask_only_when の両方を満たす所だけを聞く"}
@@ -43,7 +43,7 @@ fn flow() -> Value {
         "structure_image": [
             {"id": "scope", "show": "受け持つ範囲", "how": "入力 → Agent がすること → 出力 と、外に置くもの（Skill がすること ・ Agent がしないこと）"},
             {"id": "calls", "show": "呼ぶ Skill と受け渡し", "how": "どのステップで、どの Skill を同時に呼び、どの出力（Skill の outputs の name）を次へ渡すか。配下の Skill は agents-skills-creator skills validate の結果の name ・ description ・ inputs ・ outputs だけで選ぶ"},
-            {"id": "steps", "show": "手順と分かれ道", "how": "Skill を呼ぶステップと人が承認するステップの並びと、分かれ道"},
+            {"id": "steps", "show": "手順と分かれ道", "how": "Skill を呼ぶステップと、人に結果を確かめてもらうステップ（kind approve）の並びと、分かれ道"},
             {"id": "merge", "show": "まとめ方", "how": "呼んだ Skill の出力をどうまとめるか（rules）。Agent は作業の中身を持たない"}
         ],
         "ask_only_when": [
@@ -54,11 +54,11 @@ fn flow() -> Value {
         "finish": [
             "値を組み、agents-skills-creator agents create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせる（--concrete は省ける）",
             "Agent のフォルダの skills/ に、配下の Skill のフォルダへのシンボリックリンクを同じ名前で置き、agents-skills-creator agents write-agent-md と agents-skills-creator agents validate を打つ",
-            "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べ、承認を受ける"
+            "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べ、作る人に承認（agents-skills-creator approve）を打ってもらう"
         ],
         "rules": [
-            "目的は AI が仮説として示し、作る人が承認して決める",
-            "Agent は作業の中身を持たず、配下の Skill を呼ぶステップと、人が承認するステップだけを持つ",
+            "目的は AI が仮説として示し、作る人が進めてよいと答えて決まる（「承認」は、approve で approved を書くことだけを指す）",
+            "Agent は作業の中身を持たず、配下の Skill を呼ぶステップと、人に結果を確かめてもらうステップ（kind approve）だけを持つ",
             "足りない Skill は agents-skills-creator skills create で先に作る（Agent の中に書かない）",
             "creator は AI を起動せず、agent.json を書かない（SAS が書く）"
         ],
@@ -97,10 +97,17 @@ pub fn create(
             let mut run = sas.create_semantic(&path, concrete).map_err(unavailable)?;
             as_creator_procedure(
                 &mut run.output,
-                format!(
-                    "agents-skills-creator agents create {} --concrete {concrete} --value <JSON か @<ファイル>>",
-                    trimmed(folder)
-                ),
+                if concrete == AGENT_ID {
+                    format!(
+                        "agents-skills-creator agents create {} --value <JSON か @<ファイル>>",
+                        trimmed(folder)
+                    )
+                } else {
+                    format!(
+                        "agents-skills-creator agents create {} --concrete {concrete} --value <JSON か @<ファイル>>",
+                        trimmed(folder)
+                    )
+                },
                 "agents",
             );
             Ok(Created {

@@ -9,7 +9,10 @@
 /// 導いて書く項目（skill.json の根の欄の名前、受け持たないことは role/does_not）と、何から導くか。
 pub const DERIVED: [(&str, &str); 14] = [
     ("role/does_not", "role の受け持つことの隣の仕事として"),
-    ("name", "purpose と role から AI が付ける（聞かない）"),
+    (
+        "name",
+        "最初の返事の前に、作業の動詞と対象から AI が付け、構造の像で見せる（作る人が変えたら --semantic を打ち直す）",
+    ),
     ("description", "role の受け持つことと purpose の場面から"),
     (
         "compatibility",

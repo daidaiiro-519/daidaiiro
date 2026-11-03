@@ -44,7 +44,7 @@ fn flow() -> Value {
     json!({
         "guess_mark": GUESS,
         "first_reply": [
-            {"id": "purpose", "show": "目的の仮説", "how": format!("作る人が言ったことから、誰が ・ どんな場面で ・ 何を得るかを1文の仮説にする。決めるのは作る人の承認で、仮説には{GUESS}を付ける")},
+            {"id": "purpose", "show": "目的の仮説", "how": format!("作る人が言ったことから、誰が ・ どんな場面で ・ 何を得るかを1文の仮説にする。作る人が「この目的で進めてよい」と答えて決まる。仮説には{GUESS}を付ける")},
             {"id": "completion", "show": "完成の像（頼む文と返る答え）", "how": "使い手がこう頼むと、こう返る、を具体の文で1組以上見せる。返る答えは、出力の形のまま書く"},
             {"id": "structure", "show": "構造の像", "how": "structure_image の4つを見せる"},
             {"id": "questions", "show": "推奨付きの問い 0〜2個", "how": "ask_only_when の両方を満たす所だけを、question の形で聞く。満たす所が無ければ聞かない"}
@@ -71,10 +71,10 @@ fn flow() -> Value {
         "finish": [
             "値を組み、sas の手順の書くコマンドの代わりに agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせ（--concrete は省ける）、agents-skills-creator skills write-skill-md と agents-skills-creator skills validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べて見せる",
-            "承認の前と後の振る舞い（使い手が何をすると、何が変わるか）を出し、承認するか「ここが違う」の一言を受け取る"
+            "作る前と後の振る舞い（使い手が何をすると、何が変わるか）を出し、作る人に承認（agents-skills-creator approve）を打ってもらうか、「ここが違う」の一言を受け取る"
         ],
         "rules": [
-            "目的は AI が仮説として示し、作る人が承認して決める",
+            "目的は AI が仮説として示し、作る人が進めてよいと答えて決まる（「承認」は、approve で approved を書くことだけを指す）",
             "像は判断してもらう手段で、目的ではない。作る人が「ここが違う」と言える所だけを見せる",
             "作る人が既に言ったことは聞き直さない",
             "推測した所には必ず印を付ける。作る人が答えた件の from は「作る人の答え」にする",
@@ -116,10 +116,17 @@ pub fn create(
             let mut run = sas.create_semantic(&path, concrete).map_err(unavailable)?;
             as_creator_procedure(
                 &mut run.output,
-                format!(
-                    "agents-skills-creator skills create {} --concrete {concrete} --value <JSON か @<ファイル>>",
-                    trimmed(target)
-                ),
+                if concrete == SKILL_ID {
+                    format!(
+                        "agents-skills-creator skills create {} --value <JSON か @<ファイル>>",
+                        trimmed(target)
+                    )
+                } else {
+                    format!(
+                        "agents-skills-creator skills create {} --concrete {concrete} --value <JSON か @<ファイル>>",
+                        trimmed(target)
+                    )
+                },
                 "skills",
             );
             Ok(Created {

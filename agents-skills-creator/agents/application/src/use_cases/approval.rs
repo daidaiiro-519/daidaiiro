@@ -67,7 +67,7 @@ pub fn approval(folder: &str, agent: &Value) -> Value {
             "merge": items(agent, "rules").iter().map(|r| s(r, "rule")).collect::<Vec<_>>(),
         },
         "delegate": [
-            {"id": "a", "what": "意味の rule の判定", "how": format!("書いたときとは別の会話で、このコマンドの手順を受け取って判定し、sas validate {agent_json} --answer で渡す"), "command": format!("sas validate {agent_json} --semantic")},
+            {"id": "a", "what": "意味の rule の判定", "how": format!("書いたときとは別の会話で、このコマンドの手順を受け取って判定し、答えを、手順の answer.schema に従う JSON（hash に手順の target.hash、results に rule ごとの step ・ rule ・ pointer ・ result ・ reason）として作業場所の中のファイルに書き、sas validate {agent_json} --answer <ファイル> で渡す。そのあと validate を打ち直す"), "command": format!("sas validate {agent_json} --semantic")},
             {"id": "b", "what": "例を動かす", "how": format!("別の会話に {}/{} を読ませ、例ごとに given を手で用意して input で頼み、出たものを expected と比べる", trimmed(folder), agent_md::FILE),
              "examples": examples.iter().map(|e| json!({"id": s(e, "id"), "given": s(e, "given"), "input": s(e, "input"), "expected": s(e, "expected")})).collect::<Vec<_>>()}
         ]
