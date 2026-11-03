@@ -1,6 +1,6 @@
 # コードの決まり
 
-設計の仮説は `docs/design/arch/arch-v15.json`、根拠の原文の照合は `docs/design/rust/factcheck-rust.json` にある。ここには、いま守る決まりだけを書く。
+設計の仮説は `docs/design/arch/arch-v15.json`、根拠の原文の照合は `docs/design/rust/factcheck-rust.json` にある。ここには、いま守る決まりだけを書く。決まりは `docs/essence.md`（本質）に照らして決める。
 
 ## 言語に依存しない決まり
 
