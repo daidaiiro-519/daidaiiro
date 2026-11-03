@@ -1,0 +1,62 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0223",
+ "title": "SAS のコマンド名と置き場所",
+ "date": "2026-11-03",
+ "status": "accepted",
+ "decision": "SAS のコマンドを略さない名前 semantic-agent-schema にし、agents-skills-creator と一緒に HOME の下（~/.local/bin）に置いて、人と AI ツールが同じ名前で呼べるようにする。",
+ "why": "名前：sas は、SAS Institute の SAS を Unix で起動するコマンド名と同じなので、PATH の上で名前が衝突する（SAS 9.3 Companion for UNIX）。略した名前では、何のコマンドかも読めない。creator はすでに略さない agents-skills-creator にしてある（asc は AssemblyScript と衝突する）。crates.io では sas を別のライブラリが使っていて、semantic-agent-schema と agents-skills-creator は空いている。置き場所：承認（approve）と取り下げ（withdraw）は人が自分の端末で打ち、ほかのコマンドは AI ツールが打つので、同じ名前が両方の PATH に入っている必要がある。Claude Code の plugin の bin/ は、Claude Code の Bash ツールのシェルの PATH にしか入らない（plugins/components.md）。claude.ai と Cowork は、根に bin/ を持つ plugin を入れない（plugins/org-sync）。Codex の plugin には、実行ファイルを PATH に入れる仕組みが無い（Codex plugins/build.md）。リポジトリの中のフォルダは、人の端末にも AI ツールにも PATH に入っていない。~/.local/bin は、XDG Base Directory の仕様が利用者の実行ファイルの置き場所として挙げ、ディストリビューションが PATH に入れるとしている所である。変えないもの：SAS の記録の置き場所 <git-common-dir>/sas/sas.db は内部の置き場所で、人が打つ名前ではないので変えない。SAS の記録に入る値 source='sas' は、'outside' と対になる区別の値で人が打つ名前ではなく、変えるには表を作り直す必要があるので変えない。テンプレートの id=\"sas-data\" は、変えると既にあるデザインシステムが全部壊れるので、別に決める。crate 名 outbound-sas は開発者だけが見る内部の名前なので変えない。扱わない範囲：導入スクリプト（版の引数 ・ 配布物の確かめ方 ・ 入れ替え方）は配布物を公開するときに決める。版の範囲の照合と記録の形式の版は、リポジトリごとに版を分ける場面が出たときに別の ACDR で決める。配布物の署名もここでは決めない。出どころ：取得日は 2026-11-03 で、どれも原文の行で照らした。Claude Code は plugins/components.md の行167 ・ 474 ・ 483 ・ 485。claude.com は plugins/org-sync の行103〜107。Codex は plugins/build.md の行13〜21 ・ 563。agentskills.io は specification.md の行33 ・ 217 ・ 255。XDG Base Directory は行83〜85。cargo-install は行196〜204。SAS 9.3 Companion for UNIX は行147。",
+ "shift": [
+  {
+   "what": "コマンド名",
+   "from": "sas validate skills/fact-check/skill.json --semantic",
+   "to": "semantic-agent-schema validate skills/fact-check/skill.json --semantic。コマンド名が出る所を全部変える（bin の名前 ・ 使い方 ・ 打ち直すコマンド ・ 書く手順の command ・ 文書 ・ creator の uses と compatibility と PATH の探し方と出力の文）。過去の ACDR ・ 探索の記録 ・ コミットは書き換えない。"
+  },
+  {
+   "what": "出力に出る名前",
+   "from": "creator の結果の JSON キー sas ・ sas_exit ・ sas_unavailable。",
+   "to": "semantic_agent_schema ・ semantic_agent_schema_exit ・ semantic_agent_schema_unavailable。AI が毎回読むキーなので、コマンド名にそろえる。"
+  },
+  {
+   "what": "置き場所",
+   "from": "target/debug を PATH に足して使う。置き場所は決まっていない。",
+   "to": "~/.local/bin（Windows は %USERPROFILE%\\.local\\bin）に2つ置く。いまは cargo install --root ~/.local で入れる。削除は2つのファイルを消すだけで、SAS の記録（.git の中の sas.db）は消さない。"
+  },
+  {
+   "what": "リポジトリに置くもの",
+   "from": "Skill と Agent はリポジトリにも HOME にも配れる（distribute --scope）。コマンドの実行ファイルをどこに置くかは決まっていない。",
+   "to": "Skill と Agent は今までどおり配れる。コマンドの実行ファイルは、リポジトリにも plugin の bin/ にも置かない。"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は略した名前 sas を置き場所の決まっていない target/debug から呼び、変更後は略さない2つのコマンドを ~/.local/bin に置いて人の端末と AI ツールの両方から同じ名前で呼ぶ。",
+ "alternatives": [
+  {
+   "option": "略した名前 sas ・ asc のままにする",
+   "why_not": "PATH の上で既にあるコマンドと名前が衝突し、何のコマンドかも読めない。"
+  },
+  {
+   "option": "リポジトリの .agents/bin に置き、direnv か AI ツールの設定で PATH を通す",
+   "why_not": "人の端末と AI のどちらか片方にしか効かず、Codex には PATH を通す仕組みが無い。"
+  },
+  {
+   "option": "リポジトリに置き、PATH を使わずに、起動された経路で打ち直すコマンドを作る（反証役の案）",
+   "why_not": "AI ツールは打ち直せるが、人は承認のたびにリポジトリの中の経路を打つことになり、同じ名前で呼べない。"
+  },
+  {
+   "option": "Claude Code の plugin の bin/ に置く",
+   "why_not": "Claude Code のツールのシェルにしか入らないので、人の端末で approve を打てない。claude.ai と Cowork は入れず、Claude 専用になる。"
+  },
+  {
+   "option": "導入スクリプト（版の引数 ・ SHA256 の確かめ ・ rename での入れ替え）もここで決める",
+   "why_not": "配布物を公開するときに必要とするもので、いま入れるのは手元だけである。決めると、この記録が名前と置き場所の2つに絞れない。"
+  },
+  {
+   "option": "SAS の記録に入る値 source='sas' も変える",
+   "why_not": "人が打つ名前ではない区別の値で、変えるには表を作り直して行を移す必要があり、得るものが少ない。"
+  }
+ ],
+ "supersedes": "",
+ "docs": [],
+ "seal": {}
+}
