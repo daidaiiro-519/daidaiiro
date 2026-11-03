@@ -1,0 +1,154 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 20,
+ "date": "2026-11-03",
+ "summary": "例が外れても承認を受け付ける穴を、既にある意味の判定に載せて塞いだ（examples に rule example-runs-as-expected）。validate は最後に渡された判定を approval.judgments に重ね、判定がそろえば delegate を出さず、承認したあとは approved_by に操作 ID を出す。同じ入力の例を creator の検査 examples-distinct で止め、update の flow と作る流れの手引きに、同じ入力の例の扱いと 7a の層の起点を書いた",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "Concrete の更新（semantic-agent-schema update、--reason 付き）",
+   "evidence": [
+    "skill.schema：o-0125。examples のステップの x-prompt.rules に example-runs-as-expected（別の会話で SKILL.md だけを読ませ、given を用意して input で頼んだ実際の答えが expected と合う。reason に実際の答えを書く）を足した。機械の判定で違反 0",
+    "agent.schema：o-0127。同じ rule を AGENT.md で足した。機械の判定で違反 0"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "--answer は rule を分けて渡せるか",
+   "evidence": [
+    "実地：example-runs-as-expected を除いた17件の答えを渡すと invalid_answer（判定の答えを記録しない：step 12 の example-runs-as-expected /examples の判定が無い）で断られた。この1件だけの答えも、ほかの rule が無いと断られた",
+    "examples の意味の判定のステップは pointer /examples の1つで、例ごと（/examples/<n>）ではない",
+    "a と b で答えのファイルを分けて渡すことはいまの SAS ではできない。delegate の how と作る流れの手引きには「1つの答えのファイルにまとめて渡す」と書き、SAS 側の持ち越しにした"
+   ],
+   "result": "refuted"
+  },
+  {
+   "item": "SAS の記録から、渡した判定を読めるか",
+   "evidence": [
+    "semantic-agent-schema log の行は op ・ counts だけで、--answer かどうかは出ない",
+    "semantic-agent-schema log --operation <ID> の targets[0] に hash と rule ごとの results（by が ai の判定を含む）がある。by が ai で not-judged でない結果がある validate の操作を、渡した判定とみなせる"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 確かめる（skills ・ agents の validate）",
+   "steps": [
+    "最後に書いたあとの validate の操作を新しい順に見て、対象のハッシュがいまの中身と同じで、AI の判定に not-judged でないものがある最初の操作を、最後に渡された判定として approval.judgments（operation と、rule ごとの rule ・ pointer ・ result ・ reason）に出す。SAS の結果は書き換えない",
+    "判定がそろっている（judgments に not-judged が無い）か承認済みなら、approval.delegate を出さない",
+    "判定がそろっていて violated か error があれば、not_approvable に「意味の判定で violated が N 件 ・ error が M 件ある（approval.judgments の <操作>）」を出す",
+    "approved が判定まで済んだ確かめ（not-judged ・ violated ・ error が0の validate の操作）を指し、そのあと人が /approved を書いたほかに書き換えていなければ、approval.approved_by にその操作 ID を出し、approvable は true、approve は出さない。承認のあとの書き換えの見方は distribute の approval-current と同じ関数（write_after_approval）にした",
+    "creator の検査 examples-distinct を足した（given と input が同じ例が2つあれば、後の例の所に violated）。Skill は13件"
+   ],
+   "rules": [
+    "delegate の b は、例を動かした会話が example-runs-as-expected を判定し（reason に例ごとの実際の答え）、a の判定と1つの答えのファイルにまとめて --answer で渡す"
+   ]
+  },
+  {
+   "usecase": "UC3 直す（skills ・ agents の update の flow）",
+   "steps": [
+    "add_example の how に「足す例の given ・ input が既にある例と同じなら、足さずにその例の expected ・ covers を直し、結び先を変える」を足した",
+    "choose に「外れた例が一度も直されていない（作るときに書いたまま）なら、起点は examples とみなし、次は edge_cases から選ぶ。ただし層の選び方の基準で決まる層がそれより広ければそちら」を足した"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "作る流れの手引き：手順6 ・ 7 を、手順6で a を判定し、手順7で例を動かした会話が example-runs-as-expected を判定し、2つを1つの答えのファイルで渡す形にした。§4 に approved_by、§6 に同じ入力の例の扱いと 7a の起点を書いた",
+    "skills update --patch @… --reason「層：role。…」で手順6 ・ 7 の do ・ completion と、uses の semantic-agent-schema の used_by を [6, 7] に直した（一時ディレクトリの SAS の記録で o-0046）。approvable が true になるのは手順7のあとなので、手順6の完了条件を「example-runs-as-expected のほかの意味の rule に、判定がある」にした"
+   ],
+   "rules": []
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "例を動かした結果",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "例を動かす（delegate の b）の結果を載せる所が無く、例が外れても意味の判定がそろえば承認を受け付けた。仕組みを足さず、examples の意味の rule（example-runs-as-expected）として既にある判定に載せた（o-0125 ・ o-0127）"
+  },
+  {
+   "item": "承認の前の直しの --reason の層",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "手順（steps）と外の道具の used_by（uses）だけを直すとき、--reason に書ける層が合わない。steps を導き直すのは role と purpose の層だけで、uses はどの層の rederive にも無い。creator 自身の手順6 ・ 7 は「層：role」で書いた"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "最後に渡された判定（judgments）",
+   "seen": "validate の承認の材料",
+   "drift": "いまの中身のハッシュで、最後に semantic-agent-schema validate --answer で渡した判定。SAS の validate の結果（いつも not-judged）とは別の欄"
+  },
+  {
+   "term": "承認済み（approved_by）",
+   "seen": "承認したあとの validate",
+   "drift": "approvable（承認できるか）とは別の欄。approve を打ったあとも中身が変わっていないこと"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "Concrete（skill.schema ・ agent.schema）",
+    "before": "examples の意味の rule は example-by-hand だけ",
+    "after": "example-runs-as-expected を足した",
+    "why": "例を動かした結果を意味の判定に載せる"
+   },
+   {
+    "what": "validate-result（skills ・ agents）と distribute-result",
+    "before": "approval.delegate が必須。judgments ・ approved_by が無い",
+    "after": "delegate は任意（判定がそろったか承認済みなら出さない）。judgments ・ approved_by を足し、検査の名前に examples-distinct を足した",
+    "why": "判定を渡したあとと承認したあとの表示"
+   },
+   {
+    "what": "creator の検査",
+    "before": "Skill 12件、Agent 5件",
+    "after": "Skill 13件、Agent 6件（examples-distinct）",
+    "why": "同じ入力の例が2つあると、動かした答えがどちらと合うべきかが決まらない"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "持ち越し（SAS 側）：--answer の部分の答え",
+    "why": "rule が1つでも欠けた答えを invalid_answer で断るので、a（意味の判定）と b（例を動かす）を別の答えのファイルで渡せない。いまは1つのファイルにまとめて渡す"
+   },
+   {
+    "what": "持ち越し（SAS 側）：examples の判定の pointer",
+    "why": "examples の意味の判定のステップは /examples の1つで、例ごと（/examples/<n>）に判定できない。例ごとの実際の答えは reason にまとめて書く"
+   },
+   {
+    "what": "持ち越し（SAS 側）：validate の結果に渡した判定を重ねる",
+    "why": "SAS の validate は意味の rule をいつも not-judged と返す。いまは creator が SAS の記録（log --operation）から重ねている"
+   },
+   {
+    "what": "持ち越し（SAS 側）：--answer の出力の stale_only",
+    "why": "意味が書かれていない"
+   },
+   {
+    "what": "持ち越し（SAS 側）：answer.schema の result の説明",
+    "why": "rule の項目名 test を指すが、実際の項目名は check"
+   },
+   {
+    "what": "持ち越し（SAS 側）：constraints の「ファイルを書かない」",
+    "why": "答えのファイルを書く依頼とぶつかって見える"
+   },
+   {
+    "what": "持ち越し：承認の前の直しの --reason の層",
+    "why": "steps ・ uses だけを直すときに合う層が無い。層の一覧か、承認の前の直しの理由の書き方を見直す"
+   },
+   {
+    "what": "持ち越し",
+    "why": "ほかの持ち越しはそのまま（推測の一覧 ・ semantic-agent-schema の --version など）"
+   }
+  ]
+ }
+}

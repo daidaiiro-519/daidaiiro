@@ -1,0 +1,140 @@
+{
+ "$schema": "urn:agents-skills-creator:skill:v1",
+ "name": "fact-check",
+ "purpose": {
+  "who": "外の情報源の内容を、文書 ・ 設計 ・ 実装へ取り込む人か AI",
+  "when": "項目名などの識別子を書き写すとき",
+  "gets": "書く識別子のどれが原文にあり、どれが無いかが分かった状態"
+ },
+ "role": {
+  "does": [
+   "原文を取って、取った日と sha256 と一緒に残す",
+   "識別子を、原文の文字列で照合する"
+  ],
+  "does_not": [
+   {
+    "what": "真偽を判定する（原文が誤っていても照合は通る）",
+    "from": "作る人の答え"
+   },
+   {
+    "what": "取り込む先の文書を書き換える",
+    "from": "作る人の答え"
+   }
+  ]
+ },
+ "description": "外の情報源の内容を文書 ・ 設計 ・ 実装へ取り込み、項目名などの識別子を書き写すときに使う。原文を取って残し、識別子を原文の文字列で照合する。真偽は判定しない。",
+ "preconditions": [
+  "書こうとしている識別子が決まっている"
+ ],
+ "inputs": [
+  {
+   "name": "調べる対象",
+   "form": "URL"
+  },
+  {
+   "name": "識別子の一覧",
+   "form": "1行1個のテキスト"
+  }
+ ],
+ "outputs": [
+  {
+   "name": "照合の結果",
+   "form": "JSON",
+   "where": "標準出力",
+   "schema": "references/verify-result.schema.json"
+  },
+  {
+   "name": "原文",
+   "where": "sources/"
+  }
+ ],
+ "steps": [
+  {
+   "id": 1,
+   "do": "原文を取る",
+   "completion": "原文と sha256 が sources/ にある"
+  },
+  {
+   "id": 2,
+   "do": "識別子を原文と照合する",
+   "completion": "標準出力に、照合の結果の JSON が出ている"
+  }
+ ],
+ "edge_cases": [
+  {
+   "id": "2a",
+   "when": "読めなかった範囲がある",
+   "then": "読めるようにする",
+   "end": "ステップ2へ戻る",
+   "examples": [
+    "E2"
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "rule": "照合する識別子を言い換えない",
+   "why": "言い換えた名前は、原文の名前とは別のキーになり、そのキーで引く実装は何も返さない",
+   "bad": "項目名の綴りを、読みやすい別の名前に直してから照合する",
+   "examples": [
+    "E1",
+    "E2"
+   ]
+  }
+ ],
+ "minimal_guarantees": [
+  "どこで止まっても、sources/ の外は変わらない"
+ ],
+ "completion_criteria": [
+  {
+   "id": "C1",
+   "criterion": "一覧のどの識別子にも、原文にある ・ 無いが付いている",
+   "check": "照合の結果の件数と、一覧の行数が同じ",
+   "from": "目的の仮説（得るもの）から"
+  },
+  {
+   "id": "C2",
+   "criterion": "読めなかった範囲が、結果に載っている",
+   "check": "照合の結果に、読めなかった範囲の件数がある（0件でも）",
+   "from": "目的の仮説（得るもの）から"
+  }
+ ],
+ "examples": [
+  {
+   "id": "E1",
+   "from": "作るときの場面（サブエージェントの項目名）",
+   "covers": [
+    "C1",
+    "C2"
+   ],
+   "caller": "人が直接",
+   "given": "Claude Code のサブエージェントの頁の URL と、項目名3つ（skills ・ disallowedTools ・ allowedSkills）の一覧がある",
+   "input": "この URL で3つを照合して",
+   "expected": "skills と disallowedTools に ok と原文の行、allowedSkills に「読めた範囲には無い」が付き、読めなかった範囲 0件",
+   "behavior": {
+    "who": "設計書を書く人",
+    "does": "サブエージェントの項目名3つを照合する",
+    "then": "2つは原典の名前として書け、allowedSkills は書けないと分かる"
+   }
+  },
+  {
+   "id": "E2",
+   "from": "作る人が挙げた別の場面（API 仕様の項目名）",
+   "covers": [
+    "C1",
+    "C2",
+    "2a"
+   ],
+   "caller": "人が直接",
+   "given": "Claude Code のサブエージェントの頁の URL と、項目名3つ（skills ・ disallowedTools ・ allowedSkills）の一覧がある",
+   "input": "この URL で3つを照合して",
+   "expected": "3件ともに ある ・ 無い が付き、読めなかった範囲 1件が結果に載る",
+   "behavior": {
+    "who": "実装を書く人",
+    "does": "API の項目名3つを照合する",
+    "then": "読めなかった範囲にある名前を、無いと決めつけずに済む"
+   }
+  }
+ ],
+ "compatibility": "原文を取るために、外の URL へ接続できること"
+}

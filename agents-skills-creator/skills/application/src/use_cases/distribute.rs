@@ -8,7 +8,9 @@
 //! 最低保証：置き場所にほかのものがあれば置かない（同じ Skill へのリンクなら何もしない）。承認していない Skill は置かない（BR4）。
 
 use crate::ports::{Destinations, JsonSchemaChecker, SkillFiles, SkillHistory, SkillValidator};
-use crate::use_cases::validate::{Finding, Outcome, SkillChecked, finding, validate};
+use crate::use_cases::validate::{
+    Finding, Outcome, SkillChecked, finding, validate, write_after_approval,
+};
 use crate::use_cases::{Refused, read_skill, trimmed};
 use serde_json::Value;
 use skills_domain::services::skill_md;
@@ -157,41 +159,23 @@ fn approval_current(files: &dyn SkillFiles, history: &dyn SkillHistory, folder: 
             ),
         );
     };
-    for row in &rows[..at] {
+    if let Some(row) = write_after_approval(history, &rows[..at]) {
         let op = s(row, "op");
-        if !matches!(op.as_str(), "create" | "update" | "delete") {
-            continue;
-        }
         let id = s(row, "operation");
-        let only_approval = op == "update"
-            && row.get("session").is_none_or(Value::is_null)
-            && history.operation(&id).ok().is_some_and(|d| {
-                d.output
-                    .pointer("/diff/changes")
-                    .and_then(Value::as_array)
-                    .is_some_and(|c| {
-                        !c.is_empty()
-                            && c.iter().all(|x| {
-                                x.get("pointer").and_then(Value::as_str) == Some("/approved")
-                            })
-                    })
-            });
-        if !only_approval {
-            let reason = row
-                .get("reason")
-                .and_then(Value::as_str)
-                .map(|r| format!("、理由 {r}"))
-                .unwrap_or_default();
-            return finding(
-                CHECK,
-                Outcome::Violated,
-                Some(id.clone()),
-                format!(
-                    "承認（{approved}）のあとに {id}（{op}{reason}）で書き換えた。承認は古い。もう一度確かめて承認する。{}",
-                    how_to_approve(folder)
-                ),
-            );
-        }
+        let reason = row
+            .get("reason")
+            .and_then(Value::as_str)
+            .map(|r| format!("、理由 {r}"))
+            .unwrap_or_default();
+        return finding(
+            CHECK,
+            Outcome::Violated,
+            Some(id.clone()),
+            format!(
+                "承認（{approved}）のあとに {id}（{op}{reason}）で書き換えた。承認は古い。もう一度確かめて承認する。{}",
+                how_to_approve(folder)
+            ),
+        );
     }
     finding(
         CHECK,

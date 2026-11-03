@@ -252,7 +252,6 @@
       "structure",
       "guesses",
       "approvable",
-      "delegate",
       "structure_image"
      ],
      "additionalProperties": false,
@@ -601,7 +600,7 @@
       },
       "delegate": {
        "title": "別の会話に任せる手順",
-       "description": "(a) 意味の rule の判定、(b) 例を SKILL.md に従って動かして expected と比べること。creator は AI を起動しないので、打ったセッションが別の会話に任せる",
+       "description": "(a) 意味の rule の判定、(b) 例を SKILL.md に従って動かして expected と比べること。creator は AI を起動しないので、打ったセッションが別の会話に任せる。判定がそろったか承認済みなら出さない",
        "x-prompt": {
         "meaning": "別の会話を立てて任せる。",
         "when": "結果を受け取ったときに読む。",
@@ -687,6 +686,63 @@
          "type": "string"
         }
        }
+      },
+      "judgments": {
+       "title": "最後に渡された意味の判定",
+       "description": "いまの中身のハッシュで最後に渡された意味の判定（semantic-agent-schema validate --answer の操作）。SAS の validate は意味の rule をいつも not-judged と返すので、creator が SAS の記録（semantic-agent-schema log）から読んで重ねる。operation はどの操作の判定か、results は rule ごとの rule ・ pointer ・ result ・ reason。最後に書いたあとに判定を渡していなければ無い",
+       "x-prompt": {
+        "meaning": "rule ごとの判定と、どの操作の判定かを読む。",
+        "when": "結果を受け取ったときに読む。",
+        "rules": []
+       },
+       "type": "object",
+       "required": [
+        "operation",
+        "results"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "operation": {
+         "type": "string"
+        },
+        "results": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "rule",
+           "pointer",
+           "result",
+           "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "rule": {
+            "type": "string"
+           },
+           "pointer": {
+            "type": "string"
+           },
+           "result": {
+            "type": "string"
+           },
+           "reason": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       }
+      },
+      "approved_by": {
+       "title": "承認済み",
+       "description": "承認した確かめの操作 ID。approved が判定まで済んだ確かめ（not-judged ・ violated ・ error が0の validate の操作）を指し、そのあと人が承認を書いたほかに書き換えていないときだけ（配る前の approval-current と同じ見方）。このときは approve を出さない",
+       "x-prompt": {
+        "meaning": "承認済みかと、どの確かめを承認したかを読む。",
+        "when": "結果を受け取ったときに読む。",
+        "rules": []
+       },
+       "type": "string"
       }
      }
     }
@@ -705,7 +761,7 @@
    "properties": {
     "check": {
      "title": "検査の名前",
-     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から agents-skills-creator skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は semantic-agent-schema validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。approval-current：approved の確かめ（validate の操作）のあとに、承認を書いた人の操作（/approved だけを変えた、セッションの無い update）のほかに書き換えていない（distribute だけ）。destination-free：置き場所に何も無いか、同じ Skill へのリンク（distribute だけ）。placed-readable：置いた所から SKILL.md を読める（distribute の after だけ）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある。tools-used-by：道具の used_by の番号が steps にある",
+     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から agents-skills-creator skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は semantic-agent-schema validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。approval-current：approved の確かめ（validate の操作）のあとに、承認を書いた人の操作（/approved だけを変えた、セッションの無い update）のほかに書き換えていない（distribute だけ）。destination-free：置き場所に何も無いか、同じ Skill へのリンク（distribute だけ）。placed-readable：置いた所から SKILL.md を読める（distribute の after だけ）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある。tools-used-by：道具の used_by の番号が steps にある。examples-distinct：given と input が同じ例が2つない（重なれば後の例の所に violated）",
      "x-prompt": {
       "meaning": "どの検査の結果かを読む。",
       "when": "結果を受け取ったときに読む。",
@@ -726,7 +782,8 @@
       "assets-exist",
       "tools-in-role",
       "tool-io-declared",
-      "tools-used-by"
+      "tools-used-by",
+      "examples-distinct"
      ]
     },
     "result": {

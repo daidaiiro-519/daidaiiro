@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC2-APPROVE",
  "name": "Agent を承認する",
- "title": "Agent も、意味の判定を渡した確かめのあとに agents validate を打つと承認を受け付け、承認のコマンド agents-skills-creator approve <フォルダ> を返す。approve は agent.json を見分け、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドを返す",
+ "title": "Agent も、意味の判定を渡した確かめのあとに agents validate を打つと承認を受け付け、承認のコマンド agents-skills-creator approve <フォルダ> を返す。approve は agent.json を見分け、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドを返す。判定を渡したあとの agents validate は、最後に渡された判定を approval.judgments に重ねて見せ、delegate を出さない。承認したあとは approved_by に操作 ID を返す",
  "why": "承認のコマンドを人が組み立てると、操作 ID やハッシュを写し間違え、承認が書けないか、違う確かめを承認する。",
  "traces": [
   "UC2:最低保証",
@@ -85,6 +85,12 @@
     "approve",
     "agents/consult-advisors"
    ]
+  },
+  {
+   "args": [
+    "validate",
+    "agents/consult-advisors"
+   ]
   }
  ],
  "then": [
@@ -148,6 +154,31 @@
    "of": "when",
    "file": "agents/consult-advisors/agent.json",
    "contains": "\"approved\": \"o-0009\""
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/agents/0/approval/judgments/operation",
+   "equals": "o-0009"
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/agents/0/approval/delegate",
+   "exists": false
+  },
+  {
+   "of": "after[6]",
+   "pointer": "/agents/0/approval/approved_by",
+   "equals": "o-0009"
+  },
+  {
+   "of": "after[6]",
+   "pointer": "/agents/0/approval/approvable",
+   "equals": true
+  },
+  {
+   "of": "after[6]",
+   "pointer": "/agents/0/approval/approve",
+   "exists": false
   }
  ]
 }

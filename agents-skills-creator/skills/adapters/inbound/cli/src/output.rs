@@ -172,8 +172,16 @@ fn approval(c: &Approval) -> Value {
         "structure_image": c.structure_image,
         "guesses": c.guesses.iter().map(|g| json!({"field": g.field, "content": g.content, "from": g.from, "unknown": g.unknown})).collect::<Vec<_>>(),
         "approvable": c.not_approvable.is_empty(),
-        "delegate": delegate,
     });
+    if !delegate.is_empty() {
+        out["delegate"] = json!(delegate);
+    }
+    if let Some(j) = &c.judgments {
+        out["judgments"] = j.clone();
+    }
+    if let Some(op) = &c.approved_by {
+        out["approved_by"] = json!(op);
+    }
     if !c.not_approvable.is_empty() {
         out["not_approvable"] = json!(c.not_approvable);
     }

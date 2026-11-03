@@ -133,14 +133,13 @@
     },
     "approval": {
      "type": "object",
-     "description": "承認の材料：name ・ description ・ 完成の像（images）・ 振る舞い（behaviors）・ 構造の像（scope ・ calls ・ steps_and_branches ・ merge）・ 別の会話に任せる手順（delegate）・ 承認できるか（approvable。SAS の検証で検出があるか、意味の rule の not-judged が1件でも残れば false）・ 承認できない理由（not_approvable）・ そのまま打てる承認のコマンド（approve：command と how）",
+     "description": "承認の材料：name ・ description ・ 完成の像（images）・ 振る舞い（behaviors）・ 構造の像（scope ・ calls ・ steps_and_branches ・ merge）・ 別の会話に任せる手順（delegate）・ 承認できるか（approvable。SAS の検証で検出があるか、意味の rule の not-judged が1件でも残れば false）・ 承認できない理由（not_approvable）・ そのまま打てる承認のコマンド（approve：command と how）。判定がそろったか承認済みなら delegate は出さない。最後に渡された意味の判定（judgments：operation と rule ごとの results）・ 承認済みなら承認した確かめの操作 ID（approved_by）",
      "required": [
       "name",
       "description",
       "images",
       "behaviors",
       "structure_image",
-      "delegate",
       "approvable"
      ]
     }
@@ -159,7 +158,7 @@
    "properties": {
     "check": {
      "title": "検査の名前",
-     "description": "name-is-folder：agent.json の name がフォルダ名と同じ。skills-linked：skills の各名前が配下の skills/ にリンクとしてあり、その先が agents-skills-creator skills validate を通る（skills/ にあって skills に無いものも violated）。calls-are-linked：ステップが呼ぶ Skill が skills にある。passes-are-outputs：ステップが渡すものの名前が、呼んだ Skill の outputs にある。agent-md-built：AGENT.md と codex.toml が write-agent-md で作るものと同じ。approval-current ・ destination-free ・ placed-readable：distribute だけ（Skill と同じ）。unlinked：どの置き場所にも、この Agent の写しが残っていない（withdraw だけ）",
+     "description": "name-is-folder：agent.json の name がフォルダ名と同じ。skills-linked：skills の各名前が配下の skills/ にリンクとしてあり、その先が agents-skills-creator skills validate を通る（skills/ にあって skills に無いものも violated）。calls-are-linked：ステップが呼ぶ Skill が skills にある。passes-are-outputs：ステップが渡すものの名前が、呼んだ Skill の outputs にある。agent-md-built：AGENT.md と codex.toml が write-agent-md で作るものと同じ。approval-current ・ destination-free ・ placed-readable：distribute だけ（Skill と同じ）。unlinked：どの置き場所にも、この Agent の写しが残っていない（withdraw だけ）。examples-distinct：given と input が同じ例が2つない（重なれば後の例の所に violated）",
      "x-prompt": {
       "meaning": "どの検査の結果かを読む。",
       "when": "結果を受け取ったときに読む。",
@@ -174,7 +173,8 @@
       "approval-current",
       "destination-free",
       "placed-readable",
-      "unlinked"
+      "unlinked",
+      "examples-distinct"
      ]
     },
     "result": {

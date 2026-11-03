@@ -64,8 +64,12 @@ pub struct Approval {
     pub not_approvable: Vec<String>,
     /// そのまま打てる承認のコマンドと、打ち方（validate が SAS の結果から作る）
     pub approve: Option<(String, String)>,
-    /// 別の会話に任せる手順
+    /// 別の会話に任せる手順（判定がそろったか承認済みなら空）
     pub delegate: Vec<Delegate>,
+    /// いまの中身のハッシュで最後に渡された意味の判定（どの操作の判定かと、rule ごとの結果。validate が SAS の記録から重ねる）
+    pub judgments: Option<Value>,
+    /// 承認済みなら、承認した確かめの操作 ID（approved が判定まで済んだ確かめを指し、そのあと人が承認を書いたほかに書き換えていない）
+    pub approved_by: Option<String>,
 }
 
 /// 推測の一覧に並べる所（損失の大きい順）：受け持たないこと → 最低保証 → rules → 完了条件 → 手順 → 参照する資料 → そのほか。
@@ -384,7 +388,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
             id: "a",
             what: "意味の rule の判定".to_string(),
             how: format!(
-                "書いたときとは別の会話で、このコマンドの手順を受け取って判定し、答えを、手順の answer.schema に従う JSON（hash に手順の target.hash、results に rule ごとの step ・ rule ・ pointer ・ result ・ reason）として作業場所の中のファイルに書き、semantic-agent-schema validate {skill_json} --answer <ファイル> で渡す。そのあと validate を打ち直す"
+                "書いたときとは別の会話で、このコマンドの手順を受け取って判定し、答えを、手順の answer.schema に従う JSON（hash に手順の target.hash、results に rule ごとの step ・ rule ・ pointer ・ result ・ reason。example-runs-as-expected だけは b の会話の判定を入れる）として作業場所の中のファイルに書き、semantic-agent-schema validate {skill_json} --answer <ファイル> で渡す。そのあと validate を打ち直す"
             ),
             command: Some(format!(
                 "semantic-agent-schema validate {skill_json} --semantic"
@@ -395,7 +399,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
             id: "b",
             what: "例を動かす".to_string(),
             how: format!(
-                "別の会話に {}/SKILL.md を読ませ、例ごとに given を手で用意して input で頼み、出たものを expected と比べる",
+                "別の会話に {}/SKILL.md だけを読ませ、例ごとに given を手で用意して input で頼み、実際の答えを expected と比べる。その会話が、意味の rule example-runs-as-expected（pointer /examples）を判定し、reason に例ごとの実際の答えを書く。この判定は a の判定と1つの答えのファイルにまとめて semantic-agent-schema validate {skill_json} --answer <ファイル> で渡す（rule が1つでも欠けた答えは SAS が断る）。そのあと validate を打ち直す",
                 trimmed(folder)
             ),
             command: None,
@@ -423,5 +427,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
         not_approvable,
         approve: None,
         delegate,
+        judgments: None,
+        approved_by: None,
     }
 }

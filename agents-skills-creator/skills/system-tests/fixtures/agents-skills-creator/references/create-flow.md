@@ -72,8 +72,9 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 - 手順3：作る人が目的の仮説で進めてよいと答え、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`semantic-agent-schema.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で SAS に書かせる。
 - 手順4：`agents-skills-creator skills write-skill-md <フォルダ>`（Agent なら `agents-skills-creator agents write-agent-md`）を打つ。
 - 手順5：`agents-skills-creator skills validate <フォルダ>`（Agent なら `agents-skills-creator agents validate`）を打ち、検出があれば直す。
-- 手順6：意味の rule の判定。semantic-agent-schema validate <ファイル> --semantic で判定の手順を受け取り、別の会話で判定して、答えを手順の answer.schema に従う JSON のファイルにし、--answer で渡し、validate を打ち直す（承認の材料の delegate の a）。`approvable` が true になるまで承認を求めない。
-- 手順7：例を動かす。承認の材料の delegate の b のとおり、別の会話で例を動かし、実際の答えを完成の像と並べて見せる。
+- 手順6：意味の rule の判定。semantic-agent-schema validate <ファイル> --semantic で判定の手順を受け取り、別の会話で判定する（承認の材料の delegate の a）。examples の rule example-runs-as-expected だけは、手順7で例を動かした会話が判定する。
+- 手順7：例を動かす。承認の材料の delegate の b のとおり、別の会話に SKILL.md（Agent なら AGENT.md）だけを読ませて例を動かし、その会話が example-runs-as-expected を判定する（reason に例ごとの実際の答えを書く）。実際の答えは完成の像と並べて見せる。
+- 手順6と手順7の判定は、1つの答えのファイルにまとめて渡す（手順の answer.schema に従う JSON。rule が1つでも欠けた答えは SAS が断るので、a と b で分けて渡せない）：`semantic-agent-schema validate <ファイル> --answer <答えのファイル>`。そのあと validate を打ち直すと、渡した判定が `approval.judgments` に、どの操作の判定かと一緒に出る。判定がそろえば delegate は出ない。violated があれば `approvable` は false のままなので、§6 の層の選び方で直す。`approvable` が true になるまで承認を求めない。
 
 ### 承認の前の直し
 
@@ -85,7 +86,7 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 ## §4 承認と配布（手順8・9）
 
-- 手順8：承認は人が書く。validate の承認の材料に `approvable` が true で出る `approve.command`（`agents-skills-creator approve <フォルダ>`）を作る人に示し、人が自分の端末で打つ。approve は、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドが返る。
+- 手順8：承認は人が書く。validate の承認の材料に `approvable` が true で出る `approve.command`（`agents-skills-creator approve <フォルダ>`）を作る人に示し、人が自分の端末で打つ。approve は、判定まで済んだ確かめの操作 ID とハッシュを自分で引いて /approved を書く。AI のセッションから打つと SAS が断り、人が打つコマンドが返る。承認したあとの validate は、承認した確かめの操作 ID を `approval.approved_by` に出す。
 - 手順9：配る。`agents-skills-creator skills distribute <フォルダ> --tool <claude-code|codex> --scope <repository|user>`（Agent なら `agents-skills-creator agents distribute`）。
 
 ## §5 取り下げ（分かれ道 1b）
@@ -109,6 +110,7 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 - `--reason` は「層：<層>」で始め、続けて外れた具体を1文で書いてよい（例：「層：examples。全角の空白を含む項目名に「無い」と返した」）。
 - 足す例の covers は、その例が確かめる完了条件か分かれ道の id。外れた振る舞いが完了条件を破っているならその完了条件を入れる。
+- 足す例の given ・ input が既にある例と同じなら、足さずにその例の expected ・ covers を直し、結び先を変える（同じ入力の例が2つあると、validate の examples-distinct が violated になる）。
 
 ### 層の選び方
 
@@ -119,6 +121,6 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 | 外れた場面の分かれ道が無い | edge_cases |
 | 受け持つ範囲の外 | role か purpose |
 
-手順7で例を動かしてまだ外れるなら、一つ広い層で直す（分かれ道 7a）。
+手順7で例を動かしてまだ外れるなら、一つ広い層で直す（分かれ道 7a）。外れた例が一度も直されていない（作るときに書いたまま）なら、起点は examples とみなし、次は edge_cases から選ぶ。ただし層の選び方の基準で決まる層がそれより広ければそちら。
 
 作る人が層を選んだら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは作る人が層を選んで進めてよいと答えたあと1回：`semantic-agent-schema.command` のとおり `agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。

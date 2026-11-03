@@ -17,11 +17,17 @@
 //! - tools-in-role：道具の does が role.does のどれかと同じ文字列
 //! - tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある
 //! - tools-used-by：道具（tools）・ 外の道具（uses）の used_by のステップの番号が steps に、分かれ道の id が edge_cases にある
+//! - examples-distinct：given と input が同じ例が2つない（同じ入力で expected が2つあると、動かした答えがどちらと合うべきかが決まらない）
 //!
 //! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
 //! error が0の validate の操作。semantic-agent-schema validate --answer で判定を渡したもの）が記録に無ければ、承認を受け付けない
 //! （approvable を false にし、理由を出す。終了コードは変えない）。承認できるときだけ、そのまま打てる承認のコマンド
 //! （判定まで済んだ確かめの操作 ID と、いまの中身のハッシュ入り）を approve に出す。
+//!
+//! SAS の validate は意味の rule をいつも not-judged と返すので、いまの中身のハッシュで最後に渡された判定（--answer の操作）を
+//! SAS の記録から読み、approval.judgments に重ねて見せる（SAS の結果は書き換えない）。判定がそろっていれば、別の会話に任せる
+//! 手順（delegate）は出さない。approved が判定まで済んだ確かめを指し、そのあと人が承認を書いたほかに書き換えていなければ、
+//! approval.approved_by にその操作 ID を出す（配る前の approval-current と同じ見方）。
 
 use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillHistory, SkillValidator};
 pub use crate::use_cases::Refused;
@@ -908,6 +914,178 @@ pub(crate) fn judged_validation(history: &dyn SkillHistory, path: &str) -> Optio
     None
 }
 
+/// given と input が同じ例が2つないか（後に出た例の所と、重なった相手の id を出す）。
+fn examples_distinct(files: &dyn SkillFiles, folder: &str) -> Finding {
+    const CHECK: &str = "examples-distinct";
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => return finding(CHECK, Outcome::Error, None, r.message),
+    };
+    let examples = skill
+        .get("examples")
+        .and_then(Value::as_array)
+        .map_or(&[][..], Vec::as_slice);
+    let text = |e: &Value, k: &str| {
+        e.get(k)
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .trim()
+            .to_string()
+    };
+    for (i, e) in examples.iter().enumerate() {
+        if let Some(same) = examples[..i]
+            .iter()
+            .find(|o| text(o, "given") == text(e, "given") && text(o, "input") == text(e, "input"))
+        {
+            return finding(
+                CHECK,
+                Outcome::Violated,
+                Some(format!("/examples/{i}")),
+                format!(
+                    "例 {} の given と input が {} と同じ。足さずに {} の expected ・ covers を直し、結び先を変える",
+                    text(e, "id"),
+                    text(same, "id"),
+                    text(same, "id")
+                ),
+            );
+        }
+    }
+    finding(
+        CHECK,
+        Outcome::Verified,
+        None,
+        format!(
+            "例 {} 個の given と input が、どれも重ならない",
+            examples.len()
+        ),
+    )
+}
+
+/// SAS の記録の行（semantic-agent-schema log。新しい順）。読めなければ None。
+pub(crate) fn log_rows(history: &dyn SkillHistory, path: &str) -> Option<Vec<Value>> {
+    let log = history.log(path).ok().filter(|r| r.exit == 0)?;
+    Some(match log.output {
+        Value::Array(rows) => rows,
+        other @ Value::Object(_) => vec![other],
+        _ => Vec::new(),
+    })
+}
+
+/// 承認より新しい行（新しい順）のうち、人が /approved だけを書いた update でない、最初の書き換え。
+pub(crate) fn write_after_approval<'a>(
+    history: &dyn SkillHistory,
+    newer: &'a [Value],
+) -> Option<&'a Value> {
+    newer.iter().find(|row| {
+        let op = row.get("op").and_then(Value::as_str).unwrap_or_default();
+        if !matches!(op, "create" | "update" | "delete") {
+            return false;
+        }
+        let id = row
+            .get("operation")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let only_approval = op == "update"
+            && row.get("session").is_none_or(Value::is_null)
+            && history.operation(id).ok().is_some_and(|d| {
+                d.output
+                    .pointer("/diff/changes")
+                    .and_then(Value::as_array)
+                    .is_some_and(|c| {
+                        !c.is_empty()
+                            && c.iter().all(|x| {
+                                x.get("pointer").and_then(Value::as_str) == Some("/approved")
+                            })
+                    })
+            });
+        !only_approval
+    })
+}
+
+/// 承認済みなら、承認した確かめの操作 ID：approved が、判定まで済んだ（not-judged ・ violated ・ error が0の）validate の
+/// 操作を指し、そのあと人が /approved を書いたほかに書き換えていない。
+fn approved_by(history: &dyn SkillHistory, path: &str, skill: Option<&Value>) -> Option<String> {
+    let approved = skill?.get("approved").and_then(Value::as_str)?;
+    let rows = log_rows(history, path)?;
+    let at = rows.iter().position(|r| {
+        r.get("operation").and_then(Value::as_str) == Some(approved)
+            && r.get("op").and_then(Value::as_str) == Some("validate")
+    })?;
+    let n = |k: &str| {
+        rows[at]
+            .pointer(&format!("/counts/{k}"))
+            .and_then(Value::as_u64)
+    };
+    let judged = n("not-judged") == Some(0) && n("violated") == Some(0) && n("error") == Some(0);
+    (judged && write_after_approval(history, &rows[..at]).is_none()).then(|| approved.to_string())
+}
+
+/// いまの中身のハッシュで最後に渡された意味の判定（semantic-agent-schema validate --answer の操作）：最後に書いたあとの
+/// validate の操作を新しい順に見て、対象のハッシュが同じで、AI の判定（by が ai）に not-judged でないものがある最初の操作。
+/// 操作 ID と、rule ごとの rule ・ pointer ・ result ・ reason を返す。この validate を記録する前に読む。
+pub(crate) fn latest_judgments(
+    history: &dyn SkillHistory,
+    path: &str,
+    hash: &str,
+) -> Option<Value> {
+    if hash.is_empty() {
+        return None;
+    }
+    for row in log_rows(history, path)? {
+        match row.get("op").and_then(Value::as_str) {
+            Some("create" | "update" | "delete") => return None,
+            Some("validate") => {}
+            _ => continue,
+        }
+        let id = row
+            .get("operation")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let Ok(detail) = history.operation(id) else {
+            continue;
+        };
+        let Some(target) = detail.output.pointer("/targets/0") else {
+            continue;
+        };
+        if target.get("hash").and_then(Value::as_str) != Some(hash) {
+            continue;
+        }
+        let results: Vec<Value> = target
+            .get("results")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter(|r| r.get("by").and_then(Value::as_str) == Some("ai"))
+            .map(|r| {
+                serde_json::json!({
+                    "rule": r.get("rule").cloned().unwrap_or_default(),
+                    "pointer": r.get("pointer").cloned().unwrap_or_default(),
+                    "result": r.get("result").cloned().unwrap_or_default(),
+                    "reason": r.get("reason").cloned().unwrap_or_default(),
+                })
+            })
+            .collect();
+        if results
+            .iter()
+            .any(|r| r.get("result").and_then(Value::as_str) != Some("not-judged"))
+        {
+            return Some(serde_json::json!({"operation": id, "results": results}));
+        }
+    }
+    None
+}
+
+/// 判定の結果のうち、result が kind の件数。
+fn count_judged(judgments: &Value, kind: &str) -> usize {
+    judgments
+        .get("results")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|r| r.get("result").and_then(Value::as_str) == Some(kind))
+        .count()
+}
+
 /// そのまま打てる承認のコマンド（agents-skills-creator approve <フォルダ>）。approve が、判定まで済んだ確かめの操作 ID と
 /// ハッシュを自分で引いて書く。
 fn approve_command(folder: &str) -> (String, String) {
@@ -917,7 +1095,7 @@ fn approve_command(folder: &str) -> (String, String) {
     )
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査11と SAS の検証をして、承認の材料と一緒に渡した順に返す。
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査13と SAS の検証をして、承認の材料と一緒に渡した順に返す。
 /// Skill のファイルは変えない。
 ///
 /// # Errors
@@ -946,18 +1124,24 @@ pub fn validate(
         creator.extend(files_exist(files, folder, "tools", "tools-exist", "道具"));
         creator.extend(files_exist(files, folder, "assets", "assets-exist", "資源"));
         creator.extend(tool_checks(files, folder));
-        // 前の確かめから変わった所は、この確かめを記録する前に読む
-        let changes =
-            changes_since_last_validation(history, &format!("{}/skill.json", trimmed(folder)));
-        // 意味の判定まで済んだ確かめも、この確かめを記録する前に読む
-        let judged = judged_validation(history, &format!("{}/skill.json", trimmed(folder)));
-        let run = sas
-            .validate(&format!("{}/skill.json", trimmed(folder)))
-            .map_err(|message| Refused {
-                code: "semantic_agent_schema_unavailable",
-                message,
-            })?;
+        creator.push(examples_distinct(files, folder));
+        let path = format!("{}/skill.json", trimmed(folder));
+        // 前の確かめから変わった所、意味の判定まで済んだ確かめ、最後に渡された判定は、この確かめを記録する前に読む
+        let changes = changes_since_last_validation(history, &path);
+        let judged = judged_validation(history, &path);
+        let run = sas.validate(&path).map_err(|message| Refused {
+            code: "semantic_agent_schema_unavailable",
+            message,
+        })?;
+        let hash = run
+            .output
+            .pointer("/targets/0/hash")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        let judgments = latest_judgments(history, &path, &hash);
         let skill = read_skill(files, folder).ok();
+        let approved = approved_by(history, &path, skill.as_ref());
         let approval = skill.as_ref().map(|v| {
             let mut a = approval(folder, v);
             if run.exit != 0 {
@@ -966,16 +1150,33 @@ pub fn validate(
                     run.exit
                 ));
             }
-            if judged.is_none() {
-                a.not_approvable.push(format!(
-                    "意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して semantic-agent-schema validate --answer で渡す）",
-                    count_not_judged(&run.output)
-                ));
+            if judged.is_none() && approved.is_none() {
+                a.not_approvable.push(match &judgments {
+                    Some(j) if count_judged(j, "not-judged") == 0 => format!(
+                        "意味の判定で violated が {} 件 ・ error が {} 件ある（approval.judgments の {}）。直して（update）判定をし直し、semantic-agent-schema validate --answer で渡す",
+                        count_judged(j, "violated"),
+                        count_judged(j, "error"),
+                        j.get("operation").and_then(Value::as_str).unwrap_or_default()
+                    ),
+                    _ => format!(
+                        "意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a ・ b で判定して semantic-agent-schema validate --answer で渡す）",
+                        count_not_judged(&run.output)
+                    ),
+                });
             }
-            // 承認のコマンドは、承認できるときだけ出す
-            if a.not_approvable.is_empty() {
+            // 判定がそろったか承認済みなら、別の会話に任せる手順は出さない
+            let complete = judgments
+                .as_ref()
+                .is_some_and(|j| count_judged(j, "not-judged") == 0);
+            if complete || approved.is_some() {
+                a.delegate.clear();
+            }
+            // 承認のコマンドは、承認できて、まだ承認していないときだけ出す
+            if a.not_approvable.is_empty() && approved.is_none() {
                 a.approve = judged.as_ref().map(|_| approve_command(trimmed(folder)));
             }
+            a.judgments = judgments.clone();
+            a.approved_by = approved.clone();
             a
         });
         skills.push(SkillChecked {

@@ -54,8 +54,8 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 3. SAS に項目を書かせる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：semantic-agent-schema の結果が created か updated である）
 4. SKILL.md（Agent なら AGENT.md と codex.toml）を作る（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある）
 5. validate で確かめる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：validate の終了コードが 0 である）
-6. 意味の rule を別の会話で判定させ、判定を SAS に渡す（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：validate の承認の材料の approvable が true である）
-7. 別の会話で例を動かし、実際の答えを完成の像と並べて見せる（読む資料：作る流れの手引き）（完了条件：どの例にも、実際の答えが期待と並んでいる）
+6. 意味の rule を別の会話で判定させる（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：example-runs-as-expected のほかの意味の rule に、判定がある）
+7. 別の会話で例を動かし、実際の答えを完成の像と並べて見せ、手順6の判定と1つの答えのファイルにまとめて SAS に渡す（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：どの例にも実際の答えが期待と並び、validate の承認の材料の approvable が true である）
    - 7a 例の実際の答えが期待と違う → 一つ広い層で直す（外れた具体として、直す層を選んでもらう）（ステップ2へ戻る）
 8. 承認のコマンド（agents-skills-creator approve <フォルダ>）を作る人に示し、人に打ってもらう（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：skill.json（Agent なら agent.json）に approved がある）
 9. 作る人が選んだ配布先に置く（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：distribute の placed-readable が verified である）

@@ -12,7 +12,7 @@
 //! user は Agent のフォルダの絶対の経路（HOME の下は、どのリポジトリから置いたかを見分ける）。
 
 use crate::ports::{AgentFiles, AgentHistory, AgentValidator, Destinations, SkillsCli};
-use crate::use_cases::validate::{AgentChecked, validate};
+use crate::use_cases::validate::{AgentChecked, validate, write_after_approval};
 use crate::use_cases::{AGENT_JSON, Finding, Outcome, Refused, finding, read_agent, trimmed};
 use agents_domain::services::agent_md;
 use serde_json::Value;
@@ -212,36 +212,18 @@ fn approval_current(files: &dyn AgentFiles, history: &dyn AgentHistory, folder: 
             ),
         );
     };
-    for row in &rows[..at] {
+    if let Some(row) = write_after_approval(history, &rows[..at]) {
         let op = s(row, "op");
-        if !matches!(op.as_str(), "create" | "update" | "delete") {
-            continue;
-        }
         let id = s(row, "operation");
-        let only_approval = op == "update"
-            && row.get("session").is_none_or(Value::is_null)
-            && history.operation(&id).ok().is_some_and(|d| {
-                d.output
-                    .pointer("/diff/changes")
-                    .and_then(Value::as_array)
-                    .is_some_and(|c| {
-                        !c.is_empty()
-                            && c.iter().all(|x| {
-                                x.get("pointer").and_then(Value::as_str) == Some("/approved")
-                            })
-                    })
-            });
-        if !only_approval {
-            return finding(
-                CHECK,
-                Outcome::Violated,
-                Some(id.clone()),
-                format!(
-                    "承認（{approved}）のあとに {id}（{op}）で書き換えた。承認は古い。{}",
-                    how_to_approve(folder)
-                ),
-            );
-        }
+        return finding(
+            CHECK,
+            Outcome::Violated,
+            Some(id.clone()),
+            format!(
+                "承認（{approved}）のあとに {id}（{op}）で書き換えた。承認は古い。{}",
+                how_to_approve(folder)
+            ),
+        );
     }
     finding(
         CHECK,

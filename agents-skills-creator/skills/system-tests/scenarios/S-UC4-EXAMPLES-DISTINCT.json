@@ -1,0 +1,39 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-EXAMPLES-DISTINCT",
+ "name": "同じ入力の例は1つ",
+ "title": "given と input が同じ例が2つある Skill を validate すると、creator の検査 examples-distinct が violated（後の例の所と、重なった相手の id）になる",
+ "why": "同じ入力で expected の違う例が2つあると、動かした答えはどちらか一方としか合わず、どちらが正しい振る舞いかが決まらない。",
+ "traces": [
+  "UC4:最低保証",
+  "約束:validate-result"
+ ],
+ "given": {
+  "files": {
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill-same-example.json",
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "skills/fact-check"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator",
+   "contains": "\"check\":\"examples-distinct\",\"result\":\"violated\",\"path\":\"/examples/1\""
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/creator",
+   "contains": "E1 と同じ"
+  }
+ ]
+}

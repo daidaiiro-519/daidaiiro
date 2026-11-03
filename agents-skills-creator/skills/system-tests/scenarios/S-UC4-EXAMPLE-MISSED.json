@@ -1,0 +1,72 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC4-EXAMPLE-MISSED",
+ "name": "外れた例は承認を止める",
+ "title": "例を動かした会話が、意味の rule example-runs-as-expected を violated と判定して（reason に実際の答え）semantic-agent-schema validate --answer で渡すと、validate は承認を受け付けない（approvable が false、理由に violated の件数）。最後に渡された判定を approval.judgments に、どの操作の判定かと一緒に重ねて見せ、判定はそろっているので delegate を出さない",
+ "why": "例を動かした結果を承認の材料に載せる所が無いと、例が外れても意味の判定がそろい、承認を受け付けてしまう。",
+ "traces": [
+  "UC4:最低保証",
+  "約束:validate-result"
+ ],
+ "given": {
+  "files": {
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
+   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md",
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "work/answer.json": "@fixtures/fact-check/answer-example-violated.json"
+  }
+ },
+ "when": {
+  "semantic_agent_schema": [
+   "validate",
+   "skills/fact-check/skill.json",
+   "--answer",
+   "work/answer.json"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "skills/fact-check"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "pointer": "/operations/0",
+   "equals": "o-0001"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/skills/0/approval/approvable",
+   "equals": false
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/skills/0/approval/not_approvable",
+   "contains": "violated が 1 件"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/skills/0/approval/approve",
+   "exists": false
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/skills/0/approval/judgments/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/skills/0/approval/judgments/results",
+   "contains": "\"rule\":\"example-runs-as-expected\",\"pointer\":\"/examples\",\"result\":\"violated\""
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/skills/0/approval/delegate",
+   "exists": false
+  }
+ ]
+}
