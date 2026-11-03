@@ -1,1 +1,0 @@
-//! Semantic Schema Renderer（セマンティックスキーマレンダラー）

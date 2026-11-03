@@ -71,7 +71,7 @@
    "nodes": [
     "outbound-sqlite"
    ],
-   "description": "操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの ValidationLog ・ 記録のモジュールの SessionLog と OperationReader。手続きは SqliteLog のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。<git-common-dir>/semantic-agent-schema/records.sqlite（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し（変更には書いたワークツリーを残す）、操作の ID と時刻（semantic-agent-schema init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。対象を書いた操作を引くときは、同じワークツリーのものに印を付ける。古い置き場所 <git-common-dir>/sas/sas.db の記録を、チェックポイントをかけて1回だけ移す（move_records）。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
+   "description": "操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの ValidationLog ・ 記録のモジュールの SessionLog と OperationReader。手続きは SqliteLog のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。<git-common-dir>/semantic-agent-schema/records.sqlite（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し（変更には書いたワークツリーを残す）、操作の ID と時刻（semantic-agent-schema init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。対象を書いた操作を引くときは、同じワークツリーのものに印を付ける。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
   },
   {
    "name": "outbound-git",
@@ -99,7 +99,7 @@
    "nodes": [
     "inbound-cli"
    ],
-   "description": "semantic-agent-schema コマンドの入口。コンポジションルートを持ち、記録の置き場所を db_path の1か所で決める（Git のリポジトリの中だけで、SEMANTIC_AGENT_SCHEMA_DATABASE_FILE → <git-common-dir>/semantic-agent-schema/records.sqlite。Git の外と古い名前の SAS_DB_PATH は断る）。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（このフォルダで semantic-agent-schema init が登録したセッションを引く ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。semantic-agent-schema log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
+   "description": "semantic-agent-schema コマンドの入口。コンポジションルートを持ち、記録の置き場所を db_path の1か所で決める（Git のリポジトリの中だけで、SEMANTIC_AGENT_SCHEMA_DATABASE_FILE → <git-common-dir>/semantic-agent-schema/records.sqlite。Git の外は断る）。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（このフォルダで semantic-agent-schema init が登録したセッションを引く ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。semantic-agent-schema log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
   },
   {
    "name": "test-support",

@@ -61,7 +61,7 @@ pub struct WriteRecord {
     pub session: Option<String>,
     /// 記録した日時
     pub at: String,
-    /// いま打っているワークツリー（作業ツリーの根）で記録した操作か。ワークツリーを記録する前（移行 0008 より前）の行は false
+    /// いま打っているワークツリー（作業ツリーの根）で記録した操作か。ワークツリーの無い行は false
     pub same_worktree: bool,
     /// 行
     pub row: ChangeRow,

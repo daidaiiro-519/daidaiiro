@@ -1,6 +1,6 @@
-//! 移行 0008（ACDR 0224）：書いた変更に、書いたワークツリー（作業ツリーの根）を残す。
+//! 書いた変更に、書いたワークツリー（作業ツリーの根）を残す（ACDR 0224）。
 //! 対象を書いた操作は、どのワークツリーのものも記録した順に読め、いまのワークツリーで書いたものに印が付く。
-//! 版7 までの DB を開くと、前の行はどのワークツリーのものでもない（NULL）まま版8 になる。
+//! 表の形の版が違う記録は開かずに断る。
 
 #![allow(clippy::unwrap_used)]
 
@@ -67,42 +67,15 @@ fn writes_mark_the_ones_written_in_this_worktree() {
 }
 
 #[test]
-fn rows_before_version_8_belong_to_no_worktree() {
-    let dir = place("migrate");
+fn a_database_of_another_shape_is_refused() {
+    let dir = place("shape");
     let path = dir.join("records.sqlite");
     {
         let conn = Connection::open(&path).unwrap();
-        let up_to_7 = [
-            include_str!("../migrations/0001-validate.sql"),
-            include_str!("../migrations/0002-change.sql"),
-            include_str!("../migrations/0003-adopt.sql"),
-            include_str!("../migrations/0004-delete.sql"),
-            include_str!("../migrations/0005-read.sql"),
-            include_str!("../migrations/0006-reason.sql"),
-            include_str!("../migrations/0007-not-judged.sql"),
-        ];
-        for (i, sql) in up_to_7.iter().enumerate() {
-            conn.execute_batch(&format!(
-                "BEGIN; {sql} PRAGMA user_version = {}; COMMIT;",
-                i + 1
-            ))
+        conn.pragma_update(None, "user_version", outbound_sqlite::SHAPE + 1)
             .unwrap();
-        }
-        conn.execute_batch(
-            "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash) \
-             VALUES ('o-0001', '2026-11-01T00:00:00Z', 'update', 'u1.json', 'sha256:a', 'sha256:b');",
-        )
-        .unwrap();
     }
-    let log = SqliteLog::open(&path).unwrap().in_worktree("/repo/a");
-    let version: i64 = log
-        .connection()
-        .pragma_query_value(None, "user_version", |r| r.get(0))
-        .unwrap();
-    assert_eq!(version, 8);
-    let writes = log.writes("u1.json").unwrap();
-    assert_eq!(writes.len(), 1);
-    assert!(!writes[0].same_worktree);
-    drop(log);
+    let message = SqliteLog::open(&path).unwrap_err();
+    assert!(message.contains("表の形の版"), "{message}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

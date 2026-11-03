@@ -4,8 +4,8 @@
 use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
 
-/// 降りないフォルダ（前の版が Git の外で記録を置いていた .sas ・ ビルドの出力 ・ Git の中身。いまの記録は .git の中の共通フォルダにある）。
-const SKIP: [&str; 3] = [".sas", "target", ".git"];
+/// 降りないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにある）。
+const SKIP: [&str; 2] = ["target", ".git"];
 
 /// 作業ディレクトリを根にした文書の置き場所。
 #[derive(Debug, Clone)]
@@ -76,7 +76,7 @@ impl WorkingTree {
                 .map_err(|e| format!("{} を作れない：{e}", dir.display()))?;
         }
         let tmp = to.with_file_name(format!(
-            ".{}.sas-tmp",
+            ".{}.semantic-agent-schema-tmp",
             to.file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default()
@@ -255,7 +255,7 @@ impl PageWriter for OutDir {
                 missing.reverse();
                 made.extend(missing);
             }
-            let tmp = sibling(&to, "sas-tmp");
+            let tmp = sibling(&to, "semantic-agent-schema-tmp");
             if let Err(e) = std::fs::write(&tmp, html) {
                 undo(&staged, &made);
                 return Err(PageRefusal::Failed(format!(
@@ -267,7 +267,7 @@ impl PageWriter for OutDir {
         }
         let mut replaced: Vec<(PathBuf, Option<PathBuf>)> = Vec::new();
         for (i, (tmp, to)) in staged.iter().enumerate() {
-            let backup = sibling(to, "sas-bak");
+            let backup = sibling(to, "semantic-agent-schema-bak");
             let had = to.exists();
             let moved = if had {
                 std::fs::rename(to, &backup)
@@ -302,7 +302,7 @@ impl PageWriter for OutDir {
         // 書き終えたら、置き換えたページの隣の退避を消す。前の書き出しが置き換えの途中で止められて残った退避
         // （前のページが無く、退避だけがある）も、ここで消える
         for (page, _) in replaced {
-            let _ = std::fs::remove_file(sibling(&page, "sas-bak"));
+            let _ = std::fs::remove_file(sibling(&page, "semantic-agent-schema-bak"));
         }
         Ok(())
     }

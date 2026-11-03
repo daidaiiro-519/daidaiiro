@@ -163,6 +163,47 @@
             }
           }
         ]
+      },
+      {
+        "id": "current-spec-only",
+        "rule": "説明 ・ meaning ・ when ・ rule の文には、現在の仕様だけを書く。古い仕様の説明や、廃止・移行の経緯（「前は」「〜をやめた」「〜に変えた」）は書かない。",
+        "why": "古い仕様の説明が残ると、読む人と AI がどちらが現在の仕様かを毎回区別することになり、古い仕様のまま書いてしまう。経緯は変更の記録の reason が持つ。",
+        "check": "説明 ・ meaning ・ when ・ rule の文に、古い仕様の説明や、廃止・移行の経緯を言う語句が無いかを見る。",
+        "bad": [
+          {
+            "value": {
+              "properties": {
+                "due": {
+                  "type": "string",
+                  "title": "期限",
+                  "description": "作業を終える日である。前は期間を書いていたが、日付に変えた。",
+                  "x-prompt": {
+                    "meaning": "作業を終える日（YYYY-MM-DD）として読む。期間の書き方は廃止した。",
+                    "rules": []
+                  }
+                }
+              }
+            },
+            "note": "説明に古い仕様（期間）と変えた経緯が、meaning に廃止の経緯がある。"
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "properties": {
+                "due": {
+                  "type": "string",
+                  "title": "期限",
+                  "description": "作業を終える日である。",
+                  "x-prompt": {
+                    "meaning": "作業を終える日（YYYY-MM-DD）として読む。期間ではない。",
+                    "rules": []
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     ]
   },

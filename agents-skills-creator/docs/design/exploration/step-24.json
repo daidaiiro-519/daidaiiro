@@ -1,0 +1,52 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 24,
+ "date": "2026-11-04",
+ "summary": "ACDR 0225（現在の仕様だけを書く）に合わせた。場面の試験が持ち込まない環境変数から、Semantic Agent Schema の後方互換のためのコードに合わせて足していた古い名前 SAS_DB_PATH を消し、場面の形の説明と未確かめの理由から経緯の書き方をなくした。Concrete の skill.schema.json ・ agent.schema.json の根の x-prompt に rule current-shape-only（Skill ・ Agent の文には、いまの振る舞いだけを書き、前の振る舞い ・ 廃止 ・ 移行の経緯を書かない）を semantic-agent-schema update で足し、structure.json に変えるときの決まり changes を足した",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "後方互換のためのコードと経緯の書き方がどこにあったか",
+   "evidence": [
+    "adapters/inbound/cli/tests/skills_scenarios.rs ・ agents_scenarios.rs の NOT_INHERITED に SAS_DB_PATH（ステップ23 で、ACDR 0224 の古い名前を断る処理に合わせて足した）",
+    "system-tests/scenario.schema.json の env の説明の「古い名前の SAS_DB_PATH」",
+    "system-tests/skills/untested.json の UC6:変形:リンクしている Agent を示す の why の「〜に移した」",
+    "test-support/src/lib.rs の冒頭の「いまは」",
+    "Skill ・ Agent の文（fixtures の skill.json ・ agent.json ・ SKILL.md、published-language の説明）には、前の振る舞い ・ 廃止 ・ 移行の経緯を言う文は無かった（「外した」「前の版」は取り下げ ・ 配布のいまの振る舞い）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "semantic-agent-schema で書いたもの（--reason 付き）",
+   "evidence": [
+    "skill.schema.json：o-0144（根に x-prompt を足し、rules に current-shape-only）",
+    "rule の文は方言の上限（120字）に当たるので、欄の名前の並びを外して縮めた"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "Skill ・ Agent の文を書く（UC1 ・ UC2 の作る ・ 直す）",
+   "steps": [
+    "Skill ・ Agent の文は、現在の仕様だけで書く",
+    "変えるときは、現在の仕様に書き換え、経緯は --reason ・ ACDR ・ 探索の記録 ・ コミットに書く"
+   ],
+   "rules": [
+    "Skill の文には、いまの振る舞いだけを書く。前の振る舞い ・ 廃止したもの ・ 移行の経緯を書かない（skill.schema.json の current-shape-only）",
+    "Agent の文には、いまの振る舞いだけを書く。前の振る舞い ・ 廃止したもの ・ 移行の経緯を書かない（agent.schema.json の current-shape-only）",
+    "後方互換のためのコードを残さない（structure.json の changes）"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [],
+ "structure": {
+  "changed": false,
+  "changes": []
+ }
+}

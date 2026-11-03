@@ -93,13 +93,12 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     let mut c = if let Some(args) = strings("args") {
         let mut c = Command::new(env!("CARGO_BIN_EXE_semantic-agent-schema"));
         c.args(args);
-        // 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所（古い名前も）を持ち込まない。
+        // 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所を持ち込まない。
         // 場面が env で渡したものだけを使う
         for name in session_envs() {
             c.env_remove(name);
         }
         c.env_remove("SEMANTIC_AGENT_SCHEMA_DATABASE_FILE");
-        c.env_remove("SAS_DB_PATH");
         if let Some(env) = cmd.get("env").and_then(Value::as_object) {
             for (k, v) in env {
                 c.env(k, v.as_str().expect("環境変数の値は文字列"));

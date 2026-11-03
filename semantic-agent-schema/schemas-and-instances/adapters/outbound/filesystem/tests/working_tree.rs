@@ -1,17 +1,17 @@
-//! 作業ディレクトリの JSON を経路の順に並べ、記録とビルドの出力には降りない。
+//! 作業ディレクトリの JSON を経路の順に並べ、ビルドの出力と Git の中身には降りない。
 
 #![allow(clippy::unwrap_used)]
 
 use outbound_filesystem::WorkingTree;
 
 #[test]
-fn lists_json_and_skips_records() {
+fn lists_json_and_skips_build_and_git() {
     let dir = std::env::temp_dir().join(format!("sas-files-{}", std::process::id()));
     for p in [
         "b/x.json",
         "a.json",
-        ".sas/r.json",
         "target/t.json",
+        ".git/g.json",
         "c.txt",
     ] {
         let to = dir.join(p);
@@ -38,14 +38,7 @@ fn writes_inside_the_tree_only() {
     // 一時ファイルは残らない
     assert_eq!(store.list().unwrap(), ["new/u2.json"]);
     assert_eq!(std::fs::read_dir(dir.join("new")).unwrap().count(), 1);
-    for bad in [
-        "../x.json",
-        "/tmp/x.json",
-        ".sas/x.json",
-        "a/./b.json",
-        "",
-        ".git/config",
-    ] {
+    for bad in ["../x.json", "/tmp/x.json", "a/./b.json", "", ".git/config"] {
         assert!(store.write(bad, "{}").is_err(), "{bad} に書けてしまった");
     }
     std::fs::remove_dir_all(dir).unwrap();

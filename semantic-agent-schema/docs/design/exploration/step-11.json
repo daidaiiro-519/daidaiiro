@@ -1,0 +1,89 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 11,
+ "date": "2026-11-04",
+ "summary": "ACDR 0225 を作業ツリーに適用した。ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る renamed_env ・ 古い置き場所 sas/sas.db の記録を1回だけ移す move_records と案内のファイル ・ Git の外の .sas に降りない決まり）と、その試験と場面を消し、記録の表の移行 0001〜0008 を、現在の仕様の表を作る sql/records.sql の1つにまとめた。ドキュメントやコードの説明から「前は」「やめた」などの経緯を消し、Abstract の根の rules に current-spec-only を足した。試験137件、場面142本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC7"
+ ],
+ "factchecks": [
+  {
+   "item": "移行 0005〜0008 は、古い仕様の記録を上げるためだけにある",
+   "evidence": [
+    "0005 は欄 schema を足す、0006 は intent を reason に名前を変える、0007 は unsupported を not-judged に移す、0008 は欄 worktree を足す。どれも空の記録から作るなら最初から書ける",
+    "前の版の記録を開く試験（migrate_reason.rs ・ migrate_not_judged.rs ・ worktree_rows.rs の版7 の記録を開く試験）だけが、移行を分けている理由を確かめていた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "1つにまとめた表の形は、移行 0001〜0008 を当てた形と同じで、このリポジトリの記録がそのまま開ける",
+   "evidence": [
+    "HEAD の移行 0001〜0008 を当てたデータベースと sql/records.sql から作ったデータベースで、表 ・ 索引 ・ trigger ・ ビューの名前と、表とビューの欄（pragma table_info）がすべて一致した",
+    "このリポジトリの .git/semantic-agent-schema/records.sqlite（user_version 8）の写しを SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指して semantic-agent-schema log を打つと終了コード 0 で読め、本体の log も読めて、ファイルの md5 は変わらなかった"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "記録を開く（outbound の sqlite の SqliteLog::open）",
+   "steps": [
+    "user_version が 0（空の記録）なら、sql/records.sql で表を作り、user_version を SHAPE にする",
+    "user_version が SHAPE なら、そのまま開く",
+    "ほかの版なら開かずに断り、記録のファイルを消して打ち直すよう返す"
+   ],
+   "rules": [
+    "表の形は sql/records.sql の1つで決める",
+    "形を変えるときは sql/records.sql を書き換えて SHAPE を1つ上げる。古い仕様の記録から移す手順は持たない（記録は作り直せる手元のデータ）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "表の形の版（SHAPE）",
+   "became": "script",
+   "why": "開くときに1回比べるだけで、ドメインの判断を持たない。outbound の sqlite に置いた"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "記録の置き場所の互換（ACDR 0224 の古い置き場所の案内 ・ 古い名前を断る ・ 1回だけ移す）",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "利用者の決まり（2026-11-04）で、ドキュメント・コード・スキーマの説明に古い仕様の説明を書かず、後方互換のためのコードも残さないことになった。ACDR 0225 がこの3つを置き換える"
+  },
+  {
+   "item": "概念のページ ・ docs/design/README.md の経緯の書き方",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "ドキュメントの説明から版の移り変わりと移行の番号を外した。版の履歴の表と外した案の表は、利用者の判断を待つ"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "記録の表の作り方",
+    "before": "移行 0001〜0008 を user_version から先だけ当てる",
+    "after": "sql/records.sql の1つと、版 SHAPE（8）。版の違う記録は断る",
+    "why": "古い仕様の記録を上げる手順は、作り直せる手元のデータには必要ない（ACDR 0225）"
+   },
+   {
+    "what": "出力の形（command-result の error の code）",
+    "before": "renamed_env がある",
+    "after": "renamed_env を消した",
+    "why": "古い名前の環境変数を読む処理を持たない（ACDR 0225）"
+   },
+   {
+    "what": "outbound の sqlite と filesystem",
+    "before": "move_records と案内のファイル。作業ツリーの .sas に降りない",
+    "after": "どちらも消した",
+    "why": "古い置き場所を扱う処理を持たない（ACDR 0225）"
+   }
+  ]
+ }
+}

@@ -1,0 +1,904 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0225",
+ "title": "現在の仕様だけを書く",
+ "date": "2026-11-04",
+ "status": "accepted",
+ "decision": "Semantic Agent Schema と agents-skills-creator では、ドキュメント・コード・スキーマの説明に現在の仕様だけを書く。古い仕様の説明や、廃止・移行の経緯は書かず、後方互換のためのコードも残さない。",
+ "why": "利用者の言葉（2026-11-04）：「古い記載を残したまま新しい内容を書いて、古い内容を廃止みたいな書き方」をやめる。「もう古いならそもそもわざわざ書くな」「後方互換が昔の内容に追記してみたいなことで思ってるならそれノイズでしかない」「少なくとも Semantic Agent Schema と agents-skills-creator を使用する限りは、このようなノイズが残り陳腐化する傾向を残すような記載は一切させない」「中途半端な抽象は具体によってノイズにしかならない」。\n\nどこで起きていたか：ACDR 0224 の適用で、古い置き場所 .git/sas/sas.db に案内のファイルを置いた。古い名前の環境変数 SAS_DB_PATH を読んで renamed_env で断る処理と、古い記録を1回だけ移すコード move_records も、試験と場面と一緒に入れていた。記録の表は、古い仕様の記録を上げる移行 0001〜0008 と、その試験を持っていた。CODING.md ・ 概念のページ ・ 公開された言葉の説明 ・ 場面には「前は unsupported」「版16 でやめた」「ステップ4b で書き直した」のような経緯の書き方があった。\n\n止め方：Abstract の根の rules に current-spec-only を、Skill ・ Agent の Concrete の根の rules に current-shape-only を足す。どちらも書く人が読み、validate --semantic で判定する。両方の作り方の決まり（CODING.md と structure.json）に、後方互換のためのコードを残さない決まりを足す。\n\nACDR 0224 との関係：この記録は、ACDR 0224 の「古い置き場所に案内のファイルを置く」「古い名前の環境変数を断る」「いまの記録を1回だけ移す」の3つを置き換える。0224 のほかの決定（置き場所 records.sqlite ・ 環境変数 SEMANTIC_AGENT_SCHEMA_DATABASE_FILE ・ ワークツリーごとの外の変更の検出）は残る。だから 0224 は accepted のまま残す。\n\n概念のページと土台のページから、経緯を並べる表と節を消し、現在の仕様だけにした（確かめるのタブは残す）。消したのは、外した案と理由 ・ 外したものの行き先と図 ・ 27件との対応 ・ 直した保証 ・ 版の履歴 ・ 状態の帯 ・ 冒頭の版の要約 ・ セッションのタブの経緯 ・ 土台の外した形と理由である。README の前の実装への案内を消し、前の実装のフォルダ archive/semantic-agent-schema-2026-10-31/ を消した。前の実装はタグ semantic-agent-schema-archive-2026-10-31 が持つ。\n\nConcrete 2つの決まりの文は、Concrete を探す範囲の不具合を直したあとに同じ言い方へ直す。",
+ "shift": [
+  {
+   "what": "ドキュメントやコードの説明",
+   "from": "現在の仕様の説明の中に、古い仕様の説明や、廃止・移行した版を書く。",
+   "to": "現在の仕様だけを書く。経緯は ACDR ・ 探索の記録 ・ コミットが持つ。"
+  },
+  {
+   "what": "後方互換のためのコード",
+   "from": "古い名前を読んで断る ・ 古い記録を移す ・ 古い置き場所に案内を置く。",
+   "to": "残さない。変えるときは、現在の仕様に書き換えるだけにする。"
+  },
+  {
+   "what": "記録の表の作り方",
+   "from": "移行 0001〜0008 を、開いた記録の版から先だけ当てる。",
+   "to": "現在の仕様の表を作る1つ（records.sql）と版。版の違う記録は断り、消して作り直す。"
+  },
+  {
+   "what": "止める所",
+   "from": "書く人の注意だけ。",
+   "to": "Abstract の rule current-spec-only と Concrete の rule current-shape-only と、作り方の決まり。"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前はドキュメントやコードの説明と後方互換のためのコードに古い仕様が混ざり、変更後は現在の仕様だけを書いて、経緯は記録へ置き、書くときの決まりと意味の判定で止める。",
+ "alternatives": [
+  {
+   "option": "後方互換のためのコードは残し、ドキュメントの経緯の書き方だけを直す",
+   "why_not": "古い名前を断る処理と移す手順は、使われないまま試験と一緒に残り、形を変えるたびに増える。"
+  },
+  {
+   "option": "移行 0001〜0008 を残し、これから足す移行だけをやめる",
+   "why_not": "0005〜0008 は古い仕様の記録を上げるためだけにあり、残すと同じ後方互換のためのコードが残る。"
+  },
+  {
+   "option": "決まりを Abstract の欄ごと（説明 ・ meaning ・ when ・ rule）に1つずつ置く",
+   "why_not": "同じ決まりが4か所に並び、直すときに4か所をそろえることになる。根の rules の1つで Concrete の文の全部に当たる。"
+  },
+  {
+   "option": "経緯の語を機械の検査（語の一覧）で止める",
+   "why_not": "「前の判定」「古くなった判定」のような、いまの振る舞いを言う語と区別できない。意味の判定で見る。"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "rs-inbound-cli-tests-agents-scenarios-rs",
+   "tab": "C agents_scenarios.rs",
+   "file": "agents-skills-creator/adapters/inbound/cli/tests/agents_scenarios.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semant",
+     "before": "（コードの面は差分が示す）",
+     "why": "場面の試験が持ち込まない環境変数から、Semantic Agent Schema が読まなくなった古い名前 SAS_DB_PATH を外した。"
+    }
+   ]
+  },
+  {
+   "key": "rs-inbound-cli-tests-skills-scenarios-rs",
+   "tab": "C skills_scenarios.rs",
+   "file": "agents-skills-creator/adapters/inbound/cli/tests/skills_scenarios.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semant",
+     "before": "（コードの面は差分が示す）",
+     "why": "場面の試験が持ち込まない環境変数から、Semantic Agent Schema が読まなくなった古い名前 SAS_DB_PATH を外した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-structure-json",
+   "tab": "C structure.json",
+   "file": "agents-skills-creator/docs/design/structure.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"modules\": \"業務領域の候補（作って確かめる ・ 配布）は、まだモジュールにしない。ユース",
+     "before": "（コードの面は差分が示す）",
+     "why": "agents-skills-creator の作り方の決まりに、後方互換のためのコードを残さず、現在の仕様に書き換えるだけにする決まり changes を足した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-structure-schema-json",
+   "tab": "C structure.schema.json",
+   "file": "agents-skills-creator/docs/design/structure.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"modules\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "structure.json に足した決まり changes の欄を、形に足した。"
+    },
+    {
+     "find": "\"changes\": {",
+     "before": "（コードの面は差分が示す）",
+     "why": "structure.json に足した決まり changes の欄を、形に足した。"
+    }
+   ]
+  },
+  {
+   "key": "published-language-v1-agent-schema-json",
+   "tab": "C agent.schema.json",
+   "file": "agents-skills-creator/published-language/v1/agent.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"rules\": [",
+     "before": "（コードの面は差分が示す）",
+     "why": "Agent の文に古い仕様の説明や、廃止・移行の経緯を書かせない決まりを、Concrete の根の rules に current-shape-only として semantic-agent-schema update で足した。"
+    }
+   ]
+  },
+  {
+   "key": "published-language-v1-skill-schema-json",
+   "tab": "C skill.schema.json",
+   "file": "agents-skills-creator/published-language/v1/skill.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"additionalProperties\": false,",
+     "before": "（コードの面は差分が示す）",
+     "why": "Skill の文に古い仕様の説明や、廃止・移行の経緯を書かせない決まりを、Concrete の根の rules に current-shape-only として semantic-agent-schema update で足した。"
+    }
+   ]
+  },
+  {
+   "key": "ts-fixtures-consult-advisors-answer-json",
+   "tab": "C answer.json",
+   "file": "agents-skills-creator/system-tests/agents/fixtures/consult-advisors/answer.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"step\": 13,",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に current-shape-only を足し、手順に文書全体に当たる rule が1つ増えたので、場面で渡す判定にその1件を足した。"
+    }
+   ]
+  },
+  {
+   "key": "ts-scenarios-S-UC2-CREATE-PROCEDURE-json",
+   "tab": "C S-UC2-CREATE-PROCEDURE.json",
+   "file": "agents-skills-creator/system-tests/agents/scenarios/S-UC2-CREATE-PROCEDURE.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"agents create に Agent のフォルダ（名前の決まっていない a",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に文書全体に当たる rule current-shape-only を足したので、手順に文書全体の rules が入ることを期待にした。"
+    },
+    {
+     "find": "\"contains\": \"手順の rules（文書全体に当たる rule）\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に文書全体に当たる rule current-shape-only を足したので、手順に文書全体の rules が入ることを期待にした。"
+    }
+   ]
+  },
+  {
+   "key": "system-tests-scenario-schema-json",
+   "tab": "C scenario.schema.json",
+   "file": "agents-skills-creator/system-tests/scenario.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"渡す環境変数。試験を動かす環境の AI のツールのセッション ID ",
+     "before": "（コードの面は差分が示す）",
+     "why": "場面の試験が持ち込まない環境変数の説明から、古い名前 SAS_DB_PATH を消した。"
+    }
+   ]
+  },
+  {
+   "key": "fact-check-answer-example-violated-json",
+   "tab": "C answer-example-violated.json",
+   "file": "agents-skills-creator/system-tests/skills/fixtures/fact-check/answer-example-violated.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"step\": 13,",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に current-shape-only を足し、手順に文書全体に当たる rule が1つ増えたので、場面で渡す判定にその1件を足した。"
+    }
+   ]
+  },
+  {
+   "key": "s-skills-fixtures-fact-check-answer-json",
+   "tab": "C answer.json",
+   "file": "agents-skills-creator/system-tests/skills/fixtures/fact-check/answer.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"step\": 13,",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に current-shape-only を足し、手順に文書全体に当たる rule が1つ増えたので、場面で渡す判定にその1件を足した。"
+    }
+   ]
+  },
+  {
+   "key": "ls-scenarios-S-UC1-CREATE-PROCEDURE-json",
+   "tab": "C S-UC1-CREATE-PROCEDURE.json",
+   "file": "agents-skills-creator/system-tests/skills/scenarios/S-UC1-CREATE-PROCEDURE.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"create に Skill のフォルダ（名前の決まっていない skills/<",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に文書全体に当たる rule current-shape-only を足したので、手順に文書全体の rules が入ることを期待にした。"
+    },
+    {
+     "find": "\"contains\": \"手順の rules（文書全体に当たる rule）\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete に文書全体に当たる rule current-shape-only を足したので、手順に文書全体の rules が入ることを期待にした。"
+    }
+   ]
+  },
+  {
+   "key": "system-tests-skills-untested-json",
+   "tab": "C untested.json",
+   "file": "agents-skills-creator/system-tests/skills/untested.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"why\": \"Agent（文脈 agents）は作ったが、skills（上流）は agents（下",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。未確かめの理由の「〜に移した」を、いまどこが持つかの文にした。"
+    }
+   ]
+  },
+  {
+   "key": "test-support-src-lib-rs",
+   "tab": "C lib.rs",
+   "file": "agents-skills-creator/test-support/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 試験の部品。依存の向きの検査（tests/architecture.rs）だけを持つ。",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。「いまは」を消した。"
+    }
+   ]
+  },
+  {
+   "key": "gitignore",
+   "tab": "S .gitignore",
+   "file": "semantic-agent-schema/.gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/target",
+     "before": "/target\n# SAS の手元の DB（セッションと操作）。コミットしない\n/.sas/",
+     "why": "作業ツリーの .sas/ に記録を置く形を持たないので、それを無視する指定を消した。"
+    }
+   ]
+  },
+  {
+   "key": "CODING-md",
+   "tab": "S CODING.md",
+   "file": "semantic-agent-schema/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "区切られた文脈は、根の直下の文脈の名前のフォルダ",
+     "before": "根の直下の文脈の名前のフォルダ（いまは schemas-and-instances/）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。"
+    },
+    {
+     "find": "文脈の中のフォルダは、業務領域を作るモジュール",
+     "before": "recording/、ステップ5 で rendering/、ステップ8 で search/",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。"
+    },
+    {
+     "find": "後方互換のためのコードを残さない。",
+     "before": "（無し）",
+     "why": "Semantic Agent Schema の作り方の決まりに、後方互換のためのコードを残さず、現在の仕様に書き換えるだけにし、経緯を書かない決まりを足した（ACDR 0225）。"
+    },
+    {
+     "find": "記録の表の形は outbound の sqlite の",
+     "before": "SQLite の表の CHECK を変える移行は、表を作り直して行を移す。／ほかの表の trigger が読む表は作り直さず、欄を足す。／移行 0001〜0004 は、公開前の書き直し（ステップ4b と、版28 で sessions から起動の欄を外したとき）で表の最終の形にした。これからは版ごとに足し、足したものは変えない。Git の外の置き場所（.sas/）はやめたので読まない（ACDR 0224）／欄の名前を変える移行は、表を作り直さずに ALTER TABLE … RENAME COLUMN で変える",
+     "why": "古い仕様の記録を上げる移行の作法4行を、表の形を1つの作り方で決めて版の違う記録を断る1行にした。記録は作り直せる手元のデータなので、移す手順を持たない。"
+    },
+    {
+     "find": "Git のリポジトリの外（not_in_repository）では、記録を作らずに断る",
+     "before": "Git のリポジトリの外（not_in_repository）と、古い名前の環境変数 SAS_DB_PATH（renamed_env）では、記録を作らずに断る。古い置き場所 <git-common-dir>/sas/sas.db の記録は、チェックポイントをかけて1回だけ移し（同じフォルダの中は rename）、古い置き場所にはデータベースでない案内のファイルを置く。新しい置き場所にも記録があれば、どちらも触らずに断る",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。"
+    },
+    {
+     "find": "同じワークツリーで記録した最後の事後と比べる（changes の worktree）",
+     "before": "同じワークツリーで記録した最後の事後と比べる（changes の worktree、移行 0008）",
+     "why": "移行 0008 を持たないので、移行の番号を消した。"
+    },
+    {
+     "find": "文書が Concrete かインスタンスかの区別（TargetKind）",
+     "before": "（doc-writing-skills の検査で廃語と出た4か所。差分が示す）",
+     "why": "doc-writing-skills の検査で出た廃語4つを、区別 ・ 検出 ・ 関数 ・ ID を渡した ・ 実装すると、ふだん使う語と技術用語に直した。"
+    }
+   ]
+  },
+  {
+   "key": "README-md",
+   "tab": "S README.md",
+   "file": "semantic-agent-schema/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Git のリポジトリの外では、記録を作らずに断る",
+     "before": "Git のリポジトリの外と、古い名前の環境変数 SAS_DB_PATH が設定されているときは、記録を作らずに断る。古い置き場所 <git-common-dir>/sas/sas.db の記録は、最初に打ったときに1回だけ移す。",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。README のコマンドの説明から、古い名前を断ることと1回だけ移すことを消した。"
+    },
+    {
+     "find": "ステップごとの記録は",
+     "before": "ステップごとの記録は `docs/design/exploration/` にある。前の実装は `archive/semantic-agent-schema-2026-10-31/`（タグ `semantic-agent-schema-archive-2026-10-31`）に残してある。",
+     "why": "前の実装への案内は経緯なので消した。前の実装のフォルダ archive/semantic-agent-schema-2026-10-31/（250件）も git rm で消した。前の実装はタグ semantic-agent-schema-archive-2026-10-31 が持つ。"
+    }
+   ]
+  },
+  {
+   "key": "architecture-json",
+   "tab": "S architecture.json",
+   "file": "semantic-agent-schema/architecture.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"操作の記録のポートの実装：書くモジュールの ChangeLog ・ ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。outbound の sqlite と入口の説明から、古い置き場所の移し方と古い名前の断りを消した。"
+    },
+    {
+     "find": "\"description\": \"semantic-agent-schema コマンドの入口。コンポジ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。outbound の sqlite と入口の説明から、古い置き場所の移し方と古い名前の断りを消した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-README-md",
+   "tab": "S README.md",
+   "file": "semantic-agent-schema/docs/design/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "概念のページ。責務",
+     "before": "概念のページ（版30）。責務",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。版の数字はページとずれていた。"
+    },
+    {
+     "find": "過去の仮説として残し、書き換えない。いまの決まりは",
+     "before": "仮説。arch-v14.json は1つ前の版",
+     "why": "arch/ を過去の仮説として扱い、いまの決まりの置き場所を指した。"
+    },
+    {
+     "find": "過去の仮説として残し、書き換えない。いまの形は概念のページ",
+     "before": "仮説（版21 で Abstract を導き直し、Concrete に書ける x- は5つになった。版30 で公開された言葉は9つになった。いまの形は概念のページのスキーマと DB のタブ）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。"
+    },
+    {
+     "find": "を直す。部品の置き場所は作った結果を",
+     "before": "仮説の側（arch/・concept/）を直す。……「古くなっている記述」節：arch/arch-v15.json の rules_language_neutral の1行目「文脈の根はリポジトリの根」は古い。",
+     "why": "arch/ を過去の仮説として書き換えないので、直す先を concept/ だけにし、古い記述を注記する節を消した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-concept-build-py",
+   "tab": "S build.py",
+   "file": "semantic-agent-schema/docs/design/concept/build.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"\"\"Semantic Agent Schema の概念（版33）。土台・設計のページと同じ作り（タ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "(\"作らないと決めたもの\", \"\", [(\"glossary\", \"使うステップが無い\"), (\"c",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "xt_html = '<div class=\"tw\"><table><tr><th>x-</th><",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "'<p class=\"ans\">事業領域（AI のエージェントが扱う構造化データを、スキーマに従って",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "'<p class=\"ans\">集約は2つ。Concrete・インスタンスで、書くのモジュール（wr",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "'<p class=\"ans\">上から決めた構成を、ユースケースの手続きから下から確かめた（版14 ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "+ det('名前が同じで別のもの', tbl(['名前', '別々のもの'], [[\"検証\", \"",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "+ cards([(\"1 対 多\", \"sessions → changes・validations",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、現在の仕様を説明する表 ・ カード ・ 結論の文から版の移り変わりと移行の番号と外した項目を消した。"
+    },
+    {
+     "find": "ORDER = ['overview', 'types', 'uc', 'domain', 'model', 'verify', 'arch', 'data', 'session', 'flow', 'use', 'link', 'schema', 'need']",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。経緯を並べる表と節9つ（外した案と理由 ・ 外したものの行き先と図 gone ・ いまの27件との対応 ・ 直した保証 ・ 決めたことのタブの版の履歴 ・ 状態の帯 ・ 冒頭の版の要約 ・ セッションのタブの経緯の節）を消した。決めたことのタブは版の履歴を消すと承認待ちの1件（ガイドのボードの手順）だけが残り、ページの仕様ではないのでタブごと消した。それらの節だけが使っていた図（fail ・ child ・ ids ・ unsup ・ ptree ・ gone）も消した。doc-writing-skills の検査で出た廃語も直した。"
+    },
+    {
+     "find": "# ---------- 図 ----------",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "\"edges\": [{\"from\": \"u0\", \"to\": x} for x in [\"u1\", \"u2\", \"u3\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "# ---------- src/ の頁から details に入れる表 ----------",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "# ---------- 見つける・設計する（事業領域・文脈・ドメインモデル・アーキテクチャ・スキーマ） -------",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "SUB = [(\"書いて検証する（モジュール writing・validation）\", \"中核\", \"ドメインモデル（",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "(\"意味の手順（集約ではない。use_cases の手順）\", \"作って返す（記録しない）／渡された値と判定を、形 ・ ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "+ '<h3>自分の $id を持つリソースにするか、$defs の部品にするか</h3><div class=\"tw\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "(\"意味の手順（版14 の SF1）\", \"SAS が立てたセッション（版16 でやめた）\", \"\", \"\", \"手順を",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "NCOL = [\"セッションを決める\", \"範囲で絞る\", \"手順を作る\", \"答えを突き合わせる\", \"コミットの中身",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "+ '<p class=\"hint\">緑＝意味の側がある・灰＝機械だけ。「操作として」は手元の DB に残るか。</p>",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "['使う側', '同じ目的の続きを依頼する（同じセッションを再開する）', '<code>claude -p --res",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "(\"判定者を区別しない\", \"サブエージェントのセッション ID は親と同じなので、SAS は判定したのが誰かを区別しな",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "'<h1>Semantic Agent Schema の概念</h1><p class=\"read\">Semantic ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "F['bnd'] = figman.bnd()",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    },
+    {
+     "find": "det('値オブジェクトと業務サービス'",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。概念のページの元で、経緯を並べる表と節と、それだけが使う定義と図を消した。廃語も直した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-concept-figman-py",
+   "tab": "S figman.py",
+   "file": "semantic-agent-schema/docs/design/concept/figman.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"\"\"手で座標を置く図（class で書き、design-svg resolve で検査する）。\"\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。図を作るツールの説明から、図を置き換えた経緯を消した。"
+    },
+    {
+     "find": "def bnd():",
+     "before": "（コードの面は差分が示す）",
+     "why": "外したものと引き継ぐ先の図 gone を、概念のページから消したので、作る関数も消した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-concept-index-html",
+   "tab": "S index.html",
+   "file": "semantic-agent-schema/docs/design/concept/index.html",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "意味の rule に判定が渡されていない区分",
+     "before": "意味の rule に判定が渡されていない区分。前は unsupported",
+     "why": "現在の仕様を説明するカード ・ 表 ・ 結論の文から、版の移り変わりと移行の番号を消した（build.py から作り直した）。"
+    },
+    {
+     "find": "セッションを立てないので持たない",
+     "before": "SAS はセッションを立てない（版28）",
+     "why": "現在の仕様を説明するカード ・ 表 ・ 結論の文から、版の移り変わりと移行の番号を消した（build.py から作り直した）。"
+    },
+    {
+     "find": "changes に、書いたワークツリー（作業ツリーの根）",
+     "before": "worktree の欄（0008）changes に、書いたワークツリー（作業ツリーの根）。",
+     "why": "現在の仕様を説明するカード ・ 表 ・ 結論の文から、版の移り変わりと移行の番号を消した（build.py から作り直した）。"
+    },
+    {
+     "find": "Semantic Agent Schema が何をし、何を記録し、どう使われるか。",
+     "before": "SAS が何をし、何を記録し、どう使われるか。2026-11-02 版33（……版16：……）。",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。冒頭の版の要約 ・ 状態の帯 ・ 経緯を並べる表と節を消した（build.py から作り直した）。"
+    }
+   ]
+  },
+  {
+   "key": "stances-adapters-inbound-cli-src-main-rs",
+   "tab": "S main.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/inbound/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! どれもコミットしない。無ければ空で作る（作り直せるデータ）。Git のリポジトリの外では、記",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。記録の置き場所を決める db_path は、Git の外を断ることと環境変数とGit の共通フォルダの3つだけにした。"
+    },
+    {
+     "find": "/// 1. Git のリポジトリの外なら、記録を作らずに断る",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。記録の置き場所を決める db_path は、Git の外を断ることと環境変数とGit の共通フォルダの3つだけにした。"
+    },
+    {
+     "find": "Ok(common.join(\"semantic-agent-schema\").join(\"reco",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。記録の置き場所を決める db_path は、Git の外を断ることと環境変数とGit の共通フォルダの3つだけにした。"
+    }
+   ]
+  },
+  {
+   "key": "adapters-inbound-cli-tests-scenarios-rs",
+   "tab": "S scenarios.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/inbound/cli/tests/scenarios.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所を持ち込まない。",
+     "before": "（コードの面は差分が示す）",
+     "why": "場面の試験が持ち込まない環境変数から、読む処理を消した古い名前 SAS_DB_PATH を外した。"
+    }
+   ]
+  },
+  {
+   "key": "adapters-outbound-filesystem-src-lib-rs",
+   "tab": "S lib.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/filesystem/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 降りないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにあ",
+     "before": "（コードの面は差分が示す）",
+     "why": "作業ツリーの .sas に記録を置く形を持たないので、文書の一覧で降りないフォルダから .sas を外した。"
+    },
+    {
+     "find": "\".{}.semantic-agent-schema-tmp\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "一時ファイルと退避の接尾辞を、略さない .semantic-agent-schema-tmp ・ .semantic-agent-schema-bak にした。試験 out_dir.rs も合わせた。"
+    },
+    {
+     "find": "let tmp = sibling(&to, \"semantic-agent-schema-tmp\");",
+     "before": "（コードの面は差分が示す）",
+     "why": "一時ファイルと退避の接尾辞を、略さない .semantic-agent-schema-tmp ・ .semantic-agent-schema-bak にした。試験 out_dir.rs も合わせた。"
+    },
+    {
+     "find": "let backup = sibling(to, \"semantic-agent-schema-bak\");",
+     "before": "（コードの面は差分が示す）",
+     "why": "一時ファイルと退避の接尾辞を、略さない .semantic-agent-schema-tmp ・ .semantic-agent-schema-bak にした。試験 out_dir.rs も合わせた。"
+    },
+    {
+     "find": "let _ = std::fs::remove_file(sibling(&page, \"semantic-agent-schema-bak\"));",
+     "before": "（コードの面は差分が示す）",
+     "why": "一時ファイルと退避の接尾辞を、略さない .semantic-agent-schema-tmp ・ .semantic-agent-schema-bak にした。試験 out_dir.rs も合わせた。"
+    }
+   ]
+  },
+  {
+   "key": "utbound-filesystem-tests-working-tree-rs",
+   "tab": "S working_tree.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/filesystem/tests/working_tree.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 作業ディレクトリの JSON を経路の順に並べ、ビルドの出力と Git の中身には降りない。",
+     "before": "（コードの面は差分が示す）",
+     "why": "降りないフォルダから .sas を外したので、試験の材料を target と .git に合わせた。"
+    },
+    {
+     "find": "fn lists_json_and_skips_build_and_git",
+     "before": "（コードの面は差分が示す）",
+     "why": "降りないフォルダから .sas を外したので、試験の材料を target と .git に合わせた。"
+    },
+    {
+     "find": "for bad in [\"../x.json\", \"/tmp/x.json\", \"a/./b.jso",
+     "before": "（コードの面は差分が示す）",
+     "why": "降りないフォルダから .sas を外したので、試験の材料を target と .git に合わせた。"
+    }
+   ]
+  },
+  {
+   "key": "nces-adapters-outbound-sqlite-Cargo-toml",
+   "tab": "S Cargo.toml",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "description = \"操作の記録のポート（書く ・ 検証 ・ 描画 ・ 記録のモジュールがそ",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。crate の説明から1回だけ移すことを消した。"
+    }
+   ]
+  },
+  {
+   "key": "nces-adapters-outbound-sqlite-src-lib-rs",
+   "tab": "S lib.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::path::Path;",
+     "before": "（コードの面は差分が示す）",
+     "why": "記録は作り直せる手元のデータなので、古い仕様の記録を上げる移行 0001〜0008 と、古い置き場所の記録を移す move_records を消し、現在の仕様の表を作る sql/records.sql の1つと版 SHAPE にした。SHAPE を 8 にしたので、このリポジトリの記録（user_version 8）はそのまま開ける。 消したファイル：移行の SQL 0001〜0008 ・ 試験 move_records.rs ・ migrate_reason.rs ・ migrate_not_judged.rs。"
+    },
+    {
+     "find": "let version: i64 = conn",
+     "before": "（コードの面は差分が示す）",
+     "why": "記録は作り直せる手元のデータなので、古い仕様の記録を上げる移行 0001〜0008 と、古い置き場所の記録を移す move_records を消し、現在の仕様の表を作る sql/records.sql の1つと版 SHAPE にした。SHAPE を 8 にしたので、このリポジトリの記録（user_version 8）はそのまま開ける。 消したファイル：移行の SQL 0001〜0008 ・ 試験 move_records.rs ・ migrate_reason.rs ・ migrate_not_judged.rs。"
+    },
+    {
+     "find": "/// SQLite のデータベースのファイルの頭（ファイル形式の文書 1.3 節の先頭16バイト）",
+     "before": "（コードの面は差分が示す）",
+     "why": "記録は作り直せる手元のデータなので、古い仕様の記録を上げる移行 0001〜0008 と、古い置き場所の記録を移す move_records を消し、現在の仕様の表を作る sql/records.sql の1つと版 SHAPE にした。SHAPE を 8 にしたので、このリポジトリの記録（user_version 8）はそのまま開ける。 消したファイル：移行の SQL 0001〜0008 ・ 試験 move_records.rs ・ migrate_reason.rs ・ migrate_not_judged.rs。"
+    }
+   ]
+  },
+  {
+   "key": "ers-outbound-sqlite-tests-change-rows-rs",
+   "tab": "S change_rows.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/tests/change_rows.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "assert_eq!(version, outbound_sqlite::SHAPE);",
+     "before": "（コードの面は差分が示す）",
+     "why": "版の数を直に書かず、SHAPE と比べるようにした。"
+    }
+   ]
+  },
+  {
+   "key": "s-outbound-sqlite-tests-worktree-rows-rs",
+   "tab": "S worktree_rows.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/tests/worktree_rows.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 書いた変更に、書いたワークツリー（作業ツリーの根）を残す（ACDR 0224）。",
+     "before": "（コードの面は差分が示す）",
+     "why": "版7 の記録を版8 へ上げる試験は、上げる手順を持たないので消し、版の違う記録を断る試験にした。"
+    },
+    {
+     "find": "fn a_database_of_another_shape_is_refused() {",
+     "before": "（コードの面は差分が示す）",
+     "why": "版7 の記録を版8 へ上げる試験は、上げる手順を持たないので消し、版の違う記録を断る試験にした。"
+    }
+   ]
+  },
+  {
+   "key": "blished-language-v1-abstract-schema-json",
+   "tab": "S abstract.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/abstract.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\": \"current-spec-only\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "Concrete の説明 ・ meaning ・ when ・ rule の文に古い仕様の説明や、廃止・移行の経緯を書かせない決まりを、Abstract の根の rules に current-spec-only として足した。書く人が読み、validate --semantic が判定する。"
+    }
+   ]
+  },
+  {
+   "key": "d-language-v1-command-result-schema-json",
+   "tab": "S command-result.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/published-language/v1/command-result.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"not_in_repository\"",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。error の code から renamed_env と、その説明と、2か所に記録があるときの説明を消した。"
+    }
+   ]
+  },
+  {
+   "key": "tances-system-tests-scenario-schema-json",
+   "tab": "S scenario.schema.json",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/scenario.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"semantic-agent-schema に渡す環境変数（セッショ",
+     "before": "（コードの面は差分が示す）",
+     "why": "場面の試験が持ち込まない環境変数の説明から、古い名前 SAS_DB_PATH を消した。"
+    }
+   ]
+  },
+  {
+   "key": "sts-scenarios-S-RECORDS-OUTSIDE-GIT-json",
+   "tab": "S S-RECORDS-OUTSIDE-GIT.json",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/scenarios/S-RECORDS-OUTSIDE-GIT.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"of\": \"when\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "作業ツリーの .sas/sas.db が無いことを確かめる期待は、その置き場所を持たないので消した。"
+    }
+   ]
+  },
+  {
+   "key": "stem-tests-scenarios-S-UC4-WORKTREE-json",
+   "tab": "S S-UC4-WORKTREE.json",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/scenarios/S-UC4-WORKTREE.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"of\": \"when\",",
+     "before": "（コードの面は差分が示す）",
+     "why": "古い置き場所 .git/sas/sas.db が無いことを確かめる期待は、その置き場所を持たないので消した。"
+    }
+   ]
+  },
+  {
+   "key": "as-and-instances-system-tests-trace-json",
+   "tab": "S trace.json",
+   "file": "semantic-agent-schema/schemas-and-instances/system-tests/trace.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"meaning\": \"記録は Git の共通フォルダの semantic-agent-schema",
+     "before": "（コードの面は差分が示す）",
+     "why": "ACDR 0224 で入れた後方互換のためのコード（古い名前 SAS_DB_PATH を断る ・ 古い置き場所の記録を1回だけ移す ・ 案内のファイル）を持たない、という利用者の決まりに合わせて消した。約束 records の意味から古い名前と1回だけ移すことを消し、消した3つの場面を外した。 消した場面：S-RECORDS-MOVE ・ S-RECORDS-MOVE-BOTH ・ S-RECORDS-OLD-ENV。"
+    }
+   ]
+  },
+  {
+   "key": "iting-domain-src-values-change-record-rs",
+   "tab": "S change_record.rs",
+   "file": "semantic-agent-schema/schemas-and-instances/writing/domain/src/values/change_record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// いま打っているワークツリー（作業ツリーの根）で記録した操作か。ワークツリーの無い行は fal",
+     "before": "（コードの面は差分が示す）",
+     "why": "same_worktree の説明から、移行 0008 より前の行という移行の経緯を消した。"
+    }
+   ]
+  },
+  {
+   "key": "adapters-outbound-sqlite-sql-records-sql",
+   "tab": "S records.sql",
+   "file": "semantic-agent-schema/schemas-and-instances/adapters/outbound/sqlite/sql/records.sql",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "-- どの表も追記だけ（UPDATE ・ DELETE を trigger で拒",
+     "why": "移行 0001〜0008 を当てたのと同じ形の表を、1つの作り方にした。表 ・ 索引 ・ trigger ・ ビューの名前と欄は、このリポジトリの記録と一致することを確かめた。",
+     "before": "（無し。新しいファイル）"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-exploration-step-11-json",
+   "tab": "S step-11.json",
+   "file": "semantic-agent-schema/docs/design/exploration/step-11.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"urn:semantic-agent-schema:de",
+     "why": "この変更の探索の記録。経緯は記録が持つので、ここには移行をまとめた理由と、記録がそのまま開けることの照合を書いた。",
+     "before": "（無し。新しいファイル）"
+    }
+   ]
+  },
+  {
+   "key": "docs-design-exploration-step-24-json",
+   "tab": "C step-24.json",
+   "file": "agents-skills-creator/docs/design/exploration/step-24.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"urn:semantic-agent-schema:de",
+     "why": "この変更の creator 側の探索の記録。",
+     "before": "（無し。新しいファイル）"
+    }
+   ]
+  },
+  {
+   "key": "docs-foundation-build-py",
+   "tab": "S foundation/build.py",
+   "file": "semantic-agent-schema/docs/foundation/build.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "TEMPLATE = '<title>抽象概念の土台</title>",
+     "before": "（コードの面は差分が示す）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。セッションのタブの「外した形と理由」を消した。doc-writing-skills の検査で出た廃語も直した。"
+    }
+   ]
+  },
+  {
+   "key": "docs-foundation-index-html",
+   "tab": "S foundation/index.html",
+   "file": "semantic-agent-schema/docs/foundation/index.html",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "判定したのが誰かは区別しない",
+     "before": "（この節のあとに、外した形と理由の表があった）",
+     "why": "ドキュメントやコードの説明に経緯（古い仕様 ・ 移った版 ・ やめたこと）が混ざっていたので、現在の仕様だけの文にした。セッションのタブの「外した形と理由」を消した（build.py から作り直した）。"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "rs-inbound-cli-tests-agents-scenarios-rs": "43a21ac24b365a23fd48ab7a1abe3550e1d57e1ea9f1aaa318005822eb4cad10",
+  "rs-inbound-cli-tests-skills-scenarios-rs": "b04d95d69d5374cb9f77f5ef8f18c83ae1152e9a8fd3becc25940b4b812bbf29",
+  "docs-design-structure-json": "9f3f86e7e6804c9e20818daa98376ed627f16cc60fe35ccb90847ec9526e9d1a",
+  "docs-design-structure-schema-json": "9b203e81055102383fd28e0ac025698c46ca14359a7c3028a9cc076627b11e3a",
+  "published-language-v1-agent-schema-json": "b72071888beac86e8f17b232983e4377be41c1e7270e1cbf04048cb28bba64ac",
+  "published-language-v1-skill-schema-json": "d12ebeb4f555fd74c501c216672aa8f543597211a88122913bc3e783a536a149",
+  "ts-fixtures-consult-advisors-answer-json": "f92718e79babf8ed2d0e0d04792e1780d58f3d608829a4c84f43e724f89f4284",
+  "ts-scenarios-S-UC2-CREATE-PROCEDURE-json": "3b8b3c5658963d8beb061f54f41c8637960fd5b57ae964fb6c68c53e30d642a5",
+  "system-tests-scenario-schema-json": "238642a592e56906cfaf5e360ab0bee41cf675f97a448ff4d38aa08604dd0338",
+  "fact-check-answer-example-violated-json": "a3de01de1f773a4032006b67c72a180bc754531772a24518b50170e05efc59ef",
+  "s-skills-fixtures-fact-check-answer-json": "c1c52b49b9ee87dfbac32a5dab51ff7e17987ba3af97ef8fa20c8cc206ccd954",
+  "ls-scenarios-S-UC1-CREATE-PROCEDURE-json": "8806e52b4ede38f3f97d6c11d422e19c38139f28c6e46ac2e2effd6d2ebf1e6c",
+  "system-tests-skills-untested-json": "fdab207a40943ac72f6a51067e76f626e3306c01913b9c856760c8b3b718818d",
+  "test-support-src-lib-rs": "7b5a413aeff56c5472376602cb960e3ee18d0c5088be4b51af37cefbf1066a88",
+  "gitignore": "44c92e3a70ad3307b7056871c2bdb096d8bfa9373f5bf06a79bb6324a20ff2fb",
+  "CODING-md": "a3dea80ce8cb9e26c147df3818ff911d23ea77dc010bbb53635ac1f87a599212",
+  "README-md": "4fb0c71ffb29581020070c7874391dba25586fb609bd21dac6225aca214d1c4c",
+  "architecture-json": "d7e24484f6032256a9d6b6b73c3991a801aa01b726f689afd85f913886656d66",
+  "docs-design-README-md": "b6b8eab54eac834f36e46bc54f1ec80c29cb85b0b49f4bcb8bfa83f9bdc2863e",
+  "docs-design-concept-build-py": "16f2f5445985b8725a88015ae8a33d69f8476f5baade61341a996b979886f7cc",
+  "docs-design-concept-figman-py": "2f2d54866dff164b91f51e1526766a2a0411412c1b62987cee73b831f6915b97",
+  "docs-design-concept-index-html": "dd34734900fe6fe9e2a84415fc2f9e36376c80dbd57b0e2764956c8ce36a9a71",
+  "stances-adapters-inbound-cli-src-main-rs": "516ca4c95fe04bb7493b1b5a0c41b971fd1053599bb5003dfae751649dcc6a0f",
+  "adapters-inbound-cli-tests-scenarios-rs": "5775d11f00b4d6847be5f34dff63fdcad21252f78a240efb4c5c69a4f92d1d76",
+  "adapters-outbound-filesystem-src-lib-rs": "ff030168a94044b72bac023ca22ae52c7ded05237dbb409b9c27f9f6283f6757",
+  "utbound-filesystem-tests-working-tree-rs": "db8cce9c2850b77effd6c578495af9e7b8fb91dafe8216b27ea30aa64f9fa03f",
+  "nces-adapters-outbound-sqlite-Cargo-toml": "9362ffe9bd248b5c20fcdddd7e16a1855ebf0fbb9463d28d1cae353904dbd244",
+  "nces-adapters-outbound-sqlite-src-lib-rs": "ae811e6dfaa972a77575160ddcf3550ef0052ac9aaf6a783a20d887010e553cb",
+  "ers-outbound-sqlite-tests-change-rows-rs": "44e0dcff1cf4eb53d0619a933e03b4d409681ee3c2b97d7c07f406537bc54415",
+  "s-outbound-sqlite-tests-worktree-rows-rs": "7ff1feebcdce005bfc8c892d06f8df5249d101f02f54829f1731b2dd5b19b791",
+  "blished-language-v1-abstract-schema-json": "7e33212ab2db7e25a560d469a34091c1a27583aa75f67ab87011a94faae6a6ab",
+  "d-language-v1-command-result-schema-json": "0a1d9aa0b6ad6157363808237f752b99eb0115986256b444ad8f75ada272779d",
+  "tances-system-tests-scenario-schema-json": "a8807d1bb4ea6a7c8269ab6427e331d8f86fad6468dfa4257a35c6ae3293aa37",
+  "sts-scenarios-S-RECORDS-OUTSIDE-GIT-json": "024252dd9db11d025cb82604754ce215c30482c0fb0a035f9ca30ef9cd56248f",
+  "stem-tests-scenarios-S-UC4-WORKTREE-json": "77b160d08b31f70c6011f8517765b1f031c4f693fed02c3a4885230d0ec6e009",
+  "as-and-instances-system-tests-trace-json": "0df7ba88209b0b1ef5783b2c659ee4bdeaef52c691c337048dc0bd239f3c399a",
+  "iting-domain-src-values-change-record-rs": "96d4d1c36faa3f43248b4c5e2ba9479fbe08cebbcef8e0c6ea9093e0094c485d",
+  "adapters-outbound-sqlite-sql-records-sql": "71f1b7d9e15d54fa28aece7cf3ca20787f084b6ab7a7b953cf84739ba7a447f0",
+  "docs-design-exploration-step-11-json": "fccf35133eef6e7e57e5120425ff659c9e96116cacf1a439bb8e9e673acd3378",
+  "docs-design-exploration-step-24-json": "c90d7a0136771e57f3e729805dd19d12b717917e9416eaa980045b44fc65ab28",
+  "docs-foundation-build-py": "051498f4937c89757f0be1a984884df9fdbebe3e0605b37490e4f7206d1453a8",
+  "docs-foundation-index-html": "49e0303bc71d874ce52e3327fa461f4b0226a0dce6bbe27fa3864223a8f7e9d4"
+ }
+}

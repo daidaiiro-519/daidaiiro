@@ -1,4 +1,4 @@
-"""手で座標を置く図（class で書き、design-svg resolve で検査する）。版11 で崩れていた図を置き換える。"""
+"""手で座標を置く図（class で書き、design-svg resolve で検査する）。"""
 import os, subprocess
 from html import escape as e
 H = os.path.dirname(os.path.abspath(__file__))
@@ -116,15 +116,6 @@ def datamap():
         ('sessions（打ったセッション。誰がどのツールで動いたか）', '操作の記録の行（集約にしない。追記だけ）', ''),
         ('changes・field_changes', '操作の記録の行（書いた変更。次の判定のまとまりを作る）', ''),
         ('validations・rule_results', '操作の記録の行（検証。判定の結果は値で読む）', '')])
-
-def gone():
-    return rows_map('gone', '外したものと引き継ぐ先', '外す（版15 の schemas/v1）', '引き継ぐ先', [
-        ('judgment', 'rule_results・rule-result', 'focus'),
-        ('change', 'changes・field_changes・diff', 'focus'),
-        ('change-summary', '使う側（まとめ・承認・コミット）', 'muted'),
-        ('call', 'procedure（値を渡す command を持つ）', 'focus'),
-        ('output-judging・output-working', 'judgment-answer（公開された言葉）', 'focus'),
-        ('vocab-meta', 'vocabulary（改名・x-view を足す）', 'focus')])
 
 def bnd():
     f = Fig(1000, 370, 'スキーマの境界')

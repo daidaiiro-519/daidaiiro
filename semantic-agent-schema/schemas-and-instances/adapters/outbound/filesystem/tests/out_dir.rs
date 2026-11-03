@@ -7,7 +7,10 @@ use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
 
 fn temp(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("sas-out-dir-{}-{name}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "semantic-agent-schema-out-dir-{}-{name}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -18,7 +21,10 @@ fn leftovers(dir: &Path) -> Vec<String> {
     for e in std::fs::read_dir(dir).unwrap() {
         let e = e.unwrap();
         let name = e.file_name().to_string_lossy().to_string();
-        if e.path().is_file() && (name.ends_with(".sas-tmp") || name.ends_with(".sas-bak")) {
+        if e.path().is_file()
+            && (name.ends_with(".semantic-agent-schema-tmp")
+                || name.ends_with(".semantic-agent-schema-bak"))
+        {
             out.push(name);
         }
     }
@@ -33,7 +39,7 @@ fn a_failure_while_replacing_restores_the_pages_already_replaced() {
     std::fs::write(site.join("a.html"), "前の a").unwrap();
     std::fs::write(site.join("b.html"), "前の b").unwrap();
     // b.html の退避先に中身のあるフォルダを置き、2つ目の置き換えだけが失敗するようにする
-    std::fs::create_dir_all(site.join(".b.html.sas-bak").join("x")).unwrap();
+    std::fs::create_dir_all(site.join(".b.html.semantic-agent-schema-bak").join("x")).unwrap();
     let pages = vec![
         ("a.html".to_string(), "新しい a".to_string()),
         ("b.html".to_string(), "新しい b".to_string()),
@@ -124,9 +130,9 @@ fn rewriting_after_an_interrupted_write_leaves_no_backup() {
     let site = root.join("site");
     std::fs::create_dir_all(&site).unwrap();
     // 前の書き出しが置き換えの途中で止められたあと：a は前のページを退避したまま新しいページが無く、b は置き換え済みで退避が残る
-    std::fs::write(site.join(".a.html.sas-bak"), "前の a").unwrap();
+    std::fs::write(site.join(".a.html.semantic-agent-schema-bak"), "前の a").unwrap();
     std::fs::write(site.join("b.html"), "新しい b").unwrap();
-    std::fs::write(site.join(".b.html.sas-bak"), "前の b").unwrap();
+    std::fs::write(site.join(".b.html.semantic-agent-schema-bak"), "前の b").unwrap();
     let pages = vec![
         ("a.html".to_string(), "新しい a".to_string()),
         ("b.html".to_string(), "新しい b".to_string()),

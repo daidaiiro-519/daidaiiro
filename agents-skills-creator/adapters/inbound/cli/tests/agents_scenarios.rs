@@ -8,16 +8,14 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semantic Agent Schema の記録の置き場所。
-/// 置き場所は古い名前 SAS_DB_PATH も：設定されていると semantic-agent-schema が断る）。
+/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semantic Agent Schema の記録の置き場所）。
 /// 持ち込むと、semantic-agent-schema の出力のセッションと記録が試験を動かす環境で変わる。
-const NOT_INHERITED: [&str; 6] = [
+const NOT_INHERITED: [&str; 5] = [
     "CLAUDE_CODE_SESSION_ID",
     "CODEX_SESSION_ID",
     "COPILOT_AGENT_SESSION_ID",
     "KIRO_SESSION_ID",
     "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE",
-    "SAS_DB_PATH",
 ];
 
 fn suite() -> PathBuf {
