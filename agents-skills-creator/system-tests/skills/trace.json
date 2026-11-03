@@ -1,0 +1,276 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:trace:v1",
+ "description": "ユースケースの保証と変形を、それを確かめる場面と突き合わせる表（SAS の system-tests/trace.json と同じ形）。場面の traces から作り、試験（test-support の trace.rs）が場面と食い違わないことを確かめる。creator の出力が公開された言葉の形に従うことは、場面を流す試験（adapters/inbound/cli/tests/skills_scenarios.rs）がすべての出力で照らす",
+ "scope": [
+  "UC1:成功時保証",
+  "UC1:最低保証",
+  "UC4:成功時保証",
+  "UC4:最低保証",
+  "約束:create-result",
+  "約束:validate-result",
+  "約束:write-skill-md-result",
+  "約束:skill:references",
+  "約束:skill:schema",
+  "UC1:変形:例を別の会話で動かす",
+  "UC4:変形:意味の判定",
+  "UC1:拡張:2a",
+  "UC1:拡張:2a1a",
+  "UC1:拡張:2a2a",
+  "UC1:拡張:4a",
+  "UC1:拡張:4b",
+  "UC7:成功時保証",
+  "UC7:最低保証",
+  "UC3:成功時保証",
+  "UC3:最低保証",
+  "約束:update-result",
+  "UC3:変形:リンクする Agent の受け渡し",
+  "UC3:変形:例を全部別の会話で動かす",
+  "UC5:成功時保証",
+  "UC5:最低保証",
+  "約束:distribute-result",
+  "UC5:変形:プラグインで配る",
+  "UC6:成功時保証",
+  "UC6:最低保証",
+  "約束:withdraw-result",
+  "UC6:変形:リンクしている Agent を示す",
+  "約束:skill:tools",
+  "約束:approve-result"
+ ],
+ "traces": [
+  {
+   "id": "UC1:成功時保証",
+   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（create に Skill のフォルダを渡すと添える作る流れ：目的の仮説 ・ 完成の像 ・ 構造の像 ・ 推奨付きの問いを先に見せ、完成の像を変え、ほかから決まらない所だけを聞く。と、SAS の書く手順）・ skill.json から決まった形で書く SKILL.md（参照する資料の節を含む）・ 承認の材料（validate。構造の像の4つを含む）",
+   "scenarios": [
+    "S-UC1-BUILD-REFERENCES",
+    "S-UC1-BUILD",
+    "S-UC1-CONFIRM-REFERENCES",
+    "S-UC1-CONFIRM",
+    "S-UC1-CREATE-PROCEDURE",
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
+    "S-UC1-VALUE-FROM-FILE"
+   ],
+   "note": "AI ツールごとの置き場所と形（配布）は UC5 で確かめる"
+  },
+  {
+   "id": "UC1:最低保証",
+   "meaning": "既にある Skill は変わらない ・ どこまで書いたかが分かる。目的の誰がと何を得るかが分からないままなら承認を受け付けない",
+   "scenarios": [
+    "S-UC1-CONFIRM-UNKNOWN",
+    "S-UC1-EXISTING",
+    "S-UC1-HELP",
+    "S-UC1-USAGE"
+   ]
+  },
+  {
+   "id": "UC4:成功時保証",
+   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う ・ 資料の grounds_for の名前が outputs の name にある ・ 道具と資源のファイルがある ・ 道具の does が role.does にある ・ 道具の受け渡しが Skill の inputs ・ outputs にある）を別の欄で返す。承認の材料は、SAS の検証で検出があるか意味の rule の not-judged が残れば承認を受け付けず（終了コードは変えない）、そのまま打てる承認のコマンドを返す",
+   "scenarios": [
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
+    "S-UC4-APPROVE-COMMAND",
+    "S-UC4-BROKEN-LINK",
+    "S-UC4-CHECK-OK",
+    "S-UC4-FOLDER-LINK-BROKEN",
+    "S-UC4-GROUNDS-NOT-OUTPUT",
+    "S-UC4-JSON-SCHEMA-BROKEN",
+    "S-UC4-JSON-SCHEMA-OK",
+    "S-UC4-JSON-SCHEMA-URN",
+    "S-UC4-MANY",
+    "S-UC4-NAME-NOT-FOLDER",
+    "S-UC4-NAME-OVERLAP",
+    "S-UC4-REFERENCES-MISSING",
+    "S-UC4-REFERENCES-OK",
+    "S-UC4-SAS-OUTSIDE",
+    "S-UC4-SKILL-MD-MISSING",
+    "S-UC4-SKILL-MD-STALE",
+    "S-UC4-TOOL-IO-BROKEN",
+    "S-UC4-TOOLS-BROKEN"
+   ]
+  },
+  {
+   "id": "UC4:最低保証",
+   "meaning": "確かめても、Skill のファイルは変わらない（SAS の記録 .git/sas/sas.db には検証の操作が1件足される）。semantic-agent-schema が無い ・ 使い方を誤ったときは確かめずに止まる",
+   "scenarios": [
+    "S-UC4-CHECK-OK",
+    "S-UC4-EXAMPLE-MISSED",
+    "S-UC4-EXAMPLES-DISTINCT",
+    "S-UC4-SAS-UNAVAILABLE",
+    "S-UC4-USAGE"
+   ]
+  },
+  {
+   "id": "約束:create-result",
+   "meaning": "create の結果は create-result.schema.json に従い、semantic-agent-schema create の結果を書き換えずに入れる",
+   "scenarios": [
+    "S-UC1-CREATE-PROCEDURE",
+    "S-UC1-EXISTING",
+    "S-UC1-USAGE",
+    "S-UC1-VALUE-FROM-FILE"
+   ]
+  },
+  {
+   "id": "約束:validate-result",
+   "meaning": "validate の結果は validate-result.schema.json に従う（承認の材料と、前の確かめから変わった所を含む）",
+   "scenarios": [
+    "S-UC1-CONFIRM-REFERENCES",
+    "S-UC1-CONFIRM-UNKNOWN",
+    "S-UC1-CONFIRM",
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
+    "S-UC3-UPDATE-PATCH",
+    "S-UC4-APPROVE-COMMAND",
+    "S-UC4-BROKEN-LINK",
+    "S-UC4-CHECK-OK",
+    "S-UC4-EXAMPLE-MISSED",
+    "S-UC4-EXAMPLES-DISTINCT",
+    "S-UC4-FOLDER-LINK-BROKEN",
+    "S-UC4-GROUNDS-NOT-OUTPUT",
+    "S-UC4-JSON-SCHEMA-BROKEN",
+    "S-UC4-JSON-SCHEMA-OK",
+    "S-UC4-JSON-SCHEMA-URN",
+    "S-UC4-NAME-NOT-FOLDER",
+    "S-UC4-NAME-OVERLAP",
+    "S-UC4-REFERENCES-MISSING",
+    "S-UC4-REFERENCES-OK",
+    "S-UC4-SAS-OUTSIDE",
+    "S-UC4-SAS-UNAVAILABLE",
+    "S-UC4-SKILL-MD-MISSING",
+    "S-UC4-SKILL-MD-STALE",
+    "S-UC4-TOOL-IO-BROKEN",
+    "S-UC4-TOOLS-BROKEN",
+    "S-UC4-USAGE"
+   ]
+  },
+  {
+   "id": "約束:write-skill-md-result",
+   "meaning": "write-skill-md の結果は write-skill-md-result.schema.json に従う",
+   "scenarios": [
+    "S-UC1-BUILD-REFERENCES",
+    "S-UC1-BUILD",
+    "S-UC1-USAGE"
+   ]
+  },
+  {
+   "id": "約束:skill:references",
+   "meaning": "skill.schema の references（参照する資料）は、SKILL.md の参照する資料の節と手順の行に出て、validate がフォルダの中にあるかを確かめ、承認の材料の構造と構造の像（資料と出力の関係）に入れ、from が作る人の答えの資料を推測にしない",
+   "scenarios": [
+    "S-UC1-BUILD-REFERENCES",
+    "S-UC1-CONFIRM-REFERENCES",
+    "S-UC4-GROUNDS-NOT-OUTPUT",
+    "S-UC4-REFERENCES-MISSING",
+    "S-UC4-REFERENCES-OK"
+   ]
+  },
+  {
+   "id": "約束:skill:schema",
+   "meaning": "skill.schema の references と outputs の schema（JSON の形なら必須）は、SKILL.md の形に添えて出し、validate が schema があるか（URN なら SAS が引けるか）と、JSON の資料がそれに従うかを確かめる",
+   "scenarios": [
+    "S-UC1-BUILD-REFERENCES",
+    "S-UC4-JSON-SCHEMA-BROKEN",
+    "S-UC4-JSON-SCHEMA-OK",
+    "S-UC4-JSON-SCHEMA-URN"
+   ]
+  },
+  {
+   "id": "UC3:成功時保証",
+   "meaning": "直した Skill が使え、選んだ層が記録されている。creator が確かめるのは、そのための材料：直す流れ（外れた具体を examples に足す形 ・ 層の案と導き直し ・ 層を --reason に残す記録 ・ 承認してから書く）と、--patch の結果（SAS の結果を書き換えない）と、validate の承認の材料の changes（前の確かめからの操作ごとの理由の層と、所ごとの前と後）",
+   "scenarios": [
+    "S-UC1-VALUE-FROM-FILE",
+    "S-UC3-UPDATE-PATCH",
+    "S-UC3-UPDATE-PROCEDURE"
+   ]
+  },
+  {
+   "id": "UC3:最低保証",
+   "meaning": "作る人が承認するまで、Skill は書き換わらない。--semantic は何も書かず、--patch は --if-match と「層：<名前>」の理由が無ければ semantic-agent-schema を打たず、中身が変わっていれば SAS が断る",
+   "scenarios": [
+    "S-UC3-UPDATE-PROCEDURE",
+    "S-UC3-UPDATE-REFUSED"
+   ]
+  },
+  {
+   "id": "約束:update-result",
+   "meaning": "update の結果は update-result.schema.json に従い、semantic-agent-schema update の結果を書き換えずに入れる",
+   "scenarios": [
+    "S-UC1-VALUE-FROM-FILE",
+    "S-UC3-UPDATE-PATCH",
+    "S-UC3-UPDATE-PROCEDURE",
+    "S-UC3-UPDATE-REFUSED"
+   ]
+  },
+  {
+   "id": "UC5:成功時保証",
+   "meaning": "配布先が読める形で配布されている。distribute が配る前に確かめ（creator の検査 ・ semantic-agent-schema validate ・ 承認がいまの中身に当たるか ・ 置き場所が空いているか）、ツールと範囲ごとの置き場所（Claude Code は .claude/skills/<name>、Codex は .agents/skills/<name>。repository は打った場所、user は HOME の下）に Skill のフォルダへのシンボリックリンクを置き、置いた所から同じ SKILL.md を読めることを確かめる",
+   "scenarios": [
+    "S-UC5-DISTRIBUTE"
+   ]
+  },
+  {
+   "id": "UC5:最低保証",
+   "meaning": "配布先のほかの Skill は変わらない（置き場所にほかのものがあれば置かず、同じリンクなら何もしない）。承認していないもの（approved が無いか、承認のあとに書き換えた）は配布しない（BR4）。承認は人の欄（x-decided-by: human）で、AI のセッションからは SAS が書かせない",
+   "scenarios": [
+    "S-UC4-APPROVE-COMMAND",
+    "S-UC5-APPROVAL-STALE",
+    "S-UC5-APPROVE-BY-AI",
+    "S-UC5-DISTRIBUTE",
+    "S-UC5-NOT-APPROVED",
+    "S-UC5-OCCUPIED",
+    "S-UC5-USAGE"
+   ]
+  },
+  {
+   "id": "約束:distribute-result",
+   "meaning": "distribute の結果は distribute-result.schema.json に従う",
+   "scenarios": [
+    "S-UC5-APPROVAL-STALE",
+    "S-UC5-DISTRIBUTE",
+    "S-UC5-NOT-APPROVED",
+    "S-UC5-OCCUPIED",
+    "S-UC5-USAGE"
+   ]
+  },
+  {
+   "id": "UC6:成功時保証",
+   "meaning": "配布先から外れている。withdraw が、distribute の置く4か所のうち creator が置いたリンク（Skill のフォルダを指すもの）をすべて外し、外したあとに残っていないこと（unlinked）を確かめる。Skill の実体は消さない（使わなくするのは配布だけ）",
+   "scenarios": [
+    "S-UC6-WITHDRAW"
+   ]
+  },
+  {
+   "id": "UC6:最低保証",
+   "meaning": "作る人が承認するまで、使わなくならない。AI のセッション（Claude Code ・ Codex ・ Copilot ・ Kiro の環境変数）から打たれたら外さず、影響と人が打つコマンドを返す。creator が置いたリンクのほか（実体のフォルダ ・ 別の先へのリンク）は外さない",
+   "scenarios": [
+    "S-UC6-USAGE",
+    "S-UC6-WITHDRAW-BY-AI",
+    "S-UC6-WITHDRAW"
+   ]
+  },
+  {
+   "id": "約束:withdraw-result",
+   "meaning": "withdraw の結果は withdraw-result.schema.json に従う",
+   "scenarios": [
+    "S-UC6-USAGE",
+    "S-UC6-WITHDRAW-BY-AI",
+    "S-UC6-WITHDRAW"
+   ]
+  },
+  {
+   "id": "約束:skill:tools",
+   "meaning": "skill.schema の tools（scripts/ の道具）・ uses（外の道具）・ assets（assets/ の資源）は、SKILL.md の道具 ・ 外の道具 ・ 資源の節に出て、validate が道具 ・ 資源のファイルがあるか（tools-exist ・ assets-exist）、道具の does が role.does にあるか（tools-in-role）、道具の受け渡しが Skill の inputs ・ outputs にあるか（tool-io-declared）を確かめ、承認の材料の受け持つ範囲に出る。道具の used_by（使うステップ）は SKILL.md の手順の行に「（使う道具：…）」として添え、番号が steps にあるかを確かめる（tools-used-by）",
+   "scenarios": [
+    "S-UC1-CREATOR-ITSELF",
+    "S-UC1-TOOLS",
+    "S-UC4-TOOL-IO-BROKEN",
+    "S-UC4-TOOLS-BROKEN"
+   ]
+  },
+  {
+   "id": "約束:approve-result",
+   "meaning": "agents-skills-creator approve の結果は approve-result.schema.json に従い、中で打った semantic-agent-schema update の結果を書き換えずに入れる",
+   "scenarios": [
+    "S-UC4-APPROVE-COMMAND"
+   ]
+  }
+ ]
+}

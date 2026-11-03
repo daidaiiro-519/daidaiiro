@@ -2,12 +2,13 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:agents-skills-creator:design:structure:v1",
  "title": "構成の決まり",
- "description": "文脈 ・ モジュールの分け方と crate の名前の付け方である。依存の向きの規則は architecture.json（architecture-lint の規則）が持ち、ここには書かない。",
+ "description": "置き場所（ディレクトリ構成）と、文脈 ・ モジュールの分け方と crate の名前の付け方である。依存の向きの規則は architecture.json（architecture-lint の規則）が持ち、ここには書かない。",
  "type": "object",
  "required": [
   "$schema",
   "description",
   "context",
+  "layout",
   "context_map",
   "crate_naming",
   "modules"
@@ -25,7 +26,16 @@
   "context": {
    "type": "string",
    "minLength": 1,
-   "description": "いま置いている文脈の名前である。"
+   "description": "置いている文脈の名前である。"
+  },
+  "layout": {
+   "type": "object",
+   "minProperties": 1,
+   "additionalProperties": {
+    "type": "string",
+    "minLength": 1
+   },
+   "description": "置き場所ごとに、何を置くかである（経路 → 中身）。"
   },
   "context_map": {
    "type": "string",

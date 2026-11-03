@@ -1,7 +1,7 @@
 {
  "$schema": "urn:architecture-lint:rules:v1",
  "version": 1,
- "description": "いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きはすべて禁止。crate か外のライブラリを足したら、ここにも足す。文脈 ・ モジュールの分け方と crate の名前の付け方は docs/design/structure.json にある。文脈 agents の crate から文脈 skills の crate への向きは許さない（agents は skills の公開された言葉＝skills コマンドの結果だけに従う）（SAS の architecture.json と同じ決まり）",
+ "description": "いまある crate と外のライブラリ、その間で許す依存の向き（architecture-lint の規則）。書いていない向きはすべて禁止。crate か外のライブラリを足したら、ここにも足す。置き場所と crate の名前の付け方は docs/design/structure.json にある（SAS と同じヘキサゴナルの形：文脈の中は domain と application だけ、アダプターは文脈の外の adapters/ に入口と出口で1つずつ）。文脈 agents の crate から文脈 skills の crate への向きは許さない（agents は skills の公開された言葉＝skills コマンドの結果だけに従う）。アダプターは application に向く（SAS の architecture.json と同じ決まり）",
  "components": [
   {
    "name": "skills-domain",
@@ -18,34 +18,6 @@
    "description": "UC1 作る（use_cases/new.rs：作る手順を返す。build.rs：SKILL.md を作って書く。confirm.rs：確認の1画面の材料と、別の会話に任せる手順を返す）と UC4 確かめる（use_cases/check.rs。creator の検査は name-is-folder ・ name-unique ・ links-resolve ・ skill-md-built ・ references-exist ・ json-schema-conforms）。ポート SkillValidator（SAS で検証する ・ SAS が Concrete を引けるか）・ JsonSchemaChecker（ふつうの JSON Schema で確かめる）・ SkillFiles（フォルダ ・ ファイル ・ リンクを読む）・ GeneratedFiles（SKILL.md を書く）を宣言する。手順に写す Concrete（skill.schema.json）は、この文脈の公開された言葉を埋め込んで読む"
   },
   {
-   "name": "skills-outbound-sas",
-   "nodes": [
-    "skills-outbound-sas"
-   ],
-   "description": "SkillValidator の実装。semantic-agent-schema を PATH だけで探し（semantic-agent-schema は環境に1つ）、外の実行ファイルとして呼んで、semantic-agent-schema validate の出力を書き換えずに返す。Concrete を引けるかは semantic-agent-schema search --concrete で見る。打った場所と環境変数はそのまま渡す"
-  },
-  {
-   "name": "skills-outbound-filesystem",
-   "nodes": [
-    "skills-outbound-filesystem"
-   ],
-   "description": "SkillFiles ・ GeneratedFiles の実装。作業ディレクトリのフォルダ ・ skill.json ・ シンボリックリンクを読み、creator が作る SKILL.md だけを書く（一時ファイルに書いてから置き換える）。skill.json は書かない（SAS が書く）"
-  },
-  {
-   "name": "skills-outbound-jsonschema",
-   "nodes": [
-    "skills-outbound-jsonschema"
-   ],
-   "description": "JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いたふつうの JSON Schema で、参照する資料の中身を確かめる"
-  },
-  {
-   "name": "skills-inbound-cli",
-   "nodes": [
-    "skills-inbound-cli"
-   ],
-   "description": "agents-skills-creator コマンドの入口（new ・ build ・ confirm ・ check）。コンポジションルートを持ち、結果を公開された言葉の形（new-procedure ・ build-result ・ confirm ・ check-result）の JSON 1つで返す"
-  },
-  {
    "name": "agents-domain",
    "nodes": [
     "agents-domain"
@@ -60,39 +32,39 @@
    "description": "文脈 agents の application。UC2 Agent を作る（create ・ write-agent-md ・ validate と承認の材料 ・ distribute ・ withdraw）。ポート AgentValidator ・ AgentWriter ・ AgentHistory（SAS）・ SkillsCli（文脈 skills の公開された言葉：skills validate の結果）・ AgentFiles ・ GeneratedFiles ・ Destinations を宣言する。文脈 skills の crate には依存しない"
   },
   {
-   "name": "agents-outbound-sas",
+   "name": "inbound-cli",
    "nodes": [
-    "agents-outbound-sas"
+    "inbound-cli"
    ],
-   "description": "AgentValidator ・ AgentWriter ・ AgentHistory の実装。semantic-agent-schema を PATH から探して外の実行ファイルとして呼び、出力を書き換えずに返す"
+   "description": "入口。実行ファイル agents-skills-creator（adapters/inbound/cli）。サブコマンド skills ・ agents をそれぞれの文脈の入口のモジュール（skills ・ agents）へ、approve を skill.json か agent.json かで振り分ける。モジュールごとにコンポジションルートを持ち、結果を公開された言葉の形の JSON 1つで返す。AI のセッションを callers.json の表で見分ける"
   },
   {
-   "name": "agents-outbound-filesystem",
+   "name": "outbound-semantic-agent-schema",
    "nodes": [
-    "agents-outbound-filesystem"
+    "outbound-semantic-agent-schema"
    ],
-   "description": "AgentFiles ・ GeneratedFiles ・ Destinations の実装。Agent のフォルダと配下の skills/ のリンクを読み、AGENT.md と codex.toml を書き、配布先にリンクを置く ・ 外す"
+   "description": "出口：SAS。文脈 skills の SkillValidator ・ SkillWriter ・ SkillHistory と、文脈 agents の AgentValidator ・ AgentWriter ・ AgentHistory を、モジュール skills ・ agents で実装する。semantic-agent-schema を PATH から探し、外の実行ファイルとして呼んで、出力を書き換えずに返す"
   },
   {
-   "name": "agents-outbound-skills",
+   "name": "outbound-filesystem",
    "nodes": [
-    "agents-outbound-skills"
+    "outbound-filesystem"
    ],
-   "description": "SkillsCli の実装。文脈 skills の公開された言葉（skills コマンドの validate の結果）を、skills を PATH から探して呼んで読む。skills の crate には依存しない（agents → skills は公開された言葉だけ）"
+   "description": "出口：作業ディレクトリのファイル。文脈 skills の SkillFiles ・ GeneratedFiles ・ Destinations と、文脈 agents の AgentFiles ・ GeneratedFiles ・ Destinations を、モジュール skills ・ agents で実装する。フォルダ ・ 項目のファイル ・ シンボリックリンクを読み、SKILL.md ・ AGENT.md ・ codex.toml を書き、配布先にリンクを置く ・ 外す。skill.json ・ agent.json は書かない（SAS が書く）"
   },
   {
-   "name": "agents-inbound-cli",
+   "name": "outbound-jsonschema",
    "nodes": [
-    "agents-inbound-cli"
+    "outbound-jsonschema"
    ],
-   "description": "agents コマンドの入口（create ・ validate ・ write-agent-md ・ distribute ・ withdraw）。コンポジションルートを持ち、AI のセッションを callers.json の表で見分ける"
+   "description": "出口：ふつうの JSON Schema。文脈 skills の JsonSchemaChecker の実装。jsonschema（SAS と同じ版）を閉じ込め、Skill のフォルダに置いた JSON Schema で、参照する資料の中身を確かめる"
   },
   {
-   "name": "agents-skills-creator",
+   "name": "outbound-skills",
    "nodes": [
-    "agents-skills-creator"
+    "outbound-skills"
    ],
-   "description": "実行ファイル agents-skills-creator（製品の根の cli/）。サブコマンド skills ・ agents をそれぞれの文脈の入口へ、approve を skill.json か agent.json かで振り分けるだけで、ユースケースは持たない。2つの文脈の入口だけに依存し、文脈どうしの向きは変えない"
+   "description": "出口：文脈 skills の公開された言葉。文脈 agents の SkillsCli の実装。agents-skills-creator skills validate の結果を、外のプロセスとして呼んで読む。skills の crate には依存しない（agents → skills は公開された言葉だけ）"
   },
   {
    "name": "test-support",
@@ -113,7 +85,7 @@
    "nodes": [
     "jsonschema"
    ],
-   "description": "JSON Schema のバリデーター（SAS と同じ版）。outbound-jsonschema に閉じ込める"
+   "description": "JSON Schema のバリデーター（SAS と同じ版）。outbound-jsonschema に閉じ込める（場面の試験と test-support は dev で使う）"
   }
  ],
  "allow": [
@@ -131,20 +103,35 @@
    ]
   },
   {
-   "from": "skills-outbound-sas",
+   "from": "agents-domain",
    "to": [
-    "skills-application",
     "serde_json"
    ]
   },
   {
-   "from": "skills-outbound-filesystem",
+   "from": "agents-application",
    "to": [
-    "skills-application"
+    "agents-domain",
+    "serde_json"
    ]
   },
   {
-   "from": "skills-outbound-jsonschema",
+   "from": "outbound-semantic-agent-schema",
+   "to": [
+    "skills-application",
+    "agents-application",
+    "serde_json"
+   ]
+  },
+  {
+   "from": "outbound-filesystem",
+   "to": [
+    "skills-application",
+    "agents-application"
+   ]
+  },
+  {
+   "from": "outbound-jsonschema",
    "to": [
     "skills-application",
     "serde_json",
@@ -152,14 +139,33 @@
    ]
   },
   {
-   "from": "skills-inbound-cli",
+   "from": "outbound-skills",
    "to": [
-    "skills-application",
-    "skills-outbound-sas",
-    "skills-outbound-filesystem",
-    "skills-outbound-jsonschema",
+    "agents-application",
     "serde_json"
    ]
+  },
+  {
+   "from": "inbound-cli",
+   "to": [
+    "skills-application",
+    "agents-application",
+    "outbound-semantic-agent-schema",
+    "outbound-filesystem",
+    "outbound-jsonschema",
+    "outbound-skills",
+    "serde_json"
+   ]
+  },
+  {
+   "from": "inbound-cli",
+   "to": [
+    "jsonschema"
+   ],
+   "kinds": [
+    "dev"
+   ],
+   "description": "場面の試験で、出力が公開された言葉の形に従うことを jsonschema に照らす"
   },
   {
    "from": "test-support",
@@ -171,67 +177,6 @@
     "dev"
    ],
    "description": "依存の向き ・ 対応表 ・ 設計のファイルの検査が JSON を読み、形に照らす"
-  },
-  {
-   "from": "agents-application",
-   "to": [
-    "agents-domain",
-    "serde_json"
-   ]
-  },
-  {
-   "from": "agents-domain",
-   "to": [
-    "serde_json"
-   ]
-  },
-  {
-   "from": "agents-outbound-sas",
-   "to": [
-    "agents-application",
-    "serde_json"
-   ]
-  },
-  {
-   "from": "agents-outbound-filesystem",
-   "to": [
-    "agents-application"
-   ]
-  },
-  {
-   "from": "agents-outbound-skills",
-   "to": [
-    "agents-application",
-    "serde_json"
-   ]
-  },
-  {
-   "from": "agents-inbound-cli",
-   "to": [
-    "agents-application",
-    "agents-outbound-sas",
-    "agents-outbound-filesystem",
-    "agents-outbound-skills",
-    "serde_json"
-   ]
-  },
-  {
-   "from": "agents-skills-creator",
-   "to": [
-    "skills-inbound-cli",
-    "agents-inbound-cli",
-    "serde_json"
-   ]
-  },
-  {
-   "from": "agents-skills-creator",
-   "to": [
-    "jsonschema"
-   ],
-   "kinds": [
-    "dev"
-   ],
-   "description": "場面の試験で、出力が公開された言葉の形に従うことを jsonschema に照らす"
   }
  ]
 }

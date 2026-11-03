@@ -1,0 +1,122 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC2-WITHDRAW-AFTER-UPDATE",
+ "name": "直したあとに取り下げる",
+ "title": "置き場所に、この Agent から作った前の版の写し（中身はいまと違うが、印がこの Agent のフォルダを指す）があると、withdraw は人が打てば中身が古くても外す。印の無いもの ・ ほかの Agent を指すものは other として残す",
+ "why": "直してから取り下げるのはよくある流れで、前の版の写しが外れないと、使わなくしたはずの Agent が残る。",
+ "traces": [
+  "UC6:成功時保証",
+  "UC6:最低保証",
+  "約束:withdraw-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "agents-published/agent.schema.json": "@published/agent.schema.json",
+   "skills/ddd-advisor/skill.json": "@fixtures/skills/ddd-advisor/skill.json",
+   "skills/ddd-advisor/SKILL.md": "@fixtures/skills/ddd-advisor/SKILL.md",
+   "skills/usecase-advisor/skill.json": "@fixtures/skills/usecase-advisor/skill.json",
+   "skills/usecase-advisor/SKILL.md": "@fixtures/skills/usecase-advisor/SKILL.md",
+   "skills/qa-advisor/skill.json": "@fixtures/skills/qa-advisor/skill.json",
+   "skills/qa-advisor/SKILL.md": "@fixtures/skills/qa-advisor/SKILL.md",
+   "skills/ux-advisor/skill.json": "@fixtures/skills/ux-advisor/skill.json",
+   "skills/ux-advisor/SKILL.md": "@fixtures/skills/ux-advisor/SKILL.md",
+   "skills/platform-advisor/skill.json": "@fixtures/skills/platform-advisor/skill.json",
+   "skills/platform-advisor/SKILL.md": "@fixtures/skills/platform-advisor/SKILL.md",
+   "skills/meta-thinking-advisor/skill.json": "@fixtures/skills/meta-thinking-advisor/skill.json",
+   "skills/meta-thinking-advisor/SKILL.md": "@fixtures/skills/meta-thinking-advisor/SKILL.md",
+   "agents/consult-advisors/agent.json": "@fixtures/consult-advisors/agent.json",
+   ".claude/agents/consult-advisors.md": "---\nname: consult-advisors\ndescription: 前の版\n---\n\n## 目的\n\n前の版の本文。\n\n<!-- agents-skills-creator: agents/consult-advisors -->\n",
+   ".codex/agents/consult-advisors.toml": "# agents-skills-creator: agents/consult-advisors\nname = \"consult-advisors\"\ndescription = \"前の版\"\ndeveloper_instructions = \"前の版の本文。\"\n",
+   "home/.claude/agents/consult-advisors.md": "---\nname: consult-advisors\ndescription: 印の無い別の Agent\n---\n",
+   "home/.codex/agents/consult-advisors.toml": "# agents-skills-creator: agents/other-agent\nname = \"consult-advisors\"\n"
+  },
+  "links": {
+   "agents/consult-advisors/skills/ddd-advisor": "../../../skills/ddd-advisor",
+   "agents/consult-advisors/skills/usecase-advisor": "../../../skills/usecase-advisor",
+   "agents/consult-advisors/skills/qa-advisor": "../../../skills/qa-advisor",
+   "agents/consult-advisors/skills/ux-advisor": "../../../skills/ux-advisor",
+   "agents/consult-advisors/skills/platform-advisor": "../../../skills/platform-advisor",
+   "agents/consult-advisors/skills/meta-thinking-advisor": "../../../skills/meta-thinking-advisor"
+  }
+ },
+ "when": {
+  "args": [
+   "write-agent-md",
+   "agents/consult-advisors"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "withdraw",
+    "agents/consult-advisors",
+    "--reason",
+    "束ね方を見直す"
+   ],
+   "env": {
+    "HOME": "@workdir/home"
+   }
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "file": "agents/consult-advisors/AGENT.md",
+   "contains": "\n<!-- agents-skills-creator: agents/consult-advisors -->\n"
+  },
+  {
+   "of": "when",
+   "file": "agents/consult-advisors/codex.toml",
+   "contains": "# agents-skills-creator: agents/consult-advisors\n"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/places",
+   "count": 4
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/removed",
+   "count": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/removed",
+   "contains": ".claude/agents/consult-advisors.md"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/removed",
+   "contains": ".codex/agents/consult-advisors.toml"
+  },
+  {
+   "of": "when",
+   "file": ".claude/agents/consult-advisors.md",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "file": ".codex/agents/consult-advisors.toml",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "file": "home/.claude/agents/consult-advisors.md",
+   "contains": "印の無い別の Agent"
+  },
+  {
+   "of": "when",
+   "file": "home/.codex/agents/consult-advisors.toml",
+   "contains": "other-agent"
+  }
+ ],
+ "unchanged": [
+  "home/.claude/agents/consult-advisors.md",
+  "home/.codex/agents/consult-advisors.toml"
+ ]
+}

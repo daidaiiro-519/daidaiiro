@@ -1,24 +1,21 @@
-# 事業領域 agents-skills-creator のワークスペース（virtual manifest）。
-# 文脈は skills/（上流。Skill を作り、公開された言葉を出す）と agents/（下流。skills の公開された言葉だけに従う）の2つ。
-# 中は domain ・ application と adapters（業務領域のモジュールはまだ作らない）。adapters の crate は <文脈>-<inbound|outbound>-<技術>。
-# cli/ は実行ファイル agents-skills-creator（PATH に置く1つのコマンド）。サブコマンド skills ・ agents を、それぞれの文脈の入口へ振り分ける。
+# 事業領域 agents-skills-creator のワークスペース（virtual manifest）。SAS と同じヘキサゴナルの形。
+# 文脈は skills/（上流。Skill を作り、公開された言葉を出す）と agents/（下流。skills の公開された言葉だけに従う）の2つ。文脈の中は domain と application だけ。
+# アダプターは文脈の外の adapters/ に、入口（inbound）と出口（outbound）に分けて1つずつ置く。crate の名前は <inbound|outbound>-<技術>。
+# adapters/inbound/cli は実行ファイル agents-skills-creator（PATH に置く1つのコマンド）。サブコマンド skills ・ agents を、それぞれの文脈の入口のモジュールへ振り分ける。
+# 公開された言葉は published-language/v1/、システムテストは system-tests/ に、文脈の外に1つずつ置く。
 # crate は、ユースケースを作る中で要ると分かった時点で members に足す。
 [workspace]
 members = [
     "skills/domain",
     "skills/application",
-    "skills/adapters/inbound/cli",
-    "skills/adapters/outbound/sas",
-    "skills/adapters/outbound/filesystem",
-    "skills/adapters/outbound/jsonschema",
-    "skills/test-support",
     "agents/domain",
     "agents/application",
-    "agents/adapters/inbound/cli",
-    "agents/adapters/outbound/sas",
-    "agents/adapters/outbound/filesystem",
-    "agents/adapters/outbound/skills",
-    "cli",
+    "adapters/inbound/cli",
+    "adapters/outbound/semantic-agent-schema",
+    "adapters/outbound/filesystem",
+    "adapters/outbound/jsonschema",
+    "adapters/outbound/skills",
+    "test-support",
 ]
 resolver = "3"
 

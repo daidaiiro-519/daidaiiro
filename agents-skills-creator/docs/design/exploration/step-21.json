@@ -1,0 +1,86 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 21,
+ "date": "2026-11-03",
+ "summary": "ディレクトリ構成を SAS（semantic-agent-schema/schemas-and-instances/）と同じヘキサゴナルの形に直した。文脈 skills ・ agents の中は domain と application だけにし、アダプターは文脈の外の adapters/ に入口と出口で1つずつ、公開された言葉は published-language/v1/、システムテストは system-tests/、試験の部品は test-support/ に置いた。コードの振る舞いは変えず、置き場所と crate の分け方だけを直した",
+ "usecases": ["UC1", "UC2", "UC3", "UC4", "UC5", "UC6", "UC7"],
+ "factchecks": [
+  {
+   "item": "利用者の言葉（構成を直す理由）",
+   "evidence": [
+    "「なんでアダプターが外にないんだろうか？アダプターって文脈の中ではないのではないか？公開する言語もそうだと思う。文脈の下は domain と application があるのがアーキテクチャとして正しい。CLI はヘキサゴナルなんだからアダプターの中に内と外で分けて書くもの」"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "SAS の構成と crate の名前（写す元）",
+   "evidence": [
+    "semantic-agent-schema/Cargo.toml の members：schemas-and-instances/<モジュール>/{domain,application}、schemas-and-instances/adapters/inbound/cli、schemas-and-instances/adapters/outbound/{filesystem,jsonschema,sqlite,git,templates,javascript}、schemas-and-instances/test-support",
+    "crate の名前：writing-domain ・ validation-application など <モジュール>-<層>、アダプターは inbound-cli ・ outbound-filesystem ・ outbound-jsonschema など <inbound|outbound>-<技術>、test-support"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "SAS で Concrete を移す手段",
+   "evidence": [
+    "semantic-agent-schema のコマンドに移動（rename）は無い。create <経路> --adopt で新しい置き場所の既存のファイルを取り込める",
+    "実地：前の置き場所を semantic-agent-schema delete で消そうとすると、Concrete に頼るインスタンスがあるので has_dependents で断られた。ファイルを移したあとは not_found で断られる",
+    "Concrete の解決は $id（URN）でリポジトリの文書を探すので、置き場所が変わっても URN で引ける（場面と validate で確かめた）",
+    "取り込んだ操作：published-language/v1/skill.schema.json o-0130、published-language/v1/agent.schema.json o-0132、system-tests/agents/fixtures/consult-advisors/agent.json o-0133、system-tests/skills/fixtures/fact-check/skill.json o-0134。前の置き場所の記録は履歴として残る"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "依存の向き",
+   "evidence": [
+    "architecture-lint check --rules architecture.json --cargo .：違反なし",
+    "test-support の architecture.rs（依存の向き ・ 規則の node がグラフにある ・ crate の名前がフォルダから決まる）が通る"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "構成（置き場所と crate）",
+   "steps": [
+    "git mv で移した：cli/ → adapters/inbound/cli/、skills/adapters/inbound/cli/src/lib.rs ・ output.rs → adapters/inbound/cli/src/skills/mod.rs ・ output.rs、agents/adapters/inbound/cli/src/lib.rs ・ output.rs → adapters/inbound/cli/src/agents/mod.rs ・ output.rs、callers.json（2つは同じ中身）→ adapters/inbound/cli/src/callers.json",
+    "出口を1つにした：skills ・ agents の adapters/outbound/sas → adapters/outbound/semantic-agent-schema/src/skills.rs ・ agents.rs、skills ・ agents の adapters/outbound/filesystem → adapters/outbound/filesystem/src/skills.rs ・ agents.rs（試験 tests/links.rs も）。skills/adapters/outbound/jsonschema → adapters/outbound/jsonschema、agents/adapters/outbound/skills → adapters/outbound/skills",
+    "skills/test-support → test-support、skills ・ agents の system-tests → system-tests/skills ・ system-tests/agents、結果の形 → published-language/v1/skills ・ published-language/v1/agents",
+    "Concrete（skill.schema.json ・ agent.schema.json）は published-language/v1/ に置き、semantic-agent-schema create --adopt で取り込んだ。SAS で書いた fixture（fact-check の skill.json ・ consult-advisors の agent.json）も同じく取り込んだ",
+    "場面の @published/ は published-language/v1/ を指す（Concrete は根、結果の形は文脈のフォルダの下から読む）。@skills-published/ は要らなくなったので @published/ にした",
+    "creator 自身の Skill の assets/ のリンクを ../../../../../published-language/v1/ に張り直した"
+   ],
+   "rules": [
+    "文脈の中は domain と application だけ。アダプターは文脈の外の adapters/<inbound|outbound>/<技術> に1つずつ置き、両方の文脈のポートを実装するときは文脈ごとのモジュールに分ける",
+    "crate の名前は SAS の付け方：<文脈>-<層>、<モジュール>-<層>、<inbound|outbound>-<技術>、test-support。実行ファイルの名前は agents-skills-creator（crate inbound-cli の bin）",
+    "アダプターは application に向く。文脈 agents の crate から文脈 skills の crate への向きは許さない"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "アダプターと公開された言葉の置き場所",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "アダプターと公開された言葉を文脈ごとに中に置き、同じ技術のアダプター（SAS ・ ファイル）を文脈ごとに2つ持っていた。実行ファイルの crate も文脈の外の根の cli/ にあり、入口が3つに分かれていた。SAS と同じ形に直した"
+  }
+ ],
+ "vocabulary": [],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {"what": "文脈の中", "before": "skills/ ・ agents/ に domain ・ application ・ adapters/ ・ published-language/ ・ system-tests/（skills には test-support も）", "after": "skills/ ・ agents/ に domain ・ application だけ", "why": "文脈の下は domain と application があるのがアーキテクチャとして正しい（利用者）"},
+   {"what": "入口", "before": "cli/（crate agents-skills-creator）・ skills/adapters/inbound/cli（skills-inbound-cli）・ agents/adapters/inbound/cli（agents-inbound-cli）の3つ", "after": "adapters/inbound/cli（crate inbound-cli、bin agents-skills-creator。モジュール skills ・ agents）の1つ", "why": "CLI はヘキサゴナルなのでアダプターの中に内と外で分けて書く（利用者）"},
+   {"what": "出口", "before": "skills-outbound-sas ・ agents-outbound-sas ・ skills-outbound-filesystem ・ agents-outbound-filesystem ・ skills-outbound-jsonschema ・ agents-outbound-skills", "after": "outbound-semantic-agent-schema ・ outbound-filesystem（どちらもモジュール skills ・ agents）・ outbound-jsonschema ・ outbound-skills", "why": "アダプターは文脈の中ではない。同じ技術の出口は1つ"},
+   {"what": "公開された言葉", "before": "skills/published-language/v1 ・ agents/published-language/v1", "after": "published-language/v1（skill.schema.json ・ agent.schema.json と、結果の形を skills/ ・ agents/ の下に）", "why": "公開する言語も文脈の外（利用者）"},
+   {"what": "システムテストと試験の部品", "before": "system-tests/（形だけ）・ skills/system-tests ・ agents/system-tests ・ skills/test-support", "after": "system-tests/（形と、skills/ ・ agents/ の下に場面 ・ fixtures ・ trace ・ untested）・ test-support/", "why": "SAS と同じく1か所に"},
+   {"what": "architecture.json", "before": "components 14（skills-domain ・ skills-application ・ skills-outbound-sas ・ skills-outbound-filesystem ・ skills-outbound-jsonschema ・ skills-inbound-cli ・ agents-domain ・ agents-application ・ agents-outbound-sas ・ agents-outbound-filesystem ・ agents-outbound-skills ・ agents-inbound-cli ・ agents-skills-creator ・ test-support と外の serde_json ・ jsonschema）。入口は agents-skills-creator → skills-inbound-cli ・ agents-inbound-cli → 文脈ごとの出口", "after": "skills-domain ・ skills-application ・ agents-domain ・ agents-application ・ inbound-cli ・ outbound-semantic-agent-schema ・ outbound-filesystem ・ outbound-jsonschema ・ outbound-skills ・ test-support と外の serde_json ・ jsonschema。inbound-cli → 2つの application と4つの出口、outbound-semantic-agent-schema ・ outbound-filesystem → 2つの application、outbound-jsonschema → skills-application、outbound-skills → agents-application", "why": "アダプターは application に向く。文脈 agents → 文脈 skills の向きは無いまま"},
+   {"what": "docs/design/structure.json", "before": "文脈 ・ crate の名前の付け方だけ", "after": "layout（置き場所ごとの中身）を足し、crate の名前の付け方を SAS にそろえた（structure.schema.json にも layout を足した）", "why": "この構成の説明にする"}
+  ],
+  "not_built": [
+   {"what": "持ち越し（SAS 側）：ファイルの移動を記録する手段", "why": "semantic-agent-schema に移動が無く、前の置き場所の delete は依存があると has_dependents、ファイルが無いと not_found で断る。新しい置き場所で create --adopt し、前の置き場所の記録は履歴として残した"},
+   {"what": "持ち越し", "why": "ほかの持ち越しはそのまま（ステップ20 の SAS 側の件、推測の一覧など）"}
+  ]
+ }
+}
