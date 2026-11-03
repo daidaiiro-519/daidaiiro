@@ -113,7 +113,12 @@ fn skill_name(files: &dyn SkillFiles, folder: &str) -> Result<String, String> {
         .ok_or_else(|| format!("{path} に name が無い"))
 }
 
-fn finding(check: &'static str, outcome: Outcome, path: Option<String>, reason: String) -> Finding {
+pub(crate) fn finding(
+    check: &'static str,
+    outcome: Outcome,
+    path: Option<String>,
+    reason: String,
+) -> Finding {
     Finding {
         check,
         outcome,

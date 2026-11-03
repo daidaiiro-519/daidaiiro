@@ -1,0 +1,140 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 10,
+ "date": "2026-11-03",
+ "summary": "UC5 配布するを作った。skills distribute は、配る前に確かめ（creator の検査 ・ sas validate に、承認がいまの中身に当たるか approval-current と、置き場所が空いているか destination-free を足す）、検出が無ければツールと範囲ごとの置き場所に Skill のフォルダへのシンボリックリンクを置き、置いた所から SKILL.md を読めるか（placed-readable）を確かめる。承認は Concrete に足された人の欄 approved（承認した validate の操作 ID）で持ち、SAS の記録から承認のあとの書き換えを見る",
+ "usecases": [
+  "UC5"
+ ],
+ "factchecks": [
+  {
+   "item": "ツールの置き場所とリンク",
+   "evidence": [
+    "Claude Code：code.claude.com/docs/en/skills.md 168行目「a <skill-name> entry in the enterprise, personal, or project location can be a symlink to a directory elsewhere on disk. Claude Code reads SKILL.md from the target」",
+    "Codex：developers.openai.com/codex/skills.md 149行目「Codex supports symlinked skill folders and follows the symlink target when scanning these locations.」",
+    "置き場所（.claude/skills ・ ~/.claude/skills ・ .agents/skills ・ ~/.agents/skills）はスキーマの案の版13 とツールのページで確かめ済み（コーディネーターの依頼）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "プラグインは写しで、外を指すリンクを捨てる",
+   "evidence": [
+    "code.claude.com/docs/en/plugins/host-marketplace.md 81行目「For plugins installed from a local path … Claude Code preserves only symlinks that resolve within the plugin's own directory and skips all others.」"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "人の欄は AI のセッションから書けない",
+   "evidence": [
+    "実地：CLAUDE_CODE_SESSION_ID のある呼び出しで approved を書くと、SAS が human_field「/approved は x-decided-by: human の欄で、人の入口（--session を付けない呼び出し）からだけ決める」で断った（場面 S-UC5-APPROVE-BY-AI）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC5 配布する：skills distribute（use_cases/distribute.rs）",
+   "steps": [
+    "置き場所を決める：repository は <ツールのフォルダ>/<name>（リンクの先は相対）、user は HOME/<ツールのフォルダ>/<name>（リンクの先は絶対）",
+    "validate と同じ確かめ（creator の検査7つと sas validate）をする",
+    "approval-current：approved が無ければ violated（承認の書き方を添える）。sas log で approved の validate の操作より新しい書き込みを見て、/approved だけを変えたセッションの無い update のほかがあれば、その操作を挙げて violated",
+    "destination-free：置き場所に何も無いか、同じ Skill へのリンクなら verified。ほかのものがあれば violated",
+    "1つでも検出があれば置かない。検出が無ければリンクを置く（同じリンクがあれば何もしない）",
+    "placed-readable：置いた所の SKILL.md が Skill のフォルダのものと同じか"
+   ],
+   "rules": [
+    "承認していないものは配布しない（BR4）",
+    "置き場所のほかのものは変えない",
+    "承認は人が自分の端末で sas update で書く。creator は承認を書かない（skills approve を足さない）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "承認がいまの中身に当たるかの見分け（approval-current）",
+   "became": "script",
+   "why": "distribute でしか使わない。読むのは SAS の記録（sas log ・ sas log --operation）"
+  },
+  {
+   "what": "ツールと範囲ごとの置き場所",
+   "became": "script",
+   "why": "distribute でしか使わない。ツールが増えたら Tool に足す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "承認（BR4）の持ち方",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "Concrete に人の欄 approved（承認した validate の操作 ID）を sas update で足した。中身のハッシュでなく操作 ID にしたのは、欄が skill.json の中にあり、書いた時点でハッシュが変わるため"
+  },
+  {
+   "item": "配る形（プラグイン）",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "写しになり、外を指すリンクを捨てるので、別の配布先として後のステップで足す（untested）"
+  },
+  {
+   "item": "配る前に validate を通す ・ 置いたあとに読めることを確かめる",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "distribute の before と after"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "承認",
+   "seen": "approved",
+   "drift": "作る人が承認した「確かめ（validate の操作）」を指す。中身そのものではなく、その確かめのあとに書き換えていないことで、いまの中身に当たると見る"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "CLI",
+    "before": "create ・ update ・ validate ・ write-skill-md",
+    "after": "distribute を足した（--tool claude-code|codex ・ --scope repository|user）",
+    "why": "UC5 配布する"
+   },
+   {
+    "what": "ポート",
+    "before": "SkillWriter ・ SkillHistory ・ SkillValidator ・ SkillFiles ・ GeneratedFiles ・ JsonSchemaChecker",
+    "after": "配布先を読みリンクを置く Destinations（home ・ canonical ・ occupied ・ link）を足し、outbound-filesystem が実装する",
+    "why": "置き場所を読み、リンクを置くため"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "create-result ・ update-result ・ validate-result ・ write-skill-md-result",
+    "after": "distribute-result を足した",
+    "why": "同じ"
+   },
+   {
+    "what": "Concrete（skill.schema）",
+    "before": "承認の欄が無い",
+    "after": "approved（人の欄。^o-[0-9]+$）をコーディネーターが sas update で足した",
+    "why": "BR4"
+   },
+   {
+    "what": "場面の書式",
+    "before": "env の値は文字のまま",
+    "after": "値の頭の @workdir を場面の作業ディレクトリにする",
+    "why": "HOME を作業ディレクトリの中に向けて、user の範囲を確かめるため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "プラグインで配る",
+    "why": "写しで、別の入力が要る。後のステップ（untested）"
+   },
+   {
+    "what": "skills approve",
+    "why": "承認は人が sas update で書く手順で示す（依頼のとおり）"
+   },
+   {
+    "what": "Windows でのリンク",
+    "why": "symlink_dir で置く形は書いたが、場面は unix でだけ動かしている"
+   }
+  ]
+ }
+}

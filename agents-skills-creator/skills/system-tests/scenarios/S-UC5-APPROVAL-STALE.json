@@ -1,0 +1,108 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC5-APPROVAL-STALE",
+ "name": "承認のあとに書き換えた",
+ "title": "承認（approved）を書いたあとに Skill を直すと、distribute の approval-current が、承認のあとに書き換えた操作を挙げて violated にし、置かない",
+ "why": "承認のあとに書き換えた中身を配布すると、承認していない Skill を配ることになる（BR4）。",
+ "traces": [
+  "UC5:最低保証",
+  "約束:distribute-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/fact-check/references/verify-result.schema.json": "@fixtures/fact-check/references/verify-result.schema.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "skills/fact-check",
+   "--concrete",
+   "urn:agents-skills-creator:skill:v1",
+   "--value",
+   "{\n \"$schema\": \"urn:agents-skills-creator:skill:v1\",\n \"name\": \"fact-check\",\n \"purpose\": {\n  \"who\": \"外の情報源の内容を、文書 ・ 設計 ・ 実装へ取り込む人か AI\",\n  \"when\": \"項目名などの識別子を書き写すとき\",\n  \"gets\": \"書く識別子のどれが原文にあり、どれが無いかが分かった状態\"\n },\n \"role\": {\n  \"does\": [\n   \"原文を取って、取った日と sha256 と一緒に残す\",\n   \"識別子を、原文の文字列で照合する\"\n  ],\n  \"does_not\": [\n   {\n    \"what\": \"真偽を判定する（原文が誤っていても照合は通る）\",\n    \"from\": \"作る人の答え\"\n   },\n   {\n    \"what\": \"取り込む先の文書を書き換える\",\n    \"from\": \"作る人の答え\"\n   }\n  ]\n },\n \"description\": \"外の情報源の内容を文書 ・ 設計 ・ 実装へ取り込み、項目名などの識別子を書き写すときに使う。原文を取って残し、識別子を原文の文字列で照合する。真偽は判定しない。\",\n \"preconditions\": [\n  \"書こうとしている識別子が決まっている\"\n ],\n \"inputs\": [\n  {\n   \"name\": \"調べる対象\",\n   \"form\": \"URL\"\n  },\n  {\n   \"name\": \"識別子の一覧\",\n   \"form\": \"1行1個のテキスト\"\n  }\n ],\n \"outputs\": [\n  {\n   \"name\": \"照合の結果\",\n   \"form\": \"JSON\",\n   \"where\": \"標準出力\",\n   \"schema\": \"references/verify-result.schema.json\"\n  },\n  {\n   \"name\": \"原文\",\n   \"where\": \"sources/\"\n  }\n ],\n \"steps\": [\n  {\n   \"id\": 1,\n   \"do\": \"原文を取る\",\n   \"completion\": \"原文と sha256 が sources/ にある\"\n  },\n  {\n   \"id\": 2,\n   \"do\": \"識別子を原文と照合する\",\n   \"completion\": \"標準出力に、照合の結果の JSON が出ている\"\n  }\n ],\n \"edge_cases\": [\n  {\n   \"id\": \"2a\",\n   \"when\": \"読めなかった範囲がある\",\n   \"then\": \"読めるようにする\",\n   \"end\": \"ステップ2へ戻る\",\n   \"examples\": [\n    \"E2\"\n   ]\n  }\n ],\n \"rules\": [\n  {\n   \"rule\": \"照合する識別子を言い換えない\",\n   \"why\": \"言い換えた名前は、原文の名前とは別のキーになり、そのキーで引く実装は何も返さない\",\n   \"bad\": \"項目名の綴りを、読みやすい別の名前に直してから照合する\",\n   \"examples\": [\n    \"E1\",\n    \"E2\"\n   ]\n  }\n ],\n \"minimal_guarantees\": [\n  \"どこで止まっても、sources/ の外は変わらない\"\n ],\n \"completion_criteria\": [\n  {\n   \"id\": \"C1\",\n   \"criterion\": \"一覧のどの識別子にも、原文にある ・ 無いが付いている\",\n   \"check\": \"照合の結果の件数と、一覧の行数が同じ\",\n   \"from\": \"目的の仮説（得るもの）から\"\n  },\n  {\n   \"id\": \"C2\",\n   \"criterion\": \"読めなかった範囲が、結果に載っている\",\n   \"check\": \"照合の結果に、読めなかった範囲の件数がある（0件でも）\",\n   \"from\": \"目的の仮説（得るもの）から\"\n  }\n ],\n \"examples\": [\n  {\n   \"id\": \"E1\",\n   \"from\": \"作るときの場面（サブエージェントの項目名）\",\n   \"covers\": [\n    \"C1\",\n    \"C2\"\n   ],\n   \"caller\": \"人が直接\",\n   \"given\": \"Claude Code のサブエージェントの頁の URL と、項目名3つ（skills ・ disallowedTools ・ allowedSkills）の一覧がある\",\n   \"input\": \"この URL で3つを照合して\",\n   \"expected\": \"skills と disallowedTools に ok と原文の行、allowedSkills に「読めた範囲には無い」が付き、読めなかった範囲 0件\",\n   \"behavior\": {\n    \"who\": \"設計書を書く人\",\n    \"does\": \"サブエージェントの項目名3つを照合する\",\n    \"then\": \"2つは原典の名前として書け、allowedSkills は書けないと分かる\"\n   }\n  },\n  {\n   \"id\": \"E2\",\n   \"from\": \"作る人が挙げた別の場面（API 仕様の項目名）\",\n   \"covers\": [\n    \"C1\",\n    \"C2\",\n    \"2a\"\n   ],\n   \"caller\": \"人が直接\",\n   \"given\": \"API 仕様の URL（一部の頁が読めない）と、項目名3つの一覧がある\",\n   \"input\": \"この URL で3つを照合して\",\n   \"expected\": \"3件ともに ある ・ 無い が付き、読めなかった範囲 1件が結果に載る\",\n   \"behavior\": {\n    \"who\": \"実装を書く人\",\n    \"does\": \"API の項目名3つを照合する\",\n    \"then\": \"読めなかった範囲にある名前を、無いと決めつけずに済む\"\n   }\n  }\n ],\n \"compatibility\": \"原文を取るために、外の URL へ接続できること\"\n}\n"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "write-skill-md",
+    "skills/fact-check"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "skills/fact-check"
+   ]
+  },
+  {
+   "sas": [
+    "update",
+    "skills/fact-check/skill.json",
+    "--patch",
+    "[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0002\"}]",
+    "--if-match",
+    "sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9"
+   ]
+  },
+  {
+   "args": [
+    "update",
+    "skills/fact-check",
+    "--patch",
+    "[{\"op\":\"add\",\"path\":\"/examples/-\",\"value\":{\"id\":\"E3\",\"from\":\"使われて外れた具体\",\"covers\":[\"C1\"],\"caller\":\"人が直接\",\"given\":\"項目名に全角の空白が混ざった一覧がある\",\"input\":\"この URL で照合して\",\"expected\":\"全角の空白を含む名前も、原文にある ・ 無いが付く\",\"behavior\":{\"who\":\"設計書を書く人\",\"does\":\"全角の空白が混ざった項目名を照合する\",\"then\":\"空白の違いで無いと誤らずに済む\"}}}]",
+    "--if-match",
+    "sha256:a10c27029273231c1be00bb3def795fe5853d3f7abe0de588b499004dd75a17b",
+    "--reason",
+    "層：examples"
+   ]
+  },
+  {
+   "args": [
+    "write-skill-md",
+    "skills/fact-check"
+   ]
+  },
+  {
+   "args": [
+    "distribute",
+    "skills/fact-check",
+    "--tool",
+    "claude-code",
+    "--scope",
+    "repository"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "after[2]",
+   "exit": 0
+  },
+  {
+   "of": "after[3]",
+   "exit": 0
+  },
+  {
+   "of": "after[5]",
+   "exit": 1
+  },
+  {
+   "of": "after[5]",
+   "pointer": "/placed",
+   "exists": false
+  },
+  {
+   "of": "after[5]",
+   "pointer": "/before/creator",
+   "contains": "\"check\":\"approval-current\",\"result\":\"violated\",\"path\":\"o-0004\""
+  },
+  {
+   "of": "when",
+   "file": ".claude/skills/fact-check",
+   "exists": false
+  }
+ ]
+}

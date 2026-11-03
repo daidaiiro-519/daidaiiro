@@ -24,7 +24,11 @@
   "UC3:最低保証",
   "約束:update-result",
   "UC3:変形:リンクする Agent の受け渡し",
-  "UC3:変形:例を全部別の会話で動かす"
+  "UC3:変形:例を全部別の会話で動かす",
+  "UC5:成功時保証",
+  "UC5:最低保証",
+  "約束:distribute-result",
+  "UC5:変形:プラグインで配る"
  ],
  "traces": [
   {
@@ -166,6 +170,36 @@
     "S-UC3-UPDATE-PATCH",
     "S-UC3-UPDATE-PROCEDURE",
     "S-UC3-UPDATE-REFUSED"
+   ]
+  },
+  {
+   "id": "UC5:成功時保証",
+   "meaning": "配布先が読める形で配布されている。distribute が配る前に確かめ（creator の検査 ・ sas validate ・ 承認がいまの中身に当たるか ・ 置き場所が空いているか）、ツールと範囲ごとの置き場所（Claude Code は .claude/skills/<name>、Codex は .agents/skills/<name>。repository は打った場所、user は HOME の下）に Skill のフォルダへのシンボリックリンクを置き、置いた所から同じ SKILL.md を読めることを確かめる",
+   "scenarios": [
+    "S-UC5-DISTRIBUTE"
+   ]
+  },
+  {
+   "id": "UC5:最低保証",
+   "meaning": "配布先のほかの Skill は変わらない（置き場所にほかのものがあれば置かず、同じリンクなら何もしない）。承認していないもの（approved が無いか、承認のあとに書き換えた）は配布しない（BR4）。承認は人の欄（x-decided-by: human）で、AI のセッションからは SAS が書かせない",
+   "scenarios": [
+    "S-UC5-APPROVAL-STALE",
+    "S-UC5-APPROVE-BY-AI",
+    "S-UC5-DISTRIBUTE",
+    "S-UC5-NOT-APPROVED",
+    "S-UC5-OCCUPIED",
+    "S-UC5-USAGE"
+   ]
+  },
+  {
+   "id": "約束:distribute-result",
+   "meaning": "distribute の結果は distribute-result.schema.json に従う",
+   "scenarios": [
+    "S-UC5-APPROVAL-STALE",
+    "S-UC5-DISTRIBUTE",
+    "S-UC5-NOT-APPROVED",
+    "S-UC5-OCCUPIED",
+    "S-UC5-USAGE"
    ]
   }
  ]

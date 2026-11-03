@@ -5,12 +5,15 @@ use serde_json::{Value, json};
 use skills_application::use_cases::Refused;
 use skills_application::use_cases::approval::Approval;
 use skills_application::use_cases::create::Created;
+use skills_application::use_cases::distribute::Distributed;
 use skills_application::use_cases::update::Updated;
-use skills_application::use_cases::validate::{Checked, Finding};
+use skills_application::use_cases::validate::{Checked, Finding, SkillChecked};
 use skills_application::use_cases::write_skill_md::Built;
 
 /// create の結果の形。
 pub const CREATE: &str = "urn:agents-skills-creator:skills:create-result:v1";
+/// distribute の結果の形。
+pub const DISTRIBUTE: &str = "urn:agents-skills-creator:skills:distribute-result:v1";
 /// update の結果の形。
 pub const UPDATE: &str = "urn:agents-skills-creator:skills:update-result:v1";
 /// validate の結果の形（知らないコマンドの誤りもこの形で返す）。
@@ -29,29 +32,46 @@ fn finding(f: &Finding) -> Value {
 
 /// 確かめた結果を出す。
 pub fn print_validated(c: &Checked) {
-    let skills: Vec<Value> = c
-        .skills
-        .iter()
-        .map(|s| {
-            let mut v = json!({
-                "folder": s.folder,
-                "sas": s.sas.output,
-                "sas_exit": s.sas.exit,
-                "creator": s.creator.iter().map(finding).collect::<Vec<_>>(),
-            });
-            if let Some(a) = &s.approval {
-                v["approval"] = approval(a);
-                if let Some(changes) = &s.changes {
-                    v["approval"]["changes"] = changes.clone();
-                }
-            }
-            v
-        })
-        .collect();
+    let skills: Vec<Value> = c.skills.iter().map(skill).collect();
     println!(
         "{}",
         json!({"$schema": VALIDATE, "kind": "validate", "skills": skills, "detected": c.detected()})
     );
+}
+
+/// Skill 1つの確かめた結果。
+fn skill(s: &SkillChecked) -> Value {
+    let mut v = json!({
+        "folder": s.folder,
+        "sas": s.sas.output,
+        "sas_exit": s.sas.exit,
+        "creator": s.creator.iter().map(finding).collect::<Vec<_>>(),
+    });
+    if let Some(a) = &s.approval {
+        v["approval"] = approval(a);
+        if let Some(changes) = &s.changes {
+            v["approval"]["changes"] = changes.clone();
+        }
+    }
+    v
+}
+
+/// 配布した結果を出す。
+pub fn print_distributed(d: &Distributed, tool: &str, scope: &str) {
+    let mut out = json!({
+        "$schema": DISTRIBUTE,
+        "kind": "distribute",
+        "folder": d.before.folder,
+        "tool": tool,
+        "scope": scope,
+        "before": skill(&d.before),
+    });
+    if let Some(p) = &d.placed {
+        out["placed"] = json!({"path": p.path, "target": p.target, "result": p.result});
+    }
+    out["after"] = d.after.iter().map(finding).collect();
+    out["detected"] = json!(d.detected());
+    println!("{out}");
 }
 
 /// SAS に直させた結果を出す。

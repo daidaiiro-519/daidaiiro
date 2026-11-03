@@ -1,7 +1,7 @@
-//! ポート SkillFiles を、作業ディレクトリのファイルとシンボリックリンクで実装する。ポート GeneratedFiles で書くのは
+//! ポート SkillFiles ・ Destinations を、作業ディレクトリのファイルとシンボリックリンクで実装する。ポート GeneratedFiles で書くのは
 //! creator が作るファイル（SKILL.md）だけで、skill.json は書かない（SAS が書く）。
 
-use skills_application::ports::{GeneratedFiles, SkillFiles};
+use skills_application::ports::{Destinations, GeneratedFiles, SkillFiles};
 use std::path::{Path, PathBuf};
 
 /// 作業ディレクトリ（経路の根）。
@@ -107,4 +107,41 @@ impl GeneratedFiles for WorkingTree {
             format!("{path} を置き換えられない：{e}")
         })
     }
+}
+
+impl Destinations for WorkingTree {
+    fn home(&self) -> Option<String> {
+        std::env::var_os("HOME")
+            .filter(|h| !h.is_empty())
+            .map(|h| h.to_string_lossy().to_string())
+    }
+
+    fn canonical(&self, path: &str) -> Option<String> {
+        std::fs::canonicalize(self.root.join(path))
+            .ok()
+            .map(|p| p.to_string_lossy().to_string())
+    }
+
+    fn occupied(&self, path: &str) -> bool {
+        std::fs::symlink_metadata(self.root.join(path)).is_ok()
+    }
+
+    fn link(&self, path: &str, target: &str) -> Result<(), String> {
+        let at = self.root.join(path);
+        if let Some(parent) = at.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("{path} の親のフォルダを作れない：{e}"))?;
+        }
+        symlink(target, &at).map_err(|e| format!("{path} にリンクを置けない：{e}"))
+    }
+}
+
+#[cfg(unix)]
+fn symlink(target: &str, at: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(target, at)
+}
+
+#[cfg(windows)]
+fn symlink(target: &str, at: &Path) -> std::io::Result<()> {
+    std::os::windows::fs::symlink_dir(target, at)
 }

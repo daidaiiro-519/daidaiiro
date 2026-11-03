@@ -115,3 +115,21 @@ pub trait GeneratedFiles {
     /// 書けないとき。
     fn write(&self, path: &str, text: &str) -> Result<(), String>;
 }
+
+/// 配布先（ツールの置き場所）を読み、Skill のフォルダへのシンボリックリンクを置く。置き場所のほかのものは変えない。
+pub trait Destinations {
+    /// 利用者の全体の置き場所の根（HOME）。分からなければ None。
+    fn home(&self) -> Option<String>;
+
+    /// 経路の先の、リンクをたどった絶対の経路。先が無ければ None。
+    fn canonical(&self, path: &str) -> Option<String>;
+
+    /// 経路に何かがあるか（先の無いシンボリックリンクも、あるとみなす）。
+    fn occupied(&self, path: &str) -> bool;
+
+    /// 経路に、target を指すシンボリックリンクを置く（親のフォルダが無ければ作る）。
+    ///
+    /// # Errors
+    /// 置けないとき。
+    fn link(&self, path: &str, target: &str) -> Result<(), String>;
+}

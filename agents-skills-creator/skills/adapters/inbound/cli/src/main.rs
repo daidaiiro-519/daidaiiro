@@ -1,7 +1,7 @@
 //! skills コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
 //! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。sas create を呼ぶ）・
-//! update（UC3 直す。sas update を呼ぶ）・
+//! update（UC3 直す。sas update を呼ぶ）・ distribute（UC5 配布する。確かめてからツールの置き場所にリンクを置く）・
 //! validate（UC4 確かめる。sas validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
 //! creator は AI を起動せず、skill.json を書かない（SAS が書く）。
 //! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、sas が断った、sas を呼べない、skill.json を
@@ -12,9 +12,10 @@ mod output;
 use outbound_filesystem::WorkingTree;
 use outbound_jsonschema::JsonSchema;
 use outbound_sas::Sas;
-use output::{CREATE, UPDATE, VALIDATE, WRITE_SKILL_MD};
+use output::{CREATE, DISTRIBUTE, UPDATE, VALIDATE, WRITE_SKILL_MD};
 use skills_application::use_cases::Refused;
 use skills_application::use_cases::create::{Mode, create};
+use skills_application::use_cases::distribute::{Scope, Tool, distribute};
 use skills_application::use_cases::update::{self, update};
 use skills_application::use_cases::validate::validate;
 use skills_application::use_cases::write_skill_md::write_skill_md;
@@ -26,6 +27,7 @@ skills create <Skill のフォルダ> --concrete <URN> --value <JSON> ／ \
 skills update <Skill のフォルダ> --semantic --task <外れた具体> ／ \
 skills update <Skill のフォルダ> --patch <JSON Patch> --if-match <ハッシュ> --reason 層：<層> ／ \
 skills validate <Skill のフォルダ>... ／ \
+skills distribute <Skill のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
 skills write-skill-md <Skill のフォルダ>";
 
 fn usage(message: String) -> Refused {
@@ -40,6 +42,7 @@ fn main() -> ExitCode {
     match args.first().map(String::as_str) {
         Some("create") => run_create(&args[1..]),
         Some("update") => run_update(&args[1..]),
+        Some("distribute") => run_distribute(&args[1..]),
         Some("validate") => run_validate(&args[1..]),
         Some("write-skill-md") => run_write_skill_md(&args[1..]),
         Some(other) => refuse(
@@ -202,6 +205,93 @@ fn run_update(args: &[String]) -> ExitCode {
             }
         }
         Err(r) => refuse(UPDATE, &r),
+    }
+}
+
+fn run_distribute(args: &[String]) -> ExitCode {
+    let mut folder = None;
+    let mut tool = None;
+    let mut scope = None;
+    let mut rest = args.iter();
+    while let Some(a) = rest.next() {
+        let slot = match a.as_str() {
+            "--tool" => &mut tool,
+            "--scope" => &mut scope,
+            flag if flag.starts_with("--") => {
+                return refuse(
+                    DISTRIBUTE,
+                    &usage(format!("知らない指定です: {flag}。{USAGE}")),
+                );
+            }
+            _ if folder.is_none() => {
+                folder = Some(a.as_str());
+                continue;
+            }
+            _ => {
+                return refuse(
+                    DISTRIBUTE,
+                    &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
+                );
+            }
+        };
+        match rest.next() {
+            Some(v) => *slot = Some(v.as_str()),
+            None => {
+                return refuse(
+                    DISTRIBUTE,
+                    &usage(format!("{a} に値を渡してください。{USAGE}")),
+                );
+            }
+        }
+    }
+    let (Some(folder), Some(tool_name), Some(scope_name)) = (folder, tool, scope) else {
+        return refuse(
+            DISTRIBUTE,
+            &usage(format!(
+                "Skill のフォルダと、--tool と --scope を渡してください。{USAGE}"
+            )),
+        );
+    };
+    let Some(tool) = Tool::parse(tool_name) else {
+        return refuse(
+            DISTRIBUTE,
+            &usage(format!(
+                "知らないツールです: {tool_name}（claude-code か codex）。{USAGE}"
+            )),
+        );
+    };
+    let Some(scope) = Scope::parse(scope_name) else {
+        return refuse(
+            DISTRIBUTE,
+            &usage(format!(
+                "知らない範囲です: {scope_name}（repository か user）。{USAGE}"
+            )),
+        );
+    };
+    let sas = match locate() {
+        Ok(s) => s,
+        Err(r) => return refuse(DISTRIBUTE, &r),
+    };
+    let tree = WorkingTree::new(PathBuf::from("."));
+    match distribute(
+        Some(folder),
+        Some(tool),
+        Some(scope),
+        &sas,
+        &sas,
+        &tree,
+        &JsonSchema,
+        &tree,
+    ) {
+        Ok(d) => {
+            output::print_distributed(&d, tool_name, scope_name);
+            if d.detected() {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            }
+        }
+        Err(r) => refuse(DISTRIBUTE, &r),
     }
 }
 

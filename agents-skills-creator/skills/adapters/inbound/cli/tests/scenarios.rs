@@ -129,7 +129,12 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     }
     if let Some(env) = cmd.get("env").and_then(Value::as_object) {
         for (k, v) in env {
-            c.env(k, v.as_str().expect("環境変数の値は文字列"));
+            let v = v.as_str().expect("環境変数の値は文字列");
+            // 値の頭の @workdir は、場面の作業ディレクトリの経路にする
+            match v.strip_prefix("@workdir") {
+                Some(rest) => c.env(k, format!("{}{rest}", dir.display())),
+                None => c.env(k, v),
+            };
         }
     }
     c.output().expect("コマンドを起動できること")

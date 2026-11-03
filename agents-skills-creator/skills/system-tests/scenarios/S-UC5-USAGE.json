@@ -1,0 +1,77 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC5-USAGE",
+ "name": "配布の使い方の誤り",
+ "title": "distribute にフォルダ ・ --tool ・ --scope のどれかが無い、または知らないツールか範囲を渡すと、使い方の誤り（終了コード 2）で何も置かない",
+ "why": "配布先が決まらないまま置くと、作る人が選んでいない所に Skill が置かれる。",
+ "traces": [
+  "UC5:最低保証",
+  "約束:distribute-result"
+ ],
+ "given": {
+  "files": {}
+ },
+ "when": {
+  "args": [
+   "distribute"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "distribute",
+    "skills/fact-check",
+    "--tool",
+    "claude-code"
+   ]
+  },
+  {
+   "args": [
+    "distribute",
+    "skills/fact-check",
+    "--tool",
+    "cursor",
+    "--scope",
+    "user"
+   ]
+  },
+  {
+   "args": [
+    "distribute",
+    "skills/fact-check",
+    "--tool",
+    "codex",
+    "--scope",
+    "plugin"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[1]",
+   "exit": 2
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/message",
+   "contains": "claude-code"
+  },
+  {
+   "of": "after[2]",
+   "exit": 2
+  }
+ ]
+}
