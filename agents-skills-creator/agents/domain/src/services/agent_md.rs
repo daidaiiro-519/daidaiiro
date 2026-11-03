@@ -158,6 +158,9 @@ pub fn body(agent: &Value) -> String {
                 if let Some(c) = s.get("choose").and_then(Value::as_str) {
                     line.push_str(&format!("。選び方：{c}"));
                 }
+                if let Some(m) = s.get("merge").and_then(Value::as_str) {
+                    line.push_str(&format!("。まとめ方：{m}"));
+                }
                 let passes = strings(s, "passes");
                 if !passes.is_empty() {
                     line.push_str(&format!("。渡すもの：{}", passes.join(" ・ ")));

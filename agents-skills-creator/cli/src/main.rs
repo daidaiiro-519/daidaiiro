@@ -12,7 +12,8 @@ use std::process::ExitCode;
 const USAGE: &str = "使い方：agents-skills-creator skills <create ・ update ・ write-skill-md ・ validate ・ distribute ・ withdraw> … ／ \
 agents-skills-creator agents <create ・ update ・ write-agent-md ・ validate ・ distribute ・ withdraw> … ／ \
 agents-skills-creator approve <Skill か Agent のフォルダ>（人が打つ） ／ \
-agents-skills-creator <サブコマンド> --help";
+agents-skills-creator <サブコマンド> --help ／ \
+agents-skills-creator --version";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -23,6 +24,10 @@ fn main() -> ExitCode {
         Some("approve") => approve(rest),
         Some("--help" | "help") => {
             println!("{USAGE}");
+            ExitCode::SUCCESS
+        }
+        Some("--version" | "version") => {
+            println!("agents-skills-creator {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
         Some(other) => {

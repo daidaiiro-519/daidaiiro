@@ -1,0 +1,132 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 19,
+ "date": "2026-11-03",
+ "summary": "~/.local/bin の2つのコマンドだけで E1〜E3 を4回目に動かして残った所を直した。「承認」の残り（直すときの書く時機）、手順6のコマンド、SAS の記録の置き場所と最低保証、--reason と covers の書き方、例の名前の決め打ち、最初の返事の構造の像の出どころ、Agent の同時に呼んだ結果のまとめ方（merge）、choose の書き方の例、承認の前の直し、--version を直した",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3"
+ ],
+ "factchecks": [
+  {
+   "item": "4回目に E1〜E3 を動かした結果（コーディネーターが動かし、利用者が直しを承認）",
+   "evidence": [
+    "3つとも期待どおり承認の手前まで進んだ",
+    "残った所：直すときの「承認のあと1回」が approve と紛れる（E3）・ 手順6で打つコマンドが無い（E3）・ SAS の記録の置き場所が書かれていない（E3）・ --reason と covers の書き方（E3）・ 例の expected の名前の決め打ち（E1）・ 最初の返事の構造の像の出どころ（E1）・ Agent のまとめ方を書く所が無い（E2）・ choose の書き方（E2）・ 承認の前の直し方（E2）・ agents create --semantic の終了コード（E2）・ --version（E1 ・ E2）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Concrete と fixture の更新（semantic-agent-schema update、--reason 付き）",
+   "evidence": [
+    "agent.schema：o-0120。kind call のステップに任意の merge（同時に呼んだ結果のまとめ方。rules の番号を指してよい）を足し、approve のステップには書けないようにした。choose の meaning に書き方の例を足した。機械の判定で違反 0",
+    "consult-advisors（fixture）：o-0123。merge を書いた（中身が変わったので、場面の --if-match のハッシュと値の写しと、意味の判定の答えの fixture を作り直した）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "agents create --semantic の終了コード",
+   "evidence": [
+    "実地：場面 S-UC2-CREATE-PROCEDURE で semantic_agent_schema_exit が 0 になることを確かめた（ステップ18 で出力のキーをそろえたあとの形で、null にはならない）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC3 直す（skills ・ agents の update の flow）",
+   "steps": [
+    "flow の項目 approve_then_write を write_after_choice にし、「作る人が層を選んで進めてよいと答えたあと1回だけ、… --patch で書かせる。進めてよいと答える前には書かない」とした",
+    "add_example の「書くのは承認のあと1回」を「書くのは作る人が層を選んで進めてよいと答えたあと1回」に"
+   ],
+   "rules": [
+    "「承認」は approve で approved を書くことだけを指す"
+   ]
+  },
+  {
+   "usecase": "UC1 ・ UC2 作る（create の flow）",
+   "steps": [
+    "rules に「承認の前に自分で気づいた直しも、agents-skills-creator <skills|agents> update --patch --if-match --reason 層：<層> で書かせる」を足した"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "UC2 Agent（AGENT.md）",
+   "steps": [
+    "call の手順の行に「まとめ方：<merge>」を出す"
+   ],
+   "rules": [
+    "まとめ方は Agent が持つ（Skill に任せない）。決まりの文は rules に書き、merge から番号で指してよい"
+   ]
+  },
+  {
+   "usecase": "creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "skills update --patch @… --reason「層：examples …」で直した（一時ディレクトリの SAS の記録で o-0036）：最低保証に「SAS の記録 <git-common-dir>/sas/sas.db を除く。記録は作業場所の Git の中に残り、git status には出ない」を足し、E1 ・ E2 の expected からフォルダの名前の決め打ちを外して「名前を【推測】で付けて」にした",
+    "作る流れの手引き：冒頭に SAS の記録の置き場所、§2 に最初の返事の構造の像の出どころ（flow の形に従って AI が組み、structure_image は2往復目から）、手順6 に semantic-agent-schema validate <ファイル> --semantic → --answer → validate を打ち直す、§3 に承認の前の直し、§6 に --reason と covers の書き方と「作る人が層を選んで進めてよいと答えたあと1回」"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "CLI",
+   "steps": [
+    "agents-skills-creator --version ・ version は「agents-skills-creator <Cargo の版>」を返して終了コード 0"
+   ],
+   "rules": []
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "Agent のまとめ方",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "Agent は「結果をどうまとめるか」を持つが、steps の形に書く所が無く、rules にだけ書いていた。call のステップに merge を足した（o-0120）。中身の文は rules に置き、merge は番号で指してよい"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "進めてよいと答える",
+   "seen": "直すときの書く時機",
+   "drift": "作る人が層を選んで進めてよいと答えること。approve（承認）とは別"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "update の flow の項目名",
+    "before": "approve_then_write",
+    "after": "write_after_choice（update-result の schema も同じ）",
+    "why": "approve と紛れないように"
+   },
+   {
+    "what": "Concrete（agent.schema）",
+    "before": "call のステップに merge が無い",
+    "after": "merge（任意。approve のステップには書けない）",
+    "why": "同時に呼んだ結果のまとめ方"
+   },
+   {
+    "what": "CLI",
+    "before": "--version が無い",
+    "after": "agents-skills-creator --version ・ version",
+    "why": "版を確かめられるように"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "持ち越し：推測の一覧（guesses）",
+    "why": "広すぎる件（E1 で24件、作る人の答えまで入る）に加えて、AI が足した分かれ道 ・ 例の from に入れる値の決まりが無い（E1）。Skill の derivation の見直しと一緒に扱う"
+   },
+   {
+    "what": "持ち越し（SAS 側）：semantic-agent-schema の --version",
+    "why": "SAS 側のコマンド。版の範囲の照合と一緒に、別の ACDR（版の照合）で扱う"
+   },
+   {
+    "what": "持ち越し",
+    "why": "ほかの持ち越しはそのまま（SAS 側の constraints が手順に無い欄を指す件など）"
+   }
+  ]
+ }
+}

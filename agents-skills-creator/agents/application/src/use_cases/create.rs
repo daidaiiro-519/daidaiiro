@@ -58,6 +58,7 @@ fn flow() -> Value {
         ],
         "rules": [
             "目的は AI が仮説として示し、作る人が進めてよいと答えて決まる（「承認」は、approve で approved を書くことだけを指す）",
+            "承認の前に自分で気づいた直しも、agents-skills-creator agents update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層> で書かせる",
             "Agent は作業の中身を持たず、配下の Skill を呼ぶステップと、人に結果を確かめてもらうステップ（kind approve）だけを持つ",
             "足りない Skill は agents-skills-creator skills create で先に作る（Agent の中に書かない）",
             "creator は AI を起動せず、agent.json を書かない（SAS が書く）"

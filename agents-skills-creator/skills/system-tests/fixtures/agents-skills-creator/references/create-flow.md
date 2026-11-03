@@ -4,6 +4,8 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 「承認」は、`agents-skills-creator approve` で approved を書くことだけを指す。目的の仮説は、作る人が「進めてよい」と答えて決まる。
 
+SAS の記録は <git-common-dir>/sas/sas.db に書かれ、作業場所の Git の中に残る（git status には出ない）。最低保証の「作るフォルダと配布先の外は変わらない」は、この記録を除く。
+
 控えのファイル（値・JSON Patch・判定の答えなど）は、どのコマンドの出力も作業場所の中に置き、終わったら消す（作業場所は打った場所。外の /tmp などに置かない）。値の組み方そのものは、`agents-skills-creator skills create`・`agents-skills-creator agents create`・`agents-skills-creator skills update`・`agents-skills-creator agents update` の `--semantic` が返す手順（各欄の説明・読み方・rule と、打つコマンド）に従う。手順の番号は SKILL.md の手順の番号（手順1〜9）で指す。
 
 ## §1 作るか直すか、Skill か Agent かを見分ける（手順1）
@@ -33,6 +35,8 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 - Skill：`agents-skills-creator skills create skills/<name> --semantic`
 - Agent：`agents-skills-creator agents create agents/<name> --semantic`
+
+最初の返事の構造の像は、--semantic の flow の形に従って AI が組む。validate の承認の材料の structure_image が使えるのは書かせたあと（2往復目から）。
 
 返る出力のうち、最初の返事のために読むのは `flow`（最初の返事で見せる4つ・構造の像・聞く所の見分け方・問いの形）、書くために読むのは semantic-agent-schema の各 step の current ・ rules と command（値を書かせる creator のコマンド）。
 
@@ -68,8 +72,12 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 - 手順3：作る人が目的の仮説で進めてよいと答え、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`semantic-agent-schema.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で SAS に書かせる。
 - 手順4：`agents-skills-creator skills write-skill-md <フォルダ>`（Agent なら `agents-skills-creator agents write-agent-md`）を打つ。
 - 手順5：`agents-skills-creator skills validate <フォルダ>`（Agent なら `agents-skills-creator agents validate`）を打ち、検出があれば直す。
-- 手順6：意味の rule の判定。承認の材料の delegate の a のとおり、別の会話で判定し、`semantic-agent-schema validate <経路> --answer <ファイル>` で渡す。そのあと validate を打ち直し、`approvable` が true になるまで承認を求めない。
+- 手順6：意味の rule の判定。semantic-agent-schema validate <ファイル> --semantic で判定の手順を受け取り、別の会話で判定して、答えを手順の answer.schema に従う JSON のファイルにし、--answer で渡し、validate を打ち直す（承認の材料の delegate の a）。`approvable` が true になるまで承認を求めない。
 - 手順7：例を動かす。承認の材料の delegate の b のとおり、別の会話で例を動かし、実際の答えを完成の像と並べて見せる。
+
+### 承認の前の直し
+
+承認の前に自分で気づいた直しも、`agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（Agent なら `agents-skills-creator agents update`）で書かせる。ファイルを直接書かない。
 
 ### 値をファイルで渡す
 
@@ -97,6 +105,11 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 | 層ごとの前と後 | examples → edge_cases → rules → role → purpose の層ごとに、直す前と後の像 |
 | 推奨 | 外れ方から、どの層で直すかを推奨付きで1つ |
 
+### --reason と covers
+
+- `--reason` は「層：<層>」で始め、続けて外れた具体を1文で書いてよい（例：「層：examples。全角の空白を含む項目名に「無い」と返した」）。
+- 足す例の covers は、その例が確かめる完了条件か分かれ道の id。外れた振る舞いが完了条件を破っているならその完了条件を入れる。
+
 ### 層の選び方
 
 | 外れ方 | 直す層 |
@@ -108,4 +121,4 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 手順7で例を動かしてまだ外れるなら、一つ広い層で直す（分かれ道 7a）。
 
-作る人が層を選んだら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは承認のあと1回：`semantic-agent-schema.command` のとおり `agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。
+作る人が層を選んだら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは作る人が層を選んで進めてよいと答えたあと1回：`semantic-agent-schema.command` のとおり `agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。
