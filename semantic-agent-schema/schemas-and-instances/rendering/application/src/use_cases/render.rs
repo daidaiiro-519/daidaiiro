@@ -163,7 +163,9 @@ pub fn render(
                 "デザインシステムが契約に合わないので描かない：{}",
                 broken.join(" ／ ")
             ),
-            hint: Some(Box::new(format!("sas validate {ds_path}"))),
+            hint: Some(Box::new(format!(
+                "semantic-agent-schema validate {ds_path}"
+            ))),
             ..Refused::default()
         });
     }

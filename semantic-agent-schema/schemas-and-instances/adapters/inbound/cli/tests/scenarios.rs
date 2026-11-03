@@ -1,4 +1,4 @@
-//! システムテスト：system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで sas を動かして確かめる。
+//! システムテスト：system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで semantic-agent-schema を動かして確かめる。
 //! ネットワークと本物のエージェントは使わない。given の git だけは準備として本物の git を使う。
 //! given の write は、SAS を通らずにファイルを書く（エディターで直したことの代わり）。
 
@@ -13,7 +13,7 @@ fn suite() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../system-tests")
 }
 
-/// sas が返す結果の形（出力のたびに照らす）。
+/// semantic-agent-schema が返す結果の形（出力のたびに照らす）。
 fn result_schema() -> jsonschema::Validator {
     published("command-result.schema.json")
 }
@@ -90,7 +90,7 @@ fn run(dir: &Path, cmd: &Value) -> Output {
         })
     };
     let mut c = if let Some(args) = strings("args") {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_sas"));
+        let mut c = Command::new(env!("CARGO_BIN_EXE_semantic-agent-schema"));
         c.args(args);
         // 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所を持ち込まない。
         // 場面が env で渡したものだけを使う

@@ -36,14 +36,14 @@
    "nodes": [
     "recording-application"
    ],
-   "description": "記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない。ポート OperationReader）と、入口（CLI）だけが呼ぶ「誰が打ったかを決めて sessions に登録する」手続き（identify ・ register ・ sas init の register_session。ポート IdentifyCaller ・ SessionLog）。検証と変更の追記は持たない（追記するモジュールがそれぞれのポートで行う）"
+   "description": "記録を読む UC7（read_operations ・ read_operation。読むだけで何も足さない。ポート OperationReader）と、入口（CLI）だけが呼ぶ「誰が打ったかを決めて sessions に登録する」手続き（identify ・ register ・ semantic-agent-schema init の register_session。ポート IdentifyCaller ・ SessionLog）。検証と変更の追記は持たない（追記するモジュールがそれぞれのポートで行う）"
   },
   {
    "name": "rendering-application",
    "nodes": [
     "rendering-application"
    ],
-   "description": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らし、sas validate では記録する）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter と、文書を読む DocumentStore ・ 形を照らす SchemaValidator ・ デザインシステムの検証を記録する ValidationLog（append_validate）を自分で宣言する。照らす（check_design_systems）と記録する（record_design_systems）を分け、入口がその間に打ったセッションを sessions に足す。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
+   "description": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らし、semantic-agent-schema validate では記録する）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter と、文書を読む DocumentStore ・ 形を照らす SchemaValidator ・ デザインシステムの検証を記録する ValidationLog（append_validate）を自分で宣言する。照らす（check_design_systems）と記録する（record_design_systems）を分け、入口がその間に打ったセッションを sessions に足す。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
   },
   {
    "name": "search-application",
@@ -71,7 +71,7 @@
    "nodes": [
     "outbound-sqlite"
    ],
-   "description": "操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの ValidationLog ・ 記録のモジュールの SessionLog と OperationReader。手続きは SqliteLog のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻（sas init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
+   "description": "操作の記録のポートの実装：書くモジュールの ChangeLog ・ 検証のモジュールの ValidationLog ・ 描画のモジュールの ValidationLog ・ 記録のモジュールの SessionLog と OperationReader。手続きは SqliteLog のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。<git-common-dir>/sas/sas.db（ワークツリーで1つ）の sessions（打ったセッションの行）・ changes ＋ field_changes ・ validations ＋ rule_results へ追記し、操作の ID と時刻（semantic-agent-schema init でツールから ID が取れないときはセッションの ID も）を作る。request_id と前の判定を引く。記録を読む（ビュー operations を新しい順に絞る ・ 1件の中身）。断った操作は記録しない"
   },
   {
    "name": "outbound-git",
@@ -99,7 +99,7 @@
    "nodes": [
     "inbound-cli"
    ],
-   "description": "sas コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（このフォルダで sas init が登録したセッションを引く ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。sas log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
+   "description": "semantic-agent-schema コマンドの入口。コンポジションルートを持ち、記録の置き場所を決める（SAS_DB_PATH → <git-common-dir>/sas/sas.db → .sas/sas.db）。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（このフォルダで semantic-agent-schema init が登録したセッションを引く ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。semantic-agent-schema log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
   },
   {
    "name": "test-support",

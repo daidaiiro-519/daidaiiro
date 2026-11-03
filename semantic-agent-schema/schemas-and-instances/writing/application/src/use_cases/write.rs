@@ -944,13 +944,13 @@ fn violated_instances(
 
 /// SAS を通らない変更を取り込むコマンドの案内。
 fn adopt_hint(path: &str) -> String {
-    format!("理由を付けて取り込む：sas update {path} --adopt --reason \"…\"")
+    format!("理由を付けて取り込む：semantic-agent-schema update {path} --adopt --reason \"…\"")
 }
 
 /// SAS を通した変更が間に入ったときに、のせ直して打ち直すコマンドの案内。
 fn reapply_hint(path: &str, current: &str) -> String {
     format!(
-        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：sas update {path} --patch <JSON Patch> --if-match {current} --reason \"…\""
+        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：semantic-agent-schema update {path} --patch <JSON Patch> --if-match {current} --reason \"…\""
     )
 }
 
@@ -1065,7 +1065,7 @@ pub fn adopt(
                 "recorded",
                 path,
                 format!(
-                    "{path} は操作 {} で記録がある。外で直した変更は sas update {path} --adopt --reason \"…\" で取り込む",
+                    "{path} は操作 {} で記録がある。外で直した変更は semantic-agent-schema update {path} --adopt --reason \"…\" で取り込む",
                     w.operation
                 ),
             ));
@@ -1076,7 +1076,7 @@ pub fn adopt(
                 "not_recorded",
                 path,
                 format!(
-                    "{path} は SAS の記録に無い。既存のファイルは sas create {path} --adopt で取り込む"
+                    "{path} は SAS の記録に無い。既存のファイルは semantic-agent-schema create {path} --adopt で取り込む"
                 ),
             ));
         }
@@ -1165,7 +1165,7 @@ pub fn adopt(
         );
         if code == "human_field" {
             r.hint = Some(Box::new(format!(
-                "人が --session を付けずに取り込む：sas {} {path} --adopt{}",
+                "人が --session を付けずに取り込む：semantic-agent-schema {} {path} --adopt{}",
                 written.kind(),
                 if expected.is_some() {
                     " --reason \"…\""

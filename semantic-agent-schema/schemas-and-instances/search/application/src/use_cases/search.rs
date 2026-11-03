@@ -276,7 +276,7 @@ pub fn search_procedure(
 /// 答えを渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
 fn answer_command(range: &Range, caller: &Caller) -> String {
     let range_args = range.args();
-    let mut args: Vec<&str> = vec!["sas", "search"];
+    let mut args: Vec<&str> = vec!["semantic-agent-schema", "search"];
     args.extend(range_args.iter().map(String::as_str));
     args.extend(["--answer", "<答えの JSON のファイル | ->"]);
     if let Some(id) = caller.flagged() {
@@ -353,7 +353,8 @@ pub fn search_with_answer(
                     "出どころ {path} の読んだ中身のハッシュ（{hash}）が、いまの中身（{now}）と違う。答えを返さない"
                 ),
             );
-            let mut again: Vec<String> = vec!["sas".to_string(), "search".to_string()];
+            let mut again: Vec<String> =
+                vec!["semantic-agent-schema".to_string(), "search".to_string()];
             again.extend(range.args());
             again.extend([
                 "--semantic".to_string(),

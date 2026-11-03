@@ -15,7 +15,7 @@ pub enum Unidentified {
     Log(String),
 }
 
-/// 誰が打ったかを決める：--session → ツールの環境変数 → このフォルダ（folder）で sas init が最後に登録したセッション → 人。
+/// 誰が打ったかを決める：--session → ツールの環境変数 → このフォルダ（folder）で semantic-agent-schema init が最後に登録したセッション → 人。
 /// sessions には足さない（足すのは register）。
 ///
 /// # Errors
@@ -38,7 +38,7 @@ pub fn register(caller: &Caller, log: &mut dyn SessionLog) -> Result<(), String>
     log.session(caller).map(|_| ())
 }
 
-/// sas init：いまのセッションを、このフォルダの記録の相手として sessions に登録する（via = init）。
+/// semantic-agent-schema init：いまのセッションを、このフォルダの記録の相手として sessions に登録する（via = init）。
 /// 呼び出し元のセッション ID（--session か環境変数）があればそれを、無ければ記録の置き場所が ID を決める。
 /// 前の登録は使わない。すでに記録にある ID なら、行を書き換えずに、その行を返す（追記だけ）。
 ///

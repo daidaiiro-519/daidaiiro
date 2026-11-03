@@ -1,4 +1,4 @@
-//! 当たる rule を集める。rule はどれも AI（sas を打ったセッション）が判定し、sas validate --answer で渡す。
+//! 当たる rule を集める。rule はどれも AI（semantic-agent-schema を打ったセッション）が判定し、semantic-agent-schema validate --answer で渡す。
 //!
 //! rule は x-prompt.rules にある。欄の rule は欄に、x- の rule はその x- の値の形（Abstract の $defs）に書く。
 //! 当たるのは、対象の文書にその欄や x- が実際にあるときだけ。Abstract の $defs の中の rule も、$ref でたどって当てる。
@@ -242,7 +242,7 @@ pub fn unjudged(rule: &AppliedRule) -> RuleResult {
         &rule.pointer,
         By::Ai,
         Verdict::NotJudged,
-        "意味の判定を渡していない（sas validate --semantic で手順を受け取り、判定を --answer で渡す）",
+        "意味の判定を渡していない（semantic-agent-schema validate --semantic で手順を受け取り、判定を --answer で渡す）",
     )
 }
 

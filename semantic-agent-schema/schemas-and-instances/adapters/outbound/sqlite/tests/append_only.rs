@@ -1,5 +1,5 @@
 //! 表の決まり：追記だけ ・ セッションの行は初めて見たときだけ ・ via は env か flag か init ・ by は machine か ai。
-//! sas init が登録したセッションをフォルダから引け、SAS が決めるセッション ID は重ならない。
+//! semantic-agent-schema init が登録したセッションをフォルダから引け、SAS が決めるセッション ID は重ならない。
 //! あわせて、bundled の SQLite の版が 3.38.0 以上であること（ステップ1 の照合の実地の証拠）。
 
 #![allow(clippy::unwrap_used)]

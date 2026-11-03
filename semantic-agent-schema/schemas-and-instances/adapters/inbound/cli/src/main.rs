@@ -1,6 +1,6 @@
-//! sas コマンドの入口。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON の1行で返す。
+//! semantic-agent-schema コマンドの入口。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON の1行で返す。
 //! 意味の部分（--semantic）は、結果の代わりに手順（procedure.schema.json）を返す。SAS はエージェントを起動しない。
-//! sas log（UC7）は記録を読むだけで、何も足さない（記録が無ければ作らない）。sas search（UC6）は記録しない。
+//! semantic-agent-schema log（UC7）は記録を読むだけで、何も足さない（記録が無ければ作らない）。semantic-agent-schema search（UC6）は記録しない。
 //!
 //! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
@@ -43,23 +43,23 @@ use writing_application::use_cases::write::{
 };
 use writing_domain::values::Caller;
 
-const USAGE: &str = "使い方：sas init [--session <ID>] ／ \
-sas validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
-sas validate [--session <名前>] [--stale | --all-rules] (<経路>... | --all) --semantic ／ \
-sas validate <経路> [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
-sas create <経路> --concrete <URN> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-sas create <経路> --concrete <URN> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
-sas create <経路> --adopt [--concrete <URN>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-sas update <経路> --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
-sas update <経路> --adopt --reason <理由> [--session <名前>] [--request-id <ID>] ／ \
-sas delete <経路> --reason <理由> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
-sas render <経路>... --design-system <経路> --out <書き出す先> ／ \
-sas log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
-sas log --operation <ID> ／ \
-sas search (<経路>... | --concrete <URN> | --all) --where <JSON Pointer>=<値> [--where …]... [--session <名前>] ／ \
-sas search (<経路>... | --concrete <URN> | --all) --semantic --question <問い> [--session <名前>] ／ \
-sas search (<経路>... | --concrete <URN> | --all) --answer <答えの JSON のファイル | -> [--session <名前>]";
+const USAGE: &str = "使い方：semantic-agent-schema init [--session <ID>] ／ \
+semantic-agent-schema validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
+semantic-agent-schema validate [--session <名前>] [--stale | --all-rules] (<経路>... | --all) --semantic ／ \
+semantic-agent-schema validate <経路> [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
+semantic-agent-schema create <経路> --concrete <URN> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema create <経路> --concrete <URN> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+semantic-agent-schema create <経路> --adopt [--concrete <URN>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema update <経路> --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+semantic-agent-schema update <経路> --adopt --reason <理由> [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema delete <経路> --reason <理由> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema render <経路>... --design-system <経路> --out <書き出す先> ／ \
+semantic-agent-schema log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
+semantic-agent-schema log --operation <ID> ／ \
+semantic-agent-schema search (<経路>... | --concrete <URN> | --all) --where <JSON Pointer>=<値> [--where …]... [--session <名前>] ／ \
+semantic-agent-schema search (<経路>... | --concrete <URN> | --all) --semantic --question <問い> [--session <名前>] ／ \
+semantic-agent-schema search (<経路>... | --concrete <URN> | --all) --answer <答えの JSON のファイル | -> [--session <名前>]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -73,11 +73,11 @@ fn main() -> ExitCode {
         Some("log") => run_log(&args[1..]),
         Some("search") => run_search(&args[1..]),
         Some(other) => {
-            eprintln!("sas: 知らないコマンドです: {other}。{USAGE}");
+            eprintln!("semantic-agent-schema: 知らないコマンドです: {other}。{USAGE}");
             ExitCode::from(2)
         }
         None => {
-            eprintln!("sas: コマンドを指定してください。{USAGE}");
+            eprintln!("semantic-agent-schema: コマンドを指定してください。{USAGE}");
             ExitCode::from(2)
         }
     }
@@ -105,7 +105,7 @@ fn db_path(root: &Path) -> PathBuf {
         )
 }
 
-/// sas を打ったフォルダ：Git の中なら作業ツリーの根、外なら作業フォルダ（絶対の経路）。
+/// semantic-agent-schema を打ったフォルダ：Git の中なら作業ツリーの根、外なら作業フォルダ（絶対の経路）。
 fn folder() -> String {
     GitCommits::new(PathBuf::from("."))
         .toplevel()
@@ -129,7 +129,7 @@ fn unidentified(u: Unidentified) -> Refused {
     }
 }
 
-/// 呼び出し元：--session ・ ツールごとの環境変数 ・ このフォルダで sas init が登録したセッション ・ 人（記録のモジュールの手続きで決める）。
+/// 呼び出し元：--session ・ ツールごとの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッション ・ 人（記録のモジュールの手続きで決める）。
 /// sessions にはまだ足さない（足すのは register）。
 fn caller(session: Option<String>, log: &SqliteLog) -> Result<Caller, Refused> {
     let folder = folder();
@@ -153,7 +153,7 @@ fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
     Ok((WorkingTree::new(root), validator, log))
 }
 
-/// sas init：いまのセッションを、このフォルダの記録の相手として登録する。
+/// semantic-agent-schema init：いまのセッションを、このフォルダの記録の相手として登録する。
 fn run_init(args: &[String]) -> ExitCode {
     let mut session = None;
     let mut it = args.iter();
@@ -667,7 +667,7 @@ fn run_render(args: &[String]) -> ExitCode {
     }
 }
 
-/// sas log：操作の記録を読む（UC7）。読むだけで、セッションの行も足さない。記録が無ければ作らずに、無いものとして返す。
+/// semantic-agent-schema log：操作の記録を読む（UC7）。読むだけで、セッションの行も足さない。記録が無ければ作らずに、無いものとして返す。
 fn run_log(args: &[String]) -> ExitCode {
     let mut filter = OperationFilter::default();
     let mut operation = None;
@@ -792,7 +792,7 @@ fn is_time(t: &str) -> bool {
     [10, 16, 19, 20].into_iter().any(|n| digits(t, &shape[..n]))
 }
 
-/// sas search：呼ぶ側が渡した範囲を、構造で絞るか、意味で探す手順を返すか、渡された答えの出どころを確かめる（UC6）。記録しない。
+/// semantic-agent-schema search：呼ぶ側が渡した範囲を、構造で絞るか、意味で探す手順を返すか、渡された答えの出どころを確かめる（UC6）。記録しない。
 fn run_search(args: &[String]) -> ExitCode {
     let mut session = None;
     let mut concrete = None;
@@ -926,7 +926,7 @@ fn is_design_system(path: &str) -> bool {
         .is_some_and(|s| s == DESIGN_SYSTEM)
 }
 
-/// 置き場所を組み立て、誰が打ったかを決めて sessions に足してから（最初に sas を打ったときに1行）、その値で f を呼ぶ。
+/// 置き場所を組み立て、誰が打ったかを決めて sessions に足してから（最初に semantic-agent-schema を打ったときに1行）、その値で f を呼ぶ。
 /// f の断った理由（各モジュールの Refused）は、出力の形（output::Refused）へ移して返す。
 fn run_with<T, E>(
     f: impl FnOnce(&WorkingTree, &Validator, &Caller, &mut SqliteLog) -> Result<T, E>,

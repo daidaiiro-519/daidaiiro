@@ -1,8 +1,8 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:command-result:v1",
- "title": "sas が返す結果",
- "description": "sas のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ sas init で登録したセッション（session）・ sas log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。SAS はエージェントを起動しない。sas log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す。$defs はステップごとに足す",
+ "title": "semantic-agent-schema が返す結果",
+ "description": "semantic-agent-schema のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ semantic-agent-schema init で登録したセッション（session）・ semantic-agent-schema log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。SAS はエージェントを起動しない。semantic-agent-schema log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す。$defs はステップごとに足す",
  "type": "object",
  "required": [
   "$schema",
@@ -122,7 +122,7 @@
       "machine",
       "ai"
      ],
-     "description": "machine は SAS が機械で判定したもの（形の検査 json-schema ・ Concrete の組み込みの検査 ・ デザインシステムの検査）、ai は打ったセッションが sas validate --answer で渡した判定"
+     "description": "machine は SAS が機械で判定したもの（形の検査 json-schema ・ Concrete の組み込みの検査 ・ デザインシステムの検査）、ai は打ったセッションが semantic-agent-schema validate --answer で渡した判定"
     },
     "result": {
      "$ref": "#/$defs/verdict"
@@ -273,7 +273,7 @@
     "at": {
      "type": "string",
      "title": "記録した日時",
-     "description": "操作を記録した日時（UTC の RFC 3339）。sas log --operation で記録から読んだときだけ持つ"
+     "description": "操作を記録した日時（UTC の RFC 3339）。semantic-agent-schema log --operation で記録から読んだときだけ持つ"
     }
    }
   },
@@ -411,7 +411,7 @@
       "sas",
       "outside"
      ],
-     "description": "sas は SAS が書いた変更、outside は SAS を通らない変更の取り込み（--adopt）"
+     "description": "sas は semantic-agent-schema のコマンドが書いた変更、outside は SAS を通らない変更の取り込み（--adopt）"
     },
     "before": {
      "$ref": "#/$defs/side"
@@ -467,7 +467,7 @@
     },
     "replayed": {
      "type": "boolean",
-     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_judgments と violated_instances は空（記録にあるのは差分だけ）。sas log --operation で記録から読んだときは false で、stale_judgments と violated_instances は空（記録にあるのは差分だけ）"
+     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_judgments と violated_instances は空（記録にあるのは差分だけ）。semantic-agent-schema log --operation で記録から読んだときは false で、stale_judgments と violated_instances は空（記録にあるのは差分だけ）"
     },
     "target": {
      "type": "object",
@@ -551,12 +551,12 @@
     "at": {
      "type": "string",
      "title": "記録した日時",
-     "description": "操作を記録した日時（UTC の RFC 3339）。sas log --operation で記録から読んだときだけ持つ"
+     "description": "操作を記録した日時（UTC の RFC 3339）。semantic-agent-schema log --operation で記録から読んだときだけ持つ"
     },
     "reason": {
      "type": "string",
      "title": "理由",
-     "description": "操作の理由（呼ぶ側が渡したときだけ）。sas log --operation で記録から読んだときだけ持つ"
+     "description": "操作の理由（呼ぶ側が渡したときだけ）。semantic-agent-schema log --operation で記録から読んだときだけ持つ"
     }
    },
    "allOf": [
@@ -638,7 +638,7 @@
       "invalid_answer",
       "range_too_large"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は sas validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は sas log --operation の ID が記録に無いときも返す。range_too_large は sas search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。sas search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いときも返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
     },
     "path": {
      "type": "string"
@@ -887,7 +887,7 @@
     "null"
    ],
    "minLength": 1,
-   "description": "sas を打ったセッションの ID（--session ・ ツールの環境変数 ・ このフォルダで sas init が登録したセッションで決まる）。人なら null"
+   "description": "semantic-agent-schema を打ったセッションの ID（--session ・ ツールの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッションで決まる）。人なら null"
   },
   "render": {
    "type": "object",
@@ -965,7 +965,7 @@
     "via"
    ],
    "additionalProperties": false,
-   "description": "sas init で、いまのセッションをこのフォルダの記録の相手として登録した結果。すでに記録にある ID なら、その行を書き換えずに返す",
+   "description": "semantic-agent-schema init で、いまのセッションをこのフォルダの記録の相手として登録した結果。すでに記録にある ID なら、その行を書き換えずに返す",
    "properties": {
     "$schema": true,
     "kind": {
@@ -992,13 +992,13 @@
       "flag",
       "init"
      ],
-     "description": "ID をどこから知ったか。init は sas init が登録したもの"
+     "description": "ID をどこから知ったか。init は semantic-agent-schema init が登録したもの"
     }
    }
   },
   "operation": {
    "type": "object",
-   "description": "sas log の一覧の1行。記録にある操作（変更と検証）1件の要約で、新しい順に1行ずつ出す。中身（変わった欄 ・ rule ごとの結果）は sas log --operation <ID> で読む。読む形は記録の表の形に依らない",
+   "description": "semantic-agent-schema log の一覧の1行。記録にある操作（変更と検証）1件の要約で、新しい順に1行ずつ出す。中身（変わった欄 ・ rule ごとの結果）は semantic-agent-schema log --operation <ID> で読む。読む形は記録の表の形に依らない",
    "required": [
     "kind",
     "operation",
@@ -1057,7 +1057,7 @@
        "type": "string",
        "minLength": 1,
        "title": "セッション ID",
-       "description": "--session ・ ツールの環境変数 ・ sas init で決まった ID"
+       "description": "--session ・ ツールの環境変数 ・ semantic-agent-schema init で決まった ID"
       },
       "tool": {
        "type": "string",
@@ -1115,7 +1115,7 @@
   },
   "search": {
    "type": "object",
-   "description": "sas search の結果。探した範囲を必ず返し（範囲の外は探していない）、構造で絞ったときは matches を、意味で探した答えを --answer で渡したときは answer と、SAS が確かめた sources を持つ。検索は記録しない",
+   "description": "semantic-agent-schema search の結果。探した範囲を必ず返し（範囲の外は探していない）、構造で絞ったときは matches を、意味で探した答えを --answer で渡したときは answer と、SAS が確かめた sources を持つ。検索は記録しない",
    "required": [
     "kind",
     "range"

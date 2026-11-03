@@ -133,7 +133,9 @@ fn the_procedure_has_one_step_per_document_and_the_answer_command() {
     assert_eq!(p["answer"]["format"], json!("search"));
     assert_eq!(
         p["command"],
-        json!("sas search --concrete urn:example:t:uc:v1 --answer <答えの JSON のファイル | ->")
+        json!(
+            "semantic-agent-schema search --concrete urn:example:t:uc:v1 --answer <答えの JSON のファイル | ->"
+        )
     );
 }
 

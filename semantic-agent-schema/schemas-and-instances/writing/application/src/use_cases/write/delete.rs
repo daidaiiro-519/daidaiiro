@@ -50,7 +50,7 @@ pub struct Deletion {
 }
 
 fn delete_hint(path: &str) -> String {
-    format!("消す：sas delete {path} --reason \"…\"")
+    format!("消す：semantic-agent-schema delete {path} --reason \"…\"")
 }
 
 fn replayed(
@@ -116,7 +116,7 @@ fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
         format!("この Concrete に頼っている文書があるので消さない（何も変えていない）：{message}"),
     );
     r.hint = Some(Box::new(format!(
-        "blocked のそれぞれの hint を片付けてから、消し直す：sas delete {} --reason \"…\"",
+        "blocked のそれぞれの hint を片付けてから、消し直す：semantic-agent-schema delete {} --reason \"…\"",
         r.path.as_deref().unwrap_or_default()
     )));
     r.blocked = Some(Box::new(blocked));
@@ -192,11 +192,11 @@ pub fn delete(
         );
         r.hint = Some(Box::new(if between.unrecorded {
             format!(
-                "外の変更を取り込んでから消す：sas update {path} --adopt --reason \"…\" のあとで sas delete {path} --reason \"…\""
+                "外の変更を取り込んでから消す：semantic-agent-schema update {path} --adopt --reason \"…\" のあとで semantic-agent-schema delete {path} --reason \"…\""
             )
         } else {
             format!(
-                "間に入った変更を読み、それでも消すなら打ち直す：sas delete {path} --if-match {} --reason \"…\"",
+                "間に入った変更を読み、それでも消すなら打ち直す：semantic-agent-schema delete {path} --if-match {} --reason \"…\"",
                 current.as_str()
             )
         }));

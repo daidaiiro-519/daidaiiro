@@ -4,9 +4,9 @@ use std::process::Command;
 
 #[test]
 fn no_arguments_is_usage_error() {
-    let out = Command::new(env!("CARGO_BIN_EXE_sas"))
+    let out = Command::new(env!("CARGO_BIN_EXE_semantic-agent-schema"))
         .output()
-        .expect("sas を起動できること");
+        .expect("semantic-agent-schema を起動できること");
     assert_eq!(out.status.code(), Some(2));
     assert!(out.stdout.is_empty());
     assert_eq!(String::from_utf8_lossy(&out.stderr).lines().count(), 1);
@@ -14,10 +14,10 @@ fn no_arguments_is_usage_error() {
 
 #[test]
 fn unknown_command_is_usage_error() {
-    let out = Command::new(env!("CARGO_BIN_EXE_sas"))
+    let out = Command::new(env!("CARGO_BIN_EXE_semantic-agent-schema"))
         .arg("frobnicate")
         .output()
-        .expect("sas を起動できること");
+        .expect("semantic-agent-schema を起動できること");
     assert_eq!(out.status.code(), Some(2));
     assert_eq!(String::from_utf8_lossy(&out.stderr).lines().count(), 1);
 }

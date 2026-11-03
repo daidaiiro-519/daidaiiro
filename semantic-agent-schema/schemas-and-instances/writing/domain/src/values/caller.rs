@@ -1,6 +1,6 @@
 //! 誰が打ったか（人か、名乗ったセッションか）。
 //!
-//! 決めるのは入口（--session ・ ツールの環境変数 ・ sas init の登録）で、ユースケースはこの値を受け取る。
+//! 決めるのは入口（--session ・ ツールの環境変数 ・ semantic-agent-schema init の登録）で、ユースケースはこの値を受け取る。
 //! 書く条件（x-decided-by の欄は人だけが変える）の入口 Entry と、記録の打ったセッションの ID はここから決まる。
 
 use crate::aggregates::Entry;
@@ -12,7 +12,7 @@ pub enum Via {
     Env,
     /// --session
     Flag,
-    /// このフォルダで sas init が登録したセッション
+    /// このフォルダで semantic-agent-schema init が登録したセッション
     Init,
 }
 
@@ -31,9 +31,9 @@ impl Via {
 /// 操作を呼んだのは誰か。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Caller {
-    /// sas を打ったセッション（AI のエージェント ・ CI ・ オーケストレーター）。--session ・ ツールの環境変数 ・ sas init で分かった
+    /// semantic-agent-schema を打ったセッション（AI のエージェント ・ CI ・ オーケストレーター）。--session ・ ツールの環境変数 ・ semantic-agent-schema init で分かった
     Session {
-        /// セッション ID（ツールのものか、sas init で SAS が決めたもの）
+        /// セッション ID（ツールのものか、semantic-agent-schema init で SAS が決めたもの）
         id: String,
         /// ツールの名前（claude-code など。分からなければ unknown）
         tool: String,
@@ -42,7 +42,7 @@ pub enum Caller {
         /// ID をどこから知ったか
         via: Via,
     },
-    /// --session も環境変数も sas init の登録も無い呼び出し。人とみなす
+    /// --session も環境変数も semantic-agent-schema init の登録も無い呼び出し。人とみなす
     Human,
 }
 

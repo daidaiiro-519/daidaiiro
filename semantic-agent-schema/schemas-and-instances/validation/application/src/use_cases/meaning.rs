@@ -7,8 +7,8 @@
 //! - rule の全文は手順の rules に1回だけ書き、まとまりは rule の id で指す。前の判定は入れない
 //! - 判定は書いたときとは別の文脈で行い、判定用の会話はキャッシュの有効時間のうちは続けて使うよう、constraints で求める。
 //!   SAS は判定したのが誰かを見分けない
-//! - SAS はエージェントを起動しない。手順は sas validate --semantic で打ったセッションに返し、そのセッションが判定して
-//!   sas validate --answer で渡す
+//! - SAS はエージェントを起動しない。手順は semantic-agent-schema validate --semantic で打ったセッションに返し、そのセッションが判定して
+//!   semantic-agent-schema validate --answer で渡す
 //! - 渡された判定は、答えの形 ・ 手順のハッシュ ・ step（まとまりの番号）・ rule ・ pointer で突き合わせる。合わなければ記録せずに理由を返す
 //! - 意味は検証の中の性質で、業務領域にしない
 

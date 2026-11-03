@@ -1,6 +1,6 @@
 //! UC1 作成する ・ UC2 更新する の意味で書く変形：Concrete の rule から書く手順を組み、打ったセッションに返す。
-//! SAS はエージェントを起動しない。手順を受け取ったセッションが値を決め、手順の command（sas create … --value ／
-//! sas update … --patch）で書く。書くのは、その機械の作成 ・ 更新で、形と書く条件に照らしてから書く。
+//! SAS はエージェントを起動しない。手順を受け取ったセッションが値を決め、手順の command（semantic-agent-schema create … --value ／
+//! semantic-agent-schema update … --patch）で書く。書くのは、その機械の作成 ・ 更新で、形と書く条件に照らしてから書く。
 //!
 //! - 書く欄は根の欄（x-prompt か、中に rule を持つ欄か、根が求める欄）。人が決める欄（x-decided-by: human）と、
 //!   const で決まる欄と、$schema は書く欄にしない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
@@ -485,7 +485,7 @@ fn build_procedure(
             "steps を no の順に行い、pointer の欄の値を、rules の rule（rule ・ why ・ check と、違反する例 bad ・ 満たす例 good）と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）と、手順の rules（文書全体に当たる rule）を守って決める（meaning があればその読み方で、when があればその読み手として、related_fields があれば先に書いた欄の値を読み、current があればいまの値を直す形で）",
             "値は answer.schema の形（JSON Schema）に従わせる。steps に無い形の決まり（求める欄 ・ 型 ・ const など）も、そこから読んで守る",
             "optional のステップは、書かないなら値から外してよい",
-            "書くのは command の sas だけで、ファイルを直接書かない",
+            "書くのは command の semantic-agent-schema だけで、ファイルを直接書かない",
             "steps に無い欄は書かない",
             "断られたら、出力の理由を読んで直し、打ち直す",
         ],
@@ -520,7 +520,7 @@ fn write_command(
 ) -> String {
     let mut args: Vec<&str> = match hash {
         Some(h) => vec![
-            "sas",
+            "semantic-agent-schema",
             "update",
             path,
             "--patch",
@@ -529,7 +529,7 @@ fn write_command(
             h,
         ],
         None => vec![
-            "sas",
+            "semantic-agent-schema",
             "create",
             path,
             "--concrete",

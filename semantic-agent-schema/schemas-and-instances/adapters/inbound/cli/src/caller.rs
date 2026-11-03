@@ -1,5 +1,5 @@
-//! 記録のモジュールのポート IdentifyCaller を、引数と環境変数で実装する（sas init の登録は記録のモジュールの手続きが引いて渡す）。
-//! 打ったセッションは --session → ツールごとの環境変数（callers.json の表）→ このフォルダで sas init が最後に登録したセッション →
+//! 記録のモジュールのポート IdentifyCaller を、引数と環境変数で実装する（semantic-agent-schema init の登録は記録のモジュールの手続きが引いて渡す）。
+//! 打ったセッションは --session → ツールごとの環境変数（callers.json の表）→ このフォルダで semantic-agent-schema init が最後に登録したセッション →
 //! どれも無ければ人、の順で決める。
 //! 2つ以上のツールの環境変数に値があるとき（ツールの中から別のツールを起動した）は、どれが打ったかを決めない。
 
@@ -56,7 +56,7 @@ impl FromArguments {
 }
 
 impl IdentifyCaller for FromArguments {
-    /// --session → 環境変数 → このフォルダで sas init が最後に登録したセッション（initialized）→ 人。
+    /// --session → 環境変数 → このフォルダで semantic-agent-schema init が最後に登録したセッション（initialized）→ 人。
     /// --session が無く、2つ以上のツールの環境変数に値があれば、そのツールの名前を並べて返す。
     fn identify(&self, initialized: Option<SessionRow>) -> Result<Caller, Vec<String>> {
         let at = |id: String, tool: String, via: Via| Caller::Session {

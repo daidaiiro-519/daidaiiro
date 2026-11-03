@@ -4,7 +4,7 @@
 //! 記録 SessionLog ・ OperationReader）。手続きはこの型のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。
 //!
 //! 操作の ID（o-0001。changes と validations で同じ採番）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。
-//! application と domain は時刻に触らない。セッションの ID はツールのもので、ツールから取れないとき（sas init）だけここで作る。
+//! application と domain は時刻に触らない。セッションの ID はツールのもので、ツールから取れないとき（semantic-agent-schema init）だけここで作る。
 
 use recording_application::ports::{
     OperationDetail, OperationFilter, OperationReader, OperationSummary, SessionLog, SessionRow,
@@ -233,7 +233,7 @@ impl SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    /// フォルダで sas init が最後に登録したセッション（via = init）。無ければ None。
+    /// フォルダで semantic-agent-schema init が最後に登録したセッション（via = init）。無ければ None。
     ///
     /// # Errors
     /// 置き場所を読めないとき。
@@ -249,7 +249,7 @@ impl SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    /// 新しいセッション ID（sas init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
+    /// 新しいセッション ID（semantic-agent-schema init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
     #[must_use]
     pub fn new_session_id(&self) -> String {
         // 時刻とプロセスに、プロセスごとに乱数で決まる鍵のハッシュを2つ重ねる（推測できる時刻だけにしない）

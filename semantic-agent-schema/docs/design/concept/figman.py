@@ -53,7 +53,7 @@ def overview():
     f.path('M420,514 V556 H260 V618', dashed=True); f.note(268, 574, '読むだけ')
     f.path('M580,514 V556 H825 V618', dashed=True); f.note(833, 574, '渡す')
     f.box(30, 620, 290, 56, ['製品：Git', '（コミット済みの版を読むだけ）'])
-    f.box(355, 620, 290, 56, ['製品：コーディングエージェント', '（sas を打つ。SAS は起動しない）'])
+    f.box(355, 620, 290, 64, ['製品：コーディングエージェント', '（semantic-agent-schema を打つ。', 'SAS は起動しない）'])
     f.box(680, 620, 290, 56, ['製品：2020-12 のバリデーター・', 'テンプレートの処理系'])
     return f.write('overview')
 
@@ -78,7 +78,7 @@ def layers():
         f.box(x, 328, 150, 56, l, 'focus' if x < 300 else '')
     f.note(108, 230, 'モジュール')
     f.path('M895,384 V438', dashed=True); f.note(885, 420, 'アダプターとして渡す', 'end')
-    f.bound(24, 440, 952, 56, '外の文脈：製品（Git・バリデーター・テンプレートの処理系）と、sas を打つコーディングエージェント')
+    f.bound(24, 440, 952, 56, '外の文脈：製品（Git・バリデーター・テンプレートの処理系）と、semantic-agent-schema を打つコーディングエージェント')
     return f.write('layers')
 
 def model():
@@ -143,7 +143,7 @@ def hexf():
     f = Fig(1300, 940, 'ポートとアダプター：内側に業務領域を作るモジュール、縁に各モジュールが宣言するポート、外にアダプター')
     f.o.append('<path class="area" d="M300,470 L440,60 L860,60 L1000,470 L860,880 L440,880 Z"/>')
     f.note(650, 84, '文脈「スキーマとインスタンス」', 'middle', True)
-    f.box(30, 430, 200, 82, ['inbound/cli（sas コマンド）', '入口・main.rs が', 'コンポジションルート'], 'focus')
+    f.box(30, 421, 200, 100, ['inbound/cli', '（semantic-agent-schema', 'コマンド）', '入口・main.rs が', 'コンポジションルート'], 'focus')
     f.note(130, 540, '誰が打ったかを決めて、', 'middle'); f.note(130, 558, '値（Caller）で渡す', 'middle')
     MS = [(100, 100, 'writing', 'focus', ['ポート（書く）', 'document_store（filesystem）', 'schema_validator（jsonschema）', 'commit_reader（git）', 'change_log（sqlite）']),
           (214, 82, 'validation', 'focus', ['ポート（検証）', 'document_store（filesystem）', 'schema_validator（jsonschema）', 'validation_log（sqlite）']),

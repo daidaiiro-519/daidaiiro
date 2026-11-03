@@ -318,7 +318,7 @@ pub fn validate_with_answer(
 
 /// 判定を渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
 fn answer_command(path: &str, selection: Selection, caller: &Caller) -> String {
-    let mut args = vec!["sas", "validate", path];
+    let mut args = vec!["semantic-agent-schema", "validate", path];
     args.extend(selection_args(selection));
     args.extend(["--answer", "<判定の JSON のファイル | ->"]);
     if let Some(id) = caller.flagged() {
@@ -329,7 +329,7 @@ fn answer_command(path: &str, selection: Selection, caller: &Caller) -> String {
 
 /// 手順を取り直すコマンド。
 fn procedure_command(path: &str, selection: Selection) -> String {
-    let mut args = vec!["sas", "validate", path];
+    let mut args = vec!["semantic-agent-schema", "validate", path];
     args.extend(selection_args(selection));
     args.push("--semantic");
     command_line(&args)

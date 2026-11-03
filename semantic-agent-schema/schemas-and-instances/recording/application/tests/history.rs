@@ -8,7 +8,7 @@ use recording_application::use_cases::history::{
 };
 use writing_domain::values::{Caller, Via};
 
-/// 引数と環境変数で決まる呼び出し元（None は、どちらにも無い）。sas init の登録があればそれを使う。
+/// 引数と環境変数で決まる呼び出し元（None は、どちらにも無い）。semantic-agent-schema init の登録があればそれを使う。
 struct Fixed(Option<Caller>);
 impl IdentifyCaller for Fixed {
     fn identify(&self, initialized: Option<SessionRow>) -> Result<Caller, Vec<String>> {

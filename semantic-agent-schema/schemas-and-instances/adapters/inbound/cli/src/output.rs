@@ -118,7 +118,7 @@ pub fn print_procedure(procedure: &Value) {
     println!("{procedure}");
 }
 
-/// sas init で登録したセッションを出す。
+/// semantic-agent-schema init で登録したセッションを出す。
 pub fn print_session(row: &SessionRow) {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
@@ -172,7 +172,7 @@ pub fn print_validation(v: &Validation) {
     }
     if let Some(u) = v.unrecorded.first() {
         out["hint"] = json!(format!(
-            "SAS を通らない変更がある。理由を付けて取り込む：sas update {} --adopt --reason \"…\"",
+            "SAS を通らない変更がある。理由を付けて取り込む：semantic-agent-schema update {} --adopt --reason \"…\"",
             if v.unrecorded.len() == 1 {
                 u.path.as_str()
             } else {
@@ -406,7 +406,7 @@ pub fn print_render(r: &Rendered) {
     println!("{out}");
 }
 
-/// 記録にある操作1件の要約（sas log の一覧の1行）。
+/// 記録にある操作1件の要約（semantic-agent-schema log の一覧の1行）。
 pub fn print_operation(o: &OperationSummary) {
     let mut out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
@@ -451,7 +451,7 @@ fn rule_row(r: &RuleRow) -> Value {
     json!({"rule": r.rule, "pointer": r.pointer, "by": r.by, "result": r.result, "reason": r.reason})
 }
 
-/// 記録にある操作1件の中身（sas log --operation）。書いたとき ・ 検証したときと同じ change ・ validation の形で出し、
+/// 記録にある操作1件の中身（semantic-agent-schema log --operation）。書いたとき ・ 検証したときと同じ change ・ validation の形で出し、
 /// 記録した日時 at と理由 reason を足す。記録にあるのは差分と判定だけなので、stale_judgments と violated_instances は空。
 pub fn print_operation_detail(d: &OperationDetail) {
     let out = match d {

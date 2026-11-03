@@ -121,7 +121,7 @@ fn procedure_is_returned_and_nothing_is_recorded() {
     assert_eq!(p[0]["target"]["hash"], json!(hash(&store)));
     assert_eq!(
         p[0]["command"],
-        json!("sas validate u1.json --answer <判定の JSON のファイル | ->")
+        json!("semantic-agent-schema validate u1.json --answer <判定の JSON のファイル | ->")
     );
     assert!(log.0.is_empty(), "手順を返すだけで記録しない");
 }
@@ -266,13 +266,13 @@ fn command_line_quotes_only_what_needs_it() {
     use validation_application::use_cases::meaning::command_line;
     assert_eq!(
         command_line(&[
-            "sas",
+            "semantic-agent-schema",
             "update",
             "a b.json",
             "--reason",
             "it's",
             "<JSON Patch>"
         ]),
-        "sas update 'a b.json' --reason 'it'\\''s' <JSON Patch>"
+        "semantic-agent-schema update 'a b.json' --reason 'it'\\''s' <JSON Patch>"
     );
 }

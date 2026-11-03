@@ -19,7 +19,7 @@ pub struct SessionRow {
 
 /// 引数と環境変数から、呼び出し元を見分ける（入口が実装する）。
 pub trait IdentifyCaller {
-    /// いまの呼び出し元。--session も環境変数も無ければ、initialized（このフォルダで sas init が最後に登録したセッション）を使い、
+    /// いまの呼び出し元。--session も環境変数も無ければ、initialized（このフォルダで semantic-agent-schema init が最後に登録したセッション）を使い、
     /// それも無ければ人。2つ以上のツールの環境変数に値があって決められないときは、そのツールの名前を並べて返す。
     ///
     /// # Errors
@@ -41,13 +41,13 @@ pub trait SessionLog {
     /// 置き場所を読めないとき。
     fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String>;
 
-    /// フォルダで sas init が最後に登録したセッション（via = init）。無ければ None。
+    /// フォルダで semantic-agent-schema init が最後に登録したセッション（via = init）。無ければ None。
     ///
     /// # Errors
     /// 置き場所を読めないとき。
     fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String>;
 
-    /// 新しいセッション ID（sas init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
+    /// 新しいセッション ID（semantic-agent-schema init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
     fn new_session_id(&self) -> String;
 }
 
