@@ -2,7 +2,7 @@
 //!
 //! - 依存の辺が規則の allow にあり、どの crate と外のライブラリも component に入る（architecture-lint check）
 //! - 規則の component の node は、どれもワークスペースのグラフにある（消した crate を規則に残さない）
-//! - crate の名前がフォルダから決まる（<文脈>-<層> ・ <モジュール>-<層> ・ <inbound|outbound>-<技術> ・ test-support）
+//! - crate の名前がフォルダから決まる（<文脈>-<層> ・ <モジュール>-<層> ・ <文脈>-<inbound|outbound>-<技術> ・ test-support）
 //!
 //! architecture-lint は PATH から探し、無ければリポジトリの中の ../architecture-lint/target/debug から使う。
 
@@ -15,7 +15,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 /// 区切られた文脈のフォルダ。crate はどれもこの中にある。
-const CONTEXT: &str = "skills";
+/// 文脈のフォルダ。crate はどれもこのどれかの中にある。
+const CONTEXTS: [&str; 2] = ["skills", "agents"];
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -85,13 +86,13 @@ fn components_name_nodes_in_the_graph() {
 }
 
 /// 文脈の中の経路から crate の名前を決める：文脈の直下の層（application ・ domain）→ <文脈>-<層>、
-/// <モジュール>/<層> → <モジュール>-<層>、adapters/<inbound|outbound>/<技術> → <inbound|outbound>-<技術>、
+/// <モジュール>/<層> → <モジュール>-<層>、adapters/<inbound|outbound>/<技術> → <文脈>-<inbound|outbound>-<技術>、
 /// それ以外は最後のフォルダの名前。
-fn name_from_path(inner: &str) -> String {
+fn name_from_path(context: &str, inner: &str) -> String {
     let parts: Vec<&str> = inner.split('/').collect();
     match parts.as_slice() {
-        ["adapters", side, tech] => format!("{side}-{tech}"),
-        [layer @ ("application" | "domain")] => format!("{CONTEXT}-{layer}"),
+        ["adapters", side, tech] => format!("{context}-{side}-{tech}"),
+        [layer @ ("application" | "domain")] => format!("{context}-{layer}"),
         [module, layer] => format!("{module}-{layer}"),
         _ => (*parts.last().expect("経路があること")).to_string(),
     }
@@ -121,15 +122,21 @@ fn crate_names_follow_their_folders() {
                 .as_str()
                 .expect("manifest_path が文字列であること"),
         );
-        let dir = manifest
+        let parent = manifest
             .parent()
-            .expect("Cargo.toml はフォルダの中にあること")
-            .strip_prefix(workspace.join(CONTEXT))
-            .unwrap_or_else(|_| panic!("{name} は文脈のフォルダ {CONTEXT}/ の中にあること"));
+            .expect("Cargo.toml はフォルダの中にあること");
+        let (context, dir) = CONTEXTS
+            .iter()
+            .find_map(|c| parent.strip_prefix(workspace.join(c)).ok().map(|d| (*c, d)))
+            .unwrap_or_else(|| panic!("{name} は文脈のフォルダ（{CONTEXTS:?}）の中にあること"));
         let inner = dir
             .to_str()
             .expect("経路が UTF-8 であること")
             .replace('\\', "/");
-        assert_eq!(name, name_from_path(&inner), "{inner} の crate の名前");
+        assert_eq!(
+            name,
+            name_from_path(context, &inner),
+            "{context}/{inner} の crate の名前"
+        );
     }
 }

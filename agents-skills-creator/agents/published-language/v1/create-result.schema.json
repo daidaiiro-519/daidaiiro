@@ -1,0 +1,109 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:agents:create-result:v1",
+ "title": "SAS に書かせた結果",
+ "description": "agents create が標準出力に返す JSON（1つ）。中で打った sas create の結果を書き換えずに sas に入れる。--semantic で Agent の Concrete を渡したときだけ、作る流れ（flow）を添える",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:agents:create-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "create は結果、error は始められなかった",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "create",
+    "error"
+   ]
+  },
+  "flow": {
+   "title": "作る流れ",
+   "description": "打ったセッション（AI）が読んで進める指示：最初の返事で見せる4つ ・ 構造の像の4つ（受け持つ範囲 ・ 呼ぶ Skill と受け渡し ・ 手順と分かれ道 ・ まとめ方）・ 聞く所の見分け方 ・ 仕上げ ・ 守ること ・ 見せ方",
+   "x-prompt": {
+    "meaning": "この順に作る人へ見せる。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "object"
+  },
+  "sas": {
+   "title": "SAS の結果",
+   "description": "sas create の出力を書き換えずに入れたもの",
+   "x-prompt": {
+    "meaning": "SAS の結果として読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": [
+    "object",
+    "array"
+   ]
+  },
+  "sas_exit": {
+   "title": "SAS の終了コード",
+   "description": "sas create の終了コード",
+   "x-prompt": {
+    "meaning": "0 でなければ SAS が断った。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "integer"
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、そのほかは始められなかった理由",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "sas_unavailable"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "create"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "sas",
+     "sas_exit"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ]
+}

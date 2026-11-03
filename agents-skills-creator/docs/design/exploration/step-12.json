@@ -1,0 +1,249 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 12,
+ "date": "2026-11-03",
+ "summary": "文脈 agents を作った。Agent の Concrete（urn:agents-skills-creator:agent:v1）を SAS で書き、最初の具体 consult-advisors（6つのアドバイザーを束ねる）を SAS で書いて配下の skills/ にリンクを置いた。agents コマンド（create ・ validate ・ write-agent-md ・ distribute ・ withdraw）は skills と同じ形で、文脈 skills には skills コマンドの結果（公開された言葉）でだけ従い、skills の crate には依存しない",
+ "usecases": [
+  "UC2",
+  "UC4",
+  "UC5",
+  "UC6"
+ ],
+ "factchecks": [
+  {
+   "item": "Claude Code の subagent の形",
+   "evidence": [
+    "code.claude.com/docs/en/sub-agents.md 298〜306行目：name ・ description が必須、skills は起動時に読み込む Skill、tools は省くとすべてを引き継ぐ",
+    "同 623行目「To prevent a subagent from invoking skills entirely, omit Skill from the tools list or add it to disallowedTools.」",
+    "同 162〜163行目：.claude/agents/ ・ ~/.claude/agents/"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Codex の custom agent の形",
+   "evidence": [
+    "developers.openai.com/codex/subagents.md：~/.codex/agents/ ・ .codex/agents/ に1ファイル1つの TOML。name ・ description ・ developer_instructions が必須",
+    "同：「Skills inherit from the parent, and a custom agent can disable individual skills with skills.config.」",
+    "同 553行目の例：[[skills.config]] に path と enabled = false。Skill をパスごとに外せるだけで、配下だけを許す形は無い"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Agent の Concrete を SAS が受け付ける",
+   "evidence": [
+    "実地：sas create … --concrete urn:semantic-agent-schema:published-language:abstract:v1 --semantic の手順（$id ・ title ・ description ・ x-view ・ x-prompt ・ properties ・ $defs と rule）に従って値を組み、sas create --value で書いた。sas validate の機械の判定で違反 0",
+    "実地：consult-advisors の agent.json を sas create --concrete urn:agents-skills-creator:agent:v1 --value で書き、違反 0"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "配布先の Agent の定義のファイルをリンクにしてよいか",
+   "evidence": [
+    "Skill のフォルダのリンクは原文で確かめてある（Claude Code skills.md 168行目 ・ Codex skills.md 149行目）が、.claude/agents/ と .codex/agents/ のファイルのリンクを読むことは原文に書かれていない",
+    "決めたこと：リンクにせず写しにした。置いたあとはファイルの中身が write-agent-md で作るものと同じかを見て、取り下げは中身が同じファイルだけを外す"
+   ],
+   "result": "open"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC2 Agent を作る：agents validate（agents/application/src/use_cases/validate.rs）",
+   "steps": [
+    "agent.json を読み、name とフォルダ名を比べる",
+    "skills の各名前について、配下の skills/<名前> のリンクの先を打った場所からの経路にし、skills validate <先> を打つ。結果の Skill 1つが、creator の検出も sas の検出も無ければ通る。outputs の名前は結果の承認の材料（structure_image.scope.outputs）から読む",
+    "skills/ にあって skills に無いものを violated にする",
+    "call のステップの calls が skills にあるか、passes がそのステップで呼んだ Skill の outputs にあるかを見る",
+    "AGENT.md と codex.toml が write-agent-md で作るものと同じかを見る",
+    "sas validate を打ち、承認の材料（完成の像 ・ 振る舞い ・ 構造の像：受け持つ範囲 ・ 呼ぶ Skill と受け渡し ・ 手順と分かれ道 ・ まとめ方、別の会話に任せる手順）を返す"
+   ],
+   "rules": [
+    "agents が読める Skill の項目は name ・ description ・ inputs ・ outputs だけで、skills validate の結果から読む（skill.json を直接読まない）",
+    "Agent は作業の中身を持たず、ステップは Skill を呼ぶか人が承認するかだけ。まとめ方は rules に書く"
+   ]
+  },
+  {
+   "usecase": "UC2 Agent を作る：agents write-agent-md",
+   "steps": [
+    "AGENT.md：frontmatter に name ・ description ・ skills（配下の Skill を読み込ませる）・ tools（Read ・ Grep ・ Glob ・ Bash。Skill を含めない）、本文に目的 ・ 役割 ・ 配下の Skill ・ 手順 ・ 分かれ道 ・ まとめ方と守ること ・ 最低保証 ・ 完了条件",
+    "codex.toml：name ・ description ・ developer_instructions（AGENT.md の本文と同じ）",
+    "どちらのファイルにも、どの Agent のフォルダから作ったかの印を入れる（AGENT.md は末尾の <!-- agents-skills-creator: <フォルダ> -->、codex.toml は先頭の # agents-skills-creator: <フォルダ>）"
+   ],
+   "rules": [
+    "同じ agent.json からは同じ中身。前と同じなら書かない"
+   ]
+  },
+  {
+   "usecase": "UC5 ・ UC6（Agent の側）：agents distribute ・ withdraw",
+   "steps": [
+    "Skill と同じ考え：配る前に validate と approval-current と destination-free（置き場所が空いているか、印がこの Agent のフォルダを指す写しか）",
+    "置き場所は Claude Code が .claude/agents/<name>.md、Codex が .codex/agents/<name>.toml。agent.json から write-agent-md と同じ形で作った定義（印入り）を写して置く。印がこの Agent を指す前の版があれば上書きする（replaced）。置いたファイルの中身が同じかを見る（placed-readable）",
+    "取り下げは人が打ったときだけ、印がこの Agent のフォルダを指すふつうのファイルを外す（中身が古い版でも外す）。印が無い ・ ほかを指す ・ リンク ・ フォルダは other として外さない"
+   ],
+   "rules": [
+    "承認は Skill と同じ approved（人の欄）",
+    "配布先の Agent の定義はリンクにせず写しにする。ツールがこれらの置き場所のリンクのファイルを読むことを、原文で確かめていない（確かめたのは Skill のフォルダのリンクだけ）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "AGENT.md と codex.toml の作り方",
+   "became": "service",
+   "why": "write-agent-md と validate の agent-md-built が同じ理由で変わる（agents-domain の agent_md）"
+  },
+  {
+   "what": "承認がいまの中身に当たるかの見分け ・ 置き場所の4か所",
+   "became": "script",
+   "why": "Skill の側と同じ考えだが、文脈が違うので写して持つ（文脈どうしでコードを共有しない）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "共通の形（purpose ・ role ・ examples など）を skill.schema から $ref で指すか",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "指せなかった。skill.schema は purpose などの形を properties に直接持ち、$defs に置いていない。ref-not-copy は「ほかの Concrete の $defs と同じ形を写さない」なので、properties の形を写すことはこの rule に当たらないが、写しが古くなるおそれは同じ。skill.schema の $defs にある形（example-ids ・ schema-ref ・ json-needs-schema）は urn:agents-skills-creator:skill:v1#/$defs/… で指した。purpose などを skill.schema の $defs に移して両方から指すには、sas update が要り、ステップ7 で根の properties を $schema だけにした形では sas create --semantic が手順を返さなかったので、properties から $defs を指す形で手順が返るかを先に確かめる"
+  },
+  {
+   "item": "ステップの種類",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "steps は call（呼ぶ Skill の並び＝同時、choose で選び方、passes で次へ渡す outputs の名前）か approve。consult-advisors の「選ぶ」は call の choose に、「一致 ・ 食い違いに分ける」「まとめ方」は rules に置いた（BR2：Agent は作業の中身を持たない）"
+  },
+  {
+   "item": "agents → skills は公開された言葉だけ",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "agents は skills コマンドを外の実行ファイルとして呼び、その結果（validate-result）だけを読む。architecture.json に agents の crate から skills の crate への向きを書かず、architecture-lint が止める"
+  },
+  {
+   "item": "アダプターの crate の名前",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "文脈が2つになり、同じ技術のアダプター（sas ・ filesystem ・ inbound-cli）を文脈ごとに置くので、<文脈>-<inbound|outbound>-<技術> にした。skills の側も skills-outbound-sas などに改めた"
+  },
+  {
+   "item": "UC6 の「リンクしている Agent を示す」",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "skills（上流）は agents（下流）を知らないので、skills withdraw の中では探さない。agents 側に、ある Skill にリンクしている Agent を返すコマンドを足す形が考えられる（agents の untested）"
+  },
+  {
+   "item": "場面を先に書く進め方",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "このステップでは、Concrete とコードを先に作り、場面をあとで書いた（場面はすべて通る）。外れを見つけられることは、S-UC2-VALIDATE-BROKEN と S-UC2-NOT-APPROVED で確かめている"
+  },
+  {
+   "item": "配布先の Agent の定義：リンクか写しか",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "はじめリンクで作ったが、.claude/agents/<name>.md と .codex/agents/<name>.toml がリンクのファイルを読むことは原文で確かめられていないので、写しにした。写しには、どの Agent のフォルダから作ったかの印を入れる（AGENT.md は frontmatter の外の末尾の HTML のコメント、codex.toml は先頭のコメント行）。distribute は印がこの Agent を指すなら上書きして配り直し（replaced）、withdraw は印がこの Agent を指すふつうのファイルを、中身が古くても外す。印が無いか、ほかを指すファイルは置かず ・ 外さない（最低保証）。中身の一致で見る形では、直してから取り下げると前の版の写しが外れなかった。印の中身は置く範囲で変える：repository はリポジトリの根からのフォルダ（agents/<name>。リポジトリを複製しても使える）、user は Agent のフォルダの正規化した絶対の経路（HOME の下は、どのリポジトリから置いたかを見分ける）。write-agent-md が Agent のフォルダに書くものは repository の印で、user の範囲に置く写しは distribute が絶対の経路の印で作る"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "配下",
+   "seen": "skills ・ skills/",
+   "drift": "agent.json の skills（名前の並び）と、Agent のフォルダの skills/（リンク）の2つを指す。validate はこの2つが一致することを確かめる"
+  },
+  {
+   "term": "渡すもの",
+   "seen": "steps の passes",
+   "drift": "そのステップで呼んだ Skill の outputs の名前で、次のステップへ渡すもの。Agent が作るものではない"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "文脈",
+    "before": "skills だけ",
+    "after": "agents を足した（agents/domain ・ application ・ adapters/inbound/cli ・ adapters/outbound/{sas,filesystem,skills}、published-language/v1、system-tests）",
+    "why": "UC2 Agent を作る"
+   },
+   {
+    "what": "crate の名前",
+    "before": "inbound-cli ・ outbound-sas ・ outbound-filesystem ・ outbound-jsonschema",
+    "after": "skills-inbound-cli ・ skills-outbound-sas ・ skills-outbound-filesystem ・ skills-outbound-jsonschema と、agents-* の6つ",
+    "why": "アダプターの名前に文脈を付ける"
+   },
+   {
+    "what": "試験の形の置き場所",
+    "before": "skills/system-tests/ に scenario ・ trace ・ untested の schema",
+    "after": "製品の根の system-tests/ に移し、文脈で同じ形を使う。test-support の trace.rs と files.rs は2つの文脈を見る",
+    "why": "文脈が2つになった"
+   },
+   {
+    "what": "architecture.json",
+    "before": "skills の crate だけ",
+    "after": "agents の crate と向きを足した。agents から skills への向きは無い",
+    "why": "agents → skills は公開された言葉だけ"
+   },
+   {
+    "what": "Concrete",
+    "before": "skill.schema",
+    "after": "agent.schema（urn:agents-skills-creator:agent:v1）を agents/published-language/v1/ に SAS で書いた",
+    "why": "UC2"
+   },
+   {
+    "what": "Agent の配布の置き方",
+    "before": "Agent のフォルダの定義のファイルへのシンボリックリンク",
+    "after": "定義の写し。ポート Destinations は home ・ occupied ・ place ・ remove（リンクの操作を外した）",
+    "why": "ツールが置き場所のリンクのファイルを読むことを、原文で確かめていない"
+   },
+   {
+    "what": "試験の設計のファイル",
+    "before": "files.rs の対象から docs/design/structure.json が抜けていた（このステップで書き直したときに落とした）",
+    "after": "docs/design/structure.json を structure.schema.json に照らす行を戻した",
+    "why": "文脈の地図と crate の名前の付け方を書き直したので、形に従うことを確かめる"
+   },
+   {
+    "what": "Agent の定義のファイルの印",
+    "before": "印が無く、配布先の写しは中身の一致でだけ見分けた",
+    "after": "AGENT.md の末尾と codex.toml の先頭に、どの Agent のフォルダから作ったかの印。Destinations に is_file を足した",
+    "why": "直してから取り下げても、前の版の写しを見分けて外すため"
+   },
+   {
+    "what": "印の中身",
+    "before": "どの範囲でもリポジトリの根からのフォルダ",
+    "after": "repository はリポジトリの根からのフォルダ、user は Agent のフォルダの絶対の経路。Destinations に absolute を足した",
+    "why": "HOME の下では、別のリポジトリの同じ名前の Agent の写しを、この Agent のものとみなさないため"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "Codex で配下の Skill に絞ること",
+    "why": "Codex は Skill を親から引き継ぐ。skills.config の形をまだ原文で確かめていない（untested）"
+   },
+   {
+    "what": "足りない Skill を UC1 で作る流れ",
+    "why": "作る流れの rules に書いただけ（untested）"
+   },
+   {
+    "what": "プラグインで配る",
+    "why": "Skill と同じく後のステップ（untested）"
+   },
+   {
+    "what": "purpose ・ role ・ examples などを skill.schema から $ref で指すこと（持ち越し）",
+    "why": "skill.schema の形を $defs に移しても sas create --semantic が手順を返すかを確かめてから決める"
+   },
+   {
+    "what": "Agent ごとの tools（持ち越し）",
+    "why": "いまは Read ・ Grep ・ Glob ・ Bash の決め打ち。Agent ごとに変えるのは、要る具体が出てから"
+   },
+   {
+    "what": "Agent の推測の一覧（持ち越し）",
+    "why": "Skill の derivation に当たる表が Agent にまだ無い"
+   },
+   {
+    "what": "重なりの整理（持ち越し）",
+    "why": "AI のセッションを見分ける表が SAS ・ skills ・ agents の3か所にあり、承認がいまの中身に当たるかの見分けを skills と agents に写して持つ"
+   },
+   {
+    "what": "agents の試験の skills の実行ファイル（持ち越し）",
+    "why": "同じ workspace で作った skills を PATH に足して動かすので、agents の crate だけの試験では skills がまだ作られていないことがある"
+   }
+  ]
+ }
+}

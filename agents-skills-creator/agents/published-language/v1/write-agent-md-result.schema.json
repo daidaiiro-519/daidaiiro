@@ -1,0 +1,113 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:agents:write-agent-md-result:v1",
+ "title": "書いた結果",
+ "description": "agents write-agent-md が標準出力に返す JSON（1つ）。agent.json から書いた AGENT.md（Claude Code の subagent）と codex.toml（Codex の custom agent）。どちらのファイルにも、どの Agent のフォルダから作ったかの印を入れる（AGENT.md は末尾の HTML のコメント、codex.toml は先頭のコメント行）",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:agents:write-agent-md-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "write-agent-md は結果、error は始められなかった",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "write-agent-md",
+    "error"
+   ]
+  },
+  "folder": {
+   "title": "フォルダ",
+   "description": "渡した Agent のフォルダ",
+   "x-prompt": {
+    "meaning": "どの Agent かを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "files": {
+   "title": "書いたファイル",
+   "description": "経路と、前と中身が違ったか",
+   "x-prompt": {
+    "meaning": "変わったファイルを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "path",
+     "changed"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "changed": {
+      "type": "boolean"
+     }
+    }
+   }
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、そのほかは始められなかった理由",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "not_found",
+    "invalid_input"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "write-agent-md"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "files"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ]
+}

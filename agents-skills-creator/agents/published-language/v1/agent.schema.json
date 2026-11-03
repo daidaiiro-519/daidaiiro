@@ -1,0 +1,1312 @@
+{
+ "$schema": "urn:semantic-agent-schema:published-language:abstract:v1",
+ "$id": "urn:agents-skills-creator:agent:v1",
+ "title": "Agent",
+ "description": "目的と役割をもとにした、1つの Agent の項目である。配下の Skill を束ね、どの順に呼び、結果をどうまとめ、どこで人が承認するかを持つ。Skill の項目（skill.json）と、配るときに作る AGENT.md は書かない（それぞれが持つ）。",
+ "x-prompt": {
+  "meaning": "Agent は作業の中身を持たず、配下の skills/ にリンクした Skill だけを呼ぶ。読める Skill の項目は name ・ description ・ inputs ・ outputs だけである。",
+  "when": "Agent を作るときと、配る前に確かめるときに読む。",
+  "rules": []
+ },
+ "type": "object",
+ "required": [
+  "$schema",
+  "name",
+  "purpose",
+  "role",
+  "description",
+  "inputs",
+  "outputs",
+  "skills",
+  "steps",
+  "edge_cases",
+  "rules",
+  "minimal_guarantees",
+  "completion_criteria",
+  "examples"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:agent:v1"
+  },
+  "name": {
+   "title": "名前",
+   "description": "Agent を区別する、フォルダ名と同じ名前である。",
+   "x-prompt": {
+    "meaning": "Agent のフォルダ名と同じ文字列である（形では確かめられない）。",
+    "when": "配るときに、フォルダ名を決めるときに読む。",
+    "rules": []
+   },
+   "type": "string",
+   "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+   "maxLength": 64
+  },
+  "purpose": {
+   "title": "目的",
+   "description": "誰が、どんな場面で、何を得るために使うかの目的である。",
+   "x-prompt": {
+    "meaning": "作る人の言葉から AI が目的の仮説として書き、作る人が承認して決める。ほかの項目はここと role から導く。",
+    "when": "ほかの項目を導くときと、承認のときに読む。",
+    "rules": [
+     {
+      "id": "purpose-standalone",
+      "rule": "目的の who に、Agent を介さず直接使う人が入っている。",
+      "why": "Agent からしか得られない目的にすると、Skill が単独で成り立たず、Agent に依存する。",
+      "check": "who に人が入っているかを見る。",
+      "related_fields": [
+       "/purpose/who"
+      ],
+      "bad": [
+       {
+        "value": {
+         "who": "use-case-driven-development の Agent",
+         "when": "モデリングの工程",
+         "gets": "宣言のファイル"
+        },
+        "note": "呼ぶ Agent しか who に無く、人が直接使えない。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "who": "外の情報源の内容を、文書 ・ 設計 ・ 実装へ取り込む人か AI",
+         "when": "項目名などの識別子を書き写すとき",
+         "gets": "書く識別子のどれが原文にあり、どれが無いかが分かった状態"
+        }
+       }
+      ]
+     },
+     {
+      "id": "gets-is-state",
+      "rule": "gets は、使い終えたときに手元にある状態である。",
+      "why": "手順や操作を書くと、得られたかを完了条件で確かめられない。",
+      "check": "gets が「〜が分かった状態」「〜がある」の形で、動作を書いていないかを見る。",
+      "related_fields": [
+       "/purpose/gets"
+      ],
+      "bad": [
+       {
+        "value": "原文と照合する",
+        "note": "手順で、使い終えたときの状態ではない。"
+       }
+      ],
+      "good": [
+       {
+        "value": "書く識別子のどれが原文にあり、どれが無いかが分かった状態"
+       }
+      ]
+     }
+    ]
+   },
+   "type": "object",
+   "required": [
+    "who",
+    "when",
+    "gets"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "who": {
+     "title": "使う人",
+     "description": "この Skill を使う人である。",
+     "x-prompt": {
+      "rules": []
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "when": {
+     "title": "場面",
+     "description": "使う場面である。",
+     "x-prompt": {
+      "meaning": "description の「いつ使うか」のもとになる。",
+      "rules": []
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "gets": {
+     "title": "得るもの",
+     "description": "使い終えたときに手元にある状態である。",
+     "x-prompt": {
+      "meaning": "outputs と completion_criteria のもとになる。",
+      "rules": []
+     },
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  },
+  "role": {
+   "title": "役割",
+   "description": "この Skill が受け持つことと受け持たないことの役割である。",
+   "x-prompt": {
+    "meaning": "受け持たないことは、取り違えやすい隣の仕事である。AI が仮説として示し、作る人が承認して決める。ほかの項目のもとになる。",
+    "when": "steps ・ rules ・ inputs ・ minimal_guarantees を導くときと、description を作るときに読む。",
+    "rules": [
+     {
+      "id": "does-not-is-neighbor",
+      "rule": "does_not の各件は、この Skill と取り違えやすい隣の仕事である。",
+      "why": "関係の無い仕事を並べても、AI が取り違えを避ける手がかりにならない。",
+      "check": "各件が、does と同じ対象を扱う別の仕事かを見る。",
+      "related_fields": [
+       "/role/does",
+       "/role/does_not"
+      ],
+      "bad": [
+       {
+        "value": {
+         "does": [
+          "原文を取る"
+         ],
+         "does_not": [
+          {
+           "what": "料理のレシピを書く",
+           "from": "作る人の答え"
+          }
+         ]
+        },
+        "note": "同じ対象を扱わない、取り違えようの無い仕事である。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "does": [
+          "原文を取る"
+         ],
+         "does_not": [
+          {
+           "what": "真偽を判定する",
+           "from": "作る人の答え"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "object",
+   "required": [
+    "does",
+    "does_not"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "does": {
+     "title": "受け持つこと",
+     "description": "この Skill がすることの並びである。",
+     "x-prompt": {
+      "rules": []
+     },
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "minItems": 1
+    },
+    "does_not": {
+     "title": "受け持たないこと",
+     "description": "取り違えやすいが、この Skill はしないことの並びである。",
+     "x-prompt": {
+      "rules": []
+     },
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "what",
+       "from"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "what": {
+        "title": "しないこと",
+        "description": "受け持たない仕事である。",
+        "x-prompt": {
+         "rules": []
+        },
+        "type": "string",
+        "minLength": 1
+       },
+       "from": {
+        "title": "出どころ",
+        "description": "作る人のどの答えから取ったかの出どころである。",
+        "x-prompt": {
+         "rules": []
+        },
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    }
+   }
+  },
+  "description": {
+   "title": "説明",
+   "description": "何をするかと、いつ使うかの説明である。",
+   "x-prompt": {
+    "meaning": "role の受け持つことと、purpose の場面から作る。取り違えやすいなら、受け持たないことも入れる。 AI ツールが Agent に任せるかを決めるときに読む。",
+    "when": "AI ツールが、依頼を Agent に任せるかを決めるときに読む。",
+    "rules": [
+     {
+      "id": "description-from-purpose-role",
+      "rule": "description は、role の受け持つことと purpose の場面を含む。",
+      "why": "場面が無いと、AI が依頼の言葉から選べない。",
+      "check": "purpose.when の場面と、role.does の中身が description にあるかを見る。",
+      "related_fields": [
+       "/purpose/when",
+       "/role/does"
+      ],
+      "bad": [
+       {
+        "value": "文書を扱う",
+        "note": "場面も、受け持つことも無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": "外の情報源の内容を文書へ取り込み、識別子を書き写すときに使う。原文を取って残し、識別子を原文の文字列で照合する。真偽は判定しない。"
+       }
+      ]
+     }
+    ]
+   },
+   "type": "string",
+   "minLength": 1,
+   "maxLength": 1024
+  },
+  "preconditions": {
+   "title": "事前条件",
+   "description": "使い始める時点で、呼ぶ側が保証することの並びである。",
+   "x-prompt": {
+    "when": "呼ぶ前と、steps を書くときに読む。",
+    "rules": [
+     {
+      "id": "precondition-by-hand",
+      "rule": "事前条件は、人が手で満たせることである。",
+      "why": "Agent の配下の別の Skill の出力でしか満たせないと、Skill が単独で成り立たない。",
+      "check": "各件が、人が手で用意できることかを見る。",
+      "bad": [
+       {
+        "value": "use-case-driven-modeling の宣言のファイルが出力されている",
+        "note": "隣の Skill の出力でしか満たせない。"
+       }
+      ],
+      "good": [
+       {
+        "value": "書こうとしている識別子が決まっている"
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "string",
+    "minLength": 1
+   }
+  },
+  "inputs": {
+   "title": "受け取るもの",
+   "description": "Agent が受け取るものの並びである。",
+   "x-prompt": {
+    "meaning": "受け取るものが無いときの扱いは、edge_cases に書く。",
+    "rules": [
+     {
+      "id": "input-form",
+      "rule": "各件に、人が手で作れる形がある。",
+      "why": "形が無いと、渡す側がどう作ればよいか分からない。",
+      "check": "form があり、人が手で作れる形かを見る。",
+      "bad": [
+       {
+        "value": {
+         "name": "対象"
+        },
+        "note": "形が無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "name": "識別子の一覧",
+         "form": "1行1個のテキスト"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "name",
+     "form"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "title": "名前",
+      "description": "受け取るものの名前である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "form": {
+      "title": "形",
+      "description": "受け取るものの形である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   }
+  },
+  "outputs": {
+   "title": "返すもの ・ 作るもの",
+   "description": "Agent が返すもの、作るものの並びである。",
+   "x-prompt": {
+    "meaning": "purpose の gets の形と置き場所である。",
+    "rules": [
+     {
+      "id": "output-where",
+      "rule": "作るものには、置き場所がある。",
+      "why": "置き場所が無いと、最低保証（書く所以外は変えない）が決まらない。",
+      "check": "返すだけでないものに where があるかを見る。",
+      "bad": [
+       {
+        "value": {
+         "name": "原文"
+        },
+        "note": "作るものなのに、置き場所が無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "name": "原文",
+         "where": "sources/"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "title": "名前",
+      "description": "返すものか作るものの名前である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "form": {
+      "title": "形",
+      "description": "返すものか作るものの形である。",
+      "x-prompt": {
+       "meaning": "JSON のものは JSON で始める（schema が要る）。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "where": {
+      "title": "置き場所",
+      "description": "返すものか作るものの置き場所である。",
+      "x-prompt": {
+       "meaning": "使う人の作業フォルダからの相対の場所として読む。Skill のフォルダの中ではない。返すだけのものは「標準出力」と書く。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "schema": {
+      "$ref": "urn:agents-skills-creator:skill:v1#/$defs/schema-ref",
+      "title": "従う schema",
+      "description": "JSON の資料か出力が従う schema の名前か置き場所である。",
+      "x-prompt": {
+       "rules": []
+      }
+     }
+    },
+    "allOf": [
+     {
+      "$ref": "urn:agents-skills-creator:skill:v1#/$defs/json-needs-schema"
+     }
+    ]
+   }
+  },
+  "skills": {
+   "title": "配下の Skill",
+   "description": "Agent が呼ぶ Skill の名前の並びである。Agent のフォルダの skills/ に、同じ名前で Skill へのリンクを置く。",
+   "x-prompt": {
+    "meaning": "Agent が呼べるのはここに並べた Skill だけである。名前は Skill の name と同じ文字列である。",
+    "when": "Agent が呼ぶ Skill を決めるときと、配下の skills/ のリンクを確かめるときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "minItems": 1,
+   "uniqueItems": true,
+   "items": {
+    "type": "string",
+    "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+    "maxLength": 64
+   }
+  },
+  "steps": {
+   "title": "手順",
+   "description": "配下の Skill を呼ぶステップと、人が承認するステップの並びである。",
+   "x-prompt": {
+    "meaning": "どの順に、どの Skill を呼び、どこで人が承認するかを並べる。結果のまとめ方は rules に書く。",
+    "when": "Agent として動く AI が、次に何をするかを決めるときに読む。",
+    "rules": [
+     {
+      "id": "step-calls-or-approves",
+      "rule": "各ステップは、配下の Skill を呼ぶか、人が承認するかのどちらかである。",
+      "why": "Agent が作業の中身を持つと、Skill を単独で使ったときと結果が変わり、どこを直せばよいかが分からなくなる。",
+      "check": "kind が call のステップに、Skill に任せず Agent が自分で作業する do が無いかを見る。",
+      "bad": [
+       {
+        "value": {
+         "id": 1,
+         "kind": "call",
+         "do": "見解を書く",
+         "calls": [
+          "ddd-advisor"
+         ],
+         "completion": "見解がある"
+        },
+        "note": "見解を書くのは Skill の仕事で、Agent の do にしている。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "id": 1,
+         "kind": "call",
+         "do": "当たるアドバイザーに同時に聞く",
+         "calls": [
+          "ddd-advisor",
+          "usecase-advisor"
+         ],
+         "passes": [
+          "見解と根拠"
+         ],
+         "completion": "呼んだアドバイザーの見解と根拠がそろっている"
+        }
+       }
+      ]
+     },
+     {
+      "id": "step-completion-visible",
+      "rule": "各ステップの completion は、外から確かめられる状態である。",
+      "why": "外から確かめられないと、次のステップを始めてよいかが決まらない。",
+      "check": "completion が、出力 ・ 件数など見て分かる状態かを見る。",
+      "bad": [
+       {
+        "value": {
+         "id": 2,
+         "kind": "approve",
+         "do": "人が承認する",
+         "completion": "終わった"
+        },
+        "note": "何を見れば終わったと分かるかが無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "id": 2,
+         "kind": "approve",
+         "do": "まとめを人が承認する",
+         "completion": "作る人の承認か、直す所の一言がある"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 9,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "do",
+     "completion"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "title": "番号",
+      "description": "ステップの番号である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "integer",
+      "minimum": 1
+     },
+     "kind": {
+      "title": "種類",
+      "description": "ステップの種類である。call は Skill を呼ぶ、approve は人が承認する。",
+      "x-prompt": {
+       "meaning": "Agent は作業の中身を持たないので、ステップは Skill を呼ぶか、人が承認するかのどちらかである。",
+       "rules": []
+      },
+      "enum": [
+       "call",
+       "approve"
+      ]
+     },
+     "do": {
+      "title": "すること",
+      "description": "このステップの目的である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "calls": {
+      "title": "呼ぶ Skill",
+      "description": "このステップで同時に呼ぶ Skill の名前の並びである。",
+      "x-prompt": {
+       "meaning": "並びの Skill は同時に呼ぶ。順に呼ぶなら、ステップを分ける。名前は skills にあるものだけである。",
+       "rules": []
+      },
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+       "type": "string",
+       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      }
+     },
+     "choose": {
+      "title": "選び方",
+      "description": "calls のうち、どれを呼ぶかの決め方である。",
+      "x-prompt": {
+       "meaning": "無ければ calls をすべて呼ぶ。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "passes": {
+      "title": "渡すもの",
+      "description": "このステップで呼んだ Skill の outputs のうち、次のステップへ渡すものの名前の並びである。",
+      "x-prompt": {
+       "meaning": "名前は、呼んだ Skill の outputs の name と同じ文字列である。",
+       "rules": []
+      },
+      "type": "array",
+      "items": {
+       "type": "string",
+       "minLength": 1
+      }
+     },
+     "completion": {
+      "title": "完了条件",
+      "description": "このステップを終えたと分かる状態である。",
+      "x-prompt": {
+       "meaning": "次のステップを始める条件になる。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "allOf": [
+     {
+      "if": {
+       "properties": {
+        "kind": {
+         "const": "call"
+        }
+       },
+       "required": [
+        "kind"
+       ]
+      },
+      "then": {
+       "required": [
+        "calls"
+       ]
+      },
+      "else": {
+       "not": {
+        "anyOf": [
+         {
+          "required": [
+           "calls"
+          ]
+         },
+         {
+          "required": [
+           "choose"
+          ]
+         },
+         {
+          "required": [
+           "passes"
+          ]
+         }
+        ]
+       }
+      }
+     }
+    ]
+   }
+  },
+  "edge_cases": {
+   "title": "例外の場合",
+   "description": "ステップから外れる場合と、そのときにすることの並びである。",
+   "x-prompt": {
+    "meaning": "end は、戻るステップの番号か「止める」として読む。",
+    "rules": [
+     {
+      "id": "edge-case-step",
+      "rule": "id の数字の部分は、steps にあるステップの番号である。",
+      "why": "ステップに結ばない例外は、どこで起き、どこへ戻るかが分からない。",
+      "check": "id の数字が steps の id にあるかを見る。",
+      "related_fields": [
+       "/steps"
+      ],
+      "bad": [
+       {
+        "value": {
+         "id": "9a",
+         "when": "…",
+         "then": "…",
+         "end": "…",
+         "examples": [
+          "E1"
+         ]
+        },
+        "note": "steps に9番が無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "id": "2a",
+         "when": "読めなかった範囲がある",
+         "then": "読めるようにする",
+         "end": "ステップ2へ戻る",
+         "examples": [
+          "E2"
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "id": "edge-case-from-example",
+      "rule": "examples に挙げた id は、examples にある。",
+      "why": "もとにした具体が無い例外は、どの具体が変わったときに直すかが分からない。",
+      "check": "examples の各 id が、examples の id にあるかを見る。",
+      "related_fields": [
+       "/examples"
+      ],
+      "bad": [
+       {
+        "value": {
+         "id": "2a",
+         "when": "…",
+         "then": "…",
+         "end": "…",
+         "examples": [
+          "E9"
+         ]
+        },
+        "note": "E9 が examples に無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "id": "2a",
+         "when": "…",
+         "then": "…",
+         "end": "…",
+         "examples": [
+          "E2"
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "when",
+     "then",
+     "end",
+     "examples"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "title": "番号",
+      "description": "ステップの番号と英小文字の番号である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "pattern": "^[0-9]+[a-z]$"
+     },
+     "when": {
+      "title": "場合",
+      "description": "AI が見分けられる条件である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "then": {
+      "title": "すること",
+      "description": "その場合にすることである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "end": {
+      "title": "終わり方",
+      "description": "どのステップへ戻るか、止めるかの終わり方である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "examples": {
+      "$ref": "urn:agents-skills-creator:skill:v1#/$defs/example-ids",
+      "title": "もとにした例",
+      "description": "この例外を取り出した examples の id の並びである。",
+      "x-prompt": {
+       "rules": []
+      }
+     }
+    }
+   }
+  },
+  "rules": {
+   "title": "守ること",
+   "description": "受け持つことの決まりの並びである。",
+   "x-prompt": {
+    "meaning": "受け持たないことは role に書き、ここには書かない。",
+    "rules": [
+     {
+      "id": "rule-from-example",
+      "rule": "examples に挙げた id は、examples にある。",
+      "why": "もとにした具体が無い決まりは、具体が変わったときに直す所が分からない。",
+      "check": "examples の各 id が、examples の id にあるかを見る。",
+      "related_fields": [
+       "/examples"
+      ],
+      "bad": [
+       {
+        "value": {
+         "rule": "…",
+         "why": "…",
+         "bad": "…",
+         "examples": [
+          "E9"
+         ]
+        },
+        "note": "E9 が examples に無い。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "rule": "…",
+         "why": "…",
+         "bad": "…",
+         "examples": [
+          "E1"
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "id": "rule-not-does-not",
+      "rule": "rules の各件は、role.does_not と同じことを言っていない。",
+      "why": "同じことを2か所に書くと、片方だけ直されて食い違う。",
+      "check": "各 rule が、does_not のどれかの言い換えでないかを見る。",
+      "related_fields": [
+       "/role/does_not"
+      ],
+      "bad": [
+       {
+        "value": {
+         "rule": "真偽を判定しない",
+         "why": "…",
+         "bad": "…",
+         "examples": [
+          "E1"
+         ]
+        },
+        "note": "role.does_not の「真偽を判定する」と同じ。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "rule": "照合する識別子を言い換えない",
+         "why": "…",
+         "bad": "…",
+         "examples": [
+          "E1"
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "id": "rule-abstract",
+      "rule": "rule の文に、examples にしか出ない識別子が入っていない。",
+      "why": "具体の名前が入った決まりは、その具体にしか当たらない。",
+      "check": "rule の文の識別子が、examples の中にだけあるものでないかを見る。",
+      "related_fields": [
+       "/examples"
+      ],
+      "bad": [
+       {
+        "value": {
+         "rule": "compact_summary を言い換えない",
+         "why": "…",
+         "bad": "…",
+         "examples": [
+          "E1"
+         ]
+        },
+        "note": "examples の具体の名前が入っている。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "rule": "照合する識別子を言い換えない",
+         "why": "…",
+         "bad": "…",
+         "examples": [
+          "E1"
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "rule",
+     "why",
+     "bad",
+     "examples"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "rule": {
+      "title": "決まり",
+      "description": "守ることの1文である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "why": {
+      "title": "守らないと起きること",
+      "description": "守らないと何が起きるかである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "bad": {
+      "title": "悪い例",
+      "description": "この決まりに反する具体である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "examples": {
+      "$ref": "urn:agents-skills-creator:skill:v1#/$defs/example-ids",
+      "title": "もとにした例",
+      "description": "この決まりを取り出した examples の id の並びである。",
+      "x-prompt": {
+       "rules": []
+      }
+     }
+    }
+   }
+  },
+  "minimal_guarantees": {
+   "title": "最低保証",
+   "description": "どこで止まっても成り立つことの並びである。",
+   "x-prompt": {
+    "rules": [
+     {
+      "id": "guarantee-outside-outputs",
+      "rule": "最低保証は、outputs の置き場所の外が変わらないことを含む。",
+      "why": "書く所の外まで変わると、止まったときに何が壊れたかが分からない。",
+      "check": "outputs の where の外について書いた件があるかを見る。",
+      "related_fields": [
+       "/outputs"
+      ],
+      "bad": [
+       {
+        "value": "がんばる",
+        "note": "状態でなく、置き場所とも結ばない。"
+       }
+      ],
+      "good": [
+       {
+        "value": "どこで止まっても、sources/ の外は変わらない"
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "string",
+    "minLength": 1
+   },
+   "minItems": 1
+  },
+  "completion_criteria": {
+   "title": "完了条件",
+   "description": "仕事を終えたか（目的の状態に届いたか）の条件の並びである。",
+   "x-prompt": {
+    "meaning": "調べた結果や作ったものの中身の良し悪しではなく、仕事を終えたかを書く。purpose の gets が根拠になる。",
+    "rules": [
+     {
+      "id": "criterion-not-content",
+      "rule": "完了条件は、仕事を終えたかの条件で、結果の中身の良し悪しではない。",
+      "why": "結果の中身を条件にすると、AI が結果を書き換えて条件を満たそうとする。",
+      "check": "criterion が、結果の値（0件など）を求めていないかを見る。",
+      "bad": [
+       {
+        "value": {
+         "id": "C1",
+         "criterion": "原文に無い識別子が0件",
+         "check": "…",
+         "from": "目的の仮説（得るもの）から"
+        },
+        "note": "結果の中身を求めていて、識別子が本当に原文に無いと終われない。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "id": "C1",
+         "criterion": "一覧のどの識別子にも、原文にある ・ 無いが付いている",
+         "check": "照合の結果の件数と、一覧の行数が同じ",
+         "from": "目的の仮説（得るもの）から"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "criterion",
+     "check",
+     "from"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "title": "番号",
+      "description": "完了条件の番号である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "pattern": "^C[0-9]+$"
+     },
+     "criterion": {
+      "title": "条件",
+      "description": "1つの条件である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "check": {
+      "title": "確かめ方",
+      "description": "何を見て確かめるかである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "from": {
+      "title": "出どころ",
+      "description": "作る人のどの答えから取ったかの出どころである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   }
+  },
+  "examples": {
+   "title": "例",
+   "description": "完成イメージ（期待する結果）と振る舞いを持つ、具体の並びである。",
+   "x-prompt": {
+    "meaning": "抽象の項目（edge_cases ・ rules）は、ここの id を指す。置くのは、入力と期待する結果があり、一度動かした例だけである。",
+    "when": "作るときに例を動かして確かめるときと、承認のときに完成イメージと振る舞いを見せるときに読む。直すときは、外れた具体をまずここに足す。",
+    "rules": [
+     {
+      "id": "example-by-hand",
+      "rule": "given は、人が手で作れる状態である。",
+      "why": "隣の Skill の出力を前提にすると、単独で成り立つかを確かめられない。",
+      "check": "given が人の手で用意できる状態かを見る。",
+      "bad": [
+       {
+        "value": {
+         "id": "E1",
+         "from": "…",
+         "covers": [
+          "C1"
+         ],
+         "caller": "人が直接",
+         "given": "use-case-driven-modeling の出力がある",
+         "input": "…",
+         "expected": "…",
+         "behavior": {
+          "who": "…",
+          "does": "…",
+          "then": "…"
+         }
+        },
+        "note": "隣の Skill の出力を前提にしている。"
+       }
+      ],
+      "good": [
+       {
+        "value": {
+         "id": "E1",
+         "from": "作るときの場面",
+         "covers": [
+          "C1"
+         ],
+         "caller": "人が直接",
+         "given": "hooks の頁の URL と、識別子2つの一覧ファイルがある",
+         "input": "この URL で照合して",
+         "expected": "2件ともに ある ・ 無い が付く",
+         "behavior": {
+          "who": "設計書を書く人",
+          "does": "項目名2つを照合する",
+          "then": "どちらを原典の名前として書けるかが分かる"
+         }
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "from",
+     "covers",
+     "caller",
+     "given",
+     "input",
+     "expected",
+     "behavior"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "title": "番号",
+      "description": "例の番号である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "pattern": "^E[0-9]+$"
+     },
+     "from": {
+      "title": "出どころ",
+      "description": "作るときの場面か、直すときに受け取った外れかの出どころである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "covers": {
+      "title": "確かめる条件",
+      "description": "この例で確かめる完了条件か例外の番号の並びである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "array",
+      "items": {
+       "type": "string",
+       "pattern": "^(C[0-9]+|[0-9]+[a-z])$"
+      },
+      "minItems": 1
+     },
+     "caller": {
+      "title": "呼ぶ者",
+      "description": "人が直接か、Agent からかの呼ぶ者である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "enum": [
+       "人が直接",
+       "Agent"
+      ]
+     },
+     "given": {
+      "title": "前提",
+      "description": "例を動かす前の状態である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "input": {
+      "title": "入力",
+      "description": "依頼の言葉と渡すものの入力である。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "expected": {
+      "title": "期待する結果",
+      "description": "できあがるもの（完成イメージ）である。",
+      "x-prompt": {
+       "meaning": "置き場所 ・ 形 ・ 件数で書く。",
+       "rules": []
+      },
+      "type": "string",
+      "minLength": 1
+     },
+     "behavior": {
+      "title": "振る舞い",
+      "description": "誰が、何をすると、何が起きるかの振る舞いである。",
+      "x-prompt": {
+       "rules": []
+      },
+      "type": "object",
+      "required": [
+       "who",
+       "does",
+       "then"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "who": {
+        "title": "動かす人",
+        "description": "例を動かす人である。",
+        "x-prompt": {
+         "rules": []
+        },
+        "type": "string",
+        "minLength": 1
+       },
+       "does": {
+        "title": "すること",
+        "description": "動かす人がすることである。",
+        "x-prompt": {
+         "rules": []
+        },
+        "type": "string",
+        "minLength": 1
+       },
+       "then": {
+        "title": "起きること",
+        "description": "その結果、使う人に起きることである。",
+        "x-prompt": {
+         "rules": []
+        },
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    }
+   },
+   "contains": {
+    "type": "object",
+    "properties": {
+     "caller": {
+      "const": "人が直接"
+     }
+    },
+    "required": [
+     "caller"
+    ]
+   }
+  },
+  "approved": {
+   "title": "承認した確かめの ID",
+   "description": "作る人が承認した確かめ（sas validate の操作）の ID である。",
+   "x-prompt": {
+    "meaning": "人が決める欄で、無ければ承認していない。この ID の確かめのあと、承認を書いた操作のほかに Skill を書き換えていなければ、承認はいまの中身に当たる。",
+    "when": "配布する前に、承認がいまの中身に当たるかを決めるときに読む。",
+    "rules": []
+   },
+   "x-decided-by": "human",
+   "type": "string",
+   "pattern": "^o-[0-9]+$"
+  }
+ }
+}

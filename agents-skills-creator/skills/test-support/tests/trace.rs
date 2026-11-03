@@ -13,12 +13,15 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
-fn suite() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../system-tests")
+/// 文脈のフォルダ。文脈ごとに system-tests/ を持つ。
+const CONTEXTS: [&str; 2] = ["skills", "agents"];
+
+fn suite(context: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../{context}/system-tests"))
 }
 
-fn load(name: &str) -> Value {
-    let text = std::fs::read_to_string(suite().join(name)).expect("読めること");
+fn load(context: &str, name: &str) -> Value {
+    let text = std::fs::read_to_string(suite(context).join(name)).expect("読めること");
     serde_json::from_str(&text).expect("JSON であること")
 }
 
@@ -30,10 +33,9 @@ fn strings(v: &Value) -> Vec<String> {
         .collect()
 }
 
-#[test]
-fn every_id_in_scope_is_traced_or_explained() {
-    let trace = load("trace.json");
-    let untested = load("untested.json");
+fn every_id_in_scope_is_traced_or_explained_in(context: &str) {
+    let trace = load(context, "trace.json");
+    let untested = load(context, "untested.json");
     let traced: BTreeSet<String> = trace["traces"]
         .as_array()
         .expect("traces が配列であること")
@@ -53,15 +55,21 @@ fn every_id_in_scope_is_traced_or_explained() {
     for id in strings(&trace["scope"]) {
         assert!(
             traced.contains(&id) || explained.contains(&id),
-            "{id} が試験にも untested にも無い"
+            "{context}：{id} が試験にも untested にも無い"
         );
     }
 }
 
 #[test]
-fn trace_matches_scenarios() {
+fn every_id_in_scope_is_traced_or_explained() {
+    for context in CONTEXTS {
+        every_id_in_scope_is_traced_or_explained_in(context);
+    }
+}
+
+fn trace_matches_scenarios_in(context: &str) {
     let mut from_scenarios: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    let mut paths: Vec<PathBuf> = std::fs::read_dir(suite().join("scenarios"))
+    let mut paths: Vec<PathBuf> = std::fs::read_dir(suite(context).join("scenarios"))
         .expect("場面の置き場所を読めること")
         .map(|e| e.expect("項目を読めること").path())
         .collect();
@@ -76,7 +84,7 @@ fn trace_matches_scenarios() {
                 .push(s["id"].as_str().expect("id がある").to_string());
         }
     }
-    let from_trace: BTreeMap<String, Vec<String>> = load("trace.json")["traces"]
+    let from_trace: BTreeMap<String, Vec<String>> = load(context, "trace.json")["traces"]
         .as_array()
         .expect("traces が配列であること")
         .iter()
@@ -90,9 +98,16 @@ fn trace_matches_scenarios() {
     assert_eq!(from_trace, from_scenarios);
 }
 
+#[test]
+fn trace_matches_scenarios() {
+    for context in CONTEXTS {
+        trace_matches_scenarios_in(context);
+    }
+}
+
 /// 範囲にあり、場面で確かめた id。
-fn traced() -> BTreeSet<String> {
-    let trace = load("trace.json");
+fn traced(context: &str) -> BTreeSet<String> {
+    let trace = load(context, "trace.json");
     let scope: BTreeSet<String> = strings(&trace["scope"]).into_iter().collect();
     trace["traces"]
         .as_array()
@@ -104,10 +119,10 @@ fn traced() -> BTreeSet<String> {
         .collect()
 }
 
-#[test]
-fn every_published_language_has_a_traced_promise() {
-    let traced = traced();
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../published-language/v1");
+fn every_published_language_has_a_traced_promise_in(context: &str) {
+    let traced = traced(context);
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../{context}/published-language/v1"));
     let mut names: Vec<String> = std::fs::read_dir(dir)
         .expect("公開された言葉の置き場所を読めること")
         .map(|e| {
@@ -135,9 +150,15 @@ fn every_published_language_has_a_traced_promise() {
 }
 
 #[test]
-fn every_use_case_in_scope_has_both_guarantees_traced() {
-    let traced = traced();
-    let scope = strings(&load("trace.json")["scope"]);
+fn every_published_language_has_a_traced_promise() {
+    for context in CONTEXTS {
+        every_published_language_has_a_traced_promise_in(context);
+    }
+}
+
+fn every_use_case_in_scope_has_both_guarantees_traced_in(context: &str) {
+    let traced = traced(context);
+    let scope = strings(&load(context, "trace.json")["scope"]);
     let usecases: BTreeSet<String> = scope
         .iter()
         .filter_map(|id| id.split_once(':').map(|(uc, _)| uc.to_string()))
@@ -145,7 +166,7 @@ fn every_use_case_in_scope_has_both_guarantees_traced() {
         .collect();
     assert!(!usecases.is_empty(), "範囲にユースケースが無い");
     // 成功時保証と最低保証のどちらも untested に理由がある（まだ作っていない）ユースケースは除く
-    let explained: BTreeSet<String> = load("untested.json")["untested"]
+    let explained: BTreeSet<String> = load(context, "untested.json")["untested"]
         .as_array()
         .expect("untested が配列であること")
         .iter()
@@ -162,5 +183,12 @@ fn every_use_case_in_scope_has_both_guarantees_traced() {
             let id = format!("{uc}:{g}");
             assert!(traced.contains(&id), "{id} を場面で確かめていない");
         }
+    }
+}
+
+#[test]
+fn every_use_case_in_scope_has_both_guarantees_traced() {
+    for context in CONTEXTS {
+        every_use_case_in_scope_has_both_guarantees_traced_in(context);
     }
 }

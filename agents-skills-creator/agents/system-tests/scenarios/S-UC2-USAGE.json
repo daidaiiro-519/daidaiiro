@@ -1,0 +1,98 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC2-USAGE",
+ "name": "agents の使い方の誤り",
+ "title": "agents に、コマンド ・ フォルダ ・ --concrete ・ 書き方 ・ --tool ・ --scope ・ --reason が足りないか、知らないツールを渡すと、使い方の誤り（終了コード 2）で何もしない",
+ "why": "対象や配布先が決まらないまま進めると、作る人が選んでいない所に書くか置く。",
+ "traces": [
+  "UC2:最低保証",
+  "約束:create-result",
+  "約束:validate-result",
+  "約束:write-agent-md-result",
+  "約束:distribute-result",
+  "約束:withdraw-result"
+ ],
+ "given": {
+  "files": {}
+ },
+ "when": {
+  "args": []
+ },
+ "after": [
+  {
+   "args": [
+    "create",
+    "agents/a",
+    "--concrete",
+    "urn:agents-skills-creator:agent:v1"
+   ]
+  },
+  {
+   "args": [
+    "validate"
+   ]
+  },
+  {
+   "args": [
+    "write-agent-md"
+   ]
+  },
+  {
+   "args": [
+    "distribute",
+    "agents/a",
+    "--tool",
+    "cursor",
+    "--scope",
+    "user"
+   ]
+  },
+  {
+   "args": [
+    "withdraw",
+    "agents/a"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[1]",
+   "exit": 2
+  },
+  {
+   "of": "after[2]",
+   "exit": 2
+  },
+  {
+   "of": "after[3]",
+   "exit": 2
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/message",
+   "contains": "claude-code"
+  },
+  {
+   "of": "after[4]",
+   "exit": 2
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/message",
+   "contains": "--reason"
+  }
+ ]
+}

@@ -2,8 +2,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_filesystem::WorkingTree;
 use skills_application::ports::SkillFiles;
+use skills_outbound_filesystem::WorkingTree;
 use std::path::PathBuf;
 
 fn temp(name: &str) -> PathBuf {

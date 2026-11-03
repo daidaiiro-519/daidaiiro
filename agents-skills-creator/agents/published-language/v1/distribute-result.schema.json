@@ -1,0 +1,251 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:agents:distribute-result:v1",
+ "title": "配布した結果",
+ "description": "agents distribute が標準出力に返す JSON（1つ）。配る前の確かめ（validate と同じ形に approval-current と destination-free を足したもの）・ 置いた結果 ・ 置いたあとの確かめ。Agent の定義は、リンクでなく写しで置く（ツールが置き場所のリンクのファイルを読むことを原文で確かめていないため）",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:agents:distribute-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "distribute は結果、error は始められなかった",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "distribute",
+    "error"
+   ]
+  },
+  "folder": {
+   "type": "string"
+  },
+  "tool": {
+   "enum": [
+    "claude-code",
+    "codex"
+   ]
+  },
+  "scope": {
+   "enum": [
+    "repository",
+    "user"
+   ]
+  },
+  "before": {
+   "$ref": "#/$defs/agent"
+  },
+  "placed": {
+   "type": "object",
+   "required": [
+    "path",
+    "source",
+    "result"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "置いた所"
+    },
+    "source": {
+     "type": "string",
+     "description": "写した元（Agent のフォルダの AGENT.md か codex.toml）"
+    },
+    "result": {
+     "enum": [
+      "placed",
+      "replaced",
+      "already"
+     ],
+     "description": "placed は写して置いた、replaced はこの Agent から作った前の版の写し（印がこの Agent のフォルダを指す）を上書きした、already は同じ中身がもうあった"
+    }
+   }
+  },
+  "after": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/finding"
+   }
+  },
+  "detected": {
+   "type": "boolean"
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、そのほかは始められなかった理由",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "sas_unavailable",
+    "skills_unavailable",
+    "not_found",
+    "invalid_input"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "distribute"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "tool",
+     "scope",
+     "before",
+     "after",
+     "detected"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ],
+ "$defs": {
+  "agent": {
+   "type": "object",
+   "title": "Agent 1つの結果",
+   "description": "渡した Agent のフォルダ1つの、SAS の検証の結果と creator の検査の結果と承認の材料",
+   "required": [
+    "folder",
+    "sas",
+    "sas_exit",
+    "creator"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "folder": {
+     "type": "string"
+    },
+    "sas": {
+     "type": [
+      "object",
+      "array"
+     ],
+     "description": "sas validate の出力を書き換えずに入れたもの"
+    },
+    "sas_exit": {
+     "type": "integer"
+    },
+    "creator": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/finding"
+     }
+    },
+    "approval": {
+     "type": "object",
+     "description": "承認の材料：name ・ description ・ 完成の像（images）・ 振る舞い（behaviors）・ 構造の像（scope ・ calls ・ steps_and_branches ・ merge）・ 別の会話に任せる手順（delegate）",
+     "required": [
+      "name",
+      "description",
+      "images",
+      "behaviors",
+      "structure_image",
+      "delegate"
+     ]
+    }
+   }
+  },
+  "finding": {
+   "type": "object",
+   "title": "creator の検査の結果1件",
+   "description": "creator が確かめた検査1つの結果",
+   "required": [
+    "check",
+    "result",
+    "reason"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "check": {
+     "title": "検査の名前",
+     "description": "name-is-folder：agent.json の name がフォルダ名と同じ。skills-linked：skills の各名前が配下の skills/ にリンクとしてあり、その先が skills validate を通る（skills/ にあって skills に無いものも violated）。calls-are-linked：ステップが呼ぶ Skill が skills にある。passes-are-outputs：ステップが渡すものの名前が、呼んだ Skill の outputs にある。agent-md-built：AGENT.md と codex.toml が write-agent-md で作るものと同じ。approval-current ・ destination-free ・ placed-readable：distribute だけ（Skill と同じ）。unlinked：どの置き場所にも、この Agent の写しが残っていない（withdraw だけ）",
+     "x-prompt": {
+      "meaning": "どの検査の結果かを読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "enum": [
+      "name-is-folder",
+      "skills-linked",
+      "calls-are-linked",
+      "passes-are-outputs",
+      "agent-md-built",
+      "approval-current",
+      "destination-free",
+      "placed-readable",
+      "unlinked"
+     ]
+    },
+    "result": {
+     "title": "結果",
+     "description": "verified ・ violated ・ error",
+     "x-prompt": {
+      "meaning": "verified でなければ検出として読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "enum": [
+      "verified",
+      "violated",
+      "error"
+     ]
+    },
+    "path": {
+     "title": "所",
+     "description": "違反に当たる所",
+     "x-prompt": {
+      "meaning": "どこを直すかを読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "type": "string"
+    },
+    "reason": {
+     "title": "理由",
+     "description": "結果の理由の1文",
+     "x-prompt": {
+      "meaning": "作る人に示す。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "type": "string"
+    }
+   }
+  }
+ }
+}

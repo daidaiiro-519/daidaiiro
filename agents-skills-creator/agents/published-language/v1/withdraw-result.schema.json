@@ -1,0 +1,210 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:agents:withdraw-result:v1",
+ "title": "配布を取り下げた結果",
+ "description": "agents withdraw が標準出力に返す JSON（1つ）。4か所のうち在る置き場所と、外した写し。AI のセッションから打たれたら外さず、人が打つコマンドを next に返す。Agent の実体は消さない",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:agents:withdraw-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "withdraw は結果、error は始められなかった",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "withdraw",
+    "error"
+   ]
+  },
+  "folder": {
+   "type": "string"
+  },
+  "reason": {
+   "type": "string"
+  },
+  "places": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "path",
+     "tool",
+     "scope",
+     "state"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "tool": {
+      "enum": [
+       "claude-code",
+       "codex"
+      ]
+     },
+     "scope": {
+      "enum": [
+       "repository",
+       "user"
+      ]
+     },
+     "state": {
+      "enum": [
+       "placed",
+       "other"
+      ],
+      "description": "placed はこの Agent から作った写し（ふつうのファイルで、印がこの Agent のフォルダを指す。印は repository ならリポジトリの根からのフォルダ、user なら絶対の経路。中身が古い版でもよい）で外す、other はほかのもの（印が無い ・ ほかの Agent やほかのリポジトリを指す ・ リンク ・ フォルダ）で外さない"
+     }
+    }
+   }
+  },
+  "removed": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "withdrawn": {
+   "type": "boolean"
+  },
+  "next": {
+   "type": "string"
+  },
+  "after": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/finding"
+   }
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、そのほかは始められなかった理由",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "not_found"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "withdraw"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "reason",
+     "places",
+     "removed",
+     "withdrawn",
+     "after"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ],
+ "$defs": {
+  "finding": {
+   "type": "object",
+   "title": "creator の検査の結果1件",
+   "description": "creator が確かめた検査1つの結果",
+   "required": [
+    "check",
+    "result",
+    "reason"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "check": {
+     "title": "検査の名前",
+     "description": "name-is-folder：agent.json の name がフォルダ名と同じ。skills-linked：skills の各名前が配下の skills/ にリンクとしてあり、その先が skills validate を通る（skills/ にあって skills に無いものも violated）。calls-are-linked：ステップが呼ぶ Skill が skills にある。passes-are-outputs：ステップが渡すものの名前が、呼んだ Skill の outputs にある。agent-md-built：AGENT.md と codex.toml が write-agent-md で作るものと同じ。approval-current ・ destination-free ・ placed-readable：distribute だけ（Skill と同じ）。unlinked：どの置き場所にも、この Agent の写しが残っていない（withdraw だけ）",
+     "x-prompt": {
+      "meaning": "どの検査の結果かを読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "enum": [
+      "name-is-folder",
+      "skills-linked",
+      "calls-are-linked",
+      "passes-are-outputs",
+      "agent-md-built",
+      "approval-current",
+      "destination-free",
+      "placed-readable",
+      "unlinked"
+     ]
+    },
+    "result": {
+     "title": "結果",
+     "description": "verified ・ violated ・ error",
+     "x-prompt": {
+      "meaning": "verified でなければ検出として読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "enum": [
+      "verified",
+      "violated",
+      "error"
+     ]
+    },
+    "path": {
+     "title": "所",
+     "description": "違反に当たる所",
+     "x-prompt": {
+      "meaning": "どこを直すかを読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "type": "string"
+    },
+    "reason": {
+     "title": "理由",
+     "description": "結果の理由の1文",
+     "x-prompt": {
+      "meaning": "作る人に示す。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "type": "string"
+    }
+   }
+  }
+ }
+}

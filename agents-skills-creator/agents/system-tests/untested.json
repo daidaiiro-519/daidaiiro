@@ -1,0 +1,36 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:untested:v1",
+ "description": "文脈 agents の範囲にあるが、まだ場面で確かめていない保証と変形。理由と、確かめるステップを書く",
+ "untested": [
+  {
+   "id": "UC2:拡張:足りない Skill を作る",
+   "meaning": "束ねたい Skill が足りないとき、UC1 で先に作る",
+   "why": "create の作る流れの rules に「足りない Skill は skills create で先に作る」と書いただけで、Agent を作る途中で UC1 へ移る手続きは作っていない。移るかを決めるのは打ったセッションと作る人",
+   "step": "UC0 作業を任せられる Skill ・ Agent を手に入れるのステップ"
+  },
+  {
+   "id": "UC2:変形:例を別の会話で動かす",
+   "meaning": "Agent の例を別の会話で動かし、expected と比べる",
+   "why": "creator は AI を起動しない。validate の承認の材料の delegate の b を返すだけで、場面の書式には別の会話を動かす手段が無い",
+   "step": "例を動かした結果を受け取るステップ"
+  },
+  {
+   "id": "UC2:変形:Codex で配下の Skill に絞る",
+   "meaning": "Codex の custom agent で、呼べる Skill を配下だけに絞る",
+   "why": "Codex は Skill を親から引き継ぐ（subagents.md「Skills inherit from the parent, and a custom agent can disable individual skills with skills.config.」）。原文で絞る手段は、[[skills.config]] の path ごとに enabled = false にすることだけ（subagents.md 553行目の例）で、配下だけを許す形は無い。codex.toml の developer_instructions に配下だけを呼ぶよう書いただけにした",
+   "step": "Codex に配下だけを許す手段が出たとき"
+  },
+  {
+   "id": "UC2:変形:プラグインで配る",
+   "meaning": "Agent をプラグイン（agents/）として配る",
+   "why": "Skill のプラグインと同じく写しになり、別の入力が要る",
+   "step": "プラグインで配るステップ"
+  },
+  {
+   "id": "UC6:変形:リンクしている Agent を示す",
+   "meaning": "Skill を取り下げるときに、その Skill にリンクしている Agent を示す",
+   "why": "skills（上流）は agents（下流）を知らないので、skills withdraw の中では探さない。agents 側に「この Skill にリンクしている Agent」を返すコマンドを足し、打ったセッションが skills withdraw の前に打つ形が考えられるが、まだ作っていない",
+   "step": "UC6 の Agent の側を作るステップ"
+  }
+ ]
+}

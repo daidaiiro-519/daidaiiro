@@ -1,0 +1,110 @@
+//! ユースケースの手続き（トランザクションスクリプト）。
+
+pub mod approval;
+pub mod create;
+pub mod distribute;
+pub mod validate;
+pub mod withdraw;
+pub mod write_agent_md;
+
+use crate::ports::AgentFiles;
+use serde_json::Value;
+
+/// Agent の項目のファイル名。
+pub const AGENT_JSON: &str = "agent.json";
+
+/// 始められなかった理由。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Refused {
+    /// 決まった名前（usage ・ not_found ・ invalid_input ・ sas_unavailable ・ skills_unavailable）
+    pub code: &'static str,
+    /// 理由
+    pub message: String,
+}
+
+/// creator の検査の結果。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Outcome {
+    /// 満たす
+    Verified,
+    /// 満たさない
+    Violated,
+    /// 確かめる材料を読めなかった
+    Error,
+}
+
+impl Outcome {
+    /// 出力に書く名前（SAS の判定の区分と同じ語）。
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Verified => "verified",
+            Self::Violated => "violated",
+            Self::Error => "error",
+        }
+    }
+}
+
+/// creator の検査の結果1件。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Finding {
+    /// 検査の名前
+    pub check: &'static str,
+    /// 結果
+    pub outcome: Outcome,
+    /// 違反に当たる所
+    pub path: Option<String>,
+    /// 理由
+    pub reason: String,
+}
+
+/// 検査の結果1件を作る。
+#[must_use]
+pub fn finding(
+    check: &'static str,
+    outcome: Outcome,
+    path: Option<String>,
+    reason: String,
+) -> Finding {
+    Finding {
+        check,
+        outcome,
+        path,
+        reason,
+    }
+}
+
+/// フォルダの経路の末尾の / を除く。
+#[must_use]
+pub fn trimmed(folder: &str) -> &str {
+    let t = folder.trim_end_matches('/');
+    if t.is_empty() { folder } else { t }
+}
+
+/// フォルダの agent.json を JSON として読む。
+///
+/// # Errors
+/// 無い ・ 読めない（not_found）・ JSON でない（invalid_input）とき。
+pub fn read_agent(files: &dyn AgentFiles, folder: &str) -> Result<Value, Refused> {
+    let path = format!("{}/{AGENT_JSON}", trimmed(folder));
+    let text = files.read(&path).map_err(|message| Refused {
+        code: "not_found",
+        message,
+    })?;
+    serde_json::from_str(&text).map_err(|e| Refused {
+        code: "invalid_input",
+        message: format!("{path} が JSON として読めない：{e}"),
+    })
+}
+
+/// 文字列の並びを読む。
+#[must_use]
+pub fn strings(v: &Value, key: &str) -> Vec<String> {
+    v.get(key)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(ToString::to_string)
+        .collect()
+}

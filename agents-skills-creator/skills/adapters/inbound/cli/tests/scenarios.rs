@@ -310,11 +310,11 @@ fn scenarios_pass() {
     assert!(failed.is_empty(), "通らなかった場面: {failed:?}");
 }
 
-/// 場面のファイルが、場面の形（scenario.schema.json）に従う。
+/// 場面のファイルが、場面の形（製品の根の system-tests/scenario.schema.json。文脈で同じ形）に従う。
 #[test]
 fn scenarios_follow_their_shape() {
     let schema: Value = serde_json::from_str(
-        &std::fs::read_to_string(suite().join("scenario.schema.json"))
+        &std::fs::read_to_string(suite().join("../../system-tests/scenario.schema.json"))
             .expect("場面の形を読めること"),
     )
     .expect("場面の形が JSON であること");

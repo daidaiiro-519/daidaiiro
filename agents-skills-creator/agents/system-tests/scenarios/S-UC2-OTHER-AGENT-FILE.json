@@ -1,0 +1,149 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC2-OTHER-AGENT-FILE",
+ "name": "置き場所に違う中身の Agent",
+ "title": "置き場所に、この Agent の定義と違う中身のファイル（同じ名前の別の Agent）があると、distribute は destination-free を violated にして置かず、withdraw は other として外さない。どちらでもそのファイルは変わらない",
+ "why": "中身を見ずに上書き ・ 削除すると、同じ名前で置かれていた別の Agent が黙って入れ替わるか消える。",
+ "traces": [
+  "UC5:最低保証",
+  "UC6:最低保証",
+  "約束:distribute-result",
+  "約束:withdraw-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@skills-published/skill.schema.json",
+   "agents-published/agent.schema.json": "@published/agent.schema.json",
+   "skills/ddd-advisor/skill.json": "@fixtures/skills/ddd-advisor/skill.json",
+   "skills/ddd-advisor/SKILL.md": "@fixtures/skills/ddd-advisor/SKILL.md",
+   "skills/usecase-advisor/skill.json": "@fixtures/skills/usecase-advisor/skill.json",
+   "skills/usecase-advisor/SKILL.md": "@fixtures/skills/usecase-advisor/SKILL.md",
+   "skills/qa-advisor/skill.json": "@fixtures/skills/qa-advisor/skill.json",
+   "skills/qa-advisor/SKILL.md": "@fixtures/skills/qa-advisor/SKILL.md",
+   "skills/ux-advisor/skill.json": "@fixtures/skills/ux-advisor/skill.json",
+   "skills/ux-advisor/SKILL.md": "@fixtures/skills/ux-advisor/SKILL.md",
+   "skills/platform-advisor/skill.json": "@fixtures/skills/platform-advisor/skill.json",
+   "skills/platform-advisor/SKILL.md": "@fixtures/skills/platform-advisor/SKILL.md",
+   "skills/meta-thinking-advisor/skill.json": "@fixtures/skills/meta-thinking-advisor/skill.json",
+   "skills/meta-thinking-advisor/SKILL.md": "@fixtures/skills/meta-thinking-advisor/SKILL.md",
+   ".claude/agents/consult-advisors.md": "---\nname: consult-advisors\ndescription: 別の Agent\n---\n",
+   ".codex/agents/consult-advisors.toml": "name = \"consult-advisors\"\n"
+  },
+  "links": {
+   "agents/consult-advisors/skills/ddd-advisor": "../../../skills/ddd-advisor",
+   "agents/consult-advisors/skills/usecase-advisor": "../../../skills/usecase-advisor",
+   "agents/consult-advisors/skills/qa-advisor": "../../../skills/qa-advisor",
+   "agents/consult-advisors/skills/ux-advisor": "../../../skills/ux-advisor",
+   "agents/consult-advisors/skills/platform-advisor": "../../../skills/platform-advisor",
+   "agents/consult-advisors/skills/meta-thinking-advisor": "../../../skills/meta-thinking-advisor"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "agents/consult-advisors",
+   "--concrete",
+   "urn:agents-skills-creator:agent:v1",
+   "--value",
+   "{\n \"$schema\": \"urn:agents-skills-creator:agent:v1\",\n \"name\": \"consult-advisors\",\n \"purpose\": {\n  \"who\": \"設計で迷っている人か、その人から頼まれた AI\",\n  \"when\": \"設計で迷い、複数の分野の見方を同時に聞きたいとき\",\n  \"gets\": \"複数のアドバイザーの、それぞれの原典に基づく見解が、食い違いも含めて1つの答えにまとまって手元にある状態\"\n },\n \"role\": {\n  \"does\": [\n   \"相談に当たるアドバイザーを選び、同時に聞く\",\n   \"返った見解を、一致と食い違いに分けて1つの答えにまとめる\"\n  ],\n  \"does_not\": [\n   {\n    \"what\": \"見解そのものを述べる（見解はアドバイザーが述べる）\",\n    \"from\": \"作る人の答え\"\n   },\n   {\n    \"what\": \"食い違う見解のどちらかを採る\",\n    \"from\": \"作る人の答え\"\n   }\n  ]\n },\n \"description\": \"設計で迷い、複数の分野の見方を同時に聞きたいときに使う。相談に当たるアドバイザーを選んで同時に聞き、それぞれの原典に基づく見解を、一致 ・ 食い違い ・ 決めてほしいことに分けて1つの答えにまとめる。見解そのものは述べず、食い違う見解のどちらかを採らない。\",\n \"preconditions\": [\n  \"相談の文がある\"\n ],\n \"inputs\": [\n  {\n   \"name\": \"相談\",\n   \"form\": \"文（何を決めたいかと、対象の設計の説明）\"\n  }\n ],\n \"outputs\": [\n  {\n   \"name\": \"まとめた見解\",\n   \"form\": \"表（聞いたアドバイザー ・ 一致した見解 ・ 食い違い ・ 決めてほしいこと。各行に、どのアドバイザーのどの判断基準か）\",\n   \"where\": \"標準出力\"\n  }\n ],\n \"skills\": [\n  \"ddd-advisor\",\n  \"usecase-advisor\",\n  \"qa-advisor\",\n  \"ux-advisor\",\n  \"platform-advisor\",\n  \"meta-thinking-advisor\"\n ],\n \"steps\": [\n  {\n   \"id\": 1,\n   \"kind\": \"call\",\n   \"do\": \"相談に当たるアドバイザーに同時に聞く\",\n   \"calls\": [\n    \"ddd-advisor\",\n    \"usecase-advisor\",\n    \"qa-advisor\",\n    \"ux-advisor\",\n    \"platform-advisor\",\n    \"meta-thinking-advisor\"\n   ],\n   \"choose\": \"相談の分野に当たるアドバイザーを、各 Skill の description で選ぶ\",\n   \"passes\": [\n    \"見解と根拠\"\n   ],\n   \"completion\": \"選んだアドバイザーのどれにも、見解と根拠か「答えなし」がある\"\n  },\n  {\n   \"id\": 2,\n   \"kind\": \"approve\",\n   \"do\": \"一致 ・ 食い違い ・ 決めてほしいことに分けたまとめを、人が承認する\",\n   \"completion\": \"作る人の承認か、直す所の一言がある\"\n  }\n ],\n \"edge_cases\": [\n  {\n   \"id\": \"1a\",\n   \"when\": \"アドバイザーが答えられない（分野の外 ・ 呼べない）\",\n   \"then\": \"そのアドバイザーを「答えなし」と載せる\",\n   \"end\": \"ステップ1の残りを続ける\",\n   \"examples\": [\n    \"E2\"\n   ]\n  }\n ],\n \"rules\": [\n  {\n   \"rule\": \"両立する食い違いは並べ、両立しない食い違いは、どちらにも根拠を付けて「決めてほしいこと」へ置く\",\n   \"why\": \"Agent が片方を採ると、見解を述べないという役割を外れ、作る人が根拠を見て決められない\",\n   \"bad\": \"食い違う2つの見解のうち、根拠の多い方だけを答えに残す\",\n   \"examples\": [\n    \"E1\"\n   ]\n  },\n  {\n   \"rule\": \"まとめの各行に、どのアドバイザーのどの判断基準かを付ける\",\n   \"why\": \"出どころの無い行は、どの原典に基づくのか推測なのかを作る人が見分けられない\",\n   \"bad\": \"一致した見解を、アドバイザーの名前を付けずに1行にまとめる\",\n   \"examples\": [\n    \"E1\"\n   ]\n  }\n ],\n \"minimal_guarantees\": [\n  \"どこで止まっても、作業フォルダのファイルは変わらない\"\n ],\n \"completion_criteria\": [\n  {\n   \"id\": \"C1\",\n   \"criterion\": \"聞いたアドバイザーのどれにも、見解と根拠か「答えなし」が載っている\",\n   \"check\": \"まとめの聞いたアドバイザーの行の数と、呼んだアドバイザーの数が同じ\",\n   \"from\": \"目的の仮説（得るもの）から\"\n  },\n  {\n   \"id\": \"C2\",\n   \"criterion\": \"まとめの各行に、アドバイザーと判断基準の id が付いている\",\n   \"check\": \"一致 ・ 食い違い ・ 決めてほしいことの各行を見る\",\n   \"from\": \"目的の仮説（得るもの）から\"\n  }\n ],\n \"examples\": [\n  {\n   \"id\": \"E1\",\n   \"from\": \"作るときの場面\",\n   \"covers\": [\n    \"C1\",\n    \"C2\"\n   ],\n   \"caller\": \"人が直接\",\n   \"given\": \"SAS と Skill の境界をどう引くかの相談の文がある\",\n   \"input\": \"SAS と Skill の境界をどう引くか、アドバイザーたちの見解をまとめて\",\n   \"expected\": \"ddd-advisor ・ usecase-advisor ・ platform-advisor を聞いたと書かれ、一致した見解と食い違い（両立しないものは決めてほしいことへ）が、アドバイザーと判断基準の id 付きで並ぶ\",\n   \"behavior\": {\n    \"who\": \"設計を決める人\",\n    \"does\": \"境界の引き方を複数の分野で相談する\",\n    \"then\": \"分野ごとの根拠を並べて、決めることだけを選べる\"\n   }\n  },\n  {\n   \"id\": \"E2\",\n   \"from\": \"作る人が挙げた別の場面\",\n   \"covers\": [\n    \"C1\",\n    \"1a\"\n   ],\n   \"caller\": \"人が直接\",\n   \"given\": \"料理の献立の相談の文がある\",\n   \"input\": \"今週の献立を、アドバイザーたちに聞いて\",\n   \"expected\": \"どのアドバイザーも分野の外で「答えなし」と載り、見解は無い\",\n   \"behavior\": {\n    \"who\": \"設計を決める人\",\n    \"does\": \"設計でない相談をする\",\n    \"then\": \"どのアドバイザーも当たらないと分かる\"\n   }\n  }\n ]\n}\n"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "write-agent-md",
+    "agents/consult-advisors"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "agents/consult-advisors"
+   ]
+  },
+  {
+   "sas": [
+    "update",
+    "agents/consult-advisors/agent.json",
+    "--patch",
+    "[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0008\"}]",
+    "--if-match",
+    "sha256:cd1c2b93a0cc88eb46065517bdd37a7aef1da6316c9b1754be5ce4d251346cde"
+   ]
+  },
+  {
+   "args": [
+    "distribute",
+    "agents/consult-advisors",
+    "--tool",
+    "claude-code",
+    "--scope",
+    "repository"
+   ]
+  },
+  {
+   "args": [
+    "withdraw",
+    "agents/consult-advisors",
+    "--reason",
+    "見直す"
+   ],
+   "env": {
+    "HOME": "@workdir/home"
+   }
+  }
+ ],
+ "then": [
+  {
+   "of": "after[2]",
+   "exit": 0
+  },
+  {
+   "of": "after[3]",
+   "exit": 1
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/placed",
+   "exists": false
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/before/creator",
+   "contains": "\"check\":\"destination-free\",\"result\":\"violated\""
+  },
+  {
+   "of": "after[4]",
+   "exit": 0
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/places",
+   "count": 2
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/places",
+   "contains": "\"state\":\"other\""
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/places",
+   "lacks": "\"state\":\"placed\""
+  },
+  {
+   "of": "after[4]",
+   "pointer": "/removed",
+   "count": 0
+  },
+  {
+   "of": "when",
+   "file": ".claude/agents/consult-advisors.md",
+   "contains": "別の Agent"
+  }
+ ],
+ "unchanged": [
+  ".claude/agents/consult-advisors.md",
+  ".codex/agents/consult-advisors.toml"
+ ]
+}
