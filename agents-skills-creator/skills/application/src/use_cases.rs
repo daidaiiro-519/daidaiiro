@@ -5,6 +5,7 @@ pub mod create;
 pub mod distribute;
 pub mod update;
 pub mod validate;
+pub mod withdraw;
 pub mod write_skill_md;
 
 use crate::ports::SkillFiles;

@@ -8,10 +8,13 @@ use skills_application::use_cases::create::Created;
 use skills_application::use_cases::distribute::Distributed;
 use skills_application::use_cases::update::Updated;
 use skills_application::use_cases::validate::{Checked, Finding, SkillChecked};
+use skills_application::use_cases::withdraw::Withdrawn;
 use skills_application::use_cases::write_skill_md::Built;
 
 /// create の結果の形。
 pub const CREATE: &str = "urn:agents-skills-creator:skills:create-result:v1";
+/// withdraw の結果の形。
+pub const WITHDRAW: &str = "urn:agents-skills-creator:skills:withdraw-result:v1";
 /// distribute の結果の形。
 pub const DISTRIBUTE: &str = "urn:agents-skills-creator:skills:distribute-result:v1";
 /// update の結果の形。
@@ -54,6 +57,24 @@ fn skill(s: &SkillChecked) -> Value {
         }
     }
     v
+}
+
+/// 配布を取り下げた結果を出す。
+pub fn print_withdrawn(w: &Withdrawn) {
+    let mut out = json!({
+        "$schema": WITHDRAW,
+        "kind": "withdraw",
+        "folder": w.folder,
+        "reason": w.reason,
+        "places": w.places.iter().map(|p| json!({"path": p.path, "tool": p.tool, "scope": p.scope, "state": p.state})).collect::<Vec<_>>(),
+        "removed": w.removed,
+        "withdrawn": w.withdrawn,
+    });
+    if let Some(next) = &w.next {
+        out["next"] = json!(next);
+    }
+    out["after"] = w.after.iter().map(finding).collect();
+    println!("{out}");
 }
 
 /// 配布した結果を出す。

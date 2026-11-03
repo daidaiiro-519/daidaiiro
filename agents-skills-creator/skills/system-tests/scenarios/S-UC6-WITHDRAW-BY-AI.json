@@ -1,0 +1,87 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC6-WITHDRAW-BY-AI",
+ "name": "AI は取り下げられない",
+ "title": "Codex ・ Copilot ・ Kiro のセッションの環境変数がある呼び出しでも、withdraw は外さず、リンクは残る",
+ "why": "どのツールの AI からでも取り下げられると、作る人の承認の無いまま使わなくなる。",
+ "traces": [
+  "UC6:最低保証",
+  "約束:withdraw-result"
+ ],
+ "given": {
+  "files": {
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
+   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md",
+   ".agents/skills/fact-check/SKILL.md": "---\nname: fact-check\ndescription: 別の Skill\n---\n"
+  },
+  "links": {
+   ".claude/skills/fact-check": "../../skills/fact-check",
+   "home/.agents/skills/fact-check": "../../../skills/fact-check"
+  }
+ },
+ "when": {
+  "args": [
+   "withdraw",
+   "skills/fact-check",
+   "--reason",
+   "照合は SAS の search に任せることにした"
+  ],
+  "env": {
+   "HOME": "@workdir/home",
+   "CODEX_SESSION_ID": "t-1"
+  }
+ },
+ "after": [
+  {
+   "args": [
+    "withdraw",
+    "skills/fact-check",
+    "--reason",
+    "照合は SAS の search に任せることにした"
+   ],
+   "env": {
+    "HOME": "@workdir/home",
+    "COPILOT_AGENT_SESSION_ID": "c-1"
+   }
+  },
+  {
+   "args": [
+    "withdraw",
+    "skills/fact-check",
+    "--reason",
+    "照合は SAS の search に任せることにした"
+   ],
+   "env": {
+    "HOME": "@workdir/home",
+    "KIRO_SESSION_ID": "k-1"
+   }
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "pointer": "/withdrawn",
+   "equals": false
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/withdrawn",
+   "equals": false
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/withdrawn",
+   "equals": false
+  },
+  {
+   "of": "when",
+   "file": ".claude/skills/fact-check/SKILL.md",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "file": "home/.agents/skills/fact-check/SKILL.md",
+   "exists": true
+  }
+ ]
+}

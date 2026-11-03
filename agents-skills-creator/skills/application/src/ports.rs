@@ -132,4 +132,13 @@ pub trait Destinations {
     /// # Errors
     /// 置けないとき。
     fn link(&self, path: &str, target: &str) -> Result<(), String>;
+
+    /// 経路がシンボリックリンクか（先が無くても）。
+    fn is_link(&self, path: &str) -> bool;
+
+    /// 経路のシンボリックリンクを外す（リンクの先は変えない。リンクでなければ外さない）。
+    ///
+    /// # Errors
+    /// リンクでない ・ 外せないとき。
+    fn unlink(&self, path: &str) -> Result<(), String>;
 }

@@ -1,0 +1,60 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC6-USAGE",
+ "name": "取り下げの使い方の誤り",
+ "title": "withdraw にフォルダか --reason が無いと、使い方の誤り（終了コード 2）で何も外さない",
+ "why": "理由の無い取り下げは、あとから何のために使わなくしたかが分からない。",
+ "traces": [
+  "UC6:最低保証",
+  "約束:withdraw-result"
+ ],
+ "given": {
+  "files": {
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
+   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md",
+   ".agents/skills/fact-check/SKILL.md": "---\nname: fact-check\ndescription: 別の Skill\n---\n"
+  },
+  "links": {
+   ".claude/skills/fact-check": "../../skills/fact-check",
+   "home/.agents/skills/fact-check": "../../../skills/fact-check"
+  }
+ },
+ "when": {
+  "args": [
+   "withdraw"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "withdraw",
+    "skills/fact-check"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/message",
+   "contains": "--reason"
+  },
+  {
+   "of": "when",
+   "file": ".claude/skills/fact-check/SKILL.md",
+   "exists": true
+  }
+ ]
+}

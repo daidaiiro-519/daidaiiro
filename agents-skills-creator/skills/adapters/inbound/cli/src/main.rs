@@ -2,6 +2,7 @@
 //!
 //! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。sas create を呼ぶ）・
 //! update（UC3 直す。sas update を呼ぶ）・ distribute（UC5 配布する。確かめてからツールの置き場所にリンクを置く）・
+//! withdraw（UC6 使わなくする。配布を取り下げ、置いたリンクを外す。人が打ったときだけ）・
 //! validate（UC4 確かめる。sas validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
 //! creator は AI を起動せず、skill.json を書かない（SAS が書く）。
 //! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、sas が断った、sas を呼べない、skill.json を
@@ -12,12 +13,13 @@ mod output;
 use outbound_filesystem::WorkingTree;
 use outbound_jsonschema::JsonSchema;
 use outbound_sas::Sas;
-use output::{CREATE, DISTRIBUTE, UPDATE, VALIDATE, WRITE_SKILL_MD};
+use output::{CREATE, DISTRIBUTE, UPDATE, VALIDATE, WITHDRAW, WRITE_SKILL_MD};
 use skills_application::use_cases::Refused;
 use skills_application::use_cases::create::{Mode, create};
 use skills_application::use_cases::distribute::{Scope, Tool, distribute};
 use skills_application::use_cases::update::{self, update};
-use skills_application::use_cases::validate::validate;
+use skills_application::use_cases::validate::{Outcome, validate};
+use skills_application::use_cases::withdraw::withdraw;
 use skills_application::use_cases::write_skill_md::write_skill_md;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -28,6 +30,7 @@ skills update <Skill のフォルダ> --semantic --task <外れた具体> ／ \
 skills update <Skill のフォルダ> --patch <JSON Patch> --if-match <ハッシュ> --reason 層：<層> ／ \
 skills validate <Skill のフォルダ>... ／ \
 skills distribute <Skill のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
+skills withdraw <Skill のフォルダ> --reason <理由> ／ \
 skills write-skill-md <Skill のフォルダ>";
 
 fn usage(message: String) -> Refused {
@@ -43,6 +46,7 @@ fn main() -> ExitCode {
         Some("create") => run_create(&args[1..]),
         Some("update") => run_update(&args[1..]),
         Some("distribute") => run_distribute(&args[1..]),
+        Some("withdraw") => run_withdraw(&args[1..]),
         Some("validate") => run_validate(&args[1..]),
         Some("write-skill-md") => run_write_skill_md(&args[1..]),
         Some(other) => refuse(
@@ -292,6 +296,70 @@ fn run_distribute(args: &[String]) -> ExitCode {
             }
         }
         Err(r) => refuse(DISTRIBUTE, &r),
+    }
+}
+
+/// AI のツールのセッションを見分ける表（SAS の callers.json と同じ行）。
+const CALLERS: &str = include_str!("callers.json");
+
+/// 人が打ったか：表のどの環境変数にも値が無ければ人。表を読めなければ、人とみなさない。
+fn by_human() -> bool {
+    let Ok(table) = serde_json::from_str::<serde_json::Value>(CALLERS) else {
+        return false;
+    };
+    let names: Vec<&str> = table["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|t| t["session_env"].as_str())
+        .collect();
+    !names.is_empty()
+        && names
+            .iter()
+            .all(|n| std::env::var_os(n).is_none_or(|v| v.is_empty()))
+}
+
+fn run_withdraw(args: &[String]) -> ExitCode {
+    let mut folder = None;
+    let mut reason = None;
+    let mut rest = args.iter();
+    while let Some(a) = rest.next() {
+        match a.as_str() {
+            "--reason" => match rest.next() {
+                Some(v) => reason = Some(v.as_str()),
+                None => {
+                    return refuse(
+                        WITHDRAW,
+                        &usage(format!("--reason に理由を渡してください。{USAGE}")),
+                    );
+                }
+            },
+            flag if flag.starts_with("--") => {
+                return refuse(
+                    WITHDRAW,
+                    &usage(format!("知らない指定です: {flag}。{USAGE}")),
+                );
+            }
+            _ if folder.is_none() => folder = Some(a.as_str()),
+            _ => {
+                return refuse(
+                    WITHDRAW,
+                    &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
+                );
+            }
+        }
+    }
+    let tree = WorkingTree::new(PathBuf::from("."));
+    match withdraw(folder, reason, by_human(), &tree) {
+        Ok(w) => {
+            output::print_withdrawn(&w);
+            if w.after.iter().all(|f| f.outcome == Outcome::Verified) {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(r) => refuse(WITHDRAW, &r),
     }
 }
 

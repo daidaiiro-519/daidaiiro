@@ -1,0 +1,250 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:skills:withdraw-result:v1",
+ "title": "配布を取り下げた結果",
+ "description": "skills withdraw が標準出力に返す JSON（1つ）。distribute が置く4か所のうち在る置き場所（creator が置いたリンクか、ほかのものか）と、外したリンク。AI のセッションから打たれたら外さず、人が打つコマンドを next に返す。Skill の実体は消さない",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:skills:withdraw-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "withdraw は影響を確かめた（人が打てば外した）、error は始められなかった（使い方の誤り ・ 外せない）",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "withdraw",
+    "error"
+   ]
+  },
+  "folder": {
+   "title": "フォルダ",
+   "description": "取り下げる Skill のフォルダ",
+   "x-prompt": {
+    "meaning": "どの Skill かを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "reason": {
+   "title": "理由",
+   "description": "作る人が伝えた、使わなくする理由",
+   "x-prompt": {
+    "meaning": "影響と一緒に作る人に示す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "places": {
+   "title": "在る置き場所",
+   "description": "Claude Code ・ Codex × repository ・ user の4か所のうち、外す前に在ったもの。state が linked なら creator が置いた（Skill のフォルダを指す）リンクで外す対象、other ならほかのもので外さない",
+   "x-prompt": {
+    "meaning": "どこで使われなくなるかを作る人に示す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "path",
+     "tool",
+     "scope",
+     "state"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "tool": {
+      "enum": [
+       "claude-code",
+       "codex"
+      ]
+     },
+     "scope": {
+      "enum": [
+       "repository",
+       "user"
+      ]
+     },
+     "state": {
+      "enum": [
+       "linked",
+       "other"
+      ]
+     }
+    }
+   }
+  },
+  "removed": {
+   "title": "外したリンク",
+   "description": "外した置き場所の経路（AI のセッションから打たれたときは空）",
+   "x-prompt": {
+    "meaning": "どこから外したかを作る人に示す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "withdrawn": {
+   "title": "取り下げたか",
+   "description": "人が打って、linked のリンクを外したなら true。AI のセッションから打たれたら false",
+   "x-prompt": {
+    "meaning": "false なら、next のコマンドを作る人に打ってもらう。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "boolean"
+  },
+  "next": {
+   "title": "人が打つコマンド",
+   "description": "AI のセッションから打たれたときだけ。作る人が影響を見て承認したら、人が自分の端末で打つコマンド",
+   "x-prompt": {
+    "meaning": "作る人に示し、AI は打たない。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  },
+  "after": {
+   "title": "外したあとの確かめ",
+   "description": "unlinked：どの置き場所にも、この Skill へのリンクが残っていない（人が打ったときだけ）",
+   "x-prompt": {
+    "meaning": "violated なら、残ったリンクを作る人に示す。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/finding"
+   }
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、not_found はリンクを外せない",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "not_found"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "withdraw"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "folder",
+     "reason",
+     "places",
+     "removed",
+     "withdrawn",
+     "after"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ],
+ "$defs": {
+  "finding": {
+   "type": "object",
+   "title": "creator の検査の結果1件",
+   "description": "creator が確かめた検査1つの結果。SAS が文書1つでは判定できないもの（フォルダ名 ・ ほかの Skill ・ ファイルの外の事実 ・ 作られる SKILL.md）だけを持つ",
+   "required": [
+    "check",
+    "result",
+    "reason"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "check": {
+     "title": "検査の名前",
+     "description": "unlinked：どの置き場所にも、この Skill へのリンクが残っていない",
+     "x-prompt": {
+      "meaning": "どの確かめの結果かを読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "enum": [
+      "unlinked"
+     ]
+    },
+    "result": {
+     "title": "結果",
+     "description": "verified は満たす、violated は満たさない、error は確かめる材料を読めなかった（skill.json が無い ・ JSON でない ・ name が無いなど）",
+     "x-prompt": {
+      "meaning": "violated と error は、使える状態ではないこととして読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "enum": [
+      "verified",
+      "violated",
+      "error"
+     ]
+    },
+    "path": {
+     "title": "当たる所",
+     "description": "違反に当たる所の経路（重なった相手の Skill のフォルダ ・ 先が無いリンク）。違反でないときは無い",
+     "x-prompt": {
+      "meaning": "どこを直すかの手がかりにする。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "type": "string"
+    },
+    "reason": {
+     "title": "理由",
+     "description": "そう判定した理由の1文",
+     "x-prompt": {
+      "meaning": "何が何に反するかを読む。",
+      "when": "結果を受け取ったときに読む。",
+      "rules": []
+     },
+     "type": "string"
+    }
+   }
+  }
+ }
+}

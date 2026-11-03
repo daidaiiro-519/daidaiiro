@@ -134,6 +134,27 @@ impl Destinations for WorkingTree {
         }
         symlink(target, &at).map_err(|e| format!("{path} にリンクを置けない：{e}"))
     }
+
+    fn is_link(&self, path: &str) -> bool {
+        std::fs::symlink_metadata(self.root.join(path)).is_ok_and(|m| m.file_type().is_symlink())
+    }
+
+    fn unlink(&self, path: &str) -> Result<(), String> {
+        if !self.is_link(path) {
+            return Err(format!("{path} はシンボリックリンクでないので外さない"));
+        }
+        remove_link(&self.root.join(path)).map_err(|e| format!("{path} のリンクを外せない：{e}"))
+    }
+}
+
+#[cfg(unix)]
+fn remove_link(at: &Path) -> std::io::Result<()> {
+    std::fs::remove_file(at)
+}
+
+#[cfg(windows)]
+fn remove_link(at: &Path) -> std::io::Result<()> {
+    std::fs::remove_dir(at)
 }
 
 #[cfg(unix)]

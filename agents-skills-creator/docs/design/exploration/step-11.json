@@ -1,0 +1,123 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 11,
+ "date": "2026-11-03",
+ "summary": "UC6 使わなくするを、配布の取り下げ skills withdraw として作った。distribute が置く4か所のうち在る置き場所を、creator が置いたリンクか、ほかのものかに分けて示し、人が打ったときだけ creator が置いたリンクを外す。AI のセッションから打たれたら外さず、影響と人が打つコマンドを返す。Skill の実体は消さない",
+ "usecases": [
+  "UC6"
+ ],
+ "factchecks": [
+  {
+   "item": "AI のセッションの見分け方",
+   "evidence": [
+    "SAS の schemas-and-instances/adapters/inbound/cli/callers.json の tools の session_env（CLAUDE_CODE_SESSION_ID ・ CODEX_SESSION_ID ・ COPILOT_AGENT_SESSION_ID ・ KIRO_SESSION_ID。どれも原文か実測で確かめたもの）を、同じ行のまま creator の入口の callers.json に置いた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "人の呼び出しと AI の呼び出しで振る舞いが分かれる",
+   "evidence": [
+    "実地：場面 S-UC6-WITHDRAW と S-UC6-WITHDRAW-BY-AI で、4つのツールの環境変数のどれかがあると外さず、どれも無いと外した"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC6 使わなくする：skills withdraw（use_cases/withdraw.rs）",
+   "steps": [
+    "フォルダと理由（--reason）を受け取る。無ければ使い方の誤り",
+    "distribute の置く4か所（.claude/skills/<name> ・ .agents/skills/<name> と、HOME の下の同じ2つ）のうち在るものを、Skill のフォルダを指すシンボリックリンク（linked）か、ほかのもの（other）かに分けて示す",
+    "AI のセッションから打たれたら外さず、影響と、人が打つコマンド（next）を返す",
+    "人が打ったら、linked のリンクだけを外し、外したあとにこの Skill へのリンクが残っていないか（unlinked）を確かめる"
+   ],
+   "rules": [
+    "作る人が承認するまで使わなくしない：承認は、人が自分の端末でこのコマンドを打つこと",
+    "creator が置いたリンクだけを外す。実体のフォルダや別の先へのリンクは外さない",
+    "Skill の実体（skills/<name>）は消さない。UC6 で使わなくするのは配布だけ"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "置き場所の4か所",
+   "became": "script",
+   "why": "distribute の Tool ・ Scope をそのまま使う（同じ表を2つ持たない）"
+  },
+  {
+   "what": "人が打ったかの見分け",
+   "became": "separate",
+   "why": "誰が打ったかを決めるのは入口の責務（SAS の CODING.md と同じ考え）。入口が callers.json の表で見分け、ユースケースへ human を値で渡す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "コマンドの動詞",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "withdraw にした。「配布を取り下げる」の取り下げるに当たる既存の言葉で、distribute（配布する）と対になる。uninstall や remove は使う側が入れたものを除く言葉で、Skill の実体を消すことと読まれやすいので使わない"
+  },
+  {
+   "item": "承認の持ち方（SAS の人の欄が使えない）",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "(a) 人だけが打てるコマンドにした。(b) 手順を返すだけだと、AI が手順どおりに外すことを機械では止められず、最低保証が手順を守るかに懸かる。(a) は SAS の人の欄と同じく、AI のセッションからの呼び出しを入口で止める。AI から打たれたときは (b) と同じく影響と人が打つコマンドを返すので、作る人は影響を見てから打てる"
+  },
+  {
+   "item": "リンクしている Agent を示す",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "UC2 がまだ無く、Agent の配下にリンクを置く形も決まっていないので、探す所を作らず untested に置いた"
+  },
+  {
+   "item": "Skill の実体を消すか",
+   "result": "match",
+   "fixed": "none",
+   "note": "UC6 の範囲の外。使わなくするのは配布だけで、実体を消すのは Git の操作として作る人がする"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "取り下げる",
+   "seen": "withdraw",
+   "drift": "配布を取り下げることで、Skill を消すことではない"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "CLI",
+    "before": "create ・ update ・ validate ・ write-skill-md ・ distribute",
+    "after": "withdraw を足した（--reason）。入口に AI のセッションを見分ける callers.json を置いた",
+    "why": "UC6 使わなくする"
+   },
+   {
+    "what": "ポート Destinations",
+    "before": "home ・ canonical ・ occupied ・ link",
+    "after": "is_link ・ unlink を足した（リンクでなければ外さない）",
+    "why": "creator が置いたリンクだけを外すため"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "create-result ・ distribute-result ・ update-result ・ validate-result ・ write-skill-md-result",
+    "after": "withdraw-result を足した",
+    "why": "同じ"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "リンクしている Agent を示すこと",
+    "why": "UC2 が無い（untested）"
+   },
+   {
+    "what": "取り下げの理由を記録すること",
+    "why": "SAS の書き込みではないので SAS の記録に残らない。出力に返すだけにした"
+   },
+   {
+    "what": "Skill の実体を消すこと",
+    "why": "UC6 の範囲の外"
+   }
+  ]
+ }
+}
