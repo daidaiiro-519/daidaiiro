@@ -51,10 +51,8 @@ pub fn print_validated(c: &Checked) {
 /// SAS に書かせた結果を出す。
 pub fn print_created(c: &Created) {
     let mut out = json!({"$schema": CREATE, "kind": "create"});
-    if let Some(Value::Object(q)) = &c.questions {
-        for (k, v) in q {
-            out[k] = v.clone();
-        }
+    if let Some(flow) = &c.flow {
+        out["flow"] = flow.clone();
     }
     out["sas"] = c.sas.output.clone();
     out["sas_exit"] = json!(c.sas.exit);
@@ -110,6 +108,7 @@ fn approval(c: &Approval) -> Value {
         "images": c.images.iter().map(|(id, e)| json!({"example": id, "expected": e})).collect::<Vec<_>>(),
         "behaviors": c.behaviors.iter().map(|(id, [who, does, then])| json!({"example": id, "who": who, "does": does, "then": then})).collect::<Vec<_>>(),
         "structure": structure,
+        "structure_image": c.structure_image,
         "guesses": c.guesses.iter().map(|g| json!({"field": g.field, "content": g.content, "from": g.from, "unknown": g.unknown})).collect::<Vec<_>>(),
         "approvable": c.not_approvable.is_empty(),
         "delegate": delegate,

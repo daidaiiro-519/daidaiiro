@@ -11,6 +11,8 @@
 //! - json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、
 //!   JSON の資料は中身がその schema に従う（URN なら sas validate、置き場所なら JSON Schema で確かめる）。出力は実行する
 //!   まで中身が無いので、schema があるかだけを見る
+//! - grounds-are-outputs：参照する資料の grounds_for（資料が根拠になる出力）の各名前が、outputs の name にある
+//!   （名前どうしの突き合わせで機械で決まる。references と grounds_for が無ければ verified が1件）
 
 use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
 pub use crate::use_cases::Refused;
@@ -294,6 +296,69 @@ fn references_exist(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
         .collect()
 }
 
+/// 参照する資料の grounds_for の各名前が、outputs の name にあるか（無い名前ごとに violated を1件）。
+fn grounds_are_outputs(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
+    const CHECK: &str = "grounds-are-outputs";
+    let skill = match read_skill(files, folder) {
+        Ok(v) => v,
+        Err(r) => return vec![finding(CHECK, Outcome::Error, None, r.message)],
+    };
+    let names = |v: Option<&Value>| -> Vec<String> {
+        v.and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(ToString::to_string)
+            .collect()
+    };
+    let outputs: Vec<String> = skill
+        .get("outputs")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|o| o.get("name").and_then(Value::as_str))
+        .map(ToString::to_string)
+        .collect();
+    let mut out = Vec::new();
+    let mut seen = false;
+    for (i, r) in skill
+        .get("references")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .enumerate()
+    {
+        let material = r.get("name").and_then(Value::as_str).unwrap_or_default();
+        for g in names(r.get("grounds_for")) {
+            seen = true;
+            if !outputs.contains(&g) {
+                out.push(finding(
+                    CHECK,
+                    Outcome::Violated,
+                    Some(format!(
+                        "{}/skill.json#/references/{i}/grounds_for",
+                        trimmed(folder)
+                    )),
+                    format!("資料 {material} の grounds_for の {g} が、outputs の name に無い"),
+                ));
+            }
+        }
+    }
+    if out.is_empty() {
+        out.push(finding(
+            CHECK,
+            Outcome::Verified,
+            None,
+            if seen {
+                "grounds_for の名前は、どれも outputs の name にある".to_string()
+            } else {
+                "grounds_for を持つ資料が無い".to_string()
+            },
+        ));
+    }
+    out
+}
+
 /// Skill のフォルダからの経路が、フォルダの外を指すか（/ で始まる ・ .. を含む ・ 空）。
 fn outside(rel: &str) -> bool {
     rel.is_empty() || rel.starts_with('/') || rel.split('/').any(|p| p == "..")
@@ -505,7 +570,7 @@ fn summary(output: &Value) -> String {
     }
 }
 
-/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査6つと SAS の検証をして、承認の材料と一緒に渡した順に返す。
+/// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査7つと SAS の検証をして、承認の材料と一緒に渡した順に返す。
 /// Skill のファイルは変えない。
 ///
 /// # Errors
@@ -529,6 +594,7 @@ pub fn validate(
         creator.push(skill_md_built(files, folder));
         creator.extend(references_exist(files, folder));
         creator.extend(json_schema_conforms(files, sas, schemas, folder));
+        creator.extend(grounds_are_outputs(files, folder));
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {

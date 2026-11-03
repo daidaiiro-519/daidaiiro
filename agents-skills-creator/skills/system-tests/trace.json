@@ -24,7 +24,7 @@
  "traces": [
   {
    "id": "UC1:成功時保証",
-   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（create が添える問いの順番と、SAS の書く手順）・ skill.json から決まった形で書く SKILL.md（参照する資料の節を含む）・ 承認の材料（validate）",
+   "meaning": "どの AI ツールでも読め、Agent が無くても人が直接使って目的を得られる（単独で成り立つ）。creator が確かめるのは、そのための材料：作る手順（create が添える作る流れ：目的の仮説 ・ 完成の像 ・ 構造の像 ・ 推奨付きの問いを先に見せ、完成の像を変え、ほかから決まらない所だけを聞く。と、SAS の書く手順）・ skill.json から決まった形で書く SKILL.md（参照する資料の節を含む）・ 承認の材料（validate。構造の像の4つを含む）",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-BUILD",
@@ -45,11 +45,12 @@
   },
   {
    "id": "UC4:成功時保証",
-   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う）を別の欄で返す",
+   "meaning": "使えるか、どこが何に反するかが分かる。SAS の検証の結果（書き換えない）と、creator の検査（name とフォルダ名 ・ name の重なり ・ リンクの先 ・ SKILL.md が write-skill-md の出力と同じ ・ 参照する資料がある ・ 資料と出力の schema があり、JSON の資料がそれに従う ・ 資料の grounds_for の名前が outputs の name にある）を別の欄で返す",
    "scenarios": [
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
     "S-UC4-FOLDER-LINK-BROKEN",
+    "S-UC4-GROUNDS-NOT-OUTPUT",
     "S-UC4-JSON-SCHEMA-BROKEN",
     "S-UC4-JSON-SCHEMA-OK",
     "S-UC4-JSON-SCHEMA-URN",
@@ -91,6 +92,7 @@
     "S-UC4-BROKEN-LINK",
     "S-UC4-CHECK-OK",
     "S-UC4-FOLDER-LINK-BROKEN",
+    "S-UC4-GROUNDS-NOT-OUTPUT",
     "S-UC4-JSON-SCHEMA-BROKEN",
     "S-UC4-JSON-SCHEMA-OK",
     "S-UC4-JSON-SCHEMA-URN",
@@ -116,10 +118,11 @@
   },
   {
    "id": "約束:skill:references",
-   "meaning": "skill.schema の references（参照する資料）は、SKILL.md の参照する資料の節と手順の行に出て、validate がフォルダの中にあるかを確かめ、承認の材料の構造に入れ、資料の問いの答えを推測にしない",
+   "meaning": "skill.schema の references（参照する資料）は、SKILL.md の参照する資料の節と手順の行に出て、validate がフォルダの中にあるかを確かめ、承認の材料の構造と構造の像（資料と出力の関係）に入れ、from が作る人の答えの資料を推測にしない",
    "scenarios": [
     "S-UC1-BUILD-REFERENCES",
     "S-UC1-CONFIRM-REFERENCES",
+    "S-UC4-GROUNDS-NOT-OUTPUT",
     "S-UC4-REFERENCES-MISSING",
     "S-UC4-REFERENCES-OK"
    ]

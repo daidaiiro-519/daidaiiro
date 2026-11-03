@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn the_same_skill_gives_the_same_text_and_sections_without_items_are_left_out() {
         let skill = json!({"name": "a", "description": "使う: とき", "purpose": {"who": "人", "when": "書くとき", "gets": "分かった状態"},
-                           "role": {"does": ["照合する"], "does_not": [{"what": "書き換える", "from": "問3 の答え"}]},
+                           "role": {"does": ["照合する"], "does_not": [{"what": "書き換える", "from": "作る人の答え"}]},
                            "steps": [{"id": 1, "do": "取る", "completion": "ある"}],
                            "edge_cases": [{"id": "1a", "when": "無い", "then": "止める", "end": "止める"}]});
         let a = render(&skill);
@@ -263,7 +263,7 @@ mod tests {
         let skill = json!({"name": "a", "description": "d",
                            "steps": [{"id": 1, "do": "見分ける", "completion": "ある"}, {"id": 2, "do": "読む", "completion": "読んだ"}],
                            "references": [{"name": "判断基準", "path": "references/criteria.json", "holds": "判断基準の並び。", "form": "JSON",
-                                           "read_by": [2], "from": "資料の問いの答え"}]});
+                                           "read_by": [2], "from": "作る人の答え"}]});
         let a = render(&skill);
         assert!(a.contains("## 参照する資料\n\n- 判断基準（references/criteria.json）：判断基準の並び。形：JSON。手順 2 で読む\n"));
         assert!(a.contains(

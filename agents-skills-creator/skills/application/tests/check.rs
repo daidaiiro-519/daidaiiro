@@ -136,7 +136,8 @@ fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
             ("links-resolve", Outcome::Verified),
             ("skill-md-built", Outcome::Verified),
             ("references-exist", Outcome::Verified),
-            ("json-schema-conforms", Outcome::Verified)
+            ("json-schema-conforms", Outcome::Verified),
+            ("grounds-are-outputs", Outcome::Verified)
         ]
     );
     // SAS には <フォルダ>/skill.json を渡し、出力は書き換えずに持つ
@@ -220,7 +221,8 @@ fn dangling_links_and_a_missing_folder_are_reported() {
             ("links-resolve", Outcome::Violated),
             ("skill-md-built", Outcome::Error),
             ("references-exist", Outcome::Error),
-            ("json-schema-conforms", Outcome::Error)
+            ("json-schema-conforms", Outcome::Error),
+            ("grounds-are-outputs", Outcome::Error)
         ]
     );
 }

@@ -1,9 +1,11 @@
-//! UC1 作るの承認の材料：確認の1画面の材料（説明 ・ 完成イメージ ・ 振る舞い ・ 構造 ・ 推測の一覧）と、別の会話に任せる手順。
-//! validate が Skill ごとに返す。図は描かず、データだけを返す。何も書かない。
+//! UC1 作るの承認の材料：確認の1画面の材料（説明 ・ 完成イメージ ・ 振る舞い ・ 構造 ・ 構造の像 ・ 推測の一覧）と、
+//! 別の会話に任せる手順。validate が Skill ごとに返す。図は描かず、データだけを返す。何も書かない。
 //!
-//! 作る人が答えるのは目的（purpose）と役割（role）だけなので、それ以外の所はすべて推測とみなし、推測の一覧はそこから
-//! 機械で作る（項目を足さない）。件ごとに from を持つ所（受け持たないこと ・ 参照する資料）は、作る人の答え（問1〜問3 ・
-//! 資料の問い）を from に持たない件だけを推測とする。
+//! 目的（purpose）と役割（role）は、作る人が承認して決める仮説なので推測の一覧に入れない。それ以外の所はすべて推測とみなし、
+//! 推測の一覧はそこから機械で作る（項目を足さない）。件ごとに from を持つ所は、from が「作る人の答え」の件だけを推測から除く。
+//!
+//! 構造の像は、作る流れ（create が添える flow）と同じ4つ（受け持つ範囲 ・ 資料と出力の関係 ・ 手順と分かれ道 ・ 共通の所と
+//! 変わる所）を、skill.json から機械で作れる所まで返す。共通の所と変わる所は、Skill の種類を扱うまで空。
 //! 「分からない」と答えた所は一覧の先頭に出し、目的の who と gets が分からないままなら承認を受け付けない。
 
 use crate::use_cases::trimmed;
@@ -54,6 +56,8 @@ pub struct Approval {
     pub behaviors: Vec<(String, [String; 3])>,
     /// 構造（inputs ・ steps ・ edge_cases ・ outputs ・ does ・ does_not。skill.json の値のまま）
     pub structure: Vec<(&'static str, Value)>,
+    /// 構造の像（scope ・ materials_to_outputs ・ steps_and_branches ・ common_and_variable）
+    pub structure_image: Value,
     /// 推測の一覧（分からない所 → 損失の大きい順）
     pub guesses: Vec<Guess>,
     /// 承認できない理由（空なら承認できる）
@@ -196,9 +200,8 @@ fn guesses(skill: &Value) -> Vec<Guess> {
             if has_unknown(x) {
                 continue;
             }
-            // 受け持たないこと（role）と参照する資料は、作る人の答え（問1〜問3 ・ 資料の問い）から取った件は推測ではない。
-            // ほかの所（完了条件の from「問2 の答え」など）は、答えから導いたものなので推測のまま
-            if matches!(field, "/role/does_not" | "/references") && is_answer(s(x, "from")) {
+            // from が「作る人の答え」の件は推測ではない（どの所でも聞かれうるので、所で分けない）
+            if is_answer(s(x, "from")) {
                 continue;
             }
             out.push(Guess {
@@ -210,6 +213,98 @@ fn guesses(skill: &Value) -> Vec<Guess> {
         }
     }
     out
+}
+
+fn strings_at(v: &Value, pointer: &str, key: Option<&str>) -> Vec<String> {
+    v.pointer(pointer)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(|x| match key {
+            Some(k) => s(x, k).to_string(),
+            None => x.as_str().unwrap_or_default().to_string(),
+        })
+        .collect()
+}
+
+/// 拡張の id（2a など）の先頭の数字（分かれるステップ）。
+fn branch_step(id: &str) -> Option<u64> {
+    let digits: String = id.chars().take_while(char::is_ascii_digit).collect();
+    digits.parse().ok()
+}
+
+/// 構造の像の4つを、skill.json から機械で作る。箱の名前は、使い手がすること（does ・ steps の do）をそのまま使う。
+fn structure_image(skill: &Value) -> Value {
+    let steps: Vec<&Value> = skill
+        .get("steps")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .collect();
+    // 資料ごとに、読むステップと、資料が根拠になる出力（grounds_for）
+    let materials: Vec<Value> = skill
+        .get("references")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(|r| {
+            let read: Vec<u64> = r
+                .get("read_by")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_u64)
+                .collect();
+            let read_in: Vec<Value> = read
+                .iter()
+                .map(|n| {
+                    let step = steps.iter().find(|st| st.get("id").and_then(Value::as_u64) == Some(*n));
+                    serde_json::json!({"step": n, "do": step.map(|st| s(st, "do")).unwrap_or_default()})
+                })
+                .collect();
+            // 根拠になる出力は、資料の grounds_for に書いたもの（outputs の name）。書かれていなければそう示す
+            let grounds = r.get("grounds_for").and_then(Value::as_array);
+            let mut m = serde_json::json!({
+                "material": s(r, "name"),
+                "path": s(r, "path"),
+                "read_in": read_in,
+                "grounds": grounds.cloned().unwrap_or_default(),
+            });
+            if grounds.is_none() {
+                m["note"] = serde_json::json!("根拠になる出力が書かれていない（grounds_for が無い）");
+            }
+            m
+        })
+        .collect();
+    let branches: Vec<Value> = skill
+        .get("edge_cases")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(|e| {
+            serde_json::json!({
+                "id": s(e, "id"),
+                "at_step": branch_step(s(e, "id")),
+                "when": s(e, "when"),
+                "then": s(e, "then"),
+                "end": s(e, "end"),
+            })
+        })
+        .collect();
+    serde_json::json!({
+        "scope": {
+            "inputs": strings_at(skill, "/inputs", Some("name")),
+            "does": strings_at(skill, "/role/does", None),
+            "outputs": strings_at(skill, "/outputs", Some("name")),
+            "outside": strings_at(skill, "/role/does_not", Some("what")),
+        },
+        "materials_to_outputs": materials,
+        "steps_and_branches": {
+            "steps": steps.iter().map(|st| serde_json::json!({"id": st.get("id").cloned().unwrap_or_default(), "do": s(st, "do"), "completion": s(st, "completion")})).collect::<Vec<_>>(),
+            "branches": branches,
+        },
+        "common_and_variable": {"common": [], "variable": []},
+    })
 }
 
 fn text(v: &Value, pointer: &str) -> String {
@@ -311,6 +406,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
         images,
         behaviors,
         structure,
+        structure_image: structure_image(skill),
         guesses: guesses(skill),
         not_approvable,
         delegate,

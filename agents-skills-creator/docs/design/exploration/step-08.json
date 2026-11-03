@@ -1,0 +1,185 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 8,
+ "date": "2026-11-03",
+ "summary": "利用者が3問の体験を試し「質問が意味不明、答えても意味のあるものに感じない」だったので、ux-advisor と meta-thinking-advisor に通して作り直した体験に合わせ、skills create が skill.schema のときに添えるものを3問の順番から作る流れ（目的の仮説 ・ 完成の像 ・ 構造の像 ・ 推奨付きの問いを先に見せ、結果を左右する所だけを聞く）に替えた。validate の承認の材料に構造の像の4つを足し、from は「作る人の答え」と推測の2つにした。続けて、資料と出力の関係を文字の一致でなく、Concrete に足された references の grounds_for から作るようにした。判定役の指摘で、grounds_for の名前が outputs の name にあるかを、validate の creator の検査 grounds-are-outputs として機械で確かめるようにした",
+ "usecases": [
+  "UC1"
+ ],
+ "factchecks": [
+  {
+   "item": "前の体験の外れ",
+   "evidence": [
+    "利用者：「質問が意味不明、答えても意味のあるものに感じない」",
+    "設計（scratchpad/asc/ux2/index.html）：問いが欄の言葉だった（Match Between the System and the Real World）・ 何も見せずに思い出させた（Recognition Rather than Recall ・ Visibility of System Status）・ 結果を左右する知見の元を聞かなかった ・ 作る人が先に言った抽象を場面1つへ下ろして聞き直した（meta-thinking-advisor）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "利用者の方針",
+   "evidence": [
+    "「creator 自身を早く完成させたい」"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC1 作る：skills create が添える作る流れ（use_cases/create.rs の flow）",
+   "steps": [
+    "最初の返事で、目的の仮説 ・ 完成の像（頼む文と返る答え）・ 構造の像 ・ 推奨付きの問い 0〜2個を見せる。推測した所に【推測】",
+    "構造の像は、受け持つ範囲 ・ 資料と出力の関係 ・ 手順と分かれ道 ・ 共通の所と変わる所の4つ。箱の名前は使い手がすることの動詞",
+    "聞くのは、値を変えると完成の像が目に見えて変わり、会話 ・ リポジトリ ・ 既にある Skill のどれからも決まらない所だけ。ほかは AI が決めて【推測】",
+    "問い1つは、決めること ・ 推奨 ・ ほかの選択肢 ・ 完成の像で変わる所",
+    "2往復目からは、変わった所だけを「前 → 後」で、残りの問いの数を付けて出す",
+    "仕上げは、SAS に書かせ、write-skill-md と validate を打ち、別の会話で例を動かして完成の像と並べ、承認の前と後の振る舞いを出す"
+   ],
+   "rules": [
+    "目的は AI が仮説として示し、作る人が承認して決める",
+    "像は判断してもらう手段で、目的ではない",
+    "見せ方は表 ・ コードブロック ・ 木構造（図を出せるツールなら図でもよい）"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：承認の材料の構造の像（use_cases/approval.rs の structure_image）",
+   "steps": [
+    "受け持つ範囲：inputs の name ・ role.does ・ outputs の name ・ role.does_not の what",
+    "資料と出力の関係：references ごとに read_by のステップ（番号と do）と、grounds_for に書いた根拠になる出力。grounds_for が無い資料は「根拠になる出力が書かれていない」と出す",
+    "手順と分かれ道：steps（id ・ do ・ completion）と、edge_cases の id の先頭の数字を分かれるステップにした分かれ道",
+    "共通の所と変わる所：Skill の種類を扱うまで空"
+   ],
+   "rules": [
+    "skill.json から機械で作れる所までにし、欄を足さない"
+   ]
+  },
+  {
+   "usecase": "UC4 確かめる：grounds-are-outputs（use_cases/validate.rs）",
+   "steps": [
+    "outputs の name を集める",
+    "references ごとに grounds_for の各名前を見て、outputs の name に無い名前ごとに violated を1件（経路は skill.json#/references/<番号>/grounds_for）",
+    "無い名前が無ければ verified を1件（grounds_for を持つ資料が無いときも verified）"
+   ],
+   "rules": [
+    "名前どうしの突き合わせで機械で決まることは、AI の判定（意味の rule）にせず creator の検査にする"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "作る流れ",
+   "became": "script",
+   "why": "create でしか使わない。打ったセッションへの指示で、値を組む決まりは sas の手順（Concrete の説明 ・ 読み方 ・ rule）が持つ"
+  },
+  {
+   "what": "構造の像の作り方",
+   "became": "script",
+   "why": "承認の材料（validate）でしか使わない。資料と出力の関係は、references の grounds_for（Concrete に足された欄）から作る"
+  },
+  {
+   "what": "from の見分け（作る人の答えか）",
+   "became": "service",
+   "why": "domain の derivation の is_answer のまま。答えの印を「作る人の答え」の1つにした"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "3問（q1〜q4）と別の場面2つ",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "欄の言葉の問いを決まった順に聞く形を外し、像を先に見せて結果を左右する所だけを聞く流れにした"
+  },
+  {
+   "item": "from の区分（問1 の答え ・ 問2 の答え ・ 問3 の答え ・ 資料の問いの答え ・ 推測）",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "「作る人の答え」と推測の2つで足りる。新しい流れは決まった問いを持たず、完成の像を変える所ならどの欄でも聞かれうるので、どの問いの答えかは件の扱いを変えない。前は受け持たないことと資料だけ答えの件を推測から除いていたが、どの所でも、from が作る人の答えの件を除くようにした"
+  },
+  {
+   "item": "Concrete（skill.schema）の x-prompt に残る問1〜問3 と「資料の問いの答え」",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "sas update で直された（purpose ・ role の meaning と、例の from を「作る人の答え」「目的の仮説（得るもの）から」にした）"
+  },
+  {
+   "item": "資料と出力の関係の結び方",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "skill.json に資料と出力を結ぶ欄が無く、completion の文に出力の名前が出るかで結んでいた。Concrete の references に grounds_for（根拠になる outputs の name の並び。任意）が sas update で足されたので、それから作る。無い資料は書かれていないと示す"
+  },
+  {
+   "item": "grounds_for の名前が outputs にあるかの決まり",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "判定役の指摘。Concrete の rule（意味の判定）ではなく、creator の検査 grounds-are-outputs にした。検査は7つになった"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "【推測】",
+   "seen": "作る流れの guess_mark",
+   "drift": "承認の材料の推測の一覧（guesses）と同じもの。会話の中の像では印で、承認の材料では一覧で示す"
+  },
+  {
+   "term": "作る人の答え",
+   "seen": "from",
+   "drift": "前は問いの番号ごとに分けていた。いまは、作る人が会話で言ったか、推奨に同意したかで1つ"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "create が添えるもの",
+    "before": "questions（q1〜q4）・ scenes（別の場面2つ）・ unknown",
+    "after": "flow（first_reply ・ structure_image ・ box_names ・ ask_only_when ・ otherwise ・ question ・ later_rounds ・ finish ・ rules ・ presentation ・ unknown と guess_mark）",
+    "why": "作り直した体験に合わせた"
+   },
+   {
+    "what": "承認の材料",
+    "before": "説明 ・ 完成イメージ ・ 振る舞い ・ 構造 ・ 推測の一覧 ・ 別の会話に任せる手順",
+    "after": "構造の像（scope ・ materials_to_outputs ・ steps_and_branches ・ common_and_variable）を足した",
+    "why": "作る流れの構造の像と同じ4つを、書いたあとに skill.json から確かめられるようにする"
+   },
+   {
+    "what": "domain の derivation",
+    "before": "ANSWERED_FROM が問1〜問3 と資料の問いの4つ。導く元の文に問1 ・ 問2",
+    "after": "ANSWERED_FROM は「作る人の答え」の1つ。導く元の文を目的 ・ 完成の像 ・ 作る人が示した資料にした",
+    "why": "決まった問いを外した"
+   },
+   {
+    "what": "fixtures と場面の from",
+    "before": "問3 の答え ・ 問2 の答え ・ 資料の問いの答え ・ 別の場面で「同じ」",
+    "after": "作る人の答え ・ 目的の仮説（得るもの）から ・ 作る人が挙げた別の場面",
+    "why": "同じ"
+   },
+   {
+    "what": "資料と出力の関係の作り方",
+    "before": "資料を読むステップから後の completion に、出力の名前が出るか（文字の一致）",
+    "after": "references の grounds_for。無ければ grounds を空にし、note に「根拠になる出力が書かれていない」",
+    "why": "結び付きを作る人の決めた値で持つ"
+   },
+   {
+    "what": "場面の中の資料を持つ Skill",
+    "before": "grounds_for が無い",
+    "after": "7つの場面の references に grounds_for を足した（S-UC1-CONFIRM-REFERENCES の用語集だけは、書かれていないときを確かめるために足していない）",
+    "why": "同じ"
+   },
+   {
+    "what": "creator の検査",
+    "before": "6つ",
+    "after": "grounds-are-outputs を足して7つ（最後に並ぶ）",
+    "why": "資料と出力の関係が、どの出力にも結び付かない名前を持たないようにする"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "共通の所と変わる所の中身",
+    "why": "Skill の種類を扱うまで空（creator を仕上げたあとに扱う）"
+   },
+   {
+    "what": "作る流れの体験を、作る人で確かめること",
+    "why": "流れは打ったセッションが進めるので、場面の書式では動かせない。設計の順の1（作る人にもう一度試してもらう）で確かめる"
+   }
+  ]
+ }
+}

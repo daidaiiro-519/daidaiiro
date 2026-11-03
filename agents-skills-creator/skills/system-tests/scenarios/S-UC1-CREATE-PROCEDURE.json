@@ -2,8 +2,8 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC1-CREATE-PROCEDURE",
  "name": "Skill を作る手順",
- "title": "create に置き場所と Skill の Concrete（skill.schema）と --semantic を渡すと、sas create --semantic の結果を書き換えずに sas に入れ、先頭に3問の順番（問1〜問3、役割が資料に基づくときだけ聞く資料の問い）と別の場面2つの出し方を添え、何も書かない",
- "why": "creator は AI を起動しないので、打ったセッションが問いの順番と SAS の書く手順だけで作る人に聞き、SAS に書かせられないと、Skill を作れない。",
+ "title": "create に置き場所と Skill の Concrete（skill.schema）と --semantic を渡すと、sas create --semantic の結果を書き換えずに sas に入れ、先頭に作る流れ（最初の返事で見せる4つ ・ 構造の像の4つ ・ 聞く所の見分け方 ・ 問いの形 ・ 2往復目から ・ 仕上げ ・ 守ること ・ 見せ方）を添え、何も書かない",
+ "why": "作る人は欄の言葉の問いに答えても意味を感じられない。打ったセッションが、目的の仮説と完成の像と構造の像を先に見せ、結果を左右する所だけを推奨付きで聞けないと、作る人は見て直すことができない。",
  "traces": [
   "UC1:成功時保証",
   "約束:create-result"
@@ -35,42 +35,122 @@
   {
    "of": "when",
    "pointer": "/questions",
+   "exists": false
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/guess_mark",
+   "equals": "【推測】"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/first_reply",
    "count": 4
   },
   {
    "of": "when",
-   "pointer": "/questions/0/id",
-   "equals": "q1"
+   "pointer": "/flow/first_reply/0/id",
+   "equals": "purpose"
   },
   {
    "of": "when",
-   "pointer": "/questions/0/fills",
-   "contains": "/purpose/who"
+   "pointer": "/flow/first_reply/1/id",
+   "equals": "completion"
   },
   {
    "of": "when",
-   "pointer": "/questions/1/fills/0",
-   "equals": "/purpose/gets"
+   "pointer": "/flow/first_reply/2/id",
+   "equals": "structure"
   },
   {
    "of": "when",
-   "pointer": "/questions/2/fills/0",
-   "equals": "/role/does_not"
+   "pointer": "/flow/first_reply/3/id",
+   "equals": "questions"
   },
   {
    "of": "when",
-   "pointer": "/questions/3/id",
-   "equals": "q4"
+   "pointer": "/flow/structure_image",
+   "count": 4
   },
   {
    "of": "when",
-   "pointer": "/questions/3/when",
-   "contains": "資料"
+   "pointer": "/flow/structure_image/0/id",
+   "equals": "scope"
   },
   {
    "of": "when",
-   "pointer": "/scenes/count",
-   "equals": 2
+   "pointer": "/flow/structure_image/1/id",
+   "equals": "materials"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/structure_image/2/id",
+   "equals": "steps"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/structure_image/3/id",
+   "equals": "common"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/box_names",
+   "contains": "動詞"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/ask_only_when",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/ask_only_when/0",
+   "contains": "完成の像"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/otherwise",
+   "contains": "【推測】"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/question",
+   "count": 4
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/question/1/id",
+   "equals": "recommended"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/later_rounds",
+   "contains": "前 → 後"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/later_rounds",
+   "contains": "残りの問いの数"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/finish",
+   "contains": "別の会話"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/finish",
+   "contains": "承認の前と後"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/rules",
+   "contains": "仮説"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/presentation",
+   "contains": "木構造"
   },
   {
    "of": "when",
@@ -81,11 +161,6 @@
    "of": "when",
    "pointer": "/sas/target/path",
    "equals": "skills/<name>/skill.json"
-  },
-  {
-   "of": "when",
-   "pointer": "/sas/target/schema",
-   "equals": "urn:agents-skills-creator:skill:v1"
   },
   {
    "of": "when",
