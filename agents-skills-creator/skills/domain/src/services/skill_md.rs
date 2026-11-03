@@ -234,8 +234,19 @@ pub fn render(skill: &Value) -> String {
         } else {
             format!("（読む資料：{}）", read.join(" ・ "))
         };
+        // このステップで使う道具（tools の used_by にこの番号があるもの）
+        let used: Vec<&str> = items(skill, "tools")
+            .iter()
+            .filter(|t| items(t, "used_by").iter().any(|n| plain(n) == no))
+            .map(|t| text(t, "name"))
+            .collect();
+        let tools = if used.is_empty() {
+            String::new()
+        } else {
+            format!("（使う道具：{}）", used.join(" ・ "))
+        };
         lines.push(format!(
-            "{no}. {}{reads}（完了条件：{}）",
+            "{no}. {}{tools}{reads}（完了条件：{}）",
             text(s, "do"),
             text(s, "completion")
         ));

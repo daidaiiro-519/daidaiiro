@@ -1,0 +1,163 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 14,
+ "date": "2026-11-03",
+ "summary": "creator 自身の例 E1〜E3 を別の会話で動かして見つかった穴を直した。最初の返事の前に --semantic で書く手順を受け取る、作るか直すかを見分ける、足す例は返事で見せて承認のあと1回で書く、意味の判定が済むまで承認を受け付けない、そのまま打てる承認のコマンドを出す、agents update と --help を足す、Concrete の良い例 ・ 悪い例を creator の例と別の Skill にする、道具に used_by を足して手順の行に添える",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "別の会話で E1〜E3 を動かした結果（コーディネーターが動かし、利用者が直しを承認）",
+   "evidence": [
+    "最初の返事を、書く手順（--semantic）を受け取らずに作った",
+    "「直して」から始まる依頼の入り口が無かった",
+    "足す例を承認の前に書こうとした（「まず examples に足す」の表現）",
+    "意味の rule が not-judged のままでも承認の材料が承認できると返した",
+    "agents validate が PATH の skills を探し、隣の skills を使わなかった",
+    "承認のコマンドを組み立てられなかった",
+    "agents update と --help が無かった",
+    "Concrete の良い例が fact-check の答えになっていて、E1 の答えを写せた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Concrete の更新",
+   "evidence": [
+    "skill.schema：sas update の操作 o-0096（--reason 付き）。良い例 ・ 悪い例を会議の議事録から決まったことを抜き出す Skill にし、examples の説明を「入力と期待する結果を持つ例。承認の前に別の会話で動かし、結果を期待と並べる」にし、tools に used_by を足した",
+    "agent.schema：sas update の操作 o-0098（--reason 付き）。同じく良い例 ・ 悪い例を別の Agent（決まったことと宿題を同時に抜き出す）にし、examples の説明を直した",
+    "どちらも sas validate の機械の判定で違反 0"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 確かめる：承認の材料（skills ・ agents の validate）",
+   "steps": [
+    "sas validate の終了コードが 0 でなければ、承認できない理由に「SAS の検証で検出がある」",
+    "sas validate の結果に not-judged が1件でも残れば、承認できない理由に「意味の判定が済んでいない」と件数（approvable は false。終了コードは変えない）",
+    "そのまま打てる承認のコマンド approve.command：sas update <経路> --patch '[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"<この validate の操作 ID>\"}]' --if-match <いまの中身のハッシュ>（approved があれば replace）"
+   ],
+   "rules": [
+    "承認は人が打つ。creator はコマンドを示すだけ"
+   ]
+  },
+  {
+   "usecase": "UC3 直す：足す例（skills update ・ agents update の flow.add_example）",
+   "steps": [
+    "外れた具体から足す例の形を作り、直す前と後の像と一緒に返事で見せる",
+    "書くのは承認のあと1回で、足す例と選んだ層の直しを1つの JSON Patch にする"
+   ],
+   "rules": [
+    "承認の前に書かない"
+   ]
+  },
+  {
+   "usecase": "UC1 作る：道具の used_by（skill_md ・ validate の tools-used-by）",
+   "steps": [
+    "SKILL.md の手順の行に、used_by にその番号がある道具を「（使う道具：…）」として添える",
+    "used_by の番号が steps に無ければ violated"
+   ],
+   "rules": [
+    "道具とステップの結び付きは、作る人が決めた値（used_by）で持つ"
+   ]
+  },
+  {
+   "usecase": "UC0 ・ UC1：creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "作る流れの手引き（references/create-flow.md）：1 作るか直すか ・ Skill か Agent か、2 最初の返事の前に --semantic で書く手順を受け取る（Agent は配下を skills validate の結果で選び、agents/<name>/skills/ にリンクを置く）、3 書かせて確かめる（--value ・ SKILL.md ・ validate ・ 意味の判定 ・ 例を動かす）、4 承認と配布、5 取り下げ、6 直す（最初の返事は外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨）",
+    "skill.json を skills update --patch --reason「層：role」で直した（一時ディレクトリの SAS の記録で o-0006）：description の場面を3つ、steps を9つ（見分ける → --semantic と最初の返事 → 書かせる → SKILL.md → validate → 意味の判定 → 例を動かす → 承認 → 配る）、edge_cases 1a ・ 1b（取り下げ）・ 7a、rules の2つ目を「配布の取り下げは、影響を示したあと人が打つ」、minimal_guarantees に「どこで止まっても、作るフォルダと配布先の外は変わらない」、E1 の covers から 5a を外し E4（取り下げ）を足した、tools を12（agents update ・ write-skill-md ・ write-agent-md を足し、used_by 付き）"
+   ],
+   "rules": [
+    "承認は does_not が持つので、rules には取り下げだけを書く"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "承認できるかの見分け（not-judged の件数）と承認のコマンド",
+   "became": "script",
+   "why": "validate でしか使わない。skills と agents に写して持つ（文脈どうしでコードを共有しない）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "role.does の取り下げ",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "「Skill か Agent の配布を取り下げる」を「Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す」にした。creator に従う AI が打つ withdraw は AI のセッションからでは外さないので、AI がすることは影響を示すことまで。道具 withdraw の does もこれにそろえた"
+  },
+  {
+   "item": "「まず examples に足す」",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "往復の決まりの「まず examples に足す」は、承認の前に書くことと読まれた。足す例は返事で見せ、書くのは承認のあと1回にした（update の flow.add_example と create-flow.md の6）"
+  },
+  {
+   "item": "examples の「一度動かした例だけ」",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "作る時点では例をまだ動かしていない。「承認の前に別の会話で動かし、結果を期待と並べる」にした（Concrete の o-0096 ・ o-0098）"
+  },
+  {
+   "item": "意味の判定が済まない承認",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "not-judged が残るうちは approvable を false にした。終了コードは検出の有無のまま（意味の判定は別の会話がするので、validate の検出にしない）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "承認できる（approvable）",
+   "seen": "validate の承認の材料",
+   "drift": "検出が無い（終了コード 0）ことと、承認できることを分けた。意味の判定が済むまでは、検出が無くても承認できない"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "CLI",
+    "before": "agents に update が無い。skills ・ agents とも --help が使い方の誤り",
+    "after": "agents update（--semantic --task ／ --patch --if-match --reason 層：<層>）を足し、skills ・ agents の --help と help は使い方を返して終了コード 0",
+    "why": "Agent を直す手段と、使い方を見る手段"
+   },
+   {
+    "what": "agents が使う skills",
+    "before": "PATH の skills",
+    "after": "agents と同じフォルダの skills を先に使い、無ければ PATH",
+    "why": "creator の Skill の scripts/ では skills と agents が隣どうしで、PATH に無いことがある"
+   },
+   {
+    "what": "creator の検査",
+    "before": "11",
+    "after": "tools-used-by を足して12",
+    "why": "道具の used_by"
+   },
+   {
+    "what": "Concrete",
+    "before": "良い例 ・ 悪い例が fact-check ・ consult-advisors の答え。tools に used_by が無い",
+    "after": "会議の議事録の Skill ・ Agent の例。skill.schema の tools に used_by（o-0096 ・ o-0098）",
+    "why": "creator の例の答えを Concrete から写せないようにする"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "agents が隣の skills を使うことの場面",
+    "why": "場面の書式では PATH から sas を外さずに skills だけを外せない。コードと、creator の Skill の scripts/ の組み方で確かめる"
+   },
+   {
+    "what": "--help の出力の形",
+    "why": "使い方の文をそのまま返す（JSON ではない）。人と AI が読む使い方で、公開された言葉の形にしていない"
+   },
+   {
+    "what": "持ち越し",
+    "why": "step-13 の持ち越しのうち (11) 手順の行に使う道具を添えることは、このステップで作った。ほかはそのまま"
+   }
+  ]
+ }
+}

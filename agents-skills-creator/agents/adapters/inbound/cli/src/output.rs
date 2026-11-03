@@ -3,6 +3,7 @@
 
 use agents_application::use_cases::create::Created;
 use agents_application::use_cases::distribute::Distributed;
+use agents_application::use_cases::update::Updated;
 use agents_application::use_cases::validate::{AgentChecked, Checked};
 use agents_application::use_cases::withdraw::Withdrawn;
 use agents_application::use_cases::write_agent_md::Written;
@@ -11,6 +12,8 @@ use serde_json::{Value, json};
 
 /// create の結果の形。
 pub const CREATE: &str = "urn:agents-skills-creator:agents:create-result:v1";
+/// update の結果の形。
+pub const UPDATE: &str = "urn:agents-skills-creator:agents:update-result:v1";
 /// validate の結果の形（知らないコマンドの誤りもこの形で返す）。
 pub const VALIDATE: &str = "urn:agents-skills-creator:agents:validate-result:v1";
 /// write-agent-md の結果の形。
@@ -58,6 +61,17 @@ pub fn print_created(c: &Created) {
     }
     out["sas"] = c.sas.output.clone();
     out["sas_exit"] = json!(c.sas.exit);
+    println!("{out}");
+}
+
+/// 直させた結果を出す。
+pub fn print_updated(u: &Updated) {
+    let mut out = json!({"$schema": UPDATE, "kind": "update"});
+    if let Some(f) = &u.flow {
+        out["flow"] = f.clone();
+    }
+    out["sas"] = u.sas.output.clone();
+    out["sas_exit"] = json!(u.sas.exit);
     println!("{out}");
 }
 

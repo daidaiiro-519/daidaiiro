@@ -9,6 +9,10 @@
 //! - passes-are-outputs：ステップが渡すものの名前が、そのステップで呼んだ Skill の outputs の name にある（outputs は
 //!   skills validate の結果の承認の材料から読む。Skill の項目を直接読まない）
 //! - agent-md-built：AGENT.md と codex.toml が、agent.json から write-agent-md で作るものと同じ
+//!
+//! 承認の材料は、SAS の検証で検出があるか、意味の rule の not-judged が1件でも残れば、承認を受け付けない（approvable が
+//! false。終了コードは変えない）。そのまま打てる承認のコマンド（この validate の操作 ID と、いまの中身のハッシュ入り）を
+//! approve に出す。
 
 use crate::ports::{AgentFiles, AgentValidator, Run, SkillsCli};
 use crate::use_cases::approval::approval;
@@ -259,6 +263,28 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
     )
 }
 
+/// SAS の検証の結果のうち、判定を渡していない（not-judged）件数。
+fn count_not_judged(output: &Value) -> usize {
+    let one = |v: &Value| -> usize {
+        v.get("targets")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .flat_map(|t| {
+                t.get("results")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+            })
+            .filter(|r| r.get("result").and_then(Value::as_str) == Some("not-judged"))
+            .count()
+    };
+    match output {
+        Value::Array(rows) => rows.iter().map(one).sum(),
+        other => one(other),
+    }
+}
+
 /// Agent のフォルダごとに確かめる。
 ///
 /// # Errors
@@ -319,11 +345,37 @@ pub fn validate(
                 code: "sas_unavailable",
                 message,
             })?;
+        let approval = agent.ok().map(|a| {
+            let mut ap = approval(folder, &a);
+            let mut not = Vec::new();
+            if run.exit != 0 {
+                not.push(format!("SAS の検証で検出がある（sas validate の終了コード {}）", run.exit));
+            }
+            let not_judged = count_not_judged(&run.output);
+            if not_judged > 0 {
+                not.push(format!("意味の判定が済んでいない（not-judged が {not_judged} 件。approval の delegate の a で判定して sas validate --answer で渡す）"));
+            }
+            ap["approvable"] = Value::Bool(not.is_empty());
+            if !not.is_empty() {
+                ap["not_approvable"] = serde_json::json!(not);
+            }
+            if let (Some(op), Some(hash)) = (
+                run.output.pointer("/operations/0").and_then(Value::as_str),
+                run.output.pointer("/targets/0/hash").and_then(Value::as_str),
+            ) {
+                let verb = if a.get("approved").is_some() { "replace" } else { "add" };
+                ap["approve"] = serde_json::json!({
+                    "command": format!("sas update {folder}/{AGENT_JSON} --patch '[{{\"op\":\"{verb}\",\"path\":\"/approved\",\"value\":\"{op}\"}}]' --if-match {hash}"),
+                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）",
+                });
+            }
+            ap
+        });
         agents.push(AgentChecked {
             folder: given.clone(),
             sas: run,
             creator,
-            approval: agent.ok().map(|a| approval(folder, &a)),
+            approval,
         });
     }
     Ok(Checked { agents })

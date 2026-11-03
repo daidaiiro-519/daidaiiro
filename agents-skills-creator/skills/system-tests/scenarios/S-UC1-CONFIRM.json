@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC1-CONFIRM",
  "name": "確認の材料を受け取る",
- "title": "validate は、承認の材料として、description ・ 完成イメージ（examples の expected）・ 振る舞い（behavior）・ 構造（inputs ・ steps ・ edge_cases ・ outputs ・ 受け持つ ・ 受け持たない）・ 推測の一覧（損失の大きい順）と、別の会話に任せる手順（意味の判定 ・ 例を動かす）を返す。構造の像の4つ（受け持つ範囲 ・ 資料と出力の関係 ・ 手順と分かれ道 ・ 共通と変わる所）を skill.json から機械で作れる所まで返す",
+ "title": "validate は、承認の材料として、description ・ 完成イメージ（examples の expected）・ 振る舞い（behavior）・ 構造（inputs ・ steps ・ edge_cases ・ outputs ・ 受け持つ ・ 受け持たない）・ 推測の一覧（損失の大きい順）と、別の会話に任せる手順（意味の判定 ・ 例を動かす）を返す。構造の像の4つ（受け持つ範囲 ・ 資料と出力の関係 ・ 手順と分かれ道 ・ 共通と変わる所）を skill.json から機械で作れる所まで返す。意味の rule に not-judged が残る（判定を渡していない）ので、承認は受け付けない（approvable が false、理由に件数）。終了コードは検出が無ければ 0 のまま",
  "why": "作る人は項目を読まずに、完成イメージと振る舞いと構造で承認を決める。推測した所が分からないと、どこを確かめればよいかが分からない。",
  "traces": [
   "UC1:成功時保証",
@@ -11,7 +11,8 @@
  "given": {
   "files": {
    "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json",
-   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md"
+   "skills/fact-check/SKILL.md": "@fixtures/fact-check/SKILL.md",
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json"
   }
  },
  "when": {
@@ -89,7 +90,7 @@
   {
    "of": "when",
    "pointer": "/skills/0/approval/approvable",
-   "equals": true
+   "equals": false
   },
   {
    "of": "when",
@@ -165,6 +166,11 @@
    "of": "when",
    "pointer": "/skills/0/approval/structure_image/common_and_variable/variable",
    "count": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/skills/0/approval/not_approvable",
+   "contains": "意味の判定が済んでいない"
   }
  ],
  "unchanged": [

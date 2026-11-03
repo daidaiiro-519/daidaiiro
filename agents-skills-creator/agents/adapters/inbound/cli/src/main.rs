@@ -1,6 +1,6 @@
 //! agents コマンドの入口（文脈 agents）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
-//! コマンドは skills と同じ形：create（sas create を呼ぶ）・ validate（sas validate と creator の検査と承認の材料）・
+//! コマンドは skills と同じ形：create（sas create を呼ぶ）・ update（sas update を呼ぶ）・ validate（sas validate と creator の検査と承認の材料）・
 //! write-agent-md（agent.json から AGENT.md と codex.toml を書く）・ distribute（確かめてからツールの置き場所に定義を写して置く）・
 //! withdraw（配布を取り下げる。人が打ったときだけ）。文脈 skills には、skills コマンドの結果（公開された言葉）でだけ従う。
 //! 終了コード：0 = 正常 ／ 1 = 検出がある、sas が断った、sas ・ skills を呼べない、読めない ／ 2 = 使い方の誤り。
@@ -9,6 +9,7 @@ mod output;
 
 use agents_application::use_cases::create::{Mode, create};
 use agents_application::use_cases::distribute::{Scope, Tool, distribute};
+use agents_application::use_cases::update::{self, update};
 use agents_application::use_cases::validate::validate;
 use agents_application::use_cases::withdraw::withdraw;
 use agents_application::use_cases::write_agent_md::write_agent_md;
@@ -16,12 +17,14 @@ use agents_application::use_cases::{Outcome, Refused};
 use agents_outbound_filesystem::WorkingTree;
 use agents_outbound_sas::Sas;
 use agents_outbound_skills::Skills;
-use output::{CREATE, DISTRIBUTE, VALIDATE, WITHDRAW, WRITE_AGENT_MD};
+use output::{CREATE, DISTRIBUTE, UPDATE, VALIDATE, WITHDRAW, WRITE_AGENT_MD};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 const USAGE: &str = "使い方：agents create <Agent のフォルダ> --concrete <URN> --semantic ／ \
 agents create <Agent のフォルダ> --concrete <URN> --value <JSON> ／ \
+agents update <Agent のフォルダ> --semantic --task <外れた具体> ／ \
+agents update <Agent のフォルダ> --patch <JSON Patch> --if-match <ハッシュ> --reason 層：<層> ／ \
 agents validate <Agent のフォルダ>... ／ \
 agents write-agent-md <Agent のフォルダ> ／ \
 agents distribute <Agent のフォルダ> --tool <claude-code|codex> --scope <repository|user> ／ \
@@ -126,7 +129,12 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let rest = args.get(1..).unwrap_or_default();
     match args.first().map(String::as_str) {
+        Some("--help" | "help") => {
+            println!("{USAGE}");
+            ExitCode::SUCCESS
+        }
         Some("create") => run_create(rest),
+        Some("update") => run_update(rest),
         Some("validate") => run_validate(rest),
         Some("write-agent-md") => run_write(rest),
         Some("distribute") => run_distribute(rest),
@@ -175,6 +183,63 @@ fn run_create(args: &[String]) -> ExitCode {
             }
         }
         Err(r) => refuse(CREATE, &r),
+    }
+}
+
+fn run_update(args: &[String]) -> ExitCode {
+    let (folder, values, set) = match parse(
+        args,
+        UPDATE,
+        &["--task", "--patch", "--if-match", "--reason"],
+        &["--semantic"],
+    ) {
+        Ok(p) => p,
+        Err(c) => return c,
+    };
+    let mode = match (
+        set.contains(&"--semantic"),
+        value(&values, "--task"),
+        value(&values, "--patch"),
+    ) {
+        (true, Some(t), None) => update::Mode::Semantic(t.to_string()),
+        (false, None, Some(p)) => update::Mode::Patch {
+            patch: p.to_string(),
+            if_match: value(&values, "--if-match").map(ToString::to_string),
+            reason: value(&values, "--reason").map(ToString::to_string),
+        },
+        _ => {
+            return refuse(
+                UPDATE,
+                &usage(format!(
+                    "Agent のフォルダと、--semantic --task <外れた具体> か --patch <JSON Patch> のどちらか一方を渡してください。{USAGE}"
+                )),
+            );
+        }
+    };
+    if folder.is_none() {
+        return refuse(
+            UPDATE,
+            &usage(format!("直す Agent のフォルダを渡してください。{USAGE}")),
+        );
+    }
+    // 使い方の誤りは、sas を探す前に返す
+    if let Err(r) = update::check_mode(&mode) {
+        return refuse(UPDATE, &r);
+    }
+    let sas = match sas() {
+        Ok(s) => s,
+        Err(r) => return refuse(UPDATE, &r),
+    };
+    match update(folder, Some(mode), &sas) {
+        Ok(u) => {
+            output::print_updated(&u);
+            if u.sas.exit == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(r) => refuse(UPDATE, &r),
     }
 }
 

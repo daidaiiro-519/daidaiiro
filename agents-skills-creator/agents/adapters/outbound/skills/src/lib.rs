@@ -1,5 +1,5 @@
-//! ポート SkillsCli の実装。文脈 skills の公開された言葉（skills コマンドの validate の結果）を、skills を PATH から探して
-//! 外の実行ファイルとして呼んで読む。skills の crate には依存しない。出力は書き換えずに返す。
+//! ポート SkillsCli の実装。文脈 skills の公開された言葉（skills コマンドの validate の結果）を、skills（agents と同じ
+//! フォルダのもの、無ければ PATH のもの）を外の実行ファイルとして呼んで読む。skills の crate には依存しない。出力は書き換えずに返す。
 
 use agents_application::ports::{Run, SkillsCli};
 use serde_json::Value;
@@ -13,14 +13,21 @@ pub struct Skills {
 }
 
 impl Skills {
-    /// PATH の skills。PATH に無ければ None。
+    /// 使う skills：agents と同じフォルダにある skills（creator の Skill の scripts/ では隣どうし）を先に使い、無ければ
+    /// PATH の skills。どちらにも無ければ None。
     #[must_use]
     pub fn locate() -> Option<Self> {
-        std::env::var_os("PATH")
-            .and_then(|paths| {
-                std::env::split_paths(&paths)
-                    .map(|d| d.join("skills"))
-                    .find(|p| p.is_file())
+        let sibling = std::env::current_exe()
+            .ok()
+            .and_then(|me| me.parent().map(|d| d.join("skills")))
+            .filter(|p| p.is_file());
+        sibling
+            .or_else(|| {
+                std::env::var_os("PATH").and_then(|paths| {
+                    std::env::split_paths(&paths)
+                        .map(|d| d.join("skills"))
+                        .find(|p| p.is_file())
+                })
             })
             .map(|program| Self { program })
     }

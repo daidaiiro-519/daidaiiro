@@ -62,6 +62,8 @@ pub struct Approval {
     pub guesses: Vec<Guess>,
     /// 承認できない理由（空なら承認できる）
     pub not_approvable: Vec<String>,
+    /// そのまま打てる承認のコマンドと、打ち方（validate が SAS の結果から作る）
+    pub approve: Option<(String, String)>,
     /// 別の会話に任せる手順
     pub delegate: Vec<Delegate>,
 }
@@ -417,6 +419,7 @@ pub fn approval(folder: &str, skill: &Value) -> Approval {
         structure_image: structure_image(skill),
         guesses: guesses(skill),
         not_approvable,
+        approve: None,
         delegate,
     }
 }

@@ -43,6 +43,10 @@ fn usage(message: String) -> Refused {
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
+        Some("--help" | "help") => {
+            println!("{USAGE}");
+            ExitCode::SUCCESS
+        }
         Some("create") => run_create(&args[1..]),
         Some("update") => run_update(&args[1..]),
         Some("distribute") => run_distribute(&args[1..]),

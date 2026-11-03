@@ -85,6 +85,35 @@ impl AgentWriter for Sas {
             &["create", path, "--concrete", concrete, "--value", value],
         )
     }
+
+    fn update_semantic(&self, path: &str, task: &str) -> Result<Run, String> {
+        run(
+            &self.program,
+            &["update", path, "--semantic", "--task", task],
+        )
+    }
+
+    fn update_patch(
+        &self,
+        path: &str,
+        patch: &str,
+        if_match: &str,
+        reason: &str,
+    ) -> Result<Run, String> {
+        run(
+            &self.program,
+            &[
+                "update",
+                path,
+                "--patch",
+                patch,
+                "--if-match",
+                if_match,
+                "--reason",
+                reason,
+            ],
+        )
+    }
 }
 
 impl AgentHistory for Sas {

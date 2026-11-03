@@ -12,7 +12,7 @@
    "Skill か Agent を直す",
    "Skill か Agent が使える状態かを確かめる",
    "Skill か Agent を配る",
-   "Skill か Agent の配布を取り下げる"
+   "Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す"
   ],
   "does_not": [
    {
@@ -29,7 +29,7 @@
    }
   ]
  },
- "description": "作りたい作業を言うだけで、使える Agent Skill か Agent を作るときに使う。1つの Skill で終わるか、複数の Skill を束ねるかを見分け、目的の仮説 ・ 完成の像 ・ 構造の像を見せて作り、直し、確かめ、配り、配布を取り下げる。作った Skill の作業そのもの ・ 承認 ・ コミットはしない。",
+ "description": "作りたい作業を思いついたとき、使われて外れた具体で直したいとき、配りたいときに使う。作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分け、目的の仮説 ・ 完成の像 ・ 構造の像を見せて作り、直し、確かめ、配る。配布の取り下げは影響を示し、人が打つ。作った Skill の作業そのもの ・ 承認 ・ コミットはしない。",
  "compatibility": "sas（Semantic Agent Schema）が PATH にあること",
  "preconditions": [
   "作りたい作業か、使われて外れた具体を言える",
@@ -60,26 +60,46 @@
  "steps": [
   {
    "id": 1,
-   "do": "作りたい作業が、1つの Skill で終わるか、複数の Skill を束ねる Agent かを見分ける",
+   "do": "作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分ける",
    "completion": "見分けた結果と理由を作る人に示した"
   },
   {
    "id": 2,
-   "do": "目的の仮説 ・ 完成の像 ・ 構造の像と、推奨付きの問いを見せ、作る人に決めてもらう",
+   "do": "書く手順を --semantic で受け取り、返る flow に従って、目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問いを見せる",
    "completion": "作る人が目的の仮説を承認し、問いに答えた"
   },
   {
    "id": 3,
-   "do": "SAS に項目を書かせ、SKILL.md（Agent なら AGENT.md）を作って確かめる",
-   "completion": "validate の終了コードが 0 である"
+   "do": "SAS に項目を書かせる",
+   "completion": "sas の結果が created か updated である"
   },
   {
    "id": 4,
-   "do": "別の会話で例を動かし、実際の答えを完成の像と並べて承認を受ける",
-   "completion": "作る人の承認か、直す所の一言がある"
+   "do": "SKILL.md（Agent なら AGENT.md と codex.toml）を作る",
+   "completion": "write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある"
   },
   {
    "id": 5,
+   "do": "validate で確かめる",
+   "completion": "validate の終了コードが 0 である"
+  },
+  {
+   "id": 6,
+   "do": "意味の rule を別の会話で判定させ、判定を SAS に渡す",
+   "completion": "validate の承認の材料の approvable が true である"
+  },
+  {
+   "id": 7,
+   "do": "別の会話で例を動かし、実際の答えを完成の像と並べて見せる",
+   "completion": "どの例にも、実際の答えが期待と並んでいる"
+  },
+  {
+   "id": 8,
+   "do": "承認のコマンドを作る人に示し、人に承認を打ってもらう",
+   "completion": "skill.json（Agent なら agent.json）に approved がある"
+  },
+  {
+   "id": 9,
    "do": "作る人が選んだ配布先に置く",
    "completion": "distribute の placed-readable が verified である"
   }
@@ -95,21 +115,21 @@
    ]
   },
   {
-   "id": "4a",
-   "when": "使われて外れた具体を受け取った",
-   "then": "skills update の流れで、外れた具体を examples に足し、直す層を選んでもらって直す",
-   "end": "ステップ3へ戻る",
+   "id": "1b",
+   "when": "使わなくしたい",
+   "then": "withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ",
+   "end": "止める",
    "examples": [
-    "E3"
+    "E4"
    ]
   },
   {
-   "id": "5a",
-   "when": "使わなくしたい",
-   "then": "skills withdraw か agents withdraw で、影響を示し、人が打って取り下げる",
-   "end": "止める",
+   "id": "7a",
+   "when": "例の実際の答えが期待と違う",
+   "then": "外れた具体として直す層を選んでもらう",
+   "end": "ステップ2へ戻る",
    "examples": [
-    "E1"
+    "E3"
    ]
   }
  ],
@@ -124,17 +144,18 @@
    ]
   },
   {
-   "rule": "承認と配布の取り下げは、人が打つ",
-   "why": "AI が承認や取り下げをすると、作る人が確かめていない Skill が配られるか、使えなくなる",
-   "bad": "AI のセッションから approved を書く",
+   "rule": "配布の取り下げは、影響を示したあと人が打つ",
+   "why": "影響を見ずに取り下げると、その Skill ・ Agent を使っている人やツールが黙って使えなくなる",
+   "bad": "配布先の置き場所を示さずに、人に withdraw を打つよう頼む",
    "examples": [
-    "E1"
+    "E4"
    ]
   }
  ],
  "minimal_guarantees": [
   "作る人が承認するまで、配布先は変わらない",
-  "既にある Skill ・ Agent は、直すと言われた所のほかは変わらない"
+  "既にある Skill ・ Agent は、直すと言われた所のほかは変わらない",
+  "どこで止まっても、作るフォルダと配布先の外は変わらない"
  ],
  "completion_criteria": [
   {
@@ -156,8 +177,7 @@
    "from": "作るときの場面",
    "covers": [
     "C1",
-    "C2",
-    "5a"
+    "C2"
    ],
    "caller": "人が直接",
    "given": "Claude Code のサブエージェントの頁の URL と、項目名3つを照合したいという作業の説明がある",
@@ -191,7 +211,7 @@
    "from": "作る人が挙げた別の場面",
    "covers": [
     "C1",
-    "4a"
+    "7a"
    ],
    "caller": "人が直接",
    "given": "fact-check が、全角の空白を含む項目名に「無い」と返した",
@@ -201,6 +221,22 @@
     "who": "設計書を書く人",
     "does": "外れた具体を渡す",
     "then": "直した層が記録され、同じ外れが起きない"
+   }
+  },
+  {
+   "id": "E4",
+   "from": "作る人が挙げた別の場面",
+   "covers": [
+    "1b"
+   ],
+   "caller": "人が直接",
+   "given": "fact-check が .claude/skills に配られている",
+   "input": "fact-check を使わなくしたい",
+   "expected": "配布先の置き場所（.claude/skills/fact-check）と、人が打つ withdraw のコマンドが示され、AI は外さない",
+   "behavior": {
+    "who": "設計書を書く人",
+    "does": "Skill を使わなくしたいと言う",
+    "then": "どこから外れるかを見てから、自分で取り下げられる"
    }
   }
  ],
@@ -215,7 +251,11 @@
     2,
     3,
     4,
-    5
+    5,
+    6,
+    7,
+    8,
+    9
    ],
    "from": "作る人の答え",
    "grounds_for": [
@@ -229,6 +269,10 @@
    "name": "skills create",
    "does": "Skill か Agent を作る",
    "path": "scripts/skills",
+   "used_by": [
+    2,
+    3
+   ],
    "inputs": [
     "作りたい作業"
    ],
@@ -240,6 +284,10 @@
    "name": "skills update",
    "does": "Skill か Agent を直す",
    "path": "scripts/skills",
+   "used_by": [
+    2,
+    3
+   ],
    "inputs": [
     "使われて外れた具体"
    ],
@@ -248,27 +296,48 @@
    ]
   },
   {
+   "name": "skills write-skill-md",
+   "does": "Skill か Agent を作る",
+   "path": "scripts/skills",
+   "used_by": [
+    4
+   ]
+  },
+  {
    "name": "skills validate",
    "does": "Skill か Agent が使える状態かを確かめる",
-   "path": "scripts/skills"
+   "path": "scripts/skills",
+   "used_by": [
+    5
+   ]
   },
   {
    "name": "skills distribute",
    "does": "Skill か Agent を配る",
    "path": "scripts/skills",
+   "used_by": [
+    9
+   ],
    "outputs": [
     "配布先の置き場所"
    ]
   },
   {
    "name": "skills withdraw",
-   "does": "Skill か Agent の配布を取り下げる",
-   "path": "scripts/skills"
+   "does": "Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す",
+   "path": "scripts/skills",
+   "used_by": [
+    1
+   ]
   },
   {
    "name": "agents create",
    "does": "Skill か Agent を作る",
    "path": "scripts/agents",
+   "used_by": [
+    2,
+    3
+   ],
    "inputs": [
     "作りたい作業"
    ],
@@ -277,22 +346,54 @@
    ]
   },
   {
+   "name": "agents update",
+   "does": "Skill か Agent を直す",
+   "path": "scripts/agents",
+   "used_by": [
+    2,
+    3
+   ],
+   "inputs": [
+    "使われて外れた具体"
+   ],
+   "outputs": [
+    "Skill か Agent のフォルダ"
+   ]
+  },
+  {
+   "name": "agents write-agent-md",
+   "does": "Skill か Agent を作る",
+   "path": "scripts/agents",
+   "used_by": [
+    4
+   ]
+  },
+  {
    "name": "agents validate",
    "does": "Skill か Agent が使える状態かを確かめる",
-   "path": "scripts/agents"
+   "path": "scripts/agents",
+   "used_by": [
+    5
+   ]
   },
   {
    "name": "agents distribute",
    "does": "Skill か Agent を配る",
    "path": "scripts/agents",
+   "used_by": [
+    9
+   ],
    "outputs": [
     "配布先の置き場所"
    ]
   },
   {
    "name": "agents withdraw",
-   "does": "Skill か Agent の配布を取り下げる",
-   "path": "scripts/agents"
+   "does": "Skill か Agent の配布の取り下げの影響を示し、人が打つコマンドを返す",
+   "path": "scripts/agents",
+   "used_by": [
+    1
+   ]
   }
  ],
  "uses": [

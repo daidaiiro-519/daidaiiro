@@ -174,5 +174,8 @@ fn approval(c: &Approval) -> Value {
     if !c.not_approvable.is_empty() {
         out["not_approvable"] = json!(c.not_approvable);
     }
+    if let Some((command, how)) = &c.approve {
+        out["approve"] = json!({"command": command, "how": how});
+    }
     out
 }

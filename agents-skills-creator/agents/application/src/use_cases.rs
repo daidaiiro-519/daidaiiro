@@ -3,6 +3,7 @@
 pub mod approval;
 pub mod create;
 pub mod distribute;
+pub mod update;
 pub mod validate;
 pub mod withdraw;
 pub mod write_agent_md;

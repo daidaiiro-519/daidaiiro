@@ -497,7 +497,7 @@
       },
       "approvable": {
        "title": "承認できるか",
-       "description": "目的の「誰が」（purpose.who）と「何を得るか」（purpose.gets）が分かっているか。分からないままなら false で、承認を受け付けない",
+       "description": "目的の「誰が」（purpose.who）と「何を得るか」（purpose.gets）が分かっているか。分からないままなら false で、承認を受け付けない。SAS の検証の結果に、意味の rule の not-judged（判定を渡していない）が1件でも残れば false",
        "x-prompt": {
         "meaning": "false なら承認を求めず、下書きとして残す。",
         "when": "結果を受け取ったときに読む。",
@@ -583,6 +583,29 @@
          }
         }
        }
+      },
+      "approve": {
+       "title": "承認のコマンド",
+       "description": "そのまま打てる承認のコマンド（この validate の操作 ID を approved に入れ、いまの中身のハッシュを --if-match に入れた sas update）と、打ち方。SAS の結果から操作 ID とハッシュが読めたときだけ",
+       "x-prompt": {
+        "meaning": "作る人に示し、人が自分の端末で打つ。AI は打たない。",
+        "when": "結果を受け取ったときに読む。",
+        "rules": []
+       },
+       "type": "object",
+       "required": [
+        "command",
+        "how"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "command": {
+         "type": "string"
+        },
+        "how": {
+         "type": "string"
+        }
+       }
       }
      }
     }
@@ -601,7 +624,7 @@
    "properties": {
     "check": {
      "title": "検査の名前",
-     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は sas validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある",
+     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は sas validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある。tools-used-by：道具の used_by の番号が steps にある",
      "x-prompt": {
       "meaning": "どの検査の結果かを読む。",
       "when": "結果を受け取ったときに読む。",
@@ -618,7 +641,8 @@
       "tools-exist",
       "assets-exist",
       "tools-in-role",
-      "tool-io-declared"
+      "tool-io-declared",
+      "tools-used-by"
      ]
     },
     "result": {

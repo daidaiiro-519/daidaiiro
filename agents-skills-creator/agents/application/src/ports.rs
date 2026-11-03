@@ -33,6 +33,24 @@ pub trait AgentWriter {
     /// # Errors
     /// sas を呼べない ・ 出力が JSON でないとき。
     fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<Run, String>;
+
+    /// sas update <経路> --semantic --task <依頼>。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn update_semantic(&self, path: &str, task: &str) -> Result<Run, String>;
+
+    /// sas update <経路> --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn update_patch(
+        &self,
+        path: &str,
+        patch: &str,
+        if_match: &str,
+        reason: &str,
+    ) -> Result<Run, String>;
 }
 
 /// SAS の記録を読む（書かない）。
