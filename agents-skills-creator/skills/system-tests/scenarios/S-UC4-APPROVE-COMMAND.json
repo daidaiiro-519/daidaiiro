@@ -2,7 +2,7 @@
  "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
  "id": "S-UC4-APPROVE-COMMAND",
  "name": "そのまま打てる承認のコマンド",
- "title": "validate の承認の材料に、そのまま打てる承認のコマンド（sas update <経路> --patch で approved にこの validate の操作 ID、--if-match にいまの中身のハッシュ）が出て、人がそれを打つと承認が書ける",
+ "title": "意味の判定を渡した（sas validate --answer で not-judged が無い）確かめのあとに validate を打つと、承認を受け付け（approvable が true）、そのまま打てる承認のコマンド（approved に判定を渡した確かめの操作 ID、--if-match にいまの中身のハッシュ）と、承認の直前に validate を打ち直してそのとき出たコマンドを使うことを返す。人がそれを打つと承認が書ける。判定を渡す前は承認のコマンドを出さない",
  "why": "承認のコマンドを人が組み立てると、操作 ID やハッシュを写し間違え、承認が書けないか、違う確かめを承認する。",
  "traces": [
   "UC4:成功時保証",
@@ -10,7 +10,8 @@
  ],
  "given": {
   "files": {
-   "published-language/v1/skill.schema.json": "@published/skill.schema.json"
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "work/answer.json": "@fixtures/fact-check/answer.json"
   }
  },
  "when": {
@@ -32,10 +33,24 @@
   },
   {
    "sas": [
+    "validate",
+    "skills/fact-check/skill.json",
+    "--answer",
+    "work/answer.json"
+   ]
+  },
+  {
+   "args": [
+    "validate",
+    "skills/fact-check"
+   ]
+  },
+  {
+   "sas": [
     "update",
     "skills/fact-check/skill.json",
     "--patch",
-    "[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0002\"}]",
+    "[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0003\"}]",
     "--if-match",
     "sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9"
    ]
@@ -44,22 +59,46 @@
  "then": [
   {
    "of": "after[0]",
-   "pointer": "/skills/0/approval/approve/command",
-   "equals": "sas update skills/fact-check/skill.json --patch '[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0002\"}]' --if-match sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9"
+   "pointer": "/skills/0/approval/approvable",
+   "equals": false
   },
   {
    "of": "after[0]",
-   "pointer": "/skills/0/approval/approve/how",
-   "contains": "人"
+   "pointer": "/skills/0/approval/approve",
+   "exists": false
   },
   {
    "of": "after[1]",
    "exit": 0
   },
   {
+   "of": "after[1]",
+   "pointer": "/operations/0",
+   "equals": "o-0003"
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/skills/0/approval/approvable",
+   "equals": true
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/skills/0/approval/approve/command",
+   "equals": "sas update skills/fact-check/skill.json --patch '[{\"op\":\"add\",\"path\":\"/approved\",\"value\":\"o-0003\"}]' --if-match sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9"
+  },
+  {
+   "of": "after[2]",
+   "pointer": "/skills/0/approval/approve/how",
+   "contains": "承認する直前に validate を打ち直し"
+  },
+  {
+   "of": "after[3]",
+   "exit": 0
+  },
+  {
    "of": "when",
    "file": "skills/fact-check/skill.json",
-   "contains": "\"approved\": \"o-0002\""
+   "contains": "\"approved\": \"o-0003\""
   }
  ]
 }

@@ -1,0 +1,80 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC2-VALUE-FROM-FILE",
+ "name": "Agent の値をファイルから渡す",
+ "title": "agents create --value に @<ファイル> を渡すと、そのファイルの中身を値として使う。読めないファイルなら使い方の誤り",
+ "why": "長い JSON をコマンドの引数に書くと、シェルの引用で壊れやすい。",
+ "traces": [
+  "UC2:成功時保証",
+  "約束:create-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@skills-published/skill.schema.json",
+   "agents-published/agent.schema.json": "@published/agent.schema.json",
+   "skills/ddd-advisor/skill.json": "@fixtures/skills/ddd-advisor/skill.json",
+   "skills/ddd-advisor/SKILL.md": "@fixtures/skills/ddd-advisor/SKILL.md",
+   "skills/usecase-advisor/skill.json": "@fixtures/skills/usecase-advisor/skill.json",
+   "skills/usecase-advisor/SKILL.md": "@fixtures/skills/usecase-advisor/SKILL.md",
+   "skills/qa-advisor/skill.json": "@fixtures/skills/qa-advisor/skill.json",
+   "skills/qa-advisor/SKILL.md": "@fixtures/skills/qa-advisor/SKILL.md",
+   "skills/ux-advisor/skill.json": "@fixtures/skills/ux-advisor/skill.json",
+   "skills/ux-advisor/SKILL.md": "@fixtures/skills/ux-advisor/SKILL.md",
+   "skills/platform-advisor/skill.json": "@fixtures/skills/platform-advisor/skill.json",
+   "skills/platform-advisor/SKILL.md": "@fixtures/skills/platform-advisor/SKILL.md",
+   "skills/meta-thinking-advisor/skill.json": "@fixtures/skills/meta-thinking-advisor/skill.json",
+   "skills/meta-thinking-advisor/SKILL.md": "@fixtures/skills/meta-thinking-advisor/SKILL.md",
+   "work/agent.json": "@fixtures/consult-advisors/agent.json"
+  },
+  "links": {
+   "agents/consult-advisors/skills/ddd-advisor": "../../../skills/ddd-advisor",
+   "agents/consult-advisors/skills/usecase-advisor": "../../../skills/usecase-advisor",
+   "agents/consult-advisors/skills/qa-advisor": "../../../skills/qa-advisor",
+   "agents/consult-advisors/skills/ux-advisor": "../../../skills/ux-advisor",
+   "agents/consult-advisors/skills/platform-advisor": "../../../skills/platform-advisor",
+   "agents/consult-advisors/skills/meta-thinking-advisor": "../../../skills/meta-thinking-advisor"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "agents/consult-advisors",
+   "--concrete",
+   "urn:agents-skills-creator:agent:v1",
+   "--value",
+   "@work/agent.json"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "create",
+    "agents/other",
+    "--concrete",
+    "urn:agents-skills-creator:agent:v1",
+    "--value",
+    "@work/none.json"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/result",
+   "equals": "created"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "usage"
+  }
+ ]
+}

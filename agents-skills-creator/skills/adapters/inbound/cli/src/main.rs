@@ -40,8 +40,38 @@ fn usage(message: String) -> Refused {
     }
 }
 
+/// コマンドの使い方（USAGE のうち、そのコマンドの行だけ）。
+fn help_for(command: &str) -> String {
+    let lines: Vec<&str> = USAGE
+        .trim_start_matches("使い方：")
+        .split(" ／ ")
+        .filter(|l| l.split_whitespace().nth(1) == Some(command))
+        .collect();
+    format!("使い方：{}", lines.join("\n使い方："))
+}
+
+/// 値の引数：@<ファイル> ならファイルの中身を読む（作業ディレクトリからの経路）。読めなければ使い方の誤り。
+fn from_file(value: &str, schema: &str) -> Result<String, ExitCode> {
+    match value.strip_prefix('@') {
+        Some(path) => std::fs::read_to_string(path).map_err(|e| {
+            refuse(
+                schema,
+                &usage(format!("{value} のファイルを読めない（{e}）。{USAGE}")),
+            )
+        }),
+        None => Ok(value.to_string()),
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // コマンドの後ろの --help は、そのコマンドの使い方を返す
+    if let Some(command) = args.first()
+        && args.iter().skip(1).any(|a| a == "--help")
+    {
+        println!("{}", help_for(command));
+        return ExitCode::SUCCESS;
+    }
     match args.first().map(String::as_str) {
         Some("--help" | "help") => {
             println!("{USAGE}");
@@ -89,7 +119,10 @@ fn run_create(args: &[String]) -> ExitCode {
             },
             "--semantic" => mode = Some(Mode::Semantic),
             "--value" => match rest.next() {
-                Some(v) => mode = Some(Mode::Value(v.clone())),
+                Some(v) => match from_file(v, CREATE) {
+                    Ok(text) => mode = Some(Mode::Value(text)),
+                    Err(code) => return code,
+                },
                 None => {
                     return refuse(
                         CREATE,
@@ -175,10 +208,13 @@ fn run_update(args: &[String]) -> ExitCode {
     }
     let mode = match (semantic, task, patch) {
         (true, Some(t), None) => update::Mode::Semantic(t),
-        (false, None, Some(p)) => update::Mode::Patch {
-            patch: p,
-            if_match,
-            reason,
+        (false, None, Some(p)) => match from_file(&p, UPDATE) {
+            Ok(patch) => update::Mode::Patch {
+                patch,
+                if_match,
+                reason,
+            },
+            Err(code) => return code,
         },
         _ => {
             return refuse(

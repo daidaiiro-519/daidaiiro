@@ -1,0 +1,145 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 15,
+ "date": "2026-11-03",
+ "summary": "直した creator で E1〜E3 を動かし直して残った小さな穴を直した。道具の used_by に分かれ道の id、--semantic の手順の command と constraints を creator のコマンドに、コマンドの後ろの --help、値を @<ファイル> で渡す形、承認できるのは意味の判定まで済んだ確かめがあるときだけで承認のコマンドもそのときだけ、edge_cases の end の形、Concrete の意味の判定の違反を直し、creator 自身の手順2 ・ E5 と作る流れの手引きを直した",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "Concrete の更新",
+   "evidence": [
+    "skill.schema：sas update の操作 o-0104（--reason 付き）。tools の used_by に分かれ道の id（^[0-9]+[a-z]+$）を書けるように、edge_cases の end を「ステップ<番号>へ戻る ・ 進む」か「止める」の形（pattern）に、examples の description を1文目だけにした",
+    "agent.schema：sas update の操作 o-0106（--reason 付き）。purpose.who ・ role ・ role.does ・ role.does_not の description と approved の meaning、purpose-standalone ・ does-not-is-neighbor の rule と why を Agent の言い方に、skills と steps.kind の description を1文目だけにして読み方を meaning へ、examples の description を1文目だけに、edge_cases の end を同じ形にした",
+    "consult-advisors（fixture）：sas update の操作 o-0110。end の形に合わせて 1a の終わり方を「ステップ2へ進む」にした",
+    "どれも sas validate の機械の判定で違反 0"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "sas validate（機械）の結果に、前の意味の判定は出ない",
+   "evidence": [
+    "実地：sas validate --answer で判定を渡した操作（counts の not-judged 0）のあとに sas validate を打つと、その操作の results は意味の rule がまた not-judged になる。前の判定は SAS の記録（sas log の validate の操作の counts）に残る"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC4 確かめる：承認できるか（skills ・ agents の validate）",
+   "steps": [
+    "この validate を記録する前に sas log を読み、最後に書いた操作より新しい validate の操作のうち、counts の not-judged ・ violated ・ error がどれも 0 のもの（判定まで済んだ確かめ）を探す",
+    "無ければ承認できない理由に「意味の判定が済んでいない」と、いまの not-judged の件数",
+    "承認できるときだけ approve.command を出す。approved には判定まで済んだ確かめの操作 ID、--if-match にはいまの中身のハッシュ。how に「承認する直前に validate を打ち直し、そのとき出たコマンドを使う」"
+   ],
+   "rules": [
+    "承認の対象は、意味の判定まで済んだ確かめ"
+   ]
+  },
+  {
+   "usecase": "UC1 ・ UC3：--semantic の手順（skills ・ agents の create ・ update）",
+   "steps": [
+    "SAS の手順の command を creator のコマンドに置き換える（create は … --value <JSON か @<ファイル>>、update は … --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>）",
+    "constraints の「command の sas」を「command の skills（agents）」にする"
+   ],
+   "rules": [
+    "sas を直に打つ形を出さない"
+   ]
+  },
+  {
+   "usecase": "CLI（skills ・ agents）",
+   "steps": [
+    "コマンドの後ろの --help は、そのコマンドの使い方の行だけを返して終了コード 0",
+    "--value と --patch の @<ファイル> は、作業ディレクトリからのファイルの中身を読む。読めなければ使い方の誤り（終了コード 2）で sas を打たない"
+   ],
+   "rules": [
+    "控えのファイルは作業場所の中に置く（作る流れの手引き §3）"
+   ]
+  },
+  {
+   "usecase": "creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "skills update --patch @<ファイル> --reason「層：examples …」で直した（一時ディレクトリの SAS の記録で o-0011）：手順2の do と完了条件に直すとき（外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨、作る人が直す層を選んだ）、skills withdraw ・ agents withdraw の used_by を [\"1b\"]、E2 の covers から 1a を外し、1a を覆う E5（宿題を抜き出す Skill が skills/ に無い → 先に Skill として作ると見分ける）を足した",
+    "作る流れの手引き：節を §1〜§6 にし、節の中で番号を振らず SKILL.md の手順の番号で指す。フォルダの名前は構造の像の中で AI が【推測】で付けて作る人の答えで決め、--semantic の前に決める。値を @<ファイル> で渡す形と、控えを作業場所の外に置かないこと。Agent の節に、validate の出力のどこを見るか（.skills[0].approval.name ・ .description ・ .structure.inputs ・ .structure.outputs）と、リンクは相対で張ること"
+   ],
+   "rules": []
+  }
+ ],
+ "promotions": [
+  {
+   "what": "--semantic の手順を creator のコマンドに書き換えること（as_creator_procedure）",
+   "became": "script",
+   "why": "create と update が使う。skills と agents の use_cases にそれぞれ持つ"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "--semantic の結果を書き換えずに返す",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "手順の command と constraints だけは creator のコマンドに書き換える。sas を直に打つ形と creator のコマンドの2通りが出て、AI がどちらで書くか迷った（E1 ・ E3）。ほかの欄は書き換えない"
+  },
+  {
+   "item": "承認できるかを、この validate の not-judged で見ていた（ステップ14）",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "機械の validate はいつも意味の rule を not-judged にするので、いつまでも承認できなかった。判定まで済んだ確かめが SAS の記録にあるかで見るようにした"
+  },
+  {
+   "item": "分かれ道で使う道具",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "used_by がステップの番号しか書けず、取り下げの道具が手順1に付いて、見分けるたびに打つと読めた（E1〜E3）。分かれ道の id も書けるようにした（o-0104）"
+  },
+  {
+   "item": "edge_cases の end",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "「次へ進む」が書けなかった（E1）。「ステップ<番号>へ戻る ・ 進む」か「止める」の形にした（o-0104 ・ o-0106）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "判定まで済んだ確かめ",
+   "seen": "承認の材料の approvable と approve",
+   "drift": "機械の validate の操作ではなく、sas validate --answer で意味の判定を渡した validate の操作。承認はこの操作の ID を指す"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "validate（skills ・ agents）",
+    "before": "承認できるかを、この validate の not-judged で見る。承認のコマンドはいつも出す",
+    "after": "SAS の記録で判定まで済んだ確かめを探し、あるときだけ承認でき、承認のコマンドを出す。agents の validate に AgentHistory を足した",
+    "why": "機械の validate の結果には前の判定が出ない"
+   },
+   {
+    "what": "CLI（skills ・ agents）",
+    "before": "--help はコマンドの前だけ。値は引数の文字列だけ",
+    "after": "コマンドの後ろの --help、--value ・ --patch の @<ファイル>",
+    "why": "E1 ・ E2 の穴"
+   },
+   {
+    "what": "Concrete",
+    "before": "used_by はステップの番号だけ。end は自由な文",
+    "after": "used_by に分かれ道の id。end は形のある文（o-0104 ・ o-0106）",
+    "why": "E1〜E3 の穴と、意味の判定の違反"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "Agent で承認できる（approvable が true）ことの場面",
+    "why": "Agent の意味の判定の答えのファイルを fixture に置いていない。skills の側（S-UC4-APPROVE-COMMAND）で、判定まで済んだ確かめのあとに承認でき、そのコマンドで承認が書けることを確かめている"
+   },
+   {
+    "what": "持ち越し",
+    "why": "step-13 の持ち越しのうち (11) は step-14 で作った。ほかはそのまま"
+   }
+  ]
+ }
+}

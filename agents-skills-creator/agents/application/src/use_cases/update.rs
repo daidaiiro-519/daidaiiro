@@ -11,7 +11,7 @@
 
 use crate::ports::{AgentWriter, Run};
 use crate::use_cases::create::GUESS;
-use crate::use_cases::{AGENT_JSON, Refused, trimmed};
+use crate::use_cases::{AGENT_JSON, Refused, as_creator_procedure, trimmed};
 
 /// 作る人が答えられなかった所に入れる値。
 const UNKNOWN: &str = "分からない";
@@ -183,7 +183,20 @@ pub fn update(
     let path = format!("{folder}/{AGENT_JSON}");
     match mode {
         Mode::Semantic(task) => {
-            let run = sas.update_semantic(&path, &task).map_err(unavailable)?;
+            let mut run = sas.update_semantic(&path, &task).map_err(unavailable)?;
+            let hash = run
+                .output
+                .pointer("/target/hash")
+                .and_then(Value::as_str)
+                .unwrap_or("<手順の target.hash>")
+                .to_string();
+            as_creator_procedure(
+                &mut run.output,
+                format!(
+                    "agents update {folder} --patch <JSON Patch か @<ファイル>> --if-match {hash} --reason {LAYER_PREFIX}<層>"
+                ),
+                "agents",
+            );
             Ok(Updated {
                 flow: Some(flow(folder)),
                 sas: run,

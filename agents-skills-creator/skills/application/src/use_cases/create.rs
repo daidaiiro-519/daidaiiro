@@ -11,7 +11,7 @@
 
 use crate::ports::{SasRun, SkillWriter};
 use crate::use_cases::approval::UNKNOWN;
-use crate::use_cases::{Refused, trimmed};
+use crate::use_cases::{Refused, as_creator_procedure, trimmed};
 use serde_json::{Value, json};
 
 /// Agent Skill の Concrete の $id（作る流れを添える Concrete）。
@@ -113,7 +113,15 @@ pub fn create(
     match mode {
         Mode::Semantic => {
             let path = format!("{}/skill.json", trimmed(target));
-            let run = sas.create_semantic(&path, concrete).map_err(unavailable)?;
+            let mut run = sas.create_semantic(&path, concrete).map_err(unavailable)?;
+            as_creator_procedure(
+                &mut run.output,
+                format!(
+                    "skills create {} --concrete {concrete} --value <JSON か @<ファイル>>",
+                    trimmed(target)
+                ),
+                "skills",
+            );
             Ok(Created {
                 flow: (concrete == SKILL_ID).then(flow),
                 sas: run,

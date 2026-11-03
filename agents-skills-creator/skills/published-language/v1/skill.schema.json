@@ -679,12 +679,13 @@
      },
      "end": {
       "title": "終わり方",
-      "description": "どのステップへ戻るか、止めるかの終わり方である。",
+      "description": "分かれ道のあと、どのステップへ戻るか ・ 進むか、止めるかの終わり方である。",
       "x-prompt": {
+       "meaning": "「ステップ<番号>へ戻る」「ステップ<番号>へ進む」か「止める」の形で読む。番号は steps の id にあるものである。",
        "rules": []
       },
       "type": "string",
-      "minLength": 1
+      "pattern": "^(ステップ[0-9]+へ(戻る|進む)|止める)$"
      },
      "examples": {
       "$ref": "#/$defs/example-ids",
@@ -978,7 +979,7 @@
   },
   "examples": {
    "title": "例",
-   "description": "入力と期待する結果を持つ例の並びである。承認の前に別の会話で動かし、結果を期待と並べる。",
+   "description": "入力と期待する結果を持つ例の並びである。",
    "x-prompt": {
     "meaning": "抽象の項目（edge_cases ・ rules）は、ここの id を指す。置くのは、入力と期待する結果がある例である。承認の前に別の会話で動かし、結果を期待と並べる。",
     "when": "作るときに例を動かして確かめるときと、承認のときに完成イメージと振る舞いを見せるときに読む。直すときは、外れた具体をまずここに足す。",
@@ -1473,15 +1474,23 @@
      },
      "used_by": {
       "title": "使うステップ",
-      "description": "この道具を使うステップの番号の並びである。",
+      "description": "この道具を使うステップの番号か、分かれ道の id の並びである。",
       "x-prompt": {
-       "meaning": "番号は steps の id にあるものだけである。SKILL.md の手順の行に、使う道具として添える。",
+       "meaning": "番号は steps の id、分かれ道の id（1b など）は edge_cases の id にあるものだけである。SKILL.md の手順の行か分かれ道の行に、使う道具として添える。",
        "rules": []
       },
       "type": "array",
       "items": {
-       "type": "integer",
-       "minimum": 1
+       "oneOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "string",
+         "pattern": "^[0-9]+[a-z]+$"
+        }
+       ]
       },
       "uniqueItems": true
      }

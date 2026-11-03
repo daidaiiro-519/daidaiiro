@@ -285,7 +285,7 @@ pub fn distribute(
             format!("{}/{file}", home.trim_end_matches('/'))
         }
     };
-    let mut before = validate(&[folder.to_string()], sas, cli, files)?
+    let mut before = validate(&[folder.to_string()], sas, history, cli, files)?
         .agents
         .remove(0);
     before

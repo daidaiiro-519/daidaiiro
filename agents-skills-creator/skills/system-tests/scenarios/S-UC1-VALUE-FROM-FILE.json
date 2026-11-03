@@ -1,0 +1,98 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC1-VALUE-FROM-FILE",
+ "name": "値をファイルから渡す",
+ "title": "create --value と update --patch に @<ファイル> を渡すと、そのファイルの中身を値として使う。読めないファイルなら使い方の誤り（終了コード 2）で sas を打たない",
+ "why": "長い JSON をコマンドの引数に書くと、シェルの引用で壊れやすく、AI が書き写すたびに食い違う。",
+ "traces": [
+  "UC1:成功時保証",
+  "UC3:成功時保証",
+  "約束:create-result",
+  "約束:update-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "work/value.json": "@fixtures/fact-check/skill.json",
+   "work/patch.json": "[{\"op\":\"add\",\"path\":\"/examples/-\",\"value\":{\"id\":\"E3\",\"from\":\"使われて外れた具体\",\"covers\":[\"C1\"],\"caller\":\"人が直接\",\"given\":\"項目名に全角の空白が混ざった一覧がある\",\"input\":\"この URL で照合して\",\"expected\":\"全角の空白を含む名前も、原文にある ・ 無いが付く\",\"behavior\":{\"who\":\"設計書を書く人\",\"does\":\"全角の空白が混ざった項目名を照合する\",\"then\":\"空白の違いで無いと誤らずに済む\"}}}]"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "skills/fact-check",
+   "--concrete",
+   "urn:agents-skills-creator:skill:v1",
+   "--value",
+   "@work/value.json"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "update",
+    "skills/fact-check",
+    "--patch",
+    "@work/patch.json",
+    "--if-match",
+    "sha256:f650d844c910289c6b0ab989105fd84bcb9dc12d128291a840660a03f7587ec9",
+    "--reason",
+    "層：examples"
+   ]
+  },
+  {
+   "args": [
+    "create",
+    "skills/other",
+    "--concrete",
+    "urn:agents-skills-creator:skill:v1",
+    "--value",
+    "@work/none.json"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/result",
+   "equals": "created"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/sas/result",
+   "equals": "updated"
+  },
+  {
+   "of": "after[1]",
+   "exit": 2
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/message",
+   "contains": "work/none.json"
+  },
+  {
+   "of": "when",
+   "file": "skills/fact-check/skill.json",
+   "contains": "使われて外れた具体"
+  },
+  {
+   "of": "when",
+   "file": "skills/other/skill.json",
+   "exists": false
+  }
+ ]
+}

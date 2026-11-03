@@ -125,8 +125,38 @@ fn value<'a>(values: &[(&str, &'a str)], name: &str) -> Option<&'a str> {
     values.iter().find(|(k, _)| *k == name).map(|(_, v)| *v)
 }
 
+/// コマンドの使い方（USAGE のうち、そのコマンドの行だけ）。
+fn help_for(command: &str) -> String {
+    let lines: Vec<&str> = USAGE
+        .trim_start_matches("使い方：")
+        .split(" ／ ")
+        .filter(|l| l.split_whitespace().nth(1) == Some(command))
+        .collect();
+    format!("使い方：{}", lines.join("\n使い方："))
+}
+
+/// 値の引数：@<ファイル> ならファイルの中身を読む（作業ディレクトリからの経路）。読めなければ使い方の誤り。
+fn from_file(value: &str, schema: &str) -> Result<String, ExitCode> {
+    match value.strip_prefix('@') {
+        Some(path) => std::fs::read_to_string(path).map_err(|e| {
+            refuse(
+                schema,
+                &usage(format!("{value} のファイルを読めない（{e}）。{USAGE}")),
+            )
+        }),
+        None => Ok(value.to_string()),
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // コマンドの後ろの --help は、そのコマンドの使い方を返す
+    if let Some(command) = args.first()
+        && args.iter().skip(1).any(|a| a == "--help")
+    {
+        println!("{}", help_for(command));
+        return ExitCode::SUCCESS;
+    }
     let rest = args.get(1..).unwrap_or_default();
     match args.first().map(String::as_str) {
         Some("--help" | "help") => {
@@ -158,7 +188,10 @@ fn run_create(args: &[String]) -> ExitCode {
         };
     let mode = match (set.contains(&"--semantic"), value(&values, "--value")) {
         (true, None) => Some(Mode::Semantic),
-        (false, Some(v)) => Some(Mode::Value(v.to_string())),
+        (false, Some(v)) => match from_file(v, CREATE) {
+            Ok(text) => Some(Mode::Value(text)),
+            Err(code) => return code,
+        },
         _ => None,
     };
     if folder.is_none() || value(&values, "--concrete").is_none() || mode.is_none() {
@@ -203,7 +236,10 @@ fn run_update(args: &[String]) -> ExitCode {
     ) {
         (true, Some(t), None) => update::Mode::Semantic(t.to_string()),
         (false, None, Some(p)) => update::Mode::Patch {
-            patch: p.to_string(),
+            patch: match from_file(p, UPDATE) {
+                Ok(text) => text,
+                Err(code) => return code,
+            },
             if_match: value(&values, "--if-match").map(ToString::to_string),
             reason: value(&values, "--reason").map(ToString::to_string),
         },
@@ -262,7 +298,13 @@ fn run_validate(args: &[String]) -> ExitCode {
         (Ok(s), Ok(k)) => (s, k),
         (Err(r), _) | (_, Err(r)) => return refuse(VALIDATE, &r),
     };
-    match validate(args, &sas, &cli, &WorkingTree::new(PathBuf::from("."))) {
+    match validate(
+        args,
+        &sas,
+        &sas,
+        &cli,
+        &WorkingTree::new(PathBuf::from(".")),
+    ) {
         Ok(c) => {
             output::print_validated(&c);
             if c.detected() {

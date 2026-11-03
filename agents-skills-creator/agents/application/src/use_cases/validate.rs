@@ -10,11 +10,11 @@
 //!   skills validate の結果の承認の材料から読む。Skill の項目を直接読まない）
 //! - agent-md-built：AGENT.md と codex.toml が、agent.json から write-agent-md で作るものと同じ
 //!
-//! 承認の材料は、SAS の検証で検出があるか、意味の rule の not-judged が1件でも残れば、承認を受け付けない（approvable が
-//! false。終了コードは変えない）。そのまま打てる承認のコマンド（この validate の操作 ID と、いまの中身のハッシュ入り）を
-//! approve に出す。
+//! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
+//! error が0の validate の操作）が記録に無ければ、承認を受け付けない（approvable が false。終了コードは変えない）。
+//! 承認できるときだけ、そのまま打てる承認のコマンドを approve に出す。
 
-use crate::ports::{AgentFiles, AgentValidator, Run, SkillsCli};
+use crate::ports::{AgentFiles, AgentHistory, AgentValidator, Run, SkillsCli};
 use crate::use_cases::approval::approval;
 use crate::use_cases::{
     AGENT_JSON, Finding, Outcome, Refused, finding, read_agent, strings, trimmed,
@@ -263,6 +263,33 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
     )
 }
 
+/// 意味の判定まで済んだ確かめ：SAS の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
+/// どれも 0 のもの（sas validate --answer で判定を渡した確かめ）の ID。
+fn judged_validation(history: &dyn AgentHistory, path: &str) -> Option<String> {
+    let log = history.log(path).ok().filter(|r| r.exit == 0)?;
+    let rows: Vec<Value> = match log.output {
+        Value::Array(rows) => rows,
+        other @ Value::Object(_) => vec![other],
+        _ => Vec::new(),
+    };
+    for row in &rows {
+        match row.get("op").and_then(Value::as_str) {
+            Some("create" | "update" | "delete") => return None,
+            Some("validate") => {
+                let n = |k: &str| row.pointer(&format!("/counts/{k}")).and_then(Value::as_u64);
+                if n("not-judged") == Some(0) && n("violated") == Some(0) && n("error") == Some(0) {
+                    return row
+                        .get("operation")
+                        .and_then(Value::as_str)
+                        .map(ToString::to_string);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 /// SAS の検証の結果のうち、判定を渡していない（not-judged）件数。
 fn count_not_judged(output: &Value) -> usize {
     let one = |v: &Value| -> usize {
@@ -292,6 +319,7 @@ fn count_not_judged(output: &Value) -> usize {
 pub fn validate(
     folders: &[String],
     sas: &dyn AgentValidator,
+    history: &dyn AgentHistory,
     cli: &dyn SkillsCli,
     files: &dyn AgentFiles,
 ) -> Result<Checked, Refused> {
@@ -339,6 +367,8 @@ pub fn validate(
                 r.message.clone(),
             )),
         }
+        // 意味の判定まで済んだ確かめは、この確かめを記録する前に読む
+        let judged = judged_validation(history, &format!("{folder}/{AGENT_JSON}"));
         let run = sas
             .validate(&format!("{folder}/{AGENT_JSON}"))
             .map_err(|message| Refused {
@@ -351,23 +381,24 @@ pub fn validate(
             if run.exit != 0 {
                 not.push(format!("SAS の検証で検出がある（sas validate の終了コード {}）", run.exit));
             }
-            let not_judged = count_not_judged(&run.output);
-            if not_judged > 0 {
-                not.push(format!("意味の判定が済んでいない（not-judged が {not_judged} 件。approval の delegate の a で判定して sas validate --answer で渡す）"));
+            if judged.is_none() {
+                not.push(format!("意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して sas validate --answer で渡す）", count_not_judged(&run.output)));
             }
             ap["approvable"] = Value::Bool(not.is_empty());
-            if !not.is_empty() {
-                ap["not_approvable"] = serde_json::json!(not);
-            }
-            if let (Some(op), Some(hash)) = (
-                run.output.pointer("/operations/0").and_then(Value::as_str),
+            // 承認のコマンドは、承認できるときだけ出す
+            if let (true, Some(op), Some(hash)) = (
+                not.is_empty(),
+                judged.as_deref(),
                 run.output.pointer("/targets/0/hash").and_then(Value::as_str),
             ) {
                 let verb = if a.get("approved").is_some() { "replace" } else { "add" };
                 ap["approve"] = serde_json::json!({
                     "command": format!("sas update {folder}/{AGENT_JSON} --patch '[{{\"op\":\"{verb}\",\"path\":\"/approved\",\"value\":\"{op}\"}}]' --if-match {hash}"),
-                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）",
+                    "how": "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）。承認する直前に validate を打ち直し、そのとき出たコマンドを使う（あいだに書き換えがあれば、操作 ID とハッシュが変わる）",
                 });
+            }
+            if !not.is_empty() {
+                ap["not_approvable"] = serde_json::json!(not);
             }
             ap
         });

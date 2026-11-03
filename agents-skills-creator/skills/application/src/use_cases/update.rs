@@ -12,7 +12,7 @@
 use crate::ports::{SasRun, SkillWriter};
 use crate::use_cases::approval::UNKNOWN;
 use crate::use_cases::create::GUESS;
-use crate::use_cases::{Refused, trimmed};
+use crate::use_cases::{Refused, as_creator_procedure, trimmed};
 use serde_json::{Value, json};
 
 /// 直す層（上ほど狭く、下ほど広く直る）と、選んだときに導き直す項目。
@@ -181,7 +181,20 @@ pub fn update(
     let path = format!("{folder}/skill.json");
     match mode {
         Mode::Semantic(task) => {
-            let run = sas.update_semantic(&path, &task).map_err(unavailable)?;
+            let mut run = sas.update_semantic(&path, &task).map_err(unavailable)?;
+            let hash = run
+                .output
+                .pointer("/target/hash")
+                .and_then(Value::as_str)
+                .unwrap_or("<手順の target.hash>")
+                .to_string();
+            as_creator_procedure(
+                &mut run.output,
+                format!(
+                    "skills update {folder} --patch <JSON Patch か @<ファイル>> --if-match {hash} --reason {LAYER_PREFIX}<層>"
+                ),
+                "skills",
+            );
             Ok(Updated {
                 flow: Some(flow(folder)),
                 sas: run,

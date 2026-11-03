@@ -109,3 +109,24 @@ pub fn strings(v: &Value, key: &str) -> Vec<String> {
         .map(ToString::to_string)
         .collect()
 }
+
+/// SAS の手順を、creator のコマンドで書く形にする：command を creator のコマンドに置き換え、constraints の
+/// 「command の sas」を「command の <creator のコマンド>」にする（sas を直に打つ形を出さない）。手順でなければ変えない。
+pub fn as_creator_procedure(output: &mut serde_json::Value, command: String, bin: &str) {
+    if output.get("kind").and_then(serde_json::Value::as_str) != Some("procedure") {
+        return;
+    }
+    output["command"] = serde_json::Value::String(command);
+    if let Some(cs) = output
+        .get_mut("constraints")
+        .and_then(serde_json::Value::as_array_mut)
+    {
+        for c in cs.iter_mut() {
+            if let Some(t) = c.as_str() {
+                *c = serde_json::Value::String(
+                    t.replace("command の sas", &format!("command の {bin}")),
+                );
+            }
+        }
+    }
+}

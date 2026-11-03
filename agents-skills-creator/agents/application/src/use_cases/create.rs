@@ -3,7 +3,7 @@
 //! agents/<name> のように渡す）。Concrete が Agent の Concrete で --semantic のときだけ、作る流れを添える。
 
 use crate::ports::{AgentWriter, Run};
-use crate::use_cases::{AGENT_JSON, Refused, trimmed};
+use crate::use_cases::{AGENT_JSON, Refused, as_creator_procedure, trimmed};
 use serde_json::{Value, json};
 
 /// Agent の Concrete の $id。
@@ -93,10 +93,21 @@ pub fn create(
     };
     let path = format!("{}/{AGENT_JSON}", trimmed(folder));
     match mode {
-        Mode::Semantic => Ok(Created {
-            flow: (concrete == AGENT_ID).then(flow),
-            sas: sas.create_semantic(&path, concrete).map_err(unavailable)?,
-        }),
+        Mode::Semantic => {
+            let mut run = sas.create_semantic(&path, concrete).map_err(unavailable)?;
+            as_creator_procedure(
+                &mut run.output,
+                format!(
+                    "agents create {} --concrete {concrete} --value <JSON か @<ファイル>>",
+                    trimmed(folder)
+                ),
+                "agents",
+            );
+            Ok(Created {
+                flow: (concrete == AGENT_ID).then(flow),
+                sas: run,
+            })
+        }
         Mode::Value(v) => Ok(Created {
             flow: None,
             sas: sas.create_value(&path, concrete, &v).map_err(unavailable)?,

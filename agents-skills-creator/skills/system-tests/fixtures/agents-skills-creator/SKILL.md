@@ -61,10 +61,10 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 
 ## 手順
 
-1. 作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分ける（使う道具：skills withdraw ・ agents withdraw）（読む資料：作る流れの手引き）（完了条件：見分けた結果と理由を作る人に示した）
+1. 作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分ける（読む資料：作る流れの手引き）（完了条件：見分けた結果と理由を作る人に示した）
    - 1a 束ねたい Skill が足りない → 足りない Skill を先に Skill として作る（ステップ1へ戻る）
-   - 1b 使わなくしたい → withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ（止める）
-2. 書く手順を --semantic で受け取り、返る flow に従って、目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問いを見せる（使う道具：skills create ・ skills update ・ agents create ・ agents update）（読む資料：作る流れの手引き）（完了条件：作る人が目的の仮説を承認し、問いに答えた）
+   - 1b 使わなくしたい → withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ（止める）（使う道具：skills withdraw ・ agents withdraw）
+2. 書く手順を --semantic で受け取り、返る flow に従って最初の返事を見せる（作るときは目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問い、直すときは外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨）（使う道具：skills create ・ skills update ・ agents create ・ agents update）（読む資料：作る流れの手引き）（完了条件：作るときは作る人が目的の仮説を承認して問いに答え、直すときは作る人が直す層を選んだ）
 3. SAS に項目を書かせる（使う道具：skills create ・ skills update ・ agents create ・ agents update）（読む資料：作る流れの手引き）（完了条件：sas の結果が created か updated である）
 4. SKILL.md（Agent なら AGENT.md と codex.toml）を作る（使う道具：skills write-skill-md ・ agents write-agent-md）（読む資料：作る流れの手引き）（完了条件：write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある）
 5. validate で確かめる（使う道具：skills validate ・ agents validate）（読む資料：作る流れの手引き）（完了条件：validate の終了コードが 0 である）
@@ -100,3 +100,5 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
   → 外れた具体が examples に足され、直す層の案が推奨付きで出て、承認のあと「層：examples」の理由で直され、validate が通る
 - E4（人が直接）：fact-check が .claude/skills に配られている。「fact-check を使わなくしたい」
   → 配布先の置き場所（.claude/skills/fact-check）と、人が打つ withdraw のコマンドが示され、AI は外さない
+- E5（人が直接）：skills/ に会議の議事録から決まったことを抜き出す Skill はあるが、宿題を抜き出す Skill は無い。「会議のあと、決まったことと宿題を同時に抜き出して1つの連絡にまとめる Agent が欲しい」
+  → Agent だと見分け、宿題を抜き出す Skill が skills/ に無いので、先にそれを Skill として作ると示す

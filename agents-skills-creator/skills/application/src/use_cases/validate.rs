@@ -16,11 +16,12 @@
 //! - tools-exist ・ assets-exist：道具（tools）・ 資源（assets）の各 path にファイルがある（references-exist と同じ考え）
 //! - tools-in-role：道具の does が role.does のどれかと同じ文字列
 //! - tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある
-//! - tools-used-by：道具の used_by の番号が、steps にある
+//! - tools-used-by：道具の used_by のステップの番号が steps に、分かれ道の id が edge_cases にある
 //!
-//! 承認の材料は、SAS の検証の結果に意味の rule の not-judged（判定を渡していない）が1件でも残れば、承認を受け付けない
-//! （approvable を false にし、件数を理由に出す。終了コードは変えない）。そのまま打てる承認のコマンド（この validate の
-//! 操作 ID と、いまの中身のハッシュ入り）を approve に出す。
+//! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
+//! error が0の validate の操作。sas validate --answer で判定を渡したもの）が記録に無ければ、承認を受け付けない
+//! （approvable を false にし、理由を出す。終了コードは変えない）。承認できるときだけ、そのまま打てる承認のコマンド
+//! （判定まで済んだ確かめの操作 ID と、いまの中身のハッシュ入り）を approve に出す。
 
 use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillHistory, SkillValidator};
 pub use crate::use_cases::Refused;
@@ -528,22 +529,40 @@ fn tool_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
         .flatten()
         .filter_map(|s| s.get("id").and_then(Value::as_u64))
         .collect();
+    let edges: Vec<&str> = skill
+        .get("edge_cases")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.get("id").and_then(Value::as_str))
+        .collect();
     let mut used_by = Vec::new();
     for (i, t) in tools.iter().enumerate() {
         let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
-        for n in t
+        let at = format!("{}/skill.json#/tools/{i}/used_by", trimmed(folder));
+        for u in t
             .get("used_by")
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
-            .filter_map(Value::as_u64)
         {
-            if !steps.contains(&n) {
+            let missing = match u {
+                Value::Number(n) => n
+                    .as_u64()
+                    .filter(|n| !steps.contains(n))
+                    .map(|n| format!("used_by の {n} が、steps に無い")),
+                Value::String(id) => (!edges.contains(&id.as_str()))
+                    .then(|| format!("used_by の {id} が、edge_cases に無い")),
+                other => Some(format!(
+                    "used_by の {other} が、ステップの番号でも分かれ道の id でもない"
+                )),
+            };
+            if let Some(why) = missing {
                 used_by.push(finding(
                     "tools-used-by",
                     Outcome::Violated,
-                    Some(format!("{}/skill.json#/tools/{i}/used_by", trimmed(folder))),
-                    format!("道具 {name} の used_by の {n} が、steps に無い"),
+                    Some(at.clone()),
+                    format!("道具 {name} の {why}"),
                 ));
             }
         }
@@ -553,7 +572,8 @@ fn tool_checks(files: &dyn SkillFiles, folder: &str) -> Vec<Finding> {
             "tools-used-by",
             Outcome::Verified,
             None,
-            "道具の used_by の番号は、どれも steps にある".to_string(),
+            "道具の used_by のステップの番号と分かれ道の id は、どれも steps と edge_cases にある"
+                .to_string(),
         ));
     }
     role.extend(io);
@@ -851,10 +871,41 @@ fn count_not_judged(output: &Value) -> usize {
     }
 }
 
-/// そのまま打てる承認のコマンド：この validate の操作 ID を approved に入れ、いまの中身のハッシュを --if-match に入れる。
-/// 操作 ID かハッシュが読めなければ None。
-fn approve_command(path: &str, output: &Value, skill: &Value) -> Option<(String, String)> {
-    let op = output.pointer("/operations/0").and_then(Value::as_str)?;
+/// 意味の判定まで済んだ確かめ：SAS の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
+/// どれも 0 のもの（sas validate --answer で判定を渡した確かめ）の ID。この validate を記録する前に読む。
+pub(crate) fn judged_validation(history: &dyn SkillHistory, path: &str) -> Option<String> {
+    let log = history.log(path).ok().filter(|r| r.exit == 0)?;
+    let rows: Vec<Value> = match log.output {
+        Value::Array(rows) => rows,
+        other @ Value::Object(_) => vec![other],
+        _ => Vec::new(),
+    };
+    for row in &rows {
+        match row.get("op").and_then(Value::as_str) {
+            Some("create" | "update" | "delete") => return None,
+            Some("validate") => {
+                let n = |k: &str| row.pointer(&format!("/counts/{k}")).and_then(Value::as_u64);
+                if n("not-judged") == Some(0) && n("violated") == Some(0) && n("error") == Some(0) {
+                    return row
+                        .get("operation")
+                        .and_then(Value::as_str)
+                        .map(ToString::to_string);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// そのまま打てる承認のコマンド：意味の判定まで済んだ確かめの操作 ID を approved に入れ、いまの中身のハッシュを
+/// --if-match に入れる。ハッシュが読めなければ None。
+fn approve_command(
+    path: &str,
+    op: &str,
+    output: &Value,
+    skill: &Value,
+) -> Option<(String, String)> {
     let hash = output.pointer("/targets/0/hash").and_then(Value::as_str)?;
     let verb = if skill.get("approved").is_some() {
         "replace"
@@ -864,7 +915,7 @@ fn approve_command(path: &str, output: &Value, skill: &Value) -> Option<(String,
     let patch = format!("[{{\"op\":\"{verb}\",\"path\":\"/approved\",\"value\":\"{op}\"}}]");
     Some((
         format!("sas update {path} --patch '{patch}' --if-match {hash}"),
-        "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）".to_string(),
+        "作る人が承認の材料を見て承認したら、人が自分の端末でこのコマンドを打つ（AI のセッションから打つと、SAS が human_field で断る）。承認する直前に validate を打ち直し、そのとき出たコマンドを使う（あいだに書き換えがあれば、操作 ID とハッシュが変わる）".to_string(),
     ))
 }
 
@@ -900,6 +951,8 @@ pub fn validate(
         // 前の確かめから変わった所は、この確かめを記録する前に読む
         let changes =
             changes_since_last_validation(history, &format!("{}/skill.json", trimmed(folder)));
+        // 意味の判定まで済んだ確かめも、この確かめを記録する前に読む
+        let judged = judged_validation(history, &format!("{}/skill.json", trimmed(folder)));
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {
@@ -915,13 +968,18 @@ pub fn validate(
                     run.exit
                 ));
             }
-            let not_judged = count_not_judged(&run.output);
-            if not_judged > 0 {
+            if judged.is_none() {
                 a.not_approvable.push(format!(
-                    "意味の判定が済んでいない（not-judged が {not_judged} 件。approval の delegate の a で判定して sas validate --answer で渡す）"
+                    "意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して sas validate --answer で渡す）",
+                    count_not_judged(&run.output)
                 ));
             }
-            a.approve = approve_command(&format!("{}/skill.json", trimmed(folder)), &run.output, v);
+            // 承認のコマンドは、承認できるときだけ出す
+            if a.not_approvable.is_empty() {
+                a.approve = judged.as_deref().and_then(|op| {
+                    approve_command(&format!("{}/skill.json", trimmed(folder)), op, &run.output, v)
+                });
+            }
             a
         });
         skills.push(SkillChecked {

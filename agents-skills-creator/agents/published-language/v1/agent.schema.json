@@ -51,8 +51,8 @@
     "rules": [
      {
       "id": "purpose-standalone",
-      "rule": "目的の who に、Agent を介さず直接使う人が入っている。",
-      "why": "Agent からしか得られない目的にすると、Skill が単独で成り立たず、Agent に依存する。",
+      "rule": "目的の who に、ほかの Agent を介さず直接使う人が入っている。",
+      "why": "ほかの Agent からしか得られない目的にすると、この Agent が単独で成り立たず、ほかの Agent に依存する。",
       "check": "who に人が入っているかを見る。",
       "related_fields": [
        "/purpose/who"
@@ -109,7 +109,7 @@
    "properties": {
     "who": {
      "title": "使う人",
-     "description": "この Skill を使う人である。",
+     "description": "この Agent を使う人である。",
      "x-prompt": {
       "rules": []
      },
@@ -140,14 +140,14 @@
   },
   "role": {
    "title": "役割",
-   "description": "この Skill が受け持つことと受け持たないことの役割である。",
+   "description": "この Agent が受け持つことと受け持たないことの役割である。",
    "x-prompt": {
     "meaning": "受け持たないことは、取り違えやすい隣の仕事である。AI が仮説として示し、作る人が承認して決める。ほかの項目のもとになる。",
     "when": "steps ・ rules ・ inputs ・ minimal_guarantees を導くときと、description を作るときに読む。",
     "rules": [
      {
       "id": "does-not-is-neighbor",
-      "rule": "does_not の各件は、この Skill と取り違えやすい隣の仕事である。",
+      "rule": "does_not の各件は、この Agent と取り違えやすい隣の仕事である。",
       "why": "関係の無い仕事を並べても、AI が取り違えを避ける手がかりにならない。",
       "check": "各件が、does と同じ対象を扱う別の仕事かを見る。",
       "related_fields": [
@@ -197,7 +197,7 @@
    "properties": {
     "does": {
      "title": "受け持つこと",
-     "description": "この Skill がすることの並びである。",
+     "description": "この Agent がすることの並びである。",
      "x-prompt": {
       "rules": []
      },
@@ -210,7 +210,7 @@
     },
     "does_not": {
      "title": "受け持たないこと",
-     "description": "取り違えやすいが、この Skill はしないことの並びである。",
+     "description": "取り違えやすいが、この Agent はしないことの並びである。",
      "x-prompt": {
       "rules": []
      },
@@ -456,9 +456,9 @@
   },
   "skills": {
    "title": "配下の Skill",
-   "description": "Agent が呼ぶ Skill の名前の並びである。Agent のフォルダの skills/ に、同じ名前で Skill へのリンクを置く。",
+   "description": "Agent が呼ぶ Skill の名前の並びである。",
    "x-prompt": {
-    "meaning": "Agent が呼べるのはここに並べた Skill だけである。名前は Skill の name と同じ文字列である。",
+    "meaning": "Agent が呼べるのはここに並べた Skill だけである。名前は Skill の name と同じ文字列である。Agent のフォルダの skills/ に、同じ名前で Skill へのリンクを置く。",
     "when": "Agent が呼ぶ Skill を決めるときと、配下の skills/ のリンクを確かめるときに読む。",
     "rules": []
    },
@@ -569,9 +569,9 @@
      },
      "kind": {
       "title": "種類",
-      "description": "ステップの種類である。call は Skill を呼ぶ、approve は人が承認する。",
+      "description": "ステップの種類である。",
       "x-prompt": {
-       "meaning": "Agent は作業の中身を持たないので、ステップは Skill を呼ぶか、人が承認するかのどちらかである。",
+       "meaning": "call は配下の Skill を呼ぶステップ、approve は人が承認するステップとして読む。",
        "rules": []
       },
       "enum": [
@@ -800,12 +800,13 @@
      },
      "end": {
       "title": "終わり方",
-      "description": "どのステップへ戻るか、止めるかの終わり方である。",
+      "description": "分かれ道のあと、どのステップへ戻るか ・ 進むか、止めるかの終わり方である。",
       "x-prompt": {
+       "meaning": "「ステップ<番号>へ戻る」「ステップ<番号>へ進む」か「止める」の形で読む。番号は steps の id にあるものである。",
        "rules": []
       },
       "type": "string",
-      "minLength": 1
+      "pattern": "^(ステップ[0-9]+へ(戻る|進む)|止める)$"
      },
      "examples": {
       "$ref": "urn:agents-skills-creator:skill:v1#/$defs/example-ids",
@@ -1099,7 +1100,7 @@
   },
   "examples": {
    "title": "例",
-   "description": "入力と期待する結果を持つ例の並びである。承認の前に別の会話で動かし、結果を期待と並べる。",
+   "description": "入力と期待する結果を持つ例の並びである。",
    "x-prompt": {
     "meaning": "抽象の項目（edge_cases ・ rules）は、ここの id を指す。置くのは、入力と期待する結果がある例である。承認の前に別の会話で動かし、結果を期待と並べる。",
     "when": "作るときに例を動かして確かめるときと、承認のときに完成イメージと振る舞いを見せるときに読む。直すときは、外れた具体をまずここに足す。",
@@ -1301,7 +1302,7 @@
    "title": "承認した確かめの ID",
    "description": "作る人が承認した確かめ（sas validate の操作）の ID である。",
    "x-prompt": {
-    "meaning": "人が決める欄で、無ければ承認していない。この ID の確かめのあと、承認を書いた操作のほかに Skill を書き換えていなければ、承認はいまの中身に当たる。",
+    "meaning": "人が決める欄で、無ければ承認していない。この ID の確かめのあと、承認を書いた操作のほかに Agent を書き換えていなければ、承認はいまの中身に当たる。",
     "when": "配布する前に、承認がいまの中身に当たるかを決めるときに読む。",
     "rules": []
    },

@@ -237,7 +237,11 @@ pub fn render(skill: &Value) -> String {
         // このステップで使う道具（tools の used_by にこの番号があるもの）
         let used: Vec<&str> = items(skill, "tools")
             .iter()
-            .filter(|t| items(t, "used_by").iter().any(|n| plain(n) == no))
+            .filter(|t| {
+                items(t, "used_by")
+                    .iter()
+                    .any(|n| n.is_u64() && plain(n) == no)
+            })
             .map(|t| text(t, "name"))
             .collect();
         let tools = if used.is_empty() {
@@ -253,8 +257,19 @@ pub fn render(skill: &Value) -> String {
         for e in edges {
             let id = text(e, "id");
             if id.trim_end_matches(|c: char| c.is_ascii_lowercase()) == no {
+                // この分かれ道で使う道具（tools の used_by にこの id があるもの）
+                let used: Vec<&str> = items(skill, "tools")
+                    .iter()
+                    .filter(|t| items(t, "used_by").iter().any(|u| u.as_str() == Some(id)))
+                    .map(|t| text(t, "name"))
+                    .collect();
+                let tools = if used.is_empty() {
+                    String::new()
+                } else {
+                    format!("（使う道具：{}）", used.join(" ・ "))
+                };
                 lines.push(format!(
-                    "   - {id} {} → {}（{}）",
+                    "   - {id} {} → {}（{}）{tools}",
                     text(e, "when"),
                     text(e, "then"),
                     text(e, "end")
