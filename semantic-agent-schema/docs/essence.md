@@ -43,7 +43,7 @@
 
 - Semantic Agent Schema は、作法に基づく能力を提供する：JSON Schema とインスタンスの JSON に対する操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成
 - Concrete の具体の内容には依存しない
-- 依存の注入は受け入れる。ただし、Semantic Agent Schema が決めた契約の依存だけである。例：デザインシステム（契約は design-system と template-language。中身は使う側が渡す）。Concrete も同じで、Abstract に従うものを使う側が渡す
+- 依存の注入は受け入れる。ただし、Semantic Agent Schema が決めた契約の依存だけである。デザインシステムは、この形をイメージしやすくするための具体の一例である（契約は Semantic Agent Schema が決め、中身は使う側が渡す）
 
 ## 本質
 
