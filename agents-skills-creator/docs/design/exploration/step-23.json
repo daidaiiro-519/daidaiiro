@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 23,
+ "date": "2026-11-04",
+ "summary": "ACDR 0224（Semantic Agent Schema の記録を <git-common-dir>/semantic-agent-schema/records.sqlite に置き、環境変数を SEMANTIC_AGENT_SCHEMA_DATABASE_FILE にし、Git のリポジトリの外では記録を作らずに断る）に合わせた。場面の試験は作業ディレクトリを Git のリポジトリにしてから始め、持ち込まない環境変数に新しい名前を足した。creator 自身の skill.json の最低保証を semantic-agent-schema 経由で直し、SKILL.md を作り直した。試験・clippy・fmt が通る",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "Git のリポジトリの外の作業ディレクトリでは、semantic-agent-schema が断る",
+   "evidence": [
+    "新しい semantic-agent-schema で cargo test を流すと、文脈 agents の場面9本（S-UC2-APPROVE ・ S-UC2-CREATE-PROCEDURE など）が、semantic-agent-schema の not_in_repository（「Git のリポジトリの中で使う」）で通らなかった",
+    "場面の試験の作業ディレクトリを git init してから始めると、文脈 skills ・ agents の場面がすべて通る"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "semantic-agent-schema で書いたもの（--reason 付き）",
+   "evidence": [
+    "creator 自身の skill.json：一時ディレクトリ（git init 済み。fixtures のリンク先を実体で写した）の記録で o-0001（/minimal_guarantees/2 の記録の置き場所を <git-common-dir>/semantic-agent-schema/records.sqlite に）。--reason は「層：examples ACDR 0224 で、…」。SKILL.md を write-skill-md で作り直した（変わったのは最低保証の1行）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "記録の置き場所と環境変数の書き換え",
+   "steps": [
+    "場面の試験（skills_scenarios.rs ・ agents_scenarios.rs）：作業ディレクトリを git init してから始め、持ち込まない環境変数に SEMANTIC_AGENT_SCHEMA_DATABASE_FILE を足した（古い名前 SAS_DB_PATH も持ち込まない。設定されていると semantic-agent-schema が断る）",
+    "system-tests/scenario.schema.json の説明を、Git のリポジトリにした作業ディレクトリと、新しい環境変数の名前に",
+    "creator 自身の skill.json ・ SKILL.md ・ references/create-flow.md と、system-tests/skills/trace.json の UC4:最低保証、場面 S-UC1-CREATOR-ITSELF の期待を、新しい置き場所に"
+   ],
+   "rules": [
+    "記録の置き場所は Semantic Agent Schema が決める。creator は経路を持たず、文で書くときは <git-common-dir>/semantic-agent-schema/records.sqlite と書く"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [],
+ "structure": {
+  "changed": false,
+  "changes": []
+ }
+}

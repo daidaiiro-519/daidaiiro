@@ -4,7 +4,7 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 
 「承認」は、`agents-skills-creator approve` で approved を書くことだけを指す。目的の仮説は、作る人が「進めてよい」と答えて決まる。
 
-Semantic Agent Schema の記録は <git-common-dir>/sas/sas.db に書かれ、作業場所の Git の中に残る（git status には出ない）。最低保証の「作るフォルダと配布先の外は変わらない」は、この記録を除く。
+Semantic Agent Schema の記録は <git-common-dir>/semantic-agent-schema/records.sqlite に書かれ、作業場所の Git の中に残る（git status には出ない）。作業場所が Git のリポジトリでなければ、Semantic Agent Schema は記録を作らずに断る（not_in_repository）。最低保証の「作るフォルダと配布先の外は変わらない」は、この記録を除く。
 
 控えのファイル（値・JSON Patch・判定の答えなど）は、どのコマンドの出力も作業場所の中に置き、終わったら消す（作業場所は打った場所。外の /tmp などに置かない）。値の組み方そのものは、`agents-skills-creator skills create`・`agents-skills-creator agents create`・`agents-skills-creator skills update`・`agents-skills-creator agents update` の `--semantic` が返す手順（各欄の説明・読み方・rule と、打つコマンド）に従う。手順の番号は SKILL.md の手順の番号（手順1〜9）で指す。
 

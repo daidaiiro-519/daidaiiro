@@ -8,13 +8,15 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semantic Agent Schema の記録の置き場所）。
-/// 持ち込むと、semantic-agent-schema の出力のセッションが試験を動かす環境で変わる。
-const NOT_INHERITED: [&str; 5] = [
+/// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と Semantic Agent Schema の記録の置き場所。
+/// 置き場所は古い名前 SAS_DB_PATH も：設定されていると semantic-agent-schema が断る）。
+/// 持ち込むと、semantic-agent-schema の出力のセッションと記録が試験を動かす環境で変わる。
+const NOT_INHERITED: [&str; 6] = [
     "CLAUDE_CODE_SESSION_ID",
     "CODEX_SESSION_ID",
     "COPILOT_AGENT_SESSION_ID",
     "KIRO_SESSION_ID",
+    "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE",
     "SAS_DB_PATH",
 ];
 
@@ -64,6 +66,17 @@ fn workdir(id: &str) -> PathBuf {
         std::fs::remove_dir_all(&dir).expect("前の作業ディレクトリを消せること");
     }
     std::fs::create_dir_all(&dir).expect("作業ディレクトリを作れること");
+    // Semantic Agent Schema は Git のリポジトリの中だけで記録を作るので、作業ディレクトリをリポジトリにしてから始める
+    // （利用者の操作ではなく準備。実際の利用では、すでにリポジトリの中にいる）
+    let init = Command::new("git")
+        .args(["init", "-q"])
+        .current_dir(&dir)
+        .status()
+        .expect("git を起動できること");
+    assert!(
+        init.success(),
+        "作業ディレクトリを Git のリポジトリにできること"
+    );
     dir
 }
 

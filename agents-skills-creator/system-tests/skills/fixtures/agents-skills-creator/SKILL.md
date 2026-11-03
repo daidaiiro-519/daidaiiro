@@ -69,7 +69,7 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 
 - 作る人が承認するまで、配布先は変わらない
 - 既にある Skill ・ Agent は、直すと言われた所のほかは変わらない
-- どこで止まっても、作るフォルダと配布先の外は変わらない（Semantic Agent Schema の記録 <git-common-dir>/sas/sas.db を除く。記録は作業場所の Git の中に残り、git status には出ない）
+- どこで止まっても、作るフォルダと配布先の外は変わらない（Semantic Agent Schema の記録 <git-common-dir>/semantic-agent-schema/records.sqlite を除く。記録は作業場所の Git の中に残り、git status には出ない）
 
 ## 完了条件
 
