@@ -1,0 +1,68 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-WORKTREE-REVERTED",
+ "name": "外で前の中身に戻す",
+ "title": "同じワークツリーで Semantic Agent Schema が書いたあとに、エディターで前の事後の中身へ戻すと、このワークツリーで記録した最後の事後と比べて外の変更として知らせる",
+ "why": "記録のどれかの事後と同じなら外の変更でないとみなすと、git checkout などで前の中身へ戻した変更を見落とし、記録の最後の事後と作業ツリーの中身が食い違ったままになる。",
+ "traces": [
+  "UC4:変形:SAS を通らない変更を見つける"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"semantic-agent-schema で直した目的\"}]",
+     "--reason",
+     "目的を直す"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:example:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"検証の結果を受け取る\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/unrecorded",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/unrecorded/0/actual",
+   "equals": "sha256:4d840c6444ef6c2cf25cec1e297e7a11eb09202d5a9ccb41df2de3be795f9fe4"
+  },
+  {
+   "of": "when",
+   "pointer": "/unrecorded/0/last_operation",
+   "equals": "o-0002"
+  }
+ ]
+}

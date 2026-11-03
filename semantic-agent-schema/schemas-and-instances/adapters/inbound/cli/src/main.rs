@@ -5,8 +5,10 @@
 //! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
 //!
-//! 操作の記録の置き場所：環境変数 SAS_DB_PATH（db_path の上書き）→ `<git-common-dir>/sas/sas.db`（ワークツリーで1つ）→
-//! Git が無ければ `.sas/sas.db`。どれもコミットしない。無ければ空で作る（作り直せるデータ）。
+//! 操作の記録の置き場所（ACDR 0224。決めるのは db_path の1か所）：Git のリポジトリの中だけで、
+//! 環境変数 SEMANTIC_AGENT_SCHEMA_DATABASE_FILE（上書き）→ `<git-common-dir>/semantic-agent-schema/records.sqlite`（ワークツリーで1つ）。
+//! どれもコミットしない。無ければ空で作る（作り直せるデータ）。Git のリポジトリの外と、古い名前の環境変数 SAS_DB_PATH では、
+//! 記録を作らずに断る。古い置き場所 `<git-common-dir>/sas/sas.db` の記録は、最初に打ったときに1回だけ移す。
 
 mod caller;
 mod output;
@@ -92,20 +94,61 @@ fn usage(message: &str) -> ExitCode {
     ExitCode::from(2)
 }
 
-/// 操作の記録の置き場所。
-fn db_path(root: &Path) -> PathBuf {
-    if let Some(p) = std::env::var_os("SAS_DB_PATH").filter(|p| !p.is_empty()) {
-        return PathBuf::from(p);
+/// 記録の置き場所を指す環境変数。
+const DATABASE_FILE: &str = "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE";
+
+/// 記録の置き場所を指していた古い名前の環境変数。設定されていたら、黙って無視せずに断る。
+const OLD_DATABASE_FILE: &str = "SAS_DB_PATH";
+
+/// 操作の記録の置き場所。決めるのはここだけ。
+///
+/// 1. 古い名前の環境変数 SAS_DB_PATH が設定されていれば、新しい名前を示して断る
+/// 2. Git のリポジトリの外なら、記録を作らずに断る
+/// 3. SEMANTIC_AGENT_SCHEMA_DATABASE_FILE があればそのファイル
+/// 4. 無ければ `<git-common-dir>/semantic-agent-schema/records.sqlite`。古い置き場所 `<git-common-dir>/sas/sas.db` に記録があれば、
+///    ここへ1回だけ移し、古い置き場所には案内のファイルを置く（新しい置き場所にも記録があれば、どちらも触らずに断る）
+fn db_path(root: &Path) -> Result<PathBuf, Refused> {
+    if std::env::var_os(OLD_DATABASE_FILE).is_some() {
+        return Err(Refused {
+            code: "renamed_env",
+            message: format!(
+                "環境変数 {OLD_DATABASE_FILE} は名前を {DATABASE_FILE} に変えた。古い名前は読まないので、記録を作らずに止めた"
+            ),
+            hint: Some(Box::new(format!(
+                "{OLD_DATABASE_FILE} を外し、置き場所を指すなら {DATABASE_FILE} に設定してから打ち直す"
+            ))),
+            ..Refused::default()
+        });
     }
-    GitCommits::new(root.to_path_buf())
-        .common_dir()
-        .map_or_else(
-            || root.join(".sas").join("sas.db"),
-            |dir| dir.join("sas").join("sas.db"),
-        )
+    let Some(common) = GitCommits::new(root.to_path_buf()).common_dir() else {
+        return Err(Refused {
+            code: "not_in_repository",
+            message: "Git のリポジトリの外なので、記録を作らない（中身の版は Git が持つ前提）"
+                .to_string(),
+            hint: Some(Box::new(
+                "Git のリポジトリの中で使う（リポジトリでなければ git init してから打つ）"
+                    .to_string(),
+            )),
+            ..Refused::default()
+        });
+    };
+    if let Some(p) = std::env::var_os(DATABASE_FILE).filter(|p| !p.is_empty()) {
+        return Ok(PathBuf::from(p));
+    }
+    let records = common.join("semantic-agent-schema").join("records.sqlite");
+    let old = common.join("sas").join("sas.db");
+    let notice = format!(
+        "Semantic Agent Schema の記録は {} へ移した。\n\
+         このファイルはデータベースではない。古い版の semantic-agent-schema がここに空の記録を作って書き続けないように置いた案内である。\n\
+         新しい版の semantic-agent-schema を入れて使う。\n",
+        records.display()
+    );
+    outbound_sqlite::move_records(&old, &records, &notice).map_err(log_refused)?;
+    Ok(records)
 }
 
-/// semantic-agent-schema を打ったフォルダ：Git の中なら作業ツリーの根、外なら作業フォルダ（絶対の経路）。
+/// semantic-agent-schema を打ったフォルダ：作業ツリーの根（ワークツリーごとに違う。絶対の経路）。
+/// 記録は Git の中だけで作るので、作業フォルダになるのは Git が読めないときだけ。
 fn folder() -> String {
     GitCommits::new(PathBuf::from("."))
         .toplevel()
@@ -145,11 +188,13 @@ fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
         message,
         ..Refused::default()
     })?;
-    let log = SqliteLog::open(&db_path(&root)).map_err(|message| Refused {
-        code: "log",
-        message,
-        ..Refused::default()
-    })?;
+    let log = SqliteLog::open(&db_path(&root)?)
+        .map_err(|message| Refused {
+            code: "log",
+            message,
+            ..Refused::default()
+        })?
+        .in_worktree(folder());
     Ok((WorkingTree::new(root), validator, log))
 }
 
@@ -707,7 +752,10 @@ fn run_log(args: &[String]) -> ExitCode {
     if operation.is_some() && filter != OperationFilter::default() {
         return usage("--operation は1件を読むので、経路やほかの絞り方と一緒に渡せません");
     }
-    let path = db_path(&PathBuf::from("."));
+    let path = match db_path(&PathBuf::from(".")) {
+        Ok(p) => p,
+        Err(r) => return refuse(r),
+    };
     // 記録が無ければ、作らずに「無い」として返す（読んでも何も変えない）
     let log = if path.exists() {
         match SqliteLog::open(&path) {

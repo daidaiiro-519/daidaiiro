@@ -170,8 +170,9 @@ pub fn delete(
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
-            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
-            "SAS が最後に書いた事後の",
+            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str())
+                .and_then(|w| w.row.after.clone()),
+            "このワークツリーで Semantic Agent Schema が最後に書いた事後の",
         ),
     };
     if let Some(expected) = expected.filter(|e| e != current.as_str()) {

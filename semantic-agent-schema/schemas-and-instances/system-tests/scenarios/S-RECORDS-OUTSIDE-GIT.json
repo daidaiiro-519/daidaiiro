@@ -1,0 +1,64 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-RECORDS-OUTSIDE-GIT",
+ "name": "Git の外では断る",
+ "title": "Git のリポジトリの外で打つと、記録を作らずに not_in_repository で断り、Git のリポジトリの中で使うよう案内する",
+ "why": "中身の版は Git が持つ前提なので、Git の外で記録を作ると、あとで git init したときに記録が2か所に分かれる。",
+ "traces": [
+  "約束:command-result:records"
+ ],
+ "given": {
+  "repo": false,
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "usecases/u1.json",
+   "--adopt"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "log"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_in_repository"
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "Git のリポジトリの中で使う"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "not_in_repository"
+  },
+  {
+   "of": "when",
+   "file": ".sas/sas.db",
+   "exists": false
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

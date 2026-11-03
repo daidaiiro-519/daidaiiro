@@ -43,7 +43,7 @@ fn rows_written_as_intent_are_read_as_reason() {
         .connection()
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 7);
+    assert_eq!(version, 8); // いまの版まで進む
     // 版5 で書いた理由が、名前を変えた欄から読める
     let all = log.operations(&OperationFilter::default()).unwrap();
     assert_eq!(all[0].reason.as_deref(), Some("目標を直す"));

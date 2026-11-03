@@ -1,0 +1,134 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 10,
+ "date": "2026-11-04",
+ "summary": "ACDR 0224 を適用した。記録を Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ置き（環境変数 SEMANTIC_AGENT_SCHEMA_DATABASE_FILE）、Git のリポジトリの外と古い名前の SAS_DB_PATH では記録を作らずに断り、古い置き場所 sas/sas.db の記録は1回だけ移す。外の変更は、同じワークツリーで記録した最後の事後と比べる（移行 0008 で changes に worktree）。試験142件、場面145本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC7"
+ ],
+ "factchecks": [
+  {
+   "item": "経路だけで比べると、ほかのワークツリーの書き込みを外の変更と取り違えて断る",
+   "evidence": [
+    "実測（ACDR 0224 の前の版 ~/.local/bin/semantic-agent-schema）：1つのリポジトリにワークツリー a ・ b（別ブランチ）を作り、b で usecases/u1.json を update したあと、外で変えていない a で同じファイルを update すると conflict（interleaved の unrecorded が true）で断られた",
+    "原因：b の更新の事前（コミットの中身）は記録の事後にならず、a の中身が記録のどの事後とも違うので、ワークツリーをまたいだ最後の事後（b の事後）と比べていた",
+    "場面 S-UC2-WORKTREE-IN-TURN が、実装の前に失敗し、実装のあとに通る"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "古い置き場所に置いた案内のファイルを、古い版のコマンドが開くと断られ、案内は変わらない",
+   "evidence": [
+    "実測：古い版で .git/sas/sas.db に記録を作り、新しい版で semantic-agent-schema log を1回打つと .git/semantic-agent-schema/records.sqlite へ移り、案内のファイルが置かれた。古い版の update ・ log は「操作の記録：file is not a database」で終了コード 1 になり、案内のファイルの md5 は変わらなかった",
+    "outbound の sqlite の試験 move_records.rs（古い版と同じ開き方 SqliteLog::open で断られ、中身は変わらない）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Git の共通フォルダの取り方",
+   "evidence": [
+    "outbound の git の common_dir：git rev-parse --path-format=absolute --git-common-dir（ステップ4b の照合のまま）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "記録の置き場所を決める（入口の main.rs の db_path）",
+   "steps": [
+    "古い名前の環境変数 SAS_DB_PATH が設定されていれば、renamed_env で新しい名前を示して断る",
+    "Git の共通フォルダが取れなければ（リポジトリの外）、not_in_repository で断り、hint で Git のリポジトリの中で使うよう案内する",
+    "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE があれば、そのファイル",
+    "無ければ <git-common-dir>/semantic-agent-schema/records.sqlite。古い置き場所 <git-common-dir>/sas/sas.db が SQLite の記録なら、チェックポイントをかけて rename で移し、案内のファイルを置く（outbound の sqlite の move_records）"
+   ],
+   "rules": [
+    "記録は Git のリポジトリの中だけで作る",
+    "古い名前の設定を黙って無視しない",
+    "新しい置き場所にも記録があれば、どちらも触らずに断る",
+    "案内のファイルはデータベースでないので、2回目は移さない"
+   ]
+  },
+  {
+   "usecase": "外の変更を見つける（UC2 ・ UC3 の --if-match を省いた更新 ・ 削除、UC2 の取り込み、UC4 の検証）",
+   "steps": [
+    "対象を書いた操作を、どのワークツリーのものも記録した順に引き、いまのワークツリー（作業ツリーの根）で書いたものに印を付ける",
+    "このワークツリーで書いた操作があれば、その最後の事後といまの中身を比べる",
+    "まだ書いていなければ、その経路の記録のどれかの中身（事前か事後）と比べる。どれとも違えば、記録の最後の操作と比べた外の変更"
+   ],
+   "rules": [
+    "ほかのワークツリーの書き込みは、外の変更と取り違えない",
+    "前の事後へ戻した中身も、このワークツリーでは外の変更"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "外の変更かを決める判断（unrecorded_since）",
+   "became": "service",
+   "why": "更新 ・ 削除 ・ 取り込み ・ 検証と間に入った変更（interleaved）が同じ判断を使い、同じ理由で一緒に変わる。取り込みと interleaved は自分で「記録のどれかの事後か」を見ていたので、writing-domain の1か所にそろえた。返すのは、比べた記録の操作（事後のハッシュと操作の ID）"
+  },
+  {
+   "what": "同じワークツリーで書いた操作か（WriteRecord の same_worktree）",
+   "became": "value",
+   "why": "いまのワークツリーは入口が決めて記録のアダプターへ渡し（SqliteLog::in_worktree）、アダプターが引いた行に印を付ける。ユースケースはワークツリーの経路を知らなくてよい"
+  },
+  {
+   "what": "古い置き場所の記録を移す手続き",
+   "became": "script",
+   "why": "入口が1回だけ呼ぶ手続きで、ドメインの判断を持たない。チェックポイントは SQLite の操作なので、outbound の sqlite（move_records）に置いた"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "記録の置き場所",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "ステップ4b で .git の中に置くことを、ほかの案と比べずに決めていた。ACDR 0224 で3案を比べ、.git の中の semantic-agent-schema/records.sqlite にした。Git の外の .sas/ はやめた"
+  },
+  {
+   "item": "外の変更の検出",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "ステップ4b の「いまの中身が、その経路の記録のどれかの事後か」は、ほかのワークツリーで初めて書いた更新の事前（コミットの中身）を見落とし、並べたワークツリーで断っていた。前の事後へ戻した外の変更も見落としていた"
+  },
+  {
+   "item": "概念のページの DB の図とカード",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "changes に worktree を足し、置き場所のカードを新しい置き場所と環境変数にした（版は上げていない）"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "記録の表（changes）",
+    "before": "書いた変更は、書いたワークツリーを持たない",
+    "after": "移行 0008 で worktree（作業ツリーの根の絶対の経路）を足した。0008 より前の行は NULL で、どのワークツリーのものでもない",
+    "why": "外の変更を、同じワークツリーで記録した最後の事後と比べるため。changes はほかの表の trigger が読むので、作り直さずに欄を足した"
+   },
+   {
+    "what": "記録の置き場所と環境変数",
+    "before": "SAS_DB_PATH → <git-common-dir>/sas/sas.db → Git が無ければ .sas/sas.db",
+    "after": "Git のリポジトリの中だけで、SEMANTIC_AGENT_SCHEMA_DATABASE_FILE → <git-common-dir>/semantic-agent-schema/records.sqlite。Git の外は not_in_repository、SAS_DB_PATH は renamed_env で断る",
+    "why": "ACDR 0224"
+   },
+   {
+    "what": "出力の形（command-result の error の code）",
+    "before": "not_in_repository ・ renamed_env が無い",
+    "after": "2つを足した",
+    "why": "記録を作らずに断る理由を、決まった名前で返すため"
+   },
+   {
+    "what": "場面を流す試験",
+    "before": "given の repo が true のときだけ Git のリポジトリにする",
+    "after": "repo が false でなければ Git のリポジトリにする。ファイルの有無は経路で見る（記録のデータベースは文字列で読めない）",
+    "why": "記録は Git の中だけで作るので、場面の多くが Git のリポジトリの中で動く必要がある"
+   }
+  ]
+ }
+}

@@ -23,7 +23,7 @@
 | crate・モジュール・ポートは、必要と分かった時点で足す。crate を足したら `architecture.json`（architecture-lint の規則）の components と allow にも足す | 最初に構造を全部作らない |
 | 外のライブラリも `architecture.json` の component にし、allow で向きを許した crate だけが使う（rusqlite は outbound の sqlite、jsonschema は outbound の jsonschema）。試験だけで使う向きは kinds を dev にして許す | 外の技術を adapter に閉じ込めたことを、依存の検査（architecture-lint）で確かめる |
 | ユースケースは、先に `schemas-and-instances/system-tests/scenarios/` に場面を書き、失敗を確かめてから作る。場面と保証 ・ 拡張の突き合わせは `system-tests/trace.json`、まだ確かめないものは `untested.json` に理由と一緒に置く | 保証と拡張のどれを確かめたかを、試験で数えられるようにする |
-| SAS の DB（`<git-common-dir>/sas/sas.db`、Git が無ければ `.sas/`）はコミットしない。ID と時刻は outbound の sqlite が作り、application と domain は時刻に触らない | 決定的な試験のため |
+| Semantic Agent Schema の記録（`<git-common-dir>/semantic-agent-schema/records.sqlite`）はコミットしない。ID と時刻は outbound の sqlite が作り、application と domain は時刻に触らない | 決定的な試験のため |
 | リポジトリの文書を書くのは use_cases だけで、形と集約の書く条件を確かめてから DocumentStore の write で書く。書く手前で断ったものは記録せず、理由 ・ 案内 ・ 間に入った変更をその場で返す | 書くのは SAS だけ。型に従わないものは作らず、理由を返す（UC1 の最低保証）。断った操作の記録は SAS が読まず、コミットしない記録は監査の証拠にもならない（探索の記録 step-04b） |
 | ステップごとに `docs/design/exploration/step-NN.json` を書く | 探索の過程と、仮説との突き合わせを残す |
 
@@ -45,10 +45,11 @@
 | serde_json は `preserve_order` で使い、オブジェクトから欄を除くときは `shift_remove` を使う。書き戻した文書の欄の並びを変えないため | serde_json 1.0.154 src/map.rs:3〜4・160〜164（探索の記録 step-02） |
 | SQLite の表の CHECK を変える移行は、表を作り直して行を移す。移すあいだは外部キーの検査を止め、コミットの前に `pragma_foreign_key_check` で確かめる | SQLite の ALTER TABLE の文書 8節「Making Other Kinds Of Table Schema Changes」の手順（探索の記録 step-02） |
 | ほかの表の trigger が読む表（changes ・ sessions）は作り直さず、欄を足す（`ALTER TABLE … ADD COLUMN`）。欄をまたぐ決まりは trigger で拒む。作り直すのは、どの trigger からも読まれない表だけ | 作り直すと、ほかの表の trigger も消して付け直すことになる（探索の記録 step-03） |
-| 移行 0001〜0004 は、公開前の書き直し（ステップ4b と、版28 で sessions から起動の欄を外したとき）で表の最終の形にした。これからは版ごとに足し、足したものは変えない | 公開前で使う人がいない（探索の記録 step-04b）。置き場所も変えたので、前の `.sas/sas.db` は読まない |
+| 移行 0001〜0004 は、公開前の書き直し（ステップ4b と、版28 で sessions から起動の欄を外したとき）で表の最終の形にした。これからは版ごとに足し、足したものは変えない | 公開前で使う人がいない（探索の記録 step-04b）。Git の外の置き場所（`.sas/`）はやめたので読まない（ACDR 0224） |
 | 欄の名前を変える移行は、表を作り直さずに `ALTER TABLE … RENAME COLUMN` で変える（行と CHECK ・ trigger の参照はそのまま移る）。その欄を読むビューは、名前を変える前に消し、あとで作り直す（移行 0006） | 作り直すとほかの表の trigger も付け直すことになる。名前を変えても行が保たれることは、版5 の DB を開く試験（migrate_reason.rs）で確かめる |
 | 記録は種類ごとの表に分け、種類によって空になる欄を作らない（書いた変更は changes、検証は validations）。両方を並べて読むのはビュー operations | 1つの表に種類を混ぜると、条件付きの CHECK と「断ったものを除く」絞り込みが毎回入る（探索の記録 step-04b） |
-| 記録の置き場所は入口が決める：`SAS_DB_PATH` → `<git-common-dir>/sas/sas.db` → Git が無ければ `.sas/sas.db`。SAS の記録とファイルのつながりは「いまの中身が、その経路の記録のどれかの事後か」で見る | ワークツリーで記録を1つにするため。最後の事後だけと比べると、ほかのワークツリーで書くたびに外の変更に見える（探索の記録 step-04b） |
+| 記録の置き場所は入口の main.rs の db_path の1か所で決める：Git のリポジトリの中だけで、環境変数 `SEMANTIC_AGENT_SCHEMA_DATABASE_FILE` → `<git-common-dir>/semantic-agent-schema/records.sqlite`（`git rev-parse --path-format=absolute --git-common-dir`）。Git のリポジトリの外（not_in_repository）と、古い名前の環境変数 `SAS_DB_PATH`（renamed_env）では、記録を作らずに断る。古い置き場所 `<git-common-dir>/sas/sas.db` の記録は、チェックポイントをかけて1回だけ移し（同じフォルダの中は rename）、古い置き場所にはデータベースでない案内のファイルを置く。新しい置き場所にも記録があれば、どちらも触らずに断る | ワークツリーで記録を1つにし、git clean で消さないため。Git の外で使う場面は無く、あとで git init すると記録が2か所に分かれる。案内のファイルは、古い版のコマンドが空の記録を作って書き続けないようにする（ACDR 0224 ・ 探索の記録 step-10） |
+| 外の変更（Semantic Agent Schema を通らない変更）は、同じワークツリーで記録した最後の事後と比べる（changes の worktree、移行 0008）。そのワークツリーでまだ書いていなければ、中身は Git から来たので、その経路の記録のどれかの中身（事前か事後）と比べる。判断は writing-domain の unrecorded_since の1か所で、更新 ・ 削除 ・ 取り込み ・ 検証と、間に入った変更（interleaved）の unrecorded が使う | 記録は1つなので、経路だけで比べると、ほかのワークツリーの書き込みを外の変更と取り違えて断る。前の事後へ戻した中身も、このワークツリーでは外の変更になる（ACDR 0224 ・ 探索の記録 step-10） |
 | 打ったセッションの ID は `--session` → ツールごとの環境変数 → このフォルダ（Git の中なら作業ツリーの根）で `semantic-agent-schema init` が最後に登録したセッション → 人（null）。環境変数の名前はコードに書かず、入口の `callers.json` に置き、原文か実測で確かめたものだけを入れる | ツールが増えても表に行を足すだけにする。確かめていない名前で人と AI を取り違えない |
 | Git は outbound の git だけが、git コマンドで読む（`git log` ・ `git cat-file --filters` ・ `git rev-parse --path-format=absolute --git-common-dir` ・ `git rev-parse --show-toplevel`）。ライブラリを足さず、Git に書き込むコマンドを呼ばない | 探索の記録 step-03 ・ step-04b の照合 |
 

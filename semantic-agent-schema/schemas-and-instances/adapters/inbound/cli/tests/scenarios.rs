@@ -1,5 +1,6 @@
 //! システムテスト：system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで semantic-agent-schema を動かして確かめる。
 //! ネットワークと本物のエージェントは使わない。given の git だけは準備として本物の git を使う。
+//! 作業ディレクトリは、given の repo が false でなければ Git のリポジトリにしてから始める（記録は Git の中だけで作る）。
 //! given の write は、SAS を通らずにファイルを書く（エディターで直したことの代わり）。
 
 #![allow(clippy::expect_used, clippy::panic)]
@@ -92,11 +93,12 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     let mut c = if let Some(args) = strings("args") {
         let mut c = Command::new(env!("CARGO_BIN_EXE_semantic-agent-schema"));
         c.args(args);
-        // 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所を持ち込まない。
+        // 試験を動かす環境（AI のツールの中など）のセッション ID と記録の置き場所（古い名前も）を持ち込まない。
         // 場面が env で渡したものだけを使う
         for name in session_envs() {
             c.env_remove(name);
         }
+        c.env_remove("SEMANTIC_AGENT_SCHEMA_DATABASE_FILE");
         c.env_remove("SAS_DB_PATH");
         if let Some(env) = cmd.get("env").and_then(Value::as_object) {
             for (k, v) in env {
@@ -212,7 +214,8 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
 fn check_file(id: &str, dir: &Path, file: &str, expect: &Value) {
     let text = std::fs::read_to_string(dir.join(file)).ok();
     if let Some(exists) = expect.get("exists").and_then(Value::as_bool) {
-        assert_eq!(text.is_some(), exists, "{id}: {file} の有無");
+        // 記録のデータベースのような、文字列で読めないファイルもあるので、有無は経路で見る
+        assert_eq!(dir.join(file).is_file(), exists, "{id}: {file} の有無");
     }
     if let Some(want) = expect.get("contains").and_then(Value::as_str) {
         let text = text
@@ -239,7 +242,7 @@ fn play(scenario: &Value) {
     let id = scenario["id"].as_str().expect("id がある");
     let dir = workdir(id);
     let given = scenario.get("given").cloned().unwrap_or_default();
-    if given.get("repo").and_then(Value::as_bool) == Some(true) {
+    if given.get("repo").and_then(Value::as_bool) != Some(false) {
         run(&dir, &serde_json::json!({"git": ["init", "-q"]}));
     }
     if let Some(files) = given.get("files").and_then(Value::as_object) {

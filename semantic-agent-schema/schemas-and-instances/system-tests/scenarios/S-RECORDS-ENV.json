@@ -1,0 +1,57 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-RECORDS-ENV",
+ "name": "環境変数で置き場所を指す",
+ "title": "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE を渡すと、Git の共通フォルダの代わりに、そのファイルへ記録する",
+ "why": "試験や使い捨ての環境で、リポジトリの記録とは別の所へ記録したいときに置き場所を指せないと、リポジトリの記録に混ざる。",
+ "traces": [
+  "約束:command-result:records"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "usecases/u1.json",
+   "--adopt"
+  ],
+  "env": {
+   "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": "elsewhere.sqlite"
+  }
+ },
+ "after": [
+  {
+   "args": [
+    "log"
+   ],
+   "env": {
+    "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": "elsewhere.sqlite"
+   }
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "file": "elsewhere.sqlite",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "file": ".git/semantic-agent-schema/records.sqlite",
+   "exists": false
+  }
+ ]
+}

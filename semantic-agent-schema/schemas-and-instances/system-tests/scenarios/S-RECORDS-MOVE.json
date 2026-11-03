@@ -1,0 +1,88 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-RECORDS-MOVE",
+ "name": "古い置き場所から移す",
+ "title": "古い置き場所 <git-common-dir>/sas/sas.db に記録があり、新しい置き場所に無ければ、最初に打ったときに1回だけ新しい置き場所へ移し、古い置き場所にはデータベースでない案内のファイルを置く",
+ "why": "移さないと前の操作の記録が読めなくなり、古い置き場所をそのままにすると、古い版のコマンドが空の記録を作って書き続ける。",
+ "traces": [
+  "約束:command-result:records"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt"
+    ],
+    "env": {
+     "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": ".git/sas/sas.db"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "log"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "update",
+    "usecases/u1.json",
+    "--patch",
+    "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"移したあとに直した目的\"}]",
+    "--reason",
+    "移したあとに目的を直す"
+   ]
+  },
+  {
+   "args": [
+    "log"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "lines": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0001"
+  },
+  {
+   "of": "when",
+   "file": ".git/semantic-agent-schema/records.sqlite",
+   "exists": true
+  },
+  {
+   "of": "when",
+   "file": ".git/sas/sas.db",
+   "contains": "semantic-agent-schema/records.sqlite"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "after[1]",
+   "lines": 2
+  }
+ ]
+}

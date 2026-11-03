@@ -181,13 +181,13 @@ fn rows_go_to_the_right_table() {
 fn a_database_in_a_new_place_is_made_empty() {
     let dir = std::env::temp_dir().join(format!("sas-open-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
-    let path = dir.join("sas").join("sas.db");
+    let path = dir.join("semantic-agent-schema").join("records.sqlite");
     let mut log = SqliteLog::open(&path).unwrap();
     let version: i64 = log
         .connection()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 7);
+    assert_eq!(version, 8);
     assert_eq!(log.append_change(None, &update(None)).unwrap(), "o-0001");
     drop(log);
     // 開き直しても行は残り、版は進まない

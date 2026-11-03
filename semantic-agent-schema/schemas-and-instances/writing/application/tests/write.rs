@@ -439,6 +439,7 @@ fn written(n: usize, before: &str, after: &str) -> WriteRecord {
         operation: format!("o-{n}"),
         session: None,
         at: "t".into(),
+        same_worktree: true,
         row: ChangeRow {
             kind: "update".into(),
             source: "sas".into(),

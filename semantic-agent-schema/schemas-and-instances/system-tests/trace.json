@@ -58,6 +58,7 @@
   "約束:search-answer",
   "UC4:変形:意味の判定",
   "約束:command-result:session",
+  "約束:command-result:records",
   "UC6:成功時保証",
   "UC6:最低保証",
   "UC6:変形:構造で絞る",
@@ -117,7 +118,8 @@
     "S-UC2-REQUEST-ID",
     "S-UC2-STALE-READS",
     "S-UC2-STALE",
-    "S-UC2-UPDATE"
+    "S-UC2-UPDATE",
+    "S-UC2-WORKTREE-IN-TURN"
    ],
    "note": "事前と事後のハッシュは出力の diff で、記録の行は outbound の sqlite の試験で確かめる"
   },
@@ -260,11 +262,13 @@
   },
   {
    "id": "UC4:変形:SAS を通らない変更を見つける",
-   "meaning": "記録の最後の事後といまの中身のハッシュが違う対象を知らせ、いまの中身を検証する",
+   "meaning": "同じワークツリーで記録した最後の事後といまの中身のハッシュが違う対象を知らせ、いまの中身を検証する。そのワークツリーでまだ書いていなければ、その経路の記録のどれかの中身（事前か事後）と比べる",
    "scenarios": [
     "S-UC2-ADOPT-WORKTREE",
+    "S-UC2-WORKTREE-IN-TURN",
     "S-UC4-STALE-OUTSIDE",
     "S-UC4-UNTRACKED",
+    "S-UC4-WORKTREE-REVERTED",
     "S-UC4-WORKTREE"
    ]
   },
@@ -599,6 +603,18 @@
     "S-SESSION-INIT-FLAG",
     "S-SESSION-INIT"
    ]
+  },
+  {
+   "id": "約束:command-result:records",
+   "meaning": "記録は Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ（SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指せる）。Git のリポジトリの外と、古い名前の環境変数 SAS_DB_PATH では、記録を作らずに断る。古い置き場所 sas/sas.db の記録は1回だけ移し、案内のファイルを残す",
+   "scenarios": [
+    "S-RECORDS-ENV",
+    "S-RECORDS-MOVE-BOTH",
+    "S-RECORDS-MOVE",
+    "S-RECORDS-OLD-ENV",
+    "S-RECORDS-OUTSIDE-GIT"
+   ],
+   "note": "移したあとの古い置き場所を古い版の開き方で開くと断られ、案内のファイルが変わらないことは outbound の sqlite の試験（move_records.rs）で確かめる"
   },
   {
    "id": "UC6:成功時保証",

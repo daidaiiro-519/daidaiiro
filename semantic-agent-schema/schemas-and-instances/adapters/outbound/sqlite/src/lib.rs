@@ -1,4 +1,5 @@
-//! 操作の記録のポートを SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/sas/sas.db で、コミットしない）。
+//! 操作の記録のポートを SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/semantic-agent-schema/records.sqlite で、コミットしない）。
+//! 書いた変更には、打ったワークツリー（作業ツリーの根）を残し、対象を書いた操作を引くときに同じワークツリーのものかを返す。
 //!
 //! 記録のポートは使うモジュールがそれぞれ宣言する（書く ChangeLog ・ 検証 ValidationLog ・ 描画 ValidationLog ・
 //! 記録 SessionLog ・ OperationReader）。手続きはこの型のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。
@@ -11,13 +12,13 @@ use recording_application::ports::{
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use std::hash::{BuildHasher, Hasher};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use validation_domain::values::{Judgment, RuleRow, ValidateRow};
 use writing_domain::values::{Caller, ChangeRow, FieldRow, StoredChange, WriteRecord};
 
 /// 表の作り方。版ごとに1つ足し、足したものは変えない（公開する前の書き直しはステップ4b の1回だけ：CODING.md）。
-const MIGRATIONS: [&str; 7] = [
+const MIGRATIONS: [&str; 8] = [
     include_str!("../migrations/0001-validate.sql"),
     include_str!("../migrations/0002-change.sql"),
     include_str!("../migrations/0003-adopt.sql"),
@@ -25,12 +26,15 @@ const MIGRATIONS: [&str; 7] = [
     include_str!("../migrations/0005-read.sql"),
     include_str!("../migrations/0006-reason.sql"),
     include_str!("../migrations/0007-not-judged.sql"),
+    include_str!("../migrations/0008-worktree.sql"),
 ];
 
 /// SQLite の操作の記録。
 #[derive(Debug)]
 pub struct SqliteLog {
     conn: Connection,
+    /// 打ったワークツリー（作業ツリーの根の絶対の経路）。書いた変更に残し、同じワークツリーの操作を見分ける
+    worktree: Option<String>,
 }
 
 fn err(e: &rusqlite::Error) -> String {
@@ -86,7 +90,17 @@ impl SqliteLog {
         }
         conn.pragma_update(None, "foreign_keys", true)
             .map_err(|e| err(&e))?;
-        Ok(Self { conn })
+        Ok(Self {
+            conn,
+            worktree: None,
+        })
+    }
+
+    /// 打ったワークツリー（作業ツリーの根の絶対の経路）を決める。書いた変更に残し、対象を書いた操作のうち同じワークツリーのものを見分ける。
+    #[must_use]
+    pub fn in_worktree(mut self, worktree: impl Into<String>) -> Self {
+        self.worktree = Some(worktree.into());
+        self
     }
 
     /// 生の接続（試験で決まりに反する行を直接書くため）。
@@ -164,6 +178,82 @@ impl SqliteLog {
             })
             .collect()
     }
+}
+
+/// SQLite のデータベースのファイルの頭（ファイル形式の文書 1.3 節の先頭16バイト）。
+const HEADER: &[u8; 16] = b"SQLite format 3\0";
+
+/// path が SQLite のデータベースか。空のファイルも SQLite は空のデータベースとして開くので含める。
+fn is_database(path: &Path) -> Result<bool, String> {
+    use std::io::Read;
+    let mut head = Vec::with_capacity(HEADER.len());
+    std::fs::File::open(path)
+        .and_then(|f| f.take(HEADER.len() as u64).read_to_end(&mut head))
+        .map_err(|e| format!("{} を読めない：{e}", path.display()))?;
+    Ok(head.is_empty() || head == HEADER)
+}
+
+/// 古い置き場所の記録を、新しい置き場所へ1回だけ移す。移したら true。
+/// 古い置き場所に記録が無い（無い ・ 前に移して案内のファイルになっている）ときは何もしない。
+///
+/// 移す前に古い記録を開いてチェックポイントをかけ（書きかけのジャーナルは開いたときに戻り、WAL は本体へ書き戻して空にする）、
+/// 閉じてから rename で移す（別のファイルシステムで rename できなければ写してから消す）。古い置き場所には、
+/// データベースでない案内のファイル（notice）を置く。古い版のコマンドがそこを開くと「データベースでない」で断られ、
+/// 空の記録を作って書き続けることがない。
+///
+/// # Errors
+/// 新しい置き場所に記録が既にある（どちらも触らない）・ 古い記録をほかが使っている ・ 移せない ・ 案内を書けないとき。
+pub fn move_records(old: &Path, new: &Path, notice: &str) -> Result<bool, String> {
+    if !old.is_file() || !is_database(old)? {
+        return Ok(false);
+    }
+    if new.exists() {
+        return Err(format!(
+            "記録が2か所にある：古い置き場所 {} と新しい置き場所 {}。どちらも触らない。残すほうを決め、もう一方を別の名前へ移してから打ち直す",
+            old.display(),
+            new.display()
+        ));
+    }
+    {
+        let conn = Connection::open(old).map_err(|e| err(&e))?;
+        // 読むと、書きかけのジャーナルが残っていれば戻す
+        conn.query_row("SELECT count(*) FROM sqlite_master", [], |r| {
+            r.get::<_, i64>(0)
+        })
+        .map_err(|e| err(&e))?;
+        let busy: i64 = conn
+            .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| r.get(0))
+            .map_err(|e| err(&e))?;
+        if busy != 0 {
+            return Err(format!(
+                "{} をほかのコマンドが使っていて、チェックポイントをかけられない。終わってから打ち直す",
+                old.display()
+            ));
+        }
+        conn.close().map_err(|(_, e)| err(&e))?;
+    }
+    for suffix in ["-wal", "-journal"] {
+        let side = PathBuf::from(format!("{}{suffix}", old.display()));
+        if side.exists() {
+            return Err(format!(
+                "{} が残っていて、記録が書きかけのまま。ほかのコマンドが終わってから打ち直す",
+                side.display()
+            ));
+        }
+    }
+    if let Some(dir) = new.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("{} を作れない：{e}", dir.display()))?;
+    }
+    if std::fs::rename(old, new).is_err() {
+        std::fs::copy(old, new)
+            .map_err(|e| format!("{} を {} へ移せない：{e}", old.display(), new.display()))?;
+        std::fs::remove_file(old).map_err(|e| format!("{} を消せない：{e}", old.display()))?;
+    }
+    // 案内は別の名前で書いてから置き換える（途中で止まっても、半分だけの案内を残さない）
+    let tmp = PathBuf::from(format!("{}.tmp", old.display()));
+    std::fs::write(&tmp, notice).map_err(|e| format!("{} を書けない：{e}", tmp.display()))?;
+    std::fs::rename(&tmp, old).map_err(|e| format!("{} を置けない：{e}", old.display()))?;
+    Ok(true)
 }
 
 /// いまの時刻（UTC の RFC 3339、秒まで）。
@@ -308,10 +398,10 @@ impl SqliteLog {
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
             "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, reason, request_id, source, \
-             session_id, schema) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+             session_id, schema, worktree) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
                 id, now(), row.kind, row.target_path, row.before, row.after, row.reason, row.request_id,
-                row.source, session, row.schema
+                row.source, session, row.schema, self.worktree
             ],
         )
         .map_err(|e| err(&e))?;
@@ -345,6 +435,7 @@ impl SqliteLog {
     }
 
     /// 経路の対象を書いた操作（作成か更新）を、記録した順に。最後に消したより後のものだけ。
+    /// どのワークツリーで書いたものも返し、いまのワークツリーで書いたものに印を付ける。
     ///
     /// # Errors
     /// 置き場所を読めないとき。
@@ -352,26 +443,30 @@ impl SqliteLog {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT id, session_id, at FROM changes \
+                "SELECT id, session_id, at, worktree FROM changes \
                  WHERE kind IN ('create', 'update') AND target_path = ?1 \
                    AND rowid > coalesce((SELECT max(rowid) FROM changes \
                                          WHERE kind = 'delete' AND target_path = ?1), 0) \
                  ORDER BY rowid",
             )
             .map_err(|e| err(&e))?;
-        let found: Vec<(String, Option<String>, String)> = stmt
-            .query_map([target_path], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+        type Found = (String, Option<String>, String, Option<String>);
+        let found: Vec<Found> = stmt
+            .query_map([target_path], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+            })
             .map_err(|e| err(&e))?
             .collect::<Result<_, _>>()
             .map_err(|e| err(&e))?;
         found
             .into_iter()
-            .map(|(operation, session, at)| {
+            .map(|(operation, session, at, worktree)| {
                 Ok(WriteRecord {
                     row: self.change_row(&operation)?,
                     operation,
                     session,
                     at,
+                    same_worktree: worktree.is_some() && worktree == self.worktree,
                 })
             })
             .collect()

@@ -162,14 +162,12 @@ pub fn interleaved(writes: &[WriteRecord], expected: &str, current: &str) -> Int
         })
         .unwrap_or(0);
     let operations: Vec<WriteRecord> = writes[start.min(writes.len())..].to_vec();
-    // いまの中身が記録のどれかの事後なら、SAS を通った中身（ほかのワークツリーが書いた事後を含む）
-    let reached = writes
-        .iter()
-        .any(|w| w.row.after.as_deref() == Some(current));
+    // 外の変更（Semantic Agent Schema を通らない変更）かは、検証と同じ決まり（このワークツリーの最後の事後、まだ書いていなければ記録のどれかの中身）で見る
+    let unrecorded = unrecorded_since(writes, current).is_some();
     Interleaved {
         expected: expected.to_string(),
         current: current.to_string(),
-        unrecorded: !reached,
+        unrecorded,
         last_recorded: writes.last().cloned(),
         operations,
     }
@@ -755,8 +753,9 @@ pub fn update(
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
-            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str()),
-            "SAS が最後に書いた事後の",
+            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str())
+                .and_then(|w| w.row.after.clone()),
+            "このワークツリーで Semantic Agent Schema が最後に書いた事後の",
         ),
     };
     if let Some(expected) = expected.filter(|e| e != current.as_str()) {
@@ -1080,21 +1079,15 @@ pub fn adopt(
                 ),
             ));
         }
-        (AdoptAs::Update, Some(w)) => {
-            if let Some(same) = writes
-                .iter()
-                .rev()
-                .find(|x| x.row.after.as_deref() == Some(hash.as_str()))
-            {
+        (AdoptAs::Update, Some(_)) => {
+            // 外の変更かは検証と同じ決まりで見る（このワークツリーの最後の事後、まだ書いていなければ記録のどれかの中身）
+            let Some(w) = unrecorded_since(&writes, hash.as_str()) else {
                 return Err(refused(
                     "nothing_to_adopt",
                     path,
-                    format!(
-                        "いまの中身は操作 {} の事後と同じで、SAS を通らない変更が無い",
-                        same.operation
-                    ),
+                    "いまの中身は、このワークツリーで Semantic Agent Schema が最後に書いた事後（まだ書いていなければ記録のどれかの中身）と同じで、外の変更が無い".to_string(),
                 ));
-            }
+            };
             if request.reason.is_none() {
                 return Err(refused(
                     "invalid_input",

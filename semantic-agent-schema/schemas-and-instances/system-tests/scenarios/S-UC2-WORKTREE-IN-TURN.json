@@ -1,0 +1,127 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-WORKTREE-IN-TURN",
+ "name": "並べたワークツリーで順に直す",
+ "title": "別のブランチのワークツリー a ・ b で、b が先に更新したあと、a で外で変えていない同じファイルを更新すると、断らずに書く",
+ "why": "記録は1つなので、ほかのワークツリーの書き込みを外の変更と取り違えると、並べたワークツリーで同じファイルを直すたびに断られる。",
+ "traces": [
+  "UC2:成功時保証",
+  "UC4:変形:SAS を通らない変更を見つける"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "git": [
+     "add",
+     "schemas",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "git": [
+     "worktree",
+     "add",
+     "-q",
+     "a",
+     "-b",
+     "a"
+    ]
+   },
+   {
+    "git": [
+     "worktree",
+     "add",
+     "-q",
+     "b",
+     "-b",
+     "b"
+    ]
+   },
+   {
+    "args": [
+     "update",
+     "usecases/u1.json",
+     "--patch",
+     "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"b で直した目的\"}]",
+     "--reason",
+     "b で目的を直す"
+    ],
+    "cwd": "b"
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"a で直した目的\"}]",
+   "--reason",
+   "a で目的を直す"
+  ],
+  "cwd": "a"
+ },
+ "after": [
+  {
+   "args": [
+    "validate",
+    "usecases/u1.json"
+   ],
+   "cwd": "a"
+  },
+  {
+   "args": [
+    "validate",
+    "usecases/u1.json"
+   ],
+   "cwd": "b"
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/result",
+   "equals": "updated"
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before/hash",
+   "equals": "sha256:4d840c6444ef6c2cf25cec1e297e7a11eb09202d5a9ccb41df2de3be795f9fe4"
+  },
+  {
+   "of": "when",
+   "pointer": "/operation",
+   "equals": "o-0002"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/unrecorded",
+   "count": 0
+  },
+  {
+   "of": "after[1]",
+   "pointer": "/unrecorded",
+   "count": 0
+  }
+ ]
+}

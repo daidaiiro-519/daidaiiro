@@ -146,6 +146,7 @@ impl Log {
                 operation: id.clone(),
                 session: None,
                 at: "t".into(),
+                same_worktree: true,
                 row: r.clone(),
             })
             .collect())

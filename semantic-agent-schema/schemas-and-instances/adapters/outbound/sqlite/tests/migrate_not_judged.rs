@@ -46,7 +46,7 @@ fn unsupported_rows_are_read_as_not_judged_and_the_rules_of_the_table_remain() {
         .connection()
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 7);
+    assert_eq!(version, 8); // いまの版まで進む
     // 行は2つとも残り、値は not-judged で読める
     let judgments = log.last_judgments("u1.json").unwrap();
     let results: Vec<(&str, &str)> = judgments

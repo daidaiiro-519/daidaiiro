@@ -1010,14 +1010,15 @@ fn run_validate(
         ..
     } in current
     {
-        // SAS を通らない変更：いまの中身が、記録のどの事後とも違う。知らせて、いまの中身を検証する
-        let mut writes = log.writes(&d.path).map_err(log_refused)?;
-        if let Some(expected) = unrecorded_since(&writes, hash.as_str())
-            && let Some(last) = writes.pop()
+        // 外の変更（Semantic Agent Schema を通らない変更）：いまの中身が、このワークツリーで記録した最後の事後と違う（まだ書いていなければ、記録のどの中身とも違う）。
+        // 知らせて、いまの中身を検証する
+        let writes = log.writes(&d.path).map_err(log_refused)?;
+        if let Some(last) = unrecorded_since(&writes, hash.as_str())
+            && let Some(expected) = last.row.after.clone()
         {
             unrecorded.push(Unrecorded {
                 path: d.path.clone(),
-                last_operation: last.operation,
+                last_operation: last.operation.clone(),
                 expected,
                 actual: hash.as_str().to_string(),
             });

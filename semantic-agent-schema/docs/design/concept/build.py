@@ -118,7 +118,7 @@ F['tree'] = run('figure', 'ptree', {"direction": "TB", "nodes": [
               {"from": "w", "to": "o1", "label": "child_session_id"}, {"from": "c", "to": "o3", "label": "child_session_id"}]})
 F['er'] = run('figure', 'er16', {"direction": "TB", "nodes": [
     {"id": "s", "label": "sessions：id・tool・folder・via・first_seen", "role": "focus"},
-    {"id": "ch", "label": "changes：id・at・kind・target_path・前後のハッシュ・reason・request_id・source・session_id・schema"},
+    {"id": "ch", "label": "changes：id・at・kind・target_path・前後のハッシュ・reason・request_id・source・session_id・schema・worktree"},
     {"id": "fc", "label": "field_changes：change_id・pointer・change・before・after"},
     {"id": "v", "label": "validations：id・at・target_path・hash・session_id・schema"},
     {"id": "rr", "label": "rule_results：validation_id・rule・pointer・by・result・reason・reads_hash"}],
@@ -573,7 +573,7 @@ T.append(('session', 'セッション',
 T.append(('data', 'データ',
   '<p class="ans">手元の DB は5表とビュー。誰が何で動いたか（sessions）と、書いた変更（changes）・検証（validations）。中身はコミットせず、作り直せるデータとして扱う。</p>'
   + fig(F['er'], 'ER 図')
-  + cards([("1 対 多", "sessions → changes・validations、changes → field_changes、validations → rule_results"), ("中身は Git", "パスとハッシュで指すだけ。Git は読むだけで、版は残さない"), ("空になる列が無い", "変更と検証を別の表にしたので、どの行もすべての欄が埋まる（作成の事前・削除の事後・原因を除く）。断った操作は持たない"), ("置き場所", "&lt;git-common-dir&gt;/sas/sas.db。作業ツリーの外で、ワークツリーをいくつ作っても1つ"), ("schema の欄（0005）", "changes ・ validations に、書いた ・ 検証した文書が従う $id。semantic-agent-schema log --operation で書いたときと同じ形に戻すため。0005 より前の行は空"), ("記録を読む", "semantic-agent-schema log がビュー operations を新しい順に絞って読む（UC7）。読むだけで、何も足さない"), ("field_changes の役割", "欄ごとの前後を残し、次の判定のレビューのまとまり（変わった所 ・ 前の値 ・ 変更の操作）を作る"), ("理由は reason", "changes の reason（--reason）と rule_results の reason。移行 0006 で intent から名前を変えた"), ("not-judged（0007）", "意味の rule に判定が渡されていない区分。前は unsupported")])))
+  + cards([("1 対 多", "sessions → changes・validations、changes → field_changes、validations → rule_results"), ("中身は Git", "パスとハッシュで指すだけ。Git は読むだけで、版は残さない"), ("空になる列が無い", "変更と検証を別の表にしたので、どの行もすべての欄が埋まる（作成の事前・削除の事後・原因を除く）。断った操作は持たない"), ("置き場所", "&lt;git-common-dir&gt;/semantic-agent-schema/records.sqlite。作業ツリーの外で、ワークツリーをいくつ作っても1つ。環境変数 SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指せる。Git のリポジトリの外では記録を作らずに断る（ACDR 0224）"), ("worktree の欄（0008）", "changes に、書いたワークツリー（作業ツリーの根）。外の変更は、同じワークツリーで記録した最後の事後と比べる（そのワークツリーでまだ書いていなければ、記録のどれかの中身と比べる）。0008 より前の行は空"), ("schema の欄（0005）", "changes ・ validations に、書いた ・ 検証した文書が従う $id。semantic-agent-schema log --operation で書いたときと同じ形に戻すため。0005 より前の行は空"), ("記録を読む", "semantic-agent-schema log がビュー operations を新しい順に絞って読む（UC7）。読むだけで、何も足さない"), ("field_changes の役割", "欄ごとの前後を残し、次の判定のレビューのまとまり（変わった所 ・ 前の値 ・ 変更の操作）を作る"), ("理由は reason", "changes の reason（--reason）と rule_results の reason。移行 0006 で intent から名前を変えた"), ("not-judged（0007）", "意味の rule に判定が渡されていない区分。前は unsupported")])))
 T.append(('flow', '意味の部分を含む操作の流れ',
   '<p class="ans">セッションが semantic-agent-schema に手順をもらい、自分で値を作って書かせる。断られたら理由を読んで直す。立てた側が受け取るのは最後の答えだけ。SAS はセッションを作らない。ふだんの1セッションでは、いま動いているセッションが同じことを自分で行う。</p>'
   + fig(F['flow'], '意味の部分を含む操作の流れ', 'ユースケースを意味で作る例。main はいま動いているセッション、別のフォルダは使う側が別のフォルダ（ワークツリーなど）に立てたセッション。ふだんの1セッションでは、main が自分で SAS と同じやりとりをする。検証も同じで、validate --semantic で手順をもらい、--answer で判定を渡す。', 1.8)

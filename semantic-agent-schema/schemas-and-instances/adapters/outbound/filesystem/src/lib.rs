@@ -4,7 +4,7 @@
 use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
 
-/// 降りないフォルダ（SAS の記録 ・ ビルドの出力 ・ Git の中身）。
+/// 降りないフォルダ（前の版が Git の外で記録を置いていた .sas ・ ビルドの出力 ・ Git の中身。いまの記録は .git の中の共通フォルダにある）。
 const SKIP: [&str; 3] = [".sas", "target", ".git"];
 
 /// 作業ディレクトリを根にした文書の置き場所。

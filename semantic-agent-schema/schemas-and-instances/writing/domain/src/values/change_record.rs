@@ -61,35 +61,40 @@ pub struct WriteRecord {
     pub session: Option<String>,
     /// 記録した日時
     pub at: String,
+    /// いま打っているワークツリー（作業ツリーの根）で記録した操作か。ワークツリーを記録する前（移行 0008 より前）の行は false
+    pub same_worktree: bool,
     /// 行
     pub row: ChangeRow,
 }
 
-/// いまの中身が SAS を通らずに変わったなら、比べた最後の事後のハッシュを返す。記録が無い ・ 記録のどれかの事後と同じなら None。
+/// いまの中身が Semantic Agent Schema を通らずに変わったなら、比べた記録の操作（その事後が比べたハッシュ）を返す。外の変更が無ければ None。
 /// writes は経路の対象を書いた操作（記録した順）。
 ///
-/// DB はワークツリーで1つなので、ほかのワークツリーが後から書いた事後があっても、いまの中身がこの経路の記録の
-/// どれかの事後と同じなら SAS を通った中身とみなす（最後の事後だけと比べると、ワークツリーごとに外の変更に見える）。
+/// 記録はワークツリーで1つなので、ほかのワークツリーの書き込みとは比べない：
+/// - このワークツリーで書いた操作があれば、その最後の事後と比べる（前の事後へ戻した中身も外の変更）
+/// - まだ書いていなければ（作ったばかりのワークツリー ・ ブランチを移った直後）、中身は Git から来たので、
+///   その経路の記録のどれかの中身（事前か事後）と同じなら外の変更でない。違えば、記録の最後の操作と比べた外の変更
 #[must_use]
-pub fn unrecorded_since(writes: &[WriteRecord], current: &str) -> Option<String> {
-    if writes
-        .iter()
-        .any(|w| w.row.after.as_deref() == Some(current))
-    {
-        return None;
+pub fn unrecorded_since<'a>(writes: &'a [WriteRecord], current: &str) -> Option<&'a WriteRecord> {
+    if let Some(own) = writes.iter().rev().find(|w| w.same_worktree) {
+        return (own.row.after.as_deref() != Some(current)).then_some(own);
     }
-    writes.last().and_then(|w| w.row.after.clone())
+    let seen = writes.iter().any(|w| {
+        w.row.after.as_deref() == Some(current) || w.row.before.as_deref() == Some(current)
+    });
+    if seen { None } else { writes.last() }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{ChangeRow, WriteRecord, unrecorded_since};
 
-    fn write(n: usize, before: &str, after: &str) -> WriteRecord {
+    fn write(n: usize, before: &str, after: &str, same_worktree: bool) -> WriteRecord {
         WriteRecord {
             operation: format!("o-{n}"),
             session: None,
             at: "t".into(),
+            same_worktree,
             row: ChangeRow {
                 kind: "update".into(),
                 source: "sas".into(),
@@ -104,14 +109,29 @@ mod tests {
         }
     }
 
+    fn compared(writes: &[WriteRecord], current: &str) -> Option<String> {
+        unrecorded_since(writes, current).and_then(|w| w.row.after.clone())
+    }
+
     #[test]
-    fn any_recorded_after_is_tracked() {
-        assert_eq!(unrecorded_since(&[], "x"), None);
-        let writes = [write(1, "a", "b"), write(2, "b", "c")];
-        // ほかのワークツリーが c まで書いても、このワークツリーの b は SAS を通った中身
-        assert_eq!(unrecorded_since(&writes, "b"), None);
-        assert_eq!(unrecorded_since(&writes, "c"), None);
-        // 記録のどの事後でもない中身は、最後の事後と比べた外の変更
-        assert_eq!(unrecorded_since(&writes, "d").as_deref(), Some("c"));
+    fn this_worktree_compares_with_its_last_after() {
+        assert_eq!(compared(&[], "x"), None);
+        // このワークツリーで b、ほかのワークツリーで c まで書いた
+        let writes = [write(1, "a", "b", true), write(2, "b", "c", false)];
+        assert_eq!(compared(&writes, "b"), None);
+        // ほかのワークツリーの事後でも、このワークツリーの最後の事後と違えば外の変更
+        assert_eq!(compared(&writes, "c").as_deref(), Some("b"));
+        // 前の事後へ戻した中身も外の変更
+        let writes = [write(1, "a", "b", true), write(2, "b", "c", true)];
+        assert_eq!(compared(&writes, "b").as_deref(), Some("c"));
+    }
+
+    #[test]
+    fn a_worktree_without_writes_compares_with_any_recorded_content() {
+        // ほかのワークツリーだけが a から b へ書いた。Git から来た a ・ b は外の変更でない
+        let writes = [write(1, "a", "b", false)];
+        assert_eq!(compared(&writes, "a"), None);
+        assert_eq!(compared(&writes, "b"), None);
+        assert_eq!(compared(&writes, "d").as_deref(), Some("b"));
     }
 }
