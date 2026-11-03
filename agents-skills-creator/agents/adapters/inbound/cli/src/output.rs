@@ -38,8 +38,8 @@ fn finding(f: &Finding) -> Value {
 fn agent(a: &AgentChecked) -> Value {
     let mut v = json!({
         "folder": a.folder,
-        "sas": a.sas.output,
-        "sas_exit": a.sas.exit,
+        "semantic_agent_schema": a.sas.output,
+        "semantic_agent_schema_exit": a.sas.exit,
         "creator": a.creator.iter().map(finding).collect::<Vec<_>>(),
     });
     if let Some(ap) = &a.approval {
@@ -62,8 +62,8 @@ pub fn print_created(c: &Created) {
     if let Some(f) = &c.flow {
         out["flow"] = f.clone();
     }
-    out["sas"] = c.sas.output.clone();
-    out["sas_exit"] = json!(c.sas.exit);
+    out["semantic_agent_schema"] = c.sas.output.clone();
+    out["semantic_agent_schema_exit"] = json!(c.sas.exit);
     println!("{out}");
 }
 
@@ -73,8 +73,8 @@ pub fn print_updated(u: &Updated) {
     if let Some(f) = &u.flow {
         out["flow"] = f.clone();
     }
-    out["sas"] = u.sas.output.clone();
-    out["sas_exit"] = json!(u.sas.exit);
+    out["semantic_agent_schema"] = u.sas.output.clone();
+    out["semantic_agent_schema_exit"] = json!(u.sas.exit);
     println!("{out}");
 }
 
@@ -122,7 +122,7 @@ pub fn print_withdrawn(w: &Withdrawn) {
 
 /// 承認を書かせた結果を出す。
 pub fn print_approved(a: &Approved) {
-    let mut out = json!({"$schema": APPROVE, "kind": "approve", "folder": a.folder, "approved": a.operation, "sas": a.sas.output, "sas_exit": a.sas.exit});
+    let mut out = json!({"$schema": APPROVE, "kind": "approve", "folder": a.folder, "approved": a.operation, "semantic_agent_schema": a.sas.output, "semantic_agent_schema_exit": a.sas.exit});
     if let Some(n) = &a.next {
         out["next"] = json!(n);
     }

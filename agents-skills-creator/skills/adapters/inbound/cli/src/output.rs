@@ -49,8 +49,8 @@ pub fn print_validated(c: &Checked) {
 fn skill(s: &SkillChecked) -> Value {
     let mut v = json!({
         "folder": s.folder,
-        "sas": s.sas.output,
-        "sas_exit": s.sas.exit,
+        "semantic_agent_schema": s.sas.output,
+        "semantic_agent_schema_exit": s.sas.exit,
         "creator": s.creator.iter().map(finding).collect::<Vec<_>>(),
     });
     if let Some(a) = &s.approval {
@@ -104,8 +104,8 @@ pub fn print_updated(u: &Updated) {
     if let Some(flow) = &u.flow {
         out["flow"] = flow.clone();
     }
-    out["sas"] = u.sas.output.clone();
-    out["sas_exit"] = json!(u.sas.exit);
+    out["semantic_agent_schema"] = u.sas.output.clone();
+    out["semantic_agent_schema_exit"] = json!(u.sas.exit);
     println!("{out}");
 }
 
@@ -115,8 +115,8 @@ pub fn print_created(c: &Created) {
     if let Some(flow) = &c.flow {
         out["flow"] = flow.clone();
     }
-    out["sas"] = c.sas.output.clone();
-    out["sas_exit"] = json!(c.sas.exit);
+    out["semantic_agent_schema"] = c.sas.output.clone();
+    out["semantic_agent_schema_exit"] = json!(c.sas.exit);
     println!("{out}");
 }
 
@@ -185,7 +185,7 @@ fn approval(c: &Approval) -> Value {
 
 /// 承認を書かせた結果を出す。
 pub fn print_approved(a: &Approved) {
-    let mut out = json!({"$schema": APPROVE, "kind": "approve", "folder": a.folder, "approved": a.operation, "sas": a.sas.output, "sas_exit": a.sas.exit});
+    let mut out = json!({"$schema": APPROVE, "kind": "approve", "folder": a.folder, "approved": a.operation, "semantic_agent_schema": a.sas.output, "semantic_agent_schema_exit": a.sas.exit});
     if let Some(n) = &a.next {
         out["next"] = json!(n);
     }

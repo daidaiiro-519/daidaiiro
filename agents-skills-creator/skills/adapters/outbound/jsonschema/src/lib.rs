@@ -1,5 +1,5 @@
 //! ポート JsonSchemaChecker を、jsonschema（SAS と同じ版）で実装する。Skill の参照する資料が、Skill のフォルダに置いた
-//! ふつうの JSON Schema に従うかを確かめる（SAS の Concrete に従う資料は sas validate で確かめるので、ここは通らない）。
+//! ふつうの JSON Schema に従うかを確かめる（SAS の Concrete に従う資料は semantic-agent-schema validate で確かめるので、ここは通らない）。
 
 use serde_json::Value;
 use skills_application::ports::JsonSchemaChecker;

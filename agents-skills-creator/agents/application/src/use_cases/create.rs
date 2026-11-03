@@ -1,4 +1,4 @@
-//! UC2 Agent を作るの create：SAS に Agent の項目を書かせる。中で sas create を呼び、結果は書き換えずに返す。
+//! UC2 Agent を作るの create：SAS に Agent の項目を書かせる。中で semantic-agent-schema create を呼び、結果は書き換えずに返す。
 //! どちらの書き方も Agent のフォルダを受け取り、<フォルダ>/agent.json を経路にする（名前が決まっていなければ
 //! agents/<name> のように渡す）。Concrete が Agent の Concrete で --semantic のときだけ、作る流れを添える。
 
@@ -69,7 +69,7 @@ fn flow() -> Value {
 /// SAS に Agent の項目を書かせる。
 ///
 /// # Errors
-/// フォルダ ・ Concrete ・ 書き方が無い（usage）・ sas を呼べない（sas_unavailable）とき。
+/// フォルダ ・ Concrete ・ 書き方が無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。
 pub fn create(
     folder: Option<&str>,
     concrete: Option<&str>,
@@ -88,7 +88,7 @@ pub fn create(
     let mode =
         mode.ok_or_else(|| usage("--semantic か --value <JSON> のどちらかを渡してください"))?;
     let unavailable = |message: String| Refused {
-        code: "sas_unavailable",
+        code: "semantic_agent_schema_unavailable",
         message,
     };
     let path = format!("{}/{AGENT_JSON}", trimmed(folder));

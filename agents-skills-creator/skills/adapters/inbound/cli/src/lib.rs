@@ -1,11 +1,11 @@
 //! skills コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
-//! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。sas create を呼ぶ）・
-//! update（UC3 直す。sas update を呼ぶ）・ distribute（UC5 配布する。確かめてからツールの置き場所にリンクを置く）・
+//! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。semantic-agent-schema create を呼ぶ）・
+//! update（UC3 直す。semantic-agent-schema update を呼ぶ）・ distribute（UC5 配布する。確かめてからツールの置き場所にリンクを置く）・
 //! withdraw（UC6 使わなくする。配布を取り下げ、置いたリンクを外す。人が打ったときだけ）・
-//! validate（UC4 確かめる。sas validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
+//! validate（UC4 確かめる。semantic-agent-schema validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
 //! creator は AI を起動せず、skill.json を書かない（SAS が書く）。
-//! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、sas が断った、sas を呼べない、skill.json を
+//! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、semantic-agent-schema が断った、semantic-agent-schema を呼べない、skill.json を
 //! 読めない ／ 2 = 使い方の誤り。
 
 mod output;
@@ -104,8 +104,9 @@ pub fn run(args: &[String]) -> ExitCode {
 
 fn locate() -> Result<Sas, Refused> {
     Sas::locate().ok_or_else(|| Refused {
-        code: "sas_unavailable",
-        message: "sas が PATH に無い（SAS を入れて、PATH に置いてください）".to_string(),
+        code: "semantic_agent_schema_unavailable",
+        message: "semantic-agent-schema が PATH に無い（SAS を入れて、PATH に置いてください）"
+            .to_string(),
     })
 }
 
@@ -239,7 +240,7 @@ fn run_update(args: &[String]) -> ExitCode {
             &usage(format!("直す Skill のフォルダを渡してください。{USAGE}")),
         );
     }
-    // 使い方の誤りは、sas を探す前に返す（--if-match ・ 層の理由が無い --patch では sas を打たない）
+    // 使い方の誤りは、semantic-agent-schema を探す前に返す（--if-match ・ 層の理由が無い --patch では semantic-agent-schema を打たない）
     if let Err(r) = update::check_mode(&mode) {
         return refuse(UPDATE, &r);
     }

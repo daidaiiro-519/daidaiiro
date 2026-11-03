@@ -15,7 +15,7 @@
   },
   "kind": {
    "title": "結果の種類",
-   "description": "distribute は確かめた（置いたか、検出があって置かなかった）、error は始められなかった（使い方の誤り ・ sas を呼べない ・ 置けない）",
+   "description": "distribute は確かめた（置いたか、検出があって置かなかった）、error は始められなかった（使い方の誤り ・ semantic-agent-schema を呼べない ・ 置けない）",
    "x-prompt": {
     "meaning": "error なら code と message を読む。",
     "when": "結果を受け取ったときに読む。",
@@ -127,7 +127,7 @@
   },
   "code": {
    "title": "断った理由の名前",
-   "description": "usage は使い方の誤り、sas_unavailable は sas を呼べない、not_found は置けない",
+   "description": "usage は使い方の誤り、semantic_agent_schema_unavailable は semantic-agent-schema を呼べない、not_found は置けない",
    "x-prompt": {
     "meaning": "どう直すかを決める。",
     "when": "結果を受け取ったときに読む。",
@@ -135,7 +135,7 @@
    },
    "enum": [
     "usage",
-    "sas_unavailable",
+    "semantic_agent_schema_unavailable",
     "not_found"
    ]
   },
@@ -184,7 +184,7 @@
    "description": "渡した Skill のフォルダ1つの、SAS の検証の結果と creator の検査の結果",
    "required": [
     "folder",
-    "sas",
+    "semantic_agent_schema",
     "creator"
    ],
    "additionalProperties": false,
@@ -199,9 +199,9 @@
      },
      "type": "string"
     },
-    "sas": {
+    "semantic_agent_schema": {
      "title": "SAS の検証の結果",
-     "description": "sas validate <フォルダ>/skill.json の出力を、書き換えずにそのまま入れたもの（SAS の command-result）。出力が複数の行なら、行の並び",
+     "description": "semantic-agent-schema validate <フォルダ>/skill.json の出力を、書き換えずにそのまま入れたもの（SAS の command-result）。出力が複数の行なら、行の並び",
      "x-prompt": {
       "meaning": "形と意味の rule の結果は、ここを SAS の結果として読む。",
       "when": "結果を受け取ったときに読む。",
@@ -212,9 +212,9 @@
       "array"
      ]
     },
-    "sas_exit": {
+    "semantic_agent_schema_exit": {
      "title": "SAS の終了コード",
-     "description": "sas validate の終了コード（0 は violated と error が無い）",
+     "description": "semantic-agent-schema validate の終了コード（0 は violated と error が無い）",
      "x-prompt": {
       "meaning": "0 でなければ、SAS の検証で検出があったこととして読む。",
       "when": "結果を受け取ったときに読む。",
@@ -667,7 +667,7 @@
       },
       "approve": {
        "title": "承認のコマンド",
-       "description": "そのまま打てる承認のコマンド（この validate の操作 ID を approved に入れ、いまの中身のハッシュを --if-match に入れた sas update）と、打ち方。SAS の結果から操作 ID とハッシュが読めたときだけ",
+       "description": "そのまま打てる承認のコマンド（この validate の操作 ID を approved に入れ、いまの中身のハッシュを --if-match に入れた semantic-agent-schema update）と、打ち方。SAS の結果から操作 ID とハッシュが読めたときだけ",
        "x-prompt": {
         "meaning": "作る人に示し、人が自分の端末で打つ。AI は打たない。",
         "when": "結果を受け取ったときに読む。",
@@ -705,7 +705,7 @@
    "properties": {
     "check": {
      "title": "検査の名前",
-     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から agents-skills-creator skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は sas validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。approval-current：approved の確かめ（validate の操作）のあとに、承認を書いた人の操作（/approved だけを変えた、セッションの無い update）のほかに書き換えていない（distribute だけ）。destination-free：置き場所に何も無いか、同じ Skill へのリンク（distribute だけ）。placed-readable：置いた所から SKILL.md を読める（distribute の after だけ）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある。tools-used-by：道具の used_by の番号が steps にある",
+     "description": "name-is-folder：skill.json の name がフォルダ名と同じ。name-unique：同じ親フォルダの Skill のあいだで name が重ならない。links-resolve：フォルダそのものと、フォルダの中のシンボリックリンクの先がある。skill-md-built：SKILL.md が、skill.json から agents-skills-creator skills write-skill-md で作るものと同じ（無ければ violated）。references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（資料ごとに1件。資料が無ければ verified が1件）。json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、JSON の資料は中身がその schema に従う（URN は semantic-agent-schema validate、置き場所はふつうの JSON Schema で確かめる。出力は schema があるかだけ。schema を持つ件が無ければ verified が1件）。grounds-are-outputs：参照する資料の grounds_for の各名前が outputs の name にある（無い名前ごとに violated。grounds_for を持つ資料が無ければ verified が1件）。approval-current：approved の確かめ（validate の操作）のあとに、承認を書いた人の操作（/approved だけを変えた、セッションの無い update）のほかに書き換えていない（distribute だけ）。destination-free：置き場所に何も無いか、同じ Skill へのリンク（distribute だけ）。placed-readable：置いた所から SKILL.md を読める（distribute の after だけ）。tools-exist ・ assets-exist：道具 ・ 資源の各 path にファイルがある。tools-in-role：道具の does が role.does にある。tool-io-declared：道具の inputs ・ outputs の名前が、Skill の inputs ・ outputs の name にある。tools-used-by：道具の used_by の番号が steps にある",
      "x-prompt": {
       "meaning": "どの検査の結果かを読む。",
       "when": "結果を受け取ったときに読む。",

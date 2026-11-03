@@ -1,4 +1,4 @@
-//! UC5 配布する：agents-skills-creator skills distribute。配る前に確かめ（validate の検査と sas validate に、承認がいまの中身に当たるか
+//! UC5 配布する：agents-skills-creator skills distribute。配る前に確かめ（validate の検査と semantic-agent-schema validate に、承認がいまの中身に当たるか
 //! approval-current と、置き場所が空いているか destination-free を足す）、1つでも検出があれば置かない。検出が無ければ、
 //! ツールと範囲ごとの置き場所に、Skill のフォルダへのシンボリックリンクを置き、置いた所から SKILL.md を読めるかを
 //! 確かめる（placed-readable）。
@@ -131,7 +131,7 @@ fn approval_current(files: &dyn SkillFiles, history: &dyn SkillHistory, folder: 
                 CHECK,
                 Outcome::Error,
                 None,
-                format!("sas log が断った：{}", r.output),
+                format!("semantic-agent-schema log が断った：{}", r.output),
             );
         }
         Err(e) => return finding(CHECK, Outcome::Error, None, e),
@@ -142,7 +142,7 @@ fn approval_current(files: &dyn SkillFiles, history: &dyn SkillHistory, folder: 
             .unwrap_or_default()
             .to_string()
     };
-    // sas log は新しい順。承認した確かめより新しい行を見る
+    // semantic-agent-schema log は新しい順。承認した確かめより新しい行を見る
     let Some(at) = rows
         .iter()
         .position(|r| s(r, "operation") == approved && s(r, "op") == "validate")
@@ -204,7 +204,7 @@ fn approval_current(files: &dyn SkillFiles, history: &dyn SkillHistory, folder: 
 /// Skill を配布する。
 ///
 /// # Errors
-/// フォルダ ・ ツール ・ 範囲が無い（usage）・ 範囲が user で HOME が分からない（usage）・ sas を呼べない（sas_unavailable）・
+/// フォルダ ・ ツール ・ 範囲が無い（usage）・ 範囲が user で HOME が分からない（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）・
 /// 置けない（not_found）とき。
 #[allow(clippy::too_many_arguments)]
 pub fn distribute(

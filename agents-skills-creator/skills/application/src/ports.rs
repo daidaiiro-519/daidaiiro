@@ -5,51 +5,51 @@ use serde_json::Value;
 /// SAS で Skill の項目（skill.json）を検証した結果。SAS の出力を書き換えずに持つ。
 #[derive(Debug, Clone, PartialEq)]
 pub struct SasRun {
-    /// sas の終了コード（0 は violated と error が無い）
+    /// semantic-agent-schema の終了コード（0 は violated と error が無い）
     pub exit: i32,
-    /// sas が標準出力に出した JSON（1行なら1つ、複数の行なら行の並び）
+    /// semantic-agent-schema が標準出力に出した JSON（1行なら1つ、複数の行なら行の並び）
     pub output: Value,
 }
 
 /// SAS（共用サービス）で、Skill の項目を検証する。変換を挟まずに従う。
 pub trait SkillValidator {
-    /// skill.json の経路（打った場所からの経路）を sas validate に渡し、その結果を返す。
+    /// skill.json の経路（打った場所からの経路）を semantic-agent-schema validate に渡し、その結果を返す。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn validate(&self, skill_json: &str) -> Result<SasRun, String>;
 
     /// SAS が、打った場所の中にある Concrete として、この $id（URN）を引けるか。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn knows_concrete(&self, urn: &str) -> Result<bool, String>;
 }
 
 /// SAS（共用サービス）に、Skill の項目を書かせる。結果は書き換えずに返す。
 pub trait SkillWriter {
-    /// sas create <経路> --concrete <URN> --semantic：意味で書く手順を受け取る（何も書かない）。
+    /// semantic-agent-schema create <経路> --concrete <URN> --semantic：意味で書く手順を受け取る（何も書かない）。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn create_semantic(&self, path: &str, concrete: &str) -> Result<SasRun, String>;
 
-    /// sas create <経路> --concrete <URN> --value <JSON>：値を書かせる。
+    /// semantic-agent-schema create <経路> --concrete <URN> --value <JSON>：値を書かせる。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<SasRun, String>;
 
-    /// sas update <経路> --semantic --task <依頼>：意味で直す手順を受け取る（何も書かない）。
+    /// semantic-agent-schema update <経路> --semantic --task <依頼>：意味で直す手順を受け取る（何も書かない）。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn update_semantic(&self, path: &str, task: &str) -> Result<SasRun, String>;
 
-    /// sas update <経路> --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>：直しを書かせる。
+    /// semantic-agent-schema update <経路> --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>：直しを書かせる。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn update_patch(
         &self,
         path: &str,
@@ -61,16 +61,16 @@ pub trait SkillWriter {
 
 /// SAS の記録を読む（書かない）。差分は SAS が記録したものを使い、creator で作らない。
 pub trait SkillHistory {
-    /// sas log <経路>：その文書の操作の並び（新しい順）。
+    /// semantic-agent-schema log <経路>：その文書の操作の並び（新しい順）。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn log(&self, path: &str) -> Result<SasRun, String>;
 
-    /// sas log --operation <ID>：操作1件の中身（書いた変更なら所ごとの前と後）。
+    /// semantic-agent-schema log --operation <ID>：操作1件の中身（書いた変更なら所ごとの前と後）。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn operation(&self, id: &str) -> Result<SasRun, String>;
 }
 

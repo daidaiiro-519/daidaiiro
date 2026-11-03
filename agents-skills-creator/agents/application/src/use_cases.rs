@@ -18,7 +18,7 @@ pub const AGENT_JSON: &str = "agent.json";
 /// 始められなかった理由。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Refused {
-    /// 決まった名前（usage ・ not_found ・ invalid_input ・ sas_unavailable ・ skills_unavailable）
+    /// 決まった名前（usage ・ not_found ・ invalid_input ・ semantic_agent_schema_unavailable ・ skills_unavailable）
     pub code: &'static str,
     /// 理由
     pub message: String,
@@ -112,7 +112,7 @@ pub fn strings(v: &Value, key: &str) -> Vec<String> {
 }
 
 /// SAS の手順を、creator のコマンドで書く形にする：command を creator のコマンドに置き換え、constraints の
-/// 「command の sas」を「command の <creator のコマンド>」にする（sas を直に打つ形を出さない）。手順でなければ変えない。
+/// 「command の semantic-agent-schema」を「command の <creator のコマンド>」にする（semantic-agent-schema を直に打つ形を出さない）。手順でなければ変えない。
 pub fn as_creator_procedure(output: &mut serde_json::Value, command: String, bin: &str) {
     if output.get("kind").and_then(serde_json::Value::as_str) != Some("procedure") {
         return;
@@ -138,7 +138,10 @@ pub fn as_creator_procedure(output: &mut serde_json::Value, command: String, bin
     {
         for c in cs.iter_mut() {
             if let Some(t) = c.as_str() {
-                let mut t = t.replace("command の sas", &format!("command の {bin}"));
+                let mut t = t.replace(
+                    "command の semantic-agent-schema",
+                    &format!("command の {bin}"),
+                );
                 if !has_inner {
                     t = t.replace("と、inner_rules の rule（欄の中の所 pointer に当たる。* は配列の要素か名前を選ばない欄）", "");
                 }

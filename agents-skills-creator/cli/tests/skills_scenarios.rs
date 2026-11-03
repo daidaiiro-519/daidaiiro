@@ -1,5 +1,5 @@
 //! システムテスト（文脈 skills）：skills/system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで実行ファイル
-//! agents-skills-creator を動かして確かめる。場面の args は agents-skills-creator skills のあとに渡す。sas は本物を外の
+//! agents-skills-creator を動かして確かめる。場面の args は agents-skills-creator skills のあとに渡す。semantic-agent-schema は本物を外の
 //! 実行ファイルとして呼ぶ。ネットワークと AI は使わない。
 
 #![allow(clippy::expect_used, clippy::panic)]
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 /// 試験を動かす環境から持ち込まない環境変数（AI のツールのセッション ID と SAS の記録の置き場所）。
-/// 持ち込むと、sas の出力のセッションが試験を動かす環境で変わる。
+/// 持ち込むと、semantic-agent-schema の出力のセッションが試験を動かす環境で変わる。
 const NOT_INHERITED: [&str; 5] = [
     "CLAUDE_CODE_SESSION_ID",
     "CODEX_SESSION_ID",
@@ -94,13 +94,13 @@ fn link(dir: &Path, links: &serde_json::Map<String, Value>) {
     }
 }
 
-/// 試験で使う sas の置き場所：このリポジトリの隣の SAS で作った sas があれば、それを PATH の前に足す。
+/// 試験で使う semantic-agent-schema の置き場所：このリポジトリの隣の SAS で作った semantic-agent-schema があれば、それを PATH の前に足す。
 /// 無ければ、試験を動かす環境の PATH のまま（そこにも無ければ sas_unavailable で止まる）。
 fn path_with_sas() -> std::ffi::OsString {
     let built =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../semantic-agent-schema/target/debug");
     let mut dirs: Vec<PathBuf> = Vec::new();
-    if built.join("sas").is_file() {
+    if built.join("semantic-agent-schema").is_file() {
         dirs.push(built);
     }
     if let Some(path) = std::env::var_os("PATH") {
@@ -111,9 +111,9 @@ fn path_with_sas() -> std::ffi::OsString {
 
 fn run(dir: &Path, cmd: &Value) -> Output {
     // args は agents-skills-creator skills のあと、creator は agents-skills-creator のあと（approve ・ --help など）、
-    // sas は SAS（人が承認を書くときなど）に渡す
-    let (program, key) = match (cmd.get("sas"), cmd.get("creator")) {
-        (Some(_), _) => ("sas".to_string(), "sas"),
+    // semantic-agent-schema は SAS（人が承認を書くときなど）に渡す
+    let (program, key) = match (cmd.get("semantic_agent_schema"), cmd.get("creator")) {
+        (Some(_), _) => ("semantic-agent-schema".to_string(), "semantic_agent_schema"),
         (None, Some(_)) => (
             env!("CARGO_BIN_EXE_agents-skills-creator").to_string(),
             "creator",
@@ -125,7 +125,7 @@ fn run(dir: &Path, cmd: &Value) -> Output {
     };
     let mut args: Vec<String> = cmd[key]
         .as_array()
-        .expect("args か creator か sas がある")
+        .expect("args か creator か semantic_agent_schema がある")
         .iter()
         .map(|s| s.as_str().expect("引数は文字列").to_string())
         .collect();
@@ -133,11 +133,11 @@ fn run(dir: &Path, cmd: &Value) -> Output {
         args.insert(0, "skills".to_string());
     }
     let path = path_with_sas();
-    let program = if key == "sas" {
+    let program = if key == "semantic_agent_schema" {
         std::env::split_paths(&path)
-            .map(|d| d.join("sas"))
+            .map(|d| d.join("semantic-agent-schema"))
             .find(|p| p.is_file())
-            .expect("試験に使う sas がある")
+            .expect("試験に使う semantic-agent-schema がある")
     } else {
         PathBuf::from(program)
     };
@@ -176,7 +176,7 @@ fn check(id: &str, label: &str, out: &Output, expect: &Value) {
     // 出力は JSON が1つ。どの出力も結果の形に従う
     let json: Value = serde_json::from_str(stdout.trim())
         .unwrap_or_else(|e| panic!("{id} {label}: 出力が JSON 1つでない（{e}）: {stdout}"));
-    // creator の出力は公開された言葉の形に照らす。sas の出力の形は SAS の試験が確かめる
+    // creator の出力は公開された言葉の形に照らす。semantic-agent-schema の出力の形は SAS の試験が確かめる
     let schema_id = json["$schema"].as_str().unwrap_or_default().to_string();
     if schema_id.starts_with("urn:agents-skills-creator:") {
         let errors: Vec<String> = result_schema(&schema_id)

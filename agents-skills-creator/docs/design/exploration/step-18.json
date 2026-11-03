@@ -1,0 +1,122 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 18,
+ "date": "2026-11-03",
+ "summary": "ACDR 0223（SAS のコマンド名と置き場所）を creator に適用した。SAS を PATH の semantic-agent-schema で呼び、コマンド名 sas が出る所と出力の JSON キー（sas ・ sas_exit ・ sas_unavailable）を semantic-agent-schema の形にし、Concrete の meaning に残る「作る人が承認して決める」を直し、creator を ~/.local/bin に入れた",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC5"
+ ],
+ "factchecks": [
+  {
+   "item": "ACDR 0223",
+   "evidence": [
+    ".acdr/0223-SAS-のコマンド名と置き場所/acdr.json（承認済み）を全部読んだ：コマンド名は semantic-agent-schema、出力のキーは semantic_agent_schema ・ semantic_agent_schema_exit ・ semantic_agent_schema_unavailable、置き場所は ~/.local/bin（cargo install --root ~/.local）。変えないもの：SAS の記録の置き場所 <git-common-dir>/sas/sas.db、記録の値 source='sas'、テンプレートの sas-data、crate 名 outbound-sas。過去の ACDR ・ 探索の記録 ・ コミットは書き換えない"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "SAS の書く手順の constraints",
+   "evidence": [
+    "実地：~/.local/bin/semantic-agent-schema create … --semantic の constraints は「書くのは command の semantic-agent-schema だけで、ファイルを直接書かない」。creator はこの句を「command の skills（agents）」に書き換える"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "Concrete の更新（semantic-agent-schema update、--reason 付き）",
+   "evidence": [
+    "skill.schema：o-0114。purpose ・ role の meaning を「作る人が進めてよいと答えて決まる」に、approved の description と tools ・ uses の meaning のコマンド名 sas を semantic-agent-schema に",
+    "agent.schema：o-0116。purpose ・ role の meaning と approved の description を同じく",
+    "どちらも機械の判定で違反 0"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "creator を入れた所",
+   "evidence": [
+    "cargo install --path cli --root ~/.local で入れ、which agents-skills-creator が /home/daidaiiro/.local/bin/agents-skills-creator"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "SAS を呼ぶ所（skills ・ agents の outbound-sas）",
+   "steps": [
+    "PATH から semantic-agent-schema を探す（crate 名とフォルダ名 outbound-sas は変えない）"
+   ],
+   "rules": []
+  },
+  {
+   "usecase": "出力",
+   "steps": [
+    "結果の JSON のキー sas → semantic_agent_schema、sas_exit → semantic_agent_schema_exit、断った理由の code sas_unavailable → semantic_agent_schema_unavailable（公開された言葉の結果の schema も同じ）",
+    "agents の validate が読む skills validate の結果のキーも semantic_agent_schema_exit",
+    "出力の文（delegate の a、approve の how、エラーの文など）と、--semantic の constraints の書き換えの句を semantic-agent-schema の形に"
+   ],
+   "rules": [
+    "Rust の内部の型名 ・ 変数名（SasRun ・ sas など）は変えない"
+   ]
+  },
+  {
+   "usecase": "creator 自身（skills/system-tests/fixtures/agents-skills-creator/）",
+   "steps": [
+    "skills update --patch @… --reason「層：role …」で直した（一時ディレクトリの SAS の記録で o-0031）：uses の name を semantic-agent-schema、for と手順3の完了条件の文、compatibility を「semantic-agent-schema と agents-skills-creator が PATH にあること」",
+    "作る流れの手引きと SKILL.md のコマンド名を semantic-agent-schema に"
+   ],
+   "rules": []
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "コマンド名 sas",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "ACDR 0223 のとおり semantic-agent-schema にした。場面の書式の欄 sas も semantic_agent_schema にした（場面の中で SAS のコマンドを打つ欄）"
+  },
+  {
+   "item": "Concrete の meaning の「承認」（step-17 の持ち越し）",
+   "result": "match",
+   "fixed": "hypothesis",
+   "note": "o-0114 ・ o-0116 で直した"
+  }
+ ],
+ "vocabulary": [],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "出力の JSON キー",
+    "before": "sas ・ sas_exit ・ code sas_unavailable",
+    "after": "semantic_agent_schema ・ semantic_agent_schema_exit ・ code semantic_agent_schema_unavailable",
+    "why": "ACDR 0223"
+   },
+   {
+    "what": "場面の書式",
+    "before": "command の欄 sas",
+    "after": "command の欄 semantic_agent_schema。試験は semantic-agent-schema を PATH（隣の SAS の target/debug を先に）から探す",
+    "why": "同じ"
+   },
+   {
+    "what": "置き場所",
+    "before": "target/debug を PATH に足して使う",
+    "after": "~/.local/bin/agents-skills-creator（cargo install --path cli --root ~/.local）",
+    "why": "同じ"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "導入スクリプト ・ 配布物の署名",
+    "why": "ACDR 0223 の扱わない範囲。配布物を公開するときに決める"
+   },
+   {
+    "what": "持ち越し",
+    "why": "step-17 の持ち越しのうち、Concrete の meaning の「承認」はこのステップで直した。推測の一覧が広すぎる件、SAS 側の constraints（手順に無い欄を指す）はそのまま"
+   }
+  ]
+ }
+}

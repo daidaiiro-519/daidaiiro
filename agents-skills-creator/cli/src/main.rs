@@ -1,4 +1,4 @@
-//! 実行ファイル agents-skills-creator（sas と同じく PATH に置く1つのコマンド）。
+//! 実行ファイル agents-skills-creator（semantic-agent-schema と同じく PATH に置く1つのコマンド）。
 //!
 //! サブコマンドを振り分けるだけで、ユースケースは持たない。skills と agents の2つの文脈は分けたまま、それぞれの入口
 //! （skills-inbound-cli ・ agents-inbound-cli）へ渡す。approve は、渡されたフォルダに skill.json があれば skills へ、

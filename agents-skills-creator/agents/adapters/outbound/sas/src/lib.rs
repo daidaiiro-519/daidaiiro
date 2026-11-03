@@ -1,5 +1,5 @@
-//! ポート AgentValidator ・ AgentWriter ・ AgentHistory を、SAS の sas コマンドを外の実行ファイルとして呼んで実装する。
-//! 出力は書き換えずに返す。sas は PATH だけで探す。打った場所と環境変数はそのまま渡す。
+//! ポート AgentValidator ・ AgentWriter ・ AgentHistory を、SAS の semantic-agent-schema コマンドを外の実行ファイルとして呼んで実装する。
+//! 出力は書き換えずに返す。semantic-agent-schema は PATH だけで探す。打った場所と環境変数はそのまま渡す。
 
 use agents_application::ports::{AgentHistory, AgentValidator, AgentWriter, Run};
 use serde_json::Value;
@@ -51,17 +51,17 @@ pub fn locate(name: &str) -> Option<PathBuf> {
     })
 }
 
-/// sas を呼ぶ出口。
+/// semantic-agent-schema を呼ぶ出口。
 #[derive(Debug, Clone)]
 pub struct Sas {
     program: PathBuf,
 }
 
 impl Sas {
-    /// PATH の sas。PATH に無ければ None。
+    /// PATH の semantic-agent-schema。PATH に無ければ None。
     #[must_use]
     pub fn locate() -> Option<Self> {
-        locate("sas").map(|program| Self { program })
+        locate("semantic-agent-schema").map(|program| Self { program })
     }
 }
 

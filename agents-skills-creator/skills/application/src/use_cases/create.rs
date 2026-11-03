@@ -1,4 +1,4 @@
-//! UC1 作るの create：SAS に Skill の項目を書かせる。中で sas create を呼び、結果は書き換えずに返す。
+//! UC1 作るの create：SAS に Skill の項目を書かせる。中で semantic-agent-schema create を呼び、結果は書き換えずに返す。
 //!
 //! どちらの書き方も Skill のフォルダを受け取り、<フォルダ>/skill.json を経路にする。名前がまだ決まっていないときは
 //! skills/<name> のように、決まっていない所を <name> のまま渡してよい（--semantic は何も書かないので、SAS は経路の
@@ -39,7 +39,7 @@ pub struct Created {
 pub const GUESS: &str = "【推測】";
 
 /// Agent Skill の Concrete で作るときの、作る流れ。打ったセッション（AI）が読んで進める指示で、作る人に見せる順と、
-/// 聞く所の見分け方と、守ることを持つ。値の組み方そのものは、sas の手順（各欄の説明 ・ 読み方 ・ rule）に従う。
+/// 聞く所の見分け方と、守ることを持つ。値の組み方そのものは、semantic-agent-schema の手順（各欄の説明 ・ 読み方 ・ rule）に従う。
 fn flow() -> Value {
     json!({
         "guess_mark": GUESS,
@@ -69,7 +69,7 @@ fn flow() -> Value {
         ],
         "later_rounds": "2往復目からは、変わった所だけを「前 → 後」で出し、残りの問いの数を付ける。作る人が「ここが違う」と言った所は、そのまま直して見せる",
         "finish": [
-            "値を組み、sas の手順の書くコマンドの代わりに agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせ（--concrete は省ける）、agents-skills-creator skills write-skill-md と agents-skills-creator skills validate を打つ",
+            "値を組み、semantic-agent-schema の手順の書くコマンドの代わりに agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>> で SAS に書かせ（--concrete は省ける）、agents-skills-creator skills write-skill-md と agents-skills-creator skills validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べて見せる",
             "作る前と後の振る舞い（使い手が何をすると、何が変わるか）を出し、作る人に承認（agents-skills-creator approve）を打ってもらうか、「ここが違う」の一言を受け取る"
         ],
@@ -88,7 +88,7 @@ fn flow() -> Value {
 /// SAS に Skill の項目を書かせる。
 ///
 /// # Errors
-/// 置き場所かフォルダか Concrete が無い（usage）・ sas を呼べない（sas_unavailable）とき。
+/// 置き場所かフォルダか Concrete が無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。
 pub fn create(
     target: Option<&str>,
     concrete: Option<&str>,
@@ -107,7 +107,7 @@ pub fn create(
     let mode =
         mode.ok_or_else(|| usage("--semantic か --value <JSON> のどちらかを渡してください"))?;
     let unavailable = |message: String| Refused {
-        code: "sas_unavailable",
+        code: "semantic_agent_schema_unavailable",
         message,
     };
     match mode {

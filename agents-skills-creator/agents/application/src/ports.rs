@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-/// 外のコマンド（sas ・ skills）を打った結果。出力は書き換えずに持つ。
+/// 外のコマンド（semantic-agent-schema ・ skills）を打った結果。出力は書き換えずに持つ。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Run {
     /// 終了コード
@@ -13,37 +13,37 @@ pub struct Run {
 
 /// SAS（共用サービス）で Agent の項目を検証する。
 pub trait AgentValidator {
-    /// sas validate <経路>。
+    /// semantic-agent-schema validate <経路>。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn validate(&self, path: &str) -> Result<Run, String>;
 }
 
 /// SAS に Agent の項目を書かせる。
 pub trait AgentWriter {
-    /// sas create <経路> --concrete <URN> --semantic。
+    /// semantic-agent-schema create <経路> --concrete <URN> --semantic。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn create_semantic(&self, path: &str, concrete: &str) -> Result<Run, String>;
 
-    /// sas create <経路> --concrete <URN> --value <JSON>。
+    /// semantic-agent-schema create <経路> --concrete <URN> --value <JSON>。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<Run, String>;
 
-    /// sas update <経路> --semantic --task <依頼>。
+    /// semantic-agent-schema update <経路> --semantic --task <依頼>。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn update_semantic(&self, path: &str, task: &str) -> Result<Run, String>;
 
-    /// sas update <経路> --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>。
+    /// semantic-agent-schema update <経路> --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn update_patch(
         &self,
         path: &str,
@@ -55,16 +55,16 @@ pub trait AgentWriter {
 
 /// SAS の記録を読む（書かない）。
 pub trait AgentHistory {
-    /// sas log <経路>（新しい順）。
+    /// semantic-agent-schema log <経路>（新しい順）。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn log(&self, path: &str) -> Result<Run, String>;
 
-    /// sas log --operation <ID>。
+    /// semantic-agent-schema log --operation <ID>。
     ///
     /// # Errors
-    /// sas を呼べない ・ 出力が JSON でないとき。
+    /// semantic-agent-schema を呼べない ・ 出力が JSON でないとき。
     fn operation(&self, id: &str) -> Result<Run, String>;
 }
 

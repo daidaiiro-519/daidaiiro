@@ -1,6 +1,6 @@
 //! 承認（人が打つ）：agents-skills-creator approve <Skill のフォルダ>。判定まで済んだ確かめ（最後に書いたあとの、
 //! not-judged ・ violated ・ error が0の validate の操作）の ID と、そのときの中身のハッシュを SAS の記録から引き、
-//! sas update で /approved に書かせる。承認できなければ理由を返して書かない。AI のセッションから打つと SAS が断る
+//! semantic-agent-schema update で /approved に書かせる。承認できなければ理由を返して書かない。AI のセッションから打つと SAS が断る
 //! （/approved は人が決める欄）ので、そのときは人が打つコマンドを返す。
 
 use crate::ports::{SasRun, SkillFiles, SkillHistory, SkillWriter};
@@ -25,7 +25,7 @@ pub struct Approved {
 ///
 /// # Errors
 /// フォルダが無い（usage）・ skill.json を読めない（not_found ・ invalid_input）・ 判定まで済んだ確かめが無い
-/// （not_approvable）・ sas を呼べない（sas_unavailable）とき。
+/// （not_approvable）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。
 pub fn approve(
     folder: Option<&str>,
     files: &dyn SkillFiles,
@@ -44,7 +44,7 @@ pub fn approve(
     };
     let op = judged_validation(history, &path).ok_or_else(|| {
         not(format!(
-            "意味の判定まで済んだ確かめが無い（agents-skills-creator skills validate {folder} の承認の材料の delegate の a で判定して sas validate --answer で渡し、validate を打ち直す）"
+            "意味の判定まで済んだ確かめが無い（agents-skills-creator skills validate {folder} の承認の材料の delegate の a で判定して semantic-agent-schema validate --answer で渡し、validate を打ち直す）"
         ))
     })?;
     let hash = history
@@ -70,7 +70,7 @@ pub fn approve(
     let run = writer
         .update_patch(&path, &patch, &hash, &format!("承認：{op}"))
         .map_err(|message| Refused {
-            code: "sas_unavailable",
+            code: "semantic_agent_schema_unavailable",
             message,
         })?;
     let next = (run.exit != 0).then(|| {

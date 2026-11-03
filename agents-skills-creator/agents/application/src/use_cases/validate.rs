@@ -82,7 +82,10 @@ fn skill_result(run: &Run) -> (bool, String, Vec<String>) {
                 .map(ToString::to_string)
         })
         .collect();
-    let sas_exit = one.get("sas_exit").and_then(Value::as_i64).unwrap_or(-1);
+    let sas_exit = one
+        .get("semantic_agent_schema_exit")
+        .and_then(Value::as_i64)
+        .unwrap_or(-1);
     let ok = run.exit == 0 && failed.is_empty() && sas_exit == 0;
     let why = if ok {
         String::new()
@@ -93,7 +96,7 @@ fn skill_result(run: &Run) -> (bool, String, Vec<String>) {
         )
     } else {
         format!(
-            "agents-skills-creator skills validate で検出（creator：{}、sas の終了コード {sas_exit}）",
+            "agents-skills-creator skills validate で検出（creator：{}、semantic-agent-schema の終了コード {sas_exit}）",
             failed.join(" ・ ")
         )
     };
@@ -269,7 +272,7 @@ fn agent_md_built(files: &dyn AgentFiles, folder: &str, agent: &Value) -> Findin
 }
 
 /// 意味の判定まで済んだ確かめ：SAS の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
-/// どれも 0 のもの（sas validate --answer で判定を渡した確かめ）の ID。
+/// どれも 0 のもの（semantic-agent-schema validate --answer で判定を渡した確かめ）の ID。
 pub(crate) fn judged_validation(history: &dyn AgentHistory, path: &str) -> Option<String> {
     let log = history.log(path).ok().filter(|r| r.exit == 0)?;
     let rows: Vec<Value> = match log.output {
@@ -320,7 +323,7 @@ fn count_not_judged(output: &Value) -> usize {
 /// Agent のフォルダごとに確かめる。
 ///
 /// # Errors
-/// フォルダが1つも無い（usage）・ sas を呼べない（sas_unavailable）とき。
+/// フォルダが1つも無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。
 pub fn validate(
     folders: &[String],
     sas: &dyn AgentValidator,
@@ -377,17 +380,17 @@ pub fn validate(
         let run = sas
             .validate(&format!("{folder}/{AGENT_JSON}"))
             .map_err(|message| Refused {
-                code: "sas_unavailable",
+                code: "semantic_agent_schema_unavailable",
                 message,
             })?;
         let approval = agent.ok().map(|a| {
             let mut ap = approval(folder, &a);
             let mut not = Vec::new();
             if run.exit != 0 {
-                not.push(format!("SAS の検証で検出がある（sas validate の終了コード {}）", run.exit));
+                not.push(format!("SAS の検証で検出がある（semantic-agent-schema validate の終了コード {}）", run.exit));
             }
             if judged.is_none() {
-                not.push(format!("意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して sas validate --answer で渡す）", count_not_judged(&run.output)));
+                not.push(format!("意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して semantic-agent-schema validate --answer で渡す）", count_not_judged(&run.output)));
             }
             ap["approvable"] = Value::Bool(not.is_empty());
             // 承認のコマンドは、承認できるときだけ出す

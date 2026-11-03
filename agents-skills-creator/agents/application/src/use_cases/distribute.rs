@@ -1,4 +1,4 @@
-//! UC5 配布する（Agent の側）：agents-skills-creator agents distribute。配る前に確かめ（validate の検査と sas validate に、承認がいまの中身に
+//! UC5 配布する（Agent の側）：agents-skills-creator agents distribute。配る前に確かめ（validate の検査と semantic-agent-schema validate に、承認がいまの中身に
 //! 当たるか approval-current と、置き場所が空いているか destination-free を足す）、検出が無ければ、ツールと範囲ごとの
 //! 置き場所に、agent.json から write-agent-md と同じ形で作った定義を写して置き、置いたファイルの中身が同じか
 //! （placed-readable）を確かめる。
@@ -187,7 +187,7 @@ fn approval_current(files: &dyn AgentFiles, history: &dyn AgentHistory, folder: 
                 CHECK,
                 Outcome::Error,
                 None,
-                format!("sas log が断った：{}", r.output),
+                format!("semantic-agent-schema log が断った：{}", r.output),
             );
         }
         Err(e) => return finding(CHECK, Outcome::Error, None, e),
@@ -254,7 +254,7 @@ fn approval_current(files: &dyn AgentFiles, history: &dyn AgentHistory, folder: 
 /// Agent を配布する。
 ///
 /// # Errors
-/// フォルダ ・ ツール ・ 範囲が無い（usage）・ HOME が分からない（usage）・ sas を呼べない（sas_unavailable）・ 置けない（not_found）とき。
+/// フォルダ ・ ツール ・ 範囲が無い（usage）・ HOME が分からない（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）・ 置けない（not_found）とき。
 #[allow(clippy::too_many_arguments)]
 pub fn distribute(
     folder: Option<&str>,

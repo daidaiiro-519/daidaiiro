@@ -1,9 +1,9 @@
 //! agents コマンドの入口（文脈 agents）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
-//! コマンドは skills と同じ形：create（sas create を呼ぶ）・ update（sas update を呼ぶ）・ validate（sas validate と creator の検査と承認の材料）・
+//! コマンドは skills と同じ形：create（semantic-agent-schema create を呼ぶ）・ update（semantic-agent-schema update を呼ぶ）・ validate（semantic-agent-schema validate と creator の検査と承認の材料）・
 //! write-agent-md（agent.json から AGENT.md と codex.toml を書く）・ distribute（確かめてからツールの置き場所に定義を写して置く）・
 //! withdraw（配布を取り下げる。人が打ったときだけ）。文脈 skills には、skills コマンドの結果（公開された言葉）でだけ従う。
-//! 終了コード：0 = 正常 ／ 1 = 検出がある、sas が断った、sas ・ skills を呼べない、読めない ／ 2 = 使い方の誤り。
+//! 終了コード：0 = 正常 ／ 1 = 検出がある、semantic-agent-schema が断った、semantic-agent-schema ・ skills を呼べない、読めない ／ 2 = 使い方の誤り。
 
 mod output;
 
@@ -49,8 +49,9 @@ fn refuse(schema: &str, r: &Refused) -> ExitCode {
 
 fn sas() -> Result<Sas, Refused> {
     Sas::locate().ok_or_else(|| Refused {
-        code: "sas_unavailable",
-        message: "sas が PATH に無い（SAS を入れて、PATH に置いてください）".to_string(),
+        code: "semantic_agent_schema_unavailable",
+        message: "semantic-agent-schema が PATH に無い（SAS を入れて、PATH に置いてください）"
+            .to_string(),
     })
 }
 
@@ -266,7 +267,7 @@ fn run_update(args: &[String]) -> ExitCode {
             &usage(format!("直す Agent のフォルダを渡してください。{USAGE}")),
         );
     }
-    // 使い方の誤りは、sas を探す前に返す
+    // 使い方の誤りは、semantic-agent-schema を探す前に返す
     if let Err(r) = update::check_mode(&mode) {
         return refuse(UPDATE, &r);
     }

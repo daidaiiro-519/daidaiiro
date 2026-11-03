@@ -1,5 +1,5 @@
 //! UC4 確かめる（Skill だけ）：渡した Skill のフォルダごとに、SAS の検証の結果（書き換えない）と、SAS が文書1つでは
-//! 判定できない creator の検査の結果と、承認の材料（approval）を返す。確かめても Skill のファイルは変えない（SAS の記録 .git/sas/sas.db には
+//! 判定できない creator の検査の結果と、承認の材料（approval）を返す。確かめても Skill のファイルは変えない（SAS の記録 .git/semantic-agent-schema/semantic-agent-schema.db には
 //! 検証の操作が1件足される）。
 //!
 //! creator の検査：
@@ -9,7 +9,7 @@
 //! - skill-md-built：SKILL.md が、skill.json から write-skill-md で作るものと同じ（AI ツールが読むのは SKILL.md）
 //! - references-exist：参照する資料（references）の各 path が Skill のフォルダの中にあり、ファイルがある（ファイルの外の事実）
 //! - json-schema-conforms：参照する資料と出力のうち schema を持つ件ごとに、schema があり（URN なら SAS が引ける）、
-//!   JSON の資料は中身がその schema に従う（URN なら sas validate、置き場所なら JSON Schema で確かめる）。出力は実行する
+//!   JSON の資料は中身がその schema に従う（URN なら semantic-agent-schema validate、置き場所なら JSON Schema で確かめる）。出力は実行する
 //!   まで中身が無いので、schema があるかだけを見る
 //! - grounds-are-outputs：参照する資料の grounds_for（資料が根拠になる出力）の各名前が、outputs の name にある
 //!   （名前どうしの突き合わせで機械で決まる。references と grounds_for が無ければ verified が1件）
@@ -19,7 +19,7 @@
 //! - tools-used-by：道具（tools）・ 外の道具（uses）の used_by のステップの番号が steps に、分かれ道の id が edge_cases にある
 //!
 //! 承認の材料は、SAS の検証で検出があるか、意味の判定まで済んだ確かめ（最後に書いたあとの、not-judged ・ violated ・
-//! error が0の validate の操作。sas validate --answer で判定を渡したもの）が記録に無ければ、承認を受け付けない
+//! error が0の validate の操作。semantic-agent-schema validate --answer で判定を渡したもの）が記録に無ければ、承認を受け付けない
 //! （approvable を false にし、理由を出す。終了コードは変えない）。承認できるときだけ、そのまま打てる承認のコマンド
 //! （判定まで済んだ確かめの操作 ID と、いまの中身のハッシュ入り）を approve に出す。
 
@@ -669,7 +669,7 @@ fn conforms(
     let bad = |path: String, reason: String| finding(CHECK, Outcome::Violated, Some(path), reason);
     let error = |reason: String| finding(CHECK, Outcome::Error, None, reason);
     if schema.starts_with("urn:") {
-        // SAS の Concrete：SAS が引けるか。資料なら、資料の $schema がその URN で、sas validate が通るか
+        // SAS の Concrete：SAS が引けるか。資料なら、資料の $schema がその URN で、semantic-agent-schema validate が通るか
         // SAS 自身の公開された言葉（Abstract など）は、リポジトリに置かなくても SAS が知っている
         let builtin = schema.starts_with(SAS_PUBLISHED);
         match if builtin {
@@ -719,12 +719,12 @@ fn conforms(
                 CHECK,
                 Outcome::Verified,
                 None,
-                format!("資料 {name} が {schema} に従う（sas validate）"),
+                format!("資料 {name} が {schema} に従う（semantic-agent-schema validate）"),
             ),
             Ok(r) => bad(
                 path,
                 format!(
-                    "資料 {name} が {schema} に従わない（sas validate の終了コード {}：{}）",
+                    "資料 {name} が {schema} に従わない（semantic-agent-schema validate の終了コード {}：{}）",
                     r.exit,
                     summary(&r.output)
                 ),
@@ -794,7 +794,7 @@ fn conforms(
     }
 }
 
-/// sas の出力の要点（断ったなら code と message、検証なら件数）。
+/// semantic-agent-schema の出力の要点（断ったなら code と message、検証なら件数）。
 fn summary(output: &Value) -> String {
     match output.get("kind").and_then(Value::as_str) {
         Some("error") => format!(
@@ -816,7 +816,7 @@ fn summary(output: &Value) -> String {
 }
 
 /// 前の確かめ（SAS の記録の validate の操作）から、その文書に書いた操作と、操作ごとの理由と所ごとの前と後。
-/// 差分は SAS が記録したもの（sas log --operation の diff.changes）をそのまま使う。記録を読めなければ None。
+/// 差分は SAS が記録したもの（semantic-agent-schema log --operation の diff.changes）をそのまま使う。記録を読めなければ None。
 fn changes_since_last_validation(history: &dyn SkillHistory, path: &str) -> Option<Value> {
     let log = history.log(path).ok()?;
     if log.exit != 0 {
@@ -829,7 +829,7 @@ fn changes_since_last_validation(history: &dyn SkillHistory, path: &str) -> Opti
     };
     let mut since = Value::Null;
     let mut operations = Vec::new();
-    // sas log は新しい順。最初に出会う validate が前の確かめ
+    // semantic-agent-schema log は新しい順。最初に出会う validate が前の確かめ
     for row in &rows {
         let op = row.get("op").and_then(Value::as_str).unwrap_or_default();
         let id = row
@@ -882,7 +882,7 @@ fn count_not_judged(output: &Value) -> usize {
 }
 
 /// 意味の判定まで済んだ確かめ：SAS の記録で、最後に書いたあとの validate の操作のうち、not-judged ・ violated ・ error が
-/// どれも 0 のもの（sas validate --answer で判定を渡した確かめ）の ID。この validate を記録する前に読む。
+/// どれも 0 のもの（semantic-agent-schema validate --answer で判定を渡した確かめ）の ID。この validate を記録する前に読む。
 pub(crate) fn judged_validation(history: &dyn SkillHistory, path: &str) -> Option<String> {
     let log = history.log(path).ok().filter(|r| r.exit == 0)?;
     let rows: Vec<Value> = match log.output {
@@ -921,7 +921,7 @@ fn approve_command(folder: &str) -> (String, String) {
 /// Skill のファイルは変えない。
 ///
 /// # Errors
-/// フォルダが1つも無い（usage）・ sas を呼べない（sas_unavailable）とき。
+/// フォルダが1つも無い（usage）・ semantic-agent-schema を呼べない（semantic_agent_schema_unavailable）とき。
 pub fn validate(
     folders: &[String],
     sas: &dyn SkillValidator,
@@ -954,7 +954,7 @@ pub fn validate(
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {
-                code: "sas_unavailable",
+                code: "semantic_agent_schema_unavailable",
                 message,
             })?;
         let skill = read_skill(files, folder).ok();
@@ -962,13 +962,13 @@ pub fn validate(
             let mut a = approval(folder, v);
             if run.exit != 0 {
                 a.not_approvable.push(format!(
-                    "SAS の検証で検出がある（sas validate の終了コード {}）",
+                    "SAS の検証で検出がある（semantic-agent-schema validate の終了コード {}）",
                     run.exit
                 ));
             }
             if judged.is_none() {
                 a.not_approvable.push(format!(
-                    "意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して sas validate --answer で渡す）",
+                    "意味の判定が済んでいない（not-judged が {} 件。approval の delegate の a で判定して semantic-agent-schema validate --answer で渡す）",
                     count_not_judged(&run.output)
                 ));
             }

@@ -1,6 +1,6 @@
 # 作る流れの手引き
 
-Skill か Agent を作るとき、直すとき、配るときに、この手引きの順で進める。使うコマンドは、sas と同じく PATH に置く `agents-skills-creator` で、サブコマンド `skills`（Skill）・ `agents`（Agent）・ `approve`（人が打つ承認）を持つ。`--concrete` は省ける（Skill は urn:agents-skills-creator:skill:v1、Agent は urn:agents-skills-creator:agent:v1）。
+Skill か Agent を作るとき、直すとき、配るときに、この手引きの順で進める。使うコマンドは、semantic-agent-schema と同じく PATH に置く `agents-skills-creator` で、サブコマンド `skills`（Skill）・ `agents`（Agent）・ `approve`（人が打つ承認）を持つ。`--concrete` は省ける（Skill は urn:agents-skills-creator:skill:v1、Agent は urn:agents-skills-creator:agent:v1）。
 
 「承認」は、`agents-skills-creator approve` で approved を書くことだけを指す。目的の仮説は、作る人が「進めてよい」と答えて決まる。
 
@@ -34,7 +34,7 @@ Skill か Agent を作るとき、直すとき、配るときに、この手引�
 - Skill：`agents-skills-creator skills create skills/<name> --semantic`
 - Agent：`agents-skills-creator agents create agents/<name> --semantic`
 
-返る出力のうち、最初の返事のために読むのは `flow`（最初の返事で見せる4つ・構造の像・聞く所の見分け方・問いの形）、書くために読むのは sas の各 step の current ・ rules と command（値を書かせる creator のコマンド）。
+返る出力のうち、最初の返事のために読むのは `flow`（最初の返事で見せる4つ・構造の像・聞く所の見分け方・問いの形）、書くために読むのは semantic-agent-schema の各 step の current ・ rules と command（値を書かせる creator のコマンド）。
 
 ### 最初の返事で見せる4つ
 
@@ -65,10 +65,10 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 ## §3 書かせて確かめる（手順3〜7。承認の前）
 
-- 手順3：作る人が目的の仮説で進めてよいと答え、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`sas.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で SAS に書かせる。
+- 手順3：作る人が目的の仮説で進めてよいと答え、問いに答えたら、`--semantic` で受け取った手順に従って値を組み、`semantic-agent-schema.command` のとおり `agents-skills-creator skills create <フォルダ> --value <JSON か @<ファイル>>`（Agent なら `agents-skills-creator agents create`）で SAS に書かせる。
 - 手順4：`agents-skills-creator skills write-skill-md <フォルダ>`（Agent なら `agents-skills-creator agents write-agent-md`）を打つ。
 - 手順5：`agents-skills-creator skills validate <フォルダ>`（Agent なら `agents-skills-creator agents validate`）を打ち、検出があれば直す。
-- 手順6：意味の rule の判定。承認の材料の delegate の a のとおり、別の会話で判定し、`sas validate <経路> --answer <ファイル>` で渡す。そのあと validate を打ち直し、`approvable` が true になるまで承認を求めない。
+- 手順6：意味の rule の判定。承認の材料の delegate の a のとおり、別の会話で判定し、`semantic-agent-schema validate <経路> --answer <ファイル>` で渡す。そのあと validate を打ち直し、`approvable` が true になるまで承認を求めない。
 - 手順7：例を動かす。承認の材料の delegate の b のとおり、別の会話で例を動かし、実際の答えを完成の像と並べて見せる。
 
 ### 値をファイルで渡す
@@ -108,4 +108,4 @@ PATH に置くコマンドは uses（外の道具。used_by で使うステッ�
 
 手順7で例を動かしてまだ外れるなら、一つ広い層で直す（分かれ道 7a）。
 
-作る人が層を選んだら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは承認のあと1回：`sas.command` のとおり `agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。
+作る人が層を選んだら（手順2の完了）、足す例と選んだ層の直しを1つの JSON Patch にし、書くのは承認のあと1回：`semantic-agent-schema.command` のとおり `agents-skills-creator skills update <フォルダ> --patch <JSON Patch か @<ファイル>> --if-match <ハッシュ> --reason 層：<層>`（手順3）。そのあとは手順4〜9 の順に進める。

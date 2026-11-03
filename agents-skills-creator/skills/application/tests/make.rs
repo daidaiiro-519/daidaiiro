@@ -150,7 +150,7 @@ fn approve(files: &Files) -> Approval {
     approval("skills/s", &v)
 }
 
-/// sas create を打たずに、渡された引数を返す代役。
+/// semantic-agent-schema create を打たずに、渡された引数を返す代役。
 struct Writer;
 
 impl SkillWriter for Writer {

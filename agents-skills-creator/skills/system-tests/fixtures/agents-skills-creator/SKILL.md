@@ -1,7 +1,7 @@
 ---
 name: agents-skills-creator
 description: 作りたい作業を思いついたとき、使われて外れた具体で直したいとき、配りたいときに使う。作るか直すか、1つの Skill で終わるか複数の Skill を束ねる Agent かを見分け、目的の仮説 ・ 完成の像 ・ 構造の像を見せて作り、直し、確かめ、配る。配布の取り下げは影響を示し、人が打つ。作った Skill の作業そのもの ・ 承認 ・ コミットはしない。
-compatibility: sas と agents-skills-creator が PATH にあること
+compatibility: semantic-agent-schema と agents-skills-creator が PATH にあること
 ---
 
 ## 目的
@@ -38,7 +38,7 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
 ## 外の道具
 
 - agents-skills-creator（>=0.1.0, <0.2.0）：Skill ・ Agent を作り、直し、確かめ、配り、配布の取り下げの影響を示す（サブコマンド skills ・ agents）。承認は人が approve で打つ
-- sas（>=0.1.0, <0.2.0）：意味の rule の判定を渡す（sas validate --answer）。agents-skills-creator が中で SAS に書かせ、確かめさせ、記録を読む
+- semantic-agent-schema（>=0.1.0, <0.2.0）：意味の rule の判定を渡す（semantic-agent-schema validate --answer）。agents-skills-creator が中で SAS に書かせ、確かめさせ、記録を読む
 
 ## 資源
 
@@ -51,10 +51,10 @@ AI ツールの会話の中で、作業を Skill か Agent に任せたい人が
    - 1a 束ねたい Skill が足りない → 足りない Skill を先に Skill として作る（ステップ1へ戻る）
    - 1b 使わなくしたい → withdraw で取り下げの影響と人が打つコマンドを示し、人が打つ（止める）（使う道具：agents-skills-creator）
 2. 書く手順を --semantic で受け取り、返る flow に従って最初の返事を見せる（作るときは目的の仮説 ・ 完成の像 ・ 構造の像と推奨付きの問い、直すときは外れた具体 ・ 足す例 ・ 層ごとの前と後 ・ 推奨）（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：作るときは作る人が目的の仮説で進めてよいと答えて問いに答え、直すときは作る人が直す層を選んだ）
-3. SAS に項目を書かせる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：sas の結果が created か updated である）
+3. SAS に項目を書かせる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：semantic-agent-schema の結果が created か updated である）
 4. SKILL.md（Agent なら AGENT.md と codex.toml）を作る（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：write-skill-md（Agent なら write-agent-md）の結果に、書いたファイルの経路がある）
 5. validate で確かめる（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：validate の終了コードが 0 である）
-6. 意味の rule を別の会話で判定させ、判定を SAS に渡す（使う道具：sas）（読む資料：作る流れの手引き）（完了条件：validate の承認の材料の approvable が true である）
+6. 意味の rule を別の会話で判定させ、判定を SAS に渡す（使う道具：semantic-agent-schema）（読む資料：作る流れの手引き）（完了条件：validate の承認の材料の approvable が true である）
 7. 別の会話で例を動かし、実際の答えを完成の像と並べて見せる（読む資料：作る流れの手引き）（完了条件：どの例にも、実際の答えが期待と並んでいる）
    - 7a 例の実際の答えが期待と違う → 一つ広い層で直す（外れた具体として、直す層を選んでもらう）（ステップ2へ戻る）
 8. 承認のコマンド（agents-skills-creator approve <フォルダ>）を作る人に示し、人に打ってもらう（使う道具：agents-skills-creator）（読む資料：作る流れの手引き）（完了条件：skill.json（Agent なら agent.json）に approved がある）

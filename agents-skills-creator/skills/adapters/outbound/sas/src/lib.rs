@@ -1,33 +1,33 @@
-//! ポート SkillValidator ・ SkillWriter ・ SkillHistory を、SAS の sas コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
+//! ポート SkillValidator ・ SkillWriter ・ SkillHistory を、SAS の semantic-agent-schema コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
 //!
-//! sas は PATH だけで探す（sas は環境に1つ。Skill は使う版の範囲だけを宣言する）。打った場所（作業ディレクトリ）と
-//! 環境変数はそのまま渡す（sas は打った場所の中から Concrete を探し、打ったセッションを環境変数で決める）。
+//! semantic-agent-schema は PATH だけで探す（semantic-agent-schema は環境に1つ。Skill は使う版の範囲だけを宣言する）。打った場所（作業ディレクトリ）と
+//! 環境変数はそのまま渡す（semantic-agent-schema は打った場所の中から Concrete を探し、打ったセッションを環境変数で決める）。
 
 use serde_json::Value;
 use skills_application::ports::{SasRun, SkillHistory, SkillValidator, SkillWriter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// sas を呼ぶ出口。
+/// semantic-agent-schema を呼ぶ出口。
 #[derive(Debug, Clone)]
 pub struct Sas {
     program: PathBuf,
 }
 
 impl Sas {
-    /// PATH の sas。PATH に無ければ None。
+    /// PATH の semantic-agent-schema。PATH に無ければ None。
     #[must_use]
     pub fn locate() -> Option<Self> {
         std::env::var_os("PATH")
             .and_then(|paths| {
                 std::env::split_paths(&paths)
-                    .map(|d| d.join("sas"))
+                    .map(|d| d.join("semantic-agent-schema"))
                     .find(|p| p.is_file())
             })
             .map(|program| Self { program })
     }
 
-    /// 使う sas の経路。
+    /// 使う semantic-agent-schema の経路。
     #[must_use]
     pub fn program(&self) -> &Path {
         &self.program
@@ -35,7 +35,7 @@ impl Sas {
 }
 
 impl Sas {
-    /// sas を打ち、終了コードと出力の JSON（1行なら1つ、複数の行なら行の並び）を返す。
+    /// semantic-agent-schema を打ち、終了コードと出力の JSON（1行なら1つ、複数の行なら行の並び）を返す。
     fn run(&self, args: &[&str]) -> Result<SasRun, String> {
         let out = Command::new(&self.program)
             .args(args)
@@ -47,14 +47,14 @@ impl Sas {
             .filter(|l| !l.trim().is_empty())
             .map(|l| {
                 serde_json::from_str(l.trim())
-                    .map_err(|e| format!("sas の出力が JSON でない（{e}）：{l}"))
+                    .map_err(|e| format!("semantic-agent-schema の出力が JSON でない（{e}）：{l}"))
             })
             .collect::<Result<_, _>>()?;
         let output = match <[Value; 1]>::try_from(lines) {
             Ok([one]) => one,
             Err(lines) if lines.is_empty() => {
                 return Err(format!(
-                    "sas が何も出力しなかった：{}",
+                    "semantic-agent-schema が何も出力しなかった：{}",
                     String::from_utf8_lossy(&out.stderr)
                 ));
             }
@@ -87,7 +87,10 @@ impl SkillValidator for Sas {
         ) {
             (Some("search"), _) => Ok(true),
             (Some("error"), Some("unknown_schema" | "schema_not_listed")) => Ok(false),
-            _ => Err(format!("sas search の結果を読めない：{}", r.output)),
+            _ => Err(format!(
+                "semantic-agent-schema search の結果を読めない：{}",
+                r.output
+            )),
         }
     }
 }
