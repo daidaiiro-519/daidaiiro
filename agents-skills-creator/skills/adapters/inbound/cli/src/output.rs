@@ -5,11 +5,14 @@ use serde_json::{Value, json};
 use skills_application::use_cases::Refused;
 use skills_application::use_cases::approval::Approval;
 use skills_application::use_cases::create::Created;
+use skills_application::use_cases::update::Updated;
 use skills_application::use_cases::validate::{Checked, Finding};
 use skills_application::use_cases::write_skill_md::Built;
 
 /// create の結果の形。
 pub const CREATE: &str = "urn:agents-skills-creator:skills:create-result:v1";
+/// update の結果の形。
+pub const UPDATE: &str = "urn:agents-skills-creator:skills:update-result:v1";
 /// validate の結果の形（知らないコマンドの誤りもこの形で返す）。
 pub const VALIDATE: &str = "urn:agents-skills-creator:skills:validate-result:v1";
 /// write-skill-md の結果の形。
@@ -38,6 +41,9 @@ pub fn print_validated(c: &Checked) {
             });
             if let Some(a) = &s.approval {
                 v["approval"] = approval(a);
+                if let Some(changes) = &s.changes {
+                    v["approval"]["changes"] = changes.clone();
+                }
             }
             v
         })
@@ -46,6 +52,17 @@ pub fn print_validated(c: &Checked) {
         "{}",
         json!({"$schema": VALIDATE, "kind": "validate", "skills": skills, "detected": c.detected()})
     );
+}
+
+/// SAS に直させた結果を出す。
+pub fn print_updated(u: &Updated) {
+    let mut out = json!({"$schema": UPDATE, "kind": "update"});
+    if let Some(flow) = &u.flow {
+        out["flow"] = flow.clone();
+    }
+    out["sas"] = u.sas.output.clone();
+    out["sas_exit"] = json!(u.sas.exit);
+    println!("{out}");
 }
 
 /// SAS に書かせた結果を出す。

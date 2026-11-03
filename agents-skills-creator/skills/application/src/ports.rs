@@ -39,6 +39,39 @@ pub trait SkillWriter {
     /// # Errors
     /// sas を呼べない ・ 出力が JSON でないとき。
     fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<SasRun, String>;
+
+    /// sas update <経路> --semantic --task <依頼>：意味で直す手順を受け取る（何も書かない）。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn update_semantic(&self, path: &str, task: &str) -> Result<SasRun, String>;
+
+    /// sas update <経路> --patch <JSON Patch> --if-match <ハッシュ> --reason <理由>：直しを書かせる。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn update_patch(
+        &self,
+        path: &str,
+        patch: &str,
+        if_match: &str,
+        reason: &str,
+    ) -> Result<SasRun, String>;
+}
+
+/// SAS の記録を読む（書かない）。差分は SAS が記録したものを使い、creator で作らない。
+pub trait SkillHistory {
+    /// sas log <経路>：その文書の操作の並び（新しい順）。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn log(&self, path: &str) -> Result<SasRun, String>;
+
+    /// sas log --operation <ID>：操作1件の中身（書いた変更なら所ごとの前と後）。
+    ///
+    /// # Errors
+    /// sas を呼べない ・ 出力が JSON でないとき。
+    fn operation(&self, id: &str) -> Result<SasRun, String>;
 }
 
 /// ふつうの JSON Schema（2020-12）で、値を確かめる。

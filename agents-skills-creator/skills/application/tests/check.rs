@@ -3,7 +3,9 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 
 use serde_json::json;
-use skills_application::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
+use skills_application::ports::{
+    JsonSchemaChecker, SasRun, SkillFiles, SkillHistory, SkillValidator,
+};
 use skills_application::use_cases::validate::{Outcome, validate};
 use skills_domain::services::skill_md;
 use std::cell::RefCell;
@@ -105,6 +107,21 @@ impl JsonSchemaChecker for Schemas {
     }
 }
 
+impl SkillHistory for Sas {
+    fn log(&self, _: &str) -> Result<SasRun, String> {
+        Ok(SasRun {
+            exit: 0,
+            output: json!([]),
+        })
+    }
+    fn operation(&self, _: &str) -> Result<SasRun, String> {
+        Ok(SasRun {
+            exit: 0,
+            output: json!({}),
+        })
+    }
+}
+
 impl SkillValidator for Sas {
     fn knows_concrete(&self, urn: &str) -> Result<bool, String> {
         Ok(urn == "urn:example:known:v1")
@@ -126,7 +143,14 @@ fn outcomes(c: &skills_application::use_cases::validate::SkillChecked) -> Vec<(&
 fn a_usable_skill_passes_every_check_and_keeps_the_sas_output() {
     let files = Files::default().skill("skills/fact-check", "fact-check");
     let sas = Sas::ok();
-    let c = validate(&["skills/fact-check/".to_string()], &sas, &files, &Schemas).unwrap();
+    let c = validate(
+        &["skills/fact-check/".to_string()],
+        &sas,
+        &sas,
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     assert!(!c.detected());
     assert_eq!(
         outcomes(&c.skills[0]),
@@ -158,7 +182,14 @@ fn name_must_be_the_folder_name_and_must_not_overlap() {
     let files = Files::default()
         .skill("skills/fact-check", "fact-check")
         .skill("skills/old", "fact-check");
-    let c = validate(&["skills/old".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let c = validate(
+        &["skills/old".to_string()],
+        &Sas::ok(),
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     assert!(c.detected());
     let f = &c.skills[0].creator;
     assert_eq!(f[0].outcome, Outcome::Violated);
@@ -176,6 +207,7 @@ fn folders_that_are_not_skills_do_not_overlap() {
     let c = validate(
         &["skills/fact-check".to_string()],
         &Sas::ok(),
+        &Sas::ok(),
         &files,
         &Schemas,
     )
@@ -191,6 +223,7 @@ fn dangling_links_and_a_missing_folder_are_reported() {
         .push("skills/fact-check/references".to_string());
     let c = validate(
         &["skills/fact-check".to_string()],
+        &Sas::ok(),
         &Sas::ok(),
         &files,
         &Schemas,
@@ -208,6 +241,7 @@ fn dangling_links_and_a_missing_folder_are_reported() {
 
     let c = validate(
         &["skills/gone".to_string()],
+        &Sas::ok(),
         &Sas::ok(),
         &Files::default(),
         &Schemas,
@@ -234,14 +268,21 @@ fn a_sas_detection_alone_is_a_detection() {
         exit: 1,
         asked: RefCell::new(Vec::new()),
     };
-    let c = validate(&["skills/fact-check".to_string()], &sas, &files, &Schemas).unwrap();
+    let c = validate(
+        &["skills/fact-check".to_string()],
+        &sas,
+        &sas,
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     assert!(c.creator_all_verified());
     assert!(c.detected());
 }
 
 #[test]
 fn nothing_to_check_is_a_usage_error() {
-    let r = validate(&[], &Sas::ok(), &Files::default(), &Schemas).unwrap_err();
+    let r = validate(&[], &Sas::ok(), &Sas::ok(), &Files::default(), &Schemas).unwrap_err();
     assert_eq!(r.code, "usage");
 }
 
@@ -267,6 +308,7 @@ fn a_stale_or_missing_skill_md_is_reported() {
     let c = validate(
         &["skills/fact-check".to_string()],
         &Sas::ok(),
+        &Sas::ok(),
         &files,
         &Schemas,
     )
@@ -279,6 +321,7 @@ fn a_stale_or_missing_skill_md_is_reported() {
     files.files.remove("skills/fact-check/SKILL.md");
     let c = validate(
         &["skills/fact-check".to_string()],
+        &Sas::ok(),
         &Sas::ok(),
         &files,
         &Schemas,
@@ -306,7 +349,14 @@ fn references_must_be_inside_the_folder_and_exist() {
     files
         .files
         .insert("skills/shared/c.json".to_string(), "[]".to_string());
-    let c = validate(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let c = validate(
+        &["skills/s".to_string()],
+        &Sas::ok(),
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     let refs: Vec<(Outcome, Option<&str>)> = c.skills[0].creator[4..7]
         .iter()
         .map(|f| (f.outcome, f.path.as_deref()))
@@ -348,7 +398,14 @@ fn json_resources_must_follow_their_schema_and_output_schemas_must_exist() {
     ] {
         files.files.insert(p.to_string(), t);
     }
-    let c = validate(&["skills/s".to_string()], &Sas::ok(), &files, &Schemas).unwrap();
+    let c = validate(
+        &["skills/s".to_string()],
+        &Sas::ok(),
+        &Sas::ok(),
+        &files,
+        &Schemas,
+    )
+    .unwrap();
     let got: Vec<(Outcome, Option<&str>)> = c.skills[0]
         .creator
         .iter()

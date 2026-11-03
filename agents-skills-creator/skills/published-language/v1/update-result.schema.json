@@ -1,0 +1,204 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:agents-skills-creator:skills:update-result:v1",
+ "title": "SAS に直させた結果",
+ "description": "skills update が標準出力に返す JSON（1つ）。中で打った sas update の結果を書き換えずに sas に入れる。--semantic のときだけ、直す流れ（flow）を先頭に添える。--patch は作る人が承認してから打ち、--reason の「層：<名前>」が SAS の記録に残る",
+ "type": "object",
+ "required": [
+  "$schema",
+  "kind"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:agents-skills-creator:skills:update-result:v1"
+  },
+  "kind": {
+   "title": "結果の種類",
+   "description": "update は sas update を打った（SAS が断ったときも update で、sas に断った理由が入る）、error は打てなかった（使い方の誤り ・ sas を呼べない）",
+   "x-prompt": {
+    "meaning": "error なら code と message を読む。update なら sas を SAS の結果として読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "update",
+    "error"
+   ]
+  },
+  "flow": {
+   "title": "直す流れ",
+   "description": "--semantic のときだけ。打ったセッション（AI）が読んで進める指示：外れた具体を examples に足す形（add_example）・ 直す層の案（layers。examples → edge_cases → rules → role → purpose の順に広く直り、層ごとに導き直す項目 rederive を持つ）・ 層の選ばせ方（choose）・ 導き直し（rederive）・ 記録（record）・ 承認してから書く（approve_then_write）・ 仕上げ（finish）・ 見せ方 ・ 分からないの扱い",
+   "x-prompt": {
+    "meaning": "外れた具体を examples に足し、推奨付きで層を選ばせ、承認されてから --patch で書かせる。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "add_example",
+    "layers",
+    "choose",
+    "rederive",
+    "record",
+    "approve_then_write",
+    "finish",
+    "presentation",
+    "unknown"
+   ],
+   "properties": {
+    "add_example": {
+     "type": "object",
+     "required": [
+      "from",
+      "fields",
+      "how"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "from": {
+       "type": "string"
+      },
+      "fields": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "how": {
+       "type": "string"
+      }
+     }
+    },
+    "layers": {
+     "type": "array",
+     "minItems": 5,
+     "maxItems": 5,
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "fixes",
+       "rederive"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "enum": [
+         "examples",
+         "edge_cases",
+         "rules",
+         "role",
+         "purpose"
+        ]
+       },
+       "fixes": {
+        "type": "string"
+       },
+       "rederive": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    },
+    "choose": {
+     "type": "string"
+    },
+    "rederive": {
+     "type": "string"
+    },
+    "record": {
+     "type": "string"
+    },
+    "approve_then_write": {
+     "type": "string"
+    },
+    "finish": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "presentation": {
+     "type": "string"
+    },
+    "unknown": {
+     "type": "string"
+    }
+   }
+  },
+  "sas": {
+   "title": "SAS の結果",
+   "description": "sas update の出力を、書き換えずにそのまま入れたもの（--semantic なら SAS の直す手順、--patch なら書いた変更か断った理由）",
+   "x-prompt": {
+    "meaning": "SAS の結果として読み、手順なら手順に従って値を組む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": [
+    "object",
+    "array"
+   ]
+  },
+  "sas_exit": {
+   "title": "SAS の終了コード",
+   "description": "sas update の終了コード（0 は手順を返したか書けた）",
+   "x-prompt": {
+    "meaning": "0 でなければ、SAS が断ったこととして sas を読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "integer"
+  },
+  "code": {
+   "title": "断った理由の名前",
+   "description": "usage は使い方の誤り、sas_unavailable は sas を呼べなかった",
+   "x-prompt": {
+    "meaning": "どう直すかを決める。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "enum": [
+    "usage",
+    "sas_unavailable"
+   ]
+  },
+  "message": {
+   "title": "断った理由",
+   "description": "断った理由の1文",
+   "x-prompt": {
+    "meaning": "何を直すかを読む。",
+    "when": "結果を受け取ったときに読む。",
+    "rules": []
+   },
+   "type": "string"
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "const": "update"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "sas",
+     "sas_exit"
+    ]
+   },
+   "else": {
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  }
+ ]
+}

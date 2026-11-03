@@ -499,6 +499,59 @@
        "items": {
         "$ref": "#/$defs/task"
        }
+      },
+      "changes": {
+       "title": "前の確かめから変わった所",
+       "description": "SAS の記録で、この文書の前の validate の操作（since。無ければ null）より後に書いた操作の並び（新しい順）。操作ごとに、操作の ID ・ 種類 ・ 時刻 ・ 理由（直したときは「層：<名前>」）と、SAS が記録した所ごとの前と後（diff.changes をそのまま）。creator で差分を作らない。SAS の記録を読めないときは無い",
+       "x-prompt": {
+        "meaning": "前と後を並べて見せ、理由の層で、どの層で直したかを示す。",
+        "when": "結果を受け取ったときに読む。",
+        "rules": []
+       },
+       "type": "object",
+       "required": [
+        "since",
+        "operations"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "since": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "operations": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "operation",
+           "op",
+           "at",
+           "changes"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "operation": {
+            "type": "string"
+           },
+           "op": {
+            "type": "string"
+           },
+           "at": {
+            "type": "string"
+           },
+           "reason": {
+            "type": "string"
+           },
+           "changes": {
+            "type": "array"
+           }
+          }
+         }
+        }
+       }
       }
      }
     }

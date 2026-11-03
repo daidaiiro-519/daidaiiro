@@ -166,13 +166,76 @@ impl SkillWriter for Writer {
             output: json!({"kind": "change", "path": path, "schema": concrete, "value": value}),
         })
     }
+    fn update_semantic(&self, path: &str, task: &str) -> Result<SasRun, String> {
+        Ok(SasRun {
+            exit: 0,
+            output: json!({"kind": "procedure", "path": path, "task": task}),
+        })
+    }
+    fn update_patch(
+        &self,
+        path: &str,
+        patch: &str,
+        if_match: &str,
+        reason: &str,
+    ) -> Result<SasRun, String> {
+        Ok(SasRun {
+            exit: 0,
+            output: json!({"kind": "change", "path": path, "patch": patch, "if_match": if_match, "reason": reason}),
+        })
+    }
+}
+
+#[test]
+fn update_records_the_layer_and_writes_only_with_if_match() {
+    use skills_application::use_cases::update::{Mode as U, update};
+    let p = update(
+        Some("skills/s/"),
+        Some(U::Semantic("外れた".into())),
+        &Writer,
+    )
+    .unwrap();
+    assert_eq!(p.sas.output["path"], json!("skills/s/skill.json"));
+    let f = p.flow.unwrap();
+    assert_eq!(f["layers"].as_array().unwrap().len(), 5);
+    assert_eq!(f["add_example"]["from"], json!("使われて外れた具体"));
+    let patch = |if_match: Option<&str>, reason: Option<&str>| U::Patch {
+        patch: "[]".into(),
+        if_match: if_match.map(Into::into),
+        reason: reason.map(Into::into),
+    };
+    let w = update(
+        Some("skills/s"),
+        Some(patch(Some("h"), Some("層：rules"))),
+        &Writer,
+    )
+    .unwrap();
+    assert_eq!(w.sas.output["reason"], json!("層：rules"));
+    assert!(w.flow.is_none());
+    for m in [
+        patch(None, Some("層：rules")),
+        patch(Some("h"), None),
+        patch(Some("h"), Some("直した")),
+        patch(Some("h"), Some("層：layout")),
+    ] {
+        assert_eq!(
+            update(Some("skills/s"), Some(m), &Writer).unwrap_err().code,
+            "usage"
+        );
+    }
 }
 
 #[test]
 fn create_adds_the_flow_only_for_the_skill_concrete_and_passes_sas_through() {
     let skill = "urn:agents-skills-creator:skill:v1";
     let kind = "urn:agents-skills-creator:kind:advisor:v1";
-    let c = create(Some("skills/"), Some(skill), Some(Mode::Semantic), &Writer).unwrap();
+    let c = create(
+        Some("skills/<name>/"),
+        Some(skill),
+        Some(Mode::Semantic),
+        &Writer,
+    )
+    .unwrap();
     assert_eq!(c.sas.output["path"], json!("skills/<name>/skill.json"));
     let f = c.flow.unwrap();
     assert_eq!(f["first_reply"].as_array().unwrap().len(), 4);

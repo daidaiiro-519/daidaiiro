@@ -1,6 +1,7 @@
 //! skills コマンドの入口（文脈 skills）。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON 1つで返す。
 //!
 //! コマンドは文脈 skills とユースケースの動詞で、SAS の言葉にそろえる：create（UC1 作る。sas create を呼ぶ）・
+//! update（UC3 直す。sas update を呼ぶ）・
 //! validate（UC4 確かめる。sas validate と creator の検査と承認の材料）・ write-skill-md（skill.json から SKILL.md を書く）。
 //! creator は AI を起動せず、skill.json を書かない（SAS が書く）。
 //! 終了コード：0 = 正常（validate は検出が無い）／ 1 = validate で検出がある、sas が断った、sas を呼べない、skill.json を
@@ -11,16 +12,19 @@ mod output;
 use outbound_filesystem::WorkingTree;
 use outbound_jsonschema::JsonSchema;
 use outbound_sas::Sas;
-use output::{CREATE, VALIDATE, WRITE_SKILL_MD};
+use output::{CREATE, UPDATE, VALIDATE, WRITE_SKILL_MD};
 use skills_application::use_cases::Refused;
 use skills_application::use_cases::create::{Mode, create};
+use skills_application::use_cases::update::{self, update};
 use skills_application::use_cases::validate::validate;
 use skills_application::use_cases::write_skill_md::write_skill_md;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "使い方：skills create <置き場所> --concrete <URN> --semantic ／ \
+const USAGE: &str = "使い方：skills create <Skill のフォルダ> --concrete <URN> --semantic ／ \
 skills create <Skill のフォルダ> --concrete <URN> --value <JSON> ／ \
+skills update <Skill のフォルダ> --semantic --task <外れた具体> ／ \
+skills update <Skill のフォルダ> --patch <JSON Patch> --if-match <ハッシュ> --reason 層：<層> ／ \
 skills validate <Skill のフォルダ>... ／ \
 skills write-skill-md <Skill のフォルダ>";
 
@@ -35,6 +39,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("create") => run_create(&args[1..]),
+        Some("update") => run_update(&args[1..]),
         Some("validate") => run_validate(&args[1..]),
         Some("write-skill-md") => run_write_skill_md(&args[1..]),
         Some(other) => refuse(
@@ -88,9 +93,7 @@ fn run_create(args: &[String]) -> ExitCode {
             _ => {
                 return refuse(
                     CREATE,
-                    &usage(format!(
-                        "置き場所かフォルダは1つだけ渡してください。{USAGE}"
-                    )),
+                    &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
                 );
             }
         }
@@ -99,7 +102,7 @@ fn run_create(args: &[String]) -> ExitCode {
         return refuse(
             CREATE,
             &usage(format!(
-                "置き場所かフォルダと、--concrete <URN> と、--semantic か --value <JSON> を渡してください。{USAGE}"
+                "Skill のフォルダと、--concrete <URN> と、--semantic か --value <JSON> を渡してください。{USAGE}"
             )),
         );
     }
@@ -117,6 +120,88 @@ fn run_create(args: &[String]) -> ExitCode {
             }
         }
         Err(r) => refuse(CREATE, &r),
+    }
+}
+
+fn run_update(args: &[String]) -> ExitCode {
+    let mut folder = None;
+    let mut semantic = false;
+    let mut task = None;
+    let mut patch = None;
+    let mut if_match = None;
+    let mut reason = None;
+    let mut rest = args.iter();
+    while let Some(a) = rest.next() {
+        let slot = match a.as_str() {
+            "--semantic" => {
+                semantic = true;
+                continue;
+            }
+            "--task" => &mut task,
+            "--patch" => &mut patch,
+            "--if-match" => &mut if_match,
+            "--reason" => &mut reason,
+            flag if flag.starts_with("--") => {
+                return refuse(UPDATE, &usage(format!("知らない指定です: {flag}。{USAGE}")));
+            }
+            _ if folder.is_none() => {
+                folder = Some(a.as_str());
+                continue;
+            }
+            _ => {
+                return refuse(
+                    UPDATE,
+                    &usage(format!("フォルダは1つだけ渡してください。{USAGE}")),
+                );
+            }
+        };
+        match rest.next() {
+            Some(v) => *slot = Some(v.clone()),
+            None => {
+                return refuse(UPDATE, &usage(format!("{a} に値を渡してください。{USAGE}")));
+            }
+        }
+    }
+    let mode = match (semantic, task, patch) {
+        (true, Some(t), None) => update::Mode::Semantic(t),
+        (false, None, Some(p)) => update::Mode::Patch {
+            patch: p,
+            if_match,
+            reason,
+        },
+        _ => {
+            return refuse(
+                UPDATE,
+                &usage(format!(
+                    "Skill のフォルダと、--semantic --task <外れた具体> か --patch <JSON Patch> のどちらか一方を渡してください。{USAGE}"
+                )),
+            );
+        }
+    };
+    if folder.is_none() {
+        return refuse(
+            UPDATE,
+            &usage(format!("直す Skill のフォルダを渡してください。{USAGE}")),
+        );
+    }
+    // 使い方の誤りは、sas を探す前に返す（--if-match ・ 層の理由が無い --patch では sas を打たない）
+    if let Err(r) = update::check_mode(&mode) {
+        return refuse(UPDATE, &r);
+    }
+    let sas = match locate() {
+        Ok(s) => s,
+        Err(r) => return refuse(UPDATE, &r),
+    };
+    match update(folder, Some(mode), &sas) {
+        Ok(u) => {
+            output::print_updated(&u);
+            if u.sas.exit == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(r) => refuse(UPDATE, &r),
     }
 }
 
@@ -140,7 +225,7 @@ fn run_validate(args: &[String]) -> ExitCode {
         Err(r) => return refuse(VALIDATE, &r),
     };
     let tree = WorkingTree::new(PathBuf::from("."));
-    match validate(args, &sas, &tree, &JsonSchema) {
+    match validate(args, &sas, &sas, &tree, &JsonSchema) {
         Ok(c) => {
             output::print_validated(&c);
             if c.detected() {

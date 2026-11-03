@@ -1,9 +1,13 @@
 //! UC1 作るの create：SAS に Skill の項目を書かせる。中で sas create を呼び、結果は書き換えずに返す。
 //!
-//! - --semantic：置き場所の下の <name>/skill.json を経路にして、意味で書く手順を受け取る（何も書かない）。Concrete が
+//! どちらの書き方も Skill のフォルダを受け取り、<フォルダ>/skill.json を経路にする。名前がまだ決まっていないときは
+//! skills/<name> のように、決まっていない所を <name> のまま渡してよい（--semantic は何も書かないので、SAS は経路の
+//! 名前を決めずに手順を返し、手順の書くコマンドに同じ経路が入る）。
+//!
+//! - --semantic：意味で書く手順を受け取る（何も書かない）。Concrete が
 //!   Agent Skill の Concrete（skill.schema）のときだけ、作る流れ（最初の返事で見せる目的の仮説 ・ 完成の像 ・ 構造の像 ・
 //!   推奨付きの問い、聞く所の見分け方、2往復目から、仕上げ、守ること）を添える。ほかの Concrete のときは、SAS の手順そのままにする
-//! - --value：Skill のフォルダの skill.json に、値を書かせる
+//! - --value：値を書かせる
 
 use crate::ports::{SasRun, SkillWriter};
 use crate::use_cases::approval::UNKNOWN;
@@ -16,9 +20,9 @@ pub const SKILL_ID: &str = "urn:agents-skills-creator:skill:v1";
 /// 書き方。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Mode {
-    /// 意味で書く手順を受け取る（target は置き場所）
+    /// 意味で書く手順を受け取る
     Semantic,
-    /// 値を書かせる（target は Skill のフォルダ）
+    /// 値を書かせる
     Value(String),
 }
 
@@ -65,7 +69,7 @@ fn flow() -> Value {
         ],
         "later_rounds": "2往復目からは、変わった所だけを「前 → 後」で出し、残りの問いの数を付ける。作る人が「ここが違う」と言った所は、そのまま直して見せる",
         "finish": [
-            "値を組み、write の手順（sas の結果）に従って SAS に書かせ、skills write-skill-md と skills validate を打つ",
+            "値を組み、sas の手順の書くコマンドの代わりに skills create <フォルダ> --concrete <URN> --value <JSON> で SAS に書かせ、skills write-skill-md と skills validate を打つ",
             "別の会話で例を動かし（validate の承認の材料の delegate）、実際の答えを完成の像と並べて見せる",
             "承認の前と後の振る舞い（使い手が何をすると、何が変わるか）を出し、承認するか「ここが違う」の一言を受け取る"
         ],
@@ -96,7 +100,7 @@ pub fn create(
         message: message.to_string(),
     };
     let target = target.ok_or_else(|| {
-        usage("置き場所（--semantic）か Skill のフォルダ（--value）を渡してください")
+        usage("Skill のフォルダを渡してください（名前が決まっていなければ skills/<name> のように）")
     })?;
     let concrete =
         concrete.ok_or_else(|| usage("--concrete で、従う Concrete の URN を渡してください"))?;
@@ -108,7 +112,7 @@ pub fn create(
     };
     match mode {
         Mode::Semantic => {
-            let path = format!("{}/<name>/skill.json", trimmed(target));
+            let path = format!("{}/skill.json", trimmed(target));
             let run = sas.create_semantic(&path, concrete).map_err(unavailable)?;
             Ok(Created {
                 flow: (concrete == SKILL_ID).then(flow),

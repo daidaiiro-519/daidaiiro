@@ -14,7 +14,7 @@
 //! - grounds-are-outputs：参照する資料の grounds_for（資料が根拠になる出力）の各名前が、outputs の name にある
 //!   （名前どうしの突き合わせで機械で決まる。references と grounds_for が無ければ verified が1件）
 
-use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillValidator};
+use crate::ports::{JsonSchemaChecker, SasRun, SkillFiles, SkillHistory, SkillValidator};
 pub use crate::use_cases::Refused;
 use crate::use_cases::approval::{Approval, approval};
 use crate::use_cases::{read_skill, trimmed};
@@ -68,6 +68,8 @@ pub struct SkillChecked {
     pub creator: Vec<Finding>,
     /// 承認の材料（skill.json を読めたときだけ）
     pub approval: Option<Approval>,
+    /// 前の確かめから変わった所（SAS の記録から。読めなければ None）
+    pub changes: Option<Value>,
 }
 
 impl SkillChecked {
@@ -570,6 +572,50 @@ fn summary(output: &Value) -> String {
     }
 }
 
+/// 前の確かめ（SAS の記録の validate の操作）から、その文書に書いた操作と、操作ごとの理由と所ごとの前と後。
+/// 差分は SAS が記録したもの（sas log --operation の diff.changes）をそのまま使う。記録を読めなければ None。
+fn changes_since_last_validation(history: &dyn SkillHistory, path: &str) -> Option<Value> {
+    let log = history.log(path).ok()?;
+    if log.exit != 0 {
+        return None;
+    }
+    let rows: Vec<Value> = match log.output {
+        Value::Array(rows) => rows,
+        Value::Object(_) => vec![log.output],
+        _ => Vec::new(),
+    };
+    let mut since = Value::Null;
+    let mut operations = Vec::new();
+    // sas log は新しい順。最初に出会う validate が前の確かめ
+    for row in &rows {
+        let op = row.get("op").and_then(Value::as_str).unwrap_or_default();
+        let id = row
+            .get("operation")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if op == "validate" {
+            since = Value::String(id.to_string());
+            break;
+        }
+        let detail = history
+            .operation(id)
+            .ok()
+            .map(|r| r.output)
+            .unwrap_or_default();
+        let mut entry = serde_json::json!({
+            "operation": id,
+            "op": op,
+            "at": row.get("at").cloned().unwrap_or_default(),
+            "changes": detail.pointer("/diff/changes").cloned().unwrap_or_else(|| Value::Array(Vec::new())),
+        });
+        if let Some(reason) = row.get("reason") {
+            entry["reason"] = reason.clone();
+        }
+        operations.push(entry);
+    }
+    Some(serde_json::json!({"since": since, "operations": operations}))
+}
+
 /// UC4 確かめる（Skill だけ）：フォルダごとに creator の検査7つと SAS の検証をして、承認の材料と一緒に渡した順に返す。
 /// Skill のファイルは変えない。
 ///
@@ -578,6 +624,7 @@ fn summary(output: &Value) -> String {
 pub fn validate(
     folders: &[String],
     sas: &dyn SkillValidator,
+    history: &dyn SkillHistory,
     files: &dyn SkillFiles,
     schemas: &dyn JsonSchemaChecker,
 ) -> Result<Checked, Refused> {
@@ -595,6 +642,9 @@ pub fn validate(
         creator.extend(references_exist(files, folder));
         creator.extend(json_schema_conforms(files, sas, schemas, folder));
         creator.extend(grounds_are_outputs(files, folder));
+        // 前の確かめから変わった所は、この確かめを記録する前に読む
+        let changes =
+            changes_since_last_validation(history, &format!("{}/skill.json", trimmed(folder)));
         let run = sas
             .validate(&format!("{}/skill.json", trimmed(folder)))
             .map_err(|message| Refused {
@@ -607,6 +657,7 @@ pub fn validate(
             sas: run,
             creator,
             approval: skill.map(|v| approval(folder, &v)),
+            changes,
         });
     }
     Ok(Checked { skills })

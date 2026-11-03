@@ -1,10 +1,10 @@
-//! ポート SkillValidator ・ SkillWriter を、SAS の sas コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
+//! ポート SkillValidator ・ SkillWriter ・ SkillHistory を、SAS の sas コマンドを外の実行ファイルとして呼んで実装する。出力は書き換えずに返す。
 //!
 //! sas は PATH だけで探す（sas は環境に1つ。Skill は使う版の範囲だけを宣言する）。打った場所（作業ディレクトリ）と
 //! 環境変数はそのまま渡す（sas は打った場所の中から Concrete を探し、打ったセッションを環境変数で決める）。
 
 use serde_json::Value;
-use skills_application::ports::{SasRun, SkillValidator, SkillWriter};
+use skills_application::ports::{SasRun, SkillHistory, SkillValidator, SkillWriter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -99,5 +99,38 @@ impl SkillWriter for Sas {
 
     fn create_value(&self, path: &str, concrete: &str, value: &str) -> Result<SasRun, String> {
         self.run(&["create", path, "--concrete", concrete, "--value", value])
+    }
+
+    fn update_semantic(&self, path: &str, task: &str) -> Result<SasRun, String> {
+        self.run(&["update", path, "--semantic", "--task", task])
+    }
+
+    fn update_patch(
+        &self,
+        path: &str,
+        patch: &str,
+        if_match: &str,
+        reason: &str,
+    ) -> Result<SasRun, String> {
+        self.run(&[
+            "update",
+            path,
+            "--patch",
+            patch,
+            "--if-match",
+            if_match,
+            "--reason",
+            reason,
+        ])
+    }
+}
+
+impl SkillHistory for Sas {
+    fn log(&self, path: &str) -> Result<SasRun, String> {
+        self.run(&["log", path])
+    }
+
+    fn operation(&self, id: &str) -> Result<SasRun, String> {
+        self.run(&["log", "--operation", id])
     }
 }

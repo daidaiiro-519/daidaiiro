@@ -1,0 +1,121 @@
+{
+ "$schema": "urn:agents-skills-creator:system-tests:scenario:v1",
+ "id": "S-UC3-UPDATE-PROCEDURE",
+ "name": "直す手順",
+ "title": "update に Skill のフォルダと --semantic と外れた具体の文を渡すと、sas update --semantic の結果を書き換えずに sas に入れ、先頭に直す流れ（外れた具体を examples に足す形 ・ 直す層の案5つと推奨の出し方 ・ 選んだ層より下の導き直し ・ 層を --reason に残す記録 ・ 承認してから書く ・ 例を全部動かす）を添え、Skill は変えない",
+ "why": "外れた具体を受け取っても、どの層で直すかを選べず、承認の前に書き換わると、作る人は直し方を決められず、直したあとに何が変わったかも分からない。",
+ "traces": [
+  "UC3:成功時保証",
+  "UC3:最低保証",
+  "約束:update-result"
+ ],
+ "given": {
+  "files": {
+   "published-language/v1/skill.schema.json": "@published/skill.schema.json",
+   "skills/fact-check/skill.json": "@fixtures/fact-check/skill.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "skills/fact-check",
+   "--semantic",
+   "--task",
+   "外れた具体：頼んだこと「この URL で照合して」（項目名に全角の空白が混ざった一覧）／出たもの「無い」／期待したもの「原文にある」"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "update"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/target/path",
+   "equals": "skills/fact-check/skill.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/sas/task",
+   "equals": "外れた具体：頼んだこと「この URL で照合して」（項目名に全角の空白が混ざった一覧）／出たもの「無い」／期待したもの「原文にある」"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/add_example/from",
+   "equals": "使われて外れた具体"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/add_example/fields",
+   "contains": "behavior"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/layers",
+   "count": 5
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/layers/0/id",
+   "equals": "examples"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/layers/4/id",
+   "equals": "purpose"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/layers/2/rederive",
+   "contains": "/edge_cases"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/choose",
+   "contains": "推奨"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/choose",
+   "contains": "前"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/record",
+   "contains": "--reason"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/record",
+   "contains": "層："
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/approve_then_write",
+   "contains": "skills update skills/fact-check --patch"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/finish",
+   "contains": "別の会話"
+  },
+  {
+   "of": "when",
+   "pointer": "/flow/finish",
+   "contains": "全部"
+  }
+ ],
+ "unchanged": [
+  "skills/fact-check/skill.json"
+ ]
+}

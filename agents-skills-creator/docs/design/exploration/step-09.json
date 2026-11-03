@@ -1,0 +1,170 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 9,
+ "date": "2026-11-03",
+ "summary": "UC3 直すを作った。skills update は sas update を包み、--semantic では直す流れ（外れた具体を examples に足す ・ 直す層の案 ・ 導き直し ・ 層の記録 ・ 承認してから書く ・ 例を全部動かす）を添え、--patch では --if-match と「層：<名前>」の理由がそろったときだけ書かせる。validate の承認の材料に、前の確かめから変わった所を SAS の記録から足した。あわせて skills create の引数を、どちらの書き方も Skill のフォルダにそろえた",
+ "usecases": [
+  "UC3",
+  "UC1"
+ ],
+ "factchecks": [
+  {
+   "item": "sas update --semantic の手順",
+   "evidence": [
+    "実地（一時ディレクトリ）：sas update <経路> --semantic --task <依頼> は、steps に欄ごとの current（いまの値）を持ち、target.hash と、--if-match 付きの書くコマンドと、task をそのまま返した（何も書かない）"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "--reason が SAS の記録に残る",
+   "evidence": [
+    "実地：sas update --patch … --reason 層：examples のあと、sas log <経路> の操作の行と sas log --operation <ID> に reason「層：examples」があり、diff.changes に所ごとの before と after があった"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "sas log が validate の操作を並べる",
+   "evidence": [
+    "実地：sas validate のあとの sas log <経路> に op が validate の行（counts 付き）があり、新しい順に並んだ"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "名前の決まっていないフォルダでも手順を返せる",
+   "evidence": [
+    "実地：場面 S-UC1-CREATE-PROCEDURE で skills create skills/<name> --concrete … --semantic が、SAS の手順（target.path skills/<name>/skill.json）を返した"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "UC3 直す：skills update --semantic（use_cases/update.rs）",
+   "steps": [
+    "sas update <フォルダ>/skill.json --semantic --task <外れた具体> を打ち、結果を書き換えずに sas に入れる",
+    "直す流れを添える：外れた具体を examples に足す形（from「使われて外れた具体」、caller ・ given ・ input ・ expected ・ behavior ・ covers）",
+    "層の案5つ（examples → edge_cases → rules → role → purpose。上ほど狭く、下ほど広く直る）と、層ごとに導き直す項目（rederive）",
+    "外れ方から推奨の層を示し、層ごとに前と後の像を見せて選ばせる",
+    "直す前と後（sas の手順の current と、直した値）を所ごとに並べて承認を受けてから、skills update --patch --if-match <target.hash> --reason 層：<層> で書かせる",
+    "write-skill-md と validate を打ち、別の会話で例を全部動かして判定させる"
+   ],
+   "rules": [
+    "作る人が承認するまで書かない（最低保証）",
+    "選んだ層は --reason の「層：<名前>」で SAS の記録に残し、新しい欄を足さない"
+   ]
+  },
+  {
+   "usecase": "UC3 直す：skills update --patch",
+   "steps": [
+    "--if-match が無い、または --reason が「層：<examples ・ edge_cases ・ rules ・ role ・ purpose>」で始まらなければ、sas を探す前に使い方の誤り（終了コード 2）",
+    "sas update <フォルダ>/skill.json --patch … --if-match … --reason … を打ち、結果を書き換えずに返す。SAS が断ったら終了コード 1"
+   ],
+   "rules": [
+    "承認した中身と違う所へは書かない（--if-match を SAS が確かめる）"
+   ]
+  },
+  {
+   "usecase": "承認の材料：前の確かめから変わった所（use_cases/validate.rs）",
+   "steps": [
+    "sas validate を打つ前に、sas log <経路> を読む（新しい順）",
+    "最初に出会う validate の操作を前の確かめ（since）とし、それより新しい操作ごとに sas log --operation で diff.changes を読み、理由と一緒に並べる"
+   ],
+   "rules": [
+    "差分は SAS の記録をそのまま使い、creator で作らない"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "直す層と、層ごとに導き直す項目（LAYERS）",
+   "became": "script",
+   "why": "update でしか使わない。導き直す項目は derivation の「何から導くか」と同じ理由で変わりうるので、承認の材料でも使うようになったら derivation へ引き上げる"
+  },
+  {
+   "what": "層の理由の形（層：<名前>）",
+   "became": "script",
+   "why": "update で書く前に確かめるだけ。読むのは SAS の記録と承認の材料で、どちらも文字列のまま出す"
+  },
+  {
+   "what": "前の確かめから変わった所の集め方",
+   "became": "script",
+   "why": "validate でしか使わない"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "往復の決まり：使われて外れた具体は「直す」で受け取り、まず examples に足す",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "直す流れの add_example（from「使われて外れた具体」）として持つ"
+  },
+  {
+   "item": "往復の決まり：直すときに選んだ層を記録する",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "新しい欄を足さず、--reason の「層：<名前>」で SAS の記録に残す。update が書く前に形を確かめ、validate の承認の材料の changes に出る"
+  },
+  {
+   "item": "「前の承認」の記録",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "承認は SAS の記録に無いので、前の承認の代わりに前の確かめ（validate の操作）からの変わった所を出している。承認を記録する形が要るかは決めていない"
+  },
+  {
+   "item": "skills create の引数",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "--semantic は置き場所、--value は Skill のフォルダと、書き方で意味が変わっていた。どちらも Skill のフォルダにし、名前が決まっていなければ skills/<name> のように渡す（--semantic は書かないので SAS は経路の名前を決めずに手順を返す）"
+  }
+ ],
+ "vocabulary": [
+  {
+   "term": "層",
+   "seen": "直す層の案と --reason",
+   "drift": "skill.json の欄（examples ・ edge_cases ・ rules ・ role ・ purpose）の名前をそのまま層の id にした。作る人に見せるときは fixes の文で言う"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "CLI",
+    "before": "create ・ validate ・ write-skill-md",
+    "after": "update を足した（--semantic --task ／ --patch --if-match --reason）",
+    "why": "UC3 直す"
+   },
+   {
+    "what": "ポート",
+    "before": "SkillWriter（create_semantic ・ create_value）・ SkillValidator ・ SkillFiles ・ GeneratedFiles ・ JsonSchemaChecker",
+    "after": "SkillWriter に update_semantic ・ update_patch を足し、SAS の記録を読む SkillHistory（log ・ operation）を足した",
+    "why": "update が sas update を打ち、validate が前の確かめから変わった所を読むため"
+   },
+   {
+    "what": "公開された言葉",
+    "before": "create-result ・ validate-result ・ write-skill-md-result",
+    "after": "update-result を足し、validate-result の承認の材料に changes を足した",
+    "why": "同じ"
+   },
+   {
+    "what": "skills create の引数",
+    "before": "--semantic は置き場所、--value は Skill のフォルダ",
+    "after": "どちらも Skill のフォルダ（名前が決まっていなければ skills/<name>）",
+    "why": "引数の意味を書き方で変えない"
+   }
+  ],
+  "not_built": [
+   {
+    "what": "リンクする Agent の受け渡しを確かめること",
+    "why": "UC2 Agent を作るがまだ無い（untested）"
+   },
+   {
+    "what": "例を全部別の会話で動かすこと",
+    "why": "creator は AI を起動しない。場面の書式で別の会話を動かせない（untested）"
+   },
+   {
+    "what": "承認を記録すること",
+    "why": "前の承認の代わりに前の確かめからの変わった所を出している。要るかは決めていない"
+   }
+  ]
+ }
+}
