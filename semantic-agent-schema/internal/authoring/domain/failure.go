@@ -23,6 +23,7 @@ const (
 	PatchNotApplicable  code = "patch_not_applicable"
 	RangeRequired       code = "range_required"
 	RangeViolation      code = "range_violation"
+	ResponseMismatch    code = "response_mismatch"
 	FileNotFound        code = "file_not_found"
 	LogUnavailable      code = "log_unavailable"
 	LogLocked           code = "log_locked"

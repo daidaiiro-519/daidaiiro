@@ -38,6 +38,7 @@ type Records interface {
 	WithLock(ctx context.Context, f func(ctx context.Context) error) error
 	// AppendChange は、WithLock の中で、書く操作の change を追記し、操作の ID を返す。
 	AppendChange(ctx context.Context, w *domain.Write) (int64, error)
-	LastValidation(ctx context.Context, path domain.Path) (*domain.Previous, error)
+	// LastJudged は、path の前回の意味的な検証を返す。無ければ nil。
+	LastJudged(ctx context.Context, path domain.Path) (*domain.Previous, error)
 	AppendValidation(ctx context.Context, v *domain.Validation) (int64, error)
 }

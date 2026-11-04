@@ -45,9 +45,9 @@ func (r result) By() judge                 { return r.by }
 func (r result) Reason() string            { return r.reason }
 func (result) judgment()                   {}
 
-// RecordedJudgment は、操作の記録に残った文字列から judgment を返す。
+// NewJudgment は、文字列（操作の記録に残った値か、AI の response の値）から judgment を返す。
 // rule の id が空、instance location が JSON Pointer でない、verdict か by が閉じた一覧に無いときは error を返す。
-func RecordedJudgment(ruleID, location, verdictValue, byValue, reason string) (Judgment, error) {
+func NewJudgment(ruleID, location, verdictValue, byValue, reason string) (Judgment, error) {
 	r, err := NewRule(ruleID, nil)
 	if err != nil {
 		return nil, err
@@ -60,13 +60,13 @@ func RecordedJudgment(ruleID, location, verdictValue, byValue, reason string) (J
 	switch v {
 	case Verified, Violated, Unverified, NotJudged:
 	default:
-		return nil, Fail(LogUnavailable, "", verdictValue+" は verdict の値でない")
+		return nil, Fail(SchemaViolation, "", verdictValue+" は verdict の値でない")
 	}
 	b := judge(byValue)
 	switch b {
 	case Machine, ByAI:
 	default:
-		return nil, Fail(LogUnavailable, "", byValue+" は judgment を出した者の値でない")
+		return nil, Fail(SchemaViolation, "", byValue+" は judgment を出した者の値でない")
 	}
 	return result{rule: r, location: p, verdict: v, by: b, reason: reason}, nil
 }

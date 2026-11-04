@@ -1,0 +1,296 @@
+{
+  "title": "更新のあと、--all が無ければ、前回の意味的な検証からの変更点を instance location か related_fields に含む rule だけを判定し、ほかの judgment は引き継ぐ。間に機械的な検証をしても基準は動かない。--all ではすべてを判定する",
+  "files": {
+    "schemas/plan.json": {
+      "$fixture": "plan.schema.json"
+    },
+    "plan.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "春の計画",
+      "start": "2026-02-01",
+      "end": "2026-03-01"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/end",
+              "title": "終わりの日",
+              "x-prompt": {
+                "meaning": "計画の終わりの日",
+                "when": "計画を書くとき",
+                "rules": [
+                  {
+                    "id": "end-after-start",
+                    "rule": "終わりの日は始まりの日より後にする",
+                    "why": "期間として読めるようにする",
+                    "check": "/end が /start より後か",
+                    "related_fields": [
+                      "/start"
+                    ],
+                    "bad": [
+                      {
+                        "value": "2026-01-01",
+                        "related": {
+                          "/start": "2026-02-01"
+                        }
+                      }
+                    ],
+                    "good": [
+                      {
+                        "value": "2026-03-01",
+                        "related": {
+                          "/start": "2026-02-01"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rule": "end-after-start"
+            },
+            {
+              "instanceLocation": "/title",
+              "title": "題名",
+              "x-prompt": {
+                "meaning": "計画の題名",
+                "when": "計画を書くとき",
+                "rules": [
+                  {
+                    "id": "title-short",
+                    "rule": "20 文字以内で書く",
+                    "why": "一覧で読める長さにする",
+                    "check": "20 文字以内か",
+                    "related_fields": [],
+                    "bad": [],
+                    "good": [
+                      {
+                        "value": "春の計画"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rule": "title-short"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"{sha256 plan.json}\", \"judgments\": [{\"rule\": \"end-after-start\", \"instanceLocation\": \"/end\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"title-short\", \"instanceLocation\": \"/title\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}]}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judged",
+          "/counts/verified": 2
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/start\", \"value\": \"2026-02-15\"}]"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "updated",
+          "/next": "semantic-agent-schema semantic validate plan.json --schemas schemas"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validated",
+          "/counts/verified": 1
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/end",
+              "title": "終わりの日",
+              "x-prompt": {
+                "meaning": "計画の終わりの日",
+                "when": "計画を書くとき",
+                "rules": [
+                  {
+                    "id": "end-after-start",
+                    "rule": "終わりの日は始まりの日より後にする",
+                    "why": "期間として読めるようにする",
+                    "check": "/end が /start より後か",
+                    "related_fields": [
+                      "/start"
+                    ],
+                    "bad": [
+                      {
+                        "value": "2026-01-01",
+                        "related": {
+                          "/start": "2026-02-01"
+                        }
+                      }
+                    ],
+                    "good": [
+                      {
+                        "value": "2026-03-01",
+                        "related": {
+                          "/start": "2026-02-01"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rule": "end-after-start"
+            }
+          ],
+          "/counts/verified": 1,
+          "/prompt/next": "semantic-agent-schema validate plan.json --schemas schemas --judgments '<response の形に従う JSON>'"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--all"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/end",
+              "title": "終わりの日",
+              "x-prompt": {
+                "meaning": "計画の終わりの日",
+                "when": "計画を書くとき",
+                "rules": [
+                  {
+                    "id": "end-after-start",
+                    "rule": "終わりの日は始まりの日より後にする",
+                    "why": "期間として読めるようにする",
+                    "check": "/end が /start より後か",
+                    "related_fields": [
+                      "/start"
+                    ],
+                    "bad": [
+                      {
+                        "value": "2026-01-01",
+                        "related": {
+                          "/start": "2026-02-01"
+                        }
+                      }
+                    ],
+                    "good": [
+                      {
+                        "value": "2026-03-01",
+                        "related": {
+                          "/start": "2026-02-01"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rule": "end-after-start"
+            },
+            {
+              "instanceLocation": "/title",
+              "title": "題名",
+              "x-prompt": {
+                "meaning": "計画の題名",
+                "when": "計画を書くとき",
+                "rules": [
+                  {
+                    "id": "title-short",
+                    "rule": "20 文字以内で書く",
+                    "why": "一覧で読める長さにする",
+                    "check": "20 文字以内か",
+                    "related_fields": [],
+                    "bad": [],
+                    "good": [
+                      {
+                        "value": "春の計画"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rule": "title-short"
+            }
+          ],
+          "/counts/verified": 0,
+          "/prompt/next": "semantic-agent-schema validate plan.json --schemas schemas --judgments '<response の形に従う JSON>' --all"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"{sha256 plan.json}\", \"judgments\": [{\"rule\": \"end-after-start\", \"instanceLocation\": \"/end\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}]}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judged",
+          "/counts/verified": 2,
+          "/judgments/0/rule": "end-after-start",
+          "/judgments/1/rule": "title-short"
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,7 @@ type Authoring struct {
 	Create   application.Create
 	Update   application.Update
 	Validate application.Validate
+	Judge    application.Judge
 }
 
 // Wiring は、入口が作って渡すアダプター。
@@ -37,16 +38,18 @@ type IO struct {
 	Stdout, Stderr io.Writer
 }
 
-// arguments は、引数の JSON。arguments.schema.json の形。
+// arguments は、引数の JSON。arguments.schema.json の形。Semantic は、semantic <ユースケース>（意味的な操作）のとき true。
 type arguments struct {
-	Command  string   `json:"command,omitempty"`
-	Paths    []string `json:"paths"`
-	Schemas  []string `json:"schemas,omitempty"`
-	Semantic bool     `json:"semantic,omitempty"`
-	SchemaID string   `json:"schemaId,omitempty"`
-	Value    *string  `json:"value,omitempty"`
-	Patch    *string  `json:"patch,omitempty"`
-	Range    []string `json:"range,omitempty"`
+	Semantic  bool     `json:"semantic,omitempty"`
+	Command   string   `json:"command,omitempty"`
+	Paths     []string `json:"paths"`
+	Schemas   []string `json:"schemas,omitempty"`
+	Schema    string   `json:"schema,omitempty"`
+	JSON      *string  `json:"json,omitempty"`
+	Patch     *string  `json:"patch,omitempty"`
+	Range     []string `json:"range,omitempty"`
+	All       bool     `json:"all,omitempty"`
+	Judgments *string  `json:"judgments,omitempty"`
 }
 
 // Run は、コマンドを1回実行し、終了コードを返す。error か violated の judgment があれば 1、ほかは 0。
@@ -81,7 +84,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 		return out.failures(parsed, err)
 	}
 	var content []byte
-	for _, v := range []*string{parsed.Value, parsed.Patch} {
+	for _, v := range []*string{parsed.JSON, parsed.Patch, parsed.Judgments} {
 		if v == nil {
 			continue
 		}
@@ -103,6 +106,10 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 // parse は、引数を pflag で読んで JSON にし、arguments.schema.json で検証する（機械的な検証（JSON Schema））。
 func parse(ctx context.Context, args []string, validator application.Validator) (arguments, error) {
 	var parsed arguments
+	if len(args) > 0 && args[0] == "semantic" {
+		parsed.Semantic = true
+		args = args[1:]
+	}
 	if len(args) > 0 {
 		parsed.Command = args[0]
 		args = args[1:]
@@ -111,25 +118,29 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	flags.SetOutput(io.Discard)
 	flags.SetInterspersed(true)
 	schemas := flags.StringArray("schemas", nil, "Concrete を探すディレクトリ（繰り返せる）")
-	semantic := flags.Bool("semantic", false, "prompt を依頼する")
-	schemaID := flags.String("schema-id", "", "作る JSON ドキュメントが従う Concrete の $id")
-	value := flags.String("value", "", "JSON ドキュメント。- なら標準入力から読む")
-	patch := flags.String("patch", "", "JSON Patch。- なら標準入力から読む")
+	schema := flags.String("schema", "", "作る JSON ドキュメントが従う Concrete の $id")
+	document := flags.String("json", "", "AI が作った JSON ドキュメント。- なら標準入力から読む")
+	patch := flags.String("patch", "", "AI が作った JSON Patch。- なら標準入力から読む")
 	ranges := flags.StringArray("range", nil, "Concrete を更新するときの、範囲のインスタンスの path（繰り返せる）")
+	all := flags.Bool("all", false, "変更点だけでなく、すべての rule とすべての instance location を判定する")
+	judgments := flags.String("judgments", "", "AI が判定した judgments。- なら標準入力から読む")
 	if err := flags.Parse(args); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
 	}
 	parsed.Paths = append([]string{}, flags.Args()...)
 	parsed.Schemas = *schemas
-	parsed.Semantic = *semantic
-	parsed.SchemaID = *schemaID
-	if flags.Changed("value") {
-		parsed.Value = value
+	parsed.Schema = *schema
+	if flags.Changed("json") {
+		parsed.JSON = document
 	}
 	if flags.Changed("patch") {
 		parsed.Patch = patch
 	}
 	parsed.Range = *ranges
+	parsed.All = *all
+	if flags.Changed("judgments") {
+		parsed.Judgments = judgments
+	}
 	content, err := json.Marshal(parsed)
 	if err != nil {
 		return parsed, err
@@ -141,7 +152,7 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	return parsed, domain.FailuresOf(domain.ArgumentsInvalid, "", violations)
 }
 
-// valueOf は、--value の JSON ドキュメントか --patch の JSON Patch のバイト列を返す。- なら標準入力から読む。
+// valueOf は、--json の JSON ドキュメント ・ --patch の JSON Patch ・ --judgments の judgments のバイト列を返す。- なら標準入力から読む。
 func valueOf(value string, stdin io.Reader) ([]byte, error) {
 	if value != "-" {
 		return []byte(value), nil
@@ -153,7 +164,8 @@ func valueOf(value string, stdin io.Reader) ([]byte, error) {
 	return content, nil
 }
 
-// dispatch は、コマンドのユースケースを呼び、結果をログイベントで書く。
+// dispatch は、コマンドのユースケースを呼び、結果をログイベントで書く。semantic <ユースケース> は prompt を返し、
+// semantic の無い <ユースケース> は、AI が作ったものを受け取って機械的に検証する。
 func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges []domain.Path, content []byte, out *output) error {
 	switch {
 	case args.Command == "update" && args.Semantic:
@@ -161,7 +173,7 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.requested(args, prompt)
+		return out.requested(args, prompt, nil)
 	case args.Command == "update":
 		id, write, err := uc.Update.Run(ctx, application.UpdateInput{
 			Path: paths[0], Patch: content, Range: ranges,
@@ -171,17 +183,29 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		}
 		return out.written(args, id, write)
 	case args.Command == "create" && args.Semantic:
-		prompt, err := uc.Create.Prompt(ctx, paths[0], args.SchemaID)
+		prompt, err := uc.Create.Prompt(ctx, paths[0], args.Schema)
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.requested(args, prompt)
+		return out.requested(args, prompt, nil)
 	case args.Command == "create":
 		id, creation, err := uc.Create.Run(ctx, paths[0], content)
 		if err != nil {
 			return out.failures(args, err)
 		}
 		return out.written(args, id, creation)
+	case args.Command == "validate" && args.Semantic:
+		prompt, counted, err := uc.Judge.Prompt(ctx, paths[0], args.All)
+		if err != nil {
+			return out.failures(args, err)
+		}
+		return out.requested(args, prompt, counted)
+	case args.Command == "validate" && args.Judgments != nil:
+		id, validation, err := uc.Judge.Run(ctx, paths[0], content, args.All)
+		if err != nil {
+			return out.failures(args, err)
+		}
+		return out.validation(args, id, validation)
 	default:
 		for _, result := range uc.Validate.Run(ctx, paths) {
 			if result.Err != nil {

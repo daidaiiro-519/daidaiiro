@@ -35,54 +35,76 @@ func (u Validate) Run(ctx context.Context, paths []domain.Path) []ValidateResult
 }
 
 func (u Validate) one(ctx context.Context, path domain.Path) (int64, *domain.Validation, error) {
-	document, err := u.Documents.Read(ctx, path)
+	c, err := mechanical(ctx, u.Documents, u.Schemas, u.Validator, u.AbstractID, path)
 	if err != nil {
 		return 0, nil, err
 	}
-	value, err := domain.ParseJSON(document.Content)
+	previous, err := u.Records.LastJudged(ctx, path)
 	if err != nil {
 		return 0, nil, err
 	}
-	schemaID, ok := domain.SchemaIDOf(value)
-	if !ok {
-		return 0, nil, &domain.Failure{
-			Code: domain.SchemaNotFound, InstanceLocation: "/$schema",
-			Message: "$schema に従う Concrete の $id が無い",
-		}
-	}
-	concrete, err := u.Schemas.Lookup(ctx, schemaID)
-	if err != nil {
-		return 0, nil, err
-	}
-	// インスタンスを検証する前に、その Concrete を Abstract で検証する。違反は Concrete のファイルの error にする
-	if schemaID != u.AbstractID {
-		if err := satisfiesAbstract(ctx, u.Validator, u.AbstractID, concrete); err != nil {
-			return 0, nil, err
-		}
-	}
-	// 機械的な検証（JSON Schema）。違反は error にせず、violated の judgment として数える
-	violations, err := u.Validator.Check(ctx, schemaID, document.Content)
-	if err != nil {
-		return 0, nil, err
-	}
-	// 機械的な検証（ドメインモデル）。JSON ドキュメントが Concrete なら、作法を満たすかを確かめる
-	var convention []domain.Violation
-	if schemaID == u.AbstractID {
-		convention = domain.Convention(value)
-	}
-	previous, err := u.Records.LastValidation(ctx, path)
-	if err != nil {
-		return 0, nil, err
-	}
-	validation := domain.NewValidation(domain.ValidationInput{
-		Document: document, Value: value, Concrete: concrete,
-		Violations: violations, Convention: convention, Previous: previous,
-	})
+	validation := domain.NewValidation(c.input(previous))
 	id, err := u.Records.AppendValidation(ctx, validation)
 	if err != nil {
 		return 0, nil, err
 	}
 	return id, validation, nil
+}
+
+// checked は、機械的な検証の結果。JSON ドキュメント ・ その値 ・ Concrete ・ JSON Schema の違反 ・ 作法の違反を持つ。
+type checked struct {
+	document   domain.Document
+	value      any
+	concrete   domain.Concrete
+	violations []domain.Violation
+	convention []domain.Violation
+}
+
+// input は、検証を作る入力を返す。previous は、引き継ぐ AI の judgment の出どころ（無ければ nil）。
+func (c checked) input(previous *domain.Previous) domain.ValidationInput {
+	return domain.ValidationInput{
+		Document: c.document, Value: c.value, Concrete: c.concrete,
+		Violations: c.violations, Convention: c.convention, Previous: previous,
+	}
+}
+
+// mechanical は、JSON ドキュメントを読み、機械的な検証をする。インスタンスを Concrete で、Concrete を Abstract で
+// 検証し（JSON Schema）、JSON ドキュメントが Concrete なら作法を確かめる（ドメインモデル）。違反は error にせず、結果に持つ。
+func mechanical(ctx context.Context, documents Documents, schemas Schemas, validator Validator, abstractID string, path domain.Path) (checked, error) {
+	document, err := documents.Read(ctx, path)
+	if err != nil {
+		return checked{}, err
+	}
+	value, err := domain.ParseJSON(document.Content)
+	if err != nil {
+		return checked{}, err
+	}
+	schemaID, ok := domain.SchemaIDOf(value)
+	if !ok {
+		return checked{}, &domain.Failure{
+			Code: domain.SchemaNotFound, InstanceLocation: "/$schema",
+			Message: "$schema に従う Concrete の $id が無い",
+		}
+	}
+	concrete, err := schemas.Lookup(ctx, schemaID)
+	if err != nil {
+		return checked{}, err
+	}
+	// インスタンスを検証する前に、その Concrete を Abstract で検証する。違反は Concrete のファイルの error にする
+	if schemaID != abstractID {
+		if err := satisfiesAbstract(ctx, validator, abstractID, concrete); err != nil {
+			return checked{}, err
+		}
+	}
+	violations, err := validator.Check(ctx, schemaID, document.Content)
+	if err != nil {
+		return checked{}, err
+	}
+	var convention []domain.Violation
+	if schemaID == abstractID {
+		convention = domain.Convention(value)
+	}
+	return checked{document: document, value: value, concrete: concrete, violations: violations, convention: convention}, nil
 }
 
 // satisfiesAbstract は、機械的な検証（JSON Schema）。Concrete を Abstract で検証し、違反があれば Concrete の path を持つ

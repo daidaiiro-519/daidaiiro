@@ -1,0 +1,84 @@
+{
+  "$schema": "urn:semantic-agent-schema:abstract:v1",
+  "$id": "urn:example:plan:v1",
+  "title": "計画",
+  "x-view": "plan",
+  "type": "object",
+  "required": [
+    "$schema",
+    "title",
+    "start",
+    "end"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:example:plan:v1"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "title": "題名",
+      "x-prompt": {
+        "meaning": "計画の題名",
+        "when": "計画を書くとき",
+        "rules": [
+          {
+            "id": "title-short",
+            "rule": "20 文字以内で書く",
+            "why": "一覧で読める長さにする",
+            "check": "20 文字以内か",
+            "related_fields": [],
+            "bad": [],
+            "good": [
+              {
+                "value": "春の計画"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "start": {
+      "type": "string",
+      "format": "date",
+      "title": "始まりの日"
+    },
+    "end": {
+      "type": "string",
+      "format": "date",
+      "title": "終わりの日",
+      "x-prompt": {
+        "meaning": "計画の終わりの日",
+        "when": "計画を書くとき",
+        "rules": [
+          {
+            "id": "end-after-start",
+            "rule": "終わりの日は始まりの日より後にする",
+            "why": "期間として読めるようにする",
+            "check": "/end が /start より後か",
+            "related_fields": [
+              "/start"
+            ],
+            "bad": [
+              {
+                "value": "2026-01-01",
+                "related": {
+                  "/start": "2026-02-01"
+                }
+              }
+            ],
+            "good": [
+              {
+                "value": "2026-03-01",
+                "related": {
+                  "/start": "2026-02-01"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

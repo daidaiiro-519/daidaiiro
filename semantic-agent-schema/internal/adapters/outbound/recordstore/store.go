@@ -22,7 +22,7 @@ import (
 var records string
 
 // version は、表の形の版。records.sql の PRAGMA user_version と同じ。
-const version = 3
+const version = 4
 
 // Store は、<git-common-dir>/semantic-agent-schema/records.sqlite の操作の記録。
 type Store struct {
@@ -173,15 +173,15 @@ func nullable(text string) sql.NullString {
 	return sql.NullString{String: text, Valid: text != ""}
 }
 
-// LastValidation は、path の前回の検証を返す。無ければ nil を返す。
-func (s *Store) LastValidation(ctx context.Context, path domain.Path) (*domain.Previous, error) {
+// LastJudged は、path の前回の意味的な検証（AI の判定を受け取った検証）を返す。無ければ nil を返す。
+func (s *Store) LastJudged(ctx context.Context, path domain.Path) (*domain.Previous, error) {
 	var (
 		id           int64
 		concreteHash string
 		content      string
 	)
 	err := s.db.QueryRowContext(ctx,
-		"SELECT id, concrete_hash, content FROM validations WHERE path = ? ORDER BY id DESC LIMIT 1",
+		"SELECT id, concrete_hash, content FROM validations WHERE path = ? AND judged = 1 ORDER BY id DESC LIMIT 1",
 		path.String()).Scan(&id, &concreteHash, &content)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -213,7 +213,7 @@ func (s *Store) judgments(ctx context.Context, validationID int64) (judgments []
 		if err := rows.Scan(&rule, &location, &by, &verdict, &reason); err != nil {
 			return nil, s.failure(err)
 		}
-		j, err := domain.RecordedJudgment(rule, location, verdict, by, reason)
+		j, err := domain.NewJudgment(rule, location, verdict, by, reason)
 		if err != nil {
 			return nil, err
 		}
@@ -231,10 +231,10 @@ func (s *Store) AppendValidation(ctx context.Context, v *domain.Validation) (int
 	err := s.withLock(ctx, func(conn *sql.Conn) error {
 		document := v.Document()
 		result, err := conn.ExecContext(ctx,
-			`INSERT INTO validations (path, schema_id, concrete_hash, content, content_hash, at)
-			 VALUES (?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO validations (path, schema_id, concrete_hash, content, content_hash, judged, at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			document.Path.String(), v.Concrete().ID(), v.Concrete().Hash().String(),
-			string(document.Content), document.Hash.String(), time.Now().UTC().Format(time.RFC3339Nano))
+			string(document.Content), document.Hash.String(), v.Judged(), time.Now().UTC().Format(time.RFC3339Nano))
 		if err != nil {
 			return s.failure(err)
 		}

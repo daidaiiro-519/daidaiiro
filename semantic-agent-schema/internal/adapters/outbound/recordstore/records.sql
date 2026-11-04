@@ -28,10 +28,11 @@ CREATE TABLE validations (
   concrete_hash TEXT NOT NULL,
   content       TEXT NOT NULL,
   content_hash  TEXT NOT NULL,
+  judged        INTEGER NOT NULL CHECK (judged IN (0, 1)),
   at            TEXT NOT NULL
 );
 
-CREATE INDEX validations_path ON validations (path, id);
+CREATE INDEX validations_path ON validations (path, judged, id);
 
 CREATE TABLE judgments (
   validation_id     INTEGER NOT NULL REFERENCES validations (id),
@@ -75,4 +76,4 @@ UNION ALL
 SELECT id, 'validate' AS command, path, at FROM validations
 ORDER BY at;
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;

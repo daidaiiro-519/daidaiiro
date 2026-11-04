@@ -20,6 +20,12 @@
       "$ref": "#/$defs/validated"
     },
     {
+      "$ref": "#/$defs/judgment_requested"
+    },
+    {
+      "$ref": "#/$defs/judged"
+    },
+    {
       "$ref": "#/$defs/rejected"
     }
   ],
@@ -258,6 +264,165 @@
         }
       }
     },
+    "judgment_requested": {
+      "description": "判定の prompt を返した。counts は、機械的な検証の judgment と、変更点でない instance location から引き継いだ AI の judgment の件数。変更点が無ければ prompt の steps は空",
+      "type": "object",
+      "required": [
+        "event",
+        "prompt",
+        "counts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "judgment_requested"
+        },
+        "prompt": {
+          "$ref": "urn:semantic-agent-schema:prompt:v1"
+        },
+        "counts": {
+          "description": "verdict ごとの judgment の件数。満たしたとするのは verified だけ",
+          "type": "object",
+          "required": [
+            "verified",
+            "violated",
+            "unverified",
+            "not-judged"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "verified": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "violated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unverified": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not-judged": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "judged": {
+      "description": "判定の response を検証し、judgment と JSON ドキュメントを操作の記録に追記した。JSON ドキュメント1つの結果",
+      "type": "object",
+      "required": [
+        "event",
+        "id",
+        "path",
+        "schemaId",
+        "contentHash",
+        "counts",
+        "judgments"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "judged"
+        },
+        "id": {
+          "description": "操作の ID",
+          "type": "integer",
+          "minimum": 1
+        },
+        "path": {
+          "type": "string"
+        },
+        "schemaId": {
+          "description": "従う Concrete（Concrete なら Abstract）の $id",
+          "type": "string"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "counts": {
+          "description": "verdict ごとの judgment の件数。満たしたとするのは verified だけ",
+          "type": "object",
+          "required": [
+            "verified",
+            "violated",
+            "unverified",
+            "not-judged"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "verified": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "violated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unverified": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not-judged": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "judgments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/judgment"
+          }
+        },
+        "instruction": {
+          "description": "violated の judgment があるときの、AI への直し方の文",
+          "type": "string",
+          "minLength": 1
+        },
+        "next": {
+          "description": "violated の judgment があるときの、次に実行するコマンド行。AI が埋める部分だけを <…> で空けておく",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "if": {
+        "properties": {
+          "counts": {
+            "properties": {
+              "violated": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "instruction",
+          "next"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "instruction"
+              ]
+            },
+            {
+              "required": [
+                "next"
+              ]
+            }
+          ]
+        }
+      }
+    },
     "judgment": {
       "description": "1つの rule と1つの instance location の組の結果",
       "type": "object",
@@ -327,7 +492,8 @@
             "hash_mismatch",
             "range_required",
             "range_violation",
-            "patch_not_applicable"
+            "patch_not_applicable",
+            "response_mismatch"
           ]
         },
         "instanceLocation": {

@@ -9,10 +9,11 @@ var files embed.FS
 
 // 公開された言葉のスキーマの $id。v1/*.json の $id と同じ。
 const (
-	AbstractID   = "urn:semantic-agent-schema:abstract:v1"
-	VocabularyID = "urn:semantic-agent-schema:vocabulary:v1"
-	ArgumentsID  = "urn:semantic-agent-schema:arguments:v1"
-	PatchID      = "urn:semantic-agent-schema:patch:v1"
+	AbstractID         = "urn:semantic-agent-schema:abstract:v1"
+	VocabularyID       = "urn:semantic-agent-schema:vocabulary:v1"
+	ArgumentsID        = "urn:semantic-agent-schema:arguments:v1"
+	PatchID            = "urn:semantic-agent-schema:patch:v1"
+	JudgmentResponseID = "urn:semantic-agent-schema:judgment-response:v1"
 )
 
 // Schemas は、v1 のスキーマのファイル名。
@@ -24,6 +25,7 @@ var Schemas = []string{
 	"event.schema.json",
 	"prompt.schema.json",
 	"patch.schema.json",
+	"judgment-response.schema.json",
 }
 
 // Read は、v1 のファイルのバイト列を返す。無い名前なら error を返す。

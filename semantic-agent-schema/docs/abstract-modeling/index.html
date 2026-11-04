@@ -272,10 +272,11 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>契約 ・ 依存の注入 ・ 公開された言葉</td><td>Semantic Agent Schema が決めた入力 ・ 出力 ・ 注入の形 ・ その形の依存だけを外から受け取ること ・ AI へ公開する入力 ・ 出力のスキーマの集まり</td><td class="tr">本質 W3–W4 ・ <code>open-host-service</code></td></tr>
 <tr><td>デザインシステム ・ テンプレート ・ デザイントークン</td><td>使う側が渡す、テンプレートとデザイントークンの集まり ・ 描画の型 ・ 見た目の値</td><td class="tr">本質 W4 ・ C6</td></tr>
 <tr><td>機械的な検証</td><td>JSON Schema と、ドメインモデル（JSON Schema で書けない不変条件）による検証</td><td class="tr">本質 W1 ・ W8 ・ W10 ・ E1</td></tr>
+<tr><td>意味的な操作 ・ 機械的な操作</td><td>コマンドの2つの層。意味的な操作は、prompt を返し、AI が作る ・ 判定する。コマンドは <code>semantic</code> を付ける（<code>semantic create</code> ・ <code>semantic update</code> ・ <code>semantic validate</code> ・ <code>semantic search</code>）。機械的な操作は、AI が作ったもの（response）を受け取り、機械的に検証して書く ・ 記録する（<code>create</code> ・ <code>update</code> ・ <code>validate</code> ・ <code>search</code> ・ <code>render</code> ・ <code>log</code>）。意味的な操作の next は、同じユースケースの機械的な操作</td><td class="tr">本質 W1 ・ W3 ・ E2</td></tr>
 <tr><td>意味的な検証</td><td><code>x-prompt</code> の rule に照らした検証。Semantic Agent Schema は prompt を返し、判定は AI が行う</td><td class="tr">本質 W1 ・ E2</td></tr>
 <tr><td>バリデーター ・ レンダラー</td><td>拡張項目ごとの検証のコード ・ 描画のコード</td><td class="tr">本質 W1</td></tr>
 <tr><td>judgment ・ verdict</td><td>1つの rule と1つの instance location の組の結果 ・ その4つの値（verified ・ violated ・ unverified ・ not-judged）。数えるときは verdict ごとの件数（counts）にし、満たしたとするのは verified だけ</td><td class="tr">本質 W1</td></tr>
-<tr><td>前回の検証</td><td>ある JSON ドキュメントの、直前の検証の操作</td><td class="tr">本質 E5</td></tr>
+<tr><td>前回の検証</td><td>ある JSON ドキュメントの、直前の意味的な検証の操作（judged）。機械的な検証（validated）では動かない。変更点の基準になる</td><td class="tr">本質 E5</td></tr>
 <tr><td>変更点</td><td>前回の検証のときと値が違う instance location の集まり</td><td class="tr">本質 W1</td></tr>
 <tr><td>生成</td><td>意味的な推論で値を作ること</td><td class="tr">本質 W1 ・ E3</td></tr>
 <tr><td>response ・ next</td><td>AI が prompt に従って作り、コマンドへ渡す JSON ・ AI が次に実行するコマンド行。prompt は step ・ response の形 ・ next を持つ</td><td class="tr">本質 W1</td></tr>
@@ -387,7 +388,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI か人が、範囲と schemas を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
 <tr><td>2</td><td>インスタンスを Concrete で、Concrete を Abstract で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>3</td><td>Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：S1</td></tr>
-<tr><td>4</td><td>前回の検証と比べて変更点を求め、変更点でない instance location の AI の judgment を引き継ぐ</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
+<tr><td>4</td><td>前回の検証（直前の意味的な検証）と比べて変更点を求め、変更点でない instance location の AI の judgment を引き継ぐ。この検証は、前回の検証を動かさない</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
 <tr><td>5</td><td>judgment と JSON ドキュメントを操作の記録に追記し、counts を返す</td><td><span class="p">処理</span></td></tr></table></dd>
 <dt>拡張</dt><dd><ul><li>UC3-1a path のファイルが無い：rejected（<code>file_not_found</code>）。指示と next を返す</li><li>UC3-2a 違反がある：violated として数える（rejected にしない）。validated のログイベントに、違反の instance location を直す指示と、更新の next を付ける</li><li>UC3-2b Concrete が schemas に無い（Concrete を消したときを含む）：rejected</li><li>UC3-5a 操作の記録を開けない（Git のリポジトリの外など）：rejected（<code>log_unavailable</code>）。指示と next を返す</li></ul></dd>
 </dl></div>
@@ -399,12 +400,12 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <dt>最低保証</dt><dd>response が違反なら、操作の記録に追記しない。JSON ドキュメントを変えない</dd>
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path と schemas を渡し、判定の prompt を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
 <tr><td>2</td><td>前回の検証の JSON ドキュメントといまの内容を比べ、変更点を求める</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
-<tr><td>3</td><td>変更点に適用される rule を集め、判定の prompt を作って返す</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
+<tr><td>3</td><td>変更点に適用される rule を集め、判定の prompt を作って返す。prompt には、JSON ドキュメントの内容のハッシュを入れる</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
 <tr><td>4</td><td>AI が prompt に従って判定し、response を next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
-<tr><td>5</td><td>response を JSON Schema で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
-<tr><td>6</td><td>response の rule と instance location の組が、prompt の組と同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：V2</td></tr>
+<tr><td>5</td><td>response を JSON Schema で検証する。response は prompt から写したハッシュを持つ</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>6</td><td>response のハッシュがいまの内容のハッシュと同じか、response の rule と instance location の組が prompt の組と同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：V2</td></tr>
 <tr><td>7</td><td>judgment と JSON ドキュメントを操作の記録に追記する</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC4-1a すべての instance location を判定し直したい：2 で全部を対象にする</li><li>UC4-2a 変更点が無い：空の prompt と counts を返して終わる</li><li>UC4-5a ・ 6a response の違反：rejected。next は、判定の prompt の依頼（1 へ）</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC4-1a すべての rule とすべての instance location を判定し直したい：2 で全部を対象にする</li><li>UC4-6b response のハッシュがいまの内容と違う（判定のあとに書き換わった）：rejected。next は判定の prompt の依頼の打ち直し（1 へ）</li><li>UC4-7a AI の judgment に violated がある：judged の next は更新の prompt の依頼</li><li>UC4-2a 変更点が無い：空の prompt と counts を返して終わる</li><li>UC4-5a ・ 6a response の違反：rejected。next は、判定の prompt の依頼（1 へ）</li></ul></dd>
 </dl></div>
 
 <div class="uc"><h3>UC6 描画 <span class="k sup">補完</span></h3><dl>
@@ -490,7 +491,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>JSON ドキュメント D3</td><td>最初に読んだときのハッシュが、書く直前のハッシュと同じときだけ書く（確かめること ・ 操作の記録への追記 ・ 書くことはロックの中で、この順に行う。書けなければ追記も取り消す）。同じコマンドの中で完結し、引数でハッシュを受け取らない</td><td>いまのファイルの状態を見る <span class="tr">本質 W1</span></td></tr>
 <tr><td>JSON ドキュメント D4</td><td>書くたびに、instance location ごとの change を出す。作成では、ルートを含むすべての instance location を add として出す</td><td>2つの JSON ドキュメントを比べる <span class="tr">本質 W1 ・ E5</span></td></tr>
 <tr><td>検証 V1</td><td>1つの JSON ドキュメントの、1つの内容について持つ。ID は操作ごとに付け、作った後は変えない</td><td>操作の記録の単位 <span class="tr">本質 E5 ・ <code>aggregate</code></span></td></tr>
-<tr><td>検証 V2</td><td>response の rule と instance location の組は、そのとき返した prompt の組と同じ</td><td>prompt は、そのときの内容と前回の検証から決まる <span class="tr">本質 W1 ・ E6</span></td></tr>
+<tr><td>検証 V2</td><td>response のハッシュは、いまの内容のハッシュと同じ。response の rule と instance location の組は、そのとき返した prompt の組と同じ</td><td>prompt は、そのときの内容と前回の検証から決まる <span class="tr">本質 W1 ・ E6</span></td></tr>
 <tr><td>検証 V3</td><td>満たしたとするのは verified の judgment だけ。unverified ・ not-judged は数えない</td><td>judgment の集まりを数える <span class="tr">本質 W1</span></td></tr>
 </table></div>
 <h3>値オブジェクト</h3>
@@ -541,7 +542,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <text class="note small" x="22" y="282" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">すべての instance location を対象にする</text>
 </svg></div>
 <ul>
-<li>比べるのは、前回の検証で残した JSON ドキュメントと、いまの内容の2つだけ。JSON Pointer ごとに値を比べ、違う instance location を変更点とする</li>
+<li>基準は、直前の意味的な検証（judged）で残した JSON ドキュメント。機械的な検証（validated）では基準を動かさない。比べるのは、その JSON ドキュメントと、いまの内容の2つだけ。JSON Pointer ごとに値を比べ、違う instance location を変更点とする</li>
 <li>Concrete のハッシュが前回と違うとき、または前回の検証が無いときは、すべての instance location を対象にする</li>
 <li>変更点を instance location か related_fields に含む rule だけを prompt に入れる。ほかの AI の judgment は、前回の検証から引き継いで残す</li>
 <li>Semantic Agent Schema を通さずに変わった JSON ドキュメントも変更点に出るだけなので、取り込みの仕組みは持たない</li>

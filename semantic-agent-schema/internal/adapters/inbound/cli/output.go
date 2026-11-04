@@ -13,13 +13,14 @@ import (
 
 // output は、ログイベントを JSON の1行ずつ書く。instruction と next は error-codes.json の定型に値を入れて作る。
 type output struct {
-	encoder     *json.Encoder
-	failed      bool
-	codes       map[string]template
-	violated    template
-	promptNext  template
-	createdNext template
-	updatedNext template
+	encoder           *json.Encoder
+	failed            bool
+	codes             map[string]template
+	violatedByMachine template
+	violatedByAI      template
+	promptNext        template
+	createdNext       template
+	updatedNext       template
 }
 
 // template は、error-codes.json の instruction の定型文と、コマンドごとの next の形。
@@ -28,11 +29,14 @@ type template struct {
 	Next        map[string]string `json:"next"`
 }
 
-// next は、コマンドの next の形を返す。create は --semantic の有無でも分け、無ければコマンド、次に * の形を使う。
+// next は、コマンドの next の形を返す。semantic の有無と、--judgments の有無でも分け、無ければコマンド、次に * の形を使う。
 func (t template) next(args arguments) string {
 	key := args.Command
-	if args.Semantic {
-		key += " --semantic"
+	switch {
+	case args.Semantic:
+		key = "semantic " + args.Command
+	case args.Judgments != nil:
+		key += " --judgments"
 	}
 	for _, k := range []string{key, args.Command, "*"} {
 		if next, ok := t.Next[k]; ok {
@@ -48,18 +52,19 @@ func newOutput(w io.Writer) (*output, error) {
 		return nil, err
 	}
 	var file struct {
-		Codes    map[string]template `json:"codes"`
-		Violated template            `json:"violated"`
-		Prompt   template            `json:"prompt"`
-		Created  template            `json:"created"`
-		Updated  template            `json:"updated"`
+		Codes     map[string]template `json:"codes"`
+		ByMachine template            `json:"violated_by_machine"`
+		ByAI      template            `json:"violated_by_ai"`
+		Prompt    template            `json:"prompt"`
+		Created   template            `json:"created"`
+		Updated   template            `json:"updated"`
 	}
 	if err := json.Unmarshal(content, &file); err != nil {
 		return nil, err
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	return &output{encoder: encoder, codes: file.Codes, violated: file.Violated, promptNext: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
+	return &output{encoder: encoder, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, promptNext: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
 }
 
 func (o *output) exit() int {
@@ -118,7 +123,7 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schemaId} ・ {range} に入れる値を返す。
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schema} ・ {range} ・ {all} に入れる値を返す。
 func fill(args arguments, path string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
@@ -127,17 +132,26 @@ func fill(args arguments, path string) map[string]string {
 	for _, p := range args.Paths {
 		paths = append(paths, quote(p))
 	}
+	all := ""
+	if args.All {
+		all = " --all"
+	}
+	command := args.Command
+	if args.Semantic {
+		command = "semantic " + command
+	}
 	ranges := ""
 	for _, r := range args.Range {
 		ranges += " --range " + quote(r)
 	}
 	return map[string]string{
-		"{command}":  args.Command,
-		"{path}":     quote(path),
-		"{paths}":    strings.Join(paths, " "),
-		"{schemas}":  strings.Join(schemas, " "),
-		"{schemaId}": quote(args.SchemaID),
-		"{range}":    ranges,
+		"{command}": command,
+		"{path}":    quote(path),
+		"{paths}":   strings.Join(paths, " "),
+		"{schemas}": strings.Join(schemas, " "),
+		"{schema}":  quote(args.Schema),
+		"{range}":   ranges,
+		"{all}":     all,
 	}
 }
 
@@ -176,11 +190,15 @@ type validatedEvent struct {
 	Next        string          `json:"next,omitempty"`
 }
 
-// validation は、validated のログイベントを書く。violated の judgment があれば、instruction と next を付け、終了コードを 1 にする。
+// validation は、validated（判定の response なら judged）のログイベントを書く。violated の judgment があれば、instruction と next を付け、終了コードを 1 にする。
 func (o *output) validation(args arguments, id int64, v *domain.Validation) error {
 	counts := v.Counts()
+	name := "validated"
+	if args.Judgments != nil {
+		name = "judged"
+	}
 	event := validatedEvent{
-		Event: "validated", ID: id, Path: v.Document().Path.String(),
+		Event: name, ID: id, Path: v.Document().Path.String(),
 		SchemaID: v.Concrete().ID(), ContentHash: v.Document().Hash.String(),
 		Counts: countsEvent{
 			Verified: counts.Verified, Violated: counts.Violated,
@@ -189,6 +207,7 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 		Judgments: []judgmentEvent{},
 	}
 	var violated []string
+	byMachine := false
 	for _, j := range v.Judgments() {
 		event.Judgments = append(event.Judgments, judgmentEvent{
 			Rule: j.Rule().ID(), InstanceLocation: j.InstanceLocation().String(),
@@ -196,14 +215,21 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 		})
 		if j.Verdict() == domain.Violated {
 			violated = append(violated, j.InstanceLocation().String())
+			byMachine = byMachine || j.By() == domain.Machine
 		}
 	}
 	if counts.Violated > 0 {
 		o.failed = true
+		// 機械的な検証の違反は位置と理由が分かっているので JSON Patch で直す。AI の判定の違反だけなら、
+		// 同じ x-prompt の prompt に従って直すため、更新の prompt を依頼する
+		t := o.violatedByAI
+		if byMachine {
+			t = o.violatedByMachine
+		}
 		values := fill(args, event.Path)
 		values["{instanceLocation}"] = strings.Join(violated, ", ")
-		event.Instruction = replace(o.violated.Instruction, values)
-		event.Next = replace(o.violated.next(args), values)
+		event.Instruction = replace(t.Instruction, values)
+		event.Next = replace(t.next(args), values)
 	}
 	return o.encoder.Encode(event)
 }
@@ -214,30 +240,37 @@ type stepEvent struct {
 	Title            string         `json:"title,omitempty"`
 	Description      string         `json:"description,omitempty"`
 	XPrompt          map[string]any `json:"x-prompt,omitempty"`
+	Rule             string         `json:"rule,omitempty"`
 }
 
 type promptEvent struct {
 	Path     string            `json:"path"`
+	Hash     string            `json:"hash,omitempty"`
 	Steps    []stepEvent       `json:"steps"`
 	Response map[string]string `json:"response"`
 	Next     string            `json:"next"`
 }
 
 type requestedEvent struct {
-	Event  string      `json:"event"`
-	Prompt promptEvent `json:"prompt"`
+	Event  string       `json:"event"`
+	Prompt promptEvent  `json:"prompt"`
+	Counts *countsEvent `json:"counts,omitempty"`
 }
 
-// requested は、prompt を持つログイベント（作成なら generation_requested、更新なら update_requested）を書く。
+// requested は、prompt を持つログイベント（作成なら generation_requested、更新なら update_requested、判定なら
+// judgment_requested）を書く。判定では、counted（追記しない検証）の counts も書く。
 // prompt の next は、error-codes.json の prompt の形に、受け取った引数を入れて作る。
-func (o *output) requested(args arguments, p domain.Prompt) error {
+func (o *output) requested(args arguments, p domain.Prompt, counted *domain.Validation) error {
 	prompt := promptEvent{
 		Path: p.Path().String(), Steps: []stepEvent{},
 		Response: map[string]string{"$ref": p.ResponseSchemaID()},
 		Next:     replace(o.promptNext.next(args), fill(args, p.Path().String())),
 	}
+	if p.Hash() != nil {
+		prompt.Hash = p.Hash().String()
+	}
 	for _, step := range p.Steps() {
-		e := stepEvent{Title: step.Title, Description: step.Description, XPrompt: step.XPrompt}
+		e := stepEvent{Title: step.Title, Description: step.Description, XPrompt: step.XPrompt, Rule: step.Rule}
 		if step.KeywordLocation != nil {
 			e.KeywordLocation = "#" + step.KeywordLocation.String()
 		}
@@ -253,8 +286,16 @@ func (o *output) requested(args arguments, p domain.Prompt) error {
 		event = "generation_requested"
 	case domain.UpdateCommand:
 		event = "update_requested"
+	case domain.ValidateCommand:
+		event = "judgment_requested"
 	}
-	return o.encoder.Encode(requestedEvent{Event: event, Prompt: prompt})
+	requested := requestedEvent{Event: event, Prompt: prompt}
+	if counted != nil {
+		c := counted.Counts()
+		requested.Counts = &countsEvent{Verified: c.Verified, Violated: c.Violated, Unverified: c.Unverified, NotJudged: c.NotJudged}
+		o.failed = o.failed || c.Violated > 0
+	}
+	return o.encoder.Encode(requested)
 }
 
 type writtenEvent struct {
@@ -279,6 +320,8 @@ func (o *output) written(args arguments, id int64, w *domain.Write) error {
 	case domain.UpdateCommand:
 		event.Event = "updated"
 		event.Next = replace(o.updatedNext.next(args), fill(args, path))
+	case domain.ValidateCommand:
+		// 書く操作のコマンドは create か update だけで、ここには来ない
 	}
 	return o.encoder.Encode(event)
 }

@@ -5,7 +5,8 @@ import (
 	"strconv"
 )
 
-// Previous は、前回の検証。ある JSON ドキュメントの、直前の検証の操作が残した内容 ・ Concrete のハッシュ ・ judgment を持つ。
+// Previous は、前回の意味的な検証。ある JSON ドキュメントの、直前の意味的な検証（AI の判定を受け取った検証）が残した
+// 内容 ・ Concrete のハッシュ ・ judgment を持つ。変更点の基準で、機械的な検証だけでは動かない。
 type Previous struct {
 	content      []byte
 	concreteHash Hash
@@ -90,4 +91,17 @@ func touches(rule Rule, changed map[string]bool) bool {
 		}
 	}
 	return false
+}
+
+// Changed は、ドメインサービス「変更点を求める」。前回の検証が無いとき、または Concrete のハッシュが前回と違うときは
+// すべての instance location が対象なので nil を返す。それ以外は、前回の検証の JSON ドキュメントといまの値を比べた変更点を返す。
+func Changed(previous *Previous, current any, concrete Concrete) map[string]bool {
+	if previous == nil || previous.concreteHash.String() != concrete.Hash().String() {
+		return nil
+	}
+	before, err := ParseJSON(previous.content)
+	if err != nil {
+		return nil // 前回の内容は検証を通った JSON なので、読めないならすべてを対象にする
+	}
+	return ChangedLocations(before, current)
 }

@@ -35,7 +35,9 @@ type step struct {
 	Args   []string          `json:"args"`
 	Env    map[string]string `json:"env"`
 	Stdin  string            `json:"stdin"`
-	Exit   int               `json:"exit"`
+	// Write は、ステップの前に書き換えるファイル（人やほかの道具が書いたことを表す）
+	Write map[string]json.RawMessage `json:"write"`
+	Exit  int                        `json:"exit"`
 	// Files は、ステップの後のファイルの内容。null はファイルが無いこと
 	Files map[string]*string `json:"files"`
 	// Events は、出力の行ごとの、JSON Pointer と値の組。行の数も比べる。message の文は比べない
@@ -122,6 +124,7 @@ func run(t *testing.T, s scenario, git string, events *jsonschema.Schema) {
 		env = append(env, "GIT_CEILING_DIRECTORIES="+base)
 	}
 	for _, st := range s.Steps {
+		write(t, repo, st.Write)
 		for _, name := range st.Remove {
 			if err := os.Remove(filepath.Join(repo, name)); err != nil {
 				t.Fatalf("Remove(%s) = %v", name, err)
@@ -152,7 +155,7 @@ func run(t *testing.T, s scenario, git string, events *jsonschema.Schema) {
 
 func execute(t *testing.T, repo string, env []string, st step) ([]string, int) {
 	t.Helper()
-	// 引数の {sha256 <path>} は、実行する前のそのファイルのハッシュにする
+	// 引数と標準入力の {sha256 <path>} は、実行する前のそのファイルのハッシュにする
 	args := make([]string, len(st.Args))
 	for i, arg := range st.Args {
 		args[i] = sha256Of.ReplaceAllStringFunc(arg, func(m string) string {
@@ -161,7 +164,9 @@ func execute(t *testing.T, repo string, env []string, st step) ([]string, int) {
 	}
 	cmd := exec.Command(binary, args...)
 	cmd.Dir = repo
-	cmd.Stdin = strings.NewReader(st.Stdin)
+	cmd.Stdin = strings.NewReader(sha256Of.ReplaceAllStringFunc(st.Stdin, func(m string) string {
+		return hashOf(t, repo, sha256Of.FindStringSubmatch(m)[1])
+	}))
 	cmd.Env = append([]string(nil), env...)
 	for k, v := range st.Env {
 		cmd.Env = append(cmd.Env, k+"="+v)

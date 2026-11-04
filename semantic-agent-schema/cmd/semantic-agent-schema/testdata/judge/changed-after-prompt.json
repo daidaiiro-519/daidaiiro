@@ -1,0 +1,60 @@
+{
+  "title": "判定の prompt を返したあとに JSON ドキュメントが変わると、judgments のハッシュがいまの内容と違うので rejected を返す。next は判定の prompt の依頼",
+  "files": {
+    "schemas/plan.json": {
+      "$fixture": "plan.schema.json"
+    },
+    "plan.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "春の計画",
+      "start": "2026-02-01",
+      "end": "2026-03-01"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested",
+          "/prompt/hash": {
+            "$sha256": "plan.json"
+          }
+        }
+      ]
+    },
+    {
+      "write": {
+        "plan.json": {
+          "$schema": "urn:example:plan:v1",
+          "title": "夏の計画",
+          "start": "2026-02-01",
+          "end": "2026-03-01"
+        }
+      },
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"judgments\": [{\"rule\": \"end-after-start\", \"instanceLocation\": \"/end\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"title-short\", \"instanceLocation\": \"/title\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "hash_mismatch",
+          "/next": "semantic-agent-schema semantic validate plan.json --schemas schemas"
+        }
+      ]
+    }
+  ]
+}

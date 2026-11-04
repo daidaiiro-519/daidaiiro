@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:judgment-response:v1",
+  "title": "判定の response",
+  "description": "AI が判定の prompt に従って作り、validate --judgments で渡す JSON。prompt の hash を写し、prompt の step（rule と instance location の組）ごとに judgment を1つ持つ。",
+  "type": "object",
+  "required": [
+    "hash",
+    "judgments"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "hash": {
+      "description": "prompt の hash をそのまま写す。判定した内容のハッシュ",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule",
+          "instanceLocation",
+          "verdict",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "description": "step の rule の id",
+            "type": "string",
+            "minLength": 1
+          },
+          "instanceLocation": {
+            "description": "step の instance location",
+            "type": "string",
+            "pattern": "^(/([^~/]|~[01])*)*$"
+          },
+          "verdict": {
+            "enum": [
+              "verified",
+              "violated",
+              "unverified",
+              "not-judged"
+            ]
+          },
+          "reason": {
+            "description": "verdict の理由。rule の check に照らして書く",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

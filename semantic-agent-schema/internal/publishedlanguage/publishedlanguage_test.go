@@ -26,11 +26,12 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		Next        map[string]string `json:"next"`
 	}
 	var codes struct {
-		Codes    map[string]template `json:"codes"`
-		Violated template            `json:"violated"`
-		Prompt   template            `json:"prompt"`
-		Created  template            `json:"created"`
-		Updated  template            `json:"updated"`
+		Codes     map[string]template `json:"codes"`
+		ByMachine template            `json:"violated_by_machine"`
+		ByAI      template            `json:"violated_by_ai"`
+		Prompt    template            `json:"prompt"`
+		Created   template            `json:"created"`
+		Updated   template            `json:"updated"`
 	}
 	read(t, "error-codes.json", &codes)
 	var event struct {
@@ -52,14 +53,18 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 			t.Errorf("error-codes.json %s = %+v, want instruction and next", code, c)
 		}
 	}
-	if codes.Violated.Instruction == "" || codes.Violated.Next["validate"] == "" {
-		t.Errorf("error-codes.json violated = %+v, want instruction and next for validate", codes.Violated)
+	for name, v := range map[string]template{"violated_by_machine": codes.ByMachine, "violated_by_ai": codes.ByAI} {
+		if v.Instruction == "" || v.Next["*"] == "" {
+			t.Errorf("error-codes.json %s = %+v, want instruction and next", name, v)
+		}
 	}
 	if codes.Created.Next["create"] == "" || codes.Updated.Next["update"] == "" {
 		t.Errorf("error-codes.json created, updated = %+v, %+v, want next", codes.Created, codes.Updated)
 	}
-	if codes.Prompt.Next["create --semantic"] == "" || codes.Prompt.Next["update --semantic"] == "" {
-		t.Errorf("error-codes.json prompt = %+v, want next for create --semantic and update --semantic", codes.Prompt)
+	for _, key := range []string{"semantic create", "semantic update", "semantic validate"} {
+		if codes.Prompt.Next[key] == "" {
+			t.Errorf("error-codes.json prompt.next[%q] = empty, want next", key)
+		}
 	}
 	slices.Sort(keys)
 	enum := slices.Sorted(slices.Values(event.Defs.Rejected.Properties.Code.Enum))

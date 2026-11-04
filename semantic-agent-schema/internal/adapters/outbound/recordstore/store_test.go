@@ -14,6 +14,12 @@ import (
 
 func validation(t *testing.T, content string) *domain.Validation {
 	t.Helper()
+	return validationOf(t, content, nil)
+}
+
+// validationOf は、judged が nil でなければ、AI の判定を受け取った意味的な検証を返す。
+func validationOf(t *testing.T, content string, judged []domain.Judgment) *domain.Validation {
+	t.Helper()
 	path, err := domain.NewPath("a.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
@@ -30,6 +36,7 @@ func validation(t *testing.T, content string) *domain.Validation {
 		Value: value, Concrete: concrete,
 		Document:   domain.Document{Path: path, Content: []byte(content), Hash: domain.HashOf([]byte(content))},
 		Violations: []domain.Violation{{InstanceLocation: domain.PointerOf("x"), AbsoluteKeywordLocation: "urn:a#/minimum", Message: "m"}},
+		Judged:     judged,
 	})
 }
 
@@ -63,25 +70,31 @@ func TestAppendValidationGivesEachOperationAnID(t *testing.T) {
 	}
 }
 
-func TestLastValidationReturnsTheLatestValidationOfPath(t *testing.T) {
+func TestLastJudgedReturnsTheLatestSemanticValidationOfPath(t *testing.T) {
 	t.Parallel()
 	store := open(t, t.TempDir())
 	path, err := domain.NewPath("a.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	previous, err := store.LastValidation(t.Context(), path)
+	previous, err := store.LastJudged(t.Context(), path)
 	if previous != nil || err != nil {
-		t.Errorf("LastValidation(a.json) before append = %v, %v, want nil, nil", previous, err)
+		t.Errorf("LastJudged(a.json) before append = %v, %v, want nil, nil", previous, err)
 	}
-	for _, content := range []string{`{"x": 1}`, `{"x": 2}`} {
-		if _, err := store.AppendValidation(t.Context(), validation(t, content)); err != nil {
-			t.Fatalf("AppendValidation(%s) = %v", content, err)
-		}
+	// 機械的な検証だけでは、変更点の基準は動かない
+	if _, err := store.AppendValidation(t.Context(), validation(t, `{"x": 1}`)); err != nil {
+		t.Fatalf("AppendValidation = %v", err)
 	}
-	previous, err = store.LastValidation(t.Context(), path)
+	previous, err = store.LastJudged(t.Context(), path)
+	if previous != nil || err != nil {
+		t.Errorf("LastJudged(a.json) after a mechanical validation = %v, %v, want nil, nil", previous, err)
+	}
+	if _, err := store.AppendValidation(t.Context(), validationOf(t, `{"x": 2}`, []domain.Judgment{})); err != nil {
+		t.Fatalf("AppendValidation(judged) = %v", err)
+	}
+	previous, err = store.LastJudged(t.Context(), path)
 	if err != nil || previous == nil {
-		t.Errorf("LastValidation(a.json) = %v, %v, want previous, nil", previous, err)
+		t.Errorf("LastJudged(a.json) after a semantic validation = %v, %v, want previous, nil", previous, err)
 	}
 }
 

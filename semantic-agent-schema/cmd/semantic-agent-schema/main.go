@@ -24,7 +24,7 @@ func main() {
 	}))
 }
 
-// open は、working tree と操作の記録を開き、ユースケース「作成」「更新」「検証」に、アダプターを結び付けて返す。
+// open は、working tree と操作の記録を開き、ユースケース「作成」「更新」「検証」「意味的な検証」に、アダプターを結び付けて返す。
 func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() error, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -53,6 +53,10 @@ func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() err
 		Update: application.Update{
 			Documents: documents, Schemas: concretes, Validator: validator, Patcher: patching.New(), Records: records,
 			AbstractID: publishedlanguage.AbstractID, PatchID: publishedlanguage.PatchID,
+		},
+		Judge: application.Judge{
+			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
+			AbstractID: publishedlanguage.AbstractID, ResponseID: publishedlanguage.JudgmentResponseID,
 		},
 		Validate: application.Validate{
 			Documents: documents, Schemas: concretes, Validator: validator, Records: records,

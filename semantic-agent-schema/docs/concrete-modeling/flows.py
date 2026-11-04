@@ -50,23 +50,23 @@ def build(name, title, aria, cols, rows):
 
 build(
     'flow-semantic', '処理の流れ：prompt で更新し、変更点を判定する',
-    'update --semantic で prompt を受け取り、AI が JSON Patch を作って update --patch で書く。'
-    'validate --semantic は前回の検証と比べた変更点の rule だけで prompt を返し、AI が response を validate --response で渡すと、検証してから操作の記録に追記する',
+    'semantic update で prompt を受け取り、AI が JSON Patch を作って update --patch で書く。'
+    'semantic validate は直前の意味的な検証と比べた変更点の rule だけで prompt を返し、AI が response を validate --judgments で渡すと、検証してから操作の記録に追記する',
     [('authoring（application ・ domain）', 10, 200), ('ポート → アダプター', 216, 194)],
     [
-        ('ai', ['AI：更新の prompt を依頼する', 'update a.json --semantic', '--schemas s/']),
+        ('ai', ['AI：更新の prompt を依頼する', 'semantic update a.json', '--schemas s/']),
         (1, ['1 Documents.Read → files', 'Schemas → files']),
         (0, ['2 domain：サブスキーマを引き', 'prompt を作る。next に', '--schemas を入れる']),
         ('ai', ['AI：prompt に従い JSON Patch を作る', 'update a.json --patch P', '--schemas s/']),
         (1, ['3 Patcher → patching', 'Validator → schemacheck']),
         (0, ['4 domain：集約 JSON ドキュメント', 'x-decided-by ・ 読んだハッシュ', 'change を出す']),
         (1, ['5 Records.WithLock', '→ recordstore：ロックの中で', '追記して Documents.Write']),
-        ('ai', ['AI：判定の prompt を依頼する', 'validate a.json --semantic', '--schemas s/']),
-        (1, ['6 Records', '.LastValidation', '→ recordstore：前回の検証']),
+        ('ai', ['AI：判定の prompt を依頼する', 'semantic validate a.json', '--schemas s/']),
+        (1, ['6 Records', '.LastJudged', '→ recordstore：直前の judged']),
         (0, ['7 domain：変更点を求める', 'JSON Pointer ごとに比べ', 'その rule で prompt を作る']),
-        ('ai', ['AI：rule ごとに判定する', 'validate a.json --response J', '--schemas s/']),
+        ('ai', ['AI：rule ごとに判定する', 'validate a.json --judgments J', '--schemas s/']),
         (1, ['8 Validator → schemacheck', 'judgment-response', '.schema.json']),
-        (0, ['9 domain：集約検証', 'response の組が prompt と同じ']),
+        (0, ['9 domain：集約検証', 'hash と response の組が', 'prompt と同じ']),
         (1, ['10 Records → recordstore', 'validations ・ judgments']),
         ('ai', ['AI：judged のログイベントを読む']),
     ],

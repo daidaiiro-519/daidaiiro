@@ -157,9 +157,9 @@ func TestChangedLocationsComparesEachInstanceLocation(t *testing.T) {
 
 func judgment(t *testing.T, rule, location, verdict, by string) domain.Judgment {
 	t.Helper()
-	j, err := domain.RecordedJudgment(rule, location, verdict, by, "")
+	j, err := domain.NewJudgment(rule, location, verdict, by, "")
 	if err != nil {
-		t.Fatalf("RecordedJudgment(%s, %s, %s, %s) = %v", rule, location, verdict, by, err)
+		t.Fatalf("NewJudgment(%s, %s, %s, %s) = %v", rule, location, verdict, by, err)
 	}
 	return j
 }
@@ -260,7 +260,7 @@ func TestCountsOnlyVerifiedIsSatisfied(t *testing.T) {
 	}
 }
 
-func TestRecordedJudgmentRejectsValuesOutsideClosedLists(t *testing.T) {
+func TestNewJudgmentRejectsValuesOutsideClosedLists(t *testing.T) {
 	t.Parallel()
 	cases := []struct{ name, rule, location, verdict, by string }{
 		{name: "rule の id が空", rule: "", location: "/a", verdict: "verified", by: "ai"},
@@ -271,8 +271,8 @@ func TestRecordedJudgmentRejectsValuesOutsideClosedLists(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := domain.RecordedJudgment(c.rule, c.location, c.verdict, c.by, ""); err == nil {
-				t.Errorf("RecordedJudgment(%q, %q, %q, %q) = nil error, want error", c.rule, c.location, c.verdict, c.by)
+			if _, err := domain.NewJudgment(c.rule, c.location, c.verdict, c.by, ""); err == nil {
+				t.Errorf("NewJudgment(%q, %q, %q, %q) = nil error, want error", c.rule, c.location, c.verdict, c.by)
 			}
 		})
 	}
@@ -478,5 +478,91 @@ func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 	}
 	if p.ResponseSchemaID() != "urn:patch" {
 		t.Errorf("NewUpdatePrompt(memo).ResponseSchemaID() = %s, want urn:patch", p.ResponseSchemaID())
+	}
+}
+
+const plan = `{"$id": "urn:example:plan:v1", "properties": {
+	"title": {"x-prompt": {"rules": [{"id": "title-short", "related_fields": []}]}},
+	"start": {"type": "string"},
+	"end": {"x-prompt": {"rules": [{"id": "end-after-start", "related_fields": ["/start"]}]}},
+	"items": {"items": {"x-prompt": {"rules": [{"id": "item-name"}]}}}}}`
+
+// デシジョンテーブル：変更点（すべて ・ 無し ・ instance location ・ related_fields ・ 配列の要素）× rule。
+func TestNewJudgmentPromptSelectsRulesByChanges(t *testing.T) {
+	t.Parallel()
+	value, err := domain.ParseJSON([]byte(`{"title": "t", "start": "s", "end": "e", "items": [{}, {}]}`))
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("plan.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	cases := []struct {
+		name    string
+		changed map[string]bool
+		want    []string
+	}{
+		{name: "すべてが対象なら、すべての組", changed: nil,
+			want: []string{"/end end-after-start", "/items/0 item-name", "/items/1 item-name", "/title title-short"}},
+		{name: "変更点が無ければ、組は無い", changed: map[string]bool{}},
+		{name: "instance location が変更点の rule", changed: map[string]bool{"/title": true, "": true}, want: []string{"/title title-short"}},
+		{name: "related_fields が変更点の rule", changed: map[string]bool{"/start": true, "": true}, want: []string{"/end end-after-start"}},
+		{name: "配列の要素が変更点の rule", changed: map[string]bool{"/items/1": true, "/items": true, "": true}, want: []string{"/items/1 item-name"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			var got []string
+			document := domain.Document{Path: path, Content: []byte("{}"), Hash: domain.HashOf([]byte("{}"))}
+			for _, step := range domain.NewJudgmentPrompt(document, value, concrete(t, plan), c.changed, "urn:r").Steps() {
+				got = append(got, step.InstanceLocation.String()+" "+step.Rule)
+			}
+			if !slices.Equal(got, c.want) {
+				t.Errorf("NewJudgmentPrompt(%s) = %q, want %q", c.name, got, c.want)
+			}
+		})
+	}
+}
+
+func TestMatchResponseRejectsPairsOtherThanPrompt(t *testing.T) {
+	t.Parallel()
+	value, err := domain.ParseJSON([]byte(`{"title": "t", "end": "e"}`))
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("plan.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	document := domain.Document{Path: path, Content: []byte("{}"), Hash: domain.HashOf([]byte("{}"))}
+	prompt := domain.NewJudgmentPrompt(document, value, concrete(t, plan), nil, "urn:r")
+	end := judgment(t, "end-after-start", "/end", "verified", "ai")
+	title := judgment(t, "title-short", "/title", "verified", "ai")
+	other := judgment(t, "title-short", "/end", "verified", "ai")
+	cases := []struct {
+		name      string
+		judgments []domain.Judgment
+		want      []string
+	}{
+		{name: "prompt と同じ組", judgments: []domain.Judgment{title, end}},
+		{name: "足りない組", judgments: []domain.Judgment{end}, want: []string{"/title"}},
+		{name: "余分な組", judgments: []domain.Judgment{end, title, other}, want: []string{"/end"}},
+		{name: "重なる組", judgments: []domain.Judgment{end, title, title}, want: []string{"/title"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			var got []string
+			for _, e := range unjoin(domain.MatchResponse(path, prompt, c.judgments)) {
+				var f *domain.Failure
+				if errors.As(e, &f) && f.Code == domain.ResponseMismatch {
+					got = append(got, f.InstanceLocation)
+				}
+			}
+			if !slices.Equal(got, c.want) {
+				t.Errorf("MatchResponse(%s) = %v, want %v", c.name, got, c.want)
+			}
+		})
 	}
 }
