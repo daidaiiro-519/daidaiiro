@@ -1,0 +1,45 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 17,
+ "date": "2026-11-04",
+ "summary": "検証で当たる rule を集める手続き（validation-domain の services/rules.rs の shape）が深さ16で切っていたのをやめた。インスタンスの値は木なので、値をたどる限り終わる。値を進めずに $ref ・ allOf をたどる所は、同じ値の所に同じスキーマの所を1回だけ当てる。あわせて、semantic-agent-schema init が作るセッションの ID の頭を semantic-agent-schema- にした（記録に既にある ID は書き換えない）。試験144件、場面161本。",
+ "usecases": [
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "場面を先に書き、直す前の実装（ステップ16 のコミット）で通らないことを、場面を流して確かめた",
+   "evidence": [
+    "S-UC4-SEMANTIC-DEEP（値が19段の鎖で、いちばん深い /root/child…/name の rule が判定の手順に入る）は、直す前の実装ではその所が手順に無く、通らなかった",
+    "S-SESSION-INIT（init が返す ID が semantic-agent-schema- を含む）は、直す前の実装では sas- で、通らなかった"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "当たる rule を集める（validation-domain の shape）",
+   "steps": [
+    "スキーマの所の $ref を引く",
+    "同じ値の所に同じスキーマの所を当てたことがあれば戻る",
+    "allOf の各スキーマを同じ値の所に当て、properties ・ additionalProperties ・ items を値の子の所へたどる"
+   ],
+   "rules": [
+    "深さでは切らない",
+    "スキーマの所は、引いた先の文書の中の所（同じ文書の同じ所は同じもの）で見分ける"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "ステップ16 の「validation-domain の当たる rule を集める手続きの深さ16」",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "利用者の判断（ステップ17）で、迷う5か所の3と同じ理由で直した"
+  }
+ ],
+ "structure": {
+  "changed": false
+ }
+}

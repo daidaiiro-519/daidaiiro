@@ -56,7 +56,7 @@ impl SessionLog for Memory {
         Ok(self.sessions.iter().find(|s| s.id == id).cloned())
     }
     fn new_session_id(&self) -> String {
-        format!("sas-{}", self.sessions.len() + 1)
+        format!("semantic-agent-schema-{}", self.sessions.len() + 1)
     }
 }
 

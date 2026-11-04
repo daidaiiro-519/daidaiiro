@@ -230,7 +230,7 @@ impl SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    /// 新しいセッション ID（semantic-agent-schema init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
+    /// 新しいセッション ID（semantic-agent-schema init が作る。頭は semantic-agent-schema-）。一意で、時刻だけから作らない。
     #[must_use]
     pub fn new_session_id(&self) -> String {
         // 時刻とプロセスに、プロセスごとに乱数で決まる鍵のハッシュを2つ重ねる（推測できる時刻だけにしない）
@@ -244,7 +244,7 @@ impl SqliteLog {
             h.write_u64(salt);
             h.finish()
         };
-        format!("sas-{:016x}{:016x}", part(1), part(2))
+        format!("semantic-agent-schema-{:016x}{:016x}", part(1), part(2))
     }
 
     /// 検証を1件足し（rule ごとの結果も一緒に）、その ID を返す。

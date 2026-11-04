@@ -5,6 +5,7 @@
 
 use crate::values::{By, RuleResult, Verdict};
 use serde_json::Value;
+use std::collections::BTreeSet;
 use writing_domain::aggregates::{ConcreteSchema, escape};
 
 /// 対象の1か所に当たる rule。
@@ -51,7 +52,7 @@ pub fn rules_for_concrete(
         concrete.document(),
         "",
         &mut out,
-        0,
+        &mut BTreeSet::new(),
     );
     keywords(abstract_doc, vocabulary, concrete.document(), "", &mut out);
     out
@@ -111,6 +112,8 @@ fn resolve<'a>(
 }
 
 /// schema を value の形としてたどり、子の所に当たる rule を集める（その所の rule は呼ぶ側が集める）。
+/// 深さでは切らない。インスタンスの値は木なので、値をたどる限り終わる。値を進めずに $ref ・ allOf をたどる所は、
+/// 同じ値の所に同じスキーマの所を1回だけ当てる（seen。自分を指す $ref でも終わる）。
 fn shape(
     root: &Value,
     schema: &Value,
@@ -118,19 +121,19 @@ fn shape(
     value: &Value,
     at: &str,
     out: &mut Vec<AppliedRule>,
-    depth: usize,
+    seen: &mut BTreeSet<(usize, String)>,
 ) {
-    if depth > 16 {
+    let (root, schema) = resolve(root, schema, others);
+    if !seen.insert((std::ptr::from_ref(schema) as usize, at.to_string())) {
         return;
     }
-    let (root, schema) = resolve(root, schema, others);
     for sub in schema
         .get("allOf")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
     {
-        shape(root, sub, others, value, at, out, depth + 1);
+        shape(root, sub, others, value, at, out, seen);
     }
     if let Some(obj) = value.as_object() {
         let props = schema.get("properties").and_then(Value::as_object);
@@ -149,7 +152,7 @@ fn shape(
                 if !std::ptr::eq(sub, sub_r) {
                     push_rules(sub_r, &here, out);
                 }
-                shape(sub_root, sub_r, others, child, &here, out, depth + 1);
+                shape(sub_root, sub_r, others, child, &here, out, seen);
             }
         }
     }
@@ -161,7 +164,7 @@ fn shape(
             if !std::ptr::eq(items, items_r) {
                 push_rules(items_r, &here, out);
             }
-            shape(items_root, items_r, others, child, &here, out, depth + 1);
+            shape(items_root, items_r, others, child, &here, out, seen);
         }
     }
 }
@@ -195,7 +198,15 @@ fn keywords(
                 if k.starts_with("x-") {
                     if let Some(form) = form_of(abstract_doc, vocabulary, k) {
                         push_rules(form, &here, out);
-                        shape(abstract_doc, form, &[], child, &here, out, 0);
+                        shape(
+                            abstract_doc,
+                            form,
+                            &[],
+                            child,
+                            &here,
+                            out,
+                            &mut BTreeSet::new(),
+                        );
                     }
                 } else {
                     keywords(abstract_doc, vocabulary, child, &here, out);
@@ -229,7 +240,7 @@ pub fn rules_for_instance(
         instance_doc,
         "",
         &mut out,
-        0,
+        &mut BTreeSet::new(),
     );
     out
 }

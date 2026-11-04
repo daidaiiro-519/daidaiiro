@@ -126,5 +126,8 @@ fn new_session_ids_do_not_collide() {
     let log = SqliteLog::in_memory().unwrap();
     let ids: std::collections::BTreeSet<String> = (0..100).map(|_| log.new_session_id()).collect();
     assert_eq!(ids.len(), 100);
-    assert!(ids.iter().all(|i| i.starts_with("sas-") && i.len() == 36));
+    assert!(
+        ids.iter()
+            .all(|i| i.starts_with("semantic-agent-schema-") && i.len() == 54)
+    );
 }

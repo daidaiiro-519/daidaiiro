@@ -1,0 +1,47 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-DEEP",
+ "name": "深い値の rule を判定する",
+ "title": "インスタンスの値が17段より深くても、深さで切らずに最後までたどり、いちばん深い所の rule も判定の手順に入れる",
+ "why": "深さで切ると、深い所の rule を黙って判定せず、守られていないのに気づけない。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/chain.schema.json": "{\n \"$schema\": \"urn:semantic-agent-schema:published-language:abstract:v1\",\n \"$id\": \"urn:example:sample:chain:v1\",\n \"title\": \"鎖\",\n \"description\": \"節が次の節を持つ鎖である。\",\n \"type\": \"object\",\n \"required\": [\n  \"$schema\",\n  \"root\"\n ],\n \"properties\": {\n  \"$schema\": {\n   \"const\": \"urn:example:sample:chain:v1\"\n  },\n  \"root\": {\n   \"title\": \"最初の節\",\n   \"description\": \"鎖の最初の節である。\",\n   \"$ref\": \"#/$defs/node\"\n  }\n },\n \"$defs\": {\n  \"node\": {\n   \"type\": \"object\",\n   \"title\": \"節\",\n   \"description\": \"名前と次の節を持つ。\",\n   \"properties\": {\n    \"name\": {\n     \"type\": \"string\",\n     \"title\": \"名前\",\n     \"description\": \"節の名前である。\",\n     \"x-prompt\": {\n      \"rules\": [\n       {\n        \"id\": \"name-is-noun\",\n        \"rule\": \"名前は名詞で書く。\",\n        \"why\": \"動詞だと何の節かが分からない。\",\n        \"check\": \"名詞句かを見る。\",\n        \"bad\": [\n         {\n          \"value\": \"読む\",\n          \"note\": \"動詞で、何の節かが分からない。\"\n         }\n        ],\n        \"good\": [\n         {\n          \"value\": \"目次\"\n         }\n        ]\n       }\n      ]\n     }\n    },\n    \"child\": {\n     \"title\": \"次の節\",\n     \"description\": \"次の節である。\",\n     \"$ref\": \"#/$defs/node\"\n    }\n   }\n  }\n }\n}\n",
+   "items/c1.json": "{\n \"$schema\": \"urn:example:sample:chain:v1\",\n \"root\": {\n  \"name\": \"節0\",\n  \"child\": {\n   \"name\": \"節1\",\n   \"child\": {\n    \"name\": \"節2\",\n    \"child\": {\n     \"name\": \"節3\",\n     \"child\": {\n      \"name\": \"節4\",\n      \"child\": {\n       \"name\": \"節5\",\n       \"child\": {\n        \"name\": \"節6\",\n        \"child\": {\n         \"name\": \"節7\",\n         \"child\": {\n          \"name\": \"節8\",\n          \"child\": {\n           \"name\": \"節9\",\n           \"child\": {\n            \"name\": \"節10\",\n            \"child\": {\n             \"name\": \"節11\",\n             \"child\": {\n              \"name\": \"節12\",\n              \"child\": {\n               \"name\": \"節13\",\n               \"child\": {\n                \"name\": \"節14\",\n                \"child\": {\n                 \"name\": \"節15\",\n                 \"child\": {\n                  \"name\": \"節16\",\n                  \"child\": {\n                   \"name\": \"節17\",\n                   \"child\": {\n                    \"name\": \"節18\"\n                   }\n                  }\n                 }\n                }\n               }\n              }\n             }\n            }\n           }\n          }\n         }\n        }\n       }\n      }\n     }\n    }\n   }\n  }\n }\n}\n"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/c1.json",
+   "--semantic",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "contains": "\"pointer\":\"/root/child/child/child/child/child/child/child/child/child/child/child/child/child/child/child/child/child/child/name\""
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 20
+  }
+ ]
+}
