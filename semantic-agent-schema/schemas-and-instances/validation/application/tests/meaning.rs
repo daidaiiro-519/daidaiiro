@@ -255,14 +255,13 @@ fn reading_of_the_field_goes_into_the_procedure() {
 }
 
 #[test]
-fn answer_in_a_code_fence_is_read() {
+fn only_json_is_read_as_an_answer() {
     use validation_application::use_cases::meaning::answer_json;
-    assert_eq!(
-        answer_json("```json\n{\"a\": 1}\n```").unwrap(),
-        json!({"a": 1})
+    assert_eq!(answer_json(" {\"a\": 1}\n").unwrap(), json!({"a": 1}));
+    assert!(
+        answer_json("```json\n{\"a\": 1}\n```").is_err(),
+        "囲みを外して読まない"
     );
-    assert_eq!(answer_json(" {\"a\": 1} ").unwrap(), json!({"a": 1}));
-    assert!(answer_json("```\nnot json\n```").is_err());
 }
 
 #[test]

@@ -1,0 +1,38 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SESSION-HUMAN-AND-SESSION",
+ "name": "人とセッションを両方渡す",
+ "title": "--human と --session を一緒に渡すと、どちらかを選ばずに使い方の誤りを返す",
+ "why": "どちらかを選ぶと、誰の操作かが入力で決まらない。",
+ "traces": [
+  "約束:command-result:session"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json",
+   "--schemas",
+   "schemas",
+   "--human",
+   "--session",
+   "ai-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  }
+ ]
+}

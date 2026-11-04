@@ -21,7 +21,7 @@ use crate::use_cases::tokens::css_of;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::values::Verdict;
-use writing_domain::services::{SchemaIndex, Unresolved};
+use writing_domain::services::{SchemaIndex, Unresolved, concrete_of};
 use writing_domain::values::{ContentHash, TargetKind};
 
 /// 描画 ・ デザインシステムの検証を始められなかった ・ 書き出さなかった理由。描画は記録しない（理由と案内をその場で返す）。
@@ -63,7 +63,7 @@ pub fn log_refused(e: String) -> Refused {
     }
 }
 
-/// 渡されたスキーマの置き場所のファイルを1件ずつ読み、$id の索引を作る。
+/// 渡されたスキーマの置き場所のファイルを1件ずつ読み、$id と経路だけを索引に残す。
 ///
 /// # Errors
 /// ファイルを読めないとき。
@@ -71,7 +71,33 @@ pub(crate) fn index_of(
     store: &dyn DocumentStore,
     schemas: &[String],
 ) -> Result<SchemaIndex, Refused> {
-    SchemaIndex::read(schemas, |p| store.read(p)).map_err(|u| unresolved(None, u))
+    let mut index = SchemaIndex::new();
+    for p in schemas {
+        let text = store.read(p).map_err(|e| refused("store", p, e))?;
+        index.add(p, &text);
+    }
+    Ok(index)
+}
+
+/// 索引から $id の Concrete を1つ読む（経路と文書）。$ref の先は引かない。target は理由に付ける対象の経路。
+///
+/// # Errors
+/// 置き場所に無い ・ 2つ以上ある ・ Concrete でない ・ 読めないとき。
+pub(crate) fn read_concrete(
+    index: &SchemaIndex,
+    store: &dyn DocumentStore,
+    id: &str,
+    target: Option<&str>,
+) -> Result<(String, Value), Refused> {
+    let path = index
+        .path_of(id, None)
+        .map_err(|u| unresolved(target, u))?
+        .to_string();
+    let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|e| refused("store", &path, format!("JSON として読めない：{e}")))?;
+    concrete_of(id, &path, &value).map_err(|u| unresolved(target, u))?;
+    Ok((path, value))
 }
 
 /// 置き場所から引けなかった理由を、断った理由にする。
@@ -177,10 +203,7 @@ pub fn render(
                 "描くのは Concrete に従うインスタンスだけ。これは Concrete".to_string(),
             ));
         }
-        let (concrete_path, concrete) = index
-            .concrete(&declared, |p| store.read(p))
-            .map_err(|u| unresolved(Some(path), u))?;
-        let concrete = concrete.document().clone();
+        let (concrete_path, concrete) = read_concrete(&index, store, &declared, Some(path))?;
         if !concretes.iter().any(|(id, _)| *id == declared) {
             concretes.push((declared.clone(), concrete.clone()));
             concrete_paths.push(concrete_path);

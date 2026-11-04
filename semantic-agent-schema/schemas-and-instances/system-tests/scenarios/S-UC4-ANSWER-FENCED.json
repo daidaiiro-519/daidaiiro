@@ -1,0 +1,46 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-ANSWER-FENCED",
+ "name": "囲みを付けた判定",
+ "title": "```json の囲みを付けた判定を --answer で渡すと、囲みを外して読まずに invalid_answer を返し、記録しない",
+ "why": "囲みを外して読むと、答えの形の契約の外のものを受け取ることになる。",
+ "traces": [
+  "UC4:拡張:6a"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "answers/fenced.json": "```json\n{\"hash\": \"sha256:fd220983cc989e528215fa39058a7881ea0df453630769e82d716b69db0ecd51\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"利用者が受け取る結果を書いている\"}]}\n```"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/r1.json",
+   "--answer",
+   "answers/fenced.json",
+   "--schemas",
+   "schemas"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c-1"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  },
+  {
+   "of": "when",
+   "pointer": "/operations",
+   "exists": false
+  }
+ ]
+}

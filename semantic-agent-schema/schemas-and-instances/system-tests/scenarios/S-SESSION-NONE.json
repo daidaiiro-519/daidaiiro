@@ -1,0 +1,58 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SESSION-NONE",
+ "name": "誰が打ったかが無い",
+ "title": "--session ・ ツールの環境変数 ・ init の登録 ・ --human のどれも無いと、人とみなさずに使い方の誤りを返し、操作を記録しない",
+ "why": "名乗らない操作を人とみなすと、AI の操作が人の決定として記録に残る。",
+ "traces": [
+  "約束:command-result:session"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json",
+   "--schemas",
+   "schemas"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--human"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "not_found"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0001"
+   ]
+  }
+ ]
+}

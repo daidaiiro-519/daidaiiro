@@ -10,7 +10,7 @@
 
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Value, json};
-use writing_domain::services::SchemaIndex;
+use writing_domain::services::{SchemaIndex, concrete_of};
 use writing_domain::values::{Caller, ContentHash, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
@@ -115,14 +115,23 @@ fn load(range: &Range, store: &dyn DocumentStore) -> Result<Vec<Doc>, Refused> {
             .map_err(|u| refused(u.code(), p, u.message().to_string()))?;
         if kind == TargetKind::Instance {
             if index.is_none() {
-                index = Some(
-                    SchemaIndex::read(&range.schemas, |f| store.read(f))
-                        .map_err(|u| unresolved(None, &u))?,
-                );
+                let mut i = SchemaIndex::new();
+                for f in &range.schemas {
+                    let text = store.read(f).map_err(|e| refused("store", f, e))?;
+                    i.add(f, &text);
+                }
+                index = Some(i);
             }
             if let Some(i) = &index {
-                i.concrete(&declared, |f| store.read(f))
-                    .map_err(|u| unresolved(Some(p), &u))?;
+                // 従う Concrete が置き場所に1つだけあり、Concrete であることを確かめる
+                let at = i
+                    .path_of(&declared, None)
+                    .map_err(|u| unresolved(Some(p), &u))?
+                    .to_string();
+                let text = store.read(&at).map_err(|e| refused("store", &at, e))?;
+                let doc: Value = serde_json::from_str(&text)
+                    .map_err(|e| refused("store", &at, format!("JSON として読めない：{e}")))?;
+                concrete_of(&declared, &at, &doc).map_err(|u| unresolved(Some(p), &u))?;
             }
         }
         docs.push(Doc {
@@ -376,14 +385,8 @@ fn command_line(args: &[&str]) -> String {
         .join(" ")
 }
 
-/// 渡された答えを JSON として読む。答えが ```json …``` の囲みで包まれていれば、囲みを外して読む
-/// （モデルによって、答えの形を渡しても囲みを付ける）。
+/// 渡された答えを JSON として読む。JSON だけを受け取り、囲み（```json）などを外して読まない。
 fn answer_json(answer: &str) -> Result<Value, String> {
-    let t = answer.trim();
-    let inner = t
-        .strip_prefix("```json")
-        .or_else(|| t.strip_prefix("```"))
-        .and_then(|r| r.trim_end().strip_suffix("```"))
-        .unwrap_or(t);
-    serde_json::from_str(inner.trim()).map_err(|e| format!("JSON として読めない（{e}）"))
+    serde_json::from_str(answer)
+        .map_err(|e| format!("JSON として読めない（{e}）。答えは JSON だけを渡す"))
 }

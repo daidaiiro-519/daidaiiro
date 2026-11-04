@@ -17,7 +17,9 @@ use validation_domain::services::{
 };
 use validation_domain::values::{By, Counts, Judgment, RuleResult, RuleRow, ValidateRow, Verdict};
 use writing_domain::aggregates::ConcreteSchema;
-use writing_domain::services::{Resolved, SchemaIndex, Unresolved, field_schema};
+use writing_domain::services::{
+    Resolved, SchemaIndex, Unresolved, concrete_of, field_schema, refs,
+};
 use writing_domain::values::{
     Caller, ContentHash, FieldRow, TargetKind, WriteRecord, unrecorded_since,
 };
@@ -130,6 +132,70 @@ fn unresolved(path: Option<&str>, u: Unresolved) -> Refused {
         paths: (!u.paths().is_empty()).then(|| Box::new(u.paths().to_vec())),
         ..Refused::default()
     }
+}
+
+/// 渡されたスキーマの置き場所のファイルを1件ずつ読み、$id と経路だけを索引に残す。
+///
+/// # Errors
+/// ファイルを読めないとき。
+fn index_of(store: &dyn DocumentStore, schemas: &[String]) -> Result<SchemaIndex, Refused> {
+    let mut index = SchemaIndex::new();
+    for p in schemas {
+        let text = store.read(p).map_err(|e| refused("store", p, e))?;
+        index.add(p, &text);
+    }
+    Ok(index)
+}
+
+/// 索引から $id の文書を1つ読む。from は $ref で指した文書の $id。
+///
+/// # Errors
+/// 置き場所に無い ・ 2つ以上ある ・ 読めない ・ JSON でないとき。
+fn read_one(
+    index: &SchemaIndex,
+    store: &dyn DocumentStore,
+    id: &str,
+    from: Option<&str>,
+    target: &str,
+) -> Result<(String, Value), Refused> {
+    let path = index
+        .path_of(id, from)
+        .map_err(|u| unresolved(Some(target), u))?
+        .to_string();
+    let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
+    let value = serde_json::from_str(&text)
+        .map_err(|e| refused("store", &path, format!("JSON として読めない：{e}")))?;
+    Ok((path, value))
+}
+
+/// インスタンスが従う Concrete（$id が declared）と、その $ref の先（同じ置き場所から引く。入れて出すスキーマは引かない）。
+///
+/// # Errors
+/// 置き場所に無い ・ 2つ以上ある ・ Concrete でない ・ 読めないとき。
+fn resolve(
+    index: &SchemaIndex,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    target: &str,
+    declared: &str,
+) -> Result<Resolved, Refused> {
+    let (at, value) = read_one(index, store, declared, None, target)?;
+    let concrete = concrete_of(declared, &at, &value).map_err(|u| unresolved(Some(target), u))?;
+    let mut seen: BTreeSet<String> = BTreeSet::from([declared.to_string()]);
+    let mut queue: Vec<(String, String)> = refs(&value)
+        .into_iter()
+        .map(|r| (r, declared.to_string()))
+        .collect();
+    let mut more = vec![(declared.to_string(), value)];
+    while let Some((next, from)) = queue.pop() {
+        if validator.shipped(&next).is_some() || !seen.insert(next.clone()) {
+            continue;
+        }
+        let (_, doc) = read_one(index, store, &next, Some(&from), target)?;
+        queue.extend(refs(&doc).into_iter().map(|r| (r, next.clone())));
+        more.push((next, doc));
+    }
+    Ok(Resolved::new(at, concrete, more))
 }
 
 /// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
@@ -656,21 +722,10 @@ pub fn judge_current(
             TargetKind::Concrete => None,
             TargetKind::Instance => {
                 if index.is_none() {
-                    index = Some(
-                        SchemaIndex::read(&scope.schemas, |f| store.read(f))
-                            .map_err(|u| unresolved(None, u))?,
-                    );
+                    index = Some(index_of(store, &scope.schemas)?);
                 }
-                let found = index.as_ref().map(|i| {
-                    i.resolve(
-                        &declared,
-                        |f| store.read(f),
-                        |id| validator.shipped(id).is_some(),
-                    )
-                });
-                match found {
-                    Some(Ok(r)) => Some(r),
-                    Some(Err(u)) => return Err(unresolved(Some(&d.path), u)),
+                match &index {
+                    Some(i) => Some(resolve(i, store, validator, &d.path, &declared)?),
                     None => None,
                 }
             }

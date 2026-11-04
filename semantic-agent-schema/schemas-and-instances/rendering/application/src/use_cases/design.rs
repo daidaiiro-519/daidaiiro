@@ -19,7 +19,7 @@
 
 use crate::ports::{DataRead, PathSeg, ScriptReader, TemplateNode, TemplateRenderer};
 use crate::ports::{DocumentStore, SchemaValidator, ValidationLog};
-use crate::use_cases::render::{Refused, index_of, log_refused, refused, unresolved};
+use crate::use_cases::render::{Refused, index_of, log_refused, read_concrete, refused};
 use crate::use_cases::tokens::{Token, alias_errors, flatten, type_errors};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -725,12 +725,16 @@ pub fn check_design_systems(
     renderer: &dyn TemplateRenderer,
     scripts: &dyn ScriptReader,
 ) -> Result<Vec<DesignSystem>, Refused> {
-    let concretes: Vec<(String, Value)> = index_of(store, schemas)?
-        .concretes(|p| store.read(p))
-        .map_err(|u| unresolved(None, u))?
-        .into_iter()
-        .filter_map(|(_, c)| Some((c.id()?.to_string(), c.document().clone())))
-        .collect();
+    // 置き場所の Concrete（Abstract の版を申告する文書）を、$id の順に1つずつ読む
+    let index = index_of(store, schemas)?;
+    let mut concretes: Vec<(String, Value)> = Vec::new();
+    for id in index.ids() {
+        match read_concrete(&index, store, id, None) {
+            Ok((_, doc)) => concretes.push((id.to_string(), doc)),
+            Err(r) if r.code == "unknown_schema" => {}
+            Err(r) => return Err(r),
+        }
+    }
     let mut checked = Vec::new();
     for p in paths {
         checked.push(check_design_system(

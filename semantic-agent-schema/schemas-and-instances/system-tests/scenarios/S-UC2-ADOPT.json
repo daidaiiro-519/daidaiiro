@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC2-ADOPT",
  "name": "外の変更を取り込む",
- "title": "コミットしたあとにエディターで直したファイルを update --adopt で取り込むと、ファイルは変えずに、HEAD との比較の差分を source = outside の更新として記録する",
+ "title": "コミットしたあとにエディターで直したファイルを update --adopt --base HEAD で取り込むと、ファイルは変えずに、HEAD との比較の差分を source = outside の更新として記録する",
  "why": "外で直した変更を、誰が何のためにどの欄を変えたかと一緒に記録へ入れられないと、以後の更新が止まったままになる。",
  "traces": [
   "UC2:変形:SAS を通らない変更を取り込む",
@@ -21,7 +21,8 @@
      "usecases/u1.json",
      "--adopt",
      "--schemas",
-     "schemas"
+     "schemas",
+     "--human"
     ]
    },
    {
@@ -56,10 +57,13 @@
    "update",
    "usecases/u1.json",
    "--adopt",
+   "--base",
+   "HEAD",
    "--reason",
    "目的を短く言い直した",
    "--schemas",
-   "schemas"
+   "schemas",
+   "--human"
   ]
  },
  "after": [
@@ -68,7 +72,8 @@
     "validate",
     "usecases/u1.json",
     "--schemas",
-    "schemas"
+    "schemas",
+    "--human"
    ]
   },
   {
@@ -78,7 +83,8 @@
     "--patch",
     "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"取り込んだあとに SAS で直す\"}]",
     "--schemas",
-    "schemas"
+    "schemas",
+    "--human"
    ]
   }
  ],

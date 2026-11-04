@@ -235,19 +235,13 @@ pub fn command_line(args: &[&str]) -> String {
         .join(" ")
 }
 
-/// 渡された答えを JSON として読む。答えが ```json …``` の囲みで包まれていれば、囲みを外して読む
-/// （モデルによって、答えの形を渡しても囲みを付ける）。
+/// 渡された答えを JSON として読む。JSON だけを受け取り、囲み（```json）などを外して読まない。
 ///
 /// # Errors
 /// JSON として読めないとき。
 pub fn answer_json(answer: &str) -> Result<Value, String> {
-    let t = answer.trim();
-    let inner = t
-        .strip_prefix("```json")
-        .or_else(|| t.strip_prefix("```"))
-        .and_then(|r| r.trim_end().strip_suffix("```"))
-        .unwrap_or(t);
-    serde_json::from_str(inner.trim()).map_err(|e| format!("JSON として読めない（{e}）"))
+    serde_json::from_str(answer)
+        .map_err(|e| format!("JSON として読めない（{e}）。答えは JSON だけを渡す"))
 }
 
 /// 答えを答えの形（JSON Schema）に照らす。

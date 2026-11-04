@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-WHERE-NOT-JSON",
+ "name": "JSON でない --where の値",
+ "title": "--where の値が JSON でないと、文字列とみなさずに使い方の誤りを返す。文字列は \"R1\" のように JSON で渡す",
+ "why": "文字列とみなすと、数や真偽値を書き損じたときに、違う条件で探したことに気づけない。",
+ "traces": [
+  "UC6:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "items/r1.json",
+   "--where",
+   "/id=R1",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "search",
+    "items/r1.json",
+    "--where",
+    "/id=\"R1\"",
+    "--schemas",
+    "schemas",
+    "--human"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "JSON"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/matches",
+   "count": 1
+  }
+ ]
+}

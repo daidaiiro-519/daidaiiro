@@ -45,22 +45,22 @@ use writing_application::use_cases::write::{
 use writing_domain::values::Caller;
 
 const USAGE: &str = "使い方：semantic-agent-schema init [--session <ID>] ／ \
-semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale] [--session <名前>] ／ \
-semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale | --all-rules] --semantic [--session <名前>] ／ \
-semantic-agent-schema validate <経路> --schemas <置き場所>... [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
-semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
-semantic-agent-schema create <経路> --schemas <置き場所>... --adopt [--concrete <$id>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema update <経路> --schemas <置き場所>... --patch <JSON Patch> [--range <経路>...] [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema update <経路> --schemas <置き場所>... --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
-semantic-agent-schema update <経路> --schemas <置き場所>... --adopt --reason <理由> [--range <経路>...] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema delete <経路> --reason <理由> [--range <経路>...] [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale] (--session <ID> | --human) ／ \
+semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale | --all-rules] --semantic (--session <ID> | --human) ／ \
+semantic-agent-schema validate <経路> --schemas <置き場所>... [--stale | --all-rules] --answer <判定の JSON のファイル | -> (--session <ID> | --human) ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --value <JSON> [--reason <理由>] (--session <ID> | --human) [--request-id <ID>] ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --adopt [--concrete <$id>] [--reason <理由>] (--session <ID> | --human) [--request-id <ID>] ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --patch <JSON Patch> [--range <経路>...] [--if-match <ハッシュ>] [--reason <理由>] (--session <ID> | --human) [--request-id <ID>] ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --adopt --reason <理由> [--base <コミット>] [--range <経路>...] (--session <ID> | --human) [--request-id <ID>] ／ \
+semantic-agent-schema delete <経路> --reason <理由> [--range <経路>...] [--if-match <ハッシュ>] (--session <ID> | --human) [--request-id <ID>] ／ \
 semantic-agent-schema render <経路>... --schemas <置き場所>... --design-system <経路> --out <書き出す先> ／ \
 semantic-agent-schema log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
 semantic-agent-schema log --operation <ID> ／ \
-semantic-agent-schema search <経路>... --schemas <置き場所>... --where <JSON Pointer>=<値> [--where …]... [--session <名前>] ／ \
-semantic-agent-schema search <経路>... --schemas <置き場所>... --semantic --question <問い> [--session <名前>] ／ \
-semantic-agent-schema search <経路>... --schemas <置き場所>... --answer <答えの JSON のファイル | -> [--session <名前>] ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --where <JSON Pointer>=<値> [--where …]... (--session <ID> | --human) ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --semantic --question <問い> (--session <ID> | --human) ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --answer <答えの JSON のファイル | -> (--session <ID> | --human) ／ \
 Concrete を直す ・ 消すときは --range <経路>... が要る。--schemas の置き場所はファイルか、直下の JSON のファイルを読むフォルダ";
 
 fn main() -> ExitCode {
@@ -185,16 +185,57 @@ fn unidentified(u: Unidentified) -> Refused {
             ),
             ..Refused::default()
         },
+        Unidentified::Missing => Refused {
+            code: "usage",
+            message: "誰が打ったかが決まりません。AI のセッションは --session <打った会話の ID> で名乗り、人は --human を渡してください（人とみなさない）".to_string(),
+            ..Refused::default()
+        },
         Unidentified::Log(message) => log_refused(message),
     }
 }
 
-/// 呼び出し元：--session ・ ツールごとの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッション ・ 人（記録のモジュールの手続きで決める）。
-/// sessions にはまだ足さない（足すのは register）。
-fn caller(session: Option<String>, log: &SqliteLog) -> Result<Caller, Refused> {
+/// 誰が打ったかの引数（--session <ID> か --human）。
+#[derive(Debug, Clone, Default)]
+struct Who {
+    session: Option<String>,
+    human: bool,
+}
+
+/// --session <ID> と --human を抜き出す。両方を渡したら断る。残りの引数も返す。
+fn take_who(args: &[String]) -> Result<(Who, Vec<String>), String> {
+    let mut who = Who::default();
+    let mut rest = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--session" => match it.next() {
+                Some(s) if !s.is_empty() && !s.starts_with("--") => who.session = Some(s.clone()),
+                _ => return Err("--session に ID がありません".to_string()),
+            },
+            "--human" => who.human = true,
+            _ => rest.push(a.clone()),
+        }
+    }
+    if who.human && who.session.is_some() {
+        return Err(
+            "--human と --session は一緒に渡せません（人の操作は --human、AI のセッションは --session）"
+                .to_string(),
+        );
+    }
+    Ok((who, rest))
+}
+
+/// 呼び出し元：--human ・ --session ・ ツールごとの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッション
+/// （記録のモジュールの手続きで決める）。どれも無ければ断る。sessions にはまだ足さない（足すのは register）。
+fn caller(who: Who, log: &SqliteLog) -> Result<Caller, Refused> {
     let folder = folder();
-    let who = FromArguments::new(session, |name| std::env::var(name).ok(), &folder);
-    identify(&who, &folder, log).map_err(unidentified)
+    let from = FromArguments::new(
+        who.session,
+        who.human,
+        |name| std::env::var(name).ok(),
+        &folder,
+    );
+    identify(&from, &folder, log).map_err(unidentified)
 }
 
 /// 置き場所 ・ バリデーター ・ 記録を組み立てる。
@@ -234,7 +275,7 @@ fn run_init(args: &[String]) -> ExitCode {
     };
     // 登録の前なので、前の登録を使わない
     let folder = folder();
-    let who = FromArguments::new(session, |name| std::env::var(name).ok(), &folder);
+    let who = FromArguments::new(session, false, |name| std::env::var(name).ok(), &folder);
     match register_session(&who, &folder, &mut log) {
         Ok(row) => {
             output::print_session(&row);
@@ -249,7 +290,10 @@ fn run_validate(args: &[String]) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
-    let mut session = None;
+    let (who, args) = match take_who(&args) {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut stale = false;
     let mut all_rules = false;
     let mut semantic = false;
@@ -264,10 +308,6 @@ fn run_validate(args: &[String]) -> ExitCode {
             "--answer" => match it.next() {
                 Some(s) if !s.is_empty() => answer = Some(s.clone()),
                 _ => return usage("--answer に判定の JSON のファイルか - がありません"),
-            },
-            "--session" => match it.next() {
-                Some(s) if !s.is_empty() => session = Some(s.clone()),
-                _ => return usage("--session に名前がありません"),
             },
             s if s.starts_with("--") => return usage(&format!("知らない指定です: {s}")),
             p => paths.push(p.to_string()),
@@ -310,7 +350,7 @@ fn run_validate(args: &[String]) -> ExitCode {
                 Ok(a) => a,
                 Err(r) => return refuse(r),
             };
-            let caller = match caller(session, &log) {
+            let caller = match caller(who.clone(), &log) {
                 Ok(c) => c,
                 Err(r) => return refuse(r),
             };
@@ -358,7 +398,7 @@ fn run_validate(args: &[String]) -> ExitCode {
         Ok(a) => a,
         Err(r) => return refuse(r),
     };
-    let caller = match caller(session, &log) {
+    let caller = match caller(who.clone(), &log) {
         Ok(c) => c,
         Err(r) => return refuse(r),
     };
@@ -435,6 +475,10 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
+    let (who, args) = match take_who(&args) {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     if command == Command::Create && range.is_some() {
         return usage("--range は Concrete を直す ・ 消すときだけ渡してください");
     }
@@ -458,14 +502,9 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     let args = rest;
     let mut flags: Vec<(&str, Option<String>)> = match command {
         Command::Create => vec![("--concrete", None), ("--value", None)],
-        Command::Update => vec![("--patch", None), ("--if-match", None)],
+        Command::Update => vec![("--patch", None), ("--if-match", None), ("--base", None)],
     };
-    flags.extend([
-        ("--reason", None),
-        ("--session", None),
-        ("--request-id", None),
-        ("--task", None),
-    ]);
+    flags.extend([("--reason", None), ("--request-id", None), ("--task", None)]);
     let mut paths = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -489,7 +528,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             .find(|(n, _)| *n == name)
             .and_then(|(_, v)| v.clone())
     };
-    let session = take("--session");
     let request_id = take("--request-id");
     let reason = take("--reason");
     if !semantic && take("--task").is_some() {
@@ -497,6 +535,14 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     }
     if !semantic && !refs.is_empty() {
         return usage("--ref は --semantic と一緒に渡してください");
+    }
+    if let Some(base) = take("--base") {
+        if !adopting {
+            return usage("--base は --adopt で更新を取り込むときに渡してください");
+        }
+        if base.starts_with('-') {
+            return usage(&format!("--base はコミットの名前で渡してください: {base}"));
+        }
     }
     if semantic && range.is_some() {
         return usage("--range は --patch か --adopt で Concrete を直すときに渡してください");
@@ -534,7 +580,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         };
         let result = run_with(
             |store, validator, caller, _| semantic_procedure(&request, store, validator, caller),
-            session,
+            who.clone(),
         );
         return match result {
             Ok(p) => {
@@ -568,13 +614,14 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             range,
             reason,
             request_id,
+            base: take("--base"),
         };
         let committed = GitCommits::new(PathBuf::from("."));
         let result = run_with(
             |store, validator, caller, log| {
                 adopt(&request, store, validator, &committed, caller, log)
             },
-            session,
+            who.clone(),
         );
         return match result {
             Ok(c) => {
@@ -614,7 +661,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             };
             run_with(
                 |store, validator, caller, log| create(&request, store, validator, caller, log),
-                session,
+                who.clone(),
             )
         }
         Command::Update => {
@@ -633,7 +680,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             };
             run_with(
                 |store, validator, caller, log| update(&request, store, validator, caller, log),
-                session,
+                who.clone(),
             )
         }
     };
@@ -651,10 +698,13 @@ fn run_delete(args: &[String]) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
+    let (who, args) = match take_who(&args) {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut flags: Vec<(&str, Option<String>)> = vec![
         ("--reason", None),
         ("--if-match", None),
-        ("--session", None),
         ("--request-id", None),
     ];
     let mut paths = Vec::new();
@@ -693,7 +743,7 @@ fn run_delete(args: &[String]) -> ExitCode {
     };
     match run_with(
         |store, _, caller, log| delete(&request, store, caller, log),
-        take("--session"),
+        who,
     ) {
         Ok(d) => {
             output::print_deletion(&d);
@@ -909,7 +959,10 @@ fn run_search(args: &[String]) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
-    let mut session = None;
+    let (who, args) = match take_who(&args) {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut semantic = false;
     let mut question = None;
     let mut answer = None;
@@ -922,14 +975,13 @@ fn run_search(args: &[String]) -> ExitCode {
                 semantic = true;
                 continue;
             }
-            "--session" => &mut session,
             "--question" => &mut question,
             "--answer" => &mut answer,
             "--where" => {
                 let Some(w) = it.next().filter(|w| !w.is_empty()) else {
                     return usage("--where に <JSON Pointer>=<値> がありません");
                 };
-                // 値は JSON として読み、読めなければ文字列として扱う（/level=summary と書ける）
+                // 値は JSON だけを受け取る（文字列は "summary" のように JSON で書く）
                 let Some((at, raw)) = w.split_once('=') else {
                     return usage(&format!(
                         "--where は <JSON Pointer>=<値> の形で渡してください: {w}"
@@ -940,8 +992,11 @@ fn run_search(args: &[String]) -> ExitCode {
                         "--where の所は JSON Pointer（/ で始まる）で渡してください: {at}"
                     ));
                 }
-                let value = serde_json::from_str::<Value>(raw)
-                    .unwrap_or_else(|_| Value::String(raw.to_string()));
+                let Ok(value) = serde_json::from_str::<Value>(raw) else {
+                    return usage(&format!(
+                        "--where の値は JSON で渡してください（文字列は \"…\" で囲む）: {raw}"
+                    ));
+                };
                 conditions.push((at.to_string(), value));
                 continue;
             }
@@ -988,7 +1043,7 @@ fn run_search(args: &[String]) -> ExitCode {
     if let Some(q) = question {
         return match run_with(
             |store, _, caller, _| search_procedure(&range, &q, store, caller),
-            session,
+            who.clone(),
         ) {
             Ok(p) => {
                 output::print_procedure(&p);
@@ -1000,11 +1055,11 @@ fn run_search(args: &[String]) -> ExitCode {
     let result = match answer_text {
         Some(text) => run_with(
             |store, validator, _, _| search_with_answer(&range, &text, store, validator),
-            session,
+            who.clone(),
         ),
         None => run_with(
             |store, _, _, _| search_where(&range, &conditions, store),
-            session,
+            who.clone(),
         ),
     };
     match result {
@@ -1033,13 +1088,13 @@ fn is_design_system(path: &str) -> bool {
 /// f の断った理由（各モジュールの Refused）は、出力の形（output::Refused）へ移して返す。
 fn run_with<T, E>(
     f: impl FnOnce(&WorkingTree, &Validator, &Caller, &mut SqliteLog) -> Result<T, E>,
-    session: Option<String>,
+    who: Who,
 ) -> Result<T, Refused>
 where
     Refused: From<E>,
 {
     let (store, validator, mut log) = adapters()?;
-    let caller = caller(session, &log)?;
+    let caller = caller(who, &log)?;
     register(&caller, &mut log).map_err(log_refused)?;
     f(&store, &validator, &caller, &mut log).map_err(Refused::from)
 }

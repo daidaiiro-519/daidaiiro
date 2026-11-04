@@ -59,14 +59,8 @@ pub trait SchemaValidator {
 }
 
 /// コミットにある中身を読む（Git）。読むだけで、版を残す ・ コミットするなど Git への書き込みはしない。
-/// SAS を通らない変更を取り込むとき、記録の最後の事後と同じ中身のコミットを探して、欄ごとの前の値に使う。
+/// Semantic Agent Schema を通らない変更を取り込むとき、--base で渡されたコミットの中身を、欄ごとの前の値に使う。
 pub trait CommitReader {
-    /// 経路の対象を変えたコミットの名前を、新しい順に max 件まで。リポジトリでない ・ コミットが無ければ空。
-    ///
-    /// # Errors
-    /// Git を読めないとき。
-    fn commits(&self, path: &str, max: usize) -> Result<Vec<String>, String>;
-
     /// コミット rev にある経路の対象の中身（作業ツリーに置いたときと同じ変換を当てたバイト列）。そのコミットに無ければ None。
     ///
     /// # Errors

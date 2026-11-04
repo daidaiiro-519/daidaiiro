@@ -63,13 +63,6 @@ impl GitCommits {
         let dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
         (!dir.is_empty()).then(|| Path::new(&dir).to_path_buf())
     }
-
-    /// コミットのあるリポジトリの中か。
-    fn has_commits(&self) -> Result<bool, String> {
-        Ok(self
-            .git(&["rev-parse", "--verify", "--quiet", "HEAD"])?
-            .is_some_and(|o| o.status.success()))
-    }
 }
 
 fn spec(rev: &str, path: &str) -> String {
@@ -77,28 +70,6 @@ fn spec(rev: &str, path: &str) -> String {
 }
 
 impl CommitReader for GitCommits {
-    fn commits(&self, path: &str, max: usize) -> Result<Vec<String>, String> {
-        if !self.has_commits()? {
-            return Ok(Vec::new());
-        }
-        let count = format!("--max-count={max}");
-        let Some(out) = self.git(&["log", "--format=%H", &count, "--", path])? else {
-            return Ok(Vec::new());
-        };
-        if !out.status.success() {
-            return Err(format!(
-                "git log が失敗した：{}",
-                String::from_utf8_lossy(&out.stderr).trim()
-            ));
-        }
-        Ok(String::from_utf8_lossy(&out.stdout)
-            .lines()
-            .map(str::trim)
-            .filter(|l| !l.is_empty())
-            .map(ToString::to_string)
-            .collect())
-    }
-
     fn read(&self, rev: &str, path: &str) -> Result<Option<Vec<u8>>, String> {
         let object = spec(rev, path);
         // 無いものは -e が 0 以外で終わる

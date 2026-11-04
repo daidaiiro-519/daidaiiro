@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC2-ADOPT-OLDER",
  "name": "前の版が HEAD より古い",
- "title": "記録の最後の事後が HEAD ではなく前のコミットにあるときは、そのコミットと比べた差分で取り込む",
+ "title": "--base に記録の最後の事後と同じ中身の前のコミット（HEAD~1）を渡すと、そのコミットと比べた差分で取り込む",
  "why": "外の変更がコミットまでされていると、HEAD と比べた差分は空になり、何を取り込んだかが残らない。",
  "traces": [
   "UC2:変形:SAS を通らない変更を取り込む"
@@ -20,7 +20,8 @@
      "usecases/u1.json",
      "--adopt",
      "--schemas",
-     "schemas"
+     "schemas",
+     "--human"
     ]
    },
    {
@@ -73,10 +74,13 @@
    "update",
    "usecases/u1.json",
    "--adopt",
+   "--base",
+   "HEAD~1",
    "--reason",
    "外でコミットされた変更を取り込む",
    "--schemas",
-   "schemas"
+   "schemas",
+   "--human"
   ]
  },
  "then": [

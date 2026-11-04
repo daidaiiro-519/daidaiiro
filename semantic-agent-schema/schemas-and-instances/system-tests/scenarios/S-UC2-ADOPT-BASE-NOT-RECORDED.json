@@ -1,0 +1,101 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ADOPT-BASE-NOT-RECORDED",
+ "name": "記録に無い --base",
+ "title": "--base のコミットの中身が、この経路の記録のどの事後とも違うと、取り込まずに invalid_input を返す",
+ "why": "記録に無い中身を前の状態にすると、記録の事前と事後がつながらない。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt",
+     "--schemas",
+     "schemas",
+     "--human"
+    ]
+   },
+   {
+    "git": [
+     "add",
+     "schemas",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:example:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"エディターで直した目的\",\n \"calls\": []\n}\n"
+    }
+   },
+   {
+    "git": [
+     "add",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "2"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--base",
+   "HEAD",
+   "--reason",
+   "目的を言い直した",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_input"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--base"
+  }
+ ]
+}

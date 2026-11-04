@@ -11,16 +11,16 @@ use writing_domain::values::{Caller, Via};
 /// 引数と環境変数で決まる呼び出し元（None は、どちらにも無い）。semantic-agent-schema init の登録があればそれを使う。
 struct Fixed(Option<Caller>);
 impl IdentifyCaller for Fixed {
-    fn identify(&self, initialized: Option<SessionRow>) -> Result<Caller, Vec<String>> {
+    fn identify(&self, initialized: Option<SessionRow>) -> Result<Option<Caller>, Vec<String>> {
         Ok(match (&self.0, initialized) {
-            (Some(c), _) => c.clone(),
-            (None, Some(row)) => Caller::Session {
+            (Some(c), _) => Some(c.clone()),
+            (None, Some(row)) => Some(Caller::Session {
                 id: row.id,
                 tool: row.tool,
                 folder: row.folder,
                 via: Via::Init,
-            },
-            (None, None) => Caller::Human,
+            }),
+            (None, None) => None,
         })
     }
 }
@@ -28,7 +28,7 @@ impl IdentifyCaller for Fixed {
 /// 2つのツールの環境変数に値があって決められない呼び出し元。
 struct Nested;
 impl IdentifyCaller for Nested {
-    fn identify(&self, _: Option<SessionRow>) -> Result<Caller, Vec<String>> {
+    fn identify(&self, _: Option<SessionRow>) -> Result<Option<Caller>, Vec<String>> {
         Err(vec!["claude-code".into(), "codex".into()])
     }
 }
@@ -100,7 +100,15 @@ fn identifying_does_not_register() {
         identify(&Fixed(Some(session("p1"))), "/w", &log).unwrap(),
         session("p1")
     );
-    assert_eq!(identify(&Fixed(None), "/w", &log).unwrap(), Caller::Human);
+    assert_eq!(
+        identify(&Fixed(Some(Caller::Human)), "/w", &log).unwrap(),
+        Caller::Human
+    );
+    assert_eq!(
+        identify(&Fixed(None), "/w", &log),
+        Err(Unidentified::Missing),
+        "何も無ければ人とみなさない"
+    );
     assert!(log.sessions.is_empty());
     assert_eq!(
         identify(&Nested, "/w", &log),

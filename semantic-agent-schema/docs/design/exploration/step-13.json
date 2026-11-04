@@ -1,0 +1,88 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 13,
+ "date": "2026-11-04",
+ "summary": "具体モデリング概念の「いまの実装との差」のうち、入力を補う処理を削った（区切り C）。誰が打ったかが決まらなければ人とみなさずに断り、人は --human で明示する。取り込みの前の中身は Git の履歴50件から探さず、--base <コミット> から読み、無ければ前の値の無い差分にする。答えは JSON だけを受け取り（```json の囲みを外して読まない）、--where の値も JSON だけを受け取る。あわせて、ステップ12 で writing-domain の SchemaIndex がファイルを読む関数を受け取って読んでいたのを直し、ドメインは読んだ文字列から $id を取る決まりと、$ref の先の名前を取る決まりだけにした。試験144件、場面156本。",
+ "usecases": [
+  "UC2",
+  "UC4",
+  "UC6"
+ ],
+ "factchecks": [
+  {
+   "item": "場面を先に書き、直す前の実装で通らないことを、場面を流して確かめた",
+   "evidence": [
+    "新しい場面 S-SESSION-NONE ・ S-UC2-ADOPT-NO-BASE ・ S-UC2-ADOPT-BASE-NOT-RECORDED ・ S-UC4-ANSWER-FENCED ・ S-UC6-SEARCH-ANSWER-FENCED ・ S-UC6-SEARCH-WHERE-NOT-JSON は、直す前の実装で通らなかった",
+    "S-SESSION-HUMAN-AND-SESSION は直す前の実装でも通った（--human を知らない指定として使い方の誤りで断っていた）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "誰が打ったかを決める（入口と記録のモジュールの identify）",
+   "steps": [
+    "--human なら人",
+    "ほかは --session → ツールの環境変数 → このフォルダで semantic-agent-schema init が最後に登録したセッション",
+    "どれも無ければ断る（usage。人とみなさない）"
+   ],
+   "rules": [
+    "--human と --session は一緒に受け取らない"
+   ]
+  },
+  {
+   "usecase": "更新の取り込み（UC2 の --adopt）の前の中身",
+   "steps": [
+    "--base があれば、そのコミットの経路の中身を読む",
+    "中身のハッシュが、この経路の記録のどれかの事後でなければ断る（invalid_input）",
+    "--base が無ければ、履歴を探さずに前の値の無い差分（before_unavailable）にし、事前は記録の最後の事後にする"
+   ],
+   "rules": [
+    "--base は update --adopt だけが受け取る"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "置き場所の索引（SchemaIndex）",
+   "became": "service",
+   "why": "ドメインは読んだ文字列から $id を取る決まり（add）・ $id から経路を1つに決める決まり（path_of。無い ・ 重なるなら断る）・ $ref の先の名前（refs）・ Concrete として読めるか（concrete_of）だけを持つ。ファイルを読むのは各モジュールの use_cases がポート DocumentStore で行う"
+  },
+  {
+   "what": "$ref の先をたどる手続き",
+   "became": "script",
+   "why": "読むのはポートなので use_cases に置いた。書く ・ 検証のモジュールがそれぞれ持つ（application は互いを使わない）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "ステップ12 の SchemaIndex：ドメインがファイルを読む関数を受け取って読んでいた",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "ドメインに I/O を入れない形に直した"
+  },
+  {
+   "item": "CommitReader の commits（経路を変えたコミットを新しい順に50件）",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "--base を受け取るので要らない。ポートとアダプターから消した"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "記録のモジュールのポート IdentifyCaller",
+    "before": "何も無ければ人を返す",
+    "after": "何も無ければ None を返し、手続き identify が Missing で断る",
+    "why": "名乗らない操作を人とみなすと、AI の操作が人の決定として残る"
+   },
+   {
+    "what": "書くモジュールのポート CommitReader",
+    "before": "commits と read",
+    "after": "read だけ",
+    "why": "前の中身のコミットは呼ぶ側が --base で渡す"
+   }
+  ]
+ }
+}

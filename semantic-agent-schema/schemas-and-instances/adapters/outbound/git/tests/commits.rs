@@ -28,25 +28,15 @@ fn git(d: &Path, args: &[&str]) {
 }
 
 #[test]
-fn not_a_repository_has_no_versions() {
+fn not_a_repository_has_nothing_to_read() {
     let d = dir("none");
     let v = GitCommits::new(d.clone());
-    assert!(v.commits("u/a.json", 10).unwrap().is_empty());
+    assert!(v.read("HEAD", "u/a.json").unwrap().is_none());
     std::fs::remove_dir_all(d).unwrap();
 }
 
 #[test]
-fn repository_without_commits_has_no_versions() {
-    let d = dir("empty");
-    git(&d, &["init", "-q"]);
-    std::fs::write(d.join("u/a.json"), "{}\n").unwrap();
-    let v = GitCommits::new(d.clone());
-    assert!(v.commits("u/a.json", 10).unwrap().is_empty());
-    std::fs::remove_dir_all(d).unwrap();
-}
-
-#[test]
-fn commits_are_newest_first_and_contents_are_read() {
+fn contents_are_read_from_the_given_commit() {
     let d = dir("two");
     git(&d, &["init", "-q"]);
     std::fs::write(d.join("u/a.json"), "{\"v\": 1}\n").unwrap();
@@ -54,24 +44,19 @@ fn commits_are_newest_first_and_contents_are_read() {
     git(&d, &["commit", "-q", "-m", "1"]);
     std::fs::write(d.join("u/a.json"), "{\"v\": 2}\n").unwrap();
     git(&d, &["commit", "-q", "-am", "2"]);
-    std::fs::write(d.join("u/b.json"), "{}\n").unwrap();
-    git(&d, &["add", "u/b.json"]);
-    git(&d, &["commit", "-q", "-m", "3"]);
     let v = GitCommits::new(d.clone());
-    let commits = v.commits("u/a.json", 10).unwrap();
-    assert_eq!(commits.len(), 2, "a.json を変えたコミットだけ");
     assert_eq!(
-        v.read(&commits[0], "u/a.json").unwrap().unwrap(),
+        v.read("HEAD", "u/a.json").unwrap().unwrap(),
         b"{\"v\": 2}\n"
     );
     assert_eq!(
-        v.read(&commits[1], "u/a.json").unwrap().unwrap(),
+        v.read("HEAD~1", "u/a.json").unwrap().unwrap(),
         b"{\"v\": 1}\n"
     );
-    assert_eq!(v.commits("u/a.json", 1).unwrap().len(), 1);
     assert!(
-        v.read(&commits[1], "u/b.json").unwrap().is_none(),
+        v.read("HEAD", "u/b.json").unwrap().is_none(),
         "そのコミットに無い"
     );
+    assert!(v.read("no-such-commit", "u/a.json").unwrap().is_none());
     std::fs::remove_dir_all(d).unwrap();
 }

@@ -17,12 +17,13 @@ pub use semantic::{SemanticRequest, semantic_procedure};
 
 use crate::ports::{ChangeLog, CommitReader, DocumentStore, SchemaValidator};
 use serde_json::Value;
+use std::collections::BTreeSet;
 use validation_domain::services::{
     EXAMPLE_RELATED, Judged, concrete_rules, example_related, instance_rules, reads_hash,
 };
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
-use writing_domain::services::{Resolved, SchemaIndex, Unresolved};
+use writing_domain::services::{Resolved, SchemaIndex, Unresolved, concrete_of, refs};
 use writing_domain::values::{
     Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
     WriteRecord, unrecorded_since,
@@ -84,12 +85,68 @@ pub fn log_refused(e: String) -> Refused {
     }
 }
 
-/// 渡されたスキーマの置き場所のファイルを1件ずつ読み、$id の索引を作る。
+/// 渡されたスキーマの置き場所のファイルを1件ずつ読み、$id と経路だけを索引に残す。
 ///
 /// # Errors
 /// ファイルを読めないとき。
 fn index_of(store: &dyn DocumentStore, schemas: &[String]) -> Result<SchemaIndex, Refused> {
-    SchemaIndex::read(schemas, |p| store.read(p)).map_err(|u| unresolved(None, u))
+    let mut index = SchemaIndex::new();
+    for p in schemas {
+        let text = store.read(p).map_err(|e| refused("store", p, e))?;
+        index.add(p, &text);
+    }
+    Ok(index)
+}
+
+/// 索引から $id の文書を1つ読む。from は $ref で指した文書の $id。
+///
+/// # Errors
+/// 置き場所に無い ・ 2つ以上ある ・ 読めない ・ JSON でないとき。
+fn read_one(
+    index: &SchemaIndex,
+    store: &dyn DocumentStore,
+    id: &str,
+    from: Option<&str>,
+    target: &str,
+) -> Result<(String, Value), Refused> {
+    let path = index
+        .path_of(id, from)
+        .map_err(|u| unresolved(Some(target), u))?
+        .to_string();
+    let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
+    let value = serde_json::from_str(&text)
+        .map_err(|e| refused("store", &path, format!("JSON として読めない：{e}")))?;
+    Ok((path, value))
+}
+
+/// $id が id の文書（中身は value）と、その $ref の先（同じ置き場所から引く。入れて出すスキーマは引かない）を、
+/// 形の検査に渡す並びにする。
+///
+/// # Errors
+/// $ref の先が置き場所に無い ・ 2つ以上ある ・ 読めないとき。
+fn with_refs(
+    index: &SchemaIndex,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    target: &str,
+    id: &str,
+    value: Value,
+) -> Result<Vec<(String, Value)>, Refused> {
+    let mut seen: BTreeSet<String> = BTreeSet::from([id.to_string()]);
+    let mut queue: Vec<(String, String)> = refs(&value)
+        .into_iter()
+        .map(|r| (r, id.to_string()))
+        .collect();
+    let mut more = vec![(id.to_string(), value)];
+    while let Some((next, from)) = queue.pop() {
+        if validator.shipped(&next).is_some() || !seen.insert(next.clone()) {
+            continue;
+        }
+        let (_, doc) = read_one(index, store, &next, Some(&from), target)?;
+        queue.extend(refs(&doc).into_iter().map(|r| (r, next.clone())));
+        more.push((next, doc));
+    }
+    Ok(more)
 }
 
 /// 置き場所から引けなかった理由を、断った理由にする。
@@ -106,21 +163,18 @@ fn unresolved(path: Option<&str>, u: Unresolved) -> Refused {
 /// インスタンスが従う Concrete（$id が declared）と $ref の先を、渡された置き場所から引く。
 ///
 /// # Errors
-/// 置き場所に無い ・ 2つ以上ある ・ 読めないとき。
-fn concrete_of(
+/// 置き場所に無い ・ 2つ以上ある ・ Concrete でない ・ 読めないとき。
+fn resolve(
     index: &SchemaIndex,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     path: &str,
     declared: &str,
 ) -> Result<Resolved, Refused> {
-    index
-        .resolve(
-            declared,
-            |p| store.read(p),
-            |id| validator.shipped(id).is_some(),
-        )
-        .map_err(|u| unresolved(Some(path), u))
+    let (at, value) = read_one(index, store, declared, None, path)?;
+    let concrete = concrete_of(declared, &at, &value).map_err(|u| unresolved(Some(path), u))?;
+    let more = with_refs(index, store, validator, path, declared, value)?;
+    Ok(Resolved::new(at, concrete, more))
 }
 
 /// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
@@ -155,7 +209,7 @@ fn target_of_declared(
     let kind = classify(path, declared)?;
     let concrete = match kind {
         TargetKind::Concrete => None,
-        TargetKind::Instance => Some(concrete_of(
+        TargetKind::Instance => Some(resolve(
             &index_of(store, schemas)?,
             store,
             validator,
@@ -1090,14 +1144,14 @@ impl Followers {
     ) -> Result<Self, Refused> {
         let docs = range_docs(store, log, path, id, range)?;
         let more = if docs.iter().any(|(c, _)| c.follows) {
-            index_of(store, schemas)?
-                .with_refs(
-                    id,
-                    after.clone(),
-                    |p| store.read(p),
-                    |i| validator.shipped(i).is_some(),
-                )
-                .map_err(|u| unresolved(Some(path), u))?
+            with_refs(
+                &index_of(store, schemas)?,
+                store,
+                validator,
+                path,
+                id,
+                after.clone(),
+            )?
         } else {
             Vec::new()
         };
@@ -1178,41 +1232,56 @@ pub struct AdoptRequest {
     pub reason: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
+    /// 更新の取り込みで、取り込む前の中身があるコミット（--base）。無ければ前の値の無い差分にする
+    pub base: Option<String>,
 }
 
-/// 前の中身を探すコミットの数の上限。
-pub const COMMITS_TO_SEARCH: usize = 50;
-
-/// 中身のハッシュが記録のどれかの事後と同じコミットを、新しい順に探す。見つかればコミットと中身と、そのハッシュ。
-/// DB はワークツリーで1つなので、最後の事後だけでなく、この経路の記録のどの事後でもよい
-/// （このワークツリーの履歴にあるのは、ほかのワークツリーが書く前の事後かもしれない）。
-fn find_commit(
+/// --base のコミットにある、取り込む前の中身（コミット ・ 中身 ・ そのハッシュ）。中身は、この経路の記録のどれかの事後と
+/// 同じでなければならない（記録の事前と事後をつなげる。ワークツリーで記録は1つなので、最後の事後でなくてもよい）。
+///
+/// # Errors
+/// コミットにその経路が無い（not_found）・ JSON でない ・ 記録のどの事後とも違う（invalid_input）・ Git を読めない（versions）とき。
+fn base_content(
     committed: &dyn CommitReader,
+    base: &str,
     path: &str,
     recorded: &[String],
-) -> Result<Option<(String, Value, String)>, Refused> {
-    let store_err = |e: String| refused("versions", path, e);
-    for rev in committed
-        .commits(path, COMMITS_TO_SEARCH)
-        .map_err(store_err)?
-    {
-        let Some(bytes) = committed.read(&rev, path).map_err(store_err)? else {
-            continue;
-        };
-        let hash = ContentHash::of(&bytes);
-        if recorded.iter().any(|r| r == hash.as_str())
-            && let Ok(value) = serde_json::from_slice::<Value>(&bytes)
-        {
-            return Ok(Some((rev, value, hash.as_str().to_string())));
-        }
+) -> Result<(String, Value, String), Refused> {
+    let bytes = committed
+        .read(base, path)
+        .map_err(|e| refused("versions", path, e))?
+        .ok_or_else(|| {
+            refused(
+                "not_found",
+                path,
+                format!("--base のコミット {base} に {path} が無い"),
+            )
+        })?;
+    let hash = ContentHash::of(&bytes);
+    if !recorded.iter().any(|r| r == hash.as_str()) {
+        return Err(refused(
+            "invalid_input",
+            path,
+            format!(
+                "--base のコミット {base} の中身（{}）は、この経路の記録のどの事後とも違う。記録の事後と同じ中身のコミットを渡すか、--base を渡さずに前の値の無い差分で取り込む",
+                hash.as_str()
+            ),
+        ));
     }
-    Ok(None)
+    let value = serde_json::from_slice::<Value>(&bytes).map_err(|e| {
+        refused(
+            "not_json",
+            path,
+            format!("--base のコミット {base} の中身が JSON として読めない：{e}"),
+        )
+    })?;
+    Ok((base.to_string(), value, hash.as_str().to_string()))
 }
 
 /// SAS を通らない変更を取り込む（UC1 の変形 ・ UC2 の --adopt）。ファイルは書かず、いまの中身を
 /// 形と集約の書く条件に照らしてから、source = outside の作成か更新として記録する。
-/// 更新の取り込みの差分は、記録のどれかの事後と同じ中身のコミット（ふつうは HEAD）との比較で、
-/// そのコミットが無ければ前の値の無い差分（before_unavailable）にし、事前は記録の最後の事後にする。
+/// 更新の取り込みの差分は、--base で渡されたコミット（中身が記録のどれかの事後と同じもの）との比較で、
+/// --base が無ければ履歴を探さずに前の値の無い差分（before_unavailable）にし、事前は記録の最後の事後にする。
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない ・ 作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無いか
@@ -1323,11 +1392,18 @@ pub fn adopt(
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
-    let found = match &last {
-        Some(_) => find_commit(committed, path, &recorded)?,
-        None => None,
+    let found = match (&last, &request.base) {
+        (Some(_), Some(base)) => Some(base_content(committed, base, path, &recorded)?),
+        (None, Some(_)) => {
+            return Err(refused(
+                "usage",
+                path,
+                "--base は、更新を取り込むとき（update --adopt）だけ渡す".to_string(),
+            ));
+        }
+        (_, None) => None,
     };
-    // 事前：前の中身のコミットが見つかればそのハッシュ（記録のどれかの事後）、無ければ記録の最後の事後
+    // 事前：--base のコミットの中身のハッシュ（記録のどれかの事後）、無ければ記録の最後の事後
     let expected: Option<String> = match (&found, &last) {
         (Some((_, _, hash)), _) => Some(hash.clone()),
         (None, l) => l.clone(),
@@ -1344,7 +1420,7 @@ pub fn adopt(
             ),
         ));
     }
-    // 書く条件：前の中身のコミットがあればそれと比べる。無ければ、前の値を知らない作成と同じに見る
+    // 書く条件：--base のコミットがあればその中身と比べる。無ければ、前の値を知らない作成と同じに見る
     // （ツールからの取り込みで人の欄が default 以外なら、外で人の欄が変わったかを確かめられないので断る）
     let before_value = found.as_ref().map(|(_, v, _)| v);
     if let Err((code, message)) = check_write(
@@ -1363,16 +1439,14 @@ pub fn adopt(
             code,
             path,
             if unknown && code == "human_field" {
-                format!(
-                    "{message}。前の中身のコミットが無く、外で人の欄が変わったかを確かめられない"
-                )
+                format!("{message}。--base が無く、外で人の欄が変わったかを確かめられない")
             } else {
                 message
             },
         );
         if code == "human_field" {
             r.hint = Some(Box::new(format!(
-                "人が --session を付けずに取り込む：semantic-agent-schema {} {path} --adopt{}",
+                "人が --human を付けて取り込む：semantic-agent-schema {} {path} --adopt{} --human",
                 written.kind(),
                 if expected.is_some() {
                     " --reason \"…\""

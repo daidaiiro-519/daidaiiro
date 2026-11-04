@@ -1,0 +1,41 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-ANSWER-FENCED",
+ "name": "囲みを付けた検索の答え",
+ "title": "```json の囲みを付けた答えを search --answer で渡すと、囲みを外して読まずに invalid_answer を返す",
+ "why": "囲みを外して読むと、答えの形の契約の外のものを受け取ることになる。",
+ "traces": [
+  "UC6:拡張:出どころを確かめられない"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json",
+   "items/r2.json": "{\"$schema\": \"urn:example:sample:review:v1\", \"id\": \"R2\", \"goal\": \"運用担当が記録を読む\", \"calls\": [\"R1\"]}"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "items/r1.json",
+   "items/r2.json",
+   "--answer",
+   "-",
+   "--schemas",
+   "schemas",
+   "--human"
+  ],
+  "stdin": "```json\n{\"answer\": \"R2 に出てくる\", \"sources\": [{\"path\": \"items/r2.json\", \"pointer\": \"/goal\", \"hash\": \"sha256:2b5820f9ea345f7633afe8b5571f5e2d7e19dcceba95aa640c83a970ecc351ff\"}]}\n```"
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "invalid_answer"
+  }
+ ]
+}

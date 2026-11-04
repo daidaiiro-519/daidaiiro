@@ -19,12 +19,13 @@ pub struct SessionRow {
 
 /// 引数と環境変数から、呼び出し元を見分ける（入口が実装する）。
 pub trait IdentifyCaller {
-    /// いまの呼び出し元。--session も環境変数も無ければ、initialized（このフォルダで semantic-agent-schema init が最後に登録したセッション）を使い、
-    /// それも無ければ人。2つ以上のツールの環境変数に値があって決められないときは、そのツールの名前を並べて返す。
+    /// いまの呼び出し元。人と明示されていれば人、--session も環境変数も無ければ、initialized（このフォルダで
+    /// semantic-agent-schema init が最後に登録したセッション）を使う。どれも無ければ None（人とみなさない）。
+    /// 2つ以上のツールの環境変数に値があって決められないときは、そのツールの名前を並べて返す。
     ///
     /// # Errors
     /// どのツールが打ったかを決められないとき。
-    fn identify(&self, initialized: Option<SessionRow>) -> Result<Caller, Vec<String>>;
+    fn identify(&self, initialized: Option<SessionRow>) -> Result<Option<Caller>, Vec<String>>;
 }
 
 /// 打ったセッションの置き場所（sessions）。追記だけを受け付ける。

@@ -1,14 +1,14 @@
 //! 渡されたスキーマの置き場所（--schemas のファイル）から、$id で Concrete と $ref の先を引く決まり。
 //!
-//! 置き場所のファイルを1件ずつ読み、$id と経路だけを残す（中身は持たない）。引くときは、要る文書だけを読み直す。
+//! ファイルを読むのは手続き（use_cases）がポートで行い、ここは読んだ文字列と JSON だけを扱う。
+//! 索引は $id と経路だけを持ち（中身は持たない）、引くときに要る文書だけを手続きが読み直す。
 //! 同じ $id のファイルが2つ以上あれば、どれを使うかを決めずに、全部の経路を添えて断る。
-//! $ref の先も同じ置き場所から引く。入れて出すスキーマ（Abstract など）は置き場所から引かない。
 
 use crate::aggregates::ConcreteSchema;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// 置き場所の $id と、その $id を持つファイルの経路（経路の順）。
+/// 置き場所の $id と、その $id を持つファイルの経路（足した順）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SchemaIndex {
     ids: BTreeMap<String, Vec<String>>,
@@ -23,6 +23,16 @@ pub struct Resolved {
 }
 
 impl Resolved {
+    /// 引いた Concrete（経路と文書）と、形の検査で引ける文書（Concrete と $ref の先）から作る。
+    #[must_use]
+    pub const fn new(path: String, concrete: ConcreteSchema, more: Vec<(String, Value)>) -> Self {
+        Self {
+            path,
+            concrete,
+            more,
+        }
+    }
+
     /// Concrete のファイルの経路。
     #[must_use]
     pub fn path(&self) -> &str {
@@ -51,7 +61,7 @@ pub struct Unresolved {
 }
 
 impl Unresolved {
-    /// 決まった名前（unknown_schema ・ duplicate_schema ・ store）。
+    /// 決まった名前（unknown_schema ・ duplicate_schema）。
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.code
@@ -71,32 +81,23 @@ impl Unresolved {
 }
 
 impl SchemaIndex {
-    /// 置き場所のファイルを1件ずつ読み、$id と経路だけを残す。JSON でない ・ $id の無いファイルは引く先にならない。
-    ///
-    /// # Errors
-    /// ファイルを読めないとき（store）。
-    pub fn read(
-        files: &[String],
-        read: impl Fn(&str) -> Result<String, String>,
-    ) -> Result<Self, Unresolved> {
-        let mut ids: BTreeMap<String, Vec<String>> = BTreeMap::new();
-        for path in files {
-            let text = read(path).map_err(|message| Unresolved {
-                code: "store",
-                message,
-                paths: Vec::new(),
-            })?;
-            let Ok(value) = serde_json::from_str::<Value>(&text) else {
-                continue;
-            };
-            if let Some(id) = value.get("$id").and_then(Value::as_str) {
-                let paths = ids.entry(id.to_string()).or_default();
-                if !paths.contains(path) {
-                    paths.push(path.clone());
-                }
+    /// 空の索引。
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 読んだファイル1つを索引に足す。JSON でない ・ $id の無いファイルは引く先にならない。
+    pub fn add(&mut self, path: &str, text: &str) {
+        let Ok(value) = serde_json::from_str::<Value>(text) else {
+            return;
+        };
+        if let Some(id) = value.get("$id").and_then(Value::as_str) {
+            let paths = self.ids.entry(id.to_string()).or_default();
+            if !paths.iter().any(|p| p == path) {
+                paths.push(path.to_string());
             }
         }
-        Ok(Self { ids })
     }
 
     /// 置き場所にある $id（名前の順）。
@@ -105,135 +106,39 @@ impl SchemaIndex {
         self.ids.keys().map(String::as_str).collect()
     }
 
-    /// $id が id の Concrete と、そのファイルの経路。$ref の先は引かない（描く ・ 探すときに使う）。
+    /// $id が id のファイルの経路。from は $ref で指した文書の $id（理由に入れる）。
     ///
     /// # Errors
-    /// 置き場所に無い ・ 2つ以上ある ・ Concrete でない（unknown_schema ・ duplicate_schema）・ 読めない（store）とき。
-    pub fn concrete(
-        &self,
-        id: &str,
-        read: impl Fn(&str) -> Result<String, String>,
-    ) -> Result<(String, ConcreteSchema), Unresolved> {
-        let (path, value) = self.one(id, None, &read)?;
-        let concrete = not_concrete(id, &path, &value)?;
-        Ok((path, concrete))
-    }
-
-    /// 置き場所の Concrete（Abstract の版を申告する文書）を、$id の順に。$ref の先は引かない。
-    ///
-    /// # Errors
-    /// 同じ $id のファイルが2つ以上ある（duplicate_schema）・ 読めない（store）とき。
-    pub fn concretes(
-        &self,
-        read: impl Fn(&str) -> Result<String, String>,
-    ) -> Result<Vec<(String, ConcreteSchema)>, Unresolved> {
-        let mut out = Vec::new();
-        for id in self.ids.keys() {
-            let (path, value) = self.one(id, None, &read)?;
-            if let Some(c) = ConcreteSchema::read(&value) {
-                out.push((path, c));
-            }
-        }
-        Ok(out)
-    }
-
-    /// $id が id の Concrete と、その $ref の先を引く。shipped は入れて出すスキーマの名前か（置き場所から引かない）。
-    ///
-    /// # Errors
-    /// 置き場所に無い ・ 2つ以上ある ・ Concrete でない（unknown_schema ・ duplicate_schema）・ 読めない（store）とき。
-    pub fn resolve(
-        &self,
-        id: &str,
-        read: impl Fn(&str) -> Result<String, String>,
-        shipped: impl Fn(&str) -> bool,
-    ) -> Result<Resolved, Unresolved> {
-        let (path, value) = self.one(id, None, &read)?;
-        let concrete = not_concrete(id, &path, &value)?;
-        let more = self.with_refs(id, value, &read, &shipped)?;
-        Ok(Resolved {
-            path,
-            concrete,
-            more,
-        })
-    }
-
-    /// 中身が value の文書（$id が id）と、その $ref の先を、形の検査に渡す並びにする。
-    /// 直した Concrete の新しい中身で、従うインスタンスを照らすときに使う（id の文書は置き場所から引かない）。
-    ///
-    /// # Errors
-    /// $ref の先が置き場所に無い ・ 2つ以上ある（unknown_schema ・ duplicate_schema）・ 読めない（store）とき。
-    pub fn with_refs(
-        &self,
-        id: &str,
-        value: Value,
-        read: impl Fn(&str) -> Result<String, String>,
-        shipped: impl Fn(&str) -> bool,
-    ) -> Result<Vec<(String, Value)>, Unresolved> {
-        let mut seen: BTreeSet<String> = BTreeSet::from([id.to_string()]);
-        let mut queue: Vec<(String, String)> = refs(&value)
-            .into_iter()
-            .map(|r| (r, id.to_string()))
-            .collect();
-        let mut more = vec![(id.to_string(), value)];
-        while let Some((next, from)) = queue.pop() {
-            if shipped(&next) || !seen.insert(next.clone()) {
-                continue;
-            }
-            let (_, doc) = self.one(&next, Some(&from), &read)?;
-            queue.extend(refs(&doc).into_iter().map(|r| (r, next.clone())));
-            more.push((next, doc));
-        }
-        Ok(more)
-    }
-
-    /// $id が id の文書を1つ読む。from は $ref で指した文書の $id。
-    fn one(
-        &self,
-        id: &str,
-        from: Option<&str>,
-        read: &impl Fn(&str) -> Result<String, String>,
-    ) -> Result<(String, Value), Unresolved> {
+    /// 置き場所に無い（unknown_schema）・ 2つ以上ある（duplicate_schema）とき。
+    pub fn path_of(&self, id: &str, from: Option<&str>) -> Result<&str, Unresolved> {
         let by = from.map_or_else(String::new, |f| format!("{f} が $ref で指す "));
-        let paths = self.ids.get(id).cloned().unwrap_or_default();
-        let path = match paths.as_slice() {
-            [] => {
-                return Err(Unresolved {
-                    code: "unknown_schema",
-                    message: format!(
-                        "{by}{id} は、渡されたスキーマの置き場所（--schemas）に無い。取りに行かない"
-                    ),
-                    paths: Vec::new(),
-                });
-            }
-            [one] => one.clone(),
-            _ => {
-                return Err(Unresolved {
-                    code: "duplicate_schema",
-                    message: format!(
-                        "{by}{id} を持つファイルが、渡されたスキーマの置き場所に {} つある（{}）。どれを使うかを決めない",
-                        paths.len(),
-                        paths.join(" ・ ")
-                    ),
-                    paths,
-                });
-            }
-        };
-        let text = read(&path).map_err(|message| Unresolved {
-            code: "store",
-            message,
-            paths: Vec::new(),
-        })?;
-        let value = serde_json::from_str::<Value>(&text).map_err(|e| Unresolved {
-            code: "store",
-            message: format!("{path} が JSON として読めない：{e}"),
-            paths: Vec::new(),
-        })?;
-        Ok((path, value))
+        match self.ids.get(id).map(Vec::as_slice).unwrap_or_default() {
+            [] => Err(Unresolved {
+                code: "unknown_schema",
+                message: format!(
+                    "{by}{id} は、渡されたスキーマの置き場所（--schemas）に無い。取りに行かない"
+                ),
+                paths: Vec::new(),
+            }),
+            [one] => Ok(one),
+            many => Err(Unresolved {
+                code: "duplicate_schema",
+                message: format!(
+                    "{by}{id} を持つファイルが、渡されたスキーマの置き場所に {} つある（{}）。どれを使うかを決めない",
+                    many.len(),
+                    many.join(" ・ ")
+                ),
+                paths: many.to_vec(),
+            }),
+        }
     }
 }
 
-/// Abstract の版を申告する Concrete として読む。読めなければ unknown_schema。
-fn not_concrete(id: &str, path: &str, value: &Value) -> Result<ConcreteSchema, Unresolved> {
+/// 引いた文書を Abstract の版を申告する Concrete として読む。
+///
+/// # Errors
+/// Concrete でないとき（unknown_schema）。
+pub fn concrete_of(id: &str, path: &str, value: &Value) -> Result<ConcreteSchema, Unresolved> {
     ConcreteSchema::read(value).ok_or_else(|| Unresolved {
         code: "unknown_schema",
         message: format!("{id}（{path}）は Abstract の版を申告する Concrete でない"),
@@ -241,8 +146,9 @@ fn not_concrete(id: &str, path: &str, value: &Value) -> Result<ConcreteSchema, U
     })
 }
 
-/// 文書の中の $ref が指す、ほかの文書の名前（# より前。文書の中を指すものは除く）。
-fn refs(value: &Value) -> BTreeSet<String> {
+/// 文書の中の $ref が指す、ほかの文書の名前（# より前。文書の中を指すものは除く。名前の順）。
+#[must_use]
+pub fn refs(value: &Value) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
     collect(value, &mut out);
     out
@@ -280,71 +186,57 @@ mod tests {
 
     const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";
 
-    fn place(
-        files: &[(&str, Value)],
-    ) -> (Vec<String>, impl Fn(&str) -> Result<String, String> + use<>) {
-        let map: BTreeMap<String, String> = files
-            .iter()
-            .map(|(p, v)| ((*p).to_string(), v.to_string()))
-            .collect();
-        let paths = map.keys().cloned().collect();
-        (paths, move |p: &str| {
-            map.get(p).cloned().ok_or_else(|| format!("{p} が無い"))
-        })
-    }
-
     #[test]
-    fn resolves_concrete_and_refs_from_the_place() {
-        let (files, read) = place(&[
-            (
-                "s/a.json",
-                json!({"$schema": ABSTRACT, "$id": "urn:a", "properties": {"b": {"$ref": "urn:b#/$defs/x"}}}),
-            ),
-            ("s/b.json", json!({"$id": "urn:b", "$defs": {"x": {}}})),
-            ("s/note.json", json!({"id": "N1"})),
-        ]);
-        let index = SchemaIndex::read(&files, &read).unwrap();
-        assert_eq!(index.ids(), ["urn:a", "urn:b"]);
-        let r = index.resolve("urn:a", &read, |_| false).unwrap();
-        assert_eq!(r.path(), "s/a.json");
-        let ids: Vec<&str> = r.more().iter().map(|(i, _)| i.as_str()).collect();
-        assert_eq!(ids, ["urn:a", "urn:b"]);
+    fn keeps_only_ids_and_paths() {
+        let mut index = SchemaIndex::new();
+        index.add(
+            "s/a.json",
+            &json!({"$schema": ABSTRACT, "$id": "urn:a"}).to_string(),
+        );
+        index.add("s/note.json", &json!({"id": "N1"}).to_string());
+        index.add("s/bad.json", "{");
+        assert_eq!(index.ids(), ["urn:a"]);
+        assert_eq!(index.path_of("urn:a", None).unwrap(), "s/a.json");
     }
 
     #[test]
     fn refuses_a_duplicate_id_with_every_path() {
-        let (files, read) = place(&[
-            ("a/x.json", json!({"$schema": ABSTRACT, "$id": "urn:a"})),
-            ("b/x.json", json!({"$schema": ABSTRACT, "$id": "urn:a"})),
-        ]);
-        let index = SchemaIndex::read(&files, &read).unwrap();
-        let e = index.resolve("urn:a", &read, |_| false).unwrap_err();
+        let mut index = SchemaIndex::new();
+        let doc = json!({"$schema": ABSTRACT, "$id": "urn:a"}).to_string();
+        index.add("a/x.json", &doc);
+        index.add("b/x.json", &doc);
+        let e = index.path_of("urn:a", None).unwrap_err();
         assert_eq!(e.code(), "duplicate_schema");
         assert_eq!(e.paths(), ["a/x.json", "b/x.json"]);
     }
 
     #[test]
-    fn refuses_a_missing_ref() {
-        let (files, read) = place(&[(
-            "s/a.json",
-            json!({"$schema": ABSTRACT, "$id": "urn:a", "$ref": "urn:gone"}),
-        )]);
-        let index = SchemaIndex::read(&files, &read).unwrap();
-        let e = index.resolve("urn:a", &read, |_| false).unwrap_err();
+    fn a_missing_ref_names_who_pointed_at_it() {
+        let e = SchemaIndex::new()
+            .path_of("urn:gone", Some("urn:a"))
+            .unwrap_err();
         assert_eq!(e.code(), "unknown_schema");
         assert!(e.message().contains("urn:a が $ref で指す urn:gone"));
     }
 
     #[test]
-    fn shipped_refs_are_not_looked_up() {
-        let (files, read) = place(&[(
-            "s/a.json",
-            json!({"$schema": ABSTRACT, "$id": "urn:a", "$ref": "urn:shipped"}),
-        )]);
-        let index = SchemaIndex::read(&files, &read).unwrap();
-        let r = index
-            .resolve("urn:a", &read, |id| id == "urn:shipped")
-            .unwrap();
-        assert_eq!(r.more().len(), 1);
+    fn refs_are_other_documents_only() {
+        let doc = json!({"properties": {"b": {"$ref": "urn:b#/$defs/x"}, "c": {"$ref": "#/$defs/c"}},
+                         "items": [{"$ref": "urn:d"}]});
+        assert_eq!(
+            refs(&doc).into_iter().collect::<Vec<_>>(),
+            ["urn:b", "urn:d"]
+        );
+    }
+
+    #[test]
+    fn only_documents_declaring_an_abstract_are_concretes() {
+        assert!(concrete_of("urn:a", "a.json", &json!({"$schema": ABSTRACT})).is_ok());
+        assert_eq!(
+            concrete_of("urn:b", "b.json", &json!({"$id": "urn:b"}))
+                .unwrap_err()
+                .code(),
+            "unknown_schema"
+        );
     }
 }

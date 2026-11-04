@@ -277,12 +277,9 @@ fn update_reports_the_previous_judgments_it_made_stale() {
     assert_eq!(stale, [("goal-is-outcome", "/goal", "o-1")]);
 }
 
-/// コミット済みの版の代役：コミットの名前と中身の並び（新しい順）。
+/// コミット済みの版の代役：コミットの名前と中身の並び。
 struct Commits(Vec<(String, String)>);
 impl CommitReader for Commits {
-    fn commits(&self, _: &str, max: usize) -> Result<Vec<String>, String> {
-        Ok(self.0.iter().take(max).map(|(c, _)| c.clone()).collect())
-    }
     fn read(&self, rev: &str, _: &str) -> Result<Option<Vec<u8>>, String> {
         Ok(self
             .0
@@ -301,11 +298,19 @@ fn adopt_request(as_kind: AdoptAs) -> AdoptRequest {
         schemas: vec!["c.json".into()],
         range: None,
         request_id: None,
+        base: None,
+    }
+}
+
+fn adopt_from(base: &str) -> AdoptRequest {
+    AdoptRequest {
+        base: Some(base.into()),
+        ..adopt_request(AdoptAs::Update)
     }
 }
 
 #[test]
-fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
+fn adopted_update_compares_with_the_base_commit() {
     let first = json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"});
     let store = files(&[("c.json", decided()), ("u1.json", first)]);
     let committed = store.read("u1.json").unwrap();
@@ -322,15 +327,28 @@ fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
     .unwrap();
     assert!(c.outside);
     assert!(c.before.is_none());
-    // 外で goal を直す。HEAD は外でのコミット（中身が違う）、その前のコミットが記録の最後の事後
+    // 外で goal を直す。HEAD は外でのコミット（中身が違う）、その前のコミットが記録の最後の事後で、それを --base に渡す
     let edited = json!({"$schema": UC, "id": "U1", "goal": "b", "status": "draft"}).to_string();
     store.write("u1.json", &edited).unwrap();
     let commits = Commits(vec![
         ("head".into(), edited.clone()),
         ("older".into(), committed),
     ]);
+    let r = adopt(
+        &adopt_from("head"),
+        &store,
+        &Lenient,
+        &commits,
+        &HUMAN,
+        &mut log,
+    )
+    .unwrap_err();
+    assert_eq!(
+        r.code, "invalid_input",
+        "記録に無い中身のコミットは使わない"
+    );
     let c = adopt(
-        &adopt_request(AdoptAs::Update),
+        &adopt_from("older"),
         &store,
         &Lenient,
         &commits,
@@ -357,9 +375,6 @@ fn adopted_update_compares_with_the_commit_of_the_last_recorded_state() {
 /// コミット済みの版を読めない代役。
 struct Unreadable;
 impl CommitReader for Unreadable {
-    fn commits(&self, _: &str, _: usize) -> Result<Vec<String>, String> {
-        Err("版を読めない".into())
-    }
     fn read(&self, _: &str, _: &str) -> Result<Option<Vec<u8>>, String> {
         Err("版を読めない".into())
     }
@@ -382,7 +397,7 @@ fn unreadable_versions_are_refused_as_versions() {
     let edited = json!({"$schema": UC, "id": "U1", "goal": "b", "status": "draft"}).to_string();
     store.write("u1.json", &edited).unwrap();
     let r = adopt(
-        &adopt_request(AdoptAs::Update),
+        &adopt_from("HEAD"),
         &store,
         &Lenient,
         &Unreadable,
@@ -429,8 +444,8 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
     )
     .unwrap_err();
     assert_eq!(r.code, "human_field");
-    assert!(r.message.contains("前の中身のコミットが無く"));
-    assert!(r.hint.unwrap().contains("--session を付けずに"));
+    assert!(r.message.contains("--base が無く"));
+    assert!(r.hint.unwrap().contains("--human"));
     // 人なら、前の値を持たない差分で取り込める
     let c = adopt(
         &adopt_request(AdoptAs::Update),

@@ -11,22 +11,27 @@ use writing_domain::values::{Caller, Via};
 pub enum Unidentified {
     /// 2つ以上のツールの環境変数に値があり、どれが打ったかを決められない（ツールの名前）
     Ambiguous(Vec<String>),
+    /// --session ・ ツールの環境変数 ・ init の登録 ・ 人の明示のどれも無い
+    Missing,
     /// 置き場所を読めない ・ 書けない
     Log(String),
 }
 
-/// 誰が打ったかを決める：--session → ツールの環境変数 → このフォルダ（folder）で semantic-agent-schema init が最後に登録したセッション → 人。
+/// 誰が打ったかを決める：人の明示（--human）か、--session → ツールの環境変数 → このフォルダ（folder）で
+/// semantic-agent-schema init が最後に登録したセッション。どれも無ければ断る（人とみなさない）。
 /// sessions には足さない（足すのは register）。
 ///
 /// # Errors
-/// どのツールが打ったかを決められない ・ 置き場所を読めないとき。
+/// どのツールが打ったかを決められない ・ どれも無い ・ 置き場所を読めないとき。
 pub fn identify(
     who: &dyn IdentifyCaller,
     folder: &str,
     log: &dyn SessionLog,
 ) -> Result<Caller, Unidentified> {
     let initialized = log.initialized(folder).map_err(Unidentified::Log)?;
-    who.identify(initialized).map_err(Unidentified::Ambiguous)
+    who.identify(initialized)
+        .map_err(Unidentified::Ambiguous)?
+        .ok_or(Unidentified::Missing)
 }
 
 /// 記録をつけるコマンドで、打ったセッションを sessions に登録する。初めて見たセッションだけ1行足す（行は書き換えない）。
@@ -50,8 +55,8 @@ pub fn register_session(
     log: &mut dyn SessionLog,
 ) -> Result<SessionRow, Unidentified> {
     let (id, tool) = match who.identify(None).map_err(Unidentified::Ambiguous)? {
-        Caller::Session { id, tool, .. } => (id, tool),
-        Caller::Human => (log.new_session_id(), "unknown".to_string()),
+        Some(Caller::Session { id, tool, .. }) => (id, tool),
+        Some(Caller::Human) | None => (log.new_session_id(), "unknown".to_string()),
     };
     log.session(&Caller::Session {
         id: id.clone(),

@@ -1,0 +1,81 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-ADOPT-NO-BASE",
+ "name": "--base の無い取り込み",
+ "title": "前の中身のコミットがあっても、--base を渡さなければ履歴を探さずに、前の値を持たない差分（before_unavailable）で取り込む",
+ "why": "履歴を探して前の中身を推すと、同じ入力から違う差分になる。",
+ "traces": [
+  "UC2:変形:SAS を通らない変更を取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u1.json",
+     "--adopt",
+     "--schemas",
+     "schemas",
+     "--human"
+    ]
+   },
+   {
+    "git": [
+     "add",
+     "schemas",
+     "usecases"
+    ]
+   },
+   {
+    "git": [
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
+     "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "write": {
+     "path": "usecases/u1.json",
+     "content": "{\n \"$schema\": \"urn:example:sample:usecase:v1\",\n \"id\": \"U1\",\n \"goal\": \"エディターで直した目的\",\n \"calls\": []\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--adopt",
+   "--reason",
+   "目的を言い直した",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before_unavailable",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/diff/before/commit",
+   "exists": false
+  }
+ ]
+}
