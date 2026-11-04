@@ -17,36 +17,41 @@ import (
 )
 
 func main() {
-	os.Exit(cli.Run(context.Background(), os.Args[1:], os.Stdout, os.Stderr, cli.Wiring{
+	os.Exit(cli.Run(context.Background(), os.Args[1:], cli.IO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}, cli.Wiring{
 		Arguments: schemacheck.New(nil),
-		Validate:  validate,
+		Open:      open,
 	}))
 }
 
-// validate は、working tree と操作の記録を開き、ユースケース「検証」とそのアダプターを返す。
-func validate(ctx context.Context, schemas []domain.Path) (application.Validate, func() error, error) {
+// open は、working tree と操作の記録を開き、ユースケース「作成」と「検証」に、アダプターを結び付けて返す。
+func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() error, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return application.Validate{}, nil, domain.Fail(domain.LogUnavailable, "", err.Error())
+		return cli.Authoring{}, nil, domain.Fail(domain.LogUnavailable, "", err.Error())
 	}
 	top, common, err := repository.Find(ctx, dir)
 	if err != nil {
-		return application.Validate{}, nil, err
+		return cli.Authoring{}, nil, err
 	}
 	abstract, err := publishedlanguage.Read("abstract.schema.json")
 	if err != nil {
-		return application.Validate{}, nil, err
+		return cli.Authoring{}, nil, err
 	}
 	records, err := recordstore.Open(ctx, common)
 	if err != nil {
-		return application.Validate{}, nil, err
+		return cli.Authoring{}, nil, err
 	}
 	concretes := files.NewSchemas(top, schemas, map[string][]byte{publishedlanguage.AbstractID: abstract})
-	return application.Validate{
-		Documents:  files.NewDocuments(top),
-		Schemas:    concretes,
-		Validator:  schemacheck.New(concretes.Content),
-		Records:    records,
-		AbstractID: publishedlanguage.AbstractID,
+	documents := files.NewDocuments(top)
+	validator := schemacheck.New(concretes.Content)
+	return cli.Authoring{
+		Create: application.Create{
+			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
+			AbstractID: publishedlanguage.AbstractID,
+		},
+		Validate: application.Validate{
+			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
+			AbstractID: publishedlanguage.AbstractID,
+		},
 	}, records.Close, nil
 }

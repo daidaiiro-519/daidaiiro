@@ -22,12 +22,14 @@ func read(t *testing.T, name string, into any) {
 func TestErrorCodesMatchEventSchema(t *testing.T) {
 	t.Parallel()
 	type template struct {
-		Instruction string  `json:"instruction"`
-		Next        *string `json:"next"`
+		Instruction string            `json:"instruction"`
+		Next        map[string]string `json:"next"`
 	}
 	var codes struct {
-		Codes    map[string]template `json:"codes"`
-		Violated template            `json:"violated"`
+		Codes     map[string]template `json:"codes"`
+		Violated  template            `json:"violated"`
+		Procedure template            `json:"procedure"`
+		Change    template            `json:"change"`
 	}
 	read(t, "error-codes.json", &codes)
 	var event struct {
@@ -45,12 +47,18 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 	var keys []string
 	for code, c := range codes.Codes {
 		keys = append(keys, code)
-		if c.Instruction == "" || c.Next == nil {
+		if c.Instruction == "" || len(c.Next) == 0 {
 			t.Errorf("error-codes.json %s = %+v, want instruction and next", code, c)
 		}
 	}
-	if codes.Violated.Instruction == "" || codes.Violated.Next == nil || *codes.Violated.Next == "" {
-		t.Errorf("error-codes.json violated = %+v, want instruction and next", codes.Violated)
+	if codes.Violated.Instruction == "" || codes.Violated.Next["validate"] == "" {
+		t.Errorf("error-codes.json violated = %+v, want instruction and next for validate", codes.Violated)
+	}
+	if codes.Change.Next["create"] == "" {
+		t.Errorf("error-codes.json change = %+v, want next for create", codes.Change)
+	}
+	if codes.Procedure.Next["create --semantic"] == "" {
+		t.Errorf("error-codes.json procedure = %+v, want next for create --semantic", codes.Procedure)
 	}
 	slices.Sort(keys)
 	enum := slices.Sorted(slices.Values(event.Defs.Error.Properties.Code.Enum))

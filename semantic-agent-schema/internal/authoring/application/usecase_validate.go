@@ -56,7 +56,7 @@ func (u Validate) one(ctx context.Context, actor domain.Actor, path domain.Path)
 	}
 	// インスタンスを検証する前に、その Concrete を Abstract で検証する。違反は Concrete のファイルの error にする
 	if schemaID != u.AbstractID {
-		if err := u.concreteSatisfiesAbstract(ctx, concrete); err != nil {
+		if err := satisfiesAbstract(ctx, u.Validator, u.AbstractID, concrete); err != nil {
 			return 0, nil, err
 		}
 	}
@@ -85,9 +85,10 @@ func (u Validate) one(ctx context.Context, actor domain.Actor, path domain.Path)
 	return id, validation, nil
 }
 
-// concreteSatisfiesAbstract は、Concrete を Abstract で検証し、違反があれば Concrete の path を持つ schema_violation の error を返す。
-func (u Validate) concreteSatisfiesAbstract(ctx context.Context, concrete domain.Concrete) error {
-	violations, err := u.Validator.Check(ctx, u.AbstractID, concrete.Content())
+// satisfiesAbstract は、機械的な検証（JSON Schema）。Concrete を Abstract で検証し、違反があれば Concrete の path を持つ
+// schema_violation の error を返す。
+func satisfiesAbstract(ctx context.Context, validator Validator, abstractID string, concrete domain.Concrete) error {
+	violations, err := validator.Check(ctx, abstractID, concrete.Content())
 	if err != nil {
 		return err
 	}
@@ -95,14 +96,7 @@ func (u Validate) concreteSatisfiesAbstract(ctx context.Context, concrete domain
 	if concrete.Path() != nil {
 		path = concrete.Path().String()
 	}
-	var failures []error
-	for _, v := range violations {
-		failures = append(failures, &domain.Failure{
-			Code: domain.SchemaViolation, Path: path, InstanceLocation: v.InstanceLocation.String(),
-			AbsoluteKeywordLocation: v.AbsoluteKeywordLocation, Message: v.Message,
-		})
-	}
-	return errors.Join(failures...)
+	return domain.FailuresOf(domain.SchemaViolation, path, violations)
 }
 
 // at は、path の無い Failure に、検証している JSON ドキュメントの path を入れる。

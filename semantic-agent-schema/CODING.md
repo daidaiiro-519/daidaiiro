@@ -219,6 +219,16 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K132 | 試験のファイルは、名前を `_test.go` で終える | Go 公式 | testing.go L18 | and give that file a name ending in "_test.go". |
 | K133 | すべてのファイルを `gofmt` の出力のままにする | Go 公式 | CodeReviewComments.md L19 | Run [gofmt](https://pkg.go.dev/cmd/gofmt/) on your code to automatically fix the majority of mechanical style issues. |
 
+### 2.13 Concrete に書いてよい format の名前
+
+`schemacheck` は `Compiler.AssertFormat` で、`format` を注釈でなく違反として検証する。ライブラリは知らない名前の `format` を黙って飛ばすので、Abstract（`abstract.schema.json` の `$defs/keywords`）が、下の名前だけを `enum` で許す。名前は santhosh-tekuri/jsonschema v6.0.3 の `format.go` の `formats`（L20–39）と、`objcompiler.go` の `regex`（L186–192）で確かめた。
+
+| ID | こうする | 種類 | 出どころ | 原文の引用 |
+|---|---|---|---|---|
+| K140 | Concrete の `format` には、`date` ・ `date-time` ・ `duration` ・ `email` ・ `hostname` ・ `ipv4` ・ `ipv6` ・ `iri` ・ `iri-reference` ・ `json-pointer` ・ `period` ・ `regex` ・ `relative-json-pointer` ・ `semver` ・ `time` ・ `uri` ・ `uri-reference` ・ `uri-template` ・ `uuid` だけを書く | 使うライブラリ | format.go L20–39 ・ objcompiler.go L186–192 | `var formats = map[string]*Format{` |
+| K141 | ライブラリを上げたら、`format.go` の `formats` と Abstract の `enum` を照らし直す | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K142 | Concrete に `$ref` を書かない。Abstract が `"$ref": false` で違反にする。`$ref` の先を引く処理を作らない | このプロジェクト | 利用者の指示（2026-11-05） | |
+
 ## 3 テスト規約
 
 ### 3.1 試験の置き場所と入口

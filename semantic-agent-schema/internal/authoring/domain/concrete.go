@@ -15,7 +15,18 @@ type Concrete interface {
 	Hash() Hash
 	// Rule は、id の rule を返す。無ければ false を返す。
 	Rule(id string) (Rule, bool)
-	concrete()
+	// Subschemas は、properties と items でたどれるサブスキーマを、keyword location の順に返す。
+	Subschemas() []Subschema
+	// structure は、Concrete を読んだルートスキーマを返す。
+	structure() map[string]any
+}
+
+// Subschema は、Concrete の1つのサブスキーマの、AI が読む部分。位置は、ルートスキーマからの keyword location で持つ。
+type Subschema struct {
+	KeywordLocation Pointer
+	Title           string
+	Description     string
+	Prompt          map[string]any // x-prompt。無ければ nil
 }
 
 type schema struct {
@@ -24,6 +35,8 @@ type schema struct {
 	content []byte
 	hash    Hash
 	rules   map[string]Rule
+	subs    []Subschema
+	root    map[string]any
 }
 
 func (s schema) ID() string      { return s.id }
@@ -34,7 +47,8 @@ func (s schema) Rule(id string) (Rule, bool) {
 	r, ok := s.rules[id]
 	return r, ok
 }
-func (schema) concrete() {}
+func (s schema) Subschemas() []Subschema   { return s.subs }
+func (s schema) structure() map[string]any { return s.root }
 
 // NewConcrete は、Concrete のバイト列から Concrete を返す。path は schemas の中のファイルの path で、
 // 公開された言葉の Abstract なら nil を渡す。JSON として読めなければ invalid_json、
@@ -71,7 +85,38 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 			}
 		}
 	})
-	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules}, nil
+	var subs []Subschema
+	walkStructure(root, nil, &subs)
+	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, subs: subs, root: root}, nil
+}
+
+// walkStructure は、ドメインサービス「サブスキーマを引く」の、Concrete の側。ルートスキーマから JSON Schema の構造
+// （properties と items）だけをたどり、keyword location ごとにサブスキーマを集める。
+func walkStructure(subschema map[string]any, at []string, into *[]Subschema) {
+	sub := Subschema{KeywordLocation: PointerOf(at...)}
+	sub.Title, _ = subschema["title"].(string)             // 無ければ空
+	sub.Description, _ = subschema["description"].(string) // 無ければ空
+	sub.Prompt, _ = subschema["x-prompt"].(map[string]any) // 無ければ nil
+	*into = append(*into, sub)
+	if properties, ok := subschema["properties"].(map[string]any); ok {
+		for _, name := range sortedNames(properties) {
+			if child, ok := properties[name].(map[string]any); ok {
+				walkStructure(child, append(slices.Clone(at), "properties", name), into)
+			}
+		}
+	}
+	if items, ok := subschema["items"].(map[string]any); ok {
+		walkStructure(items, append(slices.Clone(at), "items"), into)
+	}
+}
+
+func sortedNames(object map[string]any) []string {
+	names := make([]string, 0, len(object))
+	for name := range object {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 // promptRules は、サブスキーマの x-prompt の rules を返す。無ければ nil を返す。

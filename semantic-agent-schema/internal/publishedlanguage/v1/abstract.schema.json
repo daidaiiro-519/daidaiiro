@@ -21,26 +21,89 @@
   "$defs": {
     "subschema": {
       "$dynamicAnchor": "meta",
-      "$ref": "urn:semantic-agent-schema:dialect:v1"
+      "$ref": "urn:semantic-agent-schema:dialect:v1",
+      "allOf": [
+        {
+          "$ref": "#/$defs/keywords"
+        }
+      ]
+    },
+    "keywords": {
+      "description": "Concrete のどのサブスキーマにも当てる決まり。$ref は書かない（Concrete は1つのファイルで閉じる）。format は、機械的な検証で確かめられる名前だけを書く",
+      "properties": {
+        "$ref": false,
+        "format": {
+          "enum": [
+            "date",
+            "date-time",
+            "duration",
+            "email",
+            "hostname",
+            "ipv4",
+            "ipv6",
+            "iri",
+            "iri-reference",
+            "json-pointer",
+            "period",
+            "regex",
+            "relative-json-pointer",
+            "semver",
+            "time",
+            "uri",
+            "uri-reference",
+            "uri-template",
+            "uuid"
+          ]
+        }
+      }
     }
   },
   "allOf": [
-    { "$ref": "https://json-schema.org/draft/2020-12/schema" },
-    { "$ref": "urn:semantic-agent-schema:vocabulary:v1" }
+    {
+      "$ref": "https://json-schema.org/draft/2020-12/schema"
+    },
+    {
+      "$ref": "urn:semantic-agent-schema:vocabulary:v1"
+    },
+    {
+      "$ref": "#/$defs/keywords"
+    }
   ],
   "type": "object",
-  "required": ["$schema", "$id", "required", "properties"],
+  "required": [
+    "$schema",
+    "$id",
+    "required",
+    "properties"
+  ],
   "properties": {
-    "$schema": { "const": "urn:semantic-agent-schema:abstract:v1" },
-    "$id": { "type": "string", "minLength": 1 },
-    "required": { "contains": { "const": "$schema" } },
+    "$schema": {
+      "const": "urn:semantic-agent-schema:abstract:v1"
+    },
+    "$id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required": {
+      "contains": {
+        "const": "$schema"
+      }
+    },
     "properties": {
-      "required": ["$schema"],
+      "required": [
+        "$schema"
+      ],
       "properties": {
         "$schema": {
           "type": "object",
-          "required": ["const"],
-          "properties": { "const": { "type": "string" } }
+          "required": [
+            "const"
+          ],
+          "properties": {
+            "const": {
+              "type": "string"
+            }
+          }
         }
       }
     }

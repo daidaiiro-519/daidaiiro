@@ -1,6 +1,7 @@
 package recordstore_test
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -119,8 +120,8 @@ func TestOpenRejectsAnotherTableVersion(t *testing.T) {
 	if _, err := store.AppendValidation(t.Context(), validation(t, `{"x": 1}`)); err != nil {
 		t.Fatalf("AppendValidation = %v", err)
 	}
-	if _, err := database(t, dir).ExecContext(t.Context(), "PRAGMA user_version = 2"); err != nil {
-		t.Fatalf("PRAGMA user_version = 2: %v", err)
+	if _, err := database(t, dir).ExecContext(t.Context(), "PRAGMA user_version = 99"); err != nil {
+		t.Fatalf("PRAGMA user_version = 99: %v", err)
 	}
 	_, err := recordstore.Open(t.Context(), dir)
 	var f *domain.Failure
@@ -141,4 +142,81 @@ func database(t *testing.T, dir string) *sql.DB {
 		}
 	})
 	return db
+}
+
+func creation(t *testing.T, content string) *domain.Creation {
+	t.Helper()
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	actor, err := domain.NewActor(false, false)
+	if err != nil {
+		t.Fatalf("NewActor = %v", err)
+	}
+	value, err := domain.ParseJSON([]byte(content))
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	concrete, err := domain.NewConcrete(nil, []byte(`{"$id": "urn:a"}`))
+	if err != nil {
+		t.Fatalf("NewConcrete = %v", err)
+	}
+	c, err := domain.NewCreation(domain.CreationInput{Actor: actor, Path: path, Content: []byte(content), Value: value, Concrete: concrete})
+	if err != nil {
+		t.Fatalf("NewCreation = %v", err)
+	}
+	return c
+}
+
+func TestAppendChangeRecordsChangesInsideLock(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store := open(t, dir)
+	if _, err := store.AppendChange(t.Context(), creation(t, `{"x": 1}`)); err == nil {
+		t.Errorf("AppendChange outside WithLock = nil error, want error")
+	}
+	var id int64
+	err := store.WithLock(t.Context(), func(ctx context.Context) error {
+		var err error
+		id, err = store.AppendChange(ctx, creation(t, `{"x": 1}`))
+		return err
+	})
+	if err != nil || id != 1 {
+		t.Errorf("WithLock(AppendChange) = %d, %v, want 1, nil", id, err)
+	}
+	db := database(t, dir)
+	var count int
+	if err := db.QueryRowContext(t.Context(), "SELECT count(*) FROM field_changes WHERE change_id = 1").Scan(&count); err != nil || count != 2 {
+		t.Errorf("SELECT count(*) FROM field_changes = %d, %v, want 2, nil", count, err)
+	}
+	var command string
+	if err := db.QueryRowContext(t.Context(), "SELECT command FROM operations").Scan(&command); err != nil || command != "create" {
+		t.Errorf("SELECT command FROM operations = %q, %v, want %q, nil", command, err, "create")
+	}
+	for _, statement := range []string{"UPDATE changes SET path = 'b.json'", "DELETE FROM field_changes"} {
+		if _, err := db.ExecContext(t.Context(), statement); err == nil || !strings.Contains(err.Error(), "append-only") {
+			t.Errorf("Exec(%s) = %v, want append-only error", statement, err)
+		}
+	}
+}
+
+func TestWithLockRollsBackWhenFunctionFails(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store := open(t, dir)
+	failure := domain.Fail(domain.FileExists, "memo.json", "memo.json")
+	err := store.WithLock(t.Context(), func(ctx context.Context) error {
+		if _, err := store.AppendChange(ctx, creation(t, `{"x": 1}`)); err != nil {
+			return err
+		}
+		return failure
+	})
+	if !errors.Is(err, failure) {
+		t.Errorf("WithLock = %v, want %v", err, failure)
+	}
+	var count int
+	if err := database(t, dir).QueryRowContext(t.Context(), "SELECT count(*) FROM changes").Scan(&count); err != nil || count != 0 {
+		t.Errorf("SELECT count(*) FROM changes = %d, %v, want 0, nil", count, err)
+	}
 }

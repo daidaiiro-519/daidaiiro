@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:procedure:v1",
+  "title": "procedure",
+  "description": "--semantic が返す、AI が従う procedure のログイベント。JSON ドキュメントの内容は貼らず、path で渡す。AI は steps の x-prompt に従って answer を生成し、next を実行する。",
+  "type": "object",
+  "required": [
+    "event",
+    "command",
+    "path",
+    "steps",
+    "answer",
+    "next"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "const": "procedure"
+    },
+    "command": {
+      "enum": [
+        "create"
+      ]
+    },
+    "path": {
+      "description": "対象の JSON ドキュメントの path",
+      "type": "string"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "answer": {
+      "description": "answer の形。AI が渡す JSON ドキュメントが従うスキーマで、$ref に Concrete の $id を持つ",
+      "type": "object",
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "next": {
+      "description": "answer を渡すコマンド行。AI が埋める部分だけを <…> で空けておく",
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "step": {
+      "description": "1つのサブスキーマの、AI が読む部分。位置は Concrete の中の keyword location（URI の fragment の JSON Pointer）",
+      "type": "object",
+      "required": [
+        "keywordLocation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "keywordLocation": {
+          "type": "string",
+          "pattern": "^#(/([^~/]|~[01])*)*$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "x-prompt": {
+          "$ref": "urn:semantic-agent-schema:vocabulary:v1#/$defs/x-prompt"
+        }
+      }
+    }
+  }
+}

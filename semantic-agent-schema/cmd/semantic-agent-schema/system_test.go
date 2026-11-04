@@ -34,7 +34,10 @@ type step struct {
 	Remove []string          `json:"remove"`
 	Args   []string          `json:"args"`
 	Env    map[string]string `json:"env"`
+	Stdin  string            `json:"stdin"`
 	Exit   int               `json:"exit"`
+	// Files は、ステップの後のファイルの内容。null はファイルが無いこと
+	Files map[string]*string `json:"files"`
 	// Events は、出力の行ごとの、JSON Pointer と値の組。行の数も比べる。message の文は比べない
 	Events []map[string]json.RawMessage `json:"events"`
 }
@@ -69,11 +72,14 @@ func TestScenarios(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LookPath(git) = %v", err)
 	}
-	files, err := filepath.Glob("testdata/uc3/*.json")
+	files, err := filepath.Glob("testdata/*/*.json")
 	if err != nil || len(files) == 0 {
-		t.Fatalf("Glob(testdata/uc3/*.json) = %v, %v", files, err)
+		t.Fatalf("Glob(testdata/*/*.json) = %v, %v", files, err)
 	}
 	for _, file := range files {
+		if filepath.Base(filepath.Dir(file)) == "fixtures" {
+			continue
+		}
 		content, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatalf("ReadFile(%s) = %v", file, err)
@@ -132,6 +138,15 @@ func run(t *testing.T, s scenario, git string, events *jsonschema.Schema) {
 		for j := range min(len(lines), len(st.Events)) {
 			compare(t, label, repo, lines[j], st.Events[j], events)
 		}
+		for name, want := range st.Files {
+			content, err := os.ReadFile(filepath.Join(repo, name))
+			switch {
+			case want == nil && !errors.Is(err, os.ErrNotExist):
+				t.Errorf("%s: ReadFile(%s) = %q, %v, want no file", label, name, content, err)
+			case want != nil && (err != nil || string(content) != *want):
+				t.Errorf("%s: ReadFile(%s) = %q, %v, want %q", label, name, content, err, *want)
+			}
+		}
 	}
 }
 
@@ -139,6 +154,7 @@ func execute(t *testing.T, repo string, env []string, st step) ([]string, int) {
 	t.Helper()
 	cmd := exec.Command(binary, st.Args...)
 	cmd.Dir = repo
+	cmd.Stdin = strings.NewReader(st.Stdin)
 	cmd.Env = append([]string(nil), env...)
 	for k, v := range st.Env {
 		cmd.Env = append(cmd.Env, k+"="+v)
@@ -296,19 +312,24 @@ func writeFile(t *testing.T, path string, content []byte) {
 	}
 }
 
+// eventSchema は、event.schema.json と、それが参照する procedure.schema.json ・ vocabulary.schema.json を読んで返す。
 func eventSchema(t *testing.T) *jsonschema.Schema {
 	t.Helper()
-	content, err := os.ReadFile("../../internal/publishedlanguage/v1/event.schema.json")
-	if err != nil {
-		t.Fatalf("ReadFile(event.schema.json) = %v", err)
-	}
-	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
-	if err != nil {
-		t.Fatalf("UnmarshalJSON(event.schema.json) = %v", err)
-	}
 	compiler := jsonschema.NewCompiler()
-	if err := compiler.AddResource("urn:semantic-agent-schema:event:v1", value); err != nil {
-		t.Fatalf("AddResource(event.schema.json) = %v", err)
+	for _, name := range []string{"event.schema.json", "procedure.schema.json", "vocabulary.schema.json"} {
+		content, err := os.ReadFile(filepath.Join("../../internal/publishedlanguage/v1", name))
+		if err != nil {
+			t.Fatalf("ReadFile(%s) = %v", name, err)
+		}
+		value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
+		if err != nil {
+			t.Fatalf("UnmarshalJSON(%s) = %v", name, err)
+		}
+		object, _ := value.(map[string]any) // 公開された言葉のスキーマは、どれも $id を持つオブジェクト
+		id, _ := object["$id"].(string)
+		if err := compiler.AddResource(id, value); err != nil {
+			t.Fatalf("AddResource(%s) = %v", name, err)
+		}
 	}
 	schema, err := compiler.Compile("urn:semantic-agent-schema:event:v1")
 	if err != nil {

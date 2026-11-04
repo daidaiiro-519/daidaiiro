@@ -13,16 +13,32 @@ import (
 
 // output は、ログイベントを JSON の1行ずつ書く。instruction と next は error-codes.json の定型に値を入れて作る。
 type output struct {
-	encoder  *json.Encoder
-	failed   bool
-	codes    map[string]template
-	violated template
+	encoder       *json.Encoder
+	failed        bool
+	codes         map[string]template
+	violated      template
+	procedureNext template
+	changeNext    template
 }
 
-// template は、error-codes.json の instruction の定型文と next の形。
+// template は、error-codes.json の instruction の定型文と、コマンドごとの next の形。
 type template struct {
-	Instruction string `json:"instruction"`
-	Next        string `json:"next"`
+	Instruction string            `json:"instruction"`
+	Next        map[string]string `json:"next"`
+}
+
+// next は、コマンドの next の形を返す。create は --semantic の有無でも分け、無ければコマンド、次に * の形を使う。
+func (t template) next(args arguments) string {
+	key := args.Command
+	if args.Semantic {
+		key += " --semantic"
+	}
+	for _, k := range []string{key, args.Command, "*"} {
+		if next, ok := t.Next[k]; ok {
+			return next
+		}
+	}
+	return ""
 }
 
 func newOutput(w io.Writer) (*output, error) {
@@ -31,15 +47,17 @@ func newOutput(w io.Writer) (*output, error) {
 		return nil, err
 	}
 	var file struct {
-		Codes    map[string]template `json:"codes"`
-		Violated template            `json:"violated"`
+		Codes     map[string]template `json:"codes"`
+		Violated  template            `json:"violated"`
+		Procedure template            `json:"procedure"`
+		Change    template            `json:"change"`
 	}
 	if err := json.Unmarshal(content, &file); err != nil {
 		return nil, err
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	return &output{encoder: encoder, codes: file.Codes, violated: file.Violated}, nil
+	return &output{encoder: encoder, codes: file.Codes, violated: file.Violated, procedureNext: file.Procedure, changeNext: file.Change}, nil
 }
 
 func (o *output) exit() int {
@@ -52,7 +70,7 @@ func (o *output) exit() int {
 type errorEvent struct {
 	Event                   string `json:"event"`
 	Code                    string `json:"code"`
-	InstanceLocation        string `json:"instanceLocation,omitempty"`
+	InstanceLocation        string `json:"instanceLocation"`
 	AbsoluteKeywordLocation string `json:"absoluteKeywordLocation,omitempty"`
 	Message                 string `json:"message"`
 	Instruction             string `json:"instruction"`
@@ -78,7 +96,7 @@ func (o *output) failures(args arguments, err error) error {
 		if err := o.encoder.Encode(errorEvent{
 			Event: "error", Code: string(f.Code), InstanceLocation: f.InstanceLocation,
 			AbsoluteKeywordLocation: f.AbsoluteKeywordLocation, Message: f.Message,
-			Instruction: replace(t.Instruction, values), Next: replace(t.Next, values),
+			Instruction: replace(t.Instruction, values), Next: replace(t.next(args), values),
 		}); err != nil {
 			others = append(others, err)
 		}
@@ -98,7 +116,7 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {human} ・ {hash} に入れる値を返す。
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {human} ・ {hash} ・ {schemaId} に入れる値を返す。
 func fill(args arguments, path, hash string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
@@ -112,12 +130,13 @@ func fill(args arguments, path, hash string) map[string]string {
 		human = " --human"
 	}
 	return map[string]string{
-		"{command}": args.Command,
-		"{path}":    quote(path),
-		"{paths}":   strings.Join(paths, " "),
-		"{schemas}": strings.Join(schemas, " "),
-		"{human}":   human,
-		"{hash}":    hash,
+		"{command}":  args.Command,
+		"{path}":     quote(path),
+		"{paths}":    strings.Join(paths, " "),
+		"{schemas}":  strings.Join(schemas, " "),
+		"{human}":    human,
+		"{hash}":     hash,
+		"{schemaId}": quote(args.SchemaID),
 	}
 }
 
@@ -184,9 +203,62 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 		values := fill(args, event.Path, event.ContentHash)
 		values["{instanceLocation}"] = strings.Join(violated, ", ")
 		event.Instruction = replace(o.violated.Instruction, values)
-		event.Next = replace(o.violated.Next, values)
+		event.Next = replace(o.violated.next(args), values)
 	}
 	return o.encoder.Encode(event)
+}
+
+type stepEvent struct {
+	KeywordLocation string         `json:"keywordLocation"`
+	Title           string         `json:"title,omitempty"`
+	Description     string         `json:"description,omitempty"`
+	Prompt          map[string]any `json:"x-prompt,omitempty"`
+}
+
+type procedureEvent struct {
+	Event   string            `json:"event"`
+	Command string            `json:"command"`
+	Path    string            `json:"path"`
+	Steps   []stepEvent       `json:"steps"`
+	Answer  map[string]string `json:"answer"`
+	Next    string            `json:"next"`
+}
+
+// procedure は、procedure のログイベントを書く。next は error-codes.json の procedure の形に、受け取った引数を入れて作る。
+func (o *output) procedure(args arguments, p domain.Procedure) error {
+	event := procedureEvent{
+		Event: "procedure", Command: string(p.Command()), Path: p.Path().String(), Steps: []stepEvent{},
+		Answer: map[string]string{"$ref": p.AnswerSchemaID()},
+		Next:   replace(o.procedureNext.next(args), fill(args, p.Path().String(), "")),
+	}
+	for _, step := range p.Steps() {
+		event.Steps = append(event.Steps, stepEvent{
+			KeywordLocation: "#" + step.KeywordLocation.String(), Title: step.Title,
+			Description: step.Description, Prompt: step.Prompt,
+		})
+	}
+	return o.encoder.Encode(event)
+}
+
+type changeEvent struct {
+	Event       string `json:"event"`
+	ID          int64  `json:"id"`
+	Actor       string `json:"actor"`
+	Command     string `json:"command"`
+	Path        string `json:"path"`
+	SchemaID    string `json:"schemaId"`
+	ContentHash string `json:"contentHash"`
+	Next        string `json:"next"`
+}
+
+// change は、作成の change のログイベントを書く。next は、作ったあとの次のアクション（意味的な検証の依頼）。
+func (o *output) change(args arguments, id int64, c *domain.Creation) error {
+	path := c.Document().Path.String()
+	return o.encoder.Encode(changeEvent{
+		Event: "change", ID: id, Actor: string(c.Actor().Kind()), Command: string(domain.CreateCommand),
+		Path: path, SchemaID: c.Concrete().ID(), ContentHash: c.Document().Hash.String(),
+		Next: replace(o.changeNext.next(args), fill(args, path, "")),
+	})
 }
 
 var plain = regexp.MustCompile(`^[A-Za-z0-9_./:@%+=,-]+$`)

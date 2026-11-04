@@ -249,6 +249,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>語彙（vocabulary）・ 方言（dialect）</td><td>キーワードとその構文と意味の集まり ・ メタスキーマが示す語彙の集まり。Abstract の拡張項目は、Semantic Agent Schema の語彙として JSON Schema に足す</td><td class="tr">JSON Schema 2020-12 Core</td></tr>
 <tr><td>キーワード ・ サブスキーマ ・ ルートスキーマ ・ プロパティ</td><td>JSON Schema の標準の意味のまま</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>instance location</td><td>インスタンスの中の値の位置。JSON Pointer で書く</td><td class="tr">JSON Schema Core ・ RFC 6901</td></tr>
+<tr><td>keyword location</td><td>スキーマの中のキーワードの位置。ルートスキーマからの JSON Pointer で書く。作成の procedure の step は、まだインスタンスが無いので、これで指す</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>absolute keyword location</td><td>違反したキーワードの、<code>$id</code> を基にした絶対の位置</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>JSON Patch</td><td>JSON ドキュメントに適用する operation の並び</td><td class="tr">RFC 6902</td></tr>
 <tr><td>If-Match ・ ハッシュ</td><td>書く前に、読んだときと同じ内容かを照らす前提条件 ・ 内容のバイト列から決まる値</td><td class="tr">RFC 9110</td></tr>
@@ -262,7 +263,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <div class="wrap"><table class="stack">
 <tr><th>用語</th><th>意味</th><th>出どころ</th></tr>
 <tr><td>Abstract ・ Concrete</td><td>1 の表のとおり</td><td class="tr">本質 W4</td></tr>
-<tr><td>作法</td><td>Abstract が決めた書き方（拡張項目と <code>x-prompt</code> の書き方）</td><td class="tr">本質 W4 ・ C1</td></tr>
+<tr><td>作法</td><td>Abstract が決めた書き方（拡張項目と <code>x-prompt</code> の書き方）。Concrete に <code>$ref</code> は書かない（Abstract が禁じ、書けば機械的な検証の違反）</td><td class="tr">本質 W4 ・ C1</td></tr>
 <tr><td>拡張項目</td><td>JSON Schema に足した、AI が読むことを前提にしたキーワード。<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code> の3つで閉じている</td><td class="tr">本質 W1</td></tr>
 <tr><td><code>x-prompt</code></td><td>サブスキーマの値を何として読み、どう書くか。meaning ・ when ・ rules を持ち、生成にも判定にも同じものを使う</td><td class="tr">本質 W1 ・ E3</td></tr>
 <tr><td>rule</td><td><code>x-prompt</code> の rules の1件。id ・ rule ・ why ・ check ・ related_fields ・ bad ・ good を持つ。related_fields は、インスタンスのルートからの絶対の JSON Pointer で書く</td><td class="tr">本質 W1</td></tr>
@@ -276,7 +277,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>judgment ・ verdict</td><td>1つの rule と1つの instance location の組の結果 ・ その4つの値（verified ・ violated ・ unverified ・ not-judged）。数えるときは verdict ごとの件数（counts）にし、満たしたとするのは verified だけ</td><td class="tr">本質 W1</td></tr>
 <tr><td>前回の検証</td><td>ある JSON ドキュメントの、直前の検証の操作</td><td class="tr">本質 E5</td></tr>
 <tr><td>変更点</td><td>前回の検証のときと値が違う instance location の集まり</td><td class="tr">本質 W1</td></tr>
-<tr><td>procedure</td><td><code>x-prompt</code> から作って返す、AI が従う JSON。step ・ answer の形 ・ next を持つ</td><td class="tr">本質 W1 ・ E2</td></tr>
+<tr><td>procedure</td><td><code>x-prompt</code> から作って返す、AI が従う JSON。ログイベントの1つとして返す。step ・ answer の形 ・ next を持つ</td><td class="tr">本質 W1 ・ E2</td></tr>
 <tr><td>生成</td><td>意味的な推論で値を作ること</td><td class="tr">本質 W1 ・ E3</td></tr>
 <tr><td>answer ・ next</td><td>AI が procedure に従って作り、渡す JSON ・ AI が次に実行するコマンド行</td><td class="tr">本質 W1</td></tr>
 <tr><td>操作 ・ 操作の記録</td><td>記録する、コマンドの1回の実行（作成 ・ 更新 ・ 検証）・ 操作を追記だけで残すもの</td><td class="tr">本質 W1 ・ W3 ・ R4</td></tr>
@@ -293,7 +294,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <section><h2><span class="n">5</span><span class="nb">機械的な検証と</span><span class="nb">意味的な検証</span></h2>
 <div class="wrap"><table class="stack">
 <tr><th>検証</th><th>何で担保するか</th><th>根拠</th></tr>
-<tr><td>機械的な検証</td><td><span class="m">JSON Schema</span>：入力 ・ 出力 ・ JSON ドキュメントの形と値。既存の JSON Schema の実装で検証する。<br><span class="m">ドメインモデル</span>：JSON Schema で書けない不変条件と、拡張項目のバリデーター ・ レンダラー</td><td class="tr">本質 W1 ・ W8 ・ W10 ・ E1</td></tr>
+<tr><td>機械的な検証</td><td><span class="m">JSON Schema</span>：入力 ・ 出力 ・ JSON ドキュメントの形と値。既存の JSON Schema の実装で検証し、format も違反として検証する。<br><span class="m">ドメインモデル</span>：JSON Schema で書けない不変条件と、拡張項目のバリデーター ・ レンダラー</td><td class="tr">本質 W1 ・ W8 ・ W10 ・ E1</td></tr>
 <tr><td>意味的な検証</td><td><span class="s">ドメインモデル</span>：変更点に適用される rule を集め、生成 ・ 判定の procedure を作って返す。<br><span class="s">AI</span>：procedure に従って判定 ・ 生成する。結果の answer は機械的に検証する</td><td class="tr">本質 W1 ・ E2</td></tr>
 </table></div>
 <ul>
@@ -356,11 +357,11 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <dt>成功時保証</dt><dd>作った JSON ドキュメントは Concrete と不変条件を満たす。change と主アクターが操作の記録に残る</dd>
 <dt>最低保証</dt><dd>error のときは、ファイルも操作の記録も変えない。不完全なファイルを残さない</dd>
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path ・ schemas ・ Concrete の <code>$id</code> を渡し、作成の procedure を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
-<tr><td>2</td><td>Concrete の <code>x-prompt</code> から、作成の procedure を作って返す</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
+<tr><td>2</td><td>Concrete の <code>x-prompt</code> から、作成の procedure を作って返す。step はスキーマの側の keyword location で指し、配列の要素（items）もたどる</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
 <tr><td>3</td><td>AI が procedure に従って JSON ドキュメントを生成し、next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
 <tr><td>4</td><td>JSON ドキュメントを Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
-<tr><td>5</td><td><code>x-decided-by: human</code> の値が default のままか、Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ S1</td></tr>
-<tr><td>6</td><td>ファイルを書き、操作の記録に追記する</td><td><span class="p">処理</span></td></tr></table></dd>
+<tr><td>5</td><td>作ったインスタンスと Concrete を一緒にたどり、<code>x-decided-by: human</code> の値が default のままかをインスタンスの側の instance location で確かめる。Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ S1</td></tr>
+<tr><td>6</td><td>ロックの中で操作の記録に追記してからファイルを書き、change のログイベントを返す。change の next は、意味的な検証の依頼</td><td><span class="p">処理</span></td></tr></table></dd>
 <dt>拡張</dt><dd><ul><li>UC1-1a 引数の違反 ・ Concrete が無いか2つある、UC1-4a JSON Schema の違反、UC1-5a 不変条件の違反、UC1-6a ファイルが既にある：error</li><li>UC1-3a AI が JSON ドキュメントを先に持っている：procedure を依頼せず、直接渡す（4 へ）</li></ul></dd>
 </dl></div>
 
@@ -375,7 +376,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>4</td><td>JSON Patch を検証して適用し、結果を Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>5</td><td>Concrete を更新するときは、範囲のインスタンスを新しい Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないか、If-Match のハッシュがいまのハッシュと同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
-<tr><td>7</td><td>ファイルを書き、操作の記録に追記する（6 と 7 はロックの中）</td><td><span class="p">処理</span></td></tr></table></dd>
+<tr><td>7</td><td>操作の記録に追記してからファイルを書く（6 と 7 はロックの中。書けなければ追記も取り消す）</td><td><span class="p">処理</span></td></tr></table></dd>
 <dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：If-Match のハッシュと一緒に直接渡す（4 へ）</li><li>UC2-6a ハッシュが違う：error。next は、更新の procedure の依頼（1 へ）</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：error</li></ul></dd>
 </dl></div>
 
@@ -500,8 +501,8 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><th>集約と ID</th><th>不変条件</th><th>なぜ JSON Schema で書けないか</th></tr>
 <tr><td>JSON ドキュメント D1</td><td>path で識別する。path は working tree からの相対で、working tree の外を読まない ・ 書かない</td><td>ファイルシステムを見る <span class="tr">本質 R2 ・ R4</span></td></tr>
 <tr><td>JSON ドキュメント D2</td><td><code>x-decided-by: human</code> の値は、主アクターが human のときだけ default から変わる</td><td>前の値と、主アクターの両方を見る <span class="tr">本質 P7</span></td></tr>
-<tr><td>JSON ドキュメント D3</td><td>If-Match のハッシュがいまのハッシュと同じときだけ書く（確かめることと書くことはロックの中）</td><td>いまのファイルの状態を見る <span class="tr">本質 W1</span></td></tr>
-<tr><td>JSON ドキュメント D4</td><td>書くたびに、instance location ごとの change を出す</td><td>2つの JSON ドキュメントを比べる <span class="tr">本質 W1 ・ E5</span></td></tr>
+<tr><td>JSON ドキュメント D3</td><td>If-Match のハッシュがいまのハッシュと同じときだけ書く（確かめること ・ 操作の記録への追記 ・ 書くことはロックの中で、この順に行う。書けなければ追記も取り消す）</td><td>いまのファイルの状態を見る <span class="tr">本質 W1</span></td></tr>
+<tr><td>JSON ドキュメント D4</td><td>書くたびに、instance location ごとの change を出す。作成では、ルートを含むすべての instance location を add として出す</td><td>2つの JSON ドキュメントを比べる <span class="tr">本質 W1 ・ E5</span></td></tr>
 <tr><td>JSON ドキュメント D5</td><td>coding agent の環境変数があるところでは、human として書けない（human へのなりすましを防ぐ。環境変数があるかだけを見て、値は読まない）</td><td>実行の環境を見る <span class="tr">本質 P7</span></td></tr>
 <tr><td>検証 V1</td><td>1つの JSON ドキュメントの、1つの内容について持つ。ID は操作ごとに付け、作った後は変えない</td><td>操作の記録の単位 <span class="tr">本質 E5 ・ <code>aggregate</code></span></td></tr>
 <tr><td>検証 V2</td><td>answer の rule と instance location の組は、そのとき返した procedure の組と同じ</td><td>procedure は、そのときの内容と前回の検証から決まる <span class="tr">本質 W1 ・ E6</span></td></tr>
@@ -524,7 +525,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <div class="wrap"><table class="stack">
 <tr><th>ドメインサービスと ID</th><th>すること</th><th>検証</th></tr>
 <tr><td>バリデーター S1</td><td>JSON Schema で書けない Concrete の作法（ルートスキーマの <code>$schema</code> の const が <code>$id</code> と同じ ・ rule の id が重ならない ・ 例の related のキーが related_fields にある）を確かめる</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
-<tr><td>サブスキーマを引く S2</td><td>インスタンスと Concrete から、instance location ごとのサブスキーマの title ・ description ・ <code>x-prompt</code> と、適用される rule を引く。<code>$ref</code> の先の Concrete は application が先に引いて渡す</td><td>意味的 <span class="tr">本質 W1 ・ E4</span></td></tr>
+<tr><td>サブスキーマを引く S2</td><td>Concrete から、サブスキーマごとの title ・ description ・ <code>x-prompt</code> と、適用される rule を引く。配列の要素（items）もたどる。インスタンスがあるときは一緒にたどり、instance location に対応させる</td><td>意味的 <span class="tr">本質 W1 ・ E4</span></td></tr>
 <tr><td>procedure を作る S3</td><td>サブスキーマと rule から、生成 ・ 判定の procedure を作る。JSON ドキュメントの内容は貼らず、path とハッシュで渡す。同じ入力なら同じ procedure</td><td>意味的 <span class="tr">本質 W1 ・ E2</span></td></tr>
 <tr><td>変更点を求める S4</td><td>8 の「変更点の求め方」で求める</td><td>機械的 <span class="tr">本質 W1 ・ E5</span></td></tr>
 <tr><td>レンダラー S5</td><td>Concrete の <code>x-view</code> で、デザインシステムのテンプレートを選ぶ</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
@@ -559,7 +560,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <li>比べるのは、前回の検証で残した JSON ドキュメントと、いまの内容の2つだけ。JSON Pointer ごとに値を比べ、違う instance location を変更点とする</li>
 <li>Concrete のハッシュが前回と違うとき、または前回の検証が無いときは、すべての instance location を対象にする</li>
 <li>変更点を instance location か related_fields に含む rule だけを procedure に入れる。ほかの AI の judgment は、前回の検証から引き継いで残す</li>
-<li>Semantic Agent Schema を通さずに変わった JSON ドキュメントも変更点に出るだけなので、取り込みの仕組みは持たない。操作の記録への追記に失敗しても、次の変更点が増えるだけ</li>
+<li>Semantic Agent Schema を通さずに変わった JSON ドキュメントも変更点に出るだけなので、取り込みの仕組みは持たない</li>
 </ul>
 <p class="soft">根拠：本質 W1 ・ E5–E6 ・ R4</p>
 </section>
@@ -587,6 +588,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>Concrete の具体への依存</td><td>受け入れるのは、決めた契約の依存の注入だけ</td><td class="tr">本質 W4 ・ C5</td></tr>
 <tr><td>操作とセッション（coding agent の会話）の結び付け</td><td>どの会話の操作かを結び付けるのは、使う側の責務。Semantic Agent Schema が残すのは主アクター（ai か human）だけ</td><td class="tr">本質 W11 ・ P7</td></tr>
 <tr><td>変更の履歴をたどる仕組み ・ 外の変更の取り込み</td><td>前回の検証と比べれば変更点が出る</td><td class="tr">本質 W1 ・ W3</td></tr>
+<tr><td>Concrete の中の <code>$ref</code> と、参照先をたどる仕組み</td><td>Concrete は1つの JSON ドキュメントで閉じる。<code>$ref</code> は Abstract が禁じ、書けば機械的な検証の違反になる</td><td class="tr">本質 W3 ・ R4</td></tr>
 <tr><td>テンプレートの中を解析して Concrete と照らすこと</td><td>テンプレートは契約の記法で書き、描画はその処理系に任せる</td><td class="tr">本質 W4</td></tr>
 </table></div>
 <blockquote>もっとシンプルでいいし、入力の曖昧さをアルゴリズムで強引に実現しようとしなくてもある程度入力を作成するaiに頼ってもいいと思う。</blockquote>

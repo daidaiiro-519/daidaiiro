@@ -1,0 +1,54 @@
+{
+  "title": "作る Concrete が $ref か、機械的な検証で確かめられない format を書くと error を返す",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "schemas/ref.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:ref:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:ref:v1\"}, \"memo\": {\"$ref\": \"urn:example:memo:v1\"}}}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/properties/memo/$ref",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:abstract:v1#/$defs/keywords/properties/$ref"
+        }
+      ],
+      "files": {
+        "schemas/ref.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "schemas/fmt.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:fmt:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:fmt:v1\"}, \"phone\": {\"type\": \"string\", \"format\": \"phone\"}}}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/properties/phone/format",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:abstract:v1#/$defs/keywords/properties/format/enum"
+        }
+      ],
+      "files": {
+        "schemas/fmt.json": null
+      }
+    }
+  ]
+}

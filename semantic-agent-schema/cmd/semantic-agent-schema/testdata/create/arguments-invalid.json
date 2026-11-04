@@ -1,0 +1,90 @@
+{
+  "title": "引数が作成の引数の形に違反すると error を返し、ファイルを作らない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--semantic"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/next": "semantic-agent-schema create <直した引数>"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--semantic",
+        "--schema-id",
+        "urn:example:memo:v1",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "a.json",
+        "b.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/paths"
+        }
+      ]
+    },
+    {
+      "args": [
+        "create",
+        "../memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/paths/0"
+        }
+      ]
+    }
+  ]
+}

@@ -85,6 +85,8 @@ func newCompiler(l *loader) (*jsonschema.Compiler, error) {
 		return nil, err
 	}
 	compiler := jsonschema.NewCompiler()
+	// format を注釈でなく違反として検証する。Abstract が、ライブラリが確かめられる名前だけを書かせる
+	compiler.AssertFormat()
 	if err := addPublished(compiler); err != nil {
 		return nil, err
 	}

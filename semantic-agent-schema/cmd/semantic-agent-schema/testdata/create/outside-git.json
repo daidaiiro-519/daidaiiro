@@ -1,0 +1,31 @@
+{
+  "title": "Git のリポジトリの外では、操作の記録に追記できないので error を返し、ファイルを作らない",
+  "git": false,
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "log_unavailable"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
+    }
+  ]
+}

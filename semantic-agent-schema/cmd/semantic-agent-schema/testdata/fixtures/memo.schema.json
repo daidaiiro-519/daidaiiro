@@ -1,0 +1,38 @@
+{
+  "$schema": "urn:semantic-agent-schema:abstract:v1",
+  "$id": "urn:example:memo:v1",
+  "title": "メモ",
+  "description": "会議のメモ",
+  "x-view": "memo",
+  "type": "object",
+  "required": ["$schema", "title"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "const": "urn:example:memo:v1" },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "title": "題名",
+      "x-prompt": {
+        "meaning": "メモの題名",
+        "when": "メモを書くとき",
+        "rules": [
+          {
+            "id": "title-short",
+            "rule": "20 文字以内で書く",
+            "why": "一覧で読める長さにする",
+            "check": "20 文字以内か",
+            "related_fields": [],
+            "bad": [],
+            "good": [{ "value": "定例会議" }]
+          }
+        ]
+      }
+    },
+    "status": {
+      "enum": ["draft", "approved"],
+      "default": "draft",
+      "x-decided-by": "human"
+    }
+  }
+}

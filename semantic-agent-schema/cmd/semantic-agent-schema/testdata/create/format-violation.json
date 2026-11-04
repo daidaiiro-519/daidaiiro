@@ -1,0 +1,113 @@
+{
+  "title": "JSON ドキュメントの値が Concrete の format（date ・ email ・ json-pointer）に違反すると error を返し、ファイルを作らない",
+  "files": {
+    "schemas/contact.json": {
+      "$schema": "urn:semantic-agent-schema:abstract:v1",
+      "$id": "urn:example:contact:v1",
+      "required": [
+        "$schema"
+      ],
+      "properties": {
+        "$schema": {
+          "const": "urn:example:contact:v1"
+        },
+        "birthday": {
+          "type": "string",
+          "format": "date"
+        },
+        "mail": {
+          "type": "string",
+          "format": "email"
+        },
+        "field": {
+          "type": "string",
+          "format": "json-pointer"
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "a.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:contact:v1\", \"birthday\": \"2026-13-01\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/birthday",
+          "/absoluteKeywordLocation": "urn:example:contact:v1#/properties/birthday/format"
+        }
+      ],
+      "files": {
+        "a.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "a.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:contact:v1\", \"mail\": \"not-a-mail\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/mail",
+          "/absoluteKeywordLocation": "urn:example:contact:v1#/properties/mail/format"
+        }
+      ],
+      "files": {
+        "a.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "a.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:contact:v1\", \"field\": \"items/0\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/field",
+          "/absoluteKeywordLocation": "urn:example:contact:v1#/properties/field/format"
+        }
+      ],
+      "files": {
+        "a.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "a.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:contact:v1\", \"birthday\": \"2026-01-31\", \"mail\": \"a@example.com\", \"field\": \"/items/0\"}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change"
+        }
+      ]
+    }
+  ]
+}

@@ -4,14 +4,41 @@
   "title": "引数",
   "description": "コマンドごとの引数の JSON の形。pflag で読んだ引数をこの形にして検証する。",
   "type": "object",
-  "required": ["command"],
+  "required": [
+    "command"
+  ],
   "properties": {
-    "command": { "enum": ["validate"] }
+    "command": {
+      "enum": [
+        "create",
+        "validate"
+      ]
+    }
   },
   "allOf": [
     {
-      "if": { "properties": { "command": { "const": "validate" } } },
-      "then": { "$ref": "#/$defs/validate" }
+      "if": {
+        "properties": {
+          "command": {
+            "const": "create"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/create"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "validate"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/validate"
+      }
     }
   ],
   "$defs": {
@@ -23,13 +50,101 @@
     "validate": {
       "description": "validate <path>... --schemas <ディレクトリ> [--human]。検証",
       "type": "object",
-      "required": ["command", "paths", "schemas"],
+      "required": [
+        "command",
+        "paths",
+        "schemas"
+      ],
       "additionalProperties": false,
       "properties": {
         "command": true,
-        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/path" } },
-        "schemas": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/path" } },
-        "human": { "type": "boolean" }
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "schemas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "human": {
+          "type": "boolean"
+        }
+      }
+    },
+    "create": {
+      "description": "create <path> --schemas <ディレクトリ>、次のどちらか：--semantic --schema-id <$id> ／ --value <JSON | ->。[--human]。作成",
+      "type": "object",
+      "required": [
+        "command",
+        "paths",
+        "schemas"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": true,
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "schemas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "human": {
+          "type": "boolean"
+        },
+        "semantic": {
+          "const": true
+        },
+        "schemaId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "description": "JSON ドキュメントの文字列。- なら標準入力から読む",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "if": {
+        "required": [
+          "semantic"
+        ]
+      },
+      "then": {
+        "description": "作成の procedure を依頼する：--schema-id が要り、--value は渡さない",
+        "required": [
+          "schemaId"
+        ],
+        "not": {
+          "required": [
+            "value"
+          ]
+        }
+      },
+      "else": {
+        "description": "JSON ドキュメントを直接渡す：--value が要り、--schema-id は渡さない",
+        "required": [
+          "value"
+        ],
+        "not": {
+          "required": [
+            "schemaId"
+          ]
+        }
       }
     }
   }

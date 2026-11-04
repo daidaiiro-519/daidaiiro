@@ -1,0 +1,67 @@
+{
+  "title": "主アクター ai が x-decided-by: human の値を default から変えると error を返し、default のままか human なら作る",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "a.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"t\", \"status\": \"approved\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "decided_by_human",
+          "/instanceLocation": "/status",
+          "/next": "semantic-agent-schema create a.json --schemas schemas --value '</status を default に戻した JSON ドキュメント>'"
+        }
+      ],
+      "files": {
+        "a.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "b.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"t\", \"status\": \"draft\"}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/actor": "ai"
+        }
+      ]
+    },
+    {
+      "args": [
+        "create",
+        "c.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"t\", \"status\": \"approved\"}",
+        "--human"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/actor": "human"
+        }
+      ]
+    }
+  ]
+}

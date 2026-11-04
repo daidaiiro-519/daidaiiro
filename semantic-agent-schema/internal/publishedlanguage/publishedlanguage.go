@@ -21,6 +21,7 @@ var Schemas = []string{
 	"dialect.schema.json",
 	"arguments.schema.json",
 	"event.schema.json",
+	"procedure.schema.json",
 }
 
 // Read は、v1 のファイルのバイト列を返す。無い名前なら error を返す。

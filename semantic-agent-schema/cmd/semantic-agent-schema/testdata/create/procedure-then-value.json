@@ -1,0 +1,109 @@
+{
+  "title": "作成の procedure を依頼し、procedure に従って作った JSON ドキュメントを渡すと、path に作って change を返す",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--semantic",
+        "--schema-id",
+        "urn:example:memo:v1"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/command": "create",
+          "/path": "memo.json",
+          "/answer": {
+            "$ref": "urn:example:memo:v1"
+          },
+          "/steps": [
+            {
+              "keywordLocation": "#",
+              "title": "メモ",
+              "description": "会議のメモ"
+            },
+            {
+              "keywordLocation": "#/properties/title",
+              "title": "題名",
+              "x-prompt": {
+                "meaning": "メモの題名",
+                "when": "メモを書くとき",
+                "rules": [
+                  {
+                    "id": "title-short",
+                    "rule": "20 文字以内で書く",
+                    "why": "一覧で読める長さにする",
+                    "check": "20 文字以内か",
+                    "related_fields": [],
+                    "bad": [],
+                    "good": [
+                      {
+                        "value": "定例会議"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "/next": "semantic-agent-schema create memo.json --schemas schemas --value '<answer の形に従う JSON ドキュメント>'",
+          "/event": "procedure"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/id": 1,
+          "/actor": "ai",
+          "/command": "create",
+          "/path": "memo.json",
+          "/schemaId": "urn:example:memo:v1",
+          "/contentHash": {
+            "$sha256": "memo.json"
+          },
+          "/next": "semantic-agent-schema validate memo.json --schemas schemas --semantic"
+        }
+      ],
+      "files": {
+        "memo.json": "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      }
+    },
+    {
+      "args": [
+        "validate",
+        "memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/counts/violated": 0
+        }
+      ]
+    }
+  ]
+}

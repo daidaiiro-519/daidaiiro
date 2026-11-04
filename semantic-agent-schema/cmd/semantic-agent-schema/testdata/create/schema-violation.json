@@ -1,0 +1,50 @@
+{
+  "title": "JSON ドキュメントが Concrete に違反すると error を返し、ファイルも操作の記録も変えない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "",
+          "/absoluteKeywordLocation": "urn:example:memo:v1#/required",
+          "/next": "semantic-agent-schema create memo.json --schemas schemas --value '<違反を直した JSON ドキュメント>'"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/id": 1
+        }
+      ]
+    }
+  ]
+}

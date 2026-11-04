@@ -14,7 +14,8 @@ type Pointer interface {
 type jsonPointer struct{ value string }
 
 func (p jsonPointer) String() string { return p.value }
-func (jsonPointer) pointer()         {}
+
+func (jsonPointer) pointer() {}
 
 var pointerForm = regexp.MustCompile(`^(/([^~/]|~[01])*)*$`)
 

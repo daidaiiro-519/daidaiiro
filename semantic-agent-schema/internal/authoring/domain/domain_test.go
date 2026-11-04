@@ -308,3 +308,123 @@ func TestRecordedJudgmentRejectsValuesOutsideClosedLists(t *testing.T) {
 		})
 	}
 }
+
+const memo = `{"$id": "urn:example:memo:v1", "title": "メモ", "properties": {
+	"$schema": {"const": "urn:example:memo:v1"},
+	"title": {"type": "string", "title": "題名", "x-prompt": {"meaning": "題名", "when": "書くとき", "rules": []}},
+	"items": {"type": "array", "items": {"title": "品", "properties": {"checked": {"type": "boolean", "default": false, "x-decided-by": "human"}}}},
+	"status": {"enum": ["draft", "approved"], "default": "draft", "x-decided-by": "human"},
+	"owner": {"type": "string", "x-decided-by": "human"}}}`
+
+func TestNewCreateProcedureMakesStepsFromProperties(t *testing.T) {
+	t.Parallel()
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	p := domain.NewCreateProcedure(path, concrete(t, memo))
+	var got []string
+	for _, step := range p.Steps() {
+		got = append(got, step.KeywordLocation.String()+" "+step.Title)
+	}
+	want := []string{" メモ", "/properties/items/items 品", "/properties/title 題名"}
+	if !slices.Equal(got, want) {
+		t.Errorf("NewCreateProcedure(memo).Steps() = %q, want %q", got, want)
+	}
+	if p.AnswerSchemaID() != "urn:example:memo:v1" || p.Path().String() != "memo.json" {
+		t.Errorf("NewCreateProcedure(memo) = %s, %s, want urn:example:memo:v1, memo.json", p.AnswerSchemaID(), p.Path())
+	}
+}
+
+// デシジョンテーブル：主アクター × x-decided-by: human の instance location の値（無い ・ default ・ default と違う ・ default が無いのに有る）。
+func TestNewCreationDecidedByHuman(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name          string
+		human         bool
+		value         string
+		wantLocations []string
+	}{
+		{name: "ai が値を書かない", value: `{"title": "t"}`},
+		{name: "ai が default のまま書く", value: `{"status": "draft"}`},
+		{name: "ai が default と違う値を書く", value: `{"status": "approved"}`, wantLocations: []string{"/status"}},
+		{name: "ai が default の無い値を書く", value: `{"owner": "x", "status": "approved"}`, wantLocations: []string{"/owner", "/status"}},
+		{name: "ai が配列の要素の値を default から変える", value: `{"items": [{"checked": false}, {}, {"checked": true}]}`, wantLocations: []string{"/items/2/checked"}},
+		{name: "human は default と違う値を書ける", human: true, value: `{"owner": "x", "status": "approved"}`},
+	}
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			actor, err := domain.NewActor(c.human, false)
+			if err != nil {
+				t.Fatalf("NewActor = %v", err)
+			}
+			value, err := domain.ParseJSON([]byte(c.value))
+			if err != nil {
+				t.Fatalf("ParseJSON(%s) = %v", c.value, err)
+			}
+			_, err = domain.NewCreation(domain.CreationInput{
+				Actor: actor, Path: path, Content: []byte(c.value), Value: value, Concrete: concrete(t, memo),
+			})
+			var got []string
+			for _, e := range unjoin(err) {
+				var f *domain.Failure
+				if errors.As(e, &f) && f.Code == domain.DecidedByHuman {
+					got = append(got, f.InstanceLocation)
+				}
+			}
+			if !slices.Equal(got, c.wantLocations) {
+				t.Errorf("NewCreation(%s) decided_by_human = %v, want %v", c.value, got, c.wantLocations)
+			}
+		})
+	}
+}
+
+func unjoin(err error) []error {
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		return joined.Unwrap()
+	}
+	if err == nil {
+		return nil
+	}
+	return []error{err}
+}
+
+func TestNewCreationAddsEveryInstanceLocation(t *testing.T) {
+	t.Parallel()
+	content := []byte(`{"title": "t", "tags": ["a"]}`)
+	value, err := domain.ParseJSON(content)
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	actor, err := domain.NewActor(false, false)
+	if err != nil {
+		t.Fatalf("NewActor = %v", err)
+	}
+	c, err := domain.NewCreation(domain.CreationInput{Actor: actor, Path: path, Content: content, Value: value, Concrete: concrete(t, memo)})
+	if err != nil {
+		t.Fatalf("NewCreation = %v", err)
+	}
+	type change struct{ Location, Op, Before, After string }
+	var got []change
+	for _, ch := range c.Changes() {
+		got = append(got, change{ch.InstanceLocation().String(), string(ch.Op()), ch.Before(), ch.After()})
+	}
+	want := []change{
+		{"", "add", "", `{"tags":["a"],"title":"t"}`},
+		{"/tags", "add", "", `["a"]`},
+		{"/tags/0", "add", "", `"a"`},
+		{"/title", "add", "", `"t"`},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("NewCreation(%s).Changes() mismatch (-want +got):\n%s", content, diff)
+	}
+}

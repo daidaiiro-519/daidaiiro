@@ -1,0 +1,49 @@
+{
+  "title": "Abstract に従う Concrete を作る：作法に違反すると error を返し、満たせば作る",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "schemas/task.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:task:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:other:v1\"}}}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "convention_violation",
+          "/instanceLocation": "/properties/$schema/const"
+        }
+      ],
+      "files": {
+        "schemas/task.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "schemas/task.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:task:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:task:v1\"}}}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/schemaId": "urn:semantic-agent-schema:abstract:v1",
+          "/path": "schemas/task.json"
+        }
+      ]
+    }
+  ]
+}

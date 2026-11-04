@@ -22,12 +22,14 @@ import (
 var records string
 
 // version は、表の形の版。records.sql の PRAGMA user_version と同じ。
-const version = 1
+const version = 2
 
 // Store は、<git-common-dir>/semantic-agent-schema/records.sqlite の操作の記録。
 type Store struct {
 	db   *sql.DB
 	file string
+	// locked は、WithLock の中で、ロックを取った接続。WithLock の外では nil
+	locked *sql.Conn
 }
 
 // Open は、操作の記録を開いて返す。無ければ作る。表の形の版が違えば開かず、log_unavailable の Failure を返す。
@@ -115,6 +117,51 @@ func (s *Store) failure(err error) error {
 		return domain.Fail(domain.LogLocked, "", s.file+": "+text)
 	}
 	return domain.Fail(domain.LogUnavailable, "", s.file+": "+text)
+}
+
+// WithLock は、BEGIN IMMEDIATE で書き込みのロックを取り、その中で f を行う。f が error を返さなければ COMMIT し、
+// 返せば ROLLBACK する。書く操作（いまのハッシュの確認 ・ ファイルを書く ・ 追記）は、f の中で行う。
+func (s *Store) WithLock(ctx context.Context, f func(ctx context.Context) error) error {
+	return s.withLock(ctx, func(conn *sql.Conn) error {
+		s.locked = conn
+		defer func() { s.locked = nil }()
+		return f(ctx)
+	})
+}
+
+// AppendChange は、WithLock の中で、作成した JSON ドキュメントの change を追記し、操作の ID を返す。
+func (s *Store) AppendChange(ctx context.Context, c *domain.Creation) (int64, error) {
+	conn := s.locked
+	if conn == nil {
+		return 0, domain.Fail(domain.LogUnavailable, "", s.file+": AppendChange outside WithLock")
+	}
+	document := c.Document()
+	result, err := conn.ExecContext(ctx,
+		`INSERT INTO changes (actor, path, schema_id, command, before_hash, after_hash, at)
+		 VALUES (?, ?, ?, 'create', NULL, ?, ?)`,
+		string(c.Actor().Kind()), document.Path.String(), c.Concrete().ID(), document.Hash.String(),
+		time.Now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return 0, s.failure(err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, s.failure(err)
+	}
+	for _, change := range c.Changes() {
+		_, err := conn.ExecContext(ctx,
+			`INSERT INTO field_changes (change_id, instance_location, op, before, after) VALUES (?, ?, ?, ?, ?)`,
+			id, change.InstanceLocation().String(), string(change.Op()), nullable(change.Before()), nullable(change.After()))
+		if err != nil {
+			return 0, s.failure(err)
+		}
+	}
+	return id, nil
+}
+
+// nullable は、無い値（空）を NULL にする。
+func nullable(text string) sql.NullString {
+	return sql.NullString{String: text, Valid: text != ""}
 }
 
 // LastValidation は、path の前回の検証を返す。無ければ nil を返す。

@@ -1,0 +1,31 @@
+{
+  "title": "渡した JSON ドキュメントが JSON として読めないと invalid_json の error を返す",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"title\": "
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "invalid_json",
+          "/next": "semantic-agent-schema create memo.json --schemas schemas --value '<直した JSON ドキュメント>'"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ package files
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -36,6 +37,56 @@ func (d *Documents) Read(_ context.Context, path domain.Path) (domain.Document, 
 	return domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}, nil
 }
 
+// Write は、path に content を書く。不完全なファイルを残さないように、同じディレクトリに一時ファイルを書いてから置き換える。
+// 無いディレクトリは作る。シンボリックリンクの先が working tree の外なら path_outside の Failure を返す。
+func (d *Documents) Write(_ context.Context, path domain.Path, content []byte) error {
+	root, err := filepath.EvalSymlinks(d.top)
+	if err != nil {
+		return domain.Fail(domain.FileNotFound, path.String(), err.Error())
+	}
+	dir := filepath.Dir(filepath.Join(root, filepath.FromSlash(path.String())))
+	if err := inside(root, existing(dir), path); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return domain.Fail(domain.FileNotFound, path.String(), err.Error())
+	}
+	file, err := os.CreateTemp(dir, ".semantic-agent-schema-*")
+	if err != nil {
+		return domain.Fail(domain.FileNotFound, path.String(), err.Error())
+	}
+	_, writeErr := file.Write(content)
+	if err := errors.Join(writeErr, file.Close()); err != nil {
+		return errors.Join(domain.Fail(domain.FileNotFound, path.String(), err.Error()), os.Remove(file.Name()))
+	}
+	if err := os.Rename(file.Name(), filepath.Join(dir, filepath.Base(path.String()))); err != nil {
+		return errors.Join(domain.Fail(domain.FileNotFound, path.String(), err.Error()), os.Remove(file.Name()))
+	}
+	return nil
+}
+
+// existing は、dir から上へたどって最初にある祖先のディレクトリを、シンボリックリンクをたどった先で返す。
+func existing(dir string) string {
+	for {
+		if resolved, err := filepath.EvalSymlinks(dir); err == nil {
+			return resolved
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return dir
+		}
+		dir = parent
+	}
+}
+
+// inside は、集約 JSON ドキュメントの不変条件として、resolved が working tree の中になければ path_outside の Failure を返す。
+func inside(root, resolved string, path domain.Path) error {
+	if resolved != root && !strings.HasPrefix(resolved, root+string(filepath.Separator)) {
+		return domain.Fail(domain.PathOutside, path.String(), resolved)
+	}
+	return nil
+}
+
 // resolve は、シンボリックリンクをたどった先の絶対パスを返す。集約 JSON ドキュメントの不変条件として、
 // 先が working tree の外なら path_outside の Failure を返す。
 func resolve(top string, path domain.Path) (string, error) {
@@ -47,8 +98,8 @@ func resolve(top string, path domain.Path) (string, error) {
 	if err != nil {
 		return "", domain.Fail(domain.FileNotFound, path.String(), err.Error())
 	}
-	if resolved != root && !strings.HasPrefix(resolved, root+string(filepath.Separator)) {
-		return "", domain.Fail(domain.PathOutside, path.String(), resolved)
+	if err := inside(root, resolved, path); err != nil {
+		return "", err
 	}
 	return resolved, nil
 }

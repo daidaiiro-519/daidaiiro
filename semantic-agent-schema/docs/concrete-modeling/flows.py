@@ -60,7 +60,7 @@ build(
         ('ai', ['AI：procedure に従い JSON Patch を作る', 'update a.json --patch P --if-match H', '--schemas s/']),
         (1, ['3 Patcher → patching', 'Validator → schemacheck']),
         (0, ['4 domain：集約 JSON ドキュメント', 'x-decided-by ・ If-Match', 'change を出す']),
-        (1, ['5 Records.WithLock', '→ recordstore：ロックの中で', 'Documents.Write と追記']),
+        (1, ['5 Records.WithLock', '→ recordstore：ロックの中で', '追記して Documents.Write']),
         ('ai', ['AI：判定の procedure を依頼する', 'validate a.json --semantic', '--schemas s/']),
         (1, ['6 Records', '.LastValidation', '→ recordstore：前回の検証']),
         (0, ['7 domain：変更点を求める', 'JSON Pointer ごとに比べ', 'その rule で procedure を作る']),

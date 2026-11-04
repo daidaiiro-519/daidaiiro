@@ -1,0 +1,35 @@
+{
+  "title": "path にファイルが既にあると error を返し、ファイルを変えない。next は更新の procedure の依頼",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "前からある"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"定例会議\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "file_exists",
+          "/next": "semantic-agent-schema update memo.json --schemas schemas --semantic"
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"前からある\"\n}"
+      }
+    }
+  ]
+}
