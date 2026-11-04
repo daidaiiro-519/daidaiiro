@@ -8,7 +8,7 @@ import (
 )
 
 // Update は、ユースケース「更新」。JSON ドキュメント（インスタンスか Concrete）を JSON Patch で書き換える。
-// 各ステップの担保：引数は機械的な検証（JSON Schema）、更新の procedure は意味的な検証（ドメインモデル）、
+// 各ステップの担保：引数は機械的な検証（JSON Schema）、更新の prompt は意味的な検証（ドメインモデル）、
 // JSON Patch の作成は AI、JSON Patch の形と、適用した結果の Concrete での検証と、Concrete を更新するときの範囲のインスタンスの
 // 検証は機械的な検証（JSON Schema）、x-decided-by: human の値と楽観ロックのハッシュと作法は機械的な検証（ドメインモデル）、
 // 追記と書き込みは処理（アダプター）。ハッシュの確認 ・ 追記 ・ 書き込みは、この順にロックの中で行う。
@@ -19,16 +19,16 @@ type Update struct {
 	Patcher    Patcher
 	Records    Records
 	AbstractID string // Abstract の $id。Concrete を更新するときは、作法と範囲のインスタンスも確かめる
-	PatchID    string // JSON Patch のスキーマ（patch.schema.json）の $id。更新の procedure の answer の形
+	PatchID    string // JSON Patch のスキーマ（patch.schema.json）の $id。更新の prompt の response の形
 }
 
-// Procedure は、いまの JSON ドキュメントと Concrete から、更新の procedure を作って返す。
-func (u Update) Procedure(ctx context.Context, path domain.Path) (domain.Procedure, error) {
+// Prompt は、いまの JSON ドキュメントと Concrete から、更新の prompt を作って返す。
+func (u Update) Prompt(ctx context.Context, path domain.Path) (domain.Prompt, error) {
 	document, value, concrete, err := u.read(ctx, path)
 	if err != nil {
 		return nil, at(path, err)
 	}
-	return domain.NewUpdateProcedure(document, value, concrete, u.PatchID), nil
+	return domain.NewUpdatePrompt(document, value, concrete, u.PatchID), nil
 }
 
 // UpdateInput は、更新の引数。

@@ -1,28 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:semantic-agent-schema:procedure:v1",
-  "title": "procedure",
-  "description": "--semantic が返す、AI が従う procedure のログイベント。JSON ドキュメントの内容は貼らず、path で渡す。AI は steps の x-prompt に従って answer を生成し、next を実行する。",
+  "$id": "urn:semantic-agent-schema:prompt:v1",
+  "title": "prompt",
+  "description": "--semantic でコマンドが Concrete の x-prompt から組んで AI に返すもの。JSON ドキュメントの内容は貼らず、path で渡す。AI は steps の x-prompt に従って response を生成し、next を実行する。",
   "type": "object",
   "required": [
-    "event",
-    "command",
     "path",
     "steps",
-    "answer",
+    "response",
     "next"
   ],
   "additionalProperties": false,
   "properties": {
-    "event": {
-      "const": "procedure"
-    },
-    "command": {
-      "enum": [
-        "create",
-        "update"
-      ]
-    },
     "path": {
       "description": "対象の JSON ドキュメントの path",
       "type": "string"
@@ -33,8 +22,8 @@
         "$ref": "#/$defs/step"
       }
     },
-    "answer": {
-      "description": "answer の形。AI が渡すものが従うスキーマで、$ref に $id を持つ（作成は Concrete、更新は JSON Patch のスキーマ）",
+    "response": {
+      "description": "response の形。AI が作って渡すものが従うスキーマで、$ref に $id を持つ（作成は Concrete、更新は JSON Patch のスキーマ）",
       "type": "object",
       "required": [
         "$ref"
@@ -48,7 +37,7 @@
       }
     },
     "next": {
-      "description": "answer を渡すコマンド行。AI が埋める部分だけを <…> で空けておく",
+      "description": "response を渡すコマンド行。AI が埋める部分だけを <…> で空けておく",
       "type": "string",
       "minLength": 1
     }

@@ -45,7 +45,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
       └ outbound/
          ├ files/                 path の読み書き ・ schemas の中の $id
          ├ repository/            git rev-parse で working tree と共通ディレクトリを引く
-         ├ schemacheck/           JSON Schema の検証と、違反を error へ変換する
+         ├ schemacheck/           JSON Schema の検証と、違反を rejected へ変換する
          ├ patching/              JSON Patch の適用
          ├ templates/             html/template での描画
          └ recordstore/             操作の記録（records.sql を go:embed で持つ）とロック</code></pre>
@@ -96,25 +96,25 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </section>
 
 <section><h2><span class="n">4</span>コマンドと引数</h2>
-<p>引数は pflag で読み、JSON にして <code>arguments.schema.json</code> で検証する（UC1-1 など）。違反は <code>arguments_invalid</code> の error になる。</p>
+<p>引数は pflag で読み、JSON にして <code>arguments.schema.json</code> で検証する（UC1-1 など）。違反は <code>arguments_invalid</code> の rejected になる。</p>
 <div class="wrap"><table class="stack">
 <tr><th>コマンド</th><th>引数</th><th>UC</th></tr>
 <tr><td><code>create</code></td><td><code>&lt;path&gt; --schemas &lt;ディレクトリ&gt;</code>、次のどちらか：<code>--semantic --schema-id &lt;$id&gt;</code> ／ <code>--value &lt;JSON | -&gt;</code></td><td>UC1</td></tr>
 <tr><td><code>update</code></td><td><code>&lt;path&gt; --schemas</code>、次のどちらか：<code>--semantic</code> ／ <code>--patch &lt;JSON | -&gt;</code>。Concrete を更新するときは <code>--range &lt;path&gt;</code></td><td>UC2</td></tr>
-<tr><td><code>validate</code></td><td><code>&lt;path&gt;... --schemas</code>。意味的な検証は <code>--semantic</code>（<code>--scope changed</code> が既定で変更点だけ。<code>--scope all</code> で全部の instance location。値はこの2つだけで、procedure の <code>scope</code> と同じ）か <code>--answer &lt;JSON | -&gt;</code>（path は1つ）</td><td>UC3 ・ UC4</td></tr>
+<tr><td><code>validate</code></td><td><code>&lt;path&gt;... --schemas</code>。意味的な検証は <code>--semantic</code>（<code>--scope changed</code> が既定で変更点だけ。<code>--scope all</code> で全部の instance location。値はこの2つだけで、prompt の <code>scope</code> と同じ）か <code>--response &lt;JSON | -&gt;</code>（path は1つ）</td><td>UC3 ・ UC4</td></tr>
 <tr><td><code>render</code></td><td><code>&lt;path&gt;... --schemas --design-system &lt;path&gt; --out &lt;ディレクトリ&gt;</code></td><td>UC6</td></tr>
-<tr><td><code>search</code></td><td><code>&lt;path&gt;...</code>、次のどれか：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code>（繰り返せる）／ <code>--semantic --question &lt;問い&gt;</code> ／ <code>--answer &lt;JSON | -&gt;</code></td><td>UC7</td></tr>
+<tr><td><code>search</code></td><td><code>&lt;path&gt;...</code>、次のどれか：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code>（繰り返せる）／ <code>--semantic --question &lt;問い&gt;</code> ／ <code>--response &lt;JSON | -&gt;</code></td><td>UC7</td></tr>
 <tr><td><code>log</code></td><td><code>[&lt;path&gt;...] [--limit &lt;数&gt;]</code>、または <code>--operation &lt;command&gt;:&lt;id&gt;</code></td><td>UC8</td></tr>
 </table></div>
-<p class="soft">値を2つ以上渡す引数（<code>--schemas</code> ・ <code>--range</code> ・ <code>--where</code>）は繰り返す。<code>-</code> は標準入力から読む。終了コードは、error か violated の judgment があれば 1、ほかは 0。</p>
+<p class="soft">値を2つ以上渡す引数（<code>--schemas</code> ・ <code>--range</code> ・ <code>--where</code>）は繰り返す。<code>-</code> は標準入力から読む。終了コードは、rejected か violated の judgment があれば 1、ほかは 0。</p>
 <h3><code>x-decided-by: human</code> の値</h3>
 <ul>
-<li>create ・ update で <code>x-decided-by: human</code> の値を変えようとしたら、いつも <code>decided_by_human</code> の error を返す（D2）。作成では default のまま、更新では前の値のままでなければならない</li>
+<li>create ・ update で <code>x-decided-by: human</code> の値を変えようとしたら、いつも <code>decided_by_human</code> の rejected を返す（D2）。作成では default のまま、更新では前の値のままでなければならない</li>
 <li>人は、ファイルを直接書いて値を決める。誰が決めたかは Git のコミットの作者が残す。validate は、人が書いたあとも普通に検証する</li>
 <li>人かどうかの確かめと、セッションとの結び付けは使う側の責務。Semantic Agent Schema は、実行したのが人か AI かを受け取らない ・ 残さない</li>
 </ul>
 <h3>next への引き継ぎ</h3>
-<p>作成と更新の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
+<p><code>created</code> と <code>updated</code> の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。prompt と rejected の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
 </section>
 
 <section><h2><span class="n">5</span>公開された言葉</h2>
@@ -124,14 +124,26 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>種類</th><th>ファイル</th><th>役目</th></tr>
 <tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）と、Concrete に <code>$ref</code> を書かないことも、ここで JSON Schema にする。Concrete に書いてよい format の名前は <code>CODING.md</code> が持つ。rule の <code>related_fields</code> は、インスタンスのルートからの絶対の JSON Pointer で書く</td></tr>
 <tr><td>引数</td><td><code>arguments.schema.json</code></td><td>コマンドごとの引数の JSON の形。必須 ・ 組み合わせ ・ path とハッシュの pattern</td></tr>
-<tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> は validation ・ change ・ procedure ・ render ・ search ・ operation ・ error</td></tr>
-<tr><td>procedure</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す procedure。ログイベントの1つ（<code>"event":"procedure"</code>）。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path ・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ answer の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-answer.schema.json</code>）・ <code>next</code></td></tr>
-<tr><td>入力</td><td><code>patch.schema.json</code> ・ <code>judgment-answer.schema.json</code> ・ <code>search-answer.schema.json</code></td><td>AI が渡す JSON Patch と answer</td></tr>
+<tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> の名前は、ユースケースで起きたことの過去形（下の表）</td></tr>
+<tr><td>prompt</td><td><code>prompt.schema.json</code></td><td><code>--semantic</code> が返す prompt。<code>*_requested</code> のログイベント。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path ・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ response の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-response.schema.json</code>）・ <code>next</code></td></tr>
+<tr><td>入力</td><td><code>patch.schema.json</code> ・ <code>judgment-response.schema.json</code> ・ <code>search-response.schema.json</code></td><td>AI が渡す JSON Patch と response</td></tr>
 <tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>デザインシステムの形と、テンプレートの記法。記法は名前と版で宣言する（<code>html/template</code> ・ Go の版）。テンプレートに渡すのは <code>.Value</code>（インスタンス）と <code>.Tokens</code>（デザイントークン）だけ</td></tr>
-<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（create は <code>--semantic</code> の有無でも分ける）。procedure の next の定型（<code>update --semantic</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> などで書く</td></tr>
+<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（create は <code>--semantic</code> の有無でも分ける）。prompt の next の定型（<code>update --semantic</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> などで書く</td></tr>
 </table></div>
-<h3>error</h3>
-<pre><code>{"event": "error",
+<h3>ログイベントの名前</h3>
+<div class="wrap"><table class="stack">
+<tr><th>ユースケース</th><th><code>event</code></th><th>いつ</th></tr>
+<tr><td>作成</td><td><code>generation_requested</code> ・ <code>created</code></td><td>prompt を返した ・ 書いた</td></tr>
+<tr><td>更新</td><td><code>update_requested</code> ・ <code>updated</code></td><td>prompt を返した ・ 書いた</td></tr>
+<tr><td>検証</td><td><code>validated</code></td><td>検証して操作の記録に追記した</td></tr>
+<tr><td>意味的な検証</td><td><code>judgment_requested</code> ・ <code>judged</code></td><td>prompt を返した ・ response の judgment を記録した</td></tr>
+<tr><td>描画</td><td><code>rendered</code></td><td>HTML を書き出した</td></tr>
+<tr><td>検索</td><td><code>search_requested</code> ・ <code>found</code></td><td>意味で探す prompt を返した ・ 条件か response で見つけた結果を返した</td></tr>
+<tr><td>操作の記録の参照</td><td><code>listed</code></td><td>操作を1件ずつ返した（<code>--operation</code> の1件も同じ）</td></tr>
+<tr><td>どれでも</td><td><code>rejected</code></td><td>断った。理由は <code>code</code></td></tr>
+</table></div>
+<h3>rejected</h3>
+<pre><code>{"event": "rejected",
  "code": "schema_violation",
  "instanceLocation": "/items/0/price",
  "absoluteKeywordLocation": "urn:example:order:v1#/properties/items/items/properties/price/minimum",
@@ -141,22 +153,22 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <p><code>schema_violation</code> は、<code>schemacheck</code> が <code>ValidationError</code> の葉ごとに <code>InstanceLocation</code> を <code>instanceLocation</code>、キーワードの絶対の位置を <code>absoluteKeywordLocation</code> にして1行ずつ出す。独自の判定は足さない。</p>
 <div class="wrap"><table class="stack">
 <tr><th>code</th><th>いつ</th><th>next</th></tr>
-<tr><td><code>invalid_json</code></td><td>JSON として読めない（JSON ドキュメント ・ <code>--value</code> ・ <code>--patch</code> ・ <code>--answer</code> ・ デザインシステム）。<code>instanceLocation</code> は空、<code>message</code> は読めなかった位置</td><td>同じコマンド（直した JSON）</td></tr>
+<tr><td><code>invalid_json</code></td><td>JSON として読めない（JSON ドキュメント ・ <code>--value</code> ・ <code>--patch</code> ・ <code>--response</code> ・ デザインシステム）。<code>instanceLocation</code> は空、<code>message</code> は読めなかった位置</td><td>同じコマンド（直した JSON）</td></tr>
 <tr><td><code>arguments_invalid</code></td><td>引数が <code>arguments.schema.json</code> に違反した。インスタンスの更新に <code>--range</code> を渡したときも</td><td>同じコマンド（直した引数）</td></tr>
 <tr><td><code>schema_not_found</code> ・ <code>schema_duplicate</code></td><td><code>$id</code> の Concrete が無い ・ 2つある</td><td>同じコマンド（<code>--schemas</code> を直す）</td></tr>
-<tr><td><code>schema_violation</code></td><td>JSON ・ JSON Patch ・ answer ・ デザインシステムが JSON Schema に違反した</td><td>同じコマンド（直した値）</td></tr>
+<tr><td><code>schema_violation</code></td><td>JSON ・ JSON Patch ・ response ・ デザインシステムが JSON Schema に違反した</td><td>同じコマンド（直した値）</td></tr>
 <tr><td><code>convention_violation</code></td><td>作法の検査（S1）に違反した</td><td>同じコマンド</td></tr>
 <tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新 ・ 検証で path のファイルが無い</td><td><code>update --semantic</code> ／ <code>create --semantic</code></td></tr>
 <tr><td><code>decided_by_human</code></td><td>create ・ update で <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド。指示は、人がファイルを直接書いて決める値だと示す</td></tr>
 <tr><td><code>patch_not_applicable</code></td><td>JSON Patch を適用できない（path が無い ・ test が合わないなど）。<code>instanceLocation</code> はその operation の path</td><td><code>update --semantic</code></td></tr>
 <tr><td><code>hash_mismatch</code></td><td>書く直前（ロックの中）に、最初に読んだときからファイルのハッシュが変わっていた（D3）。書かない</td><td>同じコマンドの打ち直し</td></tr>
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>update --semantic</code></td></tr>
-<tr><td><code>answer_mismatch</code></td><td>answer の rule と instance location の組が procedure と違う（V2）</td><td><code>validate --semantic</code></td></tr>
+<tr><td><code>response_mismatch</code></td><td>response の rule と instance location の組が prompt と違う（V2）</td><td><code>validate --semantic</code></td></tr>
 <tr><td><code>template_missing</code> ・ <code>out_overlap</code></td><td><code>x-view</code> のテンプレートが無い（S5）・ <code>--out</code> が入力と重なる</td><td>同じコマンド</td></tr>
 <tr><td><code>log_unavailable</code> ・ <code>log_locked</code></td><td>Git のリポジトリの外 ・ 表の形の版が違う ・ ロックが取れない</td><td>同じコマンド（版が違うときは instruction が records.sqlite の削除を示す）</td></tr>
 </table></div>
-<h3>violated の judgment があるときの validation</h3>
-<p>validation のログイベントは error ではないが、violated の judgment があるときは <code>instruction</code> と <code>next</code> を付ける。<code>instruction</code> は違反の instance location を直すよう示し、<code>next</code> は <code>update &lt;path&gt; --schemas … --patch '&lt;violated の instance location を直す JSON Patch&gt;'</code>。機械的な検証の違反は位置と理由が分かっているので、AI が JSON Patch で直接直せば1回で済む。AI の judgment の violated の next は、意味的な検証のユースケースで決める。</p>
+<h3>violated の judgment があるときの validated</h3>
+<p>validated のログイベントは rejected ではないが、violated の judgment があるときは <code>instruction</code> と <code>next</code> を付ける。<code>instruction</code> は違反の instance location を直すよう示し、<code>next</code> は <code>update &lt;path&gt; --schemas … --patch '&lt;violated の instance location を直す JSON Patch&gt;'</code>。機械的な検証の違反は位置と理由が分かっているので、AI が JSON Patch で直接直せば1回で済む。AI の judgment の violated の next は、意味的な検証のユースケースで決める。</p>
 </section>
 
 <section><h2><span class="n">6</span>操作の記録</h2>
@@ -173,16 +185,16 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <ul>
 <li>どの表も追記だけ。UPDATE と DELETE は trigger で拒否する</li>
 <li>ID は INTEGER の主キー。ビューでは <code>command</code> と組にして指す（<code>--operation &lt;command&gt;:&lt;id&gt;</code>）</li>
-<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。最初に読んだときのハッシュと同じか）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、error のときはファイルも操作の記録も変わらない</li>
+<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。最初に読んだときのハッシュと同じか）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、rejected のときはファイルも操作の記録も変わらない</li>
 <li>表の形の版（<code>user_version</code>）が違えば開かず、<code>log_unavailable</code> で records.sqlite の削除を示す。前の版との互換は作らない</li>
 </ul>
 </section>
 
 <section><h2><span class="n">7</span>処理の流れ</h2>
 <div class="fig">{{flow}}</div>
-<p class="cap">1回の流れ。入力の検証で違反なら error、通過すればドメインモデルで検証し、意味的な検証なら procedure を返す。</p>
+<p class="cap">1回の流れ。入力の検証で違反なら rejected、通過すればドメインモデルで検証し、意味的な検証なら prompt を返す。</p>
 <div class="fig">{{flow-semantic}}</div>
-<p class="cap">UC2 の procedure による更新から、UC4 の意味的な検証まで。</p>
+<p class="cap">UC2 の prompt による更新から、UC4 の意味的な検証まで。</p>
 <div class="fig">{{flow-error}}</div>
 <p class="cap">エラーのとき：AI は <code>instruction</code> に従い、<code>next</code> を実行する。</p>
 </section>
@@ -196,7 +208,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>ポート</td><td>interface は使う側の <code>ports.go</code> に置く。アダプターは具体の型を返す。代役のための interface を作らない</td><td>CodeReviewComments L652–659</td></tr>
 <tr><td>値オブジェクト</td><td>型は非公開にし、外へは作る関数と interface だけを出す。interface は非公開のメソッドを1つ持つ。作る関数は不変条件を検証し、違反ならエラーを返す</td><td>空の値で不変条件をすり抜けさせない</td></tr>
 <tr><td>区分</td><td>閉じた一覧（verdict など）は、非公開の名前付きの型（string）と公開の定数。網羅は <code>architecture_test.go</code> が <code>checker.Analyze</code> で <code>exhaustive.Analyzer</code> を走らせて確かめる（<code>-d</code> は付けない）</td><td>enumerated/doc.go L5–19、exhaustive/doc.go L17–20</td></tr>
-<tr><td>エラー</td><td>違反は domain の値として返し、panic しない。AI への文は error の <code>message</code> ・ <code>instruction</code> に書く。Go の <code>error</code> の文は小文字で始め、句点で終えない</td><td>Go Proverbs L28 ・ L32、CodeReviewComments L531</td></tr>
+<tr><td>エラー</td><td>違反は domain の値として返し、panic しない。AI への文は rejected の <code>message</code> ・ <code>instruction</code> に書く。Go の <code>error</code> の文は小文字で始め、句点で終えない</td><td>Go Proverbs L28 ・ L32、CodeReviewComments L531</td></tr>
 <tr><td>JSON の数</td><td><code>jsonschema.UnmarshalJSON</code> で読み、<code>json.Number</code> のまま持つ。ハッシュはファイルのバイト列から求める</td><td>loader.go L252–257</td></tr>
 <tr><td>不完全なファイルを残さない</td><td>同じディレクトリに <code>os.CreateTemp</code> で書き、<code>os.Rename</code> で置き換える。作成も更新も、2文字の字下げと末尾の改行にそろえて書き、ハッシュは書いたバイト列から求める</td><td><code>go doc os.Rename</code>（Unix 以外では不可分でないので、対象は Linux と macOS）</td></tr>
 <tr><td>ファイルの名前</td><td>application は <code>usecase_&lt;名前&gt;.go</code> と <code>ports.go</code>。domain とアダプターは扱う内容の名前（document.go など）</td><td>UC とファイルが1対1になり、対応表を機械で作れる</td></tr>
@@ -210,7 +222,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>決まり</th><th>内容</th></tr>
 <tr><td>試験の名前</td><td>振る舞いの名前で書く（例：<code>TestUpdateRejectsChangedFileBeforeWrite</code> ・ <code>TestValidateReturnsNextForViolatedJudgment</code>）</td></tr>
 <tr><td>期待値</td><td>実装より先に、ページの振る舞いから書く。出力から写さない。ハッシュは試験の中でバイト列から求める</td></tr>
-<tr><td>比べ方</td><td>出力は JSON Pointer と値の組で比べ、差は <code>cmp.Diff</code> で出す。<code>message</code> の文は比べない。全部の出力を <code>event.schema.json</code>（procedure は <code>procedure.schema.json</code>）で検証する</td></tr>
+<tr><td>比べ方</td><td>出力は JSON Pointer と値の組で比べ、差は <code>cmp.Diff</code> で出す。<code>message</code> の文は比べない。全部の出力を <code>event.schema.json</code>（prompt は <code>prompt.schema.json</code>）で検証する</td></tr>
 <tr><td>環境</td><td>試験ごとに新しい一時ディレクトリで <code>git init</code> し、本物のアダプター（一時ファイルの SQLite）を使う。子プロセスの環境は空から作る</td></tr>
 <tr><td>試験の入口</td><td>バイナリと application の手続きと、domain の公開の関数から実行する。非公開の関数を直に試さない</td></tr>
 <tr><td>レベル</td><td>domain はコンポーネントテスト（変更点の求め方はデシジョンテーブル、値オブジェクトとバリデーターは同値分割法）。application とアダプターはコンポーネント統合テスト。ユースケースの拡張1つを1場面にするシステムテスト</td></tr>
@@ -219,7 +231,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>条件</th><th>測り方</th><th>合格</th></tr>
 <tr><td>1 独立した書き起こし</td><td>コードだけを渡した新しい Agent が振る舞いを書き起こし、作成者の会話を引き継がない別の Agent が、2枚のページの振る舞いと比べる（無い ・ 余分 ・ 違う）。2回行う</td><td>2回とも0件</td></tr>
-<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。<code>x-decided-by: human</code> の値は、人の役としてファイルを直接書いて決め、そのあと検証する</td><td>人の助け無しで終える。error と violated の validation では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
+<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。<code>x-decided-by: human</code> の値は、人の役としてファイルを直接書いて決め、そのあと検証する</td><td>人の助け無しで終える。rejected と violated の validated では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
 <tr><td>3 振る舞い</td><td>試験を全部実行する。<code>go vet</code> ・ <code>gofmt -l</code> ・ <code>architecture_test.go</code> ・ exhaustive も含む。<code>deadcode ./cmd/semantic-agent-schema</code>（<code>-test</code> を付けない）</td><td>全部通る。main から届かない関数が0件</td></tr>
 </table></div>
 </section>

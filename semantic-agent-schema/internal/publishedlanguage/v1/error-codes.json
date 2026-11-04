@@ -1,5 +1,5 @@
 {
-  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（create は --semantic の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{schemas} は --schemas の並び、{schemaId} は受け取った --schema-id、{range} は --range の並びに置き換わる。violated は、violated の judgment がある validation のログイベントの instruction と next。procedure は procedure の next、change は書く操作の change のログイベントの next。",
+  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（create と update は --semantic の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{schemas} は --schemas の並び、{schemaId} は受け取った --schema-id、{range} は --range の並びに置き換わる。violated は、violated の judgment がある validated のログイベントの instruction と next。prompt は *_requested のログイベントの prompt の next。created と updated は、そのログイベントの next。",
   "codes": {
     "arguments_invalid": {
       "instruction": "引数が引数の形に違反している（instance location：{instanceLocation}、{message}）。引数を直して、もう一度実行する",
@@ -68,7 +68,7 @@
       }
     },
     "file_exists": {
-      "instruction": "{path} は既にある。書き換えるなら、update で更新の procedure を依頼する",
+      "instruction": "{path} は既にある。書き換えるなら、update で更新の prompt を依頼する",
       "next": {
         "create --semantic": "semantic-agent-schema update {path} {schemas} --semantic",
         "create": "semantic-agent-schema update {path} {schemas} --semantic"
@@ -135,15 +135,19 @@
       "validate": "semantic-agent-schema update {path} {schemas} --patch '<violated の instance location を直す JSON Patch>'"
     }
   },
-  "procedure": {
+  "prompt": {
     "next": {
-      "create --semantic": "semantic-agent-schema create {paths} {schemas} --value '<answer の形に従う JSON ドキュメント>'",
-      "update --semantic": "semantic-agent-schema update {path} {schemas} --patch '<answer の形に従う JSON Patch>'{range}"
+      "create --semantic": "semantic-agent-schema create {paths} {schemas} --value '<response の形に従う JSON ドキュメント>'",
+      "update --semantic": "semantic-agent-schema update {path} {schemas} --patch '<response の形に従う JSON Patch>'{range}"
     }
   },
-  "change": {
+  "created": {
     "next": {
-      "create": "semantic-agent-schema validate {path} {schemas} --semantic",
+      "create": "semantic-agent-schema validate {path} {schemas} --semantic"
+    }
+  },
+  "updated": {
+    "next": {
       "update": "semantic-agent-schema validate {path} {schemas} --semantic"
     }
   }

@@ -285,23 +285,23 @@ const memo = `{"$id": "urn:example:memo:v1", "title": "メモ", "properties": {
 	"status": {"enum": ["draft", "approved"], "default": "draft", "x-decided-by": "human"},
 	"owner": {"type": "string", "x-decided-by": "human"}}}`
 
-func TestNewCreateProcedureMakesStepsFromProperties(t *testing.T) {
+func TestNewCreatePromptMakesStepsFromProperties(t *testing.T) {
 	t.Parallel()
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	p := domain.NewCreateProcedure(path, concrete(t, memo))
+	p := domain.NewCreatePrompt(path, concrete(t, memo))
 	var got []string
 	for _, step := range p.Steps() {
 		got = append(got, step.KeywordLocation.String()+" "+step.Title)
 	}
 	want := []string{" メモ", "/properties/items/items 品", "/properties/title 題名"}
 	if !slices.Equal(got, want) {
-		t.Errorf("NewCreateProcedure(memo).Steps() = %q, want %q", got, want)
+		t.Errorf("NewCreatePrompt(memo).Steps() = %q, want %q", got, want)
 	}
-	if p.AnswerSchemaID() != "urn:example:memo:v1" || p.Path().String() != "memo.json" {
-		t.Errorf("NewCreateProcedure(memo) = %s, %s, want urn:example:memo:v1, memo.json", p.AnswerSchemaID(), p.Path())
+	if p.ResponseSchemaID() != "urn:example:memo:v1" || p.Path().String() != "memo.json" {
+		t.Errorf("NewCreatePrompt(memo) = %s, %s, want urn:example:memo:v1, memo.json", p.ResponseSchemaID(), p.Path())
 	}
 }
 
@@ -455,7 +455,7 @@ func TestMatchHashRejectsChangeAfterRead(t *testing.T) {
 	}
 }
 
-func TestNewUpdateProcedureMakesStepsFromInstanceLocations(t *testing.T) {
+func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 	t.Parallel()
 	content := []byte(`{"title": "t", "items": [{"checked": false}, {}]}`)
 	value, err := domain.ParseJSON(content)
@@ -467,16 +467,16 @@ func TestNewUpdateProcedureMakesStepsFromInstanceLocations(t *testing.T) {
 		t.Fatalf("NewPath = %v", err)
 	}
 	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
-	p := domain.NewUpdateProcedure(document, value, concrete(t, memo), "urn:patch")
+	p := domain.NewUpdatePrompt(document, value, concrete(t, memo), "urn:patch")
 	var got []string
 	for _, step := range p.Steps() {
 		got = append(got, step.InstanceLocation.String()+" "+step.Title)
 	}
 	want := []string{" メモ", "/items/0 品", "/items/1 品", "/title 題名"}
 	if !slices.Equal(got, want) {
-		t.Errorf("NewUpdateProcedure(memo).Steps() = %q, want %q", got, want)
+		t.Errorf("NewUpdatePrompt(memo).Steps() = %q, want %q", got, want)
 	}
-	if p.AnswerSchemaID() != "urn:patch" {
-		t.Errorf("NewUpdateProcedure(memo).AnswerSchemaID() = %s, want urn:patch", p.AnswerSchemaID())
+	if p.ResponseSchemaID() != "urn:patch" {
+		t.Errorf("NewUpdatePrompt(memo).ResponseSchemaID() = %s, want urn:patch", p.ResponseSchemaID())
 	}
 }

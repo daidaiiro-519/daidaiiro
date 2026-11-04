@@ -2,19 +2,25 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:semantic-agent-schema:event:v1",
   "title": "ログイベント",
-  "description": "コマンドが返す JSON の1行。読むのは AI。",
+  "description": "コマンドが返す JSON の1行。読むのは AI。event は、ユースケースで起きたことの過去形",
   "oneOf": [
     {
-      "$ref": "urn:semantic-agent-schema:procedure:v1"
+      "$ref": "#/$defs/generation_requested"
     },
     {
-      "$ref": "#/$defs/change"
+      "$ref": "#/$defs/update_requested"
     },
     {
-      "$ref": "#/$defs/validation"
+      "$ref": "#/$defs/created"
     },
     {
-      "$ref": "#/$defs/error"
+      "$ref": "#/$defs/updated"
+    },
+    {
+      "$ref": "#/$defs/validated"
+    },
+    {
+      "$ref": "#/$defs/rejected"
     }
   ],
   "$defs": {
@@ -28,8 +34,120 @@
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
-    "validation": {
-      "description": "検証の、JSON ドキュメント1つの結果",
+    "generation_requested": {
+      "description": "作成の prompt を返した",
+      "type": "object",
+      "required": [
+        "event",
+        "prompt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "generation_requested"
+        },
+        "prompt": {
+          "$ref": "urn:semantic-agent-schema:prompt:v1"
+        }
+      }
+    },
+    "update_requested": {
+      "description": "更新の prompt を返した",
+      "type": "object",
+      "required": [
+        "event",
+        "prompt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "update_requested"
+        },
+        "prompt": {
+          "$ref": "urn:semantic-agent-schema:prompt:v1"
+        }
+      }
+    },
+    "created": {
+      "description": "作成で JSON ドキュメントを書いた",
+      "type": "object",
+      "required": [
+        "event",
+        "id",
+        "path",
+        "schemaId",
+        "contentHash",
+        "next"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "created"
+        },
+        "id": {
+          "description": "操作の ID",
+          "type": "integer",
+          "minimum": 1
+        },
+        "path": {
+          "type": "string"
+        },
+        "schemaId": {
+          "description": "従う Concrete（Concrete なら Abstract）の $id",
+          "type": "string"
+        },
+        "contentHash": {
+          "description": "書いた後の内容のハッシュ",
+          "$ref": "#/$defs/hash"
+        },
+        "next": {
+          "description": "書いたあとの次のアクション：意味的な検証の依頼。AI が埋める部分だけを <…> で空けておく",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "updated": {
+      "description": "更新で JSON ドキュメントを書いた",
+      "type": "object",
+      "required": [
+        "event",
+        "id",
+        "path",
+        "schemaId",
+        "contentHash",
+        "next"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "updated"
+        },
+        "id": {
+          "description": "操作の ID",
+          "type": "integer",
+          "minimum": 1
+        },
+        "path": {
+          "type": "string"
+        },
+        "schemaId": {
+          "description": "従う Concrete（Concrete なら Abstract）の $id",
+          "type": "string"
+        },
+        "contentHash": {
+          "description": "書いた後の内容のハッシュ",
+          "$ref": "#/$defs/hash"
+        },
+        "next": {
+          "description": "書いたあとの次のアクション：意味的な検証の依頼。AI が埋める部分だけを <…> で空けておく",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "validated": {
+      "description": "検証した。JSON ドキュメント1つの結果",
       "type": "object",
       "required": [
         "event",
@@ -43,7 +161,7 @@
       "additionalProperties": false,
       "properties": {
         "event": {
-          "const": "validation"
+          "const": "validated"
         },
         "id": {
           "description": "操作の ID",
@@ -177,8 +295,8 @@
         }
       }
     },
-    "error": {
-      "description": "違反を伝えるログイベント。AI は instruction に従い、next を実行する",
+    "rejected": {
+      "description": "違反を伝えるログイベント。理由は code。AI は instruction に従い、next を実行する",
       "type": "object",
       "required": [
         "event",
@@ -190,7 +308,7 @@
       "additionalProperties": false,
       "properties": {
         "event": {
-          "const": "error"
+          "const": "rejected"
         },
         "code": {
           "enum": [
@@ -228,52 +346,6 @@
         "next": {
           "description": "次に実行するコマンド行。AI が埋める部分だけを <…> で空けておく",
           "type": "string"
-        }
-      }
-    },
-    "change": {
-      "description": "書く操作（作成か更新）の、JSON ドキュメント1つの結果",
-      "type": "object",
-      "required": [
-        "event",
-        "id",
-        "command",
-        "path",
-        "schemaId",
-        "contentHash",
-        "next"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "event": {
-          "const": "change"
-        },
-        "id": {
-          "description": "操作の ID",
-          "type": "integer",
-          "minimum": 1
-        },
-        "command": {
-          "enum": [
-            "create",
-            "update"
-          ]
-        },
-        "path": {
-          "type": "string"
-        },
-        "schemaId": {
-          "description": "従う Concrete（Concrete なら Abstract）の $id",
-          "type": "string"
-        },
-        "contentHash": {
-          "description": "書いた後の内容のハッシュ",
-          "$ref": "#/$defs/hash"
-        },
-        "next": {
-          "description": "書いたあとの次のアクション：意味的な検証の依頼。AI が埋める部分だけを <…> で空けておく",
-          "type": "string",
-          "minLength": 1
         }
       }
     }

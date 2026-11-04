@@ -13,12 +13,13 @@ import (
 
 // output は、ログイベントを JSON の1行ずつ書く。instruction と next は error-codes.json の定型に値を入れて作る。
 type output struct {
-	encoder       *json.Encoder
-	failed        bool
-	codes         map[string]template
-	violated      template
-	procedureNext template
-	changeNext    template
+	encoder     *json.Encoder
+	failed      bool
+	codes       map[string]template
+	violated    template
+	promptNext  template
+	createdNext template
+	updatedNext template
 }
 
 // template は、error-codes.json の instruction の定型文と、コマンドごとの next の形。
@@ -47,17 +48,18 @@ func newOutput(w io.Writer) (*output, error) {
 		return nil, err
 	}
 	var file struct {
-		Codes     map[string]template `json:"codes"`
-		Violated  template            `json:"violated"`
-		Procedure template            `json:"procedure"`
-		Change    template            `json:"change"`
+		Codes    map[string]template `json:"codes"`
+		Violated template            `json:"violated"`
+		Prompt   template            `json:"prompt"`
+		Created  template            `json:"created"`
+		Updated  template            `json:"updated"`
 	}
 	if err := json.Unmarshal(content, &file); err != nil {
 		return nil, err
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	return &output{encoder: encoder, codes: file.Codes, violated: file.Violated, procedureNext: file.Procedure, changeNext: file.Change}, nil
+	return &output{encoder: encoder, codes: file.Codes, violated: file.Violated, promptNext: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
 }
 
 func (o *output) exit() int {
@@ -67,7 +69,7 @@ func (o *output) exit() int {
 	return 0
 }
 
-type errorEvent struct {
+type rejectedEvent struct {
 	Event                   string `json:"event"`
 	Code                    string `json:"code"`
 	InstanceLocation        string `json:"instanceLocation"`
@@ -77,7 +79,7 @@ type errorEvent struct {
 	Next                    string `json:"next"`
 }
 
-// failures は、err を errors.Join の葉に分け、Failure ごとに error のログイベントを書く。
+// failures は、err を errors.Join の葉に分け、Failure ごとに rejected のログイベントを書く。
 // Failure でない error と、書けなかった error を返す。
 func (o *output) failures(args arguments, err error) error {
 	o.failed = true
@@ -93,8 +95,8 @@ func (o *output) failures(args arguments, err error) error {
 		values["{absoluteKeywordLocation}"] = f.AbsoluteKeywordLocation
 		values["{message}"] = f.Message
 		t := o.codes[string(f.Code)]
-		if err := o.encoder.Encode(errorEvent{
-			Event: "error", Code: string(f.Code), InstanceLocation: f.InstanceLocation,
+		if err := o.encoder.Encode(rejectedEvent{
+			Event: "rejected", Code: string(f.Code), InstanceLocation: f.InstanceLocation,
 			AbsoluteKeywordLocation: f.AbsoluteKeywordLocation, Message: f.Message,
 			Instruction: replace(t.Instruction, values), Next: replace(t.next(args), values),
 		}); err != nil {
@@ -162,7 +164,7 @@ type countsEvent struct {
 	NotJudged  int `json:"not-judged"`
 }
 
-type validationEvent struct {
+type validatedEvent struct {
 	Event       string          `json:"event"`
 	ID          int64           `json:"id"`
 	Path        string          `json:"path"`
@@ -174,11 +176,11 @@ type validationEvent struct {
 	Next        string          `json:"next,omitempty"`
 }
 
-// validation は、検証のログイベントを書く。violated の judgment があれば、instruction と next を付け、終了コードを 1 にする。
+// validation は、validated のログイベントを書く。violated の judgment があれば、instruction と next を付け、終了コードを 1 にする。
 func (o *output) validation(args arguments, id int64, v *domain.Validation) error {
 	counts := v.Counts()
-	event := validationEvent{
-		Event: "validation", ID: id, Path: v.Document().Path.String(),
+	event := validatedEvent{
+		Event: "validated", ID: id, Path: v.Document().Path.String(),
 		SchemaID: v.Concrete().ID(), ContentHash: v.Document().Hash.String(),
 		Counts: countsEvent{
 			Verified: counts.Verified, Violated: counts.Violated,
@@ -211,27 +213,31 @@ type stepEvent struct {
 	InstanceLocation *string        `json:"instanceLocation,omitempty"`
 	Title            string         `json:"title,omitempty"`
 	Description      string         `json:"description,omitempty"`
-	Prompt           map[string]any `json:"x-prompt,omitempty"`
+	XPrompt          map[string]any `json:"x-prompt,omitempty"`
 }
 
-type procedureEvent struct {
-	Event   string            `json:"event"`
-	Command string            `json:"command"`
-	Path    string            `json:"path"`
-	Steps   []stepEvent       `json:"steps"`
-	Answer  map[string]string `json:"answer"`
-	Next    string            `json:"next"`
+type promptEvent struct {
+	Path     string            `json:"path"`
+	Steps    []stepEvent       `json:"steps"`
+	Response map[string]string `json:"response"`
+	Next     string            `json:"next"`
 }
 
-// procedure は、procedure のログイベントを書く。next は error-codes.json の procedure の形に、受け取った引数を入れて作る。
-func (o *output) procedure(args arguments, p domain.Procedure) error {
-	event := procedureEvent{
-		Event: "procedure", Command: string(p.Command()), Path: p.Path().String(), Steps: []stepEvent{},
-		Answer: map[string]string{"$ref": p.AnswerSchemaID()},
+type requestedEvent struct {
+	Event  string      `json:"event"`
+	Prompt promptEvent `json:"prompt"`
+}
+
+// requested は、prompt を持つログイベント（作成なら generation_requested、更新なら update_requested）を書く。
+// prompt の next は、error-codes.json の prompt の形に、受け取った引数を入れて作る。
+func (o *output) requested(args arguments, p domain.Prompt) error {
+	prompt := promptEvent{
+		Path: p.Path().String(), Steps: []stepEvent{},
+		Response: map[string]string{"$ref": p.ResponseSchemaID()},
+		Next:     replace(o.promptNext.next(args), fill(args, p.Path().String())),
 	}
-	event.Next = replace(o.procedureNext.next(args), fill(args, p.Path().String()))
 	for _, step := range p.Steps() {
-		e := stepEvent{Title: step.Title, Description: step.Description, Prompt: step.Prompt}
+		e := stepEvent{Title: step.Title, Description: step.Description, XPrompt: step.XPrompt}
 		if step.KeywordLocation != nil {
 			e.KeywordLocation = "#" + step.KeywordLocation.String()
 		}
@@ -239,29 +245,42 @@ func (o *output) procedure(args arguments, p domain.Procedure) error {
 			location := step.InstanceLocation.String()
 			e.InstanceLocation = &location
 		}
-		event.Steps = append(event.Steps, e)
+		prompt.Steps = append(prompt.Steps, e)
 	}
-	return o.encoder.Encode(event)
+	var event string
+	switch p.Command() {
+	case domain.CreateCommand:
+		event = "generation_requested"
+	case domain.UpdateCommand:
+		event = "update_requested"
+	}
+	return o.encoder.Encode(requestedEvent{Event: event, Prompt: prompt})
 }
 
-type changeEvent struct {
+type writtenEvent struct {
 	Event       string `json:"event"`
 	ID          int64  `json:"id"`
-	Command     string `json:"command"`
 	Path        string `json:"path"`
 	SchemaID    string `json:"schemaId"`
 	ContentHash string `json:"contentHash"`
 	Next        string `json:"next"`
 }
 
-// change は、書く操作（作成か更新）の change のログイベントを書く。next は、作ったあとの次のアクション（意味的な検証の依頼）。
-func (o *output) change(args arguments, id int64, c *domain.Write) error {
-	path := c.Document().Path.String()
-	return o.encoder.Encode(changeEvent{
-		Event: "change", ID: id, Command: string(c.Command()),
-		Path: path, SchemaID: c.Concrete().ID(), ContentHash: c.Document().Hash.String(),
-		Next: replace(o.changeNext.next(args), fill(args, path)),
-	})
+// written は、書く操作のログイベント（作成なら created、更新なら updated）を書く。next は、書いたあとの次のアクション（意味的な検証の依頼）。
+func (o *output) written(args arguments, id int64, w *domain.Write) error {
+	path := w.Document().Path.String()
+	event := writtenEvent{
+		ID: id, Path: path, SchemaID: w.Concrete().ID(), ContentHash: w.Document().Hash.String(),
+	}
+	switch w.Command() {
+	case domain.CreateCommand:
+		event.Event = "created"
+		event.Next = replace(o.createdNext.next(args), fill(args, path))
+	case domain.UpdateCommand:
+		event.Event = "updated"
+		event.Next = replace(o.updatedNext.next(args), fill(args, path))
+	}
+	return o.encoder.Encode(event)
 }
 
 var plain = regexp.MustCompile(`^[A-Za-z0-9_./:@%+=,-]+$`)

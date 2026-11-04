@@ -68,7 +68,7 @@ func broken(stderr io.Writer, err error) int {
 	return 1
 }
 
-// run は、ログイベントを書けないときだけ error を返す。ほかの error は、error のログイベントにする。
+// run は、ログイベントを書けないときだけ error を返す。ほかの error は、rejected のログイベントにする。
 func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wiring) error {
 	parsed, err := parse(ctx, args, w.Arguments)
 	if err != nil {
@@ -111,7 +111,7 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	flags.SetOutput(io.Discard)
 	flags.SetInterspersed(true)
 	schemas := flags.StringArray("schemas", nil, "Concrete を探すディレクトリ（繰り返せる）")
-	semantic := flags.Bool("semantic", false, "procedure を依頼する")
+	semantic := flags.Bool("semantic", false, "prompt を依頼する")
 	schemaID := flags.String("schema-id", "", "作る JSON ドキュメントが従う Concrete の $id")
 	value := flags.String("value", "", "JSON ドキュメント。- なら標準入力から読む")
 	patch := flags.String("patch", "", "JSON Patch。- なら標準入力から読む")
@@ -157,11 +157,11 @@ func valueOf(value string, stdin io.Reader) ([]byte, error) {
 func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges []domain.Path, content []byte, out *output) error {
 	switch {
 	case args.Command == "update" && args.Semantic:
-		procedure, err := uc.Update.Procedure(ctx, paths[0])
+		prompt, err := uc.Update.Prompt(ctx, paths[0])
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.procedure(args, procedure)
+		return out.requested(args, prompt)
 	case args.Command == "update":
 		id, write, err := uc.Update.Run(ctx, application.UpdateInput{
 			Path: paths[0], Patch: content, Range: ranges,
@@ -169,19 +169,19 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.change(args, id, write)
+		return out.written(args, id, write)
 	case args.Command == "create" && args.Semantic:
-		procedure, err := uc.Create.Procedure(ctx, paths[0], args.SchemaID)
+		prompt, err := uc.Create.Prompt(ctx, paths[0], args.SchemaID)
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.procedure(args, procedure)
+		return out.requested(args, prompt)
 	case args.Command == "create":
 		id, creation, err := uc.Create.Run(ctx, paths[0], content)
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.change(args, id, creation)
+		return out.written(args, id, creation)
 	default:
 		for _, result := range uc.Validate.Run(ctx, paths) {
 			if result.Err != nil {

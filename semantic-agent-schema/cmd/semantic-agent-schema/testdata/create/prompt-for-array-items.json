@@ -1,0 +1,31 @@
+{
+  "title": "配列の要素のサブスキーマの x-prompt も、作成の prompt の step に keyword location で入る",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "order.json",
+        "--schemas",
+        "schemas",
+        "--semantic",
+        "--schema-id",
+        "urn:example:order:v1"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "generation_requested",
+          "/prompt/steps/0/keywordLocation": "#",
+          "/prompt/steps/0/title": "注文",
+          "/prompt/steps/1/keywordLocation": "#/properties/items/items/properties/price",
+          "/prompt/steps/1/x-prompt/rules/0/id": "price-tax"
+        }
+      ]
+    }
+  ]
+}

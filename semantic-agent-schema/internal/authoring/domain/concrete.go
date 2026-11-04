@@ -26,7 +26,7 @@ type Subschema struct {
 	KeywordLocation Pointer
 	Title           string
 	Description     string
-	Prompt          map[string]any // x-prompt。無ければ nil
+	XPrompt         map[string]any // x-prompt。無ければ nil
 }
 
 type schema struct {
@@ -94,9 +94,9 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 // （properties と items）だけをたどり、keyword location ごとにサブスキーマを集める。
 func walkStructure(subschema map[string]any, at []string, into *[]Subschema) {
 	sub := Subschema{KeywordLocation: PointerOf(at...)}
-	sub.Title, _ = subschema["title"].(string)             // 無ければ空
-	sub.Description, _ = subschema["description"].(string) // 無ければ空
-	sub.Prompt, _ = subschema["x-prompt"].(map[string]any) // 無ければ nil
+	sub.Title, _ = subschema["title"].(string)              // 無ければ空
+	sub.Description, _ = subschema["description"].(string)  // 無ければ空
+	sub.XPrompt, _ = subschema["x-prompt"].(map[string]any) // 無ければ nil
 	*into = append(*into, sub)
 	if properties, ok := subschema["properties"].(map[string]any); ok {
 		for _, name := range sortedNames(properties) {

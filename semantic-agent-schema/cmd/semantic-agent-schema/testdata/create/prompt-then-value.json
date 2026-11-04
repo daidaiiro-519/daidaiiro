@@ -1,5 +1,5 @@
 {
-  "title": "作成の procedure を依頼し、procedure に従って作った JSON ドキュメントを渡すと、2文字の字下げと末尾の改行にそろえて path に作り、 change を返す",
+  "title": "作成の prompt を依頼し、prompt に従って作った JSON ドキュメントを渡すと、2文字の字下げと末尾の改行にそろえて path に作り、 change を返す",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -19,12 +19,11 @@
       "exit": 0,
       "events": [
         {
-          "/command": "create",
-          "/path": "memo.json",
-          "/answer": {
+          "/prompt/path": "memo.json",
+          "/prompt/response": {
             "$ref": "urn:example:memo:v1"
           },
-          "/steps": [
+          "/prompt/steps": [
             {
               "keywordLocation": "#",
               "title": "メモ",
@@ -54,8 +53,8 @@
               }
             }
           ],
-          "/next": "semantic-agent-schema create memo.json --schemas schemas --value '<answer の形に従う JSON ドキュメント>'",
-          "/event": "procedure"
+          "/prompt/next": "semantic-agent-schema create memo.json --schemas schemas --value '<response の形に従う JSON ドキュメント>'",
+          "/event": "generation_requested"
         }
       ],
       "files": {
@@ -74,9 +73,8 @@
       "exit": 0,
       "events": [
         {
-          "/event": "change",
+          "/event": "created",
           "/id": 1,
-          "/command": "create",
           "/path": "memo.json",
           "/schemaId": "urn:example:memo:v1",
           "/contentHash": {
@@ -99,7 +97,7 @@
       "exit": 0,
       "events": [
         {
-          "/event": "validation",
+          "/event": "validated",
           "/counts/violated": 0
         }
       ]

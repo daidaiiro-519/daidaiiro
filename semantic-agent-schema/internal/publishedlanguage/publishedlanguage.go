@@ -22,7 +22,7 @@ var Schemas = []string{
 	"dialect.schema.json",
 	"arguments.schema.json",
 	"event.schema.json",
-	"procedure.schema.json",
+	"prompt.schema.json",
 	"patch.schema.json",
 }
 

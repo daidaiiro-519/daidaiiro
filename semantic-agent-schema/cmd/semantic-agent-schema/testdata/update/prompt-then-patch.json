@@ -1,5 +1,5 @@
 {
-  "title": "更新の procedure を依頼し、procedure に従って作った JSON Patch を 渡すと、2文字の字下げと末尾の改行にそろえて書き換え、 change を返す",
+  "title": "更新の prompt を依頼し、prompt に従って作った JSON Patch を 渡すと、2文字の字下げと末尾の改行にそろえて書き換え、 change を返す",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -21,13 +21,12 @@
       "exit": 0,
       "events": [
         {
-          "/event": "procedure",
-          "/command": "update",
-          "/path": "memo.json",
-          "/answer": {
+          "/event": "update_requested",
+          "/prompt/path": "memo.json",
+          "/prompt/response": {
             "$ref": "urn:semantic-agent-schema:patch:v1"
           },
-          "/steps": [
+          "/prompt/steps": [
             {
               "instanceLocation": "",
               "title": "メモ",
@@ -57,7 +56,7 @@
               }
             }
           ],
-          "/next": "semantic-agent-schema update memo.json --schemas schemas --patch '<answer の形に従う JSON Patch>'"
+          "/prompt/next": "semantic-agent-schema update memo.json --schemas schemas --patch '<response の形に従う JSON Patch>'"
         }
       ]
     },
@@ -73,9 +72,8 @@
       "exit": 0,
       "events": [
         {
-          "/event": "change",
+          "/event": "updated",
           "/id": 1,
-          "/command": "update",
           "/path": "memo.json",
           "/schemaId": "urn:example:memo:v1",
           "/contentHash": {
@@ -98,7 +96,7 @@
       "exit": 0,
       "events": [
         {
-          "/event": "validation",
+          "/event": "validated",
           "/counts/violated": 0
         }
       ]

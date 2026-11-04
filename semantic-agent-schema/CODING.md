@@ -153,7 +153,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K70 | 値オブジェクトの型は非公開にし、外へは作る関数と interface だけを出す | このプロジェクト | 具体のページ 8節「値オブジェクト」 | |
 | K71 | 値オブジェクトの interface は、非公開のメソッドを1つ持つ | このプロジェクト | 具体のページ 8節「値オブジェクト」 | |
 | K72 | 作る関数は不変条件を検証し、違反なら `error` を返す | このプロジェクト | 具体のページ 8節「値オブジェクト」 | |
-| K73 | 抽象のページ 7節の値オブジェクト（path ・ ハッシュ ・ JSON Pointer ・ change ・ Concrete ・ rule ・ judgment ・ procedure）は、K70〜K72 の形で作る | このプロジェクト | 抽象のページ 7節「値オブジェクト」 | |
+| K73 | 抽象のページ 7節の値オブジェクト（path ・ ハッシュ ・ JSON Pointer ・ change ・ Concrete ・ rule ・ judgment ・ prompt）は、K70〜K72 の形で作る | このプロジェクト | 抽象のページ 7節「値オブジェクト」 | |
 | K74 | 不変条件を持たない型（verdict ごとの件数など）は、空の値でそのまま使える形にする | Go 公式 | go-proverbs.github.io L18 | Make the zero value useful. |
 | K75 | domain は、JSON Schema で書けない不変条件だけを持つ。JSON Schema で書ける検証を domain に書かない | このプロジェクト | 抽象のページ 7節 ・ 本質 `W5` ・ `W10` | |
 | K76 | ほかの package の構造体の値は、フィールドの名前を書いて作る | Go 公式 | go1compat.html L94–95 | We therefore recommend that composite literals whose type is defined in a separate package should use the keyed notation. |
@@ -318,7 +318,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | T62 | システムテストは、UC の主成功シナリオか拡張1つを1場面にする | このプロジェクト | 具体のページ 9節「レベル」 | |
 | T63 | 場面は、`cmd/semantic-agent-schema/testdata/` の JSON のファイル1つに1場面で書く | このプロジェクト | 具体のページ 9節「レベル」 ・ T03 | |
 | T64 | 場面の各ステップで、終了コード ・ 出力の行の数 ・ 行ごとの JSON Pointer と値の組を比べる | このプロジェクト | 具体のページ 4節 ・ 9節「比べ方」 | |
-| T65 | 全部の出力を `event.schema.json` で検証する。procedure は `procedure.schema.json` で検証する | このプロジェクト | 具体のページ 9節「比べ方」 | |
+| T65 | 全部の出力を `event.schema.json` で検証する。`*_requested` のログイベントの prompt は、そこから参照する `prompt.schema.json` で検証する | このプロジェクト | 具体のページ 9節「比べ方」 | |
 | T66 | バイナリは `TestMain` で1回だけビルドする。`TestMain` はシステムテストの package だけで使う | Go 公式 | testing.go L394–395 | TestMain is a low-level primitive and should not be necessary for casual // testing needs, where ordinary test functions suffice. |
 
 ### 3.10 完成の条件
@@ -334,8 +334,8 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
 | L01 | 出力はすべてログイベントにし、標準出力へ JSON を1行に1つ書く。読むのは AI | このプロジェクト | 抽象のページ 9節 ・ 本質 `W5` | |
-| L02 | ログイベントの形は `event.schema.json` が決める。Go の構造体の JSON のキーは、その形と同じにする | このプロジェクト | 具体のページ 5節 | |
-| L03 | error のログイベントは、`code` ・ `instanceLocation` ・ `absoluteKeywordLocation` ・ `message` ・ `instruction` ・ `next` を持つ | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |
+| L02 | ログイベントの形は `event.schema.json` が決める。Go の構造体の JSON のキーは、その形と同じにする。event の名前は、ユースケースで起きたことの過去形（`generation_requested` ・ `created` ・ `update_requested` ・ `updated` ・ `validated` ・ `rejected`）。prompt は `*_requested` のログイベントの `prompt` の欄に入れる | このプロジェクト | 具体のページ 5節 | |
+| L03 | rejected のログイベント（理由は code）は、`code` ・ `instanceLocation` ・ `absoluteKeywordLocation` ・ `message` ・ `instruction` ・ `next` を持つ | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |
 | L04 | `code` は、`error-codes.json` のキーの名前だけを使う | このプロジェクト | 具体のページ 5節 | |
 | L05 | `instruction` の定型文と `next` の形は `error-codes.json` に置き、Go のコードに文を書かない | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
 | L06 | Go のコードは、定型の `{…}`（`{instanceLocation}` ・ `{absoluteKeywordLocation}` ・ `{message}` ・ `{path}` ・ `{command}` ・ `{paths}` ・ `{schemas}` ・ `{schemaId}` ・ `{range}`）を埋めるだけにする | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
@@ -369,6 +369,6 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | rule | `Rule` |
 | 前回の検証 | `Previous` |
 | change | `Change` |
-| procedure | `Procedure` |
-| answer ・ next | `Answer` ・ `Next` |
+| prompt（コマンドが x-prompt から組んで AI に返すもの。スキーマの側の語 x-prompt とは混ぜない） | `Prompt` |
+| response ・ next（AI が prompt に従って作り、コマンドへ渡すもの ・ 次に実行するコマンド行） | `Response` ・ `Next` |
 | code ・ message ・ 指示 | `code` ・ `Message` ・ `Instruction` |

@@ -8,7 +8,7 @@ import (
 )
 
 // Create は、ユースケース「作成」。Concrete に従うインスタンス（または Abstract に従う Concrete）を、渡した path に作る。
-// 各ステップの担保：引数は機械的な検証（JSON Schema）、作成の procedure は意味的な検証（ドメインモデル）、
+// 各ステップの担保：引数は機械的な検証（JSON Schema）、作成の prompt は意味的な検証（ドメインモデル）、
 // 生成は AI、JSON ドキュメントの形と値は機械的な検証（JSON Schema）、x-decided-by: human の値と作法は
 // 機械的な検証（ドメインモデル）、ファイルを書くことと操作の記録への追記は処理（アダプター）。
 type Create struct {
@@ -19,14 +19,14 @@ type Create struct {
 	AbstractID string // Abstract の $id。Abstract に従う Concrete を作るときは、作法も確かめる
 }
 
-// Procedure は、Concrete の x-prompt から作成の procedure を作って返す。
+// Prompt は、Concrete の x-prompt から作成の prompt を作って返す。
 // $id の Concrete が schemas に無いか2つあれば、その error を返す。
-func (u Create) Procedure(ctx context.Context, path domain.Path, schemaID string) (domain.Procedure, error) {
+func (u Create) Prompt(ctx context.Context, path domain.Path, schemaID string) (domain.Prompt, error) {
 	concrete, err := u.Schemas.Lookup(ctx, schemaID)
 	if err != nil {
 		return nil, at(path, err)
 	}
-	return domain.NewCreateProcedure(path, concrete), nil
+	return domain.NewCreatePrompt(path, concrete), nil
 }
 
 // Run は、AI が渡した JSON ドキュメントを検証し、path に書いて change を操作の記録に追記し、操作の ID と作成を返す。

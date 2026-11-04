@@ -1,5 +1,5 @@
 {
-  "title": "Concrete を更新するときは --range が要り、範囲のインスタンスがこの Concrete に従っていないか新しい Concrete に違反すると error を返し、満たせば書き換える",
+  "title": "Concrete を更新するときは --range が要り、範囲のインスタンスがこの Concrete に従っていないか新しい Concrete に違反すると rejected を返し、満たせば書き換える",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -26,7 +26,7 @@
       "exit": 1,
       "events": [
         {
-          "/event": "error",
+          "/event": "rejected",
           "/code": "range_required",
           "/next": "semantic-agent-schema update schemas/memo.json --schemas schemas --patch '<同じ JSON Patch>' --range <この Concrete に従うインスタンスの path>"
         }
@@ -46,7 +46,7 @@
       "exit": 1,
       "events": [
         {
-          "/event": "error",
+          "/event": "rejected",
           "/code": "range_violation",
           "/instanceLocation": "",
           "/absoluteKeywordLocation": "urn:example:memo:v1#/required",
@@ -68,7 +68,7 @@
       "exit": 1,
       "events": [
         {
-          "/event": "error",
+          "/event": "rejected",
           "/code": "range_violation",
           "/instanceLocation": "/$schema",
           "/next": "semantic-agent-schema update other.json --schemas schemas --semantic"
@@ -89,7 +89,7 @@
       "exit": 0,
       "events": [
         {
-          "/event": "change",
+          "/event": "updated",
           "/schemaId": "urn:semantic-agent-schema:abstract:v1",
           "/path": "schemas/memo.json"
         }

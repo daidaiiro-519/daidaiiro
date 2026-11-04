@@ -26,21 +26,22 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		Next        map[string]string `json:"next"`
 	}
 	var codes struct {
-		Codes     map[string]template `json:"codes"`
-		Violated  template            `json:"violated"`
-		Procedure template            `json:"procedure"`
-		Change    template            `json:"change"`
+		Codes    map[string]template `json:"codes"`
+		Violated template            `json:"violated"`
+		Prompt   template            `json:"prompt"`
+		Created  template            `json:"created"`
+		Updated  template            `json:"updated"`
 	}
 	read(t, "error-codes.json", &codes)
 	var event struct {
 		Defs struct {
-			Error struct {
+			Rejected struct {
 				Properties struct {
 					Code struct {
 						Enum []string `json:"enum"`
 					} `json:"code"`
 				} `json:"properties"`
-			} `json:"error"`
+			} `json:"rejected"`
 		} `json:"$defs"`
 	}
 	read(t, "event.schema.json", &event)
@@ -54,16 +55,16 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 	if codes.Violated.Instruction == "" || codes.Violated.Next["validate"] == "" {
 		t.Errorf("error-codes.json violated = %+v, want instruction and next for validate", codes.Violated)
 	}
-	if codes.Change.Next["create"] == "" {
-		t.Errorf("error-codes.json change = %+v, want next for create", codes.Change)
+	if codes.Created.Next["create"] == "" || codes.Updated.Next["update"] == "" {
+		t.Errorf("error-codes.json created, updated = %+v, %+v, want next", codes.Created, codes.Updated)
 	}
-	if codes.Procedure.Next["create --semantic"] == "" {
-		t.Errorf("error-codes.json procedure = %+v, want next for create --semantic", codes.Procedure)
+	if codes.Prompt.Next["create --semantic"] == "" || codes.Prompt.Next["update --semantic"] == "" {
+		t.Errorf("error-codes.json prompt = %+v, want next for create --semantic and update --semantic", codes.Prompt)
 	}
 	slices.Sort(keys)
-	enum := slices.Sorted(slices.Values(event.Defs.Error.Properties.Code.Enum))
+	enum := slices.Sorted(slices.Values(event.Defs.Rejected.Properties.Code.Enum))
 	if !slices.Equal(keys, enum) {
-		t.Errorf("error-codes.json codes = %v, want event.schema.json code %v", keys, enum)
+		t.Errorf("error-codes.json codes = %v, want event.schema.json rejected code %v", keys, enum)
 	}
 }
 

@@ -319,11 +319,11 @@ func writeFile(t *testing.T, path string, content []byte) {
 	}
 }
 
-// eventSchema は、event.schema.json と、それが参照する procedure.schema.json ・ vocabulary.schema.json を読んで返す。
+// eventSchema は、event.schema.json と、それが参照する prompt.schema.json ・ vocabulary.schema.json を読んで返す。
 func eventSchema(t *testing.T) *jsonschema.Schema {
 	t.Helper()
 	compiler := jsonschema.NewCompiler()
-	for _, name := range []string{"event.schema.json", "procedure.schema.json", "vocabulary.schema.json"} {
+	for _, name := range []string{"event.schema.json", "prompt.schema.json", "vocabulary.schema.json"} {
 		content, err := os.ReadFile(filepath.Join("../../internal/publishedlanguage/v1", name))
 		if err != nil {
 			t.Fatalf("ReadFile(%s) = %v", name, err)

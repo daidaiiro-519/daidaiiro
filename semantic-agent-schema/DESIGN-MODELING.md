@@ -108,7 +108,7 @@ driving 側を左、driven 側を右に置く（Cockburn L2001–2004）。ポ�
 | 1 本質の行を引く | ユースケースが照らす本質の id を選ぶ（本質 purpose） | ユースケースの根拠の欄 | 引いた id で、ユースケースの目的と最低保証を説明できる |
 | 2 ユースケースを書く | 目的 ・ 利害関係者 ・ 成功時保証 ・ 最低保証 ・ 主成功シナリオ ・ 拡張を書く。拡張は条件を先に出し切る（本質 P3 ・ `uc main-success-scenario` ・ `uc extension` ・ `uc minimal-guarantee`） | 抽象「ユースケース」 | ステップに外の技術の語が無い（Cockburn L2025） |
 | 3 各ステップの担保を決める | 3.2 の「担保の決め方」で、1つのステップに担保を1つ決める（本質 E1 ・ E2 ・ W8） | 抽象「ユースケース」のステップの右の欄 | 担保の無いステップが無い |
-| 4 JSON Schema に寄せる | 形と値の決まりを、公開された言葉 ・ Abstract のスキーマに書く（本質 W5 ・ R1 ・ R3） | `internal/publishedlanguage/v1/` ・ 具体「公開された言葉」 | 形と値の違反は、JSON Schema の実装の出力を error に変換するだけで出る（抽象「error の考え方」） |
+| 4 JSON Schema に寄せる | 形と値の決まりを、公開された言葉 ・ Abstract のスキーマに書く（本質 W5 ・ R1 ・ R3） | `internal/publishedlanguage/v1/` ・ 具体「公開された言葉」 | 形と値の違反は、JSON Schema の実装の出力を rejected に変換するだけで出る（抽象「rejected の考え方」） |
 | 5 不変条件をドメインモデルにする | 4 で書けずに残った不変条件だけを、集約 ・ 値オブジェクト ・ ドメインサービスにする（本質 W10 ・ E1 ・ `aggregate` ・ `value-object` ・ `domain-service`） | 抽象「ドメインモデル」 | どの行にも「なぜ JSON Schema で書けないか」がある |
 | 6 必要とするポートだけを足す | そのユースケースが外へ呼び出すメソッドだけを、ポートに足す。外部の分だけ作る（`ports-and-adapters`） | `ports.go` ・ 具体「ポートとアダプター」 | そのユースケースが呼ばないメソッドが無い |
 | 7 試験の場面を先に書く | 主成功シナリオと拡張を1つずつ場面にし、期待値をページの行から書く。場面の名前は、拡張の条件の文で書く（`uc use-case-to-test-case` ・ `testing-strategy` ・ [CODING 3.7](CODING.md#37-期待値)） | `testdata/` ・ `*_test.go` ・ 具体「試験と完成の条件」 | 期待値を出力から写していない |
@@ -123,8 +123,8 @@ driving 側を左、driven 側を右に置く（Cockburn L2001–2004）。ポ�
 |---|---|---|---|
 | 機械的（JSON Schema） | 公開された言葉 ・ Abstract ・ Concrete | 検証：引数の検証 ・ Concrete での検証 | 本質 E1 ・ 抽象「機械的な検証と意味的な検証」 |
 | 機械的（ドメインモデル） | domain の集約 ・ 値オブジェクト ・ ドメインサービス | 検証：作法の確認 ・ 変更点の引き継ぎ | 本質 W10 ・ E1 |
-| 意味的（ドメインモデル） | domain：`x-prompt` から procedure を作る | 意味的な検証：判定の procedure を作る | 本質 E2 |
-| 意味的（AI） | Semantic Agent Schema の外。AI が procedure に従う | 意味的な検証：AI が判定する | 本質 W1 ・ E2 |
+| 意味的（ドメインモデル） | domain：`x-prompt` から prompt を作る | 意味的な検証：判定の prompt を作る | 本質 E2 |
+| 意味的（AI） | Semantic Agent Schema の外。AI が prompt に従う | 意味的な検証：AI が判定する | 本質 W1 ・ E2 |
 | 処理 | アダプター | 検証：操作の記録に追記する | 抽象「機械的な検証と意味的な検証」 |
 
 ### 3.3 実装のコメント
@@ -137,7 +137,7 @@ driving 側を左、driven 側を右に置く（Cockburn L2001–2004）。ポ�
 | 値オブジェクトの型と作る関数 | 値オブジェクトであることと、作れない形 | `Path`：値オブジェクト。working tree の top-level directory からの相対のパスで、外を指す形では作れない |
 | ドメインサービスの関数 | ドメインサービスであることと、決まり | `Inherited`：ドメインサービス。Concrete のハッシュが前回と同じなら、変更点でない instance location の AI の judgment を引き継ぐ |
 | ポートの interface | ポートであることと、宣言する側 ・ 満たすアダプター | `Validator`：ポート。application が宣言し、`schemacheck` が満たす |
-| アダプターの型 | どのポートを、どの外部で満たすか | `schemacheck.Checker`：アダプター。`Validator` を jsonschema/v6 で満たし、違反を error の形に変換する |
+| アダプターの型 | どのポートを、どの外部で満たすか | `schemacheck.Checker`：アダプター。`Validator` を jsonschema/v6 で満たし、違反を rejected の形に変換する |
 | ユースケースの手続き | ユースケースの名前と、各ステップの担保 | `Validate`：ユースケース「検証」。引数と Concrete での検証は JSON Schema、作法と変更点はドメインモデル、追記は処理 |
 
 書かないもの：ページの行の識別子 ・ 節の番号。何をしているかだけの説明（コードを読めば分かる）。
@@ -148,8 +148,8 @@ driving 側を左、driven 側を右に置く（Cockburn L2001–2004）。ポ�
 |---|---|---|---|
 | 先に枠を作る | 使うユースケースの無い package ・ interface ・ メソッドが残る | ユースケースを1つ作るたびに、そのユースケースが使うものだけを足す | 本質 W5 ・ W7 ・ 具体「ポートとアダプター」 |
 | 使われない部品を作る | main から届かない関数が残る | `deadcode` で 0件にする | 具体「試験と完成の条件」 |
-| Schema で済むものをコードにする | 同じ決まりが、スキーマとコードの2か所に分かれる | スキーマに書き、JSON Schema の実装の出力を error に変換するだけにする | 本質 W5 ・ 抽象「機械的な検証と意味的な検証」 ・ 抽象「error の考え方」 |
-| 穴を仕組みで塞ぐ | 入力の曖昧さを補うアルゴリズムや、外の変更の取り込みの仕組みが増える | 足りない入力は error で AI に指示と next を返す。変更点は前回の検証と比べて出す | 本質 R5 ・ 抽象「変更点の求め方」 ・ 抽象「境界」 |
+| Schema で済むものをコードにする | 同じ決まりが、スキーマとコードの2か所に分かれる | スキーマに書き、JSON Schema の実装の出力を rejected に変換するだけにする | 本質 W5 ・ 抽象「機械的な検証と意味的な検証」 ・ 抽象「rejected の考え方」 |
+| 穴を仕組みで塞ぐ | 入力の曖昧さを補うアルゴリズムや、外の変更の取り込みの仕組みが増える | 足りない入力は rejected で AI に指示と next を返す。変更点は前回の検証と比べて出す | 本質 R5 ・ 抽象「変更点の求め方」 ・ 抽象「境界」 |
 | コードや試験にページの行の識別子を書き、対応を数える | 識別子が古くなり、対応が取れなくなる | コメントに、具体モデリング概念の言葉で設計を書く | 利用者の決定 2026-11-05 |
 | 試験の代役のためにポートを作る | ポートが外部の数より増える | 本物のアダプターで試験する | 具体「ポートとアダプター」 ・ [CODING 3.8](CODING.md#38-代役を作らず本物のアダプターで試す) |
 
@@ -160,7 +160,7 @@ driving 側を左、driven 側を右に置く（Cockburn L2001–2004）。ポ�
 | 1 | 本質 W1 ・ E1 ・ E5 ・ R1–R5 ・ W5 ・ W10 を引いた | 抽象「ユースケース」の検証 |
 | 2 | 目的 ・ 利害関係者 ・ 成功時保証 ・ 最低保証 ・ 5つのステップと、拡張（違反がある ・ Concrete が schemas に無い ・ 範囲の path のファイルが無い ・ Git のリポジトリの外で操作の記録に追記できない）を書いた | 抽象「ユースケース」の検証 |
 | 3 | 引数の検証と Concrete での検証は機械的（JSON Schema）、作法の確認と変更点の引き継ぎは機械的（ドメインモデル）、操作の記録への追記は処理 | 抽象「ユースケース」の検証 |
-| 4 | `validate` の引数の形と path の pattern、拡張項目の閉じた一覧（`propertyNames`）、`x-view` はルートだけ（`"x-view": false`）、`x-decided-by` は `const` の `human`、ログイベント validation ・ error の形 | `arguments.schema.json` ・ `vocabulary.schema.json` ・ `dialect.schema.json` ・ `abstract.schema.json` ・ `event.schema.json` |
+| 4 | `validate` の引数の形と path の pattern、拡張項目の閉じた一覧（`propertyNames`）、`x-view` はルートだけ（`"x-view": false`）、`x-decided-by` は `const` の `human`、ログイベント validated ・ rejected の形 | `arguments.schema.json` ・ `vocabulary.schema.json` ・ `dialect.schema.json` ・ `abstract.schema.json` ・ `event.schema.json` |
 | 5 | 値オブジェクト path ・ 主アクター ・ ハッシュ ・ judgment、ドメインサービス `Convention`（作法）・ `ChangedLocations` ・ `Inherited`（変更点）、集約 検証 `Validation`（counts） | `internal/authoring/domain/` |
 | 6 | 4つのポートの5つのメソッド：`Documents.Read` ・ `Schemas.Lookup` ・ `Validator.Check` ・ `Records.LastValidation` ・ `Records.AppendValidation`。`Patcher` ・ `Renderer` ・ `Documents.Write` ・ `Records.WithLock` は作っていない | `internal/authoring/application/ports.go` |
 | 7 | システムテスト 14場面。domain のコンポーネントテスト（path ・ 主アクター ・ 作法 ・ 変更点 ・ counts）。`schemacheck` ・ `recordstore` ・ `publishedlanguage` の試験 | `cmd/semantic-agent-schema/testdata/` ・ `*_test.go` |
@@ -197,11 +197,11 @@ Semantic Agent Schema は上流で、AI と人は下流。AI と人へは共用�
 | 契約 | ファイル（`internal/publishedlanguage/v1/`） | 作る側 → 読む側 | 検証のユースケースの時点 |
 |---|---|---|---|
 | 入力の引数 | `arguments.schema.json` | AI ・ human → `cli` | ある（validate） |
-| JSON の引数 | `patch.schema.json` ・ `judgment-answer.schema.json` ・ `search-answer.schema.json` | AI → application | まだ（更新 ・ 意味的な検証 ・ 検索） |
-| ログイベント | `event.schema.json` | Semantic Agent Schema → AI | ある（validation ・ error） |
-| error | `event.schema.json` の error と `error-codes.json`（code ごとの instruction と next の定型） | Semantic Agent Schema → AI | ある |
-| procedure | `procedure.schema.json` | Semantic Agent Schema → AI | まだ（作成 ・ 更新 ・ 意味的な検証 ・ 検索） |
-| answer | `judgment-answer.schema.json` ・ `search-answer.schema.json` | AI → application | まだ（意味的な検証 ・ 検索） |
+| JSON の引数 | `patch.schema.json` ・ `judgment-response.schema.json` ・ `search-response.schema.json` | AI → application | まだ（更新 ・ 意味的な検証 ・ 検索） |
+| ログイベント | `event.schema.json` | Semantic Agent Schema → AI | ある（validated ・ rejected） |
+| rejected | `event.schema.json` の rejected と `error-codes.json`（code ごとの instruction と next の定型） | Semantic Agent Schema → AI | ある |
+| prompt | `prompt.schema.json`（`*_requested` のログイベント） | Semantic Agent Schema → AI | まだ（作成 ・ 更新 ・ 意味的な検証 ・ 検索） |
+| response | `judgment-response.schema.json` ・ `search-response.schema.json` | AI → application | まだ（意味的な検証 ・ 検索） |
 | デザインシステム | `design-system.schema.json` ・ `template-language.json` | 使う側 → rendering | まだ（描画） |
 | Abstract と拡張項目 | `abstract.schema.json` ・ `vocabulary.schema.json` ・ `dialect.schema.json` | Concrete を書く人 ・ AI → application | ある |
 
@@ -237,10 +237,10 @@ Semantic Agent Schema は上流で、AI と人は下流。AI と人へは共用�
 
 ![契約で入力と出力を守る](docs/design-modeling/figs/contract.svg)
 
-検証のユースケースでは、範囲の JSON ドキュメントの違反は error にせず、violated として数える（抽象「ユースケース」の検証の拡張）。全部の出力は、試験が `event.schema.json` で検証する（具体「試験と完成の条件」）。
+検証のユースケースでは、範囲の JSON ドキュメントの違反は rejected にせず、violated として数える（抽象「ユースケース」の検証の拡張）。全部の出力は、試験が `event.schema.json` で検証する（具体「試験と完成の条件」）。
 
-- JSON Schema の違反は、JSON Schema の実装の出力を error に変換するだけで、独自の判定を足さない（抽象「error の考え方」）
-- error の instruction と next は、`error-codes.json` の定型に instance location と値を入れて作る。AI はそれを読んで次のアクションを取る（本質 W5 ・ R5）
+- JSON Schema の違反は、JSON Schema の実装の出力を rejected に変換するだけで、独自の判定を足さない（抽象「rejected の考え方」）
+- rejected の instruction と next は、`error-codes.json` の定型に instance location と値を入れて作る。AI はそれを読んで次のアクションを取る（本質 W5 ・ R5）
 
 ## 6 用語
 
@@ -249,6 +249,9 @@ Semantic Agent Schema は上流で、AI と人は下流。AI と人へは共用�
 | 用語 | 意味 | 出どころ |
 |---|---|---|
 | 担保 | ステップを何で確かめるか。3.2 の5つから1つ | 抽象「ユースケース」 |
+| `x-prompt` と prompt | `x-prompt` は Concrete のサブスキーマに書く拡張項目（元）で、スキーマの側だけ。いつも `x-` を付けて書く。prompt は、コマンドが `x-prompt` から作って `*_requested` のログイベントで AI に返すもので、出力の側だけ。2つを混ぜて書かない | 抽象「ユビキタス言語」 |
+| response | AI が prompt に従って作り、コマンドへ渡す JSON（引数は `--response`） | 抽象「ユビキタス言語」 |
+| ログイベントの名前 | ユースケースで起きたことの過去形（`created` ・ `validated` ・ `judgment_requested` ・ `rejected` など）。一覧は具体「公開された言葉」 | 具体「公開された言葉」 |
 
 ## 7 図の置き場所
 
