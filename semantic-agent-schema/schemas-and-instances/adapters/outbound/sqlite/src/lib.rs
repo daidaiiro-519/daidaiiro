@@ -379,6 +379,26 @@ impl SqliteLog {
             .collect()
     }
 
+    /// 記録の最後の変更で、$id が schema の Concrete に従うと書いた文書の経路（消した文書は除く。経路の順）。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    pub fn instances_of(&self, schema: &str) -> Result<Vec<String>, String> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT c.target_path FROM changes c \
+                 WHERE c.rowid = (SELECT max(c2.rowid) FROM changes c2 WHERE c2.target_path = c.target_path) \
+                   AND c.kind <> 'delete' AND c.schema = ?1 \
+                 ORDER BY c.target_path",
+            )
+            .map_err(|e| err(&e))?;
+        stmt.query_map([schema], |r| r.get(0))
+            .map_err(|e| err(&e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| err(&e))
+    }
+
     /// 経路の対象の、rule ごとの最後の判定。最後に消したより後の検証だけ。
     ///
     /// # Errors
@@ -624,6 +644,9 @@ impl writing_application::ports::ChangeLog for SqliteLog {
     }
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         Self::last_judgments(self, target_path)
+    }
+    fn instances_of(&self, schema: &str) -> Result<Vec<String>, String> {
+        Self::instances_of(self, schema)
     }
 }
 

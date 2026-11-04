@@ -1,0 +1,41 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SCHEMAS-OUTSIDE",
+ "name": "置き場所の外の Concrete",
+ "title": "従う Concrete が渡した置き場所の外にあると、探しに行かずに unknown_schema を返す",
+ "why": "作業フォルダを歩いて探すと、渡していないファイルで結果が変わり、大きいリポジトリでは重くなる。",
+ "traces": [
+  "UC4:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "other/note.schema.json": "@fixtures/summary.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json",
+   "--schemas",
+   "other"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "unknown_schema"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--schemas"
+  }
+ ]
+}

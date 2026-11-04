@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC6-SEARCH-NO-RANGE",
  "name": "範囲が無ければ探さない",
- "title": "semantic-agent-schema search は、範囲（経路 ・ --concrete ・ --all のどれか1つ）と探し方（--where ・ --semantic --question ・ --answer のどれか1つ）が無いと、探さずに使い方の誤りを返す",
+ "title": "semantic-agent-schema search は、範囲（経路の並び）と探し方（--where ・ --semantic --question ・ --answer のどれか1つ）が無いと、探さずに使い方の誤りを返す",
  "why": "範囲を決めずに探すと、何を探したかを結果から言えず、範囲の外を探していないと返せない。",
  "traces": [
   "UC6:最低保証"
@@ -18,7 +18,9 @@
   "args": [
    "search",
    "--where",
-   "/id=R1"
+   "/id=R1",
+   "--schemas",
+   "schemas"
   ]
  },
  "then": [
@@ -43,10 +45,6 @@
   {
    "of": "after[1]",
    "exit": 2
-  },
-  {
-   "of": "after[2]",
-   "exit": 2
   }
  ],
  "after": [
@@ -54,22 +52,17 @@
    "args": [
     "search",
     "items/r1.json",
-    "--all",
-    "--where",
-    "/id=R1"
+    "--schemas",
+    "schemas"
    ]
   },
   {
    "args": [
     "search",
-    "--all"
-   ]
-  },
-  {
-   "args": [
-    "search",
-    "--all",
-    "--semantic"
+    "items/r1.json",
+    "--semantic",
+    "--schemas",
+    "schemas"
    ]
   }
  ]

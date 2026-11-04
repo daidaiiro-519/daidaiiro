@@ -12,9 +12,6 @@ use writing_domain::values::TargetKind;
 
 /// 代役を、検証のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
 impl validation_application::ports::DocumentStore for support::Files {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
@@ -56,18 +53,19 @@ impl validation_application::ports::ValidationLog for support::Log {
     }
 }
 
+/// 渡された経路と、スキーマの置き場所（c.json）。
+fn scope(paths: &[&str]) -> Scope {
+    Scope {
+        paths: paths.iter().map(ToString::to_string).collect(),
+        schemas: vec!["c.json".into()],
+    }
+}
+
 #[test]
 fn concrete_gets_a_result_for_every_applied_rule() {
     let store = files(&[("c.json", concrete())]);
     let mut log = Log::default();
-    let v = validate(
-        &Scope::Paths(vec!["c.json".into()]),
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    )
-    .unwrap();
+    let v = validate(&scope(&["c.json"]), &store, &Lenient, &HUMAN, &mut log).unwrap();
     let t = &v.targets[0];
     assert_eq!(t.kind, TargetKind::Concrete);
     let rules: Vec<(&str, Verdict)> = t.results.iter().map(|r| (r.rule(), r.verdict())).collect();
@@ -92,13 +90,7 @@ fn unlisted_version_is_refused_and_nothing_is_recorded() {
         json!({"$schema": "urn:semantic-agent-schema:published-language:abstract:v2"}),
     )]);
     let mut log = Log::default();
-    let Err(r) = validate(
-        &Scope::Paths(vec!["c.json".into()]),
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    ) else {
+    let Err(r) = validate(&scope(&["c.json"]), &store, &Lenient, &HUMAN, &mut log) else {
         panic!("断るはず");
     };
     assert_eq!(r.code, "schema_not_listed");
@@ -106,19 +98,32 @@ fn unlisted_version_is_refused_and_nothing_is_recorded() {
 }
 
 #[test]
-fn all_skips_documents_of_other_schemas() {
+fn only_the_given_paths_are_validated() {
     let store = files(&[
         ("c.json", concrete()),
-        (
-            "other.json",
-            json!({"$schema": "https://json-schema.org/draft/2020-12/schema"}),
-        ),
+        ("u1.json", json!({"$schema": UC, "id": "U1"})),
+        ("u2.json", json!({"$schema": UC, "id": "U2"})),
+    ]);
+    let mut log = Log::default();
+    let v = validate(&scope(&["u1.json"]), &store, &Lenient, &HUMAN, &mut log).unwrap();
+    let paths: Vec<&str> = v.targets.iter().map(|t| t.path.as_str()).collect();
+    assert_eq!(paths, ["u1.json"]);
+}
+
+#[test]
+fn a_concrete_outside_the_place_is_refused() {
+    let store = files(&[
+        ("c.json", concrete()),
         ("u1.json", json!({"$schema": UC, "id": "U1"})),
     ]);
     let mut log = Log::default();
-    let v = validate(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
-    let paths: Vec<&str> = v.targets.iter().map(|t| t.path.as_str()).collect();
-    assert_eq!(paths, ["c.json", "u1.json"]);
+    let none = Scope {
+        paths: vec!["u1.json".into()],
+        schemas: Vec::new(),
+    };
+    let r = validate(&none, &store, &Lenient, &HUMAN, &mut log).unwrap_err();
+    assert_eq!(r.code, "unknown_schema");
+    assert!(log.0.is_empty());
 }
 
 #[test]
@@ -131,19 +136,40 @@ fn stale_validation_rejudges_only_rules_whose_reads_changed() {
         ),
     ]);
     let mut log = Log::default();
-    validate(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
+    validate(
+        &scope(&["c.json", "u1.json"]),
+        &store,
+        &Lenient,
+        &HUMAN,
+        &mut log,
+    )
+    .unwrap();
     store
         .write(
             "u1.json",
             &json!({"$schema": UC, "id": "U1", "goal": "a", "status": "approved"}).to_string(),
         )
         .unwrap();
-    let v = validate_stale(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
+    let v = validate_stale(
+        &scope(&["c.json", "u1.json"]),
+        &store,
+        &Lenient,
+        &HUMAN,
+        &mut log,
+    )
+    .unwrap();
     assert_eq!(v.unchanged_targets, ["c.json"]);
     let t = &v.targets[0];
     let rules: Vec<&str> = t.results.iter().map(|r| r.rule()).collect();
     assert_eq!(rules, ["json-schema"], "goal を読む rule は読んだ所が同じ");
     assert_eq!(t.unchanged_rules, ["goal-is-outcome"]);
-    let again = validate_stale(&Scope::All, &store, &Lenient, &HUMAN, &mut log).unwrap();
+    let again = validate_stale(
+        &scope(&["c.json", "u1.json"]),
+        &store,
+        &Lenient,
+        &HUMAN,
+        &mut log,
+    )
+    .unwrap();
     assert!(again.targets.is_empty());
 }

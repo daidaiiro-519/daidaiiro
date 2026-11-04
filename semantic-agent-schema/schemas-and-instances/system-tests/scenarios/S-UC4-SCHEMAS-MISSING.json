@@ -1,0 +1,43 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SCHEMAS-MISSING",
+ "name": "置き場所を渡さない検証",
+ "title": "--schemas を渡さずに検証すると、Concrete を探しに行かずに使い方の誤りを返し、何も記録しない",
+ "why": "置き場所を推し量ると、渡していないファイルで結果が変わる。",
+ "traces": [
+  "UC4:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--schemas"
+  },
+  {
+   "of": "when",
+   "file": ".git/semantic-agent-schema/records.sqlite",
+   "exists": false
+  }
+ ]
+}

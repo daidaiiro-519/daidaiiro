@@ -9,7 +9,7 @@
 //! - --ref の文書は SAS が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
 //! - 手順を返すだけで、記録しない。
 
-use super::{Refused, classify, load_corpus, refused};
+use super::{Refused, refused, target_of_declared};
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Map, Value, json};
 use writing_domain::aggregates::escape;
@@ -31,6 +31,8 @@ pub struct SemanticRequest {
     pub task: Option<String>,
     /// 読ませる文書の経路（--ref）
     pub refs: Vec<String>,
+    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
+    pub schemas: Vec<String>,
     /// 理由（手順の command に入れる）
     pub reason: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID（手順の command に入れる）
@@ -83,19 +85,14 @@ pub fn semantic_procedure(
             (declared, Some(value), Some(text))
         }
     };
-    let corpus = load_corpus(store)?;
-    let kind = classify(&corpus.concretes, path, &declared)?;
+    let target = target_of_declared(store, validator, &request.schemas, path, &declared)?;
     // インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く
-    let doc: Value = match kind {
-        TargetKind::Instance => corpus
-            .concretes
-            .get(&declared)
-            .map(|c| c.document().clone())
-            .unwrap_or_default(),
-        TargetKind::Concrete => validator.shipped(&declared).unwrap_or_default(),
+    let doc: Value = match (target.kind, &target.concrete) {
+        (TargetKind::Instance, Some(c)) => c.concrete().document().clone(),
+        _ => validator.shipped(&declared).unwrap_or_default(),
     };
     let doc = &doc;
-    let units = order(path, write_units(doc, &corpus.more))?;
+    let units = order(path, write_units(doc, target.more()))?;
     if units.is_empty() {
         return Err(refused(
             "invalid_input",
@@ -104,7 +101,7 @@ pub fn semantic_procedure(
         ));
     }
     let refs = read_refs(store, &request.refs)?;
-    let schema = bundled(doc, validator, &corpus.more);
+    let schema = bundled(doc, validator, target.more());
     Ok(build_procedure(
         path,
         &declared,

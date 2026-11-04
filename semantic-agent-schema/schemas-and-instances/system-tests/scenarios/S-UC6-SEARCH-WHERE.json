@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC6-SEARCH-WHERE",
  "name": "構造で絞る",
- "title": "semantic-agent-schema search --concrete <URN> --where <JSON Pointer>=<値> は、その Concrete に従うインスタンスのうち条件のすべてに一致したものの所と値を、探した範囲（経路とハッシュ）と一緒に返す。値が JSON として読めなければ文字列として比べる",
+ "title": "semantic-agent-schema search <経路>... --where <JSON Pointer>=<値> は、渡した範囲の文書のうち条件のすべてに一致したものの所と値を、探した範囲（経路とハッシュ）と一緒に返す。値が JSON として読めなければ文字列として比べる",
  "why": "範囲を返さないと、見つからなかったのか、探していないのかが分からない。",
  "traces": [
   "UC6:成功時保証",
@@ -18,10 +18,12 @@
  "when": {
   "args": [
    "search",
-   "--concrete",
-   "urn:example:sample:review:v1",
+   "items/r1.json",
+   "items/r2.json",
    "--where",
-   "/id=R2"
+   "/id=R2",
+   "--schemas",
+   "schemas"
   ]
  },
  "then": [
@@ -99,23 +101,27 @@
   {
    "args": [
     "search",
-    "--concrete",
-    "urn:example:sample:review:v1",
+    "items/r1.json",
+    "items/r2.json",
     "--where",
     "/id=R1",
     "--where",
-    "/calls=[]"
+    "/calls=[]",
+    "--schemas",
+    "schemas"
    ]
   },
   {
    "args": [
     "search",
-    "--concrete",
-    "urn:example:sample:review:v1",
+    "items/r1.json",
+    "items/r2.json",
     "--where",
     "/id=R1",
     "--where",
-    "/calls/0=R1"
+    "/calls/0=R1",
+    "--schemas",
+    "schemas"
    ]
   },
   {
@@ -123,15 +129,21 @@
     "search",
     "items/r2.json",
     "--where",
-    "/calls/0=R1"
+    "/calls/0=R1",
+    "--schemas",
+    "schemas"
    ]
   },
   {
    "args": [
     "search",
-    "--all",
+    "schemas/review.schema.json",
+    "items/r1.json",
+    "items/r2.json",
     "--where",
-    "/id=R1"
+    "/id=R1",
+    "--schemas",
+    "schemas"
    ]
   }
  ]

@@ -1,7 +1,7 @@
 //! UC6 検索する：呼ぶ側が渡した範囲の Concrete とインスタンスを探す。検索は記録しない。
 //!
-//! - 範囲は経路 ・ Concrete（従うインスタンスのすべて）・ すべて（--all）のどれかで、結果に範囲（経路とハッシュ）を返す。
-//!   範囲の外は探していない
+//! - 範囲は渡された経路の並びで、結果に範囲（経路とハッシュ）を返す。範囲の外は探していない。
+//!   インスタンスが従う Concrete は、渡されたスキーマの置き場所に $id であることを確かめる
 //! - 構造で絞る：JSON Pointer の所の値が、渡した値と一致する文書（条件が複数なら、すべてに一致する文書）
 //! - 意味で探す：範囲の文書ごとに1ステップの手順を組み、打ったセッションに返す（SAS はエージェントを起動しない）。
 //!   範囲の中身の合計が上限を超えたら、切り詰めずに断る
@@ -10,9 +10,8 @@
 
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
-use writing_domain::aggregates::ConcreteSchema;
-use writing_domain::values::{Caller, ContentHash, Corpus, Doc, TargetKind};
+use writing_domain::services::SchemaIndex;
+use writing_domain::values::{Caller, ContentHash, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 
@@ -26,27 +25,29 @@ const ANSWER_ID: &str = "urn:semantic-agent-schema:published-language:search-ans
 /// 意味で探すときの、範囲の中身の合計の上限（バイト）。書くときの --ref の上限（REF_LIMIT）と同じ。
 pub const RANGE_LIMIT: usize = 64 * 1024;
 
-/// 探す範囲。呼ぶ側が必ず渡す。
+/// 探す範囲。呼ぶ側が必ず渡し、既定の範囲は持たない。
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Range {
-    /// 経路を指定した文書
-    Paths(Vec<String>),
-    /// その $id の Concrete に従うインスタンスのすべて
-    Concrete(String),
-    /// リポジトリの Concrete とインスタンスのすべて
-    All,
+pub struct Range {
+    /// 範囲の文書の経路
+    pub paths: Vec<String>,
+    /// スキーマの置き場所のファイル（インスタンスが従う Concrete を $id で引く）
+    pub schemas: Vec<String>,
 }
 
 impl Range {
     /// 範囲をコマンドの引数に戻す（手順の command と案内に入れる）。
     #[must_use]
     pub fn args(&self) -> Vec<String> {
-        match self {
-            Self::Paths(paths) => paths.clone(),
-            Self::Concrete(id) => vec!["--concrete".to_string(), id.clone()],
-            Self::All => vec!["--all".to_string()],
-        }
+        self.paths.clone()
     }
+}
+
+/// 範囲の文書1つ。
+#[derive(Debug, Clone, PartialEq)]
+struct Doc {
+    path: String,
+    text: String,
+    value: Value,
 }
 
 /// 見つけた値1つ（構造で絞った一致か、意味の答えの出どころ）。
@@ -74,7 +75,7 @@ pub struct Found {
 /// 検索を始められなかった ・ 答えを返さなかった理由。検索は記録しない（理由と案内をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
-    /// 決まった名前（not_found ・ not_json ・ no_schema ・ schema_not_listed ・ unknown_schema ・ invalid_input ・
+    /// 決まった名前（not_found ・ not_json ・ no_schema ・ schema_not_listed ・ unknown_schema ・ duplicate_schema ・ invalid_input ・
     /// range_too_large ・ store ・ validator、答えが形に合わない ・ 出どころを確かめられないもの：invalid_answer ・ conflict）
     pub code: &'static str,
     /// 対象の経路（あれば）
@@ -83,6 +84,8 @@ pub struct Refused {
     pub message: String,
     /// 次にすることの案内（答えの直し方 ・ 手順を取り直すコマンド）
     pub hint: Option<Box<String>>,
+    /// 同じ $id を持つファイルの経路（duplicate_schema）
+    pub paths: Option<Box<Vec<String>>>,
 }
 
 /// 対象の経路を付けて断る。
@@ -95,84 +98,53 @@ fn refused(code: &'static str, path: &str, message: String) -> Refused {
     }
 }
 
-/// リポジトリの文書を読む（Concrete の一覧に使う）。読めない文書は除く。
-fn load_corpus(store: &dyn DocumentStore) -> Result<Corpus, Refused> {
-    let paths = store.list().map_err(|e| Refused {
-        code: "store",
-        message: e,
-        ..Refused::default()
-    })?;
-    Ok(Corpus::read(
-        paths
-            .into_iter()
-            .filter_map(|p| store.read(&p).ok().map(|t| (p, t))),
-    ))
-}
-
-/// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
-fn classify(
-    concretes: &BTreeMap<String, ConcreteSchema>,
-    path: &str,
-    declared: &str,
-) -> Result<TargetKind, Refused> {
-    TargetKind::classify(concretes, declared)
-        .map_err(|u| refused(u.code(), path, u.message().to_string()))
-}
-
-/// 範囲の文書を読む（経路の順、重なりなし）。範囲の文書は Concrete かインスタンス。
+/// 範囲の文書を読む（経路の順、重なりなし）。範囲の文書は Concrete か、渡された置き場所に Concrete があるインスタンス。
 fn load(range: &Range, store: &dyn DocumentStore) -> Result<Vec<Doc>, Refused> {
-    let corpus = load_corpus(store)?;
-    let mut docs: Vec<Doc> = match range {
-        Range::Paths(paths) => {
-            let mut out = Vec::new();
-            for p in paths {
-                let text = store.read(p).map_err(|e| refused("not_found", p, e))?;
-                let value: Value = serde_json::from_str(&text)
-                    .map_err(|e| refused("not_json", p, format!("JSON として読めない：{e}")))?;
-                let declared = value
-                    .get("$schema")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default();
-                classify(&corpus.concretes, p, declared)?;
-                out.push(Doc {
-                    path: p.clone(),
-                    text,
-                    value,
-                });
+    let mut index: Option<SchemaIndex> = None;
+    let mut docs = Vec::new();
+    for p in &range.paths {
+        let text = store.read(p).map_err(|e| refused("not_found", p, e))?;
+        let value: Value = serde_json::from_str(&text)
+            .map_err(|e| refused("not_json", p, format!("JSON として読めない：{e}")))?;
+        let declared = value
+            .get("$schema")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        let kind = TargetKind::classify(&declared)
+            .map_err(|u| refused(u.code(), p, u.message().to_string()))?;
+        if kind == TargetKind::Instance {
+            if index.is_none() {
+                index = Some(
+                    SchemaIndex::read(&range.schemas, |f| store.read(f))
+                        .map_err(|u| unresolved(None, &u))?,
+                );
             }
-            out
-        }
-        Range::Concrete(id) => {
-            if !corpus.concretes.contains_key(id) {
-                return Err(Refused {
-                    code: "unknown_schema",
-                    message: format!("{id} はリポジトリの Concrete に無い"),
-                    ..Refused::default()
-                });
+            if let Some(i) = &index {
+                i.concrete(&declared, |f| store.read(f))
+                    .map_err(|u| unresolved(Some(p), &u))?;
             }
-            corpus
-                .docs
-                .iter()
-                .filter(|d| d.value.get("$schema").and_then(Value::as_str) == Some(id))
-                .cloned()
-                .collect()
         }
-        Range::All => corpus
-            .docs
-            .iter()
-            .filter(|d| {
-                ConcreteSchema::declares_abstract(&d.value)
-                    || d.value
-                        .get("$schema")
-                        .and_then(Value::as_str)
-                        .is_some_and(|s| corpus.concretes.contains_key(s))
-            })
-            .cloned()
-            .collect(),
-    };
+        docs.push(Doc {
+            path: p.clone(),
+            text,
+            value,
+        });
+    }
     docs.sort_by(|a, b| a.path.cmp(&b.path));
     docs.dedup_by(|a, b| a.path == b.path);
     Ok(docs)
+}
+
+/// 置き場所から引けなかった理由を、断った理由にする。
+fn unresolved(path: Option<&str>, u: &writing_domain::services::Unresolved) -> Refused {
+    Refused {
+        code: u.code(),
+        path: path.map(Into::into),
+        message: u.message().to_string(),
+        paths: (!u.paths().is_empty()).then(|| Box::new(u.paths().to_vec())),
+        ..Refused::default()
+    }
 }
 
 fn range_of(docs: &[Doc]) -> Vec<(String, String)> {

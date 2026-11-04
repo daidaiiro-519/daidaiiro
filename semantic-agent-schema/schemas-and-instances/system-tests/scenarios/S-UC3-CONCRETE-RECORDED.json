@@ -1,0 +1,59 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC3-CONCRETE-RECORDED",
+ "name": "記録にある従うインスタンス",
+ "title": "空の --range で Concrete を消そうとしても、記録でその Concrete に従うと書いたインスタンスが残っていれば、消さずに has_dependents を返す",
+ "why": "範囲に入れ忘れたインスタンスも、記録にあれば見落とさない。",
+ "traces": [
+  "UC3:拡張:2a"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u2.json",
+     "--concrete",
+     "urn:example:sample:usecase:v1",
+     "--value",
+     "{\"id\":\"U2\",\"goal\":\"結果を受け取る\",\"calls\":[]}",
+     "--schemas",
+     "schemas"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "delete",
+   "schemas/usecase.schema.json",
+   "--reason",
+   "使わなくなった",
+   "--range"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "has_dependents"
+  },
+  {
+   "of": "when",
+   "pointer": "/blocked/0/path",
+   "equals": "usecases/u2.json"
+  },
+  {
+   "of": "when",
+   "file": "schemas/usecase.schema.json",
+   "exists": true
+  }
+ ]
+}

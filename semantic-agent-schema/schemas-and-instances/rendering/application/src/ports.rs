@@ -4,14 +4,8 @@
 use serde_json::Value;
 use validation_domain::values::ValidateRow;
 
-/// リポジトリの中の文書を読む。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。
+/// 渡された経路の文書を読む。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。全部を並べる手段は持たない。
 pub trait DocumentStore {
-    /// Concrete の一覧の材料になりうる JSON の文書の経路（並びは経路の順）。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn list(&self) -> Result<Vec<String>, String>;
-
     /// 文書の中身。
     ///
     /// # Errors
@@ -22,7 +16,7 @@ pub trait DocumentStore {
 /// JSON Schema 2020-12 のバリデーター。デザインシステムを受け取りの型に照らす。
 pub trait SchemaValidator {
     /// value を、$id が schema のスキーマに照らし、外れた所（JSON Pointer）と理由を返す。
-    /// more はリポジトリの Concrete（$id と文書）で、schema の名前と $ref の先として引ける。
+    /// more は照らすスキーマ（$id と文書）で、schema の名前と $ref の先として引ける。
     ///
     /// # Errors
     /// スキーマを組めないとき。

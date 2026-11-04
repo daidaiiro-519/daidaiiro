@@ -19,12 +19,12 @@
 
 use crate::ports::{DataRead, PathSeg, ScriptReader, TemplateNode, TemplateRenderer};
 use crate::ports::{DocumentStore, SchemaValidator, ValidationLog};
-use crate::use_cases::render::{Refused, load_corpus, log_refused, refused};
+use crate::use_cases::render::{Refused, index_of, log_refused, refused, unresolved};
 use crate::use_cases::tokens::{Token, alias_errors, flatten, type_errors};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::values::{By, Counts, RuleResult, RuleRow, ValidateRow, Verdict};
-use writing_domain::values::{Caller, ContentHash, Corpus};
+use writing_domain::values::{Caller, ContentHash};
 
 /// デザインシステムの受け取りの型。
 pub const DESIGN_SYSTEM: &str = "urn:semantic-agent-schema:published-language:design-system:v1";
@@ -381,7 +381,7 @@ pub fn check_design_system(
     validator: &dyn SchemaValidator,
     renderer: &dyn TemplateRenderer,
     scripts: &dyn ScriptReader,
-    corpus: &Corpus,
+    concretes: &[(String, Value)],
 ) -> Result<DesignSystem, Refused> {
     let text = store
         .read(path)
@@ -565,8 +565,7 @@ pub fn check_design_system(
     // 置く名前：根の x-view がこのデザインシステムの種類を選ぶ Concrete ごとに
     let token_shape = Shape::of_tokens(value.get("tokens"));
     let mut reached: BTreeSet<String> = BTreeSet::new();
-    for (id, concrete) in &corpus.concretes {
-        let doc = concrete.document();
+    for (id, doc) in concretes {
         let kind = doc.get("x-view").and_then(Value::as_str).unwrap_or("page");
         let Some(tree) = trees.get(kind) else {
             continue;
@@ -720,16 +719,22 @@ pub struct DesignValidation {
 /// デザインシステムが無い ・ JSON でない ・ 契約が無いとき。
 pub fn check_design_systems(
     paths: &[String],
+    schemas: &[String],
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     renderer: &dyn TemplateRenderer,
     scripts: &dyn ScriptReader,
 ) -> Result<Vec<DesignSystem>, Refused> {
-    let corpus = load_corpus(store)?;
+    let concretes: Vec<(String, Value)> = index_of(store, schemas)?
+        .concretes(|p| store.read(p))
+        .map_err(|u| unresolved(None, u))?
+        .into_iter()
+        .filter_map(|(_, c)| Some((c.id()?.to_string(), c.document().clone())))
+        .collect();
     let mut checked = Vec::new();
     for p in paths {
         checked.push(check_design_system(
-            p, store, validator, renderer, scripts, &corpus,
+            p, store, validator, renderer, scripts, &concretes,
         )?);
     }
     Ok(checked)

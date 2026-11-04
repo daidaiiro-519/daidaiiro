@@ -1,0 +1,45 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC3-CONCRETE-NO-RANGE",
+ "name": "範囲の無い Concrete の削除",
+ "title": "Concrete を --range なしで消そうとすると、消さずに使い方の誤りを返す",
+ "why": "範囲が無いまま消すと、従うインスタンスが無いことを確かめた所が決まらない。",
+ "traces": [
+  "UC3:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "delete",
+   "schemas/usecase.schema.json",
+   "--reason",
+   "使わなくなった"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--range"
+  },
+  {
+   "of": "when",
+   "file": "schemas/usecase.schema.json",
+   "exists": true
+  }
+ ]
+}

@@ -17,18 +17,29 @@ use validation_domain::services::{
 };
 use validation_domain::values::{By, Counts, Judgment, RuleResult, RuleRow, ValidateRow, Verdict};
 use writing_domain::aggregates::ConcreteSchema;
-use writing_domain::services::field_schema;
+use writing_domain::services::{Resolved, SchemaIndex, Unresolved, field_schema};
 use writing_domain::values::{
-    Caller, ContentHash, Corpus, Doc, FieldRow, TargetKind, WriteRecord, unrecorded_since,
+    Caller, ContentHash, FieldRow, TargetKind, WriteRecord, unrecorded_since,
 };
 
-/// 何を検証するか。
+/// 何を検証するか。範囲は渡された経路だけで、既定の範囲は持たない。
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Scope {
-    /// 経路を指定した対象
-    Paths(Vec<String>),
-    /// リポジトリの Concrete とインスタンスのすべて
-    All,
+pub struct Scope {
+    /// 検証する対象の経路
+    pub paths: Vec<String>,
+    /// スキーマの置き場所のファイル（インスタンスが従う Concrete と $ref の先を $id で引く）
+    pub schemas: Vec<String>,
+}
+
+/// 渡された経路の文書1つ。
+#[derive(Debug, Clone, PartialEq)]
+pub struct Doc {
+    /// 経路
+    pub path: String,
+    /// 読んだ文字列
+    pub text: String,
+    /// 読んだ JSON
+    pub value: Value,
 }
 
 /// 1つの対象の検証の結果。
@@ -85,7 +96,8 @@ pub struct Validation {
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
-    /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ store ・ validator ・ log、
+    /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ duplicate_schema ・ store ・
+    /// validator ・ log、
     /// 渡された判定が手順に合わないもの：invalid_answer、手順のハッシュがいまの中身と違うもの：conflict）
     pub code: &'static str,
     /// 対象の経路（あれば）
@@ -94,6 +106,8 @@ pub struct Refused {
     pub message: String,
     /// 次にすることの案内（判定の直し方 ・ 手順を取り直すコマンド）
     pub hint: Option<Box<String>>,
+    /// 同じ $id を持つファイルの経路（duplicate_schema）
+    pub paths: Option<Box<Vec<String>>>,
 }
 
 /// 対象の経路を付けて断る。
@@ -107,31 +121,20 @@ pub fn refused(code: &'static str, path: &str, message: String) -> Refused {
     }
 }
 
-/// リポジトリの文書を読む（Concrete の一覧に使う）。読めない文書は除く。
-///
-/// # Errors
-/// 文書の一覧を読めないとき。
-fn load_corpus(store: &dyn DocumentStore) -> Result<Corpus, Refused> {
-    let paths = store.list().map_err(|e| Refused {
-        code: "store",
-        message: e,
+/// 置き場所から引けなかった理由を、断った理由にする。
+fn unresolved(path: Option<&str>, u: Unresolved) -> Refused {
+    Refused {
+        code: u.code(),
+        path: path.map(Into::into),
+        message: u.message().to_string(),
+        paths: (!u.paths().is_empty()).then(|| Box::new(u.paths().to_vec())),
         ..Refused::default()
-    })?;
-    Ok(Corpus::read(
-        paths
-            .into_iter()
-            .filter_map(|p| store.read(&p).ok().map(|t| (p, t))),
-    ))
+    }
 }
 
 /// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
-fn classify(
-    concretes: &BTreeMap<String, ConcreteSchema>,
-    path: &str,
-    declared: &str,
-) -> Result<TargetKind, Refused> {
-    TargetKind::classify(concretes, declared)
-        .map_err(|u| refused(u.code(), path, u.message().to_string()))
+fn classify(path: &str, declared: &str) -> Result<TargetKind, Refused> {
+    TargetKind::classify(declared).map_err(|u| refused(u.code(), path, u.message().to_string()))
 }
 
 /// 形（JSON Schema）の外れ（JSON Pointer と理由）。Concrete は申告した Abstract と方言の両方、インスタンスは従う Concrete に照らす。
@@ -267,11 +270,11 @@ pub fn semantic_procedures(
     caller: &Caller,
     log: &dyn ValidationLog,
 ) -> Result<Vec<Value>, Refused> {
-    let (corpus, current, _) = current_for(scope, selection.pick(), store, validator, log)?;
+    let (current, _) = current_for(scope, selection.pick(), store, validator, log)?;
     Ok(current
         .iter()
         .filter_map(|c| {
-            let (groups, steps, _) = steps_of(c, &corpus, validator);
+            let (groups, steps, _) = steps_of(c, validator);
             if steps.is_empty() {
                 return None;
             }
@@ -297,7 +300,7 @@ pub fn semantic_procedures(
 /// # Errors
 /// validate と同じ。ほかに、答えが形に合わない ・ 手順と突き合わない（invalid_answer）・ 手順のハッシュがいまの中身と違う（conflict）とき。
 pub fn validate_with_answer(
-    path: &str,
+    scope: &Scope,
     selection: Selection,
     answer: &str,
     store: &dyn DocumentStore,
@@ -306,7 +309,7 @@ pub fn validate_with_answer(
     log: &mut dyn ValidationLog,
 ) -> Result<Validation, Refused> {
     run_validate(
-        &Scope::Paths(vec![path.to_string()]),
+        scope,
         selection.pick(),
         store,
         validator,
@@ -350,18 +353,10 @@ fn selection_args(selection: Selection) -> Vec<&'static str> {
 /// 対象1つのレビューのまとまりと、判定する rule × 当たる所（意味の rule のうち、前の判定を引き継がないもの）と、
 /// それが当たる results の位置。所のまとまりは当たる所ごとに1つ（results に出てきた順）、文書全体のまとまりはいつも1つで最後。
 /// 判定するものが無ければ、どれも空。
-fn steps_of(
-    c: &Current,
-    corpus: &Corpus,
-    validator: &dyn SchemaValidator,
-) -> (Vec<Group>, Vec<Step>, Vec<usize>) {
-    let schema_doc = match c.kind {
-        TargetKind::Concrete => validator.shipped(&c.declared).unwrap_or_default(),
-        TargetKind::Instance => corpus
-            .concretes
-            .get(&c.declared)
-            .map(|k| k.document().clone())
-            .unwrap_or_default(),
+fn steps_of(c: &Current, validator: &dyn SchemaValidator) -> (Vec<Group>, Vec<Step>, Vec<usize>) {
+    let schema_doc = match (&c.kind, &c.concrete) {
+        (TargetKind::Instance, Some(k)) => k.concrete().document().clone(),
+        _ => validator.shipped(&c.declared).unwrap_or_default(),
     };
     let chosen: Vec<usize> = c
         .results
@@ -406,7 +401,7 @@ fn steps_of(
             })
             .cloned()
             .collect();
-        let field = field_schema(&schema_doc, at, &corpus.more);
+        let field = field_schema(&schema_doc, at, c.more());
         let field = field.as_ref();
         groups.push(Group {
             no: groups.len() + 1,
@@ -478,7 +473,6 @@ fn steps_of(
 /// 渡された判定で、対象の意味の rule の結果を置き換える。
 fn apply_answer(
     current: &mut [Current],
-    corpus: &Corpus,
     validator: &dyn SchemaValidator,
     answer: &str,
     selection: Selection,
@@ -520,7 +514,7 @@ fn apply_answer(
         )));
         return Err(r);
     }
-    let (_, steps, at) = steps_of(c, corpus, validator);
+    let (_, steps, at) = steps_of(c, validator);
     let judged = match_steps(&v, &steps).map_err(invalid)?;
     for (n, (step, i)) in steps.iter().zip(at).enumerate() {
         if let Some((verdict, reason)) = judged.get(&n) {
@@ -539,11 +533,9 @@ fn judge(
     kind: TargetKind,
     declared: &str,
     validator: &dyn SchemaValidator,
-    corpus: &Corpus,
+    concrete: Option<&Resolved>,
 ) -> Result<Vec<Judged>, Refused> {
-    let Corpus {
-        concretes, more, ..
-    } = corpus;
+    let more = concrete.map_or(&[][..], Resolved::more);
     let mut results: Vec<Judged> = Vec::new();
     let broken = form_violations(validator, kind, declared, &d.value, more)
         .map_err(|e| refused("validator", &d.path, e))?;
@@ -585,10 +577,8 @@ fn judge(
             ));
         }
         TargetKind::Instance => {
-            let concrete_doc = concretes
-                .get(declared)
-                .map(ConcreteSchema::document)
-                .cloned()
+            let concrete_doc = concrete
+                .map(|c| c.concrete().document().clone())
                 .unwrap_or_default();
             results.extend(instance_rules(&concrete_doc, &d.value, more));
         }
@@ -604,6 +594,8 @@ pub struct Current {
     pub kind: TargetKind,
     /// 従う schema の $id
     pub declared: String,
+    /// インスタンスが従う Concrete（渡された置き場所から引いたもの。Concrete の対象は None）
+    pub concrete: Option<Resolved>,
     /// いまの中身のハッシュ
     pub hash: ContentHash,
     /// rule ごとの結果と、その判定が読んだ所のハッシュ
@@ -626,7 +618,14 @@ pub struct Current {
     pub ops: Vec<ChangeOp>,
 }
 
-/// 対象を決めて種類を見分け、いまの中身ですべての rule を判定する。記録しない。
+impl Current {
+    /// 形の検査と欄の定義で引ける文書（インスタンスなら Concrete と $ref の先）。
+    fn more(&self) -> &[(String, Value)] {
+        self.concrete.as_ref().map_or(&[], Resolved::more)
+    }
+}
+
+/// 渡された経路の対象を読んで種類を見分け、いまの中身ですべての rule を判定する。記録しない。
 ///
 /// # Errors
 /// 対象を読めない ・ 申告した Abstract の版が閉じた一覧に無い ・ 従う schema が分からない ・ バリデーターが動かないとき。
@@ -634,51 +633,53 @@ pub fn judge_current(
     scope: &Scope,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-) -> Result<(Corpus, Vec<Current>), Refused> {
-    let corpus = load_corpus(store)?;
-    let concretes = &corpus.concretes;
-    let targets: Vec<Doc> = match scope {
-        Scope::Paths(paths) => {
-            let mut out = Vec::new();
-            for p in paths {
-                let text = store.read(p).map_err(|e| refused("not_found", p, e))?;
-                let value: Value = serde_json::from_str(&text)
-                    .map_err(|e| refused("not_json", p, format!("JSON として読めない：{e}")))?;
-                out.push(Doc {
-                    path: p.clone(),
-                    text,
-                    value,
-                });
-            }
-            out
-        }
-        Scope::All => corpus
-            .docs
-            .iter()
-            .filter(|d| {
-                ConcreteSchema::declares_abstract(&d.value)
-                    || d.value
-                        .get("$schema")
-                        .and_then(Value::as_str)
-                        .is_some_and(|s| concretes.contains_key(s))
-            })
-            .cloned()
-            .collect(),
-    };
+) -> Result<Vec<Current>, Refused> {
+    let mut index: Option<SchemaIndex> = None;
     let mut classified = Vec::new();
-    for d in targets {
+    for p in &scope.paths {
+        let text = store.read(p).map_err(|e| refused("not_found", p, e))?;
+        let value: Value = serde_json::from_str(&text)
+            .map_err(|e| refused("not_json", p, format!("JSON として読めない：{e}")))?;
+        let d = Doc {
+            path: p.clone(),
+            text,
+            value,
+        };
         let declared = d
             .value
             .get("$schema")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
-        let kind = classify(concretes, &d.path, &declared)?;
-        classified.push((d, kind, declared));
+        let kind = classify(&d.path, &declared)?;
+        let concrete = match kind {
+            TargetKind::Concrete => None,
+            TargetKind::Instance => {
+                if index.is_none() {
+                    index = Some(
+                        SchemaIndex::read(&scope.schemas, |f| store.read(f))
+                            .map_err(|u| unresolved(None, u))?,
+                    );
+                }
+                let found = index.as_ref().map(|i| {
+                    i.resolve(
+                        &declared,
+                        |f| store.read(f),
+                        |id| validator.shipped(id).is_some(),
+                    )
+                });
+                match found {
+                    Some(Ok(r)) => Some(r),
+                    Some(Err(u)) => return Err(unresolved(Some(&d.path), u)),
+                    None => None,
+                }
+            }
+        };
+        classified.push((d, kind, declared, concrete));
     }
     let mut current = Vec::new();
-    for (doc, kind, declared) in classified {
-        let judged = judge(&doc, kind, &declared, validator, &corpus)?;
+    for (doc, kind, declared, concrete) in classified {
+        let judged = judge(&doc, kind, &declared, validator, concrete.as_ref())?;
         let definitions = judged.iter().map(|(_, _, d)| d.clone()).collect();
         let results = judged
             .into_iter()
@@ -701,11 +702,12 @@ pub fn judge_current(
             doc,
             kind,
             declared,
+            concrete,
             results,
             definitions,
         });
     }
-    Ok((corpus, current))
+    Ok(current)
 }
 
 /// 前の判定のあと、読んだ所が変わった rule の id（--stale）。前の判定が無い rule も入る。
@@ -905,8 +907,8 @@ fn current_for(
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     log: &dyn ValidationLog,
-) -> Result<(Corpus, Vec<Current>, Unchanged), Refused> {
-    let (corpus, mut current) = judge_current(scope, store, validator)?;
+) -> Result<(Vec<Current>, Unchanged), Refused> {
+    let mut current = judge_current(scope, store, validator)?;
     let mut unchanged = Unchanged::new();
     for c in &mut current {
         match pick {
@@ -936,16 +938,11 @@ fn current_for(
                 let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
                 let writes = log.writes(&c.doc.path).map_err(log_refused)?;
                 // インスタンスでは、従う Concrete のファイルに前の判定のあと記録された変更から、文が変わった rule を引く
-                let concrete = match c.kind {
-                    TargetKind::Instance => corpus
-                        .docs
-                        .iter()
-                        .find(|d| {
-                            d.value.get("$id").and_then(Value::as_str) == Some(c.declared.as_str())
-                        })
-                        .cloned(),
-                    TargetKind::Concrete => None,
-                };
+                let concrete = c.concrete.as_ref().map(|k| Doc {
+                    path: k.path().to_string(),
+                    text: String::new(),
+                    value: k.concrete().document().clone(),
+                });
                 let concrete_writes = match &concrete {
                     Some(d) => log.writes(&d.path).map_err(log_refused)?,
                     None => Vec::new(),
@@ -979,7 +976,7 @@ fn current_for(
             }
         }
     }
-    Ok((corpus, current, unchanged))
+    Ok((current, unchanged))
 }
 
 fn run_validate(
@@ -992,9 +989,9 @@ fn run_validate(
     answer: Option<(&str, Selection)>,
 ) -> Result<Validation, Refused> {
     let stale_only = matches!(pick, Pick::ChangedRules | Pick::ChangedPlaces);
-    let (corpus, mut current, mut unchanged) = current_for(scope, pick, store, validator, log)?;
+    let (mut current, mut unchanged) = current_for(scope, pick, store, validator, log)?;
     if let Some((answer, selection)) = answer {
-        apply_answer(&mut current, &corpus, validator, answer, selection)?;
+        apply_answer(&mut current, validator, answer, selection)?;
     }
     // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();

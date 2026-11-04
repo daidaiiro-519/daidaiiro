@@ -17,21 +17,21 @@ pub use semantic::{SemanticRequest, semantic_procedure};
 
 use crate::ports::{ChangeLog, CommitReader, DocumentStore, SchemaValidator};
 use serde_json::Value;
-use std::collections::BTreeMap;
 use validation_domain::services::{
     EXAMPLE_RELATED, Judged, concrete_rules, example_related, instance_rules, reads_hash,
 };
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
+use writing_domain::services::{Resolved, SchemaIndex, Unresolved};
 use writing_domain::values::{
-    Caller, Change, ChangeRow, ContentHash, Corpus, Diff, FieldChange, FieldRow, StoredChange,
-    TargetKind, WriteRecord, unrecorded_since,
+    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
+    WriteRecord, unrecorded_since,
 };
 
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
-    /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ exists ・
+    /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ duplicate_schema ・ exists ・
     /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
     /// 書く手前の判定で断ったもの：invalid_value ・ conflict ・ patch_failed ・ human_field ・ published_changed、
     /// 止めた削除：has_dependents、意味で書く手順を組めないもの：reads_cycle ・ ref_too_large）
@@ -46,6 +46,8 @@ pub struct Refused {
     pub hint: Option<Box<String>>,
     /// 削除を止めた理由になったもの（Concrete に従うインスタンス）
     pub blocked: Option<Box<Vec<Blocked>>>,
+    /// 同じ $id を持つファイルの経路（duplicate_schema）
+    pub paths: Option<Box<Vec<String>>>,
 }
 
 /// 削除を止めた理由になった文書1つと、それを片付けるコマンドの案内。
@@ -82,31 +84,86 @@ pub fn log_refused(e: String) -> Refused {
     }
 }
 
-/// リポジトリの文書を読む（Concrete の一覧に使う）。読めない文書は除く。
+/// 渡されたスキーマの置き場所のファイルを1件ずつ読み、$id の索引を作る。
 ///
 /// # Errors
-/// 文書の一覧を読めないとき。
-fn load_corpus(store: &dyn DocumentStore) -> Result<Corpus, Refused> {
-    let paths = store.list().map_err(|e| Refused {
-        code: "store",
-        message: e,
+/// ファイルを読めないとき。
+fn index_of(store: &dyn DocumentStore, schemas: &[String]) -> Result<SchemaIndex, Refused> {
+    SchemaIndex::read(schemas, |p| store.read(p)).map_err(|u| unresolved(None, u))
+}
+
+/// 置き場所から引けなかった理由を、断った理由にする。
+fn unresolved(path: Option<&str>, u: Unresolved) -> Refused {
+    Refused {
+        code: u.code(),
+        path: path.map(Into::into),
+        message: u.message().to_string(),
+        paths: (!u.paths().is_empty()).then(|| Box::new(u.paths().to_vec())),
         ..Refused::default()
-    })?;
-    Ok(Corpus::read(
-        paths
-            .into_iter()
-            .filter_map(|p| store.read(&p).ok().map(|t| (p, t))),
-    ))
+    }
+}
+
+/// インスタンスが従う Concrete（$id が declared）と $ref の先を、渡された置き場所から引く。
+///
+/// # Errors
+/// 置き場所に無い ・ 2つ以上ある ・ 読めないとき。
+fn concrete_of(
+    index: &SchemaIndex,
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    path: &str,
+    declared: &str,
+) -> Result<Resolved, Refused> {
+    index
+        .resolve(
+            declared,
+            |p| store.read(p),
+            |id| validator.shipped(id).is_some(),
+        )
+        .map_err(|u| unresolved(Some(path), u))
 }
 
 /// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
-fn classify(
-    concretes: &BTreeMap<String, ConcreteSchema>,
+fn classify(path: &str, declared: &str) -> Result<TargetKind, Refused> {
+    TargetKind::classify(declared).map_err(|u| refused(u.code(), path, u.message().to_string()))
+}
+
+/// 対象の種類と、インスタンスなら従う Concrete。
+struct Target {
+    kind: TargetKind,
+    concrete: Option<Resolved>,
+}
+
+impl Target {
+    /// 形の検査で引ける文書（インスタンスなら Concrete と $ref の先。Concrete なら無い）。
+    fn more(&self) -> &[(String, Value)] {
+        self.concrete.as_ref().map_or(&[], Resolved::more)
+    }
+}
+
+/// 対象の種類を見分け、インスタンスなら従う Concrete を渡された置き場所から引く。
+///
+/// # Errors
+/// 見分けられない ・ 置き場所から引けないとき。
+fn target_of_declared(
+    store: &dyn DocumentStore,
+    validator: &dyn SchemaValidator,
+    schemas: &[String],
     path: &str,
     declared: &str,
-) -> Result<TargetKind, Refused> {
-    TargetKind::classify(concretes, declared)
-        .map_err(|u| refused(u.code(), path, u.message().to_string()))
+) -> Result<Target, Refused> {
+    let kind = classify(path, declared)?;
+    let concrete = match kind {
+        TargetKind::Concrete => None,
+        TargetKind::Instance => Some(concrete_of(
+            &index_of(store, schemas)?,
+            store,
+            validator,
+            path,
+            declared,
+        )?),
+    };
+    Ok(Target { kind, concrete })
 }
 
 /// 形（JSON Schema）の外れ（JSON Pointer と理由）。Concrete は申告した Abstract と方言の両方、インスタンスは従う Concrete に照らす。
@@ -195,24 +252,19 @@ const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocabular
 /// 更新のあと、前の判定のうち判定し直しが要るものを決めるのに使う（検証の --stale と同じ基準：validation-domain の reads_hash）。
 ///
 /// # Errors
-/// 対象を読めない ・ 型が決まらない ・ 申告した Abstract をバリデーターが持たないとき。
+/// 型が決まらない ・ 申告した Abstract をバリデーターが持たないとき。
 fn reads_now(
     path: &str,
-    store: &dyn DocumentStore,
+    value: &Value,
+    target: &Target,
     validator: &dyn SchemaValidator,
 ) -> Result<Vec<(String, String, String)>, Refused> {
-    let corpus = load_corpus(store)?;
-    let text = store
-        .read(path)
-        .map_err(|e| refused("not_found", path, e))?;
-    let value: Value = serde_json::from_str(&text)
-        .map_err(|e| refused("not_json", path, format!("JSON として読めない：{e}")))?;
     let declared = value
         .get("$schema")
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let judged: Vec<Judged> = match classify(&corpus.concretes, path, &declared)? {
+    let judged: Vec<Judged> = match classify(path, &declared)? {
         TargetKind::Concrete => {
             let abstract_doc = validator.shipped(&declared).ok_or_else(|| {
                 refused(
@@ -221,19 +273,18 @@ fn reads_now(
                     format!("{declared} をバリデーターが持たない"),
                 )
             })?;
-            let concrete = ConcreteSchema::read(&value)
+            let concrete = ConcreteSchema::read(value)
                 .ok_or_else(|| refused("validator", path, "Concrete として読めない".to_string()))?;
             let vocabulary = validator.shipped(VOCABULARY);
             concrete_rules(&abstract_doc, vocabulary.as_ref(), &concrete)
         }
         TargetKind::Instance => {
-            let concrete_doc = corpus
-                .concretes
-                .get(&declared)
-                .map(ConcreteSchema::document)
-                .cloned()
+            let concrete_doc = target
+                .concrete
+                .as_ref()
+                .map(|c| c.concrete().document().clone())
                 .unwrap_or_default();
-            instance_rules(&concrete_doc, &value, &corpus.more)
+            instance_rules(&concrete_doc, value, target.more())
         }
     };
     Ok(judged
@@ -242,7 +293,7 @@ fn reads_now(
             (
                 r.rule().to_string(),
                 r.pointer().to_string(),
-                reads_hash(&value, &at, definition.as_ref())
+                reads_hash(value, &at, definition.as_ref())
                     .as_str()
                     .to_string(),
             )
@@ -297,6 +348,93 @@ pub struct Violated {
     pub results: Vec<RuleResult>,
 }
 
+/// Concrete を直す ・ 消すときに、従うインスタンスかを見た文書1つ。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Checked {
+    /// 経路
+    pub path: String,
+    /// 見たときの中身のハッシュ
+    pub hash: ContentHash,
+    /// どこから見たか（range ＝ 渡された範囲 ・ record ＝ 記録）
+    pub from: &'static str,
+    /// その Concrete に従うインスタンスか
+    pub follows: bool,
+}
+
+/// 渡された範囲（--range）と、記録でその Concrete に従うと書いた文書を読む。own は直す ・ 消す Concrete の経路（見ない）。
+/// 範囲の文書は読めなければ断る。記録の文書は、いま無ければ見ない（見た文書だけを返す）。
+///
+/// # Errors
+/// 範囲の文書を読めない ・ JSON でない ・ 記録を読めないとき。
+fn range_docs(
+    store: &dyn DocumentStore,
+    log: &dyn ChangeLog,
+    own: &str,
+    id: &str,
+    range: &[String],
+) -> Result<Vec<(Checked, Value)>, Refused> {
+    let mut out: Vec<(Checked, Value)> = Vec::new();
+    let recorded = log.instances_of(id).map_err(log_refused)?;
+    let from_range = range.iter().map(|p| (p, "range"));
+    let from_record = recorded.iter().map(|p| (p, "record"));
+    for (p, from) in from_range.chain(from_record) {
+        if p == own || out.iter().any(|(c, _)| c.path == *p) {
+            continue;
+        }
+        let text = match store.read(p) {
+            Ok(t) => t,
+            Err(e) if from == "range" => return Err(refused("not_found", p, e)),
+            Err(_) => continue,
+        };
+        let value: Value = match serde_json::from_str(&text) {
+            Ok(v) => v,
+            Err(e) if from == "range" => {
+                return Err(refused("not_json", p, format!("JSON として読めない：{e}")));
+            }
+            Err(_) => continue,
+        };
+        let follows = Instance::read(&value).is_some_and(|i| i.concrete() == id);
+        out.push((
+            Checked {
+                path: p.clone(),
+                hash: ContentHash::of(text.as_bytes()),
+                from,
+                follows,
+            },
+            value,
+        ));
+    }
+    Ok(out)
+}
+
+/// Concrete を直す ・ 消すときの範囲。Concrete なら必ず要り、インスタンスには渡さない。
+///
+/// # Errors
+/// Concrete で範囲が無い ・ インスタンスに範囲を渡したとき（usage）。
+fn range_for<'a>(
+    kind: TargetKind,
+    path: &str,
+    range: Option<&'a [String]>,
+    verb: &str,
+) -> Result<&'a [String], Refused> {
+    match (kind, range) {
+        (TargetKind::Concrete, Some(r)) => Ok(r),
+        (TargetKind::Concrete, None) => Err(refused(
+            "usage",
+            path,
+            format!(
+                "Concrete を{verb}ときは、従うインスタンスを確かめる範囲を --range <経路>... で渡す（渡された範囲と記録で確かめる）"
+            ),
+        )),
+        (TargetKind::Instance, Some(_)) => Err(refused(
+            "usage",
+            path,
+            "--range は Concrete を直す ・ 消すときだけ渡す".to_string(),
+        )),
+        (TargetKind::Instance, None) => Ok(&[]),
+    }
+}
+
 /// 作成か更新の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangeResult {
@@ -322,6 +460,8 @@ pub struct ChangeResult {
     pub stale: Vec<Stale>,
     /// 外れたインスタンス（Concrete の更新のとき）
     pub violated: Vec<Violated>,
+    /// Concrete の更新で、従うインスタンスかを見た文書（渡された範囲と記録から）
+    pub checked: Vec<Checked>,
     /// 同じ request_id の操作がすでにあり、書かずにそれを返したか
     pub replayed: bool,
     /// SAS を通らない変更を取り込んだ操作か（source = outside）
@@ -339,6 +479,8 @@ pub struct CreateRequest {
     pub concrete: String,
     /// 書く値。$schema が無ければ concrete を入れる
     pub value: Value,
+    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
+    pub schemas: Vec<String>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
     /// 理由（なぜ作るか）。記録に残し、間に入った変更として後の書き手に返す
@@ -352,8 +494,12 @@ pub struct UpdateRequest {
     pub path: String,
     /// JSON Patch（RFC 6902）の操作の並び
     pub patch: Value,
-    /// 直す前に読んだ中身のハッシュ。無ければ、SAS が最後に書いた事後のハッシュと比べる
+    /// 直す前に読んだ中身のハッシュ。無ければ、Semantic Agent Schema が最後に書いた事後のハッシュと比べる
     pub if_match: Option<String>,
+    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
+    pub schemas: Vec<String>,
+    /// Concrete を直すときに、従うインスタンスを確かめる範囲（--range の経路）
+    pub range: Option<Vec<String>>,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
     /// 理由（なぜ直すか）。記録に残し、間に入った変更として後の書き手に返す
@@ -566,6 +712,7 @@ fn replay(
         diff: Diff::from_changes(changes),
         stale: Vec::new(),
         violated: Vec::new(),
+        checked: Vec::new(),
         replayed: true,
         outside: row.source == "outside",
         before_commit: None,
@@ -636,8 +783,8 @@ pub fn create(
             format!("{path} はすでに在る。直すときは update を使う"),
         ));
     }
-    let corpus = load_corpus(store)?;
-    let kind = classify(&corpus.concretes, path, &request.concrete)?;
+    let target = target_of_declared(store, validator, &request.schemas, path, &request.concrete)?;
+    let kind = target.kind;
     let row = ChangeRow {
         kind: Written::Created.kind().to_string(),
         source: "sas".to_string(),
@@ -649,7 +796,7 @@ pub fn create(
         schema: Some(request.concrete.clone()),
         fields: Vec::new(),
     };
-    let broken = form_violations(validator, kind, &request.concrete, &value, &corpus.more)
+    let broken = form_violations(validator, kind, &request.concrete, &value, target.more())
         .map_err(|e| refused("validator", path, e))?;
     if !broken.is_empty() {
         return Err(refused(
@@ -661,12 +808,12 @@ pub fn create(
     if let Err((code, message)) = check_write(
         &Judge {
             validator,
-            more: &corpus.more,
+            more: target.more(),
         },
         kind,
         None,
         &value,
-        corpus.concretes.get(&request.concrete),
+        target.concrete.as_ref().map(Resolved::concrete),
         caller.entry(),
     ) {
         return Err(refused(code, path, message));
@@ -698,6 +845,7 @@ pub fn create(
         diff,
         stale: Vec::new(),
         violated: Vec::new(),
+        checked: Vec::new(),
         replayed: false,
         outside: false,
         before_commit: None,
@@ -734,8 +882,9 @@ pub fn update(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let corpus = load_corpus(store)?;
-    let kind = classify(&corpus.concretes, path, &declared)?;
+    let target = target_of_declared(store, validator, &request.schemas, path, &declared)?;
+    let kind = target.kind;
+    let range = range_for(kind, path, request.range.as_deref(), "直す")?;
     let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
         kind: Written::Updated.kind().to_string(),
@@ -797,7 +946,7 @@ pub fn update(
     if kind == TargetKind::Concrete
         && let Some(to) = after.get("$schema").and_then(Value::as_str)
         && to != declared
-        && let Err(u) = TargetKind::classify(&corpus.concretes, to)
+        && let Err(u) = TargetKind::classify(to)
         && u.code() == "schema_not_listed"
     {
         return Err(refused(
@@ -806,18 +955,7 @@ pub fn update(
             format!("{}。パッチを当てていない（対象は変えない）", u.message()),
         ));
     }
-    // Concrete を直すときは、新しい中身を同じ $id の Concrete として照らす
-    let own_id = ConcreteSchema::read(&before).and_then(|c| c.id().map(ToString::to_string));
-    let mut more: Vec<(String, Value)> = corpus
-        .more
-        .iter()
-        .filter(|(id, _)| Some(id) != own_id.as_ref())
-        .cloned()
-        .collect();
-    if let Some(id) = &own_id {
-        more.push((id.clone(), after.clone()));
-    }
-    let broken = form_violations(validator, kind, &declared, &after, &more)
+    let broken = form_violations(validator, kind, &declared, &after, target.more())
         .map_err(|e| refused("validator", path, e))?;
     if !broken.is_empty() {
         return Err(refused(
@@ -829,16 +967,31 @@ pub fn update(
     if let Err((code, message)) = check_write(
         &Judge {
             validator,
-            more: &more,
+            more: target.more(),
         },
         kind,
         Some(&before),
         &after,
-        corpus.concretes.get(&declared),
+        target.concrete.as_ref().map(Resolved::concrete),
         caller.entry(),
     ) {
         return Err(refused(code, path, message));
     }
+    // Concrete を直すときは、渡された範囲と記録の文書を、書く前に読む（新しい中身を同じ $id の Concrete として照らす）
+    let followers =
+        match ConcreteSchema::read(&before).and_then(|c| c.id().map(ToString::to_string)) {
+            Some(id) => Some(Followers::read(
+                &request.schemas,
+                store,
+                validator,
+                log,
+                path,
+                &id,
+                range,
+                &after,
+            )?),
+            None => None,
+        };
     let new_text = to_text(&after);
     store
         .write(path, &new_text)
@@ -861,10 +1014,10 @@ pub fn update(
         },
     )?;
 
-    let stale = stale_judgments(log, path, store, validator)?;
-    let violated = match &own_id {
-        Some(id) => violated_instances(validator, &corpus, path, id, &more)?,
-        None => Vec::new(),
+    let stale = stale_judgments(log, path, &after, &target, validator)?;
+    let (violated, checked) = match followers {
+        Some(f) => f.check(validator)?,
+        None => (Vec::new(), Vec::new()),
     };
     Ok(ChangeResult {
         session,
@@ -878,6 +1031,7 @@ pub fn update(
         diff,
         stale,
         violated,
+        checked,
         replayed: false,
         outside: false,
         before_commit: None,
@@ -889,10 +1043,11 @@ pub fn update(
 fn stale_judgments(
     log: &dyn ChangeLog,
     path: &str,
-    store: &dyn DocumentStore,
+    value: &Value,
+    target: &Target,
     validator: &dyn SchemaValidator,
 ) -> Result<Vec<Stale>, Refused> {
-    let now = reads_now(path, store, validator)?;
+    let now = reads_now(path, value, target, validator)?;
     Ok(log
         .last_judgments(path)
         .map_err(log_refused)?
@@ -910,35 +1065,79 @@ fn stale_judgments(
         .collect())
 }
 
-/// Concrete を直したら、それに従うインスタンスを新しい形に照らす。
-fn violated_instances(
-    validator: &dyn SchemaValidator,
-    corpus: &Corpus,
-    path: &str,
-    id: &str,
-    more: &[(String, Value)],
-) -> Result<Vec<Violated>, Refused> {
-    let mut violated = Vec::new();
-    for d in &corpus.docs {
-        if d.path == path || d.value.get("$schema").and_then(Value::as_str) != Some(id) {
-            continue;
-        }
-        let broken = validator
-            .check(id, &d.value, more)
-            .map_err(|e| refused("validator", &d.path, e))?;
-        if !broken.is_empty() {
-            violated.push(Violated {
-                path: d.path.clone(),
-                results: broken
-                    .iter()
-                    .map(|(at, why)| {
-                        RuleResult::new("json-schema", at, By::Machine, Verdict::Violated, why)
-                    })
-                    .collect(),
-            });
-        }
+/// Concrete を直すときに見る、渡された範囲と記録の文書と、新しい中身で照らす文書（Concrete と $ref の先）。
+struct Followers {
+    id: String,
+    docs: Vec<(Checked, Value)>,
+    more: Vec<(String, Value)>,
+}
+
+impl Followers {
+    /// 範囲と記録の文書を読み、新しい中身（after）の $ref の先を渡された置き場所から引く。書く前に呼ぶ。
+    ///
+    /// # Errors
+    /// 範囲の文書を読めない ・ $ref の先を引けない ・ 記録を読めないとき。
+    #[allow(clippy::too_many_arguments)]
+    fn read(
+        schemas: &[String],
+        store: &dyn DocumentStore,
+        validator: &dyn SchemaValidator,
+        log: &dyn ChangeLog,
+        path: &str,
+        id: &str,
+        range: &[String],
+        after: &Value,
+    ) -> Result<Self, Refused> {
+        let docs = range_docs(store, log, path, id, range)?;
+        let more = if docs.iter().any(|(c, _)| c.follows) {
+            index_of(store, schemas)?
+                .with_refs(
+                    id,
+                    after.clone(),
+                    |p| store.read(p),
+                    |i| validator.shipped(i).is_some(),
+                )
+                .map_err(|u| unresolved(Some(path), u))?
+        } else {
+            Vec::new()
+        };
+        Ok(Self {
+            id: id.to_string(),
+            docs,
+            more,
+        })
     }
-    Ok(violated)
+
+    /// 従うインスタンスを新しい形に照らし、外れたものと、見た文書を返す。
+    ///
+    /// # Errors
+    /// バリデーターが動かないとき。
+    fn check(
+        self,
+        validator: &dyn SchemaValidator,
+    ) -> Result<(Vec<Violated>, Vec<Checked>), Refused> {
+        let mut violated = Vec::new();
+        for (c, value) in &self.docs {
+            if !c.follows {
+                continue;
+            }
+            let broken = validator
+                .check(&self.id, value, &self.more)
+                .map_err(|e| refused("validator", &c.path, e))?;
+            if !broken.is_empty() {
+                violated.push(Violated {
+                    path: c.path.clone(),
+                    results: broken
+                        .iter()
+                        .map(|(at, why)| {
+                            RuleResult::new("json-schema", at, By::Machine, Verdict::Violated, why)
+                        })
+                        .collect(),
+                });
+            }
+        }
+        Ok((violated, self.docs.into_iter().map(|(c, _)| c).collect()))
+    }
 }
 
 /// SAS を通らない変更を取り込むコマンドの案内。
@@ -971,6 +1170,10 @@ pub struct AdoptRequest {
     pub as_kind: AdoptAs,
     /// 従う Concrete の $id。渡されたら $schema と同じかを確かめる（無ければ $schema から決める）
     pub concrete: Option<String>,
+    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
+    pub schemas: Vec<String>,
+    /// Concrete の更新を取り込むときに、従うインスタンスを確かめる範囲（--range の経路）
+    pub range: Option<Vec<String>>,
     /// 理由（なぜ外で直したか）。更新の取り込みでは要る
     pub reason: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID
@@ -1051,8 +1254,19 @@ pub fn adopt(
             format!("ファイルの $schema（{declared}）が --concrete（{c}）と違う"),
         ));
     }
-    let corpus = load_corpus(store)?;
-    let kind = classify(&corpus.concretes, path, &declared)?;
+    let target = target_of_declared(store, validator, &request.schemas, path, &declared)?;
+    let kind = target.kind;
+    let range = match request.as_kind {
+        AdoptAs::Update => range_for(kind, path, request.range.as_deref(), "取り込んで直す")?,
+        AdoptAs::Create if request.range.is_some() => {
+            return Err(refused(
+                "usage",
+                path,
+                "--range は Concrete を直す ・ 消すときだけ渡す".to_string(),
+            ));
+        }
+        AdoptAs::Create => &[],
+    };
     let hash = ContentHash::of(text.as_bytes());
     let writes = log.writes(path).map_err(log_refused)?;
     let recorded: Vec<String> = writes.iter().filter_map(|w| w.row.after.clone()).collect();
@@ -1118,7 +1332,7 @@ pub fn adopt(
         (Some((_, _, hash)), _) => Some(hash.clone()),
         (None, l) => l.clone(),
     };
-    let broken = form_violations(validator, kind, &declared, &current, &corpus.more)
+    let broken = form_violations(validator, kind, &declared, &current, target.more())
         .map_err(|e| refused("validator", path, e))?;
     if !broken.is_empty() {
         return Err(refused(
@@ -1136,12 +1350,12 @@ pub fn adopt(
     if let Err((code, message)) = check_write(
         &Judge {
             validator,
-            more: &corpus.more,
+            more: target.more(),
         },
         kind,
         before_value,
         &current,
-        corpus.concretes.get(&declared),
+        target.concrete.as_ref().map(Resolved::concrete),
         caller.entry(),
     ) {
         let unknown = expected.is_some() && found.is_none();
@@ -1169,6 +1383,20 @@ pub fn adopt(
         }
         return Err(r);
     }
+    let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
+    let followers = match (&own_id, request.as_kind) {
+        (Some(id), AdoptAs::Update) => Some(Followers::read(
+            &request.schemas,
+            store,
+            validator,
+            log,
+            path,
+            id,
+            range,
+            &current,
+        )?),
+        _ => None,
+    };
     let diff = match (&expected, &found) {
         (None, _) => Diff::between(None, &current),
         (Some(_), Some((_, before, _))) => Diff::between(Some(before), &current),
@@ -1184,20 +1412,10 @@ pub fn adopt(
             ..row
         },
     )?;
-    let stale = stale_judgments(log, path, store, validator)?;
-    let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
-    let violated = match (&own_id, request.as_kind) {
-        (Some(id), AdoptAs::Update) => {
-            let mut more: Vec<(String, Value)> = corpus
-                .more
-                .iter()
-                .filter(|(i, _)| i != id)
-                .cloned()
-                .collect();
-            more.push((id.clone(), current.clone()));
-            violated_instances(validator, &corpus, path, id, &more)?
-        }
-        _ => Vec::new(),
+    let stale = stale_judgments(log, path, &current, &target, validator)?;
+    let (violated, checked) = match followers {
+        Some(f) => f.check(validator)?,
+        None => (Vec::new(), Vec::new()),
     };
     Ok(ChangeResult {
         session,
@@ -1211,6 +1429,7 @@ pub fn adopt(
         diff,
         stale,
         violated,
+        checked,
         replayed: false,
         outside: true,
         before_commit: found.map(|(rev, _, _)| rev),

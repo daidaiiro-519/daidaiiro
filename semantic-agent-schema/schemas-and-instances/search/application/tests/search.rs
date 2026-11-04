@@ -15,9 +15,6 @@ use writing_domain::values::ContentHash;
 
 /// 代役を、検索のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
 impl search_application::ports::DocumentStore for support::Files {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
@@ -65,8 +62,15 @@ fn hash(store: &support::Files, path: &str) -> String {
         .to_string()
 }
 
+fn range(paths: &[&str]) -> Range {
+    Range {
+        paths: paths.iter().map(ToString::to_string).collect(),
+        schemas: vec!["c.json".into()],
+    }
+}
+
 fn concrete_range() -> Range {
-    Range::Concrete(UC.to_string())
+    range(&["u0.json", "u1.json"])
 }
 
 #[test]
@@ -82,13 +86,15 @@ fn the_range_is_returned_and_only_its_documents_are_searched() {
     assert_eq!(paths, ["u0.json", "u1.json"]);
     assert_eq!(found.found.len(), 1);
     assert_eq!(found.found[0].path, "u0.json");
-    let all = search_where(&Range::All, &[("/level".into(), json!("user"))], &s).unwrap();
-    assert_eq!(
-        all.range.len(),
-        3,
-        "Concrete とインスタンスだけが範囲に入る"
-    );
-    assert_eq!(all.found[0].path, "u1.json");
+    let some = search_where(
+        &range(&["u1.json", "c.json"]),
+        &[("/level".into(), json!("user"))],
+        &s,
+    )
+    .unwrap();
+    let paths: Vec<&str> = some.range.iter().map(|(p, _)| p.as_str()).collect();
+    assert_eq!(paths, ["c.json", "u1.json"], "渡された経路だけが範囲に入る");
+    assert_eq!(some.found[0].path, "u1.json");
 }
 
 #[test]
@@ -113,12 +119,39 @@ fn every_condition_must_match() {
 }
 
 #[test]
-fn an_untyped_path_or_unknown_concrete_is_refused() {
+fn an_untyped_path_or_a_concrete_outside_the_place_is_refused() {
     let s = store();
-    let r = search_where(&Range::Paths(vec!["other.json".into()]), &[], &s).unwrap_err();
+    let r = search_where(&range(&["other.json"]), &[], &s).unwrap_err();
     assert_eq!(r.code, "no_schema");
-    let r = search_where(&Range::Concrete("urn:example:none:v1".into()), &[], &s).unwrap_err();
+    s.write(
+        "u9.json",
+        &json!({"$schema": "urn:example:none:v1"}).to_string(),
+    )
+    .unwrap();
+    let r = search_where(&range(&["u9.json"]), &[], &s).unwrap_err();
     assert_eq!(r.code, "unknown_schema");
+    let no_place = Range {
+        paths: vec!["u0.json".into()],
+        schemas: Vec::new(),
+    };
+    let r = search_where(&no_place, &[], &s).unwrap_err();
+    assert_eq!(r.code, "unknown_schema");
+}
+
+#[test]
+fn a_duplicate_id_in_the_place_is_refused_with_every_path() {
+    let s = store();
+    s.write("c2.json", &concrete().to_string()).unwrap();
+    let both = Range {
+        paths: vec!["u0.json".into()],
+        schemas: vec!["c.json".into(), "c2.json".into()],
+    };
+    let r = search_where(&both, &[], &s).unwrap_err();
+    assert_eq!(r.code, "duplicate_schema");
+    assert_eq!(
+        r.paths.as_deref().map(Vec::as_slice),
+        Some(&["c.json".to_string(), "c2.json".to_string()][..])
+    );
 }
 
 #[test]
@@ -133,9 +166,7 @@ fn the_procedure_has_one_step_per_document_and_the_answer_command() {
     assert_eq!(p["answer"]["format"], json!("search"));
     assert_eq!(
         p["command"],
-        json!(
-            "semantic-agent-schema search --concrete urn:example:t:uc:v1 --answer <答えの JSON のファイル | ->"
-        )
+        json!("semantic-agent-schema search u0.json u1.json --answer <答えの JSON のファイル | ->")
     );
 }
 
@@ -146,7 +177,7 @@ fn a_range_over_the_limit_is_refused_without_cutting() {
         ("c.json", concrete()),
         ("u0.json", json!({"$schema": UC, "level": big})),
     ]);
-    let r = search_procedure(&concrete_range(), "問い", &s, &HUMAN).unwrap_err();
+    let r = search_procedure(&range(&["u0.json"]), "問い", &s, &HUMAN).unwrap_err();
     assert_eq!(r.code, "range_too_large");
 }
 

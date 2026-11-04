@@ -5,14 +5,8 @@ use serde_json::Value;
 use validation_domain::values::Judgment;
 use writing_domain::values::{ChangeRow, StoredChange, WriteRecord};
 
-/// リポジトリの中の文書。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。
+/// 渡された経路の文書。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。全部を並べる手段は持たない。
 pub trait DocumentStore {
-    /// Concrete の一覧の材料になりうる JSON の文書の経路（並びは経路の順）。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn list(&self) -> Result<Vec<String>, String>;
-
     /// 文書の中身。
     ///
     /// # Errors
@@ -39,7 +33,7 @@ pub trait SchemaValidator {
     fn shipped(&self, id: &str) -> Option<Value>;
 
     /// value を、$id が schema のスキーマに照らし、外れた所（JSON Pointer）と理由を返す。
-    /// more はリポジトリの Concrete（$id と文書）で、schema の名前と $ref の先として引ける。
+    /// more は渡された置き場所から引いた文書（Concrete と $ref の先。$id と文書）で、schema の名前と $ref の先として引ける。
     ///
     /// # Errors
     /// スキーマを組めないとき。
@@ -109,4 +103,11 @@ pub trait ChangeLog {
     /// # Errors
     /// 置き場所を読めないとき。
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
+
+    /// 記録の最後の変更で、$id が schema の Concrete に従うと書いた文書の経路（消した文書は除く）。
+    /// Concrete を直す ・ 消すとき、渡された範囲と合わせて、従うインスタンスを確かめるのに使う。
+    ///
+    /// # Errors
+    /// 置き場所を読めないとき。
+    fn instances_of(&self, schema: &str) -> Result<Vec<String>, String>;
 }

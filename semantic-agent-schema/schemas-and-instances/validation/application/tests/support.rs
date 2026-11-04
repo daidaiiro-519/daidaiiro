@@ -18,9 +18,6 @@ pub(crate) const UC: &str = "urn:example:t:uc:v1";
 
 pub(crate) struct Files(pub(crate) RefCell<BTreeMap<String, String>>);
 impl Files {
-    pub(crate) fn list(&self) -> Result<Vec<String>, String> {
-        Ok(self.0.borrow().keys().cloned().collect())
-    }
     pub(crate) fn read(&self, path: &str) -> Result<String, String> {
         self.0
             .borrow()
@@ -149,6 +146,17 @@ impl Log {
                 same_worktree: true,
                 row: r.clone(),
             })
+            .collect())
+    }
+    pub(crate) fn instances_of(&self, schema: &str) -> Result<Vec<String>, String> {
+        let mut last: BTreeMap<&str, &ChangeRow> = BTreeMap::new();
+        for (_, r) in &self.1 {
+            last.insert(r.target_path.as_str(), r);
+        }
+        Ok(last
+            .into_iter()
+            .filter(|(_, r)| r.kind != "delete" && r.schema.as_deref() == Some(schema))
+            .map(|(p, _)| p.to_string())
             .collect())
     }
     pub(crate) fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {

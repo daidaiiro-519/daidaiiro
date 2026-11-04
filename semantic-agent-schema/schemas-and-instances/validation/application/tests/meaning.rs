@@ -14,9 +14,6 @@ use writing_domain::values::{Caller, ContentHash, Via};
 
 /// 代役を、検証のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
 impl validation_application::ports::DocumentStore for support::Files {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
@@ -73,7 +70,10 @@ fn store() -> support::Files {
 
 fn procedures(store: &support::Files, log: &Log, caller: &Caller) -> Vec<Value> {
     semantic_procedures(
-        &Scope::Paths(vec!["u1.json".into()]),
+        &Scope {
+            paths: vec!["u1.json".into()],
+            schemas: vec!["c.json".into()],
+        },
         CHANGED,
         store,
         &Lenient,
@@ -96,7 +96,11 @@ fn answer(hash: &str, rule: &str, verdict: &str, reason: &str) -> String {
 }
 
 fn give(store: &support::Files, log: &mut Log, answer: &str) -> Result<Verdict, &'static str> {
-    validate_with_answer("u1.json", CHANGED, answer, store, &Lenient, &HUMAN, log)
+    let scope = Scope {
+        paths: vec!["u1.json".into()],
+        schemas: vec!["c.json".into()],
+    };
+    validate_with_answer(&scope, CHANGED, answer, store, &Lenient, &HUMAN, log)
         .map(|v| {
             v.targets[0]
                 .results

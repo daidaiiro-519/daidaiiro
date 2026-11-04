@@ -1,0 +1,84 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-CONCRETE-CHECKED",
+ "name": "Concrete の更新で見た所",
+ "title": "Concrete を直すと、渡した範囲と、記録でその Concrete に従うと書いた文書だけを照らし、見た文書を checked に返す。範囲にも記録にも無い文書は見ない",
+ "why": "何を見たかが返らないと、呼ぶ側は確かめ漏れを判断できない。",
+ "traces": [
+  "UC2:拡張:Concrete の更新でインスタンスが violated になった"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "usecases/u3.json": "@fixtures/u1.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "usecases/u2.json",
+     "--concrete",
+     "urn:example:sample:usecase:v1",
+     "--value",
+     "{\"id\":\"U2\",\"goal\":\"結果を受け取る\",\"calls\":[]}",
+     "--schemas",
+     "schemas"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "update",
+   "schemas/usecase.schema.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/properties/id/pattern\",\"value\":\"^UC[0-9]+$\"}]",
+   "--schemas",
+   "schemas",
+   "--range",
+   "usecases/u1.json"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/checked",
+   "count": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/checked/0/path",
+   "equals": "usecases/u1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/checked/0/from",
+   "equals": "range"
+  },
+  {
+   "of": "when",
+   "pointer": "/checked/0/follows",
+   "equals": true
+  },
+  {
+   "of": "when",
+   "pointer": "/checked/1/path",
+   "equals": "usecases/u2.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/checked/1/from",
+   "equals": "record"
+  },
+  {
+   "of": "when",
+   "pointer": "/violated_instances",
+   "count": 2
+  }
+ ]
+}

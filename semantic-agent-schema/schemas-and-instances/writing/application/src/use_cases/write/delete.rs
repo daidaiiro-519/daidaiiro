@@ -1,15 +1,15 @@
 //! UC3 削除する（機械）：対象を消し、消す前の状態を削除の操作として記録する。
 //!
-//! ほかのファイルが対象を指していても探さない（参照はただの値で、SAS は参照を見分けない）。
-//! Concrete は、従うインスタンスが残っていれば消さずに止める。
+//! ほかのファイルが対象を指していても探さない（参照はただの値で、Semantic Agent Schema は参照を見分けない）。
+//! Concrete は、渡された範囲（--range）と記録に従うインスタンスが残っていれば消さずに止め、見た文書を結果に返す。
 
 use super::{
-    Blocked, Refused, classify, field_rows, interleaved, load_corpus, log_refused, record_change,
-    refused, target_of,
+    Blocked, Checked, Refused, classify, field_rows, interleaved, log_refused, range_docs,
+    range_for, record_change, refused, target_of,
 };
 use crate::ports::{ChangeLog, DocumentStore};
 use serde_json::{Value, json};
-use writing_domain::aggregates::{ConcreteSchema, Instance};
+use writing_domain::aggregates::ConcreteSchema;
 use writing_domain::values::{
     Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
     unrecorded_since,
@@ -26,6 +26,8 @@ pub struct DeleteRequest {
     pub request_id: Option<String>,
     /// 理由（なぜ消すか）
     pub reason: Option<String>,
+    /// Concrete を消すときに、従うインスタンスが無いことを確かめる範囲（--range の経路）
+    pub range: Option<Vec<String>>,
 }
 
 /// 削除の結果。
@@ -45,6 +47,8 @@ pub struct Deletion {
     pub before: ContentHash,
     /// 消す前の状態（根の欄ごとの remove）
     pub diff: Diff,
+    /// Concrete を消すときに、従うインスタンスかを見た文書（渡された範囲と記録から）
+    pub checked: Vec<Checked>,
     /// 同じ request_id の操作がすでにあり、消さずにそれを返したか
     pub replayed: bool,
 }
@@ -99,6 +103,7 @@ fn replayed(
         kind,
         path: row.target_path,
         schema: concrete,
+        checked: Vec::new(),
         replayed: true,
     })
 }
@@ -123,11 +128,12 @@ fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
     r
 }
 
-/// UC3 削除する（機械）：前提のハッシュと、Concrete なら従うインスタンスが無いことを確かめてから、対象を消して記録する。
+/// UC3 削除する（機械）：前提のハッシュと、Concrete なら渡された範囲と記録に従うインスタンスが無いことを確かめてから、
+/// 対象を消して記録する。
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない（何も記録しない）。
-/// ハッシュが違う ・ Concrete に従うインスタンスがある（何も変えない）。
+/// Concrete で範囲が無い（usage）・ ハッシュが違う ・ Concrete に従うインスタンスがある（何も変えない）。
 /// 消せない ・ 記録できないとき。
 pub fn delete(
     request: &DeleteRequest,
@@ -151,8 +157,8 @@ pub fn delete(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let corpus = load_corpus(store)?;
-    let kind = classify(&corpus.concretes, path, &declared)?;
+    let kind = classify(path, &declared)?;
+    let range = range_for(kind, path, request.range.as_deref(), "消す")?;
     let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
         kind: "delete".to_string(),
@@ -205,21 +211,24 @@ pub fn delete(
         return Err(r);
     }
 
-    // 2. Concrete に従うインスタンス
+    // 2. Concrete に従うインスタンス（渡された範囲と記録の文書）
+    let mut checked: Vec<Checked> = Vec::new();
     if kind == TargetKind::Concrete
         && let Some(own) =
             ConcreteSchema::read(&before).and_then(|c| c.id().map(ToString::to_string))
     {
-        let blocked: Vec<Blocked> = corpus
-            .docs
+        checked = range_docs(store, log, path, &own, range)?
+            .into_iter()
+            .map(|(c, _)| c)
+            .collect();
+        let blocked: Vec<Blocked> = checked
             .iter()
-            .filter(|d| d.path != path)
-            .filter(|d| Instance::read(&d.value).is_some_and(|i| i.concrete() == own))
-            .map(|d| Blocked {
-                path: d.path.clone(),
+            .filter(|c| c.follows)
+            .map(|c| Blocked {
+                path: c.path.clone(),
                 code: "follows",
                 message: format!("{own} に従うインスタンス"),
-                hint: delete_hint(&d.path),
+                hint: delete_hint(&c.path),
             })
             .collect();
         if !blocked.is_empty() {
@@ -247,6 +256,7 @@ pub fn delete(
         schema: declared,
         before: current,
         diff,
+        checked,
         replayed: false,
     })
 }

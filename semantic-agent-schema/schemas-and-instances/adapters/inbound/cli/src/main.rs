@@ -45,22 +45,23 @@ use writing_application::use_cases::write::{
 use writing_domain::values::Caller;
 
 const USAGE: &str = "使い方：semantic-agent-schema init [--session <ID>] ／ \
-semantic-agent-schema validate [--session <名前>] [--stale] (<経路>... | --all) ／ \
-semantic-agent-schema validate [--session <名前>] [--stale | --all-rules] (<経路>... | --all) --semantic ／ \
-semantic-agent-schema validate <経路> [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
-semantic-agent-schema create <経路> --concrete <URN> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema create <経路> --concrete <URN> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
-semantic-agent-schema create <経路> --adopt [--concrete <URN>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema update <経路> --patch <JSON Patch> [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema update <経路> --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
-semantic-agent-schema update <経路> --adopt --reason <理由> [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema delete <経路> --reason <理由> [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
-semantic-agent-schema render <経路>... --design-system <経路> --out <書き出す先> ／ \
+semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale] [--session <名前>] ／ \
+semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale | --all-rules] --semantic [--session <名前>] ／ \
+semantic-agent-schema validate <経路> --schemas <置き場所>... [--stale | --all-rules] --answer <判定の JSON のファイル | -> [--session <名前>] ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --value <JSON> [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --adopt [--concrete <$id>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --patch <JSON Patch> [--range <経路>...] [--if-match <ハッシュ>] [--reason <理由>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --semantic --task <依頼> [--ref <経路>]... [--reason <理由>] [--session <名前>] ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --adopt --reason <理由> [--range <経路>...] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema delete <経路> --reason <理由> [--range <経路>...] [--if-match <ハッシュ>] [--session <名前>] [--request-id <ID>] ／ \
+semantic-agent-schema render <経路>... --schemas <置き場所>... --design-system <経路> --out <書き出す先> ／ \
 semantic-agent-schema log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
 semantic-agent-schema log --operation <ID> ／ \
-semantic-agent-schema search (<経路>... | --concrete <URN> | --all) --where <JSON Pointer>=<値> [--where …]... [--session <名前>] ／ \
-semantic-agent-schema search (<経路>... | --concrete <URN> | --all) --semantic --question <問い> [--session <名前>] ／ \
-semantic-agent-schema search (<経路>... | --concrete <URN> | --all) --answer <答えの JSON のファイル | -> [--session <名前>]";
+semantic-agent-schema search <経路>... --schemas <置き場所>... --where <JSON Pointer>=<値> [--where …]... [--session <名前>] ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --semantic --question <問い> [--session <名前>] ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --answer <答えの JSON のファイル | -> [--session <名前>] ／ \
+Concrete を直す ・ 消すときは --range <経路>... が要る。--schemas の置き場所はファイルか、直下の JSON のファイルを読むフォルダ";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -82,6 +83,49 @@ fn main() -> ExitCode {
             ExitCode::from(2)
         }
     }
+}
+
+/// 値を並べて取る指定（--schemas ・ --range）を抜き出す。次の -- で始まる引数までが値で、何度渡してもよい。
+/// 指定が無ければ None、残りの引数も返す。--range は値が無くてもよい（範囲が空と明示する）。
+fn take_list(args: &[String], name: &str) -> Result<(Option<Vec<String>>, Vec<String>), String> {
+    let mut values: Option<Vec<String>> = None;
+    let mut rest = Vec::new();
+    let mut it = args.iter().peekable();
+    while let Some(a) = it.next() {
+        if a != name {
+            rest.push(a.clone());
+            continue;
+        }
+        let list = values.get_or_insert_with(Vec::new);
+        let before = list.len();
+        while let Some(v) = it.next_if(|v| !v.starts_with("--")) {
+            if !v.is_empty() {
+                list.push(v.clone());
+            }
+        }
+        if list.len() == before && name != "--range" {
+            return Err(format!("{name} に経路がありません"));
+        }
+    }
+    Ok((values, rest))
+}
+
+/// --schemas の置き場所を、読むファイルの経路の並びに開く。無ければ断る。
+fn schema_files(places: Option<Vec<String>>) -> Result<Vec<String>, ExitCode> {
+    let Some(places) = places else {
+        return Err(usage(
+            "--schemas <置き場所>... でスキーマの置き場所を渡してください（従う Concrete と $ref の先を、その中から $id で引く）",
+        ));
+    };
+    WorkingTree::new(PathBuf::from("."))
+        .schema_files(&places)
+        .map_err(|message| {
+            refuse(Refused {
+                code: "not_found",
+                message,
+                ..Refused::default()
+            })
+        })
 }
 
 fn usage(message: &str) -> ExitCode {
@@ -201,8 +245,11 @@ fn run_init(args: &[String]) -> ExitCode {
 }
 
 fn run_validate(args: &[String]) -> ExitCode {
+    let (schemas, args) = match take_list(args, "--schemas") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut session = None;
-    let mut all = false;
     let mut stale = false;
     let mut all_rules = false;
     let mut semantic = false;
@@ -211,7 +258,6 @@ fn run_validate(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--all" => all = true,
             "--stale" => stale = true,
             "--all-rules" => all_rules = true,
             "--semantic" => semantic = true,
@@ -242,16 +288,17 @@ fn run_validate(args: &[String]) -> ExitCode {
     }
     // 意味の判定は、既定では前の判定から読んだ所が変わった rule だけ。--all-rules ならすべて
     let selection = Selection { all_rules, stale };
-    let scope = match (all, paths.is_empty()) {
-        (true, true) => Scope::All,
-        (false, false) => Scope::Paths(paths),
-        (true, false) => return usage("経路と --all は一緒に渡せません"),
-        // 入力が変わった rule だけなら、経路を渡さなければすべてを見る
-        (false, true) if stale && answer.is_none() => Scope::All,
-        (false, true) => return usage("検証する経路か --all を渡してください"),
+    if paths.is_empty() {
+        return usage("検証する対象の経路を渡してください（範囲は渡された経路だけ）");
+    }
+    let schemas = match schema_files(schemas) {
+        Ok(s) => s,
+        Err(code) => return code,
     };
+    let scope = Scope { paths, schemas };
     // デザインシステムは、受け取りの型とテンプレートの書き方の契約に照らす（描画のモジュール）
-    if let Scope::Paths(paths) = &scope {
+    {
+        let paths = &scope.paths;
         let design: Vec<bool> = paths.iter().map(|p| is_design_system(p)).collect();
         if design.iter().any(|d| *d) {
             if !design.iter().all(|d| *d) || stale || all_rules || semantic || answer.is_some() {
@@ -268,7 +315,14 @@ fn run_validate(args: &[String]) -> ExitCode {
                 Err(r) => return refuse(r),
             };
             // 照らしてから、記録する直前に打ったセッションを sessions に足す
-            let checked = match check_design_systems(paths, &store, &validator, &Mustache, &Boa) {
+            let checked = match check_design_systems(
+                paths,
+                &scope.schemas,
+                &store,
+                &validator,
+                &Mustache,
+                &Boa,
+            ) {
                 Ok(c) => c,
                 Err(r) => return refuse(r),
             };
@@ -290,10 +344,7 @@ fn run_validate(args: &[String]) -> ExitCode {
     }
     let answer_text = match &answer {
         Some(from) => {
-            let Scope::Paths(paths) = &scope else {
-                return usage("--answer は --all と一緒に渡せません。経路を1つ渡してください");
-            };
-            if paths.len() != 1 {
+            if scope.paths.len() != 1 {
                 return usage("--answer は経路を1つだけ渡してください");
             }
             match read_answer(from) {
@@ -327,9 +378,9 @@ fn run_validate(args: &[String]) -> ExitCode {
             Err(r) => return refuse(r),
         }
     }
-    let result = match (&scope, answer_text) {
-        (Scope::Paths(paths), Some(text)) => validate_with_answer(
-            &paths[0], selection, &text, &store, &validator, &caller, &mut log,
+    let result = match answer_text {
+        Some(text) => validate_with_answer(
+            &scope, selection, &text, &store, &validator, &caller, &mut log,
         ),
         // 判定する所が無いときの意味の判定は、手順と同じ選び方（rule × 当たる所で変わった所だけ）で、
         // 前の判定を引き継いで記録する
@@ -376,6 +427,18 @@ enum Command {
 }
 
 fn run_change(args: &[String], command: Command) -> ExitCode {
+    let (schemas, args) = match take_list(args, "--schemas") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
+    let (range, args) = match take_list(&args, "--range") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
+    if command == Command::Create && range.is_some() {
+        return usage("--range は Concrete を直す ・ 消すときだけ渡してください");
+    }
+    let args = args.as_slice();
     // --adopt ・ --semantic は値を取らない旗、--ref は何度でも渡せるので、先に抜き出す
     let adopting = args.iter().any(|a| a == "--adopt");
     let semantic = args.iter().any(|a| a == "--semantic");
@@ -435,6 +498,13 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
     if !semantic && !refs.is_empty() {
         return usage("--ref は --semantic と一緒に渡してください");
     }
+    if semantic && range.is_some() {
+        return usage("--range は --patch か --adopt で Concrete を直すときに渡してください");
+    }
+    let schemas = match schema_files(schemas) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
     if semantic {
         // 意味で書く：手順を返すだけ。値と JSON Patch は、手順を受け取ったセッションが決めて、手順の command で書く
         if adopting {
@@ -458,6 +528,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             concrete,
             task: take("--task"),
             refs,
+            schemas,
             reason,
             request_id,
         };
@@ -493,6 +564,8 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 Command::Update => AdoptAs::Update,
             },
             concrete: take("--concrete"),
+            schemas,
+            range,
             reason,
             request_id,
         };
@@ -535,6 +608,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 path: path.clone(),
                 concrete,
                 value,
+                schemas,
                 request_id,
                 reason,
             };
@@ -552,6 +626,8 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 path: path.clone(),
                 patch,
                 if_match: take("--if-match"),
+                schemas,
+                range,
                 request_id,
                 reason,
             };
@@ -571,6 +647,10 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
 }
 
 fn run_delete(args: &[String]) -> ExitCode {
+    let (range, args) = match take_list(args, "--range") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut flags: Vec<(&str, Option<String>)> = vec![
         ("--reason", None),
         ("--if-match", None),
@@ -609,6 +689,7 @@ fn run_delete(args: &[String]) -> ExitCode {
         if_match: take("--if-match"),
         request_id: take("--request-id"),
         reason: Some(reason),
+        range,
     };
     match run_with(
         |store, _, caller, log| delete(&request, store, caller, log),
@@ -623,6 +704,10 @@ fn run_delete(args: &[String]) -> ExitCode {
 }
 
 fn run_render(args: &[String]) -> ExitCode {
+    let (schemas, args) = match take_list(args, "--schemas") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut design_system = None;
     let mut out = None;
     let mut targets = Vec::new();
@@ -653,6 +738,10 @@ fn run_render(args: &[String]) -> ExitCode {
     let Some(out) = out else {
         return usage("--out で書き出す先を渡してください");
     };
+    let schemas = match schema_files(schemas) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
     let root = PathBuf::from(".");
     let validator = match Validator::new() {
         Ok(v) => v,
@@ -667,6 +756,7 @@ fn run_render(args: &[String]) -> ExitCode {
     let request = RenderRequest {
         targets,
         design_system,
+        schemas,
         out,
     };
     match render(
@@ -815,9 +905,11 @@ fn is_time(t: &str) -> bool {
 
 /// semantic-agent-schema search：呼ぶ側が渡した範囲を、構造で絞るか、意味で探す手順を返すか、渡された答えの出どころを確かめる（UC6）。記録しない。
 fn run_search(args: &[String]) -> ExitCode {
+    let (schemas, args) = match take_list(args, "--schemas") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
     let mut session = None;
-    let mut concrete = None;
-    let mut all = false;
     let mut semantic = false;
     let mut question = None;
     let mut answer = None;
@@ -826,16 +918,11 @@ fn run_search(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         let slot = match a.as_str() {
-            "--all" => {
-                all = true;
-                continue;
-            }
             "--semantic" => {
                 semantic = true;
                 continue;
             }
             "--session" => &mut session,
-            "--concrete" => &mut concrete,
             "--question" => &mut question,
             "--answer" => &mut answer,
             "--where" => {
@@ -869,20 +956,10 @@ fn run_search(args: &[String]) -> ExitCode {
             _ => return usage(&format!("{a} に値がありません")),
         }
     }
-    // 範囲は必ず渡す（経路 ・ --concrete ・ --all のどれか1つ）
-    let range = match (paths.is_empty(), concrete, all) {
-        (false, None, false) => Range::Paths(paths),
-        (true, Some(c), false) => Range::Concrete(c),
-        (true, None, true) => Range::All,
-        (true, None, false) => {
-            return usage("探す範囲を、経路 ・ --concrete <URN> ・ --all のどれかで渡してください");
-        }
-        _ => {
-            return usage(
-                "探す範囲は、経路 ・ --concrete ・ --all のどれか1つだけを渡してください",
-            );
-        }
-    };
+    // 範囲は必ず渡す（経路の並び。既定の範囲は持たない）
+    if paths.is_empty() {
+        return usage("探す範囲を、文書の経路の並びで渡してください");
+    }
     let ways = [!conditions.is_empty(), semantic, answer.is_some()];
     match ways.iter().filter(|w| **w).count() {
         0 => {
@@ -903,6 +980,11 @@ fn run_search(args: &[String]) -> ExitCode {
         },
         None => None,
     };
+    let schemas = match schema_files(schemas) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    let range = Range { paths, schemas };
     if let Some(q) = question {
         return match run_with(
             |store, _, caller, _| search_procedure(&range, &q, store, caller),

@@ -1,7 +1,6 @@
 //! 文書が Concrete かインスタンスか。$schema の申告から見分ける（書く ・ 検証 ・ 描画 ・ 検索のどれも使う、集約の見分け方）。
 
-use crate::aggregates::{ABSTRACT_VERSIONS, ConcreteSchema, DIALECT};
-use std::collections::BTreeMap;
+use crate::aggregates::{ABSTRACT_VERSIONS, DIALECT};
 
 /// 対象の種類。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,14 +21,12 @@ impl TargetKind {
         }
     }
 
-    /// $schema の申告から対象の種類を見分ける。concretes はリポジトリの Concrete（$id → Concrete）。
+    /// $schema の申告から対象の種類を見分ける。Abstract の版ならば Concrete、ほかの名前ならインスタンス。
+    /// インスタンスが従う Concrete は、渡された置き場所から $id で引く（SchemaIndex）。
     ///
     /// # Errors
-    /// 版の一覧に無い ・ $schema が無い ・ 知らない型のとき（取りに行かずに断る理由）。
-    pub fn classify(
-        concretes: &BTreeMap<String, ConcreteSchema>,
-        declared: &str,
-    ) -> Result<Self, Unclassified> {
+    /// 版の一覧に無い ・ $schema が無いとき（取りに行かずに断る理由）。
+    pub fn classify(declared: &str) -> Result<Self, Unclassified> {
         if ABSTRACT_VERSIONS.contains(&declared) {
             Ok(Self::Concrete)
         } else if declared.starts_with("urn:semantic-agent-schema:published-language:abstract:") {
@@ -42,15 +39,8 @@ impl TargetKind {
             ))
         } else if declared.is_empty() {
             Err(Unclassified::new("no_schema", "$schema が無い".to_string()))
-        } else if concretes.contains_key(declared) {
-            Ok(Self::Instance)
         } else {
-            Err(Unclassified::new(
-                "unknown_schema",
-                format!(
-                    "{declared} はリポジトリの Concrete にも Abstract の版にも無い。取りに行かない"
-                ),
-            ))
+            Ok(Self::Instance)
         }
     }
 
@@ -76,7 +66,7 @@ impl Unclassified {
         Self { code, message }
     }
 
-    /// 決まった名前（schema_not_listed ・ no_schema ・ unknown_schema）。
+    /// 決まった名前（schema_not_listed ・ no_schema）。
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.code

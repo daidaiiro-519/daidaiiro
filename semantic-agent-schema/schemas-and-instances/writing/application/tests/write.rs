@@ -18,9 +18,6 @@ use writing_domain::values::{ChangeRow, ContentHash, StoredChange, WriteRecord};
 
 /// 代役を、書くモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
 impl writing_application::ports::DocumentStore for support::Files {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
@@ -67,6 +64,9 @@ impl writing_application::ports::ChangeLog for support::Log {
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         Self::last_judgments(self, target_path)
     }
+    fn instances_of(&self, schema: &str) -> Result<Vec<String>, String> {
+        Self::instances_of(self, schema)
+    }
 }
 
 fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
@@ -74,6 +74,7 @@ fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
         path: "u1.json".into(),
         concrete: UC.into(),
         value,
+        schemas: vec!["c.json".into()],
         request_id: request_id.map(Into::into),
         reason: None,
     }
@@ -130,6 +131,8 @@ fn same_request_is_one_operation() {
         path: "u1.json".into(),
         patch: json!([]),
         if_match: Some(first.after.as_str().into()),
+        schemas: vec!["c.json".into()],
+        range: None,
         request_id: Some("r-1".into()),
         reason: None,
     };
@@ -149,6 +152,8 @@ fn update_checks_the_hash_before_writing() {
         path: "u1.json".into(),
         patch: json!([{"op": "replace", "path": "/goal", "value": "b"}]),
         if_match: Some(if_match.into()),
+        schemas: vec!["c.json".into()],
+        range: None,
         request_id: None,
         reason: None,
     };
@@ -173,6 +178,8 @@ fn update_without_if_match_compares_with_the_last_write() {
         path: "u1.json".into(),
         patch: json!([{"op": "replace", "path": "/goal", "value": goal}]),
         if_match: None,
+        schemas: vec!["c.json".into()],
+        range: None,
         request_id: None,
         reason: Some("目標を直す".into()),
     };
@@ -251,6 +258,8 @@ fn update_reports_the_previous_judgments_it_made_stale() {
             path: "u1.json".into(),
             patch: json!([{"op": "replace", "path": "/status", "value": "approved"}, {"op": "replace", "path": "/goal", "value": "b"}]),
             if_match: Some(fp.as_str().into()),
+            schemas: vec!["c.json".into()],
+            range: None,
             request_id: None,
             reason: None,
         },
@@ -289,6 +298,8 @@ fn adopt_request(as_kind: AdoptAs) -> AdoptRequest {
         as_kind,
         concrete: None,
         reason: Some("エディターで直した".into()),
+        schemas: vec!["c.json".into()],
+        range: None,
         request_id: None,
     }
 }

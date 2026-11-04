@@ -1,0 +1,55 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SCHEMAS-DUPLICATE",
+ "name": "置き場所に同じ $id が2つ",
+ "title": "渡した置き場所に同じ $id の Concrete が2つあると、どちらも使わずに duplicate_schema と両方の経路を返す",
+ "why": "どちらかを選ぶと、選び方しだいで検証の結果が変わる。",
+ "traces": [
+  "UC4:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "old/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json",
+   "--schemas",
+   "schemas",
+   "old"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "duplicate_schema"
+  },
+  {
+   "of": "when",
+   "pointer": "/path",
+   "equals": "usecases/u1.json"
+  },
+  {
+   "of": "when",
+   "pointer": "/paths",
+   "equals": [
+    "schemas/usecase.schema.json",
+    "old/usecase.schema.json"
+   ]
+  },
+  {
+   "of": "when",
+   "pointer": "/operations",
+   "exists": false
+  }
+ ]
+}

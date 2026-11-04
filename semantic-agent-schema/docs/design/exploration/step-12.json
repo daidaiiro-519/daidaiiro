@@ -1,0 +1,101 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 12,
+ "date": "2026-11-04",
+ "summary": "具体モデリング概念の「いまの実装との差」のうち、作業フォルダを歩く処理と全部を持つ一覧を削り、範囲を渡された経路だけにした（区切り A と B）。filesystem の walk ・ list、値 Corpus、各モジュールの load_corpus を消し、Concrete は渡された置き場所（--schemas）の中から $id で引く（writing-domain の SchemaIndex）。validate の --all と --stale の既定の範囲、search の --all ・ --concrete を消し、範囲は経路の並びだけにした。Concrete を直す ・ 消すときは --range を必ず受け取り、渡された範囲と記録（instances_of）で従うインスタンスを確かめ、見た文書を checked で返す。試験144件、場面149本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC5",
+  "UC6"
+ ],
+ "factchecks": [
+  {
+   "item": "新しい場面は、直す前の実装では通らない",
+   "evidence": [
+    "直す前の版（~/.local/bin/semantic-agent-schema）で、--schemas を渡さずに validate usecases/u1.json を打つと終了コード 0 で検証した（S-UC4-SCHEMAS-MISSING は 2 を求める）",
+    "同じ版で、--range を渡さずに Concrete を update すると updated を返した（S-UC2-CONCRETE-NO-RANGE は usage を求める）"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "Concrete を引く（writing-domain の SchemaIndex）",
+   "steps": [
+    "入口が --schemas の置き場所を、ファイルならそのまま、フォルダなら直下の JSON のファイルに開く（outbound の filesystem の schema_files。下のフォルダには降りない）",
+    "置き場所のファイルを1件ずつ読み、$id と経路だけを残す（中身は持たない）",
+    "インスタンスの $schema の $id を引き、そのファイルだけを読み直す。$ref の先も同じ置き場所から引き、入れて出すスキーマは引かない"
+   ],
+   "rules": [
+    "置き場所に無ければ unknown_schema で断る（取りに行かない）",
+    "同じ $id のファイルが2つ以上あれば、どれも使わずに duplicate_schema と全部の経路（paths）を返す",
+    "Concrete の対象は置き場所を読まない（Abstract は組み込み）"
+   ]
+  },
+  {
+   "usecase": "Concrete を直す ・ 消すときの従うインスタンス（UC2 ・ UC3）",
+   "steps": [
+    "Concrete なら --range を必ず受け取る（空でもよい。範囲が空と明示する）。インスタンスに --range を渡したら断る",
+    "渡された範囲の文書と、記録の最後の変更でその $id に従うと書いた文書（ChangeLog の instances_of）を、書く前に読む",
+    "直すときは新しい中身で従うインスタンスを照らし、外れたものを violated_instances に、見た文書を checked に返す。消すときは従うインスタンスがあれば has_dependents で止める"
+   ],
+   "rules": [
+    "範囲の文書は読めなければ断る。記録の文書は、いま無ければ見ない（見た文書だけを返す）",
+    "範囲にも記録にも無い文書は見ない"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "置き場所から $id で Concrete と $ref の先を引く決まり",
+   "became": "service",
+   "evident_from_start": true,
+   "why": "書く ・ 検証 ・ 描画 ・ 検索のどれもが同じ決まり（重なる $id は断る ・ $ref の先も同じ置き場所）で引く。モジュールの application は互いを使わないので writing-domain に置いた"
+  },
+  {
+   "what": "範囲と記録の文書を読む手続き（range_docs）",
+   "became": "script",
+   "why": "書くモジュールの直す ・ 消すだけが使い、ドメインの判断（従うか）は Instance の concrete で足りる"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "具体モデリング概念「ポートとアダプター」の ChangeLog のメソッド",
+   "result": "top_missed",
+   "fixed": "none",
+   "note": "「渡された範囲と記録で確かめる」には、記録で従うインスタンスを引くメソッドが要る。instances_of を足した。具体モデリング概念の表は、区切り E で直す"
+  },
+  {
+   "item": "具体モデリング概念「ポートで読むもの」：Concrete は渡された置き場所の中から $id で引く",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "ポートは足さず、入口が置き場所をファイルの並びに開いて、use_cases が DocumentStore の read で1件ずつ読む"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "文書の置き場所のポート（DocumentStore）",
+    "before": "list で作業ディレクトリの JSON をすべて並べる",
+    "after": "read ・ write ・ remove だけ。置き場所は入口が schema_files でファイルの並びに開く",
+    "why": "見るものは入力を作る AI が渡す（本質の「受け取り方」）"
+   },
+   {
+    "what": "writing-domain の値と業務サービス",
+    "before": "値 Corpus（全部の文書と Concrete の一覧）",
+    "after": "業務サービス SchemaIndex（$id と経路だけの索引。要る文書だけを読む）",
+    "why": "全部を持つ一覧は、大きいリポジトリで使う記憶が増える"
+   },
+   {
+    "what": "出力の形（command-result）",
+    "before": "error の code に duplicate_schema が無い。change に checked が無い",
+    "after": "duplicate_schema と paths、Concrete を直す ・ 消した結果の checked を足した",
+    "why": "引けなかった理由と、何を見たかを返す"
+   }
+  ]
+ }
+}

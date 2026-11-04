@@ -1,0 +1,45 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-CONCRETE-NO-RANGE",
+ "name": "範囲の無い Concrete の更新",
+ "title": "Concrete を --range なしで直そうとすると、書かずに使い方の誤りを返す",
+ "why": "範囲が無いまま直すと、従わなくなったインスタンスを確かめた所が決まらない。",
+ "traces": [
+  "UC2:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "schemas/usecase.schema.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/properties/id/pattern\",\"value\":\"^UC[0-9]+$\"}]",
+   "--schemas",
+   "schemas"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--range"
+  }
+ ],
+ "unchanged": [
+  "schemas/usecase.schema.json"
+ ]
+}

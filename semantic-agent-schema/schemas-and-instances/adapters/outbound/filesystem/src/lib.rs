@@ -1,10 +1,12 @@
 //! ポート DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）を、作業ディレクトリのファイルで実装する。
-//! 描いたページの書き出し先（PageWriter）も持つ。書くときは一時ファイルに書いてから置き換える。リポジトリの外と、降りないフォルダには書かない。
+//! 読む ・ 書く ・ 消すのは渡された経路だけで、作業ディレクトリを歩かない。渡されたスキーマの置き場所（--schemas）は、
+//! ファイルならそのファイル、フォルダならその直下の JSON のファイルに開く。
+//! 描いたページの書き出し先（PageWriter）も持つ。書くときは一時ファイルに書いてから置き換える。リポジトリの外と、書かないフォルダには書かない。
 
 use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
 
-/// 降りないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにある）。
+/// 書かないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにある）。
 const SKIP: [&str; 2] = ["target", ".git"];
 
 /// 作業ディレクトリを根にした文書の置き場所。
@@ -19,40 +21,49 @@ impl WorkingTree {
     pub const fn new(root: PathBuf) -> Self {
         Self { root }
     }
-}
 
-fn walk(dir: &Path, rel: &str, out: &mut Vec<String>) -> Result<(), String> {
-    let entries =
-        std::fs::read_dir(dir).map_err(|e| format!("{} を読めない：{e}", dir.display()))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let name = entry.file_name().to_string_lossy().to_string();
-        let here = if rel.is_empty() {
-            name.clone()
-        } else {
-            format!("{rel}/{name}")
-        };
-        let kind = entry.file_type().map_err(|e| e.to_string())?;
-        if kind.is_dir() {
-            if !SKIP.contains(&name.as_str()) {
-                walk(&entry.path(), &here, out)?;
-            }
-        } else if kind.is_file() && name.ends_with(".json") {
-            out.push(here);
-        }
-    }
-    Ok(())
-}
-
-impl WorkingTree {
-    /// 作業ディレクトリの JSON の文書の経路（降りないフォルダを除き、経路の順）。
+    /// 渡されたスキーマの置き場所を、読むファイルの経路の並びに開く。ファイルはそのまま、フォルダは直下の JSON のファイル
+    /// （名前の順。下のフォルダには降りない）。同じファイルは1つにする。
     ///
     /// # Errors
-    /// フォルダを読めないとき。
-    pub fn list(&self) -> Result<Vec<String>, String> {
-        let mut out = Vec::new();
-        walk(&self.root, "", &mut out)?;
-        out.sort();
+    /// 置き場所が無い ・ フォルダを読めないとき。
+    pub fn schema_files(&self, places: &[String]) -> Result<Vec<String>, String> {
+        let mut out: Vec<String> = Vec::new();
+        for place in places {
+            let at = self.root.join(place);
+            if at.is_file() {
+                if !out.contains(place) {
+                    out.push(place.clone());
+                }
+                continue;
+            }
+            if !at.is_dir() {
+                return Err(format!("スキーマの置き場所 {place} が無い"));
+            }
+            let mut here: Vec<String> = Vec::new();
+            for entry in std::fs::read_dir(&at)
+                .map_err(|e| format!("スキーマの置き場所 {place} を読めない：{e}"))?
+            {
+                let entry = entry.map_err(|e| e.to_string())?;
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.ends_with(".json")
+                    && entry.file_type().map_err(|e| e.to_string())?.is_file()
+                {
+                    let base = place.trim_end_matches('/');
+                    here.push(if base.is_empty() || base == "." {
+                        name
+                    } else {
+                        format!("{base}/{name}")
+                    });
+                }
+            }
+            here.sort();
+            for p in here {
+                if !out.contains(&p) {
+                    out.push(p);
+                }
+            }
+        }
         Ok(out)
     }
 
@@ -99,10 +110,6 @@ impl WorkingTree {
 }
 
 impl writing_application::ports::DocumentStore for WorkingTree {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
-
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
@@ -117,36 +124,24 @@ impl writing_application::ports::DocumentStore for WorkingTree {
 }
 
 impl validation_application::ports::DocumentStore for WorkingTree {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
-
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
 }
 
 impl rendering_application::ports::DocumentStore for WorkingTree {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
-
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
 }
 
 impl search_application::ports::DocumentStore for WorkingTree {
-    fn list(&self) -> Result<Vec<String>, String> {
-        Self::list(self)
-    }
-
     fn read(&self, path: &str) -> Result<String, String> {
         Self::read(self, path)
     }
 }
 
-/// 書く ・ 消す経路が、リポジトリの根からの相対で、降りないフォルダの中でないか。
+/// 書く ・ 消す経路が、リポジトリの根からの相対で、書かないフォルダの中でないか。
 fn inside(path: &str, verb: &str) -> Result<(), String> {
     let parts: Vec<&str> = path.split('/').collect();
     if path.is_empty()

@@ -9,9 +9,11 @@ use search_application::use_cases::search::Found;
 use serde_json::{Map, Value, json};
 use validation_application::use_cases::validate::Validation;
 use validation_domain::values::{Counts, RuleResult, RuleRow, Verdict};
-use writing_application::use_cases::write::{Blocked, ChangeResult, Deletion, Interleaved};
+use writing_application::use_cases::write::{
+    Blocked, ChangeResult, Checked, Deletion, Interleaved, Written,
+};
 use writing_domain::aggregates::ABSTRACT_VERSIONS;
-use writing_domain::values::{Diff, WriteRecord};
+use writing_domain::values::{Diff, TargetKind, WriteRecord};
 
 /// 操作を始められなかった ・ 書かなかった理由（出力の kind = error の形）。断る理由の型は各モジュールが持ち、
 /// 入口が出力の形へ移す。入口が自分で断るとき（使い方の誤り ・ 置き場所を開けない）もこの形で返す。
@@ -33,6 +35,8 @@ pub struct Refused {
     pub blocked: Option<Box<Vec<Blocked>>>,
     /// デザインシステムに無かった x-view の種類（描画のモジュール）
     pub missing: Option<Box<Vec<String>>>,
+    /// 同じ $id を持つファイルの経路（duplicate_schema）
+    pub paths: Option<Box<Vec<String>>>,
 }
 
 impl From<validation_application::use_cases::validate::Refused> for Refused {
@@ -42,6 +46,7 @@ impl From<validation_application::use_cases::validate::Refused> for Refused {
             path: r.path,
             message: r.message,
             hint: r.hint,
+            paths: r.paths,
             ..Self::default()
         }
     }
@@ -57,6 +62,7 @@ impl From<writing_application::use_cases::write::Refused> for Refused {
             hint: r.hint,
             blocked: r.blocked,
             missing: None,
+            paths: r.paths,
         }
     }
 }
@@ -69,6 +75,7 @@ impl From<rendering_application::use_cases::render::Refused> for Refused {
             message: r.message,
             hint: r.hint,
             missing: r.missing,
+            paths: r.paths,
             ..Self::default()
         }
     }
@@ -81,6 +88,7 @@ impl From<search_application::use_cases::search::Refused> for Refused {
             path: r.path,
             message: r.message,
             hint: r.hint,
+            paths: r.paths,
             ..Self::default()
         }
     }
@@ -294,6 +302,9 @@ pub fn print_refused(r: &Refused) {
     if let Some(missing) = &r.missing {
         out["missing"] = json!(missing.as_slice());
     }
+    if let Some(paths) = &r.paths {
+        out["paths"] = json!(paths.as_slice());
+    }
     println!("{out}");
 }
 
@@ -313,9 +324,18 @@ fn changes(d: &Diff) -> Value {
         .collect()
 }
 
+/// Concrete を直す ・ 消すときに、従うインスタンスかを見た文書。
+fn checked(c: &[Checked]) -> Value {
+    c.iter()
+        .map(|c| {
+            json!({"path": c.path, "hash": c.hash.as_str(), "from": c.from, "follows": c.follows})
+        })
+        .collect()
+}
+
 /// 削除の結果を出す。diff は消す前の状態（根の欄ごとの remove）で、事後を持たない。
 pub fn print_deletion(d: &Deletion) {
-    let out = json!({
+    let mut out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "change",
         "session": d.session,
@@ -331,6 +351,9 @@ pub fn print_deletion(d: &Deletion) {
         "stale_judgments": [],
         "violated_instances": [],
     });
+    if d.kind == TargetKind::Concrete && !d.replayed {
+        out["checked"] = checked(&d.checked);
+    }
     println!("{out}");
 }
 
@@ -366,7 +389,7 @@ fn change_json(c: &ChangeResult) -> Value {
     if c.outside && c.before.is_some() {
         diff["before_unavailable"] = json!(c.diff.before_unavailable());
     }
-    let out = json!({
+    let mut out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "change",
         "session": c.session,
@@ -383,6 +406,9 @@ fn change_json(c: &ChangeResult) -> Value {
             "results": v.results.iter().map(rule_result).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
     });
+    if c.kind == TargetKind::Concrete && c.written == Written::Updated && !c.replayed {
+        out["checked"] = checked(&c.checked);
+    }
     out
 }
 
