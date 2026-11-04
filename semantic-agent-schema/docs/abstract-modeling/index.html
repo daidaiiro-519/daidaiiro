@@ -362,7 +362,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>4</td><td>JSON ドキュメントを Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>5</td><td>作ったインスタンスと Concrete を一緒にたどり、<code>x-decided-by: human</code> の値が default のままかをインスタンスの側の instance location で確かめる。Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ S1</td></tr>
 <tr><td>6</td><td>ロックの中で操作の記録に追記してからファイルを書き、created のログイベントを返す。created の next は、意味的な検証の依頼</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC1-1a 引数の違反 ・ Concrete が無いか2つある、UC1-4a JSON Schema の違反、UC1-5a 不変条件の違反、UC1-6a ファイルが既にある：rejected</li><li>UC1-3a AI が JSON ドキュメントを先に持っている：prompt を依頼せず、直接渡す（4 へ）</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC1-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li><li>UC1-1a 引数の違反 ・ Concrete が無いか2つある、UC1-4a JSON Schema の違反、UC1-5a 不変条件の違反、UC1-6a ファイルが既にある：rejected</li><li>UC1-3a AI が JSON ドキュメントを先に持っている：prompt を依頼せず、直接渡す（4 へ）</li></ul></dd>
 </dl></div>
 
 <div class="uc core-uc"><h3>UC2 更新 <span class="k core">中核</span></h3><dl>
@@ -377,7 +377,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>5</td><td>Concrete を更新するときは、範囲のインスタンスが更新する Concrete に従うもの（<code>$schema</code> がその <code>$id</code>）かを確かめ、まだ書いていない新しい Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないかと、書く直前（ロックの中）にファイルのハッシュが4で控えたものから変わっていないかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
 <tr><td>7</td><td>操作の記録に追記してからファイルを書き、updated のログイベントを返す（6 と 7 はロックの中。書けなければ追記も取り消す）。updated の next は、意味的な検証の依頼</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：直接渡す（4 へ）</li><li>UC2-6a ハッシュが変わっていた：書かずに rejected。next は同じコマンドの打ち直し</li><li>UC2-4c JSON Patch を適用できない：rejected（instance location はその operation の path）。next は、更新の prompt の依頼（1 へ）</li><li>UC2-1b インスタンスの更新に範囲を渡した：rejected（引数の違反）</li><li>UC2-5b 範囲のインスタンスが、更新する Concrete に従っていない：rejected</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：rejected</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC2-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li><li>UC2-3a AI が JSON Patch を先に持っている：直接渡す（4 へ）</li><li>UC2-6a ハッシュが変わっていた：書かずに rejected。next は同じコマンドの打ち直し</li><li>UC2-4c JSON Patch を適用できない：rejected（instance location はその operation の path）。next は、更新の prompt の依頼（1 へ）</li><li>UC2-1b インスタンスの更新に範囲を渡した：rejected（引数の違反）</li><li>UC2-5b 範囲のインスタンスが、更新する Concrete に従っていない：rejected</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：rejected</li></ul></dd>
 </dl></div>
 
 <div class="uc core-uc"><h3>UC3 検証 <span class="k core">中核</span></h3><dl>
@@ -405,7 +405,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>5</td><td>response を JSON Schema で検証する。response は prompt から写したハッシュを持つ</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>6</td><td>response のハッシュがいまの内容のハッシュと同じか、response の rule と instance location の組が prompt の組と同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：V2</td></tr>
 <tr><td>7</td><td>judgment と JSON ドキュメントを操作の記録に追記する</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC4-1a すべての rule とすべての instance location を判定し直したい：2 で全部を対象にする</li><li>UC4-6b response のハッシュがいまの内容と違う（判定のあとに書き換わった）：rejected。next は判定の prompt の依頼の打ち直し（1 へ）</li><li>UC4-7a AI の judgment に violated がある：judged の next は更新の prompt の依頼</li><li>UC4-2a 変更点が無い：空の prompt と counts を返して終わる</li><li>UC4-5a ・ 6a response の違反：rejected。next は、判定の prompt の依頼（1 へ）</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC4-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li><li>UC4-1a すべての rule とすべての instance location を判定し直したい：2 で全部を対象にする</li><li>UC4-6b response のハッシュがいまの内容と違う（判定のあとに書き換わった）：rejected。next は判定の prompt の依頼の打ち直し（1 へ）</li><li>UC4-7a AI の judgment に violated がある：judged の next は更新の prompt の依頼</li><li>UC4-2a 変更点が無い：空の prompt と counts を返して終わる</li><li>UC4-5a ・ 6a response の違反：rejected。next は、判定の prompt の依頼（1 へ）</li></ul></dd>
 </dl></div>
 
 <div class="uc"><h3>UC6 描画 <span class="k sup">補完</span></h3><dl>
@@ -417,7 +417,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>2</td><td>デザインシステムを契約のスキーマで、インスタンスを Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>3</td><td>Concrete の <code>x-view</code> でテンプレートを選ぶ</td><td><span class="m">機械的（ドメインモデル）</span>：S5</td></tr>
 <tr><td>4</td><td>テンプレートで描画し、すべて書けてから書き出す</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd>UC6-2a 違反 ・ UC6-3a テンプレートが無い ・ UC6-4a 書き出す先が入力と重なる：rejected</dd>
+<dt>拡張</dt><dd><ul><li>UC6-2a 違反 ・ UC6-3a テンプレートが無い ・ UC6-4a 書き出す先が入力と重なる：rejected</li><li>UC6-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li></ul></dd>
 </dl></div>
 
 <div class="uc"><h3>UC7 検索 <span class="k sup">補完</span></h3><dl>
