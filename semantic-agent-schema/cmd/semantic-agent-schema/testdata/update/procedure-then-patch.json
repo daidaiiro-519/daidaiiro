@@ -1,0 +1,115 @@
+{
+  "title": "更新の procedure を依頼し、procedure に従って作った JSON Patch を If-Match と一緒に渡すと、2文字の字下げと末尾の改行にそろえて書き換え、 change を返す",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--semantic"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "procedure",
+          "/command": "update",
+          "/path": "memo.json",
+          "/hash": {
+            "$sha256": "memo.json"
+          },
+          "/answer": {
+            "$ref": "urn:semantic-agent-schema:patch:v1"
+          },
+          "/steps": [
+            {
+              "instanceLocation": "",
+              "title": "メモ",
+              "description": "会議のメモ"
+            },
+            {
+              "instanceLocation": "/title",
+              "title": "題名",
+              "x-prompt": {
+                "meaning": "メモの題名",
+                "when": "メモを書くとき",
+                "rules": [
+                  {
+                    "id": "title-short",
+                    "rule": "20 文字以内で書く",
+                    "why": "一覧で読める長さにする",
+                    "check": "20 文字以内か",
+                    "related_fields": [],
+                    "bad": [],
+                    "good": [
+                      {
+                        "value": "定例会議"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "/next": {
+            "$format": "semantic-agent-schema update memo.json --schemas schemas --patch '<answer の形に従う JSON Patch>' --if-match {sha256 memo.json}"
+          }
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/id": 1,
+          "/actor": "ai",
+          "/command": "update",
+          "/path": "memo.json",
+          "/schemaId": "urn:example:memo:v1",
+          "/contentHash": {
+            "$sha256": "memo.json"
+          },
+          "/next": "semantic-agent-schema validate memo.json --schemas schemas --semantic"
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"週次会議\"\n}\n"
+      }
+    },
+    {
+      "args": [
+        "validate",
+        "memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/counts/violated": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "title": "主アクター ai が x-decided-by: human の値を変える（消すを含む）と error を返し、human なら書き換える",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "t",
+      "status": "draft"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/status\", \"value\": \"approved\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "decided_by_human",
+          "/instanceLocation": "/status",
+          "/next": {
+            "$format": "semantic-agent-schema update memo.json --schemas schemas --patch '</status を変えない JSON Patch>' --if-match {sha256 memo.json}"
+          }
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"remove\", \"path\": \"/status\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "decided_by_human",
+          "/instanceLocation": "/status"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/status\", \"value\": \"approved\"}]",
+        "--if-match",
+        "{sha256 memo.json}",
+        "--human"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/actor": "human",
+          "/command": "update"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/status\", \"value\": \"draft\"}]",
+        "--if-match",
+        "{sha256 memo.json}",
+        "--human"
+      ],
+      "env": {
+        "CLAUDE_CODE_SESSION_ID": "s"
+      },
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "human_in_coding_agent",
+          "/next": ""
+        }
+      ]
+    }
+  ]
+}

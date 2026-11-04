@@ -8,6 +8,7 @@ import (
 
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/inbound/cli"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/files"
+	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/patching"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/recordstore"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/repository"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/schemacheck"
@@ -23,7 +24,7 @@ func main() {
 	}))
 }
 
-// open は、working tree と操作の記録を開き、ユースケース「作成」と「検証」に、アダプターを結び付けて返す。
+// open は、working tree と操作の記録を開き、ユースケース「作成」「更新」「検証」に、アダプターを結び付けて返す。
 func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() error, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -48,6 +49,10 @@ func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() err
 		Create: application.Create{
 			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
 			AbstractID: publishedlanguage.AbstractID,
+		},
+		Update: application.Update{
+			Documents: documents, Schemas: concretes, Validator: validator, Patcher: patching.New(), Records: records,
+			AbstractID: publishedlanguage.AbstractID, PatchID: publishedlanguage.PatchID,
 		},
 		Validate: application.Validate{
 			Documents: documents, Schemas: concretes, Validator: validator, Records: records,

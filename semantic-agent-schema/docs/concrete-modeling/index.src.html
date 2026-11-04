@@ -73,9 +73,9 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>ポート</th><th>宣言する package とメソッド</th><th>アダプター</th></tr>
 <tr><td><code>Documents</code></td><td>authoring：<code>Read</code> ・ <code>Write</code>（一時ファイルに書いて置き換える）／ rendering ・ search：<code>Read</code></td><td><code>files</code></td></tr>
 <tr><td><code>Schemas</code></td><td>authoring ・ rendering：<code>Lookup</code>（<code>$id</code> で Concrete を引き、domain へ渡す。Concrete は <code>$ref</code> を持たないので、引くのは1つだけ。S2）</td><td><code>files</code></td></tr>
-<tr><td><code>Validator</code></td><td>全部の application：<code>Check</code>（JSON をスキーマで検証し、違反を返す）</td><td><code>schemacheck</code></td></tr>
-<tr><td><code>Patcher</code></td><td>authoring：<code>Apply</code></td><td><code>patching</code></td></tr>
-<tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code> ・ <code>AppendValidation</code> ・ <code>LastValidation</code>（前回の検証の JSON ドキュメントと judgment。S4）／ record：<code>Operations</code> ・ <code>Operation</code></td><td><code>recordstore</code></td></tr>
+<tr><td><code>Validator</code></td><td>全部の application：<code>Check</code>（JSON をスキーマで検証し、違反を返す）／ authoring：<code>CheckWith</code>（まだ書いていない Concrete のバイト列で検証する。Concrete の更新で、範囲のインスタンスに使う）</td><td><code>schemacheck</code></td></tr>
+<tr><td><code>Patcher</code></td><td>authoring：<code>Apply</code>（JSON Patch を適用する。適用できなければ、その operation の path を返す）</td><td><code>patching</code></td></tr>
+<tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code>（作成と更新の両方。<code>command</code> と <code>before_hash</code> を記録する）・ <code>AppendValidation</code> ・ <code>LastValidation</code>（前回の検証の JSON ドキュメントと judgment。S4）／ record：<code>Operations</code> ・ <code>Operation</code></td><td><code>recordstore</code></td></tr>
 <tr><td><code>Renderer</code></td><td>rendering：<code>Render</code>（全部描けてから書き出す）</td><td><code>templates</code></td></tr>
 </table></div>
 <p class="soft">working tree と Git の共通ディレクトリは、入口が <code>repository</code> で一度だけ引き、各アダプターに渡す。application は Git を知らない。</p>
@@ -114,7 +114,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <li>セッションとの結び付けは使う側の責務で、Semantic Agent Schema はセッションの ID を受け取らない ・ 残さない</li>
 </ul>
 <h3>next への引き継ぎ</h3>
-<p>作成の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> ・ <code>--human</code> と、いまのハッシュ（<code>--if-match</code>）を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
+<p>作成と更新の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> ・ <code>--human</code> と、いまのハッシュ（<code>--if-match</code>）を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
 </section>
 
 <section><h2><span class="n">5</span>公開された言葉</h2>
@@ -125,10 +125,10 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）と、Concrete に <code>$ref</code> を書かないことも、ここで JSON Schema にする。Concrete に書いてよい format の名前は <code>CODING.md</code> が持つ。rule の <code>related_fields</code> は、インスタンスのルートからの絶対の JSON Pointer で書く</td></tr>
 <tr><td>引数</td><td><code>arguments.schema.json</code></td><td>コマンドごとの引数の JSON の形。必須 ・ 組み合わせ ・ path とハッシュの pattern</td></tr>
 <tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> は validation ・ change ・ procedure ・ render ・ search ・ operation ・ error</td></tr>
-<tr><td>procedure</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す procedure。ログイベントの1つ（<code>"event":"procedure"</code>）。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path とハッシュ ・ <code>steps</code>（作成はスキーマの側の keyword location、更新と判定はインスタンスの側の instance location。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ answer の形 ・ <code>next</code></td></tr>
+<tr><td>procedure</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す procedure。ログイベントの1つ（<code>"event":"procedure"</code>）。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path と <code>hash</code>（更新と判定のとき、いまのハッシュ）・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ answer の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-answer.schema.json</code>）・ <code>next</code></td></tr>
 <tr><td>入力</td><td><code>patch.schema.json</code> ・ <code>judgment-answer.schema.json</code> ・ <code>search-answer.schema.json</code></td><td>AI が渡す JSON Patch と answer</td></tr>
 <tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>デザインシステムの形と、テンプレートの記法。記法は名前と版で宣言する（<code>html/template</code> ・ Go の版）。テンプレートに渡すのは <code>.Value</code>（インスタンス）と <code>.Tokens</code>（デザイントークン）だけ</td></tr>
-<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（create は <code>--semantic</code> の有無でも分ける）。procedure の next の定型も持つ。定型に埋める項目は <code>{schemaId}</code> などで書く</td></tr>
+<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（create は <code>--semantic</code> の有無でも分ける）。procedure の next の定型（<code>update --semantic</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{ifMatch}</code> ・ <code>{range}</code> などで書く</td></tr>
 </table></div>
 <h3>error</h3>
 <pre><code>{"event": "error",
@@ -142,15 +142,16 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>code</th><th>いつ</th><th>next</th></tr>
 <tr><td><code>invalid_json</code></td><td>JSON として読めない（JSON ドキュメント ・ <code>--value</code> ・ <code>--patch</code> ・ <code>--answer</code> ・ デザインシステム）。<code>instanceLocation</code> は空、<code>message</code> は読めなかった位置</td><td>同じコマンド（直した JSON）</td></tr>
-<tr><td><code>arguments_invalid</code></td><td>引数が <code>arguments.schema.json</code> に違反した</td><td>同じコマンド（直した引数）</td></tr>
+<tr><td><code>arguments_invalid</code></td><td>引数が <code>arguments.schema.json</code> に違反した。インスタンスの更新に <code>--range</code> を渡したときも</td><td>同じコマンド（直した引数）</td></tr>
 <tr><td><code>human_in_coding_agent</code></td><td>coding agent の環境変数があるところで <code>--human</code>（D5）</td><td>空。指示が、human が自分で実行するよう示す</td></tr>
 <tr><td><code>schema_not_found</code> ・ <code>schema_duplicate</code></td><td><code>$id</code> の Concrete が無い ・ 2つある</td><td>同じコマンド（<code>--schemas</code> を直す）</td></tr>
 <tr><td><code>schema_violation</code></td><td>JSON ・ JSON Patch ・ answer ・ デザインシステムが JSON Schema に違反した</td><td>同じコマンド（直した値）</td></tr>
 <tr><td><code>convention_violation</code></td><td>作法の検査（S1）に違反した</td><td>同じコマンド</td></tr>
 <tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新 ・ 検証で path のファイルが無い</td><td><code>update --semantic</code> ／ <code>create --semantic</code></td></tr>
 <tr><td><code>decided_by_human</code></td><td>主アクターが ai なのに <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド</td></tr>
-<tr><td><code>hash_mismatch</code></td><td><code>--if-match</code> がいまのハッシュと違う（D3）</td><td><code>update --semantic</code></td></tr>
-<tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが違反する</td><td>同じコマンド ／ 範囲のインスタンスの <code>update --semantic</code></td></tr>
+<tr><td><code>patch_not_applicable</code></td><td>JSON Patch を適用できない（path が無い ・ test が合わないなど）。<code>instanceLocation</code> はその operation の path</td><td><code>update --semantic</code></td></tr>
+<tr><td><code>hash_mismatch</code></td><td><code>--if-match</code> がいまのハッシュと違う（D3）。JSON Patch を適用する前と、ロックの中の2回確かめる</td><td><code>update --semantic</code></td></tr>
+<tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>update --semantic</code></td></tr>
 <tr><td><code>answer_mismatch</code></td><td>answer の rule と instance location の組が procedure と違う（V2）</td><td><code>validate --semantic</code></td></tr>
 <tr><td><code>template_missing</code> ・ <code>out_overlap</code></td><td><code>x-view</code> のテンプレートが無い（S5）・ <code>--out</code> が入力と重なる</td><td>同じコマンド</td></tr>
 <tr><td><code>log_unavailable</code> ・ <code>log_locked</code></td><td>Git のリポジトリの外 ・ 表の形の版が違う ・ ロックが取れない</td><td>同じコマンド（版が違うときは instruction が records.sqlite の削除を示す）</td></tr>
@@ -173,7 +174,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <ul>
 <li>どの表も追記だけ。UPDATE と DELETE は trigger で拒否する</li>
 <li>ID は INTEGER の主キー。ビューでは <code>command</code> と組にして指す（<code>--operation &lt;command&gt;:&lt;id&gt;</code>）</li>
-<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、error のときはファイルも操作の記録も変わらない</li>
+<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。更新では JSON Patch を適用する前にも1回確かめている）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、error のときはファイルも操作の記録も変わらない</li>
 <li>表の形の版（<code>user_version</code>）が違えば開かず、<code>log_unavailable</code> で records.sqlite の削除を示す。前の版との互換は作らない</li>
 </ul>
 </section>
@@ -198,7 +199,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>区分</td><td>閉じた一覧（verdict など）は、非公開の名前付きの型（string）と公開の定数。網羅は <code>architecture_test.go</code> が <code>checker.Analyze</code> で <code>exhaustive.Analyzer</code> を走らせて確かめる（<code>-d</code> は付けない）</td><td>enumerated/doc.go L5–19、exhaustive/doc.go L17–20</td></tr>
 <tr><td>エラー</td><td>違反は domain の値として返し、panic しない。AI への文は error の <code>message</code> ・ <code>instruction</code> に書く。Go の <code>error</code> の文は小文字で始め、句点で終えない</td><td>Go Proverbs L28 ・ L32、CodeReviewComments L531</td></tr>
 <tr><td>JSON の数</td><td><code>jsonschema.UnmarshalJSON</code> で読み、<code>json.Number</code> のまま持つ。ハッシュはファイルのバイト列から求める</td><td>loader.go L252–257</td></tr>
-<tr><td>不完全なファイルを残さない</td><td>同じディレクトリに <code>os.CreateTemp</code> で書き、<code>os.Rename</code> で置き換える</td><td><code>go doc os.Rename</code>（Unix 以外では不可分でないので、対象は Linux と macOS）</td></tr>
+<tr><td>不完全なファイルを残さない</td><td>同じディレクトリに <code>os.CreateTemp</code> で書き、<code>os.Rename</code> で置き換える。作成も更新も、2文字の字下げと末尾の改行にそろえて書き、ハッシュは書いたバイト列から求める</td><td><code>go doc os.Rename</code>（Unix 以外では不可分でないので、対象は Linux と macOS）</td></tr>
 <tr><td>ファイルの名前</td><td>application は <code>usecase_&lt;名前&gt;.go</code> と <code>ports.go</code>。domain とアダプターは扱う内容の名前（document.go など）</td><td>UC とファイルが1対1になり、対応表を機械で作れる</td></tr>
 <tr><td>整形</td><td><code>gofmt</code> のまま</td><td>CodeReviewComments L454</td></tr>
 </table></div>

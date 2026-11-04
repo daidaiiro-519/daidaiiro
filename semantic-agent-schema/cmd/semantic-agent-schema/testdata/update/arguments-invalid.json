@@ -1,0 +1,92 @@
+{
+  "title": "引数が更新の引数の形に違反すると error を返す（--semantic と --patch の両方 ・ --if-match が無い ・ ハッシュの形でない ・ インスタンスの更新に --range）",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--semantic",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/next": "semantic-agent-schema update <直した引数>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+        "--if-match",
+        "abc"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/ifMatch"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+        "--if-match",
+        "{sha256 memo.json}",
+        "--range",
+        "memo.json"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/range"
+        }
+      ]
+    }
+  ]
+}

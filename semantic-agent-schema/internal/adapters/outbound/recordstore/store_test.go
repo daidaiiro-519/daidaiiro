@@ -144,7 +144,7 @@ func database(t *testing.T, dir string) *sql.DB {
 	return db
 }
 
-func creation(t *testing.T, content string) *domain.Creation {
+func creation(t *testing.T, content string) *domain.Write {
 	t.Helper()
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
@@ -162,7 +162,7 @@ func creation(t *testing.T, content string) *domain.Creation {
 	if err != nil {
 		t.Fatalf("NewConcrete = %v", err)
 	}
-	c, err := domain.NewCreation(domain.CreationInput{Actor: actor, Path: path, Content: []byte(content), Value: value, Concrete: concrete})
+	c, err := domain.NewCreation(domain.WriteInput{Actor: actor, Path: path, Content: []byte(content), Value: value, Concrete: concrete})
 	if err != nil {
 		t.Fatalf("NewCreation = %v", err)
 	}

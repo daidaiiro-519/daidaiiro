@@ -23,14 +23,21 @@ type Schemas interface {
 // Validator は、ポート。JSON をスキーマで機械的に検証し、JSON Schema の違反を返す。アダプター schemacheck が満たす。
 type Validator interface {
 	Check(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, error)
+	// CheckWith は、まだ書いていないスキーマ（更新した後の Concrete）のバイト列で検証する。
+	CheckWith(ctx context.Context, schema, content []byte) ([]domain.Violation, error)
+}
+
+// Patcher は、ポート。JSON Patch を JSON ドキュメントに適用する。アダプター patching が満たす。
+type Patcher interface {
+	Apply(document, patch []byte) ([]byte, error)
 }
 
 // Records は、ポート。操作の記録から前回の検証を読み、検証と change を追記する。アダプター recordstore が満たす。
 type Records interface {
 	// WithLock は、書き込みのロックの中で f を行い、f が error を返さなければ追記を確定する。
 	WithLock(ctx context.Context, f func(ctx context.Context) error) error
-	// AppendChange は、WithLock の中で、作成の change を追記し、操作の ID を返す。
-	AppendChange(ctx context.Context, c *domain.Creation) (int64, error)
+	// AppendChange は、WithLock の中で、書く操作の change を追記し、操作の ID を返す。
+	AppendChange(ctx context.Context, w *domain.Write) (int64, error)
 	LastValidation(ctx context.Context, path domain.Path) (*domain.Previous, error)
 	AppendValidation(ctx context.Context, v *domain.Validation) (int64, error)
 }

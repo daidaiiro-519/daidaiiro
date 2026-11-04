@@ -1,5 +1,5 @@
 {
-  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（create は --semantic の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{schemas} は --schemas の並び、{human} は --human（無ければ空）、{hash} はいまのハッシュ、{schemaId} は受け取った --schema-id に置き換わる。violated は、violated の judgment がある validation のログイベントの instruction と next。procedure は procedure の next、change は作成の change のログイベントの next。",
+  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（create は --semantic の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{schemas} は --schemas の並び、{human} は --human（無ければ空）、{hash} はいまのハッシュ、{schemaId} は受け取った --schema-id、{ifMatch} は受け取った --if-match、{range} は --range の並びに置き換わる。violated は、violated の judgment がある validation のログイベントの instruction と next。procedure は procedure の next、change は作成の change のログイベントの next。",
   "codes": {
     "arguments_invalid": {
       "instruction": "引数が引数の形に違反している（instance location：{instanceLocation}、{message}）。引数を直して、もう一度実行する",
@@ -18,7 +18,9 @@
       "next": {
         "validate": "semantic-agent-schema validate {path} --schemas <$id の Concrete を持つディレクトリ>{human}",
         "create --semantic": "semantic-agent-schema create {paths} --schemas <$id の Concrete を持つディレクトリ> --semantic --schema-id {schemaId}{human}",
-        "create": "semantic-agent-schema create {paths} --schemas <$id の Concrete を持つディレクトリ> --value '<JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} --schemas <$id の Concrete を持つディレクトリ> --value '<JSON ドキュメント>'{human}",
+        "update --semantic": "semantic-agent-schema update {paths} --schemas <$id の Concrete を持つディレクトリ> --semantic{range}{human}",
+        "update": "semantic-agent-schema update {paths} --schemas <$id の Concrete を持つディレクトリ> --patch '<同じ JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "schema_duplicate": {
@@ -26,33 +28,39 @@
       "next": {
         "validate": "semantic-agent-schema validate {path} --schemas <$id の Concrete を1つだけ持つディレクトリ>{human}",
         "create --semantic": "semantic-agent-schema create {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --semantic --schema-id {schemaId}{human}",
-        "create": "semantic-agent-schema create {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --value '<JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --value '<JSON ドキュメント>'{human}",
+        "update --semantic": "semantic-agent-schema update {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --semantic{range}{human}",
+        "update": "semantic-agent-schema update {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --patch '<同じ JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "schema_violation": {
       "instruction": "{path} の {instanceLocation} を {absoluteKeywordLocation} に合うように直す（{message}）。直したら、もう一度実行する",
       "next": {
         "validate": "semantic-agent-schema validate {paths} {schemas}{human}",
-        "create": "semantic-agent-schema create {paths} {schemas} --value '<違反を直した JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} {schemas} --value '<違反を直した JSON ドキュメント>'{human}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<違反を直した JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "invalid_json": {
       "instruction": "{path} は JSON として読めない（{message}）。JSON に直して、もう一度実行する",
       "next": {
         "validate": "semantic-agent-schema validate {paths} {schemas}{human}",
-        "create": "semantic-agent-schema create {paths} {schemas} --value '<直した JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} {schemas} --value '<直した JSON ドキュメント>'{human}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<直した JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "convention_violation": {
       "instruction": "{path} の {instanceLocation} が Concrete の作法に違反している（{message}）。作法を満たすように直して、もう一度実行する",
       "next": {
-        "create": "semantic-agent-schema create {paths} {schemas} --value '<作法を満たす Concrete>'{human}"
+        "create": "semantic-agent-schema create {paths} {schemas} --value '<作法を満たす Concrete>'{human}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<作法を満たす JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "decided_by_human": {
-      "instruction": "{path} の {instanceLocation} は x-decided-by: human の値で、主アクター ai は default から変えられない（{message}）。default に戻すか、値を書かずに、もう一度実行する",
+      "instruction": "{path} の {instanceLocation} は x-decided-by: human の値で、主アクター ai は変えられない（{message}）。その値を変えないように直して、もう一度実行する。値を決めるのは人（--human）",
       "next": {
-        "create": "semantic-agent-schema create {paths} {schemas} --value '<{instanceLocation} を default に戻した JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} {schemas} --value '<{instanceLocation} を default に戻した JSON ドキュメント>'{human}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<{instanceLocation} を変えない JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "path_outside": {
@@ -60,7 +68,9 @@
       "next": {
         "validate": "semantic-agent-schema validate <working tree の中の path> {schemas}{human}",
         "create --semantic": "semantic-agent-schema create <working tree の中の path> {schemas} --semantic --schema-id {schemaId}{human}",
-        "create": "semantic-agent-schema create <working tree の中の path> {schemas} --value '<JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create <working tree の中の path> {schemas} --value '<JSON ドキュメント>'{human}",
+        "update --semantic": "semantic-agent-schema update <working tree の中の path> {schemas} --semantic{range}{human}",
+        "update": "semantic-agent-schema update <working tree の中の path> {schemas} --patch '<JSON Patch>' --if-match <いまのハッシュ>{range}{human}"
       }
     },
     "file_exists": {
@@ -70,12 +80,38 @@
         "create": "semantic-agent-schema update {path} {schemas} --semantic{human}"
       }
     },
+    "hash_mismatch": {
+      "instruction": "{path} は読んだ後に変わった（{message}）。読み直して、いまの内容に合う JSON Patch を作り直す",
+      "next": {
+        "update": "semantic-agent-schema update {path} {schemas} --semantic{range}{human}"
+      }
+    },
+    "patch_not_applicable": {
+      "instruction": "{path} の {instanceLocation} に JSON Patch の operation を適用できない（{message}）。いまの内容に合う JSON Patch を作り直す",
+      "next": {
+        "update": "semantic-agent-schema update {path} {schemas} --semantic{range}{human}"
+      }
+    },
+    "range_required": {
+      "instruction": "{path} は Concrete なので、その Concrete に従うインスタンスの path を --range に渡す。範囲のインスタンスを、新しい Concrete で検証してから書く",
+      "next": {
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>' --if-match {ifMatch} --range <この Concrete に従うインスタンスの path>{human}"
+      }
+    },
+    "range_violation": {
+      "instruction": "範囲のインスタンス {path} が新しい Concrete に合わない（{instanceLocation}：{message}）。その path がこの Concrete に従っていない（$schema が違う）なら、範囲から外す。違反なら、インスタンスを先に直すか、Concrete の JSON Patch を直す",
+      "next": {
+        "update": "semantic-agent-schema update {path} {schemas} --semantic{human}"
+      }
+    },
     "file_not_found": {
       "instruction": "{path} が無い（{message}）。path を直すか、create で作る",
       "next": {
         "validate": "semantic-agent-schema create {path} {schemas} --semantic --schema-id <Concrete の $id>",
         "create --semantic": "semantic-agent-schema create {paths} --schemas <ある ディレクトリ> --semantic --schema-id {schemaId}{human}",
-        "create": "semantic-agent-schema create {paths} --schemas <ある ディレクトリ> --value '<JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} --schemas <ある ディレクトリ> --value '<JSON ドキュメント>'{human}",
+        "update --semantic": "semantic-agent-schema create {path} {schemas} --semantic --schema-id <Concrete の $id>",
+        "update": "semantic-agent-schema create {path} {schemas} --semantic --schema-id <Concrete の $id>"
       }
     },
     "log_unavailable": {
@@ -83,7 +119,9 @@
       "next": {
         "validate": "semantic-agent-schema validate {paths} {schemas}{human}",
         "create --semantic": "semantic-agent-schema create {paths} {schemas} --semantic --schema-id {schemaId}{human}",
-        "create": "semantic-agent-schema create {paths} {schemas} --value '<JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} {schemas} --value '<JSON ドキュメント>'{human}",
+        "update --semantic": "semantic-agent-schema update {paths} {schemas} --semantic{range}{human}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     },
     "log_locked": {
@@ -91,7 +129,9 @@
       "next": {
         "validate": "semantic-agent-schema validate {paths} {schemas}{human}",
         "create --semantic": "semantic-agent-schema create {paths} {schemas} --semantic --schema-id {schemaId}{human}",
-        "create": "semantic-agent-schema create {paths} {schemas} --value '<JSON ドキュメント>'{human}"
+        "create": "semantic-agent-schema create {paths} {schemas} --value '<JSON ドキュメント>'{human}",
+        "update --semantic": "semantic-agent-schema update {paths} {schemas} --semantic{range}{human}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>' --if-match {ifMatch}{range}{human}"
       }
     }
   },
@@ -103,12 +143,14 @@
   },
   "procedure": {
     "next": {
-      "create --semantic": "semantic-agent-schema create {paths} {schemas} --value '<answer の形に従う JSON ドキュメント>'{human}"
+      "create --semantic": "semantic-agent-schema create {paths} {schemas} --value '<answer の形に従う JSON ドキュメント>'{human}",
+      "update --semantic": "semantic-agent-schema update {path} {schemas} --patch '<answer の形に従う JSON Patch>' --if-match {hash}{range}{human}"
     }
   },
   "change": {
     "next": {
-      "create": "semantic-agent-schema validate {path} {schemas} --semantic{human}"
+      "create": "semantic-agent-schema validate {path} {schemas} --semantic{human}",
+      "update": "semantic-agent-schema validate {path} {schemas} --semantic{human}"
     }
   }
 }

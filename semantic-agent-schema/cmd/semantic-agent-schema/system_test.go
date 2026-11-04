@@ -152,7 +152,14 @@ func run(t *testing.T, s scenario, git string, events *jsonschema.Schema) {
 
 func execute(t *testing.T, repo string, env []string, st step) ([]string, int) {
 	t.Helper()
-	cmd := exec.Command(binary, st.Args...)
+	// 引数の {sha256 <path>} は、実行する前のそのファイルのハッシュにする（If-Match に、いまのハッシュを渡す）
+	args := make([]string, len(st.Args))
+	for i, arg := range st.Args {
+		args[i] = sha256Of.ReplaceAllStringFunc(arg, func(m string) string {
+			return hashOf(t, repo, sha256Of.FindStringSubmatch(m)[1])
+		})
+	}
+	cmd := exec.Command(binary, args...)
 	cmd.Dir = repo
 	cmd.Stdin = strings.NewReader(st.Stdin)
 	cmd.Env = append([]string(nil), env...)

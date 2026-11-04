@@ -1,0 +1,87 @@
+{
+  "title": "JSON Patch が形に違反するか、JSON として読めないか、いまの内容に適用できないと error を返し、ファイルを変えない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/0",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:patch:v1#/items/allOf/0/then/required",
+          "/next": {
+            "$format": "semantic-agent-schema update memo.json --schemas schemas --patch '<違反を直した JSON Patch>' --if-match {sha256 memo.json}"
+          }
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"定例会議\"\n}"
+      }
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"remove\", \"path\": \"/nothing\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "patch_not_applicable",
+          "/instanceLocation": "/nothing",
+          "/next": "semantic-agent-schema update memo.json --schemas schemas --semantic"
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"定例会議\"\n}"
+      }
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "invalid_json"
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"定例会議\"\n}"
+      }
+    }
+  ]
+}

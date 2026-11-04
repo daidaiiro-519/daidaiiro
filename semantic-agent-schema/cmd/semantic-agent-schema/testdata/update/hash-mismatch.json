@@ -1,0 +1,37 @@
+{
+  "title": "If-Match のハッシュがいまのハッシュと違うと error を返し、ファイルを変えない。next は更新の procedure の依頼",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+        "--if-match",
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "hash_mismatch",
+          "/next": "semantic-agent-schema update memo.json --schemas schemas --semantic"
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"定例会議\"\n}"
+      }
+    }
+  ]
+}

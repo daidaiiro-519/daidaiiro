@@ -373,11 +373,11 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path ・ schemas を渡し、更新の procedure を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
 <tr><td>2</td><td><code>x-prompt</code> から更新の procedure を作って返す。next に、いまのハッシュを If-Match として入れる</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
 <tr><td>3</td><td>AI が procedure に従って JSON Patch を作り、next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
-<tr><td>4</td><td>JSON Patch を検証して適用し、結果を Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
-<tr><td>5</td><td>Concrete を更新するときは、範囲のインスタンスを新しい Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
-<tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないか、If-Match のハッシュがいまのハッシュと同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
-<tr><td>7</td><td>操作の記録に追記してからファイルを書く（6 と 7 はロックの中。書けなければ追記も取り消す）</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：If-Match のハッシュと一緒に直接渡す（4 へ）</li><li>UC2-6a ハッシュが違う：error。next は、更新の procedure の依頼（1 へ）</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：error</li></ul></dd>
+<tr><td>4</td><td>If-Match のハッシュがいまのハッシュと同じかを確かめてから、JSON Patch を検証して適用し、結果を Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>5</td><td>Concrete を更新するときは、範囲のインスタンスが更新する Concrete に従うもの（<code>$schema</code> がその <code>$id</code>）かを確かめ、まだ書いていない新しい Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないか、ロックの中でもう一度 If-Match のハッシュがいまのハッシュと同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
+<tr><td>7</td><td>操作の記録に追記してからファイルを書き、change のログイベントを返す（6 と 7 はロックの中。書けなければ追記も取り消す）。change の next は、意味的な検証の依頼</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：If-Match のハッシュと一緒に直接渡す（4 へ）</li><li>UC2-4b ・ UC2-6a ハッシュが違う：error。next は、更新の procedure の依頼（1 へ）</li><li>UC2-4c JSON Patch を適用できない：error（instance location はその operation の path）。next は、更新の procedure の依頼（1 へ）</li><li>UC2-1b インスタンスの更新に範囲を渡した：error（引数の違反）</li><li>UC2-5b 範囲のインスタンスが、更新する Concrete に従っていない：error</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：error</li></ul></dd>
 </dl></div>
 
 <div class="uc core-uc"><h3>UC3 検証 <span class="k core">中核</span></h3><dl>

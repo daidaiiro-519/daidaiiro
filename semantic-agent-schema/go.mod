@@ -3,6 +3,7 @@ module github.com/daidaiiro-519/daidaiiro/semantic-agent-schema
 go 1.27.2
 
 require (
+	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/google/go-cmp v0.7.0
 	github.com/nishanths/exhaustive v0.17.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3

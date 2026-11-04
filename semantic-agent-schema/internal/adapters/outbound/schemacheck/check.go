@@ -51,6 +51,11 @@ func (l *loader) Load(url string) (any, error) {
 // Check は、content を schemaID のスキーマで検証し、JSON Schema の違反を返す。
 // JSON として読めなければ invalid_json、スキーマを引けなければその error を返す。
 func (c *Checker) Check(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, error) {
+	return c.check(ctx, schemaID, content, nil)
+}
+
+// check は、prepare（無ければ nil）で Compiler に resource を足してから、content を schemaID のスキーマで検証する。
+func (c *Checker) check(ctx context.Context, schemaID string, content []byte, prepare func(*jsonschema.Compiler) error) ([]domain.Violation, error) {
 	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
 	if err != nil {
 		return nil, domain.Fail(domain.InvalidJSON, "", err.Error())
@@ -62,6 +67,11 @@ func (c *Checker) Check(ctx context.Context, schemaID string, content []byte) ([
 	compiler, err := newCompiler(l)
 	if err != nil {
 		return nil, err
+	}
+	if prepare != nil {
+		if err := prepare(compiler); err != nil {
+			return nil, err
+		}
 	}
 	schema, err := compiler.Compile(schemaID)
 	if err != nil {
@@ -76,6 +86,18 @@ func (c *Checker) Check(ctx context.Context, schemaID string, content []byte) ([
 		return nil, domain.Fail(domain.SchemaViolation, "", err.Error())
 	}
 	return leaves(verr, nil, nil), nil
+}
+
+// CheckWith は、content を、まだ書いていないスキーマ schema（バイト列）で検証し、JSON Schema の違反を返す。
+// schema の $id は、schemas の中の同じ $id の Concrete より先に使う。
+func (c *Checker) CheckWith(ctx context.Context, schema, content []byte) ([]domain.Violation, error) {
+	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(schema))
+	if err != nil {
+		return nil, domain.Fail(domain.InvalidJSON, "", err.Error())
+	}
+	object, _ := value.(map[string]any) // $id が無ければ空の $id になり、Compile が error を返す
+	id, _ := object["$id"].(string)
+	return c.check(ctx, id, content, func(compiler *jsonschema.Compiler) error { return compiler.AddResource(id, value) })
 }
 
 // newCompiler は、公開された言葉を resource にし、拡張項目の語彙を登録した Compiler を返す。

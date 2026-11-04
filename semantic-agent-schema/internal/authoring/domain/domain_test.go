@@ -367,7 +367,7 @@ func TestNewCreationDecidedByHuman(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ParseJSON(%s) = %v", c.value, err)
 			}
-			_, err = domain.NewCreation(domain.CreationInput{
+			_, err = domain.NewCreation(domain.WriteInput{
 				Actor: actor, Path: path, Content: []byte(c.value), Value: value, Concrete: concrete(t, memo),
 			})
 			var got []string
@@ -409,7 +409,7 @@ func TestNewCreationAddsEveryInstanceLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewActor = %v", err)
 	}
-	c, err := domain.NewCreation(domain.CreationInput{Actor: actor, Path: path, Content: content, Value: value, Concrete: concrete(t, memo)})
+	c, err := domain.NewCreation(domain.WriteInput{Actor: actor, Path: path, Content: content, Value: value, Concrete: concrete(t, memo)})
 	if err != nil {
 		t.Fatalf("NewCreation = %v", err)
 	}
@@ -426,5 +426,104 @@ func TestNewCreationAddsEveryInstanceLocation(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("NewCreation(%s).Changes() mismatch (-want +got):\n%s", content, diff)
+	}
+}
+
+// デシジョンテーブル：主アクター × x-decided-by: human の値の前後（変えない ・ 変える ・ 足す ・ 消す ・ 配列の要素で変える）。
+func TestNewUpdateDecidedByHuman(t *testing.T) {
+	t.Parallel()
+	before := `{"title": "t", "status": "draft", "items": [{"checked": false}]}`
+	cases := []struct {
+		name          string
+		human         bool
+		after         string
+		wantLocations []string
+	}{
+		{name: "ai が x-decided-by: human の値を変えない", after: `{"title": "u", "status": "draft", "items": [{"checked": false}]}`},
+		{name: "ai が値を変える", after: `{"title": "t", "status": "approved", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
+		{name: "ai が値を足す", after: `{"title": "t", "status": "draft", "owner": "x", "items": [{"checked": false}]}`, wantLocations: []string{"/owner"}},
+		{name: "ai が値を消す", after: `{"title": "t", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
+		{name: "ai が配列の要素の値を変える", after: `{"title": "t", "status": "draft", "items": [{"checked": true}]}`, wantLocations: []string{"/items/0/checked"}},
+		{name: "human は値を変えられる", human: true, after: `{"title": "t", "status": "approved", "items": []}`},
+	}
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	beforeValue, err := domain.ParseJSON([]byte(before))
+	if err != nil {
+		t.Fatalf("ParseJSON(%s) = %v", before, err)
+	}
+	document := domain.Document{Path: path, Content: []byte(before), Hash: domain.HashOf([]byte(before))}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			actor, err := domain.NewActor(c.human, false)
+			if err != nil {
+				t.Fatalf("NewActor = %v", err)
+			}
+			value, err := domain.ParseJSON([]byte(c.after))
+			if err != nil {
+				t.Fatalf("ParseJSON(%s) = %v", c.after, err)
+			}
+			w, err := domain.NewUpdate(domain.WriteInput{
+				Actor: actor, Path: path, Content: []byte(c.after), Value: value, Concrete: concrete(t, memo),
+			}, document, beforeValue)
+			var got []string
+			for _, e := range unjoin(err) {
+				var f *domain.Failure
+				if errors.As(e, &f) && f.Code == domain.DecidedByHuman {
+					got = append(got, f.InstanceLocation)
+				}
+			}
+			if !slices.Equal(got, c.wantLocations) {
+				t.Errorf("NewUpdate(%s) decided_by_human = %v, want %v", c.after, got, c.wantLocations)
+			}
+			if err == nil && w.BeforeHash().String() != document.Hash.String() {
+				t.Errorf("NewUpdate(%s).BeforeHash() = %s, want %s", c.after, w.BeforeHash(), document.Hash)
+			}
+		})
+	}
+}
+
+func TestMatchHashRejectsAnotherHash(t *testing.T) {
+	t.Parallel()
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	current := domain.HashOf([]byte("a"))
+	if err := domain.MatchHash(path, current, current.String()); err != nil {
+		t.Errorf("MatchHash(same) = %v, want nil", err)
+	}
+	other := domain.HashOf([]byte("b")).String()
+	if got := codeOf(domain.MatchHash(path, current, other)); got != "hash_mismatch" {
+		t.Errorf("MatchHash(other) code = %q, want %q", got, "hash_mismatch")
+	}
+}
+
+func TestNewUpdateProcedureMakesStepsFromInstanceLocations(t *testing.T) {
+	t.Parallel()
+	content := []byte(`{"title": "t", "items": [{"checked": false}, {}]}`)
+	value, err := domain.ParseJSON(content)
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
+	p := domain.NewUpdateProcedure(document, value, concrete(t, memo), "urn:patch")
+	var got []string
+	for _, step := range p.Steps() {
+		got = append(got, step.InstanceLocation.String()+" "+step.Title)
+	}
+	want := []string{" メモ", "/items/0 品", "/items/1 品", "/title 題名"}
+	if !slices.Equal(got, want) {
+		t.Errorf("NewUpdateProcedure(memo).Steps() = %q, want %q", got, want)
+	}
+	if p.Hash().String() != document.Hash.String() || p.AnswerSchemaID() != "urn:patch" {
+		t.Errorf("NewUpdateProcedure(memo) = %s, %s, want %s, urn:patch", p.Hash(), p.AnswerSchemaID(), document.Hash)
 	}
 }

@@ -19,12 +19,18 @@
     },
     "command": {
       "enum": [
-        "create"
+        "create",
+        "update"
       ]
     },
     "path": {
       "description": "対象の JSON ドキュメントの path",
       "type": "string"
+    },
+    "hash": {
+      "description": "更新する JSON ドキュメントのいまのハッシュ。作成では無い",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "steps": {
       "type": "array",
@@ -33,7 +39,7 @@
       }
     },
     "answer": {
-      "description": "answer の形。AI が渡す JSON ドキュメントが従うスキーマで、$ref に Concrete の $id を持つ",
+      "description": "answer の形。AI が渡すものが従うスキーマで、$ref に $id を持つ（作成は Concrete、更新は JSON Patch のスキーマ）",
       "type": "object",
       "required": [
         "$ref"
@@ -54,16 +60,17 @@
   },
   "$defs": {
     "step": {
-      "description": "1つのサブスキーマの、AI が読む部分。位置は Concrete の中の keyword location（URI の fragment の JSON Pointer）",
+      "description": "1つのサブスキーマの、AI が読む部分。位置は、作成では Concrete の中の keyword location（URI の fragment の JSON Pointer）、更新ではインスタンスの中の instance location",
       "type": "object",
-      "required": [
-        "keywordLocation"
-      ],
       "additionalProperties": false,
       "properties": {
         "keywordLocation": {
           "type": "string",
           "pattern": "^#(/([^~/]|~[01])*)*$"
+        },
+        "instanceLocation": {
+          "type": "string",
+          "pattern": "^(/([^~/]|~[01])*)*$"
         },
         "title": {
           "type": "string"
@@ -74,7 +81,19 @@
         "x-prompt": {
           "$ref": "urn:semantic-agent-schema:vocabulary:v1#/$defs/x-prompt"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "keywordLocation"
+          ]
+        },
+        {
+          "required": [
+            "instanceLocation"
+          ]
+        }
+      ]
     }
   }
 }

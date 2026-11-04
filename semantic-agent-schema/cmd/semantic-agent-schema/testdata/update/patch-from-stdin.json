@@ -1,0 +1,36 @@
+{
+  "title": "JSON Patch を先に持っているときは、procedure を依頼せず標準入力から If-Match と一緒に直接渡して書き換える",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "-",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "stdin": "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/contentHash": {
+            "$sha256": "memo.json"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -129,8 +129,8 @@ func (s *Store) WithLock(ctx context.Context, f func(ctx context.Context) error)
 	})
 }
 
-// AppendChange は、WithLock の中で、作成した JSON ドキュメントの change を追記し、操作の ID を返す。
-func (s *Store) AppendChange(ctx context.Context, c *domain.Creation) (int64, error) {
+// AppendChange は、WithLock の中で、書く操作（作成か更新）の change を追記し、操作の ID を返す。
+func (s *Store) AppendChange(ctx context.Context, c *domain.Write) (int64, error) {
 	conn := s.locked
 	if conn == nil {
 		return 0, domain.Fail(domain.LogUnavailable, "", s.file+": AppendChange outside WithLock")
@@ -138,8 +138,9 @@ func (s *Store) AppendChange(ctx context.Context, c *domain.Creation) (int64, er
 	document := c.Document()
 	result, err := conn.ExecContext(ctx,
 		`INSERT INTO changes (actor, path, schema_id, command, before_hash, after_hash, at)
-		 VALUES (?, ?, ?, 'create', NULL, ?, ?)`,
-		string(c.Actor().Kind()), document.Path.String(), c.Concrete().ID(), document.Hash.String(),
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		string(c.Actor().Kind()), document.Path.String(), c.Concrete().ID(), string(c.Command()),
+		nullableHash(c.BeforeHash()), document.Hash.String(),
 		time.Now().UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return 0, s.failure(err)
@@ -157,6 +158,14 @@ func (s *Store) AppendChange(ctx context.Context, c *domain.Creation) (int64, er
 		}
 	}
 	return id, nil
+}
+
+// nullableHash は、作成の書く前のハッシュ（nil）を NULL にする。
+func nullableHash(h domain.Hash) sql.NullString {
+	if h == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: h.String(), Valid: true}
 }
 
 // nullable は、無い値（空）を NULL にする。

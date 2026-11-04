@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:patch:v1",
+  "title": "JSON Patch",
+  "description": "AI が渡す JSON Patch（RFC 6902）。JSON ドキュメントに適用する operation の並び。",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "required": ["op", "path"],
+    "properties": {
+      "op": { "enum": ["add", "remove", "replace", "move", "copy", "test"] },
+      "path": { "$ref": "#/$defs/pointer" },
+      "from": { "$ref": "#/$defs/pointer" },
+      "value": true
+    },
+    "additionalProperties": false,
+    "allOf": [
+      { "if": { "properties": { "op": { "enum": ["add", "replace", "test"] } } }, "then": { "required": ["value"] } },
+      { "if": { "properties": { "op": { "enum": ["move", "copy"] } } }, "then": { "required": ["from"] } }
+    ]
+  },
+  "$defs": {
+    "pointer": {
+      "description": "JSON Pointer（RFC 6901）",
+      "type": "string",
+      "pattern": "^(/([^~/]|~[01])*)*$"
+    }
+  }
+}

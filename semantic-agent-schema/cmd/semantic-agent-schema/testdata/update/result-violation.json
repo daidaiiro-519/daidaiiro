@@ -1,0 +1,57 @@
+{
+  "title": "JSON Patch を適用した結果が Concrete に違反すると error を返し、ファイルも操作の記録も変えない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_violation",
+          "/instanceLocation": "/title",
+          "/absoluteKeywordLocation": "urn:example:memo:v1#/properties/title/minLength"
+        }
+      ],
+      "files": {
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"定例会議\"\n}"
+      }
+    },
+    {
+      "args": [
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+        "--if-match",
+        "{sha256 memo.json}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "change",
+          "/id": 1
+        }
+      ]
+    }
+  ]
+}

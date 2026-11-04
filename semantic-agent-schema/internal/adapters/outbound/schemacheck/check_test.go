@@ -3,6 +3,8 @@ package schemacheck_test
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -142,5 +144,19 @@ func TestCheckReturnsFailures(t *testing.T) {
 				t.Errorf("Check(%s) = %v, want code %s", c.name, err, c.wantCode)
 			}
 		})
+	}
+}
+
+func TestCheckWithUsesUnwrittenConcrete(t *testing.T) {
+	t.Parallel()
+	updated := strings.Replace(order, `"required": ["$schema", "items"]`, `"required": ["$schema", "items", "owner"]`, 1)
+	got, err := schemacheck.New(lookup).CheckWith(t.Context(), []byte(updated), []byte(`{"$schema": "urn:example:order:v1", "items": []}`))
+	want := []string{"urn:example:order:v1#/required"}
+	var locations []string
+	for _, v := range got {
+		locations = append(locations, v.AbsoluteKeywordLocation)
+	}
+	if err != nil || !slices.Equal(locations, want) {
+		t.Errorf("CheckWith(updated order) = %v, %v, want %v, nil", locations, err, want)
 	}
 }

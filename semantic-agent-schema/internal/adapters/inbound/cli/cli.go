@@ -23,6 +23,7 @@ var codingAgentVariables = []string{"CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID"
 // Authoring は、中核の業務領域「作成と検証」のユースケース。
 type Authoring struct {
 	Create   application.Create
+	Update   application.Update
 	Validate application.Validate
 }
 
@@ -49,6 +50,9 @@ type arguments struct {
 	Semantic bool     `json:"semantic,omitempty"`
 	SchemaID string   `json:"schemaId,omitempty"`
 	Value    *string  `json:"value,omitempty"`
+	Patch    *string  `json:"patch,omitempty"`
+	IfMatch  string   `json:"ifMatch,omitempty"`
+	Range    []string `json:"range,omitempty"`
 }
 
 // Run は、コマンドを1回実行し、終了コードを返す。error か violated の judgment があれば 1、ほかは 0。
@@ -82,12 +86,16 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	}
 	paths, pathErr := pathsOf(parsed.Paths)
 	dirs, dirErr := pathsOf(parsed.Schemas)
-	if err := errors.Join(pathErr, dirErr); err != nil {
+	ranges, rangeErr := pathsOf(parsed.Range)
+	if err := errors.Join(pathErr, dirErr, rangeErr); err != nil {
 		return out.failures(parsed, err)
 	}
 	var content []byte
-	if parsed.Value != nil {
-		if content, err = valueOf(*parsed.Value, stdin); err != nil {
+	for _, v := range []*string{parsed.Value, parsed.Patch} {
+		if v == nil {
+			continue
+		}
+		if content, err = valueOf(*v, stdin); err != nil {
 			return out.failures(parsed, err)
 		}
 	}
@@ -95,7 +103,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	if err != nil {
 		return out.failures(parsed, err)
 	}
-	err = dispatch(ctx, parsed, uc, actor, paths, content, out)
+	err = dispatch(ctx, parsed, uc, actor, paths, ranges, content, out)
 	if closeErr := closeRecords(); closeErr != nil {
 		return errors.Join(err, out.failures(parsed, closeErr))
 	}
@@ -117,6 +125,9 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	semantic := flags.Bool("semantic", false, "procedure を依頼する")
 	schemaID := flags.String("schema-id", "", "作る JSON ドキュメントが従う Concrete の $id")
 	value := flags.String("value", "", "JSON ドキュメント。- なら標準入力から読む")
+	patch := flags.String("patch", "", "JSON Patch。- なら標準入力から読む")
+	ifMatch := flags.String("if-match", "", "読んだときのハッシュ")
+	ranges := flags.StringArray("range", nil, "Concrete を更新するときの、範囲のインスタンスの path（繰り返せる）")
 	if err := flags.Parse(args); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
 	}
@@ -128,6 +139,11 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	if flags.Changed("value") {
 		parsed.Value = value
 	}
+	if flags.Changed("patch") {
+		parsed.Patch = patch
+	}
+	parsed.IfMatch = *ifMatch
+	parsed.Range = *ranges
 	content, err := json.Marshal(parsed)
 	if err != nil {
 		return parsed, err
@@ -139,7 +155,7 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	return parsed, domain.FailuresOf(domain.ArgumentsInvalid, "", violations)
 }
 
-// valueOf は、--value の JSON ドキュメントのバイト列を返す。- なら標準入力から読む。
+// valueOf は、--value の JSON ドキュメントか --patch の JSON Patch のバイト列を返す。- なら標準入力から読む。
 func valueOf(value string, stdin io.Reader) ([]byte, error) {
 	if value != "-" {
 		return []byte(value), nil
@@ -152,8 +168,22 @@ func valueOf(value string, stdin io.Reader) ([]byte, error) {
 }
 
 // dispatch は、コマンドのユースケースを呼び、結果をログイベントで書く。
-func dispatch(ctx context.Context, args arguments, uc Authoring, actor domain.Actor, paths []domain.Path, content []byte, out *output) error {
+func dispatch(ctx context.Context, args arguments, uc Authoring, actor domain.Actor, paths, ranges []domain.Path, content []byte, out *output) error {
 	switch {
+	case args.Command == "update" && args.Semantic:
+		procedure, err := uc.Update.Procedure(ctx, paths[0])
+		if err != nil {
+			return out.failures(args, err)
+		}
+		return out.procedure(args, procedure)
+	case args.Command == "update":
+		id, write, err := uc.Update.Run(ctx, application.UpdateInput{
+			Actor: actor, Path: paths[0], Patch: content, IfMatch: args.IfMatch, Range: ranges,
+		})
+		if err != nil {
+			return out.failures(args, err)
+		}
+		return out.change(args, id, write)
 	case args.Command == "create" && args.Semantic:
 		procedure, err := uc.Create.Procedure(ctx, paths[0], args.SchemaID)
 		if err != nil {

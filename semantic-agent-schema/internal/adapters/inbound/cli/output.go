@@ -116,7 +116,7 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {human} ・ {hash} ・ {schemaId} に入れる値を返す。
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {human} ・ {hash} ・ {schemaId} ・ {ifMatch} ・ {range} に入れる値を返す。
 func fill(args arguments, path, hash string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
@@ -124,6 +124,10 @@ func fill(args arguments, path, hash string) map[string]string {
 	}
 	for _, p := range args.Paths {
 		paths = append(paths, quote(p))
+	}
+	ranges := ""
+	for _, r := range args.Range {
+		ranges += " --range " + quote(r)
 	}
 	human := ""
 	if args.Human {
@@ -137,6 +141,8 @@ func fill(args arguments, path, hash string) map[string]string {
 		"{human}":    human,
 		"{hash}":     hash,
 		"{schemaId}": quote(args.SchemaID),
+		"{ifMatch}":  quote(args.IfMatch),
+		"{range}":    ranges,
 	}
 }
 
@@ -209,16 +215,18 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 }
 
 type stepEvent struct {
-	KeywordLocation string         `json:"keywordLocation"`
-	Title           string         `json:"title,omitempty"`
-	Description     string         `json:"description,omitempty"`
-	Prompt          map[string]any `json:"x-prompt,omitempty"`
+	KeywordLocation  string         `json:"keywordLocation,omitempty"`
+	InstanceLocation *string        `json:"instanceLocation,omitempty"`
+	Title            string         `json:"title,omitempty"`
+	Description      string         `json:"description,omitempty"`
+	Prompt           map[string]any `json:"x-prompt,omitempty"`
 }
 
 type procedureEvent struct {
 	Event   string            `json:"event"`
 	Command string            `json:"command"`
 	Path    string            `json:"path"`
+	Hash    string            `json:"hash,omitempty"`
 	Steps   []stepEvent       `json:"steps"`
 	Answer  map[string]string `json:"answer"`
 	Next    string            `json:"next"`
@@ -229,13 +237,23 @@ func (o *output) procedure(args arguments, p domain.Procedure) error {
 	event := procedureEvent{
 		Event: "procedure", Command: string(p.Command()), Path: p.Path().String(), Steps: []stepEvent{},
 		Answer: map[string]string{"$ref": p.AnswerSchemaID()},
-		Next:   replace(o.procedureNext.next(args), fill(args, p.Path().String(), "")),
 	}
+	var hash string
+	if p.Hash() != nil {
+		hash = p.Hash().String()
+		event.Hash = hash
+	}
+	event.Next = replace(o.procedureNext.next(args), fill(args, p.Path().String(), hash))
 	for _, step := range p.Steps() {
-		event.Steps = append(event.Steps, stepEvent{
-			KeywordLocation: "#" + step.KeywordLocation.String(), Title: step.Title,
-			Description: step.Description, Prompt: step.Prompt,
-		})
+		e := stepEvent{Title: step.Title, Description: step.Description, Prompt: step.Prompt}
+		if step.KeywordLocation != nil {
+			e.KeywordLocation = "#" + step.KeywordLocation.String()
+		}
+		if step.InstanceLocation != nil {
+			location := step.InstanceLocation.String()
+			e.InstanceLocation = &location
+		}
+		event.Steps = append(event.Steps, e)
 	}
 	return o.encoder.Encode(event)
 }
@@ -251,11 +269,11 @@ type changeEvent struct {
 	Next        string `json:"next"`
 }
 
-// change は、作成の change のログイベントを書く。next は、作ったあとの次のアクション（意味的な検証の依頼）。
-func (o *output) change(args arguments, id int64, c *domain.Creation) error {
+// change は、書く操作（作成か更新）の change のログイベントを書く。next は、作ったあとの次のアクション（意味的な検証の依頼）。
+func (o *output) change(args arguments, id int64, c *domain.Write) error {
 	path := c.Document().Path.String()
 	return o.encoder.Encode(changeEvent{
-		Event: "change", ID: id, Actor: string(c.Actor().Kind()), Command: string(domain.CreateCommand),
+		Event: "change", ID: id, Actor: string(c.Actor().Kind()), Command: string(c.Command()),
 		Path: path, SchemaID: c.Concrete().ID(), ContentHash: c.Document().Hash.String(),
 		Next: replace(o.changeNext.next(args), fill(args, path, "")),
 	})

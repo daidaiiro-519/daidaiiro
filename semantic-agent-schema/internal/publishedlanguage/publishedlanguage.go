@@ -12,6 +12,7 @@ const (
 	AbstractID   = "urn:semantic-agent-schema:abstract:v1"
 	VocabularyID = "urn:semantic-agent-schema:vocabulary:v1"
 	ArgumentsID  = "urn:semantic-agent-schema:arguments:v1"
+	PatchID      = "urn:semantic-agent-schema:patch:v1"
 )
 
 // Schemas は、v1 のスキーマのファイル名。
@@ -22,6 +23,7 @@ var Schemas = []string{
 	"arguments.schema.json",
 	"event.schema.json",
 	"procedure.schema.json",
+	"patch.schema.json",
 }
 
 // Read は、v1 のファイルのバイト列を返す。無い名前なら error を返す。

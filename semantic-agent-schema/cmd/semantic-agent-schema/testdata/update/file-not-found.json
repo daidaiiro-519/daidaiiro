@@ -1,0 +1,33 @@
+{
+  "title": "更新する path のファイルが無いと error を返す。next は作成の procedure の依頼",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "update",
+        "missing.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"週次会議\"}]",
+        "--if-match",
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "file_not_found",
+          "/next": "semantic-agent-schema create missing.json --schemas schemas --semantic --schema-id <Concrete の $id>"
+        }
+      ],
+      "files": {
+        "missing.json": null
+      }
+    }
+  ]
+}
