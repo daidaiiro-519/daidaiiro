@@ -1,0 +1,62 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-IF-MATCH-REQUIRED",
+ "name": "--if-match の無い更新と削除",
+ "title": "--if-match を渡さない更新と削除は、比べるハッシュを推し量らずに使い方の誤りで断り、何も変えない",
+ "why": "比べるハッシュを中で決めると、同じ JSON Patch を打ち直したときに二重に当たる。",
+ "traces": [
+  "UC2:最低保証",
+  "UC3:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "usecases/u1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"直した目的\"}]",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "delete",
+    "usecases/u1.json",
+    "--reason",
+    "要らなくなった",
+    "--human"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--if-match"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/message",
+   "contains": "--if-match"
+  }
+ ],
+ "unchanged": [
+  "usecases/u1.json"
+ ]
+}

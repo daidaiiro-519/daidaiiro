@@ -1,0 +1,40 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-X-PUBLISHED-UNKNOWN",
+ "name": "作法に無い x-published",
+ "title": "Concrete の欄に x-published を書くと、Abstract の作法の x- の閉じた一覧に無いので、形の検査で violated になる",
+ "why": "作法に無い x- を通すと、何も確かめない宣言が Concrete に残る。",
+ "traces": [
+  "約束:vocabulary:closed"
+ ],
+ "given": {
+  "files": {
+   "schemas/p.schema.json": "{\n \"$schema\": \"urn:semantic-agent-schema:published-language:abstract:v1\",\n \"$id\": \"urn:example:sample:p:v1\",\n \"title\": \"公開\",\n \"description\": \"公開した欄を持つ。\",\n \"type\": \"object\",\n \"required\": [\n  \"$schema\"\n ],\n \"properties\": {\n  \"$schema\": {\n   \"const\": \"urn:example:sample:p:v1\"\n  },\n  \"name\": {\n   \"title\": \"名前\",\n   \"description\": \"名前である。\",\n   \"type\": \"string\",\n   \"x-published\": true,\n   \"x-prompt\": {\n    \"rules\": []\n   }\n  }\n }\n}\n"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "schemas/p.schema.json",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/counts/violated",
+   "equals": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/results",
+   "contains": "x-published"
+  }
+ ]
+}

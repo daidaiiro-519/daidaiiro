@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use validation_domain::values::{Judgment, ValidateRow};
-use writing_domain::values::{Caller, ChangeRow, SchemaPlaces, StoredChange, Via, WriteRecord};
+use writing_domain::values::{Caller, ChangeRow, SchemaPlaces, Via, WriteRecord};
 
 pub(crate) const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";
 pub(crate) const UC: &str = "urn:example:t:uc:v1";
@@ -116,17 +116,6 @@ impl Log {
         let id = self.next();
         self.1.push((id.clone(), row.clone()));
         Ok(id)
-    }
-    pub(crate) fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
-        Ok(self
-            .1
-            .iter()
-            .find(|(_, r)| r.request_id.as_deref() == Some(request_id))
-            .map(|(id, r)| StoredChange {
-                operation: id.clone(),
-                session: None,
-                row: r.clone(),
-            }))
     }
     pub(crate) fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         let from = self

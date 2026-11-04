@@ -1,0 +1,49 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC5-OUTSIDE-GIT",
+ "name": "Git の外で描く",
+ "title": "Git のリポジトリの外で render を打つと、経路の根が決まらないので描かずに not_in_repository で断る",
+ "why": "根が決まらないと、渡された経路をどこから読むかが打った場所で変わる。",
+ "traces": [
+  "UC5:最低保証"
+ ],
+ "given": {
+  "repo": false,
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "design/ds.json": "@fixtures/ds.json",
+   "design/page.html": "@fixtures/page.html",
+   "design/card.html": "@fixtures/card.html",
+   "design/styles.css": "@fixtures/styles.css"
+  }
+ },
+ "when": {
+  "args": [
+   "render",
+   "usecases/u1.json",
+   "--design-system",
+   "design/ds.json",
+   "--out",
+   "site",
+   "--schemas",
+   "schemas"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_in_repository"
+  },
+  {
+   "of": "when",
+   "file": "site/usecases/u1.html",
+   "exists": false
+  }
+ ]
+}

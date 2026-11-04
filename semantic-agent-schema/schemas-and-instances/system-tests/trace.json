@@ -20,7 +20,6 @@
   "UC4:拡張:6a",
   "UC4:拡張:6b",
   "UC4:拡張:6c",
-  "UC4:変形:入力が変わった rule だけ",
   "UC4:変形:Semantic Agent Schema を通らない変更を見つける",
   "UC5:成功時保証",
   "UC5:最低保証",
@@ -40,7 +39,6 @@
   "約束:abstract:root",
   "約束:abstract:field",
   "約束:abstract:x-decided-by",
-  "約束:abstract:x-published",
   "約束:abstract:x-view",
   "約束:abstract:x-prompt",
   "約束:abstract:rule",
@@ -64,7 +62,6 @@
   "UC6:変形:構造で絞る",
   "UC6:変形:意味で探す",
   "UC6:拡張:出どころを確かめられない",
-  "UC6:拡張:範囲の中身が上限を超える",
   "UC7:成功時保証",
   "UC7:最低保証",
   "UC7:変形:絞って読む",
@@ -80,7 +77,6 @@
     "S-UC1-CREATE-BY-TOOL",
     "S-UC1-CREATE-CONCRETE",
     "S-UC1-CREATE-INSTANCE",
-    "S-UC1-REQUEST-ID",
     "S-UC1-SEMANTIC-WRITE"
    ]
   },
@@ -115,9 +111,6 @@
     "S-UC2-DEFAULT",
     "S-UC2-FIRST-WRITE",
     "S-UC2-HUMAN-UPDATE",
-    "S-UC2-REQUEST-ID",
-    "S-UC2-STALE-READS",
-    "S-UC2-STALE",
     "S-UC2-UPDATE",
     "S-UC2-WORKTREE-IN-TURN"
    ],
@@ -136,12 +129,11 @@
     "S-UC2-EXAMPLE-RELATED",
     "S-UC2-HUMAN-FIELD-NESTED",
     "S-UC2-HUMAN-FIELD",
+    "S-UC2-IF-MATCH-REQUIRED",
     "S-UC2-INVALID",
     "S-UC2-PARALLEL-REAPPLY",
     "S-UC2-PARALLEL",
     "S-UC2-PATCH-FAILED",
-    "S-UC2-PUBLISHED-NESTED",
-    "S-UC2-PUBLISHED",
     "S-UC2-UNTRACKED",
     "S-UC2-USAGE"
    ]
@@ -183,17 +175,16 @@
    "id": "UC3:成功時保証",
    "meaning": "対象が消え、削除の操作の記録に事前の状態が残る。対象を指しているほかの文書は変えない（Semantic Agent Schema は参照を見分けない）",
    "scenarios": [
-    "S-UC3-CONCRETE-PUBLISHED",
     "S-UC3-CONCRETE",
     "S-UC3-DELETE-INSTANCE",
-    "S-UC3-RECREATE",
-    "S-UC3-REQUEST-ID"
+    "S-UC3-RECREATE"
    ]
   },
   {
    "id": "UC3:最低保証",
    "meaning": "止めたときは対象が変わらない",
    "scenarios": [
+    "S-UC2-IF-MATCH-REQUIRED",
     "S-UC3-CONCRETE-FOLLOWED",
     "S-UC3-CONCRETE-NO-RANGE",
     "S-UC3-UNTRACKED",
@@ -260,23 +251,11 @@
    ]
   },
   {
-   "id": "UC4:変形:入力が変わった rule だけ",
-   "meaning": "範囲「入力が変わった rule だけ」：前の判定が読んだ所のハッシュといまのハッシュが違う rule だけを判定し直す。読んだ所には rule の文（x-prompt の write の1行）も入る",
-   "scenarios": [
-    "S-UC4-STALE-ONLY",
-    "S-UC4-STALE-OUTSIDE",
-    "S-UC4-STALE-READS",
-    "S-UC4-STALE-RULE-CHANGED",
-    "S-UC4-STALE-SEMANTIC"
-   ]
-  },
-  {
    "id": "UC4:変形:Semantic Agent Schema を通らない変更を見つける",
    "meaning": "同じワークツリーで記録した最後の事後といまの中身のハッシュが違う対象を知らせ、いまの中身を検証する。そのワークツリーでまだ書いていなければ、その経路の記録のどれかの中身（事前か事後）と比べる",
    "scenarios": [
     "S-UC2-ADOPT-WORKTREE",
     "S-UC2-WORKTREE-IN-TURN",
-    "S-UC4-STALE-OUTSIDE",
     "S-UC4-UNTRACKED",
     "S-UC4-WORKTREE-REVERTED",
     "S-UC4-WORKTREE"
@@ -296,6 +275,8 @@
    "meaning": "入力 ・ デザインシステム ・ 記録は変わらない。ページは1枚ずつ前か新しいかのどちらかで、止まったときは理由を返す。打ち直せばそろい、作業用のファイルも消える",
    "scenarios": [
     "S-UC5-MANY-ONE-FAILS",
+    "S-UC5-OUTSIDE-GIT",
+    "S-UC5-PATH-OUTSIDE-ROOT",
     "S-UC5-UNCHANGED"
    ],
    "note": "置き換えの途中の失敗で前のページに戻すこと、止められたあと（退避だけがある ・ ページが無い）に打ち直すとページがそろい作業用のファイルが消えることは、outbound の filesystem の試験（out_dir.rs）で確かめる"
@@ -446,15 +427,6 @@
    ]
   },
   {
-   "id": "約束:abstract:x-published",
-   "meaning": "x-published の欄の定義は、同じ版（$id）のあいだ変えない。削除は止めない",
-   "scenarios": [
-    "S-UC2-PUBLISHED-NESTED",
-    "S-UC2-PUBLISHED",
-    "S-UC3-CONCRETE-PUBLISHED"
-   ]
-  },
-  {
    "id": "約束:abstract:x-view",
    "meaning": "x-view は根だけに書き、デザインシステムのテンプレートの種類を選ぶ",
    "scenarios": [
@@ -467,7 +439,6 @@
    "id": "約束:abstract:x-prompt",
    "meaning": "x-prompt は meaning（値を何として読むか）・ when（いつ、何のために読むか）・ rules（書くときの決まりの並び）を並べる。rules の rule は当たる所の値で判定され、meaning と when は同じ名前で判定の手順と書く手順に入る",
    "scenarios": [
-    "S-UC2-STALE",
     "S-UC4-SEMANTIC-PROCEDURE"
    ]
   },
@@ -475,19 +446,18 @@
    "id": "約束:abstract:rule",
    "meaning": "rule はどれも AI が判定する（打ったセッションが --answer で渡す。判定できなければ unverified）。id は Concrete の中で重ならず、Semantic Agent Schema が結果に使う名前を使わない。rule は id ・ rule ・ why ・ check と、違反する例 bad ・ 満たす例 good を持つ。例はどちらも1つ以上の並びで、1件は value（当たる所の値）・ related（related_fields にある所の値）・ note（bad では必須の、なぜ違反かの1文）。一緒に読む欄は related_fields に書く",
    "scenarios": [
-    "S-UC2-STALE-READS",
     "S-UC4-AI-UNVERIFIED",
     "S-UC4-RULE-ID-RESERVED",
     "S-UC4-SEMANTIC-READS",
-    "S-UC4-STALE-READS",
-    "S-UC4-STALE-RULE-CHANGED"
+    "S-UC4-SEMANTIC-RELATED-CHANGED"
    ]
   },
   {
    "id": "約束:vocabulary:closed",
    "meaning": "x- は閉じた一覧（x-prompt ・ x-decided-by ・ x-published ・ x-view）だけで、ほかの x- は形の検査で断る",
    "scenarios": [
-    "S-UC4-UNKNOWN-KEYWORD"
+    "S-UC4-UNKNOWN-KEYWORD",
+    "S-UC4-X-PUBLISHED-UNKNOWN"
    ]
   },
   {
@@ -513,7 +483,6 @@
    "meaning": "x- の形は入れ子のどの深さでも掛かり、x-view は根より内側で断る。入れ子の x-decided-by ・ x-published も守る",
    "scenarios": [
     "S-UC2-HUMAN-FIELD-NESTED",
-    "S-UC2-PUBLISHED-NESTED",
     "S-UC4-DEEP-VIEW"
    ]
   },
@@ -547,7 +516,6 @@
     "S-UC1-SEMANTIC-CYCLE",
     "S-UC1-SEMANTIC-DEEP",
     "S-UC1-SEMANTIC-NESTED",
-    "S-UC1-SEMANTIC-REF-LARGE",
     "S-UC1-SEMANTIC-TREE",
     "S-UC1-SEMANTIC-WRITE",
     "S-UC1-SEMANTIC"
@@ -601,14 +569,15 @@
     "S-UC4-SEMANTIC-CHANGED",
     "S-UC4-SEMANTIC-DEEP",
     "S-UC4-SEMANTIC-NO-RULE",
+    "S-UC4-SEMANTIC-NOT-JUDGED",
     "S-UC4-SEMANTIC-PLACE-ADDED",
     "S-UC4-SEMANTIC-PLACE-REMOVED",
     "S-UC4-SEMANTIC-PROCEDURE",
     "S-UC4-SEMANTIC-READS",
     "S-UC4-SEMANTIC-REASON",
+    "S-UC4-SEMANTIC-RELATED-CHANGED",
     "S-UC4-SEMANTIC-RULE-CHANGED",
-    "S-UC4-SEMANTIC-SAME-RULE",
-    "S-UC4-STALE-SEMANTIC"
+    "S-UC4-SEMANTIC-SAME-RULE"
    ]
   },
   {
@@ -627,7 +596,6 @@
    "meaning": "記録は Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ（SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指せる）。経路はどこで打っても Git の根からの相対。Git のリポジトリの外では、記録を作らずに断る",
    "scenarios": [
     "S-PATHS-FROM-SUBDIR",
-    "S-RECORDS-ENV",
     "S-RECORDS-OUTSIDE-GIT"
    ]
   },
@@ -645,6 +613,7 @@
    "meaning": "範囲を渡さなければ探さない。範囲の外は探しておらず、範囲の外を出どころにした答えは返さない",
    "scenarios": [
     "S-UC6-SEARCH-NO-RANGE",
+    "S-UC6-SEARCH-NO-SESSION",
     "S-UC6-SEARCH-OUTSIDE",
     "S-UC6-SEARCH-WHERE-NOT-JSON"
    ]
@@ -672,13 +641,6 @@
     "S-UC6-SEARCH-HASH",
     "S-UC6-SEARCH-NO-POINTER",
     "S-UC6-SEARCH-OUTSIDE"
-   ]
-  },
-  {
-   "id": "UC6:拡張:範囲の中身が上限を超える",
-   "meaning": "意味で探す範囲の中身の合計が上限（64KB）を超える：切り詰めずに range_too_large で断る",
-   "scenarios": [
-    "S-UC6-SEARCH-TOO-LARGE"
    ]
   },
   {

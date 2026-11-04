@@ -14,9 +14,8 @@ fn row(
 ) -> ChangeRow {
     ChangeRow {
         kind: kind.into(),
-        source: "sas".into(),
+        source: "semantic-agent-schema".into(),
         target_path: path.into(),
-        request_id: None,
         before: before.map(Into::into),
         after: after.map(Into::into),
         reason: Some("試す".into()),

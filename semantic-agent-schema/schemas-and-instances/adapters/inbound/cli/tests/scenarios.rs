@@ -35,7 +35,10 @@ fn published(name: &str) -> jsonschema::Validator {
 }
 
 fn workdir(id: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("sas-scenario-{}-{id}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "semantic-agent-schema-scenario-{}-{id}",
+        std::process::id()
+    ));
     if dir.exists() {
         std::fs::remove_dir_all(&dir).expect("前の作業ディレクトリを消せること");
     }

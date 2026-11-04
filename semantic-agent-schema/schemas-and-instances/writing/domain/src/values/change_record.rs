@@ -1,6 +1,6 @@
 //! 記録にある、書いた作成 ・ 更新 ・ 削除（記録の行の形）。
 //!
-//! 書くモジュールは追記し、前の依頼と間に入った変更を引く。検証のモジュールは、Semantic Agent Schema を通らない変更を知らせるのに引く。
+//! 書くモジュールは追記し、間に入った変更を引く。検証のモジュールは、Semantic Agent Schema を通らない変更を知らせるのに引く。
 //! 値は文字列と数で持つ（記録の置き場所が読み書きする形）。
 
 /// 作成 ・ 更新で変わった欄1つ（記録の行）。値は JSON の文字列で、None は値が無いこと。
@@ -14,7 +14,7 @@ pub struct FieldRow {
     pub before: Option<String>,
     /// 後の値
     pub after: Option<String>,
-    /// 前の値が取れなかった（Semantic Agent Schema を通らない変更の取り込みで、前の中身のコミットが無い）。true なら before は None
+    /// 前の値が無い（Semantic Agent Schema を通らない変更の取り込みで、--base を渡さなかった）。true なら before は None
     pub before_unavailable: bool,
 }
 
@@ -23,33 +23,20 @@ pub struct FieldRow {
 pub struct ChangeRow {
     /// create ・ update ・ delete
     pub kind: String,
-    /// sas（Semantic Agent Schema が書いた）か outside（Semantic Agent Schema を通らない変更を取り込んだ）
+    /// semantic-agent-schema（Semantic Agent Schema が書いた）か outside（Semantic Agent Schema を通らない変更を取り込んだ）
     pub source: String,
     /// リポジトリの根からの経路
     pub target_path: String,
-    /// やり直しで同じ操作を2回残さないための ID
-    pub request_id: Option<String>,
     /// 事前のハッシュ（作成では None）
     pub before: Option<String>,
     /// 事後のハッシュ（削除では None）
     pub after: Option<String>,
     /// 理由（なぜその操作をしたか。呼ぶ側が渡したときだけ）
     pub reason: Option<String>,
-    /// 書いた文書が従う schema の $id（削除は消す前の文書のもの。記録を読むときに返す。版5より前の行は None）
+    /// 書いた文書が従う schema の $id（削除は消す前の文書のもの。記録を読むときに返す）
     pub schema: Option<String>,
     /// 変わった欄
     pub fields: Vec<FieldRow>,
-}
-
-/// 記録にある作成 ・ 更新 ・ 削除の操作。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoredChange {
-    /// 操作の ID
-    pub operation: String,
-    /// 打ったセッションの ID（人なら None）
-    pub session: Option<String>,
-    /// 行
-    pub row: ChangeRow,
 }
 
 /// 記録にある、対象を書いた操作（作成か更新）。古い順に並べて使う。
@@ -97,9 +84,8 @@ mod tests {
             same_worktree,
             row: ChangeRow {
                 kind: "update".into(),
-                source: "sas".into(),
+                source: "semantic-agent-schema".into(),
                 target_path: "a.json".into(),
-                request_id: None,
                 before: Some(before.into()),
                 after: Some(after.into()),
                 reason: None,

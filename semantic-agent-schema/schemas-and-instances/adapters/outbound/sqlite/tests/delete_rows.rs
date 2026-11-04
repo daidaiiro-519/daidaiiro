@@ -9,9 +9,8 @@ use writing_domain::values::{ChangeRow, FieldRow};
 fn row(kind: &str, path: &str, before: Option<&str>, after: Option<&str>) -> ChangeRow {
     ChangeRow {
         kind: kind.into(),
-        source: "sas".into(),
+        source: "semantic-agent-schema".into(),
         target_path: path.into(),
-        request_id: None,
         before: before.map(Into::into),
         after: after.map(Into::into),
         reason: Some("消す".into()),

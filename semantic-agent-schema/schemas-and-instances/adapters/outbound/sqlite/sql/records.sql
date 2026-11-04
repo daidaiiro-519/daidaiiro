@@ -66,20 +66,16 @@ CREATE TABLE changes (
     before_hash       TEXT,                               -- 作成は無い
     after_hash        TEXT,                               -- 削除は無い
     reason            TEXT,
-    request_id        TEXT,
-    source            TEXT NOT NULL DEFAULT 'sas' CHECK (source IN ('sas', 'outside')),
+    source            TEXT NOT NULL DEFAULT 'semantic-agent-schema' CHECK (source IN ('semantic-agent-schema', 'outside')),
     session_id        TEXT REFERENCES sessions (id),      -- 打ったセッション。人は NULL
     schema            TEXT,                               -- 書いた文書が従う schema の $id（削除は消す前の文書のもの）
     worktree          TEXT,
     CHECK ((kind = 'create') = (before_hash IS NULL)),
     CHECK ((kind = 'delete') = (after_hash IS NULL)),
     CHECK (kind <> 'delete' OR reason IS NOT NULL),
-    CHECK (source = 'sas' OR kind <> 'delete'),
-    CHECK (source = 'sas' OR kind <> 'update' OR reason IS NOT NULL)
+    CHECK (source = 'semantic-agent-schema' OR kind <> 'delete'),
+    CHECK (source = 'semantic-agent-schema' OR kind <> 'update' OR reason IS NOT NULL)
 ) STRICT;
-
--- 1つの依頼に変更は1回（やり直しで同じ変更を2回残さない）
-CREATE UNIQUE INDEX changes_one_per_request ON changes (request_id) WHERE request_id IS NOT NULL;
 
 CREATE INDEX changes_by_target ON changes (target_path, id);
 
@@ -127,10 +123,10 @@ BEGIN SELECT RAISE(ABORT, 'a delete records only removals of the previous state'
 
 -- UC7「操作の記録を読む」：変更と検証を記録した順に並べる
 CREATE VIEW operations AS
-    SELECT id, at, kind, target_path, before_hash, after_hash, reason, request_id, source,
+    SELECT id, at, kind, target_path, before_hash, after_hash, reason, source,
            session_id, schema
     FROM changes
     UNION ALL
-    SELECT id, at, 'validate', target_path, hash, hash, NULL, NULL, 'sas',
+    SELECT id, at, 'validate', target_path, hash, hash, NULL, 'semantic-agent-schema',
            session_id, schema
     FROM validations;

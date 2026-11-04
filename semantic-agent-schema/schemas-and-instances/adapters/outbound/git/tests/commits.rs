@@ -8,7 +8,10 @@ use std::process::Command;
 use writing_application::ports::CommitReader;
 
 fn dir(name: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("sas-git-{}-{name}", std::process::id()));
+    let d = std::env::temp_dir().join(format!(
+        "semantic-agent-schema-git-{}-{name}",
+        std::process::id()
+    ));
     if d.exists() {
         std::fs::remove_dir_all(&d).unwrap();
     }

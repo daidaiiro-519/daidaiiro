@@ -24,9 +24,7 @@ use recording_application::ports::OperationFilter;
 use recording_application::use_cases::history::{
     Unidentified, identify, read_operation, read_operations, register, register_session,
 };
-use rendering_application::use_cases::design::{
-    DESIGN_SYSTEM, check_design_systems, record_design_systems,
-};
+use rendering_application::use_cases::design::{DESIGN_SYSTEM, check_design_systems};
 use rendering_application::use_cases::render::{RenderRequest, render};
 use search_application::use_cases::search::{
     Range, search_procedure, search_where, search_with_answer,
@@ -35,7 +33,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use validation_application::use_cases::validate::{
-    Scope, Selection, semantic_procedures, validate, validate_stale, validate_with_answer,
+    Scope, Selection, semantic_procedures, validate, validate_with_answer,
 };
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
@@ -144,14 +142,8 @@ fn usage(message: &str) -> ExitCode {
     ExitCode::from(2)
 }
 
-/// 記録の置き場所を指す環境変数。
-const DATABASE_FILE: &str = "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE";
-
-/// 操作の記録の置き場所。決めるのはここだけ。
-///
-/// 1. Git のリポジトリの外なら、記録を作らずに断る
-/// 2. SEMANTIC_AGENT_SCHEMA_DATABASE_FILE があればそのファイル
-/// 3. 無ければ `<git-common-dir>/semantic-agent-schema/records.sqlite`
+/// 操作の記録の置き場所。決めるのはここだけ：`<git-common-dir>/semantic-agent-schema/records.sqlite`（ワークツリーで1つ）。
+/// Git のリポジトリの外なら、記録を作らずに断る。
 fn db_path(root: &Path) -> Result<PathBuf, Refused> {
     let Some(common) = GitCommits::new(root.to_path_buf()).common_dir() else {
         return Err(Refused {
@@ -165,9 +157,6 @@ fn db_path(root: &Path) -> Result<PathBuf, Refused> {
             ..Refused::default()
         });
     };
-    if let Some(p) = std::env::var_os(DATABASE_FILE).filter(|p| !p.is_empty()) {
-        return Ok(PathBuf::from(p));
-    }
     Ok(common.join("semantic-agent-schema").join("records.sqlite"))
 }
 
@@ -279,6 +268,28 @@ fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
     Ok((WorkingTree::new(root), validator, log))
 }
 
+/// 記録を開かずに、Git の根の置き場所とバリデーターを組み立てる（検索 ・ デザインシステムの検証 ・ 描画）。
+/// Git のリポジトリの外では、経路の根が決まらないので断る。
+fn read_only() -> Result<(WorkingTree, Validator), Refused> {
+    let Some(root) = GitCommits::new(PathBuf::from(".")).toplevel() else {
+        return Err(Refused {
+            code: "not_in_repository",
+            message: "Git のリポジトリの外なので、経路の根（Git の根）が決まらない".to_string(),
+            hint: Some(Box::new(
+                "Git のリポジトリの中で使う（リポジトリでなければ git init してから打つ）"
+                    .to_string(),
+            )),
+            ..Refused::default()
+        });
+    };
+    let validator = Validator::new().map_err(|message| Refused {
+        code: "validator",
+        message,
+        ..Refused::default()
+    })?;
+    Ok((WorkingTree::new(root), validator))
+}
+
 /// semantic-agent-schema init：新しいセッションの ID を決めて sessions に登録し、その行を返す。
 /// あとで打つコマンドの既定にはしない（返った ID を --session で渡す）。
 fn run_init(args: &[String]) -> ExitCode {
@@ -309,7 +320,6 @@ fn run_validate(args: &[String]) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
-    let mut stale = false;
     let mut all_rules = false;
     let mut semantic = false;
     let mut answer = None;
@@ -317,7 +327,6 @@ fn run_validate(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--stale" => stale = true,
             "--all-rules" => all_rules = true,
             "--semantic" => semantic = true,
             "--answer" => match it.next() {
@@ -336,13 +345,8 @@ fn run_validate(args: &[String]) -> ExitCode {
     if all_rules && !semantic && answer.is_none() {
         return usage("--all-rules は --semantic か --answer と一緒に渡してください");
     }
-    if all_rules && stale {
-        return usage(
-            "--all-rules と --stale は一緒に渡せません（--all-rules はすべての rule、--stale は変わった rule だけ）",
-        );
-    }
-    // 意味の判定は、既定では前の判定から読んだ所が変わった rule だけ。--all-rules ならすべて
-    let selection = Selection { all_rules, stale };
+    // 意味の判定は、既定では前の判定のあと変わった所だけ。--all-rules ならすべて
+    let selection = Selection { all_rules };
     if paths.is_empty() {
         return usage("検証する対象の経路を渡してください（範囲は渡された経路だけ）");
     }
@@ -356,21 +360,17 @@ fn run_validate(args: &[String]) -> ExitCode {
         let paths = &scope.paths;
         let design: Vec<bool> = paths.iter().map(|p| is_design_system(p)).collect();
         if design.iter().any(|d| *d) {
-            if !design.iter().all(|d| *d) || stale || all_rules || semantic || answer.is_some() {
+            if !design.iter().all(|d| *d) || all_rules || semantic || answer.is_some() {
                 return usage(
-                    "デザインシステムは、ほかの対象や --stale ・ --semantic ・ --answer と一緒に渡さずに、それだけで検証してください",
+                    "デザインシステムは、ほかの対象や --semantic ・ --answer と一緒に渡さずに、それだけで検証してください",
                 );
             }
-            let (store, validator, mut log) = match adapters() {
+            // 注入された依存を契約に照らして返すだけで、記録しない（誰が打ったかも取らない）
+            let (store, validator) = match read_only() {
                 Ok(a) => a,
                 Err(r) => return refuse(r),
             };
-            let caller = match caller(who.clone()) {
-                Ok(c) => c,
-                Err(r) => return refuse(r),
-            };
-            // 照らしてから、記録する直前に打ったセッションを sessions に足す
-            let checked = match check_design_systems(
+            return match check_design_systems(
                 paths,
                 scope.schemas.files(),
                 &store,
@@ -378,13 +378,6 @@ fn run_validate(args: &[String]) -> ExitCode {
                 &Mustache,
                 &Boa,
             ) {
-                Ok(c) => c,
-                Err(r) => return refuse(r),
-            };
-            if let Err(message) = register(&caller, &mut log) {
-                return refuse(log_refused(message));
-            }
-            return match record_design_systems(checked, &caller, &mut log) {
                 Ok(v) => {
                     output::print_design_validation(&v);
                     if v.counts.fails() {
@@ -436,7 +429,6 @@ fn run_validate(args: &[String]) -> ExitCode {
         Some(text) => validate_with_answer(
             &scope, selection, &text, &store, &validator, &caller, &mut log,
         ),
-        _ if stale => validate_stale(&scope, &store, &validator, &caller, &mut log),
         _ => validate(&scope, &store, &validator, &caller, &mut log),
     };
     match result {
@@ -492,28 +484,19 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         return usage("--range は Concrete を直す ・ 消すときだけ渡してください");
     }
     let args = args.as_slice();
-    // --adopt ・ --semantic は値を取らない旗、--ref は何度でも渡せるので、先に抜き出す
+    // --adopt ・ --semantic は値を取らない旗なので、先に抜き出す
     let adopting = args.iter().any(|a| a == "--adopt");
     let semantic = args.iter().any(|a| a == "--semantic");
-    let mut refs = Vec::new();
-    let mut rest = Vec::new();
-    let mut it = args.iter();
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--adopt" | "--semantic" => {}
-            "--ref" => match it.next() {
-                Some(v) if !v.is_empty() => refs.push(v.clone()),
-                _ => return usage("--ref に値がありません"),
-            },
-            _ => rest.push(a.clone()),
-        }
-    }
-    let args = rest;
+    let args: Vec<String> = args
+        .iter()
+        .filter(|a| *a != "--adopt" && *a != "--semantic")
+        .cloned()
+        .collect();
     let mut flags: Vec<(&str, Option<String>)> = match command {
         Command::Create => vec![("--concrete", None), ("--value", None)],
         Command::Update => vec![("--patch", None), ("--if-match", None), ("--base", None)],
     };
-    flags.extend([("--reason", None), ("--request-id", None), ("--task", None)]);
+    flags.push(("--reason", None));
     let mut paths = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -537,14 +520,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             .find(|(n, _)| *n == name)
             .and_then(|(_, v)| v.clone())
     };
-    let request_id = take("--request-id");
     let reason = take("--reason");
-    if !semantic && take("--task").is_some() {
-        return usage("--task は --semantic と一緒に渡してください");
-    }
-    if !semantic && !refs.is_empty() {
-        return usage("--ref は --semantic と一緒に渡してください");
-    }
     if let Some(base) = take("--base") {
         if !adopting {
             return usage("--base は --adopt で更新を取り込むときに渡してください");
@@ -579,12 +555,9 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         let request = SemanticRequest {
             path: path.clone(),
             concrete,
-            task: take("--task"),
-            refs,
             schemas,
             range,
             reason,
-            request_id,
         };
         let result = run_with(
             |store, validator, caller, _| semantic_procedure(&request, store, validator, caller),
@@ -621,7 +594,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             schemas,
             range,
             reason,
-            request_id,
             base: take("--base"),
         };
         let committed = GitCommits::new(root());
@@ -664,7 +636,6 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
                 concrete,
                 value,
                 schemas,
-                request_id,
                 reason,
             };
             run_with(
@@ -673,6 +644,11 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             )
         }
         Command::Update => {
+            let Some(if_match) = take("--if-match") else {
+                return usage(
+                    "--if-match に、読んだ時の中身のハッシュを渡してください（いまの中身と同じときだけ直す）",
+                );
+            };
             let patch = match json("--patch") {
                 Ok(v) => v,
                 Err(code) => return code,
@@ -680,10 +656,9 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             let request = UpdateRequest {
                 path: path.clone(),
                 patch,
-                if_match: take("--if-match"),
+                if_match,
                 schemas,
                 range,
-                request_id,
                 reason,
             };
             run_with(
@@ -710,11 +685,7 @@ fn run_delete(args: &[String]) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
-    let mut flags: Vec<(&str, Option<String>)> = vec![
-        ("--reason", None),
-        ("--if-match", None),
-        ("--request-id", None),
-    ];
+    let mut flags: Vec<(&str, Option<String>)> = vec![("--reason", None), ("--if-match", None)];
     let mut paths = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -742,10 +713,14 @@ fn run_delete(args: &[String]) -> ExitCode {
     let Some(reason) = take("--reason") else {
         return usage("消すときは、なぜ消すかを --reason で渡してください");
     };
+    let Some(if_match) = take("--if-match") else {
+        return usage(
+            "--if-match に、読んだ時の中身のハッシュを渡してください（いまの中身と同じときだけ消す）",
+        );
+    };
     let request = DeleteRequest {
         path: path.clone(),
-        if_match: take("--if-match"),
-        request_id: take("--request-id"),
+        if_match,
         reason: Some(reason),
         range,
     };
@@ -796,20 +771,14 @@ fn run_render(args: &[String]) -> ExitCode {
     let Some(out) = out else {
         return usage("--out で書き出す先を渡してください");
     };
+    // 描くのは Git の根からの経路だけで、Git の外では断る（記録は開かない）
+    let (store, validator) = match read_only() {
+        Ok(a) => a,
+        Err(r) => return refuse(r),
+    };
     let schemas = match schema_files(schemas) {
         Ok(s) => s,
         Err(code) => return code,
-    };
-    let root = root();
-    let validator = match Validator::new() {
-        Ok(v) => v,
-        Err(message) => {
-            return refuse(Refused {
-                code: "validator",
-                message,
-                ..Refused::default()
-            });
-        }
     };
     let request = RenderRequest {
         targets,
@@ -819,11 +788,11 @@ fn run_render(args: &[String]) -> ExitCode {
     };
     match render(
         &request,
-        &WorkingTree::new(root.clone()),
+        &store,
         &validator,
         &Mustache,
         &Boa,
-        &OutDir::new(root),
+        &OutDir::new(root()),
     ) {
         Ok(r) => {
             output::print_render(&r);
@@ -967,10 +936,6 @@ fn run_search(args: &[String]) -> ExitCode {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
-    let (who, args) = match take_who(&args) {
-        Ok(v) => v,
-        Err(m) => return usage(&m),
-    };
     let mut semantic = false;
     let mut question = None;
     let mut answer = None;
@@ -1048,11 +1013,13 @@ fn run_search(args: &[String]) -> ExitCode {
         Err(code) => return code,
     };
     let range = Range { paths, schemas };
+    // 検索は誰が打ったかを取らず、記録を開かない
+    let (store, validator) = match read_only() {
+        Ok(a) => a,
+        Err(r) => return refuse(r),
+    };
     if let Some(q) = question {
-        return match run_with(
-            |store, _, caller, _| search_procedure(&range, &q, store, caller),
-            who.clone(),
-        ) {
+        return match search_procedure(&range, &q, &store) {
             Ok(p) => {
                 output::print_procedure(&p);
                 ExitCode::SUCCESS
@@ -1061,23 +1028,15 @@ fn run_search(args: &[String]) -> ExitCode {
         };
     }
     let result = match answer_text {
-        Some(text) => run_with(
-            |store, validator, caller, _| {
-                search_with_answer(&range, &text, store, validator, caller)
-            },
-            who.clone(),
-        ),
-        None => run_with(
-            |store, _, _, _| search_where(&range, &conditions, store),
-            who.clone(),
-        ),
+        Some(text) => search_with_answer(&range, &text, &store, &validator),
+        None => search_where(&range, &conditions, &store),
     };
     match result {
         Ok(f) => {
             output::print_search(&f);
             ExitCode::SUCCESS
         }
-        Err(r) => refuse(r),
+        Err(r) => refuse(Refused::from(r)),
     }
 }
 

@@ -6,7 +6,6 @@
 //!   const で決まる欄と、$schema は書く欄にしない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
 //! - インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く（同じ手続き）。
 //! - 書く順は rule の related_fields：読まれる欄を先にする。読み合う欄があれば、手順を出さずに断る。
-//! - --ref の文書は Semantic Agent Schema が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
 //! - 手順を返すだけで、記録しない。
 
 use super::{Refused, carried, range_for, refused, target_of_declared};
@@ -18,8 +17,6 @@ use writing_domain::services::field_schema;
 use writing_domain::values::{Caller, ContentHash, SchemaPlaces, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
-/// --ref の文書1つの上限（バイト）。
-pub const REF_LIMIT: usize = 64 * 1024;
 
 /// 意味で書く依頼。
 #[derive(Debug, Clone, PartialEq)]
@@ -28,18 +25,12 @@ pub struct SemanticRequest {
     pub path: String,
     /// 作成なら従う Concrete の $id。更新なら None（いまの中身の $schema）
     pub concrete: Option<String>,
-    /// 何を書くかの依頼（--task）
-    pub task: Option<String>,
-    /// 読ませる文書の経路（--ref）
-    pub refs: Vec<String>,
     /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。手順の command にも引き継ぐ）
     pub schemas: SchemaPlaces,
     /// Concrete を直すときに、従うインスタンスを確かめる範囲（--range の経路。手順の command に引き継ぐ）
     pub range: Option<Vec<String>>,
     /// 理由（手順の command に入れる）
     pub reason: Option<String>,
-    /// やり直しで同じ操作を2回残さないための ID（手順の command に入れる）
-    pub request_id: Option<String>,
 }
 
 /// 書く欄1つ。
@@ -106,7 +97,6 @@ pub fn semantic_procedure(
             "x-prompt を持ち、意味で書いてよい欄が無い".to_string(),
         ));
     }
-    let refs = read_refs(store, &request.refs)?;
     let schema = bundled(doc, validator, target.more());
     Ok(build_procedure(
         path,
@@ -117,7 +107,6 @@ pub fn semantic_procedure(
         current_text.as_deref(),
         request,
         &units,
-        &refs,
         caller,
     ))
 }
@@ -425,26 +414,6 @@ fn order(path: &str, mut units: Vec<Unit>) -> Result<Vec<Unit>, Refused> {
     Ok(done)
 }
 
-/// --ref の文書を読む（経路 ・ ハッシュ ・ 中身）。
-fn read_refs(store: &dyn DocumentStore, refs: &[String]) -> Result<Vec<Value>, Refused> {
-    refs.iter()
-        .map(|r| {
-            let text = store.read(r).map_err(|e| refused("not_found", r, e))?;
-            if text.len() > REF_LIMIT {
-                return Err(refused(
-                    "ref_too_large",
-                    r,
-                    format!(
-                        "{r} は {} バイトで、上限 {REF_LIMIT} バイトを超える。切り詰めずに断る",
-                        text.len()
-                    ),
-                ));
-            }
-            Ok(json!({"path": r, "hash": ContentHash::of(text.as_bytes()).as_str(), "text": text}))
-        })
-        .collect()
-}
-
 #[allow(clippy::too_many_arguments)]
 fn build_procedure(
     path: &str,
@@ -455,7 +424,6 @@ fn build_procedure(
     current_text: Option<&str>,
     request: &SemanticRequest,
     units: &[Unit],
-    refs: &[Value],
     caller: &Caller,
 ) -> Value {
     let mut target = json!({"path": path, "schema": declared});
@@ -551,12 +519,6 @@ fn build_procedure(
     {
         p["rules"] = json!(r);
     }
-    if let Some(b) = &request.task {
-        p["task"] = json!(b);
-    }
-    if !refs.is_empty() {
-        p["refs"] = json!(refs);
-    }
     if !not_written.is_empty() {
         p["not_written"] = json!(not_written);
     }
@@ -586,9 +548,6 @@ fn write_command(
     };
     if let Some(i) = &request.reason {
         args.extend(["--reason", i.as_str()]);
-    }
-    if let Some(r) = &request.request_id {
-        args.extend(["--request-id", r.as_str()]);
     }
     carried(
         &args,

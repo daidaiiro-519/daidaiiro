@@ -13,7 +13,6 @@ fn change(kind: &str, source: &str, before: Option<&str>, after: Option<&str>) -
         kind: kind.into(),
         source: source.into(),
         target_path: "u1.json".into(),
-        request_id: None,
         before: before.map(Into::into),
         after: after.map(Into::into),
         reason: Some("エディターで直した".into()),
@@ -70,8 +69,11 @@ fn adopted_changes_keep_the_source() {
 #[test]
 fn adopted_update_needs_a_reason_and_a_delete_is_not_adopted() {
     let mut log = SqliteLog::in_memory().unwrap();
-    log.append_change(None, &change("create", "sas", None, Some("sha256:a")))
-        .unwrap();
+    log.append_change(
+        None,
+        &change("create", "semantic-agent-schema", None, Some("sha256:a")),
+    )
+    .unwrap();
     let mut no_reason = change("update", "outside", Some("sha256:a"), Some("sha256:b"));
     no_reason.reason = None;
     assert!(log.append_change(None, &no_reason).is_err());
@@ -84,11 +86,19 @@ fn adopted_update_needs_a_reason_and_a_delete_is_not_adopted() {
 #[test]
 fn only_an_adopted_update_lacks_previous_values() {
     let mut log = SqliteLog::in_memory().unwrap();
-    log.append_change(None, &change("create", "sas", None, Some("sha256:a")))
-        .unwrap();
-    let mut by_sas = change("update", "sas", Some("sha256:a"), Some("sha256:b"));
-    by_sas.fields = vec![unavailable()];
-    assert!(log.append_change(None, &by_sas).is_err());
+    log.append_change(
+        None,
+        &change("create", "semantic-agent-schema", None, Some("sha256:a")),
+    )
+    .unwrap();
+    let mut by_command = change(
+        "update",
+        "semantic-agent-schema",
+        Some("sha256:a"),
+        Some("sha256:b"),
+    );
+    by_command.fields = vec![unavailable()];
+    assert!(log.append_change(None, &by_command).is_err());
     let mut with_before = unavailable();
     with_before.before = Some("\"x\"".into());
     let mut adopted = change("update", "outside", Some("sha256:a"), Some("sha256:b"));

@@ -6,7 +6,10 @@ use outbound_filesystem::WorkingTree;
 
 #[test]
 fn opens_schema_places_without_descending() {
-    let dir = std::env::temp_dir().join(format!("sas-files-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "semantic-agent-schema-files-{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     for p in [
         "s/b.json",
@@ -34,7 +37,10 @@ fn opens_schema_places_without_descending() {
 
 #[test]
 fn writes_inside_the_tree_only() {
-    let dir = std::env::temp_dir().join(format!("sas-files-write-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "semantic-agent-schema-files-write-{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let store = WorkingTree::new(dir.clone());

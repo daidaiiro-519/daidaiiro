@@ -5,25 +5,20 @@
 
 use super::{
     Blocked, Checked, Refused, carried, classify, field_rows, interleaved, log_refused, range_docs,
-    range_for, record_change, refused, target_of,
+    range_for, record_change, refused,
 };
 use crate::ports::{ChangeLog, DocumentStore};
 use serde_json::{Value, json};
 use writing_domain::aggregates::ConcreteSchema;
-use writing_domain::values::{
-    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, SchemaPlaces,
-    StoredChange, TargetKind, unrecorded_since,
-};
+use writing_domain::values::{Caller, ChangeRow, ContentHash, Diff, SchemaPlaces, TargetKind};
 
 /// 削除の依頼。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteRequest {
     /// 消す経路
     pub path: String,
-    /// 消す前に読んだ中身のハッシュ。無ければ、いまの中身が記録のどれかの事後かを確かめる
-    pub if_match: Option<String>,
-    /// やり直しで同じ操作を2回残さないための ID
-    pub request_id: Option<String>,
+    /// 消す前に読んだ中身のハッシュ（--if-match。必ず渡す）。いまの中身のハッシュと違えば消さない
+    pub if_match: String,
     /// 理由（なぜ消すか）
     pub reason: Option<String>,
     /// Concrete を消すときに、従うインスタンスが無いことを確かめる範囲（--range の経路）
@@ -49,70 +44,28 @@ pub struct Deletion {
     pub diff: Diff,
     /// Concrete を消すときに、従うインスタンスかを見た文書（渡された範囲と記録から）
     pub checked: Vec<Checked>,
-    /// 同じ request_id の操作がすでにあり、消さずにそれを返したか
-    pub replayed: bool,
 }
 
-fn delete_hint(path: &str, caller: &Caller) -> String {
+fn delete_hint(path: &str, hash: &str, caller: &Caller) -> String {
     format!(
         "消す：{}",
-        carried(&["delete", path, "--reason", "<理由>"], None, None, caller)
+        carried(
+            &["delete", path, "--if-match", hash, "--reason", "<理由>"],
+            None,
+            None,
+            caller
+        )
     )
 }
 
-fn replayed(
-    stored: StoredChange,
-    path: &str,
-    store: &dyn DocumentStore,
-) -> Result<Deletion, Refused> {
-    let row = stored.row;
-    if row.kind != "delete" || row.target_path != path {
-        return Err(refused(
-            "request_reused",
-            path,
-            format!(
-                "request_id は {} の {} に使った。別の依頼には別の request_id を使う",
-                row.target_path, row.kind
-            ),
-        ));
-    }
-    let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
-    let diff_of = |fields: &[FieldRow]| {
-        Diff::from_changes(
-            fields
-                .iter()
-                .filter_map(|f| {
-                    Some(FieldChange::new(
-                        &f.pointer,
-                        Change::parse(&f.change)?,
-                        parse(&f.before),
-                        parse(&f.after),
-                    ))
-                })
-                .collect(),
-        )
-    };
-    let hash = |s: &Option<String>, op: &str| {
-        s.as_deref()
-            .and_then(ContentHash::parse)
-            .ok_or_else(|| log_refused(format!("操作 {op} のハッシュを読めない")))
-    };
-    let (kind, concrete) = target_of(store, path, &row.fields);
-    Ok(Deletion {
-        before: hash(&row.before, &stored.operation)?,
-        diff: diff_of(&row.fields),
-        session: stored.session,
-        operation: stored.operation,
-        kind,
-        path: row.target_path,
-        schema: concrete,
-        checked: Vec::new(),
-        replayed: true,
-    })
-}
-
 /// Concrete に従うインスタンスがあるので止めた削除を、従うインスタンスと一緒に返す（記録しない）。
-fn has_dependents(path: &str, blocked: Vec<Blocked>, range: &[String], caller: &Caller) -> Refused {
+fn has_dependents(
+    path: &str,
+    hash: &str,
+    blocked: Vec<Blocked>,
+    range: &[String],
+    caller: &Caller,
+) -> Refused {
     let message = blocked
         .iter()
         .map(|b| format!("{}：{}", b.path, b.message))
@@ -126,7 +79,7 @@ fn has_dependents(path: &str, blocked: Vec<Blocked>, range: &[String], caller: &
     r.hint = Some(Box::new(format!(
         "blocked のそれぞれの hint を片付けてから、消し直す：{}",
         carried(
-            &["delete", path, "--reason", "<理由>"],
+            &["delete", path, "--if-match", hash, "--reason", "<理由>"],
             None,
             Some(range),
             caller
@@ -150,11 +103,6 @@ pub fn delete(
     log: &mut dyn ChangeLog,
 ) -> Result<Deletion, Refused> {
     let path = request.path.as_str();
-    if let Some(id) = &request.request_id
-        && let Some(stored) = log.find_request(id).map_err(log_refused)?
-    {
-        return replayed(stored, path, store);
-    }
     let text = store
         .read(path)
         .map_err(|e| refused("not_found", path, e))?;
@@ -170,9 +118,8 @@ pub fn delete(
     let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
         kind: "delete".to_string(),
-        source: "sas".to_string(),
+        source: super::SOURCE.to_string(),
         target_path: path.to_string(),
-        request_id: request.request_id.clone(),
         before: Some(current.as_str().to_string()),
         after: None,
         reason: request.reason.clone(),
@@ -180,23 +127,16 @@ pub fn delete(
         fields: Vec::new(),
     };
 
-    // 1. 消す前提のハッシュ（更新と同じ決まり）
-    let (expected, from) = match &request.if_match {
-        Some(hash) => (Some(hash.clone()), "--if-match の"),
-        None => (
-            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str())
-                .and_then(|w| w.row.after.clone()),
-            "このワークツリーで Semantic Agent Schema が最後に書いた事後の",
-        ),
-    };
-    if let Some(expected) = expected.filter(|e| e != current.as_str()) {
+    // 1. 消す前提のハッシュ（呼ぶ側が読んだハッシュ。更新と同じ決まり）
+    let expected = request.if_match.clone();
+    if expected != current.as_str() {
         let writes = log.writes(path).map_err(log_refused)?;
         let between = interleaved(&writes, &expected, current.as_str());
         let mut r = refused(
             "conflict",
             path,
             format!(
-                "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
+                "いまの中身のハッシュは {}。--if-match のハッシュ {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
                 current.as_str(),
                 if between.unrecorded {
                     "。Semantic Agent Schema を通らない変更がある"
@@ -216,7 +156,19 @@ pub fn delete(
                     range,
                     caller
                 ),
-                carried(&["delete", path, "--reason", "<理由>"], None, range, caller)
+                carried(
+                    &[
+                        "delete",
+                        path,
+                        "--if-match",
+                        current.as_str(),
+                        "--reason",
+                        "<理由>"
+                    ],
+                    None,
+                    range,
+                    caller
+                )
             )
         } else {
             format!(
@@ -257,11 +209,17 @@ pub fn delete(
                 path: c.path.clone(),
                 code: "follows",
                 message: format!("{own} に従うインスタンス"),
-                hint: delete_hint(&c.path, caller),
+                hint: delete_hint(&c.path, c.hash.as_str(), caller),
             })
             .collect();
         if !blocked.is_empty() {
-            return Err(has_dependents(path, blocked, range, caller));
+            return Err(has_dependents(
+                path,
+                current.as_str(),
+                blocked,
+                range,
+                caller,
+            ));
         }
     }
 
@@ -286,6 +244,5 @@ pub fn delete(
         before: current,
         diff,
         checked,
-        replayed: false,
     })
 }

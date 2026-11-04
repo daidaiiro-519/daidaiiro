@@ -3,15 +3,15 @@
 //! - 範囲は渡された経路の並びで、結果に範囲（経路とハッシュ）を返す。範囲の外は探していない。
 //!   インスタンスが従う Concrete は、渡されたスキーマの置き場所に $id であることを確かめる
 //! - 構造で絞る：JSON Pointer の所の値が、渡した値と一致する文書（条件が複数なら、すべてに一致する文書）
-//! - 意味で探す：範囲の文書ごとに1ステップの手順を組み、打ったセッションに返す（Semantic Agent Schema はエージェントを起動しない）。
-//!   範囲の中身の合計が上限を超えたら、切り詰めずに断る
+//! - 意味で探す：範囲の文書ごとに1ステップ（経路とハッシュ）の手順を組み、打ったセッションに返す（Semantic Agent Schema は
+//!   エージェントを起動しない）。中身は手順に貼らず、手順を受け取ったセッションが経路から読む
 //! - 意味の答え：そのセッションが渡した答えの出どころごとに、範囲の中か ・ ハッシュがいまの中身と同じか ・ 所があるかを確かめ、
 //!   通ったときだけ、出どころの所のいまの値と一緒に返す
 
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Value, json};
 use writing_domain::services::{SchemaIndex, concrete_of};
-use writing_domain::values::{Caller, ContentHash, SchemaPlaces, TargetKind};
+use writing_domain::values::{ContentHash, SchemaPlaces, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 
@@ -21,9 +21,6 @@ pub const ANSWER_SCHEMA: &str =
 
 /// 意味で探す答えの形の $id。
 const ANSWER_ID: &str = "urn:semantic-agent-schema:published-language:search-answer:v1";
-
-/// 意味で探すときの、範囲の中身の合計の上限（バイト）。書くときの --ref の上限（REF_LIMIT）と同じ。
-pub const RANGE_LIMIT: usize = 64 * 1024;
 
 /// 探す範囲。呼ぶ側が必ず渡し、既定の範囲は持たない。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,7 +75,7 @@ pub struct Found {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
     /// 決まった名前（not_found ・ not_json ・ no_schema ・ schema_not_listed ・ unknown_schema ・ duplicate_schema ・ invalid_input ・
-    /// range_too_large ・ store ・ validator、答えが形に合わない ・ 出どころを確かめられないもの：invalid_answer ・ conflict）
+    /// store ・ validator、答えが形に合わない ・ 出どころを確かめられないもの：invalid_answer ・ conflict）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
@@ -199,15 +196,14 @@ pub fn search_where(
     })
 }
 
-/// 意味で探す手順を組む：範囲の文書ごとに1ステップ（経路 ・ ハッシュ ・ 中身）。記録しない。
+/// 意味で探す手順を組む：範囲の文書ごとに1ステップ（経路とハッシュ。中身は貼らず、手順を受け取ったセッションが読む）。記録しない。
 ///
 /// # Errors
-/// 範囲の文書を読めない ・ 範囲に文書が無い ・ 範囲の中身の合計が上限を超えるとき。
+/// 範囲の文書を読めない ・ 範囲に文書が無いとき。
 pub fn search_procedure(
     range: &Range,
     question: &str,
     store: &dyn DocumentStore,
-    caller: &Caller,
 ) -> Result<Value, Refused> {
     let docs = load(range, store)?;
     if docs.is_empty() {
@@ -217,24 +213,12 @@ pub fn search_procedure(
             ..Refused::default()
         });
     }
-    let total: usize = docs.iter().map(|d| d.text.len()).sum();
-    if total > RANGE_LIMIT {
-        return Err(Refused {
-            code: "range_too_large",
-            message: format!(
-                "範囲の中身は合わせて {total} バイトで、上限 {RANGE_LIMIT} バイトを超える。切り詰めずに断る。範囲を絞って打ち直す"
-            ),
-            ..Refused::default()
-        });
-    }
     let range_rows = range_of(&docs);
     let steps: Vec<Value> = docs
         .iter()
         .zip(&range_rows)
         .enumerate()
-        .map(|(i, (d, (_, hash)))| {
-            json!({"no": i + 1, "action": "read", "path": d.path, "hash": hash, "current": d.value})
-        })
+        .map(|(i, (d, (_, hash)))| json!({"no": i + 1, "action": "read", "path": d.path, "hash": hash}))
         .collect();
     let schema: Value = serde_json::from_str(ANSWER_SCHEMA).unwrap_or_default();
     Ok(json!({
@@ -245,9 +229,9 @@ pub fn search_procedure(
         "range": range_rows.iter().map(|(p, h)| json!({"path": p, "hash": h})).collect::<Vec<_>>(),
         "steps": steps,
         "answer": {"format": "search", "schema": schema},
-        "command": answer_command(range, caller),
+        "command": answer_command(range),
         "constraints": [
-            "steps のすべての文書の current を読み、question に、範囲の文書に書いてあることだけで答える",
+            "steps のすべての文書を path から読み、question に、範囲の文書に書いてあることだけで答える",
             "答えは answer の形の JSON にし、答えの根拠になった値ごとに sources へ path ・ pointer ・ hash（steps の path と hash を写す）を書いて、command で渡す",
             "範囲に無い文書を出どころにしない",
             "ファイルを書かない",
@@ -256,14 +240,12 @@ pub fn search_procedure(
     }))
 }
 
-/// 答えを渡すときに打つコマンド。受け取った範囲 ・ --schemas と、誰が打ったか（--session ・ --human）を引き継ぐ。
-fn answer_command(range: &Range, caller: &Caller) -> String {
+/// 答えを渡すときに打つコマンド。受け取った範囲と --schemas を引き継ぐ（検索は誰が打ったかを取らない）。
+fn answer_command(range: &Range) -> String {
     let range_args = range.args();
-    let who = caller.args();
     let mut args: Vec<&str> = vec!["semantic-agent-schema", "search"];
     args.extend(range_args.iter().map(String::as_str));
     args.extend(["--answer", "<答えの JSON のファイル | ->"]);
-    args.extend(who.iter().map(String::as_str));
     command_line(&args)
 }
 
@@ -278,7 +260,6 @@ pub fn search_with_answer(
     answer: &str,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
-    caller: &Caller,
 ) -> Result<Found, Refused> {
     let docs = load(range, store)?;
     let range_rows = range_of(&docs);
@@ -344,7 +325,6 @@ pub fn search_with_answer(
                 "--question".to_string(),
                 "<問い>".to_string(),
             ]);
-            again.extend(caller.args());
             r.hint = Some(Box::new(format!(
                 "いまの中身で手順を取り直して探し直す：{}",
                 command_line(&again.iter().map(String::as_str).collect::<Vec<_>>())

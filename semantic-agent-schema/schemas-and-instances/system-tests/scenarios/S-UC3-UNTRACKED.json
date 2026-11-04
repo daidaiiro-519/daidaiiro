@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC3-UNTRACKED",
  "name": "外で変わった対象を消す",
- "title": "U1 が Semantic Agent Schema で書いたあと外で直されているとき、U1 を消そうとすると conflict で止まり、取り込んでから消す案内を返す",
+ "title": "U1 を Semantic Agent Schema で書いたあと外で直されているとき、記録の事後のハッシュを --if-match に渡して消そうとすると conflict で止まり、取り込んでから消す案内を返す",
  "why": "外の変更を記録しないまま消すと、消す前の状態として記録に残る中身が、誰がなぜ書いたか分からないものになる。",
  "traces": [
   "UC3:拡張:1a",
@@ -18,6 +18,8 @@
     "args": [
      "update",
      "usecases/u1.json",
+     "--if-match",
+     "sha256:4d840c6444ef6c2cf25cec1e297e7a11eb09202d5a9ccb41df2de3be795f9fe4",
      "--patch",
      "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す\"}]",
      "--schemas",
@@ -37,6 +39,8 @@
   "args": [
    "delete",
    "usecases/u1.json",
+   "--if-match",
+   "sha256:fdd1e1779841363c3b575a6d3c89b0ccf873a18a101dd3ded590c51d561b9edf",
    "--reason",
    "U1 は要らなくなった",
    "--human"

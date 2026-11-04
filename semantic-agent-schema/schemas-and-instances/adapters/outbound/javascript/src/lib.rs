@@ -1,6 +1,6 @@
 //! ポート ScriptReader を、JS の構文解析器 boa（boa_parser 0.22.0）で実装する。
 //!
-//! テンプレートの JS のロジックは見ない。値の入口（`JSON.parse(document.getElementById('sas-data').textContent)`）から
+//! テンプレートの JS のロジックは見ない。値の入口（`JSON.parse(document.getElementById('semantic-agent-schema-data').textContent)`）から
 //! どの欄を読んでいるかだけを取り出す。
 //! - `const data = JSON.parse(…)` の data から、`data.goal` ・ `data.calls[0].id` のようにたどった道
 //! - `const { goal } = JSON.parse(…)` や `const { goal } = data` の分割代入

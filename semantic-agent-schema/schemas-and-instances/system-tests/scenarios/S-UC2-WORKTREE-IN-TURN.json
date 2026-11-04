@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC2-WORKTREE-IN-TURN",
  "name": "並べたワークツリーで順に直す",
- "title": "別のブランチのワークツリー a ・ b で、b が先に更新したあと、a で外で変えていない同じファイルを更新すると、断らずに書く",
+ "title": "別のブランチのワークツリー a ・ b で、b が先に更新したあと、a で外で変えていない同じファイルを、a で読んだハッシュを --if-match に渡して更新すると、断らずに書く",
  "why": "記録は1つなので、ほかのワークツリーの書き込みを外の変更と取り違えると、並べたワークツリーで同じファイルを直すたびに断られる。",
  "traces": [
   "UC2:成功時保証",
@@ -57,6 +57,8 @@
     "args": [
      "update",
      "usecases/u1.json",
+     "--if-match",
+     "sha256:4d840c6444ef6c2cf25cec1e297e7a11eb09202d5a9ccb41df2de3be795f9fe4",
      "--patch",
      "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"b で直した目的\"}]",
      "--reason",
@@ -73,6 +75,8 @@
   "args": [
    "update",
    "usecases/u1.json",
+   "--if-match",
+   "sha256:4d840c6444ef6c2cf25cec1e297e7a11eb09202d5a9ccb41df2de3be795f9fe4",
    "--patch",
    "[{\"op\": \"replace\", \"path\": \"/goal\", \"value\": \"a で直した目的\"}]",
    "--reason",

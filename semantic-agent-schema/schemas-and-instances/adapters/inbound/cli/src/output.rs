@@ -145,7 +145,7 @@ pub fn print_validation(v: &Validation) {
         .targets
         .iter()
         .map(|t| {
-            let mut o = json!({
+            json!({
                 "path": t.path,
                 "kind": t.kind.as_str(),
                 "schema": t.schema,
@@ -153,11 +153,7 @@ pub fn print_validation(v: &Validation) {
                 "operation": t.operation,
                 "results": t.results.iter().map(rule_result).collect::<Vec<_>>(),
                 "counts": counts(&t.counts),
-            });
-            if v.stale_only {
-                o["unchanged_rules"] = json!(t.unchanged_rules);
-            }
-            o
+            })
         })
         .collect();
     let mut out = json!({
@@ -174,17 +170,13 @@ pub fn print_validation(v: &Validation) {
             "actual": u.actual,
         })).collect::<Vec<_>>(),
     });
-    if v.stale_only {
-        out["stale_only"] = json!(true);
-        out["unchanged_targets"] = json!(v.unchanged_targets);
-    }
     if let Some(h) = &v.hint {
         out["hint"] = json!(h);
     }
     println!("{out}");
 }
 
-/// デザインシステムの検証の結果を出す（検証と同じ形。種類は design-system）。
+/// デザインシステムの検証の結果を出す（検証と同じ形。種類は design-system）。記録しないので、操作の ID と打ったセッションを持たない。
 pub fn print_design_validation(v: &DesignValidation) {
     let targets: Vec<Value> = v
         .targets
@@ -195,7 +187,6 @@ pub fn print_design_validation(v: &DesignValidation) {
                 "kind": "design-system",
                 "schema": "urn:semantic-agent-schema:published-language:design-system:v1",
                 "hash": t.hash.as_str(),
-                "operation": t.operation,
                 "results": t.results.iter().map(rule_result).collect::<Vec<_>>(),
                 "counts": counts(&t.counts),
             })
@@ -204,8 +195,7 @@ pub fn print_design_validation(v: &DesignValidation) {
     let out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
         "kind": "validation",
-        "session": v.session,
-        "operations": v.targets.iter().map(|t| t.operation.clone()).collect::<Vec<_>>(),
+        "operations": [],
         "targets": targets,
         "counts": counts(&v.counts),
         "unrecorded": [],
@@ -334,17 +324,15 @@ pub fn print_deletion(d: &Deletion) {
         "session": d.session,
         "operation": d.operation,
         "result": "deleted",
-        "replayed": d.replayed,
         "target": {"kind": d.kind.as_str(), "path": d.path, "schema": d.schema},
         "diff": {
-            "source": "sas",
+            "source": "semantic-agent-schema",
             "before": {"hash": d.before.as_str()},
             "changes": changes(&d.diff),
         },
-        "stale_judgments": [],
         "violated_instances": [],
     });
-    if d.kind == TargetKind::Concrete && !d.replayed {
+    if d.kind == TargetKind::Concrete {
         out["checked"] = checked(&d.checked);
     }
     println!("{out}");
@@ -357,7 +345,7 @@ pub fn print_change(c: &ChangeResult) {
 
 fn change_json(c: &ChangeResult) -> Value {
     let mut diff = json!({
-        "source": if c.outside { "outside" } else { "sas" },
+        "source": if c.outside { "outside" } else { "semantic-agent-schema" },
         "after": {"hash": c.after.as_str()},
         "changes": c.diff.changes().iter().map(|f| {
             let mut v = json!({"pointer": f.pointer(), "change": f.change().as_str()});
@@ -388,18 +376,14 @@ fn change_json(c: &ChangeResult) -> Value {
         "session": c.session,
         "operation": c.operation,
         "result": if c.outside { "adopted" } else { c.written.as_str() },
-        "replayed": c.replayed,
         "target": {"kind": c.kind.as_str(), "path": c.path, "schema": c.schema},
         "diff": diff,
-        "stale_judgments": c.stale.iter().map(|s| json!({
-            "rule": s.rule, "pointer": s.pointer, "operation": s.operation,
-        })).collect::<Vec<_>>(),
         "violated_instances": c.violated.iter().map(|v| json!({
             "path": v.path,
             "results": v.results.iter().map(rule_result).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
     });
-    if c.kind == TargetKind::Concrete && c.written == Written::Updated && !c.replayed {
+    if c.kind == TargetKind::Concrete && c.written == Written::Updated {
         out["checked"] = checked(&c.checked);
     }
     out
@@ -528,10 +512,8 @@ pub fn print_operation_detail(d: &OperationDetail) {
                 "operation": operation,
                 "at": at,
                 "result": result,
-                "replayed": false,
                 "target": {"kind": kind_of(&schema), "path": row.target_path, "schema": schema},
                 "diff": diff,
-                "stale_judgments": [],
                 "violated_instances": [],
             });
             if let Some(i) = &row.reason {

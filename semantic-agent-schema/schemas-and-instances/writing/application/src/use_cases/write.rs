@@ -3,10 +3,9 @@
 //! - UC1 作成する ・ UC2 更新する（機械）：値か JSON Patch から書く中身を作り、形と集約の書く条件を確かめてから書き、
 //!   前後の中身から求めた差分と一緒に操作を記録する。書く手前で断ったものは記録せず、理由をその場で返す。
 //! - Semantic Agent Schema を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
-//!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録のどれかの事後と同じ中身のコミットから取る。
+//!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、--base のコミット（中身が記録のどれかの事後と同じもの）から取る。
 //! - UC3 削除する（機械）：対象を消し、消す前の状態を記録する（delete.rs）。
-//! - 対象の見分けは writing-domain の TargetKind、更新のあとに入力が変わった前の判定は validation-domain の判定の基準で決める。
-//!   文書の読み書きと形の検査は、このモジュールのポート（ports.rs）を使う。
+//! - 対象の見分けは writing-domain の TargetKind で決める。文書の読み書きと形の検査は、このモジュールのポート（ports.rs）を使う。
 
 mod delete;
 mod patch;
@@ -18,24 +17,25 @@ pub use semantic::{SemanticRequest, semantic_procedure};
 use crate::ports::{ChangeLog, CommitReader, DocumentStore, SchemaValidator};
 use serde_json::Value;
 use std::collections::BTreeSet;
-use validation_domain::services::{
-    EXAMPLE_RELATED, Judged, concrete_rules, example_related, instance_rules, reads_hash,
-};
+use validation_domain::services::{EXAMPLE_RELATED, example_related};
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
 use writing_domain::services::{Resolved, SchemaIndex, Unresolved, concrete_of, refs};
 use writing_domain::values::{
-    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, SchemaPlaces,
-    StoredChange, TargetKind, WriteRecord, unrecorded_since,
+    Caller, ChangeRow, ContentHash, Diff, FieldRow, SchemaPlaces, TargetKind, WriteRecord,
+    unrecorded_since,
 };
+
+/// Semantic Agent Schema が書いた変更の記録の source。
+const SOURCE: &str = "semantic-agent-schema";
 
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
     /// 決まった名前（usage ・ schema_not_listed ・ not_found ・ not_json ・ no_schema ・ unknown_schema ・ duplicate_schema ・ exists ・
-    /// invalid_input ・ request_reused ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
-    /// 書く手前の判定で断ったもの：invalid_value ・ conflict ・ patch_failed ・ human_field ・ published_changed、
-    /// 止めた削除：has_dependents、意味で書く手順を組めないもの：reads_cycle ・ ref_too_large）
+    /// invalid_input ・ recorded ・ not_recorded ・ nothing_to_adopt ・ store ・ validator ・ versions ・ log、
+    /// 書く手前の判定で断ったもの：invalid_value ・ conflict ・ patch_failed ・ human_field、
+    /// 止めた削除：has_dependents、意味で書く手順を組めないもの：reads_cycle）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
@@ -299,62 +299,6 @@ fn record_change(
     Ok((session.map(ToString::to_string), operation))
 }
 
-/// Abstract の語彙（入れ子に書ける x- の名前と、その値の形の対応を持つ）。
-const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocabulary:v1";
-
-/// いまの中身で、対象に当たる rule ごとの読んだ所のハッシュ（rule の id ・ 当たる所 ・ ハッシュ）。形の検査は除く。
-/// 更新のあと、前の判定のうち判定し直しが要るものを決めるのに使う（検証の --stale と同じ基準：validation-domain の reads_hash）。
-///
-/// # Errors
-/// 型が決まらない ・ 申告した Abstract をバリデーターが持たないとき。
-fn reads_now(
-    path: &str,
-    value: &Value,
-    target: &Target,
-    validator: &dyn SchemaValidator,
-) -> Result<Vec<(String, String, String)>, Refused> {
-    let declared = value
-        .get("$schema")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_string();
-    let judged: Vec<Judged> = match classify(path, &declared)? {
-        TargetKind::Concrete => {
-            let abstract_doc = validator.shipped(&declared).ok_or_else(|| {
-                refused(
-                    "validator",
-                    path,
-                    format!("{declared} をバリデーターが持たない"),
-                )
-            })?;
-            let concrete = ConcreteSchema::read(value)
-                .ok_or_else(|| refused("validator", path, "Concrete として読めない".to_string()))?;
-            let vocabulary = validator.shipped(VOCABULARY);
-            concrete_rules(&abstract_doc, vocabulary.as_ref(), &concrete)
-        }
-        TargetKind::Instance => {
-            let concrete_doc = target
-                .concrete
-                .as_ref()
-                .map(|c| c.concrete().document().clone())
-                .unwrap_or_default();
-            instance_rules(&concrete_doc, value, target.more())
-        }
-    };
-    Ok(judged
-        .into_iter()
-        .map(|(r, at, definition)| {
-            (
-                r.rule().to_string(),
-                r.pointer().to_string(),
-                reads_hash(value, &at, definition.as_ref())
-                    .as_str()
-                    .to_string(),
-            )
-        })
-        .collect())
-}
-
 /// 作成か更新か。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Written {
@@ -380,17 +324,6 @@ impl Written {
             Self::Updated => "update",
         }
     }
-}
-
-/// この変更で入力が変わった、前の検証の判定。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Stale {
-    /// rule の id
-    pub rule: String,
-    /// 判定した所
-    pub pointer: String,
-    /// 判定を記録した検証の操作の ID
-    pub operation: String,
 }
 
 /// Concrete の更新で、新しい Concrete の形に従わなくなったインスタンス。
@@ -510,14 +443,10 @@ pub struct ChangeResult {
     pub after: ContentHash,
     /// 前後の中身から求めた差分
     pub diff: Diff,
-    /// 入力が変わった前の判定
-    pub stale: Vec<Stale>,
     /// 外れたインスタンス（Concrete の更新のとき）
     pub violated: Vec<Violated>,
     /// Concrete の更新で、従うインスタンスかを見た文書（渡された範囲と記録から）
     pub checked: Vec<Checked>,
-    /// 同じ request_id の操作がすでにあり、書かずにそれを返したか
-    pub replayed: bool,
     /// Semantic Agent Schema を通らない変更を取り込んだ操作か（source = outside）
     pub outside: bool,
     /// 更新の取り込みで、欄ごとの前の値を取ったコミット。そのコミットが無ければ None（差分の欄は前の値を持たない）
@@ -535,8 +464,6 @@ pub struct CreateRequest {
     pub value: Value,
     /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
     pub schemas: SchemaPlaces,
-    /// やり直しで同じ操作を2回残さないための ID
-    pub request_id: Option<String>,
     /// 理由（なぜ作るか）。記録に残し、間に入った変更として後の書き手に返す
     pub reason: Option<String>,
 }
@@ -548,14 +475,12 @@ pub struct UpdateRequest {
     pub path: String,
     /// JSON Patch（RFC 6902）の操作の並び
     pub patch: Value,
-    /// 直す前に読んだ中身のハッシュ。無ければ、Semantic Agent Schema が最後に書いた事後のハッシュと比べる
-    pub if_match: Option<String>,
+    /// 直す前に読んだ中身のハッシュ（--if-match。必ず渡す）。いまの中身のハッシュと違えば書かない
+    pub if_match: String,
     /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
     pub schemas: SchemaPlaces,
     /// Concrete を直すときに、従うインスタンスを確かめる範囲（--range の経路）
     pub range: Option<Vec<String>>,
-    /// やり直しで同じ操作を2回残さないための ID
-    pub request_id: Option<String>,
     /// 理由（なぜ直すか）。記録に残し、間に入った変更として後の書き手に返す
     pub reason: Option<String>,
 }
@@ -646,7 +571,7 @@ fn check_write(
                         format!("書かない（{EXAMPLE_RELATED}）：{}", broken.join(" ／ ")),
                     ));
                 }
-                c.check_write(before.and_then(ConcreteSchema::read).as_ref())
+                return Ok(());
             }
             None => return Ok(()),
         },
@@ -678,101 +603,6 @@ fn field_rows(diff: &Diff) -> Vec<FieldRow> {
         .collect()
 }
 
-/// 記録にある操作の対象の種類と従う型。記録には持たないので、いまのファイルの $schema か、
-/// 記録した欄（作成と削除は根の欄をすべて持つ）の $schema から見分ける。
-fn target_of(store: &dyn DocumentStore, path: &str, fields: &[FieldRow]) -> (TargetKind, String) {
-    let from_file = store
-        .read(path)
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| {
-            v.get("$schema")
-                .and_then(Value::as_str)
-                .map(ToString::to_string)
-        });
-    let declared = from_file
-        .or_else(|| {
-            fields
-                .iter()
-                .filter(|f| f.pointer == "/$schema")
-                .find_map(|f| f.after.as_deref().or(f.before.as_deref()))
-                .and_then(|t| serde_json::from_str::<String>(t).ok())
-        })
-        .unwrap_or_default();
-    let kind = if ConcreteSchema::declares_abstract(&serde_json::json!({ "$schema": declared })) {
-        TargetKind::Concrete
-    } else {
-        TargetKind::Instance
-    };
-    (kind, declared)
-}
-
-/// 記録にある同じ依頼の操作を、結果に戻す。source は依頼の種類（sas ・ outside）。
-fn replay(
-    stored: StoredChange,
-    written: Written,
-    source: &str,
-    path: &str,
-    store: &dyn DocumentStore,
-) -> Result<ChangeResult, Refused> {
-    let row = stored.row;
-    if row.kind != written.kind() || row.source != source || row.target_path != path {
-        return Err(refused(
-            "request_reused",
-            path,
-            format!(
-                "request_id は {} の {} に使った。別の依頼には別の request_id を使う",
-                row.target_path, row.kind
-            ),
-        ));
-    }
-    let (kind, concrete) = target_of(store, path, &row.fields);
-    let parse = |s: &Option<String>| s.as_deref().and_then(|t| serde_json::from_str(t).ok());
-    let changes = row
-        .fields
-        .iter()
-        .filter_map(|f| {
-            Some(FieldChange::new(
-                &f.pointer,
-                Change::parse(&f.change)?,
-                parse(&f.before),
-                parse(&f.after),
-            ))
-            .map(|c| match (f.before_unavailable, c.after()) {
-                (true, Some(a)) => FieldChange::without_before(&f.pointer, a.clone()),
-                _ => c,
-            })
-        })
-        .collect();
-    let after = row
-        .after
-        .as_deref()
-        .and_then(ContentHash::parse)
-        .ok_or_else(|| {
-            log_refused(format!(
-                "操作 {} の事後のハッシュを読めない",
-                stored.operation
-            ))
-        })?;
-    Ok(ChangeResult {
-        session: stored.session,
-        operation: stored.operation,
-        written,
-        kind,
-        path: row.target_path,
-        schema: concrete,
-        before: row.before.as_deref().and_then(ContentHash::parse),
-        after,
-        diff: Diff::from_changes(changes),
-        stale: Vec::new(),
-        violated: Vec::new(),
-        checked: Vec::new(),
-        replayed: true,
-        outside: row.source == "outside",
-        before_commit: None,
-    })
-}
-
 fn violations_message(broken: &[(String, String)]) -> String {
     broken
         .iter()
@@ -794,11 +624,6 @@ pub fn create(
     log: &mut dyn ChangeLog,
 ) -> Result<ChangeResult, Refused> {
     let path = request.path.as_str();
-    if let Some(id) = &request.request_id
-        && let Some(stored) = log.find_request(id).map_err(log_refused)?
-    {
-        return replay(stored, Written::Created, "sas", path, store);
-    }
     let mut value = request.value.clone();
     let Some(object) = value.as_object_mut() else {
         return Err(refused(
@@ -847,9 +672,8 @@ pub fn create(
     let kind = target.kind;
     let row = ChangeRow {
         kind: Written::Created.kind().to_string(),
-        source: "sas".to_string(),
+        source: SOURCE.to_string(),
         target_path: path.to_string(),
-        request_id: request.request_id.clone(),
         before: None,
         after: None,
         reason: request.reason.clone(),
@@ -903,10 +727,8 @@ pub fn create(
         before: None,
         after,
         diff,
-        stale: Vec::new(),
         violated: Vec::new(),
         checked: Vec::new(),
-        replayed: false,
         outside: false,
         before_commit: None,
     })
@@ -927,11 +749,6 @@ pub fn update(
     log: &mut dyn ChangeLog,
 ) -> Result<ChangeResult, Refused> {
     let path = request.path.as_str();
-    if let Some(id) = &request.request_id
-        && let Some(stored) = log.find_request(id).map_err(log_refused)?
-    {
-        return replay(stored, Written::Updated, "sas", path, store);
-    }
     let text = store
         .read(path)
         .map_err(|e| refused("not_found", path, e))?;
@@ -948,33 +765,24 @@ pub fn update(
     let current = ContentHash::of(text.as_bytes());
     let row = ChangeRow {
         kind: Written::Updated.kind().to_string(),
-        source: "sas".to_string(),
+        source: SOURCE.to_string(),
         target_path: path.to_string(),
-        request_id: request.request_id.clone(),
         before: Some(current.as_str().to_string()),
         after: None,
         reason: request.reason.clone(),
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
-    // 比べるハッシュ：呼ぶ側が読んだハッシュ（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後のハッシュ。
-    // Semantic Agent Schema が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べるハッシュが無く、そのまま書く
-    let (expected, from) = match &request.if_match {
-        Some(hash) => (Some(hash.clone()), "--if-match の"),
-        None => (
-            unrecorded_since(&log.writes(path).map_err(log_refused)?, current.as_str())
-                .and_then(|w| w.row.after.clone()),
-            "このワークツリーで Semantic Agent Schema が最後に書いた事後の",
-        ),
-    };
-    if let Some(expected) = expected.filter(|e| e != current.as_str()) {
+    // 比べるハッシュは、呼ぶ側が読んだハッシュ（--if-match）
+    let expected = request.if_match.clone();
+    if expected != current.as_str() {
         let writes = log.writes(path).map_err(log_refused)?;
         let between = interleaved(&writes, &expected, current.as_str());
         let mut r = refused(
             "conflict",
             path,
             format!(
-                "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
+                "いまの中身のハッシュは {}。--if-match のハッシュ {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
                 current.as_str(),
                 if between.unrecorded {
                     "。Semantic Agent Schema を通らない変更がある"
@@ -1080,7 +888,6 @@ pub fn update(
         },
     )?;
 
-    let stale = stale_judgments(log, path, &after, &target, validator)?;
     let (violated, checked) = match followers {
         Some(f) => f.check(validator)?,
         None => (Vec::new(), Vec::new()),
@@ -1095,40 +902,11 @@ pub fn update(
         before: Some(current),
         after: after_hash,
         diff,
-        stale,
         violated,
         checked,
-        replayed: false,
         outside: false,
         before_commit: None,
     })
-}
-
-/// 前の判定のうち、読んだ所がいまの中身と変わったもの（--stale と同じ基準。rule の related_fields と rule の文を含む）。
-/// 形の判定は書く前に照らし直したので除く。
-fn stale_judgments(
-    log: &dyn ChangeLog,
-    path: &str,
-    value: &Value,
-    target: &Target,
-    validator: &dyn SchemaValidator,
-) -> Result<Vec<Stale>, Refused> {
-    let now = reads_now(path, value, target, validator)?;
-    Ok(log
-        .last_judgments(path)
-        .map_err(log_refused)?
-        .into_iter()
-        .filter(|j| j.rule.rule != "json-schema")
-        .filter(|j| {
-            !now.iter()
-                .any(|(r, p, h)| *r == j.rule.rule && *p == j.rule.pointer && *h == j.rule.reads)
-        })
-        .map(|j| Stale {
-            rule: j.rule.rule,
-            pointer: j.rule.pointer,
-            operation: j.operation,
-        })
-        .collect())
 }
 
 /// Concrete を直すときに見る、渡された範囲と記録の文書と、新しい中身で照らす文書（Concrete と $ref の先）。
@@ -1316,8 +1094,6 @@ pub struct AdoptRequest {
     pub range: Option<Vec<String>>,
     /// 理由（なぜ外で直したか）。更新の取り込みでは要る
     pub reason: Option<String>,
-    /// やり直しで同じ操作を2回残さないための ID
-    pub request_id: Option<String>,
     /// 更新の取り込みで、取り込む前の中身があるコミット（--base）。無ければ前の値の無い差分にする
     pub base: Option<String>,
 }
@@ -1385,11 +1161,6 @@ pub fn adopt(
         AdoptAs::Create => Written::Created,
         AdoptAs::Update => Written::Updated,
     };
-    if let Some(id) = &request.request_id
-        && let Some(stored) = log.find_request(id).map_err(log_refused)?
-    {
-        return replay(stored, written, "outside", path, store);
-    }
     let text = store
         .read(path)
         .map_err(|e| refused("not_found", path, e))?;
@@ -1483,7 +1254,6 @@ pub fn adopt(
         kind: written.kind().to_string(),
         source: "outside".to_string(),
         target_path: path.to_string(),
-        request_id: request.request_id.clone(),
         before: None,
         after: None,
         reason: request.reason.clone(),
@@ -1583,7 +1353,6 @@ pub fn adopt(
             ..row
         },
     )?;
-    let stale = stale_judgments(log, path, &current, &target, validator)?;
     let (violated, checked) = match followers {
         Some(f) => f.check(validator)?,
         None => (Vec::new(), Vec::new()),
@@ -1598,10 +1367,8 @@ pub fn adopt(
         before: expected.as_deref().and_then(ContentHash::parse),
         after: hash,
         diff,
-        stale,
         violated,
         checked,
-        replayed: false,
         outside: true,
         before_commit: found.map(|(rev, _, _)| rev),
     })

@@ -2,7 +2,6 @@
 //! 文書を読む ・ 形を照らすポートは、検証のモジュールにも同じ名前のものがあるが、変わる理由がモジュールごとなので、ここにも宣言する。
 
 use serde_json::Value;
-use validation_domain::values::ValidateRow;
 
 /// 渡された経路の文書を読む。経路は Git の根からの相対で、区切りは /。全部を並べる手段は持たない。
 pub trait DocumentStore {
@@ -76,7 +75,7 @@ pub trait TemplateRenderer {
     fn inspect(&self, source: &str) -> Result<Vec<TemplateNode>, String>;
 }
 
-/// JS が値の入口（sas-data）から読んだ所の、1つの段。
+/// JS が値の入口（semantic-agent-schema-data）から読んだ所の、1つの段。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathSeg {
     /// 名前で読む（data.goal の goal）
@@ -97,7 +96,7 @@ pub enum DataRead {
 /// JS を読んで分かったこと。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScriptFacts {
-    /// 値の入口（sas-data）から読んでいるか
+    /// 値の入口（semantic-agent-schema-data）から読んでいるか
     pub reads_entry: bool,
     /// 値を読んだ所
     pub reads: Vec<DataRead>,
@@ -141,18 +140,4 @@ pub trait PageWriter {
         pages: &[(String, String)],
         inputs: &[String],
     ) -> Result<(), PageRefusal>;
-}
-
-/// 操作の記録のうち、デザインシステムの検証が使うもの（検証を足すだけ）。ID と時刻は置き場所が作る。
-/// 打ったセッションの行（sessions）は入口が先に足すので、ここでは扱わない。
-pub trait ValidationLog {
-    /// 検証を1件足し（rule ごとの結果も一緒に）、その ID を返す。session は打ったセッションの ID（人なら None）。
-    ///
-    /// # Errors
-    /// 置き場所が拒んだとき（決まりに反する行）。
-    fn append_validate(
-        &mut self,
-        session: Option<&str>,
-        row: &ValidateRow,
-    ) -> Result<String, String>;
 }

@@ -1,10 +1,8 @@
 //! 集約 Concrete：使う側が Abstract に従って書く schema。
 //!
 //! 自明として最初から domain に置いた（探索の記録 step-01 に根拠）。版は閉じた一覧から申告する。
-//! 書く条件（ステップ2）：x-published: true の欄を同じ版のまま変えない。
 //! Concrete に書ける x- の閉じた一覧は、Abstract の語彙（JSON Schema の propertyNames）が見る。
 
-use crate::values::WriteViolation;
 use serde_json::Value;
 
 /// Semantic Agent Schema が入れて出す Abstract の版（閉じた一覧）。これに無い $schema は取りに行かずに断る。
@@ -63,45 +61,6 @@ impl ConcreteSchema {
     }
 }
 
-impl ConcreteSchema {
-    /// この中身を書いてよいか（ステップ2）。before は直す前の中身（作成なら None）。
-    /// 直す前に x-published: true だった欄（入れ子 ・ items ・ $defs の中も）は、$id（版）を変えずには変えない ・ 消さない。
-    ///
-    /// # Errors
-    /// 公開した欄を同じ版のまま変えたとき（最初に見つけた1つ）。
-    pub fn check_write(&self, before: Option<&Self>) -> Result<(), WriteViolation> {
-        let Some(b) = before else {
-            return Ok(());
-        };
-        if b.id() != self.id() {
-            return Ok(());
-        }
-        for (keyword, at) in b.used_keywords() {
-            if keyword != "x-published" {
-                continue;
-            }
-            let field = at.strip_suffix("/x-published").unwrap_or_default();
-            let was = b.document.pointer(field);
-            if was
-                .and_then(|f| f.get("x-published"))
-                .and_then(Value::as_bool)
-                == Some(true)
-                && self.document.pointer(field) != was
-            {
-                return Err(WriteViolation::new(
-                    "published_changed",
-                    field,
-                    &format!(
-                        "{field} は x-published: true の欄で、同じ版のあいだ変えない。変えるときは $id の版を上げる（いまの版：{}）",
-                        self.id().unwrap_or("（無し）")
-                    ),
-                ));
-            }
-        }
-        Ok(())
-    }
-}
-
 fn walk_keys(v: &Value, at: &str, out: &mut Vec<(String, String)>) {
     match v {
         Value::Object(m) => {
@@ -143,47 +102,5 @@ mod tests {
         assert!(ConcreteSchema::read(&ok).is_some());
         assert!(ConcreteSchema::read(&other).is_none());
         assert!(ConcreteSchema::declares_abstract(&other));
-    }
-
-    #[test]
-    fn published_field_needs_new_version() {
-        let abs = "urn:semantic-agent-schema:published-language:abstract:v1";
-        let before = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
-            "properties": {"s": {"x-published": true, "type": "string"}, "t": {"type": "string"}}}))
-        .unwrap();
-        let other = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
-            "properties": {"s": {"x-published": true, "type": "string"}, "t": {"type": "number"}}}))
-        .unwrap();
-        let changed = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
-            "properties": {"s": {"x-published": true, "type": "array"}}}))
-        .unwrap();
-        let next = ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v2",
-            "properties": {"s": {"x-published": true, "type": "array"}}}))
-        .unwrap();
-        assert!(other.check_write(Some(&before)).is_ok());
-        assert_eq!(
-            changed.check_write(Some(&before)).err().map(|v| v.code()),
-            Some("published_changed")
-        );
-        assert!(next.check_write(Some(&before)).is_ok());
-        assert!(changed.check_write(None).is_ok());
-    }
-
-    #[test]
-    fn nested_published_field_needs_new_version_too() {
-        let abs = "urn:semantic-agent-schema:published-language:abstract:v1";
-        let doc = |t: &str| {
-            ConcreteSchema::read(&json!({"$schema": abs, "$id": "urn:x:v1",
-                "properties": {"steps": {"type": "array", "items": {"properties": {
-                    "kind": {"x-published": true, "type": t}}}}},
-                "$defs": {"d": {"x-published": true, "type": t}}}))
-            .unwrap()
-        };
-        let before = doc("string");
-        let changed = doc("number");
-        let v = changed.check_write(Some(&before)).err().unwrap();
-        assert_eq!(v.code(), "published_changed");
-        assert_eq!(v.pointer(), "/properties/steps/items/properties/kind");
-        assert!(doc("string").check_write(Some(&before)).is_ok());
     }
 }

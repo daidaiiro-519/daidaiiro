@@ -30,6 +30,7 @@ impl WorkingTree {
     pub fn schema_files(&self, places: &[String]) -> Result<Vec<String>, String> {
         let mut out: Vec<String> = Vec::new();
         for place in places {
+            within(place)?;
             let at = self.root.join(place);
             if at.is_file() {
                 if !out.contains(place) {
@@ -72,6 +73,7 @@ impl WorkingTree {
     /// # Errors
     /// 無い ・ 読めないとき。
     pub fn read(&self, path: &str) -> Result<String, String> {
+        within(path)?;
         std::fs::read_to_string(self.root.join(path)).map_err(|e| format!("{path} を読めない：{e}"))
     }
 
@@ -142,6 +144,16 @@ impl search_application::ports::DocumentStore for WorkingTree {
 }
 
 /// 書く ・ 消す経路が、リポジトリの根からの相対で、書かないフォルダの中でないか。
+/// 読む経路が、Git の根の中を指すか（絶対の経路と .. を含む経路は、根の外を指しうるので読まない）。
+fn within(path: &str) -> Result<(), String> {
+    if path.starts_with('/') || path.contains('\\') || path.split('/').any(|p| p == "..") {
+        return Err(format!(
+            "{path} は Git の根の外を指しうるので読まない（経路は Git の根からの相対で、.. を含めない）"
+        ));
+    }
+    Ok(())
+}
+
 fn inside(path: &str, verb: &str) -> Result<(), String> {
     let parts: Vec<&str> = path.split('/').collect();
     if path.is_empty()

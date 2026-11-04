@@ -9,7 +9,7 @@ mod target_kind;
 mod write_violation;
 
 pub use caller::{Caller, Via};
-pub use change_record::{ChangeRow, FieldRow, StoredChange, WriteRecord, unrecorded_since};
+pub use change_record::{ChangeRow, FieldRow, WriteRecord, unrecorded_since};
 pub use content_hash::ContentHash;
 pub use diff::{Change, Diff, FieldChange};
 pub use schema_places::SchemaPlaces;

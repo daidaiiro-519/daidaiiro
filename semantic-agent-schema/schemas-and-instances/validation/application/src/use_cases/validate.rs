@@ -61,8 +61,6 @@ pub struct TargetResult {
     pub counts: Counts,
     /// 記録した操作の ID
     pub operation: String,
-    /// 入力が変わった rule だけを検証したとき、読んだ所が変わっていないので判定し直さなかった rule の id
-    pub unchanged_rules: Vec<String>,
 }
 
 /// 記録の最後の事後と中身が違う対象（Semantic Agent Schema を通らない変更があった）。
@@ -87,10 +85,6 @@ pub struct Validation {
     pub targets: Vec<TargetResult>,
     /// 全体の件数
     pub counts: Counts,
-    /// 入力が変わった rule だけを検証したか
-    pub stale_only: bool,
-    /// 入力が変わった rule だけを検証したとき、変わった rule が無く記録しなかった対象
-    pub unchanged_targets: Vec<String>,
     /// Semantic Agent Schema を通らない変更があった対象（いまの中身を検証した）
     pub unrecorded: Vec<Unrecorded>,
     /// 次にすることの案内（通らない変更を取り込むコマンド。受け取った --schemas と誰が打ったかを引き継ぐ）
@@ -241,36 +235,11 @@ pub fn validate(
     run_validate(scope, Pick::All, store, validator, caller, log, None)
 }
 
-/// UC4 の範囲「入力が変わった rule だけ」：rule ごとに、前の判定が読んだ所のハッシュといまのハッシュを比べ、
-/// 違う rule（前の判定が無い rule を含む）だけを判定して記録する。変わった rule が1つも無い対象は記録しない。
-///
-/// # Errors
-/// validate と同じ。
-pub fn validate_stale(
-    scope: &Scope,
-    store: &dyn DocumentStore,
-    validator: &dyn SchemaValidator,
-    caller: &Caller,
-    log: &mut dyn ValidationLog,
-) -> Result<Validation, Refused> {
-    run_validate(
-        scope,
-        Pick::ChangedRules,
-        store,
-        validator,
-        caller,
-        log,
-        None,
-    )
-}
-
 /// どの判定を、前の判定と比べて選ぶか。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pick {
     /// すべてを判定する（前の判定と比べない）
     All,
-    /// --stale（機械の検証）：rule ごとに、読んだ所のハッシュの集まりが前の判定と違う rule だけを判定して記録する
-    ChangedRules,
     /// 意味の判定の既定：前の判定のあとに記録された変更と重なる所 ・ 読む所 ・ 文が変わった rule ・ 前の判定に無い所だけを
     /// 手順に入れ、ほかの所は前の判定を引き継いで、検証の結果全体を記録する
     ChangedPlaces,
@@ -284,8 +253,6 @@ pub struct Selection {
     /// --all-rules：前の判定にかかわらず、すべての rule を入れる。無ければ、前の判定から読んだ所が変わった rule と、
     /// 前に判定できなかった rule だけ（前の判定が無い対象はすべて）
     pub all_rules: bool,
-    /// --stale を渡したか（渡すコマンドにも付ける）。選び方は all_rules で決まる
-    pub stale: bool,
 }
 
 impl Selection {
@@ -314,7 +281,7 @@ pub fn semantic_procedures(
     caller: &Caller,
     log: &dyn ValidationLog,
 ) -> Result<Vec<Value>, Refused> {
-    let (current, _) = current_for(scope, selection.pick(), store, validator, log)?;
+    let current = current_for(scope, selection.pick(), store, validator, log)?;
     Ok(current
         .iter()
         .map(|c| {
@@ -388,9 +355,6 @@ fn procedure_command(path: &str, selection: Selection, carry: &[String]) -> Stri
 /// 選び方を、続けて打つコマンドの引数にする。
 fn selection_args(selection: Selection) -> Vec<&'static str> {
     let mut args = Vec::new();
-    if selection.stale {
-        args.push("--stale");
-    }
     if selection.all_rules {
         args.push("--all-rules");
     }
@@ -652,8 +616,6 @@ pub struct Current {
     pub definitions: Vec<Option<Value>>,
     /// results と同じ並びで、前の判定から変わっていない所か（意味の判定の既定で、手順に入れず前の判定を引き継ぐ）
     pub kept: Vec<bool>,
-    /// 前の判定から何も変わっていない対象か（記録しない）
-    pub same: bool,
     /// 意味の判定で、前の判定のときの文書（記録した変更を戻して組む）。前の判定を使えないときは None
     pub before_doc: Option<Value>,
     /// 意味の判定で、前の判定のあとに記録された変更の所（重ならず、所の順）
@@ -730,7 +692,6 @@ pub fn judge_current(
         current.push(Current {
             hash: ContentHash::of(doc.text.as_bytes()),
             kept: vec![false; results.len()],
-            same: false,
             before_doc: None,
             changed: Vec::new(),
             since: None,
@@ -746,33 +707,6 @@ pub fn judge_current(
     }
     Ok(current)
 }
-
-/// 前の判定のあと、読んだ所が変わった rule の id（--stale）。前の判定が無い rule も入る。
-/// いまの判定と前の判定で、rule ごとに「読んだ所のハッシュ」の集まりを比べる。
-fn changed_rules(now: &[(RuleResult, ContentHash)], before: &[Judgment]) -> BTreeSet<String> {
-    let mut current: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
-    for (r, reads) in now {
-        current
-            .entry(r.rule())
-            .or_default()
-            .insert(reads.as_str().to_string());
-    }
-    let mut previous: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
-    for j in before {
-        previous
-            .entry(j.rule.rule.as_str())
-            .or_default()
-            .insert(j.rule.reads.clone());
-    }
-    current
-        .into_iter()
-        .filter(|(rule, reads)| previous.get(rule) != Some(reads))
-        .map(|(rule, _)| rule.to_string())
-        .collect()
-}
-
-/// 経路 → 入力が変わった rule だけを検証したときに、判定し直さなかった rule の id。
-type Unchanged = BTreeMap<String, Vec<String>>;
 
 /// 記録した判定の区分の名前を、区分に戻す。知らない名前は unverified（verified に数えない）。
 fn verdict_of(name: &str) -> Verdict {
@@ -920,100 +854,50 @@ fn select_changed(c: &mut Current, before: &[Judgment]) {
             &row.reason,
         );
     }
-    // 機械の検査は毎回いまの中身で判定する。何も変わらず、消えた所も無ければ、記録しない
-    let places_now: BTreeSet<(&str, &str)> = c
-        .results
-        .iter()
-        .map(|(r, _)| (r.rule(), r.pointer()))
-        .collect();
-    let places_before: BTreeSet<(&str, &str)> = previous.keys().copied().collect();
-    let ai_kept = c
-        .results
-        .iter()
-        .zip(&c.kept)
-        .all(|((r, _), k)| r.by() != By::Ai || *k);
-    c.same = c.ops.is_empty() && ai_kept && places_now == places_before;
 }
 
-/// いまの中身で判定し、前の判定と比べて選ぶ。経路 → 判定し直さなかった rule の id も返す。
-/// - ChangedRules（--stale）：読んだ所が前の判定と同じ rule を除く
+/// いまの中身で判定し、前の判定と比べて選ぶ。
 /// - ChangedPlaces（意味の判定の既定）：何も除かず、変わっていない所に印を付けて、意味の rule の所は前の判定を引き継ぐ
+/// - AllRules（--all-rules）：すべての所を判定する。レビューのまとまりには前の判定のときの値と、そのあとの変更を入れる
 fn current_for(
     scope: &Scope,
     pick: Pick,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     log: &dyn ValidationLog,
-) -> Result<(Vec<Current>, Unchanged), Refused> {
+) -> Result<Vec<Current>, Refused> {
     let mut current = judge_current(scope, store, validator)?;
-    let mut unchanged = Unchanged::new();
-    for c in &mut current {
-        match pick {
-            Pick::All => {}
-            Pick::ChangedRules => {
-                let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
-                let changed = changed_rules(&c.results, &before);
-                let rules = unchanged.entry(c.doc.path.clone()).or_default();
-                for (r, _) in &c.results {
-                    if !changed.contains(r.rule()) && !rules.iter().any(|u| u == r.rule()) {
-                        rules.push(r.rule().to_string());
-                    }
-                }
-                let keep: Vec<bool> = c
-                    .results
-                    .iter()
-                    .map(|(r, _)| changed.contains(r.rule()))
-                    .collect();
-                let mut k = keep.iter();
-                c.results.retain(|_| *k.next().unwrap_or(&false));
-                let mut k = keep.iter();
-                c.definitions.retain(|_| *k.next().unwrap_or(&false));
-                c.kept = vec![false; c.results.len()];
-                c.same = c.results.is_empty();
-            }
-            Pick::ChangedPlaces | Pick::AllRules => {
-                let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
-                let writes = log.writes(&c.doc.path).map_err(log_refused)?;
-                // インスタンスでは、従う Concrete のファイルに前の判定のあと記録された変更から、文が変わった rule を引く
-                let concrete = c.concrete.as_ref().map(|k| Doc {
-                    path: k.path().to_string(),
-                    text: String::new(),
-                    value: k.concrete().document().clone(),
-                });
-                let concrete_writes = match &concrete {
-                    Some(d) => log.writes(&d.path).map_err(log_refused)?,
-                    None => Vec::new(),
-                };
-                review_of(
-                    c,
-                    &before,
-                    &writes,
-                    concrete.as_ref().map(|d| (d, concrete_writes.as_slice())),
-                );
-                if pick == Pick::AllRules {
-                    if c.review == ReviewScope::Changed {
-                        c.review = ReviewScope::AllRules;
-                    }
-                    continue;
-                }
-                select_changed(c, &before);
-                // どの所も前の判定を引き継いだ rule
-                let rules = unchanged.entry(c.doc.path.clone()).or_default();
-                for (r, _) in &c.results {
-                    let all_kept = c
-                        .results
-                        .iter()
-                        .zip(&c.kept)
-                        .filter(|((o, _), _)| o.rule() == r.rule())
-                        .all(|(_, k)| *k);
-                    if all_kept && !rules.iter().any(|u| u == r.rule()) {
-                        rules.push(r.rule().to_string());
-                    }
-                }
-            }
-        }
+    if pick == Pick::All {
+        return Ok(current);
     }
-    Ok((current, unchanged))
+    for c in &mut current {
+        let before = log.last_judgments(&c.doc.path).map_err(log_refused)?;
+        let writes = log.writes(&c.doc.path).map_err(log_refused)?;
+        // インスタンスでは、従う Concrete のファイルに前の判定のあと記録された変更から、文が変わった rule を引く
+        let concrete = c.concrete.as_ref().map(|k| Doc {
+            path: k.path().to_string(),
+            text: String::new(),
+            value: k.concrete().document().clone(),
+        });
+        let concrete_writes = match &concrete {
+            Some(d) => log.writes(&d.path).map_err(log_refused)?,
+            None => Vec::new(),
+        };
+        review_of(
+            c,
+            &before,
+            &writes,
+            concrete.as_ref().map(|d| (d, concrete_writes.as_slice())),
+        );
+        if pick == Pick::AllRules {
+            if c.review == ReviewScope::Changed {
+                c.review = ReviewScope::AllRules;
+            }
+            continue;
+        }
+        select_changed(c, &before);
+    }
+    Ok(current)
 }
 
 fn run_validate(
@@ -1025,8 +909,7 @@ fn run_validate(
     log: &mut dyn ValidationLog,
     answer: Option<(&str, Selection)>,
 ) -> Result<Validation, Refused> {
-    let stale_only = matches!(pick, Pick::ChangedRules | Pick::ChangedPlaces);
-    let (mut current, mut unchanged) = current_for(scope, pick, store, validator, log)?;
+    let mut current = current_for(scope, pick, store, validator, log)?;
     if let Some((answer, selection)) = answer {
         apply_answer(
             &mut current,
@@ -1036,17 +919,14 @@ fn run_validate(
             selection,
         )?;
     }
-    // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();
     let mut unrecorded = Vec::new();
-    let mut unchanged_targets = Vec::new();
     for Current {
         doc: d,
         kind,
         declared,
         hash,
         results,
-        same,
         ..
     } in current
     {
@@ -1063,51 +943,35 @@ fn run_validate(
                 actual: hash.as_str().to_string(),
             });
         }
-        let unchanged_rules = unchanged.remove(&d.path).unwrap_or_default();
-        if same {
-            unchanged_targets.push(d.path);
-            continue;
-        }
         let rules: Vec<RuleResult> = results.iter().map(|(r, _)| r.clone()).collect();
         let reads: Vec<String> = results
             .iter()
             .map(|(_, reads)| reads.as_str().to_string())
             .collect();
         let counts = Counts::of(&rules);
-        judged.push((
-            d.path,
-            kind,
-            declared,
-            hash,
-            rules,
-            reads,
-            counts,
-            unchanged_rules,
-        ));
+        judged.push((d.path, kind, declared, hash, rules, reads, counts));
     }
 
     // 対象ごとに検証を記録する（対象を変えないのでハッシュは1つ）
     let rows: Vec<ValidateRow> = judged
         .iter()
-        .map(
-            |(path, _, declared, hash, results, reads, _, _)| ValidateRow {
-                target_path: path.clone(),
-                hash: hash.as_str().to_string(),
-                schema: Some(declared.clone()),
-                results: results
-                    .iter()
-                    .zip(reads)
-                    .map(|(r, reads)| RuleRow {
-                        rule: r.rule().to_string(),
-                        pointer: r.pointer().to_string(),
-                        by: r.by().as_str().to_string(),
-                        result: r.verdict().as_str().to_string(),
-                        reason: r.reason().to_string(),
-                        reads: reads.clone(),
-                    })
-                    .collect(),
-            },
-        )
+        .map(|(path, _, declared, hash, results, reads, _)| ValidateRow {
+            target_path: path.clone(),
+            hash: hash.as_str().to_string(),
+            schema: Some(declared.clone()),
+            results: results
+                .iter()
+                .zip(reads)
+                .map(|(r, reads)| RuleRow {
+                    rule: r.rule().to_string(),
+                    pointer: r.pointer().to_string(),
+                    by: r.by().as_str().to_string(),
+                    result: r.verdict().as_str().to_string(),
+                    reason: r.reason().to_string(),
+                    reads: reads.clone(),
+                })
+                .collect(),
+        })
         .collect();
     // 打ったセッションの行は、入口が先に足している
     let session = caller.session_id();
@@ -1120,7 +984,7 @@ fn run_validate(
         .into_iter()
         .zip(operations)
         .map(
-            |((path, kind, schema, hash, results, _, counts, unchanged_rules), operation)| {
+            |((path, kind, schema, hash, results, _, counts), operation)| {
                 total.merge(&counts);
                 TargetResult {
                     path,
@@ -1130,7 +994,6 @@ fn run_validate(
                     results,
                     counts,
                     operation,
-                    unchanged_rules,
                 }
             },
         )
@@ -1160,8 +1023,6 @@ fn run_validate(
         session: session.map(ToString::to_string),
         targets,
         counts: total,
-        stale_only,
-        unchanged_targets,
         unrecorded,
         hint,
     })

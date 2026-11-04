@@ -11,9 +11,8 @@ use writing_domain::values::{Caller, ChangeRow, FieldRow, Via};
 fn change(path: &str) -> ChangeRow {
     ChangeRow {
         kind: "create".into(),
-        source: "sas".into(),
+        source: "semantic-agent-schema".into(),
         target_path: path.into(),
-        request_id: None,
         before: None,
         after: Some("sha256:b".into()),
         reason: Some("足す".into()),

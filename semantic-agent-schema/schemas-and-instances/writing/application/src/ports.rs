@@ -2,8 +2,7 @@
 //! 文書の読み書きと形の検査は、検証のモジュールにも同じ名前のポートがあるが、変わる理由がモジュールごとなので、ここにも宣言する。
 
 use serde_json::Value;
-use validation_domain::values::Judgment;
-use writing_domain::values::{ChangeRow, StoredChange, WriteRecord};
+use writing_domain::values::{ChangeRow, WriteRecord};
 
 /// 渡された経路の文書。経路は Git の根からの相対で、区切りは /。全部を並べる手段は持たない。
 pub trait DocumentStore {
@@ -74,14 +73,8 @@ pub trait ChangeLog {
     /// 書いた作成 ・ 更新 ・ 削除を1件足し（変わった欄も一緒に）、その ID を返す。session は打ったセッションの ID（人なら None）。
     ///
     /// # Errors
-    /// 置き場所が拒んだとき（同じ request_id ・ 決まりに反する行）。
+    /// 置き場所が拒んだとき（決まりに反する行）。
     fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String>;
-
-    /// request_id で足した作成 ・ 更新 ・ 削除。無ければ None。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String>;
 
     /// 経路の対象を書いた操作（作成か更新）を、記録した順に。
     /// その経路を消した操作があれば、最後に消したより後のものだけ（消すと記録のつながりが切れる）。
@@ -89,14 +82,6 @@ pub trait ChangeLog {
     /// # Errors
     /// 置き場所を読めないとき。
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String>;
-
-    /// 経路の対象の、rule ごとの最後の判定（その rule を最後に判定した検証の行）。検証が無ければ空。
-    /// 更新のあと、前の判定のうち読んだ所が変わったものを決めるのに使う。
-    /// その経路を消した操作があれば、最後に消したより後の検証だけ（消して作り直した文書に前の判定を当てない）。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String>;
 
     /// 記録の最後の変更で、$id が schema の Concrete に従うと書いた文書の経路（消した文書は除く）。
     /// Concrete を直す ・ 消すとき、渡された範囲と合わせて、従うインスタンスを確かめるのに使う。

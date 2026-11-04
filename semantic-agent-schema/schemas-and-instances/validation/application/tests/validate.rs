@@ -5,8 +5,8 @@
 mod support;
 
 use serde_json::json;
-use support::{HUMAN, Lenient, Log, UC, concrete, decided, files};
-use validation_application::use_cases::validate::{Scope, validate, validate_stale};
+use support::{HUMAN, Lenient, Log, UC, concrete, files};
+use validation_application::use_cases::validate::{Scope, validate};
 use validation_domain::values::Verdict;
 use writing_domain::values::TargetKind;
 
@@ -124,52 +124,4 @@ fn a_concrete_outside_the_place_is_refused() {
     let r = validate(&none, &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "unknown_schema");
     assert!(log.0.is_empty());
-}
-
-#[test]
-fn stale_validation_rejudges_only_rules_whose_reads_changed() {
-    let store = files(&[
-        ("c.json", decided()),
-        (
-            "u1.json",
-            json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"}),
-        ),
-    ]);
-    let mut log = Log::default();
-    validate(
-        &scope(&["c.json", "u1.json"]),
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    )
-    .unwrap();
-    store
-        .write(
-            "u1.json",
-            &json!({"$schema": UC, "id": "U1", "goal": "a", "status": "approved"}).to_string(),
-        )
-        .unwrap();
-    let v = validate_stale(
-        &scope(&["c.json", "u1.json"]),
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    )
-    .unwrap();
-    assert_eq!(v.unchanged_targets, ["c.json"]);
-    let t = &v.targets[0];
-    let rules: Vec<&str> = t.results.iter().map(|r| r.rule()).collect();
-    assert_eq!(rules, ["json-schema"], "goal を読む rule は読んだ所が同じ");
-    assert_eq!(t.unchanged_rules, ["goal-is-outcome"]);
-    let again = validate_stale(
-        &scope(&["c.json", "u1.json"]),
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    )
-    .unwrap();
-    assert!(again.targets.is_empty());
 }

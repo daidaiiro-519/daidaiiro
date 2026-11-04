@@ -56,10 +56,7 @@ impl validation_application::ports::ValidationLog for support::Log {
 }
 
 /// 既定の選び方（前の判定から変わった rule だけ。前の判定が無ければすべて）。
-const CHANGED: Selection = Selection {
-    all_rules: false,
-    stale: false,
-};
+const CHANGED: Selection = Selection { all_rules: false };
 
 fn store() -> support::Files {
     files(&[

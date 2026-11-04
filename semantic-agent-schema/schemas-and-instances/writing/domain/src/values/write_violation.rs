@@ -9,7 +9,7 @@ pub struct WriteViolation {
 }
 
 impl WriteViolation {
-    /// 外れた条件の名前（human_field ・ published_changed）、当たる所、理由。
+    /// 外れた条件の名前（human_field）、当たる所、理由。
     #[must_use]
     pub fn new(code: &'static str, pointer: &str, message: &str) -> Self {
         Self {

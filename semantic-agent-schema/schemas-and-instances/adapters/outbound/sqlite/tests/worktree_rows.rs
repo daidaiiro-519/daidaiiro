@@ -11,9 +11,8 @@ use writing_domain::values::ChangeRow;
 fn update(before: &str, after: &str) -> ChangeRow {
     ChangeRow {
         kind: "update".into(),
-        source: "sas".into(),
+        source: "semantic-agent-schema".into(),
         target_path: "u1.json".into(),
-        request_id: None,
         before: Some(before.into()),
         after: Some(after.into()),
         reason: None,
@@ -23,7 +22,10 @@ fn update(before: &str, after: &str) -> ChangeRow {
 }
 
 fn place(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("sas-worktree-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "semantic-agent-schema-worktree-{name}-{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir

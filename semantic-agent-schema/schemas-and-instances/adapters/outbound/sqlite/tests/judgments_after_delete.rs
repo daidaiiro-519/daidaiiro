@@ -25,9 +25,8 @@ fn validate_row() -> ValidateRow {
 fn delete_row() -> ChangeRow {
     ChangeRow {
         kind: "delete".into(),
-        source: "sas".into(),
+        source: "semantic-agent-schema".into(),
         target_path: "u1.json".into(),
-        request_id: None,
         before: Some("sha256:a".into()),
         after: None,
         reason: Some("消す".into()),

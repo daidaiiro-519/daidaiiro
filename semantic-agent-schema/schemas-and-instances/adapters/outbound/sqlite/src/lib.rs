@@ -1,8 +1,7 @@
-//! 操作の記録のポートを SQLite で実装する。置き場所は入口が決める（既定は <git-common-dir>/semantic-agent-schema/records.sqlite で、コミットしない）。
+//! 操作の記録のポートを SQLite で実装する。置き場所は入口が決める（<git-common-dir>/semantic-agent-schema/records.sqlite で、コミットしない）。
 //! 書いた変更には、打ったワークツリー（作業ツリーの根）を残し、対象を書いた操作を引くときに同じワークツリーのものかを返す。
 //!
-//! 記録のポートは使うモジュールがそれぞれ宣言する（書く ChangeLog ・ 検証 ValidationLog ・ 描画 ValidationLog ・
-//! 記録 SessionLog ・ OperationReader）。手続きはこの型のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。
+//! 記録のポートは使うモジュールがそれぞれ宣言する（書く ChangeLog ・ 検証 ValidationLog ・ 記録 SessionLog ・ OperationReader）。手続きはこの型のメソッドに1つずつ持ち、各ポートはそれを呼ぶ。
 //!
 //! 操作の ID（o-0001。changes と validations で同じ採番）と時刻（UTC の RFC 3339）は、行を足すときにここで作る。
 //! application と domain は時刻に触らない。セッションの ID はツールのもので、ツールから取れないとき（semantic-agent-schema init）だけここで作る。
@@ -15,13 +14,13 @@ use std::hash::{BuildHasher, Hasher};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use validation_domain::values::{Judgment, RuleRow, ValidateRow};
-use writing_domain::values::{Caller, ChangeRow, FieldRow, StoredChange, WriteRecord};
+use writing_domain::values::{Caller, ChangeRow, FieldRow, WriteRecord};
 
 /// 表の作り方。表の形を変えるときは、この1つを書き換えて SHAPE を1つ上げる（CODING.md）。
 const RECORDS: &str = include_str!("../sql/records.sql");
 
 /// 表の形の版（user_version）。
-pub const SHAPE: i64 = 8;
+pub const SHAPE: i64 = 9;
 
 /// SQLite の操作の記録。
 #[derive(Debug)]
@@ -97,7 +96,7 @@ impl SqliteLog {
         let mut row = self
             .conn
             .query_row(
-                "SELECT kind, source, target_path, request_id, before_hash, after_hash, reason, schema \
+                "SELECT kind, source, target_path, before_hash, after_hash, reason, schema \
                  FROM changes WHERE id = ?1",
                 [operation],
                 |r| {
@@ -105,11 +104,10 @@ impl SqliteLog {
                         kind: r.get(0)?,
                         source: r.get(1)?,
                         target_path: r.get(2)?,
-                        request_id: r.get(3)?,
-                        before: r.get(4)?,
-                        after: r.get(5)?,
-                        reason: r.get(6)?,
-                        schema: r.get(7)?,
+                        before: r.get(3)?,
+                        after: r.get(4)?,
+                        reason: r.get(5)?,
+                        schema: r.get(6)?,
                         fields: Vec::new(),
                     })
                 },
@@ -146,20 +144,6 @@ impl SqliteLog {
             )
             .map_err(|e| err(&e))?;
         Ok(format!("o-{:04}", n + 1))
-    }
-
-    /// 操作の ID と打ったセッションから、記録にある変更を組む。
-    fn stored(&self, found: Vec<(String, Option<String>)>) -> Result<Vec<StoredChange>, String> {
-        found
-            .into_iter()
-            .map(|(operation, session)| {
-                Ok(StoredChange {
-                    row: self.change_row(&operation)?,
-                    operation,
-                    session,
-                })
-            })
-            .collect()
     }
 }
 
@@ -279,7 +263,7 @@ impl SqliteLog {
     /// 書いた作成 ・ 更新 ・ 削除を1件足し（変わった欄も一緒に）、その ID を返す。
     ///
     /// # Errors
-    /// 置き場所が拒んだとき（同じ request_id ・ 決まりに反する行）。
+    /// 置き場所が拒んだとき（決まりに反する行）。
     pub fn append_change(
         &mut self,
         session: Option<&str>,
@@ -288,10 +272,10 @@ impl SqliteLog {
         let id = self.next_operation()?;
         let tx = self.conn.transaction().map_err(|e| err(&e))?;
         tx.execute(
-            "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, reason, request_id, source, \
-             session_id, schema, worktree) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            "INSERT INTO changes (id, at, kind, target_path, before_hash, after_hash, reason, source, \
+             session_id, schema, worktree) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
-                id, now(), row.kind, row.target_path, row.before, row.after, row.reason, row.request_id,
+                id, now(), row.kind, row.target_path, row.before, row.after, row.reason,
                 row.source, session, row.schema, self.worktree
             ],
         )
@@ -306,23 +290,6 @@ impl SqliteLog {
         }
         tx.commit().map_err(|e| err(&e))?;
         Ok(id)
-    }
-
-    /// request_id で足した作成 ・ 更新 ・ 削除。無ければ None。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    pub fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
-        let found: Option<(String, Option<String>)> = self
-            .conn
-            .query_row(
-                "SELECT id, session_id FROM changes WHERE request_id = ?1",
-                [request_id],
-                |r| Ok((r.get(0)?, r.get(1)?)),
-            )
-            .optional()
-            .map_err(|e| err(&e))?;
-        Ok(self.stored(found.into_iter().collect())?.pop())
     }
 
     /// 経路の対象を書いた操作（作成か更新）を、記録した順に。最後に消したより後のものだけ。
@@ -617,14 +584,8 @@ impl writing_application::ports::ChangeLog for SqliteLog {
     fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
         Self::append_change(self, session, row)
     }
-    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
-        Self::find_request(self, request_id)
-    }
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         Self::writes(self, target_path)
-    }
-    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        Self::last_judgments(self, target_path)
     }
     fn instances_of(&self, schema: &str) -> Result<Vec<String>, String> {
         Self::instances_of(self, schema)
@@ -644,16 +605,6 @@ impl validation_application::ports::ValidationLog for SqliteLog {
     }
     fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
         Self::last_judgments(self, target_path)
-    }
-}
-
-impl rendering_application::ports::ValidationLog for SqliteLog {
-    fn append_validate(
-        &mut self,
-        session: Option<&str>,
-        row: &ValidateRow,
-    ) -> Result<String, String> {
-        Self::append_validate(self, session, row)
     }
 }
 

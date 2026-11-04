@@ -10,21 +10,34 @@
  ],
  "given": {
   "files": {
-   "a/schemas/review.schema.json": "@fixtures/review.schema.json",
-   "b/schemas/review.schema.json": "@fixtures/review.schema.json"
+   "schemas/review.schema.json": "@fixtures/review.schema.json"
   },
   "steps": [
    {
     "git": [
-     "init",
-     "-q",
-     "a"
+     "add",
+     "schemas"
     ]
    },
    {
     "git": [
-     "init",
+     "-c",
+     "user.name=t",
+     "-c",
+     "user.email=t@example.com",
+     "commit",
      "-q",
+     "-m",
+     "1"
+    ]
+   },
+   {
+    "git": [
+     "worktree",
+     "add",
+     "-q",
+     "b",
+     "-b",
      "b"
     ]
    },
@@ -39,10 +52,8 @@
      "--schemas",
      "schemas"
     ],
-    "cwd": "a",
     "env": {
-     "CLAUDE_CODE_SESSION_ID": "c-a",
-     "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": "../log.db"
+     "CLAUDE_CODE_SESSION_ID": "c-a"
     }
    },
    {
@@ -58,23 +69,17 @@
     ],
     "cwd": "b",
     "env": {
-     "CLAUDE_CODE_SESSION_ID": "c-b",
-     "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": "../log.db"
+     "CLAUDE_CODE_SESSION_ID": "c-b"
     }
    }
-  ],
-  "repo": false
+  ]
  },
  "when": {
   "args": [
    "log",
    "--folder",
    "."
-  ],
-  "cwd": "a",
-  "env": {
-   "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": "../log.db"
-  }
+  ]
  },
  "then": [
   {
@@ -110,12 +115,8 @@
    "args": [
     "log",
     "--folder",
-    "../a/../b"
-   ],
-   "cwd": "a",
-   "env": {
-    "SEMANTIC_AGENT_SCHEMA_DATABASE_FILE": "../log.db"
-   }
+    "b/../b"
+   ]
   }
  ]
 }

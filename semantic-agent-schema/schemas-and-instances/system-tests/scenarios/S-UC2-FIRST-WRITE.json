@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC2-FIRST-WRITE",
  "name": "記録の無いファイルを初めて直す",
- "title": "Semantic Agent Schema が一度も書いていない対象は、--if-match を省いても比べるハッシュが無いので直す",
+ "title": "Semantic Agent Schema が一度も書いていない対象も、--if-match に読んだ時のハッシュを渡せば直す",
  "why": "取り込んだばかりのファイルを直せないと、最初の1回だけハッシュを読む手順が要る。",
  "traces": [
   "UC2:成功時保証"
@@ -17,6 +17,8 @@
   "args": [
    "update",
    "usecases/u1.json",
+   "--if-match",
+   "sha256:4d840c6444ef6c2cf25cec1e297e7a11eb09202d5a9ccb41df2de3be795f9fe4",
    "--patch",
    "[{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"検証の結果を受け取り、直す所が分かる\"}]",
    "--schemas",

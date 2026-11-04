@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-SEMANTIC-PLACE-REMOVED",
  "name": "欄が消えたときの判定",
- "title": "判定済みの対象から要素を消すと、validate --semantic は判定する所が0件の手順を返す。空の判定を --answer で渡すと、残った所の前の判定を引き継いで検証の結果全体を記録し、消えた所（/steps/1/action）は引き継がない。そのあと何も変えずに渡すと記録しない",
+ "title": "判定済みの対象から要素を消すと、validate --semantic は判定する所が0件の手順を返す。空の判定を --answer で渡すと、残った所の前の判定を引き継いで検証の結果全体を記録し、消えた所（/steps/1/action）は引き継がない。渡した答えは、そのたびに記録する",
  "why": "消えた所の判定を引き継ぐと、無い欄が verified に見える。残った所の判定を落とすと、判定し直しを求められる。",
  "traces": [
   "UC4:変形:意味の判定"
@@ -29,6 +29,8 @@
     "args": [
      "update",
      "items/st1.json",
+     "--if-match",
+     "sha256:1ad4a6251c4aad520559a7e66bff800e1c4baf0b87ff044200af0c73e09dd1a7",
      "--patch",
      "[{\"op\": \"remove\", \"path\": \"/steps/1\"}]",
      "--schemas",
@@ -108,8 +110,8 @@
   },
   {
    "of": "after[2]",
-   "pointer": "/unchanged_targets/0",
-   "equals": "items/st1.json"
+   "pointer": "/operations",
+   "count": 1
   }
  ],
  "after": [

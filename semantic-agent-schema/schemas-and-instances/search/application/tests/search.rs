@@ -7,10 +7,10 @@
 mod support;
 
 use search_application::use_cases::search::{
-    RANGE_LIMIT, Range, search_procedure, search_where, search_with_answer,
+    Range, search_procedure, search_where, search_with_answer,
 };
 use serde_json::{Value, json};
-use support::{HUMAN, Lenient, UC, files};
+use support::{Lenient, UC, files};
 use writing_domain::values::ContentHash;
 
 /// 代役を、検索のモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
@@ -157,30 +157,19 @@ fn a_duplicate_id_in_the_place_is_refused_with_every_path() {
 #[test]
 fn the_procedure_has_one_step_per_document_and_the_answer_command() {
     let s = store();
-    let p = search_procedure(&concrete_range(), "運用担当が出てくるのは？", &s, &HUMAN).unwrap();
+    let p = search_procedure(&concrete_range(), "運用担当が出てくるのは？", &s).unwrap();
     assert_eq!(p["operation_kind"], json!("search"));
     assert_eq!(p["steps"].as_array().unwrap().len(), 2);
     assert_eq!(p["steps"][1]["path"], json!("u1.json"));
     assert_eq!(p["steps"][1]["hash"], json!(hash(&s, "u1.json")));
-    assert_eq!(p["steps"][1]["current"]["level"], json!("user"));
+    assert!(p["steps"][1].get("current").is_none(), "中身は貼らない");
     assert_eq!(p["answer"]["format"], json!("search"));
     assert_eq!(
         p["command"],
         json!(
-            "semantic-agent-schema search u0.json u1.json --schemas c.json --answer <答えの JSON のファイル | -> --human"
+            "semantic-agent-schema search u0.json u1.json --schemas c.json --answer <答えの JSON のファイル | ->"
         )
     );
-}
-
-#[test]
-fn a_range_over_the_limit_is_refused_without_cutting() {
-    let big = "あ".repeat(RANGE_LIMIT / 3 + 1);
-    let s = files(&[
-        ("c.json", concrete()),
-        ("u0.json", json!({"$schema": UC, "level": big})),
-    ]);
-    let r = search_procedure(&range(&["u0.json"]), "問い", &s, &HUMAN).unwrap_err();
-    assert_eq!(r.code, "range_too_large");
 }
 
 fn answer(sources: &Value) -> String {
@@ -196,7 +185,6 @@ fn sources_in_the_range_are_returned_with_their_current_values() {
         &answer(&json!([{"path": "u1.json", "pointer": "/actors/1", "hash": h}])),
         &s,
         &Lenient,
-        &HUMAN,
     )
     .unwrap();
     assert_eq!(found.answer.as_deref(), Some("u1 に出てくる"));
@@ -208,7 +196,7 @@ fn sources_outside_changed_or_missing_are_refused() {
     let s = store();
     let h = hash(&s, "u1.json");
     let code = |sources: Value| {
-        search_with_answer(&concrete_range(), &answer(&sources), &s, &Lenient, &HUMAN)
+        search_with_answer(&concrete_range(), &answer(&sources), &s, &Lenient)
             .map(|_| ())
             .map_err(|r| r.code)
     };

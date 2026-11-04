@@ -8,13 +8,11 @@ mod support;
 
 use serde_json::{Value, json};
 use support::{HUMAN, Lenient, Log, UC, decided, files, tool};
-use validation_domain::services::{instance_rules, reads_hash};
-use validation_domain::values::{Judgment, RuleRow, ValidateRow};
 use writing_application::ports::CommitReader;
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, UpdateRequest, adopt, create, interleaved, update,
 };
-use writing_domain::values::{ChangeRow, ContentHash, StoredChange, WriteRecord};
+use writing_domain::values::{ChangeRow, ContentHash, WriteRecord};
 
 /// 代役を、書くモジュールのポートに当てる（ポートはモジュールごとに宣言する）。
 impl writing_application::ports::DocumentStore for support::Files {
@@ -55,27 +53,20 @@ impl writing_application::ports::ChangeLog for support::Log {
     fn append_change(&mut self, session: Option<&str>, row: &ChangeRow) -> Result<String, String> {
         Self::append_change(self, session, row)
     }
-    fn find_request(&self, request_id: &str) -> Result<Option<StoredChange>, String> {
-        Self::find_request(self, request_id)
-    }
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String> {
         Self::writes(self, target_path)
-    }
-    fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        Self::last_judgments(self, target_path)
     }
     fn instances_of(&self, schema: &str) -> Result<Vec<String>, String> {
         Self::instances_of(self, schema)
     }
 }
 
-fn create_request(value: Value, request_id: Option<&str>) -> CreateRequest {
+fn create_request(value: Value) -> CreateRequest {
     CreateRequest {
         path: "u1.json".into(),
         concrete: UC.into(),
         value,
         schemas: support::places(&["c.json"]),
-        request_id: request_id.map(Into::into),
         reason: None,
     }
 }
@@ -85,7 +76,7 @@ fn create_writes_records_and_returns_the_diff() {
     let store = files(&[("c.json", decided())]);
     let mut log = Log::default();
     let c = create(
-        &create_request(json!({"id": "U1", "status": "draft"}), None),
+        &create_request(json!({"id": "U1", "status": "draft"})),
         &store,
         &Lenient,
         &tool(),
@@ -105,7 +96,7 @@ fn create_refused_by_a_write_rule_writes_and_records_nothing() {
     let store = files(&[("c.json", decided())]);
     let mut log = Log::default();
     let r = create(
-        &create_request(json!({"id": "U1", "status": "approved"}), None),
+        &create_request(json!({"id": "U1", "status": "approved"})),
         &store,
         &Lenient,
         &tool(),
@@ -115,29 +106,6 @@ fn create_refused_by_a_write_rule_writes_and_records_nothing() {
     assert_eq!(r.code, "human_field");
     assert!(store.read("u1.json").is_err());
     assert!(log.1.is_empty(), "断った操作は記録しない");
-}
-
-#[test]
-fn same_request_is_one_operation() {
-    let store = files(&[("c.json", decided())]);
-    let mut log = Log::default();
-    let req = create_request(json!({"id": "U1"}), Some("r-1"));
-    let first = create(&req, &store, &Lenient, &HUMAN, &mut log).unwrap();
-    let again = create(&req, &store, &Lenient, &HUMAN, &mut log).unwrap();
-    assert!(again.replayed);
-    assert_eq!((again.operation, again.diff), (first.operation, first.diff));
-    assert_eq!(log.1.len(), 1);
-    let other = UpdateRequest {
-        path: "u1.json".into(),
-        patch: json!([]),
-        if_match: Some(first.after.as_str().into()),
-        schemas: support::places(&["c.json"]),
-        range: None,
-        request_id: Some("r-1".into()),
-        reason: None,
-    };
-    let r = update(&other, &store, &Lenient, &HUMAN, &mut log).unwrap_err();
-    assert_eq!(r.code, "request_reused");
 }
 
 #[test]
@@ -151,10 +119,9 @@ fn update_checks_the_hash_before_writing() {
     let req = |if_match: &str| UpdateRequest {
         path: "u1.json".into(),
         patch: json!([{"op": "replace", "path": "/goal", "value": "b"}]),
-        if_match: Some(if_match.into()),
+        if_match: if_match.into(),
         schemas: support::places(&["c.json"]),
         range: None,
-        request_id: None,
         reason: None,
     };
     let r = update(&req("sha256:x"), &store, &Lenient, &HUMAN, &mut log).unwrap_err();
@@ -168,25 +135,30 @@ fn update_checks_the_hash_before_writing() {
 }
 
 #[test]
-fn update_without_if_match_compares_with_the_last_write() {
+fn an_old_hash_returns_the_interleaved_operations() {
     let store = files(&[
         ("c.json", decided()),
         ("u1.json", json!({"$schema": UC, "id": "U1", "goal": "a"})),
     ]);
     let mut log = Log::default();
-    let req = |goal: &str| UpdateRequest {
+    let req = |goal: &str, if_match: &str| UpdateRequest {
         path: "u1.json".into(),
         patch: json!([{"op": "replace", "path": "/goal", "value": goal}]),
-        if_match: None,
+        if_match: if_match.into(),
         schemas: support::places(&["c.json"]),
         range: None,
-        request_id: None,
         reason: Some("目標を直す".into()),
     };
-    // Semantic Agent Schema が一度も書いていないので、比べるハッシュが無く、書く
-    let first = update(&req("b"), &store, &Lenient, &HUMAN, &mut log).unwrap();
-    // 最後に書いたハッシュといまの中身が同じなので、書く
-    update(&req("c"), &store, &Lenient, &HUMAN, &mut log).unwrap();
+    let h0 = ContentHash::of(store.read("u1.json").unwrap().as_bytes());
+    let first = update(&req("b", h0.as_str()), &store, &Lenient, &HUMAN, &mut log).unwrap();
+    let second = update(
+        &req("c", first.after.as_str()),
+        &store,
+        &Lenient,
+        &HUMAN,
+        &mut log,
+    )
+    .unwrap();
     // Semantic Agent Schema を通らずに直される
     store
         .write(
@@ -195,7 +167,14 @@ fn update_without_if_match_compares_with_the_last_write() {
         )
         .unwrap();
     let edited = store.read("u1.json").unwrap();
-    let r = update(&req("d"), &store, &Lenient, &HUMAN, &mut log).unwrap_err();
+    let r = update(
+        &req("d", second.after.as_str()),
+        &store,
+        &Lenient,
+        &HUMAN,
+        &mut log,
+    )
+    .unwrap_err();
     assert_eq!(r.code, "conflict");
     assert_eq!(store.read("u1.json").unwrap(), edited);
     let i = r.interleaved.unwrap();
@@ -203,78 +182,12 @@ fn update_without_if_match_compares_with_the_last_write() {
     assert!(i.operations.is_empty());
     assert_eq!(i.last_recorded.map(|w| w.operation).as_deref(), Some("o-2"));
     // 古いハッシュを --if-match で渡すと、そのあとの操作が理由と一緒に返る
-    let r = update(
-        &UpdateRequest {
-            if_match: Some(first.before.unwrap().as_str().into()),
-            ..req("d")
-        },
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    )
-    .unwrap_err();
+    let r = update(&req("d", h0.as_str()), &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     let i = r.interleaved.unwrap();
     let ids: Vec<&str> = i.operations.iter().map(|w| w.operation.as_str()).collect();
     assert_eq!(ids, ["o-1", "o-2"]);
     assert_eq!(i.operations[0].row.reason.as_deref(), Some("目標を直す"));
     assert!(i.unrecorded);
-}
-
-#[test]
-fn update_reports_the_previous_judgments_it_made_stale() {
-    let store = files(&[
-        ("c.json", decided()),
-        (
-            "u1.json",
-            json!({"$schema": UC, "id": "U1", "goal": "a", "status": "draft"}),
-        ),
-    ]);
-    let mut log = Log::default();
-    // 前の検証の判定：検証のモジュールが記録するのと同じ基準（validation-domain）で、いまの中身の rule ごとの読んだ所を記録する
-    let text = store.read("u1.json").unwrap();
-    let before: Value = serde_json::from_str(&text).unwrap();
-    log.0.push(ValidateRow {
-        target_path: "u1.json".into(),
-        hash: ContentHash::of(text.as_bytes()).as_str().into(),
-        schema: Some(UC.into()),
-        results: instance_rules(&decided(), &before, &[(UC.to_string(), decided())])
-            .into_iter()
-            .map(|(r, at, definition)| RuleRow {
-                rule: r.rule().into(),
-                pointer: r.pointer().into(),
-                by: r.by().as_str().into(),
-                result: r.verdict().as_str().into(),
-                reason: r.reason().into(),
-                reads: reads_hash(&before, &at, definition.as_ref())
-                    .as_str()
-                    .into(),
-            })
-            .collect(),
-    });
-    let fp = ContentHash::of(text.as_bytes());
-    let c = update(
-        &UpdateRequest {
-            path: "u1.json".into(),
-            patch: json!([{"op": "replace", "path": "/status", "value": "approved"}, {"op": "replace", "path": "/goal", "value": "b"}]),
-            if_match: Some(fp.as_str().into()),
-            schemas: support::places(&["c.json"]),
-            range: None,
-            request_id: None,
-            reason: None,
-        },
-        &store,
-        &Lenient,
-        &HUMAN,
-        &mut log,
-    )
-    .unwrap();
-    let stale: Vec<(&str, &str, &str)> = c
-        .stale
-        .iter()
-        .map(|s| (s.rule.as_str(), s.pointer.as_str(), s.operation.as_str()))
-        .collect();
-    assert_eq!(stale, [("goal-is-outcome", "/goal", "o-1")]);
 }
 
 /// コミット済みの版の代役：コミットの名前と中身の並び。
@@ -297,7 +210,6 @@ fn adopt_request(as_kind: AdoptAs) -> AdoptRequest {
         reason: Some("エディターで直した".into()),
         schemas: support::places(&["c.json"]),
         range: None,
-        request_id: None,
         base: None,
     }
 }
@@ -468,9 +380,8 @@ fn written(n: usize, before: &str, after: &str) -> WriteRecord {
         same_worktree: true,
         row: ChangeRow {
             kind: "update".into(),
-            source: "sas".into(),
+            source: "semantic-agent-schema".into(),
             target_path: "a.json".into(),
-            request_id: None,
             before: Some(before.into()),
             after: Some(after.into()),
             reason: None,

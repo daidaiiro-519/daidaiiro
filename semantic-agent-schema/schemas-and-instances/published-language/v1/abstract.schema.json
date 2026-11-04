@@ -2,7 +2,7 @@
   "$schema": "urn:semantic-agent-schema:published-language:dialect:v1",
   "$id": "urn:semantic-agent-schema:published-language:abstract:v1",
   "title": "Semantic Agent Schema の Abstract v1",
-  "description": "使う側が書く Concrete（JSON Schema）が従う、Semantic Agent Schema の Abstract の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりと、x- の値の形（$defs。その x- の読み方と rule を x-prompt に持つ）を持つ。Concrete は x- を足さない。Concrete に書ける x- は x-prompt ・ x-decided-by ・ x-published ・ x-view の4つだけで、意味の決まりを広げるときは、欄の x-prompt の rule に書く。JSON Schema の構文で書けることは JSON Schema で書く。JSON Schema で書けない Concrete の決まりは3つで、Semantic Agent Schema が検証のたびに組み込みで確かめる：根の properties の $schema の const は $id と同じ（instance-schema-name。Semantic Agent Schema はインスタンスの $schema で従う Concrete を引く）・ rule の id は Concrete のどこでも重ならない（unique-id。判定の記録は名前で rule を指す）・ rule の例の related のキーは、その rule の related_fields にある所だけ（example-related。作成 ・ 更新でも書く前に断る）。",
+  "description": "使う側が書く Concrete（JSON Schema）が従う、Semantic Agent Schema の Abstract の版 v1。入れ子のどこでも効く x- の形は語彙のメタスキーマ（vocabulary）が持ち、方言（dialect）を通して掛かる。ここは Concrete の根にだけ掛かる決まりと、x- の値の形（$defs。その x- の読み方と rule を x-prompt に持つ）を持つ。Concrete は x- を足さない。Concrete に書ける x- は x-prompt ・ x-decided-by ・ x-view の3つだけで、意味の決まりを広げるときは、欄の x-prompt の rule に書く。JSON Schema の構文で書けることは JSON Schema で書く。JSON Schema で書けない Concrete の決まりは3つで、Semantic Agent Schema が検証のたびに組み込みで確かめる：根の properties の $schema の const は $id と同じ（instance-schema-name。Semantic Agent Schema はインスタンスの $schema で従う Concrete を引く）・ rule の id は Concrete のどこでも重ならない（unique-id。判定の記録は名前で rule を指す）・ rule の例の related のキーは、その rule の related_fields にある所だけ（example-related。作成 ・ 更新でも書く前に断る）。",
   "allOf": [
     {
       "$ref": "urn:semantic-agent-schema:published-language:dialect:v1"
@@ -453,7 +453,7 @@
     },
     "field": {
       "type": "object",
-      "description": "書く単位1つ（値を入れる欄）。入れ子のどの深さでも、値を入れる欄は title ・ description ・ x-prompt を持つ。欄に書ける x- は x-prompt ・ x-decided-by ・ x-published の3つ",
+      "description": "書く単位1つ（値を入れる欄）。入れ子のどの深さでも、値を入れる欄は title ・ description ・ x-prompt を持つ。欄に書ける x- は x-prompt ・ x-decided-by の2つ",
       "required": [
         "title",
         "description",
@@ -530,20 +530,10 @@
       "$anchor": "decided",
       "const": "human",
       "title": "決定権",
-      "description": "この欄の値は人が決める、という宣言である。セッションの分かる呼び出し（AI）からは、作成時の default のほかに変えられない（Semantic Agent Schema が書く前に断る）。",
+      "description": "この欄の値は人が決める、という宣言である。人と明示していない呼び出し（AI のセッション）からは、作成時の default のほかに変えられない（Semantic Agent Schema が書く前に断る）。",
       "x-prompt": {
         "meaning": "x-decided-by。\"human\" のとき、この欄の値を決めるのは人である（決定権）",
         "when": "AI がインスタンスを書く前と、変更を取り込む前に読む。",
-        "rules": []
-      }
-    },
-    "published": {
-      "$anchor": "published",
-      "type": "boolean",
-      "title": "版のあいだ変えない欄",
-      "description": "true のとき、この欄を同じ版（$id）のあいだ変えない宣言である。インスタンスやほかの仕組みが頼っていて、変わると困る欄だけを true にする。true の欄は、版を上げないと変えられない。",
-      "x-prompt": {
-        "meaning": "x-published。true の欄を変えるときは、$id の版を上げた新しい Concrete にする。",
         "rules": []
       }
     },

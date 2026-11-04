@@ -140,7 +140,6 @@
     "kind",
     "schema",
     "hash",
-    "operation",
     "results",
     "counts"
    ],
@@ -168,7 +167,7 @@
     "operation": {
      "type": "string",
      "pattern": "^o-[0-9]{4,}$",
-     "description": "この対象の検証を記録した操作の ID"
+     "description": "この対象の検証を記録した操作の ID。デザインシステムの検証は記録しないので持たない"
     },
     "results": {
      "type": "array",
@@ -179,13 +178,6 @@
     },
     "counts": {
      "$ref": "#/$defs/counts"
-    },
-    "unchanged_rules": {
-     "type": "array",
-     "items": {
-      "type": "string"
-     },
-     "description": "入力が変わった rule だけを検証したとき、読んだ所が前の判定と同じで判定し直さなかった rule の id"
     }
    }
   },
@@ -193,7 +185,6 @@
    "type": "object",
    "required": [
     "kind",
-    "session",
     "operations",
     "targets",
     "counts",
@@ -221,17 +212,6 @@
     },
     "counts": {
      "$ref": "#/$defs/counts"
-    },
-    "stale_only": {
-     "const": true,
-     "description": "入力が変わった rule だけを検証した（--stale）。results には判定し直した rule だけが入る"
-    },
-    "unchanged_targets": {
-     "type": "array",
-     "items": {
-      "type": "string"
-     },
-     "description": "入力が変わった rule が1つも無く、検証の操作を記録しなかった対象の経路"
     },
     "unrecorded": {
      "type": "array",
@@ -408,10 +388,10 @@
    "properties": {
     "source": {
      "enum": [
-      "sas",
+      "semantic-agent-schema",
       "outside"
      ],
-     "description": "sas は semantic-agent-schema のコマンドが書いた変更、outside は Semantic Agent Schema を通らない変更の取り込み（--adopt）"
+     "description": "semantic-agent-schema は semantic-agent-schema のコマンドが書いた変更、outside は Semantic Agent Schema を通らない変更の取り込み（--adopt）"
     },
     "before": {
      "$ref": "#/$defs/side"
@@ -438,10 +418,8 @@
     "session",
     "operation",
     "result",
-    "replayed",
     "target",
     "diff",
-    "stale_judgments",
     "violated_instances"
    ],
    "properties": {
@@ -464,10 +442,6 @@
       "deleted"
      ],
      "description": "adopted は Semantic Agent Schema を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる。deleted は消した（diff は消す前の状態で after を持たない）"
-    },
-    "replayed": {
-     "type": "boolean",
-     "description": "同じ request_id の操作がすでにあり、書かずにそれを返したか。true のときの stale_judgments と violated_instances は空（記録にあるのは差分だけ）。semantic-agent-schema log --operation で記録から読んだときは false で、stale_judgments と violated_instances は空（記録にあるのは差分だけ）"
     },
     "target": {
      "type": "object",
@@ -496,33 +470,6 @@
     },
     "diff": {
      "$ref": "#/$defs/diff"
-    },
-    "stale_judgments": {
-     "type": "array",
-     "description": "前の検証の判定のうち、読む所がこの変更で変わったもの。もう効かない",
-     "items": {
-      "type": "object",
-      "required": [
-       "rule",
-       "pointer",
-       "operation"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "rule": {
-        "type": "string",
-        "minLength": 1
-       },
-       "pointer": {
-        "type": "string"
-       },
-       "operation": {
-        "type": "string",
-        "pattern": "^o-[0-9]{4,}$",
-        "description": "その判定を記録した検証の操作の ID"
-       }
-      }
-     }
     },
     "violated_instances": {
      "type": "array",
@@ -649,7 +596,6 @@
       "not_json",
       "exists",
       "invalid_input",
-      "request_reused",
       "store",
       "validator",
       "log",
@@ -657,7 +603,6 @@
       "conflict",
       "patch_failed",
       "human_field",
-      "published_changed",
       "recorded",
       "not_recorded",
       "nothing_to_adopt",
@@ -668,9 +613,7 @@
       "out",
       "invalid_design_system",
       "reads_cycle",
-      "ref_too_large",
       "invalid_answer",
-      "range_too_large",
       "not_in_repository"
      ],
      "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いとき、--schemas の置き場所や --base のコミットの経路が無いときも返す。usage は使い方の誤りで、ほかに、誰が打ったかが決まらない（--session ・ ツールの環境変数 ・ --human のどれも無い）・ ツールの環境変数があるところで --human を渡した ・ Concrete を直す ・ 消すときに --range が無いときに返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。not_in_repository は Git のリポジトリの外で打ったことで、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
@@ -837,7 +780,7 @@
     },
     "source": {
      "enum": [
-      "sas",
+      "semantic-agent-schema",
       "outside"
      ],
      "description": "outside は Semantic Agent Schema を通らない変更を取り込んだ操作"

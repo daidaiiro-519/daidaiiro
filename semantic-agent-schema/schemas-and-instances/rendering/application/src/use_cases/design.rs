@@ -12,19 +12,19 @@
 //! - template-loads：部分テンプレートの先が templates の種類にある
 //! - template-names：Concrete の根の x-view がそのテンプレートを選ぶとき、テンプレート（部分を含む）が置く名前が、
 //!   value（その Concrete の形）・ json ・ tokens（このデザインシステムのトークン）・ css のどれかにたどれる
-//! - script-entry：値の入口は <script type="application/json" id="sas-data">{{{json}}}</script> だけで、
+//! - script-entry：値の入口は <script type="application/json" id="semantic-agent-schema-data">{{{json}}}</script> だけで、
 //!   JS の中に Mustache のタグを書かない。JS として読める
 //! - script-reads：Concrete の根の x-view がそのテンプレートを選ぶとき、テンプレート（部分を含む）の JS が入口から読む
 //!   欄が、その Concrete の形にたどれる（読む所が実行するまで決まらないものは unverified）
 
 use crate::ports::{DataRead, PathSeg, ScriptReader, TemplateNode, TemplateRenderer};
-use crate::ports::{DocumentStore, SchemaValidator, ValidationLog};
-use crate::use_cases::render::{Refused, index_of, log_refused, read_concrete, refused};
+use crate::ports::{DocumentStore, SchemaValidator};
+use crate::use_cases::render::{Refused, index_of, read_concrete, refused};
 use crate::use_cases::tokens::{Token, alias_errors, flatten, type_errors};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use validation_domain::values::{By, Counts, RuleResult, RuleRow, ValidateRow, Verdict};
-use writing_domain::values::{Caller, ContentHash};
+use validation_domain::values::{By, Counts, RuleResult, Verdict};
+use writing_domain::values::ContentHash;
 
 /// デザインシステムの受け取りの型。
 pub const DESIGN_SYSTEM: &str = "urn:semantic-agent-schema:published-language:design-system:v1";
@@ -273,11 +273,11 @@ fn partial_names(nodes: &[TemplateNode], out: &mut BTreeSet<String>) {
 }
 
 /// JS が値を読む入口の要素の id（template-language.json の x-data-entry）。
-pub const DATA_ENTRY: &str = "sas-data";
+pub const DATA_ENTRY: &str = "semantic-agent-schema-data";
 
 /// テンプレートの中の <script> 1つ。
 struct ScriptBlock {
-    /// 値の入口（type="application/json" かつ id="sas-data"）
+    /// 値の入口（type="application/json" かつ id="semantic-agent-schema-data"）
     data_entry: bool,
     /// JS でない（type が JSON などの、ほかのデータ）
     json_like: bool,
@@ -540,7 +540,7 @@ pub fn check_design_system(
             }
             if s.body.contains("{{") {
                 problems.push(
-                    "JS の中に Mustache のタグがある。値は sas-data から JSON.parse で読む"
+                    "JS の中に Mustache のタグがある。値は semantic-agent-schema-data から JSON.parse で読む"
                         .to_string(),
                 );
                 continue;
@@ -554,7 +554,7 @@ pub fn check_design_system(
             results.push(verified(
                 "script-entry",
                 &at,
-                "値は sas-data から読み、JS にタグが無く、JS として読める",
+                "値は semantic-agent-schema-data から読み、JS にタグが無く、JS として読める",
             ));
         } else {
             results.push(violated("script-entry", &at, &problems.join(" ／ ")));
@@ -686,7 +686,7 @@ pub fn check_design_system(
     })
 }
 
-/// デザインシステム1つの検証の結果。
+/// デザインシステム1つの検証の結果（記録しない）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignTarget {
     /// 経路
@@ -697,23 +697,18 @@ pub struct DesignTarget {
     pub results: Vec<RuleResult>,
     /// 判定の5つの区分ごとの件数
     pub counts: Counts,
-    /// 記録した検証の ID
-    pub operation: String,
 }
 
-/// デザインシステムの検証の結果。
+/// デザインシステムの検証の結果。描画と同じく、注入された依存を契約に照らして返すだけで、記録しない。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignValidation {
-    /// 打ったセッションの ID（人なら None）
-    pub session: Option<String>,
     /// デザインシステムごとの結果（渡した順）
     pub targets: Vec<DesignTarget>,
     /// 全体の件数
     pub counts: Counts,
 }
 
-/// UC4 の対象としてのデザインシステムの1つ目：受け取りの型とテンプレートの書き方の契約に照らす。記録しない。
-/// 照らした結果は record_design_systems で記録する（入口は、その間に打ったセッションを sessions に足す）。
+/// UC4 の対象としてのデザインシステム：受け取りの型とテンプレートの書き方の契約に、置き場所の Concrete で照らして返す。記録しない。
 ///
 /// # Errors
 /// デザインシステムが無い ・ JSON でない ・ 契約が無いとき。
@@ -724,7 +719,7 @@ pub fn check_design_systems(
     validator: &dyn SchemaValidator,
     renderer: &dyn TemplateRenderer,
     scripts: &dyn ScriptReader,
-) -> Result<Vec<DesignSystem>, Refused> {
+) -> Result<DesignValidation, Refused> {
     // 置き場所の Concrete（Abstract の版を申告する文書）を、$id の順に1つずつ読む
     let index = index_of(store, schemas)?;
     let mut concretes: Vec<(String, Value)> = Vec::new();
@@ -735,71 +730,21 @@ pub fn check_design_systems(
             Err(r) => return Err(r),
         }
     }
-    let mut checked = Vec::new();
-    for p in paths {
-        checked.push(check_design_system(
-            p, store, validator, renderer, scripts, &concretes,
-        )?);
-    }
-    Ok(checked)
-}
-
-/// UC4 の対象としてのデザインシステムの2つ目：照らした結果を、デザインシステムごとに検証の操作として記録する。
-/// 打ったセッションの行は、入口が先に足している。
-///
-/// # Errors
-/// 記録できないとき。
-pub fn record_design_systems(
-    checked: Vec<DesignSystem>,
-    caller: &Caller,
-    log: &mut dyn ValidationLog,
-) -> Result<DesignValidation, Refused> {
-    let rows: Vec<ValidateRow> = checked
-        .iter()
-        .map(|d| ValidateRow {
-            target_path: d.path.clone(),
-            hash: ContentHash::of(d.text.as_bytes()).as_str().to_string(),
-            schema: Some(DESIGN_SYSTEM.to_string()),
-            results: d
-                .results
-                .iter()
-                .map(|(r, at)| RuleRow {
-                    rule: r.rule().to_string(),
-                    pointer: r.pointer().to_string(),
-                    by: r.by().as_str().to_string(),
-                    result: r.verdict().as_str().to_string(),
-                    reason: r.reason().to_string(),
-                    reads: ContentHash::of_read(at, d.value.pointer(at))
-                        .as_str()
-                        .to_string(),
-                })
-                .collect(),
-        })
-        .collect();
-    let session = caller.session_id();
-    let mut operations = Vec::new();
-    for row in &rows {
-        operations.push(log.append_validate(session, row).map_err(log_refused)?);
-    }
     let mut total = Counts::default();
-    let targets = checked
-        .into_iter()
-        .zip(operations)
-        .map(|(d, operation)| {
-            let results: Vec<RuleResult> = d.results.into_iter().map(|(r, _)| r).collect();
-            let counts = Counts::of(&results);
-            total.merge(&counts);
-            DesignTarget {
-                path: d.path,
-                hash: ContentHash::of(d.text.as_bytes()),
-                results,
-                counts,
-                operation,
-            }
-        })
-        .collect();
+    let mut targets = Vec::new();
+    for p in paths {
+        let d = check_design_system(p, store, validator, renderer, scripts, &concretes)?;
+        let results: Vec<RuleResult> = d.results.into_iter().map(|(r, _)| r).collect();
+        let counts = Counts::of(&results);
+        total.merge(&counts);
+        targets.push(DesignTarget {
+            path: d.path,
+            hash: ContentHash::of(d.text.as_bytes()),
+            results,
+            counts,
+        });
+    }
     Ok(DesignValidation {
-        session: session.map(ToString::to_string),
         targets,
         counts: total,
     })

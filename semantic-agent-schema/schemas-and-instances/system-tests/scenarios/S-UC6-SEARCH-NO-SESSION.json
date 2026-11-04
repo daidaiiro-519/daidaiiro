@@ -1,0 +1,60 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC6-SEARCH-NO-SESSION",
+ "name": "誰が打ったかを取らない検索",
+ "title": "search は誰が打ったかを取らず、記録に触れない。--session や --human を渡すと知らない指定で断る",
+ "why": "記録しないコマンドが誰が打ったかを取ると、記録に sessions の行が増える。",
+ "traces": [
+  "UC6:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "items/r1.json": "@fixtures/r1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   "items/r1.json",
+   "--where",
+   "/id=\"R1\"",
+   "--schemas",
+   "schemas"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "search",
+    "items/r1.json",
+    "--where",
+    "/id=\"R1\"",
+    "--schemas",
+    "schemas",
+    "--session",
+    "ai-1"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/matches",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "file": ".git/semantic-agent-schema/records.sqlite",
+   "exists": false
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  }
+ ]
+}

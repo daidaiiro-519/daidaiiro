@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-UC4-DESIGN-OK",
  "name": "デザインシステムを検証する",
- "title": "契約どおりに書いたデザインシステムを検証すると、型 ・ トークン ・ テンプレートの書き方 ・ Concrete との合い方の検査がすべて verified になり、記録される",
+ "title": "契約どおりに書いたデザインシステムを検証すると、型 ・ トークン ・ テンプレートの書き方 ・ Concrete との合い方の検査がすべて verified になり、記録はしない",
  "why": "テンプレートとトークンも、インスタンスと同じく描く前に作法を確かめられるようにする。",
  "traces": [
   "UC4:変形:デザインシステムを検証する",
@@ -45,7 +45,7 @@
   {
    "of": "when",
    "pointer": "/operations",
-   "count": 1
+   "count": 0
   },
   {
    "of": "when",
@@ -70,12 +70,30 @@
   {
    "of": "when",
    "pointer": "/targets/0/results",
-   "contains": "値は sas-data から読み、JS にタグが無く、JS として読める"
+   "contains": "値は semantic-agent-schema-data から読み、JS にタグが無く、JS として読める"
   },
   {
    "of": "when",
    "pointer": "/targets/0/results",
    "contains": "token-type"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "not_found"
+  }
+ ],
+ "after": [
+  {
+   "args": [
+    "log",
+    "--operation",
+    "o-0001"
+   ]
   }
  ]
 }
