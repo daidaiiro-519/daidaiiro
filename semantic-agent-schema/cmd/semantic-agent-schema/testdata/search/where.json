@@ -1,0 +1,107 @@
+{
+  "title": "範囲の JSON ドキュメントのうち、--where のすべての条件で同じ値を持つものの instance location を found で返し、範囲の外は探さない",
+  "files": {
+    "a.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "春の計画",
+      "start": "2026-02-01",
+      "end": "2026-03-01",
+      "tags": [
+        "花見"
+      ]
+    },
+    "b.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "夏の計画",
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "tags": []
+    },
+    "c.json": {
+      "title": "春の計画"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "search",
+        "a.json",
+        "b.json",
+        "--where",
+        "/title=\"春の計画\""
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "found",
+          "/range": [
+            "a.json",
+            "b.json"
+          ],
+          "/matches": [
+            {
+              "path": "a.json",
+              "hash": {
+                "$sha256": "a.json"
+              },
+              "instanceLocation": "/title"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "b.json",
+        "--where",
+        "/title=\"春の計画\"",
+        "--where",
+        "/tags/0=\"花見\""
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "found",
+          "/matches/0/instanceLocation": "/title",
+          "/matches/1/instanceLocation": "/tags/0",
+          "/matches/1/path": "a.json"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "b.json",
+        "--where",
+        "/title=\"春の計画\""
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "found",
+          "/range": [
+            "b.json"
+          ],
+          "/matches": []
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--where",
+        "/tags=[\"花見\"]"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "found",
+          "/matches/0/instanceLocation": "/tags"
+        }
+      ]
+    }
+  ]
+}

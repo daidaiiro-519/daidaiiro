@@ -17,6 +17,7 @@
         "create",
         "update",
         "validate",
+        "search",
         "log"
       ]
     }
@@ -116,6 +117,38 @@
       },
       "then": {
         "$ref": "#/$defs/validate"
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "semantic"
+        ],
+        "properties": {
+          "command": {
+            "const": "search"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/semantic-search"
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "required": [
+            "semantic"
+          ]
+        },
+        "properties": {
+          "command": {
+            "const": "search"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/search"
       }
     },
     {
@@ -425,6 +458,90 @@
           ]
         }
       }
+    },
+    "semantic-search": {
+      "description": "semantic search <path>... --question <問い>。問いで探す prompt を依頼する",
+      "type": "object",
+      "required": [
+        "semantic",
+        "command",
+        "paths",
+        "question"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "semantic": true,
+        "command": true,
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "search": {
+      "description": "search <path>... --where <JSON Pointer>=<JSON>（繰り返せる。すべてを満たすもの）、または search <path>... --matches <JSON | ->（AI が問いで探した matches を受け取る）",
+      "type": "object",
+      "required": [
+        "command",
+        "paths"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": true,
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "where": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "pointer",
+              "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "pointer": {
+                "type": "string",
+                "pattern": "^(/([^~/]|~[01])*)*$",
+                "description": "条件の instance location"
+              },
+              "value": {
+                "description": "条件の値（JSON）"
+              }
+            }
+          }
+        },
+        "matches": {
+          "description": "matches の文字列。- なら標準入力から読む",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "where"
+          ]
+        },
+        {
+          "required": [
+            "matches"
+          ]
+        }
+      ]
     }
   }
 }

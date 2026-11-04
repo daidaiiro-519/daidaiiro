@@ -566,3 +566,47 @@ func TestMatchResponseRejectsPairsOtherThanPrompt(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchesComparesValuesAtInstanceLocations(t *testing.T) {
+	t.Parallel()
+	value, err := domain.ParseJSON([]byte(`{"title": "t", "n": 1, "tags": ["a", "b"], "o": {"k": null}}`))
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	condition := func(location, v string) domain.Condition {
+		t.Helper()
+		p, err := domain.NewPointer(location)
+		if err != nil {
+			t.Fatalf("NewPointer(%s) = %v", location, err)
+		}
+		parsed, err := domain.ParseJSON([]byte(v))
+		if err != nil {
+			t.Fatalf("ParseJSON(%s) = %v", v, err)
+		}
+		return domain.Condition{InstanceLocation: p, Value: parsed}
+	}
+	cases := []struct {
+		name       string
+		conditions []domain.Condition
+		want       bool
+	}{
+		{name: "文字列が同じ", conditions: []domain.Condition{condition("/title", `"t"`)}, want: true},
+		{name: "配列の要素が同じ", conditions: []domain.Condition{condition("/tags/1", `"b"`)}, want: true},
+		{name: "配列が同じ", conditions: []domain.Condition{condition("/tags", `["a","b"]`)}, want: true},
+		{name: "null が同じ", conditions: []domain.Condition{condition("/o/k", `null`)}, want: true},
+		{name: "すべての条件を満たす", conditions: []domain.Condition{condition("/title", `"t"`), condition("/n", `1`)}, want: true},
+		{name: "1つでも満たさなければ合わない", conditions: []domain.Condition{condition("/title", `"t"`), condition("/n", `2`)}},
+		{name: "数は書いたままの文字列で比べる", conditions: []domain.Condition{condition("/n", `1.0`)}},
+		{name: "無い instance location は合わない", conditions: []domain.Condition{condition("/missing", `"t"`)}},
+		{name: "配列の範囲の外は合わない", conditions: []domain.Condition{condition("/tags/2", `"c"`)}},
+		{name: "先頭に 0 の付いた添字は合わない", conditions: []domain.Condition{condition("/tags/01", `"b"`)}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if got := domain.Matches(value, c.conditions); got != c.want {
+				t.Errorf("Matches(%s) = %v, want %v", c.name, got, c.want)
+			}
+		})
+	}
+}

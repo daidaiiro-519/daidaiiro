@@ -5,15 +5,13 @@
   "description": "semantic <ユースケース> でコマンドが Concrete の x-prompt から組んで AI に返すもの。JSON ドキュメントの内容は貼らず、path で渡す。AI は steps の x-prompt に従って response を生成し、next を実行する。",
   "type": "object",
   "required": [
-    "path",
-    "steps",
     "response",
     "next"
   ],
   "additionalProperties": false,
   "properties": {
     "path": {
-      "description": "対象の JSON ドキュメントの path",
+      "description": "対象の JSON ドキュメントの path（作成 ・ 更新 ・ 判定）",
       "type": "string"
     },
     "hash": {
@@ -28,7 +26,7 @@
       }
     },
     "response": {
-      "description": "response の形。AI が作って渡すものが従うスキーマで、$ref に $id を持つ（作成は Concrete、更新は JSON Patch のスキーマ、判定は judgment-response のスキーマ）",
+      "description": "response の形。AI が作って渡すものが従うスキーマで、$ref に $id を持つ（作成は Concrete、更新は JSON Patch のスキーマ、判定は judgment-response のスキーマ、検索は search-response のスキーマ）",
       "type": "object",
       "required": [
         "$ref"
@@ -45,6 +43,32 @@
       "description": "response を渡すコマンド行。AI が埋める部分だけを <…> で空けておく",
       "type": "string",
       "minLength": 1
+    },
+    "question": {
+      "description": "検索の問い",
+      "type": "string",
+      "minLength": 1
+    },
+    "documents": {
+      "description": "検索の範囲。各 JSON ドキュメントの path と内容のハッシュ。中身は貼らない",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "hash"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -89,5 +113,49 @@
         }
       ]
     }
-  }
+  },
+  "oneOf": [
+    {
+      "description": "作成 ・ 更新 ・ 判定：1つの JSON ドキュメントの steps",
+      "required": [
+        "path",
+        "steps"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "documents"
+            ]
+          },
+          {
+            "required": [
+              "question"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "description": "検索：範囲の documents と問い",
+      "required": [
+        "documents",
+        "question"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "path"
+            ]
+          },
+          {
+            "required": [
+              "steps"
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

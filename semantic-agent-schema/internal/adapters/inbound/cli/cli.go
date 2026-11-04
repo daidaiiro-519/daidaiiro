@@ -17,6 +17,7 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
+	search "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/search/application"
 )
 
 // Authoring は、中核の業務領域「作成と検証」のユースケース。
@@ -35,6 +36,8 @@ type Wiring struct {
 	Open func(ctx context.Context, schemas []domain.Path) (uc Authoring, close func() error, err error)
 	// OpenLog は、操作の記録を読むだけのために開き、ユースケース「操作の記録の参照」を返す。
 	OpenLog func(ctx context.Context) (uc record.Log, close func() error, err error)
+	// OpenSearch は、working tree を引き、ユースケース「検索」を返す。
+	OpenSearch func(ctx context.Context) (uc search.Search, err error)
 }
 
 // IO は、標準入力 ・ 標準出力 ・ 標準エラー出力。
@@ -57,6 +60,15 @@ type arguments struct {
 	Judgments *string  `json:"judgments,omitempty"`
 	Limit     *int     `json:"limit,omitempty"`
 	Operation string   `json:"operation,omitempty"`
+	Where     []where  `json:"where,omitempty"`
+	Question  string   `json:"question,omitempty"`
+	Matches   *string  `json:"matches,omitempty"`
+}
+
+// where は、--where <JSON Pointer>=<JSON> の1つ。値は JSON として読んだもの。
+type where struct {
+	Pointer string `json:"pointer"`
+	Value   any    `json:"value"`
 }
 
 // Run は、コマンドを1回実行し、終了コードを返す。error か violated の judgment があれば 1、ほかは 0。
@@ -91,7 +103,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 		return out.failures(parsed, err)
 	}
 	var content []byte
-	for _, v := range []*string{parsed.JSON, parsed.Patch, parsed.Judgments} {
+	for _, v := range []*string{parsed.JSON, parsed.Patch, parsed.Judgments, parsed.Matches} {
 		if v == nil {
 			continue
 		}
@@ -101,6 +113,9 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	}
 	if parsed.Command == "log" {
 		return list(ctx, parsed, paths, w, out)
+	}
+	if parsed.Command == "search" {
+		return find(ctx, parsed, paths, content, w, out)
 	}
 	uc, closeRecords, err := w.Open(ctx, dirs)
 	if err != nil {
@@ -136,6 +151,9 @@ func parse(ctx context.Context, args []string, validator authoring.Validator) (a
 	judgments := flags.String("judgments", "", "AI が判定した judgments。- なら標準入力から読む")
 	limit := flags.Int("limit", 0, "返す操作の件数の上限")
 	operation := flags.String("operation", "", "1件を指す <command>:<id>")
+	wheres := flags.StringArray("where", nil, "<JSON Pointer>=<JSON>。その instance location の値が JSON と同じもの（繰り返せる。すべてを満たすもの）")
+	question := flags.String("question", "", "検索の問い")
+	matches := flags.String("matches", "", "AI が問いで探した matches。- なら標準入力から読む")
 	if err := flags.Parse(args); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
 	}
@@ -157,6 +175,19 @@ func parse(ctx context.Context, args []string, validator authoring.Validator) (a
 		parsed.Limit = limit
 	}
 	parsed.Operation = *operation
+	parsed.Question = *question
+	if flags.Changed("matches") {
+		parsed.Matches = matches
+	}
+	for _, text := range *wheres {
+		// 最初の = で JSON Pointer と値に分ける。値は JSON として読み、読めなければ invalid_json
+		pointer, value, _ := strings.Cut(text, "=")
+		parsedValue, err := domain.ParseJSON([]byte(value))
+		if err != nil {
+			return parsed, err
+		}
+		parsed.Where = append(parsed.Where, where{Pointer: pointer, Value: parsedValue})
+	}
 	content, err := json.Marshal(parsed)
 	if err != nil {
 		return parsed, err
@@ -295,4 +326,42 @@ func listOperations(ctx context.Context, args arguments, paths []domain.Path, uc
 		}
 	}
 	return nil
+}
+
+// find は、ユースケース「検索」を呼び、search_requested か found のログイベントを書く。
+func find(ctx context.Context, args arguments, paths []domain.Path, content []byte, w Wiring, out *output) error {
+	uc, err := w.OpenSearch(ctx)
+	if err != nil {
+		return out.failures(args, err)
+	}
+	if args.Semantic {
+		documents, err := uc.Prompt(ctx, paths)
+		if err != nil {
+			return out.failures(args, err)
+		}
+		return out.searchRequested(args, documents)
+	}
+	var matches []search.Match
+	if args.Matches != nil {
+		matches, err = uc.Matches(ctx, paths, content)
+	} else {
+		matches, err = uc.Where(ctx, paths, conditionsOf(args.Where))
+	}
+	if err != nil {
+		return out.failures(args, err)
+	}
+	return out.found(paths, matches)
+}
+
+// conditionsOf は、引数の where を検索の条件にする。JSON Pointer の形は arguments.schema.json が確かめている。
+func conditionsOf(wheres []where) []domain.Condition {
+	conditions := make([]domain.Condition, 0, len(wheres))
+	for _, w := range wheres {
+		pointer, err := domain.NewPointer(w.Pointer)
+		if err != nil {
+			continue // arguments.schema.json の pattern を通った形なので、ここには来ない
+		}
+		conditions = append(conditions, domain.Condition{InstanceLocation: pointer, Value: w.Value})
+	}
+	return conditions
 }

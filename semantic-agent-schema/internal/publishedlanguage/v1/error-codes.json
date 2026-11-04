@@ -38,7 +38,8 @@
         "create": "semantic-agent-schema create {paths} {schemas} --json '<違反を直した JSON ドキュメント>'",
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<違反を直した JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
-        "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<違反を直した judgments>'{all}"
+        "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<違反を直した judgments>'{all}",
+        "search --matches": "semantic-agent-schema search {paths} --matches '<違反を直した matches>'"
       }
     },
     "invalid_json": {
@@ -48,7 +49,9 @@
         "create": "semantic-agent-schema create {paths} {schemas} --json '<直した JSON ドキュメント>'",
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<直した JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
-        "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<直した judgments>'{all}"
+        "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<直した judgments>'{all}",
+        "search": "semantic-agent-schema search {paths} --where <JSON Pointer>=<JSON の値>",
+        "search --matches": "semantic-agent-schema search {paths} --matches '<直した matches>'"
       }
     },
     "convention_violation": {
@@ -75,7 +78,10 @@
         "update": "semantic-agent-schema update <working tree の中の path> {schemas} --patch '<JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate <working tree の中の path> {schemas}{all}",
         "validate --judgments": "semantic-agent-schema semantic validate <working tree の中の path> {schemas}{all}",
-        "log": "semantic-agent-schema log <working tree の中の path>"
+        "log": "semantic-agent-schema log <working tree の中の path>",
+        "search": "semantic-agent-schema search <working tree の中の path> --where <同じ条件>",
+        "semantic search": "semantic-agent-schema semantic search <working tree の中の path> --question <同じ問い>",
+        "search --matches": "semantic-agent-schema semantic search <working tree の中の path> --question <同じ問い>"
       }
     },
     "file_exists": {
@@ -89,7 +95,8 @@
       "instruction": "{path} は、読んだ後に変わった（{message}）。ファイルも操作の記録も変えていない。update なら同じコマンドをもう一度実行する（同じ位置の値を守りたいなら JSON Patch に test の operation を入れる）。judgments なら、いまの内容で判定の prompt を依頼し直す",
       "next": {
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>'{range}",
-        "validate --judgments": "semantic-agent-schema semantic validate {path} {schemas}{all}"
+        "validate --judgments": "semantic-agent-schema semantic validate {path} {schemas}{all}",
+        "search --matches": "semantic-agent-schema semantic search {paths} --question <同じ問い>"
       }
     },
     "patch_not_applicable": {
@@ -111,9 +118,10 @@
       }
     },
     "response_mismatch": {
-      "instruction": "judgments の rule と instance location の組が、prompt の組と違う（{instanceLocation}：{message}）。判定の prompt を依頼し直し、その steps の組ごとに judgment を1つずつ作る",
+      "instruction": "response が prompt と合わない（{path} {instanceLocation}：{message}）。prompt を依頼し直し、その範囲と steps に合わせて作り直す",
       "next": {
-        "validate --judgments": "semantic-agent-schema semantic validate {path} {schemas}{all}"
+        "validate --judgments": "semantic-agent-schema semantic validate {path} {schemas}{all}",
+        "search --matches": "semantic-agent-schema semantic search {paths} --question <同じ問い>"
       }
     },
     "operation_not_found": {
@@ -131,11 +139,14 @@
         "semantic update": "semantic-agent-schema semantic create {path} {schemas} --schema <Concrete の $id>",
         "update": "semantic-agent-schema semantic create {path} {schemas} --schema <Concrete の $id>",
         "semantic validate": "semantic-agent-schema semantic create {path} {schemas} --schema <Concrete の $id>",
-        "validate --judgments": "semantic-agent-schema semantic create {path} {schemas} --schema <Concrete の $id>"
+        "validate --judgments": "semantic-agent-schema semantic create {path} {schemas} --schema <Concrete の $id>",
+        "search": "semantic-agent-schema search <ある path> --where <同じ条件>",
+        "semantic search": "semantic-agent-schema semantic search <ある path> --question <同じ問い>",
+        "search --matches": "semantic-agent-schema semantic search <ある path> --question <同じ問い>"
       }
     },
-    "log_unavailable": {
-      "instruction": "操作の記録を開けない（{message}）。Git のリポジトリの外なら、リポジトリの中で実行する。表の形の版が違うなら、<git-common-dir>/semantic-agent-schema/records.sqlite を削除してから実行する",
+    "not_in_git": {
+      "instruction": "Git のリポジトリの外で実行した（{message}）。Git のリポジトリの中で実行する",
       "next": {
         "validate": "semantic-agent-schema validate {paths} {schemas}",
         "semantic create": "semantic-agent-schema semantic create {paths} {schemas} --schema {schema}",
@@ -144,7 +155,23 @@
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
         "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<同じ judgments>'{all}",
-        "log": "semantic-agent-schema log{paths}{limit}{operation}"
+        "log": "semantic-agent-schema log {paths}{limit}{operation}",
+        "search": "semantic-agent-schema search {paths} --where <同じ条件>",
+        "semantic search": "semantic-agent-schema semantic search {paths} --question <同じ問い>",
+        "search --matches": "semantic-agent-schema search {paths} --matches '<同じ matches>'"
+      }
+    },
+    "log_unavailable": {
+      "instruction": "操作の記録を開けない（{message}）。表の形の版が違うか壊れているなら、<git-common-dir>/semantic-agent-schema/records.sqlite を削除してから実行する",
+      "next": {
+        "validate": "semantic-agent-schema validate {paths} {schemas}",
+        "semantic create": "semantic-agent-schema semantic create {paths} {schemas} --schema {schema}",
+        "create": "semantic-agent-schema create {paths} {schemas} --json '<JSON ドキュメント>'",
+        "semantic update": "semantic-agent-schema semantic update {paths} {schemas}{range}",
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>'{range}",
+        "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
+        "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<同じ judgments>'{all}",
+        "log": "semantic-agent-schema log {paths}{limit}{operation}"
       }
     },
     "log_locked": {
@@ -157,7 +184,7 @@
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
         "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<同じ judgments>'{all}",
-        "log": "semantic-agent-schema log{paths}{limit}{operation}"
+        "log": "semantic-agent-schema log {paths}{limit}{operation}"
       }
     }
   },
@@ -177,7 +204,8 @@
     "next": {
       "semantic create": "semantic-agent-schema create {paths} {schemas} --json '<response の形に従う JSON ドキュメント>'",
       "semantic update": "semantic-agent-schema update {path} {schemas} --patch '<response の形に従う JSON Patch>'{range}",
-      "semantic validate": "semantic-agent-schema validate {path} {schemas} --judgments '<response の形に従う JSON>'{all}"
+      "semantic validate": "semantic-agent-schema validate {path} {schemas} --judgments '<response の形に従う JSON>'{all}",
+      "semantic search": "semantic-agent-schema search {paths} --matches '<response の形に従う JSON>'"
     }
   },
   "created": {

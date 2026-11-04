@@ -1,0 +1,103 @@
+{
+  "title": "--where の値が JSON として読めないか、JSON Pointer の形でないと rejected を返す",
+  "files": {
+    "a.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "春の計画",
+      "start": "2026-02-01",
+      "end": "2026-03-01",
+      "tags": [
+        "花見"
+      ]
+    },
+    "b.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "夏の計画",
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "tags": []
+    },
+    "c.json": {
+      "title": "春の計画"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--where",
+        "/title=春の計画"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "invalid_json",
+          "/next": "semantic-agent-schema search a.json --where <JSON Pointer>=<JSON の値>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--where",
+        "title=\"春の計画\""
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/where/0/pointer"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "--where",
+        "/title=\"春の計画\""
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "../a.json",
+        "--where",
+        "/title=\"春の計画\""
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/paths/0"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "missing.json",
+        "--where",
+        "/title=\"春の計画\""
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "file_not_found"
+        }
+      ]
+    }
+  ]
+}

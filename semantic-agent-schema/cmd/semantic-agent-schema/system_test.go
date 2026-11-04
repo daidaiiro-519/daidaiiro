@@ -239,7 +239,7 @@ func matcher(t *testing.T, raw json.RawMessage, key string) (string, bool) {
 
 var sha256Of = regexp.MustCompile(`\{sha256 ([^}]+)\}`)
 
-// expected は、期待値を読む。{"$sha256": "<path>"} と、{"$format": "…{sha256 <path>}…"} の中のハッシュは、
+// expected は、期待値を読む。{"$sha256": "<path>"}（入れ子の中も）と、{"$format": "…{sha256 <path>}…"} の中のハッシュは、
 // 試験の中でそのファイルのバイト列から求める。
 func expected(t *testing.T, repo string, raw json.RawMessage) any {
 	t.Helper()
@@ -254,6 +254,25 @@ func expected(t *testing.T, repo string, raw json.RawMessage) any {
 	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 	if err != nil {
 		t.Fatalf("UnmarshalJSON(%s) = %v", raw, err)
+	}
+	return hashes(t, repo, value)
+}
+
+// hashes は、期待値の中の {"$sha256": "<path>"} を、そのファイルのハッシュに置き換える。
+func hashes(t *testing.T, repo string, value any) any {
+	t.Helper()
+	switch v := value.(type) {
+	case map[string]any:
+		if path, ok := v["$sha256"].(string); ok && len(v) == 1 {
+			return hashOf(t, repo, path)
+		}
+		for k, child := range v {
+			v[k] = hashes(t, repo, child)
+		}
+	case []any:
+		for i, child := range v {
+			v[i] = hashes(t, repo, child)
+		}
 	}
 	return value
 }

@@ -1,0 +1,107 @@
+{
+  "title": "問いで探す prompt を依頼すると、範囲の path とハッシュだけを渡し、AI が探した matches を受け取ると、出どころを確かめて found を返す",
+  "files": {
+    "a.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "春の計画",
+      "start": "2026-02-01",
+      "end": "2026-03-01",
+      "tags": [
+        "花見"
+      ]
+    },
+    "b.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "夏の計画",
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "tags": []
+    },
+    "c.json": {
+      "title": "春の計画"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "search",
+        "a.json",
+        "b.json",
+        "--question",
+        "花見の計画はどれか"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "search_requested",
+          "/prompt/question": "花見の計画はどれか",
+          "/prompt/documents": [
+            {
+              "path": "a.json",
+              "hash": {
+                "$sha256": "a.json"
+              }
+            },
+            {
+              "path": "b.json",
+              "hash": {
+                "$sha256": "b.json"
+              }
+            }
+          ],
+          "/prompt/response": {
+            "$ref": "urn:semantic-agent-schema:search-response:v1"
+          },
+          "/prompt/next": "semantic-agent-schema search a.json b.json --matches '<response の形に従う JSON>'"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "b.json",
+        "--matches",
+        "{\"matches\": [{\"path\": \"a.json\", \"hash\": \"{sha256 a.json}\", \"instanceLocation\": \"/tags/0\", \"reason\": \"春の行事だから\"}]}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "found",
+          "/range": [
+            "a.json",
+            "b.json"
+          ],
+          "/matches": [
+            {
+              "path": "a.json",
+              "hash": {
+                "$sha256": "a.json"
+              },
+              "instanceLocation": "/tags/0",
+              "reason": "春の行事だから"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "b.json",
+        "--matches",
+        "-"
+      ],
+      "stdin": "{\"matches\": []}",
+      "exit": 0,
+      "events": [
+        {
+          "/event": "found",
+          "/matches": []
+        }
+      ]
+    }
+  ]
+}

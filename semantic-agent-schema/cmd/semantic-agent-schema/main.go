@@ -16,13 +16,15 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
+	search "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/search/application"
 )
 
 func main() {
 	os.Exit(cli.Run(context.Background(), os.Args[1:], cli.IO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}, cli.Wiring{
-		Arguments: schemacheck.New(nil),
-		Open:      open,
-		OpenLog:   openLog,
+		Arguments:  schemacheck.New(nil),
+		Open:       open,
+		OpenLog:    openLog,
+		OpenSearch: openSearch,
 	}))
 }
 
@@ -30,7 +32,7 @@ func main() {
 func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() error, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return cli.Authoring{}, nil, domain.Fail(domain.LogUnavailable, "", err.Error())
+		return cli.Authoring{}, nil, domain.Fail(domain.NotInGit, "", err.Error())
 	}
 	top, common, err := repository.Find(ctx, dir)
 	if err != nil {
@@ -71,7 +73,7 @@ func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() err
 func openLog(ctx context.Context) (record.Log, func() error, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return record.Log{}, nil, domain.Fail(domain.LogUnavailable, "", err.Error())
+		return record.Log{}, nil, domain.Fail(domain.NotInGit, "", err.Error())
 	}
 	_, common, err := repository.Find(ctx, dir)
 	if err != nil {
@@ -82,4 +84,21 @@ func openLog(ctx context.Context) (record.Log, func() error, error) {
 		return record.Log{}, nil, err
 	}
 	return record.Log{Records: records}, records.Close, nil
+}
+
+// openSearch は、working tree を引き、ユースケース「検索」に、範囲の path を読むアダプターを結び付けて返す。
+// 検索は操作の記録を使わない。
+func openSearch(ctx context.Context) (search.Search, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return search.Search{}, domain.Fail(domain.NotInGit, "", err.Error())
+	}
+	top, _, err := repository.Find(ctx, dir)
+	if err != nil {
+		return search.Search{}, err
+	}
+	return search.Search{
+		Documents: files.NewDocuments(top), Validator: schemacheck.New(nil),
+		ResponseID: publishedlanguage.SearchResponseID,
+	}, nil
 }

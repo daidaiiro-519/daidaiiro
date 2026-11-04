@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:search-response:v1",
+  "title": "検索の response",
+  "description": "AI が検索の prompt に従い、問いに合う instance location を探して、search --matches で渡す JSON。出どころ（path と、prompt から写した内容のハッシュ）と理由を持つ。",
+  "type": "object",
+  "required": [
+    "matches"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "hash",
+          "instanceLocation",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "description": "prompt の documents の path",
+            "type": "string",
+            "minLength": 1
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "prompt の documents の hash をそのまま写す"
+          },
+          "instanceLocation": {
+            "type": "string",
+            "pattern": "^(/([^~/]|~[01])*)*$",
+            "description": "問いに合う instance location"
+          },
+          "reason": {
+            "description": "問いに合う理由",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

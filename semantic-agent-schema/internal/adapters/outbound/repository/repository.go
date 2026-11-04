@@ -12,15 +12,15 @@ import (
 )
 
 // Find は、dir を含む working tree の top-level directory と、Git の共通ディレクトリを返す。
-// Git のリポジトリの外なら log_unavailable の Failure を返す。
+// Git のリポジトリの外なら not_in_git の Failure を返す。
 func Find(ctx context.Context, dir string) (top, common string, err error) {
 	out, err := exec.CommandContext(ctx, "git", "-C", dir, "rev-parse", "--show-toplevel", "--git-common-dir").Output()
 	if err != nil {
-		return "", "", domain.Fail(domain.LogUnavailable, "", "git rev-parse: "+dir+": "+err.Error())
+		return "", "", domain.Fail(domain.NotInGit, "", "git rev-parse: "+dir+": "+err.Error())
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	if len(lines) != 2 {
-		return "", "", domain.Fail(domain.LogUnavailable, "", "git rev-parse: "+string(out))
+		return "", "", domain.Fail(domain.NotInGit, "", "git rev-parse: "+string(out))
 	}
 	top, common = lines[0], lines[1]
 	if !filepath.IsAbs(common) {

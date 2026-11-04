@@ -1,0 +1,105 @@
+{
+  "title": "matches の出どころが範囲の外か、ハッシュがいまと違うか、instance location が無いか、形に違反すると rejected を返す",
+  "files": {
+    "a.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "春の計画",
+      "start": "2026-02-01",
+      "end": "2026-03-01",
+      "tags": [
+        "花見"
+      ]
+    },
+    "b.json": {
+      "$schema": "urn:example:plan:v1",
+      "title": "夏の計画",
+      "start": "2026-07-01",
+      "end": "2026-08-01",
+      "tags": []
+    },
+    "c.json": {
+      "title": "春の計画"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--matches",
+        "{\"matches\": [{\"path\": \"c.json\", \"hash\": \"{sha256 c.json}\", \"instanceLocation\": \"/title\", \"reason\": \"春の行事だから\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch",
+          "/next": "semantic-agent-schema semantic search a.json --question <同じ問い>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--matches",
+        "{\"matches\": [{\"path\": \"a.json\", \"hash\": \"sha256:0000000000000000000000000000000000000000000000000000000000000000\", \"instanceLocation\": \"/title\", \"reason\": \"春の行事だから\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "hash_mismatch",
+          "/next": "semantic-agent-schema semantic search a.json --question <同じ問い>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--matches",
+        "{\"matches\": [{\"path\": \"a.json\", \"hash\": \"{sha256 a.json}\", \"instanceLocation\": \"/nothing\", \"reason\": \"春の行事だから\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch",
+          "/instanceLocation": "/nothing"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--matches",
+        "{\"matches\": [{\"path\": \"a.json\", \"hash\": \"{sha256 a.json}\", \"instanceLocation\": \"/title\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/next": "semantic-agent-schema search a.json --matches '<違反を直した matches>'"
+        }
+      ]
+    },
+    {
+      "args": [
+        "search",
+        "a.json",
+        "--matches",
+        "{"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "invalid_json"
+        }
+      ]
+    }
+  ]
+}

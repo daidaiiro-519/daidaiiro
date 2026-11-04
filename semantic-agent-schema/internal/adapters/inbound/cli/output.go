@@ -11,6 +11,7 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
+	search "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/search/application"
 )
 
 // output は、ログイベントを JSON の1行ずつ書く。instruction と next は error-codes.json の定型に値を入れて作る。
@@ -31,7 +32,7 @@ type template struct {
 	Next        map[string]string `json:"next"`
 }
 
-// next は、コマンドの next の形を返す。semantic の有無と、--judgments の有無でも分け、無ければコマンド、次に * の形を使う。
+// next は、コマンドの next の形を返す。semantic の有無と、--judgments ・ --matches の有無でも分け、無ければコマンド、次に * の形を使う。
 func (t template) next(args arguments) string {
 	key := args.Command
 	switch {
@@ -39,6 +40,8 @@ func (t template) next(args arguments) string {
 		key = "semantic " + args.Command
 	case args.Judgments != nil:
 		key += " --judgments"
+	case args.Matches != nil:
+		key += " --matches"
 	}
 	for _, k := range []string{key, args.Command, "*"} {
 		if next, ok := t.Next[k]; ok {
@@ -171,7 +174,8 @@ func replace(text string, values map[string]string) string {
 	for k, v := range values {
 		pairs = append(pairs, k, v)
 	}
-	return strings.TrimSpace(strings.NewReplacer(pairs...).Replace(text)) // 空の {…} で残る末尾の空白を除く
+	// 空の {…} で残る空白を除く：末尾の空白と、続いた空白
+	return strings.TrimSpace(strings.ReplaceAll(strings.NewReplacer(pairs...).Replace(text), "  ", " "))
 }
 
 type judgmentEvent struct {
@@ -381,6 +385,63 @@ func (o *output) listed(op record.Operation) error {
 				Rule: j.Rule, InstanceLocation: j.InstanceLocation, Verdict: j.Verdict, By: j.By, Reason: j.Reason,
 			})
 		}
+	}
+	return o.encoder.Encode(event)
+}
+
+type documentEvent struct {
+	Path string `json:"path"`
+	Hash string `json:"hash"`
+}
+
+type searchPromptEvent struct {
+	Question  string            `json:"question"`
+	Documents []documentEvent   `json:"documents"`
+	Response  map[string]string `json:"response"`
+	Next      string            `json:"next"`
+}
+
+type searchRequestedEvent struct {
+	Event  string            `json:"event"`
+	Prompt searchPromptEvent `json:"prompt"`
+}
+
+// searchRequested は、問いで探す prompt を search_requested のログイベントで書く。範囲の path と内容のハッシュだけを渡す。
+func (o *output) searchRequested(args arguments, documents []domain.Document) error {
+	prompt := searchPromptEvent{
+		Question: args.Question, Documents: []documentEvent{},
+		Response: map[string]string{"$ref": publishedlanguage.SearchResponseID},
+		Next:     replace(o.promptNext.next(args), fill(args, "")),
+	}
+	for _, d := range documents {
+		prompt.Documents = append(prompt.Documents, documentEvent{Path: d.Path.String(), Hash: d.Hash.String()})
+	}
+	return o.encoder.Encode(searchRequestedEvent{Event: "search_requested", Prompt: prompt})
+}
+
+type matchEvent struct {
+	Path             string `json:"path"`
+	Hash             string `json:"hash"`
+	InstanceLocation string `json:"instanceLocation"`
+	Reason           string `json:"reason,omitempty"`
+}
+
+type foundEvent struct {
+	Event   string       `json:"event"`
+	Range   []string     `json:"range"`
+	Matches []matchEvent `json:"matches"`
+}
+
+// found は、探した範囲と、見つけた instance location を found のログイベントで書く。
+func (o *output) found(paths []domain.Path, matches []search.Match) error {
+	event := foundEvent{Event: "found", Range: []string{}, Matches: []matchEvent{}}
+	for _, p := range paths {
+		event.Range = append(event.Range, p.String())
+	}
+	for _, m := range matches {
+		event.Matches = append(event.Matches, matchEvent{
+			Path: m.Path.String(), Hash: m.Hash.String(), InstanceLocation: m.InstanceLocation.String(), Reason: m.Reason,
+		})
 	}
 	return o.encoder.Encode(event)
 }

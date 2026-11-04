@@ -26,6 +26,7 @@ const (
 	ResponseMismatch    code = "response_mismatch"
 	OperationNotFound   code = "operation_not_found"
 	FileNotFound        code = "file_not_found"
+	NotInGit            code = "not_in_git"
 	LogUnavailable      code = "log_unavailable"
 	LogLocked           code = "log_locked"
 )

@@ -390,7 +390,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>3</td><td>Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：S1</td></tr>
 <tr><td>4</td><td>前回の検証（直前の意味的な検証）と比べて変更点を求め、変更点でない instance location の AI の judgment を引き継ぐ。この検証は、前回の検証を動かさない</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
 <tr><td>5</td><td>judgment と JSON ドキュメントを操作の記録に追記し、counts を返す</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC3-1a path のファイルが無い：rejected（<code>file_not_found</code>）。指示と next を返す</li><li>UC3-2a 違反がある：violated として数える（rejected にしない）。validated のログイベントに、違反の instance location を直す指示と、更新の next を付ける</li><li>UC3-2b Concrete が schemas に無い（Concrete を消したときを含む）：rejected</li><li>UC3-5a 操作の記録を開けない（Git のリポジトリの外など）：rejected（<code>log_unavailable</code>）。指示と next を返す</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC3-1a path のファイルが無い：rejected（<code>file_not_found</code>）。指示と next を返す</li><li>UC3-2a 違反がある：violated として数える（rejected にしない）。validated のログイベントに、違反の instance location を直す指示と、更新の next を付ける</li><li>UC3-2b Concrete が schemas に無い（Concrete を消したときを含む）：rejected</li><li>UC3-1b Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li><li>UC3-5a 操作の記録を開けない（表の形の版が違う ・ 壊れている）：rejected（<code>log_unavailable</code>）。指示と next を返す</li></ul></dd>
 </dl></div>
 
 <div class="uc core-uc"><h3>UC4 意味的な検証 <span class="k core">中核</span></h3><dl>
@@ -426,8 +426,8 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <dt>成功時保証</dt><dd>範囲の中だけを探したと返す</dd>
 <dt>最低保証</dt><dd>JSON ドキュメントを変えない。操作の記録に追記しない</dd>
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、範囲と、JSON Pointer と値の条件を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
-<tr><td>2</td><td>範囲の各 JSON ドキュメントの、JSON Pointer の値を比べて返す</td><td><span class="m">機械的（ドメインモデル）</span>：S6</td></tr></table></dd>
-<dt>拡張</dt><dd>UC7-1a 意味で探す：問いを渡すと prompt を返し（<span class="s">意味的（ドメインモデル）</span>）、AI が response と出どころを渡す（<span class="s">意味的（AI）</span>）。response を JSON Schema で検証し、出どころが範囲の中でハッシュがいまと同じかを確かめて返す（<span class="m">機械的（JSON Schema）</span>）</dd>
+<tr><td>2</td><td>範囲の各 JSON ドキュメントの、JSON Pointer の値を比べて返す。値は、JSON の文字列が同じものを合うとする（1 と 1.0 は違う）</td><td><span class="m">機械的（ドメインモデル）</span>：S6</td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC7-1a 意味で探す：問いを渡すと prompt を返す（<span class="s">意味的（ドメインモデル）</span>）。prompt は範囲の path とハッシュだけを持ち、内容は貼らない。AI が出どころ（path ・ ハッシュ ・ instance location ・ 理由）を response で渡す（<span class="s">意味的（AI）</span>）。response を JSON Schema で検証し（<span class="m">機械的（JSON Schema）</span>）、出どころが範囲の中にあり、その instance location があり、ハッシュがいまと同じかを確かめて返す（<span class="m">機械的（ドメインモデル）</span>）</li><li>UC7-1b 出どころが範囲の外 ・ 位置が無い ・ ハッシュが違う：rejected。next は問いの打ち直し（1a へ）</li><li>UC7-1c Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li></ul></dd>
 </dl></div>
 
 <div class="uc"><h3>UC8 操作の記録の参照 <span class="k sup">補完</span></h3><dl>
@@ -514,7 +514,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>prompt を作る S3</td><td>サブスキーマと rule から、生成 ・ 判定の prompt を作る。JSON ドキュメントの内容は貼らず、path とハッシュで渡す。同じ入力なら同じ prompt</td><td>意味的 <span class="tr">本質 W1 ・ E2</span></td></tr>
 <tr><td>変更点を求める S4</td><td>8 の「変更点の求め方」で求める</td><td>機械的 <span class="tr">本質 W1 ・ E5</span></td></tr>
 <tr><td>レンダラー S5</td><td>Concrete の <code>x-view</code> で、デザインシステムのテンプレートを選ぶ</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
-<tr><td>検索の比較 S6</td><td>範囲の JSON ドキュメントごとに、JSON Pointer の値が条件と同じかを比べる</td><td>機械的 <span class="tr">本質 W3</span></td></tr>
+<tr><td>検索の比較 S6</td><td>範囲の JSON ドキュメントごとに、JSON Pointer の値が条件と同じかを比べる。JSON の文字列が同じものを合うとする（1 と 1.0 は違う）</td><td>機械的 <span class="tr">本質 W3</span></td></tr>
 </table></div>
 </section>
 
