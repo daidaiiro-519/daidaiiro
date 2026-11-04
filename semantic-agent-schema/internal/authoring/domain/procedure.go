@@ -24,8 +24,6 @@ type Step struct {
 type Procedure interface {
 	Command() commandName
 	Path() Path
-	// Hash は、更新する JSON ドキュメントのいまのハッシュ。作成では nil。
-	Hash() Hash
 	Steps() []Step
 	// AnswerSchemaID は、answer の形：作成では AI が渡す JSON ドキュメントが従う Concrete の $id、更新では JSON Patch のスキーマの $id。
 	AnswerSchemaID() string
@@ -35,14 +33,12 @@ type Procedure interface {
 type generation struct {
 	command  commandName
 	path     Path
-	hash     Hash
 	steps    []Step
 	answerID string
 }
 
 func (g generation) Command() commandName   { return g.command }
 func (g generation) Path() Path             { return g.path }
-func (g generation) Hash() Hash             { return g.hash }
 func (g generation) Steps() []Step          { return g.steps }
 func (g generation) AnswerSchemaID() string { return g.answerID }
 func (generation) procedure()               {}
@@ -65,7 +61,7 @@ func NewCreateProcedure(path Path, concrete Concrete) Procedure {
 
 // NewUpdateProcedure は、ドメインサービス「procedure を作る」。いまの JSON ドキュメントと Concrete を一緒にたどり、
 // 更新の procedure を返す。title ・ description ・ x-prompt のどれかを持つサブスキーマに当たる instance location を、
-// たどった順に step にする。answer の形は patchID（JSON Patch のスキーマの $id）。JSON ドキュメントの内容は貼らず、path とハッシュで渡す。
+// たどった順に step にする。answer の形は patchID（JSON Patch のスキーマの $id）。JSON ドキュメントの内容は貼らず、path で渡す。
 func NewUpdateProcedure(document Document, value any, concrete Concrete, patchID string) Procedure {
 	var steps []Step
 	walkInstance(concrete.structure(), value, nil, func(sub map[string]any, _ any, at []string) {
@@ -77,5 +73,5 @@ func NewUpdateProcedure(document Document, value any, concrete Concrete, patchID
 		}
 		steps = append(steps, Step{InstanceLocation: PointerOf(at...), Title: title, Description: description, Prompt: prompt})
 	})
-	return generation{command: UpdateCommand, path: document.Path, hash: document.Hash, steps: steps, answerID: patchID}
+	return generation{command: UpdateCommand, path: document.Path, steps: steps, answerID: patchID}
 }

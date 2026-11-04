@@ -252,7 +252,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>keyword location</td><td>スキーマの中のキーワードの位置。ルートスキーマからの JSON Pointer で書く。作成の procedure の step は、まだインスタンスが無いので、これで指す</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>absolute keyword location</td><td>違反したキーワードの、<code>$id</code> を基にした絶対の位置</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>JSON Patch</td><td>JSON ドキュメントに適用する operation の並び</td><td class="tr">RFC 6902</td></tr>
-<tr><td>If-Match ・ ハッシュ</td><td>書く前に、読んだときと同じ内容かを照らす前提条件 ・ 内容のバイト列から決まる値</td><td class="tr">RFC 9110</td></tr>
+<tr><td>ハッシュ</td><td>ファイルの内容のバイト列から決まる値。更新で、最初に読んだときから変わっていないかを確かめるのに使う</td><td class="tr">—</td></tr>
 </table></div>
 <h3>Hexagonal Architecture の語</h3>
 <div class="wrap"><table class="stack">
@@ -367,17 +367,17 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 
 <div class="uc core-uc"><h3>UC2 更新 <span class="k core">中核</span></h3><dl>
 <dt>目的</dt><dd>JSON ドキュメント（インスタンスか Concrete）を JSON Patch で書き換える</dd>
-<dt>利害関係者</dt><dd>同じ JSON ドキュメントを更新するほかの AI：読んだ後の変更を上書きされない ／ 利用者：<code>x-decided-by: human</code> の値を AI に変えられない ／ Concrete を書く人：Concrete を更新しても、範囲のインスタンスが違反しない</dd>
+<dt>利害関係者</dt><dd>同じ JSON ドキュメントを更新するほかの AI：コマンドが読んでから書くまでの変更を上書きされず、ほかの位置への変更は残る ／ 利用者：<code>x-decided-by: human</code> の値を AI に変えられない ／ Concrete を書く人：Concrete を更新しても、範囲のインスタンスが違反しない</dd>
 <dt>成功時保証</dt><dd>書いた JSON ドキュメントは Concrete と不変条件を満たす。change が操作の記録に残る。Concrete を更新したときは、範囲のインスタンスもすべて新しい Concrete を満たした</dd>
-<dt>最低保証</dt><dd>読んだ後に変わった JSON ドキュメントを上書きしない。error のときは、ファイルも操作の記録も変えない。不完全なファイルを残さない</dd>
+<dt>最低保証</dt><dd>コマンドが読んでから書くまでに変わった JSON ドキュメントを上書きしない。error のときは、ファイルも操作の記録も変えない。不完全なファイルを残さない</dd>
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path ・ schemas を渡し、更新の procedure を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
-<tr><td>2</td><td><code>x-prompt</code> から更新の procedure を作って返す。next に、いまのハッシュを If-Match として入れる</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
+<tr><td>2</td><td><code>x-prompt</code> から更新の procedure を作って返す</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
 <tr><td>3</td><td>AI が procedure に従って JSON Patch を作り、next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
-<tr><td>4</td><td>If-Match のハッシュがいまのハッシュと同じかを確かめてから、JSON Patch を検証して適用し、結果を Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>4</td><td>いまのファイルを読んでハッシュを控え、JSON Patch を検証して適用し、結果を Concrete で検証する。JSON Patch は指定した位置だけを直すので、ほかの位置への変更は残る。同じ位置を守りたいときは、AI が JSON Patch に test 操作を足す</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>5</td><td>Concrete を更新するときは、範囲のインスタンスが更新する Concrete に従うもの（<code>$schema</code> がその <code>$id</code>）かを確かめ、まだ書いていない新しい Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
-<tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないか、ロックの中でもう一度 If-Match のハッシュがいまのハッシュと同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
+<tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないかと、書く直前（ロックの中）にファイルのハッシュが4で控えたものから変わっていないかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
 <tr><td>7</td><td>操作の記録に追記してからファイルを書き、change のログイベントを返す（6 と 7 はロックの中。書けなければ追記も取り消す）。change の next は、意味的な検証の依頼</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：If-Match のハッシュと一緒に直接渡す（4 へ）</li><li>UC2-4b ・ UC2-6a ハッシュが違う：error。next は、更新の procedure の依頼（1 へ）</li><li>UC2-4c JSON Patch を適用できない：error（instance location はその operation の path）。next は、更新の procedure の依頼（1 へ）</li><li>UC2-1b インスタンスの更新に範囲を渡した：error（引数の違反）</li><li>UC2-5b 範囲のインスタンスが、更新する Concrete に従っていない：error</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：error</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：直接渡す（4 へ）</li><li>UC2-6a ハッシュが変わっていた：書かずに error。next は同じコマンドの打ち直し</li><li>UC2-4c JSON Patch を適用できない：error（instance location はその operation の path）。next は、更新の procedure の依頼（1 へ）</li><li>UC2-1b インスタンスの更新に範囲を渡した：error（引数の違反）</li><li>UC2-5b 範囲のインスタンスが、更新する Concrete に従っていない：error</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：error</li></ul></dd>
 </dl></div>
 
 <div class="uc core-uc"><h3>UC3 検証 <span class="k core">中核</span></h3><dl>
@@ -442,13 +442,13 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 </section>
 
 <section><h2><span class="n">7</span><span class="nb">ドメインモデル：</span><span class="nb">中核「作成と検証」</span></h2>
-<div class="fig"><svg viewBox="0 0 420 490" role="img" aria-label="中核「作成と検証」のドメインモデル。集約：JSON ドキュメント ・ path で識別する ・ x-decided-by は AI が書けない ・ If-Match のハッシュで書く ・ path は working tree の中 ・ UC1 作成 ・ UC2 更新 ・  ・ 集約：検証 ・ 1つの内容に1つ ・ answer は procedure と同じ組 ・ unverified は数えない ・ 内容と judgment を持つ ・ UC3 検証 ・ UC4 意味的な検証 ・ 使う ・ 使う ・ 機械的な検証 ・ バリデーター ・ 変更点を求める ・ 検索の比較 ・ レンダラー ・ JSON Schema で書けない分 ・ 意味的な検証 ・ サブスキーマを引く ・ procedure を作る ・ 判定と生成は AI が行う ・ answer は機械的に検証 ・ 値オブジェクト ・ path ・ ハッシュ ・ JSON Pointer ・ Concrete ・ rule ・ judgment ・ procedure ・ change ・ ドメインサービスはポートを呼ばない。1回の操作で書く集約は1つ" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-f3aafa63-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}</style><defs data-dsvg="marker"><marker id="dsvg-f3aafa63-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="490.0" fill="#FFFFFF" rx="8"/>
+<div class="fig"><svg viewBox="0 0 420 490" role="img" aria-label="中核「作成と検証」のドメインモデル。集約：JSON ドキュメント ・ path で識別する ・ x-decided-by は AI が書けない ・ 読んだときのハッシュで書く ・ path は working tree の中 ・ UC1 作成 ・ UC2 更新 ・  ・ 集約：検証 ・ 1つの内容に1つ ・ answer は procedure と同じ組 ・ unverified は数えない ・ 内容と judgment を持つ ・ UC3 検証 ・ UC4 意味的な検証 ・ 使う ・ 使う ・ 機械的な検証 ・ バリデーター ・ 変更点を求める ・ 検索の比較 ・ レンダラー ・ JSON Schema で書けない分 ・ 意味的な検証 ・ サブスキーマを引く ・ procedure を作る ・ 判定と生成は AI が行う ・ answer は機械的に検証 ・ 値オブジェクト ・ path ・ ハッシュ ・ JSON Pointer ・ Concrete ・ rule ・ judgment ・ procedure ・ change ・ ドメインサービスはポートを呼ばない。1回の操作で書く集約は1つ" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-85b886fa-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}</style><defs data-dsvg="marker"><marker id="dsvg-85b886fa-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="490.0" fill="#FFFFFF" rx="8"/>
 <text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">中核「作成と検証」のドメインモデル</text>
 <rect class="box focus" x="10" y="36" width="196" height="150" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
 <text class="title focus" x="22" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">集約：JSON ドキュメント</text>
 <text class="label small" x="22" y="80" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">path で識別する</text>
 <text class="label small" x="22" y="100" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">x-decided-by は AI が書けない</text>
-<text class="label small" x="22" y="120" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">If-Match のハッシュで書く</text>
+<text class="label small" x="22" y="120" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">読んだときのハッシュで書く</text>
 <text class="label small" x="22" y="140" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">path は working tree の中</text>
 <text class="note small" x="22" y="164" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC1 作成 ・ UC2 更新</text>
 <rect class="box focus" x="214" y="36" width="196" height="150" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
@@ -459,8 +459,8 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <text class="label small" x="226" y="140" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">内容と judgment を持つ</text>
 <text class="note small" x="226" y="164" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC3 検証</text>
 <text class="note small" x="226" y="178" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC4 意味的な検証</text>
-<path class="flow" d="M108,216 V188" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-f3aafa63-arrow-5B6B66)"/>
-<path class="flow" d="M312,216 V188" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-f3aafa63-arrow-5B6B66)"/>
+<path class="flow" d="M108,216 V188" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-85b886fa-arrow-5B6B66)"/>
+<path class="flow" d="M312,216 V188" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-85b886fa-arrow-5B6B66)"/>
 <text class="note small" x="116" y="206" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">使う</text>
 <text class="note small" x="320" y="206" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">使う</text>
 <rect class="box" x="10" y="218" width="196" height="146" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
@@ -488,7 +488,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><th>集約と ID</th><th>不変条件</th><th>なぜ JSON Schema で書けないか</th></tr>
 <tr><td>JSON ドキュメント D1</td><td>path で識別する。path は working tree からの相対で、working tree の外を読まない ・ 書かない</td><td>ファイルシステムを見る <span class="tr">本質 R2 ・ R4</span></td></tr>
 <tr><td>JSON ドキュメント D2</td><td><code>x-decided-by: human</code> の値は、Semantic Agent Schema を通しては変えられない（作成では default のまま、更新では前の値のまま）。変えようとしたら error</td><td>前の値と後の値を比べる <span class="tr">本質 P7</span></td></tr>
-<tr><td>JSON ドキュメント D3</td><td>If-Match のハッシュがいまのハッシュと同じときだけ書く（確かめること ・ 操作の記録への追記 ・ 書くことはロックの中で、この順に行う。書けなければ追記も取り消す）</td><td>いまのファイルの状態を見る <span class="tr">本質 W1</span></td></tr>
+<tr><td>JSON ドキュメント D3</td><td>最初に読んだときのハッシュが、書く直前のハッシュと同じときだけ書く（確かめること ・ 操作の記録への追記 ・ 書くことはロックの中で、この順に行う。書けなければ追記も取り消す）。同じコマンドの中で完結し、引数でハッシュを受け取らない</td><td>いまのファイルの状態を見る <span class="tr">本質 W1</span></td></tr>
 <tr><td>JSON ドキュメント D4</td><td>書くたびに、instance location ごとの change を出す。作成では、ルートを含むすべての instance location を add として出す</td><td>2つの JSON ドキュメントを比べる <span class="tr">本質 W1 ・ E5</span></td></tr>
 <tr><td>検証 V1</td><td>1つの JSON ドキュメントの、1つの内容について持つ。ID は操作ごとに付け、作った後は変えない</td><td>操作の記録の単位 <span class="tr">本質 E5 ・ <code>aggregate</code></span></td></tr>
 <tr><td>検証 V2</td><td>answer の rule と instance location の組は、そのとき返した procedure の組と同じ</td><td>procedure は、そのときの内容と前回の検証から決まる <span class="tr">本質 W1 ・ E6</span></td></tr>

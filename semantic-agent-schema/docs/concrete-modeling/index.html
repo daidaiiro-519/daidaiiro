@@ -139,7 +139,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>コマンド</th><th>引数</th><th>UC</th></tr>
 <tr><td><code>create</code></td><td><code>&lt;path&gt; --schemas &lt;ディレクトリ&gt;</code>、次のどちらか：<code>--semantic --schema-id &lt;$id&gt;</code> ／ <code>--value &lt;JSON | -&gt;</code></td><td>UC1</td></tr>
-<tr><td><code>update</code></td><td><code>&lt;path&gt; --schemas</code>、次のどちらか：<code>--semantic</code> ／ <code>--patch &lt;JSON | -&gt; --if-match &lt;ハッシュ&gt;</code>。Concrete を更新するときは <code>--range &lt;path&gt;</code></td><td>UC2</td></tr>
+<tr><td><code>update</code></td><td><code>&lt;path&gt; --schemas</code>、次のどちらか：<code>--semantic</code> ／ <code>--patch &lt;JSON | -&gt;</code>。Concrete を更新するときは <code>--range &lt;path&gt;</code></td><td>UC2</td></tr>
 <tr><td><code>validate</code></td><td><code>&lt;path&gt;... --schemas</code>。意味的な検証は <code>--semantic</code>（<code>--scope changed</code> が既定で変更点だけ。<code>--scope all</code> で全部の instance location。値はこの2つだけで、procedure の <code>scope</code> と同じ）か <code>--answer &lt;JSON | -&gt;</code>（path は1つ）</td><td>UC3 ・ UC4</td></tr>
 <tr><td><code>render</code></td><td><code>&lt;path&gt;... --schemas --design-system &lt;path&gt; --out &lt;ディレクトリ&gt;</code></td><td>UC6</td></tr>
 <tr><td><code>search</code></td><td><code>&lt;path&gt;...</code>、次のどれか：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code>（繰り返せる）／ <code>--semantic --question &lt;問い&gt;</code> ／ <code>--answer &lt;JSON | -&gt;</code></td><td>UC7</td></tr>
@@ -153,7 +153,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <li>人かどうかの確かめと、セッションとの結び付けは使う側の責務。Semantic Agent Schema は、実行したのが人か AI かを受け取らない ・ 残さない</li>
 </ul>
 <h3>next への引き継ぎ</h3>
-<p>作成と更新の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> と、いまのハッシュ（<code>--if-match</code>）を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
+<p>作成と更新の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
 </section>
 
 <section><h2><span class="n">5</span>公開された言葉</h2>
@@ -164,10 +164,10 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）と、Concrete に <code>$ref</code> を書かないことも、ここで JSON Schema にする。Concrete に書いてよい format の名前は <code>CODING.md</code> が持つ。rule の <code>related_fields</code> は、インスタンスのルートからの絶対の JSON Pointer で書く</td></tr>
 <tr><td>引数</td><td><code>arguments.schema.json</code></td><td>コマンドごとの引数の JSON の形。必須 ・ 組み合わせ ・ path とハッシュの pattern</td></tr>
 <tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> は validation ・ change ・ procedure ・ render ・ search ・ operation ・ error</td></tr>
-<tr><td>procedure</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す procedure。ログイベントの1つ（<code>"event":"procedure"</code>）。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path と <code>hash</code>（更新と判定のとき、いまのハッシュ）・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ answer の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-answer.schema.json</code>）・ <code>next</code></td></tr>
+<tr><td>procedure</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す procedure。ログイベントの1つ（<code>"event":"procedure"</code>）。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path ・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ answer の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-answer.schema.json</code>）・ <code>next</code></td></tr>
 <tr><td>入力</td><td><code>patch.schema.json</code> ・ <code>judgment-answer.schema.json</code> ・ <code>search-answer.schema.json</code></td><td>AI が渡す JSON Patch と answer</td></tr>
 <tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>デザインシステムの形と、テンプレートの記法。記法は名前と版で宣言する（<code>html/template</code> ・ Go の版）。テンプレートに渡すのは <code>.Value</code>（インスタンス）と <code>.Tokens</code>（デザイントークン）だけ</td></tr>
-<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（create は <code>--semantic</code> の有無でも分ける）。procedure の next の定型（<code>update --semantic</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{ifMatch}</code> ・ <code>{range}</code> などで書く</td></tr>
+<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（create は <code>--semantic</code> の有無でも分ける）。procedure の next の定型（<code>update --semantic</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> などで書く</td></tr>
 </table></div>
 <h3>error</h3>
 <pre><code>{"event": "error",
@@ -176,7 +176,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
  "absoluteKeywordLocation": "urn:example:order:v1#/properties/items/items/properties/price/minimum",
  "message": "0 より小さい",
  "instruction": "/items/0/price を 0 以上の数にして、もう一度 update を実行する",
- "next": "semantic-agent-schema update order.json --schemas schemas --patch '&lt;JSON Patch&gt;' --if-match sha256:…"}</code></pre>
+ "next": "semantic-agent-schema update order.json --schemas schemas --patch '&lt;JSON Patch&gt;'"}</code></pre>
 <p><code>schema_violation</code> は、<code>schemacheck</code> が <code>ValidationError</code> の葉ごとに <code>InstanceLocation</code> を <code>instanceLocation</code>、キーワードの絶対の位置を <code>absoluteKeywordLocation</code> にして1行ずつ出す。独自の判定は足さない。</p>
 <div class="wrap"><table class="stack">
 <tr><th>code</th><th>いつ</th><th>next</th></tr>
@@ -188,14 +188,14 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新 ・ 検証で path のファイルが無い</td><td><code>update --semantic</code> ／ <code>create --semantic</code></td></tr>
 <tr><td><code>decided_by_human</code></td><td>create ・ update で <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド。指示は、人がファイルを直接書いて決める値だと示す</td></tr>
 <tr><td><code>patch_not_applicable</code></td><td>JSON Patch を適用できない（path が無い ・ test が合わないなど）。<code>instanceLocation</code> はその operation の path</td><td><code>update --semantic</code></td></tr>
-<tr><td><code>hash_mismatch</code></td><td><code>--if-match</code> がいまのハッシュと違う（D3）。JSON Patch を適用する前と、ロックの中の2回確かめる</td><td><code>update --semantic</code></td></tr>
+<tr><td><code>hash_mismatch</code></td><td>書く直前（ロックの中）に、最初に読んだときからファイルのハッシュが変わっていた（D3）。書かない</td><td>同じコマンドの打ち直し</td></tr>
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>update --semantic</code></td></tr>
 <tr><td><code>answer_mismatch</code></td><td>answer の rule と instance location の組が procedure と違う（V2）</td><td><code>validate --semantic</code></td></tr>
 <tr><td><code>template_missing</code> ・ <code>out_overlap</code></td><td><code>x-view</code> のテンプレートが無い（S5）・ <code>--out</code> が入力と重なる</td><td>同じコマンド</td></tr>
 <tr><td><code>log_unavailable</code> ・ <code>log_locked</code></td><td>Git のリポジトリの外 ・ 表の形の版が違う ・ ロックが取れない</td><td>同じコマンド（版が違うときは instruction が records.sqlite の削除を示す）</td></tr>
 </table></div>
 <h3>violated の judgment があるときの validation</h3>
-<p>validation のログイベントは error ではないが、violated の judgment があるときは <code>instruction</code> と <code>next</code> を付ける。<code>instruction</code> は違反の instance location を直すよう示し、<code>next</code> はその JSON ドキュメントの <code>update --patch '<code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）lt;violated の instance location を直す JSON Patch<code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）gt;' --if-match <code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）lt;いまのハッシュ<code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）gt;</code>（ハッシュはコマンドが埋め、JSON Patch は AI が作る。直したあとに <code>validate</code> を実行し直す）。</p>
+<p>validation のログイベントは error ではないが、violated の judgment があるときは <code>instruction</code> と <code>next</code> を付ける。<code>instruction</code> は違反の instance location を直すよう示し、<code>next</code> は <code>update &lt;path&gt; --schemas … --patch '&lt;violated の instance location を直す JSON Patch&gt;'</code>。機械的な検証の違反は位置と理由が分かっているので、AI が JSON Patch で直接直せば1回で済む。AI の judgment の violated の next は、意味的な検証のユースケースで決める。</p>
 </section>
 
 <section><h2><span class="n">6</span>操作の記録</h2>
@@ -252,7 +252,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <ul>
 <li>どの表も追記だけ。UPDATE と DELETE は trigger で拒否する</li>
 <li>ID は INTEGER の主キー。ビューでは <code>command</code> と組にして指す（<code>--operation &lt;command&gt;:&lt;id&gt;</code>）</li>
-<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。更新では JSON Patch を適用する前にも1回確かめている）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、error のときはファイルも操作の記録も変わらない</li>
+<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。最初に読んだときのハッシュと同じか）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、error のときはファイルも操作の記録も変わらない</li>
 <li>表の形の版（<code>user_version</code>）が違えば開かず、<code>log_unavailable</code> で records.sqlite の削除を示す。前の版との互換は作らない</li>
 </ul>
 </section>
@@ -292,7 +292,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <text class="note small" x="22" y="438" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">検証した JSON ドキュメントを保存し、次の変更点の基準にする</text>
 </svg></div>
 <p class="cap">1回の流れ。入力の検証で違反なら error、通過すればドメインモデルで検証し、意味的な検証なら procedure を返す。</p>
-<div class="fig"><svg viewBox="0 0 420 1124" role="img" aria-label="update --semantic で procedure を受け取り、AI が JSON Patch を作って update --patch --if-match で書く。validate --semantic は前回の検証と比べた変更点の rule だけで procedure を返し、AI が answer を validate --answer で渡すと、検証してから操作の記録に追記する" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-9b772d1e-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-9b772d1e-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="1124.0" fill="#FFFFFF" rx="8"/>
+<div class="fig"><svg viewBox="0 0 420 1124" role="img" aria-label="update --semantic で procedure を受け取り、AI が JSON Patch を作って update --patch で書く。validate --semantic は前回の検証と比べた変更点の rule だけで procedure を返し、AI が answer を validate --answer で渡すと、検証してから操作の記録に追記する" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-88939ec9-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-88939ec9-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="1124.0" fill="#FFFFFF" rx="8"/>
 <text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">処理の流れ：procedure で更新し、変更点を判定する</text>
 <text class="note small" x="110" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">authoring（application ・ domain）</text>
 <text class="note small" x="313" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ポート → アダプター</text>
@@ -306,17 +306,17 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <rect class="box" x="10" y="199" width="200" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
 <text class="label small" x="20" y="217" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">2 domain：サブスキーマを引き</text>
 <text class="note small" x="20" y="232" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">procedure を作る。next に</text>
-<text class="note small" x="20" y="247" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--if-match と --schemas</text>
+<text class="note small" x="20" y="247" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas を入れる</text>
 <rect class="box kind-1" x="10" y="278" width="400" height="57" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
 <text class="label small" x="20" y="296" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：procedure に従い JSON Patch を作る</text>
-<text class="note small" x="20" y="311" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --patch P --if-match H</text>
+<text class="note small" x="20" y="311" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --patch P</text>
 <text class="note small" x="20" y="326" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas s/</text>
 <rect class="box" x="216" y="357" width="194" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
 <text class="label small" x="226" y="375" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3 Patcher → patching</text>
 <text class="note small" x="226" y="390" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Validator → schemacheck</text>
 <rect class="box" x="10" y="421" width="200" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
 <text class="label small" x="20" y="439" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4 domain：集約 JSON ドキュメント</text>
-<text class="note small" x="20" y="454" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">x-decided-by ・ If-Match</text>
+<text class="note small" x="20" y="454" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">x-decided-by ・ 読んだハッシュ</text>
 <text class="note small" x="20" y="469" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">change を出す</text>
 <rect class="box" x="216" y="500" width="194" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
 <text class="label small" x="226" y="518" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">5 Records.WithLock</text>
@@ -349,60 +349,59 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <text class="note small" x="226" y="1056" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">validations ・ judgments</text>
 <rect class="box kind-1" x="10" y="1087" width="400" height="27" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
 <text class="label small" x="20" y="1105" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：validation のログイベントを読む</text>
-<path class="flow" d="M313,113 V133" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,177 V188 H110 V197" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M110,256 V276" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,335 V355" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,399 V410 H110 V419" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M110,478 V489 H313 V498" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,557 V577" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,636 V656" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,715 V726 H110 V735" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M110,794 V814" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,873 V893" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,937 V948 H110 V957" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M110,1001 V1012 H313 V1021" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
-<path class="flow" d="M313,1065 V1085" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-9b772d1e-arrow-5B6B66)"/>
+<path class="flow" d="M313,113 V133" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,177 V188 H110 V197" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M110,256 V276" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,335 V355" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,399 V410 H110 V419" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M110,478 V489 H313 V498" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,557 V577" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,636 V656" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,715 V726 H110 V735" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M110,794 V814" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,873 V893" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,937 V948 H110 V957" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M110,1001 V1012 H313 V1021" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
+<path class="flow" d="M313,1065 V1085" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-88939ec9-arrow-5B6B66)"/>
 </svg></div>
 <p class="cap">UC2 の procedure による更新から、UC4 の意味的な検証まで。</p>
-<div class="fig"><svg viewBox="0 0 420 601" role="img" aria-label="更新で --if-match のハッシュがいまのハッシュと違ったときの流れ。Semantic Agent Schema は hash_mismatch の error のログイベントを返し、instruction と next を持たせる。AI は next の update --semantic を実行してprocedure を取り直し、新しいハッシュで JSON Patch を渡し直す" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-950f7e0f-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-950f7e0f-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="601.0" fill="#FFFFFF" rx="8"/>
-<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">処理の流れ：エラーのときの AI の次のアクション</text>
+<div class="fig"><svg viewBox="0 0 420 586" role="img" aria-label="更新で、書く直前にファイルのハッシュが最初に読んだときから変わっていたときの流れ。Semantic Agent Schema は書かずに hash_mismatch の error のログイベントを返し、instruction と next を持たせる。AI は next の同じコマンドを打ち直し、Semantic Agent Schema は読み直したファイルに JSON Patch を当てて書く" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-24d070f9-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-24d070f9-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="586.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">処理の流れ：error のときの AI の次のアクション</text>
 <text class="note small" x="110" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Semantic Agent Schema</text>
 <text class="note small" x="313" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">出力（ログイベント）</text>
 <rect class="box kind-1" x="10" y="56" width="400" height="42" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
 <text class="label small" x="20" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：update a.json --patch P</text>
-<text class="note small" x="20" y="89" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--if-match sha256:aaa --schemas s/</text>
+<text class="note small" x="20" y="89" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas s/</text>
 <rect class="box" x="10" y="120" width="200" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
-<text class="label small" x="20" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1 ロックの中でハッシュを比べる</text>
-<text class="note small" x="20" y="153" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">いまは sha256:bbb</text>
-<rect class="box" x="216" y="184" width="194" height="72" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
-<text class="label small" x="226" y="202" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">2 error のログイベント</text>
-<text class="note small" x="226" y="217" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">code：hash_mismatch</text>
-<text class="note small" x="226" y="232" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">instruction：読み直して</text>
-<text class="note small" x="226" y="247" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">patch を作り直す</text>
-<rect class="box" x="216" y="278" width="194" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
-<text class="label small" x="226" y="296" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">next：update a.json</text>
-<text class="note small" x="226" y="311" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--semantic --schemas s/</text>
-<rect class="box kind-1" x="10" y="342" width="400" height="42" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
-<text class="label small" x="20" y="360" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：next を実行する</text>
-<text class="note small" x="20" y="375" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --semantic --schemas s/</text>
-<rect class="box" x="10" y="406" width="200" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
-<text class="label small" x="20" y="424" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3 procedure を返す</text>
-<text class="note small" x="20" y="439" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">next に --if-match sha256:bbb</text>
-<rect class="box kind-1" x="10" y="470" width="400" height="57" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
-<text class="label small" x="20" y="488" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：procedure に従い JSON Patch を作り直す</text>
-<text class="note small" x="20" y="503" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --patch P2</text>
-<text class="note small" x="20" y="518" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--if-match sha256:bbb --schemas s/</text>
-<rect class="box" x="216" y="549" width="194" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
-<text class="label small" x="226" y="567" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4 change のログイベント</text>
-<text class="note small" x="226" y="582" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">書けた</text>
-<path class="flow" d="M110,98 V118" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
-<path class="flow" d="M110,162 V173 H313 V182" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
-<path class="flow" d="M313,256 V276" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
-<path class="flow" d="M313,320 V340" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
-<path class="flow" d="M110,384 V404" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
-<path class="flow" d="M110,448 V468" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
-<path class="flow" d="M313,527 V547" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-950f7e0f-arrow-5B6B66)"/>
+<text class="label small" x="20" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1 読んでハッシュ aaa を控え</text>
+<text class="note small" x="20" y="153" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">JSON Patch を当てて検証する</text>
+<rect class="box" x="10" y="184" width="200" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="202" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">2 ロックの中でハッシュを比べる</text>
+<text class="note small" x="20" y="217" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">いまは bbb（ほかが書いた）</text>
+<rect class="box" x="216" y="248" width="194" height="72" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="226" y="266" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3 error のログイベント</text>
+<text class="note small" x="226" y="281" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">code：hash_mismatch</text>
+<text class="note small" x="226" y="296" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">instruction：同じコマンドを</text>
+<text class="note small" x="226" y="311" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">打ち直す</text>
+<rect class="box" x="216" y="342" width="194" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="226" y="360" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">next：update a.json</text>
+<text class="note small" x="226" y="375" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--patch P --schemas s/</text>
+<rect class="box kind-1" x="10" y="406" width="400" height="42" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="424" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：next を実行する</text>
+<text class="note small" x="20" y="439" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --patch P --schemas s/</text>
+<rect class="box" x="10" y="470" width="200" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="488" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4 bbb を読んで JSON Patch を当て</text>
+<text class="note small" x="20" y="503" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ロックの中でも bbb なので書く</text>
+<rect class="box" x="216" y="534" width="194" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="226" y="552" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">5 change のログイベント</text>
+<text class="note small" x="226" y="567" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">書けた</text>
+<path class="flow" d="M110,98 V118" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
+<path class="flow" d="M110,162 V182" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
+<path class="flow" d="M110,226 V237 H313 V246" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
+<path class="flow" d="M313,320 V340" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
+<path class="flow" d="M313,384 V404" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
+<path class="flow" d="M110,448 V468" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
+<path class="flow" d="M110,512 V523 H313 V532" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-24d070f9-arrow-5B6B66)"/>
 </svg></div>
 <p class="cap">エラーのとき：AI は <code>instruction</code> に従い、<code>next</code> を実行する。</p>
 </section>
@@ -428,7 +427,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <p>試験の正解は、本質と2枚のページだけ。Rust 版の出力は正解にしない。識別子は変わっていくので、試験とページの行を識別子で対応させることはしない。</p>
 <div class="wrap"><table class="stack">
 <tr><th>決まり</th><th>内容</th></tr>
-<tr><td>試験の名前</td><td>振る舞いの名前で書く（例：<code>TestUpdateRejectsStaleIfMatch</code> ・ <code>TestValidateReturnsNextForViolatedJudgment</code>）</td></tr>
+<tr><td>試験の名前</td><td>振る舞いの名前で書く（例：<code>TestUpdateRejectsChangedFileBeforeWrite</code> ・ <code>TestValidateReturnsNextForViolatedJudgment</code>）</td></tr>
 <tr><td>期待値</td><td>実装より先に、ページの振る舞いから書く。出力から写さない。ハッシュは試験の中でバイト列から求める</td></tr>
 <tr><td>比べ方</td><td>出力は JSON Pointer と値の組で比べ、差は <code>cmp.Diff</code> で出す。<code>message</code> の文は比べない。全部の出力を <code>event.schema.json</code>（procedure は <code>procedure.schema.json</code>）で検証する</td></tr>
 <tr><td>環境</td><td>試験ごとに新しい一時ディレクトリで <code>git init</code> し、本物のアダプター（一時ファイルの SQLite）を使う。子プロセスの環境は空から作る</td></tr>

@@ -338,9 +338,9 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | L03 | error のログイベントは、`code` ・ `instanceLocation` ・ `absoluteKeywordLocation` ・ `message` ・ `instruction` ・ `next` を持つ | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |
 | L04 | `code` は、`error-codes.json` のキーの名前だけを使う | このプロジェクト | 具体のページ 5節 | |
 | L05 | `instruction` の定型文と `next` の形は `error-codes.json` に置き、Go のコードに文を書かない | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
-| L06 | Go のコードは、定型の `{…}`（`{instanceLocation}` ・ `{absoluteKeywordLocation}` ・ `{message}` ・ `{path}` ・ `{command}` ・ `{paths}` ・ `{schemas}` ・ `{hash}` ・ `{schemaId}` ・ `{ifMatch}` ・ `{range}`）を埋めるだけにする | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
+| L06 | Go のコードは、定型の `{…}`（`{instanceLocation}` ・ `{absoluteKeywordLocation}` ・ `{message}` ・ `{path}` ・ `{command}` ・ `{paths}` ・ `{schemas}` ・ `{schemaId}` ・ `{range}`）を埋めるだけにする | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
 | L07 | `next` の `<…>` は、AI が埋める部分として残す | このプロジェクト | 抽象のページ 9節「next」 | |
-| L08 | `next` には、受け取った `--schemas` ・ `--range` ・ `--schema-id` と、いまのハッシュ（`--if-match`）を引き継ぐ | このプロジェクト | 具体のページ 4節「next への引き継ぎ」 | |
+| L08 | `next` には、受け取った `--schemas` ・ `--range` ・ `--schema-id` を引き継ぐ。ハッシュは渡さない（楽観ロックは update の中で、最初に読んだハッシュと書く直前のハッシュを比べて完結する） | このプロジェクト | 具体のページ 4節「next への引き継ぎ」 | |
 | L09 | 引数は pflag で読んで JSON にし、`arguments.schema.json` で検証する。Go のコードで引数の形を確かめない | このプロジェクト | 具体のページ 4節 ・ 本質 `W5` | |
 | L10 | JSON Schema の違反は、`schemacheck` が `ValidationError` の葉ごとに、`InstanceLocation` を `instanceLocation`、キーワードの絶対の位置を `absoluteKeywordLocation` にして1行ずつ出す | このプロジェクト | 具体のページ 5節「error」 | |
 | L11 | JSON Schema の違反には、独自の判定も独自の文も足さない。ライブラリの出力を変換するだけにする | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |

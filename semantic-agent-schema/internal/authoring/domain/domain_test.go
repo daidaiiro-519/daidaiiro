@@ -439,17 +439,17 @@ func TestNewUpdateDecidedByHuman(t *testing.T) {
 	}
 }
 
-func TestMatchHashRejectsAnotherHash(t *testing.T) {
+func TestMatchHashRejectsChangeAfterRead(t *testing.T) {
 	t.Parallel()
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
 	current := domain.HashOf([]byte("a"))
-	if err := domain.MatchHash(path, current, current.String()); err != nil {
+	if err := domain.MatchHash(path, current, domain.HashOf([]byte("a"))); err != nil {
 		t.Errorf("MatchHash(same) = %v, want nil", err)
 	}
-	other := domain.HashOf([]byte("b")).String()
+	other := domain.HashOf([]byte("b"))
 	if got := codeOf(domain.MatchHash(path, current, other)); got != "hash_mismatch" {
 		t.Errorf("MatchHash(other) code = %q, want %q", got, "hash_mismatch")
 	}
@@ -476,7 +476,7 @@ func TestNewUpdateProcedureMakesStepsFromInstanceLocations(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Errorf("NewUpdateProcedure(memo).Steps() = %q, want %q", got, want)
 	}
-	if p.Hash().String() != document.Hash.String() || p.AnswerSchemaID() != "urn:patch" {
-		t.Errorf("NewUpdateProcedure(memo) = %s, %s, want %s, urn:patch", p.Hash(), p.AnswerSchemaID(), document.Hash)
+	if p.AnswerSchemaID() != "urn:patch" {
+		t.Errorf("NewUpdateProcedure(memo).AnswerSchemaID() = %s, want urn:patch", p.AnswerSchemaID())
 	}
 }

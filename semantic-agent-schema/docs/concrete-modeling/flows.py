@@ -50,16 +50,16 @@ def build(name, title, aria, cols, rows):
 
 build(
     'flow-semantic', '処理の流れ：procedure で更新し、変更点を判定する',
-    'update --semantic で procedure を受け取り、AI が JSON Patch を作って update --patch --if-match で書く。'
+    'update --semantic で procedure を受け取り、AI が JSON Patch を作って update --patch で書く。'
     'validate --semantic は前回の検証と比べた変更点の rule だけで procedure を返し、AI が answer を validate --answer で渡すと、検証してから操作の記録に追記する',
     [('authoring（application ・ domain）', 10, 200), ('ポート → アダプター', 216, 194)],
     [
         ('ai', ['AI：更新の procedure を依頼する', 'update a.json --semantic', '--schemas s/']),
         (1, ['1 Documents.Read → files', 'Schemas → files']),
-        (0, ['2 domain：サブスキーマを引き', 'procedure を作る。next に', '--if-match と --schemas']),
-        ('ai', ['AI：procedure に従い JSON Patch を作る', 'update a.json --patch P --if-match H', '--schemas s/']),
+        (0, ['2 domain：サブスキーマを引き', 'procedure を作る。next に', '--schemas を入れる']),
+        ('ai', ['AI：procedure に従い JSON Patch を作る', 'update a.json --patch P', '--schemas s/']),
         (1, ['3 Patcher → patching', 'Validator → schemacheck']),
-        (0, ['4 domain：集約 JSON ドキュメント', 'x-decided-by ・ If-Match', 'change を出す']),
+        (0, ['4 domain：集約 JSON ドキュメント', 'x-decided-by ・ 読んだハッシュ', 'change を出す']),
         (1, ['5 Records.WithLock', '→ recordstore：ロックの中で', '追記して Documents.Write']),
         ('ai', ['AI：判定の procedure を依頼する', 'validate a.json --semantic', '--schemas s/']),
         (1, ['6 Records', '.LastValidation', '→ recordstore：前回の検証']),
@@ -73,18 +73,18 @@ build(
 )
 
 build(
-    'flow-error', '処理の流れ：エラーのときの AI の次のアクション',
-    '更新で --if-match のハッシュがいまのハッシュと違ったときの流れ。Semantic Agent Schema は hash_mismatch の error のログイベントを返し、'
-    'instruction と next を持たせる。AI は next の update --semantic を実行してprocedure を取り直し、新しいハッシュで JSON Patch を渡し直す',
+    'flow-error', '処理の流れ：error のときの AI の次のアクション',
+    '更新で、書く直前にファイルのハッシュが最初に読んだときから変わっていたときの流れ。Semantic Agent Schema は書かずに hash_mismatch の error のログイベントを返し、'
+    'instruction と next を持たせる。AI は next の同じコマンドを打ち直し、Semantic Agent Schema は読み直したファイルに JSON Patch を当てて書く',
     [('Semantic Agent Schema', 10, 200), ('出力（ログイベント）', 216, 194)],
     [
-        ('ai', ['AI：update a.json --patch P', '--if-match sha256:aaa --schemas s/']),
-        (0, ['1 ロックの中でハッシュを比べる', 'いまは sha256:bbb']),
-        (1, ['2 error のログイベント', 'code：hash_mismatch', 'instruction：読み直して', 'patch を作り直す']),
-        (1, ['next：update a.json', '--semantic --schemas s/']),
-        ('ai', ['AI：next を実行する', 'update a.json --semantic --schemas s/']),
-        (0, ['3 procedure を返す', 'next に --if-match sha256:bbb']),
-        ('ai', ['AI：procedure に従い JSON Patch を作り直す', 'update a.json --patch P2', '--if-match sha256:bbb --schemas s/']),
-        (1, ['4 change のログイベント', '書けた']),
+        ('ai', ['AI：update a.json --patch P', '--schemas s/']),
+        (0, ['1 読んでハッシュ aaa を控え', 'JSON Patch を当てて検証する']),
+        (0, ['2 ロックの中でハッシュを比べる', 'いまは bbb（ほかが書いた）']),
+        (1, ['3 error のログイベント', 'code：hash_mismatch', 'instruction：同じコマンドを', '打ち直す']),
+        (1, ['next：update a.json', '--patch P --schemas s/']),
+        ('ai', ['AI：next を実行する', 'update a.json --patch P --schemas s/']),
+        (0, ['4 bbb を読んで JSON Patch を当て', 'ロックの中でも bbb なので書く']),
+        (1, ['5 change のログイベント', '書けた']),
     ],
 )

@@ -46,7 +46,6 @@ type arguments struct {
 	SchemaID string   `json:"schemaId,omitempty"`
 	Value    *string  `json:"value,omitempty"`
 	Patch    *string  `json:"patch,omitempty"`
-	IfMatch  string   `json:"ifMatch,omitempty"`
 	Range    []string `json:"range,omitempty"`
 }
 
@@ -116,7 +115,6 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	schemaID := flags.String("schema-id", "", "作る JSON ドキュメントが従う Concrete の $id")
 	value := flags.String("value", "", "JSON ドキュメント。- なら標準入力から読む")
 	patch := flags.String("patch", "", "JSON Patch。- なら標準入力から読む")
-	ifMatch := flags.String("if-match", "", "読んだときのハッシュ")
 	ranges := flags.StringArray("range", nil, "Concrete を更新するときの、範囲のインスタンスの path（繰り返せる）")
 	if err := flags.Parse(args); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
@@ -131,7 +129,6 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	if flags.Changed("patch") {
 		parsed.Patch = patch
 	}
-	parsed.IfMatch = *ifMatch
 	parsed.Range = *ranges
 	content, err := json.Marshal(parsed)
 	if err != nil {
@@ -167,7 +164,7 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		return out.procedure(args, procedure)
 	case args.Command == "update":
 		id, write, err := uc.Update.Run(ctx, application.UpdateInput{
-			Path: paths[0], Patch: content, IfMatch: args.IfMatch, Range: ranges,
+			Path: paths[0], Patch: content, Range: ranges,
 		})
 		if err != nil {
 			return out.failures(args, err)

@@ -1,39 +1,38 @@
-<svg viewBox="0 0 420 601" role="img" aria-label="更新で --if-match のハッシュがいまのハッシュと違ったときの流れ。Semantic Agent Schema は hash_mismatch の error のログイベントを返し、instruction と next を持たせる。AI は next の update --semantic を実行してprocedure を取り直し、新しいハッシュで JSON Patch を渡し直す">
-<text class="title" x="10" y="22">処理の流れ：エラーのときの AI の次のアクション</text>
+<svg viewBox="0 0 420 586" role="img" aria-label="更新で、書く直前にファイルのハッシュが最初に読んだときから変わっていたときの流れ。Semantic Agent Schema は書かずに hash_mismatch の error のログイベントを返し、instruction と next を持たせる。AI は next の同じコマンドを打ち直し、Semantic Agent Schema は読み直したファイルに JSON Patch を当てて書く">
+<text class="title" x="10" y="22">処理の流れ：error のときの AI の次のアクション</text>
 <text class="note small" x="110" y="44" text-anchor="middle">Semantic Agent Schema</text>
 <text class="note small" x="313" y="44" text-anchor="middle">出力（ログイベント）</text>
 <rect class="box kind-1" x="10" y="56" width="400" height="42"/>
 <text class="label small" x="20" y="74">AI：update a.json --patch P</text>
-<text class="note small" x="20" y="89">--if-match sha256:aaa --schemas s/</text>
+<text class="note small" x="20" y="89">--schemas s/</text>
 <rect class="box" x="10" y="120" width="200" height="42"/>
-<text class="label small" x="20" y="138">1 ロックの中でハッシュを比べる</text>
-<text class="note small" x="20" y="153">いまは sha256:bbb</text>
-<rect class="box" x="216" y="184" width="194" height="72"/>
-<text class="label small" x="226" y="202">2 error のログイベント</text>
-<text class="note small" x="226" y="217">code：hash_mismatch</text>
-<text class="note small" x="226" y="232">instruction：読み直して</text>
-<text class="note small" x="226" y="247">patch を作り直す</text>
-<rect class="box" x="216" y="278" width="194" height="42"/>
-<text class="label small" x="226" y="296">next：update a.json</text>
-<text class="note small" x="226" y="311">--semantic --schemas s/</text>
-<rect class="box kind-1" x="10" y="342" width="400" height="42"/>
-<text class="label small" x="20" y="360">AI：next を実行する</text>
-<text class="note small" x="20" y="375">update a.json --semantic --schemas s/</text>
-<rect class="box" x="10" y="406" width="200" height="42"/>
-<text class="label small" x="20" y="424">3 procedure を返す</text>
-<text class="note small" x="20" y="439">next に --if-match sha256:bbb</text>
-<rect class="box kind-1" x="10" y="470" width="400" height="57"/>
-<text class="label small" x="20" y="488">AI：procedure に従い JSON Patch を作り直す</text>
-<text class="note small" x="20" y="503">update a.json --patch P2</text>
-<text class="note small" x="20" y="518">--if-match sha256:bbb --schemas s/</text>
-<rect class="box" x="216" y="549" width="194" height="42"/>
-<text class="label small" x="226" y="567">4 change のログイベント</text>
-<text class="note small" x="226" y="582">書けた</text>
+<text class="label small" x="20" y="138">1 読んでハッシュ aaa を控え</text>
+<text class="note small" x="20" y="153">JSON Patch を当てて検証する</text>
+<rect class="box" x="10" y="184" width="200" height="42"/>
+<text class="label small" x="20" y="202">2 ロックの中でハッシュを比べる</text>
+<text class="note small" x="20" y="217">いまは bbb（ほかが書いた）</text>
+<rect class="box" x="216" y="248" width="194" height="72"/>
+<text class="label small" x="226" y="266">3 error のログイベント</text>
+<text class="note small" x="226" y="281">code：hash_mismatch</text>
+<text class="note small" x="226" y="296">instruction：同じコマンドを</text>
+<text class="note small" x="226" y="311">打ち直す</text>
+<rect class="box" x="216" y="342" width="194" height="42"/>
+<text class="label small" x="226" y="360">next：update a.json</text>
+<text class="note small" x="226" y="375">--patch P --schemas s/</text>
+<rect class="box kind-1" x="10" y="406" width="400" height="42"/>
+<text class="label small" x="20" y="424">AI：next を実行する</text>
+<text class="note small" x="20" y="439">update a.json --patch P --schemas s/</text>
+<rect class="box" x="10" y="470" width="200" height="42"/>
+<text class="label small" x="20" y="488">4 bbb を読んで JSON Patch を当て</text>
+<text class="note small" x="20" y="503">ロックの中でも bbb なので書く</text>
+<rect class="box" x="216" y="534" width="194" height="42"/>
+<text class="label small" x="226" y="552">5 change のログイベント</text>
+<text class="note small" x="226" y="567">書けた</text>
 <path class="flow" d="M110,98 V118" fill="none"/>
-<path class="flow" d="M110,162 V173 H313 V182" fill="none"/>
-<path class="flow" d="M313,256 V276" fill="none"/>
+<path class="flow" d="M110,162 V182" fill="none"/>
+<path class="flow" d="M110,226 V237 H313 V246" fill="none"/>
 <path class="flow" d="M313,320 V340" fill="none"/>
-<path class="flow" d="M110,384 V404" fill="none"/>
+<path class="flow" d="M313,384 V404" fill="none"/>
 <path class="flow" d="M110,448 V468" fill="none"/>
-<path class="flow" d="M313,527 V547" fill="none"/>
+<path class="flow" d="M110,512 V523 H313 V532" fill="none"/>
 </svg>

@@ -176,11 +176,11 @@ func (w *Write) Concrete() Concrete { return w.concrete }
 // Changes は、instance location ごとの change を返す。
 func (w *Write) Changes() []Change { return w.changes }
 
-// MatchHash は、集約 JSON ドキュメントの不変条件として、If-Match のハッシュがいまのハッシュと同じかを確かめる。
-// 違えば hash_mismatch の Failure を返す。確かめることと書くことは、ロックの中で行う。
-func MatchHash(path Path, current Hash, ifMatch string) error {
-	if current.String() == ifMatch {
+// MatchHash は、集約 JSON ドキュメントの不変条件（楽観ロック）として、最初に読んだときのハッシュが、書く直前のいまのハッシュと
+// 同じかを確かめる。違えば hash_mismatch の Failure を返す。確かめることと書くことは、ロックの中で行う。
+func MatchHash(path Path, read, current Hash) error {
+	if read.String() == current.String() {
 		return nil
 	}
-	return Fail(HashMismatch, path.String(), "If-Match "+ifMatch+" がいまのハッシュ "+current.String()+" と違う")
+	return Fail(HashMismatch, path.String(), "読んだときのハッシュ "+read.String()+" が、書く直前のハッシュ "+current.String()+" と違う")
 }

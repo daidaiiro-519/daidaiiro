@@ -88,7 +88,7 @@ func (o *output) failures(args arguments, err error) error {
 			others = append(others, e)
 			continue
 		}
-		values := fill(args, f.Path, "")
+		values := fill(args, f.Path)
 		values["{instanceLocation}"] = f.InstanceLocation
 		values["{absoluteKeywordLocation}"] = f.AbsoluteKeywordLocation
 		values["{message}"] = f.Message
@@ -116,8 +116,8 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {hash} ・ {schemaId} ・ {ifMatch} ・ {range} に入れる値を返す。
-func fill(args arguments, path, hash string) map[string]string {
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schemaId} ・ {range} に入れる値を返す。
+func fill(args arguments, path string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
 		schemas = append(schemas, "--schemas "+quote(s))
@@ -134,9 +134,7 @@ func fill(args arguments, path, hash string) map[string]string {
 		"{path}":     quote(path),
 		"{paths}":    strings.Join(paths, " "),
 		"{schemas}":  strings.Join(schemas, " "),
-		"{hash}":     hash,
 		"{schemaId}": quote(args.SchemaID),
-		"{ifMatch}":  quote(args.IfMatch),
 		"{range}":    ranges,
 	}
 }
@@ -200,7 +198,7 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 	}
 	if counts.Violated > 0 {
 		o.failed = true
-		values := fill(args, event.Path, event.ContentHash)
+		values := fill(args, event.Path)
 		values["{instanceLocation}"] = strings.Join(violated, ", ")
 		event.Instruction = replace(o.violated.Instruction, values)
 		event.Next = replace(o.violated.next(args), values)
@@ -220,7 +218,6 @@ type procedureEvent struct {
 	Event   string            `json:"event"`
 	Command string            `json:"command"`
 	Path    string            `json:"path"`
-	Hash    string            `json:"hash,omitempty"`
 	Steps   []stepEvent       `json:"steps"`
 	Answer  map[string]string `json:"answer"`
 	Next    string            `json:"next"`
@@ -232,12 +229,7 @@ func (o *output) procedure(args arguments, p domain.Procedure) error {
 		Event: "procedure", Command: string(p.Command()), Path: p.Path().String(), Steps: []stepEvent{},
 		Answer: map[string]string{"$ref": p.AnswerSchemaID()},
 	}
-	var hash string
-	if p.Hash() != nil {
-		hash = p.Hash().String()
-		event.Hash = hash
-	}
-	event.Next = replace(o.procedureNext.next(args), fill(args, p.Path().String(), hash))
+	event.Next = replace(o.procedureNext.next(args), fill(args, p.Path().String()))
 	for _, step := range p.Steps() {
 		e := stepEvent{Title: step.Title, Description: step.Description, Prompt: step.Prompt}
 		if step.KeywordLocation != nil {
@@ -268,7 +260,7 @@ func (o *output) change(args arguments, id int64, c *domain.Write) error {
 	return o.encoder.Encode(changeEvent{
 		Event: "change", ID: id, Command: string(c.Command()),
 		Path: path, SchemaID: c.Concrete().ID(), ContentHash: c.Document().Hash.String(),
-		Next: replace(o.changeNext.next(args), fill(args, path, "")),
+		Next: replace(o.changeNext.next(args), fill(args, path)),
 	})
 }
 

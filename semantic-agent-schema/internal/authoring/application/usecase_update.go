@@ -10,7 +10,7 @@ import (
 // Update は、ユースケース「更新」。JSON ドキュメント（インスタンスか Concrete）を JSON Patch で書き換える。
 // 各ステップの担保：引数は機械的な検証（JSON Schema）、更新の procedure は意味的な検証（ドメインモデル）、
 // JSON Patch の作成は AI、JSON Patch の形と、適用した結果の Concrete での検証と、Concrete を更新するときの範囲のインスタンスの
-// 検証は機械的な検証（JSON Schema）、x-decided-by: human の値と If-Match のハッシュと作法は機械的な検証（ドメインモデル）、
+// 検証は機械的な検証（JSON Schema）、x-decided-by: human の値と楽観ロックのハッシュと作法は機械的な検証（ドメインモデル）、
 // 追記と書き込みは処理（アダプター）。ハッシュの確認 ・ 追記 ・ 書き込みは、この順にロックの中で行う。
 type Update struct {
 	Documents  Documents
@@ -33,13 +33,13 @@ func (u Update) Procedure(ctx context.Context, path domain.Path) (domain.Procedu
 
 // UpdateInput は、更新の引数。
 type UpdateInput struct {
-	Path    domain.Path
-	Patch   []byte
-	IfMatch string
-	Range   []domain.Path // Concrete を更新するときの、範囲のインスタンス
+	Path  domain.Path
+	Patch []byte
+	Range []domain.Path // Concrete を更新するときの、範囲のインスタンス
 }
 
-// Run は、JSON Patch を適用して検証し、ロックの中で If-Match のハッシュを確かめてから、change を追記してファイルを書く。
+// Run は、最初にいまのファイルを読んでハッシュを控え、JSON Patch を適用して検証し、ロックの中で書く直前のハッシュが
+// 控えたハッシュと同じかを確かめてから（楽観ロック）、change を追記してファイルを書く。
 // 操作の ID と書く操作を返す。error のときは、ファイルも操作の記録も変えない。
 func (u Update) Run(ctx context.Context, in UpdateInput) (int64, *domain.Write, error) {
 	write, err := u.check(ctx, in)
@@ -52,7 +52,7 @@ func (u Update) Run(ctx context.Context, in UpdateInput) (int64, *domain.Write, 
 		if err != nil {
 			return err
 		}
-		if err := domain.MatchHash(in.Path, current.Hash, in.IfMatch); err != nil {
+		if err := domain.MatchHash(in.Path, write.BeforeHash(), current.Hash); err != nil {
 			return err
 		}
 		if id, err = u.Records.AppendChange(ctx, write); err != nil {
@@ -70,10 +70,6 @@ func (u Update) Run(ctx context.Context, in UpdateInput) (int64, *domain.Write, 
 func (u Update) check(ctx context.Context, in UpdateInput) (*domain.Write, error) {
 	before, err := u.Documents.Read(ctx, in.Path)
 	if err != nil {
-		return nil, err
-	}
-	// 読んだ内容が If-Match と違えば、JSON Patch はいまの内容に合わないので、適用する前に返す
-	if err := domain.MatchHash(in.Path, before.Hash, in.IfMatch); err != nil {
 		return nil, err
 	}
 	beforeValue, err := domain.ParseJSON(before.Content)

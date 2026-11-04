@@ -154,13 +154,8 @@
         }
       }
     },
-    "hash": {
-      "description": "内容のバイト列から決まる値",
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
-    },
     "update": {
-      "description": "update <path> --schemas <ディレクトリ>、次のどちらか：--semantic ／ --patch <JSON | -> --if-match <ハッシュ>。Concrete を更新するときは --range <path>（繰り返せる）。更新",
+      "description": "update <path> --schemas <ディレクトリ>、次のどちらか：--semantic ／ --patch <JSON | ->。Concrete を更新するときは --range <path>（繰り返せる）。更新",
       "type": "object",
       "required": [
         "command",
@@ -193,9 +188,6 @@
           "type": "string",
           "minLength": 1
         },
-        "ifMatch": {
-          "$ref": "#/$defs/hash"
-        },
         "range": {
           "type": "array",
           "minItems": 1,
@@ -210,27 +202,17 @@
         ]
       },
       "then": {
-        "description": "更新の procedure を依頼する：--patch と --if-match は渡さない",
+        "description": "更新の procedure を依頼する：--patch は渡さない",
         "not": {
-          "anyOf": [
-            {
-              "required": [
-                "patch"
-              ]
-            },
-            {
-              "required": [
-                "ifMatch"
-              ]
-            }
+          "required": [
+            "patch"
           ]
         }
       },
       "else": {
-        "description": "JSON Patch を直接渡す：--patch と --if-match が要る",
+        "description": "JSON Patch を直接渡す：--patch が要る",
         "required": [
-          "patch",
-          "ifMatch"
+          "patch"
         ]
       }
     }
