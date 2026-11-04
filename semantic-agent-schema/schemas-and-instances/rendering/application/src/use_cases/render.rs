@@ -22,14 +22,14 @@ use rendering_domain::services::view::{page_path_of, script_json, token_values, 
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::values::Verdict;
-use writing_domain::services::{SchemaIndex, Unresolved, concrete_of};
+use writing_domain::services::{SchemaIndex, Unresolved};
 use writing_domain::values::{ContentHash, SchemaPlaces, TargetKind};
 
 /// 描画 ・ デザインシステムの検証を始められなかった ・ 書き出さなかった理由。描画は記録しない（理由と案内をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Refused {
     /// 決まった名前（not_found ・ not_json ・ no_schema ・ schema_not_listed ・ unknown_schema ・ duplicate_schema ・ invalid_input ・ store ・
-    /// validator ・ log、描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out）
+    /// validator、描画で断ったもの：invalid_design_system ・ missing_view_kinds ・ template ・ out）
     pub code: &'static str,
     /// 対象の経路（あれば）
     pub path: Option<Box<str>>,
@@ -50,16 +50,6 @@ pub fn refused(code: &'static str, path: &str, message: String) -> Refused {
         code,
         path: Some(path.into()),
         message,
-        ..Refused::default()
-    }
-}
-
-/// 記録を読み書きできなかったことを、断った理由にする。
-#[must_use]
-pub fn log_refused(e: String) -> Refused {
-    Refused {
-        code: "log",
-        message: e,
         ..Refused::default()
     }
 }
@@ -90,15 +80,21 @@ pub(crate) fn read_concrete(
     id: &str,
     target: Option<&str>,
 ) -> Result<(String, Value), Refused> {
-    let path = index
-        .path_of(id, None)
-        .map_err(|u| unresolved(target, u))?
-        .to_string();
-    let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
-    let value: Value = serde_json::from_str(&text)
-        .map_err(|e| refused("store", &path, format!("JSON として読めない：{e}")))?;
-    concrete_of(id, &path, &value).map_err(|u| unresolved(target, u))?;
-    Ok((path, value))
+    let mut lookup = index.concrete(id, false);
+    while let Some(path) = lookup.next(&|_| false).map_err(|u| unresolved(target, u))? {
+        let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
+        lookup.read(&text).map_err(|u| unresolved(target, u))?;
+    }
+    let found = lookup.resolved().ok_or_else(|| Refused {
+        code: "unknown_schema",
+        path: target.map(Into::into),
+        message: format!("{id} を引けなかった"),
+        ..Refused::default()
+    })?;
+    Ok((
+        found.path().to_string(),
+        found.concrete().document().clone(),
+    ))
 }
 
 /// 置き場所から引けなかった理由を、断った理由にする。
@@ -148,8 +144,8 @@ pub struct Page {
     pub target: String,
     /// 書き出す先からのページの経路
     pub page_path: String,
-    /// 使った x-view の種類（並びは名前の順）
-    pub views: Vec<String>,
+    /// 使った x-view の種類（Concrete の根の x-view。無ければ page）
+    pub view: String,
 }
 
 /// 描画の結果。
@@ -218,8 +214,8 @@ pub fn render(
         let broken: Vec<String> = ds
             .results
             .iter()
-            .filter(|(r, _)| r.verdict() == Verdict::Violated)
-            .map(|(r, _)| format!("{}（{}）：{}", r.rule(), r.pointer(), r.reason()))
+            .filter(|r| r.verdict() == Verdict::Violated)
+            .map(|r| format!("{}（{}）：{}", r.rule(), r.pointer(), r.reason()))
             .collect();
         return Err(Refused {
             code: "invalid_design_system",
@@ -229,7 +225,7 @@ pub fn render(
                 broken.join(" ／ ")
             ),
             hint: Some(Box::new(format!(
-                "semantic-agent-schema validate {ds_path} {} (--session <ID> | --human)",
+                "semantic-agent-schema validate {ds_path} {}",
                 request.schemas.args().join(" ")
             ))),
             ..Refused::default()
@@ -294,12 +290,25 @@ pub fn render(
         if let Some(m) = values.as_object_mut() {
             m.shift_remove("$schema");
         }
-        let ctx = json!({
-            "value": values,
-            "json": script_json(&values),
-            "tokens": tokens,
-            "css": css,
-        });
+        // 渡すのは契約の x-names の名前だけ
+        let mut ctx = serde_json::Map::new();
+        for name in &ds.language.names {
+            let v = match name.as_str() {
+                "value" => values.clone(),
+                "json" => json!(script_json(&values)),
+                "tokens" => tokens.clone(),
+                "css" => json!(css),
+                other => {
+                    return Err(Refused {
+                        code: "validator",
+                        message: format!("テンプレートの書き方の契約の名前 {other} の値を作れない"),
+                        ..Refused::default()
+                    });
+                }
+            };
+            ctx.insert(name.clone(), v);
+        }
+        let ctx = Value::Object(ctx);
         let html = renderer.render(sources, kind, &ctx).map_err(|e| {
             refused(
                 "template",
@@ -319,7 +328,7 @@ pub fn render(
         pages.push(Page {
             target: path.clone(),
             page_path,
-            views: vec![kind.clone()],
+            view: kind.clone(),
         });
     }
     let inputs: Vec<String> = inputs.into_iter().collect();

@@ -37,7 +37,7 @@ pub enum Caller {
         id: String,
         /// ツールの名前（claude-code など。分からなければ unknown）
         tool: String,
-        /// 打ったフォルダ（Git の中ならリポジトリの根、外なら作業フォルダ）
+        /// 打ったフォルダ（作業ツリーの根）
         folder: String,
         /// ID をどこから知ったか
         via: Via,

@@ -32,7 +32,7 @@ struct Memory {
     sessions: Vec<SessionRow>,
 }
 impl SessionLog for Memory {
-    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+    fn session(&mut self, caller: &Caller) -> Result<(), String> {
         let Caller::Session {
             id,
             tool,
@@ -40,7 +40,7 @@ impl SessionLog for Memory {
             via,
         } = caller
         else {
-            return Ok(None);
+            return Ok(());
         };
         if !self.sessions.iter().any(|s| &s.id == id) {
             self.sessions.push(SessionRow {
@@ -50,7 +50,7 @@ impl SessionLog for Memory {
                 via: via.as_str().to_string(),
             });
         }
-        Ok(Some(id.clone()))
+        Ok(())
     }
     fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
         Ok(self.sessions.iter().find(|s| s.id == id).cloned())
@@ -108,7 +108,7 @@ fn identifying_does_not_register() {
 #[test]
 fn init_registers_a_new_session_that_is_not_a_default() {
     let mut log = Memory::default();
-    let h = register_session("/w", &mut log).unwrap();
+    let h = register_session(&Fixed(None), "/w", &mut log).unwrap();
     assert_eq!(
         (h.tool.as_str(), h.via.as_str()),
         ("unknown", "init"),
@@ -117,4 +117,26 @@ fn init_registers_a_new_session_that_is_not_a_default() {
     assert_eq!(log.session_row(&h.id).unwrap(), Some(h.clone()));
     // 登録しても、--session も環境変数も無い呼び出しの既定にはならない
     assert_eq!(identify(&Fixed(None)), Err(Unidentified::Missing));
+}
+
+#[test]
+fn init_takes_the_tool_from_the_environment_but_makes_a_new_id() {
+    let mut log = Memory::default();
+    let in_tool = Fixed(Some(Caller::Session {
+        id: "c-1".into(),
+        tool: "claude-code".into(),
+        folder: "/w".into(),
+        via: Via::Env,
+    }));
+    let h = register_session(&in_tool, "/w", &mut log).unwrap();
+    assert_eq!(h.tool, "claude-code", "tool は環境変数から決める");
+    assert_ne!(h.id, "c-1", "ID はいつも新しく作る");
+    assert_eq!(
+        register_session(&Nested, "/w", &mut log),
+        Err(Unidentified::Ambiguous(vec![
+            "claude-code".into(),
+            "codex".into()
+        ])),
+        "どのツールか決められなければ断る"
+    );
 }

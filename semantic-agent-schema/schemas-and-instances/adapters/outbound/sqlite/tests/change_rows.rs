@@ -4,6 +4,8 @@
 
 #![allow(clippy::unwrap_used)]
 
+mod support;
+
 use outbound_sqlite::SqliteLog;
 use validation_domain::values::{RuleRow, ValidateRow};
 use writing_domain::values::{Caller, ChangeRow, FieldRow, Via};
@@ -43,7 +45,7 @@ fn validate_row() -> ValidateRow {
     }
 }
 
-fn rejects(log: &SqliteLog, sql: &str) {
+fn rejects(log: &support::TestLog, sql: &str) {
     assert!(
         log.connection().execute(sql, []).is_err(),
         "通ってしまった: {sql}"
@@ -57,12 +59,13 @@ fn session(log: &mut SqliteLog) -> Option<String> {
         folder: "/w".into(),
         via: Via::Env,
     })
-    .unwrap()
+    .unwrap();
+    Some("c5c5".to_string())
 }
 
 #[test]
 fn change_and_fields_are_kept_and_appended_only() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let p = session(&mut log);
     let o = log.append_change(p.as_deref(), &update()).unwrap();
     let w = log.writes("u1.json").unwrap();
@@ -79,7 +82,7 @@ fn change_and_fields_are_kept_and_appended_only() {
 
 #[test]
 fn writes_are_written_changes_in_order() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let first = log.append_change(None, &update()).unwrap();
     log.append_validate(None, &validate_row()).unwrap();
     let mut second = update();
@@ -103,7 +106,7 @@ fn writes_are_written_changes_in_order() {
 
 #[test]
 fn a_create_has_no_before_and_an_update_has_one() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let mut create = update();
     create.kind = "create".into();
     assert!(
@@ -130,7 +133,7 @@ fn a_create_has_no_before_and_an_update_has_one() {
 
 #[test]
 fn rows_go_to_the_right_table() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let v = log.append_validate(None, &validate_row()).unwrap();
     let c = log.append_change(None, &update()).unwrap();
     rejects(
@@ -174,9 +177,18 @@ fn a_database_in_a_new_place_is_made_empty() {
         std::env::temp_dir().join(format!("semantic-agent-schema-open-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let path = dir.join("semantic-agent-schema").join("records.sqlite");
+    // 読むだけに開くときは、無い記録を作らない
+    assert!(
+        SqliteLog::read(&path)
+            .unwrap()
+            .writes("u1.json")
+            .unwrap()
+            .is_empty()
+    );
+    assert!(!path.exists(), "読むだけでは記録のファイルを作らない");
     let mut log = SqliteLog::open(&path).unwrap();
-    let version: i64 = log
-        .connection()
+    let version: i64 = rusqlite::Connection::open(&path)
+        .unwrap()
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
     assert_eq!(version, outbound_sqlite::SHAPE);
@@ -186,5 +198,12 @@ fn a_database_in_a_new_place_is_made_empty() {
     let log = SqliteLog::open(&path).unwrap();
     assert_eq!(log.writes("u1.json").unwrap().len(), 1);
     drop(log);
+    let read = SqliteLog::read(&path).unwrap();
+    assert_eq!(
+        read.writes("u1.json").unwrap().len(),
+        1,
+        "読むだけに開いても行を読める"
+    );
+    drop(read);
     std::fs::remove_dir_all(&dir).unwrap();
 }

@@ -3,7 +3,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_sqlite::SqliteLog;
+mod support;
+
 use writing_domain::values::{ChangeRow, FieldRow};
 
 fn row(kind: &str, path: &str, before: Option<&str>, after: Option<&str>) -> ChangeRow {
@@ -21,7 +22,7 @@ fn row(kind: &str, path: &str, before: Option<&str>, after: Option<&str>) -> Cha
 
 #[test]
 fn a_delete_has_no_after_and_records_only_removals() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     assert!(
         log.append_change(
             None,
@@ -51,7 +52,7 @@ fn a_delete_has_no_after_and_records_only_removals() {
 
 #[test]
 fn a_delete_has_a_reason() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let mut no_reason = row("delete", "u4.json", Some("sha256:f"), None);
     no_reason.reason = None;
     assert!(
@@ -62,7 +63,7 @@ fn a_delete_has_a_reason() {
 
 #[test]
 fn writes_start_again_after_a_delete() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     log.append_change(None, &row("create", "u1.json", None, Some("sha256:a")))
         .unwrap();
     assert_eq!(log.writes("u1.json").unwrap().len(), 1);

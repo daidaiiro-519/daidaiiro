@@ -1,0 +1,56 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-ADOPT-RECORDED-CONCRETE",
+ "name": "記録がある Concrete を作成で取り込む",
+ "title": "記録がすでにある Concrete を create --adopt すると、取り込まずに recorded と、--range の付いた更新の取り込みの案内を返す",
+ "why": "Concrete の更新の取り込みは従うインスタンスを確かめる範囲が要る。案内に --range が無いと、打っても usage で断られる。",
+ "traces": [
+  "UC1:変形:既存のファイルを取り込む"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "schemas/usecase.schema.json",
+     "--adopt",
+     "--schemas",
+     "schemas",
+     "--human"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "create",
+   "schemas/usecase.schema.json",
+   "--adopt",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "recorded"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "update schemas/usecase.schema.json --adopt --reason <理由> --schemas schemas --range <範囲の経路> --human"
+  }
+ ],
+ "unchanged": [
+  "schemas/usecase.schema.json"
+ ]
+}

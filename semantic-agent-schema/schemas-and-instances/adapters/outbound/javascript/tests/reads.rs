@@ -18,9 +18,8 @@ fn paths_from_the_entry_are_read() {
         const { owner } = data;
     "#;
     let f = Boa.data_reads(src, "semantic-agent-schema-data").unwrap();
-    assert!(f.reads_entry);
     assert_eq!(
-        f.reads,
+        f,
         vec![
             DataRead::Path(vec![key("goal")]),
             DataRead::Path(vec![key("calls"), PathSeg::Index, key("id")]),
@@ -37,12 +36,8 @@ fn computed_keys_and_whole_values_are_untraceable() {
         render(data);
     "#;
     let f = Boa.data_reads(src, "semantic-agent-schema-data").unwrap();
-    assert_eq!(f.reads.len(), 2);
-    assert!(
-        f.reads
-            .iter()
-            .all(|r| matches!(r, DataRead::Untraceable(_)))
-    );
+    assert_eq!(f.len(), 2);
+    assert!(f.iter().all(|r| matches!(r, DataRead::Untraceable(_))));
 }
 
 #[test]
@@ -53,8 +48,7 @@ fn a_script_without_the_entry_reads_nothing() {
             "semantic-agent-schema-data",
         )
         .unwrap();
-    assert!(!f.reads_entry);
-    assert!(f.reads.is_empty());
+    assert!(f.is_empty());
 }
 
 #[test]

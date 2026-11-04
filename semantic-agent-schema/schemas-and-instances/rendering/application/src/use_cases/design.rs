@@ -2,7 +2,8 @@
 //!
 //! インスタンスを Concrete（JSON Schema）で検証するのと同じく、テンプレートとトークンも契約で機械に確かめる。
 //! テンプレートの書き方は Mustache（ロジックを持たない）。UI ・ UX のロジックはテンプレートの JS が持ち、Semantic Agent Schema は持たない。
-//! 描画は、ここで1つも外れが無いデザインシステムでだけ描く。semantic-agent-schema validate でも同じ rule を確かめて記録する。
+//! 描画は、ここで1つも外れが無いデザインシステムでだけ描く。semantic-agent-schema validate でも同じ rule を確かめる（記録しない）。
+//! テンプレートに渡す名前と値の入口は、契約の x-names ・ x-data-entry から読む。
 //!
 //! rule：
 //! - json-schema：デザインシステムのファイルが受け取りの型に合う
@@ -11,8 +12,8 @@
 //! - template-syntax：どのテンプレートも Mustache として読める
 //! - template-loads：部分テンプレートの先が templates の種類にある
 //! - template-names：Concrete の根の x-view がそのテンプレートを選ぶとき、テンプレート（部分を含む）が置く名前が、
-//!   value（その Concrete の形）・ json ・ tokens（このデザインシステムのトークン）・ css のどれかにたどれる
-//! - script-entry：値の入口は <script type="application/json" id="semantic-agent-schema-data">{{{json}}}</script> だけで、
+//!   契約の x-names（value はその Concrete の形、tokens はこのデザインシステムのトークン）のどれかにたどれる
+//! - script-entry：値の入口は契約の x-data-entry の要素（<script type="application/json" id="semantic-agent-schema-data">{{{json}}}</script>）だけで、
 //!   JS の中に Mustache のタグを書かない。JS として読める
 //! - script-reads：Concrete の根の x-view がそのテンプレートを選ぶとき、テンプレート（部分を含む）の JS が入口から読む
 //!   欄が、その Concrete の形にたどれる（読む所が実行するまで決まらないものは unverified）
@@ -21,11 +22,12 @@ use crate::ports::{DataRead, ScriptReader, TemplateNode, TemplateRenderer};
 use crate::ports::{DocumentStore, SchemaValidator};
 use crate::use_cases::render::{Refused, index_of, read_concrete, refused};
 use rendering_domain::services::template_names::{
-    DATA_ENTRY, PathCheck, Shape, check_path, partial_names, path_text, pointer_escape,
-    script_blocks, walk_names,
+    PathCheck, Shape, check_path, partial_names, path_text, pointer_escape, script_blocks,
+    walk_names,
 };
 use rendering_domain::services::tokens::{Token, alias_errors, flatten, type_errors};
 use rendering_domain::services::view::view_kind;
+use rendering_domain::values::TemplateLanguage;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::values::{By, Counts, RuleResult, Verdict};
@@ -52,8 +54,10 @@ pub struct DesignSystem {
     pub sources: Vec<(String, String)>,
     /// トークンの名前（group.token）→ トークン
     pub tokens: BTreeMap<String, Token>,
-    /// rule ごとの結果と、判定が読んだ所（JSON Pointer。"" は全体）
-    pub results: Vec<(RuleResult, String)>,
+    /// テンプレートの書き方の契約のうち、描画が使う所（テンプレートに渡す名前と値の入口）
+    pub language: TemplateLanguage,
+    /// rule ごとの結果
+    pub results: Vec<RuleResult>,
 }
 
 impl DesignSystem {
@@ -62,29 +66,36 @@ impl DesignSystem {
     pub fn violated(&self) -> bool {
         self.results
             .iter()
-            .any(|(r, _)| r.verdict() == Verdict::Violated)
+            .any(|r| r.verdict() == Verdict::Violated)
     }
 }
 
-fn verified(rule: &str, pointer: &str, why: &str) -> (RuleResult, String) {
-    (
-        RuleResult::new(rule, pointer, By::Machine, Verdict::Verified, why),
-        pointer.to_string(),
-    )
+fn verified(rule: &str, pointer: &str, why: &str) -> RuleResult {
+    RuleResult::new(rule, pointer, By::Machine, Verdict::Verified, why)
 }
 
-fn violated(rule: &str, pointer: &str, why: &str) -> (RuleResult, String) {
-    (
-        RuleResult::new(rule, pointer, By::Machine, Verdict::Violated, why),
-        pointer.to_string(),
-    )
+fn violated(rule: &str, pointer: &str, why: &str) -> RuleResult {
+    RuleResult::new(rule, pointer, By::Machine, Verdict::Violated, why)
 }
 
-fn unverified(rule: &str, pointer: &str, why: &str) -> (RuleResult, String) {
-    (
-        RuleResult::new(rule, pointer, By::Machine, Verdict::Unverified, why),
-        pointer.to_string(),
-    )
+fn unverified(rule: &str, pointer: &str, why: &str) -> RuleResult {
+    RuleResult::new(rule, pointer, By::Machine, Verdict::Unverified, why)
+}
+
+/// 入れて出すテンプレートの書き方の契約から、描画が使う所を読む。
+///
+/// # Errors
+/// 契約が無い ・ x-names か x-data-entry が読めないとき（作り方の誤り）。
+pub fn template_language(validator: &dyn SchemaValidator) -> Result<TemplateLanguage, Refused> {
+    validator
+        .shipped(TEMPLATE_LANGUAGE)
+        .as_ref()
+        .and_then(TemplateLanguage::read)
+        .ok_or_else(|| Refused {
+            code: "validator",
+            message: format!("{TEMPLATE_LANGUAGE} の x-names か x-data-entry が読めない"),
+            ..Refused::default()
+        })
 }
 /// デザインシステムを読み、契約に照らす。読めない ・ JSON でないときだけ断り、外れは結果として返す。
 ///
@@ -108,6 +119,8 @@ pub fn check_design_system(
             format!("デザインシステムが JSON として読めない：{e}"),
         )
     })?;
+    let language = template_language(validator)?;
+    let entry = &language.entry;
     let mut results = Vec::new();
 
     // 型
@@ -238,14 +251,15 @@ pub fn check_design_system(
         let at = format!("/templates/{}", pointer_escape(kind));
         let mut problems = Vec::new();
         let mut reads = Vec::new();
-        for s in script_blocks(source) {
+        for s in script_blocks(source, entry) {
             if s.external {
                 continue;
             }
             if s.data_entry {
-                if s.body.trim() != "{{{json}}}" {
+                if s.body.trim() != entry.content {
                     problems.push(format!(
-                        "値の入口（id=\"{DATA_ENTRY}\"）の中身は {{{{{{json}}}}}} だけにする"
+                        "値の入口（id=\"{}\"）の中身は {} だけにする",
+                        entry.id, entry.content
                     ));
                 }
                 continue;
@@ -254,14 +268,14 @@ pub fn check_design_system(
                 continue;
             }
             if s.body.contains("{{") {
-                problems.push(
-                    "JS の中に Mustache のタグがある。値は semantic-agent-schema-data から JSON.parse で読む"
-                        .to_string(),
-                );
+                problems.push(format!(
+                    "JS の中に Mustache のタグがある。値は {} から JSON.parse で読む",
+                    entry.id
+                ));
                 continue;
             }
-            match scripts.data_reads(&s.body, DATA_ENTRY) {
-                Ok(f) => reads.extend(f.reads),
+            match scripts.data_reads(&s.body, &entry.id) {
+                Ok(f) => reads.extend(f),
                 Err(e) => problems.push(e),
             }
         }
@@ -269,7 +283,10 @@ pub fn check_design_system(
             results.push(verified(
                 "script-entry",
                 &at,
-                "値は semantic-agent-schema-data から読み、JS にタグが無く、JS として読める",
+                &format!(
+                    "値は {} から読み、JS にタグが無く、JS として読める",
+                    entry.id
+                ),
             ));
         } else {
             results.push(violated("script-entry", &at, &problems.join(" ／ ")));
@@ -289,12 +306,21 @@ pub fn check_design_system(
         let mut ps = BTreeSet::new();
         partial_names(tree, &mut ps);
         reached.extend(ps);
-        let root = Shape::Object(BTreeMap::from([
-            ("value".to_string(), Shape::of_schema(doc)),
-            ("json".to_string(), Shape::Scalar),
-            ("tokens".to_string(), token_shape.clone()),
-            ("css".to_string(), Shape::Scalar),
-        ]));
+        // 契約の名前ごとの形：value は Concrete の形、tokens はトークンの木、ほかは文字列
+        let root = Shape::Object(
+            language
+                .names
+                .iter()
+                .map(|n| {
+                    let shape = match n.as_str() {
+                        "value" => Shape::of_schema(doc),
+                        "tokens" => token_shape.clone(),
+                        _ => Shape::Scalar,
+                    };
+                    (n.clone(), shape)
+                })
+                .collect(),
+        );
         let (mut missing, mut unknown) = (BTreeSet::new(), BTreeSet::new());
         walk_names(
             tree,
@@ -310,8 +336,9 @@ pub fn check_design_system(
                 "template-names",
                 &at,
                 &format!(
-                    "{id} で置けない名前：{}（value は Concrete の欄、ほかは json ・ tokens ・ css）",
-                    missing.into_iter().collect::<Vec<_>>().join(" ・ ")
+                    "{id} で置けない名前：{}（置けるのは {} と、value の下の Concrete の欄）",
+                    missing.into_iter().collect::<Vec<_>>().join(" ・ "),
+                    language.names.join(" ・ ")
                 ),
             ));
         } else if !unknown.is_empty() {
@@ -397,6 +424,7 @@ pub fn check_design_system(
         template_paths,
         sources,
         tokens,
+        language,
         results,
     })
 }
@@ -410,7 +438,7 @@ pub struct DesignTarget {
     pub hash: ContentHash,
     /// rule ごとの結果
     pub results: Vec<RuleResult>,
-    /// 判定の5つの区分ごとの件数
+    /// 判定の4つの区分ごとの件数
     pub counts: Counts,
 }
 
@@ -449,7 +477,7 @@ pub fn check_design_systems(
     let mut targets = Vec::new();
     for p in paths {
         let d = check_design_system(p, store, validator, renderer, scripts, &concretes)?;
-        let results: Vec<RuleResult> = d.results.into_iter().map(|(r, _)| r).collect();
+        let results = d.results;
         let counts = Counts::of(&results);
         total.merge(&counts);
         targets.push(DesignTarget {

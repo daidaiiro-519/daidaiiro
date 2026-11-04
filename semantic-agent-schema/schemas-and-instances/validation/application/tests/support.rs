@@ -149,14 +149,14 @@ impl Log {
             .collect())
     }
     pub(crate) fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        // rule ごとに、その rule を最後に判定した検証の行（検証の ID は記録した操作の ID）
+        // rule ごとに、その rule を最後に判定できた検証の行（not-judged の行は前の判定にしない。検証の ID は記録した操作の ID）
         let mut latest: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
         for (i, r) in self.0.iter().enumerate() {
             if r.target_path != target_path {
                 continue;
             }
             let mut here: BTreeMap<String, Vec<Judgment>> = BTreeMap::new();
-            for rule in &r.results {
+            for rule in r.results.iter().filter(|x| x.result != "not-judged") {
                 here.entry(rule.rule.clone()).or_default().push(Judgment {
                     operation: self.2.get(i).cloned().unwrap_or(format!("o-{}", i + 1)),
                     hash: r.hash.clone(),

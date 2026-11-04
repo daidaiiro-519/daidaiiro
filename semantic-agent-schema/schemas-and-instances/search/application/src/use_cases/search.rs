@@ -10,7 +10,7 @@
 
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Value, json};
-use writing_domain::services::{SchemaIndex, concrete_of};
+use writing_domain::services::SchemaIndex;
 use writing_domain::values::{ContentHash, SchemaPlaces, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
@@ -123,14 +123,14 @@ fn load(range: &Range, store: &dyn DocumentStore) -> Result<Vec<Doc>, Refused> {
             }
             if let Some(i) = &index {
                 // 従う Concrete が置き場所に1つだけあり、Concrete であることを確かめる
-                let at = i
-                    .path_of(&declared, None)
+                let mut lookup = i.concrete(&declared, false);
+                while let Some(at) = lookup
+                    .next(&|_| false)
                     .map_err(|u| unresolved(Some(p), &u))?
-                    .to_string();
-                let text = store.read(&at).map_err(|e| refused("store", &at, e))?;
-                let doc: Value = serde_json::from_str(&text)
-                    .map_err(|e| refused("store", &at, format!("JSON として読めない：{e}")))?;
-                concrete_of(&declared, &at, &doc).map_err(|u| unresolved(Some(p), &u))?;
+                {
+                    let text = store.read(&at).map_err(|e| refused("store", &at, e))?;
+                    lookup.read(&text).map_err(|u| unresolved(Some(p), &u))?;
+                }
             }
         }
         docs.push(Doc {
@@ -199,20 +199,13 @@ pub fn search_where(
 /// 意味で探す手順を組む：範囲の文書ごとに1ステップ（経路とハッシュ。中身は貼らず、手順を受け取ったセッションが読む）。記録しない。
 ///
 /// # Errors
-/// 範囲の文書を読めない ・ 範囲に文書が無いとき。
+/// 範囲の文書を読めないとき。
 pub fn search_procedure(
     range: &Range,
     question: &str,
     store: &dyn DocumentStore,
 ) -> Result<Value, Refused> {
     let docs = load(range, store)?;
-    if docs.is_empty() {
-        return Err(Refused {
-            code: "invalid_input",
-            message: "範囲に Concrete もインスタンスも無く、探す文書が無い".to_string(),
-            ..Refused::default()
-        });
-    }
     let range_rows = range_of(&docs);
     let steps: Vec<Value> = docs
         .iter()

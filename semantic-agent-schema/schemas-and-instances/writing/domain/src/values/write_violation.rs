@@ -4,17 +4,15 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteViolation {
     code: &'static str,
-    pointer: String,
     message: String,
 }
 
 impl WriteViolation {
-    /// 外れた条件の名前（human_field）、当たる所、理由。
+    /// 外れた条件の名前（human_field）と理由（当たる所を含める）。
     #[must_use]
-    pub fn new(code: &'static str, pointer: &str, message: &str) -> Self {
+    pub fn new(code: &'static str, message: &str) -> Self {
         Self {
             code,
-            pointer: pointer.to_string(),
             message: message.to_string(),
         }
     }
@@ -23,12 +21,6 @@ impl WriteViolation {
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.code
-    }
-
-    /// 当たる所（JSON Pointer）。
-    #[must_use]
-    pub fn pointer(&self) -> &str {
-        &self.pointer
     }
 
     /// 理由。

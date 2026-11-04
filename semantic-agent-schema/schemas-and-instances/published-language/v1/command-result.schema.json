@@ -53,19 +53,17 @@
     "verified",
     "violated",
     "unverified",
-    "error",
     "not-judged"
    ],
-   "description": "rule の結果の判定の5つの区分。unverified は判定したセッションが判定できないと答えたもの、not-judged は意味の判定を渡されていない（--answer の無い検証）もの"
+   "description": "rule の結果の判定の4つの区分。unverified は判定したセッションが判定できないと答えたもの、not-judged は意味の判定を渡されていない（--answer の無い検証）もの"
   },
   "counts": {
    "type": "object",
-   "description": "判定の5つの区分ごとの件数",
+   "description": "判定の4つの区分ごとの件数",
    "required": [
     "verified",
     "violated",
     "unverified",
-    "error",
     "not-judged"
    ],
    "additionalProperties": false,
@@ -79,10 +77,6 @@
      "minimum": 0
     },
     "unverified": {
-     "type": "integer",
-     "minimum": 0
-    },
-    "error": {
      "type": "integer",
      "minimum": 0
     },
@@ -823,7 +817,7 @@
    "properties": {
     "expected": {
      "$ref": "#/$defs/hash",
-     "description": "比べたハッシュ（--if-match か、Semantic Agent Schema が最後に書いた事後のハッシュ）"
+     "description": "比べたハッシュ（--if-match）"
     },
     "current": {
      "$ref": "#/$defs/hash",
@@ -918,7 +912,7 @@
       "required": [
        "target",
        "page_path",
-       "views"
+       "view"
       ],
       "additionalProperties": false,
       "properties": {
@@ -930,12 +924,9 @@
         "type": "string",
         "description": "書き出す先からのページの経路"
        },
-       "views": {
-        "type": "array",
-        "items": {
-         "type": "string"
-        },
-        "description": "使った x-view の種類"
+       "view": {
+        "type": "string",
+        "description": "使った x-view の種類（Concrete の根の x-view。無ければ page）"
        }
       }
      }
@@ -961,25 +952,21 @@
     "id": {
      "type": "string",
      "minLength": 1,
-     "description": "セッション ID（--session か環境変数の ID。どちらも無ければ Semantic Agent Schema が決めたもの）"
+     "description": "semantic-agent-schema init がいつも新しく作るセッション ID"
     },
     "tool": {
      "type": "string",
      "minLength": 1,
-     "description": "ツールの名前（分からなければ unknown）"
+     "description": "ツールの名前。ほかのコマンドと同じく環境変数から決める（ツールの環境変数が無ければ unknown）"
     },
     "folder": {
      "type": "string",
      "minLength": 1,
-     "description": "初めて見たときに打ったフォルダ（Git の中なら作業ツリーの根、外なら作業フォルダ）"
+     "description": "打ったフォルダ（作業ツリーの根）"
     },
     "via": {
-     "enum": [
-      "env",
-      "flag",
-      "init"
-     ],
-     "description": "ID をどこから知ったか（sessions に1行足したとき）。init は semantic-agent-schema init が作って登録したもの"
+     "const": "init",
+     "description": "ID をどこから知ったか。init で登録した行なので、いつも init"
     }
    }
   },
@@ -1036,7 +1023,8 @@
      "required": [
       "id",
       "tool",
-      "folder"
+      "folder",
+      "via"
      ],
      "additionalProperties": false,
      "properties": {
@@ -1056,7 +1044,16 @@
        "type": "string",
        "minLength": 1,
        "title": "フォルダ",
-       "description": "初めて見たときに打ったフォルダ（Git の中なら作業ツリーの根、外なら作業フォルダ）。--folder はこれと比べる"
+       "description": "初めて見たときに打ったフォルダ（作業ツリーの根）。--folder はこれと比べる"
+      },
+      "via": {
+       "enum": [
+        "env",
+        "flag",
+        "init"
+       ],
+       "title": "ID の出どころ",
+       "description": "ID をどこから知ったか（sessions に1行足したとき）。env はツールの環境変数、flag は --session、init は semantic-agent-schema init が作って登録したもの"
       }
      }
     },
@@ -1068,7 +1065,7 @@
     "counts": {
      "$ref": "#/$defs/counts",
      "title": "判定の件数",
-     "description": "検証のときだけ持つ。判定の5つの区分ごとの件数"
+     "description": "検証のときだけ持つ。判定の4つの区分ごとの件数"
     }
    },
    "allOf": [

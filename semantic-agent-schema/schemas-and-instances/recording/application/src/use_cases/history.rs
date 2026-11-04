@@ -44,20 +44,25 @@ fn not_identified(e: NotIdentified) -> Unidentified {
 /// # Errors
 /// 置き場所を読めない ・ 書けないとき。
 pub fn register(caller: &Caller, log: &mut dyn SessionLog) -> Result<(), String> {
-    log.session(caller).map(|_| ())
+    log.session(caller)
 }
 
 /// semantic-agent-schema init：新しいセッションの ID を決めて sessions に登録し（via = init）、その行を返す。
+/// tool は、ほかのコマンドと同じく環境変数から決める（ツールの環境変数が無ければ unknown）。ID はいつも新しく作る。
 /// あとで打つコマンドの既定にはしない（呼ぶ側は、返った ID を --session で渡す）。
 ///
 /// # Errors
-/// 置き場所を読めない ・ 書けないとき。
+/// どのツールが打ったかを決められない ・ 置き場所を読めない ・ 書けないとき。
 pub fn register_session(
+    who: &dyn IdentifyCaller,
     folder: &str,
     log: &mut dyn SessionLog,
 ) -> Result<SessionRow, Unidentified> {
+    let tool = match who.identify().map_err(not_identified)? {
+        Some(Caller::Session { tool, .. }) => tool,
+        Some(Caller::Human) | None => "unknown".to_string(),
+    };
     let id = log.new_session_id();
-    let tool = "unknown".to_string();
     log.session(&Caller::Session {
         id: id.clone(),
         tool,

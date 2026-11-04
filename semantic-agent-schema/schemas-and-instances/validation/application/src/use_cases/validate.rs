@@ -17,9 +17,7 @@ use validation_domain::services::{
 };
 use validation_domain::values::{By, Counts, Judgment, RuleResult, RuleRow, ValidateRow, Verdict};
 use writing_domain::aggregates::ConcreteSchema;
-use writing_domain::services::{
-    Resolved, SchemaIndex, Unresolved, concrete_of, field_schema, refs,
-};
+use writing_domain::services::{Resolved, SchemaIndex, Unresolved, field_schema};
 use writing_domain::values::{
     Caller, ContentHash, FieldRow, SchemaPlaces, TargetKind, WriteRecord, unrecorded_since,
 };
@@ -57,7 +55,7 @@ pub struct TargetResult {
     pub hash: ContentHash,
     /// rule ごとの結果
     pub results: Vec<RuleResult>,
-    /// 判定の5つの区分ごとの件数
+    /// 判定の4つの区分ごとの件数
     pub counts: Counts,
     /// 記録した操作の ID
     pub operation: String,
@@ -143,28 +141,8 @@ fn index_of(store: &dyn DocumentStore, schemas: &[String]) -> Result<SchemaIndex
     Ok(index)
 }
 
-/// 索引から $id の文書を1つ読む。from は $ref で指した文書の $id。
-///
-/// # Errors
-/// 置き場所に無い ・ 2つ以上ある ・ 読めない ・ JSON でないとき。
-fn read_one(
-    index: &SchemaIndex,
-    store: &dyn DocumentStore,
-    id: &str,
-    from: Option<&str>,
-    target: &str,
-) -> Result<(String, Value), Refused> {
-    let path = index
-        .path_of(id, from)
-        .map_err(|u| unresolved(Some(target), u))?
-        .to_string();
-    let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
-    let value = serde_json::from_str(&text)
-        .map_err(|e| refused("store", &path, format!("JSON として読めない：{e}")))?;
-    Ok((path, value))
-}
-
 /// インスタンスが従う Concrete（$id が declared）と、その $ref の先（同じ置き場所から引く。入れて出すスキーマは引かない）。
+/// ファイルはポートで読み、どれを読むかは置き場所の索引が決める。
 ///
 /// # Errors
 /// 置き場所に無い ・ 2つ以上ある ・ Concrete でない ・ 読めないとき。
@@ -175,23 +153,23 @@ fn resolve(
     target: &str,
     declared: &str,
 ) -> Result<Resolved, Refused> {
-    let (at, value) = read_one(index, store, declared, None, target)?;
-    let concrete = concrete_of(declared, &at, &value).map_err(|u| unresolved(Some(target), u))?;
-    let mut seen: BTreeSet<String> = BTreeSet::from([declared.to_string()]);
-    let mut queue: Vec<(String, String)> = refs(&value)
-        .into_iter()
-        .map(|r| (r, declared.to_string()))
-        .collect();
-    let mut more = vec![(declared.to_string(), value)];
-    while let Some((next, from)) = queue.pop() {
-        if validator.shipped(&next).is_some() || !seen.insert(next.clone()) {
-            continue;
-        }
-        let (_, doc) = read_one(index, store, &next, Some(&from), target)?;
-        queue.extend(refs(&doc).into_iter().map(|r| (r, next.clone())));
-        more.push((next, doc));
+    let mut lookup = index.concrete(declared, true);
+    while let Some(path) = lookup
+        .next(&|id| validator.shipped(id).is_some())
+        .map_err(|u| unresolved(Some(target), u))?
+    {
+        let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
+        lookup
+            .read(&text)
+            .map_err(|u| unresolved(Some(target), u))?;
     }
-    Ok(Resolved::new(at, concrete, more))
+    lookup.resolved().ok_or_else(|| {
+        refused(
+            "unknown_schema",
+            target,
+            format!("{declared} を引けなかった"),
+        )
+    })
 }
 
 /// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
@@ -362,8 +340,8 @@ fn selection_args(selection: Selection) -> Vec<&'static str> {
 }
 
 /// 対象1つのレビューのまとまりと、判定する rule × 当たる所（意味の rule のうち、前の判定を引き継がないもの）と、
-/// それが当たる results の位置。所のまとまりは当たる所ごとに1つ（results に出てきた順）、文書全体のまとまりはいつも1つで最後。
-/// 判定するものが無ければ、どれも空。
+/// それが当たる results の位置。所のまとまりは当たる所ごとに1つ（results に出てきた順）、文書全体のまとまりは1つで最後。
+/// 判定するものが無ければ、どれも空（文書全体のまとまりも出さない）。
 fn steps_of(c: &Current, validator: &dyn SchemaValidator) -> (Vec<Group>, Vec<Step>, Vec<usize>) {
     let schema_doc = match (&c.kind, &c.concrete) {
         (TargetKind::Instance, Some(k)) => k.concrete().document().clone(),
@@ -979,6 +957,8 @@ fn run_validate(
     for row in &rows {
         operations.push(log.append_validate(session, row).map_err(log_refused)?);
     }
+    let targets_kinds: Vec<(String, TargetKind)> =
+        judged.iter().map(|j| (j.0.clone(), j.1)).collect();
     let mut total = Counts::default();
     let targets = judged
         .into_iter()
@@ -998,6 +978,12 @@ fn run_validate(
             },
         )
         .collect();
+    // 取り込む対象に Concrete があれば、取り込みは範囲が要るので --range を付ける（範囲は呼ぶ側が埋める）
+    let concrete_unrecorded = unrecorded.iter().any(|u| {
+        targets_kinds
+            .iter()
+            .any(|(p, k)| *p == u.path && *k == TargetKind::Concrete)
+    });
     let hint = unrecorded.first().map(|u| {
         let path = if unrecorded.len() == 1 {
             u.path.as_str()
@@ -1012,6 +998,9 @@ fn run_validate(
             "--reason",
             "<理由>",
         ];
+        if concrete_unrecorded {
+            args.extend(["--range", "<範囲の経路>"]);
+        }
         let carried = carry(scope, caller);
         args.extend(carried.iter().map(String::as_str));
         format!(

@@ -1,4 +1,4 @@
-//! rule ごとの結果と、判定の5つの区分ごとの数。
+//! rule ごとの結果と、判定の4つの区分ごとの数。
 
 use super::Verdict;
 
@@ -72,9 +72,9 @@ impl RuleResult {
     }
 }
 
-/// 判定の5つの区分ごとの数。
+/// 判定の4つの区分ごとの数。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Counts([usize; 5]);
+pub struct Counts([usize; 4]);
 
 impl Counts {
     /// 結果の並びから数える。
@@ -110,10 +110,10 @@ impl Counts {
             .map_or(0, |i| self.0[i])
     }
 
-    /// violated か error が1件でもあるか。
+    /// violated が1件でもあるか（対象を「通らない」とする）。
     #[must_use]
     pub fn fails(&self) -> bool {
-        self.get(Verdict::Violated) + self.get(Verdict::Error) > 0
+        self.get(Verdict::Violated) > 0
     }
 }
 

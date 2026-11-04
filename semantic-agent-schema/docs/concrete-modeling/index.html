@@ -124,7 +124,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table>
 <tr><th>モジュール</th><th>層</th><th>持つもの</th></tr>
 <tr><td><code>writing</code></td><td>domain ・ application</td><td>集約 Concrete ・ インスタンス、値（ハッシュ ・ 差分 ・ TargetKind ・ Caller ・ 記録の行）、<code>field_schema</code>。UC1 作る ・ UC2 直す ・ UC3 消す ・ 取り込み</td></tr>
-<tr><td><code>validation</code></td><td>domain ・ application</td><td>判定の5つの区分 ・ by、当たる rule ・ 組み込みの検査3つ ・ <code>reads_hash</code>。UC4 確かめる ・ 意味の判定</td></tr>
+<tr><td><code>validation</code></td><td>domain ・ application</td><td>判定の4つの区分 ・ by、当たる rule ・ 組み込みの検査3つ ・ <code>reads_hash</code>。UC4 確かめる ・ 意味の判定</td></tr>
 <tr><td><code>rendering</code></td><td>domain ・ application</td><td>描画の決まり（x- の項目のレンダラー：<code>x-view</code> でテンプレートの種類を選ぶ ・ ページの経路 ・ テンプレートに渡す値 ・ デザイントークン ・ テンプレートが置く名前と JS が読む所を Concrete の形にたどる）。UC5 描く ・ デザインシステムの検証。記録しない</td></tr>
 <tr><td><code>search</code></td><td>application</td><td>UC6 探す（構造で絞る ・ 意味で探す）。記録しない</td></tr>
 <tr><td><code>recording</code></td><td>application</td><td>UC7 記録を読む。入口が使う、誰が打ったかを決めて登録する手続き</td></tr>
@@ -156,7 +156,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <h3>ポートで読むもの</h3>
 <div class="wrap"><table>
 <tr><th>何を</th><th>どこから</th></tr>
-<tr><td>文書</td><td>渡された経路だけを読む ・ 書く。全部を並べる list は無い。根の外を指す経路（<code>/</code> で始まる ・ <code>..</code> を含む）は読まない</td></tr>
+<tr><td>文書</td><td>渡された経路だけを読む ・ 書く。全部を並べる list は無い。根の外を指す経路（<code>/</code> で始まる ・ <code>..</code> を含む）と、<code>.git</code> ・ <code>target</code> の中は読まない</td></tr>
 <tr><td>Concrete</td><td>渡された置き場所の中から <code>$id</code> で引く。<code>$ref</code> の先も同じ置き場所の中から</td></tr>
 <tr><td>範囲</td><td>渡された経路の並び</td></tr>
 <tr><td>記録</td><td>自分の操作の記録（<code>records.sqlite</code>）</td></tr>
@@ -172,13 +172,13 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>validate</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--schemas &lt;置き場所&gt;...</code></td><td><code>--semantic</code> ・ <code>--all-rules</code>（<code>--semantic</code> ・ <code>--answer</code> と）・ <code>--answer &lt;ファイル | -&gt;</code>（経路は1つ）</td></tr>
 <tr><td><code>create</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code>、次のどれか1つ：<code>--concrete &lt;$id&gt; --value &lt;JSON&gt;</code> ／ <code>--concrete &lt;$id&gt; --semantic</code> ／ <code>--adopt</code></td><td><code>--reason</code></td></tr>
 <tr><td><code>update</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code>、次のどれか1つ：<code>--patch &lt;JSON Patch&gt; --if-match &lt;ハッシュ&gt;</code> ／ <code>--semantic</code> ／ <code>--adopt --reason</code>。Concrete を直すときは（<code>--semantic</code> でも）<code>--range &lt;経路&gt;...</code></td><td><code>--reason</code> ・ <code>--base &lt;コミット&gt;</code>（<code>--adopt</code> と）</td></tr>
-<tr><td><code>delete</code></td><td><code>&lt;経路&gt;</code> ・ <code>--reason</code> ・ <code>--if-match &lt;ハッシュ&gt;</code>。Concrete を消すときは <code>--range &lt;経路&gt;...</code></td><td>なし</td></tr>
+<tr><td><code>delete</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code> ・ <code>--reason</code> ・ <code>--if-match &lt;ハッシュ&gt;</code>。Concrete を消すときは <code>--range &lt;経路&gt;...</code></td><td>なし</td></tr>
 <tr><td><code>render</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--design-system &lt;経路&gt;</code> ・ <code>--out &lt;書き出す先&gt;</code> ・ <code>--schemas</code></td><td>なし</td></tr>
 <tr><td><code>search</code></td><td><code>&lt;経路&gt;...</code>（範囲）・ <code>--schemas</code>、次のどれか1つ：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code> ／ <code>--semantic --question</code> ／ <code>--answer</code></td><td><code>--where</code> を重ねる</td></tr>
 <tr><td><code>log</code></td><td>なし（<code>--operation &lt;ID&gt;</code> で1件）</td><td><code>&lt;経路&gt;...</code> ・ <code>--by</code> ・ <code>--folder</code> ・ <code>--since</code> ・ <code>--limit</code></td></tr>
-<tr><td><code>init</code></td><td>なし（新しい ID を作って登録し、返す）</td><td>なし</td></tr>
+<tr><td><code>init</code></td><td>なし（新しい ID を作り、tool はほかのコマンドと同じく環境変数から決めて登録し、返す）</td><td>なし</td></tr>
 </table></div>
-<p class="soft">記録をつけるコマンド（validate ・ create ・ update ・ delete）は、どれも <code>--session &lt;ID&gt;</code> か <code>--human</code> を取る。search ・ render ・ デザインシステムの validate は誰が打ったかを取らず、記録を開かない。</p>
+<p class="soft">記録をつけるコマンド（validate ・ create ・ update ・ delete）は、どれも <code>--session &lt;ID&gt;</code> か <code>--human</code> を取る。<code>--semantic</code> は手順を返すだけで、記録は読むだけ（セッションの行も足さず、記録が無ければ作らない）。search ・ render ・ デザインシステムの validate は誰が打ったかを取らず、記録を開かない。</p>
 
 <h3>AI が考えて付ける引数</h3>
 <div class="wrap"><table>
@@ -193,8 +193,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <p>引数の決まりは、上のコマンドの表と <code>--help</code> ・ 使い方の文が持つ。足りなければ、出力の <code>kind = error</code> で何が足りないかを言って断る。</p>
 <div class="wrap"><table>
 <tr><th>終了コード</th><th>いつ</th></tr>
-<tr><td>0</td><td>violated と error が無い（書けた ・ 返せた）</td></tr>
-<tr><td>1</td><td>violated か error がある ・ 断った</td></tr>
+<tr><td>0</td><td>violated が無い（書けた ・ 返せた）</td></tr>
+<tr><td>1</td><td>violated がある ・ 断った</td></tr>
 <tr><td>2</td><td>使い方の誤り（<code>code = usage</code>）</td></tr>
 </table></div>
 
@@ -415,7 +415,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>デザインシステムの検証</td><td>validate にデザインシステムを渡すと、受け取りの型 ・ トークン ・ テンプレートの書き方 ・ <code>--schemas</code> の Concrete との合い方を契約に照らして返す。ほかの対象や <code>--semantic</code> と混ぜたら断る。記録しない</td></tr>
 <tr><td>描くときに断る</td><td>Concrete は描かない。書き出すページが入力のファイルと重なれば断る。欠けたテンプレートの種類は全部を返して断る。Git の外と、根の外を指す経路では描かない</td></tr>
 <tr><td>書きかけを残さない</td><td>文書は一時ファイルに書いてから置き換える。JSON Patch は全部当てるか、1つも当てない。描画は全部のページを書けてから置き換える</td></tr>
-<tr><td>ページに入れないもの</td><td>判定 ・ 記録 ・ ハッシュはページに入れない。テンプレートに渡すのは <code>value</code> ・ <code>json</code> ・ <code>tokens</code> ・ <code>css</code> だけで、値の入口は <code>semantic-agent-schema-data</code></td></tr>
+<tr><td>ページに入れないもの</td><td>判定 ・ 記録 ・ ハッシュはページに入れない。テンプレートに渡すのは <code>template-language.json</code> の <code>x-names</code>（<code>value</code> ・ <code>json</code> ・ <code>tokens</code> ・ <code>css</code>）だけで、値の入口は <code>x-data-entry</code>（<code>semantic-agent-schema-data</code>）</td></tr>
 </table></div>
 </section>
 </main>

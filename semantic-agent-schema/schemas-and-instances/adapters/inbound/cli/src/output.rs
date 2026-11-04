@@ -394,7 +394,7 @@ pub fn print_render(r: &Rendered) {
     let pages: Vec<Value> = r
         .pages
         .iter()
-        .map(|p| json!({"target": p.target, "page_path": p.page_path, "views": p.views}))
+        .map(|p| json!({"target": p.target, "page_path": p.page_path, "view": p.view}))
         .collect();
     let out = json!({
         "$schema": "urn:semantic-agent-schema:published-language:command-result:v1",
@@ -418,7 +418,7 @@ pub fn print_operation(o: &OperationSummary) {
         "at": o.at,
         "op": o.op,
         "path": o.path,
-        "session": o.session.as_ref().map(|s| json!({"id": s.id, "tool": s.tool, "folder": s.folder})),
+        "session": o.session.as_ref().map(|s| json!({"id": s.id, "tool": s.tool, "folder": s.folder, "via": s.via})),
     });
     if let Some(i) = &o.reason {
         out["reason"] = json!(i);

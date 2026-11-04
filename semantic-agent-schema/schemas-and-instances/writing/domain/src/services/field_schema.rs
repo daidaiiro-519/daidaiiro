@@ -1,5 +1,6 @@
 //! スキーマの中の所に当たる欄の定義を引く（意味で書く手順と、意味の判定の手順が、欄の title ・ description ・ x-prompt を入れるのに使う）。
 
+use crate::services::SchemaIndex;
 use serde_json::Value;
 
 /// 対象の中の所に当たる欄の定義（title ・ description ・ x-prompt を引くため）。properties ・ additionalProperties ・ items を
@@ -10,7 +11,7 @@ pub fn field_schema(schema: &Value, pointer: &str, others: &[(String, Value)]) -
     let mut cur = schema;
     for part in pointer.split('/').skip(1) {
         let part = part.replace("~1", "/").replace("~0", "~");
-        let (r, c) = deref(root, cur, others);
+        let (r, c) = SchemaIndex::deref(root, cur, others);
         root = r;
         cur = if part.parse::<usize>().is_ok() {
             c.get("items")?
@@ -20,7 +21,7 @@ pub fn field_schema(schema: &Value, pointer: &str, others: &[(String, Value)]) -
                 .or_else(|| c.get("additionalProperties").filter(|a| a.is_object()))?
         };
     }
-    let (_, target) = deref(root, cur, others);
+    let (_, target) = SchemaIndex::deref(root, cur, others);
     let mut field = target.clone();
     if let (Some(f), Some(own)) = (field.as_object_mut(), cur.as_object()) {
         for (k, v) in own {
@@ -30,37 +31,6 @@ pub fn field_schema(schema: &Value, pointer: &str, others: &[(String, Value)]) -
         }
     }
     Some(field)
-}
-
-/// $ref の先と、その先がある文書。引けなければそのまま。
-fn deref<'a>(
-    root: &'a Value,
-    node: &'a Value,
-    others: &'a [(String, Value)],
-) -> (&'a Value, &'a Value) {
-    let Some(r) = node.get("$ref").and_then(Value::as_str) else {
-        return (root, node);
-    };
-    let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
-    let doc = if base.is_empty() {
-        Some(root)
-    } else {
-        others.iter().find(|(id, _)| id == base).map(|(_, d)| d)
-    };
-    let Some(doc) = doc else {
-        return (root, node);
-    };
-    let target = if fragment.is_empty() {
-        Some(doc)
-    } else if fragment.starts_with('/') {
-        doc.pointer(fragment)
-    } else {
-        doc.get("$defs").and_then(Value::as_object).and_then(|m| {
-            m.values()
-                .find(|d| d.get("$anchor").and_then(Value::as_str) == Some(fragment))
-        })
-    };
-    target.map_or((root, node), |t| (doc, t))
 }
 
 #[cfg(test)]

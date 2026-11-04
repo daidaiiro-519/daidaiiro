@@ -4,7 +4,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_sqlite::SqliteLog;
+mod support;
+
 use validation_domain::values::{RuleRow, ValidateRow};
 use writing_domain::values::{ChangeRow, FieldRow};
 
@@ -52,7 +53,7 @@ fn judged(rules: &[(&str, &str)]) -> ValidateRow {
 
 #[test]
 fn adopted_changes_keep_the_source() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     log.append_change(None, &change("create", "outside", None, Some("sha256:a")))
         .unwrap();
     let mut ok = change("update", "outside", Some("sha256:a"), Some("sha256:b"));
@@ -68,7 +69,7 @@ fn adopted_changes_keep_the_source() {
 
 #[test]
 fn adopted_update_needs_a_reason_and_a_delete_is_not_adopted() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     log.append_change(
         None,
         &change("create", "semantic-agent-schema", None, Some("sha256:a")),
@@ -85,7 +86,7 @@ fn adopted_update_needs_a_reason_and_a_delete_is_not_adopted() {
 
 #[test]
 fn only_an_adopted_update_lacks_previous_values() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     log.append_change(
         None,
         &change("create", "semantic-agent-schema", None, Some("sha256:a")),
@@ -111,7 +112,7 @@ fn only_an_adopted_update_lacks_previous_values() {
 
 #[test]
 fn judgments_are_the_latest_per_rule() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let first = log
         .append_validate(None, &judged(&[("a", "sha256:1"), ("b", "sha256:2")]))
         .unwrap();

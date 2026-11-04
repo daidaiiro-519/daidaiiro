@@ -19,8 +19,10 @@ pub struct DeleteRequest {
     pub path: String,
     /// 消す前に読んだ中身のハッシュ（--if-match。必ず渡す）。いまの中身のハッシュと違えば消さない
     pub if_match: String,
-    /// 理由（なぜ消すか）
-    pub reason: Option<String>,
+    /// 理由（なぜ消すか。必ず渡す。記録の事前の状態と一緒に残す）
+    pub reason: String,
+    /// スキーマの置き場所（外の変更があるときの取り込みの案内に引き継ぐ）
+    pub schemas: SchemaPlaces,
     /// Concrete を消すときに、従うインスタンスが無いことを確かめる範囲（--range の経路）
     pub range: Option<Vec<String>>,
 }
@@ -46,12 +48,12 @@ pub struct Deletion {
     pub checked: Vec<Checked>,
 }
 
-fn delete_hint(path: &str, hash: &str, caller: &Caller) -> String {
+fn delete_hint(path: &str, hash: &str, schemas: &SchemaPlaces, caller: &Caller) -> String {
     format!(
         "消す：{}",
         carried(
             &["delete", path, "--if-match", hash, "--reason", "<理由>"],
-            None,
+            Some(schemas),
             None,
             caller
         )
@@ -63,6 +65,7 @@ fn has_dependents(
     path: &str,
     hash: &str,
     blocked: Vec<Blocked>,
+    schemas: &SchemaPlaces,
     range: &[String],
     caller: &Caller,
 ) -> Refused {
@@ -80,7 +83,7 @@ fn has_dependents(
         "blocked のそれぞれの hint を片付けてから、消し直す：{}",
         carried(
             &["delete", path, "--if-match", hash, "--reason", "<理由>"],
-            None,
+            Some(schemas),
             Some(range),
             caller
         )
@@ -122,7 +125,7 @@ pub fn delete(
         target_path: path.to_string(),
         before: Some(current.as_str().to_string()),
         after: None,
-        reason: request.reason.clone(),
+        reason: Some(request.reason.clone()),
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
@@ -146,13 +149,12 @@ pub fn delete(
             ),
         );
         let range = request.range.as_deref();
-        let place = SchemaPlaces::new(vec!["<置き場所>".to_string()], Vec::new());
         r.hint = Some(Box::new(if between.unrecorded {
             format!(
                 "外の変更を取り込んでから消す：{} のあとで {}",
                 carried(
                     &["update", path, "--adopt", "--reason", "<理由>"],
-                    Some(&place),
+                    Some(&request.schemas),
                     range,
                     caller
                 ),
@@ -165,7 +167,7 @@ pub fn delete(
                         "--reason",
                         "<理由>"
                     ],
-                    None,
+                    Some(&request.schemas),
                     range,
                     caller
                 )
@@ -182,7 +184,7 @@ pub fn delete(
                         "--reason",
                         "<理由>"
                     ],
-                    None,
+                    Some(&request.schemas),
                     range,
                     caller
                 )
@@ -209,7 +211,7 @@ pub fn delete(
                 path: c.path.clone(),
                 code: "follows",
                 message: format!("{own} に従うインスタンス"),
-                hint: delete_hint(&c.path, c.hash.as_str(), caller),
+                hint: delete_hint(&c.path, c.hash.as_str(), &request.schemas, caller),
             })
             .collect();
         if !blocked.is_empty() {
@@ -217,6 +219,7 @@ pub fn delete(
                 path,
                 current.as_str(),
                 blocked,
+                &request.schemas,
                 range,
                 caller,
             ));

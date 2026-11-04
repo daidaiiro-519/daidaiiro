@@ -4,6 +4,8 @@
 
 #![allow(clippy::unwrap_used)]
 
+mod support;
+
 use outbound_sqlite::SqliteLog;
 use rusqlite::Connection;
 use writing_domain::values::ChangeRow;
@@ -52,8 +54,8 @@ fn writes_mark_the_ones_written_in_this_worktree() {
         seen,
         [("o-0001".to_string(), false), ("o-0002".to_string(), true)]
     );
-    let stored: Vec<Option<String>> = a
-        .connection()
+    let raw = Connection::open(&path).unwrap();
+    let stored: Vec<Option<String>> = raw
         .prepare("SELECT worktree FROM changes ORDER BY rowid")
         .unwrap()
         .query_map([], |r| r.get(0))

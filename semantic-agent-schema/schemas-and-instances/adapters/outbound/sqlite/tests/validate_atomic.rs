@@ -3,7 +3,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_sqlite::SqliteLog;
+mod support;
+
 use validation_domain::values::{RuleRow, ValidateRow};
 
 fn rule(id: &str, by: &str) -> RuleRow {
@@ -17,7 +18,7 @@ fn rule(id: &str, by: &str) -> RuleRow {
     }
 }
 
-fn count(log: &SqliteLog, table: &str) -> i64 {
+fn count(log: &support::TestLog, table: &str) -> i64 {
     log.connection()
         .query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))
         .unwrap()
@@ -25,7 +26,7 @@ fn count(log: &SqliteLog, table: &str) -> i64 {
 
 #[test]
 fn a_judgment_that_fails_midway_leaves_no_rows() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     // 1件目の判定は書ける。2件目は by が machine でも ai でもないので、表が拒む
     let row = ValidateRow {
         target_path: "u1.json".into(),

@@ -1,7 +1,7 @@
 //! テンプレートが置く名前と、JS が値の入口から読む所を、Concrete の形にたどる決まり（template-language.json の契約）。
 //! テンプレートの木と JS の読み方は、ポートのアダプターが読んで渡す（ここは読んだ結果だけを扱う）。
 
-use crate::values::{PathSeg, TemplateNode};
+use crate::values::{DataEntry, PathSeg, TemplateNode};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -199,12 +199,9 @@ pub fn partial_names(nodes: &[TemplateNode], out: &mut BTreeSet<String>) {
     }
 }
 
-/// JS が値を読む入口の要素の id（template-language.json の x-data-entry）。
-pub const DATA_ENTRY: &str = "semantic-agent-schema-data";
-
 /// テンプレートの中の <script> 1つ。
 pub struct ScriptBlock {
-    /// 値の入口（type="application/json" かつ id="semantic-agent-schema-data"）
+    /// 値の入口（type と id が契約の x-data-entry と同じ）
     pub data_entry: bool,
     /// JS でない（type が JSON などの、ほかのデータ）
     pub json_like: bool,
@@ -214,8 +211,8 @@ pub struct ScriptBlock {
     pub body: String,
 }
 
-/// テンプレートの本文から <script> を取り出す（属性は type ・ id ・ src だけを見る）。
-pub fn script_blocks(source: &str) -> Vec<ScriptBlock> {
+/// テンプレートの本文から <script> を取り出す（属性は type ・ id ・ src だけを見る）。entry は契約の値の入口。
+pub fn script_blocks(source: &str, entry: &DataEntry) -> Vec<ScriptBlock> {
     let lower = source.to_ascii_lowercase();
     let mut out = Vec::new();
     let mut at = 0;
@@ -249,7 +246,8 @@ pub fn script_blocks(source: &str) -> Vec<ScriptBlock> {
         let kind = attr("type").unwrap_or_default().to_ascii_lowercase();
         let json_like = kind.contains("json");
         out.push(ScriptBlock {
-            data_entry: json_like && attr("id").as_deref() == Some(DATA_ENTRY),
+            data_entry: kind == entry.media_type
+                && attr("id").as_deref() == Some(entry.id.as_str()),
             json_like,
             external: attr("src").is_some(),
             body: body.to_string(),

@@ -1,0 +1,65 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-AFTER-PLAIN",
+ "name": "判定のあとの機械の検証",
+ "title": "意味の判定を渡したあとに判定を渡さない validate を打っても、not-judged の行は前の判定にならず、次の validate --semantic は前の判定（判定できた最後の行）から変わった所を選ぶ",
+ "why": "not-judged の行で前の判定を上書きすると、何も変えていないのに意味の判定が全部やり直しになる。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json",
+   "answers/summary.json": "{\"hash\": \"sha256:cd024bdab47826bd4bbb3483df31b544cd88d9ca89879d18a0cc34616f4ddcaa\", \"results\": [{\"step\": 1, \"rule\": \"goal-is-outcome\", \"pointer\": \"/goal\", \"result\": \"verified\", \"reason\": \"結果を書いている\"}, {\"step\": 2, \"rule\": \"summary-matches\", \"pointer\": \"/summary\", \"result\": \"verified\", \"reason\": \"目的に食い違わない\"}]}"
+  },
+  "steps": [
+   {
+    "args": [
+     "validate",
+     "items/s1.json",
+     "--answer",
+     "answers/summary.json",
+     "--schemas",
+     "schemas",
+     "--human"
+    ]
+   },
+   {
+    "args": [
+     "validate",
+     "items/s1.json",
+     "--schemas",
+     "schemas",
+     "--human"
+    ]
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/s1.json",
+   "--semantic",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/review/scope",
+   "equals": "changed"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps",
+   "count": 0
+  }
+ ]
+}

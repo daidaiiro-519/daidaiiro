@@ -1,0 +1,62 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-SEMANTIC-READS-RECORDS-ONLY",
+ "name": "意味の判定の手順は記録を書かない",
+ "title": "validate --semantic ・ create --semantic は手順を返すだけで、記録を読むだけにし、記録のファイルを作らず、sessions にも書かない",
+ "why": "手順を返すだけのコマンドが記録を書くと、記録しないという約束が崩れる。",
+ "traces": [
+  "UC4:変形:意味の判定"
+ ],
+ "given": {
+  "files": {
+   "schemas/summary.schema.json": "@fixtures/summary.schema.json",
+   "items/s1.json": "@fixtures/s1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "items/s1.json",
+   "--semantic",
+   "--schemas",
+   "schemas",
+   "--session",
+   "ai-1"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "create",
+    "items/s2.json",
+    "--concrete",
+    "urn:example:sample:summary:v1",
+    "--semantic",
+    "--schemas",
+    "schemas",
+    "--session",
+    "ai-1"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "file": ".git/semantic-agent-schema/records.sqlite",
+   "exists": false
+  }
+ ]
+}

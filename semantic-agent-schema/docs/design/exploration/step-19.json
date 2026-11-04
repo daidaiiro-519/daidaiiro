@@ -1,0 +1,109 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 19,
+ "date": "2026-11-04",
+ "summary": "実装から書き起こした概念の「気づいたこと」45件を、利用者が承認した4つのまとまりで直した。前の判定は判定できた最後の行から取り、not-judged で上書きしない。返すコマンドは打てば通る形にした（取り込みの案内に --range、描画の案内から --session ・ --human を外す、delete も --schemas を受けて案内へ引き継ぐ）。使われない ・ 届かないものを削り、判定の区分を4つにし（error を外す）、記録の表の版を 10 に上げた。テンプレートに渡す名前と値の入口は template-language.json の x-names ・ x-data-entry から読む。--semantic は記録を読むだけで sessions に書かない。読む経路も .git ・ target を断る。init の tool は環境変数から決める。$ref の先を引く決まりと、置き場所から Concrete を引く手順は writing-domain の SchemaIndex の1か所にした。試験139件、場面157本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC5",
+  "UC6",
+  "UC7"
+ ],
+ "factchecks": [
+  {
+   "item": "場面を先に書き、直す前の実装で通らないことを、場面を流して確かめた",
+   "evidence": [
+    "S-UC4-SEMANTIC-AFTER-PLAIN ・ S-UC4-UNTRACKED-CONCRETE ・ S-UC4-SEMANTIC-READS-RECORDS-ONLY ・ S-READ-GIT-AND-TARGET ・ S-UC1-ADOPT-RECORDED-CONCRETE を足し、S-SESSION-INIT ・ S-UC5-DESIGN-INVALID ・ S-UC3-UNTRACKED ・ S-UC3-CONCRETE-FOLLOWED の期待を直して、直す前の実装で通らないことを確かめた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "読むだけに開いた記録は、無いファイルを作らず、ある記録を書き換えない",
+   "evidence": [
+    "outbound の sqlite の試験 a_database_in_a_new_place_is_made_empty が、SqliteLog::read のあとにファイルが無いことと、あとで作った記録の行を読めることを確かめる",
+    "場面 S-UC4-SEMANTIC-READS-RECORDS-ONLY が、validate ・ create の --semantic のあとに records.sqlite が無いことを確かめる"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "意味の判定の手順（UC4 の --semantic）",
+   "steps": [
+    "前の判定は、rule ごとに判定できた（verified ・ violated ・ unverified）最後の行から取る",
+    "記録は読むだけに開き、セッションの行を足さない。記録のファイルが無ければ作らずに、前の判定が無いものとして手順を返す"
+   ],
+   "rules": [
+    "意味の答えの無い validate が記録した not-judged は、前の判定にしない"
+   ]
+  },
+  {
+   "usecase": "返すコマンド（すべて）",
+   "steps": [
+    "受け取った --schemas ・ --range ・ 誰が打ったかを引き継ぐ。Concrete の更新の取り込みには --range <範囲の経路> を付ける",
+    "デザインシステムの validate は誰が打ったかを取らないので、描画の案内に --session ・ --human を付けない"
+   ],
+   "rules": [
+    "返すコマンドは <…> の所を埋めれば、そのまま打って通る"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "置き場所から Concrete と $ref の先を引く手順と、$ref の先の所を引く決まり",
+   "became": "service",
+   "why": "書く ・ 検証 ・ 描画 ・ 検索の4つのモジュールに同じ繰り返しがあった。ドメインは読み書きをしないので、Lookup が次に読む経路を返し、手続きがポートで読んだ中身を渡す形にした。deref は書く手順 ・ 欄の定義 ・ 当たる rule の3か所にあったものを SchemaIndex::deref の1つにした"
+  },
+  {
+   "what": "テンプレートの書き方の契約のうち、描画が使う所（x-names ・ x-data-entry）",
+   "became": "value",
+   "why": "テンプレートに渡す名前と値の入口をコードに直に書くと、契約と食い違っても気づけない。rendering-domain の TemplateLanguage として契約から読む"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "判定の区分の error",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "error になる経路が無かった（判定に失敗した rule は手続きが断る）。区分を4つにし、出力の counts ・ 表の CHECK ・ 終了コード ・ 概念のページを合わせた"
+  },
+  {
+   "item": "init の tool と、--semantic が sessions に書くこと",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "設計（--semantic は記録しない ・ 誰が打ったかはどのコマンドも同じ決まりで決める）どおりに実装を合わせた。init はほかのコマンドと同じく環境変数から tool を決め、--semantic は記録を読むだけにした"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "記録の表（sql/records.sql）",
+    "before": "sessions に first_seen。rule_results の result に error。ビュー operations は before_hash ・ after_hash ・ source ・ schema も持つ。SHAPE 9",
+    "after": "first_seen を消した。result は verified ・ violated ・ unverified ・ not-judged。operations は id ・ at ・ kind ・ target_path ・ reason ・ session_id だけ。SHAPE 10",
+    "why": "どこも読まない列と、作る経路の無い値を持たない"
+   },
+   {
+    "what": "公開された言葉（command-result）",
+    "before": "verdict と counts に error。描画の pages に views（並び）。log の session に via が無い。init の結果の via は env ・ flag ・ init",
+    "after": "error を外した。pages は view（1つ）。log の session に via を足した。init の結果の via は init だけ",
+    "why": "出力を実装の振る舞いに合わせる"
+   },
+   {
+    "what": "依頼の型",
+    "before": "DeleteRequest.reason は Option。AdoptRequest は reason ・ range ・ base を Option で持つ",
+    "after": "DeleteRequest.reason は String で、--schemas を受ける。AdoptAs::Update が reason（必須）・ base ・ range を持ち、AdoptAs::Create は reason だけを持つ",
+    "why": "入口が先に断るので届かなかった分岐を、型で作れないようにする"
+   },
+   {
+    "what": "ポート",
+    "before": "SessionLog::session がセッション ID を返す。ScriptReader が reads_entry も返す。描画の SchemaValidator は check だけ。SqliteLog に試験用の connection ・ in_memory",
+    "after": "session は () を返す。ScriptReader は読んだ所の並びだけを返す。描画の SchemaValidator に shipped を足した。SqliteLog は読むだけに開く read を持ち、試験の記録は試験の側（tests/support）が一時ファイルで作る",
+    "why": "使われない戻り値と、試験だけが使う公開の手段を持たない"
+   }
+  ]
+ }
+}

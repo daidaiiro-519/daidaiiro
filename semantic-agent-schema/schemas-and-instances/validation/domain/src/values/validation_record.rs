@@ -12,7 +12,7 @@ pub struct RuleRow {
     pub pointer: String,
     /// machine ・ ai
     pub by: String,
-    /// 判定の5つの区分のどれか
+    /// 判定の4つの区分のどれか
     pub result: String,
     /// 理由
     pub reason: String,
@@ -27,7 +27,7 @@ pub struct ValidateRow {
     pub target_path: String,
     /// 判定した中身のハッシュ
     pub hash: String,
-    /// 検証した文書が従う schema の $id（記録を読むときに返す。版5より前の行は None）
+    /// 検証した文書が従う schema の $id（記録を読むときに返す）
     pub schema: Option<String>,
     /// rule ごとの結果
     pub results: Vec<RuleRow>,

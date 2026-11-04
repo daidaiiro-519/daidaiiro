@@ -1,0 +1,54 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC4-UNTRACKED-CONCRETE",
+ "name": "外で直された Concrete を知らせる",
+ "title": "記録したあと外で直された Concrete を検証すると、取り込みの案内に --range（範囲）を付けて返す。Concrete の取り込みは範囲が要るので、案内のとおりに打てば断られない",
+ "why": "範囲の無い案内を打つと使い方の誤りで断られ、取り込めない。",
+ "traces": [
+  "UC4:変形:Semantic Agent Schema を通らない変更を見つける"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json"
+  },
+  "steps": [
+   {
+    "args": [
+     "create",
+     "schemas/usecase.schema.json",
+     "--adopt",
+     "--schemas",
+     "schemas",
+     "--human"
+    ]
+   },
+   {
+    "write": {
+     "path": "schemas/usecase.schema.json",
+     "content": "{\n \"$schema\": \"urn:semantic-agent-schema:published-language:abstract:v1\",\n \"$id\": \"urn:example:sample:usecase:v1\",\n \"title\": \"ユースケース\",\n \"description\": \"外で直した。利用者が目的を果たすまでの手順である。\",\n \"type\": \"object\",\n \"required\": [\n  \"$schema\",\n  \"id\",\n  \"goal\"\n ],\n \"properties\": {\n  \"$schema\": {\n   \"const\": \"urn:example:sample:usecase:v1\"\n  },\n  \"id\": {\n   \"title\": \"ID\",\n   \"description\": \"ユースケースを区別する名前である。\",\n   \"x-prompt\": {\n    \"rules\": []\n   },\n   \"type\": \"string\",\n   \"pattern\": \"^U[0-9]+$\"\n  },\n  \"goal\": {\n   \"title\": \"目的\",\n   \"description\": \"利用者が果たしたいことである。\",\n   \"x-prompt\": {\n    \"rules\": [\n     {\n      \"id\": \"goal-is-outcome\",\n      \"rule\": \"利用者が得る結果を書く。\",\n      \"why\": \"手段を書くと、目的が果たせたかを決められない。\",\n      \"check\": \"結果を表す名詞句かを見る。\",\n      \"bad\": [\n       {\n        \"value\": \"注文フォームに入力する\",\n        \"note\": \"利用者の操作（手段）で、得る結果ではない。\"\n       }\n      ],\n      \"good\": [\n       {\n        \"value\": \"注文した品の受け取り\"\n       }\n      ]\n     }\n    ]\n   },\n   \"type\": \"string\"\n  },\n  \"calls\": {\n   \"title\": \"呼ぶユースケース\",\n   \"description\": \"途中で呼ぶほかのユースケースの並びである。\",\n   \"x-prompt\": {\n    \"rules\": []\n   },\n   \"type\": \"array\",\n   \"items\": {\n    \"type\": \"string\"\n   }\n  }\n }\n}\n"
+    }
+   }
+  ]
+ },
+ "when": {
+  "args": [
+   "validate",
+   "schemas/usecase.schema.json",
+   "--schemas",
+   "schemas",
+   "--human"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "pointer": "/unrecorded",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/hint",
+   "contains": "--range"
+  }
+ ]
+}

@@ -1,8 +1,9 @@
 //! semantic-agent-schema コマンドの入口。引数を読み、adapter を組み立ててユースケースを呼び、結果を JSON の1行で返す。
 //! 意味の部分（--semantic）は、結果の代わりに手順（procedure.schema.json）を返す。Semantic Agent Schema はエージェントを起動しない。
-//! semantic-agent-schema log（UC7）は記録を読むだけで、何も足さない（記録が無ければ作らない）。semantic-agent-schema search（UC6）は記録しない。
+//! semantic-agent-schema log（UC7）と --semantic は記録を読むだけで、何も足さない（記録が無ければ作らない）。
+//! semantic-agent-schema search（UC6）は記録しない。
 //!
-//! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
+//! 終了コード：0 = violated が無い（作成 ・ 更新は書けた）／ 1 = violated がある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
 //!
 //! 入口はコンポジションルートで、置き場所を決めてアダプターを組み立てる：経路の根は Git の根、操作の記録は
@@ -52,20 +53,20 @@ semantic-agent-schema create <経路> --schemas <置き場所>... --adopt [--con
 semantic-agent-schema update <経路> --schemas <置き場所>... --patch <JSON Patch> --if-match <ハッシュ> [--range <経路>...] [--reason <理由>] (--session <ID> | --human) ／ \
 semantic-agent-schema update <経路> --schemas <置き場所>... --semantic [--range <経路>...] [--reason <理由>] (--session <ID> | --human) ／ \
 semantic-agent-schema update <経路> --schemas <置き場所>... --adopt --reason <理由> [--base <コミット>] [--range <経路>...] (--session <ID> | --human) ／ \
-semantic-agent-schema delete <経路> --reason <理由> --if-match <ハッシュ> [--range <経路>...] (--session <ID> | --human) ／ \
+semantic-agent-schema delete <経路> --schemas <置き場所>... --reason <理由> --if-match <ハッシュ> [--range <経路>...] (--session <ID> | --human) ／ \
 semantic-agent-schema render <経路>... --schemas <置き場所>... --design-system <経路> --out <書き出す先> ／ \
 semantic-agent-schema search <経路>... --schemas <置き場所>... --where <JSON Pointer>=<JSON> [--where …]... ／ \
 semantic-agent-schema search <経路>... --schemas <置き場所>... --semantic --question <問い> ／ \
 semantic-agent-schema search <経路>... --schemas <置き場所>... --answer <答えの JSON のファイル | -> ／ \
 semantic-agent-schema log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
 semantic-agent-schema log --operation <ID> ／ \
-経路はどこで打っても Git の根からの相対（根の外を指す経路は読まない）。--schemas はファイルか、直下の JSON のファイルを読むフォルダ（Concrete と $ref の先を $id で引く）。\
+経路はどこで打っても Git の根からの相対（根の外を指す経路と、.git ・ target の中は読まない）。--schemas はファイルか、直下の JSON のファイルを読むフォルダ（Concrete と $ref の先を $id で引く）。\
 --if-match は読んだ時の中身のハッシュで、いまの中身と違えば書かない ・ 消さない。\
 Concrete を直す ・ 消すときは --range <経路>... が要る（値の無い --range は、範囲が空と明示する）。\
-AI のセッションは --session <ID>（Claude Code などツールの環境変数があれば省ける。Gemini CLI ・ Cursor は毎回付ける。init は新しい ID を返す）、人は --human（ツールの環境変数があるところでは受け取らない）。search と render とデザインシステムの validate は、誰が打ったかを取らず、記録しない。\
+AI のセッションは --session <ID>（Claude Code などツールの環境変数があれば省ける。Gemini CLI ・ Cursor は毎回付ける。init は新しい ID を返し、tool は環境変数から決める）、人は --human（ツールの環境変数があるところでは受け取らない）。search と render とデザインシステムの validate は、誰が打ったかを取らず、記録しない。--semantic は記録を読むだけで、セッションの行も足さない。\
 答えと --where の値は JSON だけ。--base は取り込む前の中身があるコミット（無ければ前の値の無い差分で取り込む）。\
 操作の記録は <git-common-dir>/semantic-agent-schema/records.sqlite。表の形の版が違う記録は開かないので、その記録のファイルを消して打ち直すと空で作り直す。\
-終了コード：0 = violated と error が無い ／ 1 = どちらかがある ・ 断った ／ 2 = 使い方の誤り";
+終了コード：0 = violated が無い ／ 1 = violated がある ・ 断った ／ 2 = 使い方の誤り";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -272,6 +273,15 @@ fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
     Ok((WorkingTree::new(root), validator, log))
 }
 
+/// 操作の記録を読むだけに開く（何も書かない。記録のファイルが無ければ作らずに、空の記録として読む）。
+fn records() -> Result<SqliteLog, Refused> {
+    SqliteLog::read(&db_path(&PathBuf::from("."))?).map_err(|message| Refused {
+        code: "log",
+        message,
+        ..Refused::default()
+    })
+}
+
 /// 記録を開かずに、Git の根の置き場所とバリデーターを組み立てる（検索 ・ デザインシステムの検証 ・ 描画）。
 /// Git のリポジトリの外では、経路の根が決まらないので断る。
 fn read_only() -> Result<(WorkingTree, Validator), Refused> {
@@ -306,7 +316,9 @@ fn run_init(args: &[String]) -> ExitCode {
         Ok(a) => a,
         Err(r) => return refuse(r),
     };
-    match register_session(&folder(), &mut log) {
+    let folder = folder();
+    let from = FromArguments::new(None, false, |name| std::env::var(name).ok(), &folder);
+    match register_session(&from, &folder, &mut log) {
         Ok(row) => {
             output::print_session(&row);
             ExitCode::SUCCESS
@@ -406,6 +418,25 @@ fn run_validate(args: &[String]) -> ExitCode {
         }
         None => None,
     };
+    if semantic {
+        // 判定の手順を対象ごとに出すだけで、記録は読むだけ（セッションの行も足さず、記録が無ければ作らない）。
+        // 判定する所が0件の対象も、steps が空の手順を出す
+        let result = records().and_then(|log| {
+            let (store, validator) = read_only()?;
+            let caller = caller(who.clone())?;
+            semantic_procedures(&scope, selection, &store, &validator, &caller, &log)
+                .map_err(Refused::from)
+        });
+        return match result {
+            Ok(procedures) => {
+                for p in &procedures {
+                    output::print_procedure(p);
+                }
+                ExitCode::SUCCESS
+            }
+            Err(r) => refuse(r),
+        };
+    }
     let (store, validator, mut log) = match adapters() {
         Ok(a) => a,
         Err(r) => return refuse(r),
@@ -416,18 +447,6 @@ fn run_validate(args: &[String]) -> ExitCode {
     };
     if let Err(message) = register(&caller, &mut log) {
         return refuse(log_refused(message));
-    }
-    if semantic {
-        // 判定の手順を対象ごとに出すだけで、記録しない。判定する所が0件の対象も、steps が空の手順を出す
-        return match semantic_procedures(&scope, selection, &store, &validator, &caller, &log) {
-            Ok(procedures) => {
-                for p in &procedures {
-                    output::print_procedure(p);
-                }
-                ExitCode::SUCCESS
-            }
-            Err(r) => refuse(r),
-        };
     }
     let result = match answer_text {
         Some(text) => validate_with_answer(
@@ -563,10 +582,11 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             range,
             reason,
         };
-        let result = run_with(
-            |store, validator, caller, _| semantic_procedure(&request, store, validator, caller),
-            who.clone(),
-        );
+        // 手順を返すだけで、記録を開かない（セッションの行も足さない）
+        let result = read_only().and_then(|(store, validator)| {
+            let caller = caller(who.clone())?;
+            semantic_procedure(&request, &store, &validator, &caller).map_err(Refused::from)
+        });
         return match result {
             Ok(p) => {
                 output::print_procedure(&p);
@@ -583,22 +603,24 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
         {
             return usage(&format!("--adopt と {name} は一緒に渡せません"));
         }
-        if command == Command::Update && reason.is_none() {
-            return usage(
-                "--adopt で更新を取り込むときは、外で直した理由を --reason で渡してください",
-            );
-        }
+        let as_kind = match (command, reason) {
+            (Command::Create, reason) => AdoptAs::Create { reason },
+            (Command::Update, Some(reason)) => AdoptAs::Update {
+                reason,
+                base: take("--base"),
+                range,
+            },
+            (Command::Update, None) => {
+                return usage(
+                    "--adopt で更新を取り込むときは、外で直した理由を --reason で渡してください",
+                );
+            }
+        };
         let request = AdoptRequest {
             path: path.clone(),
-            as_kind: match command {
-                Command::Create => AdoptAs::Create,
-                Command::Update => AdoptAs::Update,
-            },
+            as_kind,
             concrete: take("--concrete"),
             schemas,
-            range,
-            reason,
-            base: take("--base"),
         };
         let committed = GitCommits::new(root());
         let result = run_with(
@@ -681,7 +703,11 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
 }
 
 fn run_delete(args: &[String]) -> ExitCode {
-    let (range, args) = match take_list(args, "--range") {
+    let (schemas, args) = match take_list(args, "--schemas") {
+        Ok(v) => v,
+        Err(m) => return usage(&m),
+    };
+    let (range, args) = match take_list(&args, "--range") {
         Ok(v) => v,
         Err(m) => return usage(&m),
     };
@@ -722,10 +748,15 @@ fn run_delete(args: &[String]) -> ExitCode {
             "--if-match に、読んだ時の中身のハッシュを渡してください（いまの中身と同じときだけ消す）",
         );
     };
+    let schemas = match schema_files(schemas) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
     let request = DeleteRequest {
         path: path.clone(),
         if_match,
-        reason: Some(reason),
+        reason,
+        schemas,
         range,
     };
     match run_with(
@@ -846,30 +877,12 @@ fn run_log(args: &[String]) -> ExitCode {
     if operation.is_some() && filter != OperationFilter::default() {
         return usage("--operation は1件を読むので、経路やほかの絞り方と一緒に渡せません");
     }
-    let path = match db_path(&PathBuf::from(".")) {
-        Ok(p) => p,
+    let log = match records() {
+        Ok(l) => l,
         Err(r) => return refuse(r),
     };
-    // 記録が無ければ、作らずに「無い」として返す（読んでも何も変えない）
-    let log = if path.exists() {
-        match SqliteLog::open(&path) {
-            Ok(l) => Some(l),
-            Err(message) => {
-                return refuse(Refused {
-                    code: "log",
-                    message,
-                    ..Refused::default()
-                });
-            }
-        }
-    } else {
-        None
-    };
     if let Some(id) = operation {
-        let found = match &log {
-            Some(l) => read_operation(l, &id),
-            None => Ok(None),
-        };
+        let found = read_operation(&log, &id);
         return match found {
             Ok(Some(d)) => {
                 output::print_operation_detail(&d);
@@ -883,10 +896,7 @@ fn run_log(args: &[String]) -> ExitCode {
             Err(message) => refuse(log_refused(message)),
         };
     }
-    let found = match &log {
-        Some(l) => read_operations(l, &filter),
-        None => Ok(Vec::new()),
-    };
+    let found = read_operations(&log, &filter);
     match found {
         Ok(rows) => {
             for o in &rows {

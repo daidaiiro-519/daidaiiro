@@ -3,6 +3,8 @@
 
 #![allow(clippy::unwrap_used, clippy::panic)]
 
+mod support;
+
 use outbound_sqlite::SqliteLog;
 use recording_application::ports::{OperationDetail, OperationFilter, OperationReader};
 use validation_domain::values::{RuleRow, ValidateRow};
@@ -60,12 +62,13 @@ fn session(log: &mut SqliteLog, id: &str, folder: &str) -> Option<String> {
         folder: folder.into(),
         via: Via::Env,
     })
-    .unwrap()
+    .unwrap();
+    Some(id.to_string())
 }
 
 /// a.json を A（/w/a）が作り、b.json を B（/w/b）が作って、人が a.json を検証する。
-fn filled() -> SqliteLog {
-    let mut log = SqliteLog::in_memory().unwrap();
+fn filled() -> support::TestLog {
+    let mut log = support::log();
     let a = session(&mut log, "A", "/w/a");
     let b = session(&mut log, "B", "/w/b");
     log.append_change(a.as_deref(), &change("a.json")).unwrap();
@@ -190,7 +193,7 @@ fn one_operation_is_read_with_its_fields_or_rule_results() {
 #[test]
 fn reading_adds_no_rows() {
     let log = filled();
-    let count = |log: &SqliteLog| -> i64 {
+    let count = |log: &support::TestLog| -> i64 {
         log.connection()
             .query_row(
                 "SELECT (SELECT count(*) FROM sessions) + (SELECT count(*) FROM changes) \

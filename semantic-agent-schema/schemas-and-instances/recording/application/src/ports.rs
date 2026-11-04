@@ -1,5 +1,5 @@
 //! 記録のモジュールが外に求めるもの（記録を読む UC7 と、入口が使う「誰が打ったかを決めて登録する」手続きが使うポートだけ）。
-//! 検証と変更を追記するポートは、追記する書く ・ 検証 ・ 描画のモジュールが、それぞれの ports.rs に宣言する。
+//! 検証と変更を追記するポートは、追記する書く ・ 検証のモジュールが、それぞれの ports.rs に宣言する。
 
 use validation_domain::values::ValidateRow;
 use writing_domain::values::{Caller, ChangeRow};
@@ -38,11 +38,11 @@ pub enum NotIdentified {
 
 /// 打ったセッションの置き場所（sessions）。追記だけを受け付ける。
 pub trait SessionLog {
-    /// 打ったセッションの ID。初めて見たセッションなら、sessions に1行足す（行は書き換えない）。人なら None。
+    /// 初めて見たセッションなら、sessions に1行足す（行は書き換えない）。人なら何もしない。
     ///
     /// # Errors
     /// 置き場所を読めない ・ 書けないとき。
-    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String>;
+    fn session(&mut self, caller: &Caller) -> Result<(), String>;
 
     /// 記録にあるセッションの行。無ければ None。
     ///

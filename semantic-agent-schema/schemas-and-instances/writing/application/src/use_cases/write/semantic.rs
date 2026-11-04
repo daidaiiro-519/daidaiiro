@@ -13,7 +13,7 @@ use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeSet;
 use writing_domain::aggregates::escape;
-use writing_domain::services::field_schema;
+use writing_domain::services::{SchemaIndex, field_schema};
 use writing_domain::values::{Caller, ContentHash, SchemaPlaces, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
@@ -46,7 +46,7 @@ struct Unit {
 /// 意味で書く手順を組む（UC1 ・ UC2 の変形）。記録しない。
 ///
 /// # Errors
-/// 依頼を読めない ・ 型が決まらない ・ 書く欄が無い ・ 読み合う欄がある ・ 資料を読めない ・ 大きすぎるとき。
+/// 依頼を読めない ・ 型が決まらない ・ 書く欄が無い ・ 読み合う欄があるとき。
 pub fn semantic_procedure(
     request: &SemanticRequest,
     store: &dyn DocumentStore,
@@ -218,7 +218,7 @@ impl<'a> Inner<'a> {
         if !self.seen.insert(key.clone()) {
             return None;
         }
-        let (target_doc, target) = deref(doc, node, self.others);
+        let (target_doc, target) = SchemaIndex::deref(doc, node, self.others);
         if std::ptr::eq(target, node) {
             return None;
         }
@@ -282,37 +282,6 @@ impl<'a> Inner<'a> {
             self.walk(doc, sub, loc, at);
         }
     }
-}
-
-/// $ref の先と、その先がある文書（文書の中の #… と、ほかの文書の <$id>#…）。引けなければそのまま。
-fn deref<'a>(
-    root: &'a Value,
-    node: &'a Value,
-    others: &'a [(String, Value)],
-) -> (&'a Value, &'a Value) {
-    let Some(r) = node.get("$ref").and_then(Value::as_str) else {
-        return (root, node);
-    };
-    let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
-    let doc = if base.is_empty() {
-        Some(root)
-    } else {
-        others.iter().find(|(id, _)| id == base).map(|(_, d)| d)
-    };
-    let Some(doc) = doc else {
-        return (root, node);
-    };
-    let target = if fragment.is_empty() {
-        Some(doc)
-    } else if fragment.starts_with('/') {
-        doc.pointer(fragment)
-    } else {
-        doc.get("$defs").and_then(Value::as_object).and_then(|m| {
-            m.values()
-                .find(|d| d.get("$anchor").and_then(Value::as_str) == Some(fragment))
-        })
-    };
-    target.map_or((root, node), |t| (doc, t))
 }
 
 /// 書く元のスキーマの本体に、$ref で指すほかの文書（Concrete か、Semantic Agent Schema が入れて出すスキーマ）を $defs へ入れたもの。

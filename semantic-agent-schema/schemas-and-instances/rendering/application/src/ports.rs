@@ -16,6 +16,9 @@ pub trait DocumentStore {
 
 /// JSON Schema 2020-12 のバリデーター。デザインシステムを受け取りの型に照らす。
 pub trait SchemaValidator {
+    /// 入れて出すスキーマ ・ 契約の文書（テンプレートの書き方の契約を読む）。無い名前は None。
+    fn shipped(&self, id: &str) -> Option<Value>;
+
     /// value を、$id が schema のスキーマに照らし、外れた所（JSON Pointer）と理由を返す。
     /// more は照らすスキーマ（$id と文書）で、schema の名前と $ref の先として引ける。
     ///
@@ -51,15 +54,6 @@ pub trait TemplateRenderer {
     fn inspect(&self, source: &str) -> Result<Vec<TemplateNode>, String>;
 }
 
-/// JS を読んで分かったこと。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct ScriptFacts {
-    /// 値の入口（semantic-agent-schema-data）から読んでいるか
-    pub reads_entry: bool,
-    /// 値を読んだ所
-    pub reads: Vec<DataRead>,
-}
-
 /// テンプレートの JS を構文解析する道具。JS のロジックは見ず、値の入口からどの欄を読んでいるかだけを取り出す。
 pub trait ScriptReader {
     /// source（1つの <script> の中身）を読み、entry_id の要素（<script type="application/json" id=…>）から
@@ -67,7 +61,7 @@ pub trait ScriptReader {
     ///
     /// # Errors
     /// JS として読めないとき。
-    fn data_reads(&self, source: &str, entry_id: &str) -> Result<ScriptFacts, String>;
+    fn data_reads(&self, source: &str, entry_id: &str) -> Result<Vec<DataRead>, String>;
 }
 
 /// ページを書き出せなかった理由。

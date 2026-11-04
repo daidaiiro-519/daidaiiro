@@ -2,7 +2,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_sqlite::SqliteLog;
+mod support;
+
 use validation_domain::values::{RuleRow, ValidateRow};
 use writing_domain::values::{ChangeRow, FieldRow};
 
@@ -43,7 +44,7 @@ fn delete_row() -> ChangeRow {
 
 #[test]
 fn judgments_before_a_delete_are_not_returned() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     log.append_validate(None, &validate_row()).unwrap();
     log.append_change(None, &delete_row()).unwrap();
     assert!(

@@ -16,7 +16,7 @@ use boa_ast::scope::Scope;
 use boa_ast::visitor::{VisitWith, Visitor};
 use boa_interner::{Interner, ToInternedString};
 use boa_parser::{Parser, Source};
-use rendering_application::ports::{DataRead, PathSeg, ScriptFacts, ScriptReader};
+use rendering_application::ports::{DataRead, PathSeg, ScriptReader};
 use std::collections::BTreeSet;
 use std::ops::ControlFlow;
 
@@ -28,7 +28,7 @@ struct Reads<'i> {
     interner: &'i Interner,
     entry_id: String,
     roots: BTreeSet<String>,
-    facts: ScriptFacts,
+    reads: Vec<DataRead>,
 }
 
 impl Reads<'_> {
@@ -95,15 +95,13 @@ impl Reads<'_> {
     fn record(&mut self, e: &Expression) -> bool {
         match self.path(e) {
             Some(Ok(segs)) => {
-                self.facts.reads_entry = true;
                 if !segs.is_empty() {
-                    self.facts.reads.push(DataRead::Path(segs));
+                    self.reads.push(DataRead::Path(segs));
                 }
                 true
             }
             Some(Err(why)) => {
-                self.facts.reads_entry = true;
-                self.facts.reads.push(DataRead::Untraceable(why));
+                self.reads.push(DataRead::Untraceable(why));
                 true
             }
             None => false,
@@ -121,14 +119,12 @@ impl<'ast> Visitor<'ast> for Reads<'_> {
         match d.binding() {
             // const data = JSON.parse(…) か、const items = data.calls
             Binding::Identifier(id) if self.is_entry(init) => {
-                self.facts.reads_entry = true;
                 self.roots.insert(self.text(id));
                 ControlFlow::Continue(())
             }
             // const { goal, calls } = JSON.parse(…) か data
             Binding::Pattern(Pattern::Object(p)) => match self.path(init) {
                 Some(Ok(base)) => {
-                    self.facts.reads_entry = true;
                     for el in p.bindings() {
                         match el {
                             ObjectPatternElement::SingleName {
@@ -137,9 +133,9 @@ impl<'ast> Visitor<'ast> for Reads<'_> {
                             } => {
                                 let mut segs = base.clone();
                                 segs.push(PathSeg::Key(self.text(key)));
-                                self.facts.reads.push(DataRead::Path(segs));
+                                self.reads.push(DataRead::Path(segs));
                             }
-                            other => self.facts.reads.push(DataRead::Untraceable(format!(
+                            other => self.reads.push(DataRead::Untraceable(format!(
                                 "{}（分割代入の形が追えない）",
                                 self.text(other)
                             ))),
@@ -148,7 +144,7 @@ impl<'ast> Visitor<'ast> for Reads<'_> {
                     ControlFlow::Continue(())
                 }
                 Some(Err(why)) => {
-                    self.facts.reads.push(DataRead::Untraceable(why));
+                    self.reads.push(DataRead::Untraceable(why));
                     ControlFlow::Continue(())
                 }
                 None => d.visit_with(self),
@@ -168,15 +164,14 @@ impl<'ast> Visitor<'ast> for Reads<'_> {
             }
             // 入口の値そのものを渡す ・ 返す（render(data) など）。その先を追えない
             Expression::Identifier(id) if self.roots.contains(&self.text(id)) => {
-                self.facts.reads.push(DataRead::Untraceable(format!(
+                self.reads.push(DataRead::Untraceable(format!(
                     "{}（値をそのまま使っていて、その先を追えない）",
                     self.text(id)
                 )));
                 ControlFlow::Continue(())
             }
             e if self.is_entry(e) => {
-                self.facts.reads_entry = true;
-                self.facts.reads.push(DataRead::Untraceable(
+                self.reads.push(DataRead::Untraceable(
                     "JSON.parse(…) の値をそのまま使っていて、その先を追えない".to_string(),
                 ));
                 ControlFlow::Continue(())
@@ -187,7 +182,7 @@ impl<'ast> Visitor<'ast> for Reads<'_> {
 }
 
 impl ScriptReader for Boa {
-    fn data_reads(&self, source: &str, entry_id: &str) -> Result<ScriptFacts, String> {
+    fn data_reads(&self, source: &str, entry_id: &str) -> Result<Vec<DataRead>, String> {
         let mut interner = Interner::default();
         let script = Parser::new(Source::from_bytes(source.as_bytes()))
             .parse_script(&Scope::new_global(), &mut interner)
@@ -196,9 +191,9 @@ impl ScriptReader for Boa {
             interner: &interner,
             entry_id: entry_id.to_string(),
             roots: BTreeSet::new(),
-            facts: ScriptFacts::default(),
+            reads: Vec::new(),
         };
         let _ = script.visit_with(&mut v);
-        Ok(v.facts)
+        Ok(v.reads)
     }
 }

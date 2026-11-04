@@ -99,6 +99,7 @@
    "scenarios": [
     "S-UC1-ADOPT-INVALID",
     "S-UC1-ADOPT-NO-SCHEMA",
+    "S-UC1-ADOPT-RECORDED-CONCRETE",
     "S-UC1-ADOPT-RECORDED",
     "S-UC1-ADOPT"
    ]
@@ -256,6 +257,7 @@
    "scenarios": [
     "S-UC2-ADOPT-WORKTREE",
     "S-UC2-WORKTREE-IN-TURN",
+    "S-UC4-UNTRACKED-CONCRETE",
     "S-UC4-UNTRACKED",
     "S-UC4-WORKTREE-REVERTED",
     "S-UC4-WORKTREE"
@@ -565,6 +567,7 @@
     "S-UC4-ANSWER-MISMATCH",
     "S-UC4-ANSWER",
     "S-UC4-SEMANTIC-ADOPTED",
+    "S-UC4-SEMANTIC-AFTER-PLAIN",
     "S-UC4-SEMANTIC-ALL-RULES",
     "S-UC4-SEMANTIC-CHANGED",
     "S-UC4-SEMANTIC-DEEP",
@@ -573,6 +576,7 @@
     "S-UC4-SEMANTIC-PLACE-ADDED",
     "S-UC4-SEMANTIC-PLACE-REMOVED",
     "S-UC4-SEMANTIC-PROCEDURE",
+    "S-UC4-SEMANTIC-READS-RECORDS-ONLY",
     "S-UC4-SEMANTIC-READS",
     "S-UC4-SEMANTIC-REASON",
     "S-UC4-SEMANTIC-RELATED-CHANGED",
@@ -582,7 +586,7 @@
   },
   {
    "id": "約束:command-result:session",
-   "meaning": "人は --human で明示する（ツールの環境変数があるところでは受け取らない）。打ったセッションは --session か、ツールの環境変数で決まり、どれも無ければ人とみなさずに断る。semantic-agent-schema init は新しい ID を決めて sessions に登録し、kind = session の1行で返すだけで、あとで打つコマンドの既定にはならない。最初に打った semantic-agent-schema で sessions に1行入る",
+   "meaning": "人は --human で明示する（ツールの環境変数があるところでは受け取らない）。打ったセッションは --session か、ツールの環境変数で決まり、どれも無ければ人とみなさずに断る。semantic-agent-schema init はいつも新しい ID を決め、tool はほかのコマンドと同じく環境変数から決めて sessions に登録し、kind = session の1行で返すだけで、あとで打つコマンドの既定にはならない。記録をつけるコマンドを最初に打ったときに sessions に1行入る（--semantic は記録を読むだけで、行を足さない）",
    "scenarios": [
     "S-SESSION-ENV",
     "S-SESSION-HUMAN-AND-SESSION",
@@ -612,6 +616,7 @@
    "id": "UC6:最低保証",
    "meaning": "範囲を渡さなければ探さない。範囲の外は探しておらず、範囲の外を出どころにした答えは返さない。誰が打ったかを取らず、記録に触れない",
    "scenarios": [
+    "S-READ-GIT-AND-TARGET",
     "S-UC6-SEARCH-NO-RANGE",
     "S-UC6-SEARCH-NO-SESSION",
     "S-UC6-SEARCH-OUTSIDE",
@@ -627,7 +632,7 @@
   },
   {
    "id": "UC6:変形:意味で探す",
-   "meaning": "--semantic --question で範囲の文書ごとに1ステップの手順（経路 ・ ハッシュ ・ 中身）と答えの形 ・ 答えを渡すコマンドを返し（記録しない）、--answer で渡された答えの出どころを確かめてから返す",
+   "meaning": "--semantic --question で範囲の文書ごとに1ステップの手順（経路とハッシュ。中身は貼らず、受け取ったセッションが読む）と答えの形 ・ 答えを渡すコマンドを返し（記録しない）、--answer で渡された答えの出どころを確かめてから返す",
    "scenarios": [
     "S-UC6-SEARCH-ANSWER",
     "S-UC6-SEARCH-SEMANTIC"

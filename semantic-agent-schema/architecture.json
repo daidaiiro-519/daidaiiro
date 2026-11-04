@@ -8,14 +8,14 @@
    "nodes": [
     "writing-domain"
    ],
-   "description": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差分 ・ 書く条件の外れ ・ 文書が Concrete かインスタンスかの見分け TargetKind ・ 渡されたスキーマの置き場所 SchemaPlaces ・ 誰が打ったか Caller ・ 記録にある書いた変更の行 ChangeRow ・ WriteRecord と Semantic Agent Schema を通らない変更の見分け unrecorded_since）、サービス（スキーマの所に当たる欄の定義を引く field_schema ・ 置き場所の $id の索引と $ref の先の名前 SchemaIndex。読むのはポートで、ここは読んだ文字列から決める）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く。誰が打ったか（人か、名乗ったセッションか）は x-decided-by の欄の書く条件の入口なので、ここに置く。見分け方 ・ 置き場所の索引 ・ 欄の定義の引き方 ・ 誰が打ったかは、書く ・ 検証 ・ 描画 ・ 検索 ・ 記録のモジュールがここから使う"
+   "description": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差分 ・ 書く条件の外れ ・ 文書が Concrete かインスタンスかの見分け TargetKind ・ 渡されたスキーマの置き場所 SchemaPlaces ・ 誰が打ったか Caller ・ 記録にある書いた変更の行 ChangeRow ・ WriteRecord と Semantic Agent Schema を通らない変更の見分け unrecorded_since）、サービス（スキーマの所に当たる欄の定義を引く field_schema ・ 置き場所の $id の索引と、そこから Concrete と $ref の先を引く手順 SchemaIndex ・ Lookup と、$ref の先の所を引く deref。読むのはポートで、ここは次に読む経路と読んだ文字列から決める）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く。誰が打ったか（人か、名乗ったセッションか）は x-decided-by の欄の書く条件の入口なので、ここに置く。見分け方 ・ 置き場所の索引 ・ 欄の定義の引き方 ・ 誰が打ったかは、書く ・ 検証 ・ 描画 ・ 検索 ・ 記録のモジュールがここから使う"
   },
   {
    "name": "validation-domain",
    "nodes": [
     "validation-domain"
    ],
-   "description": "業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の5つの区分 ・ rule の結果 ・ 誰が判定するか ・ 記録にある検証と rule ごとの判定の行 ValidateRow ・ RuleRow ・ Judgment）と、集約を読んで rule に照らすサービス（当たる rule を集める ・ 組み込みの検査 instance-schema-name ・ unique-id ・ example-related ・ 判定が読んだ所のハッシュ reads_hash）。集約は持たない。書くモジュールは、更新で入力が変わった前の判定を、ここの同じ基準で決める"
+   "description": "業務領域「書いて検証する」の検証のモジュールのドメインモデル。値（判定の4つの区分 ・ rule の結果 ・ 誰が判定するか ・ 記録にある検証と rule ごとの判定の行 ValidateRow ・ RuleRow ・ Judgment）と、集約を読んで rule に照らすサービス（当たる rule を集める ・ 組み込みの検査 instance-schema-name ・ unique-id ・ example-related ・ 判定が読んだ所のハッシュ reads_hash）。集約は持たない"
   },
   {
    "name": "validation-application",
@@ -50,7 +50,7 @@
    "nodes": [
     "rendering-application"
    ],
-   "description": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らす。記録しない）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter と、文書を読む DocumentStore ・ 形を照らす SchemaValidator を自分で宣言する。描画の決まりは rendering-domain が持ち、ここは読んで決まりを呼んで書き出す手続き。テンプレートに渡すのは value ・ json ・ tokens ・ css だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
+   "description": "UC5 描画する（use_cases/render.rs）と、デザインシステムの検証（use_cases/design.rs。受け取りの型とテンプレートの書き方の契約 template-language.json に照らす。記録しない）。ポート TemplateRenderer（Mustache で描く ・ 描かずに木を読む）・ ScriptReader（JS が値の入口から読む欄を取り出す）・ PageWriter と、文書を読む DocumentStore ・ 形を照らす SchemaValidator を自分で宣言する。描画の決まりは rendering-domain が持ち、ここは読んで決まりを呼んで書き出す手続き。テンプレートに渡すのは template-language.json の x-names の名前だけで、UI ・ UX のロジックはテンプレートの JS が持つ"
   },
   {
    "name": "search-application",
@@ -106,7 +106,7 @@
    "nodes": [
     "inbound-cli"
    ],
-   "description": "semantic-agent-schema コマンドの入口。コンポジションルートを持ち、経路の根（Git の根）と、記録の置き場所（db_path の1か所。<git-common-dir>/semantic-agent-schema/records.sqlite）を決める。Git の外は断る。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --human ・ --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（誰が打ったかを決める ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す。search ・ render ・ デザインシステムの validate は誰が打ったかを取らず、記録を開かない。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。semantic-agent-schema log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
+   "description": "semantic-agent-schema コマンドの入口。コンポジションルートを持ち、経路の根（Git の根）と、記録の置き場所（db_path の1か所。<git-common-dir>/semantic-agent-schema/records.sqlite）を決める。Git の外は断る。誰が打ったかを決めるのは入口の責務で、IdentifyCaller を --human ・ --session ・ ツールごとの環境変数の表（callers.json）で実装し、記録のモジュールの手続き（誰が打ったかを決める ・ sessions に登録する）を呼んで、決まった値（Caller）を各モジュールのユースケースへ渡す。記録をつけるコマンドでは sessions に1行足す（--semantic は記録を読むだけで足さない）。search ・ render ・ デザインシステムの validate は誰が打ったかを取らず、記録を開かない。各モジュールの断った理由（Refused）を、出力の形（kind = error）の Refused へ移して出す。semantic-agent-schema log は記録を読むだけで、記録が無ければ作らない。エージェントを起動しない"
   },
   {
    "name": "test-support",

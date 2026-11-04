@@ -1,0 +1,63 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-READ-GIT-AND-TARGET",
+ "name": ".git と target を読まない",
+ "title": ".git ・ target の中を指す経路は、書く ・ 消すときと同じく読むときも断る",
+ "why": "Git の中身やビルドの出力を文書として読むと、渡された文書だけを扱う約束が崩れる。",
+ "traces": [
+  "UC6:最低保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/review.schema.json": "@fixtures/review.schema.json",
+   "target/r.json": "@fixtures/r1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "search",
+   ".git/HEAD",
+   "--where",
+   "/id=\"R1\"",
+   "--schemas",
+   "schemas"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "search",
+    "target/r.json",
+    "--where",
+    "/id=\"R1\"",
+    "--schemas",
+    "schemas"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "not_found"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": ".git"
+  },
+  {
+   "of": "after[0]",
+   "exit": 1
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/message",
+   "contains": "target"
+  }
+ ]
+}

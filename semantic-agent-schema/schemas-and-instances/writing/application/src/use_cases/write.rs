@@ -16,11 +16,10 @@ pub use semantic::{SemanticRequest, semantic_procedure};
 
 use crate::ports::{ChangeLog, CommitReader, DocumentStore, SchemaValidator};
 use serde_json::Value;
-use std::collections::BTreeSet;
 use validation_domain::services::{EXAMPLE_RELATED, example_related};
 use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
-use writing_domain::services::{Resolved, SchemaIndex, Unresolved, concrete_of, refs};
+use writing_domain::services::{Lookup, Resolved, SchemaIndex, Unresolved};
 use writing_domain::values::{
     Caller, ChangeRow, ContentHash, Diff, FieldRow, SchemaPlaces, TargetKind, WriteRecord,
     unrecorded_since,
@@ -98,55 +97,26 @@ fn index_of(store: &dyn DocumentStore, schemas: &[String]) -> Result<SchemaIndex
     Ok(index)
 }
 
-/// 索引から $id の文書を1つ読む。from は $ref で指した文書の $id。
+/// 置き場所から引く手順を、ポートで読みながら最後まで進める。target は理由に付ける対象の経路。
 ///
 /// # Errors
-/// 置き場所に無い ・ 2つ以上ある ・ 読めない ・ JSON でないとき。
-fn read_one(
-    index: &SchemaIndex,
-    store: &dyn DocumentStore,
-    id: &str,
-    from: Option<&str>,
-    target: &str,
-) -> Result<(String, Value), Refused> {
-    let path = index
-        .path_of(id, from)
-        .map_err(|u| unresolved(Some(target), u))?
-        .to_string();
-    let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
-    let value = serde_json::from_str(&text)
-        .map_err(|e| refused("store", &path, format!("JSON として読めない：{e}")))?;
-    Ok((path, value))
-}
-
-/// $id が id の文書（中身は value）と、その $ref の先（同じ置き場所から引く。入れて出すスキーマは引かない）を、
-/// 形の検査に渡す並びにする。
-///
-/// # Errors
-/// $ref の先が置き場所に無い ・ 2つ以上ある ・ 読めないとき。
-fn with_refs(
-    index: &SchemaIndex,
+/// 置き場所に無い ・ 2つ以上ある ・ Concrete でない ・ 読めない ・ JSON でないとき。
+fn drive<'i>(
+    mut lookup: Lookup<'i>,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
     target: &str,
-    id: &str,
-    value: Value,
-) -> Result<Vec<(String, Value)>, Refused> {
-    let mut seen: BTreeSet<String> = BTreeSet::from([id.to_string()]);
-    let mut queue: Vec<(String, String)> = refs(&value)
-        .into_iter()
-        .map(|r| (r, id.to_string()))
-        .collect();
-    let mut more = vec![(id.to_string(), value)];
-    while let Some((next, from)) = queue.pop() {
-        if validator.shipped(&next).is_some() || !seen.insert(next.clone()) {
-            continue;
-        }
-        let (_, doc) = read_one(index, store, &next, Some(&from), target)?;
-        queue.extend(refs(&doc).into_iter().map(|r| (r, next.clone())));
-        more.push((next, doc));
+) -> Result<Lookup<'i>, Refused> {
+    while let Some(path) = lookup
+        .next(&|id| validator.shipped(id).is_some())
+        .map_err(|u| unresolved(Some(target), u))?
+    {
+        let text = store.read(&path).map_err(|e| refused("store", &path, e))?;
+        lookup
+            .read(&text)
+            .map_err(|u| unresolved(Some(target), u))?;
     }
-    Ok(more)
+    Ok(lookup)
 }
 
 /// 置き場所から引けなかった理由を、断った理由にする。
@@ -171,10 +141,9 @@ fn resolve(
     path: &str,
     declared: &str,
 ) -> Result<Resolved, Refused> {
-    let (at, value) = read_one(index, store, declared, None, path)?;
-    let concrete = concrete_of(declared, &at, &value).map_err(|u| unresolved(Some(path), u))?;
-    let more = with_refs(index, store, validator, path, declared, value)?;
-    Ok(Resolved::new(at, concrete, more))
+    drive(index.concrete(declared, true), store, validator, path)?
+        .resolved()
+        .ok_or_else(|| refused("unknown_schema", path, format!("{declared} を引けなかった")))
 }
 
 /// $schema の申告から対象の種類を見分ける。見分けられなければ、取りに行かずに断る理由。
@@ -246,7 +215,7 @@ fn form_violations(
 /// 呼ぶ側（人か AI）は、間に入った操作の理由と変わった欄を読んで、直し方を考え直す。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Interleaved {
-    /// 呼ぶ側が前提にしたハッシュ（--if-match か、最後に記録した書いた操作の事後のハッシュ）
+    /// 呼ぶ側が前提にしたハッシュ（--if-match）
     pub expected: String,
     /// いまの中身のハッシュ
     pub current: String,
@@ -735,8 +704,8 @@ pub fn create(
 }
 
 /// UC2 更新する（機械）：いまの中身のハッシュを確かめ、JSON Patch を当て、型と集約の書く条件を確かめてから書き、
-/// 前後の中身から求めた差分と一緒に更新の操作を記録する。前の判定のうち入力が変わったものと、
-/// Concrete の更新で外れたインスタンスを返す。
+/// 前後の中身から求めた差分と一緒に更新の操作を記録する。Concrete の更新で外れたインスタンスを返す
+/// （前の判定のうち変わった所は、次の validate --semantic が手順で返す）。
 ///
 /// # Errors
 /// 依頼を読めない ・ 対象が無い ・ 従う型が決まらない（何も記録しない）。
@@ -934,14 +903,13 @@ impl Followers {
     ) -> Result<Self, Refused> {
         let docs = range_docs(store, log, path, id, range)?;
         let more = if docs.iter().any(|(c, _)| c.follows) {
-            with_refs(
-                &index_of(store, schemas)?,
+            drive(
+                index_of(store, schemas)?.refs_of(id, after.clone()),
                 store,
                 validator,
                 path,
-                id,
-                after.clone(),
             )?
+            .documents()
         } else {
             Vec::new()
         };
@@ -1070,13 +1038,23 @@ fn reapply_hint(
     )
 }
 
-/// 取り込みを、作成として行うか更新として行うか。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// 取り込みを、作成として行うか更新として行うか。更新だけが、理由を必ず持ち、--base と --range を持てる。
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdoptAs {
     /// Semantic Agent Schema の記録に無い既存のファイルを取り込む（UC1 の変形「既存のファイルを取り込む」）
-    Create,
+    Create {
+        /// 理由（渡されたときだけ）
+        reason: Option<String>,
+    },
     /// Semantic Agent Schema が書いたあとに外で直されたファイルを取り込む（UC2 の --adopt）
-    Update,
+    Update {
+        /// なぜ外で直したか
+        reason: String,
+        /// 取り込む前の中身があるコミット（--base）。無ければ前の値の無い差分にする
+        base: Option<String>,
+        /// Concrete の更新を取り込むときに、従うインスタンスを確かめる範囲（--range の経路）
+        range: Option<Vec<String>>,
+    },
 }
 
 /// Semantic Agent Schema を通らない変更の取り込みの依頼。ファイルは書かない。
@@ -1090,12 +1068,6 @@ pub struct AdoptRequest {
     pub concrete: Option<String>,
     /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
     pub schemas: SchemaPlaces,
-    /// Concrete の更新を取り込むときに、従うインスタンスを確かめる範囲（--range の経路）
-    pub range: Option<Vec<String>>,
-    /// 理由（なぜ外で直したか）。更新の取り込みでは要る
-    pub reason: Option<String>,
-    /// 更新の取り込みで、取り込む前の中身があるコミット（--base）。無ければ前の値の無い差分にする
-    pub base: Option<String>,
 }
 
 /// --base のコミットにある、取り込む前の中身（コミット ・ 中身 ・ そのハッシュ）。中身は、この経路の記録のどれかの事後と
@@ -1157,9 +1129,11 @@ pub fn adopt(
     log: &mut dyn ChangeLog,
 ) -> Result<ChangeResult, Refused> {
     let path = request.path.as_str();
-    let written = match request.as_kind {
-        AdoptAs::Create => Written::Created,
-        AdoptAs::Update => Written::Updated,
+    let (written, reason, base) = match &request.as_kind {
+        AdoptAs::Create { reason } => (Written::Created, reason.clone(), None),
+        AdoptAs::Update { reason, base, .. } => {
+            (Written::Updated, Some(reason.clone()), base.as_ref())
+        }
     };
     let text = store
         .read(path)
@@ -1182,24 +1156,20 @@ pub fn adopt(
     }
     let target = target_of_declared(store, validator, request.schemas.files(), path, &declared)?;
     let kind = target.kind;
-    let range = match request.as_kind {
-        AdoptAs::Update => range_for(kind, path, request.range.as_deref(), "取り込んで直す")?,
-        AdoptAs::Create if request.range.is_some() => {
-            return Err(refused(
-                "usage",
-                path,
-                "--range は Concrete を直す ・ 消すときだけ渡す".to_string(),
-            ));
-        }
-        AdoptAs::Create => &[],
+    let range = match &request.as_kind {
+        AdoptAs::Update { range, .. } => range_for(kind, path, range.as_deref(), "取り込んで直す")?,
+        AdoptAs::Create { .. } => &[],
     };
     let hash = ContentHash::of(text.as_bytes());
     let writes = log.writes(path).map_err(log_refused)?;
     let recorded: Vec<String> = writes.iter().filter_map(|w| w.row.after.clone()).collect();
 
     // 前の状態：作成の取り込みは記録が無いこと、更新の取り込みはいまの中身が記録のどの事後とも違うこと
-    let last = match (request.as_kind, writes.last()) {
-        (AdoptAs::Create, Some(w)) => {
+    let last = match (&request.as_kind, writes.last()) {
+        (AdoptAs::Create { .. }, Some(w)) => {
+            // Concrete の更新の取り込みは範囲が要るので --range を付ける（範囲は呼ぶ側が埋める）
+            let placeholder = ["<範囲の経路>".to_string()];
+            let range = (kind == TargetKind::Concrete).then_some(&placeholder[..]);
             return Err(refused(
                 "recorded",
                 path,
@@ -1209,14 +1179,14 @@ pub fn adopt(
                     carried(
                         &["update", path, "--adopt", "--reason", "<理由>"],
                         Some(&request.schemas),
-                        None,
+                        range,
                         caller
                     )
                 ),
             ));
         }
-        (AdoptAs::Create, None) => None,
-        (AdoptAs::Update, None) => {
+        (AdoptAs::Create { .. }, None) => None,
+        (AdoptAs::Update { .. }, None) => {
             return Err(refused(
                 "not_recorded",
                 path,
@@ -1231,7 +1201,7 @@ pub fn adopt(
                 ),
             ));
         }
-        (AdoptAs::Update, Some(_)) => {
+        (AdoptAs::Update { .. }, Some(_)) => {
             // 外の変更かは検証と同じ決まりで見る（このワークツリーの最後の事後、まだ書いていなければ記録のどれかの中身）
             let Some(w) = unrecorded_since(&writes, hash.as_str()) else {
                 return Err(refused(
@@ -1240,13 +1210,6 @@ pub fn adopt(
                     "いまの中身は、このワークツリーで Semantic Agent Schema が最後に書いた事後（まだ書いていなければ記録のどれかの中身）と同じで、外の変更が無い".to_string(),
                 ));
             };
-            if request.reason.is_none() {
-                return Err(refused(
-                    "invalid_input",
-                    path,
-                    "更新の取り込みには、外で直した理由（--reason）が要る".to_string(),
-                ));
-            }
             Some(w.row.after.clone().unwrap_or_default())
         }
     };
@@ -1256,20 +1219,13 @@ pub fn adopt(
         target_path: path.to_string(),
         before: None,
         after: None,
-        reason: request.reason.clone(),
+        reason,
         schema: Some(declared.clone()),
         fields: Vec::new(),
     };
-    let found = match (&last, &request.base) {
-        (Some(_), Some(base)) => Some(base_content(committed, base, path, &recorded)?),
-        (None, Some(_)) => {
-            return Err(refused(
-                "usage",
-                path,
-                "--base は、更新を取り込むとき（update --adopt）だけ渡す".to_string(),
-            ));
-        }
-        (_, None) => None,
+    let found = match base {
+        Some(base) => Some(base_content(committed, base, path, &recorded)?),
+        None => None,
     };
     // 事前：--base のコミットの中身のハッシュ（記録のどれかの事後）、無ければ記録の最後の事後
     let expected: Option<String> = match (&found, &last) {
@@ -1325,8 +1281,8 @@ pub fn adopt(
         return Err(r);
     }
     let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
-    let followers = match (&own_id, request.as_kind) {
-        (Some(id), AdoptAs::Update) => Some(Followers::read(
+    let followers = match (&own_id, &request.as_kind) {
+        (Some(id), AdoptAs::Update { .. }) => Some(Followers::read(
             request.schemas.files(),
             store,
             validator,

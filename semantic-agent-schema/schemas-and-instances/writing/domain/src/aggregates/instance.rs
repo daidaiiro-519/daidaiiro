@@ -41,12 +41,6 @@ impl Instance {
             .unwrap_or_default()
     }
 
-    /// 文書。
-    #[must_use]
-    pub const fn document(&self) -> &Value {
-        &self.document
-    }
-
     /// この中身を書いてよいか。before は直す前の中身（作成なら None）、human は人が決める欄
     /// （x-decided-by: human が当たったインスタンスの所と、その default）。所は入れ子のどこでもよい。
     ///
@@ -70,7 +64,6 @@ impl Instance {
             if changed {
                 return Err(WriteViolation::new(
                     "human_field",
-                    at,
                     &format!(
                         "{at} は x-decided-by: human の欄で、人の入口（--human を付けた呼び出し）からだけ決める"
                     ),

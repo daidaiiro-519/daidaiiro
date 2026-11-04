@@ -132,6 +132,10 @@ impl validation_application::ports::SchemaValidator for Validator {
 }
 
 impl rendering_application::ports::SchemaValidator for Validator {
+    fn shipped(&self, id: &str) -> Option<Value> {
+        Self::shipped(self, id)
+    }
+
     fn check(
         &self,
         schema: &str,

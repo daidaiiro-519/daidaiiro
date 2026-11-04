@@ -2,7 +2,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_sqlite::SqliteLog;
+mod support;
+
 use writing_domain::values::ChangeRow;
 
 fn row(
@@ -26,7 +27,7 @@ fn row(
 
 #[test]
 fn only_the_last_change_of_each_path_counts() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     let a = "urn:a";
     let b = "urn:b";
     log.append_change(None, &row("create", "u1.json", a, None, Some("sha256:1")))

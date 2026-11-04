@@ -207,18 +207,26 @@ fn adopt_request(as_kind: AdoptAs) -> AdoptRequest {
         path: "u1.json".into(),
         as_kind,
         concrete: None,
-        reason: Some("エディターで直した".into()),
         schemas: support::places(&["c.json"]),
+    }
+}
+
+fn created() -> AdoptAs {
+    AdoptAs::Create {
+        reason: Some("エディターで直した".into()),
+    }
+}
+
+fn updated(base: Option<&str>) -> AdoptAs {
+    AdoptAs::Update {
+        reason: "エディターで直した".into(),
+        base: base.map(Into::into),
         range: None,
-        base: None,
     }
 }
 
 fn adopt_from(base: &str) -> AdoptRequest {
-    AdoptRequest {
-        base: Some(base.into()),
-        ..adopt_request(AdoptAs::Update)
-    }
+    adopt_request(updated(Some(base)))
 }
 
 #[test]
@@ -229,7 +237,7 @@ fn adopted_update_compares_with_the_base_commit() {
     let mut log = Log::default();
     let none = Commits(Vec::new());
     let c = adopt(
-        &adopt_request(AdoptAs::Create),
+        &adopt_request(created()),
         &store,
         &Lenient,
         &none,
@@ -298,7 +306,7 @@ fn unreadable_versions_are_refused_as_versions() {
     let store = files(&[("c.json", decided()), ("u1.json", first)]);
     let mut log = Log::default();
     adopt(
-        &adopt_request(AdoptAs::Create),
+        &adopt_request(created()),
         &store,
         &Lenient,
         &Commits(Vec::new()),
@@ -332,7 +340,7 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
     let mut log = Log::default();
     let none = Commits(Vec::new());
     adopt(
-        &adopt_request(AdoptAs::Create),
+        &adopt_request(created()),
         &store,
         &Lenient,
         &none,
@@ -347,7 +355,7 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
         )
         .unwrap();
     let r = adopt(
-        &adopt_request(AdoptAs::Update),
+        &adopt_request(updated(None)),
         &store,
         &Lenient,
         &none,
@@ -360,7 +368,7 @@ fn tool_cannot_adopt_without_knowing_whether_a_human_field_changed() {
     assert!(r.hint.unwrap().contains("--human"));
     // 人なら、前の値を持たない差分で取り込める
     let c = adopt(
-        &adopt_request(AdoptAs::Update),
+        &adopt_request(updated(None)),
         &store,
         &Lenient,
         &none,

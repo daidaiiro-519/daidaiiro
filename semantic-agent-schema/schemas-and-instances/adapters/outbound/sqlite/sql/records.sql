@@ -7,8 +7,7 @@ CREATE TABLE sessions (
     id         TEXT PRIMARY KEY,                          -- セッション ID（--session ・ ツールの環境変数 ・ semantic-agent-schema init で決めたもの）
     tool       TEXT NOT NULL,                             -- claude-code など。分からなければ unknown
     folder     TEXT NOT NULL,                             -- 初めて見たときに打ったフォルダ（作業ツリーの根）
-    via        TEXT NOT NULL CHECK (via IN ('env', 'flag', 'init')),  -- ID をどこから知ったか
-    first_seen TEXT NOT NULL
+    via        TEXT NOT NULL CHECK (via IN ('env', 'flag', 'init'))   -- ID をどこから知ったか
 ) STRICT;
 
 CREATE TRIGGER sessions_no_update BEFORE UPDATE ON sessions
@@ -36,7 +35,7 @@ CREATE TABLE rule_results (
     rule_id       TEXT NOT NULL,
     pointer       TEXT NOT NULL,
     by            TEXT NOT NULL CHECK (by IN ('machine', 'ai')),
-    result        TEXT NOT NULL CHECK (result IN ('verified', 'violated', 'unverified', 'error', 'not-judged')),
+    result        TEXT NOT NULL CHECK (result IN ('verified', 'violated', 'unverified', 'not-judged')),
     reason        TEXT NOT NULL,
     reads_hash    TEXT NOT NULL,
     PRIMARY KEY (validation_id, ord)
@@ -123,10 +122,6 @@ BEGIN SELECT RAISE(ABORT, 'a delete records only removals of the previous state'
 
 -- UC7「操作の記録を読む」：変更と検証を記録した順に並べる
 CREATE VIEW operations AS
-    SELECT id, at, kind, target_path, before_hash, after_hash, reason, source,
-           session_id, schema
-    FROM changes
+    SELECT id, at, kind, target_path, reason, session_id FROM changes
     UNION ALL
-    SELECT id, at, 'validate', target_path, hash, hash, NULL, 'semantic-agent-schema',
-           session_id, schema
-    FROM validations;
+    SELECT id, at, 'validate', target_path, NULL, session_id FROM validations;

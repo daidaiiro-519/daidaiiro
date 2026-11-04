@@ -2,7 +2,7 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-SESSION-INIT",
  "name": "init で登録する",
- "title": "semantic-agent-schema init は、新しいセッションの ID を決めて sessions に登録し、その ID を返すだけ。あとで打つコマンドの既定にはならないので、--session を付けないと断り、付ければその ID の操作になる",
+ "title": "semantic-agent-schema init は、新しいセッションの ID を決めて sessions に登録し、その ID を返すだけ。あとで打つコマンドの既定にはならないので、--session を付けないと断り、付ければその ID の操作になる。ツールの環境変数があれば、ほかのコマンドと同じく tool をそのツールにする",
  "why": "同じフォルダで2つの会話が init を打つと、最後の init を既定にしたとき、先の会話の操作があとの会話のセッションで記録される。",
  "traces": [
   "約束:command-result:session"
@@ -60,6 +60,11 @@
   {
    "of": "after[2]",
    "exit": 2
+  },
+  {
+   "of": "after[3]",
+   "pointer": "/tool",
+   "equals": "claude-code"
   }
  ],
  "after": [
@@ -87,6 +92,14 @@
     "--session",
     "gemini-1"
    ]
+  },
+  {
+   "args": [
+    "init"
+   ],
+   "env": {
+    "CLAUDE_CODE_SESSION_ID": "c-1"
+   }
   }
  ]
 }

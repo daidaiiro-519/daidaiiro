@@ -28,18 +28,6 @@ impl ConcreteSchema {
         })
     }
 
-    /// $schema が Abstract の版の形（urn:semantic-agent-schema:published-language:abstract:v…）をしているか。
-    /// 閉じた一覧に無い版を見分けるために使う。
-    #[must_use]
-    pub fn declares_abstract(document: &Value) -> bool {
-        document
-            .get("$schema")
-            .and_then(Value::as_str)
-            .is_some_and(|s| {
-                s.starts_with("urn:semantic-agent-schema:published-language:abstract:")
-            })
-    }
-
     /// $id（インスタンスが $schema で指す名前）。
     #[must_use]
     pub fn id(&self) -> Option<&str> {
@@ -50,37 +38,6 @@ impl ConcreteSchema {
     #[must_use]
     pub const fn document(&self) -> &Value {
         &self.document
-    }
-
-    /// 文書のどこかで使っている x- のキーと、その場所。
-    #[must_use]
-    pub fn used_keywords(&self) -> Vec<(String, String)> {
-        let mut out = Vec::new();
-        walk_keys(&self.document, "", &mut out);
-        out
-    }
-}
-
-fn walk_keys(v: &Value, at: &str, out: &mut Vec<(String, String)>) {
-    match v {
-        Value::Object(m) => {
-            for (k, child) in m {
-                let here = format!("{at}/{}", escape(k));
-                if k.starts_with("x-") {
-                    out.push((k.clone(), here.clone()));
-                }
-                // x- の値の中と、const ・ default ・ examples の中は値なので降りない
-                if !k.starts_with("x-") && k != "const" && k != "default" && k != "examples" {
-                    walk_keys(child, &here, out);
-                }
-            }
-        }
-        Value::Array(a) => {
-            for (i, child) in a.iter().enumerate() {
-                walk_keys(child, &format!("{at}/{i}"), out);
-            }
-        }
-        _ => {}
     }
 }
 
@@ -101,6 +58,5 @@ mod tests {
         let other = json!({"$schema": "urn:semantic-agent-schema:published-language:abstract:v9"});
         assert!(ConcreteSchema::read(&ok).is_some());
         assert!(ConcreteSchema::read(&other).is_none());
-        assert!(ConcreteSchema::declares_abstract(&other));
     }
 }

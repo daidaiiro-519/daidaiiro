@@ -1,7 +1,7 @@
 //! 対象に当たる rule（形の検査を除く）と、その判定が読んだ所のハッシュ。
 //!
-//! 検証は判定して記録し、書くモジュールは更新のあとに前の判定のうち読んだ所が変わったものを決める。
-//! どちらも同じ基準（当たる所の値 ・ rule の related_fields が指す所の値 ・ rule の文）でハッシュを作る。
+//! 検証は判定を記録するときと、前の判定と比べて判定し直す所を決めるときに、
+//! 同じ基準（当たる所の値 ・ rule の related_fields が指す所の値 ・ rule の文）でハッシュを作る。
 
 use crate::services::{builtin_checks, rules_for_concrete, rules_for_instance, unjudged};
 use crate::values::RuleResult;
@@ -60,7 +60,7 @@ pub fn instance_rules(
 
 /// 判定が読んだ所のハッシュ。
 #[must_use]
-pub fn reads_of(document: &Value, at: &str) -> ContentHash {
+fn reads_of(document: &Value, at: &str) -> ContentHash {
     ContentHash::of_read(at, document.pointer(at))
 }
 

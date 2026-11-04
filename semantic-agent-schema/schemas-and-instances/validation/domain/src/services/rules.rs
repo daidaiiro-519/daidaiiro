@@ -7,6 +7,7 @@ use crate::values::{By, RuleResult, Verdict};
 use serde_json::Value;
 use std::collections::BTreeSet;
 use writing_domain::aggregates::{ConcreteSchema, escape};
+use writing_domain::services::SchemaIndex;
 
 /// 対象の1か所に当たる rule。
 #[derive(Debug, Clone, PartialEq)]
@@ -68,49 +69,6 @@ fn push_rules(schema: &Value, at: &str, out: &mut Vec<AppliedRule>) {
     }
 }
 
-/// 文書の中の "/$defs/名前"（JSON Pointer）と "名前"（$anchor）を引く。引けなければ None。
-fn lookup<'a>(root: &'a Value, fragment: &str) -> Option<&'a Value> {
-    if fragment.is_empty() {
-        return None;
-    }
-    if fragment.starts_with('/') {
-        return root.pointer(fragment);
-    }
-    root.get("$defs")?
-        .as_object()?
-        .values()
-        .find(|d| d.get("$anchor").and_then(Value::as_str) == Some(fragment))
-}
-
-/// schema が $ref で指していれば、その先と、その先がある文書。指していなければ schema のまま。
-/// 文書の中（#…）と、ほかの Concrete（<$id>#/$defs/…）を引く。
-fn resolve<'a>(
-    root: &'a Value,
-    schema: &'a Value,
-    others: &'a [(String, Value)],
-) -> (&'a Value, &'a Value) {
-    let Some(r) = schema.get("$ref").and_then(Value::as_str) else {
-        return (root, schema);
-    };
-    let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
-    let doc = if base.is_empty() {
-        Some(root)
-    } else {
-        others.iter().find(|(id, _)| id == base).map(|(_, d)| d)
-    };
-    let target = doc.and_then(|d| {
-        if fragment.is_empty() {
-            Some(d)
-        } else {
-            lookup(d, fragment)
-        }
-    });
-    match (doc, target) {
-        (Some(d), Some(t)) => (d, t),
-        _ => (root, schema),
-    }
-}
-
 /// schema を value の形としてたどり、子の所に当たる rule を集める（その所の rule は呼ぶ側が集める）。
 /// 深さでは切らない。インスタンスの値は木なので、値をたどる限り終わる。値を進めずに $ref ・ allOf をたどる所は、
 /// 同じ値の所に同じスキーマの所を1回だけ当てる（seen。自分を指す $ref でも終わる）。
@@ -123,7 +81,7 @@ fn shape(
     out: &mut Vec<AppliedRule>,
     seen: &mut BTreeSet<(usize, String)>,
 ) {
-    let (root, schema) = resolve(root, schema, others);
+    let (root, schema) = SchemaIndex::deref(root, schema, others);
     if !seen.insert((std::ptr::from_ref(schema) as usize, at.to_string())) {
         return;
     }
@@ -146,7 +104,7 @@ fn shape(
                 .or_else(|| schema.get("additionalProperties").filter(|a| a.is_object()));
             if let Some(sub) = sub {
                 let here = format!("{at}/{}", escape(name));
-                let (sub_root, sub_r) = resolve(root, sub, others);
+                let (sub_root, sub_r) = SchemaIndex::deref(root, sub, others);
                 // $ref と横に並べた x-prompt と、$ref の先の x-prompt の両方
                 push_rules(sub, &here, out);
                 if !std::ptr::eq(sub, sub_r) {
@@ -157,7 +115,7 @@ fn shape(
         }
     }
     if let (Some(items), Some(arr)) = (schema.get("items"), value.as_array()) {
-        let (items_root, items_r) = resolve(root, items, others);
+        let (items_root, items_r) = SchemaIndex::deref(root, items, others);
         for (i, child) in arr.iter().enumerate() {
             let here = format!("{at}/{i}");
             push_rules(items, &here, out);
@@ -180,7 +138,8 @@ fn form_of<'a>(
         .and_then(|v| v.pointer(&at))
         .or_else(|| abstract_doc.pointer(&at))?
         .as_str()?;
-    lookup(abstract_doc, r.split_once('#').map_or("", |(_, f)| f))
+    let (_, fragment) = r.split_once('#').filter(|(_, f)| !f.is_empty())?;
+    SchemaIndex::fragment(abstract_doc, fragment)
 }
 
 /// Concrete のどこかで使う x- ごとに、その x- の値の形（$defs）の rule と、値の中の rule を当てる。

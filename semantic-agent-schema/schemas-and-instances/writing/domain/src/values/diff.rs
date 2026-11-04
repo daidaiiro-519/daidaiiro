@@ -24,17 +24,6 @@ impl Change {
             Self::Replace => "replace",
         }
     }
-
-    /// 名前から読む。知らない名前は None。
-    #[must_use]
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "add" => Some(Self::Add),
-            "remove" => Some(Self::Remove),
-            "replace" => Some(Self::Replace),
-            _ => None,
-        }
-    }
 }
 
 /// 変わった欄1つ。
@@ -144,22 +133,10 @@ impl Diff {
         self.0.iter().any(FieldChange::before_unavailable)
     }
 
-    /// 記録から戻す。
-    #[must_use]
-    pub const fn from_changes(changes: Vec<FieldChange>) -> Self {
-        Self(changes)
-    }
-
     /// 変わった欄。
     #[must_use]
     pub fn changes(&self) -> &[FieldChange] {
         &self.0
-    }
-
-    /// 変わった欄が無いか。
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
     }
 }
 
@@ -273,6 +250,10 @@ mod tests {
     fn null_is_a_value() {
         let d = Diff::between(Some(&json!({"a": null})), &json!({"a": 1}));
         assert_eq!(d.changes()[0].before(), Some(&json!(null)));
-        assert!(Diff::between(Some(&json!({"a": 1})), &json!({"a": 1})).is_empty());
+        assert!(
+            Diff::between(Some(&json!({"a": 1})), &json!({"a": 1}))
+                .changes()
+                .is_empty()
+        );
     }
 }

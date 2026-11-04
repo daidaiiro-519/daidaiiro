@@ -4,7 +4,8 @@
 
 #![allow(clippy::unwrap_used)]
 
-use outbound_sqlite::SqliteLog;
+mod support;
+
 use validation_domain::values::{RuleRow, ValidateRow};
 use writing_domain::values::{Caller, Via};
 
@@ -37,14 +38,14 @@ fn parent(id: &str) -> Caller {
     session(id, "/w", Via::Env)
 }
 
-fn rejects(log: &SqliteLog, sql: &str) {
+fn rejects(log: &support::TestLog, sql: &str) {
     assert!(
         log.connection().execute(sql, []).is_err(),
         "通ってしまった: {sql}"
     );
 }
 
-fn count(log: &SqliteLog, table: &str) -> i64 {
+fn count(log: &support::TestLog, table: &str) -> i64 {
     log.connection()
         .query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))
         .unwrap()
@@ -52,7 +53,7 @@ fn count(log: &SqliteLog, table: &str) -> i64 {
 
 #[test]
 fn bundled_sqlite_is_new_enough() {
-    let log = SqliteLog::in_memory().unwrap();
+    let log = support::log();
     let text: String = log
         .connection()
         .query_row("SELECT sqlite_version()", [], |r| r.get(0))
@@ -63,12 +64,13 @@ fn bundled_sqlite_is_new_enough() {
 
 #[test]
 fn a_session_is_written_once_and_a_human_has_no_row() {
-    let mut log = SqliteLog::in_memory().unwrap();
-    assert_eq!(log.session(&Caller::Human).unwrap(), None);
-    let p = log.session(&parent("c5c5")).unwrap();
-    assert_eq!(p.as_deref(), Some("c5c5"));
-    assert_eq!(log.session(&parent("c5c5")).unwrap(), p);
+    let mut log = support::log();
+    log.session(&Caller::Human).unwrap();
+    assert_eq!(count(&log, "sessions"), 0, "人の行は無い");
+    log.session(&parent("c5c5")).unwrap();
+    log.session(&parent("c5c5")).unwrap();
     assert_eq!(count(&log, "sessions"), 1);
+    let p = Some("c5c5".to_string());
     // 同じ ID を別の入り方で見ても、初めの行のまま
     log.session(&session("c5c5", "/other", Via::Init)).unwrap();
     let seen = log.session_row("c5c5").unwrap().unwrap();
@@ -89,8 +91,9 @@ fn a_session_is_written_once_and_a_human_has_no_row() {
 
 #[test]
 fn records_cannot_be_changed_or_removed() {
-    let mut log = SqliteLog::in_memory().unwrap();
-    let p = log.session(&parent("c5c5")).unwrap();
+    let mut log = support::log();
+    log.session(&parent("c5c5")).unwrap();
+    let p = Some("c5c5".to_string());
     log.append_validate(p.as_deref(), &row("machine", "verified"))
         .unwrap();
     rejects(&log, "UPDATE validations SET target_path = 'x'");
@@ -103,7 +106,7 @@ fn records_cannot_be_changed_or_removed() {
 
 #[test]
 fn rows_against_the_rules_are_refused() {
-    let mut log = SqliteLog::in_memory().unwrap();
+    let mut log = support::log();
     assert!(
         log.append_validate(None, &row("person", "verified"))
             .is_err()
@@ -123,7 +126,7 @@ fn rows_against_the_rules_are_refused() {
 
 #[test]
 fn new_session_ids_do_not_collide() {
-    let log = SqliteLog::in_memory().unwrap();
+    let log = support::log();
     let ids: std::collections::BTreeSet<String> = (0..100).map(|_| log.new_session_id()).collect();
     assert_eq!(ids.len(), 100);
     assert!(

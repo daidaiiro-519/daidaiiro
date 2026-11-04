@@ -9,7 +9,7 @@
 use recording_application::ports::{
     OperationDetail, OperationFilter, OperationReader, OperationSummary, SessionLog, SessionRow,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use std::hash::{BuildHasher, Hasher};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,7 +20,7 @@ use writing_domain::values::{Caller, ChangeRow, FieldRow, WriteRecord};
 const RECORDS: &str = include_str!("../sql/records.sql");
 
 /// 表の形の版（user_version）。
-pub const SHAPE: i64 = 9;
+pub const SHAPE: i64 = 10;
 
 /// SQLite の操作の記録。
 #[derive(Debug)]
@@ -32,6 +32,13 @@ pub struct SqliteLog {
 
 fn err(e: &rusqlite::Error) -> String {
     format!("操作の記録：{e}")
+}
+
+/// 表の形の版が違うときの理由。
+fn mismatch(version: i64) -> String {
+    format!(
+        "操作の記録の表の形の版が {version} で、このコマンドの版 {SHAPE} と違うので開かない。記録はコミットしない作り直せるデータなので、記録のファイルを消すと、次に打ったときに空で作り直す"
+    )
 }
 
 impl SqliteLog {
@@ -48,12 +55,26 @@ impl SqliteLog {
         Self::with(conn).map_err(|e| format!("{e}：{}", path.display()))
     }
 
-    /// メモリの中の DB（試験用）。
+    /// path の DB を読むだけに開く（何も書かない）。ファイルが無ければ作らずに、空の記録として読む。
     ///
     /// # Errors
-    /// 表を作れないとき。
-    pub fn in_memory() -> Result<Self, String> {
-        Self::with(Connection::open_in_memory().map_err(|e| err(&e))?)
+    /// 開けない ・ 表の形の版が違うとき。
+    pub fn read(path: &Path) -> Result<Self, String> {
+        if !path.exists() {
+            return Self::with(Connection::open_in_memory().map_err(|e| err(&e))?);
+        }
+        let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|e| err(&e))?;
+        let version: i64 = conn
+            .pragma_query_value(None, "user_version", |r| r.get(0))
+            .map_err(|e| err(&e))?;
+        if version != SHAPE {
+            return Err(format!("{}：{}", mismatch(version), path.display()));
+        }
+        Ok(Self {
+            conn,
+            worktree: None,
+        })
     }
 
     fn with(conn: Connection) -> Result<Self, String> {
@@ -66,9 +87,7 @@ impl SqliteLog {
             ))
             .map_err(|e| err(&e))?;
         } else if version != SHAPE {
-            return Err(format!(
-                "操作の記録の表の形の版が {version} で、このコマンドの版 {SHAPE} と違うので開かない。記録はコミットしない作り直せるデータなので、記録のファイルを消すと、次に打ったときに空で作り直す"
-            ));
+            return Err(mismatch(version));
         }
         conn.pragma_update(None, "foreign_keys", true)
             .map_err(|e| err(&e))?;
@@ -83,12 +102,6 @@ impl SqliteLog {
     pub fn in_worktree(mut self, worktree: impl Into<String>) -> Self {
         self.worktree = Some(worktree.into());
         self
-    }
-
-    /// 生の接続（試験で決まりに反する行を直接書くため）。
-    #[must_use]
-    pub const fn connection(&self) -> &Connection {
-        &self.conn
     }
 
     /// 書いた作成 ・ 更新 ・ 削除の行を、操作の ID から読む。
@@ -174,11 +187,11 @@ fn now() -> String {
 
 /// 記録の手続き。各モジュールの記録のポートは、これを呼ぶ。
 impl SqliteLog {
-    /// 打ったセッションの ID。初めて見たセッションなら、sessions に1行足す（行は書き換えない）。人なら None。
+    /// 初めて見たセッションなら、sessions に1行足す（行は書き換えない）。人なら何もしない。
     ///
     /// # Errors
     /// 置き場所を読めない ・ 書けないとき。
-    pub fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+    pub fn session(&mut self, caller: &Caller) -> Result<(), String> {
         let Caller::Session {
             id,
             tool,
@@ -186,17 +199,17 @@ impl SqliteLog {
             via,
         } = caller
         else {
-            return Ok(None);
+            return Ok(());
         };
         // 初めて見たセッションだけ1行足す（行は書き換えない）
         self.conn
             .execute(
-                "INSERT INTO sessions (id, tool, folder, via, first_seen) VALUES (?1, ?2, ?3, ?4, ?5) \
+                "INSERT INTO sessions (id, tool, folder, via) VALUES (?1, ?2, ?3, ?4) \
                  ON CONFLICT (id) DO NOTHING",
-                params![id, tool, folder, via.as_str(), now()],
+                params![id, tool, folder, via.as_str()],
             )
             .map_err(|e| err(&e))?;
-        Ok(Some(id.clone()))
+        Ok(())
     }
 
     /// 記録にあるセッションの行。無ければ None。
@@ -350,22 +363,24 @@ impl SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    /// 経路の対象の、rule ごとの最後の判定。最後に消したより後の検証だけ。
+    /// 経路の対象の、rule ごとの最後の判定。最後に消したより後の検証だけで、まだ判定していない（not-judged）行は
+    /// 前の判定にしない（判定を渡さない検証が、前の判定を上書きしない）。
     ///
     /// # Errors
     /// 置き場所を読めないとき。
     pub fn last_judgments(&self, target_path: &str) -> Result<Vec<Judgment>, String> {
-        // rule ごとに、その rule を最後に判定した検証を選び、その検証の行を返す
+        // rule ごとに、その rule を最後に判定できた検証を選び、その検証の判定できた行を返す
         let mut stmt = self
             .conn
             .prepare(
                 "SELECT v.id, r.rule_id, r.pointer, r.by, r.result, r.reason, r.reads_hash, v.hash \
                  FROM rule_results r JOIN validations v ON v.id = r.validation_id \
-                 WHERE v.target_path = ?1 \
+                 WHERE v.target_path = ?1 AND r.result <> 'not-judged' \
                    AND CAST(substr(v.id, 3) AS INTEGER) > coalesce((SELECT max(CAST(substr(id, 3) AS INTEGER)) FROM changes \
                                          WHERE kind = 'delete' AND target_path = ?1), 0) \
                    AND v.rowid = (SELECT max(v2.rowid) FROM rule_results r2 JOIN validations v2 ON v2.id = r2.validation_id \
-                                  WHERE v2.target_path = ?1 AND r2.rule_id = r.rule_id) \
+                                  WHERE v2.target_path = ?1 AND r2.rule_id = r.rule_id \
+                                    AND r2.result <> 'not-judged') \
                  ORDER BY v.rowid, r.ord",
             )
             .map_err(|e| err(&e))?;
@@ -569,7 +584,7 @@ impl OperationReader for SqliteLog {
 }
 
 impl SessionLog for SqliteLog {
-    fn session(&mut self, caller: &Caller) -> Result<Option<String>, String> {
+    fn session(&mut self, caller: &Caller) -> Result<(), String> {
         Self::session(self, caller)
     }
     fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {

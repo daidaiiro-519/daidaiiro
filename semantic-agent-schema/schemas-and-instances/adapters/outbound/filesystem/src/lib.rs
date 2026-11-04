@@ -6,7 +6,7 @@
 use rendering_application::ports::{PageRefusal, PageWriter};
 use std::path::{Path, PathBuf};
 
-/// 書かないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにある）。
+/// 読まない ・ 書かないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにあり、記録の置き場所が開く）。
 const SKIP: [&str; 2] = ["target", ".git"];
 
 /// Git の根（入口が決める）を根にした文書の置き場所。
@@ -143,17 +143,23 @@ impl search_application::ports::DocumentStore for WorkingTree {
     }
 }
 
-/// 書く ・ 消す経路が、リポジトリの根からの相対で、書かないフォルダの中でないか。
-/// 読む経路が、Git の根の中を指すか（絶対の経路と .. を含む経路は、根の外を指しうるので読まない）。
+/// 読む経路が、Git の根の中を指し、扱わないフォルダの中でないか（絶対の経路と .. を含む経路は、根の外を指しうるので読まない）。
 fn within(path: &str) -> Result<(), String> {
     if path.starts_with('/') || path.contains('\\') || path.split('/').any(|p| p == "..") {
         return Err(format!(
             "{path} は Git の根の外を指しうるので読まない（経路は Git の根からの相対で、.. を含めない）"
         ));
     }
+    if path.split('/').any(|p| SKIP.contains(&p)) {
+        return Err(format!(
+            "{path} は読まない（{} の中は扱わない）",
+            SKIP.join(" ・ ")
+        ));
+    }
     Ok(())
 }
 
+/// 書く ・ 消す経路が、リポジトリの根からの相対で、扱わないフォルダの中でないか。
 fn inside(path: &str, verb: &str) -> Result<(), String> {
     let parts: Vec<&str> = path.split('/').collect();
     if path.is_empty()
