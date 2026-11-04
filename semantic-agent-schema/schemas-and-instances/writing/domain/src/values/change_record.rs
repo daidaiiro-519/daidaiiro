@@ -1,6 +1,6 @@
 //! 記録にある、書いた作成 ・ 更新 ・ 削除（記録の行の形）。
 //!
-//! 書くモジュールは追記し、前の依頼と間に入った変更を引く。検証のモジュールは、SAS を通らない変更を知らせるのに引く。
+//! 書くモジュールは追記し、前の依頼と間に入った変更を引く。検証のモジュールは、Semantic Agent Schema を通らない変更を知らせるのに引く。
 //! 値は文字列と数で持つ（記録の置き場所が読み書きする形）。
 
 /// 作成 ・ 更新で変わった欄1つ（記録の行）。値は JSON の文字列で、None は値が無いこと。
@@ -14,7 +14,7 @@ pub struct FieldRow {
     pub before: Option<String>,
     /// 後の値
     pub after: Option<String>,
-    /// 前の値が取れなかった（SAS を通らない変更の取り込みで、前の中身のコミットが無い）。true なら before は None
+    /// 前の値が取れなかった（Semantic Agent Schema を通らない変更の取り込みで、前の中身のコミットが無い）。true なら before は None
     pub before_unavailable: bool,
 }
 
@@ -23,7 +23,7 @@ pub struct FieldRow {
 pub struct ChangeRow {
     /// create ・ update ・ delete
     pub kind: String,
-    /// sas（SAS が書いた）か outside（SAS を通らない変更を取り込んだ）
+    /// sas（Semantic Agent Schema が書いた）か outside（Semantic Agent Schema を通らない変更を取り込んだ）
     pub source: String,
     /// リポジトリの根からの経路
     pub target_path: String,

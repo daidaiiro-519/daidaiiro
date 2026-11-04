@@ -1,5 +1,5 @@
-//! ポート DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）を、作業ディレクトリのファイルで実装する。
-//! 読む ・ 書く ・ 消すのは渡された経路だけで、作業ディレクトリを歩かない。渡されたスキーマの置き場所（--schemas）は、
+//! ポート DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）を、Git の根を根にしたファイルで実装する。
+//! 読む ・ 書く ・ 消すのは渡された経路だけで、フォルダを歩かない。渡されたスキーマの置き場所（--schemas）は、
 //! ファイルならそのファイル、フォルダならその直下の JSON のファイルに開く。
 //! 描いたページの書き出し先（PageWriter）も持つ。書くときは一時ファイルに書いてから置き換える。リポジトリの外と、書かないフォルダには書かない。
 
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 /// 書かないフォルダ（ビルドの出力 ・ Git の中身。記録は .git の中の共通フォルダにある）。
 const SKIP: [&str; 2] = ["target", ".git"];
 
-/// 作業ディレクトリを根にした文書の置き場所。
+/// Git の根（入口が決める）を根にした文書の置き場所。
 #[derive(Debug, Clone)]
 pub struct WorkingTree {
     root: PathBuf,
@@ -160,14 +160,14 @@ fn inside(path: &str, verb: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// 描いたページの書き出し先（作業ディレクトリからの相対か、絶対の経路）。リポジトリの外にも書ける。
+/// 描いたページの書き出し先（Git の根からの相対か、絶対の経路）。リポジトリの外にも書ける。
 #[derive(Debug, Clone)]
 pub struct OutDir {
     root: PathBuf,
 }
 
 impl OutDir {
-    /// 相対の経路は root（作業ディレクトリ）から引く。
+    /// 相対の経路は root（Git の根）から引く。
     #[must_use]
     pub const fn new(root: PathBuf) -> Self {
         Self { root }

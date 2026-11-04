@@ -1,7 +1,7 @@
 //! システムテスト：system-tests/scenarios/ の場面を1つずつ、空の作業ディレクトリで semantic-agent-schema を動かして確かめる。
 //! ネットワークと本物のエージェントは使わない。given の git だけは準備として本物の git を使う。
 //! 作業ディレクトリは、given の repo が false でなければ Git のリポジトリにしてから始める（記録は Git の中だけで作る）。
-//! given の write は、SAS を通らずにファイルを書く（エディターで直したことの代わり）。
+//! given の write は、Semantic Agent Schema を通らずにファイルを書く（エディターで直したことの代わり）。
 
 #![allow(clippy::expect_used, clippy::panic)]
 
@@ -253,7 +253,7 @@ fn play(scenario: &Value) {
         .into_iter()
         .flatten()
     {
-        // SAS を通らない書き込み（エディターで直したことの代わり）
+        // Semantic Agent Schema を通らない書き込み（エディターで直したことの代わり）
         if let Some(w) = step.get("write") {
             let to = dir.join(w["path"].as_str().expect("path は文字列"));
             if let Some(parent) = to.parent() {

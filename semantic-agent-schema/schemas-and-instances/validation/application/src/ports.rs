@@ -4,7 +4,7 @@ use serde_json::Value;
 use validation_domain::values::{Judgment, ValidateRow};
 use writing_domain::values::WriteRecord;
 
-/// 渡された経路の文書を読む。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。全部を並べる手段は持たない。
+/// 渡された経路の文書を読む。経路は Git の根からの相対で、区切りは /。全部を並べる手段は持たない。
 pub trait DocumentStore {
     /// 文書の中身。
     ///
@@ -13,7 +13,7 @@ pub trait DocumentStore {
     fn read(&self, path: &str) -> Result<String, String>;
 }
 
-/// JSON Schema 2020-12 のバリデーター。SAS が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）はバリデーターの側が持つ。
+/// JSON Schema 2020-12 のバリデーター。Semantic Agent Schema が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）はバリデーターの側が持つ。
 pub trait SchemaValidator {
     /// 入れて出すスキーマの文書。無い名前は None。
     fn shipped(&self, id: &str) -> Option<Value>;
@@ -46,7 +46,7 @@ pub trait ValidationLog {
 
     /// 経路の対象を書いた操作（作成か更新）を、記録した順に。
     /// その経路を消した操作があれば、最後に消したより後のものだけ（消すと記録のつながりが切れる）。
-    /// SAS を通らない変更を知らせるのに使う。
+    /// Semantic Agent Schema を通らない変更を知らせるのに使う。
     ///
     /// # Errors
     /// 置き場所を読めないとき。

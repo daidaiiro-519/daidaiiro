@@ -9,7 +9,7 @@
   "UC2:最低保証",
   "UC2:拡張:Concrete の更新でインスタンスが violated になった",
   "UC2:拡張:パッチが申告する Abstract の版を変える",
-  "UC2:変形:SAS を通らない変更を取り込む",
+  "UC2:変形:Semantic Agent Schema を通らない変更を取り込む",
   "UC3:成功時保証",
   "UC3:最低保証",
   "UC3:拡張:1a",
@@ -21,7 +21,7 @@
   "UC4:拡張:6b",
   "UC4:拡張:6c",
   "UC4:変形:入力が変わった rule だけ",
-  "UC4:変形:SAS を通らない変更を見つける",
+  "UC4:変形:Semantic Agent Schema を通らない変更を見つける",
   "UC5:成功時保証",
   "UC5:最低保証",
   "UC5:拡張:1a",
@@ -148,7 +148,7 @@
   },
   {
    "id": "UC2:拡張:Concrete の更新でインスタンスが violated になった",
-   "meaning": "インスタンスに UC2 を呼ぶ（SAS は外れたインスタンスを返し、呼ぶ側が UC2 を呼ぶ）",
+   "meaning": "インスタンスに UC2 を呼ぶ（Semantic Agent Schema は、渡された範囲（--range）と記録でその Concrete に従う文書を照らし、外れたインスタンスと見た文書を返す。呼ぶ側が UC2 を呼ぶ）",
    "scenarios": [
     "S-UC2-CONCRETE-CHECKED",
     "S-UC2-CONCRETE-VIOLATES"
@@ -162,8 +162,8 @@
    ]
   },
   {
-   "id": "UC2:変形:SAS を通らない変更を取り込む",
-   "meaning": "SAS が書いたあとに外で直されたファイルを、理由と、記録の最後の事後と同じ中身のコミットとの差分と一緒に取り込む（ファイルは書かない）",
+   "id": "UC2:変形:Semantic Agent Schema を通らない変更を取り込む",
+   "meaning": "Semantic Agent Schema が書いたあとに外で直されたファイルを、理由と、--base のコミット（中身が記録のどれかの事後と同じもの）との差分と一緒に取り込む（ファイルは書かない）。--base が無ければ前の値の無い差分にする",
    "scenarios": [
     "S-UC2-ADOPT-BASE-NOT-RECORDED",
     "S-UC2-ADOPT-HUMAN-FIELD",
@@ -177,11 +177,11 @@
     "S-UC2-ADOPT-WORKTREE",
     "S-UC2-ADOPT"
    ],
-   "note": "記録の行（source = outside ・ 前の値が取れなかった欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、版の読み方は outbound の git の試験（commits.rs）で確かめる"
+   "note": "記録の行（source = outside ・ 前の値が無い欄 ・ 事前は最後の事後）は outbound の sqlite の試験（adopt_rows.rs）で、コミットの中身の読み方は outbound の git の試験（commits.rs）で確かめる"
   },
   {
    "id": "UC3:成功時保証",
-   "meaning": "対象が消え、削除の操作の記録に事前の状態が残る。対象を指しているほかの文書は変えない（SAS は参照を見分けない）",
+   "meaning": "対象が消え、削除の操作の記録に事前の状態が残る。対象を指しているほかの文書は変えない（Semantic Agent Schema は参照を見分けない）",
    "scenarios": [
     "S-UC3-CONCRETE-PUBLISHED",
     "S-UC3-CONCRETE",
@@ -202,14 +202,14 @@
   },
   {
    "id": "UC3:拡張:1a",
-   "meaning": "対象が前提のハッシュから変わっている（SAS を通らない変更 ・ 間に入った変更）：消さずに止め、取り込むか打ち直す案内を返す",
+   "meaning": "対象が前提のハッシュから変わっている（Semantic Agent Schema を通らない変更 ・ 間に入った変更）：消さずに止め、取り込むか打ち直す案内を返す",
    "scenarios": [
     "S-UC3-UNTRACKED"
    ]
   },
   {
    "id": "UC3:拡張:2a",
-   "meaning": "対象が Concrete で、従うインスタンスがある：消さずに止め、従うインスタンスと片付けるコマンドを返す",
+   "meaning": "対象が Concrete で、渡された範囲（--range）か記録に従うインスタンスがある：消さずに止め、従うインスタンスと片付けるコマンドを返す",
    "scenarios": [
     "S-UC3-CONCRETE-FOLLOWED",
     "S-UC3-CONCRETE-RECORDED"
@@ -217,7 +217,7 @@
   },
   {
    "id": "UC4:成功時保証",
-   "meaning": "範囲のすべての rule に結果があり、判定とセッションが検証の操作の記録に入り、2つの ID（操作とセッション）が返る",
+   "meaning": "渡された経路のすべての rule に結果があり、判定とセッションが検証の操作の記録に入り、2つの ID（操作とセッション）が返る",
    "scenarios": [
     "S-PATHS-FROM-SUBDIR",
     "S-UC4-ANSWER",
@@ -271,7 +271,7 @@
    ]
   },
   {
-   "id": "UC4:変形:SAS を通らない変更を見つける",
+   "id": "UC4:変形:Semantic Agent Schema を通らない変更を見つける",
    "meaning": "同じワークツリーで記録した最後の事後といまの中身のハッシュが違う対象を知らせ、いまの中身を検証する。そのワークツリーでまだ書いていなければ、その経路の記録のどれかの中身（事前か事後）と比べる",
    "scenarios": [
     "S-UC2-ADOPT-WORKTREE",
@@ -473,7 +473,7 @@
   },
   {
    "id": "約束:abstract:rule",
-   "meaning": "rule はどれも AI が判定する（打ったセッションが --answer で渡す。判定できなければ unverified）。id は Concrete の中で重ならず、SAS が結果に使う名前を使わない。rule は id ・ rule ・ why ・ check と、違反する例 bad ・ 満たす例 good を持つ。例はどちらも1つ以上の並びで、1件は value（当たる所の値）・ related（related_fields にある所の値）・ note（bad では必須の、なぜ違反かの1文）。一緒に読む欄は related_fields に書く",
+   "meaning": "rule はどれも AI が判定する（打ったセッションが --answer で渡す。判定できなければ unverified）。id は Concrete の中で重ならず、Semantic Agent Schema が結果に使う名前を使わない。rule は id ・ rule ・ why ・ check と、違反する例 bad ・ 満たす例 good を持つ。例はどちらも1つ以上の並びで、1件は value（当たる所の値）・ related（related_fields にある所の値）・ note（bad では必須の、なぜ違反かの1文）。一緒に読む欄は related_fields に書く",
    "scenarios": [
     "S-UC2-STALE-READS",
     "S-UC4-AI-UNVERIFIED",
@@ -519,28 +519,28 @@
   },
   {
    "id": "約束:abstract:instance-schema-name",
-   "meaning": "根の properties の $schema の const は $id と同じ。SAS が Concrete の検証のたびに組み込みで確かめる",
+   "meaning": "根の properties の $schema の const は $id と同じ。Semantic Agent Schema が Concrete の検証のたびに組み込みで確かめる",
    "scenarios": [
     "S-UC4-CONCRETE-OK"
    ]
   },
   {
    "id": "約束:abstract:unique-id",
-   "meaning": "rule の id は Concrete のどこでも重ならない。SAS が Concrete の検証のたびに組み込みで確かめる",
+   "meaning": "rule の id は Concrete のどこでも重ならない。Semantic Agent Schema が Concrete の検証のたびに組み込みで確かめる",
    "scenarios": [
     "S-UC4-CONCRETE-OK"
    ]
   },
   {
    "id": "約束:abstract:example-related",
-   "meaning": "rule の例（bad ・ good）の related のキーは、その rule の related_fields にある所だけ。SAS が Concrete の検証のたびに組み込みで確かめ、Concrete の作成 ・ 更新では書く前に断る",
+   "meaning": "rule の例（bad ・ good）の related のキーは、その rule の related_fields にある所だけ。Semantic Agent Schema が Concrete の検証のたびに組み込みで確かめ、Concrete の作成 ・ 更新では書く前に断る",
    "scenarios": [
     "S-UC2-EXAMPLE-RELATED"
    ]
   },
   {
    "id": "UC1:変形:意味で書く",
-   "meaning": "Concrete の rule から SAS が書く手順を組み、書くコマンド（semantic-agent-schema create … --value）と一緒に打ったセッションに返す（記録しない）。そのセッションが値を決めてコマンドで渡すと、機械の作成として形に照らしてから書き、記録する",
+   "meaning": "Concrete の rule から Semantic Agent Schema が書く手順を組み、書くコマンド（semantic-agent-schema create … --value）と一緒に打ったセッションに返す（記録しない）。そのセッションが値を決めてコマンドで渡すと、機械の作成として形に照らしてから書き、記録する",
    "scenarios": [
     "S-UC1-SEMANTIC-ANSWER-SCHEMA",
     "S-UC1-SEMANTIC-CONCRETE",
@@ -610,7 +610,7 @@
   },
   {
    "id": "約束:command-result:session",
-   "meaning": "打ったセッションは --session → ツールの環境変数 → このフォルダで semantic-agent-schema init が登録したセッション → 人の順で決まり、最初に打った semantic-agent-schema で sessions に1行入る。semantic-agent-schema init はツールから ID が取れなければ SAS が ID を決めて登録し、結果を kind = session の1行で返す",
+   "meaning": "人は --human で明示する（ツールの環境変数があるところでは受け取らない）。打ったセッションは --session → ツールの環境変数 → このフォルダで semantic-agent-schema init が登録したセッションの順で決まり、どれも無ければ人とみなさずに断る。最初に打った semantic-agent-schema で sessions に1行入る。semantic-agent-schema init はツールから ID が取れなければ Semantic Agent Schema が ID を決めて登録し、結果を kind = session の1行で返す",
    "scenarios": [
     "S-SESSION-ENV",
     "S-SESSION-HUMAN-AND-SESSION",
@@ -622,7 +622,7 @@
   },
   {
    "id": "約束:command-result:records",
-   "meaning": "記録は Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ（SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指せる）。Git のリポジトリの外では、記録を作らずに断る",
+   "meaning": "記録は Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ（SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指せる）。経路はどこで打っても Git の根からの相対。Git のリポジトリの外では、記録を作らずに断る",
    "scenarios": [
     "S-PATHS-FROM-SUBDIR",
     "S-RECORDS-ENV",
@@ -631,7 +631,7 @@
   },
   {
    "id": "UC6:成功時保証",
-   "meaning": "結果に探した範囲（経路とハッシュ）が付き、構造で絞った一致と、意味の答えの出どころは、SAS が文書から読んだその所のいまの値を持つ。検索は記録しない",
+   "meaning": "結果に探した範囲（経路とハッシュ）が付き、構造で絞った一致と、意味の答えの出どころは、Semantic Agent Schema が文書から読んだその所のいまの値を持つ。検索は記録しない",
    "scenarios": [
     "S-UC6-SEARCH-ANSWER",
     "S-UC6-SEARCH-NOT-RECORDED",
@@ -649,7 +649,7 @@
   },
   {
    "id": "UC6:変形:構造で絞る",
-   "meaning": "--where <JSON Pointer>=<値>（複数は かつ）に一致した文書の所と値を返す。値が JSON として読めなければ文字列として比べる",
+   "meaning": "--where <JSON Pointer>=<JSON の値>（複数は かつ）に一致した文書の所と値を返す。値が JSON でなければ断る",
    "scenarios": [
     "S-UC6-SEARCH-WHERE"
    ]

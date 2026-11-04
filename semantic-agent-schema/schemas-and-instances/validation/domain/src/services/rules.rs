@@ -213,7 +213,7 @@ fn keywords(
 
 /// インスタンスに当たる Concrete の rule：根と、インスタンスにある欄。Concrete を値の形としてたどり、入れ子の properties ・
 /// additionalProperties ・ items ・ allOf と、$ref の先（Concrete の $defs と、ほかの Concrete の $defs）の rule を当てる。
-/// others はリポジトリの Concrete（$id と文書）。
+/// others は渡された置き場所から引いた文書（Concrete と $ref の先。$id と文書）。
 #[must_use]
 pub fn rules_for_instance(
     concrete_doc: &Value,

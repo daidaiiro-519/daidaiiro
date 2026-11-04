@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:procedure:v1",
  "title": "手順",
- "description": "SAS が Concrete の rule ・ 当たる所から組み、semantic-agent-schema を打ったセッションに返す手順。SAS はエージェントを起動しない。semantic-agent-schema validate --semantic（判定）と semantic-agent-schema create ・ update --semantic（書き込み）と semantic-agent-schema search --semantic（意味で探す）が、結果の行の代わりに標準出力へ1行ずつ出し、記録しない。受け取ったセッションは steps を順に行い、answer の形の値を作って command で SAS に渡す。断られたら、SAS の出力の理由を読んで直し、打ち直す",
+ "description": "Semantic Agent Schema が Concrete の rule ・ 当たる所から組み、semantic-agent-schema を打ったセッションに返す手順。Semantic Agent Schema はエージェントを起動しない。semantic-agent-schema validate --semantic（判定）と semantic-agent-schema create ・ update --semantic（書き込み）と semantic-agent-schema search --semantic（意味で探す）が、結果の行の代わりに標準出力へ1行ずつ出し、記録しない。受け取ったセッションは steps を順に行い、answer の形の値を作って command で Semantic Agent Schema に渡す。断られたら、Semantic Agent Schema の出力の理由を読んで直し、打ち直す",
  "type": "object",
  "required": [
   "$schema",
@@ -45,7 +45,7 @@
     "hash": {
      "type": "string",
      "pattern": "^sha256:[0-9a-f]{64}$",
-     "description": "手順を組んだときの対象の中身のハッシュ（SHA-256）。作成には無い。判定では答えの hash に写し、更新では command の --if-match に入る。SAS は渡されたときに、いまの中身のハッシュと比べる"
+     "description": "手順を組んだときの対象の中身のハッシュ（SHA-256）。作成には無い。判定では答えの hash に写し、更新では command の --if-match に入る。Semantic Agent Schema は渡されたときに、いまの中身のハッシュと比べる"
     }
    },
    "description": "判定 ・ 書き込みの対象。検索には無い（範囲 range を持つ）"
@@ -270,10 +270,10 @@
    "type": "string",
    "minLength": 1,
    "title": "渡すコマンド",
-   "description": "answer の形の値を SAS に渡すときに打つ semantic-agent-schema のコマンドの1行。<…> の所を、作った値（ファイルの経路か - と標準入力でもよい）で埋める。",
+   "description": "answer の形の値を Semantic Agent Schema に渡すときに打つ semantic-agent-schema のコマンドの1行。受け取った --schemas ・ --range と、誰が打ったか（--session ・ --human）を引き継いでいる。<…> の所を、作った値（ファイルの経路か - と標準入力でもよい）で埋める。経路は Git の根からの相対なので、どこで打ってもよい。",
    "x-prompt": {
     "meaning": "判定は semantic-agent-schema validate <経路> --answer、作成は semantic-agent-schema create <経路> --value、更新は semantic-agent-schema update <経路> --patch --if-match、検索は semantic-agent-schema search <範囲> --answer。<…> のほかの引数は変えずに打つ。",
-    "when": "steps を終えて、値を SAS に渡すときに読む。",
+    "when": "steps を終えて、値を Semantic Agent Schema に渡すときに読む。",
     "rules": []
    }
   },
@@ -307,7 +307,7 @@
   },
   "refs": {
    "type": "array",
-   "description": "SAS が読んだ資料（--ref）の中身。手順だけで書けるように入れる",
+   "description": "Semantic Agent Schema が読んだ資料（--ref）の中身。手順だけで書けるように入れる",
    "items": {
     "type": "object",
     "required": [
@@ -445,7 +445,7 @@
     },
     "session": {
      "title": "打ったセッション",
-     "description": "変更を打ったセッションの ID。人なら null",
+     "description": "変更を打ったセッションの ID。--human で人と明示した操作なら null",
      "x-prompt": {
       "meaning": "誰が変えたかの手がかりにする。判定の基準にはしない。",
       "when": "判定するまとまりを読むときに読む。",

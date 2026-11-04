@@ -1,7 +1,7 @@
 //! デザインシステムを、受け取りの型とテンプレートの書き方の契約（template-language.json）に照らす。
 //!
 //! インスタンスを Concrete（JSON Schema）で検証するのと同じく、テンプレートとトークンも契約で機械に確かめる。
-//! テンプレートの書き方は Mustache（ロジックを持たない）。UI ・ UX のロジックはテンプレートの JS が持ち、SAS は持たない。
+//! テンプレートの書き方は Mustache（ロジックを持たない）。UI ・ UX のロジックはテンプレートの JS が持ち、Semantic Agent Schema は持たない。
 //! 描画は、ここで1つも外れが無いデザインシステムでだけ描く。semantic-agent-schema validate でも同じ rule を確かめて記録する。
 //!
 //! rule：
@@ -41,7 +41,7 @@ pub struct DesignSystem {
     pub text: String,
     /// 読んだ JSON
     pub value: Value,
-    /// 種類 → テンプレートの経路（作業ディレクトリから）
+    /// 種類 → テンプレートの経路（Git の根から）
     pub template_paths: BTreeMap<String, String>,
     /// 種類 → テンプレートの本文
     pub sources: Vec<(String, String)>,

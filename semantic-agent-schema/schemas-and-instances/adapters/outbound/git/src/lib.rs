@@ -1,8 +1,7 @@
 //! ポート CommitReader を、git コマンドで実装する。読むだけで、Git に書き込む操作（コミット ・ 参照の作成）はしない。
 //!
-//! - コミットの一覧：`git log --format=%H --max-count=<数> -- <経路>`（経路を変えたコミット、新しい順）
-//! - 中身：`git cat-file --filters <コミット>:./<経路>`（作業ツリーに置いたときと同じ変換を当てたバイト列。
-//!   `./` で始まる経路は、いまのフォルダからの相対として読まれる）
+//! - 中身：`git cat-file --filters <コミット>:./<経路>`（渡されたコミット（--base）の、作業ツリーに置いたときと同じ変換を
+//!   当てたバイト列。`./` で始まる経路は git を動かすフォルダからの相対として読まれるので、入口は Git の根で動かす）
 //!
 //! - 記録の置き場所に使う共通のフォルダ：`git rev-parse --path-format=absolute --git-common-dir`
 //!   （ワークツリーをいくつ作っても同じ1つ。$GIT_COMMON_DIR があればそれ、無ければ $GIT_DIR）
@@ -14,14 +13,14 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use writing_application::ports::CommitReader;
 
-/// 作業ディレクトリの Git を読む。
+/// Git の根の Git を読む。
 #[derive(Debug, Clone)]
 pub struct GitCommits {
     root: PathBuf,
 }
 
 impl GitCommits {
-    /// root（作業ディレクトリ）で git を動かす。
+    /// root で git を動かす（入口は Git の根を渡す。根を引く前は作業フォルダ）。
     #[must_use]
     pub const fn new(root: PathBuf) -> Self {
         Self { root }

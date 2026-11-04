@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:command-result:v1",
  "title": "semantic-agent-schema が返す結果",
- "description": "semantic-agent-schema のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ semantic-agent-schema init で登録したセッション（session）・ semantic-agent-schema log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。SAS はエージェントを起動しない。semantic-agent-schema log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す。$defs はステップごとに足す",
+ "description": "semantic-agent-schema のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ semantic-agent-schema init で登録したセッション（session）・ semantic-agent-schema log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。Semantic Agent Schema はエージェントを起動しない。semantic-agent-schema log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す。$defs はステップごとに足す",
  "type": "object",
  "required": [
   "$schema",
@@ -122,7 +122,7 @@
       "machine",
       "ai"
      ],
-     "description": "machine は SAS が機械で判定したもの（形の検査 json-schema ・ Concrete の組み込みの検査 ・ デザインシステムの検査）、ai は打ったセッションが semantic-agent-schema validate --answer で渡した判定"
+     "description": "machine は Semantic Agent Schema が機械で判定したもの（形の検査 json-schema ・ Concrete の組み込みの検査 ・ デザインシステムの検査）、ai は打ったセッションが semantic-agent-schema validate --answer で渡した判定"
     },
     "result": {
      "$ref": "#/$defs/verdict"
@@ -148,7 +148,7 @@
    "properties": {
     "path": {
      "type": "string",
-     "description": "リポジトリの根からの経路"
+     "description": "Git の根からの経路（どこで打っても同じ）"
     },
     "kind": {
      "enum": [
@@ -235,7 +235,7 @@
     },
     "unrecorded": {
      "type": "array",
-     "description": "SAS を通らない変更があった対象。記録の最後の事後と、いまの中身のハッシュが違う。いまの中身を検証した",
+     "description": "Semantic Agent Schema を通らない変更があった対象。記録の最後の事後と、いまの中身のハッシュが違う。いまの中身を検証した",
      "items": {
       "type": "object",
       "required": [
@@ -268,7 +268,7 @@
     "hint": {
      "type": "string",
      "minLength": 1,
-     "description": "SAS を通らない変更があったときの、取り込みの案内"
+     "description": "Semantic Agent Schema を通らない変更があったときの、取り込みの案内"
     },
     "at": {
      "type": "string",
@@ -279,7 +279,7 @@
   },
   "field-change": {
    "type": "object",
-   "description": "変わった欄1つ。add は before を、remove は after を持たない。値が null のときは null を持つ。前の中身のコミットが無い取り込みでは replace で before を持たず、before_unavailable が true",
+   "description": "変わった欄1つ。add は before を、remove は after を持たない。値が null のときは null を持つ。--base を渡さない取り込みでは replace で before を持たず、before_unavailable が true",
    "required": [
     "pointer",
     "change"
@@ -305,7 +305,7 @@
     },
     "before_unavailable": {
      "const": true,
-     "description": "前の値が取れなかった（SAS を通らない変更の取り込みで、記録の最後の事後と同じ中身のコミットが無い）"
+     "description": "前の値が無い（Semantic Agent Schema を通らない変更の取り込みで、--base を渡さなかった）"
     }
    },
    "allOf": [
@@ -393,13 +393,13 @@
     "commit": {
      "type": "string",
      "minLength": 1,
-     "description": "欄ごとの前の値を取ったコミット（更新の取り込みだけ。Abstract の版とは別のもの）"
+     "description": "欄ごとの前の値を取ったコミット（更新の取り込みで渡された --base のまま。Abstract の版とは別のもの）"
     }
    }
   },
   "diff": {
    "type": "object",
-   "description": "前後の中身から JSON Pointer ごとに求めた差分（Git の行の差分は使わない）。作成では before が無い。更新の取り込みの前の値は、記録の最後の事後と同じ中身のコミットから取る。削除では after が無く、changes は消す前の根の欄ごとの remove",
+   "description": "前後の中身から JSON Pointer ごとに求めた差分（Git の行の差分は使わない）。作成では before が無い。更新の取り込みの前の値は、--base のコミット（中身が記録のどれかの事後と同じもの）から取る。削除では after が無く、changes は消す前の根の欄ごとの remove",
    "required": [
     "source",
     "changes"
@@ -411,7 +411,7 @@
       "sas",
       "outside"
      ],
-     "description": "sas は semantic-agent-schema のコマンドが書いた変更、outside は SAS を通らない変更の取り込み（--adopt）"
+     "description": "sas は semantic-agent-schema のコマンドが書いた変更、outside は Semantic Agent Schema を通らない変更の取り込み（--adopt）"
     },
     "before": {
      "$ref": "#/$defs/side"
@@ -427,7 +427,7 @@
     },
     "before_unavailable": {
      "type": "boolean",
-     "description": "更新の取り込みだけが持つ。true なら前の中身のコミットが無く、changes はいまの中身の根の欄ごとに前の値を持たない"
+     "description": "更新の取り込みだけが持つ。true なら --base を渡さず、changes はいまの中身の根の欄ごとに前の値を持たない"
     }
    }
   },
@@ -463,7 +463,7 @@
       "adopted",
       "deleted"
      ],
-     "description": "adopted は SAS を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる。deleted は消した（diff は消す前の状態で after を持たない）"
+     "description": "adopted は Semantic Agent Schema を通らない変更を取り込んだ（ファイルは書いていない）。作成か更新かは diff の before の有無で分かる。deleted は消した（diff は消す前の状態で after を持たない）"
     },
     "replayed": {
      "type": "boolean",
@@ -486,7 +486,7 @@
       },
       "path": {
        "type": "string",
-       "description": "リポジトリの根からの経路"
+       "description": "Git の根からの経路（どこで打っても同じ）"
       },
       "schema": {
        "type": "string",
@@ -673,7 +673,7 @@
       "range_too_large",
       "not_in_repository"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いときも返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。not_in_repository は Git のリポジトリの外で打ったことで、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いとき、--schemas の置き場所や --base のコミットの経路が無いときも返す。usage は使い方の誤りで、ほかに、誰が打ったかが決まらない（--session ・ ツールの環境変数 ・ init の登録 ・ --human のどれも無い）・ ツールの環境変数があるところで --human を渡した ・ Concrete を直す ・ 消すときに --range が無いときに返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。not_in_repository は Git のリポジトリの外で打ったことで、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
     },
     "path": {
      "type": "string"
@@ -689,7 +689,7 @@
     "hint": {
      "type": "string",
      "minLength": 1,
-     "description": "次にすることの案内（SAS を通らない変更を取り込むコマンド、人が取り込むコマンド、手順を取り直すコマンド、判定の直し方）"
+     "description": "次にすることの案内（Semantic Agent Schema を通らない変更を取り込むコマンド、人が取り込むコマンド、手順を取り直すコマンド、判定の直し方）"
     },
     "blocked": {
      "type": "array",
@@ -840,7 +840,7 @@
       "sas",
       "outside"
      ],
-     "description": "outside は SAS を通らない変更を取り込んだ操作"
+     "description": "outside は Semantic Agent Schema を通らない変更を取り込んだ操作"
     },
     "reason": {
      "type": "string",
@@ -879,7 +879,7 @@
    "properties": {
     "expected": {
      "$ref": "#/$defs/hash",
-     "description": "比べたハッシュ（--if-match か、SAS が最後に書いた事後のハッシュ）"
+     "description": "比べたハッシュ（--if-match か、Semantic Agent Schema が最後に書いた事後のハッシュ）"
     },
     "current": {
      "$ref": "#/$defs/hash",
@@ -887,7 +887,7 @@
     },
     "unrecorded": {
      "type": "boolean",
-     "description": "true なら、いまの中身は記録した操作の事後のどれでもない（SAS を通らない変更があった。--adopt で取り込む）"
+     "description": "true なら、いまの中身は記録した操作の事後のどれでもない（Semantic Agent Schema を通らない変更があった。--adopt で取り込む）"
     },
     "operations": {
      "type": "array",
@@ -930,7 +930,7 @@
     "null"
    ],
    "minLength": 1,
-   "description": "semantic-agent-schema を打ったセッションの ID（--session ・ ツールの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッションで決まる）。人なら null"
+   "description": "semantic-agent-schema を打ったセッションの ID（--session ・ ツールの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッションで決まる）。--human で人と明示した操作なら null"
   },
   "render": {
    "type": "object",
@@ -1017,7 +1017,7 @@
     "id": {
      "type": "string",
      "minLength": 1,
-     "description": "セッション ID（--session か環境変数の ID。どちらも無ければ SAS が決めたもの）"
+     "description": "セッション ID（--session か環境変数の ID。どちらも無ければ Semantic Agent Schema が決めたもの）"
     },
     "tool": {
      "type": "string",
@@ -1080,7 +1080,7 @@
     "path": {
      "type": "string",
      "title": "対象の経路",
-     "description": "リポジトリの根からの経路"
+     "description": "Git の根からの経路（どこで打っても同じ）"
     },
     "session": {
      "type": [
@@ -1088,7 +1088,7 @@
       "null"
      ],
      "title": "打ったセッション",
-     "description": "操作を打ったセッション（sessions の行）。人なら null",
+     "description": "操作を打ったセッション（sessions の行）。--human で人と明示した操作なら null",
      "required": [
       "id",
       "tool",
@@ -1158,7 +1158,7 @@
   },
   "search": {
    "type": "object",
-   "description": "semantic-agent-schema search の結果。探した範囲を必ず返し（範囲の外は探していない）、構造で絞ったときは matches を、意味で探した答えを --answer で渡したときは answer と、SAS が確かめた sources を持つ。検索は記録しない",
+   "description": "semantic-agent-schema search の結果。探した範囲を必ず返し（範囲の外は探していない）、構造で絞ったときは matches を、意味で探した答えを --answer で渡したときは answer と、Semantic Agent Schema が確かめた sources を持つ。検索は記録しない",
    "required": [
     "kind",
     "range"
@@ -1184,7 +1184,7 @@
        "path": {
         "type": "string",
         "title": "経路",
-        "description": "リポジトリの根からの経路"
+        "description": "Git の根からの経路（どこで打っても同じ）"
        },
        "hash": {
         "$ref": "#/$defs/hash",
@@ -1220,7 +1220,7 @@
        },
        "value": {
         "title": "値",
-        "description": "その所のいまの値（SAS が文書から読んだもの）"
+        "description": "その所のいまの値（Semantic Agent Schema が文書から読んだもの）"
        }
       }
      }
@@ -1234,7 +1234,7 @@
     "sources": {
      "type": "array",
      "title": "出どころ",
-     "description": "答えの根拠の所。SAS が、範囲の中か ・ ハッシュがいまの中身と同じか ・ 所があるかを確かめ、その所のいまの値を入れた",
+     "description": "答えの根拠の所。Semantic Agent Schema が、範囲の中か ・ ハッシュがいまの中身と同じか ・ 所があるかを確かめ、その所のいまの値を入れた",
      "items": {
       "type": "object",
       "required": [
@@ -1257,7 +1257,7 @@
        },
        "value": {
         "title": "値",
-        "description": "その所のいまの値（SAS が文書から読んだもの）"
+        "description": "その所のいまの値（Semantic Agent Schema が文書から読んだもの）"
        }
       }
      }

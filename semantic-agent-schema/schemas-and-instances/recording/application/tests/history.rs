@@ -132,7 +132,7 @@ fn init_registers_the_tool_session_or_a_new_one() {
     let h = register_session(&Fixed(None), "/w", &mut log).unwrap();
     assert_eq!((h.id.as_str(), h.tool.as_str()), ("sas-2", "unknown"));
     assert_eq!(log.initialized("/w").unwrap(), Some(h.clone()));
-    // 登録したあとは、名乗らない呼び出しがこのフォルダの登録になる
+    // 登録したあとは、--session も環境変数も無い呼び出しがこのフォルダの登録になる
     assert_eq!(
         identify(&Fixed(None), "/w", &log).unwrap(),
         Caller::Session {

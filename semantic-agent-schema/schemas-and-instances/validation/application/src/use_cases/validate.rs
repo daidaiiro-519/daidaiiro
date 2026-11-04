@@ -2,7 +2,7 @@
 //!
 //! - UC4 検証する：対象を読み、Concrete かインスタンスかを $schema で見分け、形（JSON Schema）・ 組み込みの検査 ・
 //!   当たる rule を判定し、対象ごとに検証の操作を1件記録して、結果と記録の ID を返す。検証は対象を変えない。
-//! - UC4 の範囲「入力が変わった rule だけ」と、SAS を通らない変更があった対象の知らせ。
+//! - UC4 の範囲「入力が変わった rule だけ」と、Semantic Agent Schema を通らない変更があった対象の知らせ。
 //! - UC4 の意味の部分：判定の手順を打ったセッションに返し（記録しない）、そのセッションが渡した判定を機械の結果と合わせて記録する。
 
 use crate::ports::{DocumentStore, SchemaValidator, ValidationLog};
@@ -65,7 +65,7 @@ pub struct TargetResult {
     pub unchanged_rules: Vec<String>,
 }
 
-/// 記録の最後の事後と中身が違う対象（SAS を通らない変更があった）。
+/// 記録の最後の事後と中身が違う対象（Semantic Agent Schema を通らない変更があった）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unrecorded {
     /// 経路

@@ -10,7 +10,7 @@ use serde_json::Value;
 /// 書く依頼がどの入口から来たか。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Entry {
-    /// 人（名乗らなかった呼び出し）
+    /// 人（--human で明示した呼び出し）
     Human,
     /// 名乗ったツール（AI のエージェント ・ CI ・ オーケストレーター）
     Tool,

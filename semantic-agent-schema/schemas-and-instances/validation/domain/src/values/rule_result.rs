@@ -5,7 +5,7 @@ use super::Verdict;
 /// 誰が判定したか（結果の by）。machine は形の検査と組み込みの検査、ai は semantic-agent-schema を打ったセッションが渡した判定。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum By {
-    /// 機械（SAS か JSON Schema のバリデーター）
+    /// 機械（Semantic Agent Schema か JSON Schema のバリデーター）
     Machine,
     /// AI（semantic-agent-schema を打ったセッションが semantic-agent-schema validate --answer で渡した判定）
     Ai,

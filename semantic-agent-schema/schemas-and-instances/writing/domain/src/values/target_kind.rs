@@ -33,7 +33,7 @@ impl TargetKind {
             Err(Unclassified::new(
                 "schema_not_listed",
                 format!(
-                    "{declared} は SAS が入れて出す Abstract の版（{}）に無い。取りに行かない",
+                    "{declared} は Semantic Agent Schema が入れて出す Abstract の版（{}）に無い。取りに行かない",
                     ABSTRACT_VERSIONS.join(", ")
                 ),
             ))

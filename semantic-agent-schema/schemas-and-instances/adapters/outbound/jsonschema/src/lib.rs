@@ -4,7 +4,7 @@
 
 use serde_json::Value;
 
-/// 方言が $vocabulary で求める語彙。x- の形は語彙のメタスキーマが決め、意味は SAS が判定する。
+/// 方言が $vocabulary で求める語彙。x- の形は語彙のメタスキーマが決め、意味は Semantic Agent Schema が判定する。
 const VOCABULARY: &str = "urn:semantic-agent-schema:published-language:vocab:v1";
 
 const SHIPPED: [&str; 5] = [

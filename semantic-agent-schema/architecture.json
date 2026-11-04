@@ -8,7 +8,7 @@
    "nodes": [
     "writing-domain"
    ],
-   "description": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差分 ・ 書く条件の外れ ・ 文書が Concrete かインスタンスかの見分け TargetKind ・ リポジトリの文書の一覧 Corpus ・ 誰が打ったか Caller ・ 記録にある書いた変更の行 ChangeRow ・ WriteRecord と SAS を通らない変更の見分け unrecorded_since）、サービス（スキーマの所に当たる欄の定義を引く field_schema）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く。誰が打ったか（人か、名乗ったセッションか）は x-decided-by の欄の書く条件の入口なので、ここに置く。見分け方 ・ 文書の一覧 ・ 欄の定義の引き方 ・ 誰が打ったかは、書く ・ 検証 ・ 描画 ・ 検索 ・ 記録のモジュールがここから使う"
+   "description": "業務領域「書いて検証する」の書くモジュールのドメインモデル。集約 Concrete ・ インスタンス（読み方と書く条件）、値（ハッシュ ・ 差分 ・ 書く条件の外れ ・ 文書が Concrete かインスタンスかの見分け TargetKind ・ 渡されたスキーマの置き場所 SchemaPlaces ・ 誰が打ったか Caller ・ 記録にある書いた変更の行 ChangeRow ・ WriteRecord と Semantic Agent Schema を通らない変更の見分け unrecorded_since）、サービス（スキーマの所に当たる欄の定義を引く field_schema ・ 置き場所の $id の索引と $ref の先の名前 SchemaIndex。読むのはポートで、ここは読んだ文字列から決める）。集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守るので、ここに置く。誰が打ったか（人か、名乗ったセッションか）は x-decided-by の欄の書く条件の入口なので、ここに置く。見分け方 ・ 置き場所の索引 ・ 欄の定義の引き方 ・ 誰が打ったかは、書く ・ 検証 ・ 描画 ・ 検索 ・ 記録のモジュールがここから使う"
   },
   {
    "name": "validation-domain",
@@ -22,14 +22,14 @@
    "nodes": [
     "validation-application"
    ],
-   "description": "UC4 検証する（use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_stale）・ 意味の判定の手順を返し、打ったセッションが --answer で渡した判定を確かめて記録する（semantic_procedures ・ validate_with_answer、手順と答えの読み方は use_cases/meaning.rs。答えの形は公開された言葉 judgment-answer.schema.json）・ SAS を通らない変更の知らせ。ポート DocumentStore（読む）・ SchemaValidator（入れて出すスキーマ ・ 形の検査）・ ValidationLog（append_validate ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取る"
+   "description": "UC4 検証する（use_cases/validate.rs）・ 入力が変わった rule だけの検証（validate_stale）・ 意味の判定の手順を返し、打ったセッションが --answer で渡した判定を確かめて記録する（semantic_procedures ・ validate_with_answer、手順と答えの読み方は use_cases/meaning.rs。答えの形は公開された言葉 judgment-answer.schema.json）・ Semantic Agent Schema を通らない変更の知らせ。ポート DocumentStore（読む）・ SchemaValidator（入れて出すスキーマ ・ 形の検査）・ ValidationLog（append_validate ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取る"
   },
   {
    "name": "writing-application",
    "nodes": [
     "writing-application"
    ],
-   "description": "UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、write/delete.rs、JSON Patch を当てる write/patch.rs）・ 意味で書く手順を返す（write/semantic.rs。記録しない）・ 取り込み（adopt）。ポート DocumentStore（読む ・ 書く ・ 消す）・ SchemaValidator（入れて出すスキーマ ・ 形の検査 ・ 注釈）・ CommitReader ・ ChangeLog（append_change ・ find_request ・ writes ・ last_judgments）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取り、人の欄を変えてよいかの入口にする。間に入った変更（Interleaved）もここで組む。更新で入力が変わった前の判定は validation-domain の基準で決め、検証のモジュールの application は使わない"
+   "description": "UC1 作成する ・ UC2 更新する ・ UC3 削除する（機械。use_cases/write.rs、write/delete.rs、JSON Patch を当てる write/patch.rs）・ 意味で書く手順を返す（write/semantic.rs。記録しない）・ 取り込み（adopt）。ポート DocumentStore（読む ・ 書く ・ 消す）・ SchemaValidator（入れて出すスキーマ ・ 形の検査 ・ 注釈）・ CommitReader（--base のコミットの中身を読む）・ ChangeLog（append_change ・ find_request ・ writes ・ last_judgments ・ instances_of）を自分で宣言する。誰が打ったかは入口から値（Caller）で受け取り、人の欄を変えてよいかの入口にする。間に入った変更（Interleaved）もここで組む。更新で入力が変わった前の判定は validation-domain の基準で決め、検証のモジュールの application は使わない"
   },
   {
    "name": "recording-application",
@@ -50,14 +50,14 @@
    "nodes": [
     "search-application"
    ],
-   "description": "UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路 ・ Concrete ・ すべて）の文書を、構造で絞り（JSON Pointer の値の一致）、意味で探す手順を返し、打ったセッションが --answer で渡した答えの出どころ（範囲の中か ・ ハッシュ ・ 所）を確かめる。答えの形は公開された言葉 search-answer.schema.json。ポート DocumentStore（読む）・ SchemaValidator（形の検査）を自分で宣言し、記録しない（記録のポートを持たない）"
+   "description": "UC6 検索する（use_cases/search.rs）。呼ぶ側が渡した範囲（経路の並び）の文書を、構造で絞り（JSON Pointer の値の一致）、意味で探す手順を返し、打ったセッションが --answer で渡した答えの出どころ（範囲の中か ・ ハッシュ ・ 所）を確かめる。答えの形は公開された言葉 search-answer.schema.json。ポート DocumentStore（読む）・ SchemaValidator（形の検査）を自分で宣言し、記録しない（記録のポートを持たない）"
   },
   {
    "name": "outbound-filesystem",
    "nodes": [
     "outbound-filesystem"
    ],
-   "description": "DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。作業ディレクトリの JSON を読み、一時ファイルに書いてから置き換え、消す。描いたページの書き出し先 OutDir（PageWriter。一時ファイルに全部書いてから置き換える）も持つ"
+   "description": "DocumentStore（書く ・ 検証 ・ 描画 ・ 検索のモジュールがそれぞれ宣言する）の実装。渡された経路の文書だけを Git の根から読み、一時ファイルに書いてから置き換え、消す（作業フォルダを歩かない）。渡されたスキーマの置き場所（--schemas）を読むファイルの並びに開く schema_files も持つ。描いたページの書き出し先 OutDir（PageWriter。一時ファイルに全部書いてから置き換える）も持つ"
   },
   {
    "name": "outbound-jsonschema",
@@ -78,7 +78,7 @@
    "nodes": [
     "outbound-git"
    ],
-   "description": "CommitReader の実装。git コマンド（log ・ cat-file --filters）でコミットにある中身を読むだけ。記録の置き場所に使う共通のフォルダ（rev-parse --git-common-dir）と、セッションを打ったフォルダ（rev-parse --show-toplevel）も引く。Git に書き込まない"
+   "description": "CommitReader の実装。git コマンド（cat-file --filters）で、渡されたコミットにある中身を読むだけ。記録の置き場所に使う共通のフォルダ（rev-parse --git-common-dir）と、セッションを打ったフォルダ（rev-parse --show-toplevel）も引く。Git に書き込まない"
   },
   {
    "name": "outbound-templates",

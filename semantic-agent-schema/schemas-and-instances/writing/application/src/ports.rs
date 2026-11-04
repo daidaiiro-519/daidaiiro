@@ -5,7 +5,7 @@ use serde_json::Value;
 use validation_domain::values::Judgment;
 use writing_domain::values::{ChangeRow, StoredChange, WriteRecord};
 
-/// 渡された経路の文書。経路はリポジトリの根（作業ディレクトリ）からの相対で、区切りは /。全部を並べる手段は持たない。
+/// 渡された経路の文書。経路は Git の根からの相対で、区切りは /。全部を並べる手段は持たない。
 pub trait DocumentStore {
     /// 文書の中身。
     ///
@@ -14,20 +14,20 @@ pub trait DocumentStore {
     fn read(&self, path: &str) -> Result<String, String>;
 
     /// 文書を書く。途中で止まっても、前の中身か新しい中身のどちらかが残る（一時ファイルに書いて置き換える）。
-    /// 書くのは SAS の use_cases だけ。
+    /// 書くのは Semantic Agent Schema の use_cases だけ。
     ///
     /// # Errors
-    /// 経路がリポジトリの外か SAS の記録を指す ・ 書けないとき。
+    /// 経路がリポジトリの外か Semantic Agent Schema の記録を指す ・ 書けないとき。
     fn write(&self, path: &str, text: &str) -> Result<(), String>;
 
-    /// 文書を消す。消すのは SAS の use_cases だけ。
+    /// 文書を消す。消すのは Semantic Agent Schema の use_cases だけ。
     ///
     /// # Errors
-    /// 経路がリポジトリの外か SAS の記録を指す ・ 無い ・ 消せないとき。
+    /// 経路がリポジトリの外か Semantic Agent Schema の記録を指す ・ 無い ・ 消せないとき。
     fn remove(&self, path: &str) -> Result<(), String>;
 }
 
-/// JSON Schema 2020-12 のバリデーター。SAS が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）はバリデーターの側が持つ。
+/// JSON Schema 2020-12 のバリデーター。Semantic Agent Schema が入れて出すスキーマ（Abstract の本体 ・ 方言 ・ 語彙）はバリデーターの側が持つ。
 pub trait SchemaValidator {
     /// 入れて出すスキーマの文書。無い名前は None。
     fn shipped(&self, id: &str) -> Option<Value>;

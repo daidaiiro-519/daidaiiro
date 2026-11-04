@@ -27,7 +27,7 @@ pub fn concrete_rules(
     vocabulary: Option<&Value>,
     concrete: &ConcreteSchema,
 ) -> Vec<Judged> {
-    // JSON Schema で書けない Concrete の決まり3つは、SAS が組み込みで確かめる
+    // JSON Schema で書けない Concrete の決まり3つは、Semantic Agent Schema が組み込みで確かめる
     let mut results: Vec<Judged> = builtin_checks(concrete).into_iter().map(whole).collect();
     for rule in rules_for_concrete(abstract_doc, vocabulary, concrete) {
         results.push((
@@ -39,7 +39,7 @@ pub fn concrete_rules(
     results
 }
 
-/// インスタンスに当たる Concrete の rule（判定を渡されていなければ not-judged）。more はリポジトリの Concrete（$id と文書）。
+/// インスタンスに当たる Concrete の rule（判定を渡されていなければ not-judged）。more は渡された置き場所から引いた文書（Concrete と $ref の先。$id と文書）。
 #[must_use]
 pub fn instance_rules(
     concrete_doc: &Value,

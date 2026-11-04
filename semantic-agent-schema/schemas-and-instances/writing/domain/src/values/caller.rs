@@ -33,7 +33,7 @@ impl Via {
 pub enum Caller {
     /// semantic-agent-schema を打ったセッション（AI のエージェント ・ CI ・ オーケストレーター）。--session ・ ツールの環境変数 ・ semantic-agent-schema init で分かった
     Session {
-        /// セッション ID（ツールのものか、semantic-agent-schema init で SAS が決めたもの）
+        /// セッション ID（ツールのものか、semantic-agent-schema init で Semantic Agent Schema が決めたもの）
         id: String,
         /// ツールの名前（claude-code など。分からなければ unknown）
         tool: String,

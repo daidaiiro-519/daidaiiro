@@ -1,12 +1,12 @@
 //! UC1 作成する ・ UC2 更新する の意味で書く変形：Concrete の rule から書く手順を組み、打ったセッションに返す。
-//! SAS はエージェントを起動しない。手順を受け取ったセッションが値を決め、手順の command（semantic-agent-schema create … --value ／
+//! Semantic Agent Schema はエージェントを起動しない。手順を受け取ったセッションが値を決め、手順の command（semantic-agent-schema create … --value ／
 //! semantic-agent-schema update … --patch）で書く。書くのは、その機械の作成 ・ 更新で、形と書く条件に照らしてから書く。
 //!
 //! - 書く欄は根の欄（x-prompt か、中に rule を持つ欄か、根が求める欄）。人が決める欄（x-decided-by: human）と、
 //!   const で決まる欄と、$schema は書く欄にしない。欄の中（入れ子 ・ 配列の要素 ・ $ref の先）の rule も、そのステップに入れる。
 //! - インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く（同じ手続き）。
 //! - 書く順は rule の related_fields：読まれる欄を先にする。読み合う欄があれば、手順を出さずに断る。
-//! - --ref の文書は SAS が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
+//! - --ref の文書は Semantic Agent Schema が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
 //! - 手順を返すだけで、記録しない。
 
 use super::{Refused, carried, range_for, refused, target_of_declared};
@@ -274,7 +274,7 @@ fn deref<'a>(
     target.map_or((root, node), |t| (doc, t))
 }
 
-/// 書く元のスキーマの本体に、$ref で指すほかの文書（Concrete か、SAS が入れて出すスキーマ）を $defs へ入れたもの。
+/// 書く元のスキーマの本体に、$ref で指すほかの文書（Concrete か、Semantic Agent Schema が入れて出すスキーマ）を $defs へ入れたもの。
 /// 入れた文書は $id を持つので、$ref はそのまま引ける（JSON Schema 2020-12 の束ね方）。手順だけで形の決まりがすべて読めるようにする。
 /// 指す先の文書がさらに指す文書も入れる。引けない文書（JSON Schema のメタスキーマなど）は入れない。
 fn bundled(doc: &Value, validator: &dyn SchemaValidator, others: &[(String, Value)]) -> Value {

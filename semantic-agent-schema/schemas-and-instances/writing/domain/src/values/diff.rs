@@ -65,7 +65,7 @@ impl FieldChange {
         }
     }
 
-    /// 前の値が取れなかった欄（SAS を通らない変更を取り込むとき、前の中身のコミットが無い）。
+    /// 前の値が取れなかった欄（Semantic Agent Schema を通らない変更を取り込むとき、前の中身のコミットが無い）。
     /// 足されたのか変わったのかは分からないので replace とし、前の値を持たない。
     #[must_use]
     pub fn without_before(pointer: &str, after: Value) -> Self {

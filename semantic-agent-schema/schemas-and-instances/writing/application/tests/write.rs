@@ -183,11 +183,11 @@ fn update_without_if_match_compares_with_the_last_write() {
         request_id: None,
         reason: Some("目標を直す".into()),
     };
-    // SAS が一度も書いていないので、比べるハッシュが無く、書く
+    // Semantic Agent Schema が一度も書いていないので、比べるハッシュが無く、書く
     let first = update(&req("b"), &store, &Lenient, &HUMAN, &mut log).unwrap();
     // 最後に書いたハッシュといまの中身が同じなので、書く
     update(&req("c"), &store, &Lenient, &HUMAN, &mut log).unwrap();
-    // SAS を通らずに直される
+    // Semantic Agent Schema を通らずに直される
     store
         .write(
             "u1.json",

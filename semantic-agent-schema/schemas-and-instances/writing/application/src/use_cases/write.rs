@@ -2,7 +2,7 @@
 //!
 //! - UC1 作成する ・ UC2 更新する（機械）：値か JSON Patch から書く中身を作り、形と集約の書く条件を確かめてから書き、
 //!   前後の中身から求めた差分と一緒に操作を記録する。書く手前で断ったものは記録せず、理由をその場で返す。
-//! - SAS を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
+//! - Semantic Agent Schema を通らない変更の取り込み（UC1 の変形 ・ UC2 の --adopt）：ファイルは書かず、いまの中身を形と書く条件に照らして、
 //!   source = outside の操作として記録する。更新の取り込みの欄ごとの前の値は、記録のどれかの事後と同じ中身のコミットから取る。
 //! - UC3 削除する（機械）：対象を消し、消す前の状態を記録する（delete.rs）。
 //! - 対象の見分けは writing-domain の TargetKind、更新のあとに入力が変わった前の判定は validation-domain の判定の基準で決める。
@@ -43,7 +43,7 @@ pub struct Refused {
     pub message: String,
     /// ハッシュが違って断ったとき（conflict）の、間に入った変更
     pub interleaved: Option<Box<Interleaved>>,
-    /// 次にすることの案内（SAS を通らない変更を取り込むコマンドなど）
+    /// 次にすることの案内（Semantic Agent Schema を通らない変更を取り込むコマンドなど）
     pub hint: Option<Box<String>>,
     /// 削除を止めた理由になったもの（Concrete に従うインスタンス）
     pub blocked: Option<Box<Vec<Blocked>>>,
@@ -252,7 +252,7 @@ pub struct Interleaved {
     pub current: String,
     /// 前提のハッシュのあとに記録された、対象を書いた操作（古い順）
     pub operations: Vec<WriteRecord>,
-    /// いまの中身が、この経路の記録の事後のどれでもない（SAS を通らない変更があった）
+    /// いまの中身が、この経路の記録の事後のどれでもない（Semantic Agent Schema を通らない変更があった）
     pub unrecorded: bool,
     /// 最後に記録した、対象を書いた操作（無ければ None）
     pub last_recorded: Option<WriteRecord>,
@@ -518,7 +518,7 @@ pub struct ChangeResult {
     pub checked: Vec<Checked>,
     /// 同じ request_id の操作がすでにあり、書かずにそれを返したか
     pub replayed: bool,
-    /// SAS を通らない変更を取り込んだ操作か（source = outside）
+    /// Semantic Agent Schema を通らない変更を取り込んだ操作か（source = outside）
     pub outside: bool,
     /// 更新の取り込みで、欄ごとの前の値を取ったコミット。そのコミットが無ければ None（差分の欄は前の値を持たない）
     pub before_commit: Option<String>,
@@ -597,7 +597,7 @@ fn pretty(value: &Value, depth: usize, out: &mut String) {
     }
 }
 
-/// 書く手前の判定に要るもの：形を照らすバリデーターと、リポジトリの Concrete。
+/// 書く手前の判定に要るもの：形を照らすバリデーターと、渡された置き場所から引いた Concrete と $ref の先。
 struct Judge<'a> {
     validator: &'a dyn SchemaValidator,
     more: &'a [(String, Value)],
@@ -958,7 +958,7 @@ pub fn update(
         fields: Vec::new(),
     };
     // 比べるハッシュ：呼ぶ側が読んだハッシュ（--if-match）か、いまの中身が記録のどの事後とも違うときの最後の事後のハッシュ。
-    // SAS が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べるハッシュが無く、そのまま書く
+    // Semantic Agent Schema が一度も書いていない ・ いまの中身が記録のどれかの事後なら比べるハッシュが無く、そのまま書く
     let (expected, from) = match &request.if_match {
         Some(hash) => (Some(hash.clone()), "--if-match の"),
         None => (
@@ -977,7 +977,7 @@ pub fn update(
                 "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので直さない。間に入った変更（interleaved）を読んでから直す{}",
                 current.as_str(),
                 if between.unrecorded {
-                    "。SAS を通らない変更がある"
+                    "。Semantic Agent Schema を通らない変更がある"
                 } else {
                     ""
                 }
@@ -1007,7 +1007,7 @@ pub fn update(
             ));
         }
     };
-    // Concrete の申告する Abstract の版を、SAS が入れて出す一覧に無い版へ変えるパッチは、形に照らす前に断る
+    // Concrete の申告する Abstract の版を、Semantic Agent Schema が入れて出す一覧に無い版へ変えるパッチは、形に照らす前に断る
     // （版を移す手続きは、Abstract の新しい版を出すときに作る）
     if kind == TargetKind::Concrete
         && let Some(to) = after.get("$schema").and_then(Value::as_str)
@@ -1295,13 +1295,13 @@ fn reapply_hint(
 /// 取り込みを、作成として行うか更新として行うか。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdoptAs {
-    /// SAS の記録に無い既存のファイルを取り込む（UC1 の変形「既存のファイルを取り込む」）
+    /// Semantic Agent Schema の記録に無い既存のファイルを取り込む（UC1 の変形「既存のファイルを取り込む」）
     Create,
-    /// SAS が書いたあとに外で直されたファイルを取り込む（UC2 の --adopt）
+    /// Semantic Agent Schema が書いたあとに外で直されたファイルを取り込む（UC2 の --adopt）
     Update,
 }
 
-/// SAS を通らない変更の取り込みの依頼。ファイルは書かない。
+/// Semantic Agent Schema を通らない変更の取り込みの依頼。ファイルは書かない。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdoptRequest {
     /// 取り込む経路
@@ -1364,7 +1364,7 @@ fn base_content(
     Ok((base.to_string(), value, hash.as_str().to_string()))
 }
 
-/// SAS を通らない変更を取り込む（UC1 の変形 ・ UC2 の --adopt）。ファイルは書かず、いまの中身を
+/// Semantic Agent Schema を通らない変更を取り込む（UC1 の変形 ・ UC2 の --adopt）。ファイルは書かず、いまの中身を
 /// 形と集約の書く条件に照らしてから、source = outside の作成か更新として記録する。
 /// 更新の取り込みの差分は、--base で渡されたコミット（中身が記録のどれかの事後と同じもの）との比較で、
 /// --base が無ければ履歴を探さずに前の値の無い差分（before_unavailable）にし、事前は記録の最後の事後にする。

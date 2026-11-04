@@ -1,11 +1,11 @@
 //! UC5 描画する（機械だけ）。
 //!
-//! SAS が受け取るのは3つだけである：デザインシステム（種類ごとのテンプレートとデザイントークン）、
-//! Concrete（SAS の契約で作った JSON Schema）、それに従うインスタンスの JSON。
+//! Semantic Agent Schema が受け取るのは3つだけである：デザインシステム（種類ごとのテンプレートとデザイントークン）、
+//! Concrete（Semantic Agent Schema の契約で作った JSON Schema）、それに従うインスタンスの JSON。
 //! JSON が渡すのは値だけで、どの値をどこにどう置くかはテンプレート（HTML ・ JS）が決め、見た目はトークンの CSS が決める。
-//! テンプレートの書き方は Mustache（ロジックを持たない）。SAS は Concrete の根の x-view でテンプレートを選び、値（value）・
+//! テンプレートの書き方は Mustache（ロジックを持たない）。Semantic Agent Schema は Concrete の根の x-view でテンプレートを選び、値（value）・
 //! JS へ渡す値の JSON（json）・ トークン（tokens）・ トークンの CSS（css）を入れて描くだけである。
-//! デザインを組み立てる部品を SAS の中に持たない。判定 ・ 記録 ・ ハッシュはページに入れず、記録も読まない。
+//! デザインを組み立てる部品を Semantic Agent Schema の中に持たない。判定 ・ 記録 ・ ハッシュはページに入れず、記録も読まない。
 //! 同じ入力からは同じページになる。
 //!
 //! 1. 対象を読み、従う Concrete を渡されたスキーマの置き場所から $id で引く（描くのはインスタンスだけ。見るのは対象の Concrete だけ）。

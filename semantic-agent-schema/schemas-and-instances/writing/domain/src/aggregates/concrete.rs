@@ -7,7 +7,7 @@
 use crate::values::WriteViolation;
 use serde_json::Value;
 
-/// SAS が入れて出す Abstract の版（閉じた一覧）。これに無い $schema は取りに行かずに断る。
+/// Semantic Agent Schema が入れて出す Abstract の版（閉じた一覧）。これに無い $schema は取りに行かずに断る。
 pub const ABSTRACT_VERSIONS: [&str; 1] =
     ["urn:semantic-agent-schema:published-language:abstract:v1"];
 
