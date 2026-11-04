@@ -1,0 +1,206 @@
+<title>抽象モデリング概念</title>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--fg:#1b201e;--soft:#5d6763;--line:#d9ddd9;--accent:#1d6b57;--accent-bg:#e2f1ec;--warn:#9a4d1c;--warn-bg:#f8e9dd;--mid:#4a5a8a;--mid-bg:#e6e9f4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.75 "Noto Sans JP",system-ui,sans-serif;margin:0;padding-inline:16px;padding-block:24px 56px}
+main{max-width:860px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:26px}
+h1{font-size:1.5rem;margin:0;text-wrap:balance} h2{font-size:1.1rem;margin:0 0 10px;text-wrap:balance} h3{font-size:.98rem;margin:8px 0 0}
+.nb{display:inline-block} p{margin:0} .soft{color:var(--soft)}
+code{font-size:.86em;background:var(--accent-bg);padding:1px 5px;border-radius:4px;overflow-wrap:break-word}
+blockquote{margin:0;padding:6px 12px;border-left:3px solid var(--line);color:var(--soft)}
+section{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
+section.rule{border:2px solid var(--accent)} section.ng{border:2px solid var(--warn)}
+ol,ul{margin:0;padding-left:1.3em}
+.n{display:inline-block;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent);color:var(--card);text-align:center;font-size:.85rem;line-height:1.6em;margin-right:6px}
+section.ng .n{background:var(--warn)}
+.fig{overflow-x:auto} .fig svg{display:block;max-width:560px;width:100%;margin:0 auto}
+.cap{font-size:.85rem;color:var(--soft);text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{color:var(--soft);font-size:.8rem}
+.wrap{overflow-x:auto} td code{overflow-wrap:break-word} td:first-child{min-width:6em}
+.k{display:inline-block;font-size:.8rem;font-weight:700;padding:0 8px;border-radius:999px;white-space:nowrap}
+.core{background:var(--accent-bg);color:var(--accent)} .sup{background:var(--mid-bg);color:var(--mid)} .gen{background:var(--warn-bg);color:var(--warn)}
+.ucs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:10px}
+.uc{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:4px;min-width:0;align-content:start}
+.uc h3{margin:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.uc dl{margin:0;display:grid;grid-template-columns:4.6em minmax(0,1fr);gap:2px 8px;font-size:.9rem}
+.uc dt{color:var(--soft);font-size:.8rem;padding-top:2px} .uc dd{margin:0}
+.uc.sem{border-color:var(--accent)}
+@media (max-width:560px){table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1px solid var(--line)} table.stack td,table.stack th{border:0;display:block} table.stack td:first-child,table.stack th:first-child{grid-column:1/-1;font-weight:700;padding-bottom:0} table.stack th:first-child{display:none}}
+</style>
+<main>
+<header style="display:grid;gap:6px"><p class="soft">Semantic Agent Schema ・ 本質の像</p><h1>抽象モデリング概念</h1>
+<p>技術に依らない「何を ・ なぜ」のモデル。作り方の技術は、具体モデリング概念が持つ。</p></header>
+
+<section class="rule"><h2><span class="nb">本質：</span><span class="nb">機械的な検証と、</span><span class="nb">x-prompt による意味的な検証</span></h2>
+<div class="fig">{{essence}}</div>
+<div class="wrap"><table>
+<tr><th>層</th><th>何で担保するか</th></tr>
+<tr><td>機械的な検証</td><td>JSON Schema による決定論的な検証と、<code>x-</code> の項目に対する独自のバリデーター ・ レンダラー（ドメインモデルに持つ）</td></tr>
+<tr><td>意味的な検証</td><td>中でエージェントを呼ばず、手順を返す。手順は Markdown ではなく、スキーマとして定義した <code>x-prompt</code> から決まった形で生成する</td></tr>
+</table></div>
+<blockquote>機械的な検証と意味的な検証をするって部分を両方やってるって感じだよね。<br>それにプラスして意味的な検証をソースコード内でエージェントを呼ぶような部分まで担わせるのではなく、それを実施するための手順を返す。<br>これがもう本質なんだよね。</blockquote>
+</section>
+
+<section><h2><span class="n">1</span><span class="nb">概念モデル：</span><span class="nb">Abstract ・ Concrete ・ インスタンス</span></h2>
+<div class="fig">{{concept}}</div>
+<div class="wrap"><table class="stack">
+<tr><th></th><th>何か</th><th>Semantic Agent Schema との関係</th></tr>
+<tr><td>Abstract スキーマ</td><td>中核のスキーマ。Semantic Agent Schema のメタで、作法（<code>x-</code> の項目と <code>x-prompt</code> の書き方）を書いたもの</td><td>Semantic Agent Schema が持つ。能力はこの作法に基づく</td></tr>
+<tr><td>Concrete スキーマ</td><td>Abstract の <code>x-</code> の項目などを継承して具体にしたもの。作法に沿って用途ごとに拡張して使う</td><td>依存しない。用途ごとの項目や決まりを知らない</td></tr>
+<tr><td>インスタンス</td><td>Concrete に従う JSON</td><td>作法に基づいて扱う</td></tr>
+</table></div>
+<ul>
+<li>能力：JSON Schema とインスタンスの JSON に対する操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成</li>
+<li>依存の注入は、Semantic Agent Schema が決めた契約の依存だけを受け入れる。一例はデザインシステム（契約は Semantic Agent Schema が決め、中身は使う側が渡す）</li>
+</ul>
+<blockquote>セマンティックエージェントスキーマはその作法に基づく能力は提供する。<br>しかしconcrateに関する具体内容までは依存しないです。<br>しかし依存の注入は受け入れるような形です。ただその条件はあくまでセマンティックエージェントスキーマが決めた契約の依存のみです。</blockquote>
+</section>
+
+<section><h2><span class="n">2</span><span class="nb">受け持つ所と、</span><span class="nb">入力の契約</span></h2>
+<div class="fig">{{scope}}</div>
+<div class="wrap"><table>
+<tr><th>誰が</th><th>受け持つこと</th></tr>
+<tr><td>Semantic Agent Schema</td><td>入力の形と値を契約で確かめ、決まった手順で処理する。結果 ・ 手順 ・ 断る理由を返す</td></tr>
+<tr><td>AI のセッション（外）</td><td>入力と JSON を作る。どの対象 ・ スキーマ ・ 範囲かを考える。意味を判定する</td></tr>
+<tr><td>人（外）</td><td>承認する。人だけが決める欄を決める</td></tr>
+</table></div>
+<h3>入力の契約</h3>
+<div class="wrap"><table>
+<tr><th>考え方</th><th>なぜ</th></tr>
+<tr><td>入力と出力の形は JSON Schema で決める</td><td>形と値の正しさを、契約で機械的に確かめられる</td></tr>
+<tr><td>入力を作るのは AI</td><td>何を見るかは AI が考える。中で探すより、探すものを渡すほうが軽い</td></tr>
+<tr><td>中で引くのは、入力から決定論的に導けるものだけ</td><td>自分の操作の記録 ・ 版の管理の事実 ・ 渡された置き場所の中の名前なら、同じ入力から同じ結果になる</td></tr>
+<tr><td>足りなければ断る</td><td>曖昧さを補うと、結果が入力で決まらなくなる</td></tr>
+</table></div>
+<blockquote>入力と出力の契約ができていれば、あとはそれを受け取って処理するだけですよね。<br>もちろんdbとかから、探すみたいな話もさ結局コマンドないで決定論的に導かれるものとかならいいんだよね。</blockquote>
+</section>
+
+<section><h2><span class="n">3</span>ユースケース</h2>
+<div class="fig">{{roundtrip}}</div>
+<p class="cap">意味の部分がある作る ・ 直す ・ 意味の判定 ・ 探すは、どれもこの往復で進む。</p>
+<p class="soft">保証の範囲は、渡された入力と記録にあるものまで。緑の枠は意味の部分を持つもの。</p>
+<div class="ucs">
+<div class="uc sem"><h3>作る</h3><dl>
+<dt>目的</dt><dd>Concrete に従う新しいインスタンス（または新しい Concrete）を作る</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>対象と依頼を渡す → x-prompt から生成した手順を返す → AI が値を作って渡す → 確かめて書き、項目ごとに記録する</dd>
+<dt>保証</dt><dd>書いた値は、渡された Concrete の形と x- の決まりに合う。意味が合うかは、意味の判定で確かめる</dd>
+</dl></div>
+<div class="uc sem"><h3>直す</h3><dl>
+<dt>目的</dt><dd>あるインスタンス（または Concrete）を書き換える</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>読んだ時のハッシュと差分を渡す → 中身が読んだ時と同じで、形と x- が合うときだけ書く → 項目ごとの前後を記録する。外で変えたものは、理由を付けて取り込む</dd>
+<dt>保証</dt><dd>ほかの変更を上書きしない。人だけが決める欄は、人からの変更だけを受ける。Concrete を直すときは、渡された範囲と記録で、従わなくなるインスタンスが無いかを確かめる。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
+</dl></div>
+<div class="uc"><h3>消す</h3><dl>
+<dt>目的</dt><dd>渡された対象（インスタンスか Concrete）を消す</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>対象と理由を渡す → 対象だけを消し、消す前の状態を記録する。参照している所は、AI が「直す」で直す</dd>
+<dt>保証</dt><dd>渡された対象のほかは変えない。Concrete を消すときは、渡された範囲と記録に従うインスタンスが無いことを確かめてから消す。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
+</dl></div>
+<div class="uc"><h3>確かめる</h3><dl>
+<dt>目的</dt><dd>渡された対象が、形と x- の決まりに合うかを知る</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>対象を渡す → 機械的に検証し、判定の区分ごとの数を返して記録する。記録に無い変更があれば知らせる</dd>
+<dt>保証</dt><dd>渡された対象について、記録にある操作をもとに決める</dd>
+</dl></div>
+<div class="uc sem"><h3>意味の判定 <span class="soft" style="font-size:.8rem;font-weight:400">確かめるの変形</span></h3><dl>
+<dt>目的</dt><dd>x-prompt の rule に照らして、意味が合うかを判定する</dd>
+<dt>アクター</dt><dd>AI のセッション</dd>
+<dt>主な流れ</dt><dd>判定の手順を依頼する → 前の判定のあと変わった所と当たる rule だけで手順を返す → AI が書いたときとは別の文脈で判定して渡す → 突き合わせて記録する</dd>
+<dt>保証</dt><dd>どの所を、どの rule で、誰が判定したかが記録に残る。判定の中身は AI の答えのまま。判定できない答えは「守られている」に数えない</dd>
+</dl></div>
+<div class="uc"><h3>描く</h3><dl>
+<dt>目的</dt><dd>インスタンスを、人が読めるページにする</dd>
+<dt>アクター</dt><dd>人（読み手）・ AI のセッション</dd>
+<dt>主な流れ</dt><dd>インスタンスと、契約に従うデザインシステムを渡す → x-view の種類のテンプレートに値を置いて返す</dd>
+<dt>保証</dt><dd>同じ入力から同じページになる。インスタンスは書き換えない</dd>
+</dl></div>
+<div class="uc sem"><h3>探す</h3><dl>
+<dt>目的</dt><dd>渡された範囲から、問いへの答えを得る</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>範囲と問いを渡す → 構造で絞った結果か、意味で探す手順を返す → AI が答えと出どころを渡す → 出どころが範囲の中にあり、ハッシュが合うかを確かめて返す</dd>
+<dt>保証</dt><dd>範囲の外は探していない、と返す。記録しない</dd>
+</dl></div>
+<div class="uc"><h3>記録を読む</h3><dl>
+<dt>目的</dt><dd>誰が、いつ、何をしたかを知る</dd>
+<dt>アクター</dt><dd>人（レビューする人）・ AI のセッション</dd>
+<dt>主な流れ</dt><dd>絞る条件を渡す → 記録を新しい順に返す</dd>
+<dt>保証</dt><dd>読むだけで、何も変えない。無いものは無いと返す</dd>
+</dl></div>
+</div>
+</section>
+
+<section><h2><span class="n">4</span>ドメインモデル</h2>
+<h3>業務領域と区分</h3>
+<div class="fig">{{domains}}</div>
+<div class="wrap"><table>
+<tr><th>業務領域と区分</th><th>なぜその区分か</th></tr>
+<tr><td>書いて確かめる<br><span class="k core">中核</span></td><td>本質（x- の決まりと x-prompt による意味的な検証）を担う。モデリングを必要とし、ほかに無い価値になる</td></tr>
+<tr><td>記録<br><span class="k sup">補完</span></td><td>変わった所を選ぶ元として必要だが、追記して読むだけで、業務の判断を持たない</td></tr>
+<tr><td>描く<br><span class="k sup">補完</span></td><td>値を置いて返すだけ。見た目は注入されたデザインシステムが決める</td></tr>
+<tr><td>探す<br><span class="k sup">補完</span></td><td>範囲の中で絞るか、手順を返して出どころを確かめるだけ</td></tr>
+<tr><td>版の管理 ・ JSON Schema の検証 ・ テンプレートの処理<br><span class="k gen">一般</span></td><td>どこでも同じ仕組み。作らずに使い、受け取る契約だけを Semantic Agent Schema が決める</td></tr>
+</table></div>
+
+<h3>集約と不変条件</h3>
+<div class="fig">{{model}}</div>
+<div class="wrap"><table class="stack">
+<tr><th>集約</th><th>不変条件</th><th>なぜ</th></tr>
+<tr><td>Concrete</td><td>申告する Abstract の版が、閉じた一覧にある</td><td>作法に従っていることを、版で確かめる</td></tr>
+<tr><td>Concrete</td><td>公開した欄（<code>x-published</code>）は、同じ版のあいだ変えない</td><td>同じ版を使う側の前提を壊さない</td></tr>
+<tr><td>Concrete</td><td>作法に従う。<code>x-</code> は閉じた一覧で、JSON Schema で書けない作法は組み込みの検査で確かめる</td><td>能力は作法に基づくので、作法から外れたものは扱えない</td></tr>
+<tr><td>インスタンス</td><td>id を変えない</td><td>記録と参照が同じものを指し続ける</td></tr>
+<tr><td>インスタンス</td><td>人だけが決める欄（<code>x-decided-by</code>）は、人からだけ変える</td><td>承認は人が持つ</td></tr>
+<tr><td>インスタンス</td><td>Concrete の形と x- の決まりに合う</td><td>機械的な検証を通らない値を書かない</td></tr>
+<tr><td>インスタンス</td><td>中身が読んだ時と同じときだけ書く</td><td>ほかの変更を上書きしない</td></tr>
+</table></div>
+<p class="soft">1回の操作で書く集約は1つ。</p>
+
+<h3>値</h3>
+<div class="wrap"><table>
+<tr><th>値</th><th>何か</th></tr>
+<tr><td>ハッシュ</td><td>中身から決まる値。読んだ時といまの中身が同じかを決める</td></tr>
+<tr><td>差分</td><td>項目（JSON Pointer）ごとの前と後</td></tr>
+<tr><td>書く条件の外れ</td><td>書かずに断った理由（中身が変わっていた ・ 形が合わない ・ 人の欄 など）</td></tr>
+<tr><td>判定の区分</td><td>5つ：守られている ・ 破られている ・ 判定できない ・ 判定に失敗した ・ まだ判定していない。「守られている」に数えるのは、守られているだけ</td></tr>
+<tr><td>誰が判定したか</td><td>機械（形の検査 ・ 組み込みの検査）か、AI（x-prompt の rule）か</td></tr>
+<tr><td>誰が打ったか</td><td>セッション。入力で受け取り、推さない</td></tr>
+<tr><td>対象の種類</td><td>Concrete かインスタンスか</td></tr>
+</table></div>
+
+<h3>ドメインサービス</h3>
+<div class="wrap"><table>
+<tr><th>サービス</th><th>すること</th></tr>
+<tr><td>x- の項目のバリデーター</td><td>JSON Schema で書けない作法（<code>$schema</code> と <code>$id</code> が合う ・ rule の id が重ならない ・ 例の related は related_fields の所だけ）と、人の欄 ・ 公開した欄を確かめる</td></tr>
+<tr><td>x- の項目のレンダラー</td><td><code>x-view</code> の種類に、デザインシステムのテンプレートを当てて値を置く</td></tr>
+<tr><td>x-prompt から手順を生成する決まり</td><td>項目の title ・ description ・ <code>x-prompt</code>（meaning ・ when ・ rules）と当たる rule から、決まった形の手順を生成する。同じ入力なら同じ手順</td></tr>
+<tr><td>変わった所を選ぶ決まり</td><td>前の判定のあとの項目ごとの前後と、判定が読んだ所のハッシュから、判定し直す所を選ぶ。選ばれなかった所は前の判定を引き継ぐ</td></tr>
+</table></div>
+
+<h3>記録の概念</h3>
+<div class="fig">{{records}}</div>
+<div class="wrap"><table class="stack">
+<tr><th>記録</th><th>何を残すか</th><th>担う価値</th></tr>
+<tr><td>セッション</td><td>誰が打ったか。1つのセッションに1つ</td><td>誰が何をしたかを読む</td></tr>
+<tr><td>変更の操作</td><td>対象 ・ 前後のハッシュ ・ 理由 ・ 通したか外の変更の取り込みか</td><td>記録に無い変更を見つける</td></tr>
+<tr><td>項目ごとの前後</td><td>JSON Pointer ごとの前の値と後の値</td><td>価値3：変わった所だけを検証する</td></tr>
+<tr><td>検証の操作</td><td>対象 ・ その時のハッシュ ・ 判定の区分ごとの数</td><td>いつの中身を確かめたかを残す</td></tr>
+<tr><td>項目ごとの判定</td><td>rule ・ JSON Pointer ・ 区分 ・ 誰が判定したか ・ 理由 ・ 読んだ所のハッシュ</td><td>価値4：変更点を決定論的に集める</td></tr>
+</table></div>
+<p class="soft">どれも追記だけ。断った操作は記録しない。</p>
+</section>
+
+<section class="ng"><h2><span class="n">5</span><span class="nb">境界：</span><span class="nb">してはならないこと</span></h2>
+<div class="wrap"><table>
+<tr><th>してはならないこと</th><th>なぜ</th></tr>
+<tr><td>どのファイルを見るかを推し量る</td><td>見るものを決めるのは、入力を作る AI。推し量ると、渡していないもので結果が変わる</td></tr>
+<tr><td>入力の曖昧さを補う</td><td>補うと、同じ入力から同じ結果にならない。足りなければ断る</td></tr>
+<tr><td>中でエージェントを呼ぶ</td><td>意味的な検証は、手順を返して担う。判定は外の AI が行う</td></tr>
+<tr><td>Concrete の具体に依存する</td><td>能力は作法に基づく。受け入れるのは、決めた契約の依存の注入だけ</td></tr>
+<tr><td>後方互換のためのコードを残す</td><td>いまの契約だけを持つ。残すと契約が2つになり、どちらで確かめるかが決まらない</td></tr>
+</table></div>
+<blockquote>もっとシンプルでいいし、入力の曖昧さをアルゴリズムで強引に実現しようとしなくてもある程度入力を作成するaiに頼ってもいいと思う。</blockquote>
+</section>
+</main>

@@ -1,0 +1,67 @@
+<svg viewBox="0 0 420 1041" role="img" aria-label="update --semantic で手順をもらい、AI が JSON Patch を作って update --patch で書く。書いた変更は項目ごとに記録される。validate --semantic は記録から変わった所だけの手順を返し、AI が判定を validate --answer で渡すと、照らしてから記録する">
+<text class="title" x="10" y="22">処理の流れ：意味で書いて、変わった所を判定する</text>
+<text class="note small" x="117" y="44" text-anchor="middle">モジュール（application ・ domain）</text>
+<text class="note small" x="320" y="44" text-anchor="middle">ポート → アダプター</text>
+<rect class="box kind-1" x="10" y="56" width="400" height="57"/>
+<text class="label small" x="20" y="74">AI：意味で書く手順を依頼する</text>
+<text class="note small" x="20" y="89">update a.json --semantic --task T</text>
+<text class="note small" x="20" y="104">--schemas s/ --session S</text>
+<rect class="box" x="230" y="135" width="180" height="72"/>
+<text class="label small" x="240" y="153">1 DocumentStore.read</text>
+<text class="note small" x="240" y="168">→ filesystem</text>
+<text class="note small" x="240" y="183">SchemaValidator</text>
+<text class="note small" x="240" y="198">→ jsonschema</text>
+<rect class="box" x="10" y="229" width="214" height="57"/>
+<text class="label small" x="20" y="247">2 writing：x-prompt から手順を作る</text>
+<text class="note small" x="20" y="262">command に置き場所 ・ session を</text>
+<text class="note small" x="20" y="277">引き継ぐ。記録しない</text>
+<rect class="box kind-1" x="10" y="308" width="400" height="57"/>
+<text class="label small" x="20" y="326">AI：steps を行い、JSON Patch を作って打つ</text>
+<text class="note small" x="20" y="341">update a.json --patch P --if-match H</text>
+<text class="note small" x="20" y="356">--schemas s/ --session S</text>
+<rect class="box" x="10" y="387" width="214" height="42"/>
+<text class="label small" x="20" y="405">3 writing：Patch を当てて照らす</text>
+<text class="note small" x="20" y="420">形 ・ 集約の書く条件 ・ --if-match</text>
+<rect class="box" x="230" y="451" width="180" height="72"/>
+<text class="label small" x="240" y="469">4 DocumentStore.write</text>
+<text class="note small" x="240" y="484">→ filesystem</text>
+<text class="note small" x="240" y="499">ChangeLog.append_change</text>
+<text class="note small" x="240" y="514">→ sqlite：pointer ごとの前後</text>
+<rect class="box kind-1" x="10" y="545" width="400" height="57"/>
+<text class="label small" x="20" y="563">AI：変わった所を確かめる手順を依頼する</text>
+<text class="note small" x="20" y="578">validate a.json --semantic</text>
+<text class="note small" x="20" y="593">--schemas s/ --session S</text>
+<rect class="box" x="230" y="624" width="180" height="42"/>
+<text class="label small" x="240" y="642">5 ValidationLog → sqlite</text>
+<text class="note small" x="240" y="657">writes ・ last_judgments</text>
+<rect class="box" x="10" y="688" width="214" height="57"/>
+<text class="label small" x="20" y="706">6 validation：変わった所だけ集める</text>
+<text class="note small" x="20" y="721">field_changes の pointer と</text>
+<text class="note small" x="20" y="736">reads_hash で当たる rule を選ぶ</text>
+<rect class="box kind-1" x="10" y="767" width="400" height="57"/>
+<text class="label small" x="20" y="785">AI：rule ごとに判定して打つ</text>
+<text class="note small" x="20" y="800">validate a.json --answer J</text>
+<text class="note small" x="20" y="815">--schemas s/ --session S</text>
+<rect class="box" x="10" y="846" width="214" height="57"/>
+<text class="label small" x="20" y="864">7 validation：答えを照らす</text>
+<text class="note small" x="20" y="879">judgment-answer の形 ・ hash</text>
+<text class="note small" x="20" y="894">step ・ rule ・ pointer</text>
+<rect class="box" x="230" y="925" width="180" height="57"/>
+<text class="label small" x="240" y="943">8 ValidationLog</text>
+<text class="note small" x="240" y="958">append_validate → sqlite</text>
+<text class="note small" x="240" y="973">rule_results（by = ai）</text>
+<rect class="box kind-1" x="10" y="1004" width="400" height="27"/>
+<text class="label small" x="20" y="1022">AI：結果（validation）を読む</text>
+<path class="flow" d="M320,113 V133" fill="none"/>
+<path class="flow" d="M320,207 V218 H117 V227" fill="none"/>
+<path class="flow" d="M117,286 V306" fill="none"/>
+<path class="flow" d="M117,365 V385" fill="none"/>
+<path class="flow" d="M117,429 V440 H320 V449" fill="none"/>
+<path class="flow" d="M320,523 V543" fill="none"/>
+<path class="flow" d="M320,602 V622" fill="none"/>
+<path class="flow" d="M320,666 V677 H117 V686" fill="none"/>
+<path class="flow" d="M117,745 V765" fill="none"/>
+<path class="flow" d="M117,824 V844" fill="none"/>
+<path class="flow" d="M117,903 V914 H320 V923" fill="none"/>
+<path class="flow" d="M320,982 V1002" fill="none"/>
+</svg>

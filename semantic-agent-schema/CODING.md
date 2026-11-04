@@ -16,10 +16,10 @@
 | 断った理由の型（Refused）は、各モジュールの use_cases が、そのモジュールが断るときに使う欄だけで持つ。出力の形（command-result の kind = error）は inbound/cli の output が持ち、各モジュールの Refused を From で移す | CLI の出力の形は入口の事情で、モジュールが互いの断る理由の欄を知らなくてよくする |
 | 文脈の中のフォルダは、業務領域を作るモジュール（`writing/` ・ `validation/` ・ `recording/` ・ `rendering/` ・ `search/`）と `adapters/`。名前はユースケースと場面で実際に使う言葉から付ける。文脈の根に domain を置かない | 業務領域ごとの手続きの置き場所を、言葉から引けるようにする（名前の見直し） |
 | 集約（Concrete ・ インスタンス）は writing/domain に置く。検証のモジュールは集約を読んで rule に照らす業務サービスと判定の値を validation/domain に持つ。依存は writing-application → validation-domain → writing-domain と validation-application → validation-domain → writing-domain（書くモジュールは検証のモジュールの application を使わない） | 集約は作成 ・ 更新 ・ 削除のコマンドを受けて不変条件を守る。検証は単独でも使う。書く側は書く前に形を照らし、書いたあとに入力が変わった前の判定を、検証と同じ基準（validation-domain）で決める |
-| 意味（自然言語の rule に照らして中身の意味を書く ・ 判定する ・ 探すこと）は、書く ・ 検証 ・ 検索のそれぞれの中に持つ。業務領域にしない。SAS はエージェントを起動しない：意味の部分は手順を打ったセッションに返し、そのセッションが渡した値と判定を機械の書き込み ・ 検証で確かめる（概念のページ版28） | 意味は仕事の性質で、別の仕事ではない |
+| 意味（自然言語の rule に照らして中身の意味を書く ・ 判定する ・ 探すこと）は、書く ・ 検証 ・ 検索のそれぞれの中に持つ。業務領域にしない。SAS はエージェントを起動しない：意味の部分は手順を打ったセッションに返し、そのセッションが渡した値と判定を機械の書き込み ・ 検証で確かめる（抽象モデリング概念の本質） | 意味は仕事の性質で、別の仕事ではない |
 | 業務ロジックは、まず use_cases にトランザクションスクリプトで書く。同じ理由で変わるものだけを domain へ引き上げる。自明なものは最初から domain に置いてよいが、根拠を探索の記録に書く | ドメインモデルは育てるもの |
 | domain の中は部品の種類で分ける（aggregates/・values/・services/）。購読する手続きが無いうちは events/ を作らない | 先取りしない |
-| ユースケースごとのファイルやフォルダは作らない | 土台の境界6 |
+| ユースケースごとのファイルやフォルダは作らない | ユースケースを足すたびに、コードの構造を組み替えることになる |
 | crate・モジュール・ポートは、必要と分かった時点で足す。crate を足したら `architecture.json`（architecture-lint の規則）の components と allow にも足す | 最初に構造を全部作らない |
 | 外のライブラリも `architecture.json` の component にし、allow で向きを許した crate だけが使う（rusqlite は outbound の sqlite、jsonschema は outbound の jsonschema）。試験だけで使う向きは kinds を dev にして許す | 外の技術を adapter に閉じ込めたことを、依存の検査（architecture-lint）で確かめる |
 | ユースケースは、先に `schemas-and-instances/system-tests/scenarios/` に場面を書き、失敗を確かめてから作る。場面と保証 ・ 拡張の突き合わせは `system-tests/trace.json`、まだ確かめないものは `untested.json` に理由と一緒に置く | 保証と拡張のどれを確かめたかを、試験で数えられるようにする |

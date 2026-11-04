@@ -1,0 +1,435 @@
+<title>抽象モデリング概念</title>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--fg:#1b201e;--soft:#5d6763;--line:#d9ddd9;--accent:#1d6b57;--accent-bg:#e2f1ec;--warn:#9a4d1c;--warn-bg:#f8e9dd;--mid:#4a5a8a;--mid-bg:#e6e9f4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.75 "Noto Sans JP",system-ui,sans-serif;margin:0;padding-inline:16px;padding-block:24px 56px}
+main{max-width:860px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:26px}
+h1{font-size:1.5rem;margin:0;text-wrap:balance} h2{font-size:1.1rem;margin:0 0 10px;text-wrap:balance} h3{font-size:.98rem;margin:8px 0 0}
+.nb{display:inline-block} p{margin:0} .soft{color:var(--soft)}
+code{font-size:.86em;background:var(--accent-bg);padding:1px 5px;border-radius:4px;overflow-wrap:break-word}
+blockquote{margin:0;padding:6px 12px;border-left:3px solid var(--line);color:var(--soft)}
+section{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
+section.rule{border:2px solid var(--accent)} section.ng{border:2px solid var(--warn)}
+ol,ul{margin:0;padding-left:1.3em}
+.n{display:inline-block;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent);color:var(--card);text-align:center;font-size:.85rem;line-height:1.6em;margin-right:6px}
+section.ng .n{background:var(--warn)}
+.fig{overflow-x:auto} .fig svg{display:block;max-width:560px;width:100%;margin:0 auto}
+.cap{font-size:.85rem;color:var(--soft);text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{color:var(--soft);font-size:.8rem}
+.wrap{overflow-x:auto} td code{overflow-wrap:break-word} td:first-child{min-width:6em}
+.k{display:inline-block;font-size:.8rem;font-weight:700;padding:0 8px;border-radius:999px;white-space:nowrap}
+.core{background:var(--accent-bg);color:var(--accent)} .sup{background:var(--mid-bg);color:var(--mid)} .gen{background:var(--warn-bg);color:var(--warn)}
+.ucs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:10px}
+.uc{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:4px;min-width:0;align-content:start}
+.uc h3{margin:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.uc dl{margin:0;display:grid;grid-template-columns:4.6em minmax(0,1fr);gap:2px 8px;font-size:.9rem}
+.uc dt{color:var(--soft);font-size:.8rem;padding-top:2px} .uc dd{margin:0}
+.uc.sem{border-color:var(--accent)}
+@media (max-width:560px){table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1px solid var(--line)} table.stack td,table.stack th{border:0;display:block} table.stack td:first-child,table.stack th:first-child{grid-column:1/-1;font-weight:700;padding-bottom:0} table.stack th:first-child{display:none}}
+</style>
+<main>
+<header style="display:grid;gap:6px"><p class="soft">Semantic Agent Schema ・ 本質の像</p><h1>抽象モデリング概念</h1>
+<p>技術に依らない「何を ・ なぜ」のモデル。作り方の技術は、具体モデリング概念が持つ。</p></header>
+
+<section class="rule"><h2><span class="nb">本質：</span><span class="nb">機械的な検証と、</span><span class="nb">x-prompt による意味的な検証</span></h2>
+<div class="fig"><svg viewBox="0 0 420 330" role="img" aria-label="本質。機械的な検証は JSON Schema と x- の項目のバリデーター ・ レンダラーで決定論的に行う。意味的な検証はエージェントを呼ばず、x-prompt から生成した手順を返し、AI が渡した答えを突き合わせて記録する。下に x-prompt の4つの価値" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="330.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">本質：機械的な検証と意味的な検証</text>
+<rect class="box" x="10" y="36" width="195" height="120" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">機械的な検証</text>
+<text class="note small" x="22" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">決定論的に決まる</text>
+<text class="label small" x="22" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">JSON Schema で形を確かめる</text>
+<text class="label small" x="22" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">x- の項目のバリデーター</text>
+<text class="label small" x="22" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">x- の項目のレンダラー</text>
+<rect class="box focus" x="215" y="36" width="195" height="120" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="227" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">意味的な検証</text>
+<text class="note small" x="227" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">エージェントを呼ばない</text>
+<text class="label small" x="227" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">x-prompt から手順を生成して返す</text>
+<text class="label small" x="227" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI が判定して答えを渡す</text>
+<text class="label small" x="227" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">答えを突き合わせて記録する</text>
+<rect class="box" x="10" y="172" width="400" height="128" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="192" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">x-prompt の4つの価値</text>
+<text class="label small" x="22" y="216" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1　生成とレビューを、同じ x-prompt で担保する</text>
+<text class="label small" x="22" y="236" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">2　項目ごとに振られ、JSON Pointer で項目と決まりを特定できる</text>
+<text class="label small" x="22" y="256" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3　項目ごとの変更の記録で、変わった所だけを検証できる</text>
+<text class="label small" x="22" y="276" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4　変更点はコマンドが決定論的に集め、AI はそれを見て動く</text>
+<text class="note small" x="10" y="320" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">入力と出力の形は、どちらも JSON Schema の契約で決める</text>
+</svg></div>
+<div class="wrap"><table>
+<tr><th>層</th><th>何で担保するか</th></tr>
+<tr><td>機械的な検証</td><td>JSON Schema による決定論的な検証と、<code>x-</code> の項目に対する独自のバリデーター ・ レンダラー（ドメインモデルに持つ）</td></tr>
+<tr><td>意味的な検証</td><td>中でエージェントを呼ばず、手順を返す。手順は Markdown ではなく、スキーマとして定義した <code>x-prompt</code> から決まった形で生成する</td></tr>
+</table></div>
+<blockquote>機械的な検証と意味的な検証をするって部分を両方やってるって感じだよね。<br>それにプラスして意味的な検証をソースコード内でエージェントを呼ぶような部分まで担わせるのではなく、それを実施するための手順を返す。<br>これがもう本質なんだよね。</blockquote>
+</section>
+
+<section><h2><span class="n">1</span><span class="nb">概念モデル：</span><span class="nb">Abstract ・ Concrete ・ インスタンス</span></h2>
+<div class="fig"><svg viewBox="0 0 420 340" role="img" aria-label="概念モデル。Abstract スキーマは Semantic Agent Schema のメタで作法を持つ。Concrete スキーマが用途ごとにそれを継承し、インスタンスが Concrete に従う。Semantic Agent Schema の能力は作法に基づき、Concrete の具体には依存しない。依存の注入は、決めた契約の依存だけを受け入れる" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg #dsvg-7a091e1d-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}</style><defs data-dsvg="marker"><marker id="dsvg-7a091e1d-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="340.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">概念モデル：Abstract と Concrete</text>
+<rect class="box focus" x="10" y="36" width="240" height="84" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="22" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">Abstract スキーマ</text>
+<text class="label small" x="22" y="76" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">中核。Semantic Agent Schema のメタ</text>
+<text class="label small" x="22" y="92" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">作法：x- の項目と x-prompt の書き方</text>
+<text class="note small" x="22" y="110" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Semantic Agent Schema が持つ</text>
+<path class="link" d="M47,162 V146 H213 V162" fill="none" stroke="#5B6B66" stroke-width="1"/>
+<path class="flow" d="M130,146 V122" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7a091e1d-arrow-5B6B66)"/>
+<text class="note small" x="137" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">継承（用途ごとに拡張）</text>
+<rect class="box" x="10" y="162" width="74" height="52" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="note small" x="47" y="180" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Concrete</text>
+<text class="label" x="47" y="200" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">用途A</text>
+<rect class="box" x="93" y="162" width="74" height="52" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="note small" x="130" y="180" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Concrete</text>
+<text class="label" x="130" y="200" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">用途B</text>
+<rect class="box" x="176" y="162" width="74" height="52" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="note small" x="213" y="180" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Concrete</text>
+<text class="label" x="213" y="200" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">用途C</text>
+<path class="flow" d="M47,214 V244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7a091e1d-arrow-5B6B66)"/>
+<path class="flow" d="M130,214 V244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7a091e1d-arrow-5B6B66)"/>
+<path class="flow" d="M213,214 V244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7a091e1d-arrow-5B6B66)"/>
+<text class="note small" x="54" y="234" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">従う</text>
+<rect class="box" x="10" y="246" width="74" height="44" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="47" y="264" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">インスタンス</text>
+<text class="note small" x="47" y="280" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">JSON</text>
+<rect class="box" x="93" y="246" width="74" height="44" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="130" y="264" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">インスタンス</text>
+<text class="note small" x="130" y="280" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">JSON</text>
+<rect class="box" x="176" y="246" width="74" height="44" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="213" y="264" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">インスタンス</text>
+<text class="note small" x="213" y="280" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">JSON</text>
+<rect class="box" x="272" y="36" width="138" height="150" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="284" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">能力</text>
+<text class="note small" x="284" y="72" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作法に基づく</text>
+<text class="label small" x="284" y="94" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">作成</text>
+<text class="label small" x="284" y="110" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">更新</text>
+<text class="label small" x="284" y="126" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">検証</text>
+<text class="label small" x="284" y="142" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">描画</text>
+<text class="label small" x="284" y="158" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">操作</text>
+<text class="note small" x="284" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">スキーマと JSON に</text>
+<path class="flow" d="M272,78 H252" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-7a091e1d-arrow-5B6B66)"/>
+<rect class="box" x="272" y="198" width="138" height="46" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="284" y="217" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">Concrete の具体には</text>
+<text class="label small" x="284" y="233" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">依存しない</text>
+<rect class="box" x="272" y="252" width="138" height="62" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="284" y="271" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">依存の注入は、</text>
+<text class="label small" x="284" y="287" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">決めた契約の依存だけ</text>
+<text class="label small" x="284" y="303" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">受け入れる</text>
+<text class="note small" x="10" y="314" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">注入の一例：デザインシステム</text>
+<text class="note small" x="10" y="330" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">（契約は Semantic Agent Schema が決め、中身は使う側が渡す）</text>
+</svg></div>
+<div class="wrap"><table class="stack">
+<tr><th></th><th>何か</th><th>Semantic Agent Schema との関係</th></tr>
+<tr><td>Abstract スキーマ</td><td>中核のスキーマ。Semantic Agent Schema のメタで、作法（<code>x-</code> の項目と <code>x-prompt</code> の書き方）を書いたもの</td><td>Semantic Agent Schema が持つ。能力はこの作法に基づく</td></tr>
+<tr><td>Concrete スキーマ</td><td>Abstract の <code>x-</code> の項目などを継承して具体にしたもの。作法に沿って用途ごとに拡張して使う</td><td>依存しない。用途ごとの項目や決まりを知らない</td></tr>
+<tr><td>インスタンス</td><td>Concrete に従う JSON</td><td>作法に基づいて扱う</td></tr>
+</table></div>
+<ul>
+<li>能力：JSON Schema とインスタンスの JSON に対する操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成</li>
+<li>依存の注入は、Semantic Agent Schema が決めた契約の依存だけを受け入れる。一例はデザインシステム（契約は Semantic Agent Schema が決め、中身は使う側が渡す）</li>
+</ul>
+<blockquote>セマンティックエージェントスキーマはその作法に基づく能力は提供する。<br>しかしconcrateに関する具体内容までは依存しないです。<br>しかし依存の注入は受け入れるような形です。ただその条件はあくまでセマンティックエージェントスキーマが決めた契約の依存のみです。</blockquote>
+</section>
+
+<section><h2><span class="n">2</span><span class="nb">受け持つ所と、</span><span class="nb">入力の契約</span></h2>
+<div class="fig"><svg viewBox="0 0 420 372" role="img" aria-label="受け持つ所と外。外の AI は入力と JSON を作り、どの対象とどの範囲かを考え、意味を判定する。外の人は承認し、人だけが決める欄を決める。Semantic Agent Schema は入力を契約で確かめ、決まった手順で処理し、足りなければ断る。中で引くのは、入力から決定論的に導けるものだけ" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus.small{fill:var(--dsvg-accent,#0D5C55);font-size:10px}.dsvg #dsvg-877f5578-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-877f5578-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="372.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">受け持つ所と、外</text>
+<rect class="box" x="10" y="34" width="250" height="84" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">AI のセッション（外）</text>
+<text class="label small" x="22" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">入力と JSON を作る</text>
+<text class="label small" x="22" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">どの対象 ・ スキーマ ・ 範囲かを考える</text>
+<text class="label small" x="22" y="106" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">意味を判定する</text>
+<rect class="box" x="270" y="34" width="140" height="84" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="282" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">人（外）</text>
+<text class="label small" x="282" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">承認する</text>
+<text class="label small" x="282" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">人だけが決める欄を</text>
+<text class="label small" x="282" y="106" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">決める</text>
+<path class="flow" d="M60,118 V156" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-877f5578-arrow-5B6B66)"/>
+<text class="note small" x="66" y="142" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">契約に従う入力</text>
+<path class="flow" d="M170,156 V120" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-877f5578-arrow-5B6B66)"/>
+<text class="note small" x="176" y="142" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">結果 ・ 手順 ・ 断る理由</text>
+<path class="flow" d="M380,118 V156" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-877f5578-arrow-5B6B66)"/>
+<text class="note small" x="374" y="142" text-anchor="end" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">人の欄の値</text>
+<rect class="boundary" x="4" y="158" width="412" height="206" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<text class="title" x="16" y="180" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">Semantic Agent Schema</text>
+<text class="label small" x="16" y="202" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">①　入力の形と値の正しさを、契約で確かめる</text>
+<text class="label small" x="16" y="222" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">②　決まった手順で処理する（同じ入力なら同じ結果）</text>
+<text class="label small" x="16" y="242" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">③　足りなければ、理由を付けて断る</text>
+<rect class="box focus" x="16" y="256" width="388" height="96" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label small focus" x="28" y="276" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#0D5C55">中で引いてよいのは、入力から決定論的に導けるものだけ</text>
+<text class="label small" x="28" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">自分の操作の記録</text>
+<text class="label small" x="28" y="318" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">版の管理（Git）の事実</text>
+<text class="label small" x="28" y="338" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">渡された置き場所の中の名前</text>
+</svg></div>
+<div class="wrap"><table>
+<tr><th>誰が</th><th>受け持つこと</th></tr>
+<tr><td>Semantic Agent Schema</td><td>入力の形と値を契約で確かめ、決まった手順で処理する。結果 ・ 手順 ・ 断る理由を返す</td></tr>
+<tr><td>AI のセッション（外）</td><td>入力と JSON を作る。どの対象 ・ スキーマ ・ 範囲かを考える。意味を判定する</td></tr>
+<tr><td>人（外）</td><td>承認する。人だけが決める欄を決める</td></tr>
+</table></div>
+<h3>入力の契約</h3>
+<div class="wrap"><table>
+<tr><th>考え方</th><th>なぜ</th></tr>
+<tr><td>入力と出力の形は JSON Schema で決める</td><td>形と値の正しさを、契約で機械的に確かめられる</td></tr>
+<tr><td>入力を作るのは AI</td><td>何を見るかは AI が考える。中で探すより、探すものを渡すほうが軽い</td></tr>
+<tr><td>中で引くのは、入力から決定論的に導けるものだけ</td><td>自分の操作の記録 ・ 版の管理の事実 ・ 渡された置き場所の中の名前なら、同じ入力から同じ結果になる</td></tr>
+<tr><td>足りなければ断る</td><td>曖昧さを補うと、結果が入力で決まらなくなる</td></tr>
+</table></div>
+<blockquote>入力と出力の契約ができていれば、あとはそれを受け取って処理するだけですよね。<br>もちろんdbとかから、探すみたいな話もさ結局コマンドないで決定論的に導かれるものとかならいいんだよね。</blockquote>
+</section>
+
+<section><h2><span class="n">3</span>ユースケース</h2>
+<div class="fig"><svg viewBox="0 0 420 372" role="img" aria-label="AI と Semantic Agent Schema の往復。作る ・ 直す：1 書く手順を依頼する、2 x-prompt から生成した手順、3 作った値、4 確かめて書き項目ごとに記録。確かめる ・ 意味の判定：5 判定の手順を依頼する、6 変わった所と rule だけの手順、7 別の文脈で判定した答え、8 突き合わせて記録した結果" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .grid{stroke:var(--dsvg-line,#7C8C86)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .label.focus.small{fill:var(--dsvg-accent,#0D5C55);font-size:10px}.dsvg #dsvg-91aa600b-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-accent-bg:#173330;--dsvg-ink-soft:#9DADA8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-accent-bg:#173330;--dsvg-ink-soft:#9DADA8}</style><defs data-dsvg="marker"><marker id="dsvg-91aa600b-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="372.0" fill="#FFFFFF" rx="8"/>
+<rect class="box" x="60" y="10" width="120" height="34" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="120" y="32" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">AI のセッション</text>
+<line class="grid" x1="120" y1="44" x2="120" y2="336" fill="none" stroke="#7C8C86" stroke-width="1"/>
+<rect class="box focus" x="236" y="10" width="178" height="34" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="325" y="32" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">Semantic Agent Schema</text>
+<line class="grid" x1="325" y1="44" x2="325" y2="336" fill="none" stroke="#7C8C86" stroke-width="1"/>
+<text class="note small" x="222" y="66" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作る ・ 直す</text>
+<path class="flow" d="M122,94 H322" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small" x="222" y="88" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1　書く手順を依頼する（対象を渡す）</text>
+<path class="flow" d="M323,124 H123" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small focus" x="222" y="118" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#0D5C55">2　x-prompt から生成した手順</text>
+<path class="flow" d="M122,154 H322" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small" x="222" y="148" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3　作った値（全体か差分）</text>
+<path class="flow" d="M323,184 H123" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small" x="222" y="178" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4　確かめて書き、項目ごとに記録</text>
+<text class="note small" x="222" y="212" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">確かめる ・ 意味の判定</text>
+<path class="flow" d="M122,238 H322" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small" x="222" y="232" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">5　判定の手順を依頼する</text>
+<path class="flow" d="M323,268 H123" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small focus" x="222" y="262" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#0D5C55">6　変わった所と rule だけの手順</text>
+<path class="flow" d="M122,298 H322" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small" x="222" y="292" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">7　別の文脈で判定した答え</text>
+<path class="flow" d="M323,328 H123" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-91aa600b-arrow-5B6B66)"/>
+<text class="label small" x="222" y="322" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">8　突き合わせて記録した結果</text>
+<text class="note small" x="10" y="360" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作るのも確かめるのも、同じ項目の x-prompt を使う</text>
+</svg></div>
+<p class="cap">意味の部分がある作る ・ 直す ・ 意味の判定 ・ 探すは、どれもこの往復で進む。</p>
+<p class="soft">保証の範囲は、渡された入力と記録にあるものまで。緑の枠は意味の部分を持つもの。</p>
+<div class="ucs">
+<div class="uc sem"><h3>作る</h3><dl>
+<dt>目的</dt><dd>Concrete に従う新しいインスタンス（または新しい Concrete）を作る</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>対象と依頼を渡す → x-prompt から生成した手順を返す → AI が値を作って渡す → 確かめて書き、項目ごとに記録する</dd>
+<dt>保証</dt><dd>書いた値は、渡された Concrete の形と x- の決まりに合う。意味が合うかは、意味の判定で確かめる</dd>
+</dl></div>
+<div class="uc sem"><h3>直す</h3><dl>
+<dt>目的</dt><dd>あるインスタンス（または Concrete）を書き換える</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>読んだ時のハッシュと差分を渡す → 中身が読んだ時と同じで、形と x- が合うときだけ書く → 項目ごとの前後を記録する。外で変えたものは、理由を付けて取り込む</dd>
+<dt>保証</dt><dd>ほかの変更を上書きしない。人だけが決める欄は、人からの変更だけを受ける。Concrete を直すときは、渡された範囲と記録で、従わなくなるインスタンスが無いかを確かめる。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
+</dl></div>
+<div class="uc"><h3>消す</h3><dl>
+<dt>目的</dt><dd>渡された対象（インスタンスか Concrete）を消す</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>対象と理由を渡す → 対象だけを消し、消す前の状態を記録する。参照している所は、AI が「直す」で直す</dd>
+<dt>保証</dt><dd>渡された対象のほかは変えない。Concrete を消すときは、渡された範囲と記録に従うインスタンスが無いことを確かめてから消す。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
+</dl></div>
+<div class="uc"><h3>確かめる</h3><dl>
+<dt>目的</dt><dd>渡された対象が、形と x- の決まりに合うかを知る</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>対象を渡す → 機械的に検証し、判定の区分ごとの数を返して記録する。記録に無い変更があれば知らせる</dd>
+<dt>保証</dt><dd>渡された対象について、記録にある操作をもとに決める</dd>
+</dl></div>
+<div class="uc sem"><h3>意味の判定 <span class="soft" style="font-size:.8rem;font-weight:400">確かめるの変形</span></h3><dl>
+<dt>目的</dt><dd>x-prompt の rule に照らして、意味が合うかを判定する</dd>
+<dt>アクター</dt><dd>AI のセッション</dd>
+<dt>主な流れ</dt><dd>判定の手順を依頼する → 前の判定のあと変わった所と当たる rule だけで手順を返す → AI が書いたときとは別の文脈で判定して渡す → 突き合わせて記録する</dd>
+<dt>保証</dt><dd>どの所を、どの rule で、誰が判定したかが記録に残る。判定の中身は AI の答えのまま。判定できない答えは「守られている」に数えない</dd>
+</dl></div>
+<div class="uc"><h3>描く</h3><dl>
+<dt>目的</dt><dd>インスタンスを、人が読めるページにする</dd>
+<dt>アクター</dt><dd>人（読み手）・ AI のセッション</dd>
+<dt>主な流れ</dt><dd>インスタンスと、契約に従うデザインシステムを渡す → x-view の種類のテンプレートに値を置いて返す</dd>
+<dt>保証</dt><dd>同じ入力から同じページになる。インスタンスは書き換えない</dd>
+</dl></div>
+<div class="uc sem"><h3>探す</h3><dl>
+<dt>目的</dt><dd>渡された範囲から、問いへの答えを得る</dd>
+<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
+<dt>主な流れ</dt><dd>範囲と問いを渡す → 構造で絞った結果か、意味で探す手順を返す → AI が答えと出どころを渡す → 出どころが範囲の中にあり、ハッシュが合うかを確かめて返す</dd>
+<dt>保証</dt><dd>範囲の外は探していない、と返す。記録しない</dd>
+</dl></div>
+<div class="uc"><h3>記録を読む</h3><dl>
+<dt>目的</dt><dd>誰が、いつ、何をしたかを知る</dd>
+<dt>アクター</dt><dd>人（レビューする人）・ AI のセッション</dd>
+<dt>主な流れ</dt><dd>絞る条件を渡す → 記録を新しい順に返す</dd>
+<dt>保証</dt><dd>読むだけで、何も変えない。無いものは無いと返す</dd>
+</dl></div>
+</div>
+</section>
+
+<section><h2><span class="n">4</span>ドメインモデル</h2>
+<h3>業務領域と区分</h3>
+<div class="fig"><svg viewBox="0 0 420 352" role="img" aria-label="業務領域と区分。事業領域は、AI が扱う構造化データをスキーマに従って書き、確かめること。中核は書いて確かめる。補完は記録 ・ 描く ・ 探す。一般は版の管理 ・ JSON Schema の検証 ・ テンプレートの処理で、作らずに使う" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .badge.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.kind-1.small{fill:var(--dsvg-kind-1,#7A3B6D);font-size:10px}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .badge.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .label.kind-2.small{fill:var(--dsvg-kind-2,#2F5B80);font-size:10px}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .badge.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .label.kind-3.small{fill:var(--dsvg-kind-3,#566318);font-size:10px}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}</style><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="352.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">業務領域と区分</text>
+<rect class="area" x="10" y="34" width="400" height="290" fill="#FFFFFF" stroke="#7C8C86" stroke-width="1" rx="8"/>
+<text class="note small" x="22" y="52" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">事業領域：AI が扱う構造化データを、スキーマに従って書き、確かめる</text>
+<rect class="box focus" x="22" y="64" width="376" height="66" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<rect class="badge kind-1" x="34" y="76" width="40" height="16" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1" rx="3"/>
+<text class="label small kind-1" x="54" y="88" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#7A3B6D">中核</text>
+<text class="title focus" x="84" y="89" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">書いて確かめる</text>
+<text class="note small" x="34" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作る ・ 直す ・ 消す ・ 確かめる ・ 意味の判定</text>
+<rect class="box" x="22" y="144" width="120" height="76" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<rect class="badge kind-2" x="34" y="154" width="40" height="16" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1" rx="3"/>
+<text class="label small kind-2" x="54" y="166" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#2F5B80">補完</text>
+<text class="label" x="34" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">記録</text>
+<text class="note small" x="34" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">追記して読むだけ</text>
+<rect class="box" x="150" y="144" width="120" height="76" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<rect class="badge kind-2" x="162" y="154" width="40" height="16" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1" rx="3"/>
+<text class="label small kind-2" x="182" y="166" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#2F5B80">補完</text>
+<text class="label" x="162" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">描く</text>
+<text class="note small" x="162" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">値を置いて返すだけ</text>
+<rect class="box" x="278" y="144" width="120" height="76" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<rect class="badge kind-2" x="290" y="154" width="40" height="16" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1" rx="3"/>
+<text class="label small kind-2" x="310" y="166" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#2F5B80">補完</text>
+<text class="label" x="290" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">探す</text>
+<text class="note small" x="290" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">範囲の中を探すだけ</text>
+<rect class="boundary" x="22" y="234" width="120" height="76" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<rect class="badge kind-3" x="34" y="244" width="40" height="16" fill="#E8ECD3" stroke="#566318" stroke-width="1" rx="3"/>
+<text class="label small kind-3" x="54" y="256" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#566318">一般</text>
+<text class="label small" x="34" y="280" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">版の管理</text>
+<text class="note small" x="34" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作らずに使う</text>
+<rect class="boundary" x="150" y="234" width="120" height="76" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<rect class="badge kind-3" x="162" y="244" width="40" height="16" fill="#E8ECD3" stroke="#566318" stroke-width="1" rx="3"/>
+<text class="label small kind-3" x="182" y="256" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#566318">一般</text>
+<text class="label small" x="162" y="280" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">JSON Schema の検証</text>
+<text class="note small" x="162" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作らずに使う</text>
+<rect class="boundary" x="278" y="234" width="120" height="76" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<rect class="badge kind-3" x="290" y="244" width="40" height="16" fill="#E8ECD3" stroke="#566318" stroke-width="1" rx="3"/>
+<text class="label small kind-3" x="310" y="256" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#566318">一般</text>
+<text class="label small" x="290" y="280" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">テンプレートの処理</text>
+<text class="note small" x="290" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">作らずに使う</text>
+<text class="note small" x="10" y="342" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">中核はドメインモデルで、補完は手続きのまま書き、一般は作らずに使う</text>
+</svg></div>
+<div class="wrap"><table>
+<tr><th>業務領域と区分</th><th>なぜその区分か</th></tr>
+<tr><td>書いて確かめる<br><span class="k core">中核</span></td><td>本質（x- の決まりと x-prompt による意味的な検証）を担う。モデリングを必要とし、ほかに無い価値になる</td></tr>
+<tr><td>記録<br><span class="k sup">補完</span></td><td>変わった所を選ぶ元として必要だが、追記して読むだけで、業務の判断を持たない</td></tr>
+<tr><td>描く<br><span class="k sup">補完</span></td><td>値を置いて返すだけ。見た目は注入されたデザインシステムが決める</td></tr>
+<tr><td>探す<br><span class="k sup">補完</span></td><td>範囲の中で絞るか、手順を返して出どころを確かめるだけ</td></tr>
+<tr><td>版の管理 ・ JSON Schema の検証 ・ テンプレートの処理<br><span class="k gen">一般</span></td><td>どこでも同じ仕組み。作らずに使い、受け取る契約だけを Semantic Agent Schema が決める</td></tr>
+</table></div>
+
+<h3>集約と不変条件</h3>
+<div class="fig"><svg viewBox="0 0 420 470" role="img" aria-label="ドメインモデル。集約は Concrete とインスタンスの2つで、インスタンスは Concrete に従う。それぞれの不変条件を持つ。ドメインサービスは x- のバリデーター ・ レンダラー、x-prompt から手順を生成する決まり、変わった所を選ぶ決まりで、集約を読む。値はハッシュ ・ 差分 ・ 書く条件の外れ ・ 判定の区分 ・ 誰が判定したか ・ 誰が打ったか ・ 対象の種類" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg #dsvg-c03bace1-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E}</style><defs data-dsvg="marker"><marker id="dsvg-c03bace1-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="470.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">ドメインモデル：書いて確かめる</text>
+<rect class="box focus" x="10" y="34" width="195" height="126" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="22" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">集約 Concrete</text>
+<text class="label small" x="22" y="76" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">①　申告する Abstract の版が</text>
+<text class="label small" x="40" y="92" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">閉じた一覧にある</text>
+<text class="label small" x="22" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">②　公開した欄は、同じ版の</text>
+<text class="label small" x="40" y="128" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">あいだ変えない</text>
+<text class="label small" x="22" y="148" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">③　作法（Abstract）に従う</text>
+<rect class="box focus" x="215" y="34" width="195" height="126" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="227" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">集約 インスタンス</text>
+<text class="label small" x="227" y="76" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">①　id を変えない</text>
+<text class="label small" x="227" y="96" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">②　人の欄は、人からだけ変える</text>
+<text class="label small" x="227" y="116" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">③　Concrete の形と x- の</text>
+<text class="label small" x="245" y="132" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">決まりに合う</text>
+<text class="label small" x="227" y="152" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">④　読んだ時と同じ中身なら書く</text>
+<path class="flow" d="M312,160 V176 H107 V162" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-c03bace1-arrow-5B6B66)"/>
+<text class="note small" x="214" y="190" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">インスタンスは Concrete に従う</text>
+<rect class="box" x="10" y="204" width="400" height="118" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="224" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">ドメインサービス（集約を読む）</text>
+<text class="label small" x="22" y="246" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">x- のバリデーター：組み込みの検査 ・ 人の欄 ・ 公開した欄</text>
+<text class="label small" x="22" y="266" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">x- のレンダラー：x-view の種類にテンプレートを当てる</text>
+<text class="label small" x="22" y="286" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">手順を生成する決まり：項目の x-prompt と当たる rule から生成する</text>
+<text class="label small" x="22" y="306" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">変わった所を選ぶ決まり：判定が読んだ所のハッシュで決める</text>
+<rect class="box" x="10" y="338" width="400" height="118" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="358" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">値</text>
+<text class="label small" x="22" y="380" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">ハッシュ ・ 差分（項目ごとの前後）・ 書く条件の外れ</text>
+<text class="label small" x="22" y="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">判定の区分（5つ）・ 誰が判定したか（機械か AI か）</text>
+<text class="label small" x="22" y="420" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">誰が打ったか（セッション。入力で受け取る）</text>
+<text class="label small" x="22" y="440" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">対象の種類（Concrete かインスタンスか）</text>
+</svg></div>
+<div class="wrap"><table class="stack">
+<tr><th>集約</th><th>不変条件</th><th>なぜ</th></tr>
+<tr><td>Concrete</td><td>申告する Abstract の版が、閉じた一覧にある</td><td>作法に従っていることを、版で確かめる</td></tr>
+<tr><td>Concrete</td><td>公開した欄（<code>x-published</code>）は、同じ版のあいだ変えない</td><td>同じ版を使う側の前提を壊さない</td></tr>
+<tr><td>Concrete</td><td>作法に従う。<code>x-</code> は閉じた一覧で、JSON Schema で書けない作法は組み込みの検査で確かめる</td><td>能力は作法に基づくので、作法から外れたものは扱えない</td></tr>
+<tr><td>インスタンス</td><td>id を変えない</td><td>記録と参照が同じものを指し続ける</td></tr>
+<tr><td>インスタンス</td><td>人だけが決める欄（<code>x-decided-by</code>）は、人からだけ変える</td><td>承認は人が持つ</td></tr>
+<tr><td>インスタンス</td><td>Concrete の形と x- の決まりに合う</td><td>機械的な検証を通らない値を書かない</td></tr>
+<tr><td>インスタンス</td><td>中身が読んだ時と同じときだけ書く</td><td>ほかの変更を上書きしない</td></tr>
+</table></div>
+<p class="soft">1回の操作で書く集約は1つ。</p>
+
+<h3>値</h3>
+<div class="wrap"><table>
+<tr><th>値</th><th>何か</th></tr>
+<tr><td>ハッシュ</td><td>中身から決まる値。読んだ時といまの中身が同じかを決める</td></tr>
+<tr><td>差分</td><td>項目（JSON Pointer）ごとの前と後</td></tr>
+<tr><td>書く条件の外れ</td><td>書かずに断った理由（中身が変わっていた ・ 形が合わない ・ 人の欄 など）</td></tr>
+<tr><td>判定の区分</td><td>5つ：守られている ・ 破られている ・ 判定できない ・ 判定に失敗した ・ まだ判定していない。「守られている」に数えるのは、守られているだけ</td></tr>
+<tr><td>誰が判定したか</td><td>機械（形の検査 ・ 組み込みの検査）か、AI（x-prompt の rule）か</td></tr>
+<tr><td>誰が打ったか</td><td>セッション。入力で受け取り、推さない</td></tr>
+<tr><td>対象の種類</td><td>Concrete かインスタンスか</td></tr>
+</table></div>
+
+<h3>ドメインサービス</h3>
+<div class="wrap"><table>
+<tr><th>サービス</th><th>すること</th></tr>
+<tr><td>x- の項目のバリデーター</td><td>JSON Schema で書けない作法（<code>$schema</code> と <code>$id</code> が合う ・ rule の id が重ならない ・ 例の related は related_fields の所だけ）と、人の欄 ・ 公開した欄を確かめる</td></tr>
+<tr><td>x- の項目のレンダラー</td><td><code>x-view</code> の種類に、デザインシステムのテンプレートを当てて値を置く</td></tr>
+<tr><td>x-prompt から手順を生成する決まり</td><td>項目の title ・ description ・ <code>x-prompt</code>（meaning ・ when ・ rules）と当たる rule から、決まった形の手順を生成する。同じ入力なら同じ手順</td></tr>
+<tr><td>変わった所を選ぶ決まり</td><td>前の判定のあとの項目ごとの前後と、判定が読んだ所のハッシュから、判定し直す所を選ぶ。選ばれなかった所は前の判定を引き継ぐ</td></tr>
+</table></div>
+
+<h3>記録の概念</h3>
+<div class="fig"><svg viewBox="0 0 420 410" role="img" aria-label="記録の概念。どれも追記だけ。セッションは誰が打ったか。変更の操作と検証の操作がセッションを指す。変更の操作は項目ごとの前後を持ち、検証の操作は項目ごとの判定を持つ。項目ごとの前後は、次の判定で変わった所を選ぶ元になる" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg #dsvg-aead0098-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-aead0098-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="410.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">記録の概念（どれも追記だけ）</text>
+<rect class="box" x="110" y="36" width="200" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="122" y="56" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">セッション</text>
+<text class="note small" x="122" y="78" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">誰が打ったか（1つに1行）</text>
+<path class="flow" d="M80,128 L150,98" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-aead0098-arrow-5B6B66)"/>
+<path class="flow" d="M340,128 L270,98" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-aead0098-arrow-5B6B66)"/>
+<text class="note small" x="12" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">打ったセッション</text>
+<text class="note small" x="408" y="112" text-anchor="end" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">打ったセッション</text>
+<rect class="box" x="10" y="130" width="195" height="94" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">変更の操作</text>
+<text class="label small" x="22" y="170" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">対象 ・ 前後のハッシュ</text>
+<text class="label small" x="22" y="188" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">理由</text>
+<text class="label small" x="22" y="206" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">通したか、外の変更の取り込みか</text>
+<rect class="box" x="215" y="130" width="195" height="94" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="227" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">検証の操作</text>
+<text class="label small" x="227" y="170" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">対象 ・ その時のハッシュ</text>
+<text class="label small" x="227" y="188" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">判定の区分ごとの数</text>
+<path class="flow" d="M107,256 V226" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-aead0098-arrow-5B6B66)"/>
+<path class="flow" d="M312,256 V226" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-aead0098-arrow-5B6B66)"/>
+<text class="note small" x="114" y="246" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">1 対 多</text>
+<text class="note small" x="319" y="246" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">1 対 多</text>
+<rect class="box focus" x="10" y="258" width="195" height="96" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="22" y="278" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">項目ごとの前後</text>
+<text class="label small" x="22" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">JSON Pointer</text>
+<text class="label small" x="22" y="316" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">前の値 ・ 後の値</text>
+<rect class="box focus" x="215" y="258" width="195" height="96" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="227" y="278" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">項目ごとの判定</text>
+<text class="label small" x="227" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">rule ・ JSON Pointer</text>
+<text class="label small" x="227" y="316" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">区分 ・ 誰が判定したか ・ 理由</text>
+<text class="label small" x="227" y="334" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">読んだ所のハッシュ</text>
+<path class="flow" d="M107,354 V376 H312 V356" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-aead0098-arrow-5B6B66)"/>
+<text class="note small" x="210" y="398" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">前後が、次の判定で変わった所を選ぶ元になる</text>
+</svg></div>
+<div class="wrap"><table class="stack">
+<tr><th>記録</th><th>何を残すか</th><th>担う価値</th></tr>
+<tr><td>セッション</td><td>誰が打ったか。1つのセッションに1つ</td><td>誰が何をしたかを読む</td></tr>
+<tr><td>変更の操作</td><td>対象 ・ 前後のハッシュ ・ 理由 ・ 通したか外の変更の取り込みか</td><td>記録に無い変更を見つける</td></tr>
+<tr><td>項目ごとの前後</td><td>JSON Pointer ごとの前の値と後の値</td><td>価値3：変わった所だけを検証する</td></tr>
+<tr><td>検証の操作</td><td>対象 ・ その時のハッシュ ・ 判定の区分ごとの数</td><td>いつの中身を確かめたかを残す</td></tr>
+<tr><td>項目ごとの判定</td><td>rule ・ JSON Pointer ・ 区分 ・ 誰が判定したか ・ 理由 ・ 読んだ所のハッシュ</td><td>価値4：変更点を決定論的に集める</td></tr>
+</table></div>
+<p class="soft">どれも追記だけ。断った操作は記録しない。</p>
+</section>
+
+<section class="ng"><h2><span class="n">5</span><span class="nb">境界：</span><span class="nb">してはならないこと</span></h2>
+<div class="wrap"><table>
+<tr><th>してはならないこと</th><th>なぜ</th></tr>
+<tr><td>どのファイルを見るかを推し量る</td><td>見るものを決めるのは、入力を作る AI。推し量ると、渡していないもので結果が変わる</td></tr>
+<tr><td>入力の曖昧さを補う</td><td>補うと、同じ入力から同じ結果にならない。足りなければ断る</td></tr>
+<tr><td>中でエージェントを呼ぶ</td><td>意味的な検証は、手順を返して担う。判定は外の AI が行う</td></tr>
+<tr><td>Concrete の具体に依存する</td><td>能力は作法に基づく。受け入れるのは、決めた契約の依存の注入だけ</td></tr>
+<tr><td>後方互換のためのコードを残す</td><td>いまの契約だけを持つ。残すと契約が2つになり、どちらで確かめるかが決まらない</td></tr>
+</table></div>
+<blockquote>もっとシンプルでいいし、入力の曖昧さをアルゴリズムで強引に実現しようとしなくてもある程度入力を作成するaiに頼ってもいいと思う。</blockquote>
+</section>
+</main>

@@ -79,3 +79,5 @@
               └ アダプター（CLI ・ 渡された経路のファイル ・ 記録の DB ・ Git の事実 ・ JSON Schema の検証器 ・ テンプレート）
 外：AI（引数と JSON を作る、意味を判定する）・ 人（承認する）
 ```
+
+技術に依らない「何を ・ なぜ」は抽象モデリング概念（`abstract-modeling/index.html`）、どう作るかは具体モデリング概念（`concrete-modeling/index.html`）が持つ。

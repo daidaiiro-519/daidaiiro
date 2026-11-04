@@ -1,0 +1,433 @@
+<title>具体モデリング概念</title>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--fg:#1b201e;--soft:#5d6763;--line:#d9ddd9;--accent:#1d6b57;--accent-bg:#e2f1ec;--warn:#9a4d1c;--warn-bg:#f8e9dd;--mid:#4a5a8a;--mid-bg:#e6e9f4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.75 "Noto Sans JP",system-ui,sans-serif;margin:0;padding-inline:16px;padding-block:24px 56px}
+main{max-width:860px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:26px}
+h1{font-size:1.5rem;margin:0;text-wrap:balance} h2{font-size:1.1rem;margin:0 0 10px;text-wrap:balance} h3{font-size:.98rem;margin:8px 0 0}
+.nb{display:inline-block} p{margin:0} .soft{color:var(--soft)}
+code{font-size:.86em;background:var(--accent-bg);padding:1px 5px;border-radius:4px;overflow-wrap:break-word}
+pre{margin:0;padding:10px 12px;background:var(--accent-bg);border-radius:8px;overflow-x:auto} pre code{background:none;padding:0}
+section{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
+section.rule{border:2px solid var(--accent)}
+ol,ul{margin:0;padding-left:1.3em}
+.n{display:inline-block;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent);color:var(--card);text-align:center;font-size:.85rem;line-height:1.6em;margin-right:6px}
+.fig{overflow-x:auto} .fig svg{display:block;max-width:560px;width:100%;margin:0 auto}
+.cap{font-size:.85rem;color:var(--soft);text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{color:var(--soft);font-size:.8rem}
+.wrap{overflow-x:auto} td code{overflow-wrap:break-word} td:first-child{min-width:6em}
+.k{display:inline-block;font-size:.8rem;font-weight:700;padding:0 8px;border-radius:999px;white-space:nowrap}
+.add{background:var(--accent-bg);color:var(--accent)} .fix{background:var(--mid-bg);color:var(--mid)} .cut{background:var(--warn-bg);color:var(--warn)}
+.dot{color:var(--accent);font-weight:700;text-align:center} td.c{text-align:center}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px} .nums>div{border-radius:8px;padding:10px 12px}
+.nums .g{background:var(--accent-bg)} .nums .m{background:var(--mid-bg)} .nums .w{background:var(--warn-bg)}
+.big{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums}
+@media (max-width:480px){.nums{grid-template-columns:1fr}}
+</style>
+<main>
+<header style="display:grid;gap:6px"><p class="soft">Semantic Agent Schema ・ 本質の像</p><h1>具体モデリング概念</h1>
+<p>抽象モデリング概念（技術に依らない何を ・ なぜ）を、どう作るか。構成 ・ ポート ・ コマンドの引数 ・ 公開された言葉 ・ 記録 ・ 処理の流れの6つで書く。</p></header>
+
+<section class="rule"><h2><span class="nb">軸：</span><span class="nb">入力は契約で受け取り、</span><span class="nb">決まった手順で処理する</span></h2>
+<ul>
+<li>入力を作るのは AI。どのファイル ・ どのスキーマ ・ どの範囲かを、AI が考えて引数にする</li>
+<li>Semantic Agent Schema は、入力の形と値を確かめ、決まった手順で処理する</li>
+<li>中で引くのは、自分の操作の記録 ・ Git の事実 ・ 渡された置き場所の中の名前だけ</li>
+<li>足りなければ補わずに断る</li>
+</ul>
+<p class="soft">元：<code>semantic-agent-schema/docs/essence.md</code> の「受け取り方」と「設計の進め方」</p>
+</section>
+
+<section><h2><span class="n">1</span>構成：ヘキサゴナル</h2>
+<div class="fig"><svg viewBox="0 0 420 552" role="img" aria-label="構成と依存の向き。入口の cli が5つのモジュールの application を呼ぶ。application は domain だけを使い、ほかの application を使わない。validation の domain は writing の domain を使う。outbound の6つのアダプターが、各モジュールのポートを実装する。published-language は契約の JSON Schema を置く" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg #dsvg-04f6445c-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78}</style><defs data-dsvg="marker"><marker id="dsvg-04f6445c-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="552.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">構成と依存の向き（architecture.json）</text>
+<rect class="box" x="10" y="34" width="400" height="46" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="22" y="53" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">adapters/inbound/cli</text>
+<text class="note small" x="22" y="70" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">入口：引数を確かめ、アダプターを選んでユースケースへ渡す</text>
+<path class="flow" d="M49,80 V114" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M131,80 V114" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M213,80 V114" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M295,80 V114" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M377,80 V114" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<rect class="boundary" x="3" y="94" width="414" height="452" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<rect class="box" x="10" y="116" width="78" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="49" y="135" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">search</text>
+<text class="note small" x="49" y="151" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">application</text>
+<text class="note small" x="49" y="167" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC6</text>
+<rect class="box" x="92" y="116" width="78" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="131" y="135" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">writing</text>
+<text class="note small" x="131" y="151" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">application</text>
+<text class="note small" x="131" y="167" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC1〜UC3</text>
+<rect class="box" x="174" y="116" width="78" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="213" y="135" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">validation</text>
+<text class="note small" x="213" y="151" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">application</text>
+<text class="note small" x="213" y="167" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC4</text>
+<rect class="box" x="256" y="116" width="78" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="295" y="135" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">rendering</text>
+<text class="note small" x="295" y="151" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">application</text>
+<text class="note small" x="295" y="167" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC5</text>
+<rect class="box" x="338" y="116" width="78" height="60" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="377" y="135" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">recording</text>
+<text class="note small" x="377" y="151" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">application</text>
+<text class="note small" x="377" y="167" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">UC7</text>
+<path class="flow" d="M49,176 L40,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M119,176 L80,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M143,176 L240,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M201,176 L120,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M225,176 L280,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M283,176 L160,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M307,176 L320,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M365,176 L190,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<path class="flow" d="M389,176 L370,244" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<rect class="box focus" x="12" y="246" width="188" height="58" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="24" y="265" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">writing/domain</text>
+<text class="note small" x="24" y="281" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">集約 Concrete ・ インスタンス</text>
+<text class="note small" x="24" y="296" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">値 ・ field_schema</text>
+<rect class="box focus" x="220" y="246" width="188" height="58" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="232" y="265" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">validation/domain</text>
+<text class="note small" x="232" y="281" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">当たる rule ・ 組み込みの検査</text>
+<text class="note small" x="232" y="296" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">判定の値 ・ reads_hash</text>
+<path class="flow" d="M220,275 H202" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-04f6445c-arrow-5B6B66)"/>
+<text class="note small" x="12" y="330" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">adapters/outbound：各モジュールのポートを実装する</text>
+<rect class="box kind-2" x="12" y="338" width="128" height="52" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/>
+<text class="label" x="24" y="356" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">filesystem</text>
+<text class="note small" x="24" y="371" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">DocumentStore</text>
+<text class="note small" x="24" y="384" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">PageWriter</text>
+<rect class="box kind-2" x="146" y="338" width="128" height="52" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/>
+<text class="label" x="158" y="356" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">jsonschema</text>
+<text class="note small" x="158" y="371" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">SchemaValidator</text>
+<text class="note small" x="158" y="384" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Draft 2020-12</text>
+<rect class="box kind-2" x="280" y="338" width="128" height="52" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/>
+<text class="label" x="292" y="356" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">sqlite</text>
+<text class="note small" x="292" y="371" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">記録のポート</text>
+<text class="note small" x="292" y="384" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">records.sqlite</text>
+<rect class="box kind-2" x="12" y="396" width="128" height="52" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/>
+<text class="label" x="24" y="414" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">git</text>
+<text class="note small" x="24" y="429" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">CommitReader</text>
+<text class="note small" x="24" y="442" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Git の事実を読む</text>
+<rect class="box kind-2" x="146" y="396" width="128" height="52" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/>
+<text class="label" x="158" y="414" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">templates</text>
+<text class="note small" x="158" y="429" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">TemplateRenderer</text>
+<text class="note small" x="158" y="442" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Mustache</text>
+<rect class="box kind-2" x="280" y="396" width="128" height="52" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/>
+<text class="label" x="292" y="414" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">javascript</text>
+<text class="note small" x="292" y="429" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ScriptReader</text>
+<text class="note small" x="292" y="442" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">boa の parser</text>
+<rect class="box kind-3" x="12" y="462" width="396" height="58" fill="#E8ECD3" stroke="#566318" stroke-width="1.5" rx="5"/>
+<text class="label" x="24" y="480" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">published-language/v1</text>
+<text class="note small" x="24" y="497" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">出力 ・ 手順 ・ 答え</text>
+<text class="note small" x="24" y="512" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Concrete を書く型 ・ 受け取りの型</text>
+<text class="note small" x="12" y="538" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">文脈 schemas-and-instances</text>
+</svg></div>
+<p class="cap">矢印は依存の向き。書いていない向きは、architecture-lint が止める。</p>
+<div class="wrap"><table>
+<tr><th>モジュール</th><th>層</th><th>持つもの</th></tr>
+<tr><td><code>writing</code></td><td>domain ・ application</td><td>集約 Concrete ・ インスタンス、値（ハッシュ ・ 差分 ・ TargetKind ・ Caller ・ 記録の行）、<code>field_schema</code>。UC1 作る ・ UC2 直す ・ UC3 消す ・ 取り込み</td></tr>
+<tr><td><code>validation</code></td><td>domain ・ application</td><td>判定の5つの区分 ・ by、当たる rule ・ 組み込みの検査3つ ・ <code>reads_hash</code>。UC4 確かめる ・ 意味の判定</td></tr>
+<tr><td><code>rendering</code></td><td>application</td><td>UC5 描く ・ デザインシステムの検証</td></tr>
+<tr><td><code>search</code></td><td>application</td><td>UC6 探す（構造で絞る ・ 意味で探す）。記録しない</td></tr>
+<tr><td><code>recording</code></td><td>application</td><td>UC7 記録を読む。入口が使う、誰が打ったかを決めて登録する手続き</td></tr>
+</table></div>
+<ul>
+<li>application は domain だけを使う。ほかのモジュールの application を使わない</li>
+<li>複数のモジュールが使う判断と値は、writing と validation の domain に置く</li>
+<li>入口の <code>cli</code> がアダプターを選び、<code>&amp;dyn</code> のポートとしてユースケースへ渡す</li>
+<li>外のライブラリは、許したアダプターだけが使う（rusqlite は sqlite、jsonschema は jsonschema、boa は javascript）</li>
+</ul>
+</section>
+
+<section><h2><span class="n">2</span>ポートとアダプター</h2>
+<p>ポートは、使うモジュールが自分の <code>ports.rs</code> に、自分のユースケースが使うメソッドだけで宣言する。</p>
+<div class="wrap"><table>
+<tr><th>ポート</th><th>宣言するモジュールとメソッド</th><th>実装するアダプター</th></tr>
+<tr><td><code>DocumentStore</code></td><td>writing：read ・ write ・ remove<br>validation ・ rendering ・ search：read</td><td>filesystem</td></tr>
+<tr><td><code>SchemaValidator</code></td><td>writing：shipped ・ check ・ annotations<br>validation：shipped ・ check<br>rendering ・ search：check</td><td>jsonschema</td></tr>
+<tr><td><code>CommitReader</code></td><td>writing：read（渡されたコミットの中身）</td><td>git</td></tr>
+<tr><td><code>ChangeLog</code></td><td>writing：append_change ・ find_request ・ writes ・ last_judgments</td><td>sqlite</td></tr>
+<tr><td><code>ValidationLog</code></td><td>validation：append_validate ・ writes ・ last_judgments<br>rendering：append_validate</td><td>sqlite</td></tr>
+<tr><td><code>OperationReader</code></td><td>recording：operations ・ operation</td><td>sqlite</td></tr>
+<tr><td><code>SessionLog</code></td><td>recording：session ・ session_row ・ initialized ・ new_session_id</td><td>sqlite</td></tr>
+<tr><td><code>IdentifyCaller</code></td><td>recording：identify</td><td>cli（<code>callers.json</code>）</td></tr>
+<tr><td><code>TemplateRenderer</code></td><td>rendering：render ・ inspect</td><td>templates</td></tr>
+<tr><td><code>ScriptReader</code></td><td>rendering：data_reads</td><td>javascript</td></tr>
+<tr><td><code>PageWriter</code></td><td>rendering：write_pages</td><td>filesystem</td></tr>
+</table></div>
+<h3>ポートで読むもの</h3>
+<div class="wrap"><table>
+<tr><th>何を</th><th>どこから</th></tr>
+<tr><td>文書</td><td>渡された経路だけを読む ・ 書く。全部を並べる list は無い</td></tr>
+<tr><td>Concrete</td><td>渡された置き場所の中から <code>$id</code> で引く。<code>$ref</code> の先も同じ置き場所の中から</td></tr>
+<tr><td>範囲</td><td>渡された経路の並び</td></tr>
+<tr><td>記録</td><td>自分の操作の記録（<code>records.sqlite</code>）</td></tr>
+<tr><td>Git の事実</td><td>git コマンドで読む。Git に書き込まない</td></tr>
+<tr><td>JSON Schema の validator</td><td>2020-12。Abstract と公開された言葉は validator が持つ</td></tr>
+<tr><td>テンプレート</td><td>渡されたデザインシステムの中のテンプレート</td></tr>
+</table></div>
+</section>
+
+<section><h2><span class="n">3</span>コマンドと引数</h2>
+<p><span class="k add">足す</span> は、いまのコードに無い引数。</p>
+<div class="wrap"><table>
+<tr><th>コマンド</th><th>必須</th><th>任意</th></tr>
+<tr><td><code>validate</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--schemas &lt;置き場所&gt;...</code> <span class="k add">足す</span></td><td><code>--stale</code> ・ <code>--all-rules</code> ・ <code>--semantic</code> ・ <code>--answer &lt;ファイル | -&gt;</code>（経路は1つ）</td></tr>
+<tr><td><code>create</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code> <span class="k add">足す</span>、次のどれか1つ：<code>--concrete &lt;$id&gt; --value &lt;JSON&gt;</code> ／ <code>--concrete &lt;$id&gt; --semantic</code> ／ <code>--adopt</code></td><td><code>--task</code> ・ <code>--ref &lt;経路&gt;...</code>（<code>--semantic</code> と）・ <code>--reason</code> ・ <code>--request-id</code></td></tr>
+<tr><td><code>update</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code> <span class="k add">足す</span>、次のどれか1つ：<code>--patch &lt;JSON Patch&gt;</code> ／ <code>--semantic --task</code> ／ <code>--adopt --reason</code>。Concrete を直すときは <code>--range &lt;経路&gt;...</code> <span class="k add">足す</span></td><td><code>--if-match</code> ・ <code>--ref</code> ・ <code>--reason</code> ・ <code>--request-id</code> ・ <code>--base &lt;コミット&gt;</code> <span class="k add">足す</span>（<code>--adopt</code> と）</td></tr>
+<tr><td><code>delete</code></td><td><code>&lt;経路&gt;</code> ・ <code>--reason</code>。Concrete を消すときは <code>--range &lt;経路&gt;...</code> <span class="k add">足す</span></td><td><code>--if-match</code> ・ <code>--request-id</code></td></tr>
+<tr><td><code>render</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--design-system &lt;経路&gt;</code> ・ <code>--out &lt;書き出す先&gt;</code> ・ <code>--schemas</code> <span class="k add">足す</span></td><td>なし</td></tr>
+<tr><td><code>search</code></td><td><code>&lt;経路&gt;...</code>（範囲）・ <code>--schemas</code> <span class="k add">足す</span>、次のどれか1つ：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code> ／ <code>--semantic --question</code> ／ <code>--answer</code></td><td><code>--where</code> を重ねる</td></tr>
+<tr><td><code>log</code></td><td>なし（<code>--operation &lt;ID&gt;</code> で1件）</td><td><code>&lt;経路&gt;...</code> ・ <code>--by</code> ・ <code>--folder</code> ・ <code>--since</code> ・ <code>--limit</code></td></tr>
+<tr><td><code>init</code></td><td>なし</td><td><code>--session &lt;ID&gt;</code></td></tr>
+</table></div>
+<p class="soft">記録をつけるコマンド（validate ・ create ・ update ・ delete）と search は、どれも <code>--session &lt;ID&gt;</code> か <code>--human</code> <span class="k add">足す</span> を取る。</p>
+
+<h3>AI が考えて付ける引数</h3>
+<div class="wrap"><table>
+<tr><th>何を</th><th>引数</th><th>無いとき</th></tr>
+<tr><td>対象</td><td><code>&lt;経路&gt;</code></td><td>断る</td></tr>
+<tr><td>スキーマの置き場所</td><td><code>--schemas &lt;置き場所&gt;...</code> <span class="k add">足す</span></td><td>断る。置き場所に <code>$id</code> が無くても断る</td></tr>
+<tr><td>範囲</td><td><code>&lt;経路&gt;...</code> の並び（validate ・ search）・ <code>--range</code> <span class="k add">足す</span>（Concrete を直す ・ 消す）</td><td>断る。既定の範囲は持たない</td></tr>
+<tr><td>セッション</td><td><code>--session &lt;ID&gt;</code>。人は <code>--human</code> <span class="k add">足す</span></td><td>ツールの環境変数 ・ <code>init</code> の登録で決まらなければ断る</td></tr>
+</table></div>
+<p>引数の決まりは、上のコマンドの表と <code>--help</code> ・ 使い方の文が持つ。足りなければ、出力の <code>kind = error</code> で何が足りないかを言って断る。</p>
+
+<h3>JSON の引数と、検証するスキーマ</h3>
+<p>JSON Schema で確かめるのは、中身が JSON の引数だけ。</p>
+<div class="wrap"><table>
+<tr><th>引数</th><th>検証するスキーマ</th></tr>
+<tr><td><code>--value</code></td><td><code>--concrete</code> の <code>$id</code> の Concrete</td></tr>
+<tr><td><code>--patch</code></td><td>JSON Patch（RFC 6902）。当てたあとの文書は、その文書の Concrete</td></tr>
+<tr><td><code>validate --answer</code></td><td><code>judgment-answer.schema.json</code></td></tr>
+<tr><td><code>search --answer</code></td><td><code>search-answer.schema.json</code></td></tr>
+<tr><td><code>--where</code> の値</td><td>JSON の値。JSON でなければ断る</td></tr>
+<tr><td><code>--design-system</code> のファイル</td><td><code>design-system.schema.json</code>。テンプレートは <code>template-language.json</code></td></tr>
+</table></div>
+<p>答えは JSON だけを受け取る。囲み（<code>```json</code>）を付けた答えは断る。</p>
+
+<h3>返すコマンドへの引き継ぎ</h3>
+<p>手順（<code>procedure.schema.json</code>）の <code>command</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--session</code> を入れる。AI は <code>&lt;…&gt;</code> の所だけを埋めて打つ。</p>
+</section>
+
+<section><h2><span class="n">4</span>公開された言葉</h2>
+<p><code>published-language/v1/</code> に置く。AI と使う側が読む契約。</p>
+<div class="wrap"><table>
+<tr><th>種類</th><th>ファイル</th><th>役目</th></tr>
+<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>Concrete が従う作法。<code>x-</code> の4つ（<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-published</code> ・ <code>x-view</code>）の形と閉じた一覧</td></tr>
+<tr><td>出力</td><td><code>command-result.schema.json</code></td><td>結果の1行。<code>kind</code> は validation ・ change ・ render ・ session ・ operation ・ search ・ error</td></tr>
+<tr><td>手順</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す手順（steps ・ answer ・ command）</td></tr>
+<tr><td>答え</td><td><code>judgment-answer.schema.json</code> ・ <code>search-answer.schema.json</code></td><td>AI が <code>--answer</code> で渡す判定と検索の答え</td></tr>
+<tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>描くときに使う側が渡すデザインシステムと、テンプレートの書き方</td></tr>
+</table></div>
+</section>
+
+<section><h2><span class="n">5</span>記録</h2>
+<div class="fig"><svg viewBox="0 0 420 498" role="img" aria-label="記録の表と結び付き。records.sqlite は Git の共通フォルダの semantic-agent-schema の下に1つ。sessions を changes と validations が session_id で指す。field_changes が changes を、rule_results が validations を指し、どちらも JSON Pointer の列を持つ。ビュー operations が changes と validations を1つの並びにする。経路は Git の根からの相対" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-0a0519b5-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-0a0519b5-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="498.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">記録の表（records.sqlite）</text>
+<text class="note small" x="10" y="40" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">置き場所：&lt;git-common-dir&gt;/semantic-agent-schema/records.sqlite</text>
+<text class="note small" x="10" y="55" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ワークツリーで1つ。コミットしない。どの表も追記だけ</text>
+<rect class="box" x="110" y="68" width="200" height="70" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="122" y="88" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">sessions</text>
+<text class="label small" x="122" y="106" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">id ・ tool ・ folder ・ via</text>
+<text class="note small" x="122" y="126" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">誰が打ったか（1セッション1行）</text>
+<path class="flow" d="M80,168 L150,140" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-0a0519b5-arrow-5B6B66)"/>
+<text class="note small" x="12" y="156" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">session_id</text>
+<path class="flow" d="M340,168 L270,140" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-0a0519b5-arrow-5B6B66)"/>
+<text class="note small" x="408" y="156" text-anchor="end" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">session_id</text>
+<rect class="box" x="10" y="170" width="195" height="116" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="22" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">changes</text>
+<text class="label small" x="22" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">kind ・ target_path ・ schema</text>
+<text class="label small" x="22" y="224" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">before_hash ・ after_hash</text>
+<text class="label small" x="22" y="240" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">reason ・ request_id</text>
+<text class="label small" x="22" y="256" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">source ・ worktree</text>
+<text class="note small" x="22" y="276" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">書いた変更（1件1行）</text>
+<rect class="box" x="215" y="170" width="195" height="116" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title" x="227" y="190" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">validations</text>
+<text class="label small" x="227" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">target_path ・ hash ・ schema</text>
+<text class="note small" x="227" y="276" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">検証（1件1行）</text>
+<path class="flow" d="M107,318 V288" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-0a0519b5-arrow-5B6B66)"/>
+<text class="note small" x="114" y="308" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">change_id</text>
+<path class="flow" d="M312,318 V288" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-0a0519b5-arrow-5B6B66)"/>
+<text class="note small" x="319" y="308" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">validation_id</text>
+<rect class="box focus" x="10" y="320" width="195" height="100" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="22" y="340" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">field_changes</text>
+<text class="label small" x="22" y="358" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">pointer（JSON Pointer）</text>
+<text class="label small" x="22" y="374" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">change ・ before ・ after</text>
+<text class="label small" x="22" y="390" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">before_unavailable</text>
+<text class="note small" x="22" y="410" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">項目ごとの前後</text>
+<rect class="box focus" x="215" y="320" width="195" height="100" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="title focus" x="227" y="340" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">rule_results</text>
+<text class="label small" x="227" y="358" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">rule_id ・ pointer ・ by</text>
+<text class="label small" x="227" y="374" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">result ・ reason</text>
+<text class="label small" x="227" y="390" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">reads_hash（読んだ所のハッシュ）</text>
+<text class="note small" x="227" y="410" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">rule と項目ごとの判定</text>
+<rect class="boundary" x="10" y="434" width="400" height="56" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+<text class="label small" x="22" y="456" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">ビュー operations</text>
+<text class="note small" x="22" y="476" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">changes と validations を1つの並びにして読む（UC7）</text>
+</svg></div>
+<p class="cap">形は <code>adapters/outbound/sqlite/sql/records.sql</code> の1つで決め、版は <code>SHAPE</code> が持つ。</p>
+<div class="wrap"><table>
+<tr><th>表</th><th>1行は何か</th><th>結び付き</th></tr>
+<tr><td><code>sessions</code></td><td>打ったセッション</td><td>changes ・ validations の <code>session_id</code> が指す。人と明示した操作は NULL</td></tr>
+<tr><td><code>changes</code></td><td>書いた変更（create ・ update ・ delete）</td><td><code>request_id</code> は1依頼に1行</td></tr>
+<tr><td><code>field_changes</code></td><td>変わった項目（<code>pointer</code> ごと）</td><td><code>change_id</code> で changes を指す</td></tr>
+<tr><td><code>validations</code></td><td>検証</td><td>ID は changes と同じ採番</td></tr>
+<tr><td><code>rule_results</code></td><td>rule と項目ごとの判定</td><td><code>validation_id</code> で validations を指す</td></tr>
+<tr><td>ビュー <code>operations</code></td><td>変更と検証を記録した順に</td><td>UC7 が読む</td></tr>
+</table></div>
+<ul>
+<li>置き場所は入口の <code>db_path</code> の1か所で決める。Git のリポジトリの外では断る</li>
+<li><code>target_path</code> は Git の根からの相対。どこで打っても同じ経路になる</li>
+<li>どの表も追記だけ。断った操作は記録しない</li>
+</ul>
+</section>
+
+<section><h2><span class="n">6</span>処理の流れ</h2>
+<div class="fig"><svg viewBox="0 0 420 680" role="img" aria-label="validate 1件の流れ。AI が対象と置き場所とセッションを付けて打つ。入口が引数を確かめ、validation の application を呼ぶ。DocumentStore で filesystem から文書を読み、SchemaValidator で jsonschema が置き場所の中から $id で引いた Concrete に照らす。validation の domain が当たる rule と組み込みの検査を当てる。ValidationLog で sqlite に記録し、入口が結果を1行で返す" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-07a153b7-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-07a153b7-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="680.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">処理の流れ：validate 1件</text>
+<text class="note small" x="62" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">入口（cli）</text>
+<text class="note small" x="195" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">モジュール</text>
+<text class="note small" x="343" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ポート → アダプター</text>
+<rect class="box kind-1" x="10" y="56" width="400" height="42" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：対象 ・ 置き場所 ・ セッションを決めて打つ</text>
+<text class="note small" x="20" y="89" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">validate a.json --schemas s/ --session S</text>
+<rect class="box" x="10" y="120" width="104" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1 引数を確かめる</text>
+<text class="note small" x="20" y="153" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">足りなければ断る</text>
+<rect class="box" x="120" y="184" width="150" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="130" y="202" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">2 validation：validate</text>
+<text class="note small" x="130" y="217" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">経路 ・ 置き場所</text>
+<text class="note small" x="130" y="232" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">Caller</text>
+<rect class="box" x="276" y="263" width="134" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="286" y="281" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3 DocumentStore</text>
+<text class="note small" x="286" y="296" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">read → filesystem</text>
+<text class="note small" x="286" y="311" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">渡された経路だけ</text>
+<rect class="box" x="276" y="342" width="134" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="286" y="360" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4 SchemaValidator</text>
+<text class="note small" x="286" y="375" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">→ jsonschema</text>
+<text class="note small" x="286" y="390" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">置き場所から $id で引く</text>
+<rect class="box" x="120" y="421" width="150" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="130" y="439" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">5 validation/domain</text>
+<text class="note small" x="130" y="454" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">当たる rule</text>
+<text class="note small" x="130" y="469" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">組み込みの検査3つ</text>
+<rect class="box" x="276" y="500" width="134" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="286" y="518" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">6 ValidationLog</text>
+<text class="note small" x="286" y="533" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">append_validate</text>
+<text class="note small" x="286" y="548" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">→ sqlite</text>
+<rect class="box" x="10" y="579" width="104" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="597" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">7 結果を1行で返す</text>
+<text class="note small" x="20" y="612" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">command-result</text>
+<rect class="box kind-1" x="10" y="643" width="400" height="27" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="661" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：結果（validation）を読む</text>
+<path class="flow" d="M62,98 V118" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M62,162 V173 H195 V182" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M195,241 V252 H343 V261" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M343,320 V340" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M343,399 V410 H195 V419" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M195,478 V489 H343 V498" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M343,557 V568 H62 V577" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+<path class="flow" d="M62,621 V641" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-07a153b7-arrow-5B6B66)"/>
+</svg></div>
+<p class="cap">validate 1件。入口が引数を確かめ、モジュールがポートを通してアダプターを呼び出す。</p>
+<div class="fig"><svg viewBox="0 0 420 1041" role="img" aria-label="update --semantic で手順をもらい、AI が JSON Patch を作って update --patch で書く。書いた変更は項目ごとに記録される。validate --semantic は記録から変わった所だけの手順を返し、AI が判定を validate --answer で渡すと、照らしてから記録する" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-6d439551-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8}</style><defs data-dsvg="marker"><marker id="dsvg-6d439551-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="420.0" height="1041.0" fill="#FFFFFF" rx="8"/>
+<text class="title" x="10" y="22" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">処理の流れ：意味で書いて、変わった所を判定する</text>
+<text class="note small" x="117" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">モジュール（application ・ domain）</text>
+<text class="note small" x="320" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ポート → アダプター</text>
+<rect class="box kind-1" x="10" y="56" width="400" height="57" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：意味で書く手順を依頼する</text>
+<text class="note small" x="20" y="89" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --semantic --task T</text>
+<text class="note small" x="20" y="104" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas s/ --session S</text>
+<rect class="box" x="230" y="135" width="180" height="72" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="240" y="153" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1 DocumentStore.read</text>
+<text class="note small" x="240" y="168" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">→ filesystem</text>
+<text class="note small" x="240" y="183" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">SchemaValidator</text>
+<text class="note small" x="240" y="198" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">→ jsonschema</text>
+<rect class="box" x="10" y="229" width="214" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="247" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">2 writing：x-prompt から手順を作る</text>
+<text class="note small" x="20" y="262" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">command に置き場所 ・ session を</text>
+<text class="note small" x="20" y="277" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">引き継ぐ。記録しない</text>
+<rect class="box kind-1" x="10" y="308" width="400" height="57" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="326" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：steps を行い、JSON Patch を作って打つ</text>
+<text class="note small" x="20" y="341" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">update a.json --patch P --if-match H</text>
+<text class="note small" x="20" y="356" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas s/ --session S</text>
+<rect class="box" x="10" y="387" width="214" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="405" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">3 writing：Patch を当てて照らす</text>
+<text class="note small" x="20" y="420" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">形 ・ 集約の書く条件 ・ --if-match</text>
+<rect class="box" x="230" y="451" width="180" height="72" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="240" y="469" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">4 DocumentStore.write</text>
+<text class="note small" x="240" y="484" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">→ filesystem</text>
+<text class="note small" x="240" y="499" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ChangeLog.append_change</text>
+<text class="note small" x="240" y="514" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">→ sqlite：pointer ごとの前後</text>
+<rect class="box kind-1" x="10" y="545" width="400" height="57" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="563" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：変わった所を確かめる手順を依頼する</text>
+<text class="note small" x="20" y="578" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">validate a.json --semantic</text>
+<text class="note small" x="20" y="593" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas s/ --session S</text>
+<rect class="box" x="230" y="624" width="180" height="42" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="240" y="642" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">5 ValidationLog → sqlite</text>
+<text class="note small" x="240" y="657" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">writes ・ last_judgments</text>
+<rect class="box" x="10" y="688" width="214" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="706" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">6 validation：変わった所だけ集める</text>
+<text class="note small" x="20" y="721" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">field_changes の pointer と</text>
+<text class="note small" x="20" y="736" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">reads_hash で当たる rule を選ぶ</text>
+<rect class="box kind-1" x="10" y="767" width="400" height="57" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="785" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：rule ごとに判定して打つ</text>
+<text class="note small" x="20" y="800" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">validate a.json --answer J</text>
+<text class="note small" x="20" y="815" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">--schemas s/ --session S</text>
+<rect class="box" x="10" y="846" width="214" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="864" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">7 validation：答えを照らす</text>
+<text class="note small" x="20" y="879" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">judgment-answer の形 ・ hash</text>
+<text class="note small" x="20" y="894" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">step ・ rule ・ pointer</text>
+<rect class="box" x="230" y="925" width="180" height="57" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label small" x="240" y="943" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">8 ValidationLog</text>
+<text class="note small" x="240" y="958" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">append_validate → sqlite</text>
+<text class="note small" x="240" y="973" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">rule_results（by = ai）</text>
+<rect class="box kind-1" x="10" y="1004" width="400" height="27" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5" rx="5"/>
+<text class="label small" x="20" y="1022" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">AI：結果（validation）を読む</text>
+<path class="flow" d="M320,113 V133" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M320,207 V218 H117 V227" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M117,286 V306" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M117,365 V385" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M117,429 V440 H320 V449" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M320,523 V543" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M320,602 V622" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M320,666 V677 H117 V686" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M117,745 V765" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M117,824 V844" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M117,903 V914 H320 V923" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+<path class="flow" d="M320,982 V1002" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-6d439551-arrow-5B6B66)"/>
+</svg></div>
+<p class="cap">update <code>--semantic</code> → <code>--patch</code>、validate <code>--semantic</code> → <code>--answer</code>。どのコマンドも、入口が引数を確かめてから呼び、結果を1行で返す。</p>
+</section>
+
+<section><h2><span class="n">7</span>いまの実装との差</h2>
+<div class="nums"><div class="m"><p class="soft">直す</p><p class="big">8</p></div><div class="w"><p class="soft">削る</p><p class="big">13</p></div><div class="g"><p class="soft">足す（引数）</p><p class="big">5</p></div></div>
+<div class="wrap"><table>
+<tr><th>いまの実装</th><th>あるべき姿</th><th>区分</th></tr>
+<tr><td><code>validate --all</code> ・ <code>--stale</code> で範囲が無ければ全部</td><td>範囲は経路の並び</td><td><span class="k fix">直す</span></td></tr>
+<tr><td><code>search --concrete</code> ・ <code>search --all</code></td><td>範囲は経路の並び</td><td><span class="k fix">直す</span></td></tr>
+<tr><td>値 Caller：ID が無ければ人</td><td>打った人を推さない。人は明示する</td><td><span class="k fix">直す</span></td></tr>
+<tr><td>ポート <code>identify_caller</code> ・ <code>session_log</code></td><td>同じ（決まらなければ断る）</td><td><span class="k fix">直す</span></td></tr>
+<tr><td>記録の <code>session_id</code>：NULL なら人</td><td>人と明示した操作だけ NULL</td><td><span class="k fix">直す</span></td></tr>
+<tr><td>文書の根が打った場所</td><td>Git の根</td><td><span class="k fix">直す</span></td></tr>
+<tr><td><code>changes</code> ・ <code>validations</code> の <code>target_path</code> が打った場所から</td><td>Git の根からの相対</td><td><span class="k fix">直す</span></td></tr>
+<tr><td>保証の文に範囲が無い（設計の文書）</td><td>渡された範囲と記録で保証すると書く</td><td><span class="k fix">直す</span></td></tr>
+<tr><td>filesystem の walk（作業フォルダを歩く）</td><td>なし</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>値 Corpus（リポジトリの文書の一覧）</td><td>なし</td><td><span class="k cut">削る</span></td></tr>
+<tr><td><code>document_store</code> の list</td><td>なし</td><td><span class="k cut">削る</span></td></tr>
+<tr><td><code>$schema</code> の URN から、歩いた集まりで Concrete を探す</td><td>置き場所の中から <code>$id</code> で引く</td><td><span class="k cut">削る</span></td></tr>
+<tr><td><code>$ref</code> の先を、歩いた集まりから解く</td><td>置き場所の中から解く</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>Concrete を直したあと、外れたインスタンスを全部から探す</td><td><code>--range</code> と記録で確かめ、見た所を返す</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>消すときの依存を全部から探す</td><td><code>--range</code> と記録で確かめ、見た所を返す</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>取り込みの前の中身を Git の履歴50件から探す</td><td><code>--base</code> のコミットから読む。無ければ前の値の無い差分</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>描くとき、関係のないスキーマまで見る</td><td>描く対象のスキーマだけ</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>答えの <code>```json</code> の囲みを外して読む</td><td>JSON だけ受け取る</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>検索の値が JSON でなければ文字列とみなす</td><td>JSON でなければ断る</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>UC4 の「範囲を選ぶ（全件）」（設計の文書）</td><td>なし</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>UC3 の「参照元を探す」（設計の文書）</td><td>なし</td><td><span class="k cut">削る</span></td></tr>
+<tr><td>引数 <code>--schemas</code> が無い</td><td>validate ・ create ・ update ・ render ・ search が取る</td><td><span class="k add">足す</span></td></tr>
+<tr><td>引数 <code>--range</code> が無い</td><td>Concrete を直す ・ 消すときに取る</td><td><span class="k add">足す</span></td></tr>
+<tr><td>引数 <code>--human</code> が無い</td><td>人の操作を明示する</td><td><span class="k add">足す</span></td></tr>
+<tr><td>引数 <code>--base</code> が無い</td><td>取り込みの前のコミットを渡す</td><td><span class="k add">足す</span></td></tr>
+<tr><td>手順の <code>command</code> が置き場所 ・ 範囲を持たない</td><td><code>--schemas</code> ・ <code>--range</code> ・ <code>--session</code> を引き継ぐ</td><td><span class="k add">足す</span></td></tr>
+</table></div>
+</section>
+</main>
