@@ -31,14 +31,14 @@ JSON Schema を Semantic に拡張し、その型（Abstract → Concrete → �
 | `render <経路>... --schemas <置き場所>... --design-system <経路> --out <書き出す先>` | UC5 描く。使う側が渡すデザインシステムのテンプレートに値を置く。記録しない |
 | `search <経路>... --schemas <置き場所>...` | UC6 探す。`--where <JSON Pointer>=<JSON>` で構造で絞り、`--semantic --question` で意味で探す手順を返し、`--answer` で答え（JSON だけ）の出どころを確かめる。記録しない |
 | `log [<経路>...]` ・ `log --operation <ID>` | UC7 記録を読む。読むだけで何も変えない |
-| `init [--session <ID>]` | このフォルダの記録の相手として、いまのセッションを登録する |
+| `init` | 新しいセッションの ID を作って登録し、返す。あとで打つコマンドの既定にはならない |
 
 | 受け取り方 | 決まり |
 |---|---|
 | 経路 | どこで打っても Git の根からの相対。読むのは渡された経路だけで、フォルダを歩かない |
 | `--schemas` | ファイルか、直下の JSON のファイルを読むフォルダ。Concrete と `$ref` の先は、この中から `$id` で引く。同じ `$id` が2つ以上なら全部の経路を添えて断る |
 | `--range` | Concrete を直す ・ 消すときの範囲。渡された範囲と記録で従うインスタンスを確かめ、見た文書を `checked` で返す |
-| 誰が打ったか | AI は `--session <ID>`（ツールの環境変数 ・ `init` の登録でも決まる）、人は `--human`。ツールの環境変数があるところでは `--human` を受け取らない。どれも無ければ断る |
+| 誰が打ったか | AI は `--session <ID>`（Claude Code などツールの環境変数があれば省ける。Gemini CLI ・ Cursor は毎回付ける。ID は `init` で作れる）、人は `--human`。ツールの環境変数があるところでは `--human` を受け取らない。どれも無ければ断る |
 | 返すコマンド | 手順の `command` と案内の `hint` は、受け取った `--schemas` ・ `--range` と、誰が打ったかを引き継ぐ。`<…>` の所だけを埋めて打つ |
 | 記録 | `<git-common-dir>/semantic-agent-schema/records.sqlite`（`SEMANTIC_AGENT_SCHEMA_DATABASE_FILE` で指せる）。追記だけで、断った操作は記録しない。Git のリポジトリの外では断る |
 

@@ -19,19 +19,13 @@ pub enum Unidentified {
     Log(String),
 }
 
-/// 誰が打ったかを決める：人の明示（--human）か、--session → ツールの環境変数 → このフォルダ（folder）で
-/// semantic-agent-schema init が最後に登録したセッション。どれも無ければ断る（人とみなさない）。
+/// 誰が打ったかを決める：人の明示（--human）か、--session → ツールの環境変数。どれも無ければ断る（人とみなさない）。
 /// sessions には足さない（足すのは register）。
 ///
 /// # Errors
-/// どのツールが打ったかを決められない ・ どれも無い ・ 置き場所を読めないとき。
-pub fn identify(
-    who: &dyn IdentifyCaller,
-    folder: &str,
-    log: &dyn SessionLog,
-) -> Result<Caller, Unidentified> {
-    let initialized = log.initialized(folder).map_err(Unidentified::Log)?;
-    who.identify(initialized)
+/// どのツールが打ったかを決められない ・ どれも無いとき。
+pub fn identify(who: &dyn IdentifyCaller) -> Result<Caller, Unidentified> {
+    who.identify()
         .map_err(not_identified)?
         .ok_or(Unidentified::Missing)
 }
@@ -53,21 +47,17 @@ pub fn register(caller: &Caller, log: &mut dyn SessionLog) -> Result<(), String>
     log.session(caller).map(|_| ())
 }
 
-/// semantic-agent-schema init：いまのセッションを、このフォルダの記録の相手として sessions に登録する（via = init）。
-/// 呼び出し元のセッション ID（--session か環境変数）があればそれを、無ければ記録の置き場所が ID を決める。
-/// 前の登録は使わない。すでに記録にある ID なら、行を書き換えずに、その行を返す（追記だけ）。
+/// semantic-agent-schema init：新しいセッションの ID を決めて sessions に登録し（via = init）、その行を返す。
+/// あとで打つコマンドの既定にはしない（呼ぶ側は、返った ID を --session で渡す）。
 ///
 /// # Errors
-/// どのツールが打ったかを決められない ・ 置き場所を読めない ・ 書けないとき。
+/// 置き場所を読めない ・ 書けないとき。
 pub fn register_session(
-    who: &dyn IdentifyCaller,
     folder: &str,
     log: &mut dyn SessionLog,
 ) -> Result<SessionRow, Unidentified> {
-    let (id, tool) = match who.identify(None).map_err(not_identified)? {
-        Some(Caller::Session { id, tool, .. }) => (id, tool),
-        Some(Caller::Human) | None => (log.new_session_id(), "unknown".to_string()),
-    };
+    let id = log.new_session_id();
+    let tool = "unknown".to_string();
     log.session(&Caller::Session {
         id: id.clone(),
         tool,

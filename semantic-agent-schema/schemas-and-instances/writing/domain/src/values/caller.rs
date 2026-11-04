@@ -12,7 +12,7 @@ pub enum Via {
     Env,
     /// --session
     Flag,
-    /// このフォルダで semantic-agent-schema init が登録したセッション
+    /// semantic-agent-schema init が作って登録したセッション（sessions の行の via だけに使う）
     Init,
 }
 

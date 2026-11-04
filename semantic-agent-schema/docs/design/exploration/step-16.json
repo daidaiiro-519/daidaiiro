@@ -1,0 +1,77 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 16,
+ "date": "2026-11-04",
+ "summary": "利用者が決めた「迷う5か所」を適用した。ツールの環境変数からセッションを決めることと、描くページと入力の重なりの確かめは残した。同じフォルダで最後に init したセッションを既定にするのをやめ、init は新しい ID を作って登録し返すだけにした（引数を取らない）。書く手順で欄の中の rule を集めるときに深さ8で切るのをやめ、$ref の先は置かれたスキーマの所ごとに1回だけたどり、その rule は最初に出てきた所に schema（置かれた所）と一緒に入れる。validate --semantic は判定する所が0件の対象にも空の手順を返し、記録は --answer のときだけにした。試験144件、場面160本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC4"
+ ],
+ "factchecks": [
+  {
+   "item": "場面を先に書き、直す前の実装（区切り E のコミット）で通らないことを、場面を流して確かめた",
+   "evidence": [
+    "HEAD を別のワークツリーに出し、新しい場面を置いて流すと、S-SESSION-INIT ・ S-UC1-SEMANTIC-DEEP ・ S-UC1-SEMANTIC-TREE ・ S-UC4-SEMANTIC-NO-RULE ・ S-UC4-SEMANTIC-PLACE-REMOVED が通らなかった",
+    "S-UC4-SEMANTIC-PLACE-REMOVED の --answer に渡すハッシュは、直す前の版で同じ更新を打って得た事後のハッシュ"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "書く手順で欄の中の rule を集める（write/semantic.rs の Inner）",
+   "steps": [
+    "欄の定義が $ref なら、その先に入る",
+    "properties ・ additionalProperties ・ items ・ allOf をたどり、欄ごとに自分の rule を、所（pointer）と置かれたスキーマの所（schema）と一緒に入れる",
+    "欄が $ref なら、その先（schema は <$id か空>#<所>）を1回目だけたどり、その先の rule を入れてから中に入る。2回目からは入らない"
+   ],
+   "rules": [
+    "深さでは切らない",
+    "自分を指す $ref の木の形でも、同じ rule を段ごとに並べない"
+   ]
+  },
+  {
+   "usecase": "意味の判定の手順（validate --semantic）",
+   "steps": [
+    "対象ごとに手順を返す。判定する所が0件の対象（rule が無い ・ 前の判定のあと変わっていない）は steps が空",
+    "AI は空の判定（results が空）を --answer で渡し、機械の検証と前の判定の引き継ぎを記録する（何も変わっていなければ記録しない）"
+   ],
+   "rules": [
+    "--semantic は記録しない"
+   ]
+  }
+ ],
+ "promotions": [],
+ "reconciliation": [
+  {
+   "item": "記録のモジュールのポート SessionLog の initialized と、IdentifyCaller の引数",
+   "result": "top_premature",
+   "fixed": "implementation",
+   "note": "最後の init を既定にしないので、initialized を消し、identify は引数を取らない"
+  },
+  {
+   "item": "validation-domain の当たる rule を集める手続き（services/rules.rs）の深さ16",
+   "result": "not_yet",
+   "fixed": "none",
+   "note": "インスタンスの値をたどる深さが16を超えると、それより下の rule を黙って判定しない。迷う5か所の3と同じ形なので、利用者の判断を待つ"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "記録のモジュールのポート",
+    "before": "IdentifyCaller の identify が init の登録を受け取る。SessionLog に initialized がある",
+    "after": "identify は引数を取らない。SessionLog は session ・ session_row ・ new_session_id",
+    "why": "どの init の行を使うかは、打ったコマンドの入力から決まらない"
+   },
+   {
+    "what": "公開された言葉（procedure）",
+    "before": "steps は1件以上。inner_rules は pointer と rules",
+    "after": "steps は0件でもよい。inner_rules に schema（rule が置かれたスキーマの所）を足した",
+    "why": "1つのコマンドの出力を1つの形にし、$ref の先の rule がどこに当たるかを手順で読めるようにする"
+   }
+  ]
+ }
+}

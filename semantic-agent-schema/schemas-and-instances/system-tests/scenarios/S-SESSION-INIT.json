@@ -2,8 +2,8 @@
  "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
  "id": "S-SESSION-INIT",
  "name": "init で登録する",
- "title": "環境変数にセッション ID が無いツールで semantic-agent-schema init を打つと、Semantic Agent Schema が ID を決めてこのフォルダの記録の相手として登録し、以後このフォルダで打った semantic-agent-schema はそのセッションの操作として記録される",
- "why": "Gemini ・ Cursor はシェルに会話の ID を渡さない。登録が無いと、AI が打った操作が人の操作として記録される。",
+ "title": "semantic-agent-schema init は、新しいセッションの ID を決めて sessions に登録し、その ID を返すだけ。あとで打つコマンドの既定にはならないので、--session を付けないと断り、付ければその ID の操作になる",
+ "why": "同じフォルダで2つの会話が init を打つと、最後の init を既定にしたとき、先の会話の操作があとの会話のセッションで記録される。",
  "traces": [
   "約束:command-result:session"
  ],
@@ -45,13 +45,21 @@
   },
   {
    "of": "after[0]",
-   "pointer": "/session",
-   "contains": "sas-"
+   "exit": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "usage"
   },
   {
    "of": "after[1]",
    "pointer": "/session",
    "equals": "ci-1"
+  },
+  {
+   "of": "after[2]",
+   "exit": 2
   }
  ],
  "after": [
@@ -71,6 +79,13 @@
     "ci-1",
     "--schemas",
     "schemas"
+   ]
+  },
+  {
+   "args": [
+    "init",
+    "--session",
+    "gemini-1"
    ]
   }
  ]

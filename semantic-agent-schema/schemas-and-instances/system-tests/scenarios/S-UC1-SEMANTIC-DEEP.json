@@ -1,0 +1,49 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-DEEP",
+ "name": "深い入れ子を意味で書く",
+ "title": "欄の10段下にある rule も、深さで切らずに書く手順に入れる",
+ "why": "深さで切ると、深い所の rule を AI が知らずに書き、断りも無い。",
+ "traces": [
+  "UC1:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/deep.schema.json": "{\n \"$schema\": \"urn:semantic-agent-schema:published-language:abstract:v1\",\n \"$id\": \"urn:example:sample:deep:v1\",\n \"title\": \"深い入れ子\",\n \"description\": \"10段下に rule を持つ。\",\n \"type\": \"object\",\n \"required\": [\n  \"$schema\",\n  \"top\"\n ],\n \"properties\": {\n  \"$schema\": {\n   \"const\": \"urn:example:sample:deep:v1\"\n  },\n  \"top\": {\n   \"type\": \"object\",\n   \"title\": \"上\",\n   \"description\": \"入れ子の上である。\",\n   \"properties\": {\n    \"c\": {\n     \"type\": \"object\",\n     \"title\": \"段\",\n     \"description\": \"下の段を持つ。\",\n     \"properties\": {\n      \"c\": {\n       \"type\": \"object\",\n       \"title\": \"段\",\n       \"description\": \"下の段を持つ。\",\n       \"properties\": {\n        \"c\": {\n         \"type\": \"object\",\n         \"title\": \"段\",\n         \"description\": \"下の段を持つ。\",\n         \"properties\": {\n          \"c\": {\n           \"type\": \"object\",\n           \"title\": \"段\",\n           \"description\": \"下の段を持つ。\",\n           \"properties\": {\n            \"c\": {\n             \"type\": \"object\",\n             \"title\": \"段\",\n             \"description\": \"下の段を持つ。\",\n             \"properties\": {\n              \"c\": {\n               \"type\": \"object\",\n               \"title\": \"段\",\n               \"description\": \"下の段を持つ。\",\n               \"properties\": {\n                \"c\": {\n                 \"type\": \"object\",\n                 \"title\": \"段\",\n                 \"description\": \"下の段を持つ。\",\n                 \"properties\": {\n                  \"c\": {\n                   \"type\": \"object\",\n                   \"title\": \"段\",\n                   \"description\": \"下の段を持つ。\",\n                   \"properties\": {\n                    \"c\": {\n                     \"type\": \"object\",\n                     \"title\": \"段\",\n                     \"description\": \"下の段を持つ。\",\n                     \"properties\": {\n                      \"c\": {\n                       \"type\": \"string\",\n                       \"title\": \"葉\",\n                       \"description\": \"いちばん下の値である。\",\n                       \"x-prompt\": {\n                        \"rules\": [\n                         {\n                          \"id\": \"leaf-is-noun\",\n                          \"rule\": \"名前は名詞で書く。\",\n                          \"why\": \"動詞だと何の節かが分からない。\",\n                          \"check\": \"名詞句かを見る。\",\n                          \"bad\": [\n                           {\n                            \"value\": \"読む\",\n                            \"note\": \"動詞で、何の節かが分からない。\"\n                           }\n                          ],\n                          \"good\": [\n                           {\n                            \"value\": \"目次\"\n                           }\n                          ]\n                         }\n                        ]\n                       }\n                      }\n                     }\n                    }\n                   }\n                  }\n                 }\n                }\n               }\n              }\n             }\n            }\n           }\n          }\n         }\n        }\n       }\n      }\n     }\n    }\n   }\n  }\n }\n}\n"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/x.json",
+   "--concrete",
+   "urn:example:sample:deep:v1",
+   "--semantic",
+   "--schemas",
+   "schemas",
+   "--session",
+   "ai-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/top"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/inner_rules/0/pointer",
+   "equals": "/top/c/c/c/c/c/c/c/c/c/c"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/inner_rules/0/rules/0/id",
+   "equals": "leaf-is-noun"
+  }
+ ]
+}

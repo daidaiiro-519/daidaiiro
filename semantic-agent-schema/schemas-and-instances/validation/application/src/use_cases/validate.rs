@@ -264,30 +264,6 @@ pub fn validate_stale(
     )
 }
 
-/// 意味の判定の既定の選び方（rule × 当たる所の単位で、変わった所だけ）で、判定を渡さずに記録する。
-/// 判定の手順に入る所が無かった --semantic が使う。手順に入らない所は前の判定を引き継ぎ、検証の結果全体を記録する。
-/// 前の判定から何も変わらず、消えた所も無い対象は記録しない。
-///
-/// # Errors
-/// validate と同じ。
-pub fn validate_changed(
-    scope: &Scope,
-    store: &dyn DocumentStore,
-    validator: &dyn SchemaValidator,
-    caller: &Caller,
-    log: &mut dyn ValidationLog,
-) -> Result<Validation, Refused> {
-    run_validate(
-        scope,
-        Pick::ChangedPlaces,
-        store,
-        validator,
-        caller,
-        log,
-        None,
-    )
-}
-
 /// どの判定を、前の判定と比べて選ぶか。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pick {
@@ -324,7 +300,7 @@ impl Selection {
 }
 
 /// UC4 の意味の部分の1つ目：機械の検証をしたうえで、意味の rule（ai）の判定の手順を対象ごとに返す。記録しない。
-/// 判定する rule が無い対象の手順は無い（どの対象にも無ければ空）。
+/// 判定する所が0件の対象（rule が無い ・ 前の判定のあと変わっていない）にも、steps が空の手順を返す。
 /// 既定では、rule × 当たる所ごとに、前の判定から読んだ所（reads_hash）が変わった所 ・ 前に判定できなかった所 ・
 /// 前の判定に無い所だけを手順に入れる（前の判定が無い対象はすべて）。--all-rules なら、すべての所を入れる。
 ///
@@ -341,13 +317,10 @@ pub fn semantic_procedures(
     let (current, _) = current_for(scope, selection.pick(), store, validator, log)?;
     Ok(current
         .iter()
-        .filter_map(|c| {
+        .map(|c| {
             let (groups, steps, _) = steps_of(c, validator);
-            if steps.is_empty() {
-                return None;
-            }
             let command = answer_command(&c.doc.path, selection, &carry(scope, caller));
-            Some(procedure(
+            procedure(
                 &c.doc.path,
                 &c.declared,
                 c.hash.as_str(),
@@ -355,7 +328,7 @@ pub fn semantic_procedures(
                 &groups,
                 &steps,
                 &command,
-            ))
+            )
         })
         .collect())
 }

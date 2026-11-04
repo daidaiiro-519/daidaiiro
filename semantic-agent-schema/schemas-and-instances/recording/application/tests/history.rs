@@ -11,24 +11,15 @@ use writing_domain::values::{Caller, Via};
 /// 引数と環境変数で決まる呼び出し元（None は、どちらにも無い）。semantic-agent-schema init の登録があればそれを使う。
 struct Fixed(Option<Caller>);
 impl IdentifyCaller for Fixed {
-    fn identify(&self, initialized: Option<SessionRow>) -> Result<Option<Caller>, NotIdentified> {
-        Ok(match (&self.0, initialized) {
-            (Some(c), _) => Some(c.clone()),
-            (None, Some(row)) => Some(Caller::Session {
-                id: row.id,
-                tool: row.tool,
-                folder: row.folder,
-                via: Via::Init,
-            }),
-            (None, None) => None,
-        })
+    fn identify(&self) -> Result<Option<Caller>, NotIdentified> {
+        Ok(self.0.clone())
     }
 }
 
 /// 2つのツールの環境変数に値があって決められない呼び出し元。
 struct Nested;
 impl IdentifyCaller for Nested {
-    fn identify(&self, _: Option<SessionRow>) -> Result<Option<Caller>, NotIdentified> {
+    fn identify(&self) -> Result<Option<Caller>, NotIdentified> {
         Err(NotIdentified::Ambiguous(vec![
             "claude-code".into(),
             "codex".into(),
@@ -64,14 +55,6 @@ impl SessionLog for Memory {
     fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
         Ok(self.sessions.iter().find(|s| s.id == id).cloned())
     }
-    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
-        Ok(self
-            .sessions
-            .iter()
-            .rev()
-            .find(|s| s.folder == folder && s.via == "init")
-            .cloned())
-    }
     fn new_session_id(&self) -> String {
         format!("sas-{}", self.sessions.len() + 1)
     }
@@ -100,21 +83,21 @@ fn session_is_registered_once_and_a_human_adds_nothing() {
 fn identifying_does_not_register() {
     let log = Memory::default();
     assert_eq!(
-        identify(&Fixed(Some(session("p1"))), "/w", &log).unwrap(),
+        identify(&Fixed(Some(session("p1")))).unwrap(),
         session("p1")
     );
     assert_eq!(
-        identify(&Fixed(Some(Caller::Human)), "/w", &log).unwrap(),
+        identify(&Fixed(Some(Caller::Human))).unwrap(),
         Caller::Human
     );
     assert_eq!(
-        identify(&Fixed(None), "/w", &log),
+        identify(&Fixed(None)),
         Err(Unidentified::Missing),
         "何も無ければ人とみなさない"
     );
     assert!(log.sessions.is_empty());
     assert_eq!(
-        identify(&Nested, "/w", &log),
+        identify(&Nested),
         Err(Unidentified::Ambiguous(vec![
             "claude-code".into(),
             "codex".into()
@@ -123,23 +106,15 @@ fn identifying_does_not_register() {
 }
 
 #[test]
-fn init_registers_the_tool_session_or_a_new_one() {
+fn init_registers_a_new_session_that_is_not_a_default() {
     let mut log = Memory::default();
-    // ツールの ID があれば、それを init として登録する
-    let r = register_session(&Fixed(Some(session("c5c5"))), "/w", &mut log).unwrap();
-    assert_eq!((r.id.as_str(), r.via.as_str()), ("c5c5", "init"));
-    // ID が無ければ、置き場所が決めた ID を登録する（前の登録は使わない）
-    let h = register_session(&Fixed(None), "/w", &mut log).unwrap();
-    assert_eq!((h.id.as_str(), h.tool.as_str()), ("sas-2", "unknown"));
-    assert_eq!(log.initialized("/w").unwrap(), Some(h.clone()));
-    // 登録したあとは、--session も環境変数も無い呼び出しがこのフォルダの登録になる
+    let h = register_session("/w", &mut log).unwrap();
     assert_eq!(
-        identify(&Fixed(None), "/w", &log).unwrap(),
-        Caller::Session {
-            id: h.id,
-            tool: h.tool,
-            folder: "/w".into(),
-            via: Via::Init,
-        }
+        (h.tool.as_str(), h.via.as_str()),
+        ("unknown", "init"),
+        "新しい ID を登録する"
     );
+    assert_eq!(log.session_row(&h.id).unwrap(), Some(h.clone()));
+    // 登録しても、--session も環境変数も無い呼び出しの既定にはならない
+    assert_eq!(identify(&Fixed(None)), Err(Unidentified::Missing));
 }

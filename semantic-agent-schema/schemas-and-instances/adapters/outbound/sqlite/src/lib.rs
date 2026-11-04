@@ -230,22 +230,6 @@ impl SqliteLog {
             .map_err(|e| err(&e))
     }
 
-    /// フォルダで semantic-agent-schema init が最後に登録したセッション（via = init）。無ければ None。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    pub fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
-        self.conn
-            .query_row(
-                "SELECT id, tool, folder, via FROM sessions WHERE folder = ?1 AND via = 'init' \
-                 ORDER BY rowid DESC LIMIT 1",
-                [folder],
-                session_row,
-            )
-            .optional()
-            .map_err(|e| err(&e))
-    }
-
     /// 新しいセッション ID（semantic-agent-schema init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
     #[must_use]
     pub fn new_session_id(&self) -> String {
@@ -623,9 +607,6 @@ impl SessionLog for SqliteLog {
     }
     fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String> {
         Self::session_row(self, id)
-    }
-    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String> {
-        Self::initialized(self, folder)
     }
     fn new_session_id(&self) -> String {
         Self::new_session_id(self)

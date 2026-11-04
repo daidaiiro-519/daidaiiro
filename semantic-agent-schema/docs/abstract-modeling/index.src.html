@@ -108,7 +108,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="uc sem"><h3>意味の判定 <span class="soft" style="font-size:.8rem;font-weight:400">確かめるの変形</span></h3><dl>
 <dt>目的</dt><dd>x-prompt の rule に照らして、意味が合うかを判定する</dd>
 <dt>アクター</dt><dd>AI のセッション</dd>
-<dt>主な流れ</dt><dd>判定の手順を依頼する → 前の判定のあと変わった所と当たる rule だけで手順を返す → AI が書いたときとは別の文脈で判定して渡す → 突き合わせて記録する</dd>
+<dt>主な流れ</dt><dd>判定の手順を依頼する → 前の判定のあと変わった所と当たる rule だけで手順を返す（判定する所が0件でも、空の手順を返す）→ AI が書いたときとは別の文脈で判定して渡す（0件なら空の判定）→ 突き合わせて記録する</dd>
 <dt>保証</dt><dd>どの所を、どの rule で、誰が判定したかが記録に残る。判定の中身は AI の答えのまま。判定できない答えは「守られている」に数えない</dd>
 </dl></div>
 <div class="uc"><h3>描く</h3><dl>
@@ -175,7 +175,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>サービス</th><th>すること</th></tr>
 <tr><td>x- の項目のバリデーター</td><td>JSON Schema で書けない作法（<code>$schema</code> と <code>$id</code> が合う ・ rule の id が重ならない ・ 例の related は related_fields の所だけ）と、人の欄 ・ 公開した欄を確かめる</td></tr>
 <tr><td>x- の項目のレンダラー</td><td><code>x-view</code> の種類に、デザインシステムのテンプレートを当てて値を置く</td></tr>
-<tr><td>x-prompt から手順を生成する決まり</td><td>項目の title ・ description ・ <code>x-prompt</code>（meaning ・ when ・ rules）と当たる rule から、決まった形の手順を生成する。同じ入力なら同じ手順</td></tr>
+<tr><td>x-prompt から手順を生成する決まり</td><td>項目の title ・ description ・ <code>x-prompt</code>（meaning ・ when ・ rules）と当たる rule から、決まった形の手順を生成する。同じ入力なら同じ手順。入れ子の深さで切らず、<code>$ref</code> の先の rule は置かれた所ごとに1回だけ入れる</td></tr>
 <tr><td>変わった所を選ぶ決まり</td><td>前の判定のあとの項目ごとの前後と、判定が読んだ所のハッシュから、判定し直す所を選ぶ。選ばれなかった所は前の判定を引き継ぐ</td></tr>
 </table></div>
 

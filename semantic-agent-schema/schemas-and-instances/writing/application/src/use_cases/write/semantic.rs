@@ -12,6 +12,7 @@
 use super::{Refused, carried, range_for, refused, target_of_declared};
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Map, Value, json};
+use std::collections::BTreeSet;
 use writing_domain::aggregates::escape;
 use writing_domain::services::field_schema;
 use writing_domain::values::{Caller, ContentHash, SchemaPlaces, TargetKind};
@@ -148,15 +149,7 @@ fn write_units(doc: &Value, others: &[(String, Value)]) -> Vec<Unit> {
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
-            let mut inner = Vec::new();
-            inner_rules(
-                doc,
-                own,
-                others,
-                &format!("/{}", escape(name)),
-                &mut inner,
-                0,
-            );
+            let inner = Inner::field(doc, own, others, &format!("/{}", escape(name)));
             let is_required = required.contains(&name.as_str());
             if field.get("x-prompt").is_none() && inner.is_empty() && !is_required {
                 return None;
@@ -189,57 +182,116 @@ fn write_units(doc: &Value, others: &[(String, Value)]) -> Vec<Unit> {
 }
 
 /// 欄の中（properties ・ additionalProperties ・ items ・ allOf と $ref の先）の rule を、所の形
-/// （配列の要素と名前を選ばない欄は *）と一緒に集める。
-fn inner_rules(
-    root: &Value,
-    node: &Value,
-    others: &[(String, Value)],
-    at: &str,
-    out: &mut Vec<Value>,
-    depth: usize,
-) {
-    if depth > 8 {
-        return;
+/// （配列の要素と名前を選ばない欄は *）と、rule が置かれたスキーマの所（schema）と一緒に集める。
+/// 深さでは切らない。$ref の先は、置かれたスキーマの所ごとに1回だけたどる（自分を指す木の形でも終わる）。
+/// その先の rule は最初に出てきた所に付け、同じ先を指すほかの所には並べない。
+struct Inner<'a> {
+    others: &'a [(String, Value)],
+    seen: BTreeSet<String>,
+    out: Vec<Value>,
+}
+
+impl<'a> Inner<'a> {
+    /// 欄の定義（own）の中をたどる。own が $ref なら、その先の中をたどる（その先の rule は欄の rule に入っている）。
+    fn field(
+        doc: &'a Value,
+        own: &'a Value,
+        others: &'a [(String, Value)],
+        at: &str,
+    ) -> Vec<Value> {
+        let mut inner = Inner {
+            others,
+            seen: BTreeSet::new(),
+            out: Vec::new(),
+        };
+        let (doc, node, loc) = match inner.follow(doc, own, "") {
+            Some(t) => t,
+            None => (doc, own, format!("#/properties{at}")),
+        };
+        inner.walk(doc, node, &loc, at);
+        inner.out
     }
-    let (root, node) = deref(root, node, others);
-    for sub in node
-        .get("allOf")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-    {
-        inner_rules(root, sub, others, at, out, depth + 1);
+
+    /// node が $ref なら、その先（文書 ・ 所 ・ スキーマの所）。すでにたどった先なら None。$ref でなければ None。
+    fn follow(
+        &mut self,
+        doc: &'a Value,
+        node: &'a Value,
+        prefix: &str,
+    ) -> Option<(&'a Value, &'a Value, String)> {
+        let r = node.get("$ref").and_then(Value::as_str)?;
+        let (base, fragment) = r.split_once('#').unwrap_or((r, ""));
+        let key = if base.is_empty() {
+            format!("{prefix}#{fragment}")
+        } else {
+            format!("{base}#{fragment}")
+        };
+        if !self.seen.insert(key.clone()) {
+            return None;
+        }
+        let (target_doc, target) = deref(doc, node, self.others);
+        if std::ptr::eq(target, node) {
+            return None;
+        }
+        Some((target_doc, target, key))
     }
-    let mut subs: Vec<(&Value, String)> = Vec::new();
-    if let Some(props) = node.get("properties").and_then(Value::as_object) {
-        for (name, sub) in props {
-            subs.push((sub, format!("{at}/{}", escape(name))));
+
+    fn push(&mut self, at: &str, loc: &str, node: &Value) {
+        let rules: Vec<Value> = node
+            .pointer("/x-prompt/rules")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        if !rules.is_empty() {
+            self.out
+                .push(json!({"pointer": at, "schema": loc, "rules": rules}));
         }
     }
-    for key in ["additionalProperties", "items"] {
-        if let Some(sub) = node.get(key).filter(|a| a.is_object()) {
-            subs.push((sub, format!("{at}/*")));
+
+    /// node（スキーマの所 loc）の中の欄をたどり、rule を集める。
+    fn walk(&mut self, doc: &'a Value, node: &'a Value, loc: &str, at: &str) {
+        let prefix = loc.split_once('#').map_or("", |(p, _)| p).to_string();
+        for (i, sub) in node
+            .get("allOf")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            let here = format!("{loc}/allOf/{i}");
+            self.sub(doc, sub, &prefix, &here, at);
         }
-    }
-    for (sub, here) in subs {
-        let (_, target) = deref(root, sub, others);
-        let mut rules: Vec<Value> = Vec::new();
-        for n in [sub, target] {
-            for r in n
-                .pointer("/x-prompt/rules")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-            {
-                if !rules.contains(r) {
-                    rules.push(r.clone());
-                }
+        let mut subs: Vec<(&'a Value, String, String)> = Vec::new();
+        if let Some(props) = node.get("properties").and_then(Value::as_object) {
+            for (name, sub) in props {
+                subs.push((
+                    sub,
+                    format!("{loc}/properties/{}", escape(name)),
+                    format!("{at}/{}", escape(name)),
+                ));
             }
         }
-        if !rules.is_empty() && !out.iter().any(|o| o["pointer"] == json!(here)) {
-            out.push(json!({"pointer": here, "rules": rules}));
+        for key in ["additionalProperties", "items"] {
+            if let Some(sub) = node.get(key).filter(|a| a.is_object()) {
+                subs.push((sub, format!("{loc}/{key}"), format!("{at}/*")));
+            }
         }
-        inner_rules(root, sub, others, &here, out, depth + 1);
+        for (sub, sub_loc, here) in subs {
+            self.push(&here, &sub_loc, sub);
+            self.sub(doc, sub, &prefix, &sub_loc, &here);
+        }
+    }
+
+    /// 欄 sub の中（allOf の1つも同じ）。$ref ならその先の rule を入れてから先の中を、そうでなければ sub の中をたどる。
+    fn sub(&mut self, doc: &'a Value, sub: &'a Value, prefix: &str, loc: &str, at: &str) {
+        if sub.get("$ref").is_some() {
+            if let Some((target_doc, target, key)) = self.follow(doc, sub, prefix) {
+                self.push(at, &key, target);
+                self.walk(target_doc, target, &key, at);
+            }
+        } else {
+            self.walk(doc, sub, loc, at);
+        }
     }
 }
 

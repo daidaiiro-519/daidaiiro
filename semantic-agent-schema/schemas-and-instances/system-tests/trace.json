@@ -247,7 +247,7 @@
   },
   {
    "id": "UC4:拡張:3a",
-   "meaning": "範囲に意味の rule が無い：--semantic でも手順を出さず、機械の検証を記録して返す",
+   "meaning": "範囲に判定する所が無い（意味の rule が無い ・ 前の判定のあと変わっていない）：--semantic でも、判定する所が0件の手順を返して記録しない。空の判定を --answer で渡すと記録する",
    "scenarios": [
     "S-UC4-SEMANTIC-NO-RULE"
    ]
@@ -545,8 +545,10 @@
     "S-UC1-SEMANTIC-ANSWER-SCHEMA",
     "S-UC1-SEMANTIC-CONCRETE",
     "S-UC1-SEMANTIC-CYCLE",
+    "S-UC1-SEMANTIC-DEEP",
     "S-UC1-SEMANTIC-NESTED",
     "S-UC1-SEMANTIC-REF-LARGE",
+    "S-UC1-SEMANTIC-TREE",
     "S-UC1-SEMANTIC-WRITE",
     "S-UC1-SEMANTIC"
    ]
@@ -610,12 +612,11 @@
   },
   {
    "id": "約束:command-result:session",
-   "meaning": "人は --human で明示する（ツールの環境変数があるところでは受け取らない）。打ったセッションは --session → ツールの環境変数 → このフォルダで semantic-agent-schema init が登録したセッションの順で決まり、どれも無ければ人とみなさずに断る。最初に打った semantic-agent-schema で sessions に1行入る。semantic-agent-schema init はツールから ID が取れなければ Semantic Agent Schema が ID を決めて登録し、結果を kind = session の1行で返す",
+   "meaning": "人は --human で明示する（ツールの環境変数があるところでは受け取らない）。打ったセッションは --session か、ツールの環境変数で決まり、どれも無ければ人とみなさずに断る。semantic-agent-schema init は新しい ID を決めて sessions に登録し、kind = session の1行で返すだけで、あとで打つコマンドの既定にはならない。最初に打った semantic-agent-schema で sessions に1行入る",
    "scenarios": [
     "S-SESSION-ENV",
     "S-SESSION-HUMAN-AND-SESSION",
     "S-SESSION-HUMAN-IN-TOOL",
-    "S-SESSION-INIT-FLAG",
     "S-SESSION-INIT",
     "S-SESSION-NONE"
    ]

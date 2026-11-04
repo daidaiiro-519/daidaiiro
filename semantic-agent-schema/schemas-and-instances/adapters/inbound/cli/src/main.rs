@@ -35,8 +35,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use validation_application::use_cases::validate::{
-    Scope, Selection, semantic_procedures, validate, validate_changed, validate_stale,
-    validate_with_answer,
+    Scope, Selection, semantic_procedures, validate, validate_stale, validate_with_answer,
 };
 use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
@@ -44,7 +43,7 @@ use writing_application::use_cases::write::{
 };
 use writing_domain::values::{Caller, SchemaPlaces};
 
-const USAGE: &str = "使い方：semantic-agent-schema init [--session <ID>] ／ \
+const USAGE: &str = "使い方：semantic-agent-schema init ／ \
 semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale] (--session <ID> | --human) ／ \
 semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale | --all-rules] --semantic (--session <ID> | --human) ／ \
 semantic-agent-schema validate <経路> --schemas <置き場所>... [--stale | --all-rules] --answer <判定の JSON のファイル | -> (--session <ID> | --human) ／ \
@@ -63,7 +62,7 @@ semantic-agent-schema log [<経路>...] [--by <セッション ID>] [--folder <�
 semantic-agent-schema log --operation <ID> ／ \
 経路はどこで打っても Git の根からの相対。--schemas はファイルか、直下の JSON のファイルを読むフォルダ（Concrete と $ref の先を $id で引く）。\
 Concrete を直す ・ 消すときは --range <経路>... が要る（値の無い --range は、範囲が空と明示する）。\
-AI のセッションは --session <ID>（ツールの環境変数か init の登録でも決まる）、人は --human（ツールの環境変数があるところでは受け取らない）。\
+AI のセッションは --session <ID>（Claude Code などツールの環境変数があれば省ける。Gemini CLI ・ Cursor は毎回付ける。init は新しい ID を返す）、人は --human（ツールの環境変数があるところでは受け取らない）。\
 答えと --where の値は JSON だけ。--base は取り込む前の中身があるコミット（無ければ前の値の無い差分で取り込む）";
 
 fn main() -> ExitCode {
@@ -249,9 +248,9 @@ fn take_who(args: &[String]) -> Result<(Who, Vec<String>), String> {
     Ok((who, rest))
 }
 
-/// 呼び出し元：--human ・ --session ・ ツールごとの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッション
-/// （記録のモジュールの手続きで決める）。どれも無ければ断る。sessions にはまだ足さない（足すのは register）。
-fn caller(who: Who, log: &SqliteLog) -> Result<Caller, Refused> {
+/// 呼び出し元：--human ・ --session ・ ツールごとの環境変数（記録のモジュールの手続きで決める）。どれも無ければ断る。
+/// sessions にはまだ足さない（足すのは register）。
+fn caller(who: Who) -> Result<Caller, Refused> {
     let folder = folder();
     let from = FromArguments::new(
         who.session,
@@ -259,7 +258,7 @@ fn caller(who: Who, log: &SqliteLog) -> Result<Caller, Refused> {
         |name| std::env::var(name).ok(),
         &folder,
     );
-    identify(&from, &folder, log).map_err(unidentified)
+    identify(&from).map_err(unidentified)
 }
 
 /// 置き場所 ・ バリデーター ・ 記録を組み立てる。
@@ -280,27 +279,19 @@ fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
     Ok((WorkingTree::new(root), validator, log))
 }
 
-/// semantic-agent-schema init：いまのセッションを、このフォルダの記録の相手として登録する。
+/// semantic-agent-schema init：新しいセッションの ID を決めて sessions に登録し、その行を返す。
+/// あとで打つコマンドの既定にはしない（返った ID を --session で渡す）。
 fn run_init(args: &[String]) -> ExitCode {
-    let mut session = None;
-    let mut it = args.iter();
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--session" => match it.next() {
-                Some(s) if !s.is_empty() => session = Some(s.clone()),
-                _ => return usage("--session に ID がありません"),
-            },
-            s => return usage(&format!("知らない指定です: {s}")),
-        }
+    if let Some(a) = args.first() {
+        return usage(&format!(
+            "init は引数を取りません（新しい ID を作って返す）: {a}"
+        ));
     }
     let (_, _, mut log) = match adapters() {
         Ok(a) => a,
         Err(r) => return refuse(r),
     };
-    // 登録の前なので、前の登録を使わない
-    let folder = folder();
-    let who = FromArguments::new(session, false, |name| std::env::var(name).ok(), &folder);
-    match register_session(&who, &folder, &mut log) {
+    match register_session(&folder(), &mut log) {
         Ok(row) => {
             output::print_session(&row);
             ExitCode::SUCCESS
@@ -374,7 +365,7 @@ fn run_validate(args: &[String]) -> ExitCode {
                 Ok(a) => a,
                 Err(r) => return refuse(r),
             };
-            let caller = match caller(who.clone(), &log) {
+            let caller = match caller(who.clone()) {
                 Ok(c) => c,
                 Err(r) => return refuse(r),
             };
@@ -422,7 +413,7 @@ fn run_validate(args: &[String]) -> ExitCode {
         Ok(a) => a,
         Err(r) => return refuse(r),
     };
-    let caller = match caller(who.clone(), &log) {
+    let caller = match caller(who.clone()) {
         Ok(c) => c,
         Err(r) => return refuse(r),
     };
@@ -430,27 +421,21 @@ fn run_validate(args: &[String]) -> ExitCode {
         return refuse(log_refused(message));
     }
     if semantic {
-        // 判定の手順を出すだけで、記録しない。判定する rule がどの対象にも無ければ、機械の検証をそのまま記録する
-        match semantic_procedures(&scope, selection, &store, &validator, &caller, &log) {
-            Ok(procedures) if !procedures.is_empty() => {
+        // 判定の手順を対象ごとに出すだけで、記録しない。判定する所が0件の対象も、steps が空の手順を出す
+        return match semantic_procedures(&scope, selection, &store, &validator, &caller, &log) {
+            Ok(procedures) => {
                 for p in &procedures {
                     output::print_procedure(p);
                 }
-                return ExitCode::SUCCESS;
+                ExitCode::SUCCESS
             }
-            Ok(_) => {}
-            Err(r) => return refuse(r),
-        }
+            Err(r) => refuse(r),
+        };
     }
     let result = match answer_text {
         Some(text) => validate_with_answer(
             &scope, selection, &text, &store, &validator, &caller, &mut log,
         ),
-        // 判定する所が無いときの意味の判定は、手順と同じ選び方（rule × 当たる所で変わった所だけ）で、
-        // 前の判定を引き継いで記録する
-        _ if semantic && !all_rules => {
-            validate_changed(&scope, &store, &validator, &caller, &mut log)
-        }
         _ if stale => validate_stale(&scope, &store, &validator, &caller, &mut log),
         _ => validate(&scope, &store, &validator, &caller, &mut log),
     };
@@ -1119,7 +1104,7 @@ where
     Refused: From<E>,
 {
     let (store, validator, mut log) = adapters()?;
-    let caller = caller(who, &log)?;
+    let caller = caller(who)?;
     register(&caller, &mut log).map_err(log_refused)?;
     f(&store, &validator, &caller, &mut log).map_err(Refused::from)
 }

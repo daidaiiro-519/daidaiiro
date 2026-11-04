@@ -1,0 +1,64 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC1-SEMANTIC-TREE",
+ "name": "自分を指す木の形を意味で書く",
+ "title": "節が自分を指す $ref の木の形の Concrete でも、書く手順を返す。$ref の先の rule は、置かれたスキーマの所（#/$defs/node）ごとに1回だけ手順に入れ、段ごとに並べない",
+ "why": "同じ rule を段ごとに並べると、深さで切らない限り手順が終わらず、切ると深い所の rule が黙って抜ける。",
+ "traces": [
+  "UC1:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/tree.schema.json": "{\n \"$schema\": \"urn:semantic-agent-schema:published-language:abstract:v1\",\n \"$id\": \"urn:example:sample:tree:v1\",\n \"title\": \"木\",\n \"description\": \"節が子の節を持つ木である。\",\n \"type\": \"object\",\n \"required\": [\n  \"$schema\",\n  \"root\"\n ],\n \"properties\": {\n  \"$schema\": {\n   \"const\": \"urn:example:sample:tree:v1\"\n  },\n  \"root\": {\n   \"title\": \"根の節\",\n   \"description\": \"木の根である。\",\n   \"$ref\": \"#/$defs/node\"\n  }\n },\n \"$defs\": {\n  \"node\": {\n   \"type\": \"object\",\n   \"title\": \"節\",\n   \"description\": \"名前と子の節を持つ。\",\n   \"properties\": {\n    \"name\": {\n     \"type\": \"string\",\n     \"title\": \"名前\",\n     \"description\": \"節の名前である。\",\n     \"x-prompt\": {\n      \"rules\": [\n       {\n        \"id\": \"name-is-noun\",\n        \"rule\": \"名前は名詞で書く。\",\n        \"why\": \"動詞だと何の節かが分からない。\",\n        \"check\": \"名詞句かを見る。\",\n        \"bad\": [\n         {\n          \"value\": \"読む\",\n          \"note\": \"動詞で、何の節かが分からない。\"\n         }\n        ],\n        \"good\": [\n         {\n          \"value\": \"目次\"\n         }\n        ]\n       }\n      ]\n     }\n    },\n    \"children\": {\n     \"type\": \"array\",\n     \"title\": \"子\",\n     \"description\": \"子の節の並びである。\",\n     \"items\": {\n      \"$ref\": \"#/$defs/node\"\n     }\n    }\n   }\n  }\n }\n}\n"
+  }
+ },
+ "when": {
+  "args": [
+   "create",
+   "items/t1.json",
+   "--concrete",
+   "urn:example:sample:tree:v1",
+   "--semantic",
+   "--schemas",
+   "schemas",
+   "--session",
+   "ai-1"
+  ]
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/kind",
+   "equals": "procedure"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/pointer",
+   "equals": "/root"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/inner_rules",
+   "count": 1
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/inner_rules/0/pointer",
+   "equals": "/root/name"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/inner_rules/0/schema",
+   "equals": "#/$defs/node/properties/name"
+  },
+  {
+   "of": "when",
+   "pointer": "/steps/0/inner_rules/0/rules/0/id",
+   "equals": "name-is-noun"
+  }
+ ]
+}

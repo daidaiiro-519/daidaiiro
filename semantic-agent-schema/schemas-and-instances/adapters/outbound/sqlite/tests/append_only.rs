@@ -1,5 +1,5 @@
 //! 表の決まり：追記だけ ・ セッションの行は初めて見たときだけ ・ via は env か flag か init ・ by は machine か ai。
-//! semantic-agent-schema init が登録したセッションをフォルダから引け、Semantic Agent Schema が決めるセッション ID は重ならない。
+//! semantic-agent-schema init が作るセッション ID は重ならない。
 //! あわせて、bundled の SQLite の版が 3.38.0 以上であること（ステップ1 の照合の実地の証拠）。
 
 #![allow(clippy::unwrap_used)]
@@ -118,20 +118,6 @@ fn rows_against_the_rules_are_refused() {
     rejects(
         &log,
         "INSERT INTO validations (id, at, target_path, hash, session_id) VALUES ('o-9', 't', 'a', 'h', 'nobody')",
-    );
-}
-
-#[test]
-fn the_last_session_registered_by_init_is_found_by_folder() {
-    let mut log = SqliteLog::in_memory().unwrap();
-    assert_eq!(log.initialized("/w").unwrap(), None);
-    log.session(&session("a", "/w", Via::Init)).unwrap();
-    log.session(&session("e", "/w", Via::Env)).unwrap();
-    log.session(&session("b", "/w", Via::Init)).unwrap();
-    log.session(&session("c", "/other", Via::Init)).unwrap();
-    assert_eq!(
-        log.initialized("/w").unwrap().map(|r| r.id),
-        Some("b".to_string())
     );
 }
 

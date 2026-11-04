@@ -19,13 +19,12 @@ pub struct SessionRow {
 
 /// 引数と環境変数から、呼び出し元を見分ける（入口が実装する）。
 pub trait IdentifyCaller {
-    /// いまの呼び出し元。人と明示されていれば人（ツールの環境変数があるときは受け取らない）、--session も環境変数も
-    /// 無ければ、initialized（このフォルダで semantic-agent-schema init が最後に登録したセッション）を使う。
-    /// どれも無ければ None（人とみなさない）。
+    /// いまの呼び出し元。人と明示されていれば人（ツールの環境変数があるときは受け取らない）、ほかは --session か
+    /// ツールの環境変数のセッション。どれも無ければ None（人とみなさない）。
     ///
     /// # Errors
     /// どのツールが打ったかを決められない ・ ツールの中で人を名乗ったとき。
-    fn identify(&self, initialized: Option<SessionRow>) -> Result<Option<Caller>, NotIdentified>;
+    fn identify(&self) -> Result<Option<Caller>, NotIdentified>;
 }
 
 /// 呼び出し元を決められなかった理由。
@@ -51,13 +50,7 @@ pub trait SessionLog {
     /// 置き場所を読めないとき。
     fn session_row(&self, id: &str) -> Result<Option<SessionRow>, String>;
 
-    /// フォルダで semantic-agent-schema init が最後に登録したセッション（via = init）。無ければ None。
-    ///
-    /// # Errors
-    /// 置き場所を読めないとき。
-    fn initialized(&self, folder: &str) -> Result<Option<SessionRow>, String>;
-
-    /// 新しいセッション ID（semantic-agent-schema init で、ツールから ID が取れないとき）。一意で、時刻だけから作らない。
+    /// 新しいセッション ID（semantic-agent-schema init が作る）。一意で、時刻だけから作らない。
     fn new_session_id(&self) -> String;
 }
 

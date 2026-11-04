@@ -68,7 +68,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>ChangeLog</code></td><td>writing：append_change ・ find_request ・ writes ・ last_judgments ・ instances_of（記録でその Concrete に従う文書）</td><td>sqlite</td></tr>
 <tr><td><code>ValidationLog</code></td><td>validation：append_validate ・ writes ・ last_judgments<br>rendering：append_validate</td><td>sqlite</td></tr>
 <tr><td><code>OperationReader</code></td><td>recording：operations ・ operation</td><td>sqlite</td></tr>
-<tr><td><code>SessionLog</code></td><td>recording：session ・ session_row ・ initialized ・ new_session_id</td><td>sqlite</td></tr>
+<tr><td><code>SessionLog</code></td><td>recording：session ・ session_row ・ new_session_id</td><td>sqlite</td></tr>
 <tr><td><code>IdentifyCaller</code></td><td>recording：identify</td><td>cli（<code>callers.json</code>）</td></tr>
 <tr><td><code>TemplateRenderer</code></td><td>rendering：render ・ inspect</td><td>templates</td></tr>
 <tr><td><code>ScriptReader</code></td><td>rendering：data_reads</td><td>javascript</td></tr>
@@ -97,7 +97,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>render</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--design-system &lt;経路&gt;</code> ・ <code>--out &lt;書き出す先&gt;</code> ・ <code>--schemas</code></td><td>なし</td></tr>
 <tr><td><code>search</code></td><td><code>&lt;経路&gt;...</code>（範囲）・ <code>--schemas</code>、次のどれか1つ：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code> ／ <code>--semantic --question</code> ／ <code>--answer</code></td><td><code>--where</code> を重ねる</td></tr>
 <tr><td><code>log</code></td><td>なし（<code>--operation &lt;ID&gt;</code> で1件）</td><td><code>&lt;経路&gt;...</code> ・ <code>--by</code> ・ <code>--folder</code> ・ <code>--since</code> ・ <code>--limit</code></td></tr>
-<tr><td><code>init</code></td><td>なし</td><td><code>--session &lt;ID&gt;</code></td></tr>
+<tr><td><code>init</code></td><td>なし（新しい ID を作って登録し、返す）</td><td>なし</td></tr>
 </table></div>
 <p class="soft">記録をつけるコマンド（validate ・ create ・ update ・ delete）と search は、どれも <code>--session &lt;ID&gt;</code> か <code>--human</code> を取る。</p>
 
@@ -107,7 +107,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>対象</td><td><code>&lt;経路&gt;</code></td><td>断る</td></tr>
 <tr><td>スキーマの置き場所</td><td><code>--schemas &lt;置き場所&gt;...</code></td><td>断る。置き場所に <code>$id</code> が無くても断る</td></tr>
 <tr><td>範囲</td><td><code>&lt;経路&gt;...</code> の並び（validate ・ search）・ <code>--range</code>（Concrete を直す ・ 消す）</td><td>断る。既定の範囲は持たない</td></tr>
-<tr><td>セッション</td><td><code>--session &lt;ID&gt;</code>。人は <code>--human</code></td><td>ツールの環境変数 ・ <code>init</code> の登録で決まらなければ断る。ツールの環境変数があるところでは <code>--human</code> を受け取らない</td></tr>
+<tr><td>セッション</td><td><code>--session &lt;ID&gt;</code>。人は <code>--human</code></td><td>ツールの環境変数で決まらなければ断る（Gemini CLI ・ Cursor は毎回付ける。ID は <code>init</code> で作れる）。ツールの環境変数があるところでは <code>--human</code> を受け取らない</td></tr>
 </table></div>
 <p>引数の決まりは、上のコマンドの表と <code>--help</code> ・ 使い方の文が持つ。足りなければ、出力の <code>kind = error</code> で何が足りないかを言って断る。</p>
 
@@ -163,6 +163,6 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="fig">{{flow-validate}}</div>
 <p class="cap">validate 1件。入口が引数を確かめ、モジュールがポートを通してアダプターを呼び出す。</p>
 <div class="fig">{{flow-semantic}}</div>
-<p class="cap">update <code>--semantic</code> → <code>--patch</code>、validate <code>--semantic</code> → <code>--answer</code>。どのコマンドも、入口が引数を確かめてから呼び、結果を1行で返す。</p>
+<p class="cap">update <code>--semantic</code> → <code>--patch</code>、validate <code>--semantic</code> → <code>--answer</code>。validate <code>--semantic</code> はいつも手順を返し（判定する所が0件なら steps が空）、記録は <code>--answer</code> のときだけ。どのコマンドも、入口が引数を確かめてから呼び、結果を1行で返す。</p>
 </section>
 </main>

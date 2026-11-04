@@ -673,7 +673,7 @@
       "range_too_large",
       "not_in_repository"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いとき、--schemas の置き場所や --base のコミットの経路が無いときも返す。usage は使い方の誤りで、ほかに、誰が打ったかが決まらない（--session ・ ツールの環境変数 ・ init の登録 ・ --human のどれも無い）・ ツールの環境変数があるところで --human を渡した ・ Concrete を直す ・ 消すときに --range が無いときに返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。not_in_repository は Git のリポジトリの外で打ったことで、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いとき、--schemas の置き場所や --base のコミットの経路が無いときも返す。usage は使い方の誤りで、ほかに、誰が打ったかが決まらない（--session ・ ツールの環境変数 ・ --human のどれも無い）・ ツールの環境変数があるところで --human を渡した ・ Concrete を直す ・ 消すときに --range が無いときに返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。not_in_repository は Git のリポジトリの外で打ったことで、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
     },
     "path": {
      "type": "string"
@@ -930,7 +930,7 @@
     "null"
    ],
    "minLength": 1,
-   "description": "semantic-agent-schema を打ったセッションの ID（--session ・ ツールの環境変数 ・ このフォルダで semantic-agent-schema init が登録したセッションで決まる）。--human で人と明示した操作なら null"
+   "description": "semantic-agent-schema を打ったセッションの ID（--session か ツールの環境変数で決まる）。--human で人と明示した操作なら null"
   },
   "render": {
    "type": "object",
@@ -1008,7 +1008,7 @@
     "via"
    ],
    "additionalProperties": false,
-   "description": "semantic-agent-schema init で、いまのセッションをこのフォルダの記録の相手として登録した結果。すでに記録にある ID なら、その行を書き換えずに返す",
+   "description": "semantic-agent-schema init で、新しいセッションの ID を決めて sessions に登録した結果。あとで打つコマンドの既定にはならないので、返った ID を --session で渡す（Gemini CLI ・ Cursor のように、ツールが環境変数で会話の ID を渡さないとき）",
    "properties": {
     "$schema": true,
     "kind": {
@@ -1035,7 +1035,7 @@
       "flag",
       "init"
      ],
-     "description": "ID をどこから知ったか。init は semantic-agent-schema init が登録したもの"
+     "description": "ID をどこから知ったか（sessions に1行足したとき）。init は semantic-agent-schema init が作って登録したもの"
     }
    }
   },
@@ -1100,7 +1100,7 @@
        "type": "string",
        "minLength": 1,
        "title": "セッション ID",
-       "description": "--session ・ ツールの環境変数 ・ semantic-agent-schema init で決まった ID"
+       "description": "--session か ツールの環境変数で決まった ID（semantic-agent-schema init が作った ID も、--session で渡す）"
       },
       "tool": {
        "type": "string",
