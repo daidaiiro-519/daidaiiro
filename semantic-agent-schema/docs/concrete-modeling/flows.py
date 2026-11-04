@@ -73,7 +73,7 @@ build(
     'validate --semantic は記録から変わった所だけの手順を返し、AI が判定を validate --answer で渡すと、照らしてから記録する',
     [('モジュール（application ・ domain）', 10, 214), ('ポート → アダプター', 230, 180)],
     [
-        ('ai', ['AI：意味で書く手順を依頼する', 'update a.json --semantic --task T', '--schemas s/ --session S']),
+        ('ai', ['AI：意味で書く手順を依頼する', 'update a.json --semantic', '--schemas s/ --session S']),
         (1, ['1 DocumentStore.read', '→ filesystem', 'SchemaValidator', '→ jsonschema']),
         (0, ['2 writing：x-prompt から手順を作る', 'command に置き場所 ・ session を', '引き継ぐ。記録しない']),
         ('ai', ['AI：steps を行い、JSON Patch を作って打つ', 'update a.json --patch P --if-match H', '--schemas s/ --session S']),

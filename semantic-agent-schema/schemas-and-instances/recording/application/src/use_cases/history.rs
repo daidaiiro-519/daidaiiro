@@ -11,7 +11,7 @@ use writing_domain::values::{Caller, Via};
 pub enum Unidentified {
     /// 2つ以上のツールの環境変数に値があり、どれが打ったかを決められない（ツールの名前）
     Ambiguous(Vec<String>),
-    /// --session ・ ツールの環境変数 ・ init の登録 ・ 人の明示のどれも無い
+    /// --session ・ ツールの環境変数 ・ 人の明示（--human）のどれも無い
     Missing,
     /// ツールの環境変数があるところで人を名乗った（ツールの名前）
     HumanInTool(Vec<String>),

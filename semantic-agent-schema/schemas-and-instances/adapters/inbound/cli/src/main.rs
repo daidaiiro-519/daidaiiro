@@ -5,9 +5,9 @@
 //! 終了コード：0 = violated と error が無い（作成 ・ 更新は書けた）／ 1 = どちらかがある、または始められなかった ・
 //! 書かなかった ／ 2 = 使い方の誤り。
 //!
-//! 操作の記録の置き場所（ACDR 0224。決めるのは db_path の1か所）：Git のリポジトリの中だけで、
-//! 環境変数 SEMANTIC_AGENT_SCHEMA_DATABASE_FILE（上書き）→ `<git-common-dir>/semantic-agent-schema/records.sqlite`（ワークツリーで1つ）。
-//! どれもコミットしない。無ければ空で作る（作り直せるデータ）。Git のリポジトリの外では、記録を作らずに断る。
+//! 入口はコンポジションルートで、置き場所を決めてアダプターを組み立てる：経路の根は Git の根、操作の記録は
+//! `<git-common-dir>/semantic-agent-schema/records.sqlite`（ワークツリーで1つ。決めるのは db_path の1か所）。記録はコミットしない。
+//! 無ければ空で作り、表の形の版が違えば開かずに、消すと作り直せると返す（作り直せるデータ）。Git のリポジトリの外では断る。
 
 mod caller;
 mod output;
@@ -42,26 +42,30 @@ use writing_application::use_cases::write::{
 use writing_domain::values::{Caller, SchemaPlaces};
 
 const USAGE: &str = "使い方：semantic-agent-schema init ／ \
-semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale] (--session <ID> | --human) ／ \
-semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale | --all-rules] --semantic (--session <ID> | --human) ／ \
-semantic-agent-schema validate <経路> --schemas <置き場所>... [--stale | --all-rules] --answer <判定の JSON のファイル | -> (--session <ID> | --human) ／ \
-semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --value <JSON> [--reason <理由>] [--request-id <ID>] (--session <ID> | --human) ／ \
-semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --semantic [--task <依頼>] [--ref <経路>]... [--reason <理由>] (--session <ID> | --human) ／ \
-semantic-agent-schema create <経路> --schemas <置き場所>... --adopt [--concrete <$id>] [--reason <理由>] [--request-id <ID>] (--session <ID> | --human) ／ \
-semantic-agent-schema update <経路> --schemas <置き場所>... --patch <JSON Patch> [--range <経路>...] [--if-match <ハッシュ>] [--reason <理由>] [--request-id <ID>] (--session <ID> | --human) ／ \
-semantic-agent-schema update <経路> --schemas <置き場所>... --semantic --task <依頼> [--range <経路>...] [--ref <経路>]... [--reason <理由>] (--session <ID> | --human) ／ \
-semantic-agent-schema update <経路> --schemas <置き場所>... --adopt --reason <理由> [--base <コミット>] [--range <経路>...] [--request-id <ID>] (--session <ID> | --human) ／ \
-semantic-agent-schema delete <経路> --reason <理由> [--range <経路>...] [--if-match <ハッシュ>] [--request-id <ID>] (--session <ID> | --human) ／ \
+semantic-agent-schema validate <経路>... --schemas <置き場所>... (--session <ID> | --human) ／ \
+semantic-agent-schema validate <経路>... --schemas <置き場所>... [--all-rules] --semantic (--session <ID> | --human) ／ \
+semantic-agent-schema validate <経路> --schemas <置き場所>... [--all-rules] --answer <判定の JSON のファイル | -> (--session <ID> | --human) ／ \
+semantic-agent-schema validate <デザインシステム>... --schemas <置き場所>... ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --value <JSON> [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --concrete <$id> --semantic [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema create <経路> --schemas <置き場所>... --adopt [--concrete <$id>] [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --patch <JSON Patch> --if-match <ハッシュ> [--range <経路>...] [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --semantic [--range <経路>...] [--reason <理由>] (--session <ID> | --human) ／ \
+semantic-agent-schema update <経路> --schemas <置き場所>... --adopt --reason <理由> [--base <コミット>] [--range <経路>...] (--session <ID> | --human) ／ \
+semantic-agent-schema delete <経路> --reason <理由> --if-match <ハッシュ> [--range <経路>...] (--session <ID> | --human) ／ \
 semantic-agent-schema render <経路>... --schemas <置き場所>... --design-system <経路> --out <書き出す先> ／ \
-semantic-agent-schema search <経路>... --schemas <置き場所>... --where <JSON Pointer>=<JSON> [--where …]... (--session <ID> | --human) ／ \
-semantic-agent-schema search <経路>... --schemas <置き場所>... --semantic --question <問い> (--session <ID> | --human) ／ \
-semantic-agent-schema search <経路>... --schemas <置き場所>... --answer <答えの JSON のファイル | -> (--session <ID> | --human) ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --where <JSON Pointer>=<JSON> [--where …]... ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --semantic --question <問い> ／ \
+semantic-agent-schema search <経路>... --schemas <置き場所>... --answer <答えの JSON のファイル | -> ／ \
 semantic-agent-schema log [<経路>...] [--by <セッション ID>] [--folder <フォルダ>] [--since <時刻>] [--limit <件数>] ／ \
 semantic-agent-schema log --operation <ID> ／ \
-経路はどこで打っても Git の根からの相対。--schemas はファイルか、直下の JSON のファイルを読むフォルダ（Concrete と $ref の先を $id で引く）。\
+経路はどこで打っても Git の根からの相対（根の外を指す経路は読まない）。--schemas はファイルか、直下の JSON のファイルを読むフォルダ（Concrete と $ref の先を $id で引く）。\
+--if-match は読んだ時の中身のハッシュで、いまの中身と違えば書かない ・ 消さない。\
 Concrete を直す ・ 消すときは --range <経路>... が要る（値の無い --range は、範囲が空と明示する）。\
-AI のセッションは --session <ID>（Claude Code などツールの環境変数があれば省ける。Gemini CLI ・ Cursor は毎回付ける。init は新しい ID を返す）、人は --human（ツールの環境変数があるところでは受け取らない）。\
-答えと --where の値は JSON だけ。--base は取り込む前の中身があるコミット（無ければ前の値の無い差分で取り込む）";
+AI のセッションは --session <ID>（Claude Code などツールの環境変数があれば省ける。Gemini CLI ・ Cursor は毎回付ける。init は新しい ID を返す）、人は --human（ツールの環境変数があるところでは受け取らない）。search と render とデザインシステムの validate は、誰が打ったかを取らず、記録しない。\
+答えと --where の値は JSON だけ。--base は取り込む前の中身があるコミット（無ければ前の値の無い差分で取り込む）。\
+操作の記録は <git-common-dir>/semantic-agent-schema/records.sqlite。表の形の版が違う記録は開かないので、その記録のファイルを消して打ち直すと空で作り直す。\
+終了コード：0 = violated と error が無い ／ 1 = どちらかがある ・ 断った ／ 2 = 使い方の誤り";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -160,7 +164,7 @@ fn db_path(root: &Path) -> Result<PathBuf, Refused> {
     Ok(common.join("semantic-agent-schema").join("records.sqlite"))
 }
 
-/// 文書の経路の根：作業ツリーの根（Git の根）。文書 ・ --schemas ・ --range ・ --ref ・ --design-system ・ --out ・
+/// 文書の経路の根：作業ツリーの根（Git の根）。文書 ・ --schemas ・ --range ・ --design-system ・ --out ・
 /// --answer のファイルの経路は、どこで打っても、ここからの相対で読む。Git が読めなければ作業フォルダ。
 fn root() -> PathBuf {
     GitCommits::new(PathBuf::from("."))

@@ -1,6 +1,6 @@
 //! 誰が打ったか（人か、名乗ったセッションか）。
 //!
-//! 決めるのは入口（--human ・ --session ・ ツールの環境変数 ・ semantic-agent-schema init の登録）で、ユースケースはこの値を受け取る。
+//! 決めるのは入口（--human ・ --session ・ ツールの環境変数）で、ユースケースはこの値を受け取る。
 //! 書く条件（x-decided-by の欄は人だけが変える）の入口 Entry と、記録の打ったセッションの ID はここから決まる。
 
 use crate::aggregates::Entry;

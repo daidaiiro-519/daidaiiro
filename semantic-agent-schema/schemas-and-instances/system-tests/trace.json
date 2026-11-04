@@ -105,7 +105,7 @@
   },
   {
    "id": "UC2:成功時保証",
-   "meaning": "事前と事後が操作の記録に残り、rule が読む所（当たる所と related_fields）を変えた前の判定は stale_judgments として返る",
+   "meaning": "--if-match のハッシュがいまの中身と同じときだけ書き、事前と事後と項目ごとの前後が操作の記録に残る。変わった所は、次の validate --semantic が手順で返す",
    "scenarios": [
     "S-UC2-ADOPT",
     "S-UC2-DEFAULT",
@@ -272,7 +272,7 @@
   },
   {
    "id": "UC5:最低保証",
-   "meaning": "入力 ・ デザインシステム ・ 記録は変わらない。ページは1枚ずつ前か新しいかのどちらかで、止まったときは理由を返す。打ち直せばそろい、作業用のファイルも消える",
+   "meaning": "入力 ・ デザインシステム ・ 記録は変わらない。Git の外と、根の外を指す経路では描かない。ページは1枚ずつ前か新しいかのどちらかで、止まったときは理由を返す。打ち直せばそろい、作業用のファイルも消える",
    "scenarios": [
     "S-UC5-MANY-ONE-FAILS",
     "S-UC5-OUTSIDE-GIT",
@@ -366,7 +366,7 @@
   },
   {
    "id": "UC4:変形:デザインシステムを検証する",
-   "meaning": "デザインシステムを、受け取りの型とテンプレートの書き方の契約（Mustache。template-language.json）に照らし、rule ごとの結果を記録する（ステップ5）",
+   "meaning": "デザインシステムを、受け取りの型とテンプレートの書き方の契約（Mustache。template-language.json）に照らし、rule ごとの結果を返す。記録しない",
    "scenarios": [
     "S-UC4-DESIGN-JS-UNTRACEABLE",
     "S-UC4-DESIGN-MIXED",
@@ -454,7 +454,7 @@
   },
   {
    "id": "約束:vocabulary:closed",
-   "meaning": "x- は閉じた一覧（x-prompt ・ x-decided-by ・ x-published ・ x-view）だけで、ほかの x- は形の検査で断る",
+   "meaning": "x- は閉じた一覧（x-prompt ・ x-decided-by ・ x-view）だけで、ほかの x-（x-published など）は形の検査で断る",
    "scenarios": [
     "S-UC4-UNKNOWN-KEYWORD",
     "S-UC4-X-PUBLISHED-UNKNOWN"
@@ -480,7 +480,7 @@
   },
   {
    "id": "約束:dialect:nested",
-   "meaning": "x- の形は入れ子のどの深さでも掛かり、x-view は根より内側で断る。入れ子の x-decided-by ・ x-published も守る",
+   "meaning": "x- の形は入れ子のどの深さでも掛かり、x-view は根より内側で断る。入れ子の x-decided-by も守る",
    "scenarios": [
     "S-UC2-HUMAN-FIELD-NESTED",
     "S-UC4-DEEP-VIEW"
@@ -593,7 +593,7 @@
   },
   {
    "id": "約束:command-result:records",
-   "meaning": "記録は Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ（SEMANTIC_AGENT_SCHEMA_DATABASE_FILE で指せる）。経路はどこで打っても Git の根からの相対。Git のリポジトリの外では、記録を作らずに断る",
+   "meaning": "記録は Git の共通フォルダの semantic-agent-schema/records.sqlite に1つ。経路はどこで打っても Git の根からの相対。Git のリポジトリの外では、記録を作らずに断る",
    "scenarios": [
     "S-PATHS-FROM-SUBDIR",
     "S-RECORDS-OUTSIDE-GIT"
@@ -610,7 +610,7 @@
   },
   {
    "id": "UC6:最低保証",
-   "meaning": "範囲を渡さなければ探さない。範囲の外は探しておらず、範囲の外を出どころにした答えは返さない",
+   "meaning": "範囲を渡さなければ探さない。範囲の外は探しておらず、範囲の外を出どころにした答えは返さない。誰が打ったかを取らず、記録に触れない",
    "scenarios": [
     "S-UC6-SEARCH-NO-RANGE",
     "S-UC6-SEARCH-NO-SESSION",

@@ -118,9 +118,9 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </svg></div>
 <div class="wrap"><table class="stack">
 <tr><th></th><th>何か</th><th>Semantic Agent Schema との関係</th></tr>
-<tr><td>Abstract スキーマ</td><td>中核のスキーマ。Semantic Agent Schema のメタで、作法（<code>x-</code> の項目と <code>x-prompt</code> の書き方）を書いたもの</td><td>Semantic Agent Schema が持つ。能力はこの作法に基づく</td></tr>
+<tr><td>Abstract スキーマ</td><td>中核のスキーマ。Semantic Agent Schema のメタで、作法（<code>x-</code> の項目と <code>x-prompt</code> の書き方）を書いたもの。Abstract 自身も <code>x-prompt</code> を持ち、Concrete を書く ・ 判定するときの rule になる（インスタンスと同じ作法で Concrete も扱う）</td><td>Semantic Agent Schema が持つ。能力はこの作法に基づく</td></tr>
 <tr><td>Concrete スキーマ</td><td>Abstract の <code>x-</code> の項目などを継承して具体にしたもの。作法に沿って用途ごとに拡張して使う</td><td>依存しない。用途ごとの項目や決まりを知らない</td></tr>
-<tr><td>インスタンス</td><td>Concrete に従う JSON</td><td>作法に基づいて扱う</td></tr>
+<tr><td>インスタンス</td><td>Concrete に従う JSON。経路（Git の根からの相対）で識別する</td><td>作法に基づいて扱う</td></tr>
 </table></div>
 <ul>
 <li>能力：JSON Schema とインスタンスの JSON に対する操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成</li>
@@ -216,7 +216,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="uc sem"><h3>直す</h3><dl>
 <dt>目的</dt><dd>あるインスタンス（または Concrete）を書き換える</dd>
 <dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>読んだ時のハッシュと差分を渡す → 中身が読んだ時と同じで、形と x- が合うときだけ書く → 項目ごとの前後を記録する。外で変えたものは、理由を付けて取り込む</dd>
+<dt>主な流れ</dt><dd>読んだ時のハッシュと差分を渡す → 中身が読んだ時と同じで、形と x- が合うときだけ書く → 項目ごとの前後を記録する。外で変えたものは、理由を付けて取り込む。取り込む前の中身のコミットが渡されなければ、前の値の無い差分で取り込み、次の意味の判定は全部の所になる</dd>
 <dt>保証</dt><dd>ほかの変更を上書きしない。人だけが決める欄は、人からの変更だけを受ける。Concrete を直すときは、渡された範囲と記録で、従わなくなるインスタンスが無いかを確かめる。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
 </dl></div>
 <div class="uc"><h3>消す</h3><dl>
@@ -228,7 +228,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="uc"><h3>確かめる</h3><dl>
 <dt>目的</dt><dd>渡された対象が、形と x- の決まりに合うかを知る</dd>
 <dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>対象を渡す → 機械的に検証し、判定の区分ごとの数を返して記録する。記録に無い変更があれば知らせる</dd>
+<dt>主な流れ</dt><dd>対象を渡す → 機械的に検証し、判定の区分ごとの数を返して記録する。いまの中身が、このワークツリーで記録した最後の事後と違えば（外の変更）知らせる。デザインシステムを渡すと、契約に照らして返す（注入された依存の確かめで、記録しない）</dd>
 <dt>保証</dt><dd>渡された対象について、記録にある操作をもとに決める</dd>
 </dl></div>
 <div class="uc sem"><h3>意味の判定 <span class="soft" style="font-size:.8rem;font-weight:400">確かめるの変形</span></h3><dl>
@@ -241,7 +241,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <dt>目的</dt><dd>インスタンスを、人が読めるページにする</dd>
 <dt>アクター</dt><dd>人（読み手）・ AI のセッション</dd>
 <dt>主な流れ</dt><dd>インスタンスと、契約に従うデザインシステムを渡す → x-view の種類のテンプレートに値を置いて返す</dd>
-<dt>保証</dt><dd>同じ入力から同じページになる。インスタンスは書き換えない</dd>
+<dt>保証</dt><dd>同じ入力から同じページになる。インスタンスは書き換えない。Concrete は描かない。書き出すページが入力と重なる ・ テンプレートが欠ける（欠けた種類を全部返す）・ 根の外を指す経路では、1ページも書かずに断る。ページに判定 ・ 記録 ・ ハッシュを入れない</dd>
 </dl></div>
 <div class="uc sem"><h3>探す</h3><dl>
 <dt>目的</dt><dd>渡された範囲から、問いへの答えを得る</dd>
@@ -345,12 +345,11 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>集約</th><th>不変条件</th><th>なぜ</th></tr>
 <tr><td>Concrete</td><td>申告する Abstract の版が、閉じた一覧にある</td><td>作法に従っていることを、版で確かめる</td></tr>
-<tr><td>Concrete</td><td>公開した欄（<code>x-published</code>）は、同じ版のあいだ変えない</td><td>同じ版を使う側の前提を壊さない</td></tr>
-<tr><td>Concrete</td><td>作法に従う。<code>x-</code> は閉じた一覧で、JSON Schema で書けない作法は組み込みの検査で確かめる</td><td>能力は作法に基づくので、作法から外れたものは扱えない</td></tr>
-<tr><td>インスタンス</td><td>id を変えない</td><td>記録と参照が同じものを指し続ける</td></tr>
+<tr><td>Concrete</td><td>作法に従う。<code>x-</code> は閉じた一覧（<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code>）で、<code>x-view</code> は根だけ。組み込みの検査の名前は rule の id に使えない。JSON Schema で書けない作法は組み込みの検査で確かめる</td><td>能力は作法に基づくので、作法から外れたものは扱えない</td></tr>
+<tr><td>インスタンス</td><td>経路で識別する。記録と範囲は経路で指し、消したあとの同じ経路には前の判定を引き継がない</td><td>記録と参照が同じものを指し続ける。作り直した文書に前の判定を当てない</td></tr>
 <tr><td>インスタンス</td><td>人だけが決める欄（<code>x-decided-by</code>）は、人からだけ変える</td><td>承認は人が持つ</td></tr>
 <tr><td>インスタンス</td><td>Concrete の形と x- の決まりに合う</td><td>機械的な検証を通らない値を書かない</td></tr>
-<tr><td>インスタンス</td><td>中身が読んだ時と同じときだけ書く</td><td>ほかの変更を上書きしない</td></tr>
+<tr><td>インスタンス</td><td>中身が読んだ時と同じときだけ書く ・ 消す（読んだ時のハッシュを必ず受け取る）</td><td>ほかの変更を上書きしない。同じ変更を打ち直しても二重に当たらない</td></tr>
 </table></div>
 <p class="soft">1回の操作で書く集約は1つ。</p>
 
@@ -369,7 +368,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <h3>ドメインサービス</h3>
 <div class="wrap"><table>
 <tr><th>サービス</th><th>すること</th></tr>
-<tr><td>x- の項目のバリデーター</td><td>JSON Schema で書けない作法（<code>$schema</code> と <code>$id</code> が合う ・ rule の id が重ならない ・ 例の related は related_fields の所だけ）と、人の欄 ・ 公開した欄を確かめる</td></tr>
+<tr><td>x- の項目のバリデーター</td><td>JSON Schema で書けない作法（<code>$schema</code> と <code>$id</code> が合う ・ rule の id が重ならない ・ 例の related は related_fields の所だけ）と、人の欄を確かめる</td></tr>
 <tr><td>x- の項目のレンダラー</td><td><code>x-view</code> の種類に、デザインシステムのテンプレートを当てて値を置く</td></tr>
 <tr><td>x-prompt から手順を生成する決まり</td><td>項目の title ・ description ・ <code>x-prompt</code>（meaning ・ when ・ rules）と当たる rule から、決まった形の手順を生成する。同じ入力なら同じ手順。入れ子の深さで切らず、<code>$ref</code> の先の rule は置かれた所ごとに1回だけ入れる</td></tr>
 <tr><td>変わった所を選ぶ決まり</td><td>前の判定のあとの項目ごとの前後と、判定が読んだ所のハッシュから、判定し直す所を選ぶ。選ばれなかった所は前の判定を引き継ぐ</td></tr>
@@ -429,6 +428,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>中でエージェントを呼ぶ</td><td>意味的な検証は、手順を返して担う。判定は外の AI が行う</td></tr>
 <tr><td>Concrete の具体に依存する</td><td>能力は作法に基づく。受け入れるのは、決めた契約の依存の注入だけ</td></tr>
 <tr><td>後方互換のためのコードを残す</td><td>いまの契約だけを持つ。残すと契約が2つになり、どちらで確かめるかが決まらない</td></tr>
+<tr><td>書きかけを残す</td><td>止まっても前か後のどちらかになるように書く。途中の中身を読まれると、形に合わない文書が在ることになる</td></tr>
 </table></div>
 <blockquote>もっとシンプルでいいし、入力の曖昧さをアルゴリズムで強引に実現しようとしなくてもある程度入力を作成するaiに頼ってもいいと思う。</blockquote>
 </section>

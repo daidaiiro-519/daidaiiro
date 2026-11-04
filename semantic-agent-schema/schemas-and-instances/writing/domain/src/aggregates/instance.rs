@@ -72,7 +72,7 @@ impl Instance {
                     "human_field",
                     at,
                     &format!(
-                        "{at} は x-decided-by: human の欄で、人の入口（--session を付けない呼び出し）からだけ決める"
+                        "{at} は x-decided-by: human の欄で、人の入口（--human を付けた呼び出し）からだけ決める"
                     ),
                 ));
             }

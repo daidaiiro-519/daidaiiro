@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "urn:semantic-agent-schema:published-language:command-result:v1",
  "title": "semantic-agent-schema が返す結果",
- "description": "semantic-agent-schema のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ semantic-agent-schema init で登録したセッション（session）・ semantic-agent-schema log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。Semantic Agent Schema はエージェントを起動しない。semantic-agent-schema log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す。$defs はステップごとに足す",
+ "description": "semantic-agent-schema のコマンドが標準出力へ返す結果の JSON の1行。kind で、検証の結果（validation）・ 作成 ・ 更新 ・ 削除の結果（change）・ 描画の結果（render）・ semantic-agent-schema init で作って登録したセッション（session）・ semantic-agent-schema log の一覧の1行（operation）・ 検索の結果（search）・ 始められなかった ・ 書かなかった ・ 取り込まなかった理由（error）を分ける。意味の部分（--semantic）は、結果の行の代わりに手順（procedure.schema.json に従う行）を出す。Semantic Agent Schema はエージェントを起動しない。semantic-agent-schema log --operation は、記録にある1件を書いたとき ・ 検証したときと同じ change ・ validation の形で返す",
  "type": "object",
  "required": [
   "$schema",
@@ -155,7 +155,7 @@
       "instance",
       "design-system"
      ],
-     "description": "design-system はデザインシステム（受け取りの型とテンプレートの書き方の契約に照らす。ステップ5）"
+     "description": "design-system はデザインシステム（受け取りの型とテンプレートの書き方の契約に照らす。記録しない）"
     },
     "schema": {
      "type": "string",
@@ -255,7 +255,8 @@
      "title": "記録した日時",
      "description": "操作を記録した日時（UTC の RFC 3339）。semantic-agent-schema log --operation で記録から読んだときだけ持つ"
     }
-   }
+   },
+   "description": "検証の結果。デザインシステムの検証は記録しないので、operations は空で、session と各対象の operation を持たない"
   },
   "field-change": {
    "type": "object",
@@ -616,7 +617,7 @@
       "invalid_answer",
       "not_in_repository"
      ],
-     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value から published_changed までの5つは書く手前で断った作成 ・ 更新で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle ・ ref_too_large は意味で書く手順を組めなかったこと（rule の related_fields が読み合う ・ 資料が上限を超える）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いとき、--schemas の置き場所や --base のコミットの経路が無いときも返す。usage は使い方の誤りで、ほかに、誰が打ったかが決まらない（--session ・ ツールの環境変数 ・ --human のどれも無い）・ ツールの環境変数があるところで --human を渡した ・ Concrete を直す ・ 消すときに --range が無いときに返す。range_too_large は semantic-agent-schema search --semantic の範囲の中身の合計が上限を超えたこと（切り詰めずに断る）。not_in_repository は Git のリポジトリの外で打ったことで、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）"
+     "description": "決まった名前。schema_not_listed は、申告した Abstract の版が閉じた一覧に無く、取りに行かなかったこと。unknown_schema は、従う Concrete か $ref の先が、渡されたスキーマの置き場所（--schemas）に無いこと。duplicate_schema は、同じ $id のファイルが置き場所に2つ以上あること（paths に全部の経路を返す）。invalid_value ・ conflict ・ patch_failed ・ human_field は書く手前で断った作成 ・ 更新 ・ 削除で、記録せず、理由と案内をその場で返す。recorded ・ not_recorded ・ nothing_to_adopt は取り込みの前提に合わない（作成の取り込みで記録がすでにある ・ 更新の取り込みで記録が無い ・ 外の変更が無い）こと、versions はコミット済みの版を読めなかったこと。has_dependents は止めた削除（Concrete に従うインスタンスがある）で、記録せず、blocked に理由になった文書を返す。reads_cycle は意味で書く手順を組めなかったこと（rule の related_fields が読み合う）。invalid_answer は semantic-agent-schema validate --answer の判定が答えの形か手順の step ・ rule ・ pointer に合わないことで、記録しない。--answer の判定のハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。not_found は semantic-agent-schema log --operation の ID が記録に無いとき、--schemas の置き場所や --base のコミットの経路が無いときも返す。usage は使い方の誤りで、ほかに、誰が打ったかが決まらない（--session ・ ツールの環境変数 ・ --human のどれも無い）・ ツールの環境変数があるところで --human を渡した ・ update と delete に --if-match が無い ・ Concrete を直す ・ 消すときに --range が無いときに返す。not_in_repository は Git のリポジトリの外で打ったこと（経路の根が決まらない）で、記録を作らずに断り、hint に次にすることを返す。semantic-agent-schema search --answer の出どころが範囲の外か所が無いときは invalid_answer、ハッシュがいまの中身と違うときは conflict（interleaved を持たず、手順を取り直すコマンドを hint に返す）。log は記録を読み書きできなかったこと（表の形の版が違う記録は開かず、その記録のファイルを消すと次に打ったときに空で作り直すと返す）"
     },
     "path": {
      "type": "string"

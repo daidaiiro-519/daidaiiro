@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used)]
 
-use rendering_application::use_cases::tokens::{css_of, flatten, type_errors};
+use rendering_domain::services::tokens::{css_of, flatten, type_errors};
 use serde_json::json;
 
 #[test]

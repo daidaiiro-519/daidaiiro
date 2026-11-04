@@ -17,8 +17,9 @@ use crate::ports::{
     DocumentStore, PageRefusal, PageWriter, SchemaValidator, ScriptReader, TemplateRenderer,
 };
 use crate::use_cases::design::check_design_system;
-use crate::use_cases::tokens::css_of;
-use serde_json::{Map, Value, json};
+use rendering_domain::services::tokens::css_of;
+use rendering_domain::services::view::{page_path_of, script_json, token_values, view_kind};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::values::Verdict;
 use writing_domain::services::{SchemaIndex, Unresolved, concrete_of};
@@ -257,13 +258,7 @@ pub fn render(
     // 3. 使う種類（Concrete の根の x-view。無ければ page）と、欠けた種類
     let kinds: Vec<String> = targets
         .iter()
-        .map(|(_, _, concrete)| {
-            concrete
-                .get("x-view")
-                .and_then(Value::as_str)
-                .unwrap_or("page")
-                .to_string()
-        })
+        .map(|(_, _, concrete)| view_kind(concrete).to_string())
         .collect();
     let missing: BTreeSet<String> = kinds
         .iter()
@@ -346,52 +341,9 @@ pub fn render(
     })
 }
 
-/// トークンの木から、値だけの木（$ で始まる名前を除き、トークンは $value の値）。テンプレートは tokens.color.accent で引く。
-fn token_values(v: Option<&Value>) -> Value {
-    let Some(m) = v.and_then(Value::as_object) else {
-        return Value::Object(Map::new());
-    };
-    Value::Object(
-        m.iter()
-            .filter(|(k, _)| !k.starts_with('$'))
-            .map(|(k, child)| {
-                let value = child
-                    .get("$value")
-                    .cloned()
-                    .unwrap_or_else(|| token_values(Some(child)));
-                (k.clone(), value)
-            })
-            .collect(),
-    )
-}
-
-/// JS へ渡す JSON の文字列。<script> に入れても閉じないよう、< > & ' と行の区切り（U+2028 ・ U+2029）を \u の形にする。
-fn script_json(v: &Value) -> String {
-    let mut out = String::new();
-    for c in v.to_string().chars() {
-        match c {
-            '<' => out.push_str("\\u003c"),
-            '>' => out.push_str("\\u003e"),
-            '&' => out.push_str("\\u0026"),
-            '\'' => out.push_str("\\u0027"),
-            '\u{2028}' => out.push_str("\\u2028"),
-            '\u{2029}' => out.push_str("\\u2029"),
-            c => out.push(c),
-        }
-    }
-    out
-}
-
 fn text_of(v: &Value, key: &str) -> String {
     v.get(key)
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string()
-}
-
-/// 対象の経路から、ページの経路（拡張子を .html に）。
-fn page_path_of(target: &str) -> String {
-    target
-        .strip_suffix(".json")
-        .map_or_else(|| format!("{target}.html"), |s| format!("{s}.html"))
 }

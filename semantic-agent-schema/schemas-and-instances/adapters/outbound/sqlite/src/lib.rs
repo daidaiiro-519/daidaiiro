@@ -45,7 +45,7 @@ impl SqliteLog {
                 .map_err(|e| format!("{} を作れない：{e}", dir.display()))?;
         }
         let conn = Connection::open(path).map_err(|e| err(&e))?;
-        Self::with(conn)
+        Self::with(conn).map_err(|e| format!("{e}：{}", path.display()))
     }
 
     /// メモリの中の DB（試験用）。
@@ -67,7 +67,7 @@ impl SqliteLog {
             .map_err(|e| err(&e))?;
         } else if version != SHAPE {
             return Err(format!(
-                "操作の記録：表の形の版が {version} で、このコマンドの版 {SHAPE} と違う。記録は作り直せるので、記録のファイルを消してから打ち直す"
+                "操作の記録の表の形の版が {version} で、このコマンドの版 {SHAPE} と違うので開かない。記録はコミットしない作り直せるデータなので、記録のファイルを消すと、次に打ったときに空で作り直す"
             ));
         }
         conn.pragma_update(None, "foreign_keys", true)

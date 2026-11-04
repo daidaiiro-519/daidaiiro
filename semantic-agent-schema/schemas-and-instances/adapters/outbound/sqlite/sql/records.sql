@@ -29,7 +29,7 @@ CREATE TABLE validations (
 
 CREATE INDEX validations_by_target ON validations (target_path, id);
 
--- rule ごとの結果。reads_hash は判定が読んだ所のハッシュ（入力が変わった rule だけを検証するときに比べる）
+-- rule ごとの結果。reads_hash は判定が読んだ所のハッシュ（意味の判定で、前の判定のあと読んだ所が変わったかを比べる）
 CREATE TABLE rule_results (
     validation_id TEXT NOT NULL REFERENCES validations (id),
     ord           INTEGER NOT NULL,

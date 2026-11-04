@@ -1,0 +1,97 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 18,
+ "date": "2026-11-04",
+ "summary": "名残の見極めと、実装から抜き出した概念との突き合わせで利用者が採った推奨を適用した。名残（--ref と手順の refs ・ 上限 64KiB ・ 検索の手順の current、stale_judgments、--request-id と replayed と記録の request_id、--stale と stale_only ・ unchanged_rules ・ unchanged_targets、記録の置き場所の環境変数、--task）を削り、update と delete で --if-match を必須にし、x-published を Abstract の作法から外し、デザインシステムの validate を記録しないようにした。search は誰が打ったかを取らず記録に触れない。render は Git の外と根の外を指す経路で断る（読む経路は、どのコマンドでも根の外を指せば読まない）。出力の値 sas と値の入口 sas-data を略さない名前にした。描画の決まりは rendering-domain を足して置いた。記録の表の版を 9 に上げた。試験138件、場面152本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC5",
+  "UC6"
+ ],
+ "factchecks": [
+  {
+   "item": "場面を先に書き、直す前の実装（ステップ17 のコミット）で通らないことを、場面を流して確かめた",
+   "evidence": [
+    "S-UC2-IF-MATCH-REQUIRED ・ S-UC4-DESIGN-OK ・ S-UC4-DESIGN-JS-UNTRACEABLE ・ S-UC4-DESIGN-VIOLATED ・ S-UC4-SEMANTIC-PLACE-REMOVED ・ S-UC4-X-PUBLISHED-UNKNOWN ・ S-UC5-OUTSIDE-GIT ・ S-UC5-PATH-OUTSIDE-ROOT ・ S-UC6 の9本の17本が、直す前の実装で通らなかった",
+    "--if-match を省いていた update ・ delete の場面は、直す前の版で場面を流し直して、その時点の中身のハッシュを入れた"
+   ],
+   "result": "confirmed"
+  },
+  {
+   "item": "表の版が違う記録は開かず、その記録のファイルと作り直し方を返し、ファイルは消さない",
+   "evidence": [
+    "outbound の sqlite の試験 a_database_of_another_shape_is_refused が、断る文にファイルの経路と「消すと」があり、ファイルが残ることを確かめる"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "更新と削除の前提（UC2 ・ UC3）",
+   "steps": [
+    "--if-match を必ず受け取る（無ければ usage）",
+    "いまの中身のハッシュと違えば、書かずに間に入った変更（interleaved）と案内を返す"
+   ],
+   "rules": [
+    "比べるのは --if-match のハッシュだけ。外の変更の検出（このワークツリーで記録した最後の事後と比べる）は、validate と取り込みと、間に入った変更の unrecorded が使う"
+   ]
+  },
+  {
+   "usecase": "意味の判定の答え（UC4 の --answer）",
+   "steps": [
+    "手順と同じ選び方で所を選び、答えを突き合わせる",
+    "渡された答えは、そのたびに検証として記録する"
+   ],
+   "rules": [
+    "選び方は既定（前の判定のあと変わった所）と --all-rules（全部の所）の2つ"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "描画の決まり（x-view でテンプレートの種類を選ぶ ・ ページの経路 ・ テンプレートに渡す値の形 ・ デザイントークン ・ テンプレートが置く名前と JS が読む所を Concrete の形にたどる）",
+   "became": "service",
+   "why": "本質の「x- の項目のレンダラー（ドメインに持つ）」に当たる。描く手続き（読む ・ 書き出す）と変わる理由が違う。CODING.md の決まり（domain の中は部品の種類で分ける ・ crate は依存の向きを強制したい境界にする）に沿い、新しい crate rendering-domain の services と values に置き、architecture.json に rendering-application → rendering-domain の向きを足した。集約は持たない（描画は書かない）"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "具体モデリング概念の rendering を application だけとした書き方",
+   "result": "top_missed",
+   "fixed": "hypothesis",
+   "note": "本質 ・ 抽象モデリング概念どおり、domain ・ application に直した"
+  },
+  {
+   "item": "抽象モデリング概念のインスタンスの不変条件「id を変えない」",
+   "result": "top_premature",
+   "fixed": "hypothesis",
+   "note": "実装は経路で識別していて、id を確かめていない。「経路で識別する」に直した"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "crate",
+    "before": "rendering は application だけ",
+    "after": "rendering-domain を足した（services/template_names ・ tokens ・ view、values のテンプレートの木と JS が読んだ所）。ポートの型は application の ports が domain から再び出す",
+    "why": "描画の決まりをドメインに置く"
+   },
+   {
+    "what": "記録の表（sql/records.sql）",
+    "before": "changes に request_id と一意の索引。source は sas か outside。SHAPE 8",
+    "after": "request_id を消した。source は semantic-agent-schema か outside。SHAPE 9",
+    "why": "やり直しの見分けは --if-match に任せる。値の名前を略さない"
+   },
+   {
+    "what": "記録のポート",
+    "before": "書く ChangeLog に find_request ・ last_judgments、描画に ValidationLog",
+    "after": "書く ChangeLog は append_change ・ writes ・ instances_of。描画は記録のポートを持たない",
+    "why": "stale_judgments と request_id を削り、デザインシステムの検証を記録しない"
+   }
+  ]
+ }
+}

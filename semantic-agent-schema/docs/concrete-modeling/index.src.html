@@ -27,7 +27,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </style>
 <main>
 <header style="display:grid;gap:6px"><p class="soft">Semantic Agent Schema ・ 本質の像</p><h1>具体モデリング概念</h1>
-<p>抽象モデリング概念（技術に依らない何を ・ なぜ）を、どう作るか。構成 ・ ポート ・ コマンドの引数 ・ 公開された言葉 ・ 記録 ・ 処理の流れの6つで書く。</p></header>
+<p>抽象モデリング概念（技術に依らない何を ・ なぜ）を、どう作るか。構成 ・ ポート ・ コマンドの引数 ・ 公開された言葉 ・ 記録 ・ 処理の流れ ・ 書き方の決まりの7つで書く。</p></header>
 
 <section class="rule"><h2><span class="nb">軸：</span><span class="nb">入力は契約で受け取り、</span><span class="nb">決まった手順で処理する</span></h2>
 <ul>
@@ -46,14 +46,14 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>モジュール</th><th>層</th><th>持つもの</th></tr>
 <tr><td><code>writing</code></td><td>domain ・ application</td><td>集約 Concrete ・ インスタンス、値（ハッシュ ・ 差分 ・ TargetKind ・ Caller ・ 記録の行）、<code>field_schema</code>。UC1 作る ・ UC2 直す ・ UC3 消す ・ 取り込み</td></tr>
 <tr><td><code>validation</code></td><td>domain ・ application</td><td>判定の5つの区分 ・ by、当たる rule ・ 組み込みの検査3つ ・ <code>reads_hash</code>。UC4 確かめる ・ 意味の判定</td></tr>
-<tr><td><code>rendering</code></td><td>application</td><td>UC5 描く ・ デザインシステムの検証</td></tr>
+<tr><td><code>rendering</code></td><td>domain ・ application</td><td>描画の決まり（x- の項目のレンダラー：<code>x-view</code> でテンプレートの種類を選ぶ ・ ページの経路 ・ テンプレートに渡す値 ・ デザイントークン ・ テンプレートが置く名前と JS が読む所を Concrete の形にたどる）。UC5 描く ・ デザインシステムの検証。記録しない</td></tr>
 <tr><td><code>search</code></td><td>application</td><td>UC6 探す（構造で絞る ・ 意味で探す）。記録しない</td></tr>
 <tr><td><code>recording</code></td><td>application</td><td>UC7 記録を読む。入口が使う、誰が打ったかを決めて登録する手続き</td></tr>
 </table></div>
 <ul>
 <li>application は domain だけを使う。ほかのモジュールの application を使わない</li>
 <li>複数のモジュールが使う判断と値は、writing と validation の domain に置く</li>
-<li>入口の <code>cli</code> がアダプターを選び、<code>&amp;dyn</code> のポートとしてユースケースへ渡す</li>
+<li>入口の <code>cli</code> はコンポジションルート。経路の根（Git の根）と記録の置き場所を決め、アダプターを作って <code>&amp;dyn</code> のポートとしてユースケースへ渡す。<code>--schemas</code> を開くときと、Git の根 ・ 共通フォルダを引くときは、アダプターを直接使う</li>
 <li>外のライブラリは、許したアダプターだけが使う（rusqlite は sqlite、jsonschema は jsonschema、boa は javascript）</li>
 </ul>
 </section>
@@ -65,8 +65,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>DocumentStore</code></td><td>writing：read ・ write ・ remove<br>validation ・ rendering ・ search：read</td><td>filesystem</td></tr>
 <tr><td><code>SchemaValidator</code></td><td>writing：shipped ・ check ・ annotations<br>validation：shipped ・ check<br>rendering ・ search：check</td><td>jsonschema</td></tr>
 <tr><td><code>CommitReader</code></td><td>writing：read（渡されたコミットの中身）</td><td>git</td></tr>
-<tr><td><code>ChangeLog</code></td><td>writing：append_change ・ find_request ・ writes ・ last_judgments ・ instances_of（記録でその Concrete に従う文書）</td><td>sqlite</td></tr>
-<tr><td><code>ValidationLog</code></td><td>validation：append_validate ・ writes ・ last_judgments<br>rendering：append_validate</td><td>sqlite</td></tr>
+<tr><td><code>ChangeLog</code></td><td>writing：append_change ・ writes ・ instances_of（記録でその Concrete に従う文書）</td><td>sqlite</td></tr>
+<tr><td><code>ValidationLog</code></td><td>validation：append_validate ・ writes ・ last_judgments</td><td>sqlite</td></tr>
 <tr><td><code>OperationReader</code></td><td>recording：operations ・ operation</td><td>sqlite</td></tr>
 <tr><td><code>SessionLog</code></td><td>recording：session ・ session_row ・ new_session_id</td><td>sqlite</td></tr>
 <tr><td><code>IdentifyCaller</code></td><td>recording：identify</td><td>cli（<code>callers.json</code>）</td></tr>
@@ -77,7 +77,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <h3>ポートで読むもの</h3>
 <div class="wrap"><table>
 <tr><th>何を</th><th>どこから</th></tr>
-<tr><td>文書</td><td>渡された経路だけを読む ・ 書く。全部を並べる list は無い</td></tr>
+<tr><td>文書</td><td>渡された経路だけを読む ・ 書く。全部を並べる list は無い。根の外を指す経路（<code>/</code> で始まる ・ <code>..</code> を含む）は読まない</td></tr>
 <tr><td>Concrete</td><td>渡された置き場所の中から <code>$id</code> で引く。<code>$ref</code> の先も同じ置き場所の中から</td></tr>
 <tr><td>範囲</td><td>渡された経路の並び</td></tr>
 <tr><td>記録</td><td>自分の操作の記録（<code>records.sqlite</code>）</td></tr>
@@ -90,16 +90,16 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <section><h2><span class="n">3</span>コマンドと引数</h2>
 <div class="wrap"><table>
 <tr><th>コマンド</th><th>必須</th><th>任意</th></tr>
-<tr><td><code>validate</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--schemas &lt;置き場所&gt;...</code></td><td><code>--stale</code> ・ <code>--all-rules</code> ・ <code>--semantic</code> ・ <code>--answer &lt;ファイル | -&gt;</code>（経路は1つ）</td></tr>
-<tr><td><code>create</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code>、次のどれか1つ：<code>--concrete &lt;$id&gt; --value &lt;JSON&gt;</code> ／ <code>--concrete &lt;$id&gt; --semantic</code> ／ <code>--adopt</code></td><td><code>--task</code> ・ <code>--ref &lt;経路&gt;...</code>（<code>--semantic</code> と）・ <code>--reason</code> ・ <code>--request-id</code></td></tr>
-<tr><td><code>update</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code>、次のどれか1つ：<code>--patch &lt;JSON Patch&gt;</code> ／ <code>--semantic --task</code> ／ <code>--adopt --reason</code>。Concrete を直すときは（<code>--semantic</code> でも）<code>--range &lt;経路&gt;...</code></td><td><code>--if-match</code> ・ <code>--ref</code> ・ <code>--reason</code> ・ <code>--request-id</code> ・ <code>--base &lt;コミット&gt;</code>（<code>--adopt</code> と）</td></tr>
-<tr><td><code>delete</code></td><td><code>&lt;経路&gt;</code> ・ <code>--reason</code>。Concrete を消すときは <code>--range &lt;経路&gt;...</code></td><td><code>--if-match</code> ・ <code>--request-id</code></td></tr>
+<tr><td><code>validate</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--schemas &lt;置き場所&gt;...</code></td><td><code>--semantic</code> ・ <code>--all-rules</code>（<code>--semantic</code> ・ <code>--answer</code> と）・ <code>--answer &lt;ファイル | -&gt;</code>（経路は1つ）</td></tr>
+<tr><td><code>create</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code>、次のどれか1つ：<code>--concrete &lt;$id&gt; --value &lt;JSON&gt;</code> ／ <code>--concrete &lt;$id&gt; --semantic</code> ／ <code>--adopt</code></td><td><code>--reason</code></td></tr>
+<tr><td><code>update</code></td><td><code>&lt;経路&gt;</code> ・ <code>--schemas</code>、次のどれか1つ：<code>--patch &lt;JSON Patch&gt; --if-match &lt;ハッシュ&gt;</code> ／ <code>--semantic</code> ／ <code>--adopt --reason</code>。Concrete を直すときは（<code>--semantic</code> でも）<code>--range &lt;経路&gt;...</code></td><td><code>--reason</code> ・ <code>--base &lt;コミット&gt;</code>（<code>--adopt</code> と）</td></tr>
+<tr><td><code>delete</code></td><td><code>&lt;経路&gt;</code> ・ <code>--reason</code> ・ <code>--if-match &lt;ハッシュ&gt;</code>。Concrete を消すときは <code>--range &lt;経路&gt;...</code></td><td>なし</td></tr>
 <tr><td><code>render</code></td><td><code>&lt;経路&gt;...</code> ・ <code>--design-system &lt;経路&gt;</code> ・ <code>--out &lt;書き出す先&gt;</code> ・ <code>--schemas</code></td><td>なし</td></tr>
 <tr><td><code>search</code></td><td><code>&lt;経路&gt;...</code>（範囲）・ <code>--schemas</code>、次のどれか1つ：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code> ／ <code>--semantic --question</code> ／ <code>--answer</code></td><td><code>--where</code> を重ねる</td></tr>
 <tr><td><code>log</code></td><td>なし（<code>--operation &lt;ID&gt;</code> で1件）</td><td><code>&lt;経路&gt;...</code> ・ <code>--by</code> ・ <code>--folder</code> ・ <code>--since</code> ・ <code>--limit</code></td></tr>
 <tr><td><code>init</code></td><td>なし（新しい ID を作って登録し、返す）</td><td>なし</td></tr>
 </table></div>
-<p class="soft">記録をつけるコマンド（validate ・ create ・ update ・ delete）と search は、どれも <code>--session &lt;ID&gt;</code> か <code>--human</code> を取る。</p>
+<p class="soft">記録をつけるコマンド（validate ・ create ・ update ・ delete）は、どれも <code>--session &lt;ID&gt;</code> か <code>--human</code> を取る。search ・ render ・ デザインシステムの validate は誰が打ったかを取らず、記録を開かない。</p>
 
 <h3>AI が考えて付ける引数</h3>
 <div class="wrap"><table>
@@ -107,9 +107,17 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>対象</td><td><code>&lt;経路&gt;</code></td><td>断る</td></tr>
 <tr><td>スキーマの置き場所</td><td><code>--schemas &lt;置き場所&gt;...</code></td><td>断る。置き場所に <code>$id</code> が無くても断る</td></tr>
 <tr><td>範囲</td><td><code>&lt;経路&gt;...</code> の並び（validate ・ search）・ <code>--range</code>（Concrete を直す ・ 消す）</td><td>断る。既定の範囲は持たない</td></tr>
+<tr><td>読んだ時の中身</td><td><code>--if-match &lt;ハッシュ&gt;</code>（update ・ delete）</td><td>断る。いまの中身のハッシュと違えば、書かずに間に入った変更を返す</td></tr>
+<tr><td>取り込む前の中身</td><td><code>--base &lt;コミット&gt;</code>（update <code>--adopt</code>）</td><td>前の値の無い差分（<code>before_unavailable</code>）で取り込む。次の意味の判定は、前の判定を使えないので全部の所になる</td></tr>
 <tr><td>セッション</td><td><code>--session &lt;ID&gt;</code>。人は <code>--human</code></td><td>ツールの環境変数で決まらなければ断る（Gemini CLI ・ Cursor は毎回付ける。ID は <code>init</code> で作れる）。ツールの環境変数があるところでは <code>--human</code> を受け取らない</td></tr>
 </table></div>
 <p>引数の決まりは、上のコマンドの表と <code>--help</code> ・ 使い方の文が持つ。足りなければ、出力の <code>kind = error</code> で何が足りないかを言って断る。</p>
+<div class="wrap"><table>
+<tr><th>終了コード</th><th>いつ</th></tr>
+<tr><td>0</td><td>violated と error が無い（書けた ・ 返せた）</td></tr>
+<tr><td>1</td><td>violated か error がある ・ 断った</td></tr>
+<tr><td>2</td><td>使い方の誤り（<code>code = usage</code>）</td></tr>
+</table></div>
 
 <h3>JSON の引数と、検証するスキーマ</h3>
 <p>JSON Schema で確かめるのは、中身が JSON の引数だけ。</p>
@@ -125,16 +133,16 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <p>答えは JSON だけを受け取る。囲み（<code>```json</code>）を付けた答えは断る。</p>
 
 <h3>返すコマンドへの引き継ぎ</h3>
-<p>手順（<code>procedure.schema.json</code>）の <code>command</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--session</code> を入れる。AI は <code>&lt;…&gt;</code> の所だけを埋めて打つ。</p>
+<p>手順（<code>procedure.schema.json</code>）の <code>command</code> と案内の <code>hint</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--all-rules</code> と、読んだ時のハッシュ（<code>--if-match</code>）と、誰が打ったか（<code>--session</code> を渡したときは <code>--session</code>、人は <code>--human</code>）を入れる。ツールの環境変数で決まるセッションは入れない。AI は <code>&lt;…&gt;</code> の所だけを埋めて打つ。</p>
 </section>
 
 <section><h2><span class="n">4</span>公開された言葉</h2>
 <p><code>published-language/v1/</code> に置く。AI と使う側が読む契約。</p>
 <div class="wrap"><table>
 <tr><th>種類</th><th>ファイル</th><th>役目</th></tr>
-<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>Concrete が従う作法。<code>x-</code> の4つ（<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-published</code> ・ <code>x-view</code>）の形と閉じた一覧</td></tr>
+<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>Concrete が従う作法。<code>x-</code> の3つ（<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code>）の形と閉じた一覧。Abstract 自身も <code>x-prompt</code> を持ち、Concrete を書く ・ 判定するときの rule になる</td></tr>
 <tr><td>出力</td><td><code>command-result.schema.json</code></td><td>結果の1行。<code>kind</code> は validation ・ change ・ render ・ session ・ operation ・ search ・ error</td></tr>
-<tr><td>手順</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す手順（steps ・ answer ・ command）</td></tr>
+<tr><td>手順</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す手順（steps ・ answer ・ command）。中身は貼らず、読む文書は経路とハッシュで渡す（AI が読む）</td></tr>
 <tr><td>答え</td><td><code>judgment-answer.schema.json</code> ・ <code>search-answer.schema.json</code></td><td>AI が <code>--answer</code> で渡す判定と検索の答え</td></tr>
 <tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>描くときに使う側が渡すデザインシステムと、テンプレートの書き方</td></tr>
 </table></div>
@@ -146,14 +154,16 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table>
 <tr><th>表</th><th>1行は何か</th><th>結び付き</th></tr>
 <tr><td><code>sessions</code></td><td>打ったセッション</td><td>changes ・ validations の <code>session_id</code> が指す。人と明示した操作は NULL</td></tr>
-<tr><td><code>changes</code></td><td>書いた変更（create ・ update ・ delete）</td><td><code>request_id</code> は1依頼に1行</td></tr>
+<tr><td><code>changes</code></td><td>書いた変更（create ・ update ・ delete）</td><td><code>source</code> は semantic-agent-schema（通した変更）か outside（取り込み）。<code>worktree</code> は書いたワークツリー</td></tr>
 <tr><td><code>field_changes</code></td><td>変わった項目（<code>pointer</code> ごと）</td><td><code>change_id</code> で changes を指す</td></tr>
 <tr><td><code>validations</code></td><td>検証</td><td>ID は changes と同じ採番</td></tr>
 <tr><td><code>rule_results</code></td><td>rule と項目ごとの判定</td><td><code>validation_id</code> で validations を指す</td></tr>
 <tr><td>ビュー <code>operations</code></td><td>変更と検証を記録した順に</td><td>UC7 が読む</td></tr>
 </table></div>
 <ul>
-<li>置き場所は入口の <code>db_path</code> の1か所で決める。Git のリポジトリの外では断る</li>
+<li>置き場所は入口の <code>db_path</code> の1か所で決める（<code>&lt;git-common-dir&gt;/semantic-agent-schema/records.sqlite</code>）。Git のリポジトリの外では断る</li>
+<li>表の形の版が違う記録は開かない。記録はコミットしない作り直せるデータなので、そのファイルを消して打ち直すと空で作り直す（ファイルを消すかは利用者が決める）</li>
+<li>削除のあとは、前の判定を引き継がない（作り直した文書に前の判定を当てない）</li>
 <li><code>target_path</code> は Git の根からの相対。どこで打っても同じ経路になる</li>
 <li>どの表も追記だけ。断った操作は記録しない</li>
 </ul>
@@ -163,6 +173,18 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="fig">{{flow-validate}}</div>
 <p class="cap">validate 1件。入口が引数を確かめ、モジュールがポートを通してアダプターを呼び出す。</p>
 <div class="fig">{{flow-semantic}}</div>
-<p class="cap">update <code>--semantic</code> → <code>--patch</code>、validate <code>--semantic</code> → <code>--answer</code>。validate <code>--semantic</code> はいつも手順を返し（判定する所が0件なら steps が空）、記録は <code>--answer</code> のときだけ。どのコマンドも、入口が引数を確かめてから呼び、結果を1行で返す。</p>
+<p class="cap">update <code>--semantic</code> → <code>--patch --if-match</code>、validate <code>--semantic</code> → <code>--answer</code>。validate <code>--semantic</code> はいつも手順を返し（判定する所が0件なら steps が空）、記録は <code>--answer</code> のときだけ。どのコマンドも、入口が引数を確かめてから呼び、結果を1行で返す。</p>
+</section>
+
+<section><h2><span class="n">7</span>書き方の決まり</h2>
+<div class="wrap"><table>
+<tr><th>決まり</th><th>中身</th></tr>
+<tr><td>外の変更の検出</td><td>validate と取り込みは、いまの中身を、このワークツリーで記録した最後の事後と比べる（まだ書いていなければ、記録のどれかの中身と）。違えば知らせ、取り込みの前提にする。update ・ delete は <code>--if-match</code> だけと比べる</td></tr>
+<tr><td>x- の作法</td><td><code>x-view</code> は Concrete の根だけ。<code>json-schema</code> などの組み込みの検査の名前は rule の id に使えない（予約）</td></tr>
+<tr><td>デザインシステムの検証</td><td>validate にデザインシステムを渡すと、受け取りの型 ・ トークン ・ テンプレートの書き方 ・ <code>--schemas</code> の Concrete との合い方を契約に照らして返す。ほかの対象や <code>--semantic</code> と混ぜたら断る。記録しない</td></tr>
+<tr><td>描くときに断る</td><td>Concrete は描かない。書き出すページが入力のファイルと重なれば断る。欠けたテンプレートの種類は全部を返して断る。Git の外と、根の外を指す経路では描かない</td></tr>
+<tr><td>書きかけを残さない</td><td>文書は一時ファイルに書いてから置き換える。JSON Patch は全部当てるか、1つも当てない。描画は全部のページを書けてから置き換える</td></tr>
+<tr><td>ページに入れないもの</td><td>判定 ・ 記録 ・ ハッシュはページに入れない。テンプレートに渡すのは <code>value</code> ・ <code>json</code> ・ <code>tokens</code> ・ <code>css</code> だけで、値の入口は <code>semantic-agent-schema-data</code></td></tr>
+</table></div>
 </section>
 </main>

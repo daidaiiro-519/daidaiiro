@@ -53,7 +53,7 @@ pub trait ValidationLog {
     fn writes(&self, target_path: &str) -> Result<Vec<WriteRecord>, String>;
 
     /// 経路の対象の、rule ごとの最後の判定（その rule を最後に判定した検証の行）。検証が無ければ空。
-    /// 入力が変わった rule だけを検証すると、検証ごとに判定した rule が違うので、検証ではなく rule ごとに引く。
+    /// 意味の判定は変わった所だけを判定し直すので、検証ごとに判定した rule が違う。検証ではなく rule ごとに引く。
     /// その経路を消した操作があれば、最後に消したより後の検証だけ（消して作り直した文書に前の判定を当てない）。
     ///
     /// # Errors

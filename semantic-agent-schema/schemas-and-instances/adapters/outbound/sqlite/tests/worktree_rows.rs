@@ -79,5 +79,14 @@ fn a_database_of_another_shape_is_refused() {
     }
     let message = SqliteLog::open(&path).unwrap_err();
     assert!(message.contains("表の形の版"), "{message}");
+    assert!(
+        message.contains("消すと"),
+        "作り直し方を案内する：{message}"
+    );
+    assert!(
+        message.contains(&path.display().to_string()),
+        "どのファイルかを示す：{message}"
+    );
+    assert!(path.exists(), "記録のファイルは消さない");
     std::fs::remove_dir_all(&dir).unwrap();
 }

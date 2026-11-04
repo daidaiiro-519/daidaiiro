@@ -455,7 +455,7 @@ fn rule_row(r: &RuleRow) -> Value {
 }
 
 /// 記録にある操作1件の中身（semantic-agent-schema log --operation）。書いたとき ・ 検証したときと同じ change ・ validation の形で出し、
-/// 記録した日時 at と理由 reason を足す。記録にあるのは差分と判定だけなので、stale_judgments と violated_instances は空。
+/// 記録した日時 at と理由 reason を足す。記録にあるのは差分と判定だけなので、violated_instances は空。
 pub fn print_operation_detail(d: &OperationDetail) {
     let out = match d {
         OperationDetail::Change {
