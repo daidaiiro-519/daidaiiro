@@ -116,7 +116,7 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {human} ・ {hash} ・ {schemaId} ・ {ifMatch} ・ {range} に入れる値を返す。
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {hash} ・ {schemaId} ・ {ifMatch} ・ {range} に入れる値を返す。
 func fill(args arguments, path, hash string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
@@ -129,16 +129,11 @@ func fill(args arguments, path, hash string) map[string]string {
 	for _, r := range args.Range {
 		ranges += " --range " + quote(r)
 	}
-	human := ""
-	if args.Human {
-		human = " --human"
-	}
 	return map[string]string{
 		"{command}":  args.Command,
 		"{path}":     quote(path),
 		"{paths}":    strings.Join(paths, " "),
 		"{schemas}":  strings.Join(schemas, " "),
-		"{human}":    human,
 		"{hash}":     hash,
 		"{schemaId}": quote(args.SchemaID),
 		"{ifMatch}":  quote(args.IfMatch),
@@ -172,7 +167,6 @@ type countsEvent struct {
 type validationEvent struct {
 	Event       string          `json:"event"`
 	ID          int64           `json:"id"`
-	Actor       string          `json:"actor"`
 	Path        string          `json:"path"`
 	SchemaID    string          `json:"schemaId"`
 	ContentHash string          `json:"contentHash"`
@@ -186,7 +180,7 @@ type validationEvent struct {
 func (o *output) validation(args arguments, id int64, v *domain.Validation) error {
 	counts := v.Counts()
 	event := validationEvent{
-		Event: "validation", ID: id, Actor: string(v.Actor().Kind()), Path: v.Document().Path.String(),
+		Event: "validation", ID: id, Path: v.Document().Path.String(),
 		SchemaID: v.Concrete().ID(), ContentHash: v.Document().Hash.String(),
 		Counts: countsEvent{
 			Verified: counts.Verified, Violated: counts.Violated,
@@ -261,7 +255,6 @@ func (o *output) procedure(args arguments, p domain.Procedure) error {
 type changeEvent struct {
 	Event       string `json:"event"`
 	ID          int64  `json:"id"`
-	Actor       string `json:"actor"`
 	Command     string `json:"command"`
 	Path        string `json:"path"`
 	SchemaID    string `json:"schemaId"`
@@ -273,7 +266,7 @@ type changeEvent struct {
 func (o *output) change(args arguments, id int64, c *domain.Write) error {
 	path := c.Document().Path.String()
 	return o.encoder.Encode(changeEvent{
-		Event: "change", ID: id, Actor: string(c.Actor().Kind()), Command: string(c.Command()),
+		Event: "change", ID: id, Command: string(c.Command()),
 		Path: path, SchemaID: c.Concrete().ID(), ContentHash: c.Document().Hash.String(),
 		Next: replace(o.changeNext.next(args), fill(args, path, "")),
 	})

@@ -8,7 +8,6 @@ import (
 )
 
 // Update は、ユースケース「更新」。JSON ドキュメント（インスタンスか Concrete）を JSON Patch で書き換える。
-// 主アクターが human なら、x-decided-by: human の値も変えられる（承認）。
 // 各ステップの担保：引数は機械的な検証（JSON Schema）、更新の procedure は意味的な検証（ドメインモデル）、
 // JSON Patch の作成は AI、JSON Patch の形と、適用した結果の Concrete での検証と、Concrete を更新するときの範囲のインスタンスの
 // 検証は機械的な検証（JSON Schema）、x-decided-by: human の値と If-Match のハッシュと作法は機械的な検証（ドメインモデル）、
@@ -34,7 +33,6 @@ func (u Update) Procedure(ctx context.Context, path domain.Path) (domain.Procedu
 
 // UpdateInput は、更新の引数。
 type UpdateInput struct {
-	Actor   domain.Actor
 	Path    domain.Path
 	Patch   []byte
 	IfMatch string
@@ -101,7 +99,7 @@ func (u Update) check(ctx context.Context, in UpdateInput) (*domain.Write, error
 		return nil, err
 	}
 	return domain.NewUpdate(domain.WriteInput{
-		Actor: in.Actor, Path: in.Path, Content: content, Value: value, Concrete: concrete,
+		Path: in.Path, Content: content, Value: value, Concrete: concrete,
 	}, before, beforeValue)
 }
 

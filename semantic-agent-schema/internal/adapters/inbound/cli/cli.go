@@ -1,5 +1,5 @@
 // Package cli は、入力側のアダプター。引数を pflag で読んで JSON にし、arguments.schema.json で機械的に検証し、
-// 主アクターを決めてユースケースを呼び、結果をログイベント（JSON の1行）で標準出力へ書く。
+// ユースケースを呼び、結果をログイベント（JSON の1行）で標準出力へ書く。
 package cli
 
 import (
@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/spf13/pflag"
 
@@ -16,9 +15,6 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 )
-
-// codingAgentVariables は、coding agent の中で実行していることを示す環境変数の名前。有無だけを見て、値は読まない。
-var codingAgentVariables = []string{"CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID", "COPILOT_AGENT_SESSION_ID"}
 
 // Authoring は、中核の業務領域「作成と検証」のユースケース。
 type Authoring struct {
@@ -46,7 +42,6 @@ type arguments struct {
 	Command  string   `json:"command,omitempty"`
 	Paths    []string `json:"paths"`
 	Schemas  []string `json:"schemas,omitempty"`
-	Human    bool     `json:"human,omitempty"`
 	Semantic bool     `json:"semantic,omitempty"`
 	SchemaID string   `json:"schemaId,omitempty"`
 	Value    *string  `json:"value,omitempty"`
@@ -80,10 +75,6 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	if err != nil {
 		return out.failures(parsed, err)
 	}
-	actor, err := domain.NewActor(parsed.Human, inCodingAgent())
-	if err != nil {
-		return out.failures(parsed, err)
-	}
 	paths, pathErr := pathsOf(parsed.Paths)
 	dirs, dirErr := pathsOf(parsed.Schemas)
 	ranges, rangeErr := pathsOf(parsed.Range)
@@ -103,7 +94,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	if err != nil {
 		return out.failures(parsed, err)
 	}
-	err = dispatch(ctx, parsed, uc, actor, paths, ranges, content, out)
+	err = dispatch(ctx, parsed, uc, paths, ranges, content, out)
 	if closeErr := closeRecords(); closeErr != nil {
 		return errors.Join(err, out.failures(parsed, closeErr))
 	}
@@ -121,7 +112,6 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	flags.SetOutput(io.Discard)
 	flags.SetInterspersed(true)
 	schemas := flags.StringArray("schemas", nil, "Concrete を探すディレクトリ（繰り返せる）")
-	human := flags.Bool("human", false, "主アクターを human にする")
 	semantic := flags.Bool("semantic", false, "procedure を依頼する")
 	schemaID := flags.String("schema-id", "", "作る JSON ドキュメントが従う Concrete の $id")
 	value := flags.String("value", "", "JSON ドキュメント。- なら標準入力から読む")
@@ -133,7 +123,6 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	}
 	parsed.Paths = append([]string{}, flags.Args()...)
 	parsed.Schemas = *schemas
-	parsed.Human = *human
 	parsed.Semantic = *semantic
 	parsed.SchemaID = *schemaID
 	if flags.Changed("value") {
@@ -168,7 +157,7 @@ func valueOf(value string, stdin io.Reader) ([]byte, error) {
 }
 
 // dispatch は、コマンドのユースケースを呼び、結果をログイベントで書く。
-func dispatch(ctx context.Context, args arguments, uc Authoring, actor domain.Actor, paths, ranges []domain.Path, content []byte, out *output) error {
+func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges []domain.Path, content []byte, out *output) error {
 	switch {
 	case args.Command == "update" && args.Semantic:
 		procedure, err := uc.Update.Procedure(ctx, paths[0])
@@ -178,7 +167,7 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, actor domain.Ac
 		return out.procedure(args, procedure)
 	case args.Command == "update":
 		id, write, err := uc.Update.Run(ctx, application.UpdateInput{
-			Actor: actor, Path: paths[0], Patch: content, IfMatch: args.IfMatch, Range: ranges,
+			Path: paths[0], Patch: content, IfMatch: args.IfMatch, Range: ranges,
 		})
 		if err != nil {
 			return out.failures(args, err)
@@ -191,13 +180,13 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, actor domain.Ac
 		}
 		return out.procedure(args, procedure)
 	case args.Command == "create":
-		id, creation, err := uc.Create.Run(ctx, actor, paths[0], content)
+		id, creation, err := uc.Create.Run(ctx, paths[0], content)
 		if err != nil {
 			return out.failures(args, err)
 		}
 		return out.change(args, id, creation)
 	default:
-		for _, result := range uc.Validate.Run(ctx, actor, paths) {
+		for _, result := range uc.Validate.Run(ctx, paths) {
 			if result.Err != nil {
 				if err := out.failures(args, result.Err); err != nil {
 					return err
@@ -210,15 +199,6 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, actor domain.Ac
 		}
 		return nil
 	}
-}
-
-func inCodingAgent() bool {
-	for _, name := range codingAgentVariables {
-		if _, ok := os.LookupEnv(name); ok {
-			return true
-		}
-	}
-	return false
 }
 
 func pathsOf(values []string) ([]domain.Path, error) {

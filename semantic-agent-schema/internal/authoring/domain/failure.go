@@ -11,7 +11,6 @@ type code string
 // error の code。
 const (
 	ArgumentsInvalid    code = "arguments_invalid"
-	HumanInCodingAgent  code = "human_in_coding_agent"
 	SchemaNotFound      code = "schema_not_found"
 	SchemaDuplicate     code = "schema_duplicate"
 	SchemaViolation     code = "schema_violation"

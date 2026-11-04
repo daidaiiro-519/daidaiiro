@@ -80,7 +80,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
    ├ record/application/         usecase_log.go ・ ports.go
    ├ publishedlanguage/           v1/*.json を go:embed で持つ
    └ adapters/
-      ├ inbound/cli/              引数を JSON にして検証する ・ 主アクター ・ ログイベントの出力 ・ 終了コード
+      ├ inbound/cli/              引数を JSON にして検証する ・ ログイベントの出力 ・ 終了コード
       └ outbound/
          ├ files/                 path の読み書き ・ schemas の中の $id
          ├ repository/            git rev-parse で working tree と共通ディレクトリを引く
@@ -88,7 +88,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
          ├ patching/              JSON Patch の適用
          ├ templates/             html/template での描画
          └ recordstore/             操作の記録（records.sql を go:embed で持つ）とロック</code></pre>
-<p>区切られた文脈「Semantic Agent Schema」は1つで、Go モジュール1つがそれに当たる。<code>internal/</code> の1段目が業務領域、2段目が層（<code>domain</code> ・ <code>application</code>）。UC5 承認は <code>usecase_update.go</code> が主アクターが human の場合として持つ。</p>
+<p>区切られた文脈「Semantic Agent Schema」は1つで、Go モジュール1つがそれに当たる。<code>internal/</code> の1段目が業務領域、2段目が層（<code>domain</code> ・ <code>application</code>）。</p>
 
 <h3>依存の決まり</h3>
 <p><code>architecture_test.go</code> が <code>go list -deps -json ./...</code> の <code>ImportPath</code> ・ <code>Imports</code> ・ <code>Standard</code> を読み、下の表に無い依存があれば落とす。</p>
@@ -139,21 +139,21 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>コマンド</th><th>引数</th><th>UC</th></tr>
 <tr><td><code>create</code></td><td><code>&lt;path&gt; --schemas &lt;ディレクトリ&gt;</code>、次のどちらか：<code>--semantic --schema-id &lt;$id&gt;</code> ／ <code>--value &lt;JSON | -&gt;</code></td><td>UC1</td></tr>
-<tr><td><code>update</code></td><td><code>&lt;path&gt; --schemas</code>、次のどちらか：<code>--semantic</code> ／ <code>--patch &lt;JSON | -&gt; --if-match &lt;ハッシュ&gt;</code>。Concrete を更新するときは <code>--range &lt;path&gt;</code></td><td>UC2 ・ UC5（<code>--human</code>）</td></tr>
+<tr><td><code>update</code></td><td><code>&lt;path&gt; --schemas</code>、次のどちらか：<code>--semantic</code> ／ <code>--patch &lt;JSON | -&gt; --if-match &lt;ハッシュ&gt;</code>。Concrete を更新するときは <code>--range &lt;path&gt;</code></td><td>UC2</td></tr>
 <tr><td><code>validate</code></td><td><code>&lt;path&gt;... --schemas</code>。意味的な検証は <code>--semantic</code>（<code>--scope changed</code> が既定で変更点だけ。<code>--scope all</code> で全部の instance location。値はこの2つだけで、procedure の <code>scope</code> と同じ）か <code>--answer &lt;JSON | -&gt;</code>（path は1つ）</td><td>UC3 ・ UC4</td></tr>
 <tr><td><code>render</code></td><td><code>&lt;path&gt;... --schemas --design-system &lt;path&gt; --out &lt;ディレクトリ&gt;</code></td><td>UC6</td></tr>
 <tr><td><code>search</code></td><td><code>&lt;path&gt;...</code>、次のどれか：<code>--where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code>（繰り返せる）／ <code>--semantic --question &lt;問い&gt;</code> ／ <code>--answer &lt;JSON | -&gt;</code></td><td>UC7</td></tr>
-<tr><td><code>log</code></td><td><code>[&lt;path&gt;...] [--by &lt;ai | human&gt;] [--limit &lt;数&gt;]</code>、または <code>--operation &lt;command&gt;:&lt;id&gt;</code></td><td>UC8</td></tr>
+<tr><td><code>log</code></td><td><code>[&lt;path&gt;...] [--limit &lt;数&gt;]</code>、または <code>--operation &lt;command&gt;:&lt;id&gt;</code></td><td>UC8</td></tr>
 </table></div>
 <p class="soft">値を2つ以上渡す引数（<code>--schemas</code> ・ <code>--range</code> ・ <code>--where</code>）は繰り返す。<code>-</code> は標準入力から読む。終了コードは、error か violated の judgment があれば 1、ほかは 0。</p>
-<h3>主アクター</h3>
+<h3><code>x-decided-by: human</code> の値</h3>
 <ul>
-<li>操作の記録に追記するコマンド（create ・ update ・ validate）は、主アクターを <code>actor</code> に残す。<code>--human</code> があれば <code>human</code>、無ければ <code>ai</code></li>
-<li><code>--human</code> は、coding agent の環境変数があるところでは <code>human_in_coding_agent</code> の error で拒否する（D5）。見るのは次の名前の環境変数があるかだけで、値は読まない：<code>CLAUDE_CODE_SESSION_ID</code>（env-vars L381）・ <code>CODEX_SESSION_ID</code>（exec_env.rs L42）・ <code>COPILOT_AGENT_SESSION_ID</code>（changelog.md L2026）</li>
-<li>セッションとの結び付けは使う側の責務で、Semantic Agent Schema はセッションの ID を受け取らない ・ 残さない</li>
+<li>create ・ update で <code>x-decided-by: human</code> の値を変えようとしたら、いつも <code>decided_by_human</code> の error を返す（D2）。作成では default のまま、更新では前の値のままでなければならない</li>
+<li>人は、ファイルを直接書いて値を決める。誰が決めたかは Git のコミットの作者が残す。validate は、人が書いたあとも普通に検証する</li>
+<li>人かどうかの確かめと、セッションとの結び付けは使う側の責務。Semantic Agent Schema は、実行したのが人か AI かを受け取らない ・ 残さない</li>
 </ul>
 <h3>next への引き継ぎ</h3>
-<p>作成と更新の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> ・ <code>--human</code> と、いまのハッシュ（<code>--if-match</code>）を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
+<p>作成と更新の change の <code>next</code> は <code>validate &lt;path&gt; --schemas … --semantic</code>（意味的な検証の依頼）。procedure と error の <code>next</code> には、受け取った <code>--schemas</code> ・ <code>--range</code> ・ <code>--schema-id</code> と、いまのハッシュ（<code>--if-match</code>）を入れる。AI は <code>&lt;…&gt;</code> の部分だけを埋めて実行する。</p>
 </section>
 
 <section><h2><span class="n">5</span>公開された言葉</h2>
@@ -182,12 +182,11 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>code</th><th>いつ</th><th>next</th></tr>
 <tr><td><code>invalid_json</code></td><td>JSON として読めない（JSON ドキュメント ・ <code>--value</code> ・ <code>--patch</code> ・ <code>--answer</code> ・ デザインシステム）。<code>instanceLocation</code> は空、<code>message</code> は読めなかった位置</td><td>同じコマンド（直した JSON）</td></tr>
 <tr><td><code>arguments_invalid</code></td><td>引数が <code>arguments.schema.json</code> に違反した。インスタンスの更新に <code>--range</code> を渡したときも</td><td>同じコマンド（直した引数）</td></tr>
-<tr><td><code>human_in_coding_agent</code></td><td>coding agent の環境変数があるところで <code>--human</code>（D5）</td><td>空。指示が、human が自分で実行するよう示す</td></tr>
 <tr><td><code>schema_not_found</code> ・ <code>schema_duplicate</code></td><td><code>$id</code> の Concrete が無い ・ 2つある</td><td>同じコマンド（<code>--schemas</code> を直す）</td></tr>
 <tr><td><code>schema_violation</code></td><td>JSON ・ JSON Patch ・ answer ・ デザインシステムが JSON Schema に違反した</td><td>同じコマンド（直した値）</td></tr>
 <tr><td><code>convention_violation</code></td><td>作法の検査（S1）に違反した</td><td>同じコマンド</td></tr>
 <tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新 ・ 検証で path のファイルが無い</td><td><code>update --semantic</code> ／ <code>create --semantic</code></td></tr>
-<tr><td><code>decided_by_human</code></td><td>主アクターが ai なのに <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド</td></tr>
+<tr><td><code>decided_by_human</code></td><td>create ・ update で <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド。指示は、人がファイルを直接書いて決める値だと示す</td></tr>
 <tr><td><code>patch_not_applicable</code></td><td>JSON Patch を適用できない（path が無い ・ test が合わないなど）。<code>instanceLocation</code> はその operation の path</td><td><code>update --semantic</code></td></tr>
 <tr><td><code>hash_mismatch</code></td><td><code>--if-match</code> がいまのハッシュと違う（D3）。JSON Patch を適用する前と、ロックの中の2回確かめる</td><td><code>update --semantic</code></td></tr>
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>update --semantic</code></td></tr>
@@ -200,26 +199,25 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </section>
 
 <section><h2><span class="n">6</span>操作の記録</h2>
-<div class="fig"><svg viewBox="0 0 340 470" role="img" aria-label="操作の記録の ER 図。changes は作成と更新の操作で、actor が ai か human、path と schema_id、command、前後のハッシュを持つ。changes は field_changes を持ち、instance location ごとの前後の値を持つ。validations は検証の操作で、actor、path、schema_id、concrete_hash、検証した JSON ドキュメント（content）を持ち、judgments を持つ。operations は changes と validations を時刻順に並べたビュー" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg #dsvg-5343a70e-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}</style><defs data-dsvg="marker"><marker id="dsvg-5343a70e-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="340.0" height="470.0" fill="#FFFFFF" rx="8"/>
+<div class="fig"><svg viewBox="0 0 340 470" role="img" aria-label="操作の記録の ER 図。changes は作成と更新の操作で、path と schema_id、command、前後のハッシュを持つ。changes は field_changes を持ち、instance location ごとの前後の値を持つ。validations は検証の操作で、path、schema_id、concrete_hash、検証した JSON ドキュメント（content）を持ち、judgments を持つ。operations は changes と validations を時刻順に並べたビュー" class="dsvg"><style data-dsvg="dark">.dsvg .canvas{fill:var(--dsvg-area-fill,#FFFFFF)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F3F7F5);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .area{fill:var(--dsvg-area-fill,#FFFFFF);stroke:var(--dsvg-line,#7C8C86)}.dsvg #dsvg-e985b568-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}}:root[data-theme="dark"] .dsvg{--dsvg-area-fill:#22302D;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-line:#62756F}</style><defs data-dsvg="marker"><marker id="dsvg-e985b568-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs><rect data-dsvg="canvas" class="canvas" x="0.0" y="0.0" width="340.0" height="470.0" fill="#FFFFFF" rx="8"/>
 <text class="title" x="10" y="20" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">操作の記録（records.sqlite）</text>
 <rect class="box" x="10" y="34" width="155" height="136" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
 <text class="label" x="20" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">changes</text>
 <text class="note small" x="20" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">id（PK）</text>
-<text class="note small" x="20" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">actor（ai ・ human）</text>
-<text class="note small" x="20" y="106" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">path ・ schema_id</text>
-<text class="note small" x="20" y="122" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">command</text>
-<text class="note small" x="20" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">before_hash</text>
-<text class="note small" x="20" y="154" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">after_hash ・ at</text>
+<text class="note small" x="20" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">path ・ schema_id</text>
+<text class="note small" x="20" y="106" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">command</text>
+<text class="note small" x="20" y="122" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">before_hash</text>
+<text class="note small" x="20" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">after_hash ・ at</text>
 <rect class="box" x="175" y="34" width="155" height="136" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
 <text class="label" x="185" y="54" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">validations</text>
 <text class="note small" x="185" y="74" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">id（PK）</text>
-<text class="note small" x="185" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">actor ・ path</text>
+<text class="note small" x="185" y="90" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">path</text>
 <text class="note small" x="185" y="106" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">schema_id</text>
 <text class="note small" x="185" y="122" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">concrete_hash</text>
 <text class="note small" x="185" y="138" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">content（検証した JSON）</text>
 <text class="note small" x="185" y="154" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">content_hash ・ at</text>
-<path class="flow" d="M87,170 V206" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-5343a70e-arrow-5B6B66)"/>
-<path class="flow" d="M252,170 V206" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-5343a70e-arrow-5B6B66)"/>
+<path class="flow" d="M87,170 V206" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-e985b568-arrow-5B6B66)"/>
+<path class="flow" d="M252,170 V206" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-e985b568-arrow-5B6B66)"/>
 <text class="note small" x="95" y="192" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">1 : N</text>
 <text class="note small" x="260" y="192" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">1 : N</text>
 <rect class="box" x="10" y="208" width="155" height="104" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
@@ -238,18 +236,18 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <text class="title" x="22" y="354" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">ビュー operations</text>
 <text class="note small" x="22" y="376" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">changes と validations を UNION ALL し、</text>
 <text class="note small" x="22" y="394" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">時刻の順に並べる（UC8 操作の記録の参照）</text>
-<text class="note small" x="22" y="418" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">列：id ・ command ・ actor ・ path ・ at</text>
+<text class="note small" x="22" y="418" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">列：id ・ command ・ path ・ at</text>
 <text class="note small" x="22" y="440" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">どの表も追記だけ（UPDATE ・ DELETE は</text>
 <text class="note small" x="22" y="456" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">trigger で拒否する）</text>
 </svg></div>
 <p class="cap">ファイルは <code>&lt;git-common-dir&gt;/semantic-agent-schema/records.sqlite</code>。形は <code>adapters/outbound/recordstore/records.sql</code> が決める。</p>
 <div class="wrap"><table class="stack">
 <tr><th>表</th><th>列</th><th>抽象の行</th></tr>
-<tr><td><code>changes</code></td><td><code>id</code>（PK）・ <code>actor</code>（ai ・ human）・ <code>path</code> ・ <code>schema_id</code> ・ <code>command</code>（create ・ update）・ <code>before_hash</code> ・ <code>after_hash</code> ・ <code>at</code></td><td>UC1 ・ UC2 ・ UC5</td></tr>
+<tr><td><code>changes</code></td><td><code>id</code>（PK）・ <code>path</code> ・ <code>schema_id</code> ・ <code>command</code>（create ・ update）・ <code>before_hash</code> ・ <code>after_hash</code> ・ <code>at</code></td><td>UC1 ・ UC2</td></tr>
 <tr><td><code>field_changes</code></td><td><code>change_id</code>（FK）・ <code>instance_location</code> ・ <code>op</code>（add ・ remove ・ replace）・ <code>before</code> ・ <code>after</code>。作成では、ルートを含むすべての instance location を add で1行ずつ</td><td>D4</td></tr>
-<tr><td><code>validations</code></td><td><code>id</code>（PK）・ <code>actor</code> ・ <code>path</code> ・ <code>schema_id</code> ・ <code>concrete_hash</code> ・ <code>content</code>（検証した JSON ドキュメント）・ <code>content_hash</code> ・ <code>at</code></td><td>V1 ・ S4</td></tr>
+<tr><td><code>validations</code></td><td><code>id</code>（PK）・ <code>path</code> ・ <code>schema_id</code> ・ <code>concrete_hash</code> ・ <code>content</code>（検証した JSON ドキュメント）・ <code>content_hash</code> ・ <code>at</code></td><td>V1 ・ S4</td></tr>
 <tr><td><code>judgments</code></td><td><code>validation_id</code>（FK）・ <code>rule_id</code> ・ <code>instance_location</code> ・ <code>by</code>（machine ・ ai）・ <code>verdict</code>（verified ・ violated ・ unverified ・ not-judged）・ <code>reason</code></td><td>V3</td></tr>
-<tr><td>ビュー <code>operations</code></td><td><code>changes</code> と <code>validations</code> を UNION ALL し、<code>at</code> の順に並べる。列は <code>id</code> ・ <code>command</code> ・ <code>actor</code> ・ <code>path</code> ・ <code>at</code></td><td>UC8</td></tr>
+<tr><td>ビュー <code>operations</code></td><td><code>changes</code> と <code>validations</code> を UNION ALL し、<code>at</code> の順に並べる。列は <code>id</code> ・ <code>command</code> ・ <code>path</code> ・ <code>at</code></td><td>UC8</td></tr>
 </table></div>
 <ul>
 <li>どの表も追記だけ。UPDATE と DELETE は trigger で拒否する</li>
@@ -435,13 +433,13 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>比べ方</td><td>出力は JSON Pointer と値の組で比べ、差は <code>cmp.Diff</code> で出す。<code>message</code> の文は比べない。全部の出力を <code>event.schema.json</code>（procedure は <code>procedure.schema.json</code>）で検証する</td></tr>
 <tr><td>環境</td><td>試験ごとに新しい一時ディレクトリで <code>git init</code> し、本物のアダプター（一時ファイルの SQLite）を使う。子プロセスの環境は空から作る</td></tr>
 <tr><td>試験の入口</td><td>バイナリと application の手続きと、domain の公開の関数から実行する。非公開の関数を直に試さない</td></tr>
-<tr><td>レベル</td><td>domain はコンポーネントテスト（変更点の求め方と主アクターの決まりはデシジョンテーブル、値オブジェクトとバリデーターは同値分割法）。application とアダプターはコンポーネント統合テスト。ユースケースの拡張1つを1場面にするシステムテスト</td></tr>
+<tr><td>レベル</td><td>domain はコンポーネントテスト（変更点の求め方はデシジョンテーブル、値オブジェクトとバリデーターは同値分割法）。application とアダプターはコンポーネント統合テスト。ユースケースの拡張1つを1場面にするシステムテスト</td></tr>
 </table></div>
 <h3>完成の条件</h3>
 <div class="wrap"><table class="stack">
 <tr><th>条件</th><th>測り方</th><th>合格</th></tr>
 <tr><td>1 独立した書き起こし</td><td>コードだけを渡した新しい Agent が振る舞いを書き起こし、作成者の会話を引き継がない別の Agent が、2枚のページの振る舞いと比べる（無い ・ 余分 ・ 違う）。2回行う</td><td>2回とも0件</td></tr>
-<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。承認は human として実行する</td><td>人の助け無しで終える。error と violated の validation では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
+<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。<code>x-decided-by: human</code> の値は、人の役としてファイルを直接書いて決め、そのあと検証する</td><td>人の助け無しで終える。error と violated の validation では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
 <tr><td>3 振る舞い</td><td>試験を全部実行する。<code>go vet</code> ・ <code>gofmt -l</code> ・ <code>architecture_test.go</code> ・ exhaustive も含む。<code>deadcode ./cmd/semantic-agent-schema</code>（<code>-test</code> を付けない）</td><td>全部通る。main から届かない関数が0件</td></tr>
 </table></div>
 </section>

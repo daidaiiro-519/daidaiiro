@@ -3,7 +3,6 @@
 
 CREATE TABLE changes (
   id          INTEGER PRIMARY KEY,
-  actor       TEXT NOT NULL CHECK (actor IN ('ai', 'human')),
   path        TEXT NOT NULL,
   schema_id   TEXT NOT NULL,
   command     TEXT NOT NULL CHECK (command IN ('create', 'update')),
@@ -24,7 +23,6 @@ CREATE INDEX field_changes_change ON field_changes (change_id);
 
 CREATE TABLE validations (
   id            INTEGER PRIMARY KEY,
-  actor         TEXT NOT NULL CHECK (actor IN ('ai', 'human')),
   path          TEXT NOT NULL,
   schema_id     TEXT NOT NULL,
   concrete_hash TEXT NOT NULL,
@@ -72,9 +70,9 @@ BEGIN SELECT RAISE(ABORT, 'judgments is append-only'); END;
 
 -- 操作の記録の参照のビュー。changes と validations を UNION ALL し、at の順に並べる。
 CREATE VIEW operations AS
-SELECT id, command, actor, path, at FROM changes
+SELECT id, command, path, at FROM changes
 UNION ALL
-SELECT id, 'validate' AS command, actor, path, at FROM validations
+SELECT id, 'validate' AS command, path, at FROM validations
 ORDER BY at;
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;

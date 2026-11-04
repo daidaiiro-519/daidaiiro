@@ -1,5 +1,5 @@
 {
-  "title": "引数が作成の引数の形に違反すると error を返し、ファイルを作らない",
+  "title": "引数が作成の引数の形に違反すると error を返し、ファイルを作らない（知らないフラグ --human を含む）",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -85,6 +85,27 @@
           "/instanceLocation": "/paths/0"
         }
       ]
+    },
+    {
+      "args": [
+        "create",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--value",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"t\"}",
+        "--human"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid"
+        }
+      ],
+      "files": {
+        "memo.json": null
+      }
     }
   ]
 }

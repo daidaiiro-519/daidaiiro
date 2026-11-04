@@ -18,10 +18,6 @@ func validation(t *testing.T, content string) *domain.Validation {
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	actor, err := domain.NewActor(false, false)
-	if err != nil {
-		t.Fatalf("NewActor = %v", err)
-	}
 	value, err := domain.ParseJSON([]byte(content))
 	if err != nil {
 		t.Fatalf("ParseJSON = %v", err)
@@ -31,7 +27,7 @@ func validation(t *testing.T, content string) *domain.Validation {
 		t.Fatalf("NewConcrete = %v", err)
 	}
 	return domain.NewValidation(domain.ValidationInput{
-		Actor: actor, Value: value, Concrete: concrete,
+		Value: value, Concrete: concrete,
 		Document:   domain.Document{Path: path, Content: []byte(content), Hash: domain.HashOf([]byte(content))},
 		Violations: []domain.Violation{{InstanceLocation: domain.PointerOf("x"), AbsoluteKeywordLocation: "urn:a#/minimum", Message: "m"}},
 	})
@@ -150,10 +146,6 @@ func creation(t *testing.T, content string) *domain.Write {
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	actor, err := domain.NewActor(false, false)
-	if err != nil {
-		t.Fatalf("NewActor = %v", err)
-	}
 	value, err := domain.ParseJSON([]byte(content))
 	if err != nil {
 		t.Fatalf("ParseJSON = %v", err)
@@ -162,7 +154,7 @@ func creation(t *testing.T, content string) *domain.Write {
 	if err != nil {
 		t.Fatalf("NewConcrete = %v", err)
 	}
-	c, err := domain.NewCreation(domain.WriteInput{Actor: actor, Path: path, Content: []byte(content), Value: value, Concrete: concrete})
+	c, err := domain.NewCreation(domain.WriteInput{Path: path, Content: []byte(content), Value: value, Concrete: concrete})
 	if err != nil {
 		t.Fatalf("NewCreation = %v", err)
 	}

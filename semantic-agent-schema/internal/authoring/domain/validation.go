@@ -3,7 +3,6 @@ package domain
 // Validation は、集約「検証」。1つの JSON ドキュメントの、1つの内容について、機械的な検証の judgment と、
 // 前回の検証から引き継いだ AI の judgment を持つ。ID は操作の記録に追記したときに付き、作った後は変えない。
 type Validation struct {
-	actor     Actor
 	document  Document
 	concrete  Concrete
 	judgments []Judgment
@@ -11,7 +10,6 @@ type Validation struct {
 
 // ValidationInput は、検証を作るために application がポートから読んだもの。
 type ValidationInput struct {
-	Actor      Actor
 	Document   Document
 	Value      any // Document.Content を ParseJSON で読んだ値
 	Concrete   Concrete
@@ -30,15 +28,12 @@ func NewValidation(in ValidationInput) *Validation {
 		judgments = append(judgments, machine(promptRule{id: ConventionRule}, v))
 	}
 	judgments = append(judgments, Inherited(in.Previous, in.Value, in.Concrete)...)
-	return &Validation{actor: in.Actor, document: in.Document, concrete: in.Concrete, judgments: judgments}
+	return &Validation{document: in.Document, concrete: in.Concrete, judgments: judgments}
 }
 
 func machine(r Rule, v Violation) Judgment {
 	return result{rule: r, location: v.InstanceLocation, verdict: Violated, by: Machine, reason: v.Message}
 }
-
-// Actor は、検証した主アクターを返す。
-func (v *Validation) Actor() Actor { return v.actor }
 
 // Document は、検証した JSON ドキュメントを返す。
 func (v *Validation) Document() Document { return v.document }

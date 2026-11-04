@@ -31,8 +31,8 @@ func (u Create) Procedure(ctx context.Context, path domain.Path, schemaID string
 
 // Run は、AI が渡した JSON ドキュメントを検証し、path に書いて change を操作の記録に追記し、操作の ID と作成を返す。
 // error のときは、ファイルも操作の記録も変えない。
-func (u Create) Run(ctx context.Context, actor domain.Actor, path domain.Path, content []byte) (int64, *domain.Write, error) {
-	creation, err := u.check(ctx, actor, path, content)
+func (u Create) Run(ctx context.Context, path domain.Path, content []byte) (int64, *domain.Write, error) {
+	creation, err := u.check(ctx, path, content)
 	if err != nil {
 		return 0, nil, at(path, err)
 	}
@@ -54,7 +54,7 @@ func (u Create) Run(ctx context.Context, actor domain.Actor, path domain.Path, c
 }
 
 // check は、JSON ドキュメントを Concrete で検証し、作法と x-decided-by: human の値を確かめて、作成を返す。
-func (u Create) check(ctx context.Context, actor domain.Actor, path domain.Path, content []byte) (*domain.Write, error) {
+func (u Create) check(ctx context.Context, path domain.Path, content []byte) (*domain.Write, error) {
 	value, err := domain.ParseJSON(content)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (u Create) check(ctx context.Context, actor domain.Actor, path domain.Path,
 		}
 	}
 	return domain.NewCreation(domain.WriteInput{
-		Actor: actor, Path: path, Content: content, Value: value, Concrete: concrete,
+		Path: path, Content: content, Value: value, Concrete: concrete,
 	})
 }
 

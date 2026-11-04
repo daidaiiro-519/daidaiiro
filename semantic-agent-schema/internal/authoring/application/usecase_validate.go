@@ -25,16 +25,16 @@ type ValidateResult struct {
 }
 
 // Run は、範囲の JSON ドキュメントを1つずつ検証し、JSON ドキュメントごとの結果を返す。
-func (u Validate) Run(ctx context.Context, actor domain.Actor, paths []domain.Path) []ValidateResult {
+func (u Validate) Run(ctx context.Context, paths []domain.Path) []ValidateResult {
 	results := make([]ValidateResult, 0, len(paths))
 	for _, path := range paths {
-		id, validation, err := u.one(ctx, actor, path)
+		id, validation, err := u.one(ctx, path)
 		results = append(results, ValidateResult{ID: id, Validation: validation, Err: at(path, err)})
 	}
 	return results
 }
 
-func (u Validate) one(ctx context.Context, actor domain.Actor, path domain.Path) (int64, *domain.Validation, error) {
+func (u Validate) one(ctx context.Context, path domain.Path) (int64, *domain.Validation, error) {
 	document, err := u.Documents.Read(ctx, path)
 	if err != nil {
 		return 0, nil, err
@@ -75,7 +75,7 @@ func (u Validate) one(ctx context.Context, actor domain.Actor, path domain.Path)
 		return 0, nil, err
 	}
 	validation := domain.NewValidation(domain.ValidationInput{
-		Actor: actor, Document: document, Value: value, Concrete: concrete,
+		Document: document, Value: value, Concrete: concrete,
 		Violations: violations, Convention: convention, Previous: previous,
 	})
 	id, err := u.Records.AppendValidation(ctx, validation)

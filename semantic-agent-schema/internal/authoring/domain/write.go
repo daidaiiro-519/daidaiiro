@@ -9,12 +9,11 @@ import (
 )
 
 // Write は、集約「JSON ドキュメント」を書く操作（作成か更新）。書いた後の JSON ドキュメント ・ 書く前のハッシュ ・
-// 従う Concrete ・ 主アクター ・ instance location ごとの change を持つ。
-// 不変条件：x-decided-by: human の値は、主アクターが human のときだけ default（更新では前の値）から変わる。
+// 従う Concrete ・ instance location ごとの change を持つ。
+// 不変条件：x-decided-by: human の値は、このコマンドでは default（更新では前の値）から変えない。人が決める値は、人がファイルを直接書く。
 // 書くたびに instance location ごとの change を出す。
 type Write struct {
 	command    commandName
-	actor      Actor
 	document   Document
 	beforeHash Hash
 	concrete   Concrete
@@ -23,52 +22,47 @@ type Write struct {
 
 // WriteInput は、書く操作を作るために application が読んだもの。
 type WriteInput struct {
-	Actor    Actor
 	Path     Path
 	Content  []byte // 書いた後の JSON ドキュメントのバイト列。書くときは字下げをそろえる
 	Value    any    // Content を ParseJSON で読んだ値
 	Concrete Concrete
 }
 
-// NewCreation は、作成を返す。主アクターが ai で、x-decided-by: human のサブスキーマに当たるインスタンスの値が
+// NewCreation は、作成を返す。x-decided-by: human のサブスキーマに当たるインスタンスの値が
 // default と違えば（default が無ければ、どの値も）、その instance location ごとの decided_by_human の Failure をまとめて返す。
 // change は、ルートを含むすべての instance location の add になる。
 func NewCreation(in WriteInput) (*Write, error) {
-	if in.Actor.Kind() == AI {
-		var failures []error
-		for location, found := range decidedValues(in.Concrete, in.Value) {
-			if found.hasDefault && found.value == found.def {
-				continue
-			}
-			failures = append(failures, decidedFailure(in.Path, location, found.value))
+	var failures []error
+	for location, found := range decidedValues(in.Concrete, in.Value) {
+		if found.hasDefault && found.value == found.def {
+			continue
 		}
-		if err := errors.Join(sortFailures(failures)...); err != nil {
-			return nil, err
-		}
+		failures = append(failures, decidedFailure(in.Path, location, found.value))
+	}
+	if err := errors.Join(sortFailures(failures)...); err != nil {
+		return nil, err
 	}
 	return newWrite(CreateCommand, in, nil, nil, false)
 }
 
-// NewUpdate は、更新を返す。before は書く前の JSON ドキュメント。主アクターが ai で、x-decided-by: human のサブスキーマに
+// NewUpdate は、更新を返す。before は書く前の JSON ドキュメント。x-decided-by: human のサブスキーマに
 // 当たるインスタンスの値が前と変われば（足す ・ 消すを含む）、その instance location ごとの decided_by_human の Failure を
 // まとめて返す。change は、前後で値が違う instance location ごとに出す。
 func NewUpdate(in WriteInput, before Document, beforeValue any) (*Write, error) {
-	if in.Actor.Kind() == AI {
-		old, current := decidedValues(in.Concrete, beforeValue), decidedValues(in.Concrete, in.Value)
-		var failures []error
-		for location, found := range current {
-			if prior, ok := old[location]; !ok || prior.value != found.value {
-				failures = append(failures, decidedFailure(in.Path, location, found.value))
-			}
+	old, current := decidedValues(in.Concrete, beforeValue), decidedValues(in.Concrete, in.Value)
+	var failures []error
+	for location, found := range current {
+		if prior, ok := old[location]; !ok || prior.value != found.value {
+			failures = append(failures, decidedFailure(in.Path, location, found.value))
 		}
-		for location, prior := range old {
-			if _, ok := current[location]; !ok {
-				failures = append(failures, decidedFailure(in.Path, location, prior.value))
-			}
+	}
+	for location, prior := range old {
+		if _, ok := current[location]; !ok {
+			failures = append(failures, decidedFailure(in.Path, location, prior.value))
 		}
-		if err := errors.Join(sortFailures(failures)...); err != nil {
-			return nil, err
-		}
+	}
+	if err := errors.Join(sortFailures(failures)...); err != nil {
+		return nil, err
 	}
 	return newWrite(UpdateCommand, in, before.Hash, beforeValue, true)
 }
@@ -83,7 +77,6 @@ func newWrite(c commandName, in WriteInput, beforeHash Hash, beforeValue any, ha
 	content := formatted.Bytes()
 	return &Write{
 		command:    c,
-		actor:      in.Actor,
 		document:   Document{Path: in.Path, Content: content, Hash: HashOf(content)},
 		beforeHash: beforeHash,
 		concrete:   in.Concrete,
@@ -94,7 +87,7 @@ func newWrite(c commandName, in WriteInput, beforeHash Hash, beforeValue any, ha
 func decidedFailure(path Path, location, value string) error {
 	return &Failure{
 		Code: DecidedByHuman, Path: path.String(), InstanceLocation: location,
-		Message: "x-decided-by: human の値を、主アクター ai が変えた：" + value,
+		Message: "x-decided-by: human の値を変えた：" + value,
 	}
 }
 
@@ -170,9 +163,6 @@ func walkInstance(subschema map[string]any, value any, at []string, visit func(s
 
 // Command は、書く操作のコマンド（create か update）を返す。
 func (w *Write) Command() commandName { return w.command }
-
-// Actor は、書いた主アクターを返す。
-func (w *Write) Actor() Actor { return w.actor }
 
 // Document は、書いた後の JSON ドキュメントを返す。
 func (w *Write) Document() Document { return w.document }

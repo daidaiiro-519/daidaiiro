@@ -22,7 +22,7 @@ import (
 var records string
 
 // version は、表の形の版。records.sql の PRAGMA user_version と同じ。
-const version = 2
+const version = 3
 
 // Store は、<git-common-dir>/semantic-agent-schema/records.sqlite の操作の記録。
 type Store struct {
@@ -137,9 +137,9 @@ func (s *Store) AppendChange(ctx context.Context, c *domain.Write) (int64, error
 	}
 	document := c.Document()
 	result, err := conn.ExecContext(ctx,
-		`INSERT INTO changes (actor, path, schema_id, command, before_hash, after_hash, at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		string(c.Actor().Kind()), document.Path.String(), c.Concrete().ID(), string(c.Command()),
+		`INSERT INTO changes (path, schema_id, command, before_hash, after_hash, at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		document.Path.String(), c.Concrete().ID(), string(c.Command()),
 		nullableHash(c.BeforeHash()), document.Hash.String(),
 		time.Now().UTC().Format(time.RFC3339Nano))
 	if err != nil {
@@ -231,9 +231,9 @@ func (s *Store) AppendValidation(ctx context.Context, v *domain.Validation) (int
 	err := s.withLock(ctx, func(conn *sql.Conn) error {
 		document := v.Document()
 		result, err := conn.ExecContext(ctx,
-			`INSERT INTO validations (actor, path, schema_id, concrete_hash, content, content_hash, at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			string(v.Actor().Kind()), document.Path.String(), v.Concrete().ID(), v.Concrete().Hash().String(),
+			`INSERT INTO validations (path, schema_id, concrete_hash, content, content_hash, at)
+			 VALUES (?, ?, ?, ?, ?, ?)`,
+			document.Path.String(), v.Concrete().ID(), v.Concrete().Hash().String(),
 			string(document.Content), document.Hash.String(), time.Now().UTC().Format(time.RFC3339Nano))
 		if err != nil {
 			return s.failure(err)

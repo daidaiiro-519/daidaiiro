@@ -39,33 +39,6 @@ func TestNewPathRejectsPathsOutsideWorkingTree(t *testing.T) {
 	}
 }
 
-func TestNewActorDecidesByHumanFlagAndCodingAgent(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name         string
-		human, agent bool
-		want         string
-		wantCode     string
-	}{
-		{name: "--human が無ければ ai", want: "ai"},
-		{name: "coding agent の中でも --human が無ければ ai", agent: true, want: "ai"},
-		{name: "coding agent の外の --human は human", human: true, want: "human"},
-		{name: "coding agent の中の --human は拒む", human: true, agent: true, wantCode: "human_in_coding_agent"},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			actor, err := domain.NewActor(c.human, c.agent)
-			if got := codeOf(err); got != c.wantCode {
-				t.Errorf("NewActor(%v, %v) code = %q, want %q", c.human, c.agent, got, c.wantCode)
-			}
-			if err == nil && string(actor.Kind()) != c.want {
-				t.Errorf("NewActor(%v, %v) = %s, want %s", c.human, c.agent, actor.Kind(), c.want)
-			}
-		})
-	}
-}
-
 func TestNewPointerRejectsInvalidForm(t *testing.T) {
 	t.Parallel()
 	for _, value := range []string{"a", "/a~2", "/a~"} {
@@ -272,12 +245,8 @@ func TestCountsOnlyVerifiedIsSatisfied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	actor, err := domain.NewActor(false, false)
-	if err != nil {
-		t.Fatalf("NewActor = %v", err)
-	}
 	v := domain.NewValidation(domain.ValidationInput{
-		Actor: actor, Document: domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}, Value: value,
+		Document: domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}, Value: value,
 		Concrete:   schema,
 		Violations: []domain.Violation{{InstanceLocation: domain.PointerOf("a"), AbsoluteKeywordLocation: "urn:x#/minimum"}},
 		Previous: previous(t, string(content), schema.Hash(),
@@ -336,21 +305,19 @@ func TestNewCreateProcedureMakesStepsFromProperties(t *testing.T) {
 	}
 }
 
-// デシジョンテーブル：主アクター × x-decided-by: human の instance location の値（無い ・ default ・ default と違う ・ default が無いのに有る）。
+// デシジョンテーブル：x-decided-by: human の instance location の値（無い ・ default ・ default と違う ・ default が無いのに有る）。
 func TestNewCreationDecidedByHuman(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name          string
-		human         bool
 		value         string
 		wantLocations []string
 	}{
-		{name: "ai が値を書かない", value: `{"title": "t"}`},
-		{name: "ai が default のまま書く", value: `{"status": "draft"}`},
-		{name: "ai が default と違う値を書く", value: `{"status": "approved"}`, wantLocations: []string{"/status"}},
-		{name: "ai が default の無い値を書く", value: `{"owner": "x", "status": "approved"}`, wantLocations: []string{"/owner", "/status"}},
-		{name: "ai が配列の要素の値を default から変える", value: `{"items": [{"checked": false}, {}, {"checked": true}]}`, wantLocations: []string{"/items/2/checked"}},
-		{name: "human は default と違う値を書ける", human: true, value: `{"owner": "x", "status": "approved"}`},
+		{name: "値を書かない", value: `{"title": "t"}`},
+		{name: "default のまま書く", value: `{"status": "draft"}`},
+		{name: "default と違う値を書く", value: `{"status": "approved"}`, wantLocations: []string{"/status"}},
+		{name: "default の無い値を書く", value: `{"owner": "x", "status": "approved"}`, wantLocations: []string{"/owner", "/status"}},
+		{name: "配列の要素の値を default から変える", value: `{"items": [{"checked": false}, {}, {"checked": true}]}`, wantLocations: []string{"/items/2/checked"}},
 	}
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
@@ -359,16 +326,12 @@ func TestNewCreationDecidedByHuman(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actor, err := domain.NewActor(c.human, false)
-			if err != nil {
-				t.Fatalf("NewActor = %v", err)
-			}
 			value, err := domain.ParseJSON([]byte(c.value))
 			if err != nil {
 				t.Fatalf("ParseJSON(%s) = %v", c.value, err)
 			}
 			_, err = domain.NewCreation(domain.WriteInput{
-				Actor: actor, Path: path, Content: []byte(c.value), Value: value, Concrete: concrete(t, memo),
+				Path: path, Content: []byte(c.value), Value: value, Concrete: concrete(t, memo),
 			})
 			var got []string
 			for _, e := range unjoin(err) {
@@ -405,11 +368,7 @@ func TestNewCreationAddsEveryInstanceLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	actor, err := domain.NewActor(false, false)
-	if err != nil {
-		t.Fatalf("NewActor = %v", err)
-	}
-	c, err := domain.NewCreation(domain.WriteInput{Actor: actor, Path: path, Content: content, Value: value, Concrete: concrete(t, memo)})
+	c, err := domain.NewCreation(domain.WriteInput{Path: path, Content: content, Value: value, Concrete: concrete(t, memo)})
 	if err != nil {
 		t.Fatalf("NewCreation = %v", err)
 	}
@@ -429,22 +388,20 @@ func TestNewCreationAddsEveryInstanceLocation(t *testing.T) {
 	}
 }
 
-// デシジョンテーブル：主アクター × x-decided-by: human の値の前後（変えない ・ 変える ・ 足す ・ 消す ・ 配列の要素で変える）。
+// デシジョンテーブル：x-decided-by: human の値の前後（変えない ・ 変える ・ 足す ・ 消す ・ 配列の要素で変える）。
 func TestNewUpdateDecidedByHuman(t *testing.T) {
 	t.Parallel()
 	before := `{"title": "t", "status": "draft", "items": [{"checked": false}]}`
 	cases := []struct {
 		name          string
-		human         bool
 		after         string
 		wantLocations []string
 	}{
-		{name: "ai が x-decided-by: human の値を変えない", after: `{"title": "u", "status": "draft", "items": [{"checked": false}]}`},
-		{name: "ai が値を変える", after: `{"title": "t", "status": "approved", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
-		{name: "ai が値を足す", after: `{"title": "t", "status": "draft", "owner": "x", "items": [{"checked": false}]}`, wantLocations: []string{"/owner"}},
-		{name: "ai が値を消す", after: `{"title": "t", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
-		{name: "ai が配列の要素の値を変える", after: `{"title": "t", "status": "draft", "items": [{"checked": true}]}`, wantLocations: []string{"/items/0/checked"}},
-		{name: "human は値を変えられる", human: true, after: `{"title": "t", "status": "approved", "items": []}`},
+		{name: "x-decided-by: human の値を変えない", after: `{"title": "u", "status": "draft", "items": [{"checked": false}]}`},
+		{name: "値を変える", after: `{"title": "t", "status": "approved", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
+		{name: "値を足す", after: `{"title": "t", "status": "draft", "owner": "x", "items": [{"checked": false}]}`, wantLocations: []string{"/owner"}},
+		{name: "値を消す", after: `{"title": "t", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
+		{name: "配列の要素の値を変える", after: `{"title": "t", "status": "draft", "items": [{"checked": true}]}`, wantLocations: []string{"/items/0/checked"}},
 	}
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
@@ -458,16 +415,12 @@ func TestNewUpdateDecidedByHuman(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			actor, err := domain.NewActor(c.human, false)
-			if err != nil {
-				t.Fatalf("NewActor = %v", err)
-			}
 			value, err := domain.ParseJSON([]byte(c.after))
 			if err != nil {
 				t.Fatalf("ParseJSON(%s) = %v", c.after, err)
 			}
 			w, err := domain.NewUpdate(domain.WriteInput{
-				Actor: actor, Path: path, Content: []byte(c.after), Value: value, Concrete: concrete(t, memo),
+				Path: path, Content: []byte(c.after), Value: value, Concrete: concrete(t, memo),
 			}, document, beforeValue)
 			var got []string
 			for _, e := range unjoin(err) {
