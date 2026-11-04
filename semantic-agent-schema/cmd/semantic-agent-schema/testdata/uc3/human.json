@@ -1,0 +1,110 @@
+{
+  "title": "coding agent の環境変数があるところで --human：error。無ければ主アクターは human",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    },
+    "order.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": 110
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas",
+        "--human"
+      ],
+      "env": {
+        "CLAUDE_CODE_SESSION_ID": "s"
+      },
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "human_in_coding_agent",
+          "/next": ""
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas",
+        "--human"
+      ],
+      "env": {
+        "CODEX_SESSION_ID": ""
+      },
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "human_in_coding_agent"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas",
+        "--human"
+      ],
+      "env": {
+        "COPILOT_AGENT_SESSION_ID": "s"
+      },
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "human_in_coding_agent"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "env": {
+        "CLAUDE_CODE_SESSION_ID": "s"
+      },
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/actor": "ai"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas",
+        "--human"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/actor": "human"
+        }
+      ]
+    }
+  ]
+}

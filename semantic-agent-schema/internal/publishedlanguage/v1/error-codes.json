@@ -1,0 +1,49 @@
+{
+  "description": "code ごとの instruction の定型文と next の形。{…} はコマンドが埋め、<…> は AI が埋める。{schemas} は --schemas の並び、{human} は --human（無ければ空）、{hash} はいまのハッシュに置き換わる。violated は、violated の judgment がある validation のログイベントの instruction と next。",
+  "codes": {
+    "arguments_invalid": {
+      "instruction": "引数が引数の形に違反している（instance location：{instanceLocation}、{message}）。引数を直して、もう一度実行する",
+      "next": "semantic-agent-schema {command} <直した引数>"
+    },
+    "human_in_coding_agent": {
+      "instruction": "human として実行できるのは人だけ。coding agent の外のターミナルで、人がこのコマンドを実行するよう、人に伝える",
+      "next": ""
+    },
+    "schema_not_found": {
+      "instruction": "{path} の $schema の Concrete が schemas に無い（{message}）。その $id の Concrete を持つディレクトリを --schemas に渡すか、{path} の $schema を直す",
+      "next": "semantic-agent-schema {command} {path} --schemas <$id の Concrete を持つディレクトリ>{human}"
+    },
+    "schema_duplicate": {
+      "instruction": "同じ $id の Concrete が schemas に2つ以上ある（{message}）。その $id の Concrete を1つだけ持つディレクトリを --schemas に渡す",
+      "next": "semantic-agent-schema {command} {path} --schemas <$id の Concrete を1つだけ持つディレクトリ>{human}"
+    },
+    "schema_violation": {
+      "instruction": "{path} の {instanceLocation} を {absoluteKeywordLocation} に合うように直す（{message}）。直したら、もう一度実行する",
+      "next": "semantic-agent-schema {command} {paths} {schemas}{human}"
+    },
+    "invalid_json": {
+      "instruction": "{path} は JSON として読めない（{message}）。JSON に直して、もう一度実行する",
+      "next": "semantic-agent-schema {command} {paths} {schemas}{human}"
+    },
+    "path_outside": {
+      "instruction": "{path} は working tree の外を指す。working tree の top-level directory からの相対の path を渡す",
+      "next": "semantic-agent-schema {command} <working tree の中の path> {schemas}{human}"
+    },
+    "file_not_found": {
+      "instruction": "{path} が無い（{message}）。path を直すか、create で作る",
+      "next": "semantic-agent-schema create {path} {schemas} --semantic --schema-id <Concrete の $id>"
+    },
+    "log_unavailable": {
+      "instruction": "操作の記録を開けない（{message}）。Git のリポジトリの外なら、リポジトリの中で実行する。表の形の版が違うなら、<git-common-dir>/semantic-agent-schema/records.sqlite を削除してから実行する",
+      "next": "semantic-agent-schema {command} {paths} {schemas}{human}"
+    },
+    "log_locked": {
+      "instruction": "操作の記録のロックが取れない（{message}）。ほかのコマンドが終わってから、もう一度実行する",
+      "next": "semantic-agent-schema {command} {paths} {schemas}{human}"
+    }
+  },
+  "violated": {
+    "instruction": "{path} に violated の judgment がある（instance location：{instanceLocation}）。judgments の reason を見て、その instance location を直す JSON Patch を作り、next の update を実行する",
+    "next": "semantic-agent-schema update {path} {schemas} --patch '<violated の instance location を直す JSON Patch>' --if-match {hash}{human}"
+  }
+}

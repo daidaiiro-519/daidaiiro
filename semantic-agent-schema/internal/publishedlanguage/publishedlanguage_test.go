@@ -1,0 +1,73 @@
+package publishedlanguage_test
+
+import (
+	"encoding/json"
+	"slices"
+	"testing"
+
+	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
+)
+
+func read(t *testing.T, name string, into any) {
+	t.Helper()
+	content, err := publishedlanguage.Read(name)
+	if err != nil {
+		t.Fatalf("Read(%s) = %v", name, err)
+	}
+	if err := json.Unmarshal(content, into); err != nil {
+		t.Fatalf("json.Unmarshal(%s) = %v", name, err)
+	}
+}
+
+func TestErrorCodesMatchEventSchema(t *testing.T) {
+	t.Parallel()
+	type template struct {
+		Instruction string  `json:"instruction"`
+		Next        *string `json:"next"`
+	}
+	var codes struct {
+		Codes    map[string]template `json:"codes"`
+		Violated template            `json:"violated"`
+	}
+	read(t, "error-codes.json", &codes)
+	var event struct {
+		Defs struct {
+			Error struct {
+				Properties struct {
+					Code struct {
+						Enum []string `json:"enum"`
+					} `json:"code"`
+				} `json:"properties"`
+			} `json:"error"`
+		} `json:"$defs"`
+	}
+	read(t, "event.schema.json", &event)
+	var keys []string
+	for code, c := range codes.Codes {
+		keys = append(keys, code)
+		if c.Instruction == "" || c.Next == nil {
+			t.Errorf("error-codes.json %s = %+v, want instruction and next", code, c)
+		}
+	}
+	if codes.Violated.Instruction == "" || codes.Violated.Next == nil || *codes.Violated.Next == "" {
+		t.Errorf("error-codes.json violated = %+v, want instruction and next", codes.Violated)
+	}
+	slices.Sort(keys)
+	enum := slices.Sorted(slices.Values(event.Defs.Error.Properties.Code.Enum))
+	if !slices.Equal(keys, enum) {
+		t.Errorf("error-codes.json codes = %v, want event.schema.json code %v", keys, enum)
+	}
+}
+
+func TestSchemasHaveID(t *testing.T) {
+	t.Parallel()
+	for _, name := range publishedlanguage.Schemas {
+		var schema struct {
+			ID string `json:"$id"`
+		}
+		read(t, name, &schema)
+		if schema.ID == "" {
+			t.Errorf("Read(%s) $id = %q, want non-empty", name, schema.ID)
+		}
+	}
+}

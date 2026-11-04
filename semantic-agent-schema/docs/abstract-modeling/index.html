@@ -246,11 +246,17 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>JSON ドキュメント</td><td>1つの JSON。Semantic Agent Schema が扱うのはスキーマ（Concrete）かインスタンス</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>インスタンス</td><td>スキーマを適用する JSON ドキュメント</td><td class="tr">JSON Schema Core ・ 本質 C3</td></tr>
 <tr><td>スキーマ ・ メタスキーマ</td><td>インスタンスを記述する JSON ドキュメント ・ スキーマを記述するスキーマ</td><td class="tr">JSON Schema Core</td></tr>
+<tr><td>語彙（vocabulary）・ 方言（dialect）</td><td>キーワードとその構文と意味の集まり ・ メタスキーマが示す語彙の集まり。Abstract の拡張項目は、Semantic Agent Schema の語彙として JSON Schema に足す</td><td class="tr">JSON Schema 2020-12 Core</td></tr>
 <tr><td>キーワード ・ サブスキーマ ・ ルートスキーマ ・ プロパティ</td><td>JSON Schema の標準の意味のまま</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>instance location</td><td>インスタンスの中の値の位置。JSON Pointer で書く</td><td class="tr">JSON Schema Core ・ RFC 6901</td></tr>
 <tr><td>absolute keyword location</td><td>違反したキーワードの、<code>$id</code> を基にした絶対の位置</td><td class="tr">JSON Schema Core</td></tr>
 <tr><td>JSON Patch</td><td>JSON ドキュメントに適用する operation の並び</td><td class="tr">RFC 6902</td></tr>
 <tr><td>If-Match ・ ハッシュ</td><td>書く前に、読んだときと同じ内容かを照らす前提条件 ・ 内容のバイト列から決まる値</td><td class="tr">RFC 9110</td></tr>
+</table></div>
+<h3>Hexagonal Architecture の語</h3>
+<div class="wrap"><table class="stack">
+<tr><th>用語</th><th>意味</th><th>出どころ</th></tr>
+<tr><td>driving ・ driven</td><td>アプリケーションを動かす側（主アクターの AI と human、そのアダプター）・ アプリケーションが動かす側（ファイル ・ JSON Schema の実装 ・ 操作の記録の DB など、そのアダプター）。ポートとアダプターで、driving は左側、driven は右側に置く</td><td class="tr">Cockburn「Hexagonal Architecture」</td></tr>
 </table></div>
 <h3>Semantic Agent Schema の語</h3>
 <div class="wrap"><table class="stack">
@@ -259,7 +265,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>作法</td><td>Abstract が決めた書き方（拡張項目と <code>x-prompt</code> の書き方）</td><td class="tr">本質 W4 ・ C1</td></tr>
 <tr><td>拡張項目</td><td>JSON Schema に足した、AI が読むことを前提にしたキーワード。<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code> の3つで閉じている</td><td class="tr">本質 W1</td></tr>
 <tr><td><code>x-prompt</code></td><td>サブスキーマの値を何として読み、どう書くか。meaning ・ when ・ rules を持ち、生成にも判定にも同じものを使う</td><td class="tr">本質 W1 ・ E3</td></tr>
-<tr><td>rule</td><td><code>x-prompt</code> の rules の1件。id ・ rule ・ why ・ check ・ related_fields ・ bad ・ good を持つ</td><td class="tr">本質 W1</td></tr>
+<tr><td>rule</td><td><code>x-prompt</code> の rules の1件。id ・ rule ・ why ・ check ・ related_fields ・ bad ・ good を持つ。related_fields は、インスタンスのルートからの絶対の JSON Pointer で書く</td><td class="tr">本質 W1</td></tr>
 <tr><td><code>x-decided-by: human</code></td><td>値を決めるのは人だ、という宣言。このサブスキーマの値は human だけが default から変える</td><td class="tr">本質 P7</td></tr>
 <tr><td><code>x-view</code></td><td>ルートスキーマに書く、テンプレートの種類の名前</td><td class="tr">本質 W1</td></tr>
 <tr><td>契約 ・ 依存の注入 ・ 公開された言葉</td><td>Semantic Agent Schema が決めた入力 ・ 出力 ・ 注入の形 ・ その形の依存だけを外から受け取ること ・ AI と人へ公開する入力 ・ 出力のスキーマの集まり</td><td class="tr">本質 W3–W4 ・ <code>open-host-service</code></td></tr>
@@ -383,7 +389,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>3</td><td>Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：S1</td></tr>
 <tr><td>4</td><td>前回の検証と比べて変更点を求め、変更点でない instance location の AI の judgment を引き継ぐ</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
 <tr><td>5</td><td>judgment と JSON ドキュメントを操作の記録に追記し、counts を返す</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC3-2a 違反がある：violated として数える（error にしない）</li><li>UC3-2b Concrete が schemas に無い（Concrete を消したときを含む）：error</li></ul></dd>
+<dt>拡張</dt><dd><ul><li>UC3-1a path のファイルが無い：error（<code>file_not_found</code>）。指示と next を返す</li><li>UC3-2a 違反がある：violated として数える（error にしない）。validation のログイベントに、違反の instance location を直す指示と、更新の next を付ける</li><li>UC3-2b Concrete が schemas に無い（Concrete を消したときを含む）：error</li><li>UC3-5a 操作の記録を開けない（Git のリポジトリの外など）：error（<code>log_unavailable</code>）。指示と next を返す</li></ul></dd>
 </dl></div>
 
 <div class="uc core-uc"><h3>UC4 意味的な検証 <span class="k core">中核</span></h3><dl>
@@ -569,7 +575,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>指示</td><td>AI への直し方の文</td><td>code ごとの定型文に、instance location と値を入れる</td></tr>
 <tr><td>next</td><td>次に実行するコマンド行。AI が埋める部分だけを &lt;…&gt; で空けておく</td><td>受け取った引数を引き継ぐ</td></tr>
 </table></div>
-<p>JSON Schema の違反は、JSON Schema の実装の出力をこの形に変換するだけで、独自の判定を足さない。</p>
+<p>JSON Schema の違反は、JSON Schema の実装の出力をこの形に変換するだけで、独自の判定を足さない。JSON として読めない入力も、error で返す。violated の judgment がある検証の結果は error ではないが、同じく指示と next を持つ。</p>
 </section>
 
 <section class="ng"><h2><span class="n">10</span><span class="nb">境界：</span><span class="nb">持たないもの</span></h2>

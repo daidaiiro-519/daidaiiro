@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:event:v1",
+  "title": "ログイベント",
+  "description": "コマンドが返す JSON の1行。読むのは AI。",
+  "oneOf": [
+    { "$ref": "#/$defs/validation" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "pointer": {
+      "description": "JSON Pointer（RFC 6901）",
+      "type": "string",
+      "pattern": "^(/([^~/]|~[01])*)*$"
+    },
+    "hash": {
+      "description": "内容のバイト列から決まる値",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "validation": {
+      "description": "検証の、JSON ドキュメント1つの結果",
+      "type": "object",
+      "required": ["event", "id", "actor", "path", "schemaId", "contentHash", "counts", "judgments"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "validation" },
+        "id": { "description": "操作の ID", "type": "integer", "minimum": 1 },
+        "actor": { "description": "主アクター", "enum": ["ai", "human"] },
+        "path": { "type": "string" },
+        "schemaId": { "description": "従う Concrete（Concrete なら Abstract）の $id", "type": "string" },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "counts": {
+          "description": "verdict ごとの judgment の件数。満たしたとするのは verified だけ",
+          "type": "object",
+          "required": ["verified", "violated", "unverified", "not-judged"],
+          "additionalProperties": false,
+          "properties": {
+            "verified": { "type": "integer", "minimum": 0 },
+            "violated": { "type": "integer", "minimum": 0 },
+            "unverified": { "type": "integer", "minimum": 0 },
+            "not-judged": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "judgments": { "type": "array", "items": { "$ref": "#/$defs/judgment" } },
+        "instruction": { "description": "violated の judgment があるときの、AI への直し方の文", "type": "string", "minLength": 1 },
+        "next": { "description": "violated の judgment があるときの、次に実行するコマンド行。AI が埋める部分だけを <…> で空けておく", "type": "string", "minLength": 1 }
+      },
+      "if": { "properties": { "counts": { "properties": { "violated": { "minimum": 1 } } } } },
+      "then": { "required": ["instruction", "next"] },
+      "else": { "not": { "anyOf": [{ "required": ["instruction"] }, { "required": ["next"] }] } }
+    },
+    "judgment": {
+      "description": "1つの rule と1つの instance location の組の結果",
+      "type": "object",
+      "required": ["rule", "instanceLocation", "verdict", "by", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "rule": { "type": "string" },
+        "instanceLocation": { "$ref": "#/$defs/pointer" },
+        "verdict": { "enum": ["verified", "violated", "unverified", "not-judged"] },
+        "by": { "enum": ["machine", "ai"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "error": {
+      "description": "違反を伝えるログイベント。AI は instruction に従い、next を実行する",
+      "type": "object",
+      "required": ["event", "code", "message", "instruction", "next"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "error" },
+        "code": {
+          "enum": [
+            "arguments_invalid",
+            "human_in_coding_agent",
+            "schema_not_found",
+            "schema_duplicate",
+            "schema_violation",
+            "invalid_json",
+            "path_outside",
+            "file_not_found",
+            "log_unavailable",
+            "log_locked"
+          ]
+        },
+        "instanceLocation": { "$ref": "#/$defs/pointer" },
+        "absoluteKeywordLocation": { "type": "string" },
+        "message": { "type": "string" },
+        "instruction": { "type": "string", "minLength": 1 },
+        "next": { "description": "次に実行するコマンド行。AI が埋める部分だけを <…> で空けておく", "type": "string" }
+      }
+    }
+  }
+}

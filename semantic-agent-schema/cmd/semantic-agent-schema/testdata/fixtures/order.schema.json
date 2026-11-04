@@ -1,0 +1,39 @@
+{
+  "$schema": "urn:semantic-agent-schema:abstract:v1",
+  "$id": "urn:example:order:v1",
+  "title": "注文",
+  "x-view": "order",
+  "type": "object",
+  "required": ["$schema", "items"],
+  "properties": {
+    "$schema": { "const": "urn:example:order:v1" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["price"],
+        "properties": {
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "x-prompt": {
+              "meaning": "1つの品の値段",
+              "when": "注文を書くとき",
+              "rules": [
+                {
+                  "id": "price-tax",
+                  "rule": "税込みで書く",
+                  "why": "請求の値と同じにする",
+                  "check": "税込みの値か",
+                  "related_fields": [],
+                  "bad": [],
+                  "good": [{ "value": 110 }]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

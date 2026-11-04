@@ -1,0 +1,86 @@
+{
+  "title": "Concrete が作法に違反する：$schema の const が $id と違う ・ rule の id が重なる ・ 例の related のキーが related_fields に無い",
+  "files": {
+    "schemas/a.json": {
+      "$schema": "urn:semantic-agent-schema:abstract:v1",
+      "$id": "urn:example:a:v1",
+      "required": [
+        "$schema"
+      ],
+      "properties": {
+        "$schema": {
+          "const": "urn:example:b:v1"
+        },
+        "end": {
+          "type": "string",
+          "x-prompt": {
+            "meaning": "終わりの日",
+            "when": "予定を書くとき",
+            "rules": [
+              {
+                "id": "r1",
+                "rule": "始まりの日より後",
+                "why": "期間にする",
+                "check": "start より後か",
+                "related_fields": [
+                  "/start"
+                ],
+                "bad": [
+                  {
+                    "value": "2026-01-01",
+                    "related": {
+                      "/start": "2026-02-01",
+                      "/other": "x"
+                    }
+                  }
+                ],
+                "good": []
+              }
+            ]
+          }
+        },
+        "start": {
+          "type": "string",
+          "x-prompt": {
+            "meaning": "始まりの日",
+            "when": "予定を書くとき",
+            "rules": [
+              {
+                "id": "r1",
+                "rule": "日付で書く",
+                "why": "比べられるようにする",
+                "check": "日付か",
+                "related_fields": [],
+                "bad": [],
+                "good": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "schemas/a.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "validation",
+          "/counts/violated": 3,
+          "/judgments/0/rule": "convention",
+          "/judgments/0/instanceLocation": "/properties/$schema/const",
+          "/judgments/1/rule": "convention",
+          "/judgments/1/instanceLocation": "/properties/end/x-prompt/rules/0/bad/0/related",
+          "/judgments/2/rule": "convention",
+          "/judgments/2/instanceLocation": "/properties/start/x-prompt/rules/0/id"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "title": "インスタンスが Concrete に違反すると、error にせず violated として数え、直す instruction と update の next を返す",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    },
+    "order.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": -1
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "validation",
+          "/counts/violated": 1,
+          "/counts/verified": 0,
+          "/judgments/0/rule": "urn:example:order:v1#/properties/items/items/properties/price/minimum",
+          "/judgments/0/instanceLocation": "/items/0/price",
+          "/judgments/0/verdict": "violated",
+          "/judgments/0/by": "machine",
+          "/instruction": "order.json に violated の judgment がある（instance location：/items/0/price）。judgments の reason を見て、その instance location を直す JSON Patch を作り、next の update を実行する",
+          "/next": {
+            "$format": "semantic-agent-schema update order.json --schemas schemas --patch '<violated の instance location を直す JSON Patch>' --if-match {sha256 order.json}"
+          }
+        }
+      ]
+    }
+  ]
+}

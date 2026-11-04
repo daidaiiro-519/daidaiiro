@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:vocabulary:v1",
+  "title": "拡張項目",
+  "description": "JSON Schema に足した、AI が読むことを前提にしたキーワード。x-prompt ・ x-decided-by ・ x-view の3つで閉じている。",
+  "propertyNames": {
+    "if": { "pattern": "^x-" },
+    "then": { "enum": ["x-prompt", "x-decided-by", "x-view"] }
+  },
+  "properties": {
+    "x-prompt": { "$ref": "#/$defs/x-prompt" },
+    "x-decided-by": {
+      "description": "値を決めるのは人だ、という宣言。このサブスキーマの値は human だけが default から変える。",
+      "const": "human"
+    },
+    "x-view": {
+      "description": "ルートスキーマに書く、テンプレートの種類の名前。",
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "pointer": {
+      "description": "インスタンスのルートからの絶対の JSON Pointer（RFC 6901）",
+      "type": "string",
+      "pattern": "^(/([^~/]|~[01])*)*$"
+    },
+    "x-prompt": {
+      "description": "サブスキーマの値を何として読み、どう書くか。生成にも判定にも同じものを使う。",
+      "type": "object",
+      "required": ["meaning", "when", "rules"],
+      "additionalProperties": false,
+      "properties": {
+        "meaning": { "type": "string", "minLength": 1 },
+        "when": { "type": "string", "minLength": 1 },
+        "rules": { "type": "array", "items": { "$ref": "#/$defs/rule" } }
+      }
+    },
+    "rule": {
+      "description": "x-prompt の rules の1件。",
+      "type": "object",
+      "required": ["id", "rule", "why", "check", "related_fields", "bad", "good"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "rule": { "type": "string", "minLength": 1 },
+        "why": { "type": "string", "minLength": 1 },
+        "check": { "type": "string", "minLength": 1 },
+        "related_fields": {
+          "description": "rule の判定に関わるほかの値。インスタンスのルートからの絶対の JSON Pointer。その値が変わったら、この rule の judgment を引き継がない",
+          "type": "array",
+          "items": { "$ref": "#/$defs/pointer" },
+          "uniqueItems": true
+        },
+        "bad": { "type": "array", "items": { "$ref": "#/$defs/example" } },
+        "good": { "type": "array", "items": { "$ref": "#/$defs/example" } }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": ["value"],
+      "additionalProperties": false,
+      "properties": {
+        "value": true,
+        "related": {
+          "description": "例のときの related_fields の値。キーは related_fields の JSON Pointer",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/pointer" }
+        }
+      }
+    }
+  }
+}

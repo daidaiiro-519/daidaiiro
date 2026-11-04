@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:arguments:v1",
+  "title": "引数",
+  "description": "コマンドごとの引数の JSON の形。pflag で読んだ引数をこの形にして検証する。",
+  "type": "object",
+  "required": ["command"],
+  "properties": {
+    "command": { "enum": ["validate"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "command": { "const": "validate" } } },
+      "then": { "$ref": "#/$defs/validate" }
+    }
+  ],
+  "$defs": {
+    "path": {
+      "description": "working tree の top-level directory からの相対のパス。絶対パス ・ 空の要素 ・ . と .. の要素を持たない。",
+      "type": "string",
+      "pattern": "^([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)(/([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+))*$"
+    },
+    "validate": {
+      "description": "validate <path>... --schemas <ディレクトリ> [--human]。検証",
+      "type": "object",
+      "required": ["command", "paths", "schemas"],
+      "additionalProperties": false,
+      "properties": {
+        "command": true,
+        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/path" } },
+        "schemas": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/path" } },
+        "human": { "type": "boolean" }
+      }
+    }
+  }
+}

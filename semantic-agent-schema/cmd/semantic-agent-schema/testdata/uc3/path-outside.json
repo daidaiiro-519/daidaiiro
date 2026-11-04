@@ -1,0 +1,55 @@
+{
+  "title": "path が working tree の外を指す：引数の形と、シンボリックリンクの先で拒否する",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    }
+  },
+  "outside": {
+    "outside.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": 110
+        }
+      ]
+    }
+  },
+  "links": {
+    "link.json": "../outside.json"
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "../outside.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/paths/0"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "link.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "path_outside",
+          "/next": "semantic-agent-schema validate <working tree の中の path> --schemas schemas"
+        }
+      ]
+    }
+  ]
+}

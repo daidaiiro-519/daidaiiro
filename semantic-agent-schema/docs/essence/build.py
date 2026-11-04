@@ -44,7 +44,7 @@ for n, key, title in [(3, 'intake', '受け取り方'), (4, 'design', '設計の
     out.append(f'<section><h2><span class="n">{n}</span>{title}</h2><ul style="list-style:none;padding:0;display:grid;gap:4px">{lis}</ul></section>')
 
 rows = ''.join(f'<tr><td>{i(p["id"])}{escape(p["name"])}</td><td><code>{escape(p["path"])}</code></td><td>{escape(p["holds"])}</td></tr>' for p in d['pages'])
-out.append('<section><h2><span class="n">5</span>2枚のページ</h2>'
+out.append('<section><h2><span class="n">5</span>ページと文書</h2>'
            f'<div class="wrap"><table class="stack"><tr><th></th><th>path</th><th>持つもの</th></tr>{rows}</table></div></section>')
 out.append('</main>')
 (P / 'index.html').write_text('\n'.join(out) + '\n')

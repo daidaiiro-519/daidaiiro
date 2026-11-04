@@ -1,0 +1,60 @@
+{
+  "title": "範囲の JSON ドキュメントが Concrete を満たすと、violated が0件の counts を返し、検証するたびに操作の ID が付く",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    },
+    "order.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": 110
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/id": 1,
+          "/actor": "ai",
+          "/path": "order.json",
+          "/schemaId": "urn:example:order:v1",
+          "/contentHash": {
+            "$sha256": "order.json"
+          },
+          "/judgments": [],
+          "/counts/verified": 0,
+          "/counts/violated": 0,
+          "/counts/unverified": 0,
+          "/counts/not-judged": 0
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/id": 2,
+          "/path": "order.json"
+        }
+      ]
+    }
+  ]
+}

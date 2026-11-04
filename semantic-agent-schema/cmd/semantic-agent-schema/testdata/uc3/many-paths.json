@@ -1,0 +1,50 @@
+{
+  "title": "範囲に2つの JSON ドキュメントを渡すと、JSON ドキュメントごとにログイベントを返す",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    },
+    "a.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": 110
+        }
+      ]
+    },
+    "b.json": {
+      "$schema": "urn:example:order:v1",
+      "items": []
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "a.json",
+        "b.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation",
+          "/id": 1,
+          "/path": "a.json",
+          "/contentHash": {
+            "$sha256": "a.json"
+          }
+        },
+        {
+          "/event": "validation",
+          "/id": 2,
+          "/path": "b.json",
+          "/contentHash": {
+            "$sha256": "b.json"
+          }
+        }
+      ]
+    }
+  ]
+}

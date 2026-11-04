@@ -64,7 +64,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>outbound/recordstore</code></td><td><code>authoring/domain</code> ・ <code>authoring/application</code> ・ <code>record/application</code></td><td><code>modernc.org/sqlite</code></td></tr>
 <tr><td><code>cmd/semantic-agent-schema</code></td><td>全部</td><td>なし</td></tr>
 </table></div>
-<p class="soft">アダプターどうしは使い合わない。<code>architecture_test.go</code> は試験の中だけで <code>golang.org/x/tools</code> と <code>github.com/nishanths/exhaustive</code> を使う。</p>
+<p class="soft">アダプターどうしは使い合わない。<code>architecture_test.go</code> は試験の中だけで <code>golang.org/x/tools</code> と <code>github.com/nishanths/exhaustive</code> を使う。どの package の試験も、試験の中だけで <code>github.com/google/go-cmp/cmp</code> を使ってよい。</p>
 </section>
 
 <section><h2><span class="n">2</span>ポートとアダプター</h2>
@@ -75,7 +75,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>Schemas</code></td><td>authoring ・ rendering：<code>Lookup</code>（<code>$id</code> で Concrete を引く。<code>$ref</code> の先も先に引いて domain へ渡す。S2）</td><td><code>files</code></td></tr>
 <tr><td><code>Validator</code></td><td>全部の application：<code>Check</code>（JSON をスキーマで検証し、違反を返す）</td><td><code>schemacheck</code></td></tr>
 <tr><td><code>Patcher</code></td><td>authoring：<code>Apply</code></td><td><code>patching</code></td></tr>
-<tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code> ・ <code>AppendValidation</code> ・ <code>LastValidation</code>（前回の検証の JSON ドキュメントと judgment。S4）／ record：<code>Operations</code> ・ <code>Operation</code></td><td><code>records</code></td></tr>
+<tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code> ・ <code>AppendValidation</code> ・ <code>LastValidation</code>（前回の検証の JSON ドキュメントと judgment。S4）／ record：<code>Operations</code> ・ <code>Operation</code></td><td><code>recordstore</code></td></tr>
 <tr><td><code>Renderer</code></td><td>rendering：<code>Render</code>（全部描けてから書き出す）</td><td><code>templates</code></td></tr>
 </table></div>
 <p class="soft">working tree と Git の共通ディレクトリは、入口が <code>repository</code> で一度だけ引き、各アダプターに渡す。application は Git を知らない。</p>
@@ -91,7 +91,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>操作の記録の保存</td><td><code>modernc.org/sqlite</code>（CGo を使わない）。<code>database/sql</code> にドライバー名 <code>"sqlite"</code> で登録される。表の形の版は <code>PRAGMA user_version</code>、ロックは <code>BEGIN IMMEDIATE</code></td><td>doc.go L5–6、sqlite.go L50 ・ L56、pragma.html L2180–2187、lang_transaction.html L346–348</td></tr>
 <tr><td>引数の読み取り</td><td><code>github.com/spf13/pflag</code>：<code>NewFlagSet</code> ・ <code>ContinueOnError</code> ・ <code>StringArray</code> ・ <code>SetInterspersed</code> ・ <code>Parse</code> ・ <code>Args</code></td><td>flag.go L133 ・ L908 ・ L1294 ・ L1398 ・ L1410、string_array.go L98</td></tr>
 <tr><td>Git</td><td><code>git rev-parse --show-toplevel</code> ・ <code>--git-common-dir</code></td><td>git-rev-parse(1) L230 ・ L245</td></tr>
-<tr><td>試験の中だけ</td><td><code>github.com/nishanths/exhaustive/passes/exhaustive</code> の <code>Analyzer</code>、<code>golang.org/x/tools/go/analysis/checker</code> の <code>Analyze</code>、<code>golang.org/x/tools/go/packages</code> の <code>Load</code>、<code>golang.org/x/tools/cmd/deadcode</code></td><td>exhaustive.go L32、checker.go L147、packages.go L261、deadcode/doc.go L10–13 ・ L20–23</td></tr>
+<tr><td>試験の中だけ</td><td><code>github.com/google/go-cmp/cmp</code> の <code>Diff</code>（期待値との差を出す）、<code>github.com/nishanths/exhaustive/passes/exhaustive</code> の <code>Analyzer</code>、<code>golang.org/x/tools/go/analysis/checker</code> の <code>Analyze</code>、<code>golang.org/x/tools/go/packages</code> の <code>Load</code>、<code>golang.org/x/tools/cmd/deadcode</code></td><td>cmp/compare.go L113、exhaustive.go L32、checker.go L147、packages.go L261、deadcode/doc.go L10–13 ・ L20–23</td></tr>
 </table></div>
 </section>
 
@@ -118,10 +118,11 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </section>
 
 <section><h2><span class="n">5</span>公開された言葉</h2>
-<p><code>internal/publishedlanguage/v1/</code> に置き、バイナリに埋め込む。AI が読む契約。</p>
+<p><code>internal/publishedlanguage/v1/</code> に置き、バイナリに埋め込む。AI が読む契約で、いまの版は v1（<code>$id</code> の末尾が <code>:v1</code>）。</p>
+<p>契約を変えるときは、v1 を残さず、一度に v2 にする（後方互換を作らない）。</p>
 <div class="wrap"><table class="stack">
 <tr><th>種類</th><th>ファイル</th><th>役目</th></tr>
-<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）も、ここで JSON Schema にする</td></tr>
+<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）も、ここで JSON Schema にする。rule の <code>related_fields</code> は、インスタンスのルートからの絶対の JSON Pointer で書く</td></tr>
 <tr><td>引数</td><td><code>arguments.schema.json</code></td><td>コマンドごとの引数の JSON の形。必須 ・ 組み合わせ ・ path とハッシュの pattern</td></tr>
 <tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> は validation ・ change ・ render ・ search ・ operation ・ error</td></tr>
 <tr><td>procedure</td><td><code>procedure.schema.json</code></td><td><code>--semantic</code> が返す procedure。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path とハッシュ ・ <code>steps</code>（instance location ・ title ・ description ・ <code>x-prompt</code> ・ rule）・ answer の形 ・ <code>next</code></td></tr>
@@ -140,12 +141,13 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <p><code>schema_violation</code> は、<code>schemacheck</code> が <code>ValidationError</code> の葉ごとに <code>InstanceLocation</code> を <code>instanceLocation</code>、キーワードの絶対の位置を <code>absoluteKeywordLocation</code> にして1行ずつ出す。独自の判定は足さない。</p>
 <div class="wrap"><table class="stack">
 <tr><th>code</th><th>いつ</th><th>next</th></tr>
+<tr><td><code>invalid_json</code></td><td>JSON として読めない（JSON ドキュメント ・ <code>--value</code> ・ <code>--patch</code> ・ <code>--answer</code> ・ デザインシステム）。<code>instanceLocation</code> は空、<code>message</code> は読めなかった位置</td><td>同じコマンド（直した JSON）</td></tr>
 <tr><td><code>arguments_invalid</code></td><td>引数が <code>arguments.schema.json</code> に違反した</td><td>同じコマンド（直した引数）</td></tr>
 <tr><td><code>human_in_coding_agent</code></td><td>coding agent の環境変数があるところで <code>--human</code>（D5）</td><td>空。指示が、human が自分で実行するよう示す</td></tr>
 <tr><td><code>schema_not_found</code> ・ <code>schema_duplicate</code></td><td><code>$id</code> の Concrete が無い ・ 2つある</td><td>同じコマンド（<code>--schemas</code> を直す）</td></tr>
 <tr><td><code>schema_violation</code></td><td>JSON ・ JSON Patch ・ answer ・ デザインシステムが JSON Schema に違反した</td><td>同じコマンド（直した値）</td></tr>
 <tr><td><code>convention_violation</code></td><td>作法の検査（S1）に違反した</td><td>同じコマンド</td></tr>
-<tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新で無い</td><td><code>update --semantic</code> ／ <code>create --semantic</code></td></tr>
+<tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新 ・ 検証で path のファイルが無い</td><td><code>update --semantic</code> ／ <code>create --semantic</code></td></tr>
 <tr><td><code>decided_by_human</code></td><td>主アクターが ai なのに <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド</td></tr>
 <tr><td><code>hash_mismatch</code></td><td><code>--if-match</code> がいまのハッシュと違う（D3）</td><td><code>update --semantic</code></td></tr>
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが違反する</td><td>同じコマンド ／ 範囲のインスタンスの <code>update --semantic</code></td></tr>
@@ -153,6 +155,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>template_missing</code> ・ <code>out_overlap</code></td><td><code>x-view</code> のテンプレートが無い（S5）・ <code>--out</code> が入力と重なる</td><td>同じコマンド</td></tr>
 <tr><td><code>log_unavailable</code> ・ <code>log_locked</code></td><td>Git のリポジトリの外 ・ 表の形の版が違う ・ ロックが取れない</td><td>同じコマンド（版が違うときは instruction が records.sqlite の削除を示す）</td></tr>
 </table></div>
+<h3>violated の judgment があるときの validation</h3>
+<p>validation のログイベントは error ではないが、violated の judgment があるときは <code>instruction</code> と <code>next</code> を付ける。<code>instruction</code> は違反の instance location を直すよう示し、<code>next</code> はその JSON ドキュメントの <code>update --patch '<code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）lt;violated の instance location を直す JSON Patch<code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）gt;' --if-match <code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）lt;いまのハッシュ<code>next</code> はその JSON ドキュメントの <code>update --semantic</code>（直したあとに <code>validate</code> を実行し直す）gt;</code>（ハッシュはコマンドが埋め、JSON Patch は AI が作る。直したあとに <code>validate</code> を実行し直す）。</p>
 </section>
 
 <section><h2><span class="n">6</span>操作の記録</h2>
@@ -201,38 +205,22 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </section>
 
 <section><h2><span class="n">9</span>試験と完成の条件</h2>
-<p>試験の正解は、本質と2枚のページだけ。Rust 版の出力は正解にしない。</p>
+<p>試験の正解は、本質と2枚のページだけ。Rust 版の出力は正解にしない。識別子は変わっていくので、試験とページの行を識別子で対応させることはしない。</p>
 <div class="wrap"><table class="stack">
 <tr><th>決まり</th><th>内容</th></tr>
-<tr><td>ページの行の id</td><td>どの試験も、確かめる行の id（<code>UC2-6a</code> ・ <code>D3</code> ・ <code>S4</code> など）を持つ。<code>go test</code> が、試験の id とページの id を比べ、片方にしか無い id があれば落とす</td></tr>
-<tr><td>期待値</td><td>実装より先に、ページの行から書く。出力から写さない。ハッシュは試験の中でバイト列から求める</td></tr>
-<tr><td>比べ方</td><td>出力は JSON Pointer と値の組で比べ、<code>message</code> の文は比べない。全部の出力を <code>event.schema.json</code>（procedure は <code>procedure.schema.json</code>）で検証する</td></tr>
+<tr><td>試験の名前</td><td>振る舞いの名前で書く（例：<code>TestUpdateRejectsStaleIfMatch</code> ・ <code>TestValidateReturnsNextForViolatedJudgment</code>）</td></tr>
+<tr><td>期待値</td><td>実装より先に、ページの振る舞いから書く。出力から写さない。ハッシュは試験の中でバイト列から求める</td></tr>
+<tr><td>比べ方</td><td>出力は JSON Pointer と値の組で比べ、差は <code>cmp.Diff</code> で出す。<code>message</code> の文は比べない。全部の出力を <code>event.schema.json</code>（procedure は <code>procedure.schema.json</code>）で検証する</td></tr>
 <tr><td>環境</td><td>試験ごとに新しい一時ディレクトリで <code>git init</code> し、本物のアダプター（一時ファイルの SQLite）を使う。子プロセスの環境は空から作る</td></tr>
 <tr><td>試験の入口</td><td>バイナリと application の手続きと、domain の公開の関数から実行する。非公開の関数を直に試さない</td></tr>
-<tr><td>レベル</td><td>domain はコンポーネントテスト（S4 と主アクターの決まりはデシジョンテーブル、値オブジェクトと S1 は同値分割法）。application とアダプターはコンポーネント統合テスト。UC の拡張1つを1場面にするシステムテスト</td></tr>
+<tr><td>レベル</td><td>domain はコンポーネントテスト（変更点の求め方と主アクターの決まりはデシジョンテーブル、値オブジェクトとバリデーターは同値分割法）。application とアダプターはコンポーネント統合テスト。ユースケースの拡張1つを1場面にするシステムテスト</td></tr>
 </table></div>
 <h3>完成の条件</h3>
 <div class="wrap"><table class="stack">
 <tr><th>条件</th><th>測り方</th><th>合格</th></tr>
-<tr><td>1 実装 → ページ</td><td>package ・ 型 ・ 関数 ・ 引数 ・ 列 ・ code を <code>go list</code> ・ <code>go doc</code> ・ pflag の定義 ・ records.sql ・ <code>error-codes.json</code> から機械で並べ、作成者の会話を引き継がない Agent が、どれもページの行に結び付くかを判定する</td><td>結び付かない行が0件</td></tr>
-<tr><td>2 ページ → 実装</td><td>ページの行の id ごとに、それを満たすコードを、同じく新しい Agent が探す</td><td>満たすコードが無い行が0件</td></tr>
-<tr><td>3 独立した書き起こし</td><td>コードだけを渡した新しい Agent がページの行の形で書き起こし、別の Agent がページと比べる（無い ・ 余分 ・ 違う）。2回行う</td><td>2回とも0件</td></tr>
-<tr><td>4 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで UC0 と UC6〜UC8 を行う。UC5 は人として実行する</td><td>人の助け無しで終える。エラーのときは <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
-<tr><td>5 振る舞い</td><td>試験を全部実行する。<code>go vet</code> ・ <code>gofmt -l</code> ・ <code>architecture_test.go</code> ・ exhaustive も含む。<code>deadcode ./cmd/semantic-agent-schema</code>（<code>-test</code> を付けない）</td><td>全部通る。id の対応表の片側にしか無い id が0件。main から届かない関数が0件</td></tr>
-</table></div>
-</section>
-
-<section><h2><span class="n">10</span>抽象の行との対応</h2>
-<div class="wrap"><table class="stack">
-<tr><th>抽象の行</th><th>実現するコード</th><th>試験</th></tr>
-<tr><td>UC1 ・ UC2 ・ UC5</td><td><code>authoring/application/usecase_create.go</code> ・ <code>usecase_update.go</code></td><td>システムテスト</td></tr>
-<tr><td>UC3 ・ UC4</td><td><code>authoring/application/usecase_validate.go</code> ・ <code>usecase_judge.go</code></td><td>システムテスト</td></tr>
-<tr><td>UC6 ・ UC7 ・ UC8</td><td><code>rendering</code> ・ <code>search</code> ・ <code>record</code> の <code>application/usecase_*.go</code></td><td>システムテスト</td></tr>
-<tr><td>D1〜D5</td><td><code>authoring/domain</code> の集約 JSON ドキュメント。D3 のロックは <code>Records.WithLock</code>、D5 の環境変数の有無は <code>adapters/inbound/cli</code> が見て主アクターと一緒に渡す</td><td>コンポーネントテスト</td></tr>
-<tr><td>V1〜V3</td><td><code>authoring/domain</code> の集約検証</td><td>コンポーネントテスト</td></tr>
-<tr><td>S1〜S6</td><td><code>authoring/domain</code> のドメインサービス。S5 の描画は <code>templates</code>、S6 は search の application が呼ぶ</td><td>コンポーネントテスト</td></tr>
-<tr><td>error の考え方</td><td><code>event.schema.json</code> ・ <code>error-codes.json</code> ・ <code>schemacheck</code> の変換</td><td>全出力のスキーマ検証</td></tr>
-<tr><td>変更点の求め方</td><td>S4 と <code>validations.content</code> ・ <code>concrete_hash</code></td><td>デシジョンテーブル</td></tr>
+<tr><td>1 独立した書き起こし</td><td>コードだけを渡した新しい Agent が振る舞いを書き起こし、作成者の会話を引き継がない別の Agent が、2枚のページの振る舞いと比べる（無い ・ 余分 ・ 違う）。2回行う</td><td>2回とも0件</td></tr>
+<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。承認は human として実行する</td><td>人の助け無しで終える。error と violated の validation では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
+<tr><td>3 振る舞い</td><td>試験を全部実行する。<code>go vet</code> ・ <code>gofmt -l</code> ・ <code>architecture_test.go</code> ・ exhaustive も含む。<code>deadcode ./cmd/semantic-agent-schema</code>（<code>-test</code> を付けない）</td><td>全部通る。main から届かない関数が0件</td></tr>
 </table></div>
 </section>
 </main>

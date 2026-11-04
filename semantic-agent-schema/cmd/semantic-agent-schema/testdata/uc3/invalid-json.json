@@ -1,0 +1,29 @@
+{
+  "title": "JSON として読めない JSON ドキュメントは invalid_json の error を返す",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    }
+  },
+  "raw": {
+    "broken.json": "{\"$schema\": "
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "broken.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "invalid_json",
+          "/next": "semantic-agent-schema validate broken.json --schemas schemas"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "urn:semantic-agent-schema:dialect:v1",
+  "$id": "urn:semantic-agent-schema:abstract:v1",
+  "title": "Abstract",
+  "description": "Semantic Agent Schema のメタスキーマ。Concrete のルートスキーマに適用する。Concrete は $schema にこの $id を書き、インスタンスに $schema を必須にして、その const に自分の $id を書く。",
+  "x-prompt": {
+    "meaning": "Concrete。Abstract の拡張項目を継承し、用途ごとに拡張したスキーマ",
+    "when": "Concrete を作成 ・ 更新 ・ 検証するとき",
+    "rules": []
+  },
+  "$vocabulary": {
+    "https://json-schema.org/draft/2020-12/vocab/core": true,
+    "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+    "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+    "https://json-schema.org/draft/2020-12/vocab/validation": true,
+    "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+    "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+    "https://json-schema.org/draft/2020-12/vocab/content": true,
+    "urn:semantic-agent-schema:vocabulary:v1": true
+  },
+  "$defs": {
+    "subschema": {
+      "$dynamicAnchor": "meta",
+      "$ref": "urn:semantic-agent-schema:dialect:v1"
+    }
+  },
+  "allOf": [
+    { "$ref": "https://json-schema.org/draft/2020-12/schema" },
+    { "$ref": "urn:semantic-agent-schema:vocabulary:v1" }
+  ],
+  "type": "object",
+  "required": ["$schema", "$id", "required", "properties"],
+  "properties": {
+    "$schema": { "const": "urn:semantic-agent-schema:abstract:v1" },
+    "$id": { "type": "string", "minLength": 1 },
+    "required": { "contains": { "const": "$schema" } },
+    "properties": {
+      "required": ["$schema"],
+      "properties": {
+        "$schema": {
+          "type": "object",
+          "required": ["const"],
+          "properties": { "const": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

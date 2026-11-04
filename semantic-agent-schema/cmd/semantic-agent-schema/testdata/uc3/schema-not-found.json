@@ -1,0 +1,48 @@
+{
+  "title": "Concrete が schemas に無い（$schema が無いときを含む）：error。next は --schemas を直した同じコマンド",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    },
+    "order.json": {
+      "$schema": "urn:example:none:v1"
+    },
+    "nothing.json": {
+      "items": []
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_not_found",
+          "/next": "semantic-agent-schema validate order.json --schemas <$id の Concrete を持つディレクトリ>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "nothing.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_not_found",
+          "/instanceLocation": "/$schema"
+        }
+      ]
+    }
+  ]
+}

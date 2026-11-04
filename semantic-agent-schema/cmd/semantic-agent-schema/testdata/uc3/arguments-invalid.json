@@ -1,0 +1,62 @@
+{
+  "title": "引数が引数の形に違反する（--schemas が無い ・ 知らないコマンド ・ 知らないフラグ）：error",
+  "files": {
+    "order.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": 110
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "order.json"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/next": "semantic-agent-schema validate <直した引数>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "inspect",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/command"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas",
+        "--scope",
+        "all"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "arguments_invalid"
+        }
+      ]
+    }
+  ]
+}

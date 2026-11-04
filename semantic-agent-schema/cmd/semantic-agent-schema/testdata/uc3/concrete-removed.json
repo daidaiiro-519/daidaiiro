@@ -1,0 +1,50 @@
+{
+  "title": "前回の検証の後に Concrete を消した：error",
+  "files": {
+    "schemas/order.json": {
+      "$fixture": "order.schema.json"
+    },
+    "order.json": {
+      "$schema": "urn:example:order:v1",
+      "items": [
+        {
+          "price": 110
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validation"
+        }
+      ]
+    },
+    {
+      "remove": [
+        "schemas/order.json"
+      ],
+      "args": [
+        "validate",
+        "order.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "error",
+          "/code": "schema_not_found"
+        }
+      ]
+    }
+  ]
+}

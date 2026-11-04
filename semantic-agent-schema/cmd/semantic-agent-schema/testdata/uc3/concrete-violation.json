@@ -1,0 +1,40 @@
+{
+  "title": "Concrete が Abstract に違反する（x-view をルートでないサブスキーマに書く）：violated として数える",
+  "files": {
+    "schemas/a.json": {
+      "$schema": "urn:semantic-agent-schema:abstract:v1",
+      "$id": "urn:example:a:v1",
+      "required": [
+        "$schema"
+      ],
+      "properties": {
+        "$schema": {
+          "const": "urn:example:a:v1"
+        },
+        "name": {
+          "type": "string",
+          "x-view": "name"
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "schemas/a.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "validation",
+          "/counts/violated": 1,
+          "/judgments/0/instanceLocation": "/properties/name/x-view",
+          "/judgments/0/by": "machine"
+        }
+      ]
+    }
+  ]
+}
