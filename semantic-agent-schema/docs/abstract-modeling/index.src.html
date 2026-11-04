@@ -1,4 +1,4 @@
-<title>抽象モデリング概念</title>
+<title>抽象モデリング概念（Go）</title>
 <style>
 :root{--bg:#f6f7f5;--card:#fff;--fg:#1b201e;--soft:#5d6763;--line:#d9ddd9;--accent:#1d6b57;--accent-bg:#e2f1ec;--warn:#9a4d1c;--warn-bg:#f8e9dd;--mid:#4a5a8a;--mid-bg:#e6e9f4}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151917;--card:#1d2321;--fg:#e4e9e6;--soft:#a3ada8;--line:#343c39;--accent:#79c7b0;--accent-bg:#1b2f29;--warn:#f0aa7c;--warn-bg:#33251b;--mid:#aab6e6;--mid-bg:#232a40;color-scheme:dark}}
@@ -18,188 +18,347 @@ section.ng .n{background:var(--warn)}
 .cap{font-size:.85rem;color:var(--soft);text-align:center}
 table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{color:var(--soft);font-size:.8rem}
 .wrap{overflow-x:auto} td code{overflow-wrap:break-word} td:first-child{min-width:6em}
+.tr{font-size:.8rem;color:var(--soft)}
 .k{display:inline-block;font-size:.8rem;font-weight:700;padding:0 8px;border-radius:999px;white-space:nowrap}
 .core{background:var(--accent-bg);color:var(--accent)} .sup{background:var(--mid-bg);color:var(--mid)} .gen{background:var(--warn-bg);color:var(--warn)}
-.ucs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:10px}
+.ucs{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .uc{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:4px;min-width:0;align-content:start}
 .uc h3{margin:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.uc dl{margin:0;display:grid;grid-template-columns:4.6em minmax(0,1fr);gap:2px 8px;font-size:.9rem}
+.uc dl{margin:0;display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:4px 10px;font-size:.9rem}
 .uc dt{color:var(--soft);font-size:.8rem;padding-top:2px} .uc dd{margin:0}
-.uc.sem{border-color:var(--accent)}
-@media (max-width:560px){table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1px solid var(--line)} table.stack td,table.stack th{border:0;display:block} table.stack td:first-child,table.stack th:first-child{grid-column:1/-1;font-weight:700;padding-bottom:0} table.stack th:first-child{display:none}}
+.uc.core-uc{border-color:var(--accent)}
+@media (max-width:560px){.uc dl{grid-template-columns:minmax(0,1fr)} .uc dt{padding-top:6px}
+table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1px solid var(--line)} table.stack td,table.stack th{border:0;display:block} table.stack td:first-child,table.stack th:first-child{grid-column:1/-1;font-weight:700;padding-bottom:0} table.stack td.tr{grid-column:1/-1;padding-top:0} table.stack th:first-child{display:none}}
+.m{color:var(--mid);font-weight:700} .s{color:var(--accent);font-weight:700} .p{color:var(--warn);font-weight:700}
+.steps td:first-child{min-width:2.4em;white-space:nowrap}
 </style>
 <main>
 <header style="display:grid;gap:6px"><p class="soft">Semantic Agent Schema ・ 本質の像</p><h1>抽象モデリング概念</h1>
-<p>技術に依らない「何を ・ なぜ」のモデル。作り方の技術は、具体モデリング概念が持つ。</p></header>
+<p>技術に依らない「何を ・ なぜ」のモデル。ユースケースとドメインの言葉の粒度で書く。どう作るかは、具体モデリング概念が持つ。</p>
+<p class="soft">「根拠」の欄の <code>本質 W1</code> は本質（<code>essence.json</code>）の id（W は利用者の言葉、C は概念モデル、E は本質、R は受け取り方、P は設計の進め方）、<code>subdomain</code> のような英字は DDD の判断基準（ddd-advisor の <code>criteria.json</code>）の id。<code>UC2-4</code> ・ <code>D3</code> ・ <code>S4</code> などは、具体モデリング概念と試験がこのページの行を指す id。用語は 4 のユビキタス言語の表の語だけを使う。</p></header>
 
-<section class="rule"><h2><span class="nb">本質：</span><span class="nb">機械的な検証と、</span><span class="nb">x-prompt による意味的な検証</span></h2>
+<section class="rule"><h2><span class="nb">本質：</span><span class="nb">JSON Schema と、</span><span class="nb">AI が読む拡張項目</span></h2>
 <div class="fig">{{essence}}</div>
-<div class="wrap"><table>
-<tr><th>層</th><th>何で担保するか</th></tr>
-<tr><td>機械的な検証</td><td>JSON Schema による決定論的な検証と、<code>x-</code> の項目に対する独自のバリデーター ・ レンダラー（ドメインモデルに持つ）</td></tr>
-<tr><td>意味的な検証</td><td>中でエージェントを呼ばず、手順を返す。手順は Markdown ではなく、スキーマとして定義した <code>x-prompt</code> から決まった形で生成する</td></tr>
-</table></div>
+<ol>
+<li>根幹は JSON Schema。そこに、AI が読むことを前提にした拡張項目（<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code>）を持つ <span class="tr">本質 W9 ・ W1 ・ W3</span></li>
+<li>AI が引数と JSON ドキュメントを作る。Semantic Agent Schema はそれを機械的に検証し、違反なら、AI が次のアクションを取れる error を返す <span class="tr">本質 W3 ・ R2–R5</span></li>
+<li>意味的な検証は、<code>x-prompt</code> から procedure を作って返すだけ。判定と生成は AI が行い、AI の answer は機械的に検証する <span class="tr">本質 W1</span></li>
+<li>操作の記録に追記する。前回の検証の JSON ドキュメントを残し、次に変更点を求める基準にする <span class="tr">本質 W1 ・ W3 ・ E5</span></li>
+</ol>
 <blockquote>機械的な検証と意味的な検証をするって部分を両方やってるって感じだよね。<br>それにプラスして意味的な検証をソースコード内でエージェントを呼ぶような部分まで担わせるのではなく、それを実施するための手順を返す。<br>これがもう本質なんだよね。</blockquote>
 </section>
 
-<section><h2><span class="n">1</span><span class="nb">概念モデル：</span><span class="nb">Abstract ・ Concrete ・ インスタンス</span></h2>
+<section><h2><span class="n">1</span><span class="nb">Abstract と Concrete の関係、</span><span class="nb">依存の注入の条件</span></h2>
 <div class="fig">{{concept}}</div>
 <div class="wrap"><table class="stack">
 <tr><th></th><th>何か</th><th>Semantic Agent Schema との関係</th></tr>
-<tr><td>Abstract スキーマ</td><td>中核のスキーマ。Semantic Agent Schema のメタで、作法（<code>x-</code> の項目と <code>x-prompt</code> の書き方）を書いたもの。Abstract 自身も <code>x-prompt</code> を持ち、Concrete を書く ・ 判定するときの rule になる（インスタンスと同じ作法で Concrete も扱う）</td><td>Semantic Agent Schema が持つ。能力はこの作法に基づく</td></tr>
-<tr><td>Concrete スキーマ</td><td>Abstract の <code>x-</code> の項目などを継承して具体にしたもの。作法に沿って用途ごとに拡張して使う</td><td>依存しない。用途ごとの項目や決まりを知らない</td></tr>
-<tr><td>インスタンス</td><td>Concrete に従う JSON。経路（Git の根からの相対）で識別する</td><td>作法に基づいて扱う</td></tr>
+<tr><td>Abstract</td><td>Semantic Agent Schema のメタスキーマ。作法（拡張項目と <code>x-prompt</code> の書き方）を書いたもの。Abstract 自身も <code>x-prompt</code> を持ち、Concrete を作成 ・ 検証するときの rule になる <span class="tr">本質 W4 ・ C1</span></td><td>Semantic Agent Schema が持つ。能力はこの作法に基づく</td></tr>
+<tr><td>Concrete</td><td>Abstract の拡張項目を継承し、用途ごとに拡張したスキーマ <span class="tr">本質 W4 ・ C2</span></td><td>依存しない。用途ごとのプロパティや rule を知らない</td></tr>
+<tr><td>インスタンス</td><td>Concrete に従う JSON ドキュメント <span class="tr">本質 C3</span></td><td>作法に基づいて扱う</td></tr>
 </table></div>
 <ul>
-<li>能力：JSON Schema とインスタンスの JSON に対する操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成</li>
-<li>依存の注入は、Semantic Agent Schema が決めた契約の依存だけを受け入れる。一例はデザインシステム（契約は Semantic Agent Schema が決め、中身は使う側が渡す）</li>
+<li>能力：スキーマとインスタンスに対する操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成 <span class="tr">本質 W4 ・ C4</span></li>
+<li>Concrete も「Abstract に従う JSON ドキュメント」として、インスタンスと同じ作法で作成 ・ 検証する</li>
+<li>依存の注入は、Semantic Agent Schema が決めた契約の依存だけを受け入れる。例はデザインシステム：契約（デザインシステムの形とテンプレートの記法）は Semantic Agent Schema が決め、内容は使う側が渡す <span class="tr">本質 W4 ・ C6</span></li>
 </ul>
-<blockquote>セマンティックエージェントスキーマはその作法に基づく能力は提供する。<br>しかしconcrateに関する具体内容までは依存しないです。<br>しかし依存の注入は受け入れるような形です。ただその条件はあくまでセマンティックエージェントスキーマが決めた契約の依存のみです。</blockquote>
 </section>
 
-<section><h2><span class="n">2</span><span class="nb">受け持つ所と、</span><span class="nb">入力の契約</span></h2>
+<section><h2><span class="n">2</span><span class="nb">責務の範囲と、</span><span class="nb">入力 ・ 出力の契約</span></h2>
 <div class="fig">{{scope}}</div>
-<div class="wrap"><table>
-<tr><th>誰が</th><th>受け持つこと</th></tr>
-<tr><td>Semantic Agent Schema</td><td>入力の形と値を契約で確かめ、決まった手順で処理する。結果 ・ 手順 ・ 断る理由を返す</td></tr>
-<tr><td>AI のセッション（外）</td><td>入力と JSON を作る。どの対象 ・ スキーマ ・ 範囲かを考える。意味を判定する</td></tr>
-<tr><td>人（外）</td><td>承認する。人だけが決める欄を決める</td></tr>
+<div class="wrap"><table class="stack">
+<tr><th>考え方</th><th>なぜ</th><th>根拠</th></tr>
+<tr><td>入力と出力の形は JSON Schema で決める</td><td>形と値を、契約で機械的に検証できる</td><td class="tr">本質 W3 ・ R1</td></tr>
+<tr><td>入力を作るのは AI</td><td>どの JSON ドキュメント ・ スキーマ ・ 範囲かは AI が決める。中で探すより、探すものを渡すほうが軽い</td><td class="tr">本質 W3 ・ R2</td></tr>
+<tr><td>中で引くのは、入力から機械的に導けるものだけ</td><td>自分の操作の記録 ・ Git の事実 ・ 渡された schemas の中の <code>$id</code> なら、同じ入力から同じ結果になる</td><td class="tr">本質 W3 ・ R4</td></tr>
+<tr><td>入力の曖昧さを補わない</td><td>足りなければ、error で AI に次のアクションを示す</td><td class="tr">本質 W3 ・ R5</td></tr>
+<tr><td>出力はすべてログイベントで、読むのは AI</td><td>AI がログイベントを読んで次のアクションを取れる</td><td class="tr">本質 W5 ・ W1 ・ R2</td></tr>
 </table></div>
-<h3>入力の契約</h3>
-<div class="wrap"><table>
-<tr><th>考え方</th><th>なぜ</th></tr>
-<tr><td>入力と出力の形は JSON Schema で決める</td><td>形と値の正しさを、契約で機械的に確かめられる</td></tr>
-<tr><td>入力を作るのは AI</td><td>何を見るかは AI が考える。中で探すより、探すものを渡すほうが軽い</td></tr>
-<tr><td>中で引くのは、入力から決定論的に導けるものだけ</td><td>自分の操作の記録 ・ 版の管理の事実 ・ 渡された置き場所の中の名前なら、同じ入力から同じ結果になる</td></tr>
-<tr><td>足りなければ断る</td><td>曖昧さを補うと、結果が入力で決まらなくなる</td></tr>
-</table></div>
-<blockquote>入力と出力の契約ができていれば、あとはそれを受け取って処理するだけですよね。<br>もちろんdbとかから、探すみたいな話もさ結局コマンドないで決定論的に導かれるものとかならいいんだよね。</blockquote>
 </section>
 
-<section><h2><span class="n">3</span>ユースケース</h2>
+<section><h2><span class="n">3</span><span class="nb">事業領域 ・ 業務領域 ・ </span><span class="nb">区切られた文脈</span></h2>
+<div class="fig">{{domains}}</div>
+<h3>事業領域</h3>
+<div class="wrap"><table class="stack">
+<tr><th>事業領域</th><th>何を提供するか</th><th>根拠</th></tr>
+<tr><td>AI が書く JSON の品質の担保</td><td>AI が書くスキーマとインスタンスを、機械的な検証と、<code>x-prompt</code> から返す procedure による意味的な検証の両方で担保する</td><td class="tr">本質 W1 ・ <code>business-domain</code></td></tr>
+</table></div>
+<h3>業務領域とその種類</h3>
+<div class="wrap"><table class="stack">
+<tr><th>業務領域</th><th>ユースケース</th><th>なぜその種類か</th></tr>
+<tr><td>作成と検証 <span class="k core">中核の業務領域</span></td><td>UC1 作成 ・ UC2 更新 ・ UC3 検証 ・ UC4 意味的な検証 ・ UC5 承認。同じ主アクターが、同じデータ（JSON ドキュメント ・ Concrete の rule ・ 操作の記録）を扱う</td><td>本質そのもの。JSON Schema で書けない不変条件と、<code>x-prompt</code> から procedure を作るルールを持ち、ほかに無い価値になる <span class="tr">本質 W1 ・ <code>subdomain</code></span></td></tr>
+<tr><td>描画 <span class="k sup">補完の業務領域</span></td><td>UC6 描画。データはインスタンスとデザインシステムと HTML</td><td>選んだテンプレートに値を渡すだけ。見た目は注入されたデザインシステムが決める <span class="tr">本質 W4 ・ C6 ・ <code>subdomain</code></span></td></tr>
+<tr><td>検索 <span class="k sup">補完の業務領域</span></td><td>UC7 検索。データは範囲の JSON ドキュメント</td><td>JSON Pointer の値を比べるか、procedure を返すだけ <span class="tr">本質 W3 ・ <code>subdomain</code></span></td></tr>
+<tr><td>操作の記録の参照 <span class="k sup">補完の業務領域</span></td><td>UC8 操作の記録の参照。データは操作の記録</td><td>新しい順に読むだけ <span class="tr">本質 W3 ・ <code>subdomain</code></span></td></tr>
+<tr><td>JSON Schema の検証 ・ JSON Patch の適用 ・ テンプレートの処理 ・ 操作の記録の保存 ・ 版の管理 ・ 引数の読み取り <span class="k gen">一般の業務領域</span></td><td>どのユースケースも使う</td><td>既存の解決策がある。作らずに使い、受け取る契約だけを Semantic Agent Schema が決める <span class="tr"><code>subdomain</code></span></td></tr>
+</table></div>
+<p class="soft">補完の業務領域の3つは、種類も実装の方法も同じだが、扱うデータが違うことを示すために分けておく <span class="tr"><code>subdomain</code></span>。</p>
+<h3>区切られた文脈と、業務領域ごとの実装の方法</h3>
+<div class="wrap"><table class="stack">
+<tr><th>対象</th><th>決めたこと</th><th>根拠</th></tr>
+<tr><td>区切られた文脈</td><td>1つ。名前は「Semantic Agent Schema」。開発するのは1つのチームで、1つのコマンドとして配る。中核の業務領域と頻繁にやりとりする補完の業務領域を同じ文脈に入れる。名前は、文脈の能力全体（操作 ・ 描画 ・ 検証 ・ 更新 ・ 作成）を指す</td><td class="tr"><code>bounded-context</code> ・ <code>design-heuristics</code> ・ 本質 W4</td></tr>
+<tr><td>中核の業務領域の実装の方法</td><td>ドメインモデル ＋ ポートとアダプター。業務ルールが複雑で、JSON ドキュメントの状態は操作の記録から作り直さない</td><td class="tr"><code>domain-model</code> ・ <code>ports-and-adapters</code> ・ 本質 W2 ・ P1</td></tr>
+<tr><td>補完の業務領域の実装の方法</td><td>トランザクションスクリプト。1つのユースケースを1つの手続きで最後まで行う</td><td class="tr"><code>transaction-script</code></td></tr>
+<tr><td>外との連係</td><td>AI と人へは共用サービス（公開された言葉で入力 ・ 出力を決める）。デザインシステムを作る人とは従属する関係（決めた契約に合わせてもらう）</td><td class="tr"><code>open-host-service</code> ・ <code>conformist</code> ・ 本質 W4</td></tr>
+</table></div>
+</section>
+
+<section><h2><span class="n">4</span>ユビキタス言語</h2>
+<p class="soft">区切られた文脈「Semantic Agent Schema」の中で、このページが使う語。1つの概念に1つの語。キー ・ 識別子は英語のまま <span class="tr"><code>ubiquitous-language</code></span>。</p>
+<h3>JSON Schema ・ JSON Pointer ・ JSON Patch の語</h3>
+<div class="wrap"><table class="stack">
+<tr><th>用語</th><th>意味</th><th>出どころ</th></tr>
+<tr><td>JSON ドキュメント</td><td>1つの JSON。Semantic Agent Schema が扱うのはスキーマ（Concrete）かインスタンス</td><td class="tr">JSON Schema Core</td></tr>
+<tr><td>インスタンス</td><td>スキーマを適用する JSON ドキュメント</td><td class="tr">JSON Schema Core ・ 本質 C3</td></tr>
+<tr><td>スキーマ ・ メタスキーマ</td><td>インスタンスを記述する JSON ドキュメント ・ スキーマを記述するスキーマ</td><td class="tr">JSON Schema Core</td></tr>
+<tr><td>キーワード ・ サブスキーマ ・ ルートスキーマ ・ プロパティ</td><td>JSON Schema の標準の意味のまま</td><td class="tr">JSON Schema Core</td></tr>
+<tr><td>instance location</td><td>インスタンスの中の値の位置。JSON Pointer で書く</td><td class="tr">JSON Schema Core ・ RFC 6901</td></tr>
+<tr><td>absolute keyword location</td><td>違反したキーワードの、<code>$id</code> を基にした絶対の位置</td><td class="tr">JSON Schema Core</td></tr>
+<tr><td>JSON Patch</td><td>JSON ドキュメントに適用する operation の並び</td><td class="tr">RFC 6902</td></tr>
+<tr><td>If-Match ・ ハッシュ</td><td>書く前に、読んだときと同じ内容かを照らす前提条件 ・ 内容のバイト列から決まる値</td><td class="tr">RFC 9110</td></tr>
+</table></div>
+<h3>Semantic Agent Schema の語</h3>
+<div class="wrap"><table class="stack">
+<tr><th>用語</th><th>意味</th><th>出どころ</th></tr>
+<tr><td>Abstract ・ Concrete</td><td>1 の表のとおり</td><td class="tr">本質 W4</td></tr>
+<tr><td>作法</td><td>Abstract が決めた書き方（拡張項目と <code>x-prompt</code> の書き方）</td><td class="tr">本質 W4 ・ C1</td></tr>
+<tr><td>拡張項目</td><td>JSON Schema に足した、AI が読むことを前提にしたキーワード。<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code> の3つで閉じている</td><td class="tr">本質 W1</td></tr>
+<tr><td><code>x-prompt</code></td><td>サブスキーマの値を何として読み、どう書くか。meaning ・ when ・ rules を持ち、生成にも判定にも同じものを使う</td><td class="tr">本質 W1 ・ E3</td></tr>
+<tr><td>rule</td><td><code>x-prompt</code> の rules の1件。id ・ rule ・ why ・ check ・ related_fields ・ bad ・ good を持つ</td><td class="tr">本質 W1</td></tr>
+<tr><td><code>x-decided-by: human</code></td><td>値を決めるのは人だ、という宣言。このサブスキーマの値は human だけが default から変える</td><td class="tr">本質 P7</td></tr>
+<tr><td><code>x-view</code></td><td>ルートスキーマに書く、テンプレートの種類の名前</td><td class="tr">本質 W1</td></tr>
+<tr><td>契約 ・ 依存の注入 ・ 公開された言葉</td><td>Semantic Agent Schema が決めた入力 ・ 出力 ・ 注入の形 ・ その形の依存だけを外から受け取ること ・ AI と人へ公開する入力 ・ 出力のスキーマの集まり</td><td class="tr">本質 W3–W4 ・ <code>open-host-service</code></td></tr>
+<tr><td>デザインシステム ・ テンプレート ・ デザイントークン</td><td>使う側が渡す、テンプレートとデザイントークンの集まり ・ 描画の型 ・ 見た目の値</td><td class="tr">本質 W4 ・ C6</td></tr>
+<tr><td>機械的な検証</td><td>JSON Schema と、ドメインモデル（JSON Schema で書けない不変条件）による検証</td><td class="tr">本質 W1 ・ W8 ・ W10 ・ E1</td></tr>
+<tr><td>意味的な検証</td><td><code>x-prompt</code> の rule に照らした検証。Semantic Agent Schema は procedure を返し、判定は AI が行う</td><td class="tr">本質 W1 ・ E2</td></tr>
+<tr><td>バリデーター ・ レンダラー</td><td>拡張項目ごとの検証のコード ・ 描画のコード</td><td class="tr">本質 W1</td></tr>
+<tr><td>judgment ・ verdict</td><td>1つの rule と1つの instance location の組の結果 ・ その4つの値（verified ・ violated ・ unverified ・ not-judged）。数えるときは verdict ごとの件数（counts）にし、満たしたとするのは verified だけ</td><td class="tr">本質 W1</td></tr>
+<tr><td>前回の検証</td><td>ある JSON ドキュメントの、直前の検証の操作</td><td class="tr">本質 E5</td></tr>
+<tr><td>変更点</td><td>前回の検証のときと値が違う instance location の集まり</td><td class="tr">本質 W1</td></tr>
+<tr><td>procedure</td><td><code>x-prompt</code> から作って返す、AI が従う JSON。step ・ answer の形 ・ next を持つ</td><td class="tr">本質 W1 ・ E2</td></tr>
+<tr><td>生成</td><td>意味的な推論で値を作ること</td><td class="tr">本質 W1 ・ E3</td></tr>
+<tr><td>answer ・ next</td><td>AI が procedure に従って作り、渡す JSON ・ AI が次に実行するコマンド行</td><td class="tr">本質 W1</td></tr>
+<tr><td>操作 ・ 操作の記録</td><td>記録する、コマンドの1回の実行（作成 ・ 更新 ・ 検証）・ 操作を追記だけで残すもの</td><td class="tr">本質 W1 ・ W3 ・ R4</td></tr>
+<tr><td>change</td><td>書く操作の中の、1つの instance location の前後の値（before ・ after）</td><td class="tr">本質 W1 ・ E5</td></tr>
+<tr><td>path ・ working tree</td><td>Git の working tree の top-level directory からの、ファイルの相対パス ・ その working tree</td><td class="tr">本質 R4 ・ git-rev-parse</td></tr>
+<tr><td>範囲 ・ schemas</td><td>AI が渡す path の並び（Semantic Agent Schema はこの外を読まない）・ <code>$id</code> で Concrete を探すために AI が渡すスキーマの集まり</td><td class="tr">本質 R2 ・ R4</td></tr>
+<tr><td>ログイベント ・ error</td><td>コマンドが返す JSON の1行で、読むのは AI ・ 違反を伝えるログイベント</td><td class="tr">本質 W1 ・ R5</td></tr>
+<tr><td>code ・ message ・ 指示</td><td>error の種類の決まった名前 ・ error の内容の文 ・ AI への直し方の文（キーは instruction）</td><td class="tr">本質 R5</td></tr>
+<tr><td>主アクター ・ human ・ coding agent</td><td>コマンドを実行し、目的の達成を求める者（ai か human）・ 人と明示した主アクター ・ Claude Code などの、AI がコマンドを実行するツール</td><td class="tr">本質 P7 ・ uc <code>primary-actor</code></td></tr>
+</table></div>
+<p class="soft">DDD とユースケースの語（事業領域 ・ 業務領域 ・ 区切られた文脈 ・ ドメインモデル ・ 集約 ・ 値オブジェクト ・ ドメインサービス ・ 不変条件 ・ ポートとアダプター ・ トランザクションスクリプト ・ 共用サービス ・ 従属する関係 ・ 主アクター ・ 利害関係者 ・ 設計スコープ ・ 目的レベル ・ 主成功シナリオ ・ 拡張 ・ 成功時保証 ・ 最低保証）は、原典の訳語のまま使う。</p>
+</section>
+
+<section><h2><span class="n">5</span><span class="nb">機械的な検証と</span><span class="nb">意味的な検証</span></h2>
+<div class="wrap"><table class="stack">
+<tr><th>検証</th><th>何で担保するか</th><th>根拠</th></tr>
+<tr><td>機械的な検証</td><td><span class="m">JSON Schema</span>：入力 ・ 出力 ・ JSON ドキュメントの形と値。既存の JSON Schema の実装で検証する。<br><span class="m">ドメインモデル</span>：JSON Schema で書けない不変条件と、拡張項目のバリデーター ・ レンダラー</td><td class="tr">本質 W1 ・ W8 ・ W10 ・ E1</td></tr>
+<tr><td>意味的な検証</td><td><span class="s">ドメインモデル</span>：変更点に適用される rule を集め、生成 ・ 判定の procedure を作って返す。<br><span class="s">AI</span>：procedure に従って判定 ・ 生成する。結果の answer は機械的に検証する</td><td class="tr">本質 W1 ・ E2</td></tr>
+</table></div>
+<ul>
+<li>ドメインモデルは、機械的な検証と意味的な検証の両方にある</li>
+<li>JSON Schema で書けるものは JSON Schema に寄せる。ドメインモデルは、JSON Schema で書けない不変条件だけを持つ</li>
+<li>ファイルの読み書き ・ 操作の記録への追記 ・ 描画は検証ではない。<span class="p">処理</span>（アダプター）として分ける</li>
+</ul>
+</section>
+
+<section><h2><span class="n">6</span>ユースケース</h2>
 <div class="fig">{{roundtrip}}</div>
-<p class="cap">意味の部分がある作る ・ 直す ・ 意味の判定 ・ 探すは、どれもこの往復で進む。</p>
-<p class="soft">保証の範囲は、渡された入力と記録にあるものまで。緑の枠は意味の部分を持つもの。</p>
+<p class="cap">作成 ・ 更新 ・ 意味的な検証 ・ 検索は、どれもこの往復で進む。</p>
+<p class="soft">設計スコープは Semantic Agent Schema。主アクターの AI は、利用者の代理で動く。各アクションステップの担保は、<span class="m">機械的（JSON Schema）</span> ・ <span class="m">機械的（ドメインモデル）</span> ・ <span class="s">意味的（ドメインモデル）</span> ・ <span class="s">意味的（AI）</span> ・ <span class="p">処理</span> のどれか1つ。拡張はどれも、error で AI に指示と next を返して終わる。</p>
+
+<h3>主アクターと目的</h3>
+<div class="wrap"><table class="stack">
+<tr><th>主アクター</th><th>目的</th><th>目的レベル</th></tr>
+<tr><td>利用者の代理の AI</td><td>UC0 作成と検証</td><td>要約</td></tr>
+<tr><td>利用者の代理の AI</td><td>UC1 作成 ・ UC2 更新 ・ UC3 検証 ・ UC4 意味的な検証 ・ UC6 描画</td><td>ユーザー目的</td></tr>
+<tr><td>利用者の代理の AI</td><td>UC7 検索 ・ UC8 操作の記録の参照</td><td>サブ機能</td></tr>
+<tr><td>human</td><td>UC5 承認 ・ UC8 操作の記録の参照（レビュー）</td><td>ユーザー目的</td></tr>
+</table></div>
+
 <div class="ucs">
-<div class="uc sem"><h3>作る</h3><dl>
-<dt>目的</dt><dd>Concrete に従う新しいインスタンス（または新しい Concrete）を作る</dd>
-<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>対象と依頼を渡す → x-prompt から生成した手順を返す → AI が値を作って渡す → 確かめて書き、項目ごとに記録する</dd>
-<dt>保証</dt><dd>書いた値は、渡された Concrete の形と x- の決まりに合う。意味が合うかは、意味の判定で確かめる</dd>
+<div class="uc core-uc"><h3>UC0 作成と検証 <span class="k core">中核</span></h3><dl>
+<dt>目的レベル</dt><dd>要約</dd>
+<dt>主成功シナリオ</dt><dd><ol><li>AI が UC1 作成か UC2 更新で JSON ドキュメントを書く</li><li>AI が UC4 意味的な検証で、変更点を判定する</li><li>AI か human が UC3 検証で counts を見る</li><li>human が UC5 承認で、<code>x-decided-by: human</code> の値を決める</li></ol></dd>
+<dt>拡張</dt><dd>UC0-3a violated の judgment がある：1 に戻る</dd>
 </dl></div>
-<div class="uc sem"><h3>直す</h3><dl>
-<dt>目的</dt><dd>あるインスタンス（または Concrete）を書き換える</dd>
-<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>読んだ時のハッシュと差分を渡す → 中身が読んだ時と同じで、形と x- が合うときだけ書く → 項目ごとの前後を記録する。外で変えたものは、理由を付けて取り込む。取り込む前の中身のコミットが渡されなければ、前の値の無い差分で取り込み、次の意味の判定は全部の所になる</dd>
-<dt>保証</dt><dd>ほかの変更を上書きしない。人だけが決める欄は、人からの変更だけを受ける。Concrete を直すときは、渡された範囲と記録で、従わなくなるインスタンスが無いかを確かめる。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
+
+<div class="uc core-uc"><h3>UC1 作成 <span class="k core">中核</span></h3><dl>
+<dt>目的</dt><dd>Concrete に従うインスタンス（または Abstract に従う Concrete）を、渡した path に作る</dd>
+<dt>利害関係者</dt><dd>利用者：<code>x-decided-by: human</code> の値を AI に変えられない ／ Concrete を書く人：書いた rule と形がそのまま適用される ／ レビューする人：誰が何を作ったかが操作の記録に残る</dd>
+<dt>成功時保証</dt><dd>作った JSON ドキュメントは Concrete と不変条件を満たす。change と主アクターが操作の記録に残る</dd>
+<dt>最低保証</dt><dd>error のときは、ファイルも操作の記録も変えない。不完全なファイルを残さない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path ・ schemas ・ Concrete の <code>$id</code> を渡し、作成の procedure を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>Concrete の <code>x-prompt</code> から、作成の procedure を作って返す</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
+<tr><td>3</td><td>AI が procedure に従って JSON ドキュメントを生成し、next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
+<tr><td>4</td><td>JSON ドキュメントを Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>5</td><td><code>x-decided-by: human</code> の値が default のままか、Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ S1</td></tr>
+<tr><td>6</td><td>ファイルを書き、操作の記録に追記する</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC1-1a 引数の違反 ・ Concrete が無いか2つある、UC1-4a JSON Schema の違反、UC1-5a 不変条件の違反、UC1-6a ファイルが既にある：error</li><li>UC1-3a AI が JSON ドキュメントを先に持っている：procedure を依頼せず、直接渡す（4 へ）</li></ul></dd>
 </dl></div>
-<div class="uc"><h3>消す</h3><dl>
-<dt>目的</dt><dd>渡された対象（インスタンスか Concrete）を消す</dd>
-<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>対象と理由を渡す → 対象だけを消し、消す前の状態を記録する。参照している所は、AI が「直す」で直す</dd>
-<dt>保証</dt><dd>渡された対象のほかは変えない。Concrete を消すときは、渡された範囲と記録に従うインスタンスが無いことを確かめてから消す。何を見たかを結果に返す。範囲が渡されなければ断る</dd>
+
+<div class="uc core-uc"><h3>UC2 更新 <span class="k core">中核</span></h3><dl>
+<dt>目的</dt><dd>JSON ドキュメント（インスタンスか Concrete）を JSON Patch で書き換える</dd>
+<dt>利害関係者</dt><dd>同じ JSON ドキュメントを更新するほかの AI：読んだ後の変更を上書きされない ／ 利用者：<code>x-decided-by: human</code> の値を AI に変えられない ／ Concrete を書く人：Concrete を更新しても、範囲のインスタンスが違反しない</dd>
+<dt>成功時保証</dt><dd>書いた JSON ドキュメントは Concrete と不変条件を満たす。change が操作の記録に残る。Concrete を更新したときは、範囲のインスタンスもすべて新しい Concrete を満たした</dd>
+<dt>最低保証</dt><dd>読んだ後に変わった JSON ドキュメントを上書きしない。error のときは、ファイルも操作の記録も変えない。不完全なファイルを残さない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path ・ schemas を渡し、更新の procedure を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td><code>x-prompt</code> から更新の procedure を作って返す。next に、いまのハッシュを If-Match として入れる</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
+<tr><td>3</td><td>AI が procedure に従って JSON Patch を作り、next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
+<tr><td>4</td><td>JSON Patch を検証して適用し、結果を Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>5</td><td>Concrete を更新するときは、範囲のインスタンスを新しい Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>6</td><td><code>x-decided-by: human</code> の値が変わっていないか、If-Match のハッシュがいまのハッシュと同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D2 ・ D3</td></tr>
+<tr><td>7</td><td>ファイルを書き、操作の記録に追記する（6 と 7 はロックの中）</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC2-3a AI が JSON Patch を先に持っている：If-Match のハッシュと一緒に直接渡す（4 へ）</li><li>UC2-6a ハッシュが違う：error。next は、更新の procedure の依頼（1 へ）</li><li>UC2-1a 引数の違反 ・ JSON ドキュメントが無い ・ Concrete の更新で範囲が無い、UC2-4a JSON Patch か Concrete の違反、UC2-5a 範囲のインスタンスの違反、UC2-6b <code>x-decided-by: human</code> の値の変更：error</li></ul></dd>
 </dl></div>
-<div class="uc"><h3>確かめる</h3><dl>
-<dt>目的</dt><dd>渡された対象が、形と x- の決まりに合うかを知る</dd>
-<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>対象を渡す → 機械的に検証し、判定の区分ごとの数を返して記録する。いまの中身が、このワークツリーで記録した最後の事後と違えば（外の変更）知らせる。デザインシステムを渡すと、契約に照らして返す（注入された依存の確かめで、記録しない）</dd>
-<dt>保証</dt><dd>渡された対象について、記録にある操作をもとに決める</dd>
+
+<div class="uc core-uc"><h3>UC3 検証 <span class="k core">中核</span></h3><dl>
+<dt>目的</dt><dd>範囲の JSON ドキュメントが、スキーマと不変条件を満たすか、意味的な検証がどこまで済んでいるかを知る</dd>
+<dt>利害関係者</dt><dd>レビューする人：いつの内容を検証したかが残る ／ Concrete を書く人：Concrete を変えたら、意味的な検証はすべての instance location でやり直しになる</dd>
+<dt>成功時保証</dt><dd>JSON ドキュメントごとに、機械的な検証の judgment と、変更点でない instance location から引き継いだ AI の judgment を合わせて counts を返す。検証した JSON ドキュメントが操作の記録に残る</dd>
+<dt>最低保証</dt><dd>JSON ドキュメントを変えない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI か human が、範囲と schemas を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>インスタンスを Concrete で、Concrete を Abstract で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>3</td><td>Concrete なら作法を満たすかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：S1</td></tr>
+<tr><td>4</td><td>前回の検証と比べて変更点を求め、変更点でない instance location の AI の judgment を引き継ぐ</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
+<tr><td>5</td><td>judgment と JSON ドキュメントを操作の記録に追記し、counts を返す</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC3-2a 違反がある：violated として数える（error にしない）</li><li>UC3-2b Concrete が schemas に無い（Concrete を消したときを含む）：error</li></ul></dd>
 </dl></div>
-<div class="uc sem"><h3>意味の判定 <span class="soft" style="font-size:.8rem;font-weight:400">確かめるの変形</span></h3><dl>
-<dt>目的</dt><dd>x-prompt の rule に照らして、意味が合うかを判定する</dd>
-<dt>アクター</dt><dd>AI のセッション</dd>
-<dt>主な流れ</dt><dd>判定の手順を依頼する → 前の判定のあと変わった所と当たる rule だけで手順を返す（判定する所が0件でも、空の手順を返す）→ AI が書いたときとは別の文脈で判定して渡す（0件なら空の判定）→ 突き合わせて記録する</dd>
-<dt>保証</dt><dd>どの所を、どの rule で、誰が判定したかが記録に残る。判定の中身は AI の答えのまま。判定できない答えは「守られている」に数えない</dd>
+
+<div class="uc core-uc"><h3>UC4 意味的な検証 <span class="k core">中核</span></h3><dl>
+<dt>目的</dt><dd><code>x-prompt</code> の rule に照らして変更点の意味を判定し、操作の記録に残す</dd>
+<dt>利害関係者</dt><dd>Concrete を書く人：書いた rule がそのまま適用される ／ レビューする人：誰がどの rule でどの instance location を判定したかが残る</dd>
+<dt>成功時保証</dt><dd>変更点に適用されるすべての rule に、AI の judgment がある。judgment の内容は AI の answer のまま。unverified は verified に数えない</dd>
+<dt>最低保証</dt><dd>answer が違反なら、操作の記録に追記しない。JSON ドキュメントを変えない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、path と schemas を渡し、判定の procedure を依頼する</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>前回の検証の JSON ドキュメントといまの内容を比べ、変更点を求める</td><td><span class="m">機械的（ドメインモデル）</span>：S4</td></tr>
+<tr><td>3</td><td>変更点に適用される rule を集め、判定の procedure を作って返す</td><td><span class="s">意味的（ドメインモデル）</span>：S2 ・ S3</td></tr>
+<tr><td>4</td><td>AI が procedure に従って判定し、answer を next で渡す</td><td><span class="s">意味的（AI）</span></td></tr>
+<tr><td>5</td><td>answer を JSON Schema で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>6</td><td>answer の rule と instance location の組が、procedure の組と同じかを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：V2</td></tr>
+<tr><td>7</td><td>judgment と JSON ドキュメントを操作の記録に追記する</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC4-1a すべての instance location を判定し直したい：2 で全部を対象にする</li><li>UC4-2a 変更点が無い：空の procedure と counts を返して終わる</li><li>UC4-5a ・ 6a answer の違反：error。next は、判定の procedure の依頼（1 へ）</li></ul></dd>
 </dl></div>
-<div class="uc"><h3>描く</h3><dl>
-<dt>目的</dt><dd>インスタンスを、人が読めるページにする</dd>
-<dt>アクター</dt><dd>人（読み手）・ AI のセッション</dd>
-<dt>主な流れ</dt><dd>インスタンスと、契約に従うデザインシステムを渡す → x-view の種類のテンプレートに値を置いて返す</dd>
-<dt>保証</dt><dd>同じ入力から同じページになる。インスタンスは書き換えない。Concrete は描かない。書き出すページが入力と重なる ・ テンプレートが欠ける（欠けた種類を全部返す）・ 根の外を指す経路では、1ページも書かずに断る。ページに判定 ・ 記録 ・ ハッシュを入れない</dd>
+
+<div class="uc core-uc"><h3>UC5 承認 <span class="k core">中核</span></h3><dl>
+<dt>目的</dt><dd><code>x-decided-by: human</code> の値を決める</dd>
+<dt>主アクター</dt><dd>human</dd>
+<dt>利害関係者</dt><dd>利用者：<code>x-decided-by: human</code> の値は自分しか変えない ／ レビューする人：human が決めたことが、human の操作として残る</dd>
+<dt>成功時保証</dt><dd><code>x-decided-by: human</code> の値が書かれ、主アクターが human として操作の記録に残る</dd>
+<dt>最低保証</dt><dd>UC2 と同じ</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>human が、path ・ JSON Patch ・ If-Match のハッシュを、human として渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>coding agent の中からの実行でないことを確かめる</td><td><span class="m">機械的（ドメインモデル）</span>：D5</td></tr>
+<tr><td>3</td><td>UC2 の 4〜7 を行う（主アクターが human なので、<code>x-decided-by: human</code> の値を変えてよい）</td><td>UC2 と同じ</td></tr></table></dd>
+<dt>拡張</dt><dd>UC5-2a coding agent の中から human として実行した：error（human が実行するコマンドを示す）</dd>
 </dl></div>
-<div class="uc sem"><h3>探す</h3><dl>
-<dt>目的</dt><dd>渡された範囲から、問いへの答えを得る</dd>
-<dt>アクター</dt><dd>AI のセッション ・ 人</dd>
-<dt>主な流れ</dt><dd>範囲と問いを渡す → 構造で絞った結果か、意味で探す手順を返す → AI が答えと出どころを渡す → 出どころが範囲の中にあり、ハッシュが合うかを確かめて返す</dd>
-<dt>保証</dt><dd>範囲の外は探していない、と返す。記録しない</dd>
+
+<div class="uc"><h3>UC6 描画 <span class="k sup">補完</span></h3><dl>
+<dt>目的</dt><dd>インスタンスを、デザインシステムで HTML にする</dd>
+<dt>利害関係者</dt><dd>読み手：HTML は入力だけで決まり、judgment ・ 操作の記録 ・ ハッシュが入らない ／ デザインシステムを作る人：契約どおりの値だけが渡る</dd>
+<dt>成功時保証</dt><dd>同じ入力から同じ HTML になる。インスタンスを変えない</dd>
+<dt>最低保証</dt><dd>error のときは、1つも書き出さない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、範囲 ・ デザインシステム ・ 書き出す先 ・ schemas を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>デザインシステムを契約のスキーマで、インスタンスを Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>3</td><td>Concrete の <code>x-view</code> でテンプレートを選ぶ</td><td><span class="m">機械的（ドメインモデル）</span>：S5</td></tr>
+<tr><td>4</td><td>テンプレートで描画し、すべて書けてから書き出す</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd>UC6-2a 違反 ・ UC6-3a テンプレートが無い ・ UC6-4a 書き出す先が入力と重なる：error</dd>
 </dl></div>
-<div class="uc"><h3>記録を読む</h3><dl>
+
+<div class="uc"><h3>UC7 検索 <span class="k sup">補完</span></h3><dl>
+<dt>目的</dt><dd>範囲の JSON ドキュメントから、条件か問いに合う instance location を得る</dd>
+<dt>利害関係者</dt><dd>AI：範囲の外や古い内容を出どころにした結果を受け取らない</dd>
+<dt>成功時保証</dt><dd>範囲の中だけを探したと返す</dd>
+<dt>最低保証</dt><dd>JSON ドキュメントを変えない。操作の記録に追記しない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、範囲と、JSON Pointer と値の条件を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>範囲の各 JSON ドキュメントの、JSON Pointer の値を比べて返す</td><td><span class="m">機械的（ドメインモデル）</span>：S6</td></tr></table></dd>
+<dt>拡張</dt><dd>UC7-1a 意味で探す：問いを渡すと procedure を返し（<span class="s">意味的（ドメインモデル）</span>）、AI が answer と出どころを渡す（<span class="s">意味的（AI）</span>）。answer を JSON Schema で検証し、出どころが範囲の中でハッシュがいまと同じかを確かめて返す（<span class="m">機械的（JSON Schema）</span>）</dd>
+</dl></div>
+
+<div class="uc"><h3>UC8 操作の記録の参照 <span class="k sup">補完</span></h3><dl>
 <dt>目的</dt><dd>誰が、いつ、何をしたかを知る</dd>
-<dt>アクター</dt><dd>人（レビューする人）・ AI のセッション</dd>
-<dt>主な流れ</dt><dd>絞る条件を渡す → 記録を新しい順に返す</dd>
-<dt>保証</dt><dd>読むだけで、何も変えない。無いものは無いと返す</dd>
+<dt>成功時保証</dt><dd>条件に合う操作を新しい順に返す</dd>
+<dt>最低保証</dt><dd>操作の記録を変えない</dd>
+<dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI か human が、絞る条件（path ・ 主アクター ・ 件数）を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
+<tr><td>2</td><td>操作の記録を新しい順に読み、1件ずつログイベントで返す</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd>UC8-1a 操作の ID を渡す：その操作の change か judgment を返す</dd>
 </dl></div>
 </div>
 </section>
 
-<section><h2><span class="n">4</span>ドメインモデル</h2>
-<h3>業務領域と区分</h3>
-<div class="fig">{{domains}}</div>
-<div class="wrap"><table>
-<tr><th>業務領域と区分</th><th>なぜその区分か</th></tr>
-<tr><td>書いて確かめる<br><span class="k core">中核</span></td><td>本質（x- の決まりと x-prompt による意味的な検証）を担う。モデリングを必要とし、ほかに無い価値になる</td></tr>
-<tr><td>記録<br><span class="k sup">補完</span></td><td>変わった所を選ぶ元として必要だが、追記して読むだけで、業務の判断を持たない</td></tr>
-<tr><td>描く<br><span class="k sup">補完</span></td><td>値を置いて返すだけ。見た目は注入されたデザインシステムが決める</td></tr>
-<tr><td>探す<br><span class="k sup">補完</span></td><td>範囲の中で絞るか、手順を返して出どころを確かめるだけ</td></tr>
-<tr><td>版の管理 ・ JSON Schema の検証 ・ テンプレートの処理<br><span class="k gen">一般</span></td><td>どこでも同じ仕組み。作らずに使い、受け取る契約だけを Semantic Agent Schema が決める</td></tr>
-</table></div>
-
-<h3>集約と不変条件</h3>
+<section><h2><span class="n">7</span><span class="nb">ドメインモデル：</span><span class="nb">中核「作成と検証」</span></h2>
 <div class="fig">{{model}}</div>
+<p>ドメインモデルは、JSON Schema で書けない不変条件と、<code>x-prompt</code> から procedure を作るルールだけを持つ。ドメインサービスはポートを呼ばず、application が読んだもの（JSON ドキュメント ・ Concrete ・ 前回の検証）を受け取る。1回の操作で書く集約は1つ <span class="tr"><code>aggregate</code> ・ <code>domain-service</code></span>。</p>
+<h3>集約と不変条件</h3>
 <div class="wrap"><table class="stack">
-<tr><th>集約</th><th>不変条件</th><th>なぜ</th></tr>
-<tr><td>Concrete</td><td>申告する Abstract の版が、閉じた一覧にある</td><td>作法に従っていることを、版で確かめる</td></tr>
-<tr><td>Concrete</td><td>作法に従う。<code>x-</code> は閉じた一覧（<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code>）で、<code>x-view</code> は根だけ。組み込みの検査の名前は rule の id に使えない。JSON Schema で書けない作法は組み込みの検査で確かめる</td><td>能力は作法に基づくので、作法から外れたものは扱えない</td></tr>
-<tr><td>インスタンス</td><td>経路で識別する。記録と範囲は経路で指し、消したあとの同じ経路には前の判定を引き継がない</td><td>記録と参照が同じものを指し続ける。作り直した文書に前の判定を当てない</td></tr>
-<tr><td>インスタンス</td><td>人だけが決める欄（<code>x-decided-by</code>）は、人からだけ変える</td><td>承認は人が持つ</td></tr>
-<tr><td>インスタンス</td><td>Concrete の形と x- の決まりに合う</td><td>機械的な検証を通らない値を書かない</td></tr>
-<tr><td>インスタンス</td><td>中身が読んだ時と同じときだけ書く ・ 消す（読んだ時のハッシュを必ず受け取る）</td><td>ほかの変更を上書きしない。同じ変更を打ち直しても二重に当たらない</td></tr>
+<tr><th>集約と ID</th><th>不変条件</th><th>なぜ JSON Schema で書けないか</th></tr>
+<tr><td>JSON ドキュメント D1</td><td>path で識別する。path は working tree からの相対で、working tree の外を読まない ・ 書かない</td><td>ファイルシステムを見る <span class="tr">本質 R2 ・ R4</span></td></tr>
+<tr><td>JSON ドキュメント D2</td><td><code>x-decided-by: human</code> の値は、主アクターが human のときだけ default から変わる</td><td>前の値と、主アクターの両方を見る <span class="tr">本質 P7</span></td></tr>
+<tr><td>JSON ドキュメント D3</td><td>If-Match のハッシュがいまのハッシュと同じときだけ書く（確かめることと書くことはロックの中）</td><td>いまのファイルの状態を見る <span class="tr">本質 W1</span></td></tr>
+<tr><td>JSON ドキュメント D4</td><td>書くたびに、instance location ごとの change を出す</td><td>2つの JSON ドキュメントを比べる <span class="tr">本質 W1 ・ E5</span></td></tr>
+<tr><td>JSON ドキュメント D5</td><td>coding agent の環境変数があるところでは、human として書けない（human へのなりすましを防ぐ。環境変数があるかだけを見て、値は読まない）</td><td>実行の環境を見る <span class="tr">本質 P7</span></td></tr>
+<tr><td>検証 V1</td><td>1つの JSON ドキュメントの、1つの内容について持つ。ID は操作ごとに付け、作った後は変えない</td><td>操作の記録の単位 <span class="tr">本質 E5 ・ <code>aggregate</code></span></td></tr>
+<tr><td>検証 V2</td><td>answer の rule と instance location の組は、そのとき返した procedure の組と同じ</td><td>procedure は、そのときの内容と前回の検証から決まる <span class="tr">本質 W1 ・ E6</span></td></tr>
+<tr><td>検証 V3</td><td>満たしたとするのは verified の judgment だけ。unverified ・ not-judged は数えない</td><td>judgment の集まりを数える <span class="tr">本質 W1</span></td></tr>
 </table></div>
-<p class="soft">1回の操作で書く集約は1つ。</p>
-
-<h3>値</h3>
-<div class="wrap"><table>
-<tr><th>値</th><th>何か</th></tr>
-<tr><td>ハッシュ</td><td>中身から決まる値。読んだ時といまの中身が同じかを決める</td></tr>
-<tr><td>差分</td><td>項目（JSON Pointer）ごとの前と後</td></tr>
-<tr><td>書く条件の外れ</td><td>書かずに断った理由（中身が変わっていた ・ 形が合わない ・ 人の欄 など）</td></tr>
-<tr><td>判定の区分</td><td>4つ：守られている ・ 破られている ・ 判定できない ・ まだ判定していない。「守られている」に数えるのは、守られているだけ</td></tr>
-<tr><td>誰が判定したか</td><td>機械（形の検査 ・ 組み込みの検査）か、AI（x-prompt の rule）か</td></tr>
-<tr><td>誰が打ったか</td><td>セッション。入力で受け取り、推さない</td></tr>
-<tr><td>対象の種類</td><td>Concrete かインスタンスか</td></tr>
+<h3>値オブジェクト</h3>
+<div class="wrap"><table class="stack">
+<tr><th>値オブジェクト</th><th>何か</th><th>使うユースケース</th></tr>
+<tr><td>path</td><td>working tree からの相対のパス。working tree の外を指す形では作れない</td><td>UC1〜UC8</td></tr>
+<tr><td>ハッシュ</td><td>ファイルの内容のバイト列から決まる値</td><td>UC2 ・ UC3 ・ UC5 ・ UC7</td></tr>
+<tr><td>JSON Pointer</td><td>instance location の値</td><td>UC1〜UC7</td></tr>
+<tr><td>change</td><td>instance location ・ op（add ・ remove ・ replace）・ before ・ after</td><td>UC1 ・ UC2 ・ UC5</td></tr>
+<tr><td>主アクター</td><td>ai か human。引数と環境から決め、推し量らない</td><td>UC1〜UC5</td></tr>
+<tr><td>Concrete</td><td>スキーマとして読むときの形：<code>$id</code> ・ サブスキーマごとの rule ・ <code>x-decided-by: human</code> ・ <code>x-view</code>。内容のハッシュを持つ</td><td>UC1〜UC7</td></tr>
+<tr><td>rule</td><td>id と <code>x-prompt</code> の rules の1件</td><td>UC1〜UC4</td></tr>
+<tr><td>judgment</td><td>rule ・ instance location ・ verdict ・ by（machine か ai）・ reason</td><td>UC3 ・ UC4</td></tr>
+<tr><td>procedure</td><td>生成か判定の step ・ answer の形 ・ next</td><td>UC1 ・ UC2 ・ UC4 ・ UC7</td></tr>
 </table></div>
-
 <h3>ドメインサービス</h3>
-<div class="wrap"><table>
-<tr><th>サービス</th><th>すること</th></tr>
-<tr><td>x- の項目のバリデーター</td><td>JSON Schema で書けない作法（<code>$schema</code> と <code>$id</code> が合う ・ rule の id が重ならない ・ 例の related は related_fields の所だけ）と、人の欄を確かめる</td></tr>
-<tr><td>x- の項目のレンダラー</td><td><code>x-view</code> の種類に、デザインシステムのテンプレートを当てて値を置く</td></tr>
-<tr><td>x-prompt から手順を生成する決まり</td><td>項目の title ・ description ・ <code>x-prompt</code>（meaning ・ when ・ rules）と当たる rule から、決まった形の手順を生成する。同じ入力なら同じ手順。入れ子の深さで切らず、<code>$ref</code> の先の rule は置かれた所ごとに1回だけ入れる</td></tr>
-<tr><td>変わった所を選ぶ決まり</td><td>前の判定のあとの項目ごとの前後と、判定が読んだ所のハッシュから、判定し直す所を選ぶ。選ばれなかった所は前の判定を引き継ぐ</td></tr>
-</table></div>
-
-<h3>記録の概念</h3>
-<div class="fig">{{records}}</div>
 <div class="wrap"><table class="stack">
-<tr><th>記録</th><th>何を残すか</th><th>担う価値</th></tr>
-<tr><td>セッション</td><td>誰が打ったか。1つのセッションに1つ</td><td>誰が何をしたかを読む</td></tr>
-<tr><td>変更の操作</td><td>対象 ・ 前後のハッシュ ・ 理由 ・ 通したか外の変更の取り込みか</td><td>記録に無い変更を見つける</td></tr>
-<tr><td>項目ごとの前後</td><td>JSON Pointer ごとの前の値と後の値</td><td>価値3：変わった所だけを検証する</td></tr>
-<tr><td>検証の操作</td><td>対象 ・ その時のハッシュ ・ 判定の区分ごとの数</td><td>いつの中身を確かめたかを残す</td></tr>
-<tr><td>項目ごとの判定</td><td>rule ・ JSON Pointer ・ 区分 ・ 誰が判定したか ・ 理由 ・ 読んだ所のハッシュ</td><td>価値4：変更点を決定論的に集める</td></tr>
+<tr><th>ドメインサービスと ID</th><th>すること</th><th>検証</th></tr>
+<tr><td>バリデーター S1</td><td>JSON Schema で書けない Concrete の作法（ルートスキーマの <code>$schema</code> の const が <code>$id</code> と同じ ・ rule の id が重ならない ・ 例の related のキーが related_fields にある）を確かめる</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
+<tr><td>サブスキーマを引く S2</td><td>インスタンスと Concrete から、instance location ごとのサブスキーマの title ・ description ・ <code>x-prompt</code> と、適用される rule を引く。<code>$ref</code> の先の Concrete は application が先に引いて渡す</td><td>意味的 <span class="tr">本質 W1 ・ E4</span></td></tr>
+<tr><td>procedure を作る S3</td><td>サブスキーマと rule から、生成 ・ 判定の procedure を作る。JSON ドキュメントの内容は貼らず、path とハッシュで渡す。同じ入力なら同じ procedure</td><td>意味的 <span class="tr">本質 W1 ・ E2</span></td></tr>
+<tr><td>変更点を求める S4</td><td>8 の「変更点の求め方」で求める</td><td>機械的 <span class="tr">本質 W1 ・ E5</span></td></tr>
+<tr><td>レンダラー S5</td><td>Concrete の <code>x-view</code> で、デザインシステムのテンプレートを選ぶ</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
+<tr><td>検索の比較 S6</td><td>範囲の JSON ドキュメントごとに、JSON Pointer の値が条件と同じかを比べる</td><td>機械的 <span class="tr">本質 W3</span></td></tr>
 </table></div>
-<p class="soft">どれも追記だけ。断った操作は記録しない。</p>
 </section>
 
-<section class="ng"><h2><span class="n">5</span><span class="nb">境界：</span><span class="nb">してはならないこと</span></h2>
-<div class="wrap"><table>
-<tr><th>してはならないこと</th><th>なぜ</th></tr>
-<tr><td>どのファイルを見るかを推し量る</td><td>見るものを決めるのは、入力を作る AI。推し量ると、渡していないもので結果が変わる</td></tr>
-<tr><td>入力の曖昧さを補う</td><td>補うと、同じ入力から同じ結果にならない。足りなければ断る</td></tr>
-<tr><td>中でエージェントを呼ぶ</td><td>意味的な検証は、手順を返して担う。判定は外の AI が行う</td></tr>
-<tr><td>Concrete の具体に依存する</td><td>能力は作法に基づく。受け入れるのは、決めた契約の依存の注入だけ</td></tr>
-<tr><td>後方互換のためのコードを残す</td><td>いまの契約だけを持つ。残すと契約が2つになり、どちらで確かめるかが決まらない</td></tr>
-<tr><td>書きかけを残す</td><td>止まっても前か後のどちらかになるように書く。途中の中身を読まれると、形に合わない文書が在ることになる</td></tr>
+<section><h2><span class="n">8</span>変更点の求め方</h2>
+<div class="fig">{{diff}}</div>
+<ul>
+<li>比べるのは、前回の検証で残した JSON ドキュメントと、いまの内容の2つだけ。JSON Pointer ごとに値を比べ、違う instance location を変更点とする</li>
+<li>Concrete のハッシュが前回と違うとき、または前回の検証が無いときは、すべての instance location を対象にする</li>
+<li>変更点を instance location か related_fields に含む rule だけを procedure に入れる。ほかの AI の judgment は、前回の検証から引き継いで残す</li>
+<li>Semantic Agent Schema を通さずに変わった JSON ドキュメントも変更点に出るだけなので、取り込みの仕組みは持たない。操作の記録への追記に失敗しても、次の変更点が増えるだけ</li>
+</ul>
+<p class="soft">根拠：本質 W1 ・ E5–E6 ・ R4</p>
+</section>
+
+<section><h2><span class="n">9</span>error の考え方</h2>
+<p>出力はすべてログイベントで、読むのは AI。error は、AI が次のアクションを取れるように、次の6つを持つ <span class="tr">本質 W5 ・ W1 ・ R2 ・ R5</span>。</p>
+<div class="wrap"><table class="stack">
+<tr><th>持つもの</th><th>何か</th><th>出どころ</th></tr>
+<tr><td>code</td><td>どのルールに違反したかを示す決まった名前</td><td>error の種類ごとに決める</td></tr>
+<tr><td>instance location</td><td>違反したインスタンスの中の位置</td><td>JSON Schema の実装の出力か、不変条件</td></tr>
+<tr><td>absolute keyword location</td><td>違反したキーワードの位置</td><td>JSON Schema の実装の出力</td></tr>
+<tr><td>message</td><td>違反の内容の文</td><td>JSON Schema の実装の出力か、不変条件</td></tr>
+<tr><td>指示</td><td>AI への直し方の文</td><td>code ごとの定型文に、instance location と値を入れる</td></tr>
+<tr><td>next</td><td>次に実行するコマンド行。AI が埋める部分だけを &lt;…&gt; で空けておく</td><td>受け取った引数を引き継ぐ</td></tr>
+</table></div>
+<p>JSON Schema の違反は、JSON Schema の実装の出力をこの形に変換するだけで、独自の判定を足さない。</p>
+</section>
+
+<section class="ng"><h2><span class="n">10</span><span class="nb">境界：</span><span class="nb">持たないもの</span></h2>
+<div class="wrap"><table class="stack">
+<tr><th>持たないもの</th><th>なぜ</th><th>根拠</th></tr>
+<tr><td>どの JSON ドキュメントを見るかを推し量ること</td><td>見るものは、入力を作る AI が決める</td><td class="tr">本質 R2 ・ R4</td></tr>
+<tr><td>入力の曖昧さをアルゴリズムで補うこと</td><td>補うと、同じ入力から同じ結果にならない</td><td class="tr">本質 W3 ・ R5</td></tr>
+<tr><td>中でエージェントを呼ぶこと</td><td>意味的な検証は、procedure を返して担う</td><td class="tr">本質 W1 ・ E2</td></tr>
+<tr><td>Concrete の具体への依存</td><td>受け入れるのは、決めた契約の依存の注入だけ</td><td class="tr">本質 W4 ・ C5</td></tr>
+<tr><td>操作とセッション（coding agent の会話）の結び付け</td><td>どの会話の操作かを結び付けるのは、使う側の責務。Semantic Agent Schema が残すのは主アクター（ai か human）だけ</td><td class="tr">本質 W11 ・ P7</td></tr>
+<tr><td>変更の履歴をたどる仕組み ・ 外の変更の取り込み</td><td>前回の検証と比べれば変更点が出る</td><td class="tr">本質 W1 ・ W3</td></tr>
+<tr><td>テンプレートの中を解析して Concrete と照らすこと</td><td>テンプレートは契約の記法で書き、描画はその処理系に任せる</td><td class="tr">本質 W4</td></tr>
 </table></div>
 <blockquote>もっとシンプルでいいし、入力の曖昧さをアルゴリズムで強引に実現しようとしなくてもある程度入力を作成するaiに頼ってもいいと思う。</blockquote>
 </section>

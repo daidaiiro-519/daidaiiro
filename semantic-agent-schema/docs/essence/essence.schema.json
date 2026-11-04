@@ -1,0 +1,154 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:semantic-agent-schema:docs:essence:v1",
+ "title": "Semantic Agent Schema の本質",
+ "description": "設計 ・ 実装 ・ 文書の判断を照らす本質を持つ JSON ドキュメントの形。利用者の言葉は原文のまま持ち、ほかの要素はその言葉を基にした要約である。どの要素も、2枚のページと試験が引用に使う id を持つ。",
+ "type": "object",
+ "required": ["$schema", "title", "purpose", "words", "concept_model", "essence", "intake", "design", "pages"],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "const": "urn:semantic-agent-schema:docs:essence:v1",
+   "description": "この JSON ドキュメントが従うスキーマの $id。"
+  },
+  "title": {
+   "type": "string",
+   "minLength": 1,
+   "description": "ページの見出し。"
+  },
+  "purpose": {
+   "type": "string",
+   "minLength": 1,
+   "description": "この JSON ドキュメントを何に使うかの1文。"
+  },
+  "words": {
+   "type": "array",
+   "minItems": 1,
+   "description": "利用者の言葉の並び。引用の id は W に番号を付ける。",
+   "items": { "$ref": "#/$defs/word" }
+  },
+  "concept_model": {
+   "type": "object",
+   "required": ["schemas", "statements"],
+   "additionalProperties": false,
+   "description": "Abstract ・ Concrete ・ インスタンスの概念モデル。引用の id は C に番号を付ける。",
+   "properties": {
+    "schemas": {
+     "type": "array",
+     "minItems": 1,
+     "description": "概念モデルの3つ（Abstract ・ Concrete ・ インスタンス）。",
+     "items": {
+      "type": "object",
+      "required": ["id", "name", "what", "relation"],
+      "additionalProperties": false,
+      "properties": {
+       "id": { "$ref": "#/$defs/id-c" },
+       "name": { "type": "string", "minLength": 1, "description": "概念の名前。" },
+       "what": { "type": "string", "minLength": 1, "description": "その概念が何か。" },
+       "relation": { "type": "string", "minLength": 1, "description": "Semantic Agent Schema との関係。" }
+      }
+     }
+    },
+    "statements": {
+     "type": "array",
+     "minItems": 1,
+     "description": "能力 ・ 依存 ・ 依存の注入についての文。",
+     "items": { "$ref": "#/$defs/statement-c" }
+    }
+   }
+  },
+  "essence": {
+   "type": "object",
+   "required": ["layers", "values_heading", "values"],
+   "additionalProperties": false,
+   "description": "機械的な検証と意味的な検証、x-prompt が担う価値。引用の id は E に番号を付ける。",
+   "properties": {
+    "layers": {
+     "type": "array",
+     "minItems": 2,
+     "maxItems": 2,
+     "description": "機械的な検証と意味的な検証の2つ。",
+     "items": {
+      "type": "object",
+      "required": ["id", "layer", "how"],
+      "additionalProperties": false,
+      "properties": {
+       "id": { "$ref": "#/$defs/id-e" },
+       "layer": { "enum": ["機械的な検証", "意味的な検証"], "description": "検証の名前。" },
+       "how": { "type": "string", "minLength": 1, "description": "何で担保するか。" }
+      }
+     }
+    },
+    "values_heading": { "type": "string", "minLength": 1, "description": "x-prompt の価値の並びの見出し。" },
+    "values": {
+     "type": "array",
+     "minItems": 1,
+     "description": "x-prompt が担う価値の並び。",
+     "items": { "$ref": "#/$defs/statement-e" }
+    }
+   }
+  },
+  "intake": {
+   "type": "array",
+   "minItems": 1,
+   "description": "入力の受け取り方。引用の id は R に番号を付ける。",
+   "items": { "$ref": "#/$defs/statement-r" }
+  },
+  "design": {
+   "type": "array",
+   "minItems": 1,
+   "description": "設計の進め方。最初の要素は方針の文、残りは内側から外側への層。引用の id は P に番号を付ける。",
+   "items": { "$ref": "#/$defs/statement-p" }
+  },
+  "pages": {
+   "type": "array",
+   "minItems": 1,
+   "description": "本質を基にした2枚のページへの参照。引用の id は D に番号を付ける。",
+   "items": {
+    "type": "object",
+    "required": ["id", "name", "path", "holds"],
+    "additionalProperties": false,
+    "properties": {
+     "id": { "type": "string", "pattern": "^D[1-9][0-9]*$", "description": "引用に使う id。" },
+     "name": { "type": "string", "minLength": 1, "description": "ページの名前。" },
+     "path": { "type": "string", "pattern": "^[^/].*\\.html$", "description": "docs からの相対の path。" },
+     "holds": { "type": "string", "minLength": 1, "description": "そのページが持つもの。" }
+    }
+   }
+  }
+ },
+ "$defs": {
+  "word": {
+   "type": "object",
+   "required": ["id", "date", "lines"],
+   "additionalProperties": false,
+   "description": "利用者の言葉1つ。lines は原文の行を1文字も変えずに並べる（空の行も含める）。",
+   "properties": {
+    "id": { "type": "string", "pattern": "^W[1-9][0-9]*$", "description": "引用に使う id。" },
+    "date": { "type": "string", "format": "date", "description": "その言葉を受け取った日。" },
+    "lines": {
+     "type": "array",
+     "minItems": 1,
+     "items": { "type": "string" },
+     "description": "原文の行の並び。"
+    },
+    "about": { "type": "string", "minLength": 1, "description": "何についての言葉か。原文だけでは対象が分からないときに書く。" }
+   }
+  },
+  "id-c": { "type": "string", "pattern": "^C[1-9][0-9]*$", "description": "引用に使う id。" },
+  "id-e": { "type": "string", "pattern": "^E[1-9][0-9]*$", "description": "引用に使う id。" },
+  "statement-c": { "$ref": "#/$defs/statement", "properties": { "id": { "$ref": "#/$defs/id-c" } } },
+  "statement-e": { "$ref": "#/$defs/statement", "properties": { "id": { "$ref": "#/$defs/id-e" } } },
+  "statement-r": { "$ref": "#/$defs/statement", "properties": { "id": { "type": "string", "pattern": "^R[1-9][0-9]*$", "description": "引用に使う id。" } } },
+  "statement-p": { "$ref": "#/$defs/statement", "properties": { "id": { "type": "string", "pattern": "^P[1-9][0-9]*$", "description": "引用に使う id。" } } },
+  "statement": {
+   "type": "object",
+   "required": ["id", "text"],
+   "properties": {
+    "id": { "type": "string", "description": "引用に使う id。" },
+    "text": { "type": "string", "minLength": 1, "description": "文。" }
+   },
+   "unevaluatedProperties": false
+  }
+ }
+}

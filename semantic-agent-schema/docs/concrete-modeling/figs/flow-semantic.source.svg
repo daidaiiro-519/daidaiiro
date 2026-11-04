@@ -1,67 +1,72 @@
-<svg viewBox="0 0 420 1041" role="img" aria-label="update --semantic で手順をもらい、AI が JSON Patch を作って update --patch で書く。書いた変更は項目ごとに記録される。validate --semantic は記録から変わった所だけの手順を返し、AI が判定を validate --answer で渡すと、照らしてから記録する">
-<text class="title" x="10" y="22">処理の流れ：意味で書いて、変わった所を判定する</text>
-<text class="note small" x="117" y="44" text-anchor="middle">モジュール（application ・ domain）</text>
-<text class="note small" x="320" y="44" text-anchor="middle">ポート → アダプター</text>
+<svg viewBox="0 0 420 1124" role="img" aria-label="update --semantic で procedure を受け取り、AI が JSON Patch を作って update --patch --if-match で書く。validate --semantic は前回の検証と比べた変更点の rule だけで procedure を返し、AI が answer を validate --answer で渡すと、検証してから操作の記録に追記する">
+<text class="title" x="10" y="22">処理の流れ：procedure で更新し、変更点を判定する</text>
+<text class="note small" x="110" y="44" text-anchor="middle">authoring（application ・ domain）</text>
+<text class="note small" x="313" y="44" text-anchor="middle">ポート → アダプター</text>
 <rect class="box kind-1" x="10" y="56" width="400" height="57"/>
-<text class="label small" x="20" y="74">AI：意味で書く手順を依頼する</text>
+<text class="label small" x="20" y="74">AI：更新の procedure を依頼する</text>
 <text class="note small" x="20" y="89">update a.json --semantic</text>
-<text class="note small" x="20" y="104">--schemas s/ --session S</text>
-<rect class="box" x="230" y="135" width="180" height="72"/>
-<text class="label small" x="240" y="153">1 DocumentStore.read</text>
-<text class="note small" x="240" y="168">→ filesystem</text>
-<text class="note small" x="240" y="183">SchemaValidator</text>
-<text class="note small" x="240" y="198">→ jsonschema</text>
-<rect class="box" x="10" y="229" width="214" height="57"/>
-<text class="label small" x="20" y="247">2 writing：x-prompt から手順を作る</text>
-<text class="note small" x="20" y="262">command に置き場所 ・ session を</text>
-<text class="note small" x="20" y="277">引き継ぐ。記録しない</text>
-<rect class="box kind-1" x="10" y="308" width="400" height="57"/>
-<text class="label small" x="20" y="326">AI：steps を行い、JSON Patch を作って打つ</text>
-<text class="note small" x="20" y="341">update a.json --patch P --if-match H</text>
-<text class="note small" x="20" y="356">--schemas s/ --session S</text>
-<rect class="box" x="10" y="387" width="214" height="42"/>
-<text class="label small" x="20" y="405">3 writing：Patch を当てて照らす</text>
-<text class="note small" x="20" y="420">形 ・ 集約の書く条件 ・ --if-match</text>
-<rect class="box" x="230" y="451" width="180" height="72"/>
-<text class="label small" x="240" y="469">4 DocumentStore.write</text>
-<text class="note small" x="240" y="484">→ filesystem</text>
-<text class="note small" x="240" y="499">ChangeLog.append_change</text>
-<text class="note small" x="240" y="514">→ sqlite：pointer ごとの前後</text>
-<rect class="box kind-1" x="10" y="545" width="400" height="57"/>
-<text class="label small" x="20" y="563">AI：変わった所を確かめる手順を依頼する</text>
-<text class="note small" x="20" y="578">validate a.json --semantic</text>
-<text class="note small" x="20" y="593">--schemas s/ --session S</text>
-<rect class="box" x="230" y="624" width="180" height="42"/>
-<text class="label small" x="240" y="642">5 ValidationLog → sqlite</text>
-<text class="note small" x="240" y="657">writes ・ last_judgments</text>
-<rect class="box" x="10" y="688" width="214" height="57"/>
-<text class="label small" x="20" y="706">6 validation：変わった所だけ集める</text>
-<text class="note small" x="20" y="721">field_changes の pointer と</text>
-<text class="note small" x="20" y="736">reads_hash で当たる rule を選ぶ</text>
-<rect class="box kind-1" x="10" y="767" width="400" height="57"/>
-<text class="label small" x="20" y="785">AI：rule ごとに判定して打つ</text>
-<text class="note small" x="20" y="800">validate a.json --answer J</text>
-<text class="note small" x="20" y="815">--schemas s/ --session S</text>
-<rect class="box" x="10" y="846" width="214" height="57"/>
-<text class="label small" x="20" y="864">7 validation：答えを照らす</text>
-<text class="note small" x="20" y="879">judgment-answer の形 ・ hash</text>
-<text class="note small" x="20" y="894">step ・ rule ・ pointer</text>
-<rect class="box" x="230" y="925" width="180" height="57"/>
-<text class="label small" x="240" y="943">8 ValidationLog</text>
-<text class="note small" x="240" y="958">append_validate → sqlite</text>
-<text class="note small" x="240" y="973">rule_results（by = ai）</text>
-<rect class="box kind-1" x="10" y="1004" width="400" height="27"/>
-<text class="label small" x="20" y="1022">AI：結果（validation）を読む</text>
-<path class="flow" d="M320,113 V133" fill="none"/>
-<path class="flow" d="M320,207 V218 H117 V227" fill="none"/>
-<path class="flow" d="M117,286 V306" fill="none"/>
-<path class="flow" d="M117,365 V385" fill="none"/>
-<path class="flow" d="M117,429 V440 H320 V449" fill="none"/>
-<path class="flow" d="M320,523 V543" fill="none"/>
-<path class="flow" d="M320,602 V622" fill="none"/>
-<path class="flow" d="M320,666 V677 H117 V686" fill="none"/>
-<path class="flow" d="M117,745 V765" fill="none"/>
-<path class="flow" d="M117,824 V844" fill="none"/>
-<path class="flow" d="M117,903 V914 H320 V923" fill="none"/>
-<path class="flow" d="M320,982 V1002" fill="none"/>
+<text class="note small" x="20" y="104">--schemas s/</text>
+<rect class="box" x="216" y="135" width="194" height="42"/>
+<text class="label small" x="226" y="153">1 Documents.Read → files</text>
+<text class="note small" x="226" y="168">Schemas → files</text>
+<rect class="box" x="10" y="199" width="200" height="57"/>
+<text class="label small" x="20" y="217">2 domain：サブスキーマを引き</text>
+<text class="note small" x="20" y="232">procedure を作る。next に</text>
+<text class="note small" x="20" y="247">--if-match と --schemas</text>
+<rect class="box kind-1" x="10" y="278" width="400" height="57"/>
+<text class="label small" x="20" y="296">AI：procedure に従い JSON Patch を作る</text>
+<text class="note small" x="20" y="311">update a.json --patch P --if-match H</text>
+<text class="note small" x="20" y="326">--schemas s/</text>
+<rect class="box" x="216" y="357" width="194" height="42"/>
+<text class="label small" x="226" y="375">3 Patcher → patching</text>
+<text class="note small" x="226" y="390">Validator → schemacheck</text>
+<rect class="box" x="10" y="421" width="200" height="57"/>
+<text class="label small" x="20" y="439">4 domain：集約 JSON ドキュメント</text>
+<text class="note small" x="20" y="454">x-decided-by ・ If-Match</text>
+<text class="note small" x="20" y="469">change を出す</text>
+<rect class="box" x="216" y="500" width="194" height="57"/>
+<text class="label small" x="226" y="518">5 Records.WithLock</text>
+<text class="note small" x="226" y="533">→ recordstore：ロックの中で</text>
+<text class="note small" x="226" y="548">Documents.Write と追記</text>
+<rect class="box kind-1" x="10" y="579" width="400" height="57"/>
+<text class="label small" x="20" y="597">AI：判定の procedure を依頼する</text>
+<text class="note small" x="20" y="612">validate a.json --semantic</text>
+<text class="note small" x="20" y="627">--schemas s/</text>
+<rect class="box" x="216" y="658" width="194" height="57"/>
+<text class="label small" x="226" y="676">6 Records</text>
+<text class="note small" x="226" y="691">.LastValidation</text>
+<text class="note small" x="226" y="706">→ recordstore：前回の検証</text>
+<rect class="box" x="10" y="737" width="200" height="57"/>
+<text class="label small" x="20" y="755">7 domain：変更点を求める</text>
+<text class="note small" x="20" y="770">JSON Pointer ごとに比べ</text>
+<text class="note small" x="20" y="785">その rule で procedure を作る</text>
+<rect class="box kind-1" x="10" y="816" width="400" height="57"/>
+<text class="label small" x="20" y="834">AI：rule ごとに判定する</text>
+<text class="note small" x="20" y="849">validate a.json --answer J</text>
+<text class="note small" x="20" y="864">--schemas s/</text>
+<rect class="box" x="216" y="895" width="194" height="42"/>
+<text class="label small" x="226" y="913">8 Validator → schemacheck</text>
+<text class="note small" x="226" y="928">judgment-answer.schema.json</text>
+<rect class="box" x="10" y="959" width="200" height="42"/>
+<text class="label small" x="20" y="977">9 domain：集約検証</text>
+<text class="note small" x="20" y="992">answer の組が procedure と同じ</text>
+<rect class="box" x="216" y="1023" width="194" height="42"/>
+<text class="label small" x="226" y="1041">10 Records → recordstore</text>
+<text class="note small" x="226" y="1056">validations ・ judgments</text>
+<rect class="box kind-1" x="10" y="1087" width="400" height="27"/>
+<text class="label small" x="20" y="1105">AI：validation のログイベントを読む</text>
+<path class="flow" d="M313,113 V133" fill="none"/>
+<path class="flow" d="M313,177 V188 H110 V197" fill="none"/>
+<path class="flow" d="M110,256 V276" fill="none"/>
+<path class="flow" d="M313,335 V355" fill="none"/>
+<path class="flow" d="M313,399 V410 H110 V419" fill="none"/>
+<path class="flow" d="M110,478 V489 H313 V498" fill="none"/>
+<path class="flow" d="M313,557 V577" fill="none"/>
+<path class="flow" d="M313,636 V656" fill="none"/>
+<path class="flow" d="M313,715 V726 H110 V735" fill="none"/>
+<path class="flow" d="M110,794 V814" fill="none"/>
+<path class="flow" d="M313,873 V893" fill="none"/>
+<path class="flow" d="M313,937 V948 H110 V957" fill="none"/>
+<path class="flow" d="M110,1001 V1012 H313 V1021" fill="none"/>
+<path class="flow" d="M313,1065 V1085" fill="none"/>
 </svg>

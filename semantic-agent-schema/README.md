@@ -2,7 +2,7 @@
 
 JSON Schema を Semantic に拡張し、その型（Abstract → Concrete → インスタンス）で作成・更新・削除・検証・描画・検索する基盤。
 
-本質（指針がぶれたときに立ち返る所）は `docs/essence.md` にある。
+本質（指針がぶれたときに立ち返る所）は `docs/essence/essence.json`（描いたページは `docs/essence/index.html`）にある。
 
 | 置き場所 | 何か |
 |---|---|

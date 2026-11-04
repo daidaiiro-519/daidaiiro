@@ -1,6 +1,6 @@
 # コードの決まり
 
-設計の仮説は `docs/design/arch/arch-v15.json`、根拠の原文の照合は `docs/design/rust/factcheck-rust.json` にある。ここには、いま守る決まりだけを書く。決まりは `docs/essence.md`（本質）に照らして決める。
+設計の仮説は `docs/design/arch/arch-v15.json`、根拠の原文の照合は `docs/design/rust/factcheck-rust.json` にある。ここには、いま守る決まりだけを書く。決まりは `docs/essence/essence.json`（本質）に照らして決める。
 
 ## 言語に依存しない決まり
 
@@ -25,7 +25,7 @@
 | ユースケースは、先に `schemas-and-instances/system-tests/scenarios/` に場面を書き、失敗を確かめてから作る。場面と保証 ・ 拡張の突き合わせは `system-tests/trace.json`、まだ確かめないものは `untested.json` に理由と一緒に置く | 保証と拡張のどれを確かめたかを、試験で数えられるようにする |
 | Semantic Agent Schema の記録（`<git-common-dir>/semantic-agent-schema/records.sqlite`）はコミットしない。ID と時刻は outbound の sqlite が作り、application と domain は時刻に触らない | 決定的な試験のため |
 | リポジトリの文書を書くのは use_cases だけで、形と集約の書く条件を確かめてから DocumentStore の write で書く。書く手前で断ったものは記録せず、理由 ・ 案内 ・ 間に入った変更をその場で返す | 書くのは Semantic Agent Schema だけ。型に従わないものは作らず、理由を返す（UC1 の最低保証）。断った操作の記録は Semantic Agent Schema が読まず、コミットしない記録は監査の証拠にもならない（探索の記録 step-04b） |
-| 読むのは渡された経路だけで、作業フォルダを歩かない。経路はどこで打っても Git の根からの相対（出力と記録も同じ）。Concrete と $ref の先は `--schemas` の置き場所（ファイルか、フォルダの直下の JSON）から $id で引き、同じ $id が2つ以上なら全部の経路を添えて断る。範囲は経路の並びで、Concrete を直す ・ 消すときは `--range` と記録（instances_of）で従うインスタンスを確かめ、見た文書を返す。足りない入力は補わずに断る：誰が打ったか ・ 取り込みの前の中身（`--base`）・ 答えと `--where` の値（JSON だけ）。返すコマンドには、受け取った `--schemas` ・ `--range` と、誰が打ったか（`--session` ・ `--human`）を引き継ぐ | 入力を作るのは AI で、Semantic Agent Schema は入力から決定論的に導けるものだけを引く（`docs/essence.md` の受け取り方） |
+| 読むのは渡された経路だけで、作業フォルダを歩かない。経路はどこで打っても Git の根からの相対（出力と記録も同じ）。Concrete と $ref の先は `--schemas` の置き場所（ファイルか、フォルダの直下の JSON）から $id で引き、同じ $id が2つ以上なら全部の経路を添えて断る。範囲は経路の並びで、Concrete を直す ・ 消すときは `--range` と記録（instances_of）で従うインスタンスを確かめ、見た文書を返す。足りない入力は補わずに断る：誰が打ったか ・ 取り込みの前の中身（`--base`）・ 答えと `--where` の値（JSON だけ）。返すコマンドには、受け取った `--schemas` ・ `--range` と、誰が打ったか（`--session` ・ `--human`）を引き継ぐ | 入力を作るのは AI で、Semantic Agent Schema は入力から決定論的に導けるものだけを引く（`docs/essence/essence.json` の受け取り方） |
 | ステップごとに `docs/design/exploration/step-NN.json` を書く | 探索の過程と、仮説との突き合わせを残す |
 | 後方互換のためのコードを残さない。変えるときは、現在の仕様に書き換えるだけにする：古い名前を読んで断る処理 ・ 古い置き場所の記録を移すコード ・ 古い置き場所に置く案内 ・ 古い仕様を読む分岐を足さない。コード ・ コメント ・ 出力の文 ・ 公開された言葉の説明 ・ 場面 ・ この文書には現在の仕様だけを書き、古い仕様の説明や、「前は」「〜をやめた」「〜に変えた」のような廃止や移行の経緯を書かない。経緯は ACDR ・ 探索の記録 ・ コミットが持つ | 古い仕様の説明が残ると、読む人と AI がどちらが現在の仕様かを毎回区別することになり、残したコードは使われないまま古くなる（ACDR 0225） |
 

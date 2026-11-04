@@ -1,0 +1,42 @@
+<svg viewBox="0 0 340 470" role="img" aria-label="操作の記録の ER 図。changes は作成と更新の操作で、actor が ai か human、path と schema_id、command、前後のハッシュを持つ。changes は field_changes を持ち、instance location ごとの前後の値を持つ。validations は検証の操作で、actor、path、schema_id、concrete_hash、検証した JSON ドキュメント（content）を持ち、judgments を持つ。operations は changes と validations を時刻順に並べたビュー">
+<text class="title" x="10" y="20">操作の記録（records.sqlite）</text>
+<rect class="box" x="10" y="34" width="155" height="136"/>
+<text class="label" x="20" y="54">changes</text>
+<text class="note small" x="20" y="74">id（PK）</text>
+<text class="note small" x="20" y="90">actor（ai ・ human）</text>
+<text class="note small" x="20" y="106">path ・ schema_id</text>
+<text class="note small" x="20" y="122">command</text>
+<text class="note small" x="20" y="138">before_hash</text>
+<text class="note small" x="20" y="154">after_hash ・ at</text>
+<rect class="box" x="175" y="34" width="155" height="136"/>
+<text class="label" x="185" y="54">validations</text>
+<text class="note small" x="185" y="74">id（PK）</text>
+<text class="note small" x="185" y="90">actor ・ path</text>
+<text class="note small" x="185" y="106">schema_id</text>
+<text class="note small" x="185" y="122">concrete_hash</text>
+<text class="note small" x="185" y="138">content（検証した JSON）</text>
+<text class="note small" x="185" y="154">content_hash ・ at</text>
+<path class="flow" d="M87,170 V206"/>
+<path class="flow" d="M252,170 V206"/>
+<text class="note small" x="95" y="192">1 : N</text>
+<text class="note small" x="260" y="192">1 : N</text>
+<rect class="box" x="10" y="208" width="155" height="104"/>
+<text class="label" x="20" y="228">field_changes</text>
+<text class="note small" x="20" y="248">change_id（FK）</text>
+<text class="note small" x="20" y="264">instance_location</text>
+<text class="note small" x="20" y="280">op（add など）</text>
+<text class="note small" x="20" y="296">before ・ after</text>
+<rect class="box" x="175" y="208" width="155" height="104"/>
+<text class="label" x="185" y="228">judgments</text>
+<text class="note small" x="185" y="248">validation_id（FK）</text>
+<text class="note small" x="185" y="264">rule_id</text>
+<text class="note small" x="185" y="280">instance_location</text>
+<text class="note small" x="185" y="296">by ・ verdict ・ reason</text>
+<rect class="area" x="10" y="332" width="320" height="130"/>
+<text class="title" x="22" y="354">ビュー operations</text>
+<text class="note small" x="22" y="376">changes と validations を UNION ALL し、</text>
+<text class="note small" x="22" y="394">時刻の順に並べる（UC8 操作の記録の参照）</text>
+<text class="note small" x="22" y="418">列：id ・ command ・ actor ・ path ・ at</text>
+<text class="note small" x="22" y="440">どの表も追記だけ（UPDATE ・ DELETE は</text>
+<text class="note small" x="22" y="456">trigger で拒否する）</text>
+</svg>
