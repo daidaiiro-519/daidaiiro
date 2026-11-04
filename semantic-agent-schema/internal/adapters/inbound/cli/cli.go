@@ -8,28 +8,33 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/pflag"
 
-	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/application"
+	authoring "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/application"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
+	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
 )
 
 // Authoring は、中核の業務領域「作成と検証」のユースケース。
 type Authoring struct {
-	Create   application.Create
-	Update   application.Update
-	Validate application.Validate
-	Judge    application.Judge
+	Create   authoring.Create
+	Update   authoring.Update
+	Validate authoring.Validate
+	Judge    authoring.Judge
 }
 
 // Wiring は、入口が作って渡すアダプター。
 type Wiring struct {
 	// Arguments は、引数の JSON を arguments.schema.json で検証する。
-	Arguments application.Validator
-	// Open は、working tree と操作の記録を開き、ユースケースを返す。close は操作の記録を閉じる。
+	Arguments authoring.Validator
+	// Open は、working tree と操作の記録を開き、中核の業務領域のユースケースを返す。close は操作の記録を閉じる。
 	Open func(ctx context.Context, schemas []domain.Path) (uc Authoring, close func() error, err error)
+	// OpenLog は、操作の記録を読むだけのために開き、ユースケース「操作の記録の参照」を返す。
+	OpenLog func(ctx context.Context) (uc record.Log, close func() error, err error)
 }
 
 // IO は、標準入力 ・ 標準出力 ・ 標準エラー出力。
@@ -50,6 +55,8 @@ type arguments struct {
 	Range     []string `json:"range,omitempty"`
 	All       bool     `json:"all,omitempty"`
 	Judgments *string  `json:"judgments,omitempty"`
+	Limit     *int     `json:"limit,omitempty"`
+	Operation string   `json:"operation,omitempty"`
 }
 
 // Run は、コマンドを1回実行し、終了コードを返す。error か violated の judgment があれば 1、ほかは 0。
@@ -92,6 +99,9 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 			return out.failures(parsed, err)
 		}
 	}
+	if parsed.Command == "log" {
+		return list(ctx, parsed, paths, w, out)
+	}
 	uc, closeRecords, err := w.Open(ctx, dirs)
 	if err != nil {
 		return out.failures(parsed, err)
@@ -104,7 +114,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 }
 
 // parse は、引数を pflag で読んで JSON にし、arguments.schema.json で検証する（機械的な検証（JSON Schema））。
-func parse(ctx context.Context, args []string, validator application.Validator) (arguments, error) {
+func parse(ctx context.Context, args []string, validator authoring.Validator) (arguments, error) {
 	var parsed arguments
 	if len(args) > 0 && args[0] == "semantic" {
 		parsed.Semantic = true
@@ -124,6 +134,8 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	ranges := flags.StringArray("range", nil, "Concrete を更新するときの、範囲のインスタンスの path（繰り返せる）")
 	all := flags.Bool("all", false, "変更点だけでなく、すべての rule とすべての instance location を判定する")
 	judgments := flags.String("judgments", "", "AI が判定した judgments。- なら標準入力から読む")
+	limit := flags.Int("limit", 0, "返す操作の件数の上限")
+	operation := flags.String("operation", "", "1件を指す <command>:<id>")
 	if err := flags.Parse(args); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
 	}
@@ -141,6 +153,10 @@ func parse(ctx context.Context, args []string, validator application.Validator) 
 	if flags.Changed("judgments") {
 		parsed.Judgments = judgments
 	}
+	if flags.Changed("limit") {
+		parsed.Limit = limit
+	}
+	parsed.Operation = *operation
 	content, err := json.Marshal(parsed)
 	if err != nil {
 		return parsed, err
@@ -175,7 +191,7 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		}
 		return out.requested(args, prompt, nil)
 	case args.Command == "update":
-		id, write, err := uc.Update.Run(ctx, application.UpdateInput{
+		id, write, err := uc.Update.Run(ctx, authoring.UpdateInput{
 			Path: paths[0], Patch: content, Range: ranges,
 		})
 		if err != nil {
@@ -234,4 +250,49 @@ func pathsOf(values []string) ([]domain.Path, error) {
 		paths = append(paths, path)
 	}
 	return paths, errors.Join(failures...)
+}
+
+// list は、ユースケース「操作の記録の参照」を呼び、操作を1件ずつ listed のログイベントで書く。
+func list(ctx context.Context, args arguments, paths []domain.Path, w Wiring, out *output) error {
+	uc, closeRecords, err := w.OpenLog(ctx)
+	if err != nil {
+		return out.failures(args, err)
+	}
+	err = listOperations(ctx, args, paths, uc, out)
+	if closeErr := closeRecords(); closeErr != nil {
+		return errors.Join(err, out.failures(args, closeErr))
+	}
+	return err
+}
+
+func listOperations(ctx context.Context, args arguments, paths []domain.Path, uc record.Log, out *output) error {
+	if args.Operation != "" {
+		command, id, _ := strings.Cut(args.Operation, ":") // 形は arguments.schema.json の pattern が決めている
+		number, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			return out.failures(args, domain.Fail(domain.ArgumentsInvalid, "", err.Error()))
+		}
+		operation, err := uc.One(ctx, command, number)
+		if err != nil {
+			return out.failures(args, err)
+		}
+		if operation == nil {
+			return out.failures(args, domain.Fail(domain.OperationNotFound, "", args.Operation+" は操作の記録に無い"))
+		}
+		return out.listed(*operation)
+	}
+	count := 0
+	if args.Limit != nil {
+		count = *args.Limit
+	}
+	operations, err := uc.List(ctx, paths, count)
+	if err != nil {
+		return out.failures(args, err)
+	}
+	for _, operation := range operations {
+		if err := out.listed(operation); err != nil {
+			return err
+		}
+	}
+	return nil
 }

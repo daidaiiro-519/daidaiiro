@@ -24,6 +24,7 @@ const (
 	RangeRequired       code = "range_required"
 	RangeViolation      code = "range_violation"
 	ResponseMismatch    code = "response_mismatch"
+	OperationNotFound   code = "operation_not_found"
 	FileNotFound        code = "file_not_found"
 	LogUnavailable      code = "log_unavailable"
 	LogLocked           code = "log_locked"

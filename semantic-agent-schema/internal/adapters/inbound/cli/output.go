@@ -5,10 +5,12 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
+	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
 )
 
 // output は、ログイベントを JSON の1行ずつ書く。instruction と next は error-codes.json の定型に値を入れて作る。
@@ -123,7 +125,7 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schema} ・ {range} ・ {all} に入れる値を返す。
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schema} ・ {range} ・ {all} ・ {limit} ・ {operation} に入れる値を返す。
 func fill(args arguments, path string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
@@ -131,6 +133,13 @@ func fill(args arguments, path string) map[string]string {
 	}
 	for _, p := range args.Paths {
 		paths = append(paths, quote(p))
+	}
+	limit, operation := "", ""
+	if args.Limit != nil {
+		limit = " --limit " + strconv.Itoa(*args.Limit)
+	}
+	if args.Operation != "" {
+		operation = " --operation " + quote(args.Operation)
 	}
 	all := ""
 	if args.All {
@@ -145,13 +154,15 @@ func fill(args arguments, path string) map[string]string {
 		ranges += " --range " + quote(r)
 	}
 	return map[string]string{
-		"{command}": command,
-		"{path}":    quote(path),
-		"{paths}":   strings.Join(paths, " "),
-		"{schemas}": strings.Join(schemas, " "),
-		"{schema}":  quote(args.Schema),
-		"{range}":   ranges,
-		"{all}":     all,
+		"{command}":   command,
+		"{path}":      quote(path),
+		"{paths}":     strings.Join(paths, " "),
+		"{schemas}":   strings.Join(schemas, " "),
+		"{schema}":    quote(args.Schema),
+		"{range}":     ranges,
+		"{all}":       all,
+		"{limit}":     limit,
+		"{operation}": operation,
 	}
 }
 
@@ -160,7 +171,7 @@ func replace(text string, values map[string]string) string {
 	for k, v := range values {
 		pairs = append(pairs, k, v)
 	}
-	return strings.NewReplacer(pairs...).Replace(text)
+	return strings.TrimSpace(strings.NewReplacer(pairs...).Replace(text)) // 空の {…} で残る末尾の空白を除く
 }
 
 type judgmentEvent struct {
@@ -334,4 +345,42 @@ func quote(value string) string {
 		return value
 	}
 	return "'" + strings.ReplaceAll(value, "'", `'\''`) + "'"
+}
+
+type changeEvent struct {
+	InstanceLocation string `json:"instanceLocation"`
+	Op               string `json:"op"`
+	Before           string `json:"before,omitempty"`
+	After            string `json:"after,omitempty"`
+}
+
+type listedEvent struct {
+	Event       string          `json:"event"`
+	Command     string          `json:"command"`
+	ID          int64           `json:"id"`
+	Path        string          `json:"path"`
+	At          string          `json:"at"`
+	SchemaID    string          `json:"schemaId,omitempty"`
+	BeforeHash  string          `json:"beforeHash,omitempty"`
+	ContentHash string          `json:"contentHash,omitempty"`
+	Validation  string          `json:"validation,omitempty"`
+	Changes     []changeEvent   `json:"changes,omitempty"`
+	Judgments   []judgmentEvent `json:"judgments,omitempty"`
+}
+
+// listed は、操作の記録の1件を listed のログイベントで書く。1件を指したときは、その change か judgment も書く。
+func (o *output) listed(op record.Operation) error {
+	event := listedEvent{Event: "listed", Command: op.Command, ID: op.ID, Path: op.Path, At: op.At}
+	if d := op.Detail; d != nil {
+		event.SchemaID, event.BeforeHash, event.ContentHash, event.Validation = d.SchemaID, d.BeforeHash, d.ContentHash, d.Validation
+		for _, c := range d.Changes {
+			event.Changes = append(event.Changes, changeEvent{InstanceLocation: c.InstanceLocation, Op: c.Op, Before: c.Before, After: c.After})
+		}
+		for _, j := range d.Judgments {
+			event.Judgments = append(event.Judgments, judgmentEvent{
+				Rule: j.Rule, InstanceLocation: j.InstanceLocation, Verdict: j.Verdict, By: j.By, Reason: j.Reason,
+			})
+		}
+	}
+	return o.encoder.Encode(event)
 }

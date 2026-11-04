@@ -16,7 +16,8 @@
       "enum": [
         "create",
         "update",
-        "validate"
+        "validate",
+        "log"
       ]
     }
   },
@@ -115,6 +116,18 @@
       },
       "then": {
         "$ref": "#/$defs/validate"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "log"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/log"
       }
     }
   ],
@@ -367,6 +380,51 @@
           }
         }
       ]
+    },
+    "log": {
+      "description": "log [<path>...] [--limit <数>]。操作の記録を新しい順に返す。log --operation <command>:<id> は、その1件を change か judgment と一緒に返す",
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": true,
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "limit": {
+          "description": "返す件数の上限",
+          "type": "integer",
+          "minimum": 1
+        },
+        "operation": {
+          "description": "<command>:<id>。ビュー operations の command と id の組",
+          "type": "string",
+          "pattern": "^(create|update|validate):[1-9][0-9]*$"
+        }
+      },
+      "if": {
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "description": "1件を指すときは、path と --limit を渡さない",
+        "properties": {
+          "paths": {
+            "maxItems": 0
+          }
+        },
+        "not": {
+          "required": [
+            "limit"
+          ]
+        }
+      }
     }
   }
 }

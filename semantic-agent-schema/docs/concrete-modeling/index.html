@@ -114,7 +114,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>Schemas</code></td><td>authoring ・ rendering：<code>Lookup</code>（<code>$id</code> で Concrete を引き、domain へ渡す。Concrete は <code>$ref</code> を持たないので、引くのは1つだけ。S2）</td><td><code>files</code></td></tr>
 <tr><td><code>Validator</code></td><td>全部の application：<code>Check</code>（JSON をスキーマで検証し、違反を返す）／ authoring：<code>CheckWith</code>（まだ書いていない Concrete のバイト列で検証する。Concrete の更新で、範囲のインスタンスに使う）</td><td><code>schemacheck</code></td></tr>
 <tr><td><code>Patcher</code></td><td>authoring：<code>Apply</code>（JSON Patch を適用する。適用できなければ、その operation の path を返す）</td><td><code>patching</code></td></tr>
-<tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code>（作成と更新の両方。<code>command</code> と <code>before_hash</code> を記録する）・ <code>AppendValidation</code> ・ <code>LastJudged</code>（直前の意味的な検証 <code>judged</code> の JSON ドキュメントと judgment。S4。<code>validated</code> では基準を動かさない）／ record：<code>Operations</code> ・ <code>Operation</code></td><td><code>recordstore</code></td></tr>
+<tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code>（作成と更新の両方。<code>command</code> と <code>before_hash</code> を記録する）・ <code>AppendValidation</code> ・ <code>LastJudged</code>（直前の意味的な検証 <code>judged</code> の JSON ドキュメントと judgment。S4。<code>validated</code> では基準を動かさない）／ record：<code>Operations</code>（新しい順の一覧）・ <code>Operation</code>（1件）</td><td><code>recordstore</code>。読むだけのときは読み取り専用で開き、ファイルが無ければ作らずに空として扱う</td></tr>
 <tr><td><code>Renderer</code></td><td>rendering：<code>Render</code>（全部描けてから書き出す）</td><td><code>templates</code></td></tr>
 </table></div>
 <p class="soft">working tree と Git の共通ディレクトリは、入口が <code>repository</code> で一度だけ引き、各アダプターに渡す。application は Git を知らない。</p>
@@ -144,7 +144,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>UC3 検証 ・ UC4 意味的な検証</td><td><code>semantic validate &lt;path&gt; --schemas … [--all]</code> → <code>judgment_requested</code>。<code>--all</code> は、変更点だけでなく、すべての rule とすべての instance location を判定する</td><td><code>validate &lt;path&gt;... --schemas …</code> → <code>validated</code> ／ <code>validate &lt;path&gt; --schemas … --judgments &lt;JSON | -&gt;</code> → <code>judged</code></td></tr>
 <tr><td>UC7 検索</td><td><code>semantic search &lt;path&gt;... --question &lt;問い&gt;</code> → <code>search_requested</code></td><td><code>search &lt;path&gt;... --where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code>（繰り返せる）→ <code>found</code> ／ <code>search --matches &lt;JSON | -&gt;</code> → <code>found</code></td></tr>
 <tr><td>UC6 描画</td><td>—</td><td><code>render &lt;path&gt;... --schemas … --design-system &lt;path&gt; --out &lt;ディレクトリ&gt;</code> → <code>rendered</code></td></tr>
-<tr><td>UC8 操作の記録の参照</td><td>—</td><td><code>log [&lt;path&gt;...] [--limit &lt;数&gt;]</code>、または <code>--operation &lt;command&gt;:&lt;id&gt;</code> → <code>listed</code></td></tr>
+<tr><td>UC8 操作の記録の参照</td><td>—</td><td><code>log [&lt;path&gt;...] [--limit &lt;1以上&gt;]</code>（<code>--limit</code> が無ければ全部）、または <code>log --operation &lt;create|update|validate&gt;:&lt;id&gt;</code>（path ・ <code>--limit</code> とは一緒に渡せない）→ <code>listed</code>。<code>--schemas</code> は取らない</td></tr>
 </table></div>
 <p class="soft">値を2つ以上渡す引数（<code>--schemas</code> ・ <code>--range</code> ・ <code>--where</code>）は繰り返す。<code>-</code> は標準入力から読む。終了コードは、rejected か violated の judgment があれば 1、ほかは 0。</p>
 <h3><code>x-decided-by: human</code> の値</h3>
@@ -168,7 +168,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>prompt</td><td><code>prompt.schema.json</code></td><td><code>semantic &lt;ユースケース&gt;</code> が返す prompt。<code>*_requested</code> のログイベント。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path ・ <code>hash</code>（判定のとき、JSON ドキュメントの内容のハッシュ）・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ response の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-response.schema.json</code>、検索は <code>search-response.schema.json</code>）・ <code>next</code>（同じユースケースの機械的なコマンド）</td></tr>
 <tr><td>入力</td><td><code>patch.schema.json</code> ・ <code>judgment-response.schema.json</code> ・ <code>search-response.schema.json</code></td><td>AI が渡す JSON Patch と response</td></tr>
 <tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>デザインシステムの形と、テンプレートの記法。記法は名前と版で宣言する（<code>html/template</code> ・ Go の版）。テンプレートに渡すのは <code>.Value</code>（インスタンス）と <code>.Tokens</code>（デザイントークン）だけ</td></tr>
-<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（意味的な操作と機械的な操作で分ける）。prompt の next の定型（<code>semantic update</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> などで書く</td></tr>
+<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（意味的な操作と機械的な操作で分ける）。prompt の next の定型（<code>semantic update</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> ・ <code>{limit}</code> ・ <code>{operation}</code> などで書く</td></tr>
 </table></div>
 <h3>ログイベントの名前</h3>
 <div class="wrap"><table class="stack">
@@ -179,7 +179,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>意味的な検証</td><td><code>judgment_requested</code> ・ <code>judged</code></td><td>prompt を返した ・ response の judgment を記録した</td></tr>
 <tr><td>描画</td><td><code>rendered</code></td><td>HTML を書き出した</td></tr>
 <tr><td>検索</td><td><code>search_requested</code> ・ <code>found</code></td><td>意味で探す prompt を返した ・ 条件か response で見つけた結果を返した</td></tr>
-<tr><td>操作の記録の参照</td><td><code>listed</code></td><td>操作を1件ずつ返した（<code>--operation</code> の1件も同じ）</td></tr>
+<tr><td>操作の記録の参照</td><td><code>listed</code></td><td>操作を1件ずつ返した（<code>--operation</code> の1件も同じ）。いつも <code>command</code> ・ <code>id</code> ・ <code>path</code> ・ <code>at</code> を持つ。1件を指したときは <code>schemaId</code> ・ <code>beforeHash</code> ・ <code>contentHash</code> ・ <code>validation</code>（validated か judged）と、<code>changes</code>（書く操作）か <code>judgments</code>（検証）を足す。条件に合うものが無ければ何も出さない</td></tr>
 <tr><td>どれでも</td><td><code>rejected</code></td><td>断った。理由は <code>code</code></td></tr>
 </table></div>
 <h3>rejected</h3>
@@ -205,6 +205,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>semantic update</code></td></tr>
 <tr><td><code>response_mismatch</code></td><td>response の rule と instance location の組が prompt と違う（V2）</td><td><code>semantic validate</code></td></tr>
 <tr><td><code>template_missing</code> ・ <code>out_overlap</code></td><td><code>x-view</code> のテンプレートが無い（S5）・ <code>--out</code> が入力と重なる</td><td>同じコマンド</td></tr>
+<tr><td><code>operation_not_found</code></td><td><code>--operation</code> で指した操作が無い</td><td><code>log</code></td></tr>
 <tr><td><code>log_unavailable</code> ・ <code>log_locked</code></td><td>Git のリポジトリの外 ・ 表の形の版が違う ・ ロックが取れない</td><td>同じコマンド（版が違うときは instruction が records.sqlite の削除を示す）</td></tr>
 </table></div>
 <h3>violated の judgment があるときの validated</h3>
@@ -266,7 +267,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <li>どの表も追記だけ。UPDATE と DELETE は trigger で拒否する</li>
 <li>ID は INTEGER の主キー。ビューでは <code>command</code> と組にして指す（<code>--operation &lt;command&gt;:&lt;id&gt;</code>）</li>
 <li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。最初に読んだときのハッシュと同じか）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、rejected のときはファイルも操作の記録も変わらない</li>
-<li>表の形の版（<code>user_version</code>）が違えば開かず、<code>log_unavailable</code> で records.sqlite の削除を示す。前の版との互換は作らない</li>
+<li><code>at</code> は RFC 3339 で、秒の小数を9桁にそろえて書く（文字列の順が時刻の順になる）</li>
+<li>表の形の版は <code>user_version</code> の 5。版が違えば開かず、<code>log_unavailable</code> で records.sqlite の削除を示す。前の版との互換は作らない</li>
 </ul>
 </section>
 

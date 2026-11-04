@@ -26,6 +26,9 @@
       "$ref": "#/$defs/judged"
     },
     {
+      "$ref": "#/$defs/listed"
+    },
+    {
       "$ref": "#/$defs/rejected"
     }
   ],
@@ -460,6 +463,95 @@
         }
       }
     },
+    "listed": {
+      "description": "操作の記録の1件を返した。--operation で1件を指したときは、書く操作なら changes、検証なら judgments も持つ",
+      "type": "object",
+      "required": [
+        "event",
+        "command",
+        "id",
+        "path",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "listed"
+        },
+        "command": {
+          "description": "操作のコマンド。--operation <command>:<id> の command",
+          "enum": [
+            "create",
+            "update",
+            "validate"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "path": {
+          "type": "string"
+        },
+        "at": {
+          "description": "操作の時刻（UTC、RFC 3339）",
+          "type": "string"
+        },
+        "schemaId": {
+          "type": "string"
+        },
+        "beforeHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "validation": {
+          "description": "検証の記録の種類",
+          "enum": [
+            "validated",
+            "judged"
+          ]
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "instanceLocation",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "instanceLocation": {
+                "$ref": "#/$defs/pointer"
+              },
+              "op": {
+                "enum": [
+                  "add",
+                  "remove",
+                  "replace"
+                ]
+              },
+              "before": {
+                "description": "前の値（JSON の文字列）",
+                "type": "string"
+              },
+              "after": {
+                "description": "後の値（JSON の文字列）",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "judgments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/judgment"
+          }
+        }
+      }
+    },
     "rejected": {
       "description": "違反を伝えるログイベント。理由は code。AI は instruction に従い、next を実行する",
       "type": "object",
@@ -493,7 +585,8 @@
             "range_required",
             "range_violation",
             "patch_not_applicable",
-            "response_mismatch"
+            "response_mismatch",
+            "operation_not_found"
           ]
         },
         "instanceLocation": {

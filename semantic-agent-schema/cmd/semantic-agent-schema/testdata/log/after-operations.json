@@ -1,0 +1,236 @@
+{
+  "title": "作成 ・ 更新 ・ 検証 ・ 意味的な検証のあと、操作の記録を新しい順に listed で返し、件数と path で絞り、1件を指せば change か judgment も返す。無い操作を指すと rejected を返す",
+  "files": {
+    "schemas/plan.json": {
+      "$fixture": "plan.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "create",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--json",
+        "{\"$schema\": \"urn:example:plan:v1\", \"title\": \"春の計画\", \"start\": \"2026-02-01\", \"end\": \"2026-03-01\"}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "created"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/start\", \"value\": \"2026-02-15\"}]"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "updated"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "validated"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"{sha256 plan.json}\", \"judgments\": [{\"rule\": \"end-after-start\", \"instanceLocation\": \"/end\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"title-short\", \"instanceLocation\": \"/title\", \"verdict\": \"verified\", \"reason\": \"r\"}]}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judged"
+        }
+      ]
+    },
+    {
+      "args": [
+        "log"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "listed",
+          "/command": "validate",
+          "/id": 2,
+          "/path": "plan.json"
+        },
+        {
+          "/event": "listed",
+          "/command": "validate",
+          "/id": 1
+        },
+        {
+          "/event": "listed",
+          "/command": "update",
+          "/id": 2
+        },
+        {
+          "/event": "listed",
+          "/command": "create",
+          "/id": 1
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "--limit",
+        "2"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "listed",
+          "/command": "validate",
+          "/id": 2
+        },
+        {
+          "/event": "listed",
+          "/command": "validate",
+          "/id": 1
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "other.json"
+      ],
+      "exit": 0,
+      "events": []
+    },
+    {
+      "args": [
+        "log",
+        "plan.json",
+        "--limit",
+        "1"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "listed",
+          "/id": 2
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "--operation",
+        "update:2"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "listed",
+          "/command": "update",
+          "/id": 2,
+          "/schemaId": "urn:example:plan:v1",
+          "/changes": [
+            {
+              "instanceLocation": "",
+              "op": "replace",
+              "before": "{\"$schema\":\"urn:example:plan:v1\",\"end\":\"2026-03-01\",\"start\":\"2026-02-01\",\"title\":\"春の計画\"}",
+              "after": "{\"$schema\":\"urn:example:plan:v1\",\"end\":\"2026-03-01\",\"start\":\"2026-02-15\",\"title\":\"春の計画\"}"
+            },
+            {
+              "instanceLocation": "/start",
+              "op": "replace",
+              "before": "\"2026-02-01\"",
+              "after": "\"2026-02-15\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "--operation",
+        "validate:2"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "listed",
+          "/command": "validate",
+          "/validation": "judged",
+          "/judgments/0/rule": "end-after-start",
+          "/judgments/0/by": "ai",
+          "/judgments/1/rule": "title-short"
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "--operation",
+        "validate:1"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "listed",
+          "/validation": "validated"
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "--operation",
+        "create:9"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "operation_not_found",
+          "/next": "semantic-agent-schema log"
+        }
+      ]
+    }
+  ]
+}

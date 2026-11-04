@@ -1,0 +1,69 @@
+{
+  "title": "引数が操作の記録の参照の引数の形に違反すると rejected を返す（--operation の形 ・ --operation と path ・ --limit が 0 ・ working tree の外の path）",
+  "files": {
+    "a.json": {}
+  },
+  "steps": [
+    {
+      "args": [
+        "log",
+        "--operation",
+        "delete:1"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/operation",
+          "/next": "semantic-agent-schema log <直した引数>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "a.json",
+        "--operation",
+        "create:1"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/paths"
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "--limit",
+        "0"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/limit"
+        }
+      ]
+    },
+    {
+      "args": [
+        "log",
+        "../a.json"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/paths/0"
+        }
+      ]
+    }
+  ]
+}

@@ -12,15 +12,17 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/recordstore"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/repository"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/schemacheck"
-	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/application"
+	authoring "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/application"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
+	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
 )
 
 func main() {
 	os.Exit(cli.Run(context.Background(), os.Args[1:], cli.IO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}, cli.Wiring{
 		Arguments: schemacheck.New(nil),
 		Open:      open,
+		OpenLog:   openLog,
 	}))
 }
 
@@ -46,21 +48,38 @@ func open(ctx context.Context, schemas []domain.Path) (cli.Authoring, func() err
 	documents := files.NewDocuments(top)
 	validator := schemacheck.New(concretes.Content)
 	return cli.Authoring{
-		Create: application.Create{
+		Create: authoring.Create{
 			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
 			AbstractID: publishedlanguage.AbstractID,
 		},
-		Update: application.Update{
+		Update: authoring.Update{
 			Documents: documents, Schemas: concretes, Validator: validator, Patcher: patching.New(), Records: records,
 			AbstractID: publishedlanguage.AbstractID, PatchID: publishedlanguage.PatchID,
 		},
-		Judge: application.Judge{
+		Judge: authoring.Judge{
 			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
 			AbstractID: publishedlanguage.AbstractID, ResponseID: publishedlanguage.JudgmentResponseID,
 		},
-		Validate: application.Validate{
+		Validate: authoring.Validate{
 			Documents: documents, Schemas: concretes, Validator: validator, Records: records,
 			AbstractID: publishedlanguage.AbstractID,
 		},
 	}, records.Close, nil
+}
+
+// openLog は、Git の共通ディレクトリの操作の記録を読むだけのために開き、ユースケース「操作の記録の参照」に結び付けて返す。
+func openLog(ctx context.Context) (record.Log, func() error, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return record.Log{}, nil, domain.Fail(domain.LogUnavailable, "", err.Error())
+	}
+	_, common, err := repository.Find(ctx, dir)
+	if err != nil {
+		return record.Log{}, nil, err
+	}
+	records, err := recordstore.OpenExisting(ctx, common)
+	if err != nil {
+		return record.Log{}, nil, err
+	}
+	return record.Log{Records: records}, records.Close, nil
 }

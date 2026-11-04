@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -223,5 +225,74 @@ func TestWithLockRollsBackWhenFunctionFails(t *testing.T) {
 	var count int
 	if err := database(t, dir).QueryRowContext(t.Context(), "SELECT count(*) FROM changes").Scan(&count); err != nil || count != 0 {
 		t.Errorf("SELECT count(*) FROM changes = %d, %v, want 0, nil", count, err)
+	}
+}
+
+func TestOpenExistingDoesNotCreateRecords(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store, err := recordstore.OpenExisting(t.Context(), dir)
+	if err != nil {
+		t.Fatalf("OpenExisting(%s) = %v", dir, err)
+	}
+	operations, err := store.Operations(t.Context(), nil, 0)
+	if err != nil || len(operations) != 0 {
+		t.Errorf("Operations() = %v, %v, want none, nil", operations, err)
+	}
+	if err := store.Close(); err != nil {
+		t.Errorf("Close() = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "semantic-agent-schema", "records.sqlite")); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("Stat(records.sqlite) = %v, want not exist", err)
+	}
+}
+
+func TestOperationsReturnsNewestFirstAndOperationReturnsDetail(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store := open(t, dir)
+	if _, err := store.AppendValidation(t.Context(), validation(t, `{"x": 1}`)); err != nil {
+		t.Fatalf("AppendValidation = %v", err)
+	}
+	if err := store.WithLock(t.Context(), func(ctx context.Context) error {
+		_, err := store.AppendChange(ctx, creation(t, `{"x": 1}`))
+		return err
+	}); err != nil {
+		t.Fatalf("AppendChange = %v", err)
+	}
+	reader, err := recordstore.OpenExisting(t.Context(), dir)
+	if err != nil {
+		t.Fatalf("OpenExisting = %v", err)
+	}
+	t.Cleanup(func() {
+		if err := reader.Close(); err != nil {
+			t.Errorf("Close() = %v", err)
+		}
+	})
+	operations, err := reader.Operations(t.Context(), nil, 0)
+	var got []string
+	for _, o := range operations {
+		got = append(got, o.Command+" "+o.Path)
+	}
+	if want := []string{"create memo.json", "validate a.json"}; err != nil || !slices.Equal(got, want) {
+		t.Errorf("Operations() = %v, %v, want %v, nil", got, err, want)
+	}
+	memo, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	if operations, err := reader.Operations(t.Context(), []domain.Path{memo}, 1); err != nil || len(operations) != 1 {
+		t.Errorf("Operations(memo.json, 1) = %v, %v, want 1 operation", operations, err)
+	}
+	one, err := reader.Operation(t.Context(), "validate", 1)
+	if err != nil || one == nil || one.Detail.Validation != "validated" || len(one.Detail.Judgments) != 1 {
+		t.Errorf("Operation(validate, 1) = %+v, %v, want validated with 1 judgment", one, err)
+	}
+	created, err := reader.Operation(t.Context(), "create", 1)
+	if err != nil || created == nil || len(created.Detail.Changes) != 2 {
+		t.Errorf("Operation(create, 1) = %+v, %v, want 2 changes", created, err)
+	}
+	if missing, err := reader.Operation(t.Context(), "update", 1); missing != nil || err != nil {
+		t.Errorf("Operation(update, 1) = %+v, %v, want nil, nil", missing, err)
 	}
 }
