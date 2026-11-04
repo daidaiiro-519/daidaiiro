@@ -9,12 +9,12 @@
 //! - --ref の文書は SAS が読んで中身を手順に入れる。上限を超えたら切り詰めずに断る。
 //! - 手順を返すだけで、記録しない。
 
-use super::{Refused, refused, target_of_declared};
+use super::{Refused, carried, range_for, refused, target_of_declared};
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Map, Value, json};
 use writing_domain::aggregates::escape;
 use writing_domain::services::field_schema;
-use writing_domain::values::{Caller, ContentHash, TargetKind};
+use writing_domain::values::{Caller, ContentHash, SchemaPlaces, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 /// --ref の文書1つの上限（バイト）。
@@ -31,8 +31,10 @@ pub struct SemanticRequest {
     pub task: Option<String>,
     /// 読ませる文書の経路（--ref）
     pub refs: Vec<String>,
-    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。手順の command にも引き継ぐ）
+    pub schemas: SchemaPlaces,
+    /// Concrete を直すときに、従うインスタンスを確かめる範囲（--range の経路。手順の command に引き継ぐ）
+    pub range: Option<Vec<String>>,
     /// 理由（手順の command に入れる）
     pub reason: Option<String>,
     /// やり直しで同じ操作を2回残さないための ID（手順の command に入れる）
@@ -85,7 +87,10 @@ pub fn semantic_procedure(
             (declared, Some(value), Some(text))
         }
     };
-    let target = target_of_declared(store, validator, &request.schemas, path, &declared)?;
+    let target = target_of_declared(store, validator, request.schemas.files(), path, &declared)?;
+    if request.concrete.is_none() {
+        range_for(target.kind, path, request.range.as_deref(), "直す")?;
+    }
     // インスタンスは Concrete の rule で、Concrete は Abstract の rule で書く
     let doc: Value = match (target.kind, &target.concrete) {
         (TargetKind::Instance, Some(c)) => c.concrete().document().clone(),
@@ -507,7 +512,8 @@ fn build_procedure(
 }
 
 /// 書くときに打つコマンド。作成は文書全体を --value で、更新は JSON Patch を --patch で、手順を組んだときの中身の
-/// ハッシュを --if-match で渡す（手順を読んでいる間に中身が変わっていたら書かない）。--session で名乗ったセッションは、書くときも名乗る。
+/// ハッシュを --if-match で渡す（手順を読んでいる間に中身が変わっていたら書かない）。受け取った --schemas ・ --range と、
+/// 誰が打ったか（--session ・ --human）は、書くときにも引き継ぐ。
 fn write_command(
     path: &str,
     declared: &str,
@@ -516,17 +522,8 @@ fn write_command(
     caller: &Caller,
 ) -> String {
     let mut args: Vec<&str> = match hash {
-        Some(h) => vec![
-            "semantic-agent-schema",
-            "update",
-            path,
-            "--patch",
-            "<JSON Patch>",
-            "--if-match",
-            h,
-        ],
+        Some(h) => vec!["update", path, "--patch", "<JSON Patch>", "--if-match", h],
         None => vec![
-            "semantic-agent-schema",
             "create",
             path,
             "--concrete",
@@ -541,26 +538,10 @@ fn write_command(
     if let Some(r) = &request.request_id {
         args.extend(["--request-id", r.as_str()]);
     }
-    if let Some(id) = caller.flagged() {
-        args.extend(["--session", id]);
-    }
-    command_line(&args)
-}
-
-/// 手順に入れるコマンドの1行。空白や記号を含む引数は単一引用符で囲む。<…> は呼ぶ側が埋める所なので、そのまま出す。
-fn command_line(args: &[&str]) -> String {
-    args.iter()
-        .map(|a| {
-            let plain = !a.is_empty()
-                && a.chars()
-                    .all(|c| c.is_ascii_alphanumeric() || "-_./:@=+,".contains(c));
-            let placeholder = a.starts_with('<') && a.ends_with('>');
-            if plain || placeholder {
-                (*a).to_string()
-            } else {
-                format!("'{}'", a.replace('\'', "'\\''"))
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    carried(
+        &args,
+        Some(&request.schemas),
+        request.range.as_deref(),
+        caller,
+    )
 }

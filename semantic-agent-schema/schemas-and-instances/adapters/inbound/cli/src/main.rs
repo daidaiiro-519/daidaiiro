@@ -42,7 +42,7 @@ use writing_application::use_cases::write::{
     AdoptAs, AdoptRequest, CreateRequest, DeleteRequest, SemanticRequest, UpdateRequest, adopt,
     create, delete, semantic_procedure, update,
 };
-use writing_domain::values::Caller;
+use writing_domain::values::{Caller, SchemaPlaces};
 
 const USAGE: &str = "使い方：semantic-agent-schema init [--session <ID>] ／ \
 semantic-agent-schema validate <経路>... --schemas <置き場所>... [--stale] (--session <ID> | --human) ／ \
@@ -111,14 +111,15 @@ fn take_list(args: &[String], name: &str) -> Result<(Option<Vec<String>>, Vec<St
 }
 
 /// --schemas の置き場所を、読むファイルの経路の並びに開く。無ければ断る。
-fn schema_files(places: Option<Vec<String>>) -> Result<Vec<String>, ExitCode> {
+fn schema_files(places: Option<Vec<String>>) -> Result<SchemaPlaces, ExitCode> {
     let Some(places) = places else {
         return Err(usage(
             "--schemas <置き場所>... でスキーマの置き場所を渡してください（従う Concrete と $ref の先を、その中から $id で引く）",
         ));
     };
-    WorkingTree::new(PathBuf::from("."))
+    WorkingTree::new(root())
         .schema_files(&places)
+        .map(|files| SchemaPlaces::new(places.clone(), files))
         .map_err(|message| {
             refuse(Refused {
                 code: "not_found",
@@ -164,6 +165,14 @@ fn db_path(root: &Path) -> Result<PathBuf, Refused> {
     Ok(common.join("semantic-agent-schema").join("records.sqlite"))
 }
 
+/// 文書の経路の根：作業ツリーの根（Git の根）。文書 ・ --schemas ・ --range ・ --ref ・ --design-system ・ --out ・
+/// --answer のファイルの経路は、どこで打っても、ここからの相対で読む。Git が読めなければ作業フォルダ。
+fn root() -> PathBuf {
+    GitCommits::new(PathBuf::from("."))
+        .toplevel()
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 /// semantic-agent-schema を打ったフォルダ：作業ツリーの根（ワークツリーごとに違う。絶対の経路）。
 /// 記録は Git の中だけで作るので、作業フォルダになるのは Git が読めないときだけ。
 fn folder() -> String {
@@ -181,6 +190,14 @@ fn unidentified(u: Unidentified) -> Refused {
             code: "usage",
             message: format!(
                 "{} の中で打たれていて、どれが打ったかを決められません。--session <打った会話の ID> で名乗ってください",
+                tools.join(" と ")
+            ),
+            ..Refused::default()
+        },
+        Unidentified::HumanInTool(tools) => Refused {
+            code: "usage",
+            message: format!(
+                "{} の中（ツールの環境変数がある）で打たれたので、--human を受け取りません。AI のセッションの中では人を名乗れません。人の操作は、ツールの外の端末で打ってください",
                 tools.join(" と ")
             ),
             ..Refused::default()
@@ -240,7 +257,7 @@ fn caller(who: Who, log: &SqliteLog) -> Result<Caller, Refused> {
 
 /// 置き場所 ・ バリデーター ・ 記録を組み立てる。
 fn adapters() -> Result<(WorkingTree, Validator, SqliteLog), Refused> {
-    let root = PathBuf::from(".");
+    let root = root();
     let validator = Validator::new().map_err(|message| Refused {
         code: "validator",
         message,
@@ -357,7 +374,7 @@ fn run_validate(args: &[String]) -> ExitCode {
             // 照らしてから、記録する直前に打ったセッションを sessions に足す
             let checked = match check_design_systems(
                 paths,
-                &scope.schemas,
+                scope.schemas.files(),
                 &store,
                 &validator,
                 &Mustache,
@@ -451,7 +468,7 @@ fn read_answer(from: &str) -> Result<String, Refused> {
             .map(|_| text)
             .map_err(|e| format!("標準入力を読めない：{e}"))
     } else {
-        std::fs::read_to_string(from).map_err(|e| format!("{from} を読めない：{e}"))
+        std::fs::read_to_string(root().join(from)).map_err(|e| format!("{from} を読めない：{e}"))
     };
     read.map_err(|message| Refused {
         code: "invalid_input",
@@ -544,9 +561,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             return usage(&format!("--base はコミットの名前で渡してください: {base}"));
         }
     }
-    if semantic && range.is_some() {
-        return usage("--range は --patch か --adopt で Concrete を直すときに渡してください");
-    }
+
     let schemas = match schema_files(schemas) {
         Ok(s) => s,
         Err(code) => return code,
@@ -575,6 +590,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             task: take("--task"),
             refs,
             schemas,
+            range,
             reason,
             request_id,
         };
@@ -616,7 +632,7 @@ fn run_change(args: &[String], command: Command) -> ExitCode {
             request_id,
             base: take("--base"),
         };
-        let committed = GitCommits::new(PathBuf::from("."));
+        let committed = GitCommits::new(root());
         let result = run_with(
             |store, validator, caller, log| {
                 adopt(&request, store, validator, &committed, caller, log)
@@ -792,7 +808,7 @@ fn run_render(args: &[String]) -> ExitCode {
         Ok(s) => s,
         Err(code) => return code,
     };
-    let root = PathBuf::from(".");
+    let root = root();
     let validator = match Validator::new() {
         Ok(v) => v,
         Err(message) => {
@@ -1054,7 +1070,9 @@ fn run_search(args: &[String]) -> ExitCode {
     }
     let result = match answer_text {
         Some(text) => run_with(
-            |store, validator, _, _| search_with_answer(&range, &text, store, validator),
+            |store, validator, caller, _| {
+                search_with_answer(&range, &text, store, validator, caller)
+            },
             who.clone(),
         ),
         None => run_with(
@@ -1073,7 +1091,7 @@ fn run_search(args: &[String]) -> ExitCode {
 
 /// 経路のファイルが、デザインシステムの受け取りの型を申告しているか。
 fn is_design_system(path: &str) -> bool {
-    std::fs::read_to_string(path)
+    std::fs::read_to_string(root().join(path))
         .ok()
         .and_then(|t| serde_json::from_str::<Value>(&t).ok())
         .and_then(|v| {

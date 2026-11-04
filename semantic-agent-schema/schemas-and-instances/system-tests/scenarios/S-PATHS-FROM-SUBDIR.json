@@ -1,0 +1,56 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-PATHS-FROM-SUBDIR",
+ "name": "下のフォルダで打つ",
+ "title": "Git の根の下のフォルダで打っても、経路は Git の根からの相対で読み、出力と記録の経路も Git の根からの相対になる",
+ "why": "打った場所で経路が変わると、同じ文書の記録が別の経路に分かれ、返したコマンドも打つ場所で意味が変わる。",
+ "traces": [
+  "約束:command-result:records",
+  "UC4:成功時保証"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json",
+   "docs/note.md": "メモ"
+  }
+ },
+ "when": {
+  "args": [
+   "validate",
+   "usecases/u1.json",
+   "--schemas",
+   "schemas",
+   "--human"
+  ],
+  "cwd": "docs"
+ },
+ "after": [
+  {
+   "args": [
+    "log",
+    "usecases/u1.json"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/targets/0/path",
+   "equals": "usecases/u1.json"
+  },
+  {
+   "of": "after[0]",
+   "exit": 0
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/path",
+   "equals": "usecases/u1.json"
+  }
+ ]
+}

@@ -1,8 +1,8 @@
 //! 誰が打ったかを決めて sessions に登録し（入口だけが呼ぶ）、記録を読む（UC7）。
 
 use crate::ports::{
-    IdentifyCaller, OperationDetail, OperationFilter, OperationReader, OperationSummary,
-    SessionLog, SessionRow,
+    IdentifyCaller, NotIdentified, OperationDetail, OperationFilter, OperationReader,
+    OperationSummary, SessionLog, SessionRow,
 };
 use writing_domain::values::{Caller, Via};
 
@@ -13,6 +13,8 @@ pub enum Unidentified {
     Ambiguous(Vec<String>),
     /// --session ・ ツールの環境変数 ・ init の登録 ・ 人の明示のどれも無い
     Missing,
+    /// ツールの環境変数があるところで人を名乗った（ツールの名前）
+    HumanInTool(Vec<String>),
     /// 置き場所を読めない ・ 書けない
     Log(String),
 }
@@ -30,8 +32,16 @@ pub fn identify(
 ) -> Result<Caller, Unidentified> {
     let initialized = log.initialized(folder).map_err(Unidentified::Log)?;
     who.identify(initialized)
-        .map_err(Unidentified::Ambiguous)?
+        .map_err(not_identified)?
         .ok_or(Unidentified::Missing)
+}
+
+/// 呼び出し元を決められなかった理由を、手続きの理由にする。
+fn not_identified(e: NotIdentified) -> Unidentified {
+    match e {
+        NotIdentified::Ambiguous(tools) => Unidentified::Ambiguous(tools),
+        NotIdentified::HumanInTool(tools) => Unidentified::HumanInTool(tools),
+    }
 }
 
 /// 記録をつけるコマンドで、打ったセッションを sessions に登録する。初めて見たセッションだけ1行足す（行は書き換えない）。
@@ -54,7 +64,7 @@ pub fn register_session(
     folder: &str,
     log: &mut dyn SessionLog,
 ) -> Result<SessionRow, Unidentified> {
-    let (id, tool) = match who.identify(None).map_err(Unidentified::Ambiguous)? {
+    let (id, tool) = match who.identify(None).map_err(not_identified)? {
         Some(Caller::Session { id, tool, .. }) => (id, tool),
         Some(Caller::Human) | None => (log.new_session_id(), "unknown".to_string()),
     };

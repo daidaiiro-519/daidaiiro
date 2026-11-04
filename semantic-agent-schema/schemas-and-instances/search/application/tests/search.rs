@@ -65,7 +65,7 @@ fn hash(store: &support::Files, path: &str) -> String {
 fn range(paths: &[&str]) -> Range {
     Range {
         paths: paths.iter().map(ToString::to_string).collect(),
-        schemas: vec!["c.json".into()],
+        schemas: support::places(&["c.json"]),
     }
 }
 
@@ -132,7 +132,7 @@ fn an_untyped_path_or_a_concrete_outside_the_place_is_refused() {
     assert_eq!(r.code, "unknown_schema");
     let no_place = Range {
         paths: vec!["u0.json".into()],
-        schemas: Vec::new(),
+        schemas: support::places(&[]),
     };
     let r = search_where(&no_place, &[], &s).unwrap_err();
     assert_eq!(r.code, "unknown_schema");
@@ -144,7 +144,7 @@ fn a_duplicate_id_in_the_place_is_refused_with_every_path() {
     s.write("c2.json", &concrete().to_string()).unwrap();
     let both = Range {
         paths: vec!["u0.json".into()],
-        schemas: vec!["c.json".into(), "c2.json".into()],
+        schemas: support::places(&["c.json", "c2.json"]),
     };
     let r = search_where(&both, &[], &s).unwrap_err();
     assert_eq!(r.code, "duplicate_schema");
@@ -166,7 +166,9 @@ fn the_procedure_has_one_step_per_document_and_the_answer_command() {
     assert_eq!(p["answer"]["format"], json!("search"));
     assert_eq!(
         p["command"],
-        json!("semantic-agent-schema search u0.json u1.json --answer <答えの JSON のファイル | ->")
+        json!(
+            "semantic-agent-schema search u0.json u1.json --schemas c.json --answer <答えの JSON のファイル | -> --human"
+        )
     );
 }
 
@@ -194,6 +196,7 @@ fn sources_in_the_range_are_returned_with_their_current_values() {
         &answer(&json!([{"path": "u1.json", "pointer": "/actors/1", "hash": h}])),
         &s,
         &Lenient,
+        &HUMAN,
     )
     .unwrap();
     assert_eq!(found.answer.as_deref(), Some("u1 に出てくる"));
@@ -205,7 +208,7 @@ fn sources_outside_changed_or_missing_are_refused() {
     let s = store();
     let h = hash(&s, "u1.json");
     let code = |sources: Value| {
-        search_with_answer(&concrete_range(), &answer(&sources), &s, &Lenient)
+        search_with_answer(&concrete_range(), &answer(&sources), &s, &Lenient, &HUMAN)
             .map(|_| ())
             .map_err(|r| r.code)
     };

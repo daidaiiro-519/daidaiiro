@@ -1,0 +1,82 @@
+{
+ "$schema": "urn:semantic-agent-schema:design:exploration:v1",
+ "step": 14,
+ "date": "2026-11-04",
+ "summary": "ツールの環境変数があるところでは --human を受け取らないようにした（AI のセッションの中で人を名乗って人の欄を書けないようにする）。そのうえで区切り D を入れた。文書の経路の根を Git の根にし、どこで打っても経路は Git の根からの相対で読み、出力と記録の経路も同じにした。返すコマンド（手順の command と各 hint）に、受け取った --schemas ・ --range と、誰が打ったか（--session で名乗ったセッションは --session、人は --human）を引き継ぐ。Concrete を --semantic で直すときも --range を受け取り、無ければ断る。試験144件、場面159本。",
+ "usecases": [
+  "UC1",
+  "UC2",
+  "UC3",
+  "UC4",
+  "UC5",
+  "UC6"
+ ],
+ "factchecks": [
+  {
+   "item": "場面を先に書き、直す前の実装（区切り C のコミット）で通らないことを、場面を流して確かめた",
+   "evidence": [
+    "S-SESSION-HUMAN-IN-TOOL は、直す前の実装では人の欄（/status）を approved に書いた",
+    "HEAD を別のワークツリーに出し、新しい場面を置いて流すと、S-PATHS-FROM-SUBDIR ・ S-UC2-SEMANTIC-CONCRETE-RANGE と、コマンドの引き継ぎを確かめるように書き換えた11本が通らなかった"
+   ],
+   "result": "confirmed"
+  }
+ ],
+ "procedures": [
+  {
+   "usecase": "返すコマンドの組み方（書く ・ 検証 ・ 検索 ・ 描画のモジュール）",
+   "steps": [
+    "コマンドの頭（semantic-agent-schema とサブコマンドと経路）を組む",
+    "受け取った --schemas の置き場所を、受け取ったままの並びで足す（writing-domain の値 SchemaPlaces の args）",
+    "Concrete を直す ・ 消すコマンドには、受け取った --range を足す",
+    "誰が打ったかを足す（Caller の args：--session で名乗ったセッションは --session、人は --human。環境変数と init で決まるセッションは足さない）"
+   ],
+   "rules": [
+    "受け取っていない置き場所は <置き場所> と書き、呼ぶ側が埋める（削除は --schemas を受け取らない）",
+    "埋める所は <…> で書く（理由は <理由>）"
+   ]
+  }
+ ],
+ "promotions": [
+  {
+   "what": "受け取った置き場所と、それを開いたファイルの並び（SchemaPlaces）",
+   "became": "value",
+   "why": "書く ・ 検証 ・ 検索 ・ 描画のどれもが、読むときはファイルの並び、返すコマンドには受け取ったままの並びを使う"
+  },
+  {
+   "what": "誰が打ったかを返すコマンドに引き継ぐ引数（Caller の args）",
+   "became": "value",
+   "why": "名乗り方から決まる。書く ・ 検証 ・ 検索のどれも同じ決まりで足す"
+  }
+ ],
+ "reconciliation": [
+  {
+   "item": "区切り C の「--human は環境変数より先に効く」",
+   "result": "top_missed",
+   "fixed": "implementation",
+   "note": "AI のツールの中で人を名乗れると、x-decided-by: human の欄を AI が書ける。ツールの環境変数（callers.json の変数）があれば --human を受け取らずに断る（記録のモジュールのポートの理由 NotIdentified::HumanInTool）"
+  },
+  {
+   "item": "具体モデリング概念「target_path は Git の根からの相対。どこで打っても同じ経路になる」",
+   "result": "match",
+   "fixed": "implementation",
+   "note": "入口が文書の根を Git の根（git rev-parse --show-toplevel）にした。--answer のファイルと --out も Git の根からの相対。log --folder と記録の置き場所の環境変数は、打ったフォルダからの経路のまま"
+  }
+ ],
+ "structure": {
+  "changed": true,
+  "changes": [
+   {
+    "what": "writing-domain の値",
+    "before": "Caller の flagged（--session の ID だけ）",
+    "after": "Caller の args（--session か --human）と、値 SchemaPlaces",
+    "why": "返すコマンドに、人の明示と置き場所も引き継ぐ"
+   },
+   {
+    "what": "検証の結果（Validation）",
+    "before": "Semantic Agent Schema を通らない変更の案内を入口の出力が組む",
+    "after": "use_cases が受け取った --schemas と誰が打ったかを引き継いで hint を組む",
+    "why": "入口の出力は受け取った置き場所を知らない"
+   }
+  ]
+ }
+}

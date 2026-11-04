@@ -57,7 +57,7 @@ impl validation_application::ports::ValidationLog for support::Log {
 fn scope(paths: &[&str]) -> Scope {
     Scope {
         paths: paths.iter().map(ToString::to_string).collect(),
-        schemas: vec!["c.json".into()],
+        schemas: support::places(&["c.json"]),
     }
 }
 
@@ -119,7 +119,7 @@ fn a_concrete_outside_the_place_is_refused() {
     let mut log = Log::default();
     let none = Scope {
         paths: vec!["u1.json".into()],
-        schemas: Vec::new(),
+        schemas: support::places(&[]),
     };
     let r = validate(&none, &store, &Lenient, &HUMAN, &mut log).unwrap_err();
     assert_eq!(r.code, "unknown_schema");

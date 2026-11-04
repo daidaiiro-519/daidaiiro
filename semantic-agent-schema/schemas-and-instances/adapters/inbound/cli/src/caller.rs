@@ -1,9 +1,9 @@
 //! 記録のモジュールのポート IdentifyCaller を、引数と環境変数で実装する（semantic-agent-schema init の登録は記録のモジュールの手続きが引いて渡す）。
-//! 人は --human で明示する。打ったセッションは --session → ツールごとの環境変数（callers.json の表）→ このフォルダで
+//! 人は --human で明示する。ツールの環境変数があるところでは人を名乗れない（AI のセッションの中で人の欄を書かせない）。打ったセッションは --session → ツールごとの環境変数（callers.json の表）→ このフォルダで
 //! semantic-agent-schema init が最後に登録したセッション、の順で決め、どれも無ければ決めない（人とみなさない）。
 //! 2つ以上のツールの環境変数に値があるとき（ツールの中から別のツールを起動した）は、どれが打ったかを決めない。
 
-use recording_application::ports::{IdentifyCaller, SessionRow};
+use recording_application::ports::{IdentifyCaller, NotIdentified, SessionRow};
 use serde_json::Value;
 use writing_domain::values::{Caller, Via};
 
@@ -60,10 +60,16 @@ impl FromArguments {
 }
 
 impl IdentifyCaller for FromArguments {
-    /// --human なら人。ほかは --session → 環境変数 → このフォルダで semantic-agent-schema init が最後に登録したセッション
-    /// （initialized）で、どれも無ければ None。--session が無く、2つ以上のツールの環境変数に値があれば、そのツールの名前を並べて返す。
-    fn identify(&self, initialized: Option<SessionRow>) -> Result<Option<Caller>, Vec<String>> {
+    /// --human なら人（ツールの環境変数に値があれば、人と受け取らずにそのツールの名前を返す）。ほかは --session → 環境変数 →
+    /// このフォルダで semantic-agent-schema init が最後に登録したセッション（initialized）で、どれも無ければ None。
+    /// --session が無く、2つ以上のツールの環境変数に値があれば、そのツールの名前を並べて返す。
+    fn identify(&self, initialized: Option<SessionRow>) -> Result<Option<Caller>, NotIdentified> {
         if self.human {
+            if !self.found.is_empty() {
+                return Err(NotIdentified::HumanInTool(
+                    self.found.iter().map(|(tool, _)| tool.clone()).collect(),
+                ));
+            }
             return Ok(Some(Caller::Human));
         }
         let at = |id: String, tool: String, via: Via| Caller::Session {
@@ -78,7 +84,11 @@ impl IdentifyCaller for FromArguments {
             (Some(id), _) => Some(at(id, "unknown".to_string(), Via::Flag)),
             (None, [(tool, id)]) => Some(at(id.clone(), tool.clone(), Via::Env)),
             (None, []) => initialized.map(|row| at(row.id, row.tool, Via::Init)),
-            (None, many) => return Err(many.iter().map(|(tool, _)| tool.clone()).collect()),
+            (None, many) => {
+                return Err(NotIdentified::Ambiguous(
+                    many.iter().map(|(tool, _)| tool.clone()).collect(),
+                ));
+            }
         })
     }
 }
@@ -86,7 +96,7 @@ impl IdentifyCaller for FromArguments {
 #[cfg(test)]
 mod tests {
     use super::FromArguments;
-    use recording_application::ports::{IdentifyCaller, SessionRow};
+    use recording_application::ports::{IdentifyCaller, NotIdentified, SessionRow};
     use writing_domain::values::{Caller, Via};
 
     fn with(name: &'static str, value: &'static str) -> impl Fn(&str) -> Option<String> {
@@ -149,10 +159,15 @@ mod tests {
             Ok(None)
         );
         assert_eq!(
-            FromArguments::new(None, true, with("CLAUDE_CODE_SESSION_ID", "c5c5"), "/w")
-                .identify(registered()),
+            FromArguments::new(None, true, |_| None, "/w").identify(registered()),
             Ok(Some(Caller::Human)),
             "--human は明示した人"
+        );
+        assert_eq!(
+            FromArguments::new(None, true, with("CLAUDE_CODE_SESSION_ID", "c5c5"), "/w")
+                .identify(registered()),
+            Err(NotIdentified::HumanInTool(vec!["claude-code".to_string()])),
+            "ツールの中では人を名乗れない"
         );
         assert_eq!(
             FromArguments::new(Some("ci".to_string()), false, |_| None, "/w").identify(None),
@@ -172,7 +187,10 @@ mod tests {
     fn two_tools_in_the_environment_are_not_guessed() {
         assert_eq!(
             FromArguments::new(None, false, nested, "/w").identify(registered()),
-            Err(vec!["claude-code".to_string(), "codex".to_string()])
+            Err(NotIdentified::Ambiguous(vec![
+                "claude-code".to_string(),
+                "codex".to_string()
+            ]))
         );
         assert_eq!(
             FromArguments::new(Some("0199".to_string()), false, nested, "/w").identify(None),

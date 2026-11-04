@@ -1,0 +1,71 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-UC2-SEMANTIC-CONCRETE-RANGE",
+ "name": "Concrete を意味で直す範囲",
+ "title": "Concrete を --semantic で直すときは --range を受け取り、書くコマンド（command）に --schemas ・ --range ・ 誰が打ったかを引き継ぐ。--range が無ければ断る",
+ "why": "引き継がないと、返したコマンドを打ったときに範囲が無くて断られる。",
+ "traces": [
+  "UC2:変形:意味で書く"
+ ],
+ "given": {
+  "files": {
+   "schemas/usecase.schema.json": "@fixtures/usecase.schema.json",
+   "usecases/u1.json": "@fixtures/u1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "schemas/usecase.schema.json",
+   "--semantic",
+   "--task",
+   "目的の説明を直す",
+   "--schemas",
+   "schemas",
+   "--range",
+   "usecases/u1.json",
+   "--session",
+   "ai-1"
+  ]
+ },
+ "after": [
+  {
+   "args": [
+    "update",
+    "schemas/usecase.schema.json",
+    "--semantic",
+    "--task",
+    "目的の説明を直す",
+    "--schemas",
+    "schemas",
+    "--session",
+    "ai-1"
+   ]
+  }
+ ],
+ "then": [
+  {
+   "of": "when",
+   "exit": 0
+  },
+  {
+   "of": "when",
+   "pointer": "/command",
+   "contains": "--schemas schemas --range usecases/u1.json --session ai-1"
+  },
+  {
+   "of": "after[0]",
+   "exit": 2
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "after[0]",
+   "pointer": "/message",
+   "contains": "--range"
+  }
+ ]
+}

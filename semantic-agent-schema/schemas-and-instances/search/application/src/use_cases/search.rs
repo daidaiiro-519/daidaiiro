@@ -11,7 +11,7 @@
 use crate::ports::{DocumentStore, SchemaValidator};
 use serde_json::{Value, json};
 use writing_domain::services::{SchemaIndex, concrete_of};
-use writing_domain::values::{Caller, ContentHash, TargetKind};
+use writing_domain::values::{Caller, ContentHash, SchemaPlaces, TargetKind};
 
 const PROCEDURE: &str = "urn:semantic-agent-schema:published-language:procedure:v1";
 
@@ -30,15 +30,17 @@ pub const RANGE_LIMIT: usize = 64 * 1024;
 pub struct Range {
     /// 範囲の文書の経路
     pub paths: Vec<String>,
-    /// スキーマの置き場所のファイル（インスタンスが従う Concrete を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（インスタンスが従う Concrete を $id で引く。返すコマンドにも引き継ぐ）
+    pub schemas: SchemaPlaces,
 }
 
 impl Range {
-    /// 範囲をコマンドの引数に戻す（手順の command と案内に入れる）。
+    /// 範囲と置き場所をコマンドの引数に戻す（手順の command と案内に入れる）。
     #[must_use]
     pub fn args(&self) -> Vec<String> {
-        self.paths.clone()
+        let mut args = self.paths.clone();
+        args.extend(self.schemas.args());
+        args
     }
 }
 
@@ -116,7 +118,7 @@ fn load(range: &Range, store: &dyn DocumentStore) -> Result<Vec<Doc>, Refused> {
         if kind == TargetKind::Instance {
             if index.is_none() {
                 let mut i = SchemaIndex::new();
-                for f in &range.schemas {
+                for f in range.schemas.files() {
                     let text = store.read(f).map_err(|e| refused("store", f, e))?;
                     i.add(f, &text);
                 }
@@ -254,15 +256,14 @@ pub fn search_procedure(
     }))
 }
 
-/// 答えを渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
+/// 答えを渡すときに打つコマンド。受け取った範囲 ・ --schemas と、誰が打ったか（--session ・ --human）を引き継ぐ。
 fn answer_command(range: &Range, caller: &Caller) -> String {
     let range_args = range.args();
+    let who = caller.args();
     let mut args: Vec<&str> = vec!["semantic-agent-schema", "search"];
     args.extend(range_args.iter().map(String::as_str));
     args.extend(["--answer", "<答えの JSON のファイル | ->"]);
-    if let Some(id) = caller.flagged() {
-        args.extend(["--session", id]);
-    }
+    args.extend(who.iter().map(String::as_str));
     command_line(&args)
 }
 
@@ -277,6 +278,7 @@ pub fn search_with_answer(
     answer: &str,
     store: &dyn DocumentStore,
     validator: &dyn SchemaValidator,
+    caller: &Caller,
 ) -> Result<Found, Refused> {
     let docs = load(range, store)?;
     let range_rows = range_of(&docs);
@@ -342,6 +344,7 @@ pub fn search_with_answer(
                 "--question".to_string(),
                 "<問い>".to_string(),
             ]);
+            again.extend(caller.args());
             r.hint = Some(Box::new(format!(
                 "いまの中身で手順を取り直して探し直す：{}",
                 command_line(&again.iter().map(String::as_str).collect::<Vec<_>>())

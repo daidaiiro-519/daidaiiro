@@ -25,8 +25,8 @@ use validation_domain::values::{By, RuleResult, Verdict};
 use writing_domain::aggregates::{ConcreteSchema, Entry, Instance};
 use writing_domain::services::{Resolved, SchemaIndex, Unresolved, concrete_of, refs};
 use writing_domain::values::{
-    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
-    WriteRecord, unrecorded_since,
+    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, SchemaPlaces,
+    StoredChange, TargetKind, WriteRecord, unrecorded_since,
 };
 
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
@@ -533,8 +533,8 @@ pub struct CreateRequest {
     pub concrete: String,
     /// 書く値。$schema が無ければ concrete を入れる
     pub value: Value,
-    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
+    pub schemas: SchemaPlaces,
     /// やり直しで同じ操作を2回残さないための ID
     pub request_id: Option<String>,
     /// 理由（なぜ作るか）。記録に残し、間に入った変更として後の書き手に返す
@@ -550,8 +550,8 @@ pub struct UpdateRequest {
     pub patch: Value,
     /// 直す前に読んだ中身のハッシュ。無ければ、Semantic Agent Schema が最後に書いた事後のハッシュと比べる
     pub if_match: Option<String>,
-    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
+    pub schemas: SchemaPlaces,
     /// Concrete を直すときに、従うインスタンスを確かめる範囲（--range の経路）
     pub range: Option<Vec<String>>,
     /// やり直しで同じ操作を2回残さないための ID
@@ -837,7 +837,13 @@ pub fn create(
             format!("{path} はすでに在る。直すときは update を使う"),
         ));
     }
-    let target = target_of_declared(store, validator, &request.schemas, path, &request.concrete)?;
+    let target = target_of_declared(
+        store,
+        validator,
+        request.schemas.files(),
+        path,
+        &request.concrete,
+    )?;
     let kind = target.kind;
     let row = ChangeRow {
         kind: Written::Created.kind().to_string(),
@@ -936,7 +942,7 @@ pub fn update(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let target = target_of_declared(store, validator, &request.schemas, path, &declared)?;
+    let target = target_of_declared(store, validator, request.schemas.files(), path, &declared)?;
     let kind = target.kind;
     let range = range_for(kind, path, request.range.as_deref(), "直す")?;
     let current = ContentHash::of(text.as_bytes());
@@ -978,9 +984,15 @@ pub fn update(
             ),
         );
         r.hint = Some(Box::new(if between.unrecorded {
-            adopt_hint(path)
+            adopt_hint(path, &request.schemas, request.range.as_deref(), caller)
         } else {
-            reapply_hint(path, current.as_str())
+            reapply_hint(
+                path,
+                current.as_str(),
+                &request.schemas,
+                request.range.as_deref(),
+                caller,
+            )
         }));
         r.interleaved = Some(Box::new(between));
         return Err(r);
@@ -1035,7 +1047,7 @@ pub fn update(
     let followers =
         match ConcreteSchema::read(&before).and_then(|c| c.id().map(ToString::to_string)) {
             Some(id) => Some(Followers::read(
-                &request.schemas,
+                request.schemas.files(),
                 store,
                 validator,
                 log,
@@ -1194,15 +1206,89 @@ impl Followers {
     }
 }
 
-/// SAS を通らない変更を取り込むコマンドの案内。
-fn adopt_hint(path: &str) -> String {
-    format!("理由を付けて取り込む：semantic-agent-schema update {path} --adopt --reason \"…\"")
+/// 返すコマンドの1行。空白や記号を含む引数は単一引用符で囲む。<…> は呼ぶ側が埋める所なので、そのまま出す。
+fn command_line(args: &[String]) -> String {
+    args.iter()
+        .map(|a| {
+            let plain = !a.is_empty()
+                && a.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "-_./:@=+,".contains(c));
+            let placeholder = a.starts_with('<') && a.ends_with('>');
+            if plain || placeholder {
+                a.clone()
+            } else {
+                format!("'{}'", a.replace('\'', "'\\''"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
-/// SAS を通した変更が間に入ったときに、のせ直して打ち直すコマンドの案内。
-fn reapply_hint(path: &str, current: &str) -> String {
+/// 返すコマンド：semantic-agent-schema と head の引数に、受け取った --schemas ・ --range と、誰が打ったかを引き継ぐ。
+fn carried(
+    head: &[&str],
+    schemas: Option<&SchemaPlaces>,
+    range: Option<&[String]>,
+    caller: &Caller,
+) -> String {
+    let mut args: Vec<String> = std::iter::once("semantic-agent-schema")
+        .chain(head.iter().copied())
+        .map(ToString::to_string)
+        .collect();
+    if let Some(s) = schemas {
+        args.extend(s.args());
+    }
+    if let Some(r) = range {
+        args.push("--range".to_string());
+        args.extend(r.iter().cloned());
+    }
+    args.extend(caller.args());
+    command_line(&args)
+}
+
+/// Semantic Agent Schema を通らない変更を取り込むコマンドの案内。
+fn adopt_hint(
+    path: &str,
+    schemas: &SchemaPlaces,
+    range: Option<&[String]>,
+    caller: &Caller,
+) -> String {
     format!(
-        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：semantic-agent-schema update {path} --patch <JSON Patch> --if-match {current} --reason \"…\""
+        "理由を付けて取り込む：{}",
+        carried(
+            &["update", path, "--adopt", "--reason", "<理由>"],
+            Some(schemas),
+            range,
+            caller
+        )
+    )
+}
+
+/// Semantic Agent Schema を通した変更が間に入ったときに、のせ直して打ち直すコマンドの案内。
+fn reapply_hint(
+    path: &str,
+    current: &str,
+    schemas: &SchemaPlaces,
+    range: Option<&[String]>,
+    caller: &Caller,
+) -> String {
+    format!(
+        "最新を読み直し、間に入った変更（interleaved）の上に変更をのせ直して打ち直す：{}",
+        carried(
+            &[
+                "update",
+                path,
+                "--patch",
+                "<JSON Patch>",
+                "--if-match",
+                current,
+                "--reason",
+                "<理由>"
+            ],
+            Some(schemas),
+            range,
+            caller
+        )
     )
 }
 
@@ -1224,8 +1310,8 @@ pub struct AdoptRequest {
     pub as_kind: AdoptAs,
     /// 従う Concrete の $id。渡されたら $schema と同じかを確かめる（無ければ $schema から決める）
     pub concrete: Option<String>,
-    /// スキーマの置き場所のファイル（従う Concrete と $ref の先を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
+    pub schemas: SchemaPlaces,
     /// Concrete の更新を取り込むときに、従うインスタンスを確かめる範囲（--range の経路）
     pub range: Option<Vec<String>>,
     /// 理由（なぜ外で直したか）。更新の取り込みでは要る
@@ -1323,7 +1409,7 @@ pub fn adopt(
             format!("ファイルの $schema（{declared}）が --concrete（{c}）と違う"),
         ));
     }
-    let target = target_of_declared(store, validator, &request.schemas, path, &declared)?;
+    let target = target_of_declared(store, validator, request.schemas.files(), path, &declared)?;
     let kind = target.kind;
     let range = match request.as_kind {
         AdoptAs::Update => range_for(kind, path, request.range.as_deref(), "取り込んで直す")?,
@@ -1347,8 +1433,14 @@ pub fn adopt(
                 "recorded",
                 path,
                 format!(
-                    "{path} は操作 {} で記録がある。外で直した変更は semantic-agent-schema update {path} --adopt --reason \"…\" で取り込む",
-                    w.operation
+                    "{path} は操作 {} で記録がある。外で直した変更は {} で取り込む",
+                    w.operation,
+                    carried(
+                        &["update", path, "--adopt", "--reason", "<理由>"],
+                        Some(&request.schemas),
+                        None,
+                        caller
+                    )
                 ),
             ));
         }
@@ -1358,7 +1450,13 @@ pub fn adopt(
                 "not_recorded",
                 path,
                 format!(
-                    "{path} は SAS の記録に無い。既存のファイルは semantic-agent-schema create {path} --adopt で取り込む"
+                    "{path} は Semantic Agent Schema の記録に無い。既存のファイルは {} で取り込む",
+                    carried(
+                        &["create", path, "--adopt"],
+                        Some(&request.schemas),
+                        None,
+                        caller
+                    )
                 ),
             ));
         }
@@ -1445,14 +1543,13 @@ pub fn adopt(
             },
         );
         if code == "human_field" {
+            let mut head = vec![written.kind(), path, "--adopt"];
+            if expected.is_some() {
+                head.extend(["--reason", "<理由>"]);
+            }
             r.hint = Some(Box::new(format!(
-                "人が --human を付けて取り込む：semantic-agent-schema {} {path} --adopt{} --human",
-                written.kind(),
-                if expected.is_some() {
-                    " --reason \"…\""
-                } else {
-                    ""
-                }
+                "人が --human を付けて取り込む：{}",
+                carried(&head, Some(&request.schemas), None, &Caller::Human)
             )));
         }
         return Err(r);
@@ -1460,7 +1557,7 @@ pub fn adopt(
     let own_id = ConcreteSchema::read(&current).and_then(|c| c.id().map(ToString::to_string));
     let followers = match (&own_id, request.as_kind) {
         (Some(id), AdoptAs::Update) => Some(Followers::read(
-            &request.schemas,
+            request.schemas.files(),
             store,
             validator,
             log,

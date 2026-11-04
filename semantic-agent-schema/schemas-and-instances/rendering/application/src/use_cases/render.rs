@@ -22,7 +22,7 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use validation_domain::values::Verdict;
 use writing_domain::services::{SchemaIndex, Unresolved, concrete_of};
-use writing_domain::values::{ContentHash, TargetKind};
+use writing_domain::values::{ContentHash, SchemaPlaces, TargetKind};
 
 /// 描画 ・ デザインシステムの検証を始められなかった ・ 書き出さなかった理由。描画は記録しない（理由と案内をその場で返す）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -123,8 +123,8 @@ pub struct RenderRequest {
     pub targets: Vec<String>,
     /// デザインシステムのファイルの経路
     pub design_system: String,
-    /// スキーマの置き場所のファイル（対象が従う Concrete を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（対象が従う Concrete を $id で引く。返すコマンドにも引き継ぐ）
+    pub schemas: SchemaPlaces,
     /// 書き出す先
     pub out: String,
 }
@@ -178,7 +178,7 @@ pub fn render(
     // 1. デザインシステム：受け取りの型とテンプレートの書き方の契約に照らし、外れがあれば描かない
     let ds_path = &request.design_system;
     // 1. 対象と、従う Concrete（同じ対象を2回渡しても1ページ）。Concrete は渡された置き場所から引き、描く対象のものだけを見る
-    let index = index_of(store, &request.schemas)?;
+    let index = index_of(store, request.schemas.files())?;
     let mut targets: Vec<(String, Value, Value)> = Vec::new();
     let mut concretes: Vec<(String, Value)> = Vec::new();
     let mut concrete_paths: Vec<String> = Vec::new();
@@ -228,7 +228,8 @@ pub fn render(
                 broken.join(" ／ ")
             ),
             hint: Some(Box::new(format!(
-                "semantic-agent-schema validate {ds_path}"
+                "semantic-agent-schema validate {ds_path} {} (--session <ID> | --human)",
+                request.schemas.args().join(" ")
             ))),
             ..Refused::default()
         });

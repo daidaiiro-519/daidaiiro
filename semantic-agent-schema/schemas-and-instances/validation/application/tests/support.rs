@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use validation_domain::values::{Judgment, ValidateRow};
-use writing_domain::values::{Caller, ChangeRow, StoredChange, Via, WriteRecord};
+use writing_domain::values::{Caller, ChangeRow, SchemaPlaces, StoredChange, Via, WriteRecord};
 
 pub(crate) const ABSTRACT: &str = "urn:semantic-agent-schema:published-language:abstract:v1";
 pub(crate) const UC: &str = "urn:example:t:uc:v1";
@@ -207,4 +207,10 @@ pub(crate) fn meaning() -> Value {
         "goal": {"x-prompt": {"rules": [{"id": "goal-is-outcome", "rule": "利用者が得る結果を書く。",
                  "why": "手段だと果たせたかを決められない。", "check": "結果を表す名詞句か。"}]}}
     }})
+}
+
+/// スキーマの置き場所（渡したファイルをそのまま読む）。
+pub(crate) fn places(files: &[&str]) -> SchemaPlaces {
+    let files: Vec<String> = files.iter().map(ToString::to_string).collect();
+    SchemaPlaces::new(files.clone(), files)
 }

@@ -1,6 +1,6 @@
 //! 誰が打ったか（人か、名乗ったセッションか）。
 //!
-//! 決めるのは入口（--session ・ ツールの環境変数 ・ semantic-agent-schema init の登録）で、ユースケースはこの値を受け取る。
+//! 決めるのは入口（--human ・ --session ・ ツールの環境変数 ・ semantic-agent-schema init の登録）で、ユースケースはこの値を受け取る。
 //! 書く条件（x-decided-by の欄は人だけが変える）の入口 Entry と、記録の打ったセッションの ID はここから決まる。
 
 use crate::aggregates::Entry;
@@ -42,7 +42,7 @@ pub enum Caller {
         /// ID をどこから知ったか
         via: Via,
     },
-    /// --session も環境変数も semantic-agent-schema init の登録も無い呼び出し。人とみなす
+    /// --human で人と明示した呼び出し（ツールの環境変数があるところでは受け取らない）
     Human,
 }
 
@@ -56,14 +56,16 @@ impl Caller {
         }
     }
 
-    /// --session で名乗ったセッションの ID（次に打つコマンドでも名乗らせる）。それ以外は None。
+    /// 返すコマンドに引き継ぐ、誰が打ったかの引数。--session で名乗ったセッションは --session、人は --human。
+    /// 環境変数と semantic-agent-schema init で分かったセッションは、次に打つときも同じに決まるので引き継がない。
     #[must_use]
-    pub fn flagged(&self) -> Option<&str> {
+    pub fn args(&self) -> Vec<String> {
         match self {
             Self::Session {
                 id, via: Via::Flag, ..
-            } => Some(id.as_str()),
-            _ => None,
+            } => vec!["--session".to_string(), id.clone()],
+            Self::Human => vec!["--human".to_string()],
+            Self::Session { .. } => Vec::new(),
         }
     }
 

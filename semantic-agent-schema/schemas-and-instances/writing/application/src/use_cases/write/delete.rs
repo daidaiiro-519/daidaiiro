@@ -4,15 +4,15 @@
 //! Concrete は、渡された範囲（--range）と記録に従うインスタンスが残っていれば消さずに止め、見た文書を結果に返す。
 
 use super::{
-    Blocked, Checked, Refused, classify, field_rows, interleaved, log_refused, range_docs,
+    Blocked, Checked, Refused, carried, classify, field_rows, interleaved, log_refused, range_docs,
     range_for, record_change, refused, target_of,
 };
 use crate::ports::{ChangeLog, DocumentStore};
 use serde_json::{Value, json};
 use writing_domain::aggregates::ConcreteSchema;
 use writing_domain::values::{
-    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, StoredChange, TargetKind,
-    unrecorded_since,
+    Caller, Change, ChangeRow, ContentHash, Diff, FieldChange, FieldRow, SchemaPlaces,
+    StoredChange, TargetKind, unrecorded_since,
 };
 
 /// 削除の依頼。
@@ -53,8 +53,11 @@ pub struct Deletion {
     pub replayed: bool,
 }
 
-fn delete_hint(path: &str) -> String {
-    format!("消す：semantic-agent-schema delete {path} --reason \"…\"")
+fn delete_hint(path: &str, caller: &Caller) -> String {
+    format!(
+        "消す：{}",
+        carried(&["delete", path, "--reason", "<理由>"], None, None, caller)
+    )
 }
 
 fn replayed(
@@ -109,7 +112,7 @@ fn replayed(
 }
 
 /// Concrete に従うインスタンスがあるので止めた削除を、従うインスタンスと一緒に返す（記録しない）。
-fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
+fn has_dependents(path: &str, blocked: Vec<Blocked>, range: &[String], caller: &Caller) -> Refused {
     let message = blocked
         .iter()
         .map(|b| format!("{}：{}", b.path, b.message))
@@ -121,8 +124,13 @@ fn has_dependents(path: &str, blocked: Vec<Blocked>) -> Refused {
         format!("この Concrete に頼っている文書があるので消さない（何も変えていない）：{message}"),
     );
     r.hint = Some(Box::new(format!(
-        "blocked のそれぞれの hint を片付けてから、消し直す：semantic-agent-schema delete {} --reason \"…\"",
-        r.path.as_deref().unwrap_or_default()
+        "blocked のそれぞれの hint を片付けてから、消し直す：{}",
+        carried(
+            &["delete", path, "--reason", "<理由>"],
+            None,
+            Some(range),
+            caller
+        )
     )));
     r.blocked = Some(Box::new(blocked));
     r
@@ -191,20 +199,41 @@ pub fn delete(
                 "いまの中身のハッシュは {}。{from}ハッシュ {expected} と違うので消さない。間に入った変更（interleaved）を読んでから消す{}",
                 current.as_str(),
                 if between.unrecorded {
-                    "。SAS を通らない変更がある"
+                    "。Semantic Agent Schema を通らない変更がある"
                 } else {
                     ""
                 }
             ),
         );
+        let range = request.range.as_deref();
+        let place = SchemaPlaces::new(vec!["<置き場所>".to_string()], Vec::new());
         r.hint = Some(Box::new(if between.unrecorded {
             format!(
-                "外の変更を取り込んでから消す：semantic-agent-schema update {path} --adopt --reason \"…\" のあとで semantic-agent-schema delete {path} --reason \"…\""
+                "外の変更を取り込んでから消す：{} のあとで {}",
+                carried(
+                    &["update", path, "--adopt", "--reason", "<理由>"],
+                    Some(&place),
+                    range,
+                    caller
+                ),
+                carried(&["delete", path, "--reason", "<理由>"], None, range, caller)
             )
         } else {
             format!(
-                "間に入った変更を読み、それでも消すなら打ち直す：semantic-agent-schema delete {path} --if-match {} --reason \"…\"",
-                current.as_str()
+                "間に入った変更を読み、それでも消すなら打ち直す：{}",
+                carried(
+                    &[
+                        "delete",
+                        path,
+                        "--if-match",
+                        current.as_str(),
+                        "--reason",
+                        "<理由>"
+                    ],
+                    None,
+                    range,
+                    caller
+                )
             )
         }));
         r.interleaved = Some(Box::new(between));
@@ -228,11 +257,11 @@ pub fn delete(
                 path: c.path.clone(),
                 code: "follows",
                 message: format!("{own} に従うインスタンス"),
-                hint: delete_hint(&c.path),
+                hint: delete_hint(&c.path, caller),
             })
             .collect();
         if !blocked.is_empty() {
-            return Err(has_dependents(path, blocked));
+            return Err(has_dependents(path, blocked, range, caller));
         }
     }
 

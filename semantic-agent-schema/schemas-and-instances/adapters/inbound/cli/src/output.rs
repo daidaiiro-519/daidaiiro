@@ -178,15 +178,8 @@ pub fn print_validation(v: &Validation) {
         out["stale_only"] = json!(true);
         out["unchanged_targets"] = json!(v.unchanged_targets);
     }
-    if let Some(u) = v.unrecorded.first() {
-        out["hint"] = json!(format!(
-            "SAS を通らない変更がある。理由を付けて取り込む：semantic-agent-schema update {} --adopt --reason \"…\"",
-            if v.unrecorded.len() == 1 {
-                u.path.as_str()
-            } else {
-                "<経路>"
-            }
-        ));
+    if let Some(h) = &v.hint {
+        out["hint"] = json!(h);
     }
     println!("{out}");
 }

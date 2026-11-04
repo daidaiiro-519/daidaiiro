@@ -21,7 +21,7 @@ use writing_domain::services::{
     Resolved, SchemaIndex, Unresolved, concrete_of, field_schema, refs,
 };
 use writing_domain::values::{
-    Caller, ContentHash, FieldRow, TargetKind, WriteRecord, unrecorded_since,
+    Caller, ContentHash, FieldRow, SchemaPlaces, TargetKind, WriteRecord, unrecorded_since,
 };
 
 /// 何を検証するか。範囲は渡された経路だけで、既定の範囲は持たない。
@@ -29,8 +29,8 @@ use writing_domain::values::{
 pub struct Scope {
     /// 検証する対象の経路
     pub paths: Vec<String>,
-    /// スキーマの置き場所のファイル（インスタンスが従う Concrete と $ref の先を $id で引く）
-    pub schemas: Vec<String>,
+    /// スキーマの置き場所（インスタンスが従う Concrete と $ref の先を $id で引く。返すコマンドにも引き継ぐ）
+    pub schemas: SchemaPlaces,
 }
 
 /// 渡された経路の文書1つ。
@@ -91,8 +91,10 @@ pub struct Validation {
     pub stale_only: bool,
     /// 入力が変わった rule だけを検証したとき、変わった rule が無く記録しなかった対象
     pub unchanged_targets: Vec<String>,
-    /// SAS を通らない変更があった対象（いまの中身を検証した）
+    /// Semantic Agent Schema を通らない変更があった対象（いまの中身を検証した）
     pub unrecorded: Vec<Unrecorded>,
+    /// 次にすることの案内（通らない変更を取り込むコマンド。受け取った --schemas と誰が打ったかを引き継ぐ）
+    pub hint: Option<String>,
 }
 
 /// 操作を始められなかった ・ 書かなかった理由。断った操作は記録しない（理由 ・ 案内 ・ 間に入った変更をその場で返す）。
@@ -344,7 +346,7 @@ pub fn semantic_procedures(
             if steps.is_empty() {
                 return None;
             }
-            let command = answer_command(&c.doc.path, selection, caller);
+            let command = answer_command(&c.doc.path, selection, &carry(scope, caller));
             Some(procedure(
                 &c.doc.path,
                 &c.declared,
@@ -385,22 +387,28 @@ pub fn validate_with_answer(
     )
 }
 
-/// 判定を渡すときに打つコマンド。--session で名乗ったセッションは、渡すときも名乗る。
-fn answer_command(path: &str, selection: Selection, caller: &Caller) -> String {
+/// 返すコマンドに引き継ぐ引数：受け取った --schemas と、誰が打ったか（--session ・ --human）。
+fn carry(scope: &Scope, caller: &Caller) -> Vec<String> {
+    let mut args = scope.schemas.args();
+    args.extend(caller.args());
+    args
+}
+
+/// 判定を渡すときに打つコマンド。
+fn answer_command(path: &str, selection: Selection, carry: &[String]) -> String {
     let mut args = vec!["semantic-agent-schema", "validate", path];
     args.extend(selection_args(selection));
     args.extend(["--answer", "<判定の JSON のファイル | ->"]);
-    if let Some(id) = caller.flagged() {
-        args.extend(["--session", id]);
-    }
+    args.extend(carry.iter().map(String::as_str));
     command_line(&args)
 }
 
 /// 手順を取り直すコマンド。
-fn procedure_command(path: &str, selection: Selection) -> String {
+fn procedure_command(path: &str, selection: Selection, carry: &[String]) -> String {
     let mut args = vec!["semantic-agent-schema", "validate", path];
     args.extend(selection_args(selection));
     args.push("--semantic");
+    args.extend(carry.iter().map(String::as_str));
     command_line(&args)
 }
 
@@ -539,6 +547,7 @@ fn steps_of(c: &Current, validator: &dyn SchemaValidator) -> (Vec<Group>, Vec<St
 /// 渡された判定で、対象の意味の rule の結果を置き換える。
 fn apply_answer(
     current: &mut [Current],
+    carry: &[String],
     validator: &dyn SchemaValidator,
     answer: &str,
     selection: Selection,
@@ -576,7 +585,7 @@ fn apply_answer(
         );
         r.hint = Some(Box::new(format!(
             "いまの中身で手順を取り直して判定し直す：{}",
-            procedure_command(&path, selection)
+            procedure_command(&path, selection, carry)
         )));
         return Err(r);
     }
@@ -722,7 +731,7 @@ pub fn judge_current(
             TargetKind::Concrete => None,
             TargetKind::Instance => {
                 if index.is_none() {
-                    index = Some(index_of(store, &scope.schemas)?);
+                    index = Some(index_of(store, scope.schemas.files())?);
                 }
                 match &index {
                     Some(i) => Some(resolve(i, store, validator, &d.path, &declared)?),
@@ -1046,7 +1055,13 @@ fn run_validate(
     let stale_only = matches!(pick, Pick::ChangedRules | Pick::ChangedPlaces);
     let (mut current, mut unchanged) = current_for(scope, pick, store, validator, log)?;
     if let Some((answer, selection)) = answer {
-        apply_answer(&mut current, validator, answer, selection)?;
+        apply_answer(
+            &mut current,
+            &carry(scope, caller),
+            validator,
+            answer,
+            selection,
+        )?;
     }
     // 入力が変わった rule だけのときは、読んだ所が前の判定と同じ rule を除く
     let mut judged = Vec::new();
@@ -1147,6 +1162,27 @@ fn run_validate(
             },
         )
         .collect();
+    let hint = unrecorded.first().map(|u| {
+        let path = if unrecorded.len() == 1 {
+            u.path.as_str()
+        } else {
+            "<経路>"
+        };
+        let mut args = vec![
+            "semantic-agent-schema",
+            "update",
+            path,
+            "--adopt",
+            "--reason",
+            "<理由>",
+        ];
+        let carried = carry(scope, caller);
+        args.extend(carried.iter().map(String::as_str));
+        format!(
+            "Semantic Agent Schema を通らない変更がある。理由を付けて取り込む：{}",
+            command_line(&args)
+        )
+    });
     Ok(Validation {
         session: session.map(ToString::to_string),
         targets,
@@ -1154,6 +1190,7 @@ fn run_validate(
         stale_only,
         unchanged_targets,
         unrecorded,
+        hint,
     })
 }
 

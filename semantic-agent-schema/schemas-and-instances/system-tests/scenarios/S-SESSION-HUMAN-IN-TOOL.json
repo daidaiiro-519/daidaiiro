@@ -1,0 +1,52 @@
+{
+ "$schema": "urn:semantic-agent-schema:system-tests:scenario:v1",
+ "id": "S-SESSION-HUMAN-IN-TOOL",
+ "name": "ツールの中で人を名乗る",
+ "title": "ツールの環境変数があるところで --human を付けると、人と受け取らずに使い方の誤りを返し、人の欄（x-decided-by: human）を書かない",
+ "why": "AI のセッションの中で人を名乗れると、AI が承認などの人の欄を書けてしまう。",
+ "traces": [
+  "約束:command-result:session",
+  "約束:abstract:x-decided-by"
+ ],
+ "given": {
+  "files": {
+   "schemas/decision.schema.json": "@fixtures/decision.schema.json",
+   "decisions/d1.json": "@fixtures/d1.json"
+  }
+ },
+ "when": {
+  "args": [
+   "update",
+   "decisions/d1.json",
+   "--patch",
+   "[{\"op\":\"replace\",\"path\":\"/status\",\"value\":\"approved\"}]",
+   "--if-match",
+   "sha256:da5cc215c456a669443fc2f07aa7b7817e7c1f39812490c6f6c1fec7a8ac743a",
+   "--schemas",
+   "schemas",
+   "--human"
+  ],
+  "env": {
+   "CLAUDE_CODE_SESSION_ID": "c5c5ab7a-4041-4920-8749-7d2a36030744"
+  }
+ },
+ "then": [
+  {
+   "of": "when",
+   "exit": 2
+  },
+  {
+   "of": "when",
+   "pointer": "/code",
+   "equals": "usage"
+  },
+  {
+   "of": "when",
+   "pointer": "/message",
+   "contains": "--human"
+  }
+ ],
+ "unchanged": [
+  "decisions/d1.json"
+ ]
+}

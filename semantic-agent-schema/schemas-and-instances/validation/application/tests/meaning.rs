@@ -72,7 +72,7 @@ fn procedures(store: &support::Files, log: &Log, caller: &Caller) -> Vec<Value> 
     semantic_procedures(
         &Scope {
             paths: vec!["u1.json".into()],
-            schemas: vec!["c.json".into()],
+            schemas: support::places(&["c.json"]),
         },
         CHANGED,
         store,
@@ -98,7 +98,7 @@ fn answer(hash: &str, rule: &str, verdict: &str, reason: &str) -> String {
 fn give(store: &support::Files, log: &mut Log, answer: &str) -> Result<Verdict, &'static str> {
     let scope = Scope {
         paths: vec!["u1.json".into()],
-        schemas: vec!["c.json".into()],
+        schemas: support::places(&["c.json"]),
     };
     validate_with_answer(&scope, CHANGED, answer, store, &Lenient, &HUMAN, log)
         .map(|v| {
@@ -125,7 +125,9 @@ fn procedure_is_returned_and_nothing_is_recorded() {
     assert_eq!(p[0]["target"]["hash"], json!(hash(&store)));
     assert_eq!(
         p[0]["command"],
-        json!("semantic-agent-schema validate u1.json --answer <判定の JSON のファイル | ->")
+        json!(
+            "semantic-agent-schema validate u1.json --answer <判定の JSON のファイル | -> --schemas c.json --human"
+        )
     );
     assert!(log.0.is_empty(), "手順を返すだけで記録しない");
 }
