@@ -15,6 +15,7 @@ const (
 	PatchID            = "urn:semantic-agent-schema:patch:v1"
 	JudgmentResponseID = "urn:semantic-agent-schema:judgment-response:v1"
 	SearchResponseID   = "urn:semantic-agent-schema:search-response:v1"
+	DesignSystemID     = "urn:semantic-agent-schema:design-system:v1"
 )
 
 // Schemas は、v1 のスキーマのファイル名。
@@ -28,6 +29,8 @@ var Schemas = []string{
 	"patch.schema.json",
 	"judgment-response.schema.json",
 	"search-response.schema.json",
+	"design-system.schema.json",
+	"template-language.json",
 }
 
 // Read は、v1 のファイルのバイト列を返す。無い名前なら error を返す。

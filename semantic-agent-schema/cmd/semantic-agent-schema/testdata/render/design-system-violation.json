@@ -1,0 +1,57 @@
+{
+  "title": "デザインシステムが契約のスキーマに違反すると rejected を返し、1つも書き出さない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    },
+    "design/system.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.20"
+      },
+      "templates": {
+        "memo": "templates/system-memo.html"
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/instanceLocation": "",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:design-system:v1#/required",
+          "/next": "semantic-agent-schema render memo.json --schemas schemas --design-system design/system.json --out site"
+        },
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/instanceLocation": "/templateLanguage",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:template-language:v1#/const"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    }
+  ],
+  "raw": {
+    "design/templates/system-memo.html": "x"
+  }
+}

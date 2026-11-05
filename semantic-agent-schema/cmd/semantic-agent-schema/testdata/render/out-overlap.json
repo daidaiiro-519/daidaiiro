@@ -1,0 +1,49 @@
+{
+  "title": "書き出す先が入力と重なると rejected を返し、1つも書き出さない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "design/system.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/system-memo.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json",
+        "--out",
+        "memo.json"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "out_overlap",
+          "/next": "semantic-agent-schema render memo.json --schemas schemas --design-system design/system.json --out <入力と重ならないディレクトリ>"
+        }
+      ]
+    }
+  ],
+  "raw": {
+    "design/templates/system-memo.html": "<h1 class=\"{{.Tokens.heading}}\">{{.Value.title}}</h1>"
+  }
+}

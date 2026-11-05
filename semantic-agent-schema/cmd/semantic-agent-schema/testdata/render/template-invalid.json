@@ -1,0 +1,121 @@
+{
+  "title": "テンプレートが無い名前を引くか、記法に違反すると rejected を返し、1つも書き出さない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    },
+    "design/a.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/a-memo.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "design/b.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/b-memo.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "design/c.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/c-memo.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/a.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_invalid"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    },
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/b.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_invalid"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    },
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/c.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_invalid"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    }
+  ],
+  "raw": {
+    "design/templates/a-memo.html": "<p>{{.Value.missing}}</p>",
+    "design/templates/b-memo.html": "<p>{{.Other}}</p>",
+    "design/templates/c-memo.html": "<p>{{.Value.title</p>"
+  }
+}

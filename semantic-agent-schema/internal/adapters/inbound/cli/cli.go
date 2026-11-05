@@ -17,6 +17,7 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
+	rendering "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/rendering/application"
 	search "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/search/application"
 )
 
@@ -36,6 +37,8 @@ type Wiring struct {
 	Open func(ctx context.Context, schemas []domain.Path) (uc Authoring, close func() error, err error)
 	// OpenLog は、操作の記録を読むだけのために開き、ユースケース「操作の記録の参照」を返す。
 	OpenLog func(ctx context.Context) (uc record.Log, close func() error, err error)
+	// OpenRender は、working tree を引き、ユースケース「描画」を返す。
+	OpenRender func(ctx context.Context, schemas []domain.Path) (uc rendering.Render, err error)
 	// OpenSearch は、working tree を引き、ユースケース「検索」を返す。
 	OpenSearch func(ctx context.Context) (uc search.Search, err error)
 }
@@ -63,6 +66,9 @@ type arguments struct {
 	Where     []where  `json:"where,omitempty"`
 	Question  string   `json:"question,omitempty"`
 	Matches   *string  `json:"matches,omitempty"`
+	// DesignSystem と Out は、描画のデザインシステムの path と、書き出す先のディレクトリ。
+	DesignSystem string `json:"designSystem,omitempty"`
+	Out          string `json:"out,omitempty"`
 }
 
 // where は、--where <JSON Pointer>=<JSON> の1つ。値は JSON として読んだもの。
@@ -117,6 +123,9 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	if parsed.Command == "search" {
 		return find(ctx, parsed, paths, content, w, out)
 	}
+	if parsed.Command == "render" {
+		return draw(ctx, parsed, paths, dirs, w, out)
+	}
 	uc, closeRecords, err := w.Open(ctx, dirs)
 	if err != nil {
 		return out.failures(parsed, err)
@@ -154,6 +163,8 @@ func parse(ctx context.Context, args []string, validator authoring.Validator) (a
 	wheres := flags.StringArray("where", nil, "<JSON Pointer>=<JSON>。その instance location の値が JSON と同じもの（繰り返せる。すべてを満たすもの）")
 	question := flags.String("question", "", "検索の問い")
 	matches := flags.String("matches", "", "AI が問いで探した matches。- なら標準入力から読む")
+	designSystem := flags.String("design-system", "", "デザインシステムの path")
+	outDir := flags.String("out", "", "HTML を書き出すディレクトリ")
 	if err := flags.Parse(args); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
 	}
@@ -176,6 +187,8 @@ func parse(ctx context.Context, args []string, validator authoring.Validator) (a
 	}
 	parsed.Operation = *operation
 	parsed.Question = *question
+	parsed.DesignSystem = *designSystem
+	parsed.Out = *outDir
 	if flags.Changed("matches") {
 		parsed.Matches = matches
 	}
@@ -364,4 +377,27 @@ func conditionsOf(wheres []where) []domain.Condition {
 		conditions = append(conditions, domain.Condition{InstanceLocation: pointer, Value: w.Value})
 	}
 	return conditions
+}
+
+// draw は、ユースケース「描画」を呼び、書き出した HTML ごとに rendered のログイベントを書く。
+func draw(ctx context.Context, args arguments, paths, dirs []domain.Path, w Wiring, out *output) error {
+	designSystem, dsErr := domain.NewPath(args.DesignSystem)
+	outDir, outErr := domain.NewPath(args.Out)
+	if err := errors.Join(dsErr, outErr); err != nil {
+		return out.failures(args, err)
+	}
+	uc, err := w.OpenRender(ctx, dirs)
+	if err != nil {
+		return out.failures(args, err)
+	}
+	rendered, err := uc.Run(ctx, rendering.RenderInput{Paths: paths, DesignSystem: designSystem, Out: outDir})
+	if err != nil {
+		return out.failures(args, err)
+	}
+	for _, r := range rendered {
+		if err := out.rendered(r); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:design-system:v1",
+  "title": "デザインシステム",
+  "description": "描画で使う側が渡す、テンプレートとデザイントークンの集まり。契約（この形とテンプレートの記法）は Semantic Agent Schema が決め、内容は使う側が渡す。",
+  "type": "object",
+  "required": [
+    "templateLanguage",
+    "templates",
+    "tokens"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "templateLanguage": {
+      "description": "テンプレートの記法。template-language.json と同じ名前と版を書く",
+      "$ref": "urn:semantic-agent-schema:template-language:v1"
+    },
+    "templates": {
+      "description": "テンプレート。キーは Concrete のルートスキーマの x-view の名前、値はテンプレートのファイルの path（デザインシステムのファイルのあるディレクトリからの相対で、working tree の中だけ）",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^/]"
+      }
+    },
+    "tokens": {
+      "description": "デザイントークン（見た目の値）。テンプレートには .Tokens で渡す",
+      "type": "object"
+    }
+  }
+}

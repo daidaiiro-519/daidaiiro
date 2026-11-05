@@ -1,8 +1,8 @@
 {
-  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。prompt は *_requested のログイベントの prompt の next で、同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。",
+  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。prompt は *_requested のログイベントの prompt の next で、同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。",
   "codes": {
     "arguments_invalid": {
-      "instruction": "引数が引数の形に違反している（instance location：{instanceLocation}、{message}）。引数を直して、もう一度実行する",
+      "instruction": "引数が引数の形に違反している（instance location：\"{instanceLocation}\"、{message}）。引数を直して、もう一度実行する",
       "next": {
         "*": "semantic-agent-schema {command} <直した引数>"
       }
@@ -16,7 +16,8 @@
         "semantic update": "semantic-agent-schema semantic update {paths} --schemas <$id の Concrete を持つディレクトリ>{range}",
         "update": "semantic-agent-schema update {paths} --schemas <$id の Concrete を持つディレクトリ> --patch '<同じ JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} --schemas <$id の Concrete を持つディレクトリ>{all}",
-        "validate --judgments": "semantic-agent-schema validate {paths} --schemas <$id の Concrete を持つディレクトリ> --judgments '<同じ judgments>'{all}"
+        "validate --judgments": "semantic-agent-schema validate {paths} --schemas <$id の Concrete を持つディレクトリ> --judgments '<同じ judgments>'{all}",
+        "render": "semantic-agent-schema render {paths} --schemas <$id の Concrete を持つディレクトリ> --design-system {designSystem} --out {out}"
       }
     },
     "schema_duplicate": {
@@ -28,18 +29,20 @@
         "semantic update": "semantic-agent-schema semantic update {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ>{range}",
         "update": "semantic-agent-schema update {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --patch '<同じ JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ>{all}",
-        "validate --judgments": "semantic-agent-schema validate {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --judgments '<同じ judgments>'{all}"
+        "validate --judgments": "semantic-agent-schema validate {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --judgments '<同じ judgments>'{all}",
+        "render": "semantic-agent-schema render {paths} --schemas <$id の Concrete を1つだけ持つディレクトリ> --design-system {designSystem} --out {out}"
       }
     },
     "schema_violation": {
-      "instruction": "{path} の {instanceLocation} を {absoluteKeywordLocation} に合うように直す（{message}）。直したら、もう一度実行する",
+      "instruction": "{path} の \"{instanceLocation}\" を {absoluteKeywordLocation} に合うように直す（{message}）。直したら、もう一度実行する",
       "next": {
         "validate": "semantic-agent-schema validate {paths} {schemas}",
         "create": "semantic-agent-schema create {paths} {schemas} --json '<違反を直した JSON ドキュメント>'",
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<違反を直した JSON Patch>'{range}",
         "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
         "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<違反を直した judgments>'{all}",
-        "search --matches": "semantic-agent-schema search {paths} --matches '<違反を直した matches>'"
+        "search --matches": "semantic-agent-schema search {paths} --matches '<違反を直した matches>'",
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
       }
     },
     "invalid_json": {
@@ -51,18 +54,19 @@
         "semantic validate": "semantic-agent-schema semantic validate {paths} {schemas}{all}",
         "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<直した judgments>'{all}",
         "search": "semantic-agent-schema search {paths} --where <JSON Pointer>=<JSON の値>",
-        "search --matches": "semantic-agent-schema search {paths} --matches '<直した matches>'"
+        "search --matches": "semantic-agent-schema search {paths} --matches '<直した matches>'",
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
       }
     },
     "convention_violation": {
-      "instruction": "{path} の {instanceLocation} が Concrete の作法に違反している（{message}）。作法を満たすように直して、もう一度実行する",
+      "instruction": "{path} の \"{instanceLocation}\" が Concrete の作法に違反している（{message}）。作法を満たすように直して、もう一度実行する",
       "next": {
         "create": "semantic-agent-schema create {paths} {schemas} --json '<作法を満たす Concrete>'",
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<作法を満たす JSON Patch>'{range}"
       }
     },
     "decided_by_human": {
-      "instruction": "{path} の {instanceLocation} は x-decided-by: human の値で、その値は人が決める（{message}）。その値を変えずに、もう一度実行する。人が決める値は、人がファイルを直接書く",
+      "instruction": "{path} の \"{instanceLocation}\" は x-decided-by: human の値で、その値は人が決める（{message}）。その値を変えずに、もう一度実行する。人が決める値は、人がファイルを直接書く",
       "next": {
         "create": "semantic-agent-schema create {paths} {schemas} --json '<{instanceLocation} を default に戻した JSON ドキュメント>'",
         "update": "semantic-agent-schema update {paths} {schemas} --patch '<{instanceLocation} を変えない JSON Patch>'{range}"
@@ -81,7 +85,8 @@
         "log": "semantic-agent-schema log <working tree の中の path>",
         "search": "semantic-agent-schema search <working tree の中の path> --where <同じ条件>",
         "semantic search": "semantic-agent-schema semantic search <working tree の中の path> --question <同じ問い>",
-        "search --matches": "semantic-agent-schema semantic search <working tree の中の path> --question <同じ問い>"
+        "search --matches": "semantic-agent-schema semantic search <working tree の中の path> --question <同じ問い>",
+        "render": "semantic-agent-schema render <working tree の中の path> {schemas} --design-system <working tree の中の path> --out <working tree の中のディレクトリ>"
       }
     },
     "file_exists": {
@@ -100,7 +105,7 @@
       }
     },
     "patch_not_applicable": {
-      "instruction": "{path} の {instanceLocation} に JSON Patch の operation を適用できない（{message}）。いまの内容に合う JSON Patch を作り直す",
+      "instruction": "{path} の \"{instanceLocation}\" に JSON Patch の operation を適用できない（{message}）。いまの内容に合う JSON Patch を作り直す",
       "next": {
         "update": "semantic-agent-schema semantic update {path} {schemas}{range}"
       }
@@ -112,13 +117,13 @@
       }
     },
     "range_violation": {
-      "instruction": "範囲のインスタンス {path} が新しい Concrete に合わない（{instanceLocation}：{message}）。その path がこの Concrete に従っていない（$schema が違う）なら、範囲から外す。違反なら、インスタンスを先に直すか、Concrete の JSON Patch を直す",
+      "instruction": "範囲のインスタンス {path} が新しい Concrete に合わない（\"{instanceLocation}\"：{message}）。その path がこの Concrete に従っていない（$schema が違う）なら、範囲から外す。違反なら、インスタンスを先に直すか、Concrete の JSON Patch を直す",
       "next": {
         "update": "semantic-agent-schema semantic update {path} {schemas}"
       }
     },
     "response_mismatch": {
-      "instruction": "response が prompt と合わない（{path} {instanceLocation}：{message}）。prompt を依頼し直し、その範囲と steps に合わせて作り直す",
+      "instruction": "response が prompt と合わない（{path} \"{instanceLocation}\"：{message}）。prompt を依頼し直し、その範囲と steps に合わせて作り直す",
       "next": {
         "validate --judgments": "semantic-agent-schema semantic validate {path} {schemas}{all}",
         "search --matches": "semantic-agent-schema semantic search {paths} --question <同じ問い>"
@@ -128,6 +133,24 @@
       "instruction": "その操作は操作の記録に無い（{message}）。log で一覧を見て、ある ID を指す",
       "next": {
         "log": "semantic-agent-schema log"
+      }
+    },
+    "template_missing": {
+      "instruction": "{path} の Concrete の x-view に当たるテンプレートが無い（{message}）。デザインシステムの templates にその x-view の名前のテンプレートを足すか、Concrete のルートスキーマに x-view を書く",
+      "next": {
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
+      }
+    },
+    "template_invalid": {
+      "instruction": "{path} のテンプレートで描けない（{message}）。テンプレートは html/template の記法で書き、使えるのは .Value と .Tokens だけ。デザインシステムのテンプレートを直す",
+      "next": {
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
+      }
+    },
+    "out_overlap": {
+      "instruction": "書き出す先 {path} が入力と重なる（{message}）。入力と重ならない --out を渡す",
+      "next": {
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out <入力と重ならないディレクトリ>"
       }
     },
     "file_not_found": {
@@ -142,7 +165,8 @@
         "validate --judgments": "semantic-agent-schema semantic create {path} {schemas} --schema <Concrete の $id>",
         "search": "semantic-agent-schema search <ある path> --where <同じ条件>",
         "semantic search": "semantic-agent-schema semantic search <ある path> --question <同じ問い>",
-        "search --matches": "semantic-agent-schema semantic search <ある path> --question <同じ問い>"
+        "search --matches": "semantic-agent-schema semantic search <ある path> --question <同じ問い>",
+        "render": "semantic-agent-schema render <ある path> {schemas} --design-system <ある path> --out {out}"
       }
     },
     "not_in_git": {
@@ -158,7 +182,8 @@
         "log": "semantic-agent-schema log {paths}{limit}{operation}",
         "search": "semantic-agent-schema search {paths} --where <同じ条件>",
         "semantic search": "semantic-agent-schema semantic search {paths} --question <同じ問い>",
-        "search --matches": "semantic-agent-schema search {paths} --matches '<同じ matches>'"
+        "search --matches": "semantic-agent-schema search {paths} --matches '<同じ matches>'",
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
       }
     },
     "log_unavailable": {
@@ -189,13 +214,13 @@
     }
   },
   "violated_by_machine": {
-    "instruction": "{path} に violated の judgment がある（instance location：{instanceLocation}）。judgments の reason を見て、その instance location を直す JSON Patch を作り、next の update を実行する",
+    "instruction": "{path} に violated の judgment がある（instance location：\"{instanceLocation}\"）。judgments の reason を見て、その instance location を直す JSON Patch を作り、next の update を実行する",
     "next": {
       "*": "semantic-agent-schema update {path} {schemas} --patch '<violated の instance location を直す JSON Patch>'"
     }
   },
   "violated_by_ai": {
-    "instruction": "{path} に、AI の判定で violated の judgment がある（instance location：{instanceLocation}）。judgments の reason を見て、同じ x-prompt の prompt に従って直すため、更新の prompt を依頼する",
+    "instruction": "{path} に、AI の判定で violated の judgment がある（instance location：\"{instanceLocation}\"）。judgments の reason を見て、同じ x-prompt の prompt に従って直すため、更新の prompt を依頼する",
     "next": {
       "*": "semantic-agent-schema semantic update {path} {schemas}"
     }

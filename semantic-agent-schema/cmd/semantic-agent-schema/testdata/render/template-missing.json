@@ -1,0 +1,52 @@
+{
+  "title": "Concrete の x-view に当たるテンプレートがデザインシステムに無いと rejected を返し、1つも書き出さない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    },
+    "design/system.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "plan": "templates/system-plan.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_missing",
+          "/next": "semantic-agent-schema render memo.json --schemas schemas --design-system design/system.json --out site"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    }
+  ],
+  "raw": {
+    "design/templates/system-plan.html": "<p>{{.Value.title}}</p>"
+  }
+}

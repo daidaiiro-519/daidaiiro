@@ -1,0 +1,78 @@
+{
+  "title": "テンプレートのファイルが無いか、working tree の外を指すと rejected を返し、1つも書き出さない",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    },
+    "design/missing.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/none.html"
+      },
+      "tokens": {}
+    },
+    "design/outside.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "../../memo.html"
+      },
+      "tokens": {}
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/missing.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "file_not_found"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    },
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/outside.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "path_outside"
+        }
+      ],
+      "files": {
+        "site/memo.html": null
+      }
+    }
+  ]
+}

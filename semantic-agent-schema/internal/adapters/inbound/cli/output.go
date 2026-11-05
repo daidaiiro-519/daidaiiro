@@ -11,6 +11,7 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
+	rendering "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/rendering/application"
 	search "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/search/application"
 )
 
@@ -128,7 +129,7 @@ func leaves(err error) []error {
 	return []error{err}
 }
 
-// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schema} ・ {range} ・ {all} ・ {limit} ・ {operation} に入れる値を返す。
+// fill は、定型の {command} ・ {path} ・ {paths} ・ {schemas} ・ {schema} ・ {range} ・ {all} ・ {limit} ・ {operation} ・ {designSystem} ・ {out} に入れる値を返す。
 func fill(args arguments, path string) map[string]string {
 	var schemas, paths []string
 	for _, s := range args.Schemas {
@@ -157,15 +158,17 @@ func fill(args arguments, path string) map[string]string {
 		ranges += " --range " + quote(r)
 	}
 	return map[string]string{
-		"{command}":   command,
-		"{path}":      quote(path),
-		"{paths}":     strings.Join(paths, " "),
-		"{schemas}":   strings.Join(schemas, " "),
-		"{schema}":    quote(args.Schema),
-		"{range}":     ranges,
-		"{all}":       all,
-		"{limit}":     limit,
-		"{operation}": operation,
+		"{command}":      command,
+		"{path}":         quote(path),
+		"{paths}":        strings.Join(paths, " "),
+		"{schemas}":      strings.Join(schemas, " "),
+		"{schema}":       quote(args.Schema),
+		"{range}":        ranges,
+		"{all}":          all,
+		"{limit}":        limit,
+		"{operation}":    operation,
+		"{designSystem}": quote(args.DesignSystem),
+		"{out}":          quote(args.Out),
 	}
 }
 
@@ -242,7 +245,7 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 			t = o.violatedByMachine
 		}
 		values := fill(args, event.Path)
-		values["{instanceLocation}"] = strings.Join(violated, ", ")
+		values["{instanceLocation}"] = strings.Join(violated, `", "`) // 定型が引用符で囲むので、間を閉じて開く
 		event.Instruction = replace(t.Instruction, values)
 		event.Next = replace(t.next(args), values)
 	}
@@ -444,4 +447,15 @@ func (o *output) found(paths []domain.Path, matches []search.Match) error {
 		})
 	}
 	return o.encoder.Encode(event)
+}
+
+type renderedEvent struct {
+	Event string `json:"event"`
+	Path  string `json:"path"`
+	Out   string `json:"out"`
+}
+
+// rendered は、書き出した HTML 1つを rendered のログイベントで書く。
+func (o *output) rendered(r rendering.Rendered) error {
+	return o.encoder.Encode(renderedEvent{Event: "rendered", Path: r.Path.String(), Out: r.Out.String()})
 }

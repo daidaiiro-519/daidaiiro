@@ -15,6 +15,8 @@ type Concrete interface {
 	Hash() Hash
 	// Rule は、id の rule を返す。無ければ false を返す。
 	Rule(id string) (Rule, bool)
+	// View は、ルートスキーマの x-view（テンプレートの種類の名前）を返す。無ければ空。
+	View() string
 	// Subschemas は、properties と items でたどれるサブスキーマを、keyword location の順に返す。
 	Subschemas() []Subschema
 	// structure は、Concrete を読んだルートスキーマを返す。
@@ -49,6 +51,10 @@ func (s schema) Rule(id string) (Rule, bool) {
 }
 func (s schema) Subschemas() []Subschema   { return s.subs }
 func (s schema) structure() map[string]any { return s.root }
+func (s schema) View() string {
+	view, _ := s.root["x-view"].(string) // 無ければ空
+	return view
+}
 
 // NewConcrete は、Concrete のバイト列から Concrete を返す。path は schemas の中のファイルの path で、
 // 公開された言葉の Abstract なら nil を渡す。JSON として読めなければ invalid_json、

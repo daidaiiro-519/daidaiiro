@@ -1,0 +1,67 @@
+{
+  "title": "引数が描画の引数の形に違反すると rejected を返す（--out が無い ・ working tree の外の --out）",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "design/system.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/system-memo.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/next": "semantic-agent-schema render <直した引数>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json",
+        "--out",
+        "../site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "arguments_invalid",
+          "/instanceLocation": "/out"
+        }
+      ]
+    }
+  ],
+  "raw": {
+    "design/templates/system-memo.html": "<h1 class=\"{{.Tokens.heading}}\">{{.Value.title}}</h1>"
+  }
+}

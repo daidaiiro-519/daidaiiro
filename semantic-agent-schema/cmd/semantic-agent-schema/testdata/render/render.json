@@ -1,0 +1,64 @@
+{
+  "title": "インスタンスを Concrete で検証し、x-view で選んだテンプレートに .Value と .Tokens を渡して描き、--out の下に書き出して rendered を返す。値は HTML の場所に合わせてエスケープする",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "design/system.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/system-memo.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    },
+    "notes/b.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "<b>太字</b>"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "notes/b.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json",
+        "--out",
+        "site"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "rendered",
+          "/path": "memo.json",
+          "/out": "site/memo.html"
+        },
+        {
+          "/event": "rendered",
+          "/path": "notes/b.json",
+          "/out": "site/notes/b.html"
+        }
+      ],
+      "files": {
+        "site/memo.html": "<h1 class=\"title\">定例会議</h1>",
+        "site/notes/b.html": "<h1 class=\"title\">&lt;b&gt;太字&lt;/b&gt;</h1>",
+        "memo.json": "{\n  \"$schema\": \"urn:example:memo:v1\",\n  \"title\": \"定例会議\"\n}"
+      }
+    }
+  ],
+  "raw": {
+    "design/templates/system-memo.html": "<h1 class=\"{{.Tokens.heading}}\">{{.Value.title}}</h1>"
+  }
+}

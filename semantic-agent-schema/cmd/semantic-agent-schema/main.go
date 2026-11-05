@@ -12,10 +12,12 @@ import (
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/recordstore"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/repository"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/schemacheck"
+	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/adapters/outbound/templates"
 	authoring "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/application"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/authoring/domain"
 	"github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/publishedlanguage"
 	record "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/record/application"
+	rendering "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/rendering/application"
 	search "github.com/daidaiiro-519/daidaiiro/semantic-agent-schema/internal/search/application"
 )
 
@@ -25,6 +27,7 @@ func main() {
 		Open:       open,
 		OpenLog:    openLog,
 		OpenSearch: openSearch,
+		OpenRender: openRender,
 	}))
 }
 
@@ -100,5 +103,27 @@ func openSearch(ctx context.Context) (search.Search, error) {
 	return search.Search{
 		Documents: files.NewDocuments(top), Validator: schemacheck.New(nil),
 		ResponseID: publishedlanguage.SearchResponseID,
+	}, nil
+}
+
+// openRender は、working tree を引き、ユースケース「描画」に、読むアダプター ・ JSON Schema の実装 ・ テンプレートの処理系を
+// 結び付けて返す。描画は操作の記録を使わない。
+func openRender(ctx context.Context, schemas []domain.Path) (rendering.Render, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return rendering.Render{}, domain.Fail(domain.NotInGit, "", err.Error())
+	}
+	top, _, err := repository.Find(ctx, dir)
+	if err != nil {
+		return rendering.Render{}, err
+	}
+	abstract, err := publishedlanguage.Read("abstract.schema.json")
+	if err != nil {
+		return rendering.Render{}, err
+	}
+	concretes := files.NewSchemas(top, schemas, map[string][]byte{publishedlanguage.AbstractID: abstract})
+	return rendering.Render{
+		Documents: files.NewDocuments(top), Schemas: concretes, Validator: schemacheck.New(concretes.Content),
+		Renderer: templates.New(top), AbstractID: publishedlanguage.AbstractID, DesignSystemID: publishedlanguage.DesignSystemID,
 	}, nil
 }

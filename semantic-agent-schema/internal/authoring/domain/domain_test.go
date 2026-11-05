@@ -610,3 +610,28 @@ func TestMatchesComparesValuesAtInstanceLocations(t *testing.T) {
 		})
 	}
 }
+
+func TestSelectTemplateUsesXView(t *testing.T) {
+	t.Parallel()
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	templates := map[string]string{"memo": "<p>memo</p>"}
+	cases := []struct {
+		name, concrete, want, wantCode string
+	}{
+		{name: "x-view の名前のテンプレートを選ぶ", concrete: `{"$id": "urn:a", "x-view": "memo"}`, want: "<p>memo</p>"},
+		{name: "x-view の名前のテンプレートが無い", concrete: `{"$id": "urn:a", "x-view": "plan"}`, wantCode: "template_missing"},
+		{name: "x-view が無い", concrete: `{"$id": "urn:a"}`, wantCode: "template_missing"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := domain.SelectTemplate(path, concrete(t, c.concrete), templates)
+			if got != c.want || codeOf(err) != c.wantCode {
+				t.Errorf("SelectTemplate(%s) = %q, %q, want %q, %q", c.name, got, codeOf(err), c.want, c.wantCode)
+			}
+		})
+	}
+}

@@ -252,10 +252,10 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <dt>成功時保証</dt><dd>同じ入力から同じ HTML になる。インスタンスを変えない</dd>
 <dt>最低保証</dt><dd>rejected のときは、1つも書き出さない</dd>
 <dt>主成功シナリオ</dt><dd><table class="steps"><tr><td>1</td><td>AI が、範囲 ・ デザインシステム ・ 書き出す先 ・ schemas を渡す</td><td><span class="m">機械的（JSON Schema）</span>：引数</td></tr>
-<tr><td>2</td><td>デザインシステムを契約のスキーマで、インスタンスを Concrete で検証する</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
-<tr><td>3</td><td>Concrete の <code>x-view</code> でテンプレートを選ぶ</td><td><span class="m">機械的（ドメインモデル）</span>：S5</td></tr>
-<tr><td>4</td><td>テンプレートで描画し、すべて書けてから書き出す</td><td><span class="p">処理</span></td></tr></table></dd>
-<dt>拡張</dt><dd><ul><li>UC6-2a 違反 ・ UC6-3a テンプレートが無い ・ UC6-4a 書き出す先が入力と重なる：rejected</li><li>UC6-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li></ul></dd>
+<tr><td>2</td><td>デザインシステムを契約のスキーマで検証し、インスタンスを Concrete で検証してから描く</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
+<tr><td>3</td><td>ドメインサービス「レンダラー」が、Concrete の <code>x-view</code> でテンプレートを選ぶ</td><td><span class="m">機械的（ドメインモデル）</span>：S5</td></tr>
+<tr><td>4</td><td>テンプレートで全部を描いてから書き出す。インスタンス1つにつき1つの HTML</td><td><span class="p">処理</span></td></tr></table></dd>
+<dt>拡張</dt><dd><ul><li>UC6-2a デザインシステムかインスタンスの違反：rejected</li><li>UC6-3a <code>x-view</code> が無い ・ その名前のテンプレートが無い：rejected（<code>template_missing</code>）</li><li>UC6-4a テンプレートで描けない：何も書き出さずに rejected（<code>template_invalid</code>）</li><li>UC6-4b 書き出す先が範囲かデザインシステムと重なる：rejected（<code>out_overlap</code>）</li><li>UC6-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li></ul></dd>
 </dl></div>
 
 <div class="uc"><h3>UC7 検索 <span class="k sup">補完</span></h3><dl>

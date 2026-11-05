@@ -115,7 +115,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>Validator</code></td><td>全部の application：<code>Check</code>（JSON をスキーマで検証し、違反を返す）／ authoring：<code>CheckWith</code>（まだ書いていない Concrete のバイト列で検証する。Concrete の更新で、範囲のインスタンスに使う）</td><td><code>schemacheck</code></td></tr>
 <tr><td><code>Patcher</code></td><td>authoring：<code>Apply</code>（JSON Patch を適用する。適用できなければ、その operation の path を返す）</td><td><code>patching</code></td></tr>
 <tr><td><code>Records</code></td><td>authoring：<code>WithLock</code> ・ <code>AppendChange</code>（作成と更新の両方。<code>command</code> と <code>before_hash</code> を記録する）・ <code>AppendValidation</code> ・ <code>LastJudged</code>（直前の意味的な検証 <code>judged</code> の JSON ドキュメントと judgment。S4。<code>validated</code> では基準を動かさない）／ record：<code>Operations</code>（新しい順の一覧）・ <code>Operation</code>（1件）</td><td><code>recordstore</code>。読むだけのときは読み取り専用で開き、ファイルが無ければ作らずに空として扱う</td></tr>
-<tr><td><code>Renderer</code></td><td>rendering：<code>Render</code>（全部描けてから書き出す）</td><td><code>templates</code></td></tr>
+<tr><td><code>Renderer</code></td><td>rendering：<code>Render</code>（受け取る Page は <code>authoring/domain</code> に置く。全部描けてから書き出す）</td><td><code>templates</code></td></tr>
 </table></div>
 <p class="soft">working tree と Git の共通ディレクトリは、入口が <code>repository</code> で一度だけ引き、各アダプターに渡す。application は Git を知らない。</p>
 </section>
@@ -126,7 +126,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><th>用途</th><th>ライブラリと使う識別子</th><th>原文</th></tr>
 <tr><td>JSON Schema の検証</td><td><code>github.com/santhosh-tekuri/jsonschema/v6</code>（v6.0.3）：<code>NewCompiler</code> ・ <code>RegisterVocabulary</code> ・ <code>Vocabulary</code> ・ <code>AddResource</code> ・ <code>UseLoader</code> ・ <code>AssertFormat</code>（format を違反として検証する）・ <code>Compile</code> ・ <code>Validate</code> ・ <code>ValidationError</code> の <code>InstanceLocation</code> ・ <code>Causes</code> ・ <code>UnmarshalJSON</code>。独自の語彙は <code>RegisterVocabulary</code> で登録する。<code>propertyNames</code> の違反の instance location は親の instance location で置き換え、<code>Causes</code> を葉までたどる</td><td>compiler.go L21 ・ L53 ・ L102 ・ L121 ・ L137 ・ L178、vocab.go L23、validator.go L15 ・ L965 ・ L971、loader.go L255</td></tr>
 <tr><td>JSON Patch の適用</td><td><code>github.com/evanphx/json-patch/v5</code>：<code>DecodePatch</code> ・ <code>Patch</code> の <code>Apply</code></td><td>v5/patch.go L1181 ・ L1203</td></tr>
-<tr><td>テンプレートの処理</td><td>標準の <code>html/template</code>：<code>New</code> ・ <code>Parse</code> ・ <code>Option("missingkey=error")</code> ・ <code>Execute</code>。エスケープは出力の場所（HTML ・ JavaScript ・ CSS ・ URI）に合わせて自動。<code>Funcs</code> は呼ばない</td><td><code>go doc html/template</code>（go 1.27.2）L23–25 ・ L274 ・ L279 ・ L293–310 ・ L264 ・ L315</td></tr>
+<tr><td>テンプレートの処理</td><td>標準の <code>html/template</code>：<code>New</code> ・ <code>Option("missingkey=error")</code> ・ <code>Parse</code> ・ <code>Execute</code>。エスケープは出力の場所（HTML ・ JavaScript ・ CSS ・ URI）に合わせて自動。<code>Funcs</code> は呼ばない</td><td><code>go doc html/template</code>（go 1.27.2）L23–25 ・ L274 ・ L279 ・ L293–310 ・ L264 ・ L315</td></tr>
 <tr><td>操作の記録の保存</td><td><code>modernc.org/sqlite</code>（CGo を使わない）。<code>database/sql</code> にドライバー名 <code>"sqlite"</code> で登録される。表の形の版は <code>PRAGMA user_version</code>、ロックは <code>BEGIN IMMEDIATE</code></td><td>doc.go L5–6、sqlite.go L50 ・ L56、pragma.html L2180–2187、lang_transaction.html L346–348</td></tr>
 <tr><td>引数の読み取り</td><td><code>github.com/spf13/pflag</code>：<code>NewFlagSet</code> ・ <code>ContinueOnError</code> ・ <code>StringArray</code> ・ <code>SetInterspersed</code> ・ <code>Parse</code> ・ <code>Args</code></td><td>flag.go L133 ・ L908 ・ L1294 ・ L1398 ・ L1410、string_array.go L98</td></tr>
 <tr><td>Git</td><td><code>git rev-parse --show-toplevel</code> ・ <code>--git-common-dir</code></td><td>git-rev-parse(1) L230 ・ L245</td></tr>
@@ -143,7 +143,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>UC2 更新</td><td><code>semantic update &lt;path&gt; --schemas …</code>（Concrete なら <code>--range &lt;path&gt;</code>）→ <code>update_requested</code></td><td><code>update &lt;path&gt; --schemas … --patch &lt;JSON | -&gt;</code>（Concrete なら <code>--range &lt;path&gt;</code>）→ <code>updated</code></td></tr>
 <tr><td>UC3 検証 ・ UC4 意味的な検証</td><td><code>semantic validate &lt;path&gt; --schemas … [--all]</code> → <code>judgment_requested</code>。<code>--all</code> は、変更点だけでなく、すべての rule とすべての instance location を判定する</td><td><code>validate &lt;path&gt;... --schemas …</code> → <code>validated</code> ／ <code>validate &lt;path&gt; --schemas … --judgments &lt;JSON | -&gt;</code> → <code>judged</code></td></tr>
 <tr><td>UC7 検索</td><td><code>semantic search &lt;path&gt;... --question &lt;問い&gt;</code> → <code>search_requested</code></td><td><code>search &lt;path&gt;... --where &lt;JSON Pointer&gt;=&lt;JSON&gt;</code>（繰り返せる。最初の <code>=</code> で分ける）→ <code>found</code> ／ <code>search &lt;path&gt;... --matches &lt;JSON | -&gt;</code>（範囲を確かめるため path も渡す。next が引き継ぐ）→ <code>found</code>。検索は <code>--schemas</code> を取らない</td></tr>
-<tr><td>UC6 描画</td><td>—</td><td><code>render &lt;path&gt;... --schemas … --design-system &lt;path&gt; --out &lt;ディレクトリ&gt;</code> → <code>rendered</code></td></tr>
+<tr><td>UC6 描画</td><td>—</td><td><code>render &lt;path&gt;... --schemas … --design-system &lt;path&gt; --out &lt;ディレクトリ&gt;</code> → <code>rendered</code>（インスタンス1つにつき1つ。<code>path</code> と <code>out</code> を持つ）。書き出すファイルは <code>&lt;--out&gt;/&lt;元の path から .json を除いたもの&gt;.html</code>。全部を描いてから一時ファイルに書いて置き換え、描けないものが1つでもあれば何も書き出さない</td></tr>
 <tr><td>UC8 操作の記録の参照</td><td>—</td><td><code>log [&lt;path&gt;...] [--limit &lt;1以上&gt;]</code>（<code>--limit</code> が無ければ全部）、または <code>log --operation &lt;create|update|validate&gt;:&lt;id&gt;</code>（path ・ <code>--limit</code> とは一緒に渡せない）→ <code>listed</code>。<code>--schemas</code> は取らない</td></tr>
 </table></div>
 <p class="soft">値を2つ以上渡す引数（<code>--schemas</code> ・ <code>--range</code> ・ <code>--where</code>）は繰り返す。<code>-</code> は標準入力から読む。終了コードは、rejected か violated の judgment があれば 1、ほかは 0。</p>
@@ -167,8 +167,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> の名前は、ユースケースで起きたことの過去形（下の表）</td></tr>
 <tr><td>prompt</td><td><code>prompt.schema.json</code></td><td><code>semantic &lt;ユースケース&gt;</code> が返す prompt。<code>*_requested</code> のログイベント。<code>command</code>（create ・ update ・ validate ・ search）・ 対象の path ・ <code>hash</code>（判定のとき、JSON ドキュメントの内容のハッシュ）・ <code>steps</code>（各 step は <code>keywordLocation</code> か <code>instanceLocation</code> のどちらか1つを持つ。作成はスキーマの側の keywordLocation、更新と判定はインスタンスの側の instanceLocation。どちらも配列の要素までたどる。title ・ description ・ <code>x-prompt</code> ・ rule）・ response の形（作成は Concrete、更新は <code>patch.schema.json</code>、判定は <code>judgment-response.schema.json</code>、検索は <code>search-response.schema.json</code>）・ <code>next</code>（同じユースケースの機械的なコマンド）</td></tr>
 <tr><td>入力</td><td><code>patch.schema.json</code> ・ <code>judgment-response.schema.json</code> ・ <code>search-response.schema.json</code></td><td>AI が渡す JSON Patch と response。<code>search-response.schema.json</code> は <code>{"matches":[{path, hash, instanceLocation, reason}]}</code>（reason は必須）</td></tr>
-<tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>デザインシステムの形と、テンプレートの記法。記法は名前と版で宣言する（<code>html/template</code> ・ Go の版）。テンプレートに渡すのは <code>.Value</code>（インスタンス）と <code>.Tokens</code>（デザイントークン）だけ</td></tr>
-<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（意味的な操作と機械的な操作で分ける）。prompt の next の定型（<code>semantic update</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> ・ <code>{limit}</code> ・ <code>{operation}</code> などで書く</td></tr>
+<tr><td>受け取りの型</td><td><code>design-system.schema.json</code> ・ <code>template-language.json</code></td><td>design-system.schema.json は、<code>templateLanguage</code>（template-language.json を参照）・ <code>templates</code>（<code>x-view</code> の名前から、テンプレートのファイルへの path。デザインシステムのファイルからの相対で、working tree の中だけ）・ <code>tokens</code>（オブジェクト）を持ち、どれも必須。template-language.json は <code>{"name":"html/template","version":"go1.27"}</code> を const で宣言する JSON Schema。テンプレートに渡すのは <code>.Value</code>（インスタンス）と <code>.Tokens</code>（デザイントークン）だけ</td></tr>
+<tr><td>エラーの定型</td><td><code>error-codes.json</code></td><td>code ごとの instruction の定型文と、コマンドごとの next の定型（意味的な操作と機械的な操作で分ける）。prompt の next の定型（<code>semantic update</code> を含む）も持つ。定型に埋める項目は <code>{schemaId}</code> ・ <code>{range}</code> ・ <code>{limit}</code> ・ <code>{operation}</code> ・ <code>{designSystem}</code> ・ <code>{out}</code> などで書く。instance location は <code>"{instanceLocation}"</code> と引用符で囲む（ルートは <code>""</code> と出る）</td></tr>
 </table></div>
 <h3>ログイベントの名前</h3>
 <div class="wrap"><table class="stack">
@@ -177,7 +177,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td>更新</td><td><code>update_requested</code> ・ <code>updated</code></td><td>prompt を返した ・ 書いた</td></tr>
 <tr><td>検証</td><td><code>validated</code></td><td>検証して操作の記録に追記した</td></tr>
 <tr><td>意味的な検証</td><td><code>judgment_requested</code> ・ <code>judged</code></td><td>prompt を返した ・ response の judgment を記録した</td></tr>
-<tr><td>描画</td><td><code>rendered</code></td><td>HTML を書き出した</td></tr>
+<tr><td>描画</td><td><code>rendered</code></td><td>HTML を書き出した（インスタンス1つにつき1つ。<code>path</code> と <code>out</code>）</td></tr>
 <tr><td>検索</td><td><code>search_requested</code> ・ <code>found</code></td><td>意味で探す prompt を返した（<code>question</code> ・ <code>documents</code>（path とハッシュだけ。内容は貼らない）・ <code>response</code> ・ <code>next</code>）・ 結果を返した（<code>range</code>（探した範囲）と <code>matches</code>（path ・ hash ・ instanceLocation ・ reason。<code>--where</code> のときは条件の instance location））</td></tr>
 <tr><td>操作の記録の参照</td><td><code>listed</code></td><td>操作を1件ずつ返した（<code>--operation</code> の1件も同じ）。いつも <code>command</code> ・ <code>id</code> ・ <code>path</code> ・ <code>at</code> を持つ。1件を指したときは <code>schemaId</code> ・ <code>beforeHash</code> ・ <code>contentHash</code> ・ <code>validation</code>（validated か judged）と、<code>changes</code>（書く操作）か <code>judgments</code>（検証）を足す。条件に合うものが無ければ何も出さない</td></tr>
 <tr><td>どれでも</td><td><code>rejected</code></td><td>断った。理由は <code>code</code></td></tr>
@@ -188,7 +188,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
  "instanceLocation": "/items/0/price",
  "absoluteKeywordLocation": "urn:example:order:v1#/properties/items/items/properties/price/minimum",
  "message": "0 より小さい",
- "instruction": "/items/0/price を 0 以上の数にして、もう一度 update を実行する",
+ "instruction": "\"/items/0/price\" を 0 以上の数にして、もう一度 update を実行する",
  "next": "semantic-agent-schema update order.json --schemas schemas --patch '&lt;JSON Patch&gt;'"}</code></pre>
 <p><code>schema_violation</code> は、<code>schemacheck</code> が <code>ValidationError</code> の葉ごとに <code>InstanceLocation</code> を <code>instanceLocation</code>、キーワードの絶対の位置を <code>absoluteKeywordLocation</code> にして1行ずつ出す。独自の判定は足さない。</p>
 <div class="wrap"><table class="stack">
@@ -204,7 +204,9 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>hash_mismatch</code></td><td>更新：書く直前（ロックの中）に、最初に読んだときからファイルのハッシュが変わっていた（D3）。書かない ／ 判定：<code>--judgments</code> の <code>hash</code>（prompt から写したもの）が、いまの内容のハッシュと違う ／ 検索：matches の hash が、いまの内容のハッシュと違う</td><td>更新：同じコマンドの打ち直し ／ 判定：<code>semantic validate</code> の打ち直し ／ 検索：<code>semantic search</code> の打ち直し</td></tr>
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>semantic update</code></td></tr>
 <tr><td><code>response_mismatch</code></td><td>判定：response の rule と instance location の組が prompt と違う（V2）／ 検索：matches の出どころが範囲の外か、その instance location が無い</td><td><code>semantic validate</code> ／ <code>semantic search</code> の打ち直し</td></tr>
-<tr><td><code>template_missing</code> ・ <code>out_overlap</code></td><td><code>x-view</code> のテンプレートが無い（S5）・ <code>--out</code> が入力と重なる</td><td>同じコマンド</td></tr>
+<tr><td><code>template_missing</code></td><td><code>x-view</code> が無い、またはその名前のテンプレートが無い（S5）</td><td>同じコマンド（デザインシステムを直して）</td></tr>
+<tr><td><code>template_invalid</code></td><td>テンプレートで描けない（構文の誤り ・ 無い名前を引いた）</td><td>同じコマンド（テンプレートを直して）</td></tr>
+<tr><td><code>out_overlap</code></td><td>書き出す先が、範囲かデザインシステムと重なる</td><td>同じコマンド（<code>--out</code> を直して）</td></tr>
 <tr><td><code>operation_not_found</code></td><td><code>--operation</code> で指した操作が無い</td><td><code>log</code></td></tr>
 <tr><td><code>not_in_git</code></td><td>Git のリポジトリの外で実行した（どのコマンドでも）</td><td>同じコマンド（Git のリポジトリの中で）</td></tr>
 <tr><td><code>log_unavailable</code> ・ <code>log_locked</code></td><td>操作の記録を開けない（表の形の版が違う ・ 壊れている）・ ロックが取れない</td><td>同じコマンド（版が違うときは instruction が records.sqlite の削除を示す）</td></tr>
