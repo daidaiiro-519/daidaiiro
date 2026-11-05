@@ -1,6 +1,7 @@
 package domain_test
 
 import (
+	"encoding/json"
 	"errors"
 	"slices"
 	"testing"
@@ -668,6 +669,50 @@ func TestCheckReferencesAgainstConcreteAndTokens(t *testing.T) {
 			err := domain.CheckReferences(template, schema, tokens, []domain.Reference{c.reference})
 			if got := codeOf(err); got != c.wantCode {
 				t.Errorf("CheckReferences(%s) code = %q, want %q", c.reference, got, c.wantCode)
+			}
+		})
+	}
+}
+
+// デシジョンテーブル：別名の先（在る ・ 無い ・ グループ ・ 輪 ・ 型が違う）× 型の決まり方（自分 ・ グループ ・ 別名の先 ・ 無い）。
+func TestResolveTokens(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		tokens    string
+		wantCode  string
+		wantValue string // 解いた値の木の、別名のトークンの値（JSON）
+	}{
+		{name: "別名を解いた値を木に置き、型は別名の先から受け継ぐ",
+			tokens:    `{"c": {"$type": "color", "base": {"$value": {"colorSpace": "srgb", "components": [1, 0, 0]}}}, "a": {"$value": "{c.base}"}}`,
+			wantValue: `{"colorSpace":"srgb","components":[1,0,0]}`},
+		{name: "別名の別名をたどる",
+			tokens:    `{"n": {"$type": "number", "$value": 2}, "m": {"$value": "{n}"}, "a": {"$value": "{m}"}}`,
+			wantValue: `2`},
+		{name: "別名の先が無い", tokens: `{"a": {"$value": "{nothing}"}}`, wantCode: "token_alias_invalid"},
+		{name: "別名の先がグループ", tokens: `{"g": {"x": {"$type": "number", "$value": 1}}, "a": {"$value": "{g}"}}`, wantCode: "token_alias_invalid"},
+		{name: "別名が輪", tokens: `{"a": {"$value": "{b}"}, "b": {"$value": "{a}"}}`, wantCode: "token_alias_invalid"},
+		{name: "別名の先と型が違う", tokens: `{"n": {"$type": "number", "$value": 1}, "a": {"$type": "duration", "$value": "{n}"}}`, wantCode: "token_alias_invalid"},
+		{name: "型が決まらない", tokens: `{"a": {"$value": 1}}`, wantCode: "schema_violation"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			value, err := domain.ParseJSON([]byte(c.tokens))
+			if err != nil {
+				t.Fatalf("ParseJSON(%s) = %v", c.tokens, err)
+			}
+			resolved, _, err := domain.ResolveTokens(value)
+			if got := codeOf(err); got != c.wantCode {
+				t.Errorf("ResolveTokens(%s) = %v, want code %q", c.name, err, c.wantCode)
+			}
+			if c.wantValue == "" {
+				return
+			}
+			tree, _ := resolved.(map[string]any) // 木はいつもオブジェクト
+			got, err := json.Marshal(tree["a"])
+			if err != nil || string(got) != c.wantValue {
+				t.Errorf("ResolveTokens(%s) a = %s, %v, want %s", c.name, got, err, c.wantValue)
 			}
 		})
 	}

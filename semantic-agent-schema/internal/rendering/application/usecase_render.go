@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"path"
 	"strings"
@@ -20,6 +21,7 @@ type Render struct {
 	Renderer       Renderer
 	AbstractID     string // Abstract の $id
 	DesignSystemID string // デザインシステムのスキーマ（design-system.schema.json）の $id
+	DesignTokensID string // デザイントークンのスキーマ（design-tokens.schema.json）の $id
 }
 
 // RenderInput は、描画の引数。
@@ -98,7 +100,64 @@ func (u Render) designSystem(ctx context.Context, p domain.Path) (designSystem, 
 		}
 		templates[name] = template
 	}
-	return designSystem{templates: templates, tokens: object["tokens"]}, nil
+	tokens, err := u.tokens(ctx, p, object["tokens"])
+	if err != nil {
+		return designSystem{}, err
+	}
+	return designSystem{templates: templates, tokens: tokens}, nil
+}
+
+// tokens は、デザイントークンの、JSON Schema で書けない決まり（受け継ぐ型 ・ 別名）を確かめ、別名を解いた値の木を返す。
+// グループから型を受け継いだトークンの値は、その型の形（design-tokens.schema.json の $defs）で検証する。
+func (u Render) tokens(ctx context.Context, p domain.Path, tokens any) (any, error) {
+	resolved, list, err := domain.ResolveTokens(tokens)
+	if err != nil {
+		return nil, inTokens(p, err)
+	}
+	var failures []error
+	for _, token := range list {
+		if !token.Inherited || token.Alias {
+			continue // 自分の $type の値は design-tokens.schema.json が、別名の値は先のトークンが検証する
+		}
+		content, err := json.Marshal(token.Value)
+		if err != nil {
+			return nil, err
+		}
+		violations, err := u.Validator.Check(ctx, u.DesignTokensID+"#/$defs/"+token.Type, content)
+		if err != nil {
+			return nil, at(p, err)
+		}
+		for _, v := range violations {
+			failures = append(failures, &domain.Failure{
+				Code: domain.SchemaViolation, Path: p.String(),
+				InstanceLocation:        "/tokens" + token.Location.String() + "/$value" + v.InstanceLocation.String(),
+				AbsoluteKeywordLocation: v.AbsoluteKeywordLocation, Message: v.Message,
+			})
+		}
+	}
+	if err := errors.Join(failures...); err != nil {
+		return nil, err
+	}
+	return resolved, nil
+}
+
+// inTokens は、デザイントークンの中の位置の Failure を、デザインシステムの中の位置にする。
+func inTokens(p domain.Path, err error) error {
+	for _, e := range unjoin(err) {
+		var f *domain.Failure
+		if errors.As(e, &f) {
+			f.Path = p.String()
+			f.InstanceLocation = "/tokens" + f.InstanceLocation
+		}
+	}
+	return err
+}
+
+func unjoin(err error) []error {
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		return joined.Unwrap()
+	}
+	return []error{err}
 }
 
 // template は、デザインシステムのファイルのあるディレクトリからの相対の path で、テンプレートのファイルを読む。

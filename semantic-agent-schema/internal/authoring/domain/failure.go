@@ -28,6 +28,7 @@ const (
 	TemplateMissing          code = "template_missing"
 	TemplateInvalid          code = "template_invalid"
 	TemplateReferenceMissing code = "template_reference_missing"
+	TokenAliasInvalid        code = "token_alias_invalid"
 	OutOverlap               code = "out_overlap"
 	FileNotFound             code = "file_not_found"
 	NotInGit                 code = "not_in_git"

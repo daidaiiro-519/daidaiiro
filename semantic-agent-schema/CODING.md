@@ -239,6 +239,18 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K152 | JS で追うのは、変数の初期値（`const doc = {{.Value}}`、`const x = doc.a`）・ `for (const d of doc.items)` の要素 ・ 名前か数のリテラルで引くメンバー（`doc.a` ・ `doc["a"]` ・ `doc.items[0]`）だけ。変数を作り直す ・ 計算した名前で引く ・ 関数の戻り値をたどる ・ 分割代入 ・ 名前の隠れ（同じ名前の別の変数）は追わない。JS の構文木は位置を持たないので、行は読んだ式の文字列をテンプレートの中で探して出す | このプロジェクト | 利用者の指示（2026-11-05） | |
 | K153 | properties を持たないサブスキーマ（配列 ・ 文字列など）の下の名前は、組み込みの読み方（`length` など）があるので照らさない。値が無い任意の欄は静的な照合では通り、描くときの `missingkey=error` で止まる | このプロジェクト | 利用者の指示（2026-11-05） | |
 
+### 2.15 デザイントークンの契約
+
+デザインシステムの `tokens` は、W3C Design Tokens Community Group の Design Tokens Format Module 2025.10（https://www.designtokens.org/TR/2025.10/format/ 、色は Color module 2025.10 https://www.designtokens.org/TR/2025.10/color/）の形にする。識別子は原文の文字列で照合した。
+
+| ID | こうする | 種類 | 出どころ | 原文の引用 |
+|---|---|---|---|---|
+| K160 | トークンは `$value` を持つオブジェクト、グループは `$value` を持たないオブジェクト。性質は `$type` ・ `$description` ・ `$deprecated` ・ `$extensions`、グループの根のトークンは `$root`。名前は `$` で始めず、`{` ・ `}` ・ `.` を含まない | Design Tokens Format Module | format 5.1 ・ 5.1.1 ・ 6.1 ・ 6.2 | An object with a $value property is a token. |
+| K161 | 型は、値の形を機械的に確かめられる `color` ・ `dimension` ・ `fontFamily` ・ `fontWeight` ・ `duration` ・ `cubicBezier` ・ `number` だけ。合成の型（shadow など）は扱わない。値の形は `design-tokens.schema.json` の `$defs` の型ごとの形で確かめる（color は colorSpace の一覧 ・ 成分3つが数か none ・ alpha が 0〜1 ・ hex が6桁。色空間ごとの成分の範囲は確かめない。dimension の unit は px か rem、duration の unit は ms か s、fontWeight は 1〜1000 か原文の名前、cubicBezier の x は 0〜1） | Design Tokens Format Module | format 8 ・ color 4.1 ・ 4.2 | |
+| K162 | 別名は `{group.token}` の形だけを扱う。`$ref`（JSON Pointer）・ `$extends` は扱わない（JSON Schema が拒む） | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K163 | JSON Schema で書けない決まり（グループから受け継ぐ `$type` ・ 別名の先が在るトークンか ・ 輪になっていないか ・ 別名の先の型が合うか ・ 型が決まらないトークン）は、ドメインサービス「レンダラー」の `ResolveTokens` が確かめる。別名の違反は `token_alias_invalid`、型が決まらないトークンと、受け継いだ型の値の形の違反は `schema_violation` | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K164 | テンプレートには、別名を解いた値の木（グループは名前から子へ、トークンは値。`$` で始まる性質は除く）を `.Tokens` で渡す。テンプレートに `$value` を書かせない。テンプレートと JS の参照は、この木に照らす | このプロジェクト | 利用者の指示（2026-11-05） | |
+
 ## 3 テスト規約
 
 ### 3.1 試験の置き場所と入口

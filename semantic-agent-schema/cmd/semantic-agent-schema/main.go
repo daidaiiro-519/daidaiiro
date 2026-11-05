@@ -125,5 +125,6 @@ func openRender(ctx context.Context, schemas []domain.Path) (rendering.Render, e
 	return rendering.Render{
 		Documents: files.NewDocuments(top), Schemas: concretes, Validator: schemacheck.New(concretes.Content),
 		Renderer: templates.New(top), AbstractID: publishedlanguage.AbstractID, DesignSystemID: publishedlanguage.DesignSystemID,
+		DesignTokensID: publishedlanguage.DesignTokensID,
 	}, nil
 }

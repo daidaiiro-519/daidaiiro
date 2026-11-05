@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:semantic-agent-schema:design-tokens:v1",
+  "title": "デザイントークン",
+  "description": "Design Tokens Format Module 2025.10（W3C Design Tokens Community Group）のトークンとグループ。型は color（Color module 2025.10）・ dimension ・ fontFamily ・ fontWeight ・ duration ・ cubicBezier ・ number に限る。別名は {group.token} の形だけで、$ref（JSON Pointer）・ $extends ・ 合成の型は扱わない。グループから受け継ぐ $type と、別名の先が在るか ・ 輪になっていないか ・ 型が合うかは、ドメインモデルが確かめる。",
+  "$ref": "#/$defs/group",
+  "$defs": {
+    "name": {
+      "description": "トークンとグループの名前。$ で始めず、{ ・ } ・ . を含まない",
+      "type": "string",
+      "pattern": "^[^${}.][^{}.]*$"
+    },
+    "type": {
+      "description": "この道具が値の形を機械的に確かめられる型",
+      "enum": [
+        "color",
+        "dimension",
+        "fontFamily",
+        "fontWeight",
+        "duration",
+        "cubicBezier",
+        "number"
+      ]
+    },
+    "alias": {
+      "description": "別名。{group.token} の形で、ほかのトークンの $value を指す",
+      "type": "string",
+      "pattern": "^\\{[^{}]+\\}$"
+    },
+    "group": {
+      "description": "グループ。$value を持たないオブジェクト",
+      "type": "object",
+      "not": {
+        "required": [
+          "$value"
+        ]
+      },
+      "properties": {
+        "$type": {
+          "$ref": "#/$defs/type"
+        },
+        "$description": {
+          "type": "string"
+        },
+        "$deprecated": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "$extensions": {
+          "type": "object"
+        },
+        "$root": {
+          "$ref": "#/$defs/token"
+        }
+      },
+      "propertyNames": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/name"
+          },
+          {
+            "enum": [
+              "$type",
+              "$description",
+              "$deprecated",
+              "$extensions",
+              "$root"
+            ]
+          }
+        ]
+      },
+      "additionalProperties": {
+        "if": {
+          "type": "object",
+          "required": [
+            "$value"
+          ]
+        },
+        "then": {
+          "$ref": "#/$defs/token"
+        },
+        "else": {
+          "$ref": "#/$defs/group"
+        }
+      }
+    },
+    "token": {
+      "description": "トークン。$value を持つオブジェクトで、子のトークンとグループを持たない",
+      "type": "object",
+      "required": [
+        "$value"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "color"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/color"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "dimension"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/dimension"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "fontFamily"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/fontFamily"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "fontWeight"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/fontWeight"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "duration"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/duration"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "cubicBezier"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/cubicBezier"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "$type"
+            ],
+            "properties": {
+              "$type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "$value": {
+                "if": {
+                  "$ref": "#/$defs/alias"
+                },
+                "else": {
+                  "$ref": "#/$defs/number"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "$value": true,
+        "$type": {
+          "$ref": "#/$defs/type"
+        },
+        "$description": {
+          "type": "string"
+        },
+        "$deprecated": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "$extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "color": {
+      "description": "Color module の color。成分の数は3つで、各成分は数か none。色空間ごとの成分の範囲は確かめない",
+      "type": "object",
+      "required": [
+        "colorSpace",
+        "components"
+      ],
+      "properties": {
+        "colorSpace": {
+          "enum": [
+            "srgb",
+            "srgb-linear",
+            "hsl",
+            "hwb",
+            "lab",
+            "lch",
+            "oklab",
+            "oklch",
+            "display-p3",
+            "a98-rgb",
+            "prophoto-rgb",
+            "rec2020",
+            "xyz-d65",
+            "xyz-d50"
+          ]
+        },
+        "components": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "const": "none"
+              }
+            ]
+          }
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hex": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      }
+    },
+    "dimension": {
+      "type": "object",
+      "required": [
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "px",
+            "rem"
+          ]
+        }
+      }
+    },
+    "fontFamily": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "fontWeight": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        {
+          "enum": [
+            "thin",
+            "hairline",
+            "extra-light",
+            "ultra-light",
+            "light",
+            "normal",
+            "regular",
+            "book",
+            "medium",
+            "semi-bold",
+            "demi-bold",
+            "bold",
+            "extra-bold",
+            "ultra-bold",
+            "black",
+            "heavy",
+            "extra-black",
+            "ultra-black"
+          ]
+        }
+      ]
+    },
+    "duration": {
+      "type": "object",
+      "required": [
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "ms",
+            "s"
+          ]
+        }
+      }
+    },
+    "cubicBezier": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "number"
+        }
+      ]
+    },
+    "number": {
+      "type": "number"
+    }
+  }
+}
