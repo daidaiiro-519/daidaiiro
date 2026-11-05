@@ -1,0 +1,253 @@
+{
+  "kind": "judgment",
+  "question": "SAS のセッション管理を軽くした形（sessions ・ launched_sessions ・ session_turns を外し、operations に actor ・ tool_ref ・ caller_ref ・ launched_ref を持たせ、続ける ・ 再開を呼び出し元に任せ、DB をリポジトリの外に置いてワークツリーをまたいで1つにする）を、非機能の観点で採ってよいか",
+  "premises": [
+    {
+      "name": "利用者の決定（覆さない）",
+      "value": "SAS の DB はコミットしない。役目は動いているセッションを回すことで、記録は分析程度。DDL は公開せず、公開するのは ID と CLI の出力の形だけ",
+      "source": "context.md の「決まっていること」"
+    },
+    {
+      "name": "利用者の決定（覆さない）",
+      "value": "書くのは SAS だけ。人だけが決める欄（x-decided-by: human）は人の入口（--session を付けない呼び出し）からしか書けない",
+      "source": "context.md の「決まっていること」（ステップ1 で実装済み）"
+    },
+    {
+      "name": "照合済みの事実",
+      "value": "非対話で fork できるのは Claude Code と Codex だけ。セッションを閉じる ・ 状態を読む操作はどのツールにも無い。Claude Code はセッション ID を環境変数 CLAUDE_CODE_SESSION_ID で取れる",
+      "source": "design.json の fact_check（factcheck-b の項目1）"
+    },
+    {
+      "name": "いまの実装",
+      "value": "DB は作業ディレクトリの .sas/sas.db。journal_mode と busy_timeout は設定していない。ステップ3 の trigger（operations_adopt_follows）は、取り込みの before_hash を「その target_path の最後の操作の after_hash」と比べる",
+      "source": "schemas-and-instances/adapters/outbound/sqlite/src/lib.rs ・ migrations/0003-adopt.sql ・ 0004-delete.sql"
+    },
+    {
+      "name": "置いた仮定",
+      "value": "Agents Workspace は目的ごとにワークツリーを切り、複数のワークツリーで SAS が同時に動く。ワークツリーの変更は main へマージされる",
+      "source": "context.md の「使う側の例」"
+    },
+    {
+      "name": "判断基準の範囲外",
+      "value": "SQLite の WAL ・ busy_timeout ・ BEGIN IMMEDIATE の振る舞い、Claude Code で同じセッション ID に同時に -p --resume したときの振る舞い、XDG_DATA_HOME の既定値。どれも判定の根拠にせず、fact-check で原典と照合してから設計に入れる",
+      "source": "判断基準の範囲外"
+    },
+    {
+      "name": "未判定",
+      "value": "同じセッションへの同時送信でツールの記録が壊れるかは未判定。壊れなくても、2つの依頼の文脈が混ざるので、SAS の側で直列にする判定は変わらない",
+      "source": "判断基準の範囲外（照合していない）"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "直して採る ── 3つの表を外すのはよいが、ワークツリーをまたぐ1つの DB にするなら、操作の行にワークツリーを持たせ、置き場所を Git の共通ディレクトリにし、同時書き込みと同じセッションへの同時送信を SAS が止める直しを入れる。",
+    "because": "やり直し ・ 時間切れ ・ 二重実行の防止は1回の CLI の中で閉じるので表が無くても保てる（REL 4 のべき等 ・ REL 5 の再試行の上限とタイムアウト）が、状態を共有する1つの DB はワークツリーどうしの比べ合いと同時書き込みで障害を広げる（REL 10 のバルクヘッドは状態を共有しないことを求める）。"
+  },
+  "figure": {
+    "caption": "直したあとの形：表は operations だけを残し、セッションの続け方は呼び出し元、直列化とべき等は SAS、DB は Git の共通ディレクトリに置く",
+    "nodes": [
+      { "id": "caller", "label": "呼び出し元（Agents Workspace ・ 人 ・ AI のセッション）", "role": "actor" },
+      { "id": "cli", "label": "sas の CLI（1回の起動で直し2回 ・ 時間切れ2回までを回す）", "role": "process" },
+      { "id": "lock", "label": "launched_ref ごとのファイルのロック", "role": "process" },
+      { "id": "tool", "label": "ツールのセッション（-p ・ --resume ・ fork）", "role": "external" },
+      { "id": "db", "label": "<git-common-dir>/sas/sas.db（WAL）", "role": "store" },
+      { "id": "ops", "label": "operations（worktree ・ caller_ref ・ launched_ref ・ request_id ・ attempts ・ tokens）", "role": "store" },
+      { "id": "log", "label": "ツール自身のセッションの記録（失敗の原本）", "role": "store" }
+    ],
+    "edges": [
+      { "from": "caller", "to": "cli", "label": "--session（自分は誰か）・ --continue <launched_ref>（どれを続けるか）・ request_id" },
+      { "from": "cli", "to": "ops", "label": "起動の前に request_id を引き、済んでいれば前の結果を返す" },
+      { "from": "cli", "to": "lock", "label": "同じ launched_ref への送信を1つにする" },
+      { "from": "lock", "to": "tool", "label": "-p で送る（validate は毎回新しく立てる）" },
+      { "from": "tool", "to": "log", "label": "回ごとの記録はツールが持つ" },
+      { "from": "cli", "to": "ops", "label": "最後に1つのトランザクションで1行書く（BEGIN IMMEDIATE）" },
+      { "from": "ops", "to": "db", "label": "置き場所" },
+      { "from": "ops", "to": "log", "label": "launched_ref で辿る", "dashed": true }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "案のまま（3つの表を外し、XDG の下に git-common-dir のパスで1つの DB）",
+      "effect": "ワークツリー A と B で同じ target_path の中身が違うと、互いの最後の after_hash と比べて SAS を通らない変更を誤って出し、取り込みの trigger も別のワークツリーの行につながる。並行の書き込みは busy_timeout が無いので即座に database is locked で失敗する。リポジトリを動かすとパスが変わり、記録が空の DB に切り替わる",
+      "chosen": false
+    },
+    {
+      "option": "直して採る（3つの表は外す。operations に worktree ・ launched_ref ・ attempts ・ tokens を足し、DB を <git-common-dir>/sas/sas.db に WAL で置き、同じ launched_ref への送信をロックで1つにする）",
+      "effect": "やり直し ・ 二重実行の防止 ・ 時間切れ ・ トークンの把握は1行に残り、失敗の原本は launched_ref からツールの記録を辿れる。ワークツリーをまたいでも比べ合いが混ざらず、リポジトリと一緒に動き、クローンを消せば一緒に消える",
+      "chosen": true
+    },
+    {
+      "option": "ワークツリーごとに DB を分ける（<git-common-dir>/sas/<worktree>.db）",
+      "effect": "同時書き込みと比べ合いの混ざりは起きないが、マージしたあとの main では、ワークツリーで SAS が書いた中身の記録が見えず、毎回 SAS を通らない変更として出る。利用者の「ワークツリーをまたいで1つ」にも合わない",
+      "chosen": false
+    },
+    {
+      "option": "今の設計のまま（3つの表を残す）",
+      "effect": "閉じる ・ 状態を読む操作がどのツールにも無いので、SAS の側の「閉じた」「開いている」はツールの実際とずれ続け、それを直す session status と閉じ直しの仕組みが要る。続け方を決める呼び出し元と SAS の2か所が同じ判断を持つ",
+      "chosen": false
+    }
+  ],
+  "path": [
+    {
+      "ask": "形の誤りの直し（同じセッションで2回）と時間切れ（新しいセッションで2回）は、表が無くても保てるか",
+      "answer": "保てる。どちらも1回の sas の起動の中で回る繰り返しなので、回数は手続きの中の数で足りる（REL 5「再試行の回数に上限を設ける」）。起動が途中で死んだときは操作の行が残らないだけで、呼び出し元が同じ request_id で呼び直せばよい"
+    },
+    {
+      "ask": "二重実行の防止（request_id）は保てるか",
+      "answer": "保てるが、今の一意索引だけでは足りない。一意索引は2行目を拒むだけで、エージェントはもう一度起動されトークンを使う。エージェントを起動する前に request_id を引き、済んでいれば前の結果を返す（REL 4「処理ずみならやり直さずに前の結果を返す」）。起動する前の確かめと、最後の書き込みの一意索引の2か所で止める"
+    },
+    {
+      "ask": "トークンの把握と失敗の調べやすさは保てるか。session_turns を無くして失うものは何か",
+      "answer": "直せば保てる。operations に attempts（直しの回数 ・ 時間切れの回数 ・ 最後の結果）と tokens（回の合計）と launched_ref を足し、直しの上限を超えた ・ 時間切れを使い切った依頼も、断った操作（refusal_code）の行として tokens 付きで残す。失うのは回ごとのプロンプトの指紋 ・ 答えの原文 ・ 再開の決まりのどれに当たったかの3つ。前の2つはツール自身のセッションの記録を launched_ref で辿れば足り、3つ目は再開を呼び出し元に任せるので要らない"
+    },
+    {
+      "ask": "続ける ・ 再開を呼び出し元に任せたとき、運用の失敗の型は何が起き、誰が防ぐか",
+      "answer": "ID の取り違えは、別の目的の launched_ref を渡して文脈が混ざる型で、SAS が operations の前の行の caller_ref と今の --caller が違えば断って防ぐ。閉じたセッションへの送信は、ツールに閉じる操作が無いので「閉じた」はもう無く、ツールが消えたセッションを拒んだら SAS が session_gone を返して呼び出し元が新しく立てる。同じセッションへの同時送信は、2つの依頼の文脈が1つのセッションに混ざる型で、SAS が launched_ref ごとのファイルのロックで1つにして防ぐ（REL 4「同時実行コントロール」）"
+    },
+    {
+      "ask": "呼び出し元の自分のセッション ID に -p で送ってよいか",
+      "answer": "送らない。呼び出し元のセッションは送っている最中なので、そこへ --resume で送ると同じセッションへの同時送信になる。--session は「誰が呼んだか」の値に限り、文脈を引き継ぐときは fork（Claude Code と Codex だけ）、続けるときは SAS が前に返した launched_ref を --continue で渡す。validate は判定を独立させるため、渡されても続けず毎回新しく立てる"
+    },
+    {
+      "ask": "DB をワークツリーをまたいで1つにすると、同時書き込みはどうなるか",
+      "answer": "今の実装は既定のロールバックジャーナルで busy_timeout も無いので、2つのワークツリーで同時に書くと片方が即座に失敗する。WAL にし、busy_timeout を置き、書き込みは BEGIN IMMEDIATE の短いトランザクションにして、エージェントが動いている間はトランザクションを開かない（振る舞いは判断基準の範囲外。fact-check で SQLite の原典と照合する）"
+    },
+    {
+      "ask": "1つの DB で、SAS を通らない変更の比べ合いは正しく動くか",
+      "answer": "そのままでは動かない。target_path はリポジトリの中のパスなので、ワークツリー A と B が同じパスで違う中身を持つと「最後の after_hash」が別のワークツリーの行になる。operations に worktree（git rev-parse --show-toplevel の値）を足し、比べる相手を「同じワークツリーの最後の行」にする。マージのあとの main は、main の最後の行とは違うが、どれかのワークツリーで SAS が書いた after_hash と同じなので、「どのワークツリーかを問わず、その中身の after_hash が記録にあるか」で SAS を通ったと見る。状態を共有する所で、ワークツリーどうしの影響を断つ（REL 10 のバルクヘッド）"
+    },
+    {
+      "ask": "置き場所はどう決めるか",
+      "answer": "<git-common-dir>/sas/sas.db に置く。共通ディレクトリはワークツリーをまたいで1つで、コミットされず、リポジトリを動かしても一緒に動き、クローンを消せば一緒に消える。XDG の下にパスで識別すると、リポジトリを動かしたときに空の DB へ切り替わり、消したクローンの DB が残る。Git が無いときだけ今の .sas/sas.db に戻す"
+    },
+    {
+      "ask": "DB が消えたときはどう扱うか",
+      "answer": "バックアップは取らず、作り直すデータと決めて書いておく（REL 9「ほかのソースから作り直せるようにする」。中身の正本は Git とファイル）。消えたら空の DB を作り直し、記録の無いファイルは「記録が無い」として出し、SAS を通らない変更と区別する。いっぺんに取り込む操作は呼び出し元が明示して打つ"
+    },
+    {
+      "ask": "権限はどうするか",
+      "answer": "sas のディレクトリは 0700、DB と失敗の原文は 0600 で作る。intent ・ 断った理由 ・ 欄の前後の値を持つので、ほかのユーザーに読ませない（SEC 8「最小特権」）。人の入口は今と同じく --session の有無で決まるので、CLAUDE_CODE_SESSION_ID のようにツールのセッションの中だと分かる環境変数があれば、人の入口として扱わない"
+    },
+    {
+      "ask": "ほかに外せるものはあるか",
+      "answer": "ある。operations の seq と operations_seq_follows（並びは ULID と at で足りる）、operations_open_session（閉じたセッションが無い）、設定の caller_idle_close_min ・ resume_context_ratio、CLI の session-close ・ session-status、session-spec の lifetime ・ new、ステップ6 の「記録とセッションを閉じるのは別のトランザクションで、session status が閉じ直す」の受け入れ基準。プロンプトのファイルは失敗したときだけ残す"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "rel-04",
+      "quote": "ベストプラクティス：「変更操作をべき等にする」 ・ 何をするか：べき等なサービスは、各リクエストを1回だけ処理すると約束する。同じリクエストが何度届いても、効き目は1回分だけである。間違って二重三重に処理されるおそれが無いので、クライアントは気軽に再試行できる"
+    },
+    {
+      "criterion": "rel-04",
+      "quote": "べき等なオペレーションを実装する。API とコンポーネントにべき等性のチェックを組み込み、処理の前に一意の識別子が処理ずみかを確かめ、処理ずみならやり直さずに前の結果を返す。たとえばユーザーを作るリクエストで、同じ識別子のユーザーがもういれば、新しく作らずに今のユーザー情報を返す。キューのコンシューマーは、同じトークンのメッセージを受けたら捨てる"
+    },
+    {
+      "criterion": "rel-04",
+      "quote": "必要なら、同時実行コントロール（ロック、トランザクション、オプティミスティック同時実行コントロールなど）で、一貫性と原子性を保つ。トークンを記録する操作と、そのリクエストに関わる変更操作をひとまとめにする"
+    },
+    {
+      "criterion": "rel-05",
+      "quote": "ベストプラクティス：「再試行呼び出しを制御および制限する」 ・ 何をするか：エクスポネンシャルバックオフで再試行の間隔をだんだん延ばし、ジッターで間隔をばらし、再試行の回数に上限を設ける"
+    },
+    {
+      "criterion": "rel-05",
+      "quote": "ベストプラクティス：「クライアントタイムアウトを設定する」 ・ 何をするか：接続とリクエストのタイムアウトをきちんと決め、筋道立てて確かめる。最初から入っている値を当てにしない。その値は、ワークロードの事情を何も知らずに決められているからである"
+    },
+    {
+      "criterion": "rel-10",
+      "quote": "ベストプラクティス：「バルクヘッドアーキテクチャを使用して影響範囲を制限する」 ・ 望ましい成果：セルベースアーキテクチャは、互いに分離したワークロードのインスタンスを複数使い、その1つずつをセルと呼ぶ。セルどうしは独立していて状態を共有せず、リクエスト全体のうちの一部を受け持つ。まずいソフトウェア更新のような障害が、個々のセルと、そこで処理中のリクエストに与える影響が小さくなる。たとえば 10 個のセルで 100 個のリクエストをさばいていれば、障害が起きてもリクエストの 90% は巻き込まれない"
+    },
+    {
+      "criterion": "rel-09",
+      "quote": "ベストプラクティス：「バックアップが必要なすべてのデータを特定してバックアップする、またはソースからデータを再現する」 ・ 望ましい成果：データソースを見つけて重要度で分け、RPO をもとにデータの復旧戦略を決める。戦略は、データソースをバックアップするか、ほかのソースから作り直せるようにするかのどちらかを含む。データを失ったら、その戦略で、決めた RPO と RTO の範囲でデータを復旧するか作り直す"
+    },
+    {
+      "criterion": "sec-08",
+      "quote": "ベストプラクティス：「アクセスコントロールを適用する」 ・ 何をするか：保管中のデータを、分離やバージョニングなどの仕組みでアクセス制御して守る。最小特権と条件付きのアクセスコントロールを当て、データが公開されるのを防ぐ"
+    },
+    {
+      "criterion": "ops-08",
+      "quote": "ベストプラクティス：「ワークロードログを分析する」 ・ メリット：運用上のボトルネック、セキュリティ上の脅威、ほかの問題を前もって見つけられる。ログデータを生かしてアプリケーションを最適にし続けられる。アプリケーションの動作が細かく分かり、デバッグとトラブルシューティングに役立つ"
+    },
+    {
+      "criterion": "cost-03",
+      "quote": "ベストプラクティス：「詳細情報ソースを設定する」 ・ 何をするか：コスト管理とレポートのツールを整えてデータの分析と透明性を上げ、ワークロードにはコストと使用量を追いやすくするログを出させる"
+    },
+    {
+      "criterion": "cost-03",
+      "quote": "ベストプラクティス：「コスト属性カテゴリを特定する」 ・ 何をするか：ビジネスユニット ・ 部門 ・ プロジェクトのような、コストを社内の消費エンティティへ配分するカテゴリを決める。支出の説明責任 ・ コスト意識 ・ よい消費行動につなげる"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "状態を共有する1つの DB で、ワークツリーを区別せずに「最後の行」と比べる",
+      "risk": "並行のワークツリーが互いの変更を SAS を通らない変更として出し合い、取り込みの trigger が別のワークツリーの行につながる",
+      "alternative": "operations に worktree を足し、最後の行は同じワークツリーの中で引く。SAS を通ったかは、ワークツリーを問わず、その中身の after_hash が記録にあるかで見る"
+    },
+    {
+      "name": "一意索引だけで二重実行を防いだつもりになる",
+      "risk": "同じ request_id で呼び直すたびにエージェントが起動され、トークンを使ってから書き込みで断られる",
+      "alternative": "エージェントを起動する前に request_id を引き、済んでいれば前の結果を返す"
+    },
+    {
+      "name": "（推測）呼び出し元の自分のセッション ID に -p --resume で送る",
+      "risk": "送っている最中のセッションに別の依頼が入り、文脈と記録が混ざる",
+      "alternative": "文脈を引き継ぐときは fork、続けるときは SAS が返した launched_ref を --continue で渡す。--session は誰が呼んだかの値に限る"
+    },
+    {
+      "name": "（推測）同じ launched_ref への送信を呼び出し元に任せきる",
+      "risk": "Agents Workspace の2つの工程が同じ launched_ref に同時に送り、1つのセッションに2つの依頼が混ざる",
+      "alternative": "SAS が launched_ref ごとのファイルのロック（プロセスが死ねば外れる）を取り、取れなければ busy を返して呼び出し元が待つ"
+    },
+    {
+      "name": "（推測）DB の置き場所をパスから求める",
+      "risk": "リポジトリを動かすと空の DB に切り替わり、すべてのファイルが記録の無いものとして出る。消したクローンの DB が残り続ける",
+      "alternative": "<git-common-dir>/sas/sas.db に置く。Git が無いときだけ .sas/sas.db に戻す"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "SAS を通らない変更を見つける問い合わせや trigger で、target_path だけを条件にして worktree を条件に入れ忘れる",
+      "check": "ワークツリーを2つ作り、同じパスに違う中身を SAS で書いてから、両方で sas validate を打ち、どちらにも untracked が出ないことを試験にする。マージのあとの main でも出ないことを同じ試験で確かめる"
+    },
+    {
+      "breaks": "直し ・ 時間切れの回数を数えるために、回ごとの表をまた足す",
+      "check": "migrations に session_turns ・ launched_sessions ・ sessions を作る文が無いことを、表の一覧（sqlite_master）を読む試験で確かめる"
+    },
+    {
+      "breaks": "エージェントが動いている間に書き込みのトランザクションを開いたままにする",
+      "check": "2つのプロセスから同時に sas update を打つ試験で、片方のエージェントが答えを返す前にもう片方が書き終えることを確かめる"
+    },
+    {
+      "breaks": "validate に launched_ref が渡されたとき、それを続けてしまう",
+      "check": "sas validate に --continue を付けたら invalid_input になる試験を置く"
+    }
+  ],
+  "records": [
+    {
+      "target": "design.json の 4_db",
+      "content": "表は operations ・ field_changes ・ rule_results の3つ。operations に worktree ・ actor ・ tool_ref ・ caller_ref ・ launched_ref ・ attempts ・ tokens を持ち、seq を外す。置き場所は <git-common-dir>/sas/sas.db、WAL、busy_timeout、書き込みは BEGIN IMMEDIATE"
+    },
+    {
+      "target": "design.json の 4_db（失ったとき）",
+      "content": "DB はバックアップしない作り直すデータである。消えたら空で作り直し、記録の無いファイルは「記録が無い」と出す"
+    },
+    {
+      "target": "plan.json のステップ6",
+      "content": "受け入れ基準から「記録とセッションを閉じるのは別のトランザクションで、session status が閉じ直す」を外し、「同じ request_id では起動しない」「同じ launched_ref への同時送信は busy」「別の caller_ref の launched_ref は断る」を足す"
+    }
+  ],
+  "next": [
+    "ステップ3 の trigger と問い合わせに worktree を足す直しを、2つのワークツリーとマージの試験から書く。",
+    "SQLite の WAL ・ busy_timeout ・ BEGIN IMMEDIATE の振る舞いを fact-check で原典と照合する。",
+    "Claude Code で同じセッション ID に同時に -p --resume したときの振る舞いを fact-check で確かめる。",
+    "DB の置き場所を <git-common-dir>/sas/sas.db に移し、ディレクトリを 0700 で作る。",
+    "design.json の 4_db と plan.json のステップ6 を、記録案のとおりに書き直す。"
+  ],
+  "related": [
+    { "criterion": "ops-04", "relation": "アプリケーションテレメトリ。attempts と tokens を操作の行に出すことが、SAS のテレメトリになる" },
+    { "criterion": "rel-05", "relation": "直しと時間切れの回数の上限、タイムアウトを自分で決める根拠" },
+    { "criterion": "cost-03", "relation": "caller_ref を操作ごとに持てば、目的ごとにトークンを配分できる" }
+  ]
+}

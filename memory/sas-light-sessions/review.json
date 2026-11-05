@@ -1,0 +1,127 @@
+{
+  "target": "SAS のセッション管理を軽くした形（context.md）と ddd ・ platform の直し",
+  "findings": [
+    {
+      "id": "R1",
+      "target": "ddd・platform：operations に worktree を足し、対象の最後の操作を（worktree, target_path）で引く",
+      "scenario": "ワークツリー /w/a で U10.json を SAS が書く（after_hash=h1）。main へマージ。main（/repo）で sas validate。main の行には（/repo, U10.json）が無いので、最後の操作との鎖が切れる。platform は「after_hash がどこかの行にあれば SAS を通った」で救うが、取り込みの trigger operations_adopt_follows（0003-adopt.sql）は before_hash を同じ対象の最後の after_hash に縛っているので、main で次に --adopt すると鎖の起点が決まらない。さらに /w/a を消して同じパスで別の目的のワークツリーを作ると、古い行が新しいワークツリーの行として拾われる",
+      "breaks": "worktree 列を足しても、マージ後 ・ ワークツリーの作り直しで「最後の状態」の鎖が誤る。列と trigger と問い合わせの3か所を直すことになり、足す量に見合わない",
+      "fix": "worktree 列を足さない。SAS を通ったかは（target_path, after_hash）の組がどこかの行にあるかで見る。取り込みの事前の値は、DB の最後の行ではなく、そのワークツリーの Git の HEAD の版（既に決めた version_reader：Git は読むだけ ・ 無ければ before_unavailable）から取る。各ワークツリーは自分の HEAD を持つので、ワークツリーの区別は Git が持つ。operations_adopt_follows は外す",
+      "severity": "high"
+    },
+    {
+      "id": "R2",
+      "target": "platform：SAS を通ったかは「その中身の after_hash がどこかの行にあるか」",
+      "scenario": "SAS が U10.json を書く（after_hash=h1）。人が cp U10.json U11.json。U11.json の中身の指紋も h1 なので、ハッシュだけで見ると SAS を通ったと判定され、取り込み（意図の付与）を求められない",
+      "breaks": "同じ中身の別ファイルが SAS を通らずに入る。リベースで中身が同じに戻った場合も同じ",
+      "fix": "照合は after_hash 単独でなく（target_path, after_hash）の組にする。名前を変えただけのファイルは「SAS を通らない変更」として取り込ませる（意図は任意の作成の取り込みで済む）",
+      "severity": "mid"
+    },
+    {
+      "id": "R3",
+      "target": "ddd：人だけが決める欄の呼び出し元を、--session に加えて環境変数（CLAUDE_CODE_SESSION_ID）でも見分ける",
+      "scenario": "(a) 人が Claude Code のプロンプトで `! sas update ... --patch '[{\"op\":\"replace\",\"path\":\"/status\",\"value\":\"approved\"}]'` を打つ。シェルには CLAUDE_CODE_SESSION_ID が入っているので AI と見なされ、人の欄を書けない。(b) Codex ・ Gemini の AI が --session を付け忘れる。環境変数が無いので人と見なされ、x-decided-by: human の欄を書けてしまう。(c) Agents Workspace の承認ボタンは人が押すがプログラムが sas を呼ぶ。環境変数の有無は起動のされ方しだい",
+      "breaks": "環境変数は Claude Code にしか効かず、人の誤判定（a）と AI のすり抜け（b）が両方残る。軽くした形が悪くした所ではなく、今の「--session が無ければ人」から続く弱さ",
+      "fix": "軽くした形の範囲では、守りを集約 Instance の書く前の検査に置く（ddd の直しの前半は採る）。環境変数での見分けは agent-connector の caller.env として足すが「AI と見分ける補助」と書き、守りの根拠にしない。人の入口の確かさ（TTY ・ 確認の入力 ・ 使う側の UI からの呼び方）はこの案の外の論点として残す（Agents Workspace の Q1 にも関わる）",
+      "severity": "mid"
+    },
+    {
+      "id": "R4",
+      "target": "ddd・platform：形の誤りの直しを同じセッションに送り直す ／ --continue <launched_ref> と fork",
+      "scenario": "照合済みの事実は「非対話で fork できるのは Claude Code と Codex だけ」。Gemini ・ Copilot で、ID を指定した -p の再開ができるかは未照合（ddd も未判定と書いた）。再開できないツールでは、形の誤りの直し（2回まで）を「同じ ID に -p で送り直す」形では行えない",
+      "breaks": "SAS の中のやり直しが、ツールの再開の能力に依存する。能力の無いツールでは意味の操作そのものが動かない",
+      "fix": "SAS の中のやり直しは、ツールの再開に頼らない形にする：新しく起動し、プロンプトに前の答えと検査の誤りを入れる。これでどのツールでも動き、launched_ref の続きを SAS 自身が使う場面が無くなる。--continue ・ --fork は呼び出し元が明示したときだけの任意の旗にし、agent-connector の capabilities に無ければ unsupported_capability で断る（既にある決まり）",
+      "severity": "high"
+    },
+    {
+      "id": "R5",
+      "target": "platform：request_id はエージェントを起動する前に引き、済んでいれば前の結果を返す",
+      "scenario": "Agents Workspace が時間切れと誤って同じ request_id=r1 で2回 sas update を打つ。2つのプロセスが同時に「r1 はまだ無い」を読み、両方がエージェントを起動する。書き込みで片方が一意索引に断られるが、トークンは2回分使う。起動後 ・ 記録前に落ちると、呼び直しで再び起動する",
+      "breaks": "「起動前に引く」だけでは、同時の呼び直しの二重起動を防げない",
+      "fix": "launched_ref のロックと同じ仕組みで、request_id ごとのファイルのロックを起動の前に取る（取れなければ busy）。落ちたあとの再起動は「少なくとも1回」と決めて受け入れる。表は足さない",
+      "severity": "mid"
+    },
+    {
+      "id": "R6",
+      "target": "platform：DB の置き場所を <git-common-dir>/sas/sas.db",
+      "scenario": "利用者の言葉は「リポジトリ内に持つ必要ってない…コミットしないし」。.git の中は作業ツリーではなくコミットされないが、リポジトリのフォルダの中ではある。XDG（~/.local/share/sas/<パスの識別>）だと、リポジトリを ~/work/x から ~/src/x へ動かすと空の DB に切り替わり、消したクローンの DB が残る",
+      "breaks": "どちらを選んでも利用者の言葉と一字一句は合わない所がある。黙って .git の中にすると「外に置く」と言ったのに中に置いたと受け取られる",
+      "fix": "platform の案（<git-common-dir>/sas/sas.db、Git が無いときだけ .sas/sas.db）を採り、利用者には「作業ツリーの外 ・ コミットされない ・ ワークツリーで共通 ・ リポジトリと一緒に動き一緒に消える」の理由を添えて確かめる。設定の db_path で上書きできる形は残す",
+      "severity": "mid"
+    },
+    {
+      "id": "R7",
+      "target": "ddd：文脈「立てたセッション」を外し、文脈を1つに戻す",
+      "scenario": "文脈を2つにした決定（コミット 9519cffa）は 2026-10-31 に利用者が承認したばかり。ddd の理由（分けた根拠の「セッションを2つのモデルで持つ」が消える）は筋が通るが、別のセッションがこの決定の上でステップ3 を進めている",
+      "breaks": "承認済みの決定を、変更前後を見せずに覆すことになる",
+      "fix": "意見として渡すときは「承認済みの文脈2つを1つに戻す提案」と明記し、変更前後（context_map と業務領域「意味の操作」の置き場所）を並べて承認を求める。意味の操作をセッションで切ったのでなく別の言葉のずれがあるなら2つのままでよい、という判断の余地も残す",
+      "severity": "high"
+    },
+    {
+      "id": "R8",
+      "target": "platform：--session は誰が呼んだかの値に限り、呼び出し元の動いているセッションへは送らない",
+      "scenario": "利用者の言葉「基本的には -p で呼ぶにしても同じセッション ID を与えてそのセッションに送るはず」「SAS を動かすセッション ID さえわかれば -p で送れる」。Claude Code が工程の途中で sas create（意味の作成）を呼んでいる最中に、SAS がその同じセッションへ -p --resume で送ると、動いている回の中に別の回が入る",
+      "breaks": "利用者の言葉と食い違って見える。説明が無いと「言ったことと逆」と受け取られる",
+      "fix": "役割を分けて書く：呼び出し元のセッションへ -p で送るのは使う側（Agents Workspace）の仕事で、利用者の言葉はそこに当てはまる。SAS が送るのは自分が起動したセッションか、呼び出し元の fork だけ。SAS が呼び出し元のセッションに送らない理由は「呼ばれている最中のセッションだから」",
+      "severity": "mid"
+    },
+    {
+      "id": "R9",
+      "target": "ddd：validate の launched_ref は一意で tool_ref と違う、を部分一意索引と CHECK で守る",
+      "scenario": "R4 の直しで SAS は validate を必ず新しく起動し、--continue を validate で受けない（invalid_input）。DB の制約が守るものは、CLI の入口で既に断っている",
+      "breaks": "足しすぎ。制約が増えるほど移行のときに作り直す量が増える",
+      "fix": "DB の制約は足さず、platform の試験（validate に --continue を付けたら invalid_input）だけにする",
+      "severity": "low"
+    },
+    {
+      "id": "R10",
+      "target": "platform：operations に attempts ・ tokens を足す",
+      "scenario": "DB の役目は「分析程度」。トークンはツール自身の記録（Claude Code なら ~/.claude/projects の記録）に launched_ref で辿れる",
+      "breaks": "tokens はツールごとに返す欄が違い（design.json の tokens は「ツールが返す分だけ」）、空の多い列になる",
+      "fix": "attempts は残す（やり直しの上限を後から確かめる材料）。tokens は外し、launched_ref から辿る",
+      "severity": "low"
+    },
+    {
+      "id": "R11",
+      "target": "軽くした形をいつ実装へ入れるか（2人とも触れていない）",
+      "scenario": "実装済みの 0001-validate.sql は sessions 表を持ち、operations.session_id が外部キーで指す。人のセッションを使い回す処理が sqlite の lib.rs にある。ステップ3 は 0003-adopt.sql の取り込みの trigger を作っている最中",
+      "breaks": "ステップ6 まで待つと、sessions を前提にした行と trigger がステップ3〜5 で増え、外すときの移行が大きくなる",
+      "fix": "承認されたら、R1 の直し（取り込みの事前を HEAD から取る）と同じステップ3 で、sessions を外す移行（actor ・ tool_ref を operations へ写す、seq と閉じたセッションの trigger を外す）を入れる",
+      "severity": "mid"
+    },
+    {
+      "id": "R12",
+      "target": "利用者の決定との照合",
+      "scenario": "事業領域は文脈ではない ・ SAS の範囲 ・ 書くのは SAS だけ ・ DB はコミットしない ・ DDL は公開しない、の5つを2人の直しと照らした",
+      "breaks": "反する所は無い。ただし R6（置き場所の言葉）・ R7（承認済みの文脈）・ R8（-p の言葉）は説明が要る",
+      "fix": "意見として渡すときに、この3つを「利用者の言葉との関係」として1行ずつ書く",
+      "severity": "low"
+    }
+  ],
+  "final_shape": {
+    "tables": "operations ・ field_changes ・ rule_results の3つ。sessions ・ launched_sessions ・ session_turns は外す。operations の列：id ・ request_id ・ kind ・ source（sas ・ outside）・ target_kind ・ target_path ・ concrete_ref ・ before_hash ・ after_hash ・ intent ・ refusal_code ・ actor（human ・ ai_agent。記録であって守りではない）・ adapter ・ tool_ref ・ caller_ref ・ launched_ref ・ attempts ・ cause_id ・ at。seq と worktree は持たない",
+    "flags": "--session <ツールのセッション ID>（誰が呼んだか）／ --caller <使う側の参照>（操作1件ごと）／ --request-id ／ --intent ／ --if-match ／ --continue <launched_ref> と --fork（任意。能力が無ければ unsupported_capability。validate では invalid_input）。session-close ・ session-status ・ session-spec の lifetime ・ context ・ new は外す",
+    "rules": [
+      "人だけが決める欄は、集約 Instance が書く前に断る（環境変数は AI と見分ける補助）",
+      "validate は毎回新しく起動し、続けない",
+      "形の誤りの直しと時間切れのやり直しは、新しく起動し前の答えと誤りをプロンプトに入れる（ツールの再開に頼らない）。上限は直し2回 ・ 時間切れ2回",
+      "SAS を通ったかは（target_path, after_hash）の組が行にあるかで見る。取り込みの事前の値はそのワークツリーの Git の HEAD の版、無ければ before_unavailable",
+      "request_id と launched_ref ごとにファイルのロックを起動の前に取り、取れなければ busy。落ちたあとの再起動は少なくとも1回",
+      "DB は <git-common-dir>/sas/sas.db（Git が無ければ .sas/sas.db、db_path で上書き可）、WAL ・ busy_timeout ・ BEGIN IMMEDIATE（照合待ち）、0700/0600。消えたら空で作り直し「記録が無い」と出す",
+      "使う側が読むのは CLI の出力（schemas/v1）だけ。operation-result に launched_ref と caller_ref を返す",
+      "SAS は呼び出し元の動いているセッションに送らない。そこへ -p で送るのは使う側"
+    ],
+    "context": "文脈「立てたセッション」は外して1つに戻す案。ただし承認済みの決定（9519cffa）を変えるので、変更前後を見せて承認を求める",
+    "timing": "承認されたらステップ3 で sessions を外す移行を入れる"
+  },
+  "disagreements": [
+    {"topic": "DB の置き場所", "ddd": "触れていない（context.md の XDG 案のまま）", "platform": "<git-common-dir>/sas/sas.db", "view": "platform を採る。リポジトリを動かしても切り替わらず、消せば一緒に消える。利用者には理由を添えて確かめる（R6）"},
+    {"topic": "ワークツリーの見分け", "ddd": "operations に worktree を足し（worktree, target_path）で最後の操作を引く", "platform": "worktree を足し、SAS を通ったかはワークツリーを問わず after_hash で見る", "view": "どちらも採らない。worktree 列は持たず、（target_path, after_hash）の照合と Git の HEAD で足りる（R1 ・ R2）"},
+    {"topic": "形の誤りの直し方", "ddd": "同じ ID に -p で送り直す（他のツールは未照合）", "platform": "--continue <launched_ref> で続け、同時送信をロック", "view": "新しく起動して前の答えと誤りを渡す形にし、SAS の中では再開を使わない（R4）"},
+    {"topic": "seq", "ddd": "触れていない", "platform": "seq と seq の trigger を外す", "view": "platform を採る。セッションが無ければ seq の意味が無く、順は at と rowid で足りる"},
+    {"topic": "validate の独立の守り方", "ddd": "部分一意索引と CHECK", "platform": "--continue を付けたら invalid_input の試験", "view": "platform を採る。DB の制約は足さない（R9）"},
+    {"topic": "adapter 列", "ddd": "足す（同じツールで再開するため）", "platform": "触れていない", "view": "ddd を採る。--continue を受けるときにどのツールで起動したかが要る"},
+    {"topic": "tokens ・ attempts", "ddd": "触れていない", "platform": "両方足す", "view": "attempts だけ足す（R10）"},
+    {"topic": "文脈の数", "ddd": "「立てたセッション」を外して1つに戻す", "platform": "触れていない", "view": "ddd の理由は採れるが、承認済みの決定の変更として出す（R7）"}
+  ]
+}

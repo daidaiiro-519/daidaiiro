@@ -1,0 +1,296 @@
+{
+  "kind": "judgment",
+  "question": "Semantic Agent Schema（SAS）のセッション管理を「軽くした形」（sessions ・ launched_sessions ・ session_turns を外し、操作の行に actor ・ tool_ref ・ caller_ref ・ launched_ref を持つ）にしてよいか",
+  "premises": [
+    {
+      "name": "SAS は事業領域",
+      "value": "SAS は区切られた文脈ではない。業務領域は見つけるもの、文脈は設計するもの、対応は1対1に限らない。覆さない",
+      "source": "利用者の決定（2026-10-30）"
+    },
+    {
+      "name": "SAS の範囲",
+      "value": "目的 ・ 目的のセッション ・ 変更の記録 ・ 承認とコミットは SAS の外。SAS は型の作成 ・ 更新 ・ 削除 ・ 検証 ・ 描画 ・ 検索を担い、書くのは SAS だけ",
+      "source": "利用者の決定（2026-10-31）"
+    },
+    {
+      "name": "いまの文脈は2つ",
+      "value": "「スキーマとインスタンス」（スキーマへの適合 ・ 操作の記録 ・ 描画）と「立てたセッション」（意味の操作）。分けた根拠は「セッション」の語で同じ物を2つのモデルで持っていたこと",
+      "source": "arch-v15.json の context_map ・ コミット 9519cffa"
+    },
+    {
+      "name": "人だけが決める欄の守り",
+      "value": "いまの実装は DB の sessions を見ていない。--session の有無から呼び出し元を決め（caller.rs）、Instance の集約が書く前に断る（conformance/domain の instance.rs）",
+      "source": "実装（ステップ2 まで）"
+    },
+    {
+      "name": "DB の役目",
+      "value": "コミットしない。動いているセッションを回すためで、記録は分析程度。使う側に出すのは ID と CLI の出力の形（schemas/v1）だけ",
+      "source": "利用者の決定"
+    },
+    {
+      "name": "ID でセッションへ送り直せるか（未判定）",
+      "value": "非対話で fork できるのは Claude Code と Codex だけと照合済み。ほかのツールで ID を指定して -p で送り直せるかは、読めなかった頁があり未判定。形の誤りの直しのやり方がこれで変わる",
+      "source": "design.json の fact_check ・ plan.json のステップ6 の factcheck"
+    },
+    {
+      "name": "DB をリポジトリの外に置くこと",
+      "value": "置き場所と識別（git rev-parse --git-common-dir）は判断基準の範囲外。ここでは、ワークツリーをまたいで1つにしたときにモデルへ出る影響（対象の見分け方）だけを扱う",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "直して採る ── セッションの集約2つと文脈「立てたセッション」は外してよいが、業務領域「意味の操作」は残して「スキーマとインスタンス」へ入れ、validate の独立 ・ 人の欄の守り ・ 対象の見分け方の3点を直してから採る。",
+    "because": "「セッション」を SAS の中でモデルとして持たなくなれば、文脈を分けた根拠（競合する2つのモデル）が消えるので、1つの文脈へ戻すのが区切られた文脈の規則に合う。一方で、補完の業務領域に寿命 ・ 再開 ・ 8つの終わり方のドメインモデルを持つのは要件を複雑にしている兆候で、外す方向が判断基準に合う。"
+  },
+  "figure": {
+    "caption": "軽くした形の文脈の地図。SAS の中は文脈1つ・業務領域4つになり、使う側とは公開された言葉だけでつながる",
+    "nodes": [
+      {
+        "id": "aw",
+        "label": "Agents Workspace（目的とセッションの表を持つ）",
+        "role": "使う側"
+      },
+      {
+        "id": "pl",
+        "label": "公開された言葉：CLI の出力の形 schemas/v1 ・ --session ・ --caller ・ launched_ref",
+        "role": "境界"
+      },
+      {
+        "id": "si",
+        "label": "文脈「スキーマとインスタンス」：スキーマへの適合 ・ 操作の記録 ・ 描画 ・ 意味の操作",
+        "role": "SAS の文脈"
+      },
+      {
+        "id": "op",
+        "label": "集約「操作」（actor ・ adapter ・ tool_ref ・ caller_ref ・ launched_ref ・ worktree を値で持つ）",
+        "role": "集約"
+      },
+      {
+        "id": "ad",
+        "label": "AI のツールのアダプター（call をプロンプトと起動に直す）",
+        "role": "アダプター"
+      },
+      {
+        "id": "tool",
+        "label": "AI のツール（Claude Code ・ Codex など）",
+        "role": "外"
+      },
+      {
+        "id": "gone",
+        "label": "外す：文脈「立てたセッション」・ 集約「SAS が立てたセッション」・ 集約「呼び出し元のセッション」",
+        "role": "外すもの"
+      }
+    ],
+    "edges": [
+      {
+        "from": "aw",
+        "to": "pl",
+        "label": "読むのはここだけ（従属）"
+      },
+      {
+        "from": "pl",
+        "to": "si",
+        "label": "共用サービス"
+      },
+      {
+        "from": "si",
+        "to": "op",
+        "label": "記録する"
+      },
+      {
+        "from": "si",
+        "to": "ad",
+        "label": "起動 ・ 送り直しを頼む"
+      },
+      {
+        "from": "ad",
+        "to": "tool",
+        "label": "-p ・ --resume ・ fork"
+      },
+      {
+        "from": "gone",
+        "to": "si",
+        "label": "業務領域「意味の操作」だけ移す",
+        "dashed": true
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "いまの設計のまま（文脈2つ、集約「SAS が立てたセッション」と「呼び出し元のセッション」、session_turns）",
+      "effect": "再開の決まり5つ ・ 終わり方8つ ・ 回の記録を DB の制約で守れるが、補完の業務領域にドメインモデルを持ち、ステップ6・7 の作る量が大きく、使う側が SAS のセッションの情報に寄りかかる誘いが残る",
+      "chosen": false
+    },
+    {
+      "option": "案のまま軽くする（操作の行だけ。人の欄は actor で守る。直しは同じ ID へ送り直す）",
+      "effect": "セッションのモデルは消えるが、validate を新しいセッションに固定する決まりの置き場が無く、人の欄の守りを記録の欄に取り違え、ワークツリーをまたぐと同じパスの対象が混ざる",
+      "chosen": false
+    },
+    {
+      "option": "直して軽くする（文脈を1つに戻し、意味の操作をモジュールで残す。validate の独立 ・ 人の欄の守り ・ 対象の見分け方 ・ adapter の欄を直す）",
+      "effect": "セッションの寿命は呼び出し元とツールが持ち、SAS は型の操作と記録に絞られる。守るべき決まりは、操作の依頼の形 ・ 集約 Instance ・ 部分一意索引で機械に検査させられる",
+      "chosen": true
+    }
+  ],
+  "path": [
+    {
+      "ask": "業務領域として何を失うか",
+      "answer": "何も失わない。業務領域「意味の操作」（エージェントに手順で書かせ、答えを機械で確かめて書く）は見つけたものなので残り、失うのはその中の集約「SAS が立てたセッション」だけである。"
+    },
+    {
+      "ask": "文脈「立てたセッション」は残るか",
+      "answer": "消える。SAS の中で「セッション」がモデルでなくなり、ツールのセッション ID という値だけになるので、分けた根拠の競合するモデルが無くなる。"
+    },
+    {
+      "ask": "意味の操作はどの文脈へ入るか",
+      "answer": "「スキーマとインスタンス」へ入れ、semantic-operations/ のモジュールの境界で分けておく。1つの文脈が複数の業務領域を持つのは規則どおりである。"
+    },
+    {
+      "ask": "集約として何を失うか",
+      "answer": "集約「SAS が立てたセッション」（不変条件 ①〜⑦）と「呼び出し元のセッション」（開いている人のセッションは1つ）を失い、集約「操作」の ②閉じたセッションに足さない ・ ③セッションごとの続き番号も外れる。"
+    },
+    {
+      "ask": "失ってよいか",
+      "answer": "よい。どれも操作の一貫性に要るデータではなく、セッションの寿命の管理は競争優位を生まない補完の仕事で、閉じる ・ 状態を読む操作はどのツールにも無いと照合済みである。"
+    },
+    {
+      "ask": "「続ける ・ 引き継ぐ ・ 再開は呼び出し元が決める」は関係の型として妥当か",
+      "answer": "妥当である。SAS が上流の共用サービスとして公開された言葉（ID と schemas/v1 の出力）だけを出し、Agents Workspace はそれに従属して自分のセッションのモデルを持つので、2つのモデルが混ざらない。"
+    },
+    {
+      "ask": "validate を新しいセッションに固定する決まりは誰が持つか",
+      "answer": "業務領域「意味の操作」が持つ。operation-request の validate が --session の送り先も launched_ref も受けない形にし、毎回新しく起動して、その launched_ref を操作の行に残す。"
+    },
+    {
+      "ask": "形の誤りの直しは誰が持つか",
+      "answer": "意味の操作のユースケースが1回の CLI の実行の中で回す。回数の上限は設定で持ち、表は要らない。ID で送り直せないツールでは、前の答えを付けて新しく起動する（能力は接続の定義が持つ）。"
+    },
+    {
+      "ask": "人だけが決める欄は誰が守るか",
+      "answer": "いまと同じく集約 Instance が書く前に断る。操作の行の actor は記録であって守りではないので、案の「actor で守る」は書き直す。"
+    },
+    {
+      "ask": "ほかに直す所はあるか",
+      "answer": "DB をワークツリーをまたいで1つにすると、「SAS を通らない変更」を target_path の最後の after_hash で見る判定が別のワークツリーの操作と混ざる。対象を（worktree, target_path）で見分ける。"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：細かく分割しすぎない ・ 理由：細かく分けすぎると、文脈どうしを組み合わせて全体を組み立てる作業がやっかいになる"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "物理的な境界は1つだが、内部には業務領域ごとの論理的な境界（名前空間 ・ モジュール ・ パッケージ）が存在する"
+    },
+    {
+      "criterion": "subdomain",
+      "quote": "業務領域は事業方針から決まり、発見するものである。区切られた文脈はソフトウェア技術者が設計するものである。両者を一対一に限定しない"
+    },
+    {
+      "criterion": "subdomain",
+      "quote": "不一致：業務担当者は補完と考えるが、実装にはドメインモデルかイベント履歴式ドメインモデルを必要とする ・ 可能性：業務担当者が必要以上に創造性を発揮し、要件を複雑にしている（よくある） ・ 対応：要件を単純にする"
+    },
+    {
+      "criterion": "subdomain",
+      "quote": "条件：補完 ・ 対応：高速開発を重視したフレームワークで、単純な業務ロジックを実装する ・ 理由：業務ロジックが単純で変更も少なく、精緻な設計や高度な開発技法は不要である"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "対応：一貫性を保証する対象を、集約の業務ロジックが必要とするデータだけに限定し、集約をできるだけ小さく設計する ・ 理由：集約の全体が1つのトランザクションの単位なので、大きくすると不必要に複雑になり、性能やスケーラビリティが低下しやすい"
+    },
+    {
+      "criterion": "aggregate",
+      "quote": "問い：結果的に整合していればよい情報か ・ 「はい」なら：境界の外側（例：別の集約）に置き、ID で参照する"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "公開された言葉：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：外部に公開するインターフェースを、内部のモデルから分離する ・ 理由：上流のモデルを変更しても下流に影響しない。公開するモデルと内部の実装を、別々の時期に変更できる"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "得られること：実装の複雑さの隠蔽 ・ 内容：公開された言葉は、連係の要件に合わせて設計した限定されたモデルだけを公開し、利用者に関係の無い実装の複雑さを外から隠す。例：最小限のデータだけを、使いやすいモデルにして利用者に公開できる"
+    },
+    {
+      "criterion": "conformist",
+      "quote": "条件：上流の提供内容が、下流のニーズを十分に満たす ・ 対応：下流が上流のモデルを受け入れ、従属を選択できる"
+    },
+    {
+      "criterion": "anticorruption-layer",
+      "quote": "場合：供給側の契約が頻繁に変更される ・ 理由：頻繁な変更から自分のモデルを保護し、供給側の変更が影響する範囲を限定できる"
+    },
+    {
+      "criterion": "design-heuristics",
+      "quote": "観点：業務ロジックの中身 ・ 複雑：入り組んだ業務ルール・不変条件・最適化アルゴリズムを持つ ・ 単純：入力データの検証が中心である"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "案の「人だけが決める欄は、操作の行の actor で守る」",
+      "risk": "actor は書いたあとの記録なので、書く前に断る守りにならない。記録の欄を守りと取り違えると、集約 Instance の検査を外してよいと読まれる",
+      "alternative": "守りは集約 Instance の書く前の検査に置いたままにし、actor は記録の欄と書く。呼び出し元の見分けは --session に加えて環境変数（Claude Code の CLAUDE_CODE_SESSION_ID など）も読み、AI が --session を付け忘れても人と見なさない"
+    },
+    {
+      "name": "（推測）validate の判定を呼び出し元のセッションへ送る",
+      "risk": "「呼び出し元が ID を渡し、SAS が同じ ID に送る」を validate にも当てると、書いた側の文脈で判定することになり、判定の独立が失われる",
+      "alternative": "operation-request の validate は --session の送り先も launched_ref も受けない形のままにし、毎回新しく起動する。操作の行の launched_ref に、validate の中で一意 ・ tool_ref と違う、の制約を付けて機械で確かめる"
+    },
+    {
+      "name": "（推測）ワークツリーをまたぐ1つの DB で、対象をパスだけで見分ける",
+      "risk": "目的 A と B のワークツリーが同じ requirements/usecases/U10.json を別々に直すと、片方の操作がもう片方の「SAS を通らない変更」に見え、取り込みの事前の値（集約「操作」⑥）も別のワークツリーの事後になる",
+      "alternative": "操作の行に worktree（ワークツリーの絶対パス）を持ち、「対象の最後の操作」を（worktree, target_path）で引く"
+    },
+    {
+      "name": "（推測）使う側が SAS の DB を直接読む",
+      "risk": "Agents Workspace が SAS の表を読むと、SAS の内部のモデルを変えるたびに使う側が壊れ、DDL を公開しない決定とも合わない",
+      "alternative": "使う側が読むのは CLI の出力（schemas/v1）だけにし、操作を引く道は sas read の出力の形で出す"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "ステップ6・7 の計画に残る launched_sessions ・ session_turns ・ resume_rule ・ session-close ・ session-status を、そのまま実装してしまう",
+      "check": "plan.json と design.json を grep し、launched_sessions ・ session_turns ・ resume_decision ・ session-close ・ session-status が残っていないことを確かめる"
+    },
+    {
+      "breaks": "validate の起動で、呼び出し元の tool_ref か前の launched_ref を --resume に渡してしまう",
+      "check": "試験で、validate の操作の launched_ref が tool_ref と違い、ほかの validate の launched_ref とも重ならないことを DB の部分一意索引と CHECK で確かめる"
+    },
+    {
+      "breaks": "人の欄の検査を、操作の行の actor を見る後からの検査に置き換えてしまう",
+      "check": "--session 付き（と環境変数あり）の呼び出しで x-decided-by: human の欄を書く試験が、書く前に断られ、ファイルも操作の行も増えないことを確かめる"
+    }
+  ],
+  "related": [
+    {
+      "criterion": "partnership",
+      "relation": "いまの2つの文脈の関係（緊密な協力）。文脈を1つに戻すとこの関係は消える"
+    },
+    {
+      "criterion": "separate-ways",
+      "relation": "使う側が SAS を通さず自分で Git の差分だけで回す道。承認が Git の差分で回るので、SAS の情報への依存は持たなくてよい"
+    }
+  ],
+  "next": [
+    "arch-v15.json の context_map から文脈「立てたセッション」を外し、業務領域「意味の操作」を「スキーマとインスタンス」へ移す。",
+    "design.json の 4_db から sessions ・ launched_sessions ・ session_turns を外し、operations に actor ・ adapter ・ tool_ref ・ caller_ref ・ launched_ref ・ worktree を足す。",
+    "operations に「validate の launched_ref は一意で tool_ref と違う」の部分一意索引と CHECK を書く。",
+    "「SAS を通らない変更」の判定と取り込みの事前の値を、（worktree, target_path）で引く形に直す。",
+    "context.md の「人だけが決める欄は actor で守る」を「集約 Instance が書く前に断り、actor は記録する」に書き直す。",
+    "operation-request から session-close ・ session-status と session-spec の lifetime ・ context ・ new を外し、--resume <launched_ref> と --fork の旗に置き換える。",
+    "plan.json のステップ6・7 の受け入れ基準から再開の決まりの5つの値と終わり方8つを外す。",
+    "ID を指定して -p で送り直せるかを、Gemini ・ Copilot など読めなかった頁で fact-check に照合させる。"
+  ]
+}
