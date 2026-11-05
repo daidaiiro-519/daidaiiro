@@ -168,7 +168,7 @@
       }
     },
     "validated": {
-      "description": "検証した。JSON ドキュメント1つの結果",
+      "description": "検証した。JSON ドキュメント1つの結果。変更点に当たる組（判定の prompt の組と同じ）は not-judged の judgment になる",
       "type": "object",
       "required": [
         "event",
@@ -235,26 +235,41 @@
           }
         },
         "instruction": {
-          "description": "violated の judgment があるときの、AI への直し方の文",
+          "description": "violated の judgment があるときの、AI への直し方の文。violated が無く not-judged があるときは、意味的な検証を依頼する文",
           "type": "string",
           "minLength": 1
         },
         "next": {
-          "description": "violated の judgment があるときの、次に実行するコマンド行。AI が埋める部分だけを <…> で空けておく",
+          "description": "violated の judgment があるときの、次に実行するコマンド行。violated が無く not-judged があるときは semantic validate。AI が埋める部分だけを <…> で空けておく",
           "type": "string",
           "minLength": 1
         }
       },
       "if": {
-        "properties": {
-          "counts": {
+        "anyOf": [
+          {
             "properties": {
-              "violated": {
-                "minimum": 1
+              "counts": {
+                "properties": {
+                  "violated": {
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "counts": {
+                "properties": {
+                  "not-judged": {
+                    "minimum": 1
+                  }
+                }
               }
             }
           }
-        }
+        ]
       },
       "then": {
         "required": [
@@ -280,7 +295,7 @@
       }
     },
     "judgment_requested": {
-      "description": "判定の prompt を返した。counts は、機械的な検証の judgment と、変更点でない instance location から引き継いだ AI の judgment の件数。変更点が無ければ prompt の steps は空",
+      "description": "判定の prompt を返した。counts は、機械的な検証の judgment と、変更点でない instance location から引き継いだ AI の judgment と、これから判定する組（not-judged）の件数。判定する組が無ければ、このログイベントでなく validated を返す",
       "type": "object",
       "required": [
         "event",

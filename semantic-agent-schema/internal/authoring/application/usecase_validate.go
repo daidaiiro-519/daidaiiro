@@ -53,18 +53,19 @@ func (u Validate) one(ctx context.Context, path domain.Path) (int64, *domain.Val
 
 // checked は、機械的な検証の結果。JSON ドキュメント ・ その値 ・ Concrete ・ JSON Schema の違反 ・ 作法の違反を持つ。
 type checked struct {
-	document   domain.Document
-	value      any
-	concrete   domain.Concrete
-	violations []domain.Violation
-	convention []domain.Violation
+	document    domain.Document
+	value       any
+	concrete    domain.Concrete
+	violations  []domain.Violation
+	convention  []domain.Violation
+	forConcrete bool // JSON ドキュメントが Abstract に従う Concrete か
 }
 
 // input は、検証を作る入力を返す。previous は、引き継ぐ AI の judgment の出どころ（無ければ nil）。
 func (c checked) input(previous *domain.Previous) domain.ValidationInput {
 	return domain.ValidationInput{
 		Document: c.document, Value: c.value, Concrete: c.concrete,
-		Violations: c.violations, Convention: c.convention, Previous: previous,
+		Violations: c.violations, Convention: c.convention, Previous: previous, ForConcrete: c.forConcrete,
 	}
 }
 
@@ -104,7 +105,10 @@ func mechanical(ctx context.Context, documents Documents, schemas Schemas, valid
 	if schemaID == abstractID {
 		convention = domain.Convention(value)
 	}
-	return checked{document: document, value: value, concrete: concrete, violations: violations, convention: convention}, nil
+	return checked{
+		document: document, value: value, concrete: concrete, violations: violations, convention: convention,
+		forConcrete: schemaID == abstractID,
+	}, nil
 }
 
 // satisfiesAbstract は、機械的な検証（JSON Schema）。Concrete を Abstract で検証し、違反があれば Concrete の path を持つ

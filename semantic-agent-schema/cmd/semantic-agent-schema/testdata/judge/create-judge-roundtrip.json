@@ -1,5 +1,5 @@
 {
-  "title": "作成したあと、判定の prompt を依頼し、prompt に従って作った judgments を渡すと、judgment を記録して judged を返し、次の検証は judgment を引き継ぐ",
+  "title": "作成したあと、判定の prompt を依頼し、prompt に従って作った judgments を渡すと、judgment を記録して judged を返し、次の検証は judgment を引き継ぐ。判定する組が無ければ、判定の prompt でなく validated を返す",
   "files": {
     "schemas/plan.json": {
       "$fixture": "plan.schema.json"
@@ -39,7 +39,7 @@
             "verified": 0,
             "violated": 0,
             "unverified": 0,
-            "not-judged": 0
+            "not-judged": 2
           },
           "/prompt/path": "plan.json",
           "/prompt/hash": {
@@ -118,7 +118,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "/prompt/instruction": "path のファイルを読み、steps の組ごとに、keywordLocation で subschemas から引く x-prompt の rule（id が step の rule）に照らして、instanceLocation の値を判定する。判定を response の形の JSON にし、hash はそのまま写して next を実行する"
         }
       ]
     },
@@ -163,7 +164,8 @@
         {
           "/event": "validated",
           "/id": 2,
-          "/counts/verified": 2
+          "/counts/verified": 2,
+          "/counts/not-judged": 0
         }
       ]
     },
@@ -178,9 +180,10 @@
       "exit": 0,
       "events": [
         {
-          "/event": "judgment_requested",
+          "/event": "validated",
+          "/id": 3,
           "/counts/verified": 2,
-          "/prompt/steps": []
+          "/counts/not-judged": 0
         }
       ]
     }

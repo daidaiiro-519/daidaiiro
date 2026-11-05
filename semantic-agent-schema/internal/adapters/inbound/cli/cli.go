@@ -270,11 +270,14 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		}
 		return out.written(args, id, creation)
 	case args.Command == "validate" && args.Semantic:
-		prompt, counted, err := uc.Judge.Prompt(ctx, paths[0], args.All)
+		request, err := uc.Judge.Prompt(ctx, paths[0], args.All)
 		if err != nil {
 			return out.failures(args, err)
 		}
-		return out.requested(args, prompt, counted)
+		if request.Prompt == nil {
+			return out.validation(args, request.ID, request.Validation)
+		}
+		return out.requested(args, request.Prompt, request.Validation)
 	case args.Command == "validate" && args.Judgments != nil:
 		id, validation, err := uc.Judge.Run(ctx, paths[0], content, args.All)
 		if err != nil {

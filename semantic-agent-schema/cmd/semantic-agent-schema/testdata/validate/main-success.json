@@ -1,5 +1,5 @@
 {
-  "title": "範囲の JSON ドキュメントが Concrete を満たすと、violated が0件の counts を返し、検証するたびに操作の ID が付く",
+  "title": "範囲の JSON ドキュメントが Concrete を満たすと、violated が0件の counts を返し、まだ判定していない rule と instance location の組を not-judged として数えて semantic validate の next を返す。検証するたびに操作の ID が付く",
   "files": {
     "schemas/order.json": {
       "$fixture": "order.schema.json"
@@ -31,11 +31,20 @@
           "/contentHash": {
             "$sha256": "order.json"
           },
-          "/judgments": [],
+          "/judgments": [
+            {
+              "rule": "price-tax",
+              "instanceLocation": "/items/0/price",
+              "verdict": "not-judged",
+              "by": "ai",
+              "reason": "意味的な検証で、まだ判定していない"
+            }
+          ],
           "/counts/verified": 0,
           "/counts/violated": 0,
           "/counts/unverified": 0,
-          "/counts/not-judged": 0
+          "/counts/not-judged": 1,
+          "/next": "semantic-agent-schema semantic validate order.json --schemas schemas"
         }
       ]
     },

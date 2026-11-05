@@ -22,7 +22,8 @@ type output struct {
 	codes             map[string]template
 	violatedByMachine template
 	violatedByAI      template
-	promptNext        template
+	notJudged         template
+	prompt            promptTemplate
 	createdNext       template
 	updatedNext       template
 }
@@ -35,8 +36,18 @@ type template struct {
 	ArgumentInstruction string `json:"argumentInstruction"`
 }
 
-// next は、コマンドの next の形を返す。semantic の有無と、--judgments ・ --matches の有無でも分け、無ければコマンド、次に * の形を使う。
-func (t template) next(args arguments) string {
+// promptTemplate は、error-codes.json の prompt の、コマンドごとの instruction と next の形。
+type promptTemplate struct {
+	Instruction map[string]string `json:"instruction"`
+	Next        map[string]string `json:"next"`
+}
+
+// next は、コマンドの next の形を返す。
+func (t template) next(args arguments) string { return pick(t.Next, args) }
+
+// pick は、コマンドごとの形から、コマンドの形を返す。semantic の有無と、--judgments ・ --matches の有無でも分け、
+// 無ければコマンド、次に * の形を使う。
+func pick(forms map[string]string, args arguments) string {
 	key := args.Command
 	switch {
 	case args.Semantic:
@@ -47,8 +58,8 @@ func (t template) next(args arguments) string {
 		key += " --matches"
 	}
 	for _, k := range []string{key, args.Command, "*"} {
-		if next, ok := t.Next[k]; ok {
-			return next
+		if form, ok := forms[k]; ok {
+			return form
 		}
 	}
 	return ""
@@ -63,7 +74,8 @@ func newOutput(w io.Writer) (*output, error) {
 		Codes     map[string]template `json:"codes"`
 		ByMachine template            `json:"violated_by_machine"`
 		ByAI      template            `json:"violated_by_ai"`
-		Prompt    template            `json:"prompt"`
+		NotJudged template            `json:"not_judged"`
+		Prompt    promptTemplate      `json:"prompt"`
 		Created   template            `json:"created"`
 		Updated   template            `json:"updated"`
 	}
@@ -72,7 +84,7 @@ func newOutput(w io.Writer) (*output, error) {
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	return &output{encoder: encoder, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, promptNext: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
+	return &output{encoder: encoder, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, notJudged: file.NotJudged, prompt: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
 }
 
 func (o *output) exit() int {
@@ -217,7 +229,8 @@ type validatedEvent struct {
 	Next        string          `json:"next,omitempty"`
 }
 
-// validation は、validated（判定の response なら judged）のログイベントを書く。violated の judgment があれば、instruction と next を付け、終了コードを 1 にする。
+// validation は、validated（判定の response なら judged）のログイベントを書く。violated の judgment があれば、instruction と next を付け、
+// 終了コードを 1 にする。violated が無く not-judged があれば、意味的な検証を依頼する instruction と next を付ける。
 func (o *output) validation(args arguments, id int64, v *domain.Validation) error {
 	counts := v.Counts()
 	name := "validated"
@@ -241,11 +254,18 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 			Verdict: string(j.Verdict()), By: string(j.By()), Reason: j.Reason(),
 		})
 		if j.Verdict() == domain.Violated {
-			violated = append(violated, j.InstanceLocation().String())
+			violated = append(violated, "rule "+j.Rule().ID()+" の "+strconv.Quote(j.InstanceLocation().String()))
 			byMachine = byMachine || j.By() == domain.Machine
 		}
 	}
-	if counts.Violated > 0 {
+	values := fill(args, event.Path)
+	// Concrete を直す JSON Patch は、従うインスタンスを --range に渡す（更新の prompt の next と同じ形）
+	values["{range}"] = ""
+	if v.ForConcrete() {
+		values["{range}"] = concreteRange
+	}
+	switch {
+	case counts.Violated > 0:
 		o.failed = true
 		// 機械的な検証の違反は位置と理由が分かっているので JSON Patch で直す。AI の判定の違反だけなら、
 		// 同じ x-prompt の prompt に従って直すため、更新の prompt を依頼する
@@ -253,31 +273,37 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 		if byMachine {
 			t = o.violatedByMachine
 		}
-		values := fill(args, event.Path)
-		values["{instanceLocation}"] = strings.Join(violated, `", "`) // 定型が引用符で囲むので、間を閉じて開く
+		values["{violations}"] = strings.Join(violated, "、")
 		event.Instruction = replace(t.Instruction, values)
 		event.Next = replace(t.next(args), values)
+	case counts.NotJudged > 0:
+		event.Instruction = replace(o.notJudged.Instruction, values)
+		event.Next = replace(o.notJudged.next(args), values)
 	}
 	return o.encoder.Encode(event)
 }
 
+// concreteRange は、Concrete の更新の next に足す --range の形。
+const concreteRange = " --range <この Concrete に従うインスタンスの path（無ければ値なしの --range）>"
+
 type stepEvent struct {
-	KeywordLocation  string         `json:"keywordLocation,omitempty"`
-	InstanceLocation *string        `json:"instanceLocation,omitempty"`
-	Title            string         `json:"title,omitempty"`
-	Description      string         `json:"description,omitempty"`
-	XPrompt          map[string]any `json:"x-prompt,omitempty"`
-	Rule             string         `json:"rule,omitempty"`
+	KeywordLocation  string          `json:"keywordLocation,omitempty"`
+	InstanceLocation *string         `json:"instanceLocation,omitempty"`
+	Title            string          `json:"title,omitempty"`
+	Description      string          `json:"description,omitempty"`
+	XPrompt          json.RawMessage `json:"x-prompt,omitempty"`
+	Rule             string          `json:"rule,omitempty"`
 }
 
 type promptEvent struct {
-	Path       string          `json:"path"`
-	Hash       string          `json:"hash,omitempty"`
-	Subschemas []stepEvent     `json:"subschemas,omitempty"`
-	Steps      []stepEvent     `json:"steps"`
-	Violations []judgmentEvent `json:"violations,omitempty"`
-	Response   map[string]any  `json:"response"`
-	Next       string          `json:"next"`
+	Path        string          `json:"path"`
+	Instruction string          `json:"instruction,omitempty"`
+	Hash        string          `json:"hash,omitempty"`
+	Subschemas  []stepEvent     `json:"subschemas,omitempty"`
+	Steps       []stepEvent     `json:"steps"`
+	Violations  []judgmentEvent `json:"violations,omitempty"`
+	Response    map[string]any  `json:"response"`
+	Next        string          `json:"next"`
 }
 
 type requestedEvent struct {
@@ -313,13 +339,12 @@ func (o *output) requested(args arguments, p domain.Prompt, counted *domain.Vali
 		}
 	}
 	values := fill(args, p.Path().String())
-	t := o.promptNext
 	if p.ForConcrete() && p.Command() == domain.UpdateCommand && args.Range == nil {
-		values["{range}"] = " --range <この Concrete に従うインスタンスの path（無ければ値なしの --range）>"
+		values["{range}"] = concreteRange
 	}
 	prompt := promptEvent{
-		Path: p.Path().String(), Steps: []stepEvent{}, Response: response,
-		Next: replace(t.next(args), values),
+		Path: p.Path().String(), Instruction: replace(pick(o.prompt.Instruction, args), values),
+		Steps: []stepEvent{}, Response: response, Next: replace(pick(o.prompt.Next, args), values),
 	}
 	if p.Hash() != nil {
 		prompt.Hash = p.Hash().String()
@@ -456,7 +481,7 @@ func (o *output) searchRequested(args arguments, documents []domain.Document) er
 	prompt := searchPromptEvent{
 		Question: args.Question, Documents: []documentEvent{},
 		Response: searchResponse,
-		Next:     replace(o.promptNext.next(args), fill(args, "")),
+		Next:     replace(pick(o.prompt.Next, args), fill(args, "")),
 	}
 	for _, d := range documents {
 		prompt.Documents = append(prompt.Documents, documentEvent{Path: d.Path.String(), Hash: d.Hash.String()})

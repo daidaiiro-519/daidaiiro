@@ -29,9 +29,13 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		Codes     map[string]template `json:"codes"`
 		ByMachine template            `json:"violated_by_machine"`
 		ByAI      template            `json:"violated_by_ai"`
-		Prompt    template            `json:"prompt"`
-		Created   template            `json:"created"`
-		Updated   template            `json:"updated"`
+		NotJudged template            `json:"not_judged"`
+		Prompt    struct {
+			Instruction map[string]string `json:"instruction"`
+			Next        map[string]string `json:"next"`
+		} `json:"prompt"`
+		Created template `json:"created"`
+		Updated template `json:"updated"`
 	}
 	read(t, "error-codes.json", &codes)
 	var event struct {
@@ -53,7 +57,7 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 			t.Errorf("error-codes.json %s = %+v, want instruction and next", code, c)
 		}
 	}
-	for name, v := range map[string]template{"violated_by_machine": codes.ByMachine, "violated_by_ai": codes.ByAI} {
+	for name, v := range map[string]template{"violated_by_machine": codes.ByMachine, "violated_by_ai": codes.ByAI, "not_judged": codes.NotJudged} {
 		if v.Instruction == "" || v.Next["*"] == "" {
 			t.Errorf("error-codes.json %s = %+v, want instruction and next", name, v)
 		}
@@ -65,6 +69,9 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		if codes.Prompt.Next[key] == "" {
 			t.Errorf("error-codes.json prompt.next[%q] = empty, want next", key)
 		}
+	}
+	if codes.Prompt.Instruction["semantic validate"] == "" {
+		t.Errorf("error-codes.json prompt.instruction[%q] = empty, want instruction", "semantic validate")
 	}
 	slices.Sort(keys)
 	enum := slices.Sorted(slices.Values(event.Defs.Rejected.Properties.Code.Enum))

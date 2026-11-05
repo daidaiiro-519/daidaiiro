@@ -20,15 +20,32 @@ type Judge struct {
 	ResponseID string // 判定の response のスキーマ（judgment-response.schema.json）の $id
 }
 
+// JudgmentRequest は、判定の prompt を求めた結果。Prompt が nil なら判定する組が無く、判定は要らないので、Validation を
+// 機械的な検証として操作の記録に追記した（ID）。それ以外は、Validation は counts を数えるための検証で、追記しない。
+type JudgmentRequest struct {
+	Prompt     domain.Prompt
+	Validation *domain.Validation
+	ID         int64
+}
+
 // Prompt は、機械的な検証をしてから、判定の prompt と、counts を数えるための検証（追記しない）を返す。
 // all が false なら変更点に当たる rule だけを、true ならすべての rule とすべての instance location を判定の対象にする。
-func (u Judge) Prompt(ctx context.Context, path domain.Path, all bool) (domain.Prompt, *domain.Validation, error) {
+// 判定する組が無ければ prompt を返さず、検証を操作の記録に追記する。
+func (u Judge) Prompt(ctx context.Context, path domain.Path, all bool) (JudgmentRequest, error) {
 	c, previous, err := u.read(ctx, path, all)
 	if err != nil {
-		return nil, nil, at(path, err)
+		return JudgmentRequest{}, at(path, err)
 	}
-	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.concrete.ID() == u.AbstractID)
-	return prompt, domain.NewValidation(c.input(previous)), nil
+	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.forConcrete)
+	validation := domain.NewValidation(c.input(previous))
+	if len(prompt.Steps()) > 0 {
+		return JudgmentRequest{Prompt: prompt, Validation: validation}, nil
+	}
+	id, err := u.Records.AppendValidation(ctx, validation)
+	if err != nil {
+		return JudgmentRequest{}, at(path, err)
+	}
+	return JudgmentRequest{Validation: validation, ID: id}, nil
 }
 
 // Run は、AI が渡した判定の response を検証し、prompt の組と同じなら、judgment と JSON ドキュメントを操作の記録に追記する。
@@ -69,7 +86,7 @@ func (u Judge) judged(ctx context.Context, path domain.Path, response []byte, al
 	if err := domain.MatchHash(path, hash, c.document.Hash); err != nil {
 		return nil, err
 	}
-	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.concrete.ID() == u.AbstractID)
+	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.forConcrete)
 	if err := domain.MatchResponse(path, prompt, judgments); err != nil {
 		return nil, err
 	}

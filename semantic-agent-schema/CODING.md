@@ -367,7 +367,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | L03 | rejected のログイベント（理由は code）は、`code` ・ `instanceLocation` ・ `absoluteKeywordLocation` ・ `message` ・ `instruction` ・ `next` を持つ | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |
 | L04 | `code` は、`error-codes.json` のキーの名前だけを使う | このプロジェクト | 具体のページ 5節 | |
 | L05 | `instruction` の定型文と `next` の形は `error-codes.json` に置き、Go のコードに文を書かない | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
-| L06 | Go のコードは、定型の `{…}`（`{instanceLocation}` ・ `{absoluteKeywordLocation}` ・ `{message}` ・ `{path}` ・ `{command}` ・ `{paths}` ・ `{schemas}` ・ `{schema}` ・ `{range}` ・ `{all}`）を埋めるだけにする | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
+| L06 | Go のコードは、定型の `{…}`（`{instanceLocation}` ・ `{absoluteKeywordLocation}` ・ `{message}` ・ `{violations}` ・ `{path}` ・ `{command}` ・ `{paths}` ・ `{schemas}` ・ `{schema}` ・ `{range}` ・ `{all}`）を埋めるだけにする | このプロジェクト | 具体のページ 5節「エラーの定型」 | |
 | L07 | `next` の `<…>` は、AI が埋める部分として残す | このプロジェクト | 抽象のページ 9節「next」 | |
 | L08 | `next` には、受け取った `--schemas` ・ `--range` ・ `--schema` ・ `--all` を引き継ぐ。ハッシュは引数で渡さない（楽観ロックは update の中で、最初に読んだハッシュと書く直前のハッシュを比べて完結する。判定した内容のハッシュは、AI が judgment_requested の prompt から judgments の JSON に写す） | このプロジェクト | 具体のページ 4節「next への引き継ぎ」 | |
 | L15 | コマンドは2つの層に分ける。`semantic <ユースケース>`（意味的な操作）は prompt を返し、`<ユースケース>`（機械的な操作）は AI が作ったものを受け取って機械的に検証する：`semantic create <path> --schemas … --schema <$id>` ・ `create <path> --schemas … --json <JSON｜->` ・ `semantic update <path> --schemas …` ・ `update <path> --schemas … --patch <JSON｜->` ・ `semantic validate <path> --schemas … [--all]` ・ `validate <path>... --schemas …` ・ `validate <path> --schemas … --judgments <JSON｜-> [--all]` | このプロジェクト | 利用者の指示（2026-11-05） | |
@@ -377,6 +377,12 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | L19 | Concrete に従う JSON ドキュメント（Concrete 自身）の判定では、Abstract のルートの rule を、Concrete の中の x-prompt の位置（ルートと、properties ・ items でたどるサブスキーマの `…/x-prompt`）ごとに step にする。位置は機械的に決まる | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L20 | JSON Schema の違反と JSON として読めないことは、違反した JSON が引数（`--json` ・ `--patch` ・ `--judgments` ・ `--matches`）なら `error-codes.json` の `argumentInstruction`（「渡した {argument} の JSON の "<位置>" を直す」）で、文書なら `instruction` で示す | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L21 | 値なしの `--range` は、更新する Concrete に従うインスタンスが無いことを示す（`range` が空の並び） | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L22 | AI の判定を受け取っていない検証（`validate` と、判定の prompt の counts）では、変更点に当たる rule と instance location の組（判定の prompt の組と同じ）を、`not-judged`（by は `ai`）の judgment にして数える。violated が無く not-judged があれば、validated に `error-codes.json` の `not_judged` の instruction と、`semantic validate` の next を付ける（終了コードは 0） | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L23 | 判定する組が無ければ、`semantic validate` は判定の prompt を返さず、検証を操作の記録に追記して `validated` で返す（`--judgments` の next を出さない） | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L24 | violated の judgment がある validated と judged の instruction は、judgment ごとに rule の id と、引用符で囲んだ instance location を並べる（`{violations}`）。Concrete を直す next の update は、更新の prompt と同じく `--range` を足す形にする（`{range}`） | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L25 | 判定の prompt には、`error-codes.json` の `prompt.instruction` から、path のファイルを読んで判定することを `instruction` で書く（内容は貼らない） | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L26 | prompt の x-prompt は、スキーマに書いた順のまま置く。Concrete の書いたままのバイト列から `json.RawMessage` で取り出し、`map` を通さない | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L27 | 例の related のキーが related_fields に無い作法の違反は、同じ rule の `related_fields` の位置を instance location にする（message に例の位置を書く） | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L09 | 引数は pflag で読んで JSON にし、`arguments.schema.json` で検証する。Go のコードで引数の形を確かめない | このプロジェクト | 具体のページ 4節 ・ 本質 `W5` | |
 | L10 | JSON Schema の違反は、`schemacheck` が `ValidationError` の葉ごとに、`InstanceLocation` を `instanceLocation`、キーワードの絶対の位置を `absoluteKeywordLocation` にして1行ずつ出す | このプロジェクト | 具体のページ 5節「error」 | |
 | L11 | JSON Schema の違反には、独自の判定も独自の文も足さない。ライブラリの出力を変換するだけにする | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |

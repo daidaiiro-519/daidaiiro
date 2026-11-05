@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 )
@@ -24,7 +25,7 @@ type Step struct {
 	InstanceLocation Pointer
 	Title            string
 	Description      string
-	XPrompt          map[string]any
+	XPrompt          json.RawMessage // スキーマに書いた順のまま
 	Rule             string
 }
 
@@ -95,7 +96,7 @@ type subschemaIndex struct {
 	list []Step
 }
 
-func (x *subschemaIndex) add(keyword Pointer, sub map[string]any) {
+func (x *subschemaIndex) add(concrete Concrete, keyword Pointer) {
 	if x.seen == nil {
 		x.seen = map[string]bool{}
 	}
@@ -103,10 +104,8 @@ func (x *subschemaIndex) add(keyword Pointer, sub map[string]any) {
 		return
 	}
 	x.seen[keyword.String()] = true
-	title, _ := sub["title"].(string)              // 無ければ空
-	description, _ := sub["description"].(string)  // 無ければ空
-	xPrompt, _ := sub["x-prompt"].(map[string]any) // 無ければ nil
-	x.list = append(x.list, Step{KeywordLocation: keyword, Title: title, Description: description, XPrompt: xPrompt})
+	sub := subschemaAt(concrete, keyword)
+	x.list = append(x.list, Step{KeywordLocation: keyword, Title: sub.Title, Description: sub.Description, XPrompt: sub.XPrompt})
 }
 
 // UpdateInput は、更新の prompt を作るために application が読んだもの。
@@ -134,7 +133,7 @@ func NewUpdatePrompt(in UpdateInput) Prompt {
 			return
 		}
 		k := PointerOf(keyword...)
-		index.add(k, sub)
+		index.add(in.Concrete, k)
 		steps = append(steps, Step{InstanceLocation: PointerOf(at...), KeywordLocation: k})
 	})
 	return generation{
@@ -151,6 +150,16 @@ func NewUpdatePrompt(in UpdateInput) Prompt {
 // サブスキーマは keyword location ごとに1回だけ置く。response の形は responseID（judgment-response のスキーマの $id）。
 // JSON ドキュメントの内容は貼らず、path ・ 内容のハッシュ ・ instance location で渡す。
 func NewJudgmentPrompt(document Document, value any, concrete Concrete, changed map[string]bool, responseID string, forConcrete bool) Prompt {
+	steps, subschemas := judgmentSteps(document, value, concrete, changed, forConcrete)
+	return generation{
+		command: ValidateCommand, path: document.Path, hash: document.Hash, steps: steps, subschemas: subschemas,
+		responseID: responseID, forConcrete: forConcrete,
+	}
+}
+
+// judgmentSteps は、判定する rule と instance location の組を step で返し、step が指すサブスキーマを keyword location ごとに
+// 1回だけ返す。changed が nil ならすべての組を、それ以外は instance location か rule の related_fields が変更点に当たる組を返す。
+func judgmentSteps(document Document, value any, concrete Concrete, changed map[string]bool, forConcrete bool) ([]Step, []Step) {
 	var steps []Step
 	var index subschemaIndex
 	add := func(sub map[string]any, location, keyword Pointer) {
@@ -161,14 +170,14 @@ func NewJudgmentPrompt(document Document, value any, concrete Concrete, changed 
 			if !ok || (changed != nil && !changed[location.String()] && !touches(rule, changed)) {
 				continue
 			}
-			index.add(keyword, sub)
+			index.add(concrete, keyword)
 			steps = append(steps, Step{InstanceLocation: location, KeywordLocation: keyword, Rule: id})
 		}
 	}
 	if forConcrete {
 		root := concrete.structure()
-		document, _ := value.(map[string]any) // Concrete はオブジェクト（Abstract が決める）
-		for _, location := range xPromptLocations(document) {
+		object, _ := value.(map[string]any) // Concrete はオブジェクト（Abstract が決める）
+		for _, location := range xPromptLocations(object, document.Content) {
 			add(root, location, PointerOf())
 		}
 	} else {
@@ -176,17 +185,14 @@ func NewJudgmentPrompt(document Document, value any, concrete Concrete, changed 
 			add(sub, PointerOf(at...), PointerOf(keyword...))
 		})
 	}
-	return generation{
-		command: ValidateCommand, path: document.Path, hash: document.Hash, steps: steps, subschemas: index.list,
-		responseID: responseID, forConcrete: forConcrete,
-	}
+	return steps, index.list
 }
 
 // xPromptLocations は、Concrete の中の x-prompt の位置（ルートと、properties ・ items でたどるサブスキーマの …/x-prompt）を返す。
 // x-prompt を書いてよいのはこれらの位置だけ（Abstract が決める）なので、位置は機械的に決まる。
-func xPromptLocations(root map[string]any) []Pointer {
+func xPromptLocations(root map[string]any, content []byte) []Pointer {
 	var subs []Subschema
-	walkStructure(root, nil, &subs)
+	walkStructure(root, content, nil, &subs)
 	var locations []Pointer
 	for _, sub := range subs {
 		if sub.XPrompt != nil {

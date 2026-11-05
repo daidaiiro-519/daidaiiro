@@ -110,7 +110,7 @@ func TestConventionFindsViolations(t *testing.T) {
 			want: []string{"/items/x-prompt/rules/0/id"}},
 		{name: "例の related のキーが related_fields に無い", concrete: `{"$id": "urn:a",
 			"allOf": [{"x-prompt": {"rules": [{"id": "r1", "related_fields": [], "bad": [], "good": [{"value": 1, "related": {"/z": 1}}]}]}}]}`,
-			want: []string{"/allOf/0/x-prompt/rules/0/good/0/related"}},
+			want: []string{"/allOf/0/x-prompt/rules/0/related_fields"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -486,6 +486,71 @@ func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 	}
 	if p.ResponseSchemaID() != "urn:patch" {
 		t.Errorf("NewUpdatePrompt(memo).ResponseSchemaID() = %s, want urn:patch", p.ResponseSchemaID())
+	}
+}
+
+func TestPromptKeepsXPromptInWrittenOrder(t *testing.T) {
+	t.Parallel()
+	xPrompt := `{"meaning": "題名", "rules": [{"id": "title-short", "rule": "短く書く", "check": "短いか", "bad": [], "good": []}]}`
+	c := concrete(t, `{"$id": "urn:example:order-of-keys:v1", "properties": {"title": {"x-prompt": `+xPrompt+`}}}`)
+	content := []byte(`{"title": "t"}`)
+	value, err := domain.ParseJSON(content)
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
+	prompts := map[string]domain.Prompt{
+		"作成": domain.NewCreatePrompt(path, c),
+		"更新": domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: c}),
+		"判定": domain.NewJudgmentPrompt(document, value, c, nil, "urn:judgment", false),
+	}
+	for name, p := range prompts {
+		steps := p.Subschemas()
+		if steps == nil {
+			steps = p.Steps()
+		}
+		var got []string
+		for _, step := range steps {
+			if step.XPrompt != nil {
+				got = append(got, string(step.XPrompt))
+			}
+		}
+		if want := []string{xPrompt}; !slices.Equal(got, want) {
+			t.Errorf("%s の prompt の x-prompt = %q, want %q", name, got, want)
+		}
+	}
+}
+
+func TestValidationCountsPairsToJudgeAsNotJudged(t *testing.T) {
+	t.Parallel()
+	content := []byte(`{"title": "t", "start": "a", "end": "b"}`)
+	value, err := domain.ParseJSON(content)
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("plan.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
+	c := concrete(t, plan)
+	got := domain.NewValidation(domain.ValidationInput{Document: document, Value: value, Concrete: c}).Counts()
+	if want := (domain.Counts{NotJudged: 2}); got != want {
+		t.Errorf("NewValidation(前回の検証なし).Counts() = %+v, want %+v", got, want)
+	}
+	judged, err := domain.NewJudgment("title-short", "/title", "verified", "ai", "短い")
+	if err != nil {
+		t.Fatalf("NewJudgment = %v", err)
+	}
+	got = domain.NewValidation(domain.ValidationInput{
+		Document: document, Value: value, Concrete: c, Judged: []domain.Judgment{judged},
+	}).Counts()
+	if want := (domain.Counts{Verified: 1}); got != want {
+		t.Errorf("NewValidation(判定を受け取った).Counts() = %+v, want %+v", got, want)
 	}
 }
 

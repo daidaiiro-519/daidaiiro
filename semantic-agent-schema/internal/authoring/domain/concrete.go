@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"slices"
 	"strconv"
 )
@@ -28,7 +29,7 @@ type Subschema struct {
 	KeywordLocation Pointer
 	Title           string
 	Description     string
-	XPrompt         map[string]any // x-prompt。無ければ nil
+	XPrompt         json.RawMessage // x-prompt。スキーマに書いた順のまま持つ。無ければ nil
 }
 
 type schema struct {
@@ -92,28 +93,51 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 		}
 	})
 	var subs []Subschema
-	walkStructure(root, nil, &subs)
+	walkStructure(root, content, nil, &subs)
 	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, subs: subs, root: root}, nil
 }
 
 // walkStructure は、ドメインサービス「サブスキーマを引く」の、Concrete の側。ルートスキーマから JSON Schema の構造
-// （properties と items）だけをたどり、keyword location ごとにサブスキーマを集める。
-func walkStructure(subschema map[string]any, at []string, into *[]Subschema) {
+// （properties と items）だけをたどり、keyword location ごとにサブスキーマを集める。raw は、同じサブスキーマの書いたままの
+// バイト列で、x-prompt をキーの順を変えずに取り出すために、値と並べてたどる。
+func walkStructure(subschema map[string]any, raw json.RawMessage, at []string, into *[]Subschema) {
 	sub := Subschema{KeywordLocation: PointerOf(at...)}
-	sub.Title, _ = subschema["title"].(string)              // 無ければ空
-	sub.Description, _ = subschema["description"].(string)  // 無ければ空
-	sub.XPrompt, _ = subschema["x-prompt"].(map[string]any) // 無ければ nil
+	sub.Title, _ = subschema["title"].(string)             // 無ければ空
+	sub.Description, _ = subschema["description"].(string) // 無ければ空
+	if _, ok := subschema["x-prompt"].(map[string]any); ok {
+		sub.XPrompt = member(raw, "x-prompt")
+	}
 	*into = append(*into, sub)
 	if properties, ok := subschema["properties"].(map[string]any); ok {
+		rawProperties := member(raw, "properties")
 		for _, name := range sortedNames(properties) {
 			if child, ok := properties[name].(map[string]any); ok {
-				walkStructure(child, append(slices.Clone(at), "properties", name), into)
+				walkStructure(child, member(rawProperties, name), append(slices.Clone(at), "properties", name), into)
 			}
 		}
 	}
 	if items, ok := subschema["items"].(map[string]any); ok {
-		walkStructure(items, append(slices.Clone(at), "items"), into)
+		walkStructure(items, member(raw, "items"), append(slices.Clone(at), "items"), into)
 	}
+}
+
+// member は、書いたままの JSON オブジェクトから、name のメンバーの値を書いたままのバイト列で返す。無ければ nil。
+func member(raw json.RawMessage, name string) json.RawMessage {
+	var object map[string]json.RawMessage
+	if json.Unmarshal(raw, &object) != nil {
+		return nil // ParseJSON が読めた JSON の一部なので、オブジェクトでなければ、そのメンバーは無い
+	}
+	return object[name]
+}
+
+// subschemaAt は、keyword location のサブスキーマを返す。無ければ keyword location だけを持つ Subschema。
+func subschemaAt(c Concrete, keyword Pointer) Subschema {
+	for _, sub := range c.Subschemas() {
+		if sub.KeywordLocation.String() == keyword.String() {
+			return sub
+		}
+	}
+	return Subschema{KeywordLocation: keyword}
 }
 
 func sortedNames(object map[string]any) []string {

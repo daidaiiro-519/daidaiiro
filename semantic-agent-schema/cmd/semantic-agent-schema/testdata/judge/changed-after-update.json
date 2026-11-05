@@ -1,5 +1,5 @@
 {
-  "title": "更新のあと、--all が無ければ、前回の意味的な検証からの変更点を instance location か related_fields に含む rule だけを判定し、ほかの judgment は引き継ぐ。間に機械的な検証をしても基準は動かない。--all ではすべてを判定する",
+  "title": "更新のあと、--all が無ければ、前回の意味的な検証からの変更点を instance location か related_fields に含む rule だけを判定し、ほかの judgment は引き継ぐ。間に機械的な検証をしても基準は動かず、機械的な検証は判定し直す組を not-judged として数えて semantic validate の next を返す。--all ではすべてを判定する",
   "files": {
     "schemas/plan.json": {
       "$fixture": "plan.schema.json"
@@ -144,7 +144,17 @@
       "events": [
         {
           "/event": "validated",
-          "/counts/verified": 1
+          "/counts/verified": 1,
+          "/counts/not-judged": 1,
+          "/judgments/0": {
+            "rule": "end-after-start",
+            "instanceLocation": "/end",
+            "verdict": "not-judged",
+            "by": "ai",
+            "reason": "意味的な検証で、まだ判定していない"
+          },
+          "/instruction": "plan.json に not-judged の judgment がある。変更点に当たる組は、意味的な検証で判定するまで満たしたとしない。next の semantic validate で判定の prompt を依頼する",
+          "/next": "semantic-agent-schema semantic validate plan.json --schemas schemas"
         }
       ]
     },

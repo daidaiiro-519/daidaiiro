@@ -8,7 +8,8 @@ import (
 // Convention は、ドメインサービス バリデーター。JSON Schema で書けない Concrete の作法を確かめ、違反を返す。
 //   - ルートスキーマの $schema の const が $id と同じ
 //   - rule の id が重ならない
-//   - 例の related のキーが related_fields にある
+//   - 例の related のキーが related_fields にある（違反の位置は、同じ rule の related_fields。例が正しく、
+//     related_fields に足りないことが多いため）
 //
 // Abstract の違反（キーワードが無い ・ 型が違う）は JSON Schema が出すので、ここでは数えない。
 func Convention(concrete any) []Violation {
@@ -80,9 +81,11 @@ func rulesOf(subschema map[string]any, at []string, seen map[string]bool) []Viol
 					if fields[key] {
 						continue
 					}
+					example := PointerOf(append(slices.Clone(ruleAt), side, strconv.Itoa(j), "related")...)
 					violations = append(violations, Violation{
-						InstanceLocation: PointerOf(append(slices.Clone(ruleAt), side, strconv.Itoa(j), "related")...),
-						Message:          "例の related のキーが related_fields に無い：" + key,
+						InstanceLocation: PointerOf(append(slices.Clone(ruleAt), "related_fields")...),
+						Message: "related_fields に、例の related のキー " + key + " が無い（例は " + strconv.Quote(example.String()) +
+							"）。rule の文がその値を読むなら related_fields に足し、読まないなら例の related から除く",
 					})
 				}
 			}
