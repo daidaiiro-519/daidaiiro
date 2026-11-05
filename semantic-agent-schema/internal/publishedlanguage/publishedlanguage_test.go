@@ -30,7 +30,10 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		ByMachine template            `json:"violated_by_machine"`
 		ByAI      template            `json:"violated_by_ai"`
 		NotJudged template            `json:"not_judged"`
-		Prompt    struct {
+		NoTargets struct {
+			Instruction string `json:"instruction"`
+		} `json:"no_judgment_targets"`
+		Prompt struct {
 			Instruction map[string]string `json:"instruction"`
 			Next        map[string]string `json:"next"`
 		} `json:"prompt"`
@@ -61,6 +64,9 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		if v.Instruction == "" || v.Next["*"] == "" {
 			t.Errorf("error-codes.json %s = %+v, want instruction and next", name, v)
 		}
+	}
+	if codes.NoTargets.Instruction == "" {
+		t.Errorf("error-codes.json no_judgment_targets = empty, want instruction")
 	}
 	if codes.Created.Next["create"] == "" || codes.Updated.Next["update"] == "" {
 		t.Errorf("error-codes.json created, updated = %+v, %+v, want next", codes.Created, codes.Updated)

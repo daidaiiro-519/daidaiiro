@@ -1,5 +1,5 @@
 {
-  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、{line} はテンプレートの中の行、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。その {violations} は、violated の judgment ごとの rule の id と、引用符で囲んだ instance location の並び。{range} は、Concrete なら --range を足す形、インスタンスなら空。not_judged は、violated が無く not-judged の judgment がある validated のログイベントの instruction と next。prompt は *_requested のログイベントの prompt の instruction（更新と判定の prompt）と next で、next は同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。 argumentInstruction は、違反した JSON が引数（--json ・ --patch ・ --judgments ・ --matches）のときの instruction で、{argument} はその引数の名前。",
+  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、{line} はテンプレートの中の行、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。その {violations} は、violated の judgment ごとの rule の id と、引用符で囲んだ instance location の並び。{range} は、Concrete なら --range を足す形、インスタンスなら空。not_judged は、violated が無く not-judged の judgment がある validated のログイベントの instruction と next。no_judgment_targets は、semantic validate が判定する組を1件も見つけず、judgment_requested でなく validated を返すときの instruction（next は付けない）。prompt は *_requested のログイベントの prompt の instruction（更新と判定の prompt）と next で、next は同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。 argumentInstruction は、違反した JSON が引数（--json ・ --patch ・ --judgments ・ --matches）のときの instruction で、{argument} はその引数の名前。",
   "codes": {
     "arguments_invalid": {
       "instruction": "引数が引数の形に違反している（instance location：\"{instanceLocation}\"、{message}）。引数を直して、もう一度実行する",
@@ -237,6 +237,9 @@
     "next": {
       "*": "semantic-agent-schema semantic validate {path} {schemas}"
     }
+  },
+  "no_judgment_targets": {
+    "instruction": "{path} には、判定する rule と instance location の組が無い（rule を持つ x-prompt が当たる値が無いか、変更点が無い）。意味的な検証は要らない"
   },
   "prompt": {
     "instruction": {

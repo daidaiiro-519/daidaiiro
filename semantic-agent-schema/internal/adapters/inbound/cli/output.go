@@ -23,6 +23,7 @@ type output struct {
 	violatedByMachine template
 	violatedByAI      template
 	notJudged         template
+	noTargets         string
 	prompt            promptTemplate
 	createdNext       template
 	updatedNext       template
@@ -75,16 +76,19 @@ func newOutput(w io.Writer) (*output, error) {
 		ByMachine template            `json:"violated_by_machine"`
 		ByAI      template            `json:"violated_by_ai"`
 		NotJudged template            `json:"not_judged"`
-		Prompt    promptTemplate      `json:"prompt"`
-		Created   template            `json:"created"`
-		Updated   template            `json:"updated"`
+		NoTargets struct {
+			Instruction string `json:"instruction"`
+		} `json:"no_judgment_targets"`
+		Prompt  promptTemplate `json:"prompt"`
+		Created template       `json:"created"`
+		Updated template       `json:"updated"`
 	}
 	if err := json.Unmarshal(content, &file); err != nil {
 		return nil, err
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	return &output{encoder: encoder, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, notJudged: file.NotJudged, prompt: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
+	return &output{encoder: encoder, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, notJudged: file.NotJudged, noTargets: file.NoTargets.Instruction, prompt: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
 }
 
 func (o *output) exit() int {
@@ -279,6 +283,9 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 	case counts.NotJudged > 0:
 		event.Instruction = replace(o.notJudged.Instruction, values)
 		event.Next = replace(o.notJudged.next(args), values)
+	case args.Semantic:
+		// 判定する組が無いので、判定の prompt でなく validated を返す。AI が次の操作を迷わないよう、意味的な検証が要らないことを示す
+		event.Instruction = replace(o.noTargets, values)
 	}
 	return o.encoder.Encode(event)
 }
