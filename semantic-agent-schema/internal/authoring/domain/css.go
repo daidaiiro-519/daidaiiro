@@ -56,6 +56,7 @@ func CSSOf(tokenType string, value any) string {
 	return jsonText(value)
 }
 
+// colorCSS は、色のトークンの値を CSS の色にする。alpha が 1 で hex があれば hex を、なければ色空間の関数か color() で書く。
 func colorCSS(value any) string {
 	object, _ := value.(map[string]any) // 形は design-tokens.schema.json が決めている
 	alpha, hasAlpha := object["alpha"]

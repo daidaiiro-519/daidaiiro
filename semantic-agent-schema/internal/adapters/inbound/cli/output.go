@@ -19,6 +19,7 @@ import (
 type output struct {
 	encoder           *json.Encoder
 	failed            bool
+	concreteRange     string
 	codes             map[string]template
 	violatedByMachine template
 	violatedByAI      template
@@ -72,11 +73,12 @@ func newOutput(w io.Writer) (*output, error) {
 		return nil, err
 	}
 	var file struct {
-		Codes     map[string]template `json:"codes"`
-		ByMachine template            `json:"violated_by_machine"`
-		ByAI      template            `json:"violated_by_ai"`
-		NotJudged template            `json:"not_judged"`
-		NoTargets struct {
+		ConcreteRange string              `json:"concrete_range"`
+		Codes         map[string]template `json:"codes"`
+		ByMachine     template            `json:"violated_by_machine"`
+		ByAI          template            `json:"violated_by_ai"`
+		NotJudged     template            `json:"not_judged"`
+		NoTargets     struct {
 			Instruction string `json:"instruction"`
 		} `json:"no_judgment_targets"`
 		Prompt  promptTemplate `json:"prompt"`
@@ -88,7 +90,7 @@ func newOutput(w io.Writer) (*output, error) {
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	return &output{encoder: encoder, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, notJudged: file.NotJudged, noTargets: file.NoTargets.Instruction, prompt: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
+	return &output{encoder: encoder, concreteRange: file.ConcreteRange, codes: file.Codes, violatedByMachine: file.ByMachine, violatedByAI: file.ByAI, notJudged: file.NotJudged, noTargets: file.NoTargets.Instruction, prompt: file.Prompt, createdNext: file.Created, updatedNext: file.Updated}, nil
 }
 
 func (o *output) exit() int {
@@ -266,7 +268,7 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 	// Concrete を直す JSON Patch は、従うインスタンスを --range に渡す（更新の prompt の next と同じ形）
 	values["{range}"] = ""
 	if v.ForConcrete() {
-		values["{range}"] = concreteRange
+		values["{range}"] = o.concreteRange
 	}
 	switch {
 	case counts.Violated > 0:
@@ -289,9 +291,6 @@ func (o *output) validation(args arguments, id int64, v *domain.Validation) erro
 	}
 	return o.encoder.Encode(event)
 }
-
-// concreteRange は、Concrete の更新の next に足す --range の形。
-const concreteRange = " --range <この Concrete に従うインスタンスの path（無ければ値なしの --range）>"
 
 type stepEvent struct {
 	KeywordLocation  string          `json:"keywordLocation,omitempty"`
@@ -347,7 +346,7 @@ func (o *output) requested(args arguments, p domain.Prompt, counted *domain.Vali
 	}
 	values := fill(args, p.Path().String())
 	if p.ForConcrete() && p.Command() == domain.UpdateCommand && args.Range == nil {
-		values["{range}"] = concreteRange
+		values["{range}"] = o.concreteRange
 	}
 	prompt := promptEvent{
 		Path: p.Path().String(), Instruction: replace(pick(o.prompt.Instruction, args), values),

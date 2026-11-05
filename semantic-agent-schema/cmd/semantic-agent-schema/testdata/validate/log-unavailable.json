@@ -1,0 +1,79 @@
+{
+  "title": "操作の記録を開けない（壊れている）と、どのコマンドも rejected（log_unavailable）を返し、records.sqlite の削除を示す instruction と、同じコマンドの next を返す",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    }
+  },
+  "steps": [
+    {
+      "write": {
+        ".git/semantic-agent-schema/records.sqlite": {
+          "broken": true
+        }
+      },
+      "args": [
+        "validate",
+        "memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "log_unavailable",
+          "/instruction": {
+            "$prefix": "操作の記録を開けない"
+          },
+          "/next": "semantic-agent-schema validate memo.json --schemas schemas"
+        }
+      ]
+    },
+    {
+      "args": [
+        "create",
+        "c.json",
+        "--schemas",
+        "schemas",
+        "--json",
+        "{\"$schema\": \"urn:example:memo:v1\", \"title\": \"\\u5b9a\\u4f8b\\u4f1a\\u8b70\"}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "log_unavailable",
+          "/instruction": {
+            "$prefix": "操作の記録を開けない"
+          },
+          "/next": "semantic-agent-schema create c.json --schemas schemas --json '<JSON ドキュメント>'"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "log_unavailable",
+          "/instruction": {
+            "$prefix": "操作の記録を開けない"
+          },
+          "/next": "semantic-agent-schema semantic validate memo.json --schemas schemas"
+        }
+      ]
+    }
+  ]
+}

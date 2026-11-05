@@ -1,0 +1,61 @@
+{
+  "title": "semantic create も、Concrete が Abstract に違反していれば、prompt を返さず、Concrete のファイルの path を持つ schema_violation の rejected を返す",
+  "files": {
+    "schemas/a.json": {
+      "$schema": "urn:semantic-agent-schema:abstract:v1",
+      "$id": "urn:example:a:v1",
+      "required": [
+        "$schema"
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "x-prompt": {
+        "meaning": "テスト用の項目",
+        "when": "テストを書くとき",
+        "rules": []
+      },
+      "properties": {
+        "$schema": {
+          "const": "urn:example:a:v1"
+        },
+        "name": {
+          "type": "string",
+          "x-view": "name",
+          "x-prompt": {
+            "meaning": "名前",
+            "when": "名前を書くとき",
+            "rules": []
+          }
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "create",
+        "b.json",
+        "--schemas",
+        "schemas",
+        "--schema",
+        "urn:example:a:v1"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/instanceLocation": "/properties/name/x-view",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:dialect:v1#/properties/x-view",
+          "/instruction": {
+            "$prefix": "schemas/a.json の \"/properties/name/x-view\" を"
+          }
+        }
+      ],
+      "files": {
+        "b.json": null
+      }
+    }
+  ]
+}

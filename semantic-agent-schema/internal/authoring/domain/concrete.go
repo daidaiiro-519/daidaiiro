@@ -53,6 +53,8 @@ func (s schema) Rule(id string) (Rule, bool) {
 	r, ok := s.rules[id]
 	return r, ok
 }
+
+// ruleLocation は、rule の id から、その rule を持つ x-prompt のサブスキーマの keyword location を返す。無ければ false。
 func (s schema) ruleLocation(id string) (Pointer, bool) {
 	p, ok := s.ruleAt[id]
 	return p, ok
@@ -180,6 +182,7 @@ func rawAt(raw json.RawMessage, tokens []string) json.RawMessage {
 	return raw
 }
 
+// sortedNames は、オブジェクトのキーを昇順に並べて返す。Concrete を読む順を、実行のたびに変えないため。
 func sortedNames(object map[string]any) []string {
 	names := make([]string, 0, len(object))
 	for name := range object {

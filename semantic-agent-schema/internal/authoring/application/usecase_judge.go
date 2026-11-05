@@ -62,6 +62,7 @@ func (u Judge) Run(ctx context.Context, path domain.Path, response []byte, all b
 	return id, validation, nil
 }
 
+// judged は、判定の response を形と hash と prompt の組で照らし、AI の judgment を持つ検証を返す。追記はしない。
 func (u Judge) judged(ctx context.Context, path domain.Path, response []byte, all bool) (*domain.Validation, error) {
 	c, previous, err := u.read(ctx, path, all)
 	if err != nil {
@@ -83,7 +84,7 @@ func (u Judge) judged(ctx context.Context, path domain.Path, response []byte, al
 		return nil, err
 	}
 	// 判定した内容が、いまの内容と同じかを照らす。prompt を返した後に変わっていれば、判定は古い内容に対するもの
-	if err := domain.MatchHash(path, hash, c.document.Hash); err != nil {
+	if err := domain.MatchResponseHash(path, hash, c.document.Hash); err != nil {
 		return nil, err
 	}
 	prompt := domain.NewJudgmentPrompt(c.document, c.concrete, c.evaluations, changed(previous, c, all), u.ResponseID)

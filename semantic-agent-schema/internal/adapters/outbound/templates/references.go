@@ -42,6 +42,7 @@ type ref struct {
 	segments []domain.Segment
 }
 
+// field は、この値の欄 name を指す ref を返す。追えない値からは追えない値のままにする。
 func (r ref) field(name string) ref {
 	if r.top {
 		return ref{known: true, root: name}
@@ -52,6 +53,7 @@ func (r ref) field(name string) ref {
 	return ref{known: true, root: r.root, segments: append(append([]domain.Segment(nil), r.segments...), domain.Segment{Name: name})}
 }
 
+// element は、この値が配列や map のとき、その要素を指す ref を返す。
 func (r ref) element() ref {
 	if r.top || !r.known {
 		return ref{}
@@ -66,6 +68,7 @@ type scope struct {
 
 func (s scope) with(dot ref) scope { return scope{dot: dot, vars: s.vars} }
 
+// bind は、変数 name が r を指す scope を返す。元の scope の変数は変えない。
 func (s scope) bind(name string, r ref) scope {
 	vars := map[string]ref{}
 	for k, v := range s.vars {
@@ -84,6 +87,7 @@ type walker struct {
 	placeholders map[string]ref
 }
 
+// list は、ノードの並びを順にたどる。途中で作った変数は、並びの後ろのノードでも使える。
 func (w *walker) list(list *parse.ListNode, s scope) scope {
 	if list == nil {
 		return s
@@ -144,6 +148,7 @@ func (w *walker) resolve(pipe *parse.PipeNode, s scope) ref {
 	return w.value(pipe.Cmds[0].Args[0], s)
 }
 
+// value は、{{.a.b}} や {{$x.a}} のような値が指す欄を返す。欄を追えない値は、追えない ref を返す。
 func (w *walker) value(n parse.Node, s scope) ref {
 	switch n := n.(type) {
 	case *parse.DotNode:
@@ -192,10 +197,12 @@ func (w *walker) collect(pipe *parse.PipeNode, s scope) {
 	}
 }
 
+// record は、読んだ欄とその行を references に足す。
 func (w *walker) record(r ref, line int) {
 	w.references = append(w.references, domain.Reference{Root: r.root, Segments: r.segments, Line: line})
 }
 
+// line は、ノードのあるテンプレートの行を返す。
 func (w *walker) line(n parse.Node) int {
 	location, _ := w.tree.ErrorContext(n)
 	return lineOf(location)

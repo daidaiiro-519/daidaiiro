@@ -89,3 +89,12 @@ func MatchHash(path Path, read, current Hash) error {
 	}
 	return Fail(HashMismatch, path.String(), "読んだときのハッシュ "+read.String()+" が、書く直前のハッシュ "+current.String()+" と違う")
 }
+
+// MatchResponseHash は、AI の response が写した判定や検索の内容のハッシュが、いまの内容のハッシュと同じかを確かめる。
+// 違えば hash_mismatch の Failure を返す。判定と検索は何も書かないので、ロックは使わない。
+func MatchResponseHash(path Path, response, current Hash) error {
+	if response.String() == current.String() {
+		return nil
+	}
+	return Fail(HashMismatch, path.String(), "response の hash "+response.String()+" が、いまの内容のハッシュ "+current.String()+" と違う")
+}

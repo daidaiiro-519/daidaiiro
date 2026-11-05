@@ -115,8 +115,8 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
 | K40 | 失敗しうる関数は、`error` を最後の戻り値で返す | Google | decisions.md L1030–1031 | Use `error` to signal that a function can fail. By convention, `error` is the last result parameter. |
-| K41 | 戻り値の型は `error` にし、`*domain.Failure` などの具体の型にしない | Google | decisions.md L1057 | Exported functions that return errors should return them using the `error` type. |
-| K42 | 違反は domain の値 `*domain.Failure` で作る。`Failure` は code ・ path ・ instance location ・ absolute keyword location ・ message を持つ | このプロジェクト | 具体のページ 8節「エラー」 ・ 抽象のページ 9節 | |
+| K41 | 戻り値の型は `error` にし、`*domain.Failure` などの具体の型にしない。ただし、必ず値を返し nil を返さない作る関数（`domain.Fail` など）は、具体の型 `*Failure` を返してよい | Google | decisions.md L1057 | Exported functions that return errors should return them using the `error` type. |
+| K42 | 違反は domain の値 `*domain.Failure` で作る。`Failure` は code ・ path ・ instance location ・ absolute keyword location ・ message ・ Line（テンプレートの行）・ Argument（違反した JSON の引数名）を持つ | このプロジェクト | 具体のページ 8節「エラー」 ・ 抽象のページ 9節 | |
 | K43 | `Failure` は `error` を実装する | Go 公式 | effective_go.html L3145–3147 | A library writer is free to implement this interface with a richer model under the covers, making it possible not only to see the error but also to provide some context. |
 | K44 | 呼ぶ側は、`Failure` を `errors.As` で取り出し、code で分ける。error の文で分けない | Google | best-practices.md L813–814 | give the error value structure so that this can be done programmatically rather than having the caller perform string matching. |
 | K45 | 1回の処理で違反が2つ以上あるときは、`errors.Join` で1つの `error` にする。cli は `Unwrap() []error` で1つずつ取り出す | Go 公式 | go-doc_errors.Join.txt L9 | A non-nil error returned by Join implements the Unwrap() []error method. |
@@ -189,7 +189,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 |---|---|---|---|---|
 | K110 | package の依存は、具体のページ 1節「依存の決まり」の表にあるものだけにする | このプロジェクト | 具体のページ 1節「依存の決まり」 | |
 | K111 | `authoring/domain` は、ほかの package を使わない。標準ライブラリだけを使う | このプロジェクト | 具体のページ 1節「依存の決まり」 | |
-| K112 | `*/application` は `authoring/domain` だけを使う。ほかの application を使わない | このプロジェクト | 具体のページ 1節「依存の決まり」 | |
+| K112 | `*/application` は `authoring/domain` だけを使う。ほかの application を使わない。ただし application の試験は、外の試験 package（`<package>_test`）として、本物のアダプター（`adapters/outbound/*`）と `publishedlanguage` を import してよい | このプロジェクト | 具体のページ 1節「依存の決まり」 | |
 | K113 | アダプターどうしは使い合わない | このプロジェクト | 具体のページ 1節 | |
 | K114 | package を足したら、具体のページ 1節の表と `architecture_test.go` の `rules` に同じ行を足す。`TestDependencies` は、表に無い package を落とす | このプロジェクト | 具体のページ 1節「依存の決まり」 | |
 
@@ -197,7 +197,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
-| K120 | 外のライブラリは、下の表の package だけで使う | このプロジェクト | 具体のページ 1節 ・ 3節 | |
+| K120 | 外のライブラリは、下の表の package だけで使う。試験の中だけで使ってよいのは `golang.org/x/tools` ・ `github.com/nishanths/exhaustive` ・ `github.com/google/go-cmp/cmp` ・ `github.com/santhosh-tekuri/jsonschema/v6`（出力を `event.schema.json` で検証するため） | このプロジェクト | 具体のページ 1節 ・ 3節 | |
 | K121 | 標準ライブラリで足りるときは、外のライブラリを足さない | Google | guide.md L186–187 | Where there are several ways to express the same idea, prefer the one that uses the most standard tools. |
 | K122 | `import _` は、`outbound/recordstore` の `modernc.org/sqlite` と、`//go:embed` を使うファイルの `embed` だけにする | このプロジェクト | 具体のページ 1節（1.4 の表） | |
 
@@ -208,7 +208,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | `outbound/patching` | `github.com/evanphx/json-patch/v5` |
 | `outbound/recordstore` | `modernc.org/sqlite` |
 | `outbound/templates` | `github.com/tdewolff/parse/v2` ・ `github.com/tdewolff/parse/v2/js`（テンプレートの `<script>` の JS を構文木にする。純粋な Go で、依存はテストの外に無い） |
-| 試験の中だけ | `golang.org/x/tools` ・ `github.com/nishanths/exhaustive` ・ `github.com/google/go-cmp/cmp` |
+| 試験の中だけ | `golang.org/x/tools` ・ `github.com/nishanths/exhaustive` ・ `github.com/google/go-cmp/cmp` ・ `github.com/santhosh-tekuri/jsonschema/v6`（出力を `event.schema.json` で検証するため） |
 | ほかの package | 無し（標準ライブラリだけ） |
 
 ### 2.12 ファイル名と整形
@@ -258,7 +258,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 |---|---|---|---|---|
 | K170 | Concrete の `x-prompt` は、値を書く所（ルート ・ `properties` ・ `patternProperties` ・ `additionalProperties` ・ `unevaluatedProperties` ・ `items` ・ `prefixItems` ・ `unevaluatedItems` のサブスキーマ）と、分岐の枝（`oneOf` ・ `anyOf` の各枝 ・ `then` ・ `else` ・ `dependentSchemas` の枝）に必ず書く。`const` か要素1つの `enum` だけで値が決まる所は、値を書く所でも省ける。`if` ・ `allOf` の枝 ・ `not` ・ `contains` ・ `propertyNames` には書かなくてよい。これは `abstract.schema.json` が JSON Schema（`writing` ・ `valueSchema` ・ `branchSchema`）で課し、ドメインのコードで同じことを確かめない。`$defs` は Concrete に書かせない（`$ref` を禁じているので使われない） | このプロジェクト | 利用者の指示（2026-11-06） | |
 | K171 | 値を書く所のサブスキーマは `true` にせずオブジェクトにする。`type` が `object` なら `additionalProperties` か `unevaluatedProperties`（`false` かサブスキーマ）を、`array` なら `items` ・ `prefixItems` ・ `unevaluatedItems` のどれかを書く。分岐（`then` ・ `oneOf` の枝など）の中でキーを定義するときは、`additionalProperties: false` がそのキーを弾くので、`unevaluatedProperties: false` を使う | このプロジェクト | 利用者の指示（2026-11-06） | |
-| K172 | 判定で当たる `x-prompt`（スキーマ検査アダプターの `Evaluate`）は、JSON Schema の注釈と同じに集める。拡張項目の呼び出しの中で、そのサブスキーマの検証をやり直し、通ったときだけ組にする。通った `anyOf` の枝は、ライブラリが打ち切った枝も検証し直して、すべて組にする。ドメインは組を検証器から受け取るだけで、スキーマをたどり直さない | このプロジェクト | JSON Schema 2020-12 Core 10.2.1.2 ・ 7.7 | all subschemas MUST be examined so that annotations are collected from each subschema that validates successfully ・ annotations are not retained for failing schemas |
+| K172 | 判定で当たる `x-prompt`（スキーマ検査アダプターの `Evaluate`）は、JSON Schema の注釈と同じに集める。拡張項目の呼び出しの中で、そのサブスキーマの検証をやり直し、通ったときだけ組にする。通った `anyOf` の枝は、ライブラリが打ち切った枝も検証し直して、すべて組にする。ドメインは組を JSON Schema の実装から受け取るだけで、スキーマをたどり直さない | このプロジェクト | JSON Schema 2020-12 Core 10.2.1.2 ・ 7.7 | all subschemas MUST be examined so that annotations are collected from each subschema that validates successfully ・ annotations are not retained for failing schemas |
 
 ## 3 テスト規約
 
@@ -335,7 +335,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
-| T50 | 試験の代役（mock ・ stub ・ fake）を作らず、本物のアダプターで試す | このプロジェクト | 具体のページ 2節 ・ 9節「環境」 | |
+| T50 | 試験の代役（mock ・ stub ・ fake）を作らず、本物のアダプターで試す。本物のアダプターを包んで、決まった時点に別の書き手の書き込みだけを足す型は、代役に数えない（読んでから書くまでの競合の場面を作るため） | このプロジェクト | 具体のページ 2節 ・ 9節「環境」 | |
 | T51 | 本物の実装の公開の API で試せるように作る | Go 公式 | CodeReviewComments.md L322–323 | design the API so that it can be tested using the public API of the real implementation. |
 | T52 | 試験ごとに新しい一時ディレクトリで `git init` し、操作の記録は一時ファイルの SQLite にする | このプロジェクト | 具体のページ 9節「環境」 | |
 | T53 | 子プロセスの環境変数は、空から作る | このプロジェクト | 具体のページ 9節「環境」 | |
@@ -376,7 +376,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | L16 | 意味的な操作の next は、同じユースケースの機械的なコマンドにする。`semantic` の有無も引数の JSON に入れ、`arguments.schema.json` で検証する | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L17 | `--help`（`-h`）は、コマンドと引数の一覧を `help` のログイベント（読むのは AI）で返す。説明は `arguments.schema.json` の description から作り、契約と説明をずらさない。引数を足したら description も書く | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L18 | prompt では、x-prompt を `subschemas` にサブスキーマ（keyword location）ごとに1回だけ置き、更新と判定の step は instance location ・ keyword location（判定は rule の id も）だけを持つ。`response` には、response の形の JSON Schema の中身（`$id` だけでなく）を入れる。更新の prompt は、いまの内容の直前の検証の violated の judgment を `violations` に持ち、Concrete の更新の next は `--range` を引き継ぐ形にする | このプロジェクト | 利用者の指示（2026-11-05） | |
-| L19 | rule は、それを置いたサブスキーマが当たるインスタンスの位置に当たる。インスタンスの判定（Concrete の rule）も Concrete の判定（Abstract の rule）も同じ決め方にする。サブスキーマとインスタンスの位置の対応は JSON Schema の検証に決めさせ、コードで properties ・ items をたどらない：`schemacheck` が `RegisterVocabulary` で x-prompt を持つサブスキーマに SchemaExt を返し（`CompilerContext.Enqueue(nil)` で自分の `*Schema` を引く）、`Validate` のたびに「`Schema.Location` × `ValidatorContext.ValueLocation()`」の組を集めて、ポート `Validator.Evaluate` で domain に渡す。step の keyword location は、検証に使ったスキーマの中の位置（`#/properties/title`、`#/$defs/keywords/properties/x-prompt/properties/meaning` など）。Abstract の rule は、`$defs/keywords` の `properties.x-prompt` の骨組み（Concrete に書く x-prompt の値に当たる）の `meaning` ・ `when` ・ `rules.items` に置き、その形（type ・ required）は vocabulary の x-prompt の1か所だけが持つ | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L19 | rule は、それを置いたサブスキーマが当たるインスタンスの位置に当たる。インスタンスの判定（Concrete の rule）も Concrete の判定（Abstract の rule）も同じ決め方にする。サブスキーマとインスタンスの位置の対応は JSON Schema の検証に決めさせ、コードで properties ・ items をたどらない：`schemacheck` が `RegisterVocabulary` で x-prompt を持つサブスキーマに SchemaExt を返し（`CompilerContext.Enqueue(nil)` で自分の `*Schema` を引く）、`Validate` のたびに「`Schema.Location` × `ValidatorContext.ValueLocation()`」の組を集めて、ポート `Validator.Evaluate` で domain に渡す。step の keyword location は、検証に使ったスキーマの中の位置（`#/properties/title`、`#/$defs/keywords/properties/x-prompt/properties/meaning` など）。Abstract の rule は、`$defs/keywords` の `properties.x-prompt` の構造（Concrete に書く x-prompt の値に当たる）の `meaning` ・ `when` ・ `rules.items` に置き、その形（type ・ required）は vocabulary の x-prompt の1か所だけが持つ | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L20 | JSON Schema の違反と JSON として読めないことは、違反した JSON が引数（`--json` ・ `--patch` ・ `--judgments` ・ `--matches`）なら `error-codes.json` の `argumentInstruction`（「渡した {argument} の JSON の "<位置>" を直す」）で、文書なら `instruction` で示す | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L21 | 値なしの `--range` は、更新する Concrete に従うインスタンスが無いことを示す（`range` が空の並び） | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L22 | AI の判定を受け取っていない検証（`validate` と、判定の prompt の counts）では、変更点に当たる rule と instance location の組（判定の prompt の組と同じ）を、`not-judged`（by は `ai`）の judgment にして数える。violated が無く not-judged があれば、validated に `error-codes.json` の `not_judged` の instruction と、`semantic validate` の next を付ける（終了コードは 0） | このプロジェクト | 利用者の指示（2026-11-05） | |
@@ -414,6 +414,6 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | rule | `Rule` |
 | 前回の検証 | `Previous` |
 | change | `Change` |
-| prompt（コマンドが x-prompt から組んで AI に返すもの。スキーマの側の語 x-prompt とは混ぜない） | `Prompt` |
+| prompt（コマンドが x-prompt から作って AI に返すもの。スキーマの側の語 x-prompt とは混ぜない） | `Prompt` |
 | response ・ next（AI が prompt に従って作り、コマンドへ渡すもの ・ 次に実行するコマンド行） | `Response` ・ `Next` |
 | code ・ message ・ 指示 | `code` ・ `Message` ・ `Instruction` |

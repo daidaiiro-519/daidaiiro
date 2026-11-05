@@ -34,6 +34,7 @@ func (u Validate) Run(ctx context.Context, paths []domain.Path) []ValidateResult
 	return results
 }
 
+// one は、path の JSON ドキュメント 1 つを機械的に検証し、前回の意味的な検証から AI の judgment を引き継いで、検証を操作の記録に追記する。
 func (u Validate) one(ctx context.Context, path domain.Path) (int64, *domain.Validation, error) {
 	c, err := mechanical(ctx, u.Documents, u.Schemas, u.Validator, u.AbstractID, path)
 	if err != nil {

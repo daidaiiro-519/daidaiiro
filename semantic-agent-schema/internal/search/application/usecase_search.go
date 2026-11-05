@@ -119,7 +119,7 @@ func (u Search) match(ctx context.Context, item any, inRange map[string]bool) (M
 	if err != nil {
 		return Match{}, err
 	}
-	if err := domain.MatchHash(path, hash, document.Hash); err != nil {
+	if err := domain.MatchResponseHash(path, hash, document.Hash); err != nil {
 		return Match{}, err
 	}
 	if _, ok := domain.ValueAt(value, location); !ok {

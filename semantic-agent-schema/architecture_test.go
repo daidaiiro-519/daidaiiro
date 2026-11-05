@@ -45,7 +45,7 @@ func rules() map[string]rule {
 			external: []string{"github.com/santhosh-tekuri/jsonschema/v6"},
 		},
 		"internal/adapters/outbound/recordstore": {
-			internal: []string{"internal/authoring/domain", "internal/authoring/application", "internal/record/application"},
+			internal: []string{"internal/authoring/domain", "internal/record/application"},
 			external: []string{"modernc.org/sqlite"},
 		},
 		"internal/adapters/inbound/cli": {
@@ -61,10 +61,12 @@ func rules() map[string]rule {
 }
 
 type listed struct {
-	ImportPath string
-	Imports    []string
-	Standard   bool
-	Module     *struct{ Path string }
+	ImportPath   string
+	Imports      []string
+	TestImports  []string
+	XTestImports []string
+	Standard     bool
+	Module       *struct{ Path string }
 }
 
 // TestDependencies は、go list -deps -json ./... の ImportPath ・ Imports ・ Standard を読み、表に無い依存があれば落とす。
@@ -91,6 +93,7 @@ func TestDependencies(t *testing.T) {
 	}
 	table := rules()
 	for _, p := range ours {
+		checkTestImports(t, p, table, standard)
 		name := strings.TrimPrefix(strings.TrimPrefix(p.ImportPath, module), "/")
 		r, ok := table[name]
 		if !ok {
@@ -112,6 +115,52 @@ func TestDependencies(t *testing.T) {
 			}
 		}
 	}
+}
+
+// testLibraries は、どの package の試験も、試験の中だけで使ってよい外のライブラリ（package の前置き）。
+var testLibraries = []string{
+	"github.com/google/go-cmp/", "golang.org/x/tools/", "github.com/nishanths/exhaustive",
+	"github.com/santhosh-tekuri/jsonschema/v6",
+}
+
+// checkTestImports は、package の試験ファイルの import を読む。内の試験（TestImports）は本番と同じ向きと testLibraries。
+// 外の試験（XTestImports）は、それに加えて、自分の package と、application なら本物のアダプター（adapters/outbound/*）と
+// publishedlanguage を使ってよい（本物のアダプターを組み合わせて試すため）。cmd の試験は全部を使ってよい。
+func checkTestImports(t *testing.T, p listed, table map[string]rule, standard map[string]bool) {
+	t.Helper()
+	name := strings.TrimPrefix(strings.TrimPrefix(p.ImportPath, module), "/")
+	r := table[name]
+	if name == "cmd/semantic-agent-schema" {
+		return
+	}
+	isApplication := slices.Contains(applications, name)
+	check := func(imports []string, external bool) {
+		for _, imported := range imports {
+			switch {
+			case standard[imported] || !strings.Contains(strings.SplitN(imported, "/", 2)[0], "."):
+				// 標準ライブラリ。試験だけが使う testing などは go list -deps に出ないので、最初の要素に "." が無い path も標準とする
+			case strings.HasPrefix(imported, module+"/") || imported == module:
+				target := strings.TrimPrefix(strings.TrimPrefix(imported, module), "/")
+				ok := slices.Contains(r.internal, target) || slices.Contains(r.internal, "*")
+				if external {
+					ok = ok || target == name || (isApplication && (strings.HasPrefix(target, "internal/adapters/outbound/") || target == "internal/publishedlanguage"))
+				}
+				if !ok {
+					t.Errorf("test imports of %s: %s, want one of %v (external test: also itself and, for an application, adapters/outbound/* and publishedlanguage)", name, target, r.internal)
+				}
+			default:
+				ok := slices.Contains(r.external, imported)
+				for _, prefix := range testLibraries {
+					ok = ok || strings.HasPrefix(imported, prefix)
+				}
+				if !ok {
+					t.Errorf("test imports of %s: %s, want one of %v or a test library %v", name, imported, r.external, testLibraries)
+				}
+			}
+		}
+	}
+	check(p.TestImports, false)
+	check(p.XTestImports, true)
 }
 
 // TestExhaustive は、閉じた一覧（区分）の switch がすべての値を持つかを確かめる。-d（default で網羅とみなす）は付けない。

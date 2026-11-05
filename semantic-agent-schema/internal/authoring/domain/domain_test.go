@@ -422,6 +422,25 @@ func TestMatchHashRejectsChangeAfterRead(t *testing.T) {
 	}
 }
 
+func TestMatchResponseHashRejectsOtherContent(t *testing.T) {
+	t.Parallel()
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	current := domain.HashOf([]byte("a"))
+	if err := domain.MatchResponseHash(path, current, domain.HashOf([]byte("a"))); err != nil {
+		t.Errorf("MatchResponseHash(same) = %v, want nil", err)
+	}
+	err = domain.MatchResponseHash(path, domain.HashOf([]byte("b")), current)
+	if got := codeOf(err); got != "hash_mismatch" {
+		t.Errorf("MatchResponseHash(other) code = %q, want %q", got, "hash_mismatch")
+	}
+	if !strings.Contains(err.Error(), "response の hash") {
+		t.Errorf("MatchResponseHash(other) message = %q, want it to name the response's hash", err.Error())
+	}
+}
+
 func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 	t.Parallel()
 	content := []byte(`{"title": "t", "items": [{"checked": false}, {}]}`)

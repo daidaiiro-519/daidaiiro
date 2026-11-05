@@ -76,6 +76,7 @@ type Counts struct {
 	Verified, Violated, Unverified, NotJudged int
 }
 
+// countOf は、judgment を verdict ごとに数える。
 func countOf(judgments []Judgment) Counts {
 	var c Counts
 	for _, j := range judgments {

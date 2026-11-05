@@ -97,6 +97,7 @@ type subschemaIndex struct {
 	list []Step
 }
 
+// add は、keyword location のサブスキーマの title ・ description ・ x-prompt を、まだ置いていなければ subschemas に1回だけ足す。
 func (x *subschemaIndex) add(concrete Concrete, keyword Pointer) {
 	if x.seen == nil {
 		x.seen = map[string]bool{}
@@ -245,8 +246,10 @@ func MatchResponse(path Path, p Prompt, judgments []Judgment) error {
 	return errors.Join(failures...)
 }
 
+// pairKey は、rule の id と instance location の組を、prompt の step と response の judgment を突き合わせるキーにする。
 func pairKey(rule, location string) string { return rule + "\x00" + location }
 
+// mismatch は、response が prompt と合わないことを表す response_mismatch の Failure を返す。
 func mismatch(path Path, location, message string) error {
 	return &Failure{Code: ResponseMismatch, Path: path.String(), InstanceLocation: location, Message: message}
 }

@@ -44,6 +44,7 @@ func schemaConst(root map[string]any) (Violation, bool) {
 	}, true
 }
 
+// rulesOf は、サブスキーマの x-prompt の rules に作法を当てる。rule の id の重なりと、例の related のキーが related_fields に無いことを違反にする。seen は、Concrete 全体で出た rule の id。
 func rulesOf(subschema map[string]any, at []string, seen map[string]bool) []Violation {
 	var violations []Violation
 	for i, item := range promptRules(subschema) {

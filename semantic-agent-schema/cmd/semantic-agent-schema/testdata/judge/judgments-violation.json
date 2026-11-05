@@ -1,5 +1,5 @@
 {
-  "title": "judgments が形に違反するか JSON として読めないと rejected を返し、操作の記録に追記しない。instruction は、渡した --judgments の JSON の位置を直すよう示す",
+  "title": "judgments が形に違反するか JSON として読めないか verdict が not-judged（道具が判定前に使う値）だと rejected を返し、操作の記録に追記しない。instruction は、渡した --judgments の JSON の位置を直すよう示す",
   "files": {
     "schemas/plan.json": {
       "$fixture": "plan.schema.json"
@@ -20,6 +20,29 @@
         "schemas",
         "--judgments",
         "{\"hash\": \"{sha256 plan.json}\", \"judgments\": [{\"rule\": \"title-short\", \"instanceLocation\": \"/title\", \"verdict\": \"ok\", \"reason\": \"r\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/instanceLocation": "/judgments/0/verdict",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:judgment-response:v1#/properties/judgments/items/properties/verdict/enum",
+          "/next": "semantic-agent-schema validate plan.json --schemas schemas --judgments '<違反を直した judgments>'",
+          "/instruction": {
+            "$prefix": "渡した --judgments の JSON の \"/judgments/0/verdict\" を urn:semantic-agent-schema:judgment-response:v1#/properties/judgments/items/properties/verdict/enum に合うように直す"
+          }
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "plan.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"{sha256 plan.json}\", \"judgments\": [{\"rule\": \"title-short\", \"instanceLocation\": \"/title\", \"verdict\": \"not-judged\", \"reason\": \"r\"}]}"
       ],
       "exit": 1,
       "events": [

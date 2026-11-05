@@ -26,11 +26,12 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		Next        map[string]string `json:"next"`
 	}
 	var codes struct {
-		Codes     map[string]template `json:"codes"`
-		ByMachine template            `json:"violated_by_machine"`
-		ByAI      template            `json:"violated_by_ai"`
-		NotJudged template            `json:"not_judged"`
-		NoTargets struct {
+		ConcreteRange string              `json:"concrete_range"`
+		Codes         map[string]template `json:"codes"`
+		ByMachine     template            `json:"violated_by_machine"`
+		ByAI          template            `json:"violated_by_ai"`
+		NotJudged     template            `json:"not_judged"`
+		NoTargets     struct {
 			Instruction string `json:"instruction"`
 		} `json:"no_judgment_targets"`
 		Prompt struct {
@@ -64,6 +65,9 @@ func TestErrorCodesMatchEventSchema(t *testing.T) {
 		if v.Instruction == "" || v.Next["*"] == "" {
 			t.Errorf("error-codes.json %s = %+v, want instruction and next", name, v)
 		}
+	}
+	if codes.ConcreteRange == "" {
+		t.Errorf("error-codes.json concrete_range = empty, want --range form")
 	}
 	if codes.NoTargets.Instruction == "" {
 		t.Errorf("error-codes.json no_judgment_targets = empty, want instruction")

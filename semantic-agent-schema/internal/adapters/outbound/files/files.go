@@ -148,6 +148,7 @@ func (s *Schemas) Content(ctx context.Context, id string) ([]byte, error) {
 	return found.content, nil
 }
 
+// find は、$id の Concrete を引く。schemas の読み込みは最初の 1 回だけ行い、無ければ schema_not_found、2 つ以上あれば schema_duplicate を返す。
 func (s *Schemas) find(_ context.Context, id string) (entry, error) {
 	if !s.indexed {
 		s.index, s.err = s.read()

@@ -43,6 +43,7 @@ func ChangedLocations(before, after any) map[string]bool {
 	return changed
 }
 
+// flatten は、JSON の値を木の全部の instance location ごとの JSON 文字列にして、into に入れる。変更点を求めるときの比べる元になる。
 func flatten(value any, at []string, into map[string]string) {
 	encoded, _ := json.Marshal(value) // ParseJSON が読んだ値（map ・ slice ・ string ・ json.Number ・ bool ・ nil）は、必ず JSON にできる
 	into[PointerOf(at...).String()] = string(encoded)
@@ -84,6 +85,7 @@ func Inherited(previous *Previous, current any, concrete Concrete) []Judgment {
 	return inherited
 }
 
+// touches は、rule の related_fields のどれかが変更点に含まれるかを返す。含まれる rule の AI の judgment は引き継がない。
 func touches(rule Rule, changed map[string]bool) bool {
 	for _, field := range rule.RelatedFields() {
 		if changed[field.String()] {

@@ -23,11 +23,16 @@ type Update struct {
 }
 
 // Prompt は、いまの JSON ドキュメントと Concrete から、更新の prompt を作って返す。いまの内容の直前の検証に violated の
-// judgment があれば、直す対象として prompt に入れる。
+// judgment があれば、直す対象として prompt に入れる。Concrete が Abstract に違反していれば、schema_violation の error を返す。
 func (u Update) Prompt(ctx context.Context, path domain.Path) (domain.Prompt, error) {
 	document, concrete, err := u.read(ctx, path)
 	if err != nil {
 		return nil, at(path, err)
+	}
+	if concrete.ID() != u.AbstractID {
+		if err := satisfiesAbstract(ctx, u.Validator, u.AbstractID, concrete); err != nil {
+			return nil, at(path, err)
+		}
 	}
 	last, err := u.Records.LastValidation(ctx, path)
 	if err != nil {
@@ -182,8 +187,8 @@ func (u Update) satisfies(ctx context.Context, in UpdateInput, content []byte) (
 }
 
 // rangeSatisfies は、Concrete を更新するときに、範囲のインスタンスを新しい Concrete で検証する。
-// --range が無ければ range_required を返す。値なしの --range なら、従うインスタンスは無いので確かめない。インスタンスの $schema が Concrete の $id と違うときと、違反があるときは、
-// そのインスタンスの path を持つ range_violation を返す。
+// --range が無ければ range_required を返す。値なしの --range なら、従うインスタンスは無いので確かめない。違反があるときは、
+// そのインスタンスの path を持つ range_violation を返す。$schema が違うインスタンスは、Concrete の $schema の const が違反にする。
 func (u Update) rangeSatisfies(ctx context.Context, in UpdateInput, concrete []byte, concreteID string) error {
 	if !in.RangeGiven {
 		return domain.Fail(domain.RangeRequired, in.Path.String(), "Concrete の更新に --range が無い")
@@ -192,16 +197,6 @@ func (u Update) rangeSatisfies(ctx context.Context, in UpdateInput, concrete []b
 		instance, err := u.Documents.Read(ctx, path)
 		if err != nil {
 			return err
-		}
-		value, err := domain.ParseJSON(instance.Content)
-		if err != nil {
-			return at(path, err)
-		}
-		if id, _ := domain.SchemaIDOf(value); id != concreteID { // $schema が無ければ空の $id と比べて違う
-			return &domain.Failure{
-				Code: domain.RangeViolation, Path: path.String(), InstanceLocation: "/$schema",
-				Message: path.String() + " の $schema " + id + " が、更新する Concrete の $id " + concreteID + " と違う",
-			}
 		}
 		violations, err := u.Validator.CheckWith(ctx, concrete, instance.Content)
 		if err != nil {

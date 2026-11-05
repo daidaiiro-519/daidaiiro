@@ -73,6 +73,7 @@ type designSystem struct {
 	tokens    any
 }
 
+// designSystem は、デザインシステムのファイルを読んで契約のスキーマで検証し、テンプレートのファイルと tokens を読んで返す。
 func (u Render) designSystem(ctx context.Context, p domain.Path) (designSystem, error) {
 	document, err := u.Documents.Read(ctx, p)
 	if err != nil {
@@ -153,6 +154,7 @@ func inTokens(p domain.Path, err error) error {
 	return err
 }
 
+// unjoin は、errors.Join で束ねた error を 1 つずつに分ける。束ねていなければ、その error 1 つを返す。
 func unjoin(err error) []error {
 	if joined, ok := err.(interface{ Unwrap() []error }); ok {
 		return joined.Unwrap()

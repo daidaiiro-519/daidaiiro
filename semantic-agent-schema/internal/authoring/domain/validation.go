@@ -58,6 +58,7 @@ func notJudged(in ValidationInput) []Judgment {
 	return judgments
 }
 
+// machine は、機械的な検証の違反 1 件を、機械が出した violated の judgment にする。
 func machine(r Rule, v Violation) Judgment {
 	return result{rule: r, location: v.InstanceLocation, verdict: Violated, by: Machine, reason: v.Message}
 }

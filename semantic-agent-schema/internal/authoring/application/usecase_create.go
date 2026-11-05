@@ -20,11 +20,16 @@ type Create struct {
 }
 
 // Prompt は、Concrete の x-prompt から作成の prompt を作って返す。
-// $id の Concrete が schemas に無いか2つあれば、その error を返す。
+// $id の Concrete が schemas に無いか2つあれば、その error を返す。Concrete が Abstract に違反していれば、schema_violation の error を返す。
 func (u Create) Prompt(ctx context.Context, path domain.Path, schemaID string) (domain.Prompt, error) {
 	concrete, err := u.Schemas.Lookup(ctx, schemaID)
 	if err != nil {
 		return nil, at(path, err)
+	}
+	if schemaID != u.AbstractID {
+		if err := satisfiesAbstract(ctx, u.Validator, u.AbstractID, concrete); err != nil {
+			return nil, at(path, err)
+		}
 	}
 	return domain.NewCreatePrompt(path, concrete), nil
 }

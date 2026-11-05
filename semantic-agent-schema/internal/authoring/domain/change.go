@@ -62,6 +62,7 @@ func changesOf(before any, hasBefore bool, after any) []Change {
 	return changes
 }
 
+// sortedKeys は、複数のマップのキーを重ならないよう集めて昇順に返す。変更前と変更後を比べる順を決める。
 func sortedKeys(maps ...map[string]string) []string {
 	seen := map[string]bool{}
 	var keys []string
