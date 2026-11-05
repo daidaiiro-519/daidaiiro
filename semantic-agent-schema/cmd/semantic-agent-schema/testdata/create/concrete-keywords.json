@@ -1,5 +1,5 @@
 {
-  "title": "作る Concrete が $ref か、機械的な検証で確かめられない format を書くと rejected を返す",
+  "title": "作る Concrete が $ref か、機械的な検証で確かめられない format を書くか、x-prompt ・ x-decided-by を properties ・ items 以外（anyOf ・ then など）の中に書くと rejected を返す。properties ・ items の中なら作る",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -49,6 +49,65 @@
       "files": {
         "schemas/fmt.json": null
       }
+    },
+    {
+      "args": [
+        "create",
+        "schemas/cond.json",
+        "--schemas",
+        "schemas",
+        "--json",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"kind\": {\"type\": \"string\"}}, \"anyOf\": [{\"properties\": {\"kind\": {\"x-prompt\": {\"meaning\": \"m\", \"when\": \"w\", \"rules\": []}}}}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/instanceLocation": "/anyOf/0/properties/kind/x-prompt",
+          "/absoluteKeywordLocation": "urn:semantic-agent-schema:abstract:v1#/$defs/noPrompt/properties/x-prompt"
+        }
+      ],
+      "files": {
+        "schemas/cond.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "schemas/cond.json",
+        "--schemas",
+        "schemas",
+        "--json",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"kind\": {\"type\": \"string\"}}, \"if\": {\"properties\": {\"kind\": {\"const\": \"a\"}}}, \"then\": {\"properties\": {\"kind\": {\"x-decided-by\": \"human\"}}}}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "schema_violation",
+          "/instanceLocation": "/then/properties/kind/x-decided-by"
+        }
+      ],
+      "files": {
+        "schemas/cond.json": null
+      }
+    },
+    {
+      "args": [
+        "create",
+        "schemas/cond.json",
+        "--schemas",
+        "schemas",
+        "--json",
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"items\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"kind\": {\"type\": \"string\", \"x-prompt\": {\"meaning\": \"m\", \"when\": \"w\", \"rules\": []}, \"x-decided-by\": \"human\"}}}}}}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "created"
+        }
+      ]
     }
   ]
 }

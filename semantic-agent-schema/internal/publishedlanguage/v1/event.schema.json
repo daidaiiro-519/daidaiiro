@@ -38,6 +38,9 @@
       "$ref": "#/$defs/listed"
     },
     {
+      "$ref": "#/$defs/help"
+    },
+    {
       "$ref": "#/$defs/rejected"
     }
   ],
@@ -645,6 +648,64 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/judgment"
+          }
+        }
+      }
+    },
+    "help": {
+      "description": "コマンドと引数の一覧を返した。説明は arguments.schema.json の description から作る",
+      "type": "object",
+      "required": [
+        "event",
+        "commands"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "const": "help"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "command",
+              "description",
+              "arguments"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "arguments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "description",
+                    "required"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "description": "引数の書き方（<path>... か --名前）",
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

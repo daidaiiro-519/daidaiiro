@@ -250,6 +250,13 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K162 | 別名は `{group.token}` の形だけを扱う。`$ref`（JSON Pointer）・ `$extends` は扱わない（JSON Schema が拒む） | このプロジェクト | 利用者の指示（2026-11-05） | |
 | K163 | JSON Schema で書けない決まり（グループから受け継ぐ `$type` ・ 別名の先が在るトークンか ・ 輪になっていないか ・ 別名の先の型が合うか ・ 型が決まらないトークン）は、ドメインサービス「レンダラー」の `ResolveTokens` が確かめる。別名の違反は `token_alias_invalid`、型が決まらないトークンと、受け継いだ型の値の形の違反は `schema_violation` | このプロジェクト | 利用者の指示（2026-11-05） | |
 | K164 | テンプレートには、別名を解いた値の木（グループは名前から子へ、トークンは値。`$` で始まる性質は除く）を `.Tokens` で渡す。テンプレートに `$value` を書かせない。テンプレートと JS の参照は、この木に照らす | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K165 | 描画は翻訳ツールの役を担い、トークンの型から CSS の文字列 `css` を作って、別名を解いた値の木の各トークンに足す（format 3.4「A translation tool might reference a token's type to convert the source value into the correct platform-specific format.」）。dimension ・ duration は数と単位、color は hex（alpha が 1 でないか hex が無いときは CSS Color 4 の関数：hsl ・ hwb ・ lab ・ lch ・ oklab ・ oklch はその名前の関数、ほかは `color(<色空間> …)`、alpha は ` / a`）、fontFamily は空白を含む名前を引用符で囲んで `, ` でつなぎ、fontWeight は数（名前は表の数）、cubicBezier は `cubic-bezier(a, b, c, d)`、number は数。値がオブジェクトの型（color ・ dimension ・ duration）はその値に `css` を足し、ほかの型は `{"value": 値, "css": …}` にする | Design Tokens Format Module | format 3.4 ・ 8 | A translation tool might reference a token's type to convert the source value into the correct platform-specific format. |
+
+### 2.16 拡張項目を書いてよい所
+
+| ID | こうする | 種類 | 出どころ | 原文の引用 |
+|---|---|---|---|---|
+| K170 | `x-prompt` と `x-decided-by` は、Concrete のルートと、`properties` ・ `items` でたどるサブスキーマにだけ書く。`allOf` ・ `anyOf` ・ `oneOf` ・ `if` ・ `then` ・ `else` ・ `not` ・ `additionalProperties` ・ `patternProperties` などの中（その下も）は、Abstract（`$defs/noPrompt`）が JSON Schema で拒む。それらの中の rule は、当たるインスタンスの位置が値によって変わり、決定論的に決まらないため | このプロジェクト | 利用者の指示（2026-11-05） | |
 
 ## 3 テスト規約
 
@@ -365,6 +372,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | L08 | `next` には、受け取った `--schemas` ・ `--range` ・ `--schema` ・ `--all` を引き継ぐ。ハッシュは引数で渡さない（楽観ロックは update の中で、最初に読んだハッシュと書く直前のハッシュを比べて完結する。判定した内容のハッシュは、AI が judgment_requested の prompt から judgments の JSON に写す） | このプロジェクト | 具体のページ 4節「next への引き継ぎ」 | |
 | L15 | コマンドは2つの層に分ける。`semantic <ユースケース>`（意味的な操作）は prompt を返し、`<ユースケース>`（機械的な操作）は AI が作ったものを受け取って機械的に検証する：`semantic create <path> --schemas … --schema <$id>` ・ `create <path> --schemas … --json <JSON｜->` ・ `semantic update <path> --schemas …` ・ `update <path> --schemas … --patch <JSON｜->` ・ `semantic validate <path> --schemas … [--all]` ・ `validate <path>... --schemas …` ・ `validate <path> --schemas … --judgments <JSON｜-> [--all]` | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L16 | 意味的な操作の next は、同じユースケースの機械的なコマンドにする。`semantic` の有無も引数の JSON に入れ、`arguments.schema.json` で検証する | このプロジェクト | 利用者の指示（2026-11-05） | |
+| L17 | `--help`（`-h`）は、コマンドと引数の一覧を `help` のログイベント（読むのは AI）で返す。説明は `arguments.schema.json` の description から作り、契約と説明をずらさない。引数を足したら description も書く | このプロジェクト | 利用者の指示（2026-11-05） | |
 | L09 | 引数は pflag で読んで JSON にし、`arguments.schema.json` で検証する。Go のコードで引数の形を確かめない | このプロジェクト | 具体のページ 4節 ・ 本質 `W5` | |
 | L10 | JSON Schema の違反は、`schemacheck` が `ValidationError` の葉ごとに、`InstanceLocation` を `instanceLocation`、キーワードの絶対の位置を `absoluteKeywordLocation` にして1行ずつ出す | このプロジェクト | 具体のページ 5節「error」 | |
 | L11 | JSON Schema の違反には、独自の判定も独自の文も足さない。ライブラリの出力を変換するだけにする | このプロジェクト | 抽象のページ 9節 ・ 具体のページ 5節「error」 | |

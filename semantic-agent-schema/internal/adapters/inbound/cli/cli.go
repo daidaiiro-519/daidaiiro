@@ -98,6 +98,9 @@ func broken(stderr io.Writer, err error) int {
 
 // run は、ログイベントを書けないときだけ error を返す。ほかの error は、rejected のログイベントにする。
 func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wiring) error {
+	if wantsHelp(args) {
+		return out.help(args)
+	}
 	parsed, err := parse(ctx, args, w.Arguments)
 	if err != nil {
 		return out.failures(parsed, err)

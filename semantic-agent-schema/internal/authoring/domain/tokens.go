@@ -132,6 +132,8 @@ func aliasOf(value any) (string, bool) {
 }
 
 // tree は、別名を解いた値の木を返す。テンプレートには、この木を .Tokens として渡す。
+// トークンは、どれも css（型から作る CSS の文字列）を持つオブジェクトにする。値がオブジェクトの型（color ・ dimension ・
+// duration）は、その値に css を足し、ほかの型は {"value": 値, "css": …} にする。
 func tree(node any, at []string, resolved map[string]Token) any {
 	object, ok := node.(map[string]any)
 	if !ok {
@@ -144,7 +146,7 @@ func tree(node any, at []string, resolved map[string]Token) any {
 		}
 		path := append(slices.Clone(at), key)
 		if token, ok := resolved[strings.Join(path, ".")]; ok {
-			out[key] = token.Value
+			out[key] = withCSS(token)
 			continue
 		}
 		out[key] = tree(child, path, resolved)
@@ -159,4 +161,17 @@ func sortedTokenKeys(tokens map[string]rawToken) []string {
 	}
 	slices.Sort(keys)
 	return keys
+}
+
+// withCSS は、トークンの値に css を足したオブジェクトを返す。
+func withCSS(token Token) map[string]any {
+	css := CSSOf(token.Type, token.Value)
+	if object, ok := token.Value.(map[string]any); ok {
+		out := map[string]any{"css": css}
+		for k, v := range object {
+			out[k] = v
+		}
+		return out
+	}
+	return map[string]any{"value": token.Value, "css": css}
 }

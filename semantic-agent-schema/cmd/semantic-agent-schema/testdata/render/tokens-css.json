@@ -1,0 +1,158 @@
+{
+  "title": "トークンには、型から作る CSS の文字列 css を足して .Tokens で渡す（dimension ・ duration は数と単位、color は hex か CSS Color 4 の関数、fontFamily は引用符と「, 」、fontWeight は数、cubicBezier は cubic-bezier(…)、number は数）。値の欄も読める",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": "定例会議"
+    },
+    "design/system.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "memo": "templates/css.html"
+      },
+      "tokens": {
+        "color": {
+          "$type": "color",
+          "hex": {
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8,
+                0,
+                0
+              ],
+              "hex": "#cc0000"
+            }
+          },
+          "translucent": {
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.5,
+              "hex": "#000000"
+            }
+          },
+          "hsl": {
+            "$value": {
+              "colorSpace": "hsl",
+              "components": [
+                "none",
+                0,
+                100
+              ]
+            }
+          },
+          "p3": {
+            "$value": {
+              "colorSpace": "display-p3",
+              "components": [
+                1,
+                0,
+                0.5
+              ]
+            }
+          },
+          "oklch": {
+            "$value": {
+              "colorSpace": "oklch",
+              "components": [
+                0.7,
+                0.1,
+                250
+              ],
+              "alpha": 0.8
+            }
+          }
+        },
+        "space": {
+          "$type": "dimension",
+          "small": {
+            "$value": {
+              "value": 10,
+              "unit": "px"
+            }
+          }
+        },
+        "motion": {
+          "quick": {
+            "$type": "duration",
+            "$value": {
+              "value": 200,
+              "unit": "ms"
+            }
+          },
+          "ease": {
+            "$type": "cubicBezier",
+            "$value": [
+              0.5,
+              0,
+              1,
+              1
+            ]
+          }
+        },
+        "font": {
+          "body": {
+            "$type": "fontFamily",
+            "$value": [
+              "Comic Sans MS",
+              "sans-serif"
+            ]
+          },
+          "mono": {
+            "$type": "fontFamily",
+            "$value": "Menlo"
+          },
+          "bold": {
+            "$type": "fontWeight",
+            "$value": "semi-bold"
+          },
+          "heavy": {
+            "$type": "fontWeight",
+            "$value": 850
+          }
+        },
+        "ratio": {
+          "$type": "number",
+          "$value": 1.5
+        }
+      }
+    }
+  },
+  "raw": {
+    "design/templates/css.html": "<p>{{.Tokens.color.hex.css}}</p>\n<p>{{.Tokens.color.translucent.css}}</p>\n<p>{{.Tokens.color.hsl.css}}</p>\n<p>{{.Tokens.color.p3.css}}</p>\n<p>{{.Tokens.color.oklch.css}}</p>\n<p>{{.Tokens.space.small.css}}</p>\n<p>{{.Tokens.motion.quick.css}}</p>\n<p>{{.Tokens.motion.ease.css}}</p>\n<p>{{.Tokens.font.body.css}}</p>\n<p>{{.Tokens.font.mono.css}}</p>\n<p>{{.Tokens.font.bold.css}}</p>\n<p>{{.Tokens.font.heavy.css}}</p>\n<p>{{.Tokens.ratio.css}}</p>\n<p>{{.Tokens.ratio.value}} {{.Tokens.space.small.value}}{{.Tokens.space.small.unit}}</p>"
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "memo.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/system.json",
+        "--out",
+        "site"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "rendered"
+        }
+      ],
+      "files": {
+        "site/memo.html": "<p>#cc0000</p>\n<p>color(srgb 0 0 0 / 0.5)</p>\n<p>hsl(none 0 100)</p>\n<p>color(display-p3 1 0 0.5)</p>\n<p>oklch(0.7 0.1 250 / 0.8)</p>\n<p>10px</p>\n<p>200ms</p>\n<p>cubic-bezier(0.5, 0, 1, 1)</p>\n<p>&#34;Comic Sans MS&#34;, sans-serif</p>\n<p>Menlo</p>\n<p>600</p>\n<p>850</p>\n<p>1.5</p>\n<p>1.5 10px</p>"
+      }
+    }
+  ]
+}

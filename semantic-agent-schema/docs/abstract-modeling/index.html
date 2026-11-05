@@ -263,7 +263,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <div class="wrap"><table class="stack">
 <tr><th>用語</th><th>意味</th><th>出どころ</th></tr>
 <tr><td>Abstract ・ Concrete</td><td>1 の表のとおり</td><td class="tr">本質 W4</td></tr>
-<tr><td>作法</td><td>Abstract が決めた書き方（拡張項目と <code>x-prompt</code> の書き方）。Concrete に <code>$ref</code> は書かない（Abstract が禁じ、書けば機械的な検証の違反）</td><td class="tr">本質 W4 ・ C1</td></tr>
+<tr><td>作法</td><td>Abstract が決めた書き方（拡張項目と <code>x-prompt</code> の書き方）。Concrete に <code>$ref</code> は書かない（Abstract が禁じ、書けば機械的な検証の違反）。<code>x-prompt</code> と <code>x-decided-by</code> を書いてよいのは、ルートと、properties ・ items のサブスキーマだけ。allOf ・ anyOf ・ oneOf ・ if/then/else ・ not ・ additionalProperties ・ patternProperties などの中は Abstract が禁じ、書けば機械的な検証の違反になる（それらの中の rule は、当たる位置が値によって変わり、決定論的に決まらないため）</td><td class="tr">本質 W4 ・ C1</td></tr>
 <tr><td>拡張項目</td><td>JSON Schema に足した、AI が読むことを前提にしたキーワード。<code>x-prompt</code> ・ <code>x-decided-by</code> ・ <code>x-view</code> の3つで閉じている</td><td class="tr">本質 W1</td></tr>
 <tr><td><code>x-prompt</code> ・ prompt</td><td>対で使う2つ。<code>x-prompt</code> は、Concrete のサブスキーマに書く拡張項目（元）で、値を何として読み、どう書くかの meaning ・ when ・ rules を持つ。スキーマの側だけで、いつも <code>x-</code> を付けて書く。prompt は、コマンドが <code>x-prompt</code> から作って、<code>*_requested</code> のログイベントで AI に返すもの。出力の側だけ。生成にも判定にも同じ <code>x-prompt</code> を使う</td><td class="tr">本質 W1 ・ E3</td></tr>
 <tr><td>rule</td><td><code>x-prompt</code> の rules の1件。id ・ rule ・ why ・ check ・ related_fields ・ bad ・ good を持つ。related_fields は、インスタンスのルートからの絶対の JSON Pointer で書く</td><td class="tr">本質 W1</td></tr>
@@ -417,7 +417,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>2</td><td>デザインシステムを契約のスキーマで検証し、インスタンスを Concrete で検証してから描く</td><td><span class="m">機械的（JSON Schema）</span></td></tr>
 <tr><td>3</td><td>ドメインサービス「レンダラー」が、Concrete の <code>x-view</code> でテンプレートを選ぶ</td><td><span class="m">機械的（ドメインモデル）</span>：S5</td></tr>
 <tr><td>3b</td><td>描く前に、テンプレートの <code>.Value…</code> ・ <code>.Tokens…</code> と、JS の <code>&#123;&#123;.Value&#125;&#125;</code> ・ <code>&#123;&#123;.Tokens&#125;&#125;</code> から始まる参照を、Concrete（properties ・ items）とデザイントークンに照らす</td><td><span class="m">機械的（ドメインモデル）</span>：S5</td></tr>
-<tr><td>4</td><td>デザイントークンの別名を解いた値の木を <code>.Tokens</code> で渡し（テンプレートは <code>.Tokens.color.accent.hex</code> のように読み、<code>$value</code> は書かない）、テンプレートで全部を描いてから書き出す。インスタンス1つにつき1つの HTML</td><td><span class="p">処理</span></td></tr></table></dd>
+<tr><td>4</td><td>デザイントークンの別名を解いた値の木を <code>.Tokens</code> で渡し（テンプレートは <code>.Tokens.color.accent.hex</code> のように読み、<code>$value</code> は書かない。各トークンには、型から作った CSS の文字列 <code>css</code> も足す）、テンプレートで全部を描いてから書き出す。インスタンス1つにつき1つの HTML</td><td><span class="p">処理</span></td></tr></table></dd>
 <dt>拡張</dt><dd><ul><li>UC6-2a デザインシステムかインスタンスの違反：rejected</li><li>UC6-3a <code>x-view</code> が無い ・ その名前のテンプレートが無い：rejected（<code>template_missing</code>）</li><li>UC6-3c テンプレートか JS が引く値が、Concrete かデザイントークンに無い：rejected（<code>template_reference_missing</code>。テンプレートのファイルの path と行）</li><li>UC6-2b デザイントークンの別名の先が無い ・ 輪になっている ・ 型が合わない：rejected（<code>token_alias_invalid</code>）</li><li>UC6-4a テンプレートで描けない（JS の構文の誤りを含む）：何も書き出さずに rejected（<code>template_invalid</code>）</li><li>UC6-4b 書き出す先が範囲かデザインシステムと重なる：rejected（<code>out_overlap</code>）</li><li>UC6-1z Git のリポジトリの外で実行した：rejected（<code>not_in_git</code>）</li></ul></dd>
 </dl></div>
 
@@ -514,7 +514,7 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>サブスキーマを引く S2</td><td>Concrete から、サブスキーマごとの title ・ description ・ <code>x-prompt</code> と、適用される rule を引く。配列の要素（items）もたどる。インスタンスがあるときは一緒にたどり、instance location に対応させる</td><td>意味的 <span class="tr">本質 W1 ・ E4</span></td></tr>
 <tr><td>prompt を作る S3</td><td>サブスキーマと rule から、生成 ・ 判定の prompt を作る。JSON ドキュメントの内容は貼らず、path とハッシュで渡す。同じ入力なら同じ prompt</td><td>意味的 <span class="tr">本質 W1 ・ E2</span></td></tr>
 <tr><td>変更点を求める S4</td><td>8 の「変更点の求め方」で求める</td><td>機械的 <span class="tr">本質 W1 ・ E5</span></td></tr>
-<tr><td>レンダラー S5</td><td>Concrete の <code>x-view</code> で、デザインシステムのテンプレートを選ぶ。不変条件：テンプレートの <code>.Value…</code> ・ <code>.Tokens…</code> と、JS の <code>&#123;&#123;.Value&#125;&#125;</code> ・ <code>&#123;&#123;.Tokens&#125;&#125;</code> から始まる参照は、どれも Concrete（properties ・ items）かデザイントークンにある。JS で追うのは、変数の初期値（<code>&#123;&#123;.Value&#125;&#125;</code> や、そこから作った変数）・ for…of の要素 ・ 名前か数のリテラルで引くメンバーだけ。変数を作り直す ・ 計算した名前で引く ・ 関数の戻り値をたどる ・ 分割代入 ・ 名前の隠れは追わず、照らさない。properties を持たないサブスキーマの下の名前（<code>length</code> など）も照らさない。デザイントークンの決まり：型はグループから受け継ぐ。別名 <code>{group.token}</code> の先は在るトークンで、輪にならず、型が合う。描く前に別名を解いた値の木を作る</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
+<tr><td>レンダラー S5</td><td>Concrete の <code>x-view</code> で、デザインシステムのテンプレートを選ぶ。不変条件：テンプレートの <code>.Value…</code> ・ <code>.Tokens…</code> と、JS の <code>&#123;&#123;.Value&#125;&#125;</code> ・ <code>&#123;&#123;.Tokens&#125;&#125;</code> から始まる参照は、どれも Concrete（properties ・ items）かデザイントークンにある。JS で追うのは、変数の初期値（<code>&#123;&#123;.Value&#125;&#125;</code> や、そこから作った変数）・ for…of の要素 ・ 名前か数のリテラルで引くメンバーだけ。変数を作り直す ・ 計算した名前で引く ・ 関数の戻り値をたどる ・ 分割代入 ・ 名前の隠れは追わず、照らさない。properties を持たないサブスキーマの下の名前（<code>length</code> など）も照らさない。デザイントークンの決まり：型はグループから受け継ぐ。別名 <code>{group.token}</code> の先は在るトークンで、輪にならず、型が合う。描く前に別名を解いた値の木を作り、各トークンに型から作る CSS の文字列（css）を足す（Design Tokens Format Module の translation tool の役）</td><td>機械的 <span class="tr">本質 W1</span></td></tr>
 <tr><td>検索の比較 S6</td><td>範囲の JSON ドキュメントごとに、JSON Pointer の値が条件と同じかを比べる。JSON の文字列が同じものを合うとする（1 と 1.0 は違う）</td><td>機械的 <span class="tr">本質 W3</span></td></tr>
 </table></div>
 </section>
@@ -576,7 +576,8 @@ table.stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);bo
 <tr><td>人かどうかの確かめと、承認の仕組み</td><td>使う側の責務。人はファイルを直接書いて <code>x-decided-by: human</code> の値を決め、誰が決めたかは Git のコミットの作者が残す。Semantic Agent Schema は、人が書いたあとも普通に検証する</td><td class="tr">本質 P7</td></tr>
 <tr><td>変更の履歴をたどる仕組み ・ 外の変更の取り込み</td><td>前回の検証と比べれば変更点が出る</td><td class="tr">本質 W1 ・ W3</td></tr>
 <tr><td>Concrete の中の <code>$ref</code> と、参照先をたどる仕組み</td><td>Concrete は1つの JSON ドキュメントで閉じる。<code>$ref</code> は Abstract が禁じ、書けば機械的な検証の違反になる</td><td class="tr">本質 W3 ・ R4</td></tr>
-<tr><td>テンプレートの中を解析して Concrete と照らすこと</td><td>テンプレートは契約の記法で書き、描画はその処理系に任せる</td><td class="tr">本質 W4</td></tr>
+<tr><td>CSS ・ 画像などのファイルの書き出し</td><td>まだ作らない。テンプレートの共有は、まず html/template の define ・ template で行う。使う場面が出てから設計する</td><td class="tr">本質 W6 ・ W7</td></tr>
+<tr><td>複数の JSON ドキュメントの一覧のページ</td><td>まだ作らない。使う場面が出てから設計する</td><td class="tr">本質 W6 ・ W7</td></tr>
 </table></div>
 <blockquote>もっとシンプルでいいし、入力の曖昧さをアルゴリズムで強引に実現しようとしなくてもある程度入力を作成するaiに頼ってもいいと思う。</blockquote>
 </section>

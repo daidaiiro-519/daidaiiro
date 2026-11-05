@@ -681,14 +681,14 @@ func TestResolveTokens(t *testing.T) {
 		name      string
 		tokens    string
 		wantCode  string
-		wantValue string // 解いた値の木の、別名のトークンの値（JSON）
+		wantValue string // 解いた値の木の、別名のトークンの値（css を足したもの。JSON）
 	}{
 		{name: "別名を解いた値を木に置き、型は別名の先から受け継ぐ",
 			tokens:    `{"c": {"$type": "color", "base": {"$value": {"colorSpace": "srgb", "components": [1, 0, 0]}}}, "a": {"$value": "{c.base}"}}`,
-			wantValue: `{"colorSpace":"srgb","components":[1,0,0]}`},
+			wantValue: `{"colorSpace":"srgb","components":[1,0,0],"css":"color(srgb 1 0 0)"}`},
 		{name: "別名の別名をたどる",
 			tokens:    `{"n": {"$type": "number", "$value": 2}, "m": {"$value": "{n}"}, "a": {"$value": "{m}"}}`,
-			wantValue: `2`},
+			wantValue: `{"css":"2","value":2}`},
 		{name: "別名の先が無い", tokens: `{"a": {"$value": "{nothing}"}}`, wantCode: "token_alias_invalid"},
 		{name: "別名の先がグループ", tokens: `{"g": {"x": {"$type": "number", "$value": 1}}, "a": {"$value": "{g}"}}`, wantCode: "token_alias_invalid"},
 		{name: "別名が輪", tokens: `{"a": {"$value": "{b}"}, "b": {"$value": "{a}"}}`, wantCode: "token_alias_invalid"},
@@ -715,5 +715,32 @@ func TestResolveTokens(t *testing.T) {
 				t.Errorf("ResolveTokens(%s) a = %s, %v, want %s", c.name, got, err, c.wantValue)
 			}
 		})
+	}
+}
+
+func TestCSSOfConvertsTypesToCSS(t *testing.T) {
+	t.Parallel()
+	cases := []struct{ tokenType, value, want string }{
+		{"dimension", `{"value": 10, "unit": "px"}`, "10px"},
+		{"duration", `{"value": 1.5, "unit": "s"}`, "1.5s"},
+		{"color", `{"colorSpace": "srgb", "components": [1, 0, 0], "hex": "#ff0000"}`, "#ff0000"},
+		{"color", `{"colorSpace": "srgb", "components": [1, 0, 0], "alpha": 0.5, "hex": "#ff0000"}`, "color(srgb 1 0 0 / 0.5)"},
+		{"color", `{"colorSpace": "lab", "components": [60.17, 93.54, -60.5]}`, "lab(60.17 93.54 -60.5)"},
+		{"color", `{"colorSpace": "hwb", "components": [330, 0, 0], "alpha": 1}`, "hwb(330 0 0)"},
+		{"fontFamily", `["Helvetica Neue", "Arial", "sans-serif"]`, `"Helvetica Neue", Arial, sans-serif`},
+		{"fontFamily", `"Comic Sans MS"`, `"Comic Sans MS"`},
+		{"fontWeight", `"extra-black"`, "950"},
+		{"fontWeight", `350`, "350"},
+		{"cubicBezier", `[0, 0, 0.5, 1]`, "cubic-bezier(0, 0, 0.5, 1)"},
+		{"number", `2.3`, "2.3"},
+	}
+	for _, c := range cases {
+		value, err := domain.ParseJSON([]byte(c.value))
+		if err != nil {
+			t.Fatalf("ParseJSON(%s) = %v", c.value, err)
+		}
+		if got := domain.CSSOf(c.tokenType, value); got != c.want {
+			t.Errorf("CSSOf(%s, %s) = %q, want %q", c.tokenType, c.value, got, c.want)
+		}
 	}
 }

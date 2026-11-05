@@ -1,0 +1,72 @@
+{
+  "title": "--help は、コマンドと引数の一覧を、arguments.schema.json の説明から help のログイベントで返す。コマンドを指せば、そのコマンドだけを返す",
+  "files": {
+    "a.json": {}
+  },
+  "steps": [
+    {
+      "args": [
+        "--help"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "help",
+          "/commands/0/command": "semantic create",
+          "/commands/1/command": "create",
+          "/commands/9/command": "log"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "create",
+        "--help"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "help",
+          "/commands": [
+            {
+              "command": "semantic create",
+              "description": "semantic create <path> --schemas <ディレクトリ> --schema <$id>。作成の prompt を依頼する",
+              "arguments": [
+                {
+                  "name": "<path>",
+                  "description": "作る JSON ドキュメントの path",
+                  "required": true
+                },
+                {
+                  "name": "--schema",
+                  "description": "作る JSON ドキュメントが従う Concrete の $id",
+                  "required": true
+                },
+                {
+                  "name": "--schemas",
+                  "description": "Concrete を探すディレクトリ（繰り返せる）",
+                  "required": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "-h"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "help",
+          "/commands/0/command": "render",
+          "/commands/0/arguments/1/name": "--design-system"
+        }
+      ]
+    }
+  ]
+}
