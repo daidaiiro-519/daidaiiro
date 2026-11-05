@@ -468,12 +468,19 @@ func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 		t.Fatalf("NewPath = %v", err)
 	}
 	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
-	p := domain.NewUpdatePrompt(document, value, concrete(t, memo), "urn:patch")
+	p := domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: concrete(t, memo), PatchID: "urn:patch"})
 	var got []string
 	for _, step := range p.Steps() {
-		got = append(got, step.InstanceLocation.String()+" "+step.Title)
+		got = append(got, step.InstanceLocation.String()+" "+step.KeywordLocation.String())
 	}
-	want := []string{" メモ", "/items/0 品", "/items/1 品", "/title 題名"}
+	want := []string{" ", "/items/0 /properties/items/items", "/items/1 /properties/items/items", "/title /properties/title"}
+	var subschemas []string
+	for _, sub := range p.Subschemas() {
+		subschemas = append(subschemas, sub.KeywordLocation.String()+" "+sub.Title)
+	}
+	if wantSubschemas := []string{" メモ", "/properties/items/items 品", "/properties/title 題名"}; !slices.Equal(subschemas, wantSubschemas) {
+		t.Errorf("NewUpdatePrompt(memo).Subschemas() = %q, want %q", subschemas, wantSubschemas)
+	}
 	if !slices.Equal(got, want) {
 		t.Errorf("NewUpdatePrompt(memo).Steps() = %q, want %q", got, want)
 	}
@@ -516,7 +523,7 @@ func TestNewJudgmentPromptSelectsRulesByChanges(t *testing.T) {
 			t.Parallel()
 			var got []string
 			document := domain.Document{Path: path, Content: []byte("{}"), Hash: domain.HashOf([]byte("{}"))}
-			for _, step := range domain.NewJudgmentPrompt(document, value, concrete(t, plan), c.changed, "urn:r").Steps() {
+			for _, step := range domain.NewJudgmentPrompt(document, value, concrete(t, plan), c.changed, "urn:r", false).Steps() {
 				got = append(got, step.InstanceLocation.String()+" "+step.Rule)
 			}
 			if !slices.Equal(got, c.want) {
@@ -537,7 +544,7 @@ func TestMatchResponseRejectsPairsOtherThanPrompt(t *testing.T) {
 		t.Fatalf("NewPath = %v", err)
 	}
 	document := domain.Document{Path: path, Content: []byte("{}"), Hash: domain.HashOf([]byte("{}"))}
-	prompt := domain.NewJudgmentPrompt(document, value, concrete(t, plan), nil, "urn:r")
+	prompt := domain.NewJudgmentPrompt(document, value, concrete(t, plan), nil, "urn:r", false)
 	end := judgment(t, "end-after-start", "/end", "verified", "ai")
 	title := judgment(t, "title-short", "/title", "verified", "ai")
 	other := judgment(t, "title-short", "/end", "verified", "ai")

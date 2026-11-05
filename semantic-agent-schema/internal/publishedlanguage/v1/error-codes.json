@@ -1,5 +1,5 @@
 {
-  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、{line} はテンプレートの中の行、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。prompt は *_requested のログイベントの prompt の next で、同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。",
+  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、{line} はテンプレートの中の行、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。prompt は *_requested のログイベントの prompt の next で、同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。 argumentInstruction は、違反した JSON が引数（--json ・ --patch ・ --judgments ・ --matches）のときの instruction で、{argument} はその引数の名前。",
   "codes": {
     "arguments_invalid": {
       "instruction": "引数が引数の形に違反している（instance location：\"{instanceLocation}\"、{message}）。引数を直して、もう一度実行する",
@@ -43,7 +43,8 @@
         "validate --judgments": "semantic-agent-schema validate {paths} {schemas} --judgments '<違反を直した judgments>'{all}",
         "search --matches": "semantic-agent-schema search {paths} --matches '<違反を直した matches>'",
         "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
-      }
+      },
+      "argumentInstruction": "渡した {argument} の JSON の \"{instanceLocation}\" を {absoluteKeywordLocation} に合うように直す（{message}）。直したら、もう一度実行する"
     },
     "invalid_json": {
       "instruction": "{path} は JSON として読めない（{message}）。JSON に直して、もう一度実行する",
@@ -56,7 +57,8 @@
         "search": "semantic-agent-schema search {paths} --where <JSON Pointer>=<JSON の値>",
         "search --matches": "semantic-agent-schema search {paths} --matches '<直した matches>'",
         "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
-      }
+      },
+      "argumentInstruction": "渡した {argument} は JSON として読めない（{message}）。JSON に直して、もう一度実行する"
     },
     "convention_violation": {
       "instruction": "{path} の \"{instanceLocation}\" が Concrete の作法に違反している（{message}）。作法を満たすように直して、もう一度実行する",
@@ -111,9 +113,9 @@
       }
     },
     "range_required": {
-      "instruction": "{path} は Concrete なので、その Concrete に従うインスタンスの path を --range に渡す。範囲のインスタンスを、新しい Concrete で検証してから書く",
+      "instruction": "{path} は Concrete なので、その Concrete に従うインスタンスの path を --range に渡す（範囲のインスタンスを、新しい Concrete で検証してから書く）。従うインスタンスが無いなら、値なしの --range を渡す",
       "next": {
-        "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>' --range <この Concrete に従うインスタンスの path>"
+        "update": "semantic-agent-schema update {paths} {schemas} --patch '<同じ JSON Patch>' --range <この Concrete に従うインスタンスの path（無ければ値なし）>"
       }
     },
     "range_violation": {

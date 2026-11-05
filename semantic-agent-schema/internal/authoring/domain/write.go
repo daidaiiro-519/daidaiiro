@@ -131,7 +131,7 @@ func decidedValues(concrete Concrete, value any) map[string]decided {
 // decidedByHuman は、インスタンスと Concrete を JSON Schema の構造（properties と items）で一緒にたどり、
 // x-decided-by: human のサブスキーマに当たるインスタンスの値ごとに found を呼ぶ。配列は要素ごとにたどる。
 func decidedByHuman(subschema map[string]any, value any, at []string, found func(location Pointer, value, def any, hasDefault bool)) {
-	walkInstance(subschema, value, at, func(sub map[string]any, v any, location []string) {
+	walkInstance(subschema, value, at, nil, func(sub map[string]any, v any, location, _ []string) {
 		if sub["x-decided-by"] == "human" {
 			def, hasDefault := sub["default"]
 			found(PointerOf(location...), v, def, hasDefault)
@@ -140,23 +140,24 @@ func decidedByHuman(subschema map[string]any, value any, at []string, found func
 }
 
 // walkInstance は、ドメインサービス「サブスキーマを引く」の、インスタンスがあるときの側。インスタンスと Concrete を
-// JSON Schema の構造（properties と items）で一緒にたどり、インスタンスにある値ごとに、そのサブスキーマと instance location で visit を呼ぶ。
-func walkInstance(subschema map[string]any, value any, at []string, visit func(subschema map[string]any, value any, at []string)) {
-	visit(subschema, value, at)
+// JSON Schema の構造（properties と items）で一緒にたどり、インスタンスにある値ごとに、そのサブスキーマ ・ instance location ・
+// keyword location で visit を呼ぶ。
+func walkInstance(subschema map[string]any, value any, at, keyword []string, visit func(subschema map[string]any, value any, at, keyword []string)) {
+	visit(subschema, value, at, keyword)
 	if properties, ok := subschema["properties"].(map[string]any); ok {
 		object, _ := value.(map[string]any) // オブジェクトでなければ、たどる値が無い
 		for _, name := range sortedNames(properties) {
 			child, isSchema := properties[name].(map[string]any)
 			v, present := object[name]
 			if isSchema && present {
-				walkInstance(child, v, append(slices.Clone(at), name), visit)
+				walkInstance(child, v, append(slices.Clone(at), name), append(slices.Clone(keyword), "properties", name), visit)
 			}
 		}
 	}
 	if items, ok := subschema["items"].(map[string]any); ok {
 		array, _ := value.([]any) // 配列でなければ、たどる値が無い
 		for i, v := range array {
-			walkInstance(items, v, append(slices.Clone(at), strconv.Itoa(i)), visit)
+			walkInstance(items, v, append(slices.Clone(at), strconv.Itoa(i)), append(slices.Clone(keyword), "items"), visit)
 		}
 	}
 }

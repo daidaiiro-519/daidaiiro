@@ -22,13 +22,21 @@ type Update struct {
 	PatchID    string // JSON Patch のスキーマ（patch.schema.json）の $id。更新の prompt の response の形
 }
 
-// Prompt は、いまの JSON ドキュメントと Concrete から、更新の prompt を作って返す。
+// Prompt は、いまの JSON ドキュメントと Concrete から、更新の prompt を作って返す。いまの内容の直前の検証に violated の
+// judgment があれば、直す対象として prompt に入れる。
 func (u Update) Prompt(ctx context.Context, path domain.Path) (domain.Prompt, error) {
 	document, value, concrete, err := u.read(ctx, path)
 	if err != nil {
 		return nil, at(path, err)
 	}
-	return domain.NewUpdatePrompt(document, value, concrete, u.PatchID), nil
+	last, err := u.Records.LastValidation(ctx, path)
+	if err != nil {
+		return nil, at(path, err)
+	}
+	return domain.NewUpdatePrompt(domain.UpdateInput{
+		Document: document, Value: value, Concrete: concrete, PatchID: u.PatchID,
+		Violations: last.Violated(document.Hash), ForConcrete: concrete.ID() == u.AbstractID,
+	}), nil
 }
 
 // UpdateInput は、更新の引数。
@@ -36,6 +44,8 @@ type UpdateInput struct {
 	Path  domain.Path
 	Patch []byte
 	Range []domain.Path // Concrete を更新するときの、範囲のインスタンス
+	// RangeGiven は、--range を渡したとき true。値なしの --range（Range が空）は、従うインスタンスが無いことを示す
+	RangeGiven bool
 }
 
 // Run は、最初にいまのファイルを読んでハッシュを控え、JSON Patch を適用して検証し、ロックの中で書く直前のハッシュが
@@ -77,14 +87,14 @@ func (u Update) check(ctx context.Context, in UpdateInput) (*domain.Write, error
 		return nil, err
 	}
 	if _, err := domain.ParseJSON(in.Patch); err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--patch")
 	}
 	violations, err := u.Validator.Check(ctx, u.PatchID, in.Patch)
 	if err != nil {
 		return nil, err
 	}
 	if err := domain.FailuresOf(domain.SchemaViolation, in.Path.String(), violations); err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--patch")
 	}
 	content, err := u.apply(before.Content, in.Patch)
 	if err != nil {
@@ -149,7 +159,7 @@ func (u Update) satisfies(ctx context.Context, in UpdateInput, content []byte) (
 	if err := domain.FailuresOf(domain.SchemaViolation, in.Path.String(), violations); err != nil {
 		return nil, nil, err
 	}
-	if schemaID != u.AbstractID && len(in.Range) > 0 {
+	if schemaID != u.AbstractID && in.RangeGiven {
 		return nil, nil, &domain.Failure{
 			Code: domain.ArgumentsInvalid, InstanceLocation: "/range",
 			Message: "--range は Concrete を更新するときだけ渡す。" + in.Path.String() + " はインスタンス",
@@ -168,10 +178,10 @@ func (u Update) satisfies(ctx context.Context, in UpdateInput, content []byte) (
 }
 
 // rangeSatisfies は、Concrete を更新するときに、範囲のインスタンスを新しい Concrete で検証する。
-// 範囲が無ければ range_required を返す。インスタンスの $schema が Concrete の $id と違うときと、違反があるときは、
+// --range が無ければ range_required を返す。値なしの --range なら、従うインスタンスは無いので確かめない。インスタンスの $schema が Concrete の $id と違うときと、違反があるときは、
 // そのインスタンスの path を持つ range_violation を返す。
 func (u Update) rangeSatisfies(ctx context.Context, in UpdateInput, concrete []byte, concreteID string) error {
-	if len(in.Range) == 0 {
+	if !in.RangeGiven {
 		return domain.Fail(domain.RangeRequired, in.Path.String(), "Concrete の更新に --range が無い")
 	}
 	for _, path := range in.Range {

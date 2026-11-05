@@ -27,7 +27,7 @@ func (u Judge) Prompt(ctx context.Context, path domain.Path, all bool) (domain.P
 	if err != nil {
 		return nil, nil, at(path, err)
 	}
-	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID)
+	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.concrete.ID() == u.AbstractID)
 	return prompt, domain.NewValidation(c.input(previous)), nil
 }
 
@@ -52,14 +52,14 @@ func (u Judge) judged(ctx context.Context, path domain.Path, response []byte, al
 	}
 	value, err := domain.ParseJSON(response)
 	if err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--judgments")
 	}
 	violations, err := u.Validator.Check(ctx, u.ResponseID, response)
 	if err != nil {
 		return nil, err
 	}
 	if err := domain.FailuresOf(domain.SchemaViolation, path.String(), violations); err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--judgments")
 	}
 	hash, judgments, err := responseJudgments(value)
 	if err != nil {
@@ -69,7 +69,7 @@ func (u Judge) judged(ctx context.Context, path domain.Path, response []byte, al
 	if err := domain.MatchHash(path, hash, c.document.Hash); err != nil {
 		return nil, err
 	}
-	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID)
+	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.concrete.ID() == u.AbstractID)
 	if err := domain.MatchResponse(path, prompt, judgments); err != nil {
 		return nil, err
 	}

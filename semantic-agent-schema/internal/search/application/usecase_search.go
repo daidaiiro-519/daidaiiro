@@ -61,14 +61,14 @@ func (u Search) Prompt(ctx context.Context, paths []domain.Path) ([]domain.Docum
 func (u Search) Matches(ctx context.Context, paths []domain.Path, content []byte) ([]Match, error) {
 	value, err := domain.ParseJSON(content)
 	if err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--matches")
 	}
 	violations, err := u.Validator.Check(ctx, u.ResponseID, content)
 	if err != nil {
 		return nil, err
 	}
 	if err := domain.FailuresOf(domain.SchemaViolation, "", violations); err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--matches")
 	}
 	inRange := map[string]bool{}
 	for _, p := range paths {

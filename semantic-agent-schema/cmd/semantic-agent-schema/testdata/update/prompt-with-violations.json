@@ -1,0 +1,87 @@
+{
+  "title": "更新の prompt は、いまの内容の直前の検証の violated の judgment を、直す対象として持つ。Concrete の更新の prompt の next は --range を引き継ぐ形にし、値なしの --range で、従うインスタンスが無いことを示して書き換えられる",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    },
+    "memo.json": {
+      "$schema": "urn:example:memo:v1",
+      "title": ""
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "validated",
+          "/counts/violated": 1
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "update",
+        "memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "update_requested",
+          "/prompt/violations": [
+            {
+              "rule": "urn:example:memo:v1#/properties/title/minLength",
+              "instanceLocation": "/title",
+              "verdict": "violated",
+              "by": "machine",
+              "reason": "minLength: got 0, want 1"
+            }
+          ],
+          "/prompt/response/$id": "urn:semantic-agent-schema:patch:v1"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "update",
+        "schemas/memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "update_requested",
+          "/prompt/next": "semantic-agent-schema update schemas/memo.json --schemas schemas --patch '<response の形に従う JSON Patch>' --range <この Concrete に従うインスタンスの path（無ければ値なしの --range）>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "update",
+        "schemas/memo.json",
+        "--schemas",
+        "schemas",
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/description\", \"value\": \"会議の記録\"}]",
+        "--range"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "updated"
+        }
+      ]
+    }
+  ]
+}

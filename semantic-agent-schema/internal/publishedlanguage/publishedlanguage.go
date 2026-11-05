@@ -2,7 +2,11 @@
 // error の instruction と next の定型を、バイナリに埋め込んで持つ。
 package publishedlanguage
 
-import "embed"
+import (
+	"embed"
+	"encoding/json"
+	"errors"
+)
 
 //go:embed v1/*.json
 var files embed.FS
@@ -38,4 +42,22 @@ var Schemas = []string{
 // Read は、v1 のファイルのバイト列を返す。無い名前なら error を返す。
 func Read(name string) ([]byte, error) {
 	return files.ReadFile("v1/" + name)
+}
+
+// Schema は、$id の公開された言葉のスキーマを、読んだ値で返す。無ければ error を返す。
+func Schema(id string) (map[string]any, error) {
+	for _, name := range Schemas {
+		content, err := Read(name)
+		if err != nil {
+			return nil, err
+		}
+		var schema map[string]any
+		if err := json.Unmarshal(content, &schema); err != nil {
+			return nil, err
+		}
+		if schema["$id"] == id {
+			return schema, nil
+		}
+	}
+	return nil, errors.New("no published schema " + id)
 }

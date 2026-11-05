@@ -223,6 +223,29 @@ func (s *Store) LastJudged(ctx context.Context, path domain.Path) (*domain.Previ
 	return domain.NewPrevious([]byte(content), concreteHash, judgments)
 }
 
+// LastValidation は、path の直前の検証（機械的な検証か意味的な検証）を返す。無ければ nil を返す。
+func (s *Store) LastValidation(ctx context.Context, path domain.Path) (*domain.Previous, error) {
+	var (
+		id           int64
+		concreteHash string
+		content      string
+	)
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, concrete_hash, content FROM validations WHERE path = ? ORDER BY id DESC LIMIT 1",
+		path.String()).Scan(&id, &concreteHash, &content)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, s.failure(err)
+	}
+	judgments, err := s.judgments(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return domain.NewPrevious([]byte(content), concreteHash, judgments)
+}
+
 func (s *Store) judgments(ctx context.Context, validationID int64) (judgments []domain.Judgment, err error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT rule_id, instance_location, "by", verdict, reason FROM judgments WHERE validation_id = ? ORDER BY rowid`,

@@ -43,7 +43,8 @@ type Failure struct {
 	InstanceLocation        string
 	AbsoluteKeywordLocation string
 	Message                 string
-	Line                    int // テンプレートの中の行。テンプレートの違反でなければ 0
+	Line                    int    // テンプレートの中の行。テンプレートの違反でなければ 0
+	Argument                string // 違反した JSON が引数（--json ・ --patch ・ --judgments ・ --matches）なら、その名前
 }
 
 // Error は、code と message を返す。
@@ -66,4 +67,25 @@ func FailuresOf(c code, path string, violations []Violation) error {
 		})
 	}
 	return errors.Join(failures...)
+}
+
+// OfArgument は、err の中の Failure（errors.Join でまとめたものも）に、違反した JSON の引数の名前を入れて返す。
+func OfArgument(err error, argument string) error {
+	var stack []error
+	if err != nil {
+		stack = append(stack, err)
+	}
+	for len(stack) > 0 {
+		e := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if joined, ok := e.(interface{ Unwrap() []error }); ok {
+			stack = append(stack, joined.Unwrap()...)
+			continue
+		}
+		var f *Failure
+		if errors.As(e, &f) {
+			f.Argument = argument
+		}
+	}
+	return err
 }

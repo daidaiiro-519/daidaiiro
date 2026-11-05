@@ -1,0 +1,137 @@
+{
+  "title": "Concrete への意味的な検証では、Abstract のルートの rule を、Concrete の中の x-prompt の位置ごとに step にし、x-prompt は subschemas に1回だけ置き、response の形は JSON Schema の中身で渡す。位置を指した judgments は通る。判定し終えた後は変更点が無いので、ルートを指した judgments は prompt に無い組になる",
+  "files": {
+    "schemas/memo.json": {
+      "$fixture": "memo.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "schemas/memo.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "schema-first"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "meaning-domain"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "when-situation"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "rule-judgeable"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "check-question"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "why-purpose"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "examples-match"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt",
+              "keywordLocation": "#",
+              "rule": "related-fields-exact"
+            }
+          ],
+          "/prompt/subschemas/0/keywordLocation": "#",
+          "/prompt/subschemas/0/x-prompt/rules/0/id": "schema-first",
+          "/prompt/response/$id": "urn:semantic-agent-schema:judgment-response:v1",
+          "/prompt/response/required": [
+            "hash",
+            "judgments"
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "schemas/memo.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"{sha256 schemas/memo.json}\", \"judgments\": [{\"rule\": \"schema-first\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"meaning-domain\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"when-situation\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}]}"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judged",
+          "/counts/verified": 8,
+          "/judgments/0/instanceLocation": "/properties/title/x-prompt"
+        }
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "schemas/memo.json",
+        "--schemas",
+        "schemas",
+        "--judgments",
+        "{\"hash\": \"{sha256 schemas/memo.json}\", \"judgments\": [{\"rule\": \"schema-first\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"meaning-domain\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"when-situation\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}]}"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        },
+        {
+          "/event": "rejected",
+          "/code": "response_mismatch"
+        }
+      ]
+    }
+  ]
+}

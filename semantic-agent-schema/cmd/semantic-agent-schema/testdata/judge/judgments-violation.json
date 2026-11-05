@@ -1,5 +1,5 @@
 {
-  "title": "judgments が形に違反するか JSON として読めないと rejected を返し、操作の記録に追記しない",
+  "title": "judgments が形に違反するか JSON として読めないと rejected を返し、操作の記録に追記しない。instruction は、渡した --judgments の JSON の位置を直すよう示す",
   "files": {
     "schemas/plan.json": {
       "$fixture": "plan.schema.json"
@@ -28,7 +28,10 @@
           "/code": "schema_violation",
           "/instanceLocation": "/judgments/0/verdict",
           "/absoluteKeywordLocation": "urn:semantic-agent-schema:judgment-response:v1#/properties/judgments/items/properties/verdict/enum",
-          "/next": "semantic-agent-schema validate plan.json --schemas schemas --judgments '<違反を直した judgments>'"
+          "/next": "semantic-agent-schema validate plan.json --schemas schemas --judgments '<違反を直した judgments>'",
+          "/instruction": {
+            "$prefix": "渡した --judgments の JSON の \"/judgments/0/verdict\" を urn:semantic-agent-schema:judgment-response:v1#/properties/judgments/items/properties/verdict/enum に合うように直す"
+          }
         }
       ]
     },
@@ -63,7 +66,10 @@
       "events": [
         {
           "/event": "rejected",
-          "/code": "invalid_json"
+          "/code": "invalid_json",
+          "/instruction": {
+            "$prefix": "渡した --judgments は JSON として読めない"
+          }
         }
       ]
     },
@@ -82,6 +88,18 @@
           "/prompt/steps": [
             {
               "instanceLocation": "/end",
+              "keywordLocation": "#/properties/end",
+              "rule": "end-after-start"
+            },
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title",
+              "rule": "title-short"
+            }
+          ],
+          "/prompt/subschemas": [
+            {
+              "keywordLocation": "#/properties/end",
               "title": "終わりの日",
               "x-prompt": {
                 "meaning": "計画の終わりの日",
@@ -113,11 +131,10 @@
                     ]
                   }
                 ]
-              },
-              "rule": "end-after-start"
+              }
             },
             {
-              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title",
               "title": "題名",
               "x-prompt": {
                 "meaning": "計画の題名",
@@ -137,8 +154,7 @@
                     ]
                   }
                 ]
-              },
-              "rule": "title-short"
+              }
             }
           ]
         }

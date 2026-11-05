@@ -51,21 +51,21 @@ type IO struct {
 
 // arguments は、引数の JSON。arguments.schema.json の形。Semantic は、semantic <ユースケース>（意味的な操作）のとき true。
 type arguments struct {
-	Semantic  bool     `json:"semantic,omitempty"`
-	Command   string   `json:"command,omitempty"`
-	Paths     []string `json:"paths"`
-	Schemas   []string `json:"schemas,omitempty"`
-	Schema    string   `json:"schema,omitempty"`
-	JSON      *string  `json:"json,omitempty"`
-	Patch     *string  `json:"patch,omitempty"`
-	Range     []string `json:"range,omitempty"`
-	All       bool     `json:"all,omitempty"`
-	Judgments *string  `json:"judgments,omitempty"`
-	Limit     *int     `json:"limit,omitempty"`
-	Operation string   `json:"operation,omitempty"`
-	Where     []where  `json:"where,omitempty"`
-	Question  string   `json:"question,omitempty"`
-	Matches   *string  `json:"matches,omitempty"`
+	Semantic  bool      `json:"semantic,omitempty"`
+	Command   string    `json:"command,omitempty"`
+	Paths     []string  `json:"paths"`
+	Schemas   []string  `json:"schemas,omitempty"`
+	Schema    string    `json:"schema,omitempty"`
+	JSON      *string   `json:"json,omitempty"`
+	Patch     *string   `json:"patch,omitempty"`
+	Range     *[]string `json:"range,omitempty"` // 値なしの --range は、空の並び（従うインスタンスが無い）
+	All       bool      `json:"all,omitempty"`
+	Judgments *string   `json:"judgments,omitempty"`
+	Limit     *int      `json:"limit,omitempty"`
+	Operation string    `json:"operation,omitempty"`
+	Where     []where   `json:"where,omitempty"`
+	Question  string    `json:"question,omitempty"`
+	Matches   *string   `json:"matches,omitempty"`
 	// DesignSystem と Out は、描画のデザインシステムの path と、書き出す先のディレクトリ。
 	DesignSystem string `json:"designSystem,omitempty"`
 	Out          string `json:"out,omitempty"`
@@ -107,7 +107,11 @@ func run(ctx context.Context, args []string, stdin io.Reader, out *output, w Wir
 	}
 	paths, pathErr := pathsOf(parsed.Paths)
 	dirs, dirErr := pathsOf(parsed.Schemas)
-	ranges, rangeErr := pathsOf(parsed.Range)
+	var ranges []domain.Path
+	var rangeErr error
+	if parsed.Range != nil {
+		ranges, rangeErr = pathsOf(*parsed.Range)
+	}
 	if err := errors.Join(pathErr, dirErr, rangeErr); err != nil {
 		return out.failures(parsed, err)
 	}
@@ -168,7 +172,7 @@ func parse(ctx context.Context, args []string, validator authoring.Validator) (a
 	matches := flags.String("matches", "", "AI が問いで探した matches。- なら標準入力から読む")
 	designSystem := flags.String("design-system", "", "デザインシステムの path")
 	outDir := flags.String("out", "", "HTML を書き出すディレクトリ")
-	if err := flags.Parse(args); err != nil {
+	if err := flags.Parse(rangeWithoutValue(args)); err != nil {
 		return parsed, domain.Fail(domain.ArgumentsInvalid, "", err.Error())
 	}
 	parsed.Paths = append([]string{}, flags.Args()...)
@@ -180,7 +184,15 @@ func parse(ctx context.Context, args []string, validator authoring.Validator) (a
 	if flags.Changed("patch") {
 		parsed.Patch = patch
 	}
-	parsed.Range = *ranges
+	if flags.Changed("range") {
+		given := []string{}
+		for _, r := range *ranges {
+			if r != "" {
+				given = append(given, r)
+			}
+		}
+		parsed.Range = &given
+	}
 	parsed.All = *all
 	if flags.Changed("judgments") {
 		parsed.Judgments = judgments
@@ -239,7 +251,7 @@ func dispatch(ctx context.Context, args arguments, uc Authoring, paths, ranges [
 		return out.requested(args, prompt, nil)
 	case args.Command == "update":
 		id, write, err := uc.Update.Run(ctx, authoring.UpdateInput{
-			Path: paths[0], Patch: content, Range: ranges,
+			Path: paths[0], Patch: content, Range: ranges, RangeGiven: args.Range != nil,
 		})
 		if err != nil {
 			return out.failures(args, err)
@@ -403,4 +415,16 @@ func draw(ctx context.Context, args arguments, paths, dirs []domain.Path, w Wiri
 		}
 	}
 	return nil
+}
+
+// rangeWithoutValue は、値なしの --range（最後の引数か、次が - で始まる）に空の値を足す。空の値は、従うインスタンスが無いことを示す。
+func rangeWithoutValue(args []string) []string {
+	out := make([]string, 0, len(args)+1)
+	for i, a := range args {
+		out = append(out, a)
+		if a == "--range" && (i+1 == len(args) || strings.HasPrefix(args[i+1], "-")) {
+			out = append(out, "")
+		}
+	}
+	return out
 }

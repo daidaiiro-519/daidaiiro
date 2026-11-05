@@ -6,7 +6,203 @@
   "x-prompt": {
     "meaning": "Concrete。Abstract の拡張項目を継承し、用途ごとに拡張したスキーマ",
     "when": "Concrete を作成 ・ 更新 ・ 検証するとき",
-    "rules": []
+    "rules": [
+      {
+        "id": "schema-first",
+        "rule": "JSON Schema で書ける決まりを、x-prompt の rule に書かない。JSON Schema で書けない、ほかの値との比較（終わりの日が始まりの日より後か など）は rule に置く",
+        "why": "機械的に検証できるものは機械的な検証にし、rule は意味でしか決められないことだけにするため",
+        "check": "どの rule も、type ・ enum ・ pattern ・ minLength ・ maxLength ・ minimum ・ maximum ・ format などで書けない決まりか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "rule": "20 文字以内で書く"
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "rule": "会議の結論が一読で分かる題名にする"
+            }
+          }
+        ]
+      },
+      {
+        "id": "meaning-domain",
+        "rule": "x-prompt の meaning は、その値が業務で何を表すかを書き、title の言い換えにしない",
+        "why": "生成するときも判定するときも、値の意味を同じに読むため",
+        "check": "どの meaning も、title を読むだけでは分からない業務の意味を足しているか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "title": "題名",
+              "x-prompt": {
+                "meaning": "題名"
+              }
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "title": "題名",
+              "x-prompt": {
+                "meaning": "会議の記録を一覧で見分けるための、結論を表す短い名前"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "when-situation",
+        "rule": "x-prompt の when は、その値を書く場面を書く。何をするときかは必ず書き、誰がは分かるときだけ書く",
+        "why": "生成の prompt で、AI がいつ何のために書くかを取り違えないため",
+        "check": "どの when も、何をするときかを示しているか（誰がは、分かるときだけでよい）",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "when": "必要なとき"
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "when": "会議が終わり、決めたことを記録するとき"
+            }
+          }
+        ]
+      },
+      {
+        "id": "rule-judgeable",
+        "rule": "rule は、値と related_fields の値だけを見て、満たすか満たさないかを決められる文にする",
+        "why": "判定の verdict を、AI がぶれずに出せるようにするため",
+        "check": "どの rule も、値と related_fields の値だけで、満たす ・ 満たさないに決められるか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "rule": "よい題名にする"
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "rule": "題名に、会議で決めたことの主語と動詞を含める"
+            }
+          }
+        ]
+      },
+      {
+        "id": "check-question",
+        "rule": "check は、rule を「はい ・ いいえ」で答える問いにする",
+        "why": "判定の prompt にそのまま入る問いなので、答えの形を一つにするため",
+        "check": "どの check も、rule に対応する、はい ・ いいえで答える問いか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "check": "題名について"
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "check": "題名に、決めたことの主語と動詞が含まれているか"
+            }
+          }
+        ]
+      },
+      {
+        "id": "why-purpose",
+        "rule": "why は、rule を守る目的を書き、rule の言い換えにしない",
+        "why": "判定に迷ったとき、AI が目的から決められるようにするため",
+        "check": "どの why も、rule と違うこと（守る目的）を述べているか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "rule": "題名に主語と動詞を含める",
+              "why": "主語と動詞を含めるため"
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "rule": "題名に主語と動詞を含める",
+              "why": "一覧で開かずに中身が分かるようにするため"
+            }
+          }
+        ]
+      },
+      {
+        "id": "examples-match",
+        "rule": "bad の値は rule に違反し、good の値は rule を満たすようにする",
+        "why": "例が rule と食い違うと、生成も判定も例に引きずられるため",
+        "check": "どの rule でも、bad の値が rule に違反し、good の値が rule を満たしているか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "rule": "題名に主語と動詞を含める",
+              "bad": [
+                {
+                  "value": "Go で作り直すことを決めた"
+                }
+              ]
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "rule": "題名に主語と動詞を含める",
+              "bad": [
+                {
+                  "value": "定例"
+                }
+              ],
+              "good": [
+                {
+                  "value": "Go で作り直すことを決めた"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "related-fields-exact",
+        "rule": "related_fields には、rule が読むほかの値の位置を過不足なく書く",
+        "why": "変更点で判定し直す rule を、漏れなく、多すぎずに選ぶため",
+        "check": "どの rule でも、rule が読むほかの値の位置が、related_fields に過不足なく入っているか",
+        "related_fields": [],
+        "bad": [
+          {
+            "value": {
+              "rule": "終わりの日は始まりの日より後にする",
+              "related_fields": []
+            }
+          }
+        ],
+        "good": [
+          {
+            "value": {
+              "rule": "終わりの日は始まりの日より後にする",
+              "related_fields": [
+                "/start"
+              ]
+            }
+          }
+        ]
+      }
+    ]
   },
   "$vocabulary": {
     "https://json-schema.org/draft/2020-12/vocab/core": true,

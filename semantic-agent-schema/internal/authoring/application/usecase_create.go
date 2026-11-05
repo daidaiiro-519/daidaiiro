@@ -57,7 +57,7 @@ func (u Create) Run(ctx context.Context, path domain.Path, content []byte) (int6
 func (u Create) check(ctx context.Context, path domain.Path, content []byte) (*domain.Write, error) {
 	value, err := domain.ParseJSON(content)
 	if err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--json")
 	}
 	schemaID, ok := domain.SchemaIDOf(value)
 	if !ok {
@@ -80,7 +80,7 @@ func (u Create) check(ctx context.Context, path domain.Path, content []byte) (*d
 		return nil, err
 	}
 	if err := domain.FailuresOf(domain.SchemaViolation, path.String(), violations); err != nil {
-		return nil, err
+		return nil, domain.OfArgument(err, "--json")
 	}
 	if schemaID == u.AbstractID {
 		if err := domain.FailuresOf(domain.ConventionViolation, path.String(), domain.Convention(value)); err != nil {

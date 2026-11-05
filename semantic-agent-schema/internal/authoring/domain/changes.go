@@ -105,3 +105,17 @@ func Changed(previous *Previous, current any, concrete Concrete) map[string]bool
 	}
 	return ChangedLocations(before, current)
 }
+
+// Violated は、前回の検証が、いまの内容（current）の検証なら、その violated の judgment を返す。内容が違えば nil。
+func (p *Previous) Violated(current Hash) []Judgment {
+	if p == nil || HashOf(p.content).String() != current.String() {
+		return nil
+	}
+	var violated []Judgment
+	for _, j := range p.judgments {
+		if j.Verdict() == Violated {
+			violated = append(violated, j)
+		}
+	}
+	return violated
+}

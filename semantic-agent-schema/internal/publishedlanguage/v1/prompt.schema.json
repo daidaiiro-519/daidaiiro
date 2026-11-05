@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:semantic-agent-schema:prompt:v1",
   "title": "prompt",
-  "description": "semantic <ユースケース> でコマンドが Concrete の x-prompt から組んで AI に返すもの。JSON ドキュメントの内容は貼らず、path で渡す。AI は steps の x-prompt に従って response を生成し、next を実行する。",
+  "description": "semantic <ユースケース> でコマンドが Concrete の x-prompt から組んで AI に返すもの。JSON ドキュメントの内容は貼らず、path で渡す。作成は steps のサブスキーマごとの x-prompt に従って JSON ドキュメントを生成する。更新と判定は、steps の instanceLocation と、keywordLocation で subschemas から引く x-prompt に従う。response の形の JSON Schema に従う response を作り、next を実行する。",
   "type": "object",
   "required": [
     "response",
@@ -26,18 +26,8 @@
       }
     },
     "response": {
-      "description": "response の形。AI が作って渡すものが従うスキーマで、$ref に $id を持つ（作成は Concrete、更新は JSON Patch のスキーマ、判定は judgment-response のスキーマ、検索は search-response のスキーマ）",
-      "type": "object",
-      "required": [
-        "$ref"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "$ref": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
+      "description": "response の形。AI が作って渡すものが従う JSON Schema の中身（作成は Concrete、更新は JSON Patch のスキーマ、判定は judgment-response のスキーマ、検索は search-response のスキーマ）",
+      "type": "object"
     },
     "next": {
       "description": "response を渡すコマンド行。AI が埋める部分だけを <…> で空けておく",
@@ -69,11 +59,73 @@
           }
         }
       }
+    },
+    "subschemas": {
+      "description": "更新と判定で、steps が keywordLocation で指すサブスキーマ。x-prompt は、ここにサブスキーマごとに1回だけ置く",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "keywordLocation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "keywordLocation": {
+            "type": "string",
+            "pattern": "^#(/([^~/]|~[01])*)*$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "x-prompt": {
+            "$ref": "urn:semantic-agent-schema:vocabulary:v1#/$defs/x-prompt"
+          }
+        }
+      }
+    },
+    "violations": {
+      "description": "更新で、直す対象の violated の judgment（いまの内容の、直前の検証のもの）",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule",
+          "instanceLocation",
+          "verdict",
+          "by",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "instanceLocation": {
+            "type": "string",
+            "pattern": "^(/([^~/]|~[01])*)*$"
+          },
+          "verdict": {
+            "const": "violated"
+          },
+          "by": {
+            "enum": [
+              "machine",
+              "ai"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "$defs": {
     "step": {
-      "description": "1つのサブスキーマの、AI が読む部分。位置は、作成では Concrete の中の keyword location（URI の fragment の JSON Pointer）、更新ではインスタンスの中の instance location。判定では rule と instance location の組を1つ持つ",
+      "description": "作成：1つのサブスキーマの keywordLocation ・ title ・ description ・ x-prompt。更新：instanceLocation と、subschemas を指す keywordLocation。判定：それに加えて、判定する rule の id（rule と instance location の組1つ）",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -104,12 +156,23 @@
         {
           "required": [
             "keywordLocation"
-          ]
+          ],
+          "not": {
+            "required": [
+              "instanceLocation"
+            ]
+          }
         },
         {
           "required": [
-            "instanceLocation"
-          ]
+            "instanceLocation",
+            "keywordLocation"
+          ],
+          "properties": {
+            "title": false,
+            "description": false,
+            "x-prompt": false
+          }
         }
       ]
     }

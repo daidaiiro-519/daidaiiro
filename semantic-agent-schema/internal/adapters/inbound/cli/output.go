@@ -31,6 +31,8 @@ type output struct {
 type template struct {
 	Instruction string            `json:"instruction"`
 	Next        map[string]string `json:"next"`
+	// ArgumentInstruction は、違反した JSON が引数（--json など）のときの instruction。無ければ Instruction を使う
+	ArgumentInstruction string `json:"argumentInstruction"`
 }
 
 // next は、コマンドの next の形を返す。semantic の有無と、--judgments ・ --matches の有無でも分け、無ければコマンド、次に * の形を使う。
@@ -107,11 +109,16 @@ func (o *output) failures(args arguments, err error) error {
 		values["{absoluteKeywordLocation}"] = f.AbsoluteKeywordLocation
 		values["{message}"] = f.Message
 		values["{line}"] = strconv.Itoa(f.Line)
+		values["{argument}"] = f.Argument
 		t := o.codes[string(f.Code)]
+		instruction := t.Instruction
+		if f.Argument != "" && t.ArgumentInstruction != "" {
+			instruction = t.ArgumentInstruction
+		}
 		if err := o.encoder.Encode(rejectedEvent{
 			Event: "rejected", Code: string(f.Code), InstanceLocation: f.InstanceLocation,
 			AbsoluteKeywordLocation: f.AbsoluteKeywordLocation, Message: f.Message, Line: f.Line,
-			Instruction: replace(t.Instruction, values), Next: replace(t.next(args), values),
+			Instruction: replace(instruction, values), Next: replace(t.next(args), values),
 		}); err != nil {
 			others = append(others, err)
 		}
@@ -156,7 +163,7 @@ func fill(args arguments, path string) map[string]string {
 		command = "semantic " + command
 	}
 	ranges := ""
-	for _, r := range args.Range {
+	for _, r := range rangeValues(args) {
 		ranges += " --range " + quote(r)
 	}
 	return map[string]string{
@@ -264,11 +271,13 @@ type stepEvent struct {
 }
 
 type promptEvent struct {
-	Path     string            `json:"path"`
-	Hash     string            `json:"hash,omitempty"`
-	Steps    []stepEvent       `json:"steps"`
-	Response map[string]string `json:"response"`
-	Next     string            `json:"next"`
+	Path       string          `json:"path"`
+	Hash       string          `json:"hash,omitempty"`
+	Subschemas []stepEvent     `json:"subschemas,omitempty"`
+	Steps      []stepEvent     `json:"steps"`
+	Violations []judgmentEvent `json:"violations,omitempty"`
+	Response   map[string]any  `json:"response"`
+	Next       string          `json:"next"`
 }
 
 type requestedEvent struct {
@@ -277,28 +286,55 @@ type requestedEvent struct {
 	Counts *countsEvent `json:"counts,omitempty"`
 }
 
+// stepOf は、step を、prompt の step か subschema の形にする。keyword location は URI の fragment（#…）で書く。
+func stepOf(step domain.Step) stepEvent {
+	e := stepEvent{Title: step.Title, Description: step.Description, XPrompt: step.XPrompt, Rule: step.Rule}
+	if step.KeywordLocation != nil {
+		e.KeywordLocation = "#" + step.KeywordLocation.String()
+	}
+	if step.InstanceLocation != nil {
+		location := step.InstanceLocation.String()
+		e.InstanceLocation = &location
+	}
+	return e
+}
+
 // requested は、prompt を持つログイベント（作成なら generation_requested、更新なら update_requested、判定なら
 // judgment_requested）を書く。判定では、counted（追記しない検証）の counts も書く。
-// prompt の next は、error-codes.json の prompt の形に、受け取った引数を入れて作る。
+// x-prompt は subschemas にサブスキーマごとに1回だけ置き、step は位置（と rule）だけを持つ。response の形は、
+// $id でなく JSON Schema の中身を入れる。prompt の next は、error-codes.json の prompt の形に、受け取った引数を入れて作る。
+// Concrete の更新で --range が無ければ、next に --range を引き継ぐ形を足す。
 func (o *output) requested(args arguments, p domain.Prompt, counted *domain.Validation) error {
+	response := p.ResponseSchema()
+	if response == nil {
+		var err error
+		if response, err = publishedlanguage.Schema(p.ResponseSchemaID()); err != nil {
+			return err
+		}
+	}
+	values := fill(args, p.Path().String())
+	t := o.promptNext
+	if p.ForConcrete() && p.Command() == domain.UpdateCommand && args.Range == nil {
+		values["{range}"] = " --range <この Concrete に従うインスタンスの path（無ければ値なしの --range）>"
+	}
 	prompt := promptEvent{
-		Path: p.Path().String(), Steps: []stepEvent{},
-		Response: map[string]string{"$ref": p.ResponseSchemaID()},
-		Next:     replace(o.promptNext.next(args), fill(args, p.Path().String())),
+		Path: p.Path().String(), Steps: []stepEvent{}, Response: response,
+		Next: replace(t.next(args), values),
 	}
 	if p.Hash() != nil {
 		prompt.Hash = p.Hash().String()
 	}
+	for _, step := range p.Subschemas() {
+		prompt.Subschemas = append(prompt.Subschemas, stepOf(step))
+	}
 	for _, step := range p.Steps() {
-		e := stepEvent{Title: step.Title, Description: step.Description, XPrompt: step.XPrompt, Rule: step.Rule}
-		if step.KeywordLocation != nil {
-			e.KeywordLocation = "#" + step.KeywordLocation.String()
-		}
-		if step.InstanceLocation != nil {
-			location := step.InstanceLocation.String()
-			e.InstanceLocation = &location
-		}
-		prompt.Steps = append(prompt.Steps, e)
+		prompt.Steps = append(prompt.Steps, stepOf(step))
+	}
+	for _, j := range p.Violations() {
+		prompt.Violations = append(prompt.Violations, judgmentEvent{
+			Rule: j.Rule().ID(), InstanceLocation: j.InstanceLocation().String(),
+			Verdict: string(j.Verdict()), By: string(j.By()), Reason: j.Reason(),
+		})
 	}
 	var event string
 	switch p.Command() {
@@ -400,10 +436,10 @@ type documentEvent struct {
 }
 
 type searchPromptEvent struct {
-	Question  string            `json:"question"`
-	Documents []documentEvent   `json:"documents"`
-	Response  map[string]string `json:"response"`
-	Next      string            `json:"next"`
+	Question  string          `json:"question"`
+	Documents []documentEvent `json:"documents"`
+	Response  map[string]any  `json:"response"`
+	Next      string          `json:"next"`
 }
 
 type searchRequestedEvent struct {
@@ -413,9 +449,13 @@ type searchRequestedEvent struct {
 
 // searchRequested は、問いで探す prompt を search_requested のログイベントで書く。範囲の path と内容のハッシュだけを渡す。
 func (o *output) searchRequested(args arguments, documents []domain.Document) error {
+	searchResponse, err := publishedlanguage.Schema(publishedlanguage.SearchResponseID)
+	if err != nil {
+		return err
+	}
 	prompt := searchPromptEvent{
 		Question: args.Question, Documents: []documentEvent{},
-		Response: map[string]string{"$ref": publishedlanguage.SearchResponseID},
+		Response: searchResponse,
 		Next:     replace(o.promptNext.next(args), fill(args, "")),
 	}
 	for _, d := range documents {
@@ -460,4 +500,15 @@ type renderedEvent struct {
 // rendered は、書き出した HTML 1つを rendered のログイベントで書く。
 func (o *output) rendered(r rendering.Rendered) error {
 	return o.encoder.Encode(renderedEvent{Event: "rendered", Path: r.Path.String(), Out: r.Out.String()})
+}
+
+// rangeValues は、受け取った --range の値を返す。値なしの --range は、空の値1つ（next で値なしの --range を引き継ぐ）。
+func rangeValues(args arguments) []string {
+	if args.Range == nil {
+		return nil
+	}
+	if len(*args.Range) == 0 {
+		return []string{""}
+	}
+	return *args.Range
 }

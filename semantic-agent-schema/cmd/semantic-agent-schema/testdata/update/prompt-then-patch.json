@@ -23,17 +23,26 @@
         {
           "/event": "update_requested",
           "/prompt/path": "memo.json",
-          "/prompt/response": {
-            "$ref": "urn:semantic-agent-schema:patch:v1"
-          },
+          "/prompt/next": "semantic-agent-schema update memo.json --schemas schemas --patch '<response の形に従う JSON Patch>'",
+          "/prompt/response/$id": "urn:semantic-agent-schema:patch:v1",
           "/prompt/steps": [
             {
               "instanceLocation": "",
+              "keywordLocation": "#"
+            },
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title"
+            }
+          ],
+          "/prompt/subschemas": [
+            {
+              "keywordLocation": "#",
               "title": "メモ",
               "description": "会議のメモ"
             },
             {
-              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title",
               "title": "題名",
               "x-prompt": {
                 "meaning": "メモの題名",
@@ -55,8 +64,7 @@
                 ]
               }
             }
-          ],
-          "/prompt/next": "semantic-agent-schema update memo.json --schemas schemas --patch '<response の形に従う JSON Patch>'"
+          ]
         }
       ]
     },
