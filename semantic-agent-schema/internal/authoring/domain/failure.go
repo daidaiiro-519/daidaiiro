@@ -10,28 +10,29 @@ type code string
 
 // error の code。
 const (
-	ArgumentsInvalid    code = "arguments_invalid"
-	SchemaNotFound      code = "schema_not_found"
-	SchemaDuplicate     code = "schema_duplicate"
-	SchemaViolation     code = "schema_violation"
-	InvalidJSON         code = "invalid_json"
-	ConventionViolation code = "convention_violation"
-	DecidedByHuman      code = "decided_by_human"
-	PathOutside         code = "path_outside"
-	FileExists          code = "file_exists"
-	HashMismatch        code = "hash_mismatch"
-	PatchNotApplicable  code = "patch_not_applicable"
-	RangeRequired       code = "range_required"
-	RangeViolation      code = "range_violation"
-	ResponseMismatch    code = "response_mismatch"
-	OperationNotFound   code = "operation_not_found"
-	TemplateMissing     code = "template_missing"
-	TemplateInvalid     code = "template_invalid"
-	OutOverlap          code = "out_overlap"
-	FileNotFound        code = "file_not_found"
-	NotInGit            code = "not_in_git"
-	LogUnavailable      code = "log_unavailable"
-	LogLocked           code = "log_locked"
+	ArgumentsInvalid         code = "arguments_invalid"
+	SchemaNotFound           code = "schema_not_found"
+	SchemaDuplicate          code = "schema_duplicate"
+	SchemaViolation          code = "schema_violation"
+	InvalidJSON              code = "invalid_json"
+	ConventionViolation      code = "convention_violation"
+	DecidedByHuman           code = "decided_by_human"
+	PathOutside              code = "path_outside"
+	FileExists               code = "file_exists"
+	HashMismatch             code = "hash_mismatch"
+	PatchNotApplicable       code = "patch_not_applicable"
+	RangeRequired            code = "range_required"
+	RangeViolation           code = "range_violation"
+	ResponseMismatch         code = "response_mismatch"
+	OperationNotFound        code = "operation_not_found"
+	TemplateMissing          code = "template_missing"
+	TemplateInvalid          code = "template_invalid"
+	TemplateReferenceMissing code = "template_reference_missing"
+	OutOverlap               code = "out_overlap"
+	FileNotFound             code = "file_not_found"
+	NotInGit                 code = "not_in_git"
+	LogUnavailable           code = "log_unavailable"
+	LogLocked                code = "log_locked"
 )
 
 // Failure は、error のログイベントになる違反。error を実装し、呼ぶ側は errors.As で取り出して code で分ける。
@@ -41,6 +42,7 @@ type Failure struct {
 	InstanceLocation        string
 	AbsoluteKeywordLocation string
 	Message                 string
+	Line                    int // テンプレートの中の行。テンプレートの違反でなければ 0
 }
 
 // Error は、code と message を返す。

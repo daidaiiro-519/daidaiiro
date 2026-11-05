@@ -207,6 +207,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | `outbound/schemacheck` | `github.com/santhosh-tekuri/jsonschema/v6` |
 | `outbound/patching` | `github.com/evanphx/json-patch/v5` |
 | `outbound/recordstore` | `modernc.org/sqlite` |
+| `outbound/templates` | `github.com/tdewolff/parse/v2` ・ `github.com/tdewolff/parse/v2/js`（テンプレートの `<script>` の JS を構文木にする。純粋な Go で、依存はテストの外に無い） |
 | 試験の中だけ | `golang.org/x/tools` ・ `github.com/nishanths/exhaustive` ・ `github.com/google/go-cmp/cmp` |
 | ほかの package | 無し（標準ライブラリだけ） |
 
@@ -228,6 +229,15 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K140 | Concrete の `format` には、`date` ・ `date-time` ・ `duration` ・ `email` ・ `hostname` ・ `ipv4` ・ `ipv6` ・ `iri` ・ `iri-reference` ・ `json-pointer` ・ `period` ・ `regex` ・ `relative-json-pointer` ・ `semver` ・ `time` ・ `uri` ・ `uri-reference` ・ `uri-template` ・ `uuid` だけを書く | 使うライブラリ | format.go L20–39 ・ objcompiler.go L186–192 | `var formats = map[string]*Format{` |
 | K141 | ライブラリを上げたら、`format.go` の `formats` と Abstract の `enum` を照らし直す | このプロジェクト | 利用者の指示（2026-11-05） | |
 | K142 | Concrete に `$ref` を書かない。Abstract が `"$ref": false` で違反にする。`$ref` の先を引く処理を作らない | このプロジェクト | 利用者の指示（2026-11-05） | |
+
+### 2.14 描画の参照の静的な照合
+
+| ID | こうする | 種類 | 出どころ | 原文の引用 |
+|---|---|---|---|---|
+| K150 | 描く前に、テンプレートが読む `.Value` と `.Tokens` の欄を、Concrete の properties ・ items とデザイントークンに照らす（ドメインサービス「レンダラー」）。構文木は `text/template/parse`（html/template が使う標準の構文木）で読み、`{{range}}` ・ `{{with}}` の中の `.` と変数もたどる | このプロジェクト | 利用者の指示（2026-11-05）「機械的な検証ができる時はしてくださいね」 | |
+| K151 | テンプレートの `<script>` の中（type が無いか JavaScript ・ module のもの）は `tdewolff/parse` の js で読み、`{{.Value…}}` ・ `{{.Tokens…}}` を初期値にした変数から始まるメンバーの参照を照らす。構文の誤りは `template_invalid` | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K152 | JS で追うのは、変数の初期値（`const doc = {{.Value}}`、`const x = doc.a`）・ `for (const d of doc.items)` の要素 ・ 名前か数のリテラルで引くメンバー（`doc.a` ・ `doc["a"]` ・ `doc.items[0]`）だけ。変数を作り直す ・ 計算した名前で引く ・ 関数の戻り値をたどる ・ 分割代入 ・ 名前の隠れ（同じ名前の別の変数）は追わない。JS の構文木は位置を持たないので、行は読んだ式の文字列をテンプレートの中で探して出す | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K153 | properties を持たないサブスキーマ（配列 ・ 文字列など）の下の名前は、組み込みの読み方（`length` など）があるので照らさない。値が無い任意の欄は静的な照合では通り、描くときの `missingkey=error` で止まる | このプロジェクト | 利用者の指示（2026-11-05） | |
 
 ## 3 テスト規約
 

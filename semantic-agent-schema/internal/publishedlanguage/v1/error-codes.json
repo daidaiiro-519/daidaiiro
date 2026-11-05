@@ -1,5 +1,5 @@
 {
-  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。prompt は *_requested のログイベントの prompt の next で、同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。",
+  "description": "code ごとの instruction の定型文と next の形。next はコマンドごと（semantic の有無と、validate は --judgments の有無でも分ける。* はどのコマンドにも使う）。{…} はコマンドが埋め、<…> は AI が埋める。{command} はコマンド（semantic を含む）、{schemas} は --schemas の並び、{schema} は受け取った --schema、{range} は --range の並び、{all} は --all（無ければ空）、render の {designSystem} と {out} は受け取った --design-system と --out、{line} はテンプレートの中の行、log の {limit} と {operation} は受け取った --limit と --operation（無ければ空）に置き換わる。violated_by_machine と violated_by_ai は、violated の judgment がある validated と judged のログイベントの instruction と next（機械的な検証の違反があれば violated_by_machine、AI の判定の違反だけなら violated_by_ai）。prompt は *_requested のログイベントの prompt の next で、同じユースケースの機械的なコマンド。created と updated は、そのログイベントの next。 instruction の {instanceLocation} は、JSON Pointer を引用符で囲んで書く（ルートは \"\"）。",
   "codes": {
     "arguments_invalid": {
       "instruction": "引数が引数の形に違反している（instance location：\"{instanceLocation}\"、{message}）。引数を直して、もう一度実行する",
@@ -142,7 +142,13 @@
       }
     },
     "template_invalid": {
-      "instruction": "{path} のテンプレートで描けない（{message}）。テンプレートは html/template の記法で書き、使えるのは .Value と .Tokens だけ。デザインシステムのテンプレートを直す",
+      "instruction": "テンプレート {path} の {line} 行目で描けない（{message}）。テンプレートは html/template の記法で、<script> の中は JS の文法で書き、使えるのは .Value と .Tokens だけ。デザインシステムのテンプレートを直す",
+      "next": {
+        "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
+      }
+    },
+    "template_reference_missing": {
+      "instruction": "テンプレート {path} の {line} 行目の欄は、Concrete かデザイントークンに無い（{message}）。Concrete の properties ・ items かデザイントークンの名前に直す",
       "next": {
         "render": "semantic-agent-schema render {paths} {schemas} --design-system {designSystem} --out {out}"
       }

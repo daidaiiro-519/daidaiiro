@@ -617,7 +617,7 @@ func TestSelectTemplateUsesXView(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
-	templates := map[string]string{"memo": "<p>memo</p>"}
+	templates := map[string]domain.Template{"memo": {Path: path, Text: "<p>memo</p>"}}
 	cases := []struct {
 		name, concrete, want, wantCode string
 	}{
@@ -629,8 +629,45 @@ func TestSelectTemplateUsesXView(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := domain.SelectTemplate(path, concrete(t, c.concrete), templates)
-			if got != c.want || codeOf(err) != c.wantCode {
-				t.Errorf("SelectTemplate(%s) = %q, %q, want %q, %q", c.name, got, codeOf(err), c.want, c.wantCode)
+			if got.Text != c.want || codeOf(err) != c.wantCode {
+				t.Errorf("SelectTemplate(%s) = %q, %q, want %q, %q", c.name, got.Text, codeOf(err), c.want, c.wantCode)
+			}
+		})
+	}
+}
+
+func TestCheckReferencesAgainstConcreteAndTokens(t *testing.T) {
+	t.Parallel()
+	path, err := domain.NewPath("design/page.html")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	template := domain.Template{Path: path}
+	schema := concrete(t, `{"$id": "urn:a", "properties": {"title": {"type": "string"},
+		"items": {"type": "array", "items": {"properties": {"name": {"type": "string"}}}}}}`)
+	tokens := map[string]any{"heading": "h", "colors": map[string]any{"main": "#000"}}
+	name := func(n string) domain.Segment { return domain.Segment{Name: n} }
+	element := domain.Segment{Element: true}
+	cases := []struct {
+		name      string
+		reference domain.Reference
+		wantCode  string
+	}{
+		{name: "Concrete の properties にある欄", reference: domain.Reference{Root: "Value", Segments: []domain.Segment{name("title")}}},
+		{name: "配列の要素の properties にある欄", reference: domain.Reference{Root: "Value", Segments: []domain.Segment{name("items"), element, name("name")}}},
+		{name: "properties を持たない値の組み込みの読み方", reference: domain.Reference{Root: "Value", Segments: []domain.Segment{name("items"), name("length")}}},
+		{name: "Concrete に無い欄", reference: domain.Reference{Root: "Value", Segments: []domain.Segment{name("titel")}}, wantCode: "template_reference_missing"},
+		{name: "配列の要素に無い欄", reference: domain.Reference{Root: "Value", Segments: []domain.Segment{name("items"), element, name("nam")}}, wantCode: "template_reference_missing"},
+		{name: "デザイントークンにある欄", reference: domain.Reference{Root: "Tokens", Segments: []domain.Segment{name("colors"), name("main")}}},
+		{name: "デザイントークンに無い欄", reference: domain.Reference{Root: "Tokens", Segments: []domain.Segment{name("color")}}, wantCode: "template_reference_missing"},
+		{name: ".Value と .Tokens でない名前", reference: domain.Reference{Root: "Other"}, wantCode: "template_reference_missing"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			err := domain.CheckReferences(template, schema, tokens, []domain.Reference{c.reference})
+			if got := codeOf(err); got != c.wantCode {
+				t.Errorf("CheckReferences(%s) code = %q, want %q", c.reference, got, c.wantCode)
 			}
 		})
 	}

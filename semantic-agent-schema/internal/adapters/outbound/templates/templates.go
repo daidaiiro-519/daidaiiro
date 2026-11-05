@@ -1,4 +1,5 @@
-// Package templates は、アダプター。ポート Renderer を標準の html/template で満たす。テンプレートに関数は足さず
+// Package templates は、アダプター。ポート Renderer を標準の html/template で満たし、描く前に、テンプレートの構文木
+// （text/template/parse）と <script> の JS の構文木（tdewolff/parse の js）から、読む欄を集める。テンプレートに関数は足さず
 // （Funcs を呼ばない）、渡すのは .Value と .Tokens だけ。無い名前を引けば missingkey=error で失敗する。
 // 全部を描いてから、一時ファイルに書いて置き換える。
 package templates
@@ -31,14 +32,15 @@ func (t *Templates) Render(_ context.Context, pages []domain.Page) error {
 	rendered := make([][]byte, len(pages))
 	var failures []error
 	for i, p := range pages {
-		parsed, err := template.New(p.Out.String()).Option("missingkey=error").Parse(p.Template)
+		name := p.Template.Path.String()
+		parsed, err := template.New(name).Option("missingkey=error").Parse(p.Template.Text)
 		if err != nil {
-			failures = append(failures, domain.Fail(domain.TemplateInvalid, p.Out.String(), err.Error()))
+			failures = append(failures, &domain.Failure{Code: domain.TemplateInvalid, Path: name, Line: lineOf(err.Error()), Message: err.Error()})
 			continue
 		}
 		var b bytes.Buffer
 		if err := parsed.Execute(&b, map[string]any{"Value": p.Value, "Tokens": p.Tokens}); err != nil {
-			failures = append(failures, domain.Fail(domain.TemplateInvalid, p.Out.String(), err.Error()))
+			failures = append(failures, &domain.Failure{Code: domain.TemplateInvalid, Path: name, Line: lineOf(err.Error()), Message: err.Error()})
 			continue
 		}
 		rendered[i] = b.Bytes()

@@ -86,6 +86,7 @@ type rejectedEvent struct {
 	InstanceLocation        string `json:"instanceLocation"`
 	AbsoluteKeywordLocation string `json:"absoluteKeywordLocation,omitempty"`
 	Message                 string `json:"message"`
+	Line                    int    `json:"line,omitempty"`
 	Instruction             string `json:"instruction"`
 	Next                    string `json:"next"`
 }
@@ -105,10 +106,11 @@ func (o *output) failures(args arguments, err error) error {
 		values["{instanceLocation}"] = f.InstanceLocation
 		values["{absoluteKeywordLocation}"] = f.AbsoluteKeywordLocation
 		values["{message}"] = f.Message
+		values["{line}"] = strconv.Itoa(f.Line)
 		t := o.codes[string(f.Code)]
 		if err := o.encoder.Encode(rejectedEvent{
 			Event: "rejected", Code: string(f.Code), InstanceLocation: f.InstanceLocation,
-			AbsoluteKeywordLocation: f.AbsoluteKeywordLocation, Message: f.Message,
+			AbsoluteKeywordLocation: f.AbsoluteKeywordLocation, Message: f.Message, Line: f.Line,
 			Instruction: replace(t.Instruction, values), Next: replace(t.next(args), values),
 		}); err != nil {
 			others = append(others, err)

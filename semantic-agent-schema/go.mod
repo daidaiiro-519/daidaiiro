@@ -8,6 +8,7 @@ require (
 	github.com/nishanths/exhaustive v0.17.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/pflag v1.0.10
+	github.com/tdewolff/parse/v2 v2.8.20
 	golang.org/x/tools v0.52.0
 	modernc.org/sqlite v1.61.1
 )

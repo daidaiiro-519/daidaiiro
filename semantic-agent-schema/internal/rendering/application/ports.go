@@ -24,7 +24,11 @@ type Validator interface {
 	Check(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, error)
 }
 
-// Renderer は、ポート。テンプレートで描画し、全部が描けてから書き出す。アダプター templates が満たす。
+// Renderer は、ポート。テンプレートで描画し、全部が描けてから書き出す。描く前に、テンプレートが読む欄を集める。
+// アダプター templates が満たす（テンプレートの構文木と JS の構文木は、アダプターが読む）。
 type Renderer interface {
+	// References は、テンプレートと、その中の <script> の JS が読む .Value と .Tokens の欄を集める。
+	// テンプレートか JS の構文が誤っていれば template_invalid を返す。
+	References(template domain.Template) ([]domain.Reference, error)
 	Render(ctx context.Context, pages []domain.Page) error
 }

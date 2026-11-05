@@ -1,0 +1,171 @@
+{
+  "title": "描く前に、テンプレートと <script> の JS が読む欄を Concrete とデザイントークンに照らす。無い欄は rejected（テンプレートのファイルの path と行）で、1つも書き出さない。JS の構文の誤りも rejected。正しい参照は描く",
+  "files": {
+    "schemas/minutes.json": {
+      "$fixture": "minutes.schema.json"
+    },
+    "minutes.json": {
+      "$schema": "urn:example:minutes:v1",
+      "title": "定例",
+      "decisions": [
+        {
+          "text": "予算を決めた"
+        }
+      ]
+    },
+    "design/good.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "minutes": "templates/good.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "design/tplbad.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "minutes": "templates/tplbad.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "design/jsbad.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "minutes": "templates/jsbad.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    },
+    "design/jssyntax.json": {
+      "templateLanguage": {
+        "name": "html/template",
+        "version": "go1.27"
+      },
+      "templates": {
+        "minutes": "templates/jssyntax.html"
+      },
+      "tokens": {
+        "heading": "title"
+      }
+    }
+  },
+  "raw": {
+    "design/templates/good.html": "<h1 class=\"{{.Tokens.heading}}\">{{.Value.title}}</h1>\n<ul>{{range .Value.decisions}}<li>{{.text}}</li>{{end}}</ul>\n<script>\nconst doc = {{.Value}};\nfor (const d of doc.decisions) { console.log(d.text, d.owner, doc.decisions.length); }\n</script>\n",
+    "design/templates/tplbad.html": "<h1 class=\"{{.Tokens.color}}\">{{.Value.titel}}</h1>\n<ul>{{range .Value.decisions}}<li>{{.txt}}</li>{{end}}</ul>\n",
+    "design/templates/jsbad.html": "<h1>{{.Value.title}}</h1>\n<script>\nconst doc = {{.Value}};\nfor (const d of doc.decision) { console.log(d.text); }\n</script>\n",
+    "design/templates/jssyntax.html": "<h1>{{.Value.title}}</h1>\n<script>\nconst doc = {{.Value}};\nfor (const d of doc.decisions { console.log(d.text); }\n</script>\n"
+  },
+  "steps": [
+    {
+      "args": [
+        "render",
+        "minutes.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/tplbad.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_reference_missing",
+          "/line": 1,
+          "/next": "semantic-agent-schema render minutes.json --schemas schemas --design-system design/tplbad.json --out site"
+        },
+        {
+          "/event": "rejected",
+          "/code": "template_reference_missing",
+          "/line": 1
+        },
+        {
+          "/event": "rejected",
+          "/code": "template_reference_missing",
+          "/line": 2
+        }
+      ],
+      "files": {
+        "site/minutes.html": null
+      }
+    },
+    {
+      "args": [
+        "render",
+        "minutes.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/jsbad.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_reference_missing",
+          "/line": 4
+        }
+      ],
+      "files": {
+        "site/minutes.html": null
+      }
+    },
+    {
+      "args": [
+        "render",
+        "minutes.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/jssyntax.json",
+        "--out",
+        "site"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "rejected",
+          "/code": "template_invalid"
+        }
+      ],
+      "files": {
+        "site/minutes.html": null
+      }
+    },
+    {
+      "args": [
+        "render",
+        "minutes.json",
+        "--schemas",
+        "schemas",
+        "--design-system",
+        "design/good.json",
+        "--out",
+        "site"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "rendered",
+          "/out": "site/minutes.html"
+        }
+      ]
+    }
+  ]
+}

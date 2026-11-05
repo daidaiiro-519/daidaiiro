@@ -35,8 +35,11 @@ func rules() map[string]rule {
 		"internal/publishedlanguage":            {},
 		"internal/adapters/outbound/files":      {internal: []string{"internal/authoring/domain"}},
 		"internal/adapters/outbound/repository": {internal: []string{"internal/authoring/domain"}},
-		"internal/adapters/outbound/templates":  {internal: []string{"internal/authoring/domain"}},
-		"internal/adapters/outbound/patching":   {external: []string{"github.com/evanphx/json-patch/v5"}},
+		"internal/adapters/outbound/templates": {
+			internal: []string{"internal/authoring/domain"},
+			external: []string{"github.com/tdewolff/parse/v2", "github.com/tdewolff/parse/v2/js"},
+		},
+		"internal/adapters/outbound/patching": {external: []string{"github.com/evanphx/json-patch/v5"}},
 		"internal/adapters/outbound/schemacheck": {
 			internal: []string{"internal/authoring/domain", "internal/publishedlanguage"},
 			external: []string{"github.com/santhosh-tekuri/jsonschema/v6"},
