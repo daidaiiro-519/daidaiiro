@@ -1,5 +1,6 @@
 // Package schemacheck は、アダプター。ポート Validator を JSON Schema の実装で満たし、違反をライブラリの出力のまま
-// instance location ・ absolute keyword location ・ message へ変換する。独自の判定も独自の文も足さない。
+// instance location ・ absolute keyword location ・ message へ変換する。独自の判定も独自の文も足さない。message には、違反した keyword を直接持つサブスキーマの
+// description を、スキーマの作者の文のまま続ける。
 // サブスキーマがインスタンスのどの位置に当たるかも、ライブラリの検証が決めた組をそのまま返す。
 package schemacheck
 
@@ -9,6 +10,7 @@ import (
 	"errors"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -34,6 +36,7 @@ func New(lookup Lookup) *Checker {
 type loader struct {
 	load func(id string) ([]byte, error)
 	err  error
+	docs map[string]any // 読んだスキーマの値を $id ごとに残す。違反の description を引くため
 }
 
 // Load は、url の $id のスキーマを読んだ値を返す。
@@ -47,7 +50,11 @@ func (l *loader) Load(url string) (any, error) {
 		l.err = err
 		return nil, err
 	}
-	return jsonschema.UnmarshalJSON(bytes.NewReader(content))
+	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
+	if err == nil {
+		l.docs[url] = value
+	}
+	return value, err
 }
 
 // Check は、content を schemaID のスキーマで検証し、JSON Schema の違反を返す。
@@ -225,28 +232,29 @@ func (x *applied) Validate(ctx *jsonschema.ValidatorContext, v any) {
 
 // check は、prepare（無ければ nil）で Compiler に resource を足してから、content を schemaID のスキーマで検証する。
 // JSON Schema の違反を返す。collect なら、組も返す。
-func (c *Checker) check(ctx context.Context, schemaID string, content []byte, prepare func(*jsonschema.Compiler) error, collect bool) ([]domain.Violation, []located, error) {
+func (c *Checker) check(ctx context.Context, schemaID string, content []byte, prepare func(*jsonschema.Compiler, map[string]any) error, collect bool) ([]domain.Violation, []located, error) {
 	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
 	if err != nil {
 		return nil, nil, domain.Fail(domain.InvalidJSON, "", err.Error())
 	}
-	l := &loader{}
+	docs := map[string]any{}
+	l := &loader{docs: docs}
 	if c.lookup != nil {
 		l.load = func(id string) ([]byte, error) { return c.lookup(ctx, id) }
 	}
 	into := &collector{target: schemaID, memo: map[memoKey]*outcome{}}
-	compiler, err := newCompiler(l, into)
+	compiler, err := newCompiler(l, into, docs)
 	if err != nil {
 		return nil, nil, err
 	}
 	if prepare != nil {
-		if err := prepare(compiler); err != nil {
+		if err := prepare(compiler, docs); err != nil {
 			return nil, nil, err
 		}
 	}
 	schema, err := compiler.Compile(schemaID)
 	if err != nil {
-		return nil, nil, compileError(err, l.err)
+		return nil, nil, compileError(err, l.err, docs)
 	}
 	into.active = collect
 	err = schema.Validate(value)
@@ -258,7 +266,7 @@ func (c *Checker) check(ctx context.Context, schemaID string, content []byte, pr
 	if !errors.As(err, &verr) {
 		return nil, nil, domain.Fail(domain.SchemaViolation, "", err.Error())
 	}
-	return leaves(verr, nil, nil), pairs, nil
+	return leaves(verr, nil, nil, docs), pairs, nil
 }
 
 // CheckWith は、content を、まだ書いていないスキーマ schema（バイト列）で検証し、JSON Schema の違反を返す。
@@ -270,13 +278,16 @@ func (c *Checker) CheckWith(ctx context.Context, schema, content []byte) ([]doma
 	}
 	object, _ := value.(map[string]any) // $id が無ければ空の $id になり、Compile が error を返す
 	id, _ := object["$id"].(string)
-	violations, _, err := c.check(ctx, id, content, func(compiler *jsonschema.Compiler) error { return compiler.AddResource(id, value) }, false)
+	violations, _, err := c.check(ctx, id, content, func(compiler *jsonschema.Compiler, docs map[string]any) error {
+		docs[id] = value
+		return compiler.AddResource(id, value)
+	}, false)
 	return violations, err
 }
 
 // newCompiler は、公開された言葉を resource にし、拡張項目の語彙を登録した Compiler を返す。
 // サブスキーマは、検証で当たったことを into へ渡す。
-func newCompiler(l *loader, into *collector) (*jsonschema.Compiler, error) {
+func newCompiler(l *loader, into *collector, docs map[string]any) (*jsonschema.Compiler, error) {
 	vocabulary, err := compileVocabulary()
 	if err != nil {
 		return nil, err
@@ -284,7 +295,7 @@ func newCompiler(l *loader, into *collector) (*jsonschema.Compiler, error) {
 	compiler := jsonschema.NewCompiler()
 	// format を注釈でなく違反として検証する。Abstract が、ライブラリが確かめられる名前だけを書かせる
 	compiler.AssertFormat()
-	if err := addPublished(compiler); err != nil {
+	if err := addPublished(compiler, docs); err != nil {
 		return nil, err
 	}
 	compiler.RegisterVocabulary(&jsonschema.Vocabulary{
@@ -301,13 +312,13 @@ func newCompiler(l *loader, into *collector) (*jsonschema.Compiler, error) {
 
 func compileVocabulary() (*jsonschema.Schema, error) {
 	compiler := jsonschema.NewCompiler()
-	if err := addPublished(compiler); err != nil {
+	if err := addPublished(compiler, map[string]any{}); err != nil {
 		return nil, err
 	}
 	return compiler.Compile(publishedlanguage.VocabularyID)
 }
 
-func addPublished(compiler *jsonschema.Compiler) error {
+func addPublished(compiler *jsonschema.Compiler, docs map[string]any) error {
 	for _, name := range publishedlanguage.Schemas {
 		content, err := publishedlanguage.Read(name)
 		if err != nil {
@@ -319,6 +330,7 @@ func addPublished(compiler *jsonschema.Compiler) error {
 		}
 		object, _ := value.(map[string]any) // 公開された言葉のスキーマは、どれも $id を持つオブジェクト
 		id, _ := object["$id"].(string)
+		docs[id] = value
 		if err := compiler.AddResource(id, value); err != nil {
 			return err
 		}
@@ -328,7 +340,7 @@ func addPublished(compiler *jsonschema.Compiler) error {
 
 // compileError は、Compile の error を返す。引けなかった $id があればその error、
 // $ref の先の Concrete が Abstract に違反していれば、違反の葉ごとの schema_violation をまとめた error にする。
-func compileError(err, loadErr error) error {
+func compileError(err, loadErr error, docs map[string]any) error {
 	if loadErr != nil {
 		return loadErr
 	}
@@ -338,7 +350,7 @@ func compileError(err, loadErr error) error {
 		return domain.Fail(domain.SchemaViolation, "", err.Error())
 	}
 	var failures []error
-	for _, v := range leaves(verr, nil, nil) {
+	for _, v := range leaves(verr, nil, nil, docs) {
 		failures = append(failures, &domain.Failure{
 			Code: domain.SchemaViolation, InstanceLocation: v.InstanceLocation.String(),
 			AbsoluteKeywordLocation: v.AbsoluteKeywordLocation, Message: v.Message,
@@ -350,7 +362,7 @@ func compileError(err, loadErr error) error {
 // leaves は、Causes を葉までたどり、葉ごとに違反を返す。
 // propertyNames の違反の instance location は、親（その違反を Causes に持つ違反）の instance location で置き換える。
 // enclosing は親の instance location、fixed は置き換えた後の instance location。
-func leaves(e *jsonschema.ValidationError, enclosing, fixed []string) []domain.Violation {
+func leaves(e *jsonschema.ValidationError, enclosing, fixed []string, docs map[string]any) []domain.Violation {
 	location := e.InstanceLocation
 	keywords := e.ErrorKind.KeywordPath()
 	switch {
@@ -361,15 +373,20 @@ func leaves(e *jsonschema.ValidationError, enclosing, fixed []string) []domain.V
 		fixed = enclosing
 	}
 	if len(e.Causes) == 0 {
+		absolute := e.SchemaURL + domain.PointerOf(keywords...).String()
+		text := message(e)
+		if d := description(docs, absolute); d != "" {
+			text += "（" + d + "）"
+		}
 		return []domain.Violation{{
 			InstanceLocation:        domain.PointerOf(location...),
-			AbsoluteKeywordLocation: e.SchemaURL + domain.PointerOf(keywords...).String(),
-			Message:                 message(e),
+			AbsoluteKeywordLocation: absolute,
+			Message:                 text,
 		}}
 	}
 	var violations []domain.Violation
 	for _, cause := range e.Causes {
-		violations = append(violations, leaves(cause, slices.Clone(location), fixed)...)
+		violations = append(violations, leaves(cause, slices.Clone(location), fixed, docs)...)
 	}
 	return violations
 }
@@ -383,4 +400,39 @@ func message(e *jsonschema.ValidationError) string {
 		}
 	}
 	return text
+}
+
+// description は、違反した keyword の絶対の位置（$id#JSON Pointer）の、keyword を直接持つサブスキーマの description を返す。
+// 親のサブスキーマへは上らない。Abstract のサブスキーマでも Concrete のサブスキーマでも同じ。無ければ空。
+func description(docs map[string]any, absolute string) string {
+	id, fragment, _ := strings.Cut(absolute, "#")
+	node, ok := docs[id]
+	if !ok {
+		return ""
+	}
+	if unescaped, err := url.PathUnescape(fragment); err == nil {
+		fragment = unescaped
+	}
+	tokens := strings.Split(strings.TrimPrefix(fragment, "/"), "/")
+	for _, token := range tokens[:len(tokens)-1] {
+		if token == "" {
+			continue
+		}
+		token = strings.NewReplacer("~1", "/", "~0", "~").Replace(token)
+		switch parent := node.(type) {
+		case map[string]any:
+			node = parent[token]
+		case []any:
+			i, err := strconv.Atoi(token)
+			if err != nil || i < 0 || i >= len(parent) {
+				return ""
+			}
+			node = parent[i]
+		default:
+			return ""
+		}
+	}
+	object, _ := node.(map[string]any)
+	d, _ := object["description"].(string)
+	return d
 }

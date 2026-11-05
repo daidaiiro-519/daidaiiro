@@ -1,0 +1,82 @@
+{
+  "title": "インスタンスが Concrete に違反するとき、violated の judgment の reason に、Concrete の作者が書いた description を続ける",
+  "files": {
+    "schemas/a.json": {
+      "$schema": "urn:semantic-agent-schema:abstract:v1",
+      "$id": "urn:example:a:v1",
+      "required": [
+        "$schema",
+        "tags"
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "x-prompt": {
+        "meaning": "テスト用の項目",
+        "when": "テスト用の項目を書くとき",
+        "rules": []
+      },
+      "properties": {
+        "$schema": {
+          "const": "urn:example:a:v1"
+        },
+        "tags": {
+          "type": "array",
+          "x-prompt": {
+            "meaning": "タグ",
+            "when": "タグを書くとき",
+            "rules": []
+          },
+          "items": {
+            "type": "object",
+            "x-prompt": {
+              "meaning": "タグ1件",
+              "when": "タグ1件を書くとき",
+              "rules": []
+            },
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "タグの名前。空にしない",
+                "x-prompt": {
+                  "meaning": "名前",
+                  "when": "名前を書くとき",
+                  "rules": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "a.json": {
+      "$schema": "urn:example:a:v1",
+      "tags": [
+        {
+          "name": ""
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "a.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "validated",
+          "/counts/violated": 1,
+          "/judgments/0/instanceLocation": "/tags/0/name",
+          "/judgments/0/by": "machine",
+          "/judgments/0/reason": "minLength: got 0, want 1（タグの名前。空にしない）"
+        }
+      ]
+    }
+  ]
+}

@@ -297,6 +297,7 @@
         "additionalProperties": {
           "anyOf": [
             {
+              "description": "false にするのは、この位置に値を書かせないとき。値を書かせるなら false にせず、オブジェクトにして x-prompt を書く。type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）も書く。書かないと、x-prompt の無い値を AI が書けてしまう",
               "const": false
             },
             {
@@ -307,6 +308,7 @@
         "unevaluatedProperties": {
           "anyOf": [
             {
+              "description": "false にするのは、この位置に値を書かせないとき。値を書かせるなら false にせず、オブジェクトにして x-prompt を書く。type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）も書く。書かないと、x-prompt の無い値を AI が書けてしまう",
               "const": false
             },
             {
@@ -317,6 +319,7 @@
         "items": {
           "anyOf": [
             {
+              "description": "false にするのは、この位置に値を書かせないとき。値を書かせるなら false にせず、オブジェクトにして x-prompt を書く。type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）も書く。書かないと、x-prompt の無い値を AI が書けてしまう",
               "const": false
             },
             {
@@ -327,6 +330,7 @@
         "unevaluatedItems": {
           "anyOf": [
             {
+              "description": "false にするのは、この位置に値を書かせないとき。値を書かせるなら false にせず、オブジェクトにして x-prompt を書く。type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）も書く。書かないと、x-prompt の無い値を AI が書けてしまう",
               "const": false
             },
             {
@@ -368,7 +372,7 @@
       }
     },
     "shape": {
-      "description": "type が object なら additionalProperties か unevaluatedProperties を、array なら items ・ prefixItems ・ unevaluatedItems のどれかを書く。分岐の中でキーを定義するときは、additionalProperties: false がそのキーを弾くので、unevaluatedProperties: false を使う",
+      "description": "type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）を書く。書かないと、x-prompt の無い値を AI が書けてしまう。array なら items ・ prefixItems ・ unevaluatedItems のどれかを書く。分岐の中でキーを定義するときは、additionalProperties: false がそのキーを弾くので、unevaluatedProperties: false を使う",
       "allOf": [
         {
           "if": {
@@ -396,12 +400,14 @@
               {
                 "required": [
                   "additionalProperties"
-                ]
+                ],
+                "description": "type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）を書く。書かないと、x-prompt の無い値を AI が書けてしまう"
               },
               {
                 "required": [
                   "unevaluatedProperties"
-                ]
+                ],
+                "description": "type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）を書く。書かないと、x-prompt の無い値を AI が書けてしまう"
               }
             ]
           }
@@ -432,17 +438,20 @@
               {
                 "required": [
                   "items"
-                ]
+                ],
+                "description": "type が array なら items ・ prefixItems ・ unevaluatedItems のどれかを書く"
               },
               {
                 "required": [
                   "prefixItems"
-                ]
+                ],
+                "description": "type が array なら items ・ prefixItems ・ unevaluatedItems のどれかを書く"
               },
               {
                 "required": [
                   "unevaluatedItems"
-                ]
+                ],
+                "description": "type が array なら items ・ prefixItems ・ unevaluatedItems のどれかを書く"
               }
             ]
           }
@@ -482,6 +491,7 @@
         }
       },
       "then": {
+        "description": "値を書く所は、x-prompt を書く。const か要素1つの enum だけで値が決まる所は省ける",
         "required": [
           "x-prompt"
         ]
@@ -518,16 +528,19 @@
     },
     {
       "$ref": "#/$defs/shape"
+    },
+    {
+      "description": "Concrete のルートには、$schema ・ $id ・ required ・ properties ・ x-prompt の5つを書く。足りない項目を足す。x-prompt は、Concrete のルートの値を何として読み、どう書くかを meaning ・ when ・ rules で書く",
+      "required": [
+        "$schema",
+        "$id",
+        "required",
+        "properties",
+        "x-prompt"
+      ]
     }
   ],
   "type": "object",
-  "required": [
-    "$schema",
-    "$id",
-    "required",
-    "properties",
-    "x-prompt"
-  ],
   "properties": {
     "$schema": {
       "const": "urn:semantic-agent-schema:abstract:v1"

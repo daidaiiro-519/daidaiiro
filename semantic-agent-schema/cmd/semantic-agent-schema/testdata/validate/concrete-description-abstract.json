@@ -1,0 +1,73 @@
+{
+  "title": "Concrete の配列の要素が object で additionalProperties も unevaluatedProperties も無いとき、violated の judgment の reason に、違反した keyword から上へたどって最も近い description を続ける",
+  "files": {
+    "schemas/a.json": {
+      "$schema": "urn:semantic-agent-schema:abstract:v1",
+      "$id": "urn:example:a:v1",
+      "required": [
+        "$schema",
+        "tags"
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "x-prompt": {
+        "meaning": "テスト用の項目",
+        "when": "テスト用の項目を書くとき",
+        "rules": []
+      },
+      "properties": {
+        "$schema": {
+          "const": "urn:example:a:v1"
+        },
+        "tags": {
+          "type": "array",
+          "x-prompt": {
+            "meaning": "タグ",
+            "when": "タグを書くとき",
+            "rules": []
+          },
+          "items": {
+            "type": "object",
+            "x-prompt": {
+              "meaning": "タグ1件",
+              "when": "タグ1件を書くとき",
+              "rules": []
+            },
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "タグの名前。空にしない",
+                "x-prompt": {
+                  "meaning": "名前",
+                  "when": "名前を書くとき",
+                  "rules": []
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "validate",
+        "schemas/a.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 1,
+      "events": [
+        {
+          "/event": "validated",
+          "/counts/violated": 3,
+          "/judgments/1/instanceLocation": "/properties/tags/items",
+          "/judgments/1/rule": "urn:semantic-agent-schema:abstract:v1#/$defs/shape/allOf/0/then/anyOf/0/required",
+          "/judgments/1/reason": "missing property 'additionalProperties'（type が object なら additionalProperties か unevaluatedProperties（false かサブスキーマ）を書く。書かないと、x-prompt の無い値を AI が書けてしまう）"
+        }
+      ]
+    }
+  ]
+}
