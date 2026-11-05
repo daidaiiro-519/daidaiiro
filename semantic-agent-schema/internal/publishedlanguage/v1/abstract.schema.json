@@ -29,7 +29,7 @@
       ]
     },
     "keywords": {
-      "description": "Concrete のどのサブスキーマにも当てる決まり。$ref は書かない（Concrete は1つのファイルで閉じる）。format は、機械的な検証で確かめられる名前だけを書く。x-prompt は、ルートと、properties ・ items でたどるサブスキーマにだけ書く（ほかの中の rule は、当たるインスタンスの位置が値によって変わり、決定論的に決まらない）",
+      "description": "Concrete のどのサブスキーマにも当てる決まり。$ref と $defs は書かない（Concrete は1つのファイルで閉じる）。format は、機械的な検証で確かめられる名前だけを書く。x-prompt の中身の決まりもここに置く。x-prompt をどこに書くかは writing が決める",
       "properties": {
         "$ref": false,
         "format": {
@@ -55,99 +55,34 @@
             "uuid"
           ]
         },
-        "allOf": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "anyOf": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "oneOf": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "prefixItems": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "not": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "if": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "then": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "else": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "additionalProperties": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "patternProperties": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "dependentSchemas": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "propertyNames": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "contains": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "unevaluatedItems": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "unevaluatedProperties": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "contentSchema": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "$defs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
+        "$defs": false,
         "x-prompt": {
           "properties": {
             "meaning": {
               "x-prompt": {
-                "meaning": "Concrete に書く x-prompt の meaning の欄。その値が業務で何を表すか",
+                "meaning": "Concrete に書く x-prompt の meaning の欄。その値（分岐の枝なら、その形）が業務で何を表すか",
                 "when": "Concrete を書いて、サブスキーマの値の意味を決めるとき",
                 "rules": [
                   {
                     "id": "meaning-domain",
-                    "rule": "x-prompt の meaning は、その値が業務で何を表すかを書く",
+                    "rule": "x-prompt の meaning は、その値が業務で何を表すかを書く。分岐の枝（then ・ oneOf の枝など）に置くときは、その枝の形が表すものを書く",
                     "why": "生成するときも判定するときも、値の意味を同じに読むため",
-                    "check": "この meaning は、その値が業務で何を表すかを書いているか",
+                    "check": "この meaning は、その値（分岐の枝なら、その枝の形）が業務で何を表すかを書いているか",
                     "related_fields": [],
                     "bad": [
                       {
                         "value": "題名"
+                      },
+                      {
+                        "value": "分岐"
                       }
                     ],
                     "good": [
                       {
                         "value": "会議の記録を一覧で見分けるための、結論を表す短い名前"
+                      },
+                      {
+                        "value": "会場に集まる催し"
                       }
                     ]
                   }
@@ -156,23 +91,29 @@
             },
             "when": {
               "x-prompt": {
-                "meaning": "Concrete に書く x-prompt の when の欄。その値を書く場面",
+                "meaning": "Concrete に書く x-prompt の when の欄。その値を書く場面（分岐の枝なら、その形をとる場面）",
                 "when": "Concrete を書いて、値を書く場面を決めるとき",
                 "rules": [
                   {
                     "id": "when-situation",
-                    "rule": "x-prompt の when は、その値を書く場面を書く。何をするときかは必ず書き、誰がは分かるときだけ書く",
+                    "rule": "x-prompt の when は、その値を書く場面を書く。分岐の枝なら、その形をとる場面を書く。何をするときかは必ず書き、誰がは分かるときだけ書く",
                     "why": "生成の prompt で、AI がいつ何のために書くかを取り違えないため",
-                    "check": "この when は、何をするときかを示しているか（誰がは、分かるときだけでよい）",
+                    "check": "この when は、その値を書く（分岐の枝なら、その形をとる）場面で何をするときかを示しているか（誰がは、分かるときだけでよい）",
                     "related_fields": [],
                     "bad": [
                       {
                         "value": "必要なとき"
+                      },
+                      {
+                        "value": "条件に合うとき"
                       }
                     ],
                     "good": [
                       {
                         "value": "会議が終わり、決めたことを記録するとき"
+                      },
+                      {
+                        "value": "style が onsite のとき"
                       }
                     ]
                   }
@@ -340,92 +281,226 @@
         }
       }
     },
-    "noPrompt": {
-      "description": "x-prompt を書いてはいけないサブスキーマ。その下のサブスキーマも、すべて同じ",
+    "writing": {
+      "description": "x-prompt を書く所を決める。値を書く所（properties ・ patternProperties ・ additionalProperties ・ unevaluatedProperties ・ items ・ prefixItems ・ unevaluatedItems の値）は valueSchema、分岐の枝（oneOf ・ anyOf の各枝 ・ then ・ else ・ dependentSchemas の枝）は branchSchema にする。allOf の枝は、その中で値を書くので writing を当てる。if ・ not ・ contains ・ propertyNames の中は、値を書く所でないので当てない",
       "properties": {
-        "allOf": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/noPrompt"
+        "properties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/valueSchema"
           }
         },
-        "anyOf": {
-          "type": "array",
+        "patternProperties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/valueSchema"
+          }
+        },
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "$ref": "#/$defs/valueSchema"
+            }
+          ]
+        },
+        "unevaluatedProperties": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "$ref": "#/$defs/valueSchema"
+            }
+          ]
+        },
+        "items": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "$ref": "#/$defs/valueSchema"
+            }
+          ]
+        },
+        "unevaluatedItems": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "$ref": "#/$defs/valueSchema"
+            }
+          ]
+        },
+        "prefixItems": {
           "items": {
-            "$ref": "#/$defs/noPrompt"
+            "$ref": "#/$defs/valueSchema"
           }
         },
         "oneOf": {
-          "type": "array",
           "items": {
-            "$ref": "#/$defs/noPrompt"
+            "$ref": "#/$defs/branchSchema"
           }
         },
-        "prefixItems": {
-          "type": "array",
+        "anyOf": {
           "items": {
-            "$ref": "#/$defs/noPrompt"
+            "$ref": "#/$defs/branchSchema"
           }
-        },
-        "not": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "if": {
-          "$ref": "#/$defs/noPrompt"
         },
         "then": {
-          "$ref": "#/$defs/noPrompt"
+          "$ref": "#/$defs/branchSchema"
         },
         "else": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "additionalProperties": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "patternProperties": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
-          }
+          "$ref": "#/$defs/branchSchema"
         },
         "dependentSchemas": {
-          "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
+            "$ref": "#/$defs/branchSchema"
           }
         },
-        "propertyNames": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "contains": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "unevaluatedItems": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "unevaluatedProperties": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "contentSchema": {
-          "$ref": "#/$defs/noPrompt"
-        },
-        "$defs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
+        "allOf": {
+          "items": {
+            "$ref": "#/$defs/writing"
           }
-        },
-        "x-prompt": false,
-        "properties": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/noPrompt"
-          }
-        },
-        "items": {
-          "$ref": "#/$defs/noPrompt"
         }
       }
+    },
+    "shape": {
+      "description": "type が object なら additionalProperties か unevaluatedProperties を、array なら items ・ prefixItems ・ unevaluatedItems のどれかを書く。分岐の中でキーを定義するときは、additionalProperties: false がそのキーを弾くので、unevaluatedProperties: false を使う",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "anyOf": [
+                  {
+                    "const": "object"
+                  },
+                  {
+                    "type": "array",
+                    "contains": {
+                      "const": "object"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "additionalProperties"
+                ]
+              },
+              {
+                "required": [
+                  "unevaluatedProperties"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "anyOf": [
+                  {
+                    "const": "array"
+                  },
+                  {
+                    "type": "array",
+                    "contains": {
+                      "const": "array"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "items"
+                ]
+              },
+              {
+                "required": [
+                  "prefixItems"
+                ]
+              },
+              {
+                "required": [
+                  "unevaluatedItems"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "valueSchema": {
+      "description": "値を書く所のサブスキーマ。true ではなくオブジェクトにし、x-prompt を書く。const か要素1つの enum だけで値が決まる所は x-prompt を省ける",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/writing"
+        },
+        {
+          "$ref": "#/$defs/shape"
+        }
+      ],
+      "if": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "const"
+              ]
+            },
+            {
+              "required": [
+                "enum"
+              ],
+              "properties": {
+                "enum": {
+                  "maxItems": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "then": {
+        "required": [
+          "x-prompt"
+        ]
+      }
+    },
+    "branchSchema": {
+      "description": "分岐の枝のサブスキーマ。true ではなくオブジェクトにし、必ず x-prompt を書く",
+      "type": "object",
+      "required": [
+        "x-prompt"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/writing"
+        },
+        {
+          "$ref": "#/$defs/shape"
+        }
+      ]
     }
   },
   "allOf": [
@@ -437,6 +512,12 @@
     },
     {
       "$ref": "#/$defs/keywords"
+    },
+    {
+      "$ref": "#/$defs/writing"
+    },
+    {
+      "$ref": "#/$defs/shape"
     }
   ],
   "type": "object",
@@ -444,7 +525,8 @@
     "$schema",
     "$id",
     "required",
-    "properties"
+    "properties",
+    "x-prompt"
   ],
   "properties": {
     "$schema": {

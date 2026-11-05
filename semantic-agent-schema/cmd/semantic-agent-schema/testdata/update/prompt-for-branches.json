@@ -1,0 +1,109 @@
+{
+  "title": "更新の prompt は、当たった分岐の枝（then ・ oneOf の枝）の x-prompt を step に入れ、当たらなかった枝（else ・ 別の oneOf の枝）は入れない",
+  "files": {
+    "schemas/event.json": {
+      "$fixture": "event.schema.json"
+    },
+    "onsite.json": {
+      "$schema": "urn:example:event:v1",
+      "title": "新人歓迎会",
+      "style": "onsite",
+      "place": "本社 3F",
+      "due": "2026-04-01"
+    },
+    "online.json": {
+      "$schema": "urn:example:event:v1",
+      "title": "読書会",
+      "style": "online",
+      "due": 7
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "update",
+        "onsite.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "update_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "",
+              "keywordLocation": "#"
+            },
+            {
+              "instanceLocation": "",
+              "keywordLocation": "#/then"
+            },
+            {
+              "instanceLocation": "/due",
+              "keywordLocation": "#/properties/due"
+            },
+            {
+              "instanceLocation": "/due",
+              "keywordLocation": "#/properties/due/oneOf/0"
+            },
+            {
+              "instanceLocation": "/place",
+              "keywordLocation": "#/properties/place"
+            },
+            {
+              "instanceLocation": "/style",
+              "keywordLocation": "#/properties/style"
+            },
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "update",
+        "online.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "update_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "",
+              "keywordLocation": "#"
+            },
+            {
+              "instanceLocation": "",
+              "keywordLocation": "#/else"
+            },
+            {
+              "instanceLocation": "/due",
+              "keywordLocation": "#/properties/due"
+            },
+            {
+              "instanceLocation": "/due",
+              "keywordLocation": "#/properties/due/oneOf/1"
+            },
+            {
+              "instanceLocation": "/style",
+              "keywordLocation": "#/properties/style"
+            },
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

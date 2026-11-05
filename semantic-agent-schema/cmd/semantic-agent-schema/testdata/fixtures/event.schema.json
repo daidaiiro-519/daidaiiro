@@ -1,0 +1,99 @@
+{
+  "$schema": "urn:semantic-agent-schema:abstract:v1",
+  "$id": "urn:example:event:v1",
+  "type": "object",
+  "required": [
+    "$schema",
+    "title",
+    "style"
+  ],
+  "additionalProperties": false,
+  "x-prompt": {
+    "meaning": "社内の催し1件の計画",
+    "when": "催しを企画するとき",
+    "rules": []
+  },
+  "properties": {
+    "$schema": {
+      "const": "urn:example:event:v1"
+    },
+    "title": {
+      "type": "string",
+      "x-prompt": {
+        "meaning": "一覧で見分ける催しの名前",
+        "when": "催しを企画するとき",
+        "rules": []
+      }
+    },
+    "style": {
+      "enum": [
+        "onsite",
+        "online"
+      ],
+      "x-prompt": {
+        "meaning": "集まり方",
+        "when": "会場を決めるとき",
+        "rules": []
+      }
+    },
+    "place": {
+      "type": "string",
+      "x-prompt": {
+        "meaning": "会場の名前",
+        "when": "会場を決めるとき",
+        "rules": []
+      }
+    },
+    "due": {
+      "x-prompt": {
+        "meaning": "申し込みの締め切り",
+        "when": "申し込みを受け付けるとき",
+        "rules": []
+      },
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date",
+          "x-prompt": {
+            "meaning": "締め切りの日付",
+            "when": "開催日が決まっているとき",
+            "rules": []
+          }
+        },
+        {
+          "type": "integer",
+          "minimum": 1,
+          "x-prompt": {
+            "meaning": "開催の何日前に締め切るか",
+            "when": "開催日がまだ決まっていないとき",
+            "rules": []
+          }
+        }
+      ]
+    }
+  },
+  "if": {
+    "properties": {
+      "style": {
+        "const": "onsite"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "place"
+    ],
+    "x-prompt": {
+      "meaning": "会場に集まる催し",
+      "when": "style が onsite のとき",
+      "rules": []
+    }
+  },
+  "else": {
+    "x-prompt": {
+      "meaning": "オンラインの催し",
+      "when": "style が online のとき",
+      "rules": []
+    }
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "title": "作る Concrete が $ref か、機械的な検証で確かめられない format を書くか、x-prompt を properties ・ items 以外（anyOf ・ then など）の中に書くと rejected を返す。properties ・ items の中なら作る",
+  "title": "作る Concrete が $ref か、機械的な検証で確かめられない format を書くと rejected を返す。x-prompt を書く所に書き、分岐の中でも書けば作る",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -13,7 +13,7 @@
         "--schemas",
         "schemas",
         "--json",
-        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:ref:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:ref:v1\"}, \"memo\": {\"$ref\": \"urn:example:memo:v1\"}}}"
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:ref:v1\", \"required\": [\"$schema\"], \"type\": \"object\", \"additionalProperties\": false, \"x-prompt\": {\"meaning\": \"テスト用の項目\", \"when\": \"テストを書くとき\", \"rules\": []}, \"properties\": {\"$schema\": {\"const\": \"urn:example:ref:v1\"}, \"memo\": {\"$ref\": \"urn:example:memo:v1\", \"x-prompt\": {\"meaning\": \"メモ\", \"when\": \"書くとき\", \"rules\": []}}}}"
       ],
       "exit": 1,
       "events": [
@@ -35,7 +35,7 @@
         "--schemas",
         "schemas",
         "--json",
-        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:fmt:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:fmt:v1\"}, \"phone\": {\"type\": \"string\", \"format\": \"phone\"}}}"
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:fmt:v1\", \"required\": [\"$schema\"], \"type\": \"object\", \"additionalProperties\": false, \"x-prompt\": {\"meaning\": \"テスト用の項目\", \"when\": \"テストを書くとき\", \"rules\": []}, \"properties\": {\"$schema\": {\"const\": \"urn:example:fmt:v1\"}, \"phone\": {\"type\": \"string\", \"format\": \"phone\", \"x-prompt\": {\"meaning\": \"電話番号\", \"when\": \"書くとき\", \"rules\": []}}}}"
       ],
       "exit": 1,
       "events": [
@@ -57,50 +57,23 @@
         "--schemas",
         "schemas",
         "--json",
-        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"kind\": {\"type\": \"string\"}}, \"anyOf\": [{\"properties\": {\"kind\": {\"x-prompt\": {\"meaning\": \"m\", \"when\": \"w\", \"rules\": []}}}}]}"
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"type\": \"object\", \"x-prompt\": {\"meaning\": \"テスト用の項目\", \"when\": \"テストを書くとき\", \"rules\": []}, \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"kind\": {\"type\": \"string\", \"x-prompt\": {\"meaning\": \"種類\", \"when\": \"書くとき\", \"rules\": []}}}, \"if\": {\"properties\": {\"kind\": {\"const\": \"a\"}}}, \"then\": {\"required\": [\"place\"], \"properties\": {\"place\": {\"type\": \"string\", \"x-prompt\": {\"meaning\": \"会場の名前\", \"when\": \"書くとき\", \"rules\": []}}}, \"x-prompt\": {\"meaning\": \"a の形\", \"when\": \"書くとき\", \"rules\": []}}, \"unevaluatedProperties\": false}"
       ],
-      "exit": 1,
+      "exit": 0,
       "events": [
         {
-          "/event": "rejected",
-          "/code": "schema_violation",
-          "/instanceLocation": "/anyOf/0/properties/kind/x-prompt",
-          "/absoluteKeywordLocation": "urn:semantic-agent-schema:abstract:v1#/$defs/noPrompt/properties/x-prompt"
+          "/event": "created"
         }
-      ],
-      "files": {
-        "schemas/cond.json": null
-      }
+      ]
     },
     {
       "args": [
         "create",
-        "schemas/cond.json",
+        "schemas/items.json",
         "--schemas",
         "schemas",
         "--json",
-        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"kind\": {\"type\": \"string\"}}, \"if\": {\"properties\": {\"kind\": {\"const\": \"a\"}}}, \"then\": {\"properties\": {\"kind\": {\"x-prompt\": {\"meaning\": \"m\", \"when\": \"w\", \"rules\": []}}}}}"
-      ],
-      "exit": 1,
-      "events": [
-        {
-          "/event": "rejected",
-          "/code": "schema_violation",
-          "/instanceLocation": "/then/properties/kind/x-prompt"
-        }
-      ],
-      "files": {
-        "schemas/cond.json": null
-      }
-    },
-    {
-      "args": [
-        "create",
-        "schemas/cond.json",
-        "--schemas",
-        "schemas",
-        "--json",
-        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:cond:v1\", \"required\": [\"$schema\"], \"properties\": {\"$schema\": {\"const\": \"urn:example:cond:v1\"}, \"items\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"kind\": {\"type\": \"string\", \"x-prompt\": {\"meaning\": \"m\", \"when\": \"w\", \"rules\": []}}}}}}}"
+        "{\"$schema\": \"urn:semantic-agent-schema:abstract:v1\", \"$id\": \"urn:example:items:v1\", \"required\": [\"$schema\"], \"type\": \"object\", \"additionalProperties\": false, \"x-prompt\": {\"meaning\": \"テスト用の項目\", \"when\": \"テストを書くとき\", \"rules\": []}, \"properties\": {\"$schema\": {\"const\": \"urn:example:items:v1\"}, \"items\": {\"type\": \"array\", \"x-prompt\": {\"meaning\": \"品の一覧\", \"when\": \"書くとき\", \"rules\": []}, \"items\": {\"type\": \"object\", \"additionalProperties\": false, \"x-prompt\": {\"meaning\": \"品\", \"when\": \"書くとき\", \"rules\": []}, \"properties\": {\"kind\": {\"type\": \"string\", \"x-prompt\": {\"meaning\": \"種類\", \"when\": \"書くとき\", \"rules\": []}}}}}}}"
       ],
       "exit": 0,
       "events": [

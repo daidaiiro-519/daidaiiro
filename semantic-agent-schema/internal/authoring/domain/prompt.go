@@ -129,10 +129,9 @@ func NewUpdatePrompt(in UpdateInput) Prompt {
 	var index subschemaIndex
 	keywords := map[string]Pointer{}
 	for _, e := range sortedEvaluations(in.Evaluations) {
-		if !inStructure(tokensOf(e.KeywordLocation)) {
-			continue // Concrete.Subschemas と同じく、properties ・ items でたどれるサブスキーマだけを扱う
+		if _, ok := keywords[e.InstanceLocation.String()]; !ok {
+			keywords[e.InstanceLocation.String()] = e.KeywordLocation // 同じ位置は、keyword location の順で最初のサブスキーマ
 		}
-		keywords[e.InstanceLocation.String()] = e.KeywordLocation
 		sub := subschemaAt(in.Concrete, e.KeywordLocation)
 		if len(in.Violations) > 0 || (sub.Title == "" && sub.Description == "" && sub.XPrompt == nil) {
 			continue

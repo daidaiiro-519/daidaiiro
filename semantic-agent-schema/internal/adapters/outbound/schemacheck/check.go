@@ -53,24 +53,29 @@ func (l *loader) Load(url string) (any, error) {
 // Check は、content を schemaID のスキーマで検証し、JSON Schema の違反を返す。
 // JSON として読めなければ invalid_json、スキーマを引けなければその error を返す。
 func (c *Checker) Check(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, error) {
-	violations, _, err := c.check(ctx, schemaID, content, nil)
+	violations, _, err := c.check(ctx, schemaID, content, nil, false)
 	return violations, err
 }
 
 // Evaluate は、content を schemaID のスキーマで検証し、JSON Schema の違反と、サブスキーマが当たったインスタンスの
-// 位置の組を返す。組は、検証のたびにライブラリが呼ぶ拡張項目の SchemaExt が集めたもので、keyword location は schemaID の
-// スキーマ（resource）の中の位置にする。ほかの resource のサブスキーマの組は返さない。
+// 位置の組を返す。組は、JSON Schema の注釈と同じに集める（JSON Schema 2020-12 Core 7.7 と 10.2.1.2）。
+// 検証に通ったサブスキーマの組だけを返し、検証に落ちたサブスキーマの下の組は返さない。anyOf は、通った枝すべての組を返す。
+// keyword location は schemaID のスキーマ（resource）の中の位置にする。ほかの resource のサブスキーマの組は返さない。
+// ルートスキーマの検証に落ちたとき（違反があるとき）は、直す対象を示すため、通ったサブスキーマすべての組を返す。
 func (c *Checker) Evaluate(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, []domain.Evaluation, error) {
-	violations, located, err := c.check(ctx, schemaID, content, nil)
+	violations, located, err := c.check(ctx, schemaID, content, nil, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	var evaluations []domain.Evaluation
+	seen := map[string]bool{}
 	for _, l := range located {
-		resource, fragment, _ := strings.Cut(l.schema.Location, "#")
-		if resource != schemaID {
+		id := l.schema.Location + "\x00" + domain.PointerOf(l.at...).String()
+		if seen[id] {
 			continue
 		}
+		seen[id] = true
+		_, fragment, _ := strings.Cut(l.schema.Location, "#")
 		decoded, err := url.PathUnescape(fragment)
 		if err != nil {
 			return nil, nil, err
@@ -84,26 +89,143 @@ func (c *Checker) Evaluate(ctx context.Context, schemaID string, content []byte)
 	return violations, evaluations, nil
 }
 
-// located は、検証で、サブスキーマ schema が、インスタンスの位置 at（参照トークンの並び）に当たったこと。
+// located は、サブスキーマ schema が、インスタンスの位置 at（参照トークンの並び）に当たり、検証に通ったこと。
 type located struct {
 	schema *jsonschema.Schema
 	at     []string
 }
 
-// applied は、すべてのサブスキーマの SchemaExt。検証の振る舞いは足さず、当たったインスタンスの位置を into に足すだけ。
-type applied struct {
-	schema *jsonschema.Schema
-	into   *[]located
+func (l located) key() memoKey { return memoKey{l.schema, strings.Join(l.at, marker)} }
+
+// pairSet は、重ならない組の並び。同じ組へ至る道が複数あるので、足すときに重なりを除く。
+type pairSet struct {
+	list []located
+	seen map[memoKey]bool
 }
 
-// Validate は、このサブスキーマが当たったインスタンスの位置を記録する。
-func (x *applied) Validate(ctx *jsonschema.ValidatorContext, _ any) {
-	*x.into = append(*x.into, located{schema: x.schema, at: slices.Clone(ctx.ValueLocation())})
+func (s *pairSet) add(pairs ...located) {
+	if s.seen == nil {
+		s.seen = map[memoKey]bool{}
+	}
+	for _, p := range pairs {
+		if k := p.key(); !s.seen[k] {
+			s.seen[k] = true
+			s.list = append(s.list, p)
+		}
+	}
+}
+
+// outcome は、サブスキーマをインスタンスの位置に当てた結果。ok なら、通ったサブスキーマとその下の、組を持つ。
+type outcome struct {
+	ok    bool
+	pairs []located
+}
+
+type memoKey struct {
+	schema *jsonschema.Schema
+	at     string
+}
+
+// frame は、いま検証し直しているサブスキーマ。raw は、検証し直しのために足した参照トークンの、位置の並びの中の添え字。
+type frame struct {
+	key   memoKey
+	raw   int
+	pairs pairSet
+}
+
+// marker は、ValidatorContext.Validate がサブスキーマを検証し直すときに位置の並びへ足す参照トークン。
+const marker = "\x00"
+
+// collector は、ライブラリが呼ぶ拡張項目の SchemaExt が組を集めるための状態。
+// ライブラリは、拡張項目を、サブスキーマの検証に落ちていても呼ぶ。そこで拡張項目の中でそのサブスキーマの検証をやり直し、
+// 通ったときだけ組にする。やり直しの中で呼ばれる子の拡張項目の組は、通った親にだけ足す。結果は（サブスキーマ, 位置）ごとに覚え、
+// 同じ検証をやり直さない。anyOf は通る枝で検証を打ち切るので、打ち切られた枝も検証し直す。
+type collector struct {
+	target string // 組を返す resource の $id
+	active bool   // 検証の間だけ true。Compile がメタスキーマで検証するときは集めない
+	frames []frame
+	memo   map[memoKey]*outcome
+	// visited は、検証がサブスキーマに当たった組すべて（落ちたものも含む）
+	visited []located
+}
+
+// logical は、位置の並びから、検証し直しのために足した参照トークンを除く。
+func (c *collector) logical(raw []string) []string {
+	at := make([]string, 0, len(raw))
+	for i, token := range raw {
+		if !slices.ContainsFunc(c.frames, func(f frame) bool { return f.raw == i }) {
+			at = append(at, token)
+		}
+	}
+	return at
+}
+
+// pairs は、検証の結果の組を返す。ルートスキーマが通ったときは、ルートの組（通ったサブスキーマの下だけ）。
+// 落ちたときは、検証が当たったサブスキーマすべての組（落ちたものも含む）。直す対象の位置を示すため。
+func (c *collector) pairs(root *jsonschema.Schema) []located {
+	if out := c.memo[memoKey{root, ""}]; out != nil && out.ok {
+		return out.pairs
+	}
+	return c.visited
+}
+
+// visit は、ライブラリの拡張項目の呼び出し。s が、いまの位置の値 v に当たったときに呼ばれる。
+func (c *collector) visit(ctx *jsonschema.ValidatorContext, s *jsonschema.Schema, v any) {
+	if resource, _, _ := strings.Cut(s.Location, "#"); !c.active || resource != c.target {
+		return // 組を返すのは target のサブスキーマだけなので、ほかの resource の検証し直しはしない
+	}
+	at := c.logical(ctx.ValueLocation())
+	key := memoKey{s, strings.Join(at, marker)}
+	if slices.ContainsFunc(c.frames, func(f frame) bool { return f.key == key }) {
+		return // 検証し直している、そのサブスキーマ自身の呼び出し
+	}
+	if len(c.frames) == 0 {
+		c.visited = append(c.visited, located{schema: s, at: at})
+	}
+	out := c.outcomeOf(ctx, s, v, at, key)
+	if out.ok && len(c.frames) > 0 {
+		c.frames[len(c.frames)-1].pairs.add(out.pairs...)
+	}
+}
+
+func (c *collector) outcomeOf(ctx *jsonschema.ValidatorContext, s *jsonschema.Schema, v any, at []string, key memoKey) *outcome {
+	if out, ok := c.memo[key]; ok {
+		return out
+	}
+	c.frames = append(c.frames, frame{key: key, raw: len(ctx.ValueLocation())})
+	err := ctx.Validate(s, v, []string{marker})
+	f := c.frames[len(c.frames)-1]
+	c.frames = c.frames[:len(c.frames)-1]
+	out := &outcome{}
+	c.memo[key] = out
+	if err != nil {
+		return out
+	}
+	out.ok = true
+	f.pairs.add(located{schema: s, at: at})
+	for _, branch := range s.AnyOf {
+		if b := c.outcomeOf(ctx, branch, v, at, memoKey{branch, key.at}); b.ok {
+			f.pairs.add(b.pairs...)
+		}
+	}
+	out.pairs = f.pairs.list
+	return out
+}
+
+// applied は、すべてのサブスキーマの SchemaExt。検証の振る舞いは足さず、組を集めるだけ。
+type applied struct {
+	schema *jsonschema.Schema
+	into   *collector
+}
+
+// Validate は、このサブスキーマが当たったことを collector へ渡す。
+func (x *applied) Validate(ctx *jsonschema.ValidatorContext, v any) {
+	x.into.visit(ctx, x.schema, v)
 }
 
 // check は、prepare（無ければ nil）で Compiler に resource を足してから、content を schemaID のスキーマで検証する。
-// JSON Schema の違反と、サブスキーマが当たった位置を返す。
-func (c *Checker) check(ctx context.Context, schemaID string, content []byte, prepare func(*jsonschema.Compiler) error) ([]domain.Violation, []located, error) {
+// JSON Schema の違反を返す。collect なら、組も返す。
+func (c *Checker) check(ctx context.Context, schemaID string, content []byte, prepare func(*jsonschema.Compiler) error, collect bool) ([]domain.Violation, []located, error) {
 	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
 	if err != nil {
 		return nil, nil, domain.Fail(domain.InvalidJSON, "", err.Error())
@@ -112,8 +234,8 @@ func (c *Checker) check(ctx context.Context, schemaID string, content []byte, pr
 	if c.lookup != nil {
 		l.load = func(id string) ([]byte, error) { return c.lookup(ctx, id) }
 	}
-	var into []located
-	compiler, err := newCompiler(l, &into)
+	into := &collector{target: schemaID, memo: map[memoKey]*outcome{}}
+	compiler, err := newCompiler(l, into)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -126,17 +248,17 @@ func (c *Checker) check(ctx context.Context, schemaID string, content []byte, pr
 	if err != nil {
 		return nil, nil, compileError(err, l.err)
 	}
-	// Compile もメタスキーマでの検証で位置を足すので、content の検証で当たった位置だけを残す
-	into = nil
+	into.active = collect
 	err = schema.Validate(value)
+	pairs := into.pairs(schema)
 	if err == nil {
-		return nil, into, nil
+		return nil, pairs, nil
 	}
 	var verr *jsonschema.ValidationError
 	if !errors.As(err, &verr) {
 		return nil, nil, domain.Fail(domain.SchemaViolation, "", err.Error())
 	}
-	return leaves(verr, nil, nil), into, nil
+	return leaves(verr, nil, nil), pairs, nil
 }
 
 // CheckWith は、content を、まだ書いていないスキーマ schema（バイト列）で検証し、JSON Schema の違反を返す。
@@ -148,13 +270,13 @@ func (c *Checker) CheckWith(ctx context.Context, schema, content []byte) ([]doma
 	}
 	object, _ := value.(map[string]any) // $id が無ければ空の $id になり、Compile が error を返す
 	id, _ := object["$id"].(string)
-	violations, _, err := c.check(ctx, id, content, func(compiler *jsonschema.Compiler) error { return compiler.AddResource(id, value) })
+	violations, _, err := c.check(ctx, id, content, func(compiler *jsonschema.Compiler) error { return compiler.AddResource(id, value) }, false)
 	return violations, err
 }
 
 // newCompiler は、公開された言葉を resource にし、拡張項目の語彙を登録した Compiler を返す。
-// サブスキーマは、検証で当たったインスタンスの位置を into に足す。
-func newCompiler(l *loader, into *[]located) (*jsonschema.Compiler, error) {
+// サブスキーマは、検証で当たったことを into へ渡す。
+func newCompiler(l *loader, into *collector) (*jsonschema.Compiler, error) {
 	vocabulary, err := compileVocabulary()
 	if err != nil {
 		return nil, err

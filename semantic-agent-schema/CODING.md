@@ -256,7 +256,9 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
-| K170 | `x-prompt` は、Concrete のルートと、`properties` ・ `items` でたどるサブスキーマにだけ書く。`allOf` ・ `anyOf` ・ `oneOf` ・ `if` ・ `then` ・ `else` ・ `not` ・ `additionalProperties` ・ `patternProperties` などの中（その下も）は、Abstract（`$defs/noPrompt`）が JSON Schema で拒む。それらの中の rule は、当たるインスタンスの位置が値によって変わり、決定論的に決まらないため | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K170 | Concrete の `x-prompt` は、値を書く所（ルート ・ `properties` ・ `patternProperties` ・ `additionalProperties` ・ `unevaluatedProperties` ・ `items` ・ `prefixItems` ・ `unevaluatedItems` のサブスキーマ）と、分岐の枝（`oneOf` ・ `anyOf` の各枝 ・ `then` ・ `else` ・ `dependentSchemas` の枝）に必ず書く。`const` か要素1つの `enum` だけで値が決まる所は、値を書く所でも省ける。`if` ・ `allOf` の枝 ・ `not` ・ `contains` ・ `propertyNames` には書かなくてよい。これは `abstract.schema.json` が JSON Schema（`writing` ・ `valueSchema` ・ `branchSchema`）で課し、ドメインのコードで同じことを確かめない。`$defs` は Concrete に書かせない（`$ref` を禁じているので使われない） | このプロジェクト | 利用者の指示（2026-11-06） | |
+| K171 | 値を書く所のサブスキーマは `true` にせずオブジェクトにする。`type` が `object` なら `additionalProperties` か `unevaluatedProperties`（`false` かサブスキーマ）を、`array` なら `items` ・ `prefixItems` ・ `unevaluatedItems` のどれかを書く。分岐（`then` ・ `oneOf` の枝など）の中でキーを定義するときは、`additionalProperties: false` がそのキーを弾くので、`unevaluatedProperties: false` を使う | このプロジェクト | 利用者の指示（2026-11-06） | |
+| K172 | 判定で当たる `x-prompt`（スキーマ検査アダプターの `Evaluate`）は、JSON Schema の注釈と同じに集める。拡張項目の呼び出しの中で、そのサブスキーマの検証をやり直し、通ったときだけ組にする。通った `anyOf` の枝は、ライブラリが打ち切った枝も検証し直して、すべて組にする。ドメインは組を検証器から受け取るだけで、スキーマをたどり直さない | このプロジェクト | JSON Schema 2020-12 Core 10.2.1.2 ・ 7.7 | all subschemas MUST be examined so that annotations are collected from each subschema that validates successfully ・ annotations are not retained for failing schemas |
 
 ## 3 テスト規約
 

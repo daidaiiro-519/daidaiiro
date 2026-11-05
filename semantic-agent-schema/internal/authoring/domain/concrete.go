@@ -18,7 +18,7 @@ type Concrete interface {
 	Rule(id string) (Rule, bool)
 	// View は、ルートスキーマの x-view（テンプレートの種類の名前）を返す。無ければ空。
 	View() string
-	// Subschemas は、properties と items でたどれるサブスキーマを、keyword location の順に返す。
+	// Subschemas は、title ・ description ・ x-prompt のどれかを持つサブスキーマを、分岐の枝も含めて keyword location の順に返す。
 	Subschemas() []Subschema
 	// structure は、Concrete を読んだルートスキーマを返す。
 	structure() map[string]any
@@ -101,17 +101,13 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 			}
 		}
 	})
-	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, ruleAt: ruleAt, subs: structureSubschemas(root, content), root: root}, nil
+	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, ruleAt: ruleAt, subs: subschemasOf(root, content), root: root}, nil
 }
 
-// structureSubschemas は、ルートスキーマから JSON Schema の構造（properties と items）でたどれるサブスキーマを、
-// keyword location の順に集める。x-prompt は、キーの順を変えずに取り出すため、書いたままのバイト列から取る。
-func structureSubschemas(root map[string]any, content json.RawMessage) []Subschema {
+// subschemasOf は、ルートスキーマからたどれるサブスキーマを、keyword location の順に集める。x-prompt は、キーの順を変えずに取り出すため、書いたままのバイト列から取る。
+func subschemasOf(root map[string]any, content json.RawMessage) []Subschema {
 	var subs []Subschema
 	walkSubschemas(root, nil, func(subschema map[string]any, at []string) {
-		if !inStructure(at) {
-			return
-		}
 		sub := Subschema{KeywordLocation: PointerOf(at...)}
 		sub.Title, _ = subschema["title"].(string)             // 無ければ空
 		sub.Description, _ = subschema["description"].(string) // 無ければ空
@@ -121,23 +117,6 @@ func structureSubschemas(root map[string]any, content json.RawMessage) []Subsche
 		subs = append(subs, sub)
 	})
 	return subs
-}
-
-// inStructure は、keyword location の参照トークンが、properties とその名前、items だけでできているかを返す。
-func inStructure(at []string) bool {
-	for i := 0; i < len(at); i++ {
-		switch at[i] {
-		case "properties":
-			i++ // 次のトークンは名前
-			if i >= len(at) {
-				return false
-			}
-		case "items":
-		default:
-			return false
-		}
-	}
-	return true
 }
 
 // member は、書いたままの JSON オブジェクトから、name のメンバーの値を書いたままのバイト列で返す。無ければ nil。

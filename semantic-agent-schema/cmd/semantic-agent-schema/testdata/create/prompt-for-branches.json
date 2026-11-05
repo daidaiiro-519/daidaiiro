@@ -1,0 +1,36 @@
+{
+  "title": "作成の prompt は、分岐の枝（oneOf の各枝 ・ then ・ else）の x-prompt も、keyword location で step に入れる",
+  "files": {
+    "schemas/event.json": {
+      "$fixture": "event.schema.json"
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "create",
+        "event.json",
+        "--schemas",
+        "schemas",
+        "--schema",
+        "urn:example:event:v1"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "generation_requested",
+          "/prompt/steps/0/keywordLocation": "#",
+          "/prompt/steps/1/keywordLocation": "#/properties/due",
+          "/prompt/steps/2/keywordLocation": "#/properties/due/oneOf/0",
+          "/prompt/steps/3/keywordLocation": "#/properties/due/oneOf/1",
+          "/prompt/steps/4/keywordLocation": "#/properties/place",
+          "/prompt/steps/5/keywordLocation": "#/properties/style",
+          "/prompt/steps/6/keywordLocation": "#/properties/title",
+          "/prompt/steps/7/keywordLocation": "#/then",
+          "/prompt/steps/8/keywordLocation": "#/else"
+        }
+      ]
+    }
+  ]
+}
