@@ -2,207 +2,11 @@
   "$schema": "urn:semantic-agent-schema:dialect:v1",
   "$id": "urn:semantic-agent-schema:abstract:v1",
   "title": "Abstract",
-  "description": "Semantic Agent Schema のメタスキーマ。Concrete のルートスキーマに適用する。Concrete は $schema にこの $id を書き、インスタンスに $schema を必須にして、その const に自分の $id を書く。",
+  "description": "Semantic Agent Schema のメタスキーマ。Concrete のルートスキーマに適用する。Concrete は $schema にこの $id を書き、インスタンスに $schema を必須にして、その const に自分の $id を書く。$defs/keywords の properties.x-prompt は Concrete に書く x-prompt の値に当たり、その中の x-prompt はそれを判定する rule。",
   "x-prompt": {
     "meaning": "Concrete。Abstract の拡張項目を継承し、用途ごとに拡張したスキーマ",
     "when": "Concrete を作成 ・ 更新 ・ 検証するとき",
-    "rules": [
-      {
-        "id": "schema-first",
-        "rule": "JSON Schema で書ける決まりを、x-prompt の rule に書かない。JSON Schema で書けない、ほかの値との比較（終わりの日が始まりの日より後か など）は rule に置く",
-        "why": "機械的に検証できるものは機械的な検証にし、rule は意味でしか決められないことだけにするため",
-        "check": "どの rule も、type ・ enum ・ pattern ・ minLength ・ maxLength ・ minimum ・ maximum ・ format などで書けない決まりか。rule-judgeable とは別に判定する",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "rule": "20 文字以内で書く"
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "rule": "会議の結論が一読で分かる題名にする"
-            }
-          }
-        ]
-      },
-      {
-        "id": "meaning-domain",
-        "rule": "x-prompt の meaning は、その値が業務で何を表すかを書き、title の言い換えにしない",
-        "why": "生成するときも判定するときも、値の意味を同じに読むため",
-        "check": "どの meaning も、title を読むだけでは分からない業務の意味を足しているか",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "title": "題名",
-              "x-prompt": {
-                "meaning": "題名"
-              }
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "title": "題名",
-              "x-prompt": {
-                "meaning": "会議の記録を一覧で見分けるための、結論を表す短い名前"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "when-situation",
-        "rule": "x-prompt の when は、その値を書く場面を書く。何をするときかは必ず書き、誰がは分かるときだけ書く",
-        "why": "生成の prompt で、AI がいつ何のために書くかを取り違えないため",
-        "check": "どの when も、何をするときかを示しているか（誰がは、分かるときだけでよい）",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "when": "必要なとき"
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "when": "会議が終わり、決めたことを記録するとき"
-            }
-          }
-        ]
-      },
-      {
-        "id": "rule-judgeable",
-        "rule": "rule は、値と related_fields の値だけを見て、満たすか満たさないかを決められる文にする",
-        "why": "判定の verdict を、AI がぶれずに出せるようにするため",
-        "check": "どの rule も、値と related_fields の値だけで、満たす ・ 満たさないに決められるか。schema-first とは別に判定する",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "rule": "よい題名にする"
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "rule": "題名に、会議で決めたことの主語と動詞を含める"
-            }
-          }
-        ]
-      },
-      {
-        "id": "check-question",
-        "rule": "check は、rule を「はい ・ いいえ」で答える問いにする",
-        "why": "判定の prompt にそのまま入る問いなので、答えの形を一つにするため",
-        "check": "どの check も、rule に対応する、はい ・ いいえで答える問いか",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "check": "題名について"
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "check": "題名に、決めたことの主語と動詞が含まれているか"
-            }
-          }
-        ]
-      },
-      {
-        "id": "why-purpose",
-        "rule": "why は、rule を守る目的を書き、rule の言い換えにしない",
-        "why": "判定に迷ったとき、AI が目的から決められるようにするため",
-        "check": "どの why も、rule と違うこと（守る目的）を述べているか",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "rule": "題名に主語と動詞を含める",
-              "why": "主語と動詞を含めるため"
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "rule": "題名に主語と動詞を含める",
-              "why": "一覧で開かずに中身が分かるようにするため"
-            }
-          }
-        ]
-      },
-      {
-        "id": "examples-match",
-        "rule": "bad の値は rule に違反し、good の値は rule を満たすようにする",
-        "why": "例が rule と食い違うと、生成も判定も例に引きずられるため",
-        "check": "どの rule でも、bad の値が rule に違反し、good の値が rule を満たしているか",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "rule": "題名に主語と動詞を含める",
-              "bad": [
-                {
-                  "value": "Go で作り直すことを決めた"
-                }
-              ]
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "rule": "題名に主語と動詞を含める",
-              "bad": [
-                {
-                  "value": "定例"
-                }
-              ],
-              "good": [
-                {
-                  "value": "Go で作り直すことを決めた"
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "id": "related-fields-exact",
-        "rule": "related_fields には、rule が読むほかの値の位置を過不足なく書く。位置は、インスタンスの JSON Pointer（例 /start）で書く。Concrete の位置（/properties/start）ではない",
-        "why": "変更点で判定し直す rule を、漏れなく、多すぎずに選ぶため",
-        "check": "rule の文が読むほかの値の位置が、related_fields に過不足なく、インスタンスの JSON Pointer（/properties/start のような Concrete の位置でなく /start）で入っているか",
-        "related_fields": [],
-        "bad": [
-          {
-            "value": {
-              "rule": "終わりの日は始まりの日より後にする",
-              "related_fields": []
-            }
-          }
-        ],
-        "good": [
-          {
-            "value": {
-              "rule": "終わりの日は始まりの日より後にする",
-              "related_fields": [
-                "/start"
-              ]
-            }
-          }
-        ]
-      }
-    ]
+    "rules": []
   },
   "$vocabulary": {
     "https://json-schema.org/draft/2020-12/vocab/core": true,
@@ -321,6 +125,217 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/noPrompt"
+          }
+        },
+        "x-prompt": {
+          "properties": {
+            "meaning": {
+              "x-prompt": {
+                "meaning": "Concrete に書く x-prompt の meaning の欄。その値が業務で何を表すか",
+                "when": "Concrete を書いて、サブスキーマの値の意味を決めるとき",
+                "rules": [
+                  {
+                    "id": "meaning-domain",
+                    "rule": "x-prompt の meaning は、その値が業務で何を表すかを書く",
+                    "why": "生成するときも判定するときも、値の意味を同じに読むため",
+                    "check": "この meaning は、その値が業務で何を表すかを書いているか",
+                    "related_fields": [],
+                    "bad": [
+                      {
+                        "value": "題名"
+                      }
+                    ],
+                    "good": [
+                      {
+                        "value": "会議の記録を一覧で見分けるための、結論を表す短い名前"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "when": {
+              "x-prompt": {
+                "meaning": "Concrete に書く x-prompt の when の欄。その値を書く場面",
+                "when": "Concrete を書いて、値を書く場面を決めるとき",
+                "rules": [
+                  {
+                    "id": "when-situation",
+                    "rule": "x-prompt の when は、その値を書く場面を書く。何をするときかは必ず書き、誰がは分かるときだけ書く",
+                    "why": "生成の prompt で、AI がいつ何のために書くかを取り違えないため",
+                    "check": "この when は、何をするときかを示しているか（誰がは、分かるときだけでよい）",
+                    "related_fields": [],
+                    "bad": [
+                      {
+                        "value": "必要なとき"
+                      }
+                    ],
+                    "good": [
+                      {
+                        "value": "会議が終わり、決めたことを記録するとき"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "rules": {
+              "items": {
+                "x-prompt": {
+                  "meaning": "Concrete に書く x-prompt の rules の1件。その値の決まり",
+                  "when": "Concrete を書いて、値の決まりを書くとき",
+                  "rules": [
+                    {
+                      "id": "schema-first",
+                      "rule": "JSON Schema で書ける決まりを、x-prompt の rule に書かない。JSON Schema で書けない、ほかの値との比較（終わりの日が始まりの日より後か など）は rule に置く",
+                      "why": "機械的に検証できるものは機械的な検証にし、rule は意味でしか決められないことだけにするため",
+                      "check": "この rule は、type ・ enum ・ pattern ・ minLength ・ maxLength ・ minimum ・ maximum ・ format などで書けない決まりか。rule-judgeable とは別に判定する",
+                      "related_fields": [],
+                      "bad": [
+                        {
+                          "value": {
+                            "rule": "20 文字以内で書く"
+                          }
+                        }
+                      ],
+                      "good": [
+                        {
+                          "value": {
+                            "rule": "会議の結論が一読で分かる題名にする"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "rule-judgeable",
+                      "rule": "rule は、値と related_fields の値だけを見て、満たすか満たさないかを決められる文にする",
+                      "why": "判定の verdict を、AI がぶれずに出せるようにするため",
+                      "check": "この rule は、値と related_fields の値だけで、満たす ・ 満たさないに決められるか。schema-first とは別に判定する",
+                      "related_fields": [],
+                      "bad": [
+                        {
+                          "value": {
+                            "rule": "よい題名にする"
+                          }
+                        }
+                      ],
+                      "good": [
+                        {
+                          "value": {
+                            "rule": "題名に、会議で決めたことの主語と動詞を含める"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "check-question",
+                      "rule": "check は、rule を「はい ・ いいえ」で答える問いにする",
+                      "why": "判定の prompt にそのまま入る問いなので、答えの形を一つにするため",
+                      "check": "この rule の check は、rule に対応する、はい ・ いいえで答える問いか",
+                      "related_fields": [],
+                      "bad": [
+                        {
+                          "value": {
+                            "check": "題名について"
+                          }
+                        }
+                      ],
+                      "good": [
+                        {
+                          "value": {
+                            "check": "題名に、決めたことの主語と動詞が含まれているか"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "why-purpose",
+                      "rule": "why は、rule を守る目的を書き、rule の言い換えにしない",
+                      "why": "判定に迷ったとき、AI が目的から決められるようにするため",
+                      "check": "この rule の why は、rule と違うこと（守る目的）を述べているか",
+                      "related_fields": [],
+                      "bad": [
+                        {
+                          "value": {
+                            "rule": "題名に主語と動詞を含める",
+                            "why": "主語と動詞を含めるため"
+                          }
+                        }
+                      ],
+                      "good": [
+                        {
+                          "value": {
+                            "rule": "題名に主語と動詞を含める",
+                            "why": "一覧で開かずに中身が分かるようにするため"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "examples-match",
+                      "rule": "bad の値は rule に違反し、good の値は rule を満たすようにする",
+                      "why": "例が rule と食い違うと、生成も判定も例に引きずられるため",
+                      "check": "この rule でも、bad の値が rule に違反し、good の値が rule を満たしているか",
+                      "related_fields": [],
+                      "bad": [
+                        {
+                          "value": {
+                            "rule": "題名に主語と動詞を含める",
+                            "bad": [
+                              {
+                                "value": "Go で作り直すことを決めた"
+                              }
+                            ]
+                          }
+                        }
+                      ],
+                      "good": [
+                        {
+                          "value": {
+                            "rule": "題名に主語と動詞を含める",
+                            "bad": [
+                              {
+                                "value": "定例"
+                              }
+                            ],
+                            "good": [
+                              {
+                                "value": "Go で作り直すことを決めた"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "related-fields-exact",
+                      "rule": "related_fields には、rule が読むほかの値の位置を過不足なく書く。位置は、インスタンスの JSON Pointer（例 /start）で書く。Concrete の位置（/properties/start）ではない",
+                      "why": "変更点で判定し直す rule を、漏れなく、多すぎずに選ぶため",
+                      "check": "rule の文が読むほかの値の位置が、related_fields に過不足なく、インスタンスの JSON Pointer（/properties/start のような Concrete の位置でなく /start）で入っているか",
+                      "related_fields": [],
+                      "bad": [
+                        {
+                          "value": {
+                            "rule": "終わりの日は始まりの日より後にする",
+                            "related_fields": []
+                          }
+                        }
+                      ],
+                      "good": [
+                        {
+                          "value": {
+                            "rule": "終わりの日は始まりの日より後にする",
+                            "related_fields": [
+                              "/start"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }

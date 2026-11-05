@@ -121,7 +121,7 @@ type UpdateInput struct {
 
 // NewUpdatePrompt は、ドメインサービス「prompt を作る」。いまの JSON ドキュメントと Concrete を一緒にたどり、
 // 更新の prompt を返す。直す対象の violated の judgment があれば、その instance location ごとに step を作り、keyword location は
-// その位置か、たどれる一番深い親の位置のサブスキーマにする。violated の judgment が無ければ、title ・ description ・ x-prompt の
+// その rule を置いたサブスキーマ（x-prompt の rule でなければ、その位置か、たどれる一番深い親の位置のサブスキーマ）にする。violated の judgment が無ければ、title ・ description ・ x-prompt の
 // どれかを持つサブスキーマに当たる instance location を、たどった順に step にする。サブスキーマは keyword location ごとに1回だけ置く。
 // response の形は JSON Patch のスキーマ。JSON ドキュメントの内容は貼らず、path で渡す。
 func NewUpdatePrompt(in UpdateInput) Prompt {
@@ -147,7 +147,11 @@ func NewUpdatePrompt(in UpdateInput) Prompt {
 			continue
 		}
 		seen[location.String()] = true
-		k := keywordAt(keywords, location)
+		// AI の判定の違反は、その rule を置いたサブスキーマ。機械的な検証の違反は、その位置か一番深い親のサブスキーマ
+		k, ok := in.Concrete.ruleLocation(v.Rule().ID())
+		if !ok {
+			k = keywordAt(keywords, location)
+		}
 		index.add(in.Concrete, k)
 		steps = append(steps, Step{InstanceLocation: location, KeywordLocation: k})
 	}
@@ -168,64 +172,39 @@ func keywordAt(keywords map[string]Pointer, location Pointer) Pointer {
 	return PointerOf()
 }
 
-// NewJudgmentPrompt は、ドメインサービス「prompt を作る」。いまの JSON ドキュメントと Concrete を一緒にたどり、判定の prompt を返す。
-// x-prompt の rules の1件と、そのサブスキーマに当たる instance location の組ごとに step を作る。changed が nil なら
-// すべての組を、そうでなければ instance location か rule の related_fields が変更点に含まれる組だけを入れる（ドメインサービス「変更点を求める」）。
-// forConcrete（JSON ドキュメントが Concrete で、concrete が Abstract）なら、Abstract のルートの rule を、Concrete の中の
-// x-prompt の位置（ルートと、properties ・ items でたどるサブスキーマの …/x-prompt）ごとに当てる。
-// サブスキーマは keyword location ごとに1回だけ置く。response の形は responseID（judgment-response のスキーマの $id）。
-// JSON ドキュメントの内容は貼らず、path ・ 内容のハッシュ ・ instance location で渡す。
-func NewJudgmentPrompt(document Document, value any, concrete Concrete, changed map[string]bool, responseID string, forConcrete bool) Prompt {
-	steps, subschemas := judgmentSteps(document, value, concrete, changed, forConcrete)
+// NewJudgmentPrompt は、ドメインサービス「prompt を作る」。機械的な検証で x-prompt を持つサブスキーマが当たったインスタンスの
+// 位置の組（evaluations）から、判定の prompt を返す。そのサブスキーマの x-prompt の rules の1件と、当たった instance location の
+// 組ごとに step を作る。インスタンスでも Concrete（concrete が Abstract）でも同じ決め方で、どの rule も、それを置いたサブスキーマが
+// 当たる位置にだけ当たる。changed が nil ならすべての組を、そうでなければ instance location か rule の related_fields が変更点に
+// 含まれる組だけを入れる（ドメインサービス「変更点を求める」）。サブスキーマは keyword location ごとに1回だけ置く。
+// response の形は responseID（judgment-response のスキーマの $id）。JSON ドキュメントの内容は貼らず、path ・ 内容のハッシュ ・
+// instance location で渡す。
+func NewJudgmentPrompt(document Document, concrete Concrete, evaluations []Evaluation, changed map[string]bool, responseID string) Prompt {
+	steps, subschemas := judgmentSteps(concrete, evaluations, changed)
 	return generation{
 		command: ValidateCommand, path: document.Path, hash: document.Hash, steps: steps, subschemas: subschemas,
-		responseID: responseID, forConcrete: forConcrete,
+		responseID: responseID,
 	}
 }
 
 // judgmentSteps は、判定する rule と instance location の組を step で返し、step が指すサブスキーマを keyword location ごとに
 // 1回だけ返す。changed が nil ならすべての組を、それ以外は instance location か rule の related_fields が変更点に当たる組を返す。
-func judgmentSteps(document Document, value any, concrete Concrete, changed map[string]bool, forConcrete bool) ([]Step, []Step) {
+func judgmentSteps(concrete Concrete, evaluations []Evaluation, changed map[string]bool) ([]Step, []Step) {
 	var steps []Step
 	var index subschemaIndex
-	add := func(sub map[string]any, location, keyword Pointer) {
-		for _, item := range promptRules(sub) {
+	for _, e := range sortedEvaluations(evaluations) {
+		for _, item := range promptRules(schemaAt(concrete.structure(), tokensOf(e.KeywordLocation))) {
 			ruleObject, _ := item.(map[string]any) // 形は Abstract が決める
 			id, _ := ruleObject["id"].(string)
 			rule, ok := concrete.Rule(id)
-			if !ok || (changed != nil && !changed[location.String()] && !touches(rule, changed)) {
+			if !ok || (changed != nil && !changed[e.InstanceLocation.String()] && !touches(rule, changed)) {
 				continue
 			}
-			index.add(concrete, keyword)
-			steps = append(steps, Step{InstanceLocation: location, KeywordLocation: keyword, Rule: id})
+			index.add(concrete, e.KeywordLocation)
+			steps = append(steps, Step{InstanceLocation: e.InstanceLocation, KeywordLocation: e.KeywordLocation, Rule: id})
 		}
-	}
-	if forConcrete {
-		root := concrete.structure()
-		object, _ := value.(map[string]any) // Concrete はオブジェクト（Abstract が決める）
-		for _, location := range xPromptLocations(object, document.Content) {
-			add(root, location, PointerOf())
-		}
-	} else {
-		walkInstance(concrete.structure(), value, nil, nil, func(sub map[string]any, _ any, at, keyword []string) {
-			add(sub, PointerOf(at...), PointerOf(keyword...))
-		})
 	}
 	return steps, index.list
-}
-
-// xPromptLocations は、Concrete の中の x-prompt の位置（ルートと、properties ・ items でたどるサブスキーマの …/x-prompt）を返す。
-// x-prompt を書いてよいのはこれらの位置だけ（Abstract が決める）なので、位置は機械的に決まる。
-func xPromptLocations(root map[string]any, content []byte) []Pointer {
-	var subs []Subschema
-	walkStructure(root, content, nil, &subs)
-	var locations []Pointer
-	for _, sub := range subs {
-		if sub.XPrompt != nil {
-			locations = append(locations, PointerOf(append(tokensOf(sub.KeywordLocation), "x-prompt")...))
-		}
-	}
-	return locations
 }
 
 // tokensOf は、JSON Pointer を、エスケープを戻した参照トークンの並びにする。

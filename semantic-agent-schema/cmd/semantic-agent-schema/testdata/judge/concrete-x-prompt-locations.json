@@ -1,8 +1,8 @@
 {
-  "title": "Concrete への意味的な検証では、Abstract のルートの rule を、Concrete の中の x-prompt の位置ごとに step にし、x-prompt は subschemas に1回だけ置き、response の形は JSON Schema の中身で渡す。位置を指した judgments は通る。判定し終えた後は変更点が無いので、ルートを指した judgments は prompt に無い組になる",
+  "title": "Concrete への意味的な検証では、Abstract の rule を、それを置いた x-prompt の骨組みのサブスキーマが当たる Concrete の位置（x-prompt の meaning ・ when ・ rules の1件）ごとに step にし、x-prompt の無いサブスキーマには当てない。判定し終えた後に rules の1件を直すと、判定し直すのはその位置の組だけになる",
   "files": {
-    "schemas/memo.json": {
-      "$fixture": "memo.schema.json"
+    "schemas/schedule.json": {
+      "$fixture": "schedule.schema.json"
     }
   },
   "steps": [
@@ -10,7 +10,7 @@
       "args": [
         "semantic",
         "validate",
-        "schemas/memo.json",
+        "schemas/schedule.json",
         "--schemas",
         "schemas"
       ],
@@ -20,116 +20,206 @@
           "/event": "judgment_requested",
           "/prompt/steps": [
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
-              "rule": "schema-first"
-            },
-            {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/meaning",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/meaning",
               "rule": "meaning-domain"
             },
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
-              "rule": "when-situation"
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "schema-first"
             },
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
               "rule": "rule-judgeable"
             },
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
               "rule": "check-question"
             },
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
               "rule": "why-purpose"
             },
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
               "rule": "examples-match"
             },
             {
-              "instanceLocation": "/properties/title/x-prompt",
-              "keywordLocation": "#",
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
               "rule": "related-fields-exact"
+            },
+            {
+              "instanceLocation": "/properties/tasks/items/properties/name/x-prompt/when",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/when",
+              "rule": "when-situation"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/meaning",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/meaning",
+              "rule": "meaning-domain"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "schema-first"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "rule-judgeable"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "check-question"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "why-purpose"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "examples-match"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/0",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "related-fields-exact"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "schema-first"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "rule-judgeable"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "check-question"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "why-purpose"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "examples-match"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "related-fields-exact"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/when",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/when",
+              "rule": "when-situation"
             }
           ],
-          "/prompt/subschemas/0/keywordLocation": "#",
-          "/prompt/subschemas/0/x-prompt/rules/0/id": "schema-first",
+          "/prompt/subschemas/0/keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/meaning",
+          "/prompt/subschemas/0/x-prompt/rules/0/id": "meaning-domain",
+          "/prompt/subschemas/1/keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+          "/prompt/subschemas/1/x-prompt/rules/0/id": "schema-first",
+          "/prompt/subschemas/2/keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/when",
           "/prompt/response/$id": "urn:semantic-agent-schema:judgment-response:v1",
-          "/prompt/response/required": [
-            "hash",
-            "judgments"
-          ]
+          "/counts/not-judged": 22
         }
       ]
     },
     {
       "args": [
         "validate",
-        "schemas/memo.json",
+        "schemas/schedule.json",
         "--schemas",
         "schemas",
         "--judgments",
-        "{\"hash\": \"{sha256 schemas/memo.json}\", \"judgments\": [{\"rule\": \"schema-first\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"meaning-domain\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"when-situation\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"/properties/title/x-prompt\", \"verdict\": \"verified\", \"reason\": \"r\"}]}"
+        "{\"hash\": \"{sha256 schemas/schedule.json}\", \"judgments\": [{\"rule\": \"meaning-domain\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/meaning\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"schema-first\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"when-situation\", \"instanceLocation\": \"/properties/tasks/items/properties/name/x-prompt/when\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"meaning-domain\", \"instanceLocation\": \"/properties/title/x-prompt/meaning\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"schema-first\", \"instanceLocation\": \"/properties/title/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"/properties/title/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"/properties/title/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"/properties/title/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"/properties/title/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"/properties/title/x-prompt/rules/0\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"schema-first\", \"instanceLocation\": \"/properties/title/x-prompt/rules/1\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"/properties/title/x-prompt/rules/1\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"/properties/title/x-prompt/rules/1\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"/properties/title/x-prompt/rules/1\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"/properties/title/x-prompt/rules/1\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"/properties/title/x-prompt/rules/1\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}, {\"rule\": \"when-situation\", \"instanceLocation\": \"/properties/title/x-prompt/when\", \"verdict\": \"verified\", \"reason\": \"rule の check に照らした\"}]}"
       ],
       "exit": 0,
       "events": [
         {
           "/event": "judged",
-          "/counts/verified": 8,
-          "/judgments/0/instanceLocation": "/properties/title/x-prompt"
+          "/counts/verified": 22
         }
       ]
     },
     {
       "args": [
-        "validate",
-        "schemas/memo.json",
+        "update",
+        "schemas/schedule.json",
         "--schemas",
         "schemas",
-        "--judgments",
-        "{\"hash\": \"{sha256 schemas/memo.json}\", \"judgments\": [{\"rule\": \"schema-first\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"meaning-domain\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"when-situation\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"rule-judgeable\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"check-question\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"why-purpose\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"examples-match\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}, {\"rule\": \"related-fields-exact\", \"instanceLocation\": \"\", \"verdict\": \"verified\", \"reason\": \"r\"}]}"
+        "--patch",
+        "[{\"op\": \"replace\", \"path\": \"/properties/title/x-prompt/rules/1/rule\", \"value\": \"題名に日付と曜日を含めない\"}]",
+        "--range"
       ],
-      "exit": 1,
+      "exit": 0,
       "events": [
         {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
+          "/event": "updated"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "schemas/schedule.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
         {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
-        {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
-        {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
-        {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
-        {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
-        {
-          "/event": "rejected",
-          "/code": "response_mismatch"
-        },
-        {
-          "/event": "rejected",
-          "/code": "response_mismatch"
+          "/event": "judgment_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "schema-first"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "rule-judgeable"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "check-question"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "why-purpose"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "examples-match"
+            },
+            {
+              "instanceLocation": "/properties/title/x-prompt/rules/1",
+              "keywordLocation": "#/$defs/keywords/properties/x-prompt/properties/rules/items",
+              "rule": "related-fields-exact"
+            }
+          ],
+          "/counts/verified": 16,
+          "/counts/not-judged": 6
         }
       ]
     }

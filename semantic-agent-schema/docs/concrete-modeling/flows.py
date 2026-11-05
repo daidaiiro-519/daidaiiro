@@ -63,7 +63,7 @@ build(
         (1, ['5 Records.WithLock', '→ recordstore：ロックの中で', '追記して Documents.Write']),
         ('ai', ['AI：判定の prompt を依頼する', 'semantic validate a.json', '--schemas s/']),
         (1, ['6 Records', '.LastJudged', '→ recordstore：直前の judged']),
-        (0, ['7 domain：変更点を求める', 'JSON Pointer ごとに比べ', 'その rule で prompt を作る']),
+        (0, ['7 domain：変更点と、検証が', '評価した組（Evaluate）から', 'prompt を作る']),
         ('ai', ['AI：rule ごとに判定する', 'validate a.json --judgments J', '--schemas s/']),
         (1, ['8 Validator → schemacheck', 'judgment-response', '.schema.json']),
         (0, ['9 domain：集約検証', 'hash と response の組が', 'prompt と同じ']),

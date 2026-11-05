@@ -92,3 +92,74 @@ func TestSchemasHaveID(t *testing.T) {
 		}
 	}
 }
+
+// Abstract の x-prompt の骨組み（$defs/keywords の properties.x-prompt）は、Concrete に書く x-prompt の値の位置に当たる。
+// 骨組みの位置（meaning ・ when ・ rules.items）は、vocabulary の x-prompt の形の中にあり、rule の id は Abstract の中で重ならない。
+func TestAbstractRulesSitInXPromptShape(t *testing.T) {
+	t.Parallel()
+	type xPrompt struct {
+		Rules []struct {
+			ID string `json:"id"`
+		} `json:"rules"`
+	}
+	type skeleton struct {
+		XPrompt    *xPrompt            `json:"x-prompt"`
+		Properties map[string]skeleton `json:"properties"`
+		Items      *skeleton           `json:"items"`
+	}
+	var abstract struct {
+		XPrompt xPrompt `json:"x-prompt"`
+		Defs    struct {
+			Keywords struct {
+				Properties struct {
+					XPrompt skeleton `json:"x-prompt"`
+				} `json:"properties"`
+			} `json:"keywords"`
+		} `json:"$defs"`
+	}
+	read(t, "abstract.schema.json", &abstract)
+	var vocabulary struct {
+		Defs struct {
+			XPrompt struct {
+				Properties map[string]struct {
+					Items json.RawMessage `json:"items"`
+				} `json:"properties"`
+			} `json:"x-prompt"`
+		} `json:"$defs"`
+	}
+	read(t, "vocabulary.schema.json", &vocabulary)
+	shape := vocabulary.Defs.XPrompt.Properties
+	var ids, places []string
+	collect := func(place string, s skeleton) {
+		if s.XPrompt == nil {
+			t.Errorf("abstract.schema.json の %s に x-prompt が無い", place)
+			return
+		}
+		places = append(places, place)
+		for _, r := range s.XPrompt.Rules {
+			ids = append(ids, r.ID)
+		}
+	}
+	for _, r := range abstract.XPrompt.Rules {
+		ids = append(ids, r.ID)
+	}
+	for name, s := range abstract.Defs.Keywords.Properties.XPrompt.Properties {
+		if _, ok := shape[name]; !ok {
+			t.Errorf("abstract.schema.json の x-prompt の骨組み %s が、vocabulary の x-prompt の properties に無い", name)
+		}
+		if s.Items == nil {
+			collect(name, s)
+			continue
+		}
+		if shape[name].Items == nil {
+			t.Errorf("abstract.schema.json の x-prompt の骨組み %s.items が、vocabulary の x-prompt の形に無い", name)
+		}
+		collect(name+".items", *s.Items)
+	}
+	if want := []string{"meaning", "rules.items", "when"}; !slices.Equal(slices.Sorted(slices.Values(places)), want) {
+		t.Errorf("abstract.schema.json の x-prompt の骨組み = %v, want %v", slices.Sorted(slices.Values(places)), want)
+	}
+	if len(ids) == 0 || len(slices.Compact(slices.Sorted(slices.Values(ids)))) != len(ids) {
+		t.Errorf("abstract.schema.json の rule の id = %v, want 重ならない1件以上", ids)
+	}
+}

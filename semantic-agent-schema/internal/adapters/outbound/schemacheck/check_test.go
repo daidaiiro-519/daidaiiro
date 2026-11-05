@@ -41,9 +41,49 @@ const order = `{
   }
 }`
 
+// plan は、title の x-prompt に rule が2件、tasks の要素の name の x-prompt に rule が1件、start に x-prompt が無い Concrete。
+const plan = `{
+  "$schema": "urn:semantic-agent-schema:abstract:v1",
+  "$id": "urn:example:plan:v1",
+  "type": "object",
+  "required": ["$schema"],
+  "properties": {
+    "$schema": { "const": "urn:example:plan:v1" },
+    "title": {
+      "type": "string",
+      "x-prompt": {
+        "meaning": "計画の題名", "when": "計画を書くとき",
+        "rules": [
+          {"id": "title-subject", "rule": "主語を含める", "why": "一覧で分かる", "check": "主語を含むか", "related_fields": [], "bad": [], "good": []},
+          {"id": "title-no-date", "rule": "日付を含めない", "why": "日付は start が持つ", "check": "日付を含まないか", "related_fields": [], "bad": [], "good": []}
+        ]
+      }
+    },
+    "start": { "type": "string", "format": "date" },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "x-prompt": {
+              "meaning": "作業の名前", "when": "計画を書くとき",
+              "rules": [{"id": "name-short", "rule": "短く書く", "why": "一覧で読める", "check": "短いか", "related_fields": [], "bad": [], "good": []}]
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
 func lookup(_ context.Context, id string) ([]byte, error) {
-	if id == "urn:example:order:v1" {
+	switch id {
+	case "urn:example:order:v1":
 		return []byte(order), nil
+	case "urn:example:plan:v1":
+		return []byte(plan), nil
 	}
 	return nil, domain.Fail(domain.SchemaNotFound, "", id)
 }
@@ -158,5 +198,52 @@ func TestCheckWithUsesUnwrittenConcrete(t *testing.T) {
 	}
 	if err != nil || !slices.Equal(locations, want) {
 		t.Errorf("CheckWith(updated order) = %v, %v, want %v, nil", locations, err, want)
+	}
+}
+
+// x-prompt を持つサブスキーマが当たる位置は、JSON Schema の検証が決める。インスタンスでは Concrete の、Concrete では Abstract の
+// サブスキーマの位置との組になり、x-prompt の無い start には組が無い。
+func TestEvaluateReturnsWhereXPromptSubschemasApply(t *testing.T) {
+	t.Parallel()
+	const xPrompt = "/$defs/keywords/properties/x-prompt/properties"
+	cases := []struct {
+		name, schemaID, content string
+		want                    []string
+	}{
+		{name: "インスタンスでは Concrete のサブスキーマ", schemaID: "urn:example:plan:v1",
+			content: `{"$schema": "urn:example:plan:v1", "title": "t", "start": "2026-01-01", "tasks": [{"name": "a"}, {"name": "b"}]}`,
+			want: []string{
+				"/tasks/0/name ← /properties/tasks/items/properties/name",
+				"/tasks/1/name ← /properties/tasks/items/properties/name",
+				"/title ← /properties/title",
+			}},
+		{name: "Concrete では Abstract のサブスキーマ", schemaID: publishedlanguage.AbstractID, content: plan,
+			want: []string{
+				" ← ",
+				"/properties/tasks/items/properties/name/x-prompt/meaning ← " + xPrompt + "/meaning",
+				"/properties/tasks/items/properties/name/x-prompt/rules/0 ← " + xPrompt + "/rules/items",
+				"/properties/tasks/items/properties/name/x-prompt/when ← " + xPrompt + "/when",
+				"/properties/title/x-prompt/meaning ← " + xPrompt + "/meaning",
+				"/properties/title/x-prompt/rules/0 ← " + xPrompt + "/rules/items",
+				"/properties/title/x-prompt/rules/1 ← " + xPrompt + "/rules/items",
+				"/properties/title/x-prompt/when ← " + xPrompt + "/when",
+			}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			violations, evaluations, err := schemacheck.New(lookup).Evaluate(t.Context(), c.schemaID, []byte(c.content))
+			if err != nil || len(violations) != 0 {
+				t.Errorf("Evaluate(%s) = %v, %v, want no violation, nil", c.name, violations, err)
+			}
+			var got []string
+			for _, e := range evaluations {
+				got = append(got, e.InstanceLocation.String()+" ← "+e.KeywordLocation.String())
+			}
+			slices.Sort(got)
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Errorf("Evaluate(%s) mismatch (-want +got):\n%s", c.name, diff)
+			}
+		})
 	}
 }

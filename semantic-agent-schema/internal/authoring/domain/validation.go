@@ -19,7 +19,9 @@ type ValidationInput struct {
 	Convention []Violation // 作法の検査の違反
 	Judged     []Judgment  // AI が判定した judgments。意味的な検証でなければ nil
 	Previous   *Previous   // 前回の検証。無ければ nil。引き継ぐ AI の judgment の出どころ
-	// ForConcrete は、JSON ドキュメントが Abstract に従う Concrete か。判定する組を、Concrete の x-prompt の位置ごとに作る
+	// Evaluations は、機械的な検証で、x-prompt を持つサブスキーマが当たったインスタンスの位置の組。判定する組はここから作る
+	Evaluations []Evaluation
+	// ForConcrete は、JSON ドキュメントが Abstract に従う Concrete か。Concrete を直す next に --range を足す
 	ForConcrete bool
 }
 
@@ -44,7 +46,7 @@ func NewValidation(in ValidationInput) *Validation {
 
 // notJudged は、判定の prompt と同じ組を、not-judged の judgment にして返す。
 func notJudged(in ValidationInput) []Judgment {
-	steps, _ := judgmentSteps(in.Document, in.Value, in.Concrete, Changed(in.Previous, in.Value, in.Concrete), in.ForConcrete)
+	steps, _ := judgmentSteps(in.Concrete, in.Evaluations, Changed(in.Previous, in.Value, in.Concrete))
 	judgments := make([]Judgment, 0, len(steps))
 	for _, step := range steps {
 		rule, _ := in.Concrete.Rule(step.Rule) // step の rule は Concrete から引いたもの

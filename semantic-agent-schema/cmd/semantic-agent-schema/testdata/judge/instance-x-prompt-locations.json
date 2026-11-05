@@ -1,0 +1,63 @@
+{
+  "title": "インスタンスへの意味的な検証では、Concrete の rule を、それを置いたサブスキーマが当たるインスタンスの位置（配列は要素ごと）にだけ step にし、Abstract の rule は当てない",
+  "files": {
+    "schemas/schedule.json": {
+      "$fixture": "schedule.schema.json"
+    },
+    "schedule.json": {
+      "$schema": "urn:example:schedule:v1",
+      "title": "設計を見直す",
+      "start": "2026-02-01",
+      "tasks": [
+        {
+          "name": "図を描く"
+        },
+        {
+          "name": "表を直す"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "args": [
+        "semantic",
+        "validate",
+        "schedule.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "judgment_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/tasks/0/name",
+              "keywordLocation": "#/properties/tasks/items/properties/name",
+              "rule": "task-verb"
+            },
+            {
+              "instanceLocation": "/tasks/1/name",
+              "keywordLocation": "#/properties/tasks/items/properties/name",
+              "rule": "task-verb"
+            },
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title",
+              "rule": "title-subject"
+            },
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title",
+              "rule": "title-no-date"
+            }
+          ],
+          "/prompt/subschemas/0/keywordLocation": "#/properties/tasks/items/properties/name",
+          "/prompt/subschemas/1/keywordLocation": "#/properties/title",
+          "/counts/not-judged": 4
+        }
+      ]
+    }
+  ]
+}

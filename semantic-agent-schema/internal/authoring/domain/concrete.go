@@ -22,6 +22,8 @@ type Concrete interface {
 	Subschemas() []Subschema
 	// structure は、Concrete を読んだルートスキーマを返す。
 	structure() map[string]any
+	// ruleLocation は、id の rule を置いたサブスキーマの keyword location を返す。無ければ false を返す。
+	ruleLocation(id string) (Pointer, bool)
 }
 
 // Subschema は、Concrete の1つのサブスキーマの、AI が読む部分。位置は、ルートスキーマからの keyword location で持つ。
@@ -38,6 +40,7 @@ type schema struct {
 	content []byte
 	hash    Hash
 	rules   map[string]Rule
+	ruleAt  map[string]Pointer
 	subs    []Subschema
 	root    map[string]any
 }
@@ -49,6 +52,10 @@ func (s schema) Hash() Hash      { return s.hash }
 func (s schema) Rule(id string) (Rule, bool) {
 	r, ok := s.rules[id]
 	return r, ok
+}
+func (s schema) ruleLocation(id string) (Pointer, bool) {
+	p, ok := s.ruleAt[id]
+	return p, ok
 }
 func (s schema) Subschemas() []Subschema   { return s.subs }
 func (s schema) structure() map[string]any { return s.root }
@@ -71,7 +78,8 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 		return nil, Fail(SchemaViolation, "", "Concrete に $id が無い")
 	}
 	rules := map[string]Rule{}
-	walkSubschemas(root, nil, func(subschema map[string]any, _ []string) {
+	ruleAt := map[string]Pointer{}
+	walkSubschemas(root, nil, func(subschema map[string]any, at []string) {
 		for _, item := range promptRules(subschema) {
 			rule, _ := item.(map[string]any) // 形は Abstract が決める。違う形の rule は飛ばす
 			ruleID, _ := rule["id"].(string)
@@ -89,12 +97,13 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 			r, err := NewRule(ruleID, related)
 			if err == nil {
 				rules[ruleID] = r
+				ruleAt[ruleID] = PointerOf(at...)
 			}
 		}
 	})
 	var subs []Subschema
 	walkStructure(root, content, nil, &subs)
-	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, subs: subs, root: root}, nil
+	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, ruleAt: ruleAt, subs: subs, root: root}, nil
 }
 
 // walkStructure は、ドメインサービス「サブスキーマを引く」の、Concrete の側。ルートスキーマから JSON Schema の構造
@@ -130,14 +139,56 @@ func member(raw json.RawMessage, name string) json.RawMessage {
 	return object[name]
 }
 
-// subschemaAt は、keyword location のサブスキーマを返す。無ければ keyword location だけを持つ Subschema。
+// subschemaAt は、keyword location のサブスキーマの、AI が読む部分を返す。x-prompt は書いたままのバイト列から取り出す。
+// 無ければ keyword location だけを持つ Subschema。
 func subschemaAt(c Concrete, keyword Pointer) Subschema {
-	for _, sub := range c.Subschemas() {
-		if sub.KeywordLocation.String() == keyword.String() {
-			return sub
+	tokens := tokensOf(keyword)
+	sub := Subschema{KeywordLocation: keyword}
+	object := schemaAt(c.structure(), tokens)
+	sub.Title, _ = object["title"].(string)             // 無ければ空
+	sub.Description, _ = object["description"].(string) // 無ければ空
+	if _, ok := object["x-prompt"].(map[string]any); ok {
+		sub.XPrompt = member(rawAt(c.Content(), tokens), "x-prompt")
+	}
+	return sub
+}
+
+// schemaAt は、ルートスキーマから参照トークンの並びでたどったサブスキーマを返す。無ければ nil。
+func schemaAt(root map[string]any, tokens []string) map[string]any {
+	var value any = root
+	for _, token := range tokens {
+		switch v := value.(type) {
+		case map[string]any:
+			value = v[token]
+		case []any:
+			i, err := strconv.Atoi(token)
+			if err != nil || i < 0 || i >= len(v) {
+				return nil
+			}
+			value = v[i]
+		default:
+			return nil
 		}
 	}
-	return Subschema{KeywordLocation: keyword}
+	object, _ := value.(map[string]any) // サブスキーマでなければ nil
+	return object
+}
+
+// rawAt は、書いたままの JSON から、参照トークンの並びでたどった値を書いたままのバイト列で返す。無ければ nil。
+func rawAt(raw json.RawMessage, tokens []string) json.RawMessage {
+	for _, token := range tokens {
+		var array []json.RawMessage
+		if json.Unmarshal(raw, &array) != nil {
+			raw = member(raw, token)
+			continue
+		}
+		i, err := strconv.Atoi(token)
+		if err != nil || i < 0 || i >= len(array) {
+			return nil
+		}
+		raw = array[i]
+	}
+	return raw
 }
 
 func sortedNames(object map[string]any) []string {

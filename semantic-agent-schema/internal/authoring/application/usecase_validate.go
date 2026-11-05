@@ -58,19 +58,22 @@ type checked struct {
 	concrete    domain.Concrete
 	violations  []domain.Violation
 	convention  []domain.Violation
-	forConcrete bool // JSON ドキュメントが Abstract に従う Concrete か
+	evaluations []domain.Evaluation // x-prompt を持つサブスキーマが当たったインスタンスの位置の組
+	forConcrete bool                // JSON ドキュメントが Abstract に従う Concrete か
 }
 
 // input は、検証を作る入力を返す。previous は、引き継ぐ AI の judgment の出どころ（無ければ nil）。
 func (c checked) input(previous *domain.Previous) domain.ValidationInput {
 	return domain.ValidationInput{
 		Document: c.document, Value: c.value, Concrete: c.concrete,
-		Violations: c.violations, Convention: c.convention, Previous: previous, ForConcrete: c.forConcrete,
+		Violations: c.violations, Convention: c.convention, Previous: previous,
+		Evaluations: c.evaluations, ForConcrete: c.forConcrete,
 	}
 }
 
 // mechanical は、JSON ドキュメントを読み、機械的な検証をする。インスタンスを Concrete で、Concrete を Abstract で
 // 検証し（JSON Schema）、JSON ドキュメントが Concrete なら作法を確かめる（ドメインモデル）。違反は error にせず、結果に持つ。
+// x-prompt を持つサブスキーマがインスタンスのどの位置に当たるかも、同じ検証で JSON Schema の実装から受け取る。
 func mechanical(ctx context.Context, documents Documents, schemas Schemas, validator Validator, abstractID string, path domain.Path) (checked, error) {
 	document, err := documents.Read(ctx, path)
 	if err != nil {
@@ -97,7 +100,7 @@ func mechanical(ctx context.Context, documents Documents, schemas Schemas, valid
 			return checked{}, err
 		}
 	}
-	violations, err := validator.Check(ctx, schemaID, document.Content)
+	violations, evaluations, err := validator.Evaluate(ctx, schemaID, document.Content)
 	if err != nil {
 		return checked{}, err
 	}
@@ -107,7 +110,7 @@ func mechanical(ctx context.Context, documents Documents, schemas Schemas, valid
 	}
 	return checked{
 		document: document, value: value, concrete: concrete, violations: violations, convention: convention,
-		forConcrete: schemaID == abstractID,
+		evaluations: evaluations, forConcrete: schemaID == abstractID,
 	}, nil
 }
 

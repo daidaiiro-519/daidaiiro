@@ -1,0 +1,94 @@
+{
+  "$schema": "urn:semantic-agent-schema:abstract:v1",
+  "$id": "urn:example:schedule:v1",
+  "title": "予定",
+  "x-view": "schedule",
+  "type": "object",
+  "required": [
+    "$schema",
+    "title"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "urn:example:schedule:v1"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "title": "題名",
+      "x-prompt": {
+        "meaning": "予定を一覧で見分けるための、目的を表す短い名前",
+        "when": "予定を書くとき",
+        "rules": [
+          {
+            "id": "title-subject",
+            "rule": "題名に、予定で決めたことの主語を含める",
+            "why": "一覧で開かずに中身が分かるようにするため",
+            "check": "題名に主語が含まれているか",
+            "related_fields": [],
+            "bad": [],
+            "good": [
+              {
+                "value": "設計を見直す"
+              }
+            ]
+          },
+          {
+            "id": "title-no-date",
+            "rule": "題名に日付を含めない",
+            "why": "日付は start が持ち、題名と食い違わないようにするため",
+            "check": "題名に日付が含まれていないか",
+            "related_fields": [],
+            "bad": [],
+            "good": [
+              {
+                "value": "設計を見直す"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "start": {
+      "type": "string",
+      "format": "date",
+      "title": "始まりの日"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "作業の名前",
+            "x-prompt": {
+              "meaning": "予定の中の1つの作業を見分ける名前",
+              "when": "予定に作業を足すとき",
+              "rules": [
+                {
+                  "id": "task-verb",
+                  "rule": "作業の名前を、動詞で終える",
+                  "why": "何をするかが名前だけで分かるようにするため",
+                  "check": "作業の名前が動詞で終わっているか",
+                  "related_fields": [],
+                  "bad": [],
+                  "good": [
+                    {
+                      "value": "図を描く"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

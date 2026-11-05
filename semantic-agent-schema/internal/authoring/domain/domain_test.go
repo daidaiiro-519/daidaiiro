@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -167,6 +168,26 @@ func judgment(t *testing.T, rule, location, verdict, by string) domain.Judgment 
 		t.Fatalf("NewJudgment(%s, %s, %s, %s) = %v", rule, location, verdict, by, err)
 	}
 	return j
+}
+
+// evaluated は、機械的な検証が返す組（x-prompt を持つサブスキーマの keyword location と、当たった instance location）を作る。
+// 組は「keyword location instance location」の文字列で書く。
+func evaluated(t *testing.T, pairs ...string) []domain.Evaluation {
+	t.Helper()
+	var evaluations []domain.Evaluation
+	for _, pair := range pairs {
+		keyword, instance, _ := strings.Cut(pair, " ")
+		k, err := domain.NewPointer(keyword)
+		if err != nil {
+			t.Fatalf("NewPointer(%s) = %v", keyword, err)
+		}
+		i, err := domain.NewPointer(instance)
+		if err != nil {
+			t.Fatalf("NewPointer(%s) = %v", instance, err)
+		}
+		evaluations = append(evaluations, domain.Evaluation{KeywordLocation: k, InstanceLocation: i})
+	}
+	return evaluations
 }
 
 func concrete(t *testing.T, content string) domain.Concrete {
@@ -493,6 +514,36 @@ func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 	}
 }
 
+// 直す対象が AI の判定の違反なら、step の keyword location は、その rule を置いたサブスキーマ（properties ・ items で
+// たどれない $defs の中でも）にする。
+func TestNewUpdatePromptPointsViolationsAtRuleSubschema(t *testing.T) {
+	t.Parallel()
+	c := concrete(t, `{"$id": "urn:example:meta:v1", "$defs": {"keywords": {"properties": {"x-prompt": {"properties": {
+		"meaning": {"x-prompt": {"meaning": "m", "rules": [{"id": "meaning-domain"}]}}}}}}}}`)
+	content := []byte(`{"properties": {"title": {"x-prompt": {"meaning": "題名"}}}}`)
+	value, err := domain.ParseJSON(content)
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path, err := domain.NewPath("schemas/memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
+	violated := judgment(t, "meaning-domain", "/properties/title/x-prompt/meaning", "violated", "ai")
+	p := domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: c, Violations: []domain.Judgment{violated}})
+	var got []string
+	for _, step := range p.Steps() {
+		got = append(got, step.InstanceLocation.String()+" "+step.KeywordLocation.String())
+	}
+	if want := []string{"/properties/title/x-prompt/meaning /$defs/keywords/properties/x-prompt/properties/meaning"}; !slices.Equal(got, want) {
+		t.Errorf("NewUpdatePrompt(違反あり).Steps() = %q, want %q", got, want)
+	}
+	if subs := p.Subschemas(); len(subs) != 1 || subs[0].XPrompt == nil {
+		t.Errorf("NewUpdatePrompt(違反あり).Subschemas() = %v, want rule を置いたサブスキーマの x-prompt 1つ", subs)
+	}
+}
+
 func TestPromptKeepsXPromptInWrittenOrder(t *testing.T) {
 	t.Parallel()
 	xPrompt := `{"meaning": "題名", "rules": [{"id": "title-short", "rule": "短く書く", "check": "短いか", "bad": [], "good": []}]}`
@@ -510,7 +561,7 @@ func TestPromptKeepsXPromptInWrittenOrder(t *testing.T) {
 	prompts := map[string]domain.Prompt{
 		"作成": domain.NewCreatePrompt(path, c),
 		"更新": domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: c}),
-		"判定": domain.NewJudgmentPrompt(document, value, c, nil, "urn:judgment", false),
+		"判定": domain.NewJudgmentPrompt(document, c, evaluated(t, "/properties/title /title"), nil, "urn:judgment"),
 	}
 	for name, p := range prompts {
 		steps := p.Subschemas()
@@ -542,7 +593,8 @@ func TestValidationCountsPairsToJudgeAsNotJudged(t *testing.T) {
 	}
 	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
 	c := concrete(t, plan)
-	got := domain.NewValidation(domain.ValidationInput{Document: document, Value: value, Concrete: c}).Counts()
+	evaluations := evaluated(t, "/properties/title /title", "/properties/end /end")
+	got := domain.NewValidation(domain.ValidationInput{Document: document, Value: value, Concrete: c, Evaluations: evaluations}).Counts()
 	if want := (domain.Counts{NotJudged: 2}); got != want {
 		t.Errorf("NewValidation(前回の検証なし).Counts() = %+v, want %+v", got, want)
 	}
@@ -551,7 +603,7 @@ func TestValidationCountsPairsToJudgeAsNotJudged(t *testing.T) {
 		t.Fatalf("NewJudgment = %v", err)
 	}
 	got = domain.NewValidation(domain.ValidationInput{
-		Document: document, Value: value, Concrete: c, Judged: []domain.Judgment{judged},
+		Document: document, Value: value, Concrete: c, Judged: []domain.Judgment{judged}, Evaluations: evaluations,
 	}).Counts()
 	if want := (domain.Counts{Verified: 1}); got != want {
 		t.Errorf("NewValidation(判定を受け取った).Counts() = %+v, want %+v", got, want)
@@ -565,12 +617,11 @@ const plan = `{"$id": "urn:example:plan:v1", "properties": {
 	"items": {"items": {"x-prompt": {"rules": [{"id": "item-name"}]}}}}}`
 
 // デシジョンテーブル：変更点（すべて ・ 無し ・ instance location ・ related_fields ・ 配列の要素）× rule。
+// 組は、JSON Schema の実装が集める順に頼らず、instance location の順に並ぶ。x-prompt の無い start には rule が当たらない。
 func TestNewJudgmentPromptSelectsRulesByChanges(t *testing.T) {
 	t.Parallel()
-	value, err := domain.ParseJSON([]byte(`{"title": "t", "start": "s", "end": "e", "items": [{}, {}]}`))
-	if err != nil {
-		t.Fatalf("ParseJSON = %v", err)
-	}
+	evaluations := evaluated(t, "/properties/items/items /items/1", "/properties/title /title",
+		"/properties/items/items /items/0", "/properties/end /end", "/properties/title /title")
 	path, err := domain.NewPath("plan.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
@@ -592,7 +643,7 @@ func TestNewJudgmentPromptSelectsRulesByChanges(t *testing.T) {
 			t.Parallel()
 			var got []string
 			document := domain.Document{Path: path, Content: []byte("{}"), Hash: domain.HashOf([]byte("{}"))}
-			for _, step := range domain.NewJudgmentPrompt(document, value, concrete(t, plan), c.changed, "urn:r", false).Steps() {
+			for _, step := range domain.NewJudgmentPrompt(document, concrete(t, plan), evaluations, c.changed, "urn:r").Steps() {
 				got = append(got, step.InstanceLocation.String()+" "+step.Rule)
 			}
 			if !slices.Equal(got, c.want) {
@@ -604,16 +655,13 @@ func TestNewJudgmentPromptSelectsRulesByChanges(t *testing.T) {
 
 func TestMatchResponseRejectsPairsOtherThanPrompt(t *testing.T) {
 	t.Parallel()
-	value, err := domain.ParseJSON([]byte(`{"title": "t", "end": "e"}`))
-	if err != nil {
-		t.Fatalf("ParseJSON = %v", err)
-	}
 	path, err := domain.NewPath("plan.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
 	document := domain.Document{Path: path, Content: []byte("{}"), Hash: domain.HashOf([]byte("{}"))}
-	prompt := domain.NewJudgmentPrompt(document, value, concrete(t, plan), nil, "urn:r", false)
+	evaluations := evaluated(t, "/properties/title /title", "/properties/end /end")
+	prompt := domain.NewJudgmentPrompt(document, concrete(t, plan), evaluations, nil, "urn:r")
 	end := judgment(t, "end-after-start", "/end", "verified", "ai")
 	title := judgment(t, "title-short", "/title", "verified", "ai")
 	other := judgment(t, "title-short", "/end", "verified", "ai")

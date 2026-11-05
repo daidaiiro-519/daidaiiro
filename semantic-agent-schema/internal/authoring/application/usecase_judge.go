@@ -36,7 +36,7 @@ func (u Judge) Prompt(ctx context.Context, path domain.Path, all bool) (Judgment
 	if err != nil {
 		return JudgmentRequest{}, at(path, err)
 	}
-	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.forConcrete)
+	prompt := domain.NewJudgmentPrompt(c.document, c.concrete, c.evaluations, changed(previous, c, all), u.ResponseID)
 	validation := domain.NewValidation(c.input(previous))
 	if len(prompt.Steps()) > 0 {
 		return JudgmentRequest{Prompt: prompt, Validation: validation}, nil
@@ -86,7 +86,7 @@ func (u Judge) judged(ctx context.Context, path domain.Path, response []byte, al
 	if err := domain.MatchHash(path, hash, c.document.Hash); err != nil {
 		return nil, err
 	}
-	prompt := domain.NewJudgmentPrompt(c.document, c.value, c.concrete, changed(previous, c, all), u.ResponseID, c.forConcrete)
+	prompt := domain.NewJudgmentPrompt(c.document, c.concrete, c.evaluations, changed(previous, c, all), u.ResponseID)
 	if err := domain.MatchResponse(path, prompt, judgments); err != nil {
 		return nil, err
 	}

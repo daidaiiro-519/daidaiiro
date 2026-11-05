@@ -23,6 +23,9 @@ type Schemas interface {
 // Validator は、ポート。JSON をスキーマで機械的に検証し、JSON Schema の違反を返す。アダプター schemacheck が満たす。
 type Validator interface {
 	Check(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, error)
+	// Evaluate は、Check と同じく検証し、x-prompt を持つサブスキーマが当たったインスタンスの位置の組も返す。
+	// 組の keyword location は、schemaID のスキーマの中の位置。
+	Evaluate(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, []domain.Evaluation, error)
 	// CheckWith は、まだ書いていないスキーマ（更新した後の Concrete）のバイト列で検証する。
 	CheckWith(ctx context.Context, schema, content []byte) ([]domain.Violation, error)
 }
