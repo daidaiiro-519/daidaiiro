@@ -59,7 +59,7 @@ build(
         (0, ['2 domain：サブスキーマを引き', 'prompt を作る。next に', '--schemas を入れる']),
         ('ai', ['AI：prompt に従い JSON Patch を作る', 'update a.json --patch P', '--schemas s/']),
         (1, ['3 Patcher → patching', 'Validator → schemacheck']),
-        (0, ['4 domain：集約 JSON ドキュメント', 'x-decided-by ・ 読んだハッシュ', 'change を出す']),
+        (0, ['4 domain：集約 JSON ドキュメント', '読んだハッシュ', 'change を出す']),
         (1, ['5 Records.WithLock', '→ recordstore：ロックの中で', '追記して Documents.Write']),
         ('ai', ['AI：判定の prompt を依頼する', 'semantic validate a.json', '--schemas s/']),
         (1, ['6 Records', '.LastJudged', '→ recordstore：直前の judged']),

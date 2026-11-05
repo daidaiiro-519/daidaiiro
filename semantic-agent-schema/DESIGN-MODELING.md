@@ -162,7 +162,7 @@ driving 側を左、driven 側を右に置く（Cockburn L2001–2004）。ポ�
 | 1 | 本質 W1 ・ E1 ・ E5 ・ R1–R5 ・ W5 ・ W10 を引いた | 抽象「ユースケース」の検証 |
 | 2 | 目的 ・ 利害関係者 ・ 成功時保証 ・ 最低保証 ・ 5つのステップと、拡張（違反がある ・ Concrete が schemas に無い ・ 範囲の path のファイルが無い ・ Git のリポジトリの外で操作の記録に追記できない）を書いた | 抽象「ユースケース」の検証 |
 | 3 | 引数の検証と Concrete での検証は機械的（JSON Schema）、作法の確認と変更点の引き継ぎは機械的（ドメインモデル）、操作の記録への追記は処理 | 抽象「ユースケース」の検証 |
-| 4 | `validate` の引数の形と path の pattern、拡張項目の閉じた一覧（`propertyNames`）、`x-view` はルートだけ（`"x-view": false`）、`x-decided-by` は `const` の `human`、ログイベント validated ・ rejected の形 | `arguments.schema.json` ・ `vocabulary.schema.json` ・ `dialect.schema.json` ・ `abstract.schema.json` ・ `event.schema.json` |
+| 4 | `validate` の引数の形と path の pattern、拡張項目の閉じた一覧（`propertyNames`）、`x-view` はルートだけ（`"x-view": false`）、ログイベント validated ・ rejected の形 | `arguments.schema.json` ・ `vocabulary.schema.json` ・ `dialect.schema.json` ・ `abstract.schema.json` ・ `event.schema.json` |
 | 5 | 値オブジェクト path ・ 主アクター ・ ハッシュ ・ judgment、ドメインサービス `Convention`（作法）・ `ChangedLocations` ・ `Inherited`（変更点）、集約 検証 `Validation`（counts） | `internal/authoring/domain/` |
 | 6 | 4つのポートの5つのメソッド：`Documents.Read` ・ `Schemas.Lookup` ・ `Validator.Check` ・ `Records.LastValidation` ・ `Records.AppendValidation`。`Patcher` ・ `Renderer` ・ `Documents.Write` ・ `Records.WithLock` は作っていない | `internal/authoring/application/ports.go` |
 | 7 | システムテスト 14場面。domain のコンポーネントテスト（path ・ 主アクター ・ 作法 ・ 変更点 ・ counts）。`schemacheck` ・ `recordstore` ・ `publishedlanguage` の試験 | `cmd/semantic-agent-schema/testdata/` ・ `*_test.go` |

@@ -16,7 +16,6 @@ const (
 	SchemaViolation          code = "schema_violation"
 	InvalidJSON              code = "invalid_json"
 	ConventionViolation      code = "convention_violation"
-	DecidedByHuman           code = "decided_by_human"
 	PathOutside              code = "path_outside"
 	FileExists               code = "file_exists"
 	HashMismatch             code = "hash_mismatch"

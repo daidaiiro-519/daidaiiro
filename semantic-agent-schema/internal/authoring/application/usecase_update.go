@@ -10,7 +10,7 @@ import (
 // Update は、ユースケース「更新」。JSON ドキュメント（インスタンスか Concrete）を JSON Patch で書き換える。
 // 各ステップの担保：引数は機械的な検証（JSON Schema）、更新の prompt は意味的な検証（ドメインモデル）、
 // JSON Patch の作成は AI、JSON Patch の形と、適用した結果の Concrete での検証と、Concrete を更新するときの範囲のインスタンスの
-// 検証は機械的な検証（JSON Schema）、x-decided-by: human の値と楽観ロックのハッシュと作法は機械的な検証（ドメインモデル）、
+// 検証は機械的な検証（JSON Schema）、楽観ロックのハッシュと作法は機械的な検証（ドメインモデル）、
 // 追記と書き込みは処理（アダプター）。ハッシュの確認 ・ 追記 ・ 書き込みは、この順にロックの中で行う。
 type Update struct {
 	Documents  Documents

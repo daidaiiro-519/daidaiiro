@@ -307,9 +307,9 @@ func TestNewJudgmentRejectsValuesOutsideClosedLists(t *testing.T) {
 const memo = `{"$id": "urn:example:memo:v1", "title": "メモ", "properties": {
 	"$schema": {"const": "urn:example:memo:v1"},
 	"title": {"type": "string", "title": "題名", "x-prompt": {"meaning": "題名", "when": "書くとき", "rules": []}},
-	"items": {"type": "array", "items": {"title": "品", "properties": {"checked": {"type": "boolean", "default": false, "x-decided-by": "human"}}}},
-	"status": {"enum": ["draft", "approved"], "default": "draft", "x-decided-by": "human"},
-	"owner": {"type": "string", "x-decided-by": "human"}}}`
+	"items": {"type": "array", "items": {"title": "品", "properties": {"checked": {"type": "boolean", "default": false}}}},
+	"status": {"enum": ["draft", "approved"], "default": "draft"},
+	"owner": {"type": "string"}}}`
 
 func TestNewCreatePromptMakesStepsFromProperties(t *testing.T) {
 	t.Parallel()
@@ -328,48 +328,6 @@ func TestNewCreatePromptMakesStepsFromProperties(t *testing.T) {
 	}
 	if p.ResponseSchemaID() != "urn:example:memo:v1" || p.Path().String() != "memo.json" {
 		t.Errorf("NewCreatePrompt(memo) = %s, %s, want urn:example:memo:v1, memo.json", p.ResponseSchemaID(), p.Path())
-	}
-}
-
-// デシジョンテーブル：x-decided-by: human の instance location の値（無い ・ default ・ default と違う ・ default が無いのに有る）。
-func TestNewCreationDecidedByHuman(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name          string
-		value         string
-		wantLocations []string
-	}{
-		{name: "値を書かない", value: `{"title": "t"}`},
-		{name: "default のまま書く", value: `{"status": "draft"}`},
-		{name: "default と違う値を書く", value: `{"status": "approved"}`, wantLocations: []string{"/status"}},
-		{name: "default の無い値を書く", value: `{"owner": "x", "status": "approved"}`, wantLocations: []string{"/owner", "/status"}},
-		{name: "配列の要素の値を default から変える", value: `{"items": [{"checked": false}, {}, {"checked": true}]}`, wantLocations: []string{"/items/2/checked"}},
-	}
-	path, err := domain.NewPath("memo.json")
-	if err != nil {
-		t.Fatalf("NewPath = %v", err)
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			value, err := domain.ParseJSON([]byte(c.value))
-			if err != nil {
-				t.Fatalf("ParseJSON(%s) = %v", c.value, err)
-			}
-			_, err = domain.NewCreation(domain.WriteInput{
-				Path: path, Content: []byte(c.value), Value: value, Concrete: concrete(t, memo),
-			})
-			var got []string
-			for _, e := range unjoin(err) {
-				var f *domain.Failure
-				if errors.As(e, &f) && f.Code == domain.DecidedByHuman {
-					got = append(got, f.InstanceLocation)
-				}
-			}
-			if !slices.Equal(got, c.wantLocations) {
-				t.Errorf("NewCreation(%s) decided_by_human = %v, want %v", c.value, got, c.wantLocations)
-			}
-		})
 	}
 }
 
@@ -411,57 +369,6 @@ func TestNewCreationAddsEveryInstanceLocation(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("NewCreation(%s).Changes() mismatch (-want +got):\n%s", content, diff)
-	}
-}
-
-// デシジョンテーブル：x-decided-by: human の値の前後（変えない ・ 変える ・ 足す ・ 消す ・ 配列の要素で変える）。
-func TestNewUpdateDecidedByHuman(t *testing.T) {
-	t.Parallel()
-	before := `{"title": "t", "status": "draft", "items": [{"checked": false}]}`
-	cases := []struct {
-		name          string
-		after         string
-		wantLocations []string
-	}{
-		{name: "x-decided-by: human の値を変えない", after: `{"title": "u", "status": "draft", "items": [{"checked": false}]}`},
-		{name: "値を変える", after: `{"title": "t", "status": "approved", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
-		{name: "値を足す", after: `{"title": "t", "status": "draft", "owner": "x", "items": [{"checked": false}]}`, wantLocations: []string{"/owner"}},
-		{name: "値を消す", after: `{"title": "t", "items": [{"checked": false}]}`, wantLocations: []string{"/status"}},
-		{name: "配列の要素の値を変える", after: `{"title": "t", "status": "draft", "items": [{"checked": true}]}`, wantLocations: []string{"/items/0/checked"}},
-	}
-	path, err := domain.NewPath("memo.json")
-	if err != nil {
-		t.Fatalf("NewPath = %v", err)
-	}
-	beforeValue, err := domain.ParseJSON([]byte(before))
-	if err != nil {
-		t.Fatalf("ParseJSON(%s) = %v", before, err)
-	}
-	document := domain.Document{Path: path, Content: []byte(before), Hash: domain.HashOf([]byte(before))}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			value, err := domain.ParseJSON([]byte(c.after))
-			if err != nil {
-				t.Fatalf("ParseJSON(%s) = %v", c.after, err)
-			}
-			w, err := domain.NewUpdate(domain.WriteInput{
-				Path: path, Content: []byte(c.after), Value: value, Concrete: concrete(t, memo),
-			}, document, beforeValue)
-			var got []string
-			for _, e := range unjoin(err) {
-				var f *domain.Failure
-				if errors.As(e, &f) && f.Code == domain.DecidedByHuman {
-					got = append(got, f.InstanceLocation)
-				}
-			}
-			if !slices.Equal(got, c.wantLocations) {
-				t.Errorf("NewUpdate(%s) decided_by_human = %v, want %v", c.after, got, c.wantLocations)
-			}
-			if err == nil && w.BeforeHash().String() != document.Hash.String() {
-				t.Errorf("NewUpdate(%s).BeforeHash() = %s, want %s", c.after, w.BeforeHash(), document.Hash)
-			}
-		})
 	}
 }
 

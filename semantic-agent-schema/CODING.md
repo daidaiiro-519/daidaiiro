@@ -256,7 +256,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
-| K170 | `x-prompt` と `x-decided-by` は、Concrete のルートと、`properties` ・ `items` でたどるサブスキーマにだけ書く。`allOf` ・ `anyOf` ・ `oneOf` ・ `if` ・ `then` ・ `else` ・ `not` ・ `additionalProperties` ・ `patternProperties` などの中（その下も）は、Abstract（`$defs/noPrompt`）が JSON Schema で拒む。それらの中の rule は、当たるインスタンスの位置が値によって変わり、決定論的に決まらないため | このプロジェクト | 利用者の指示（2026-11-05） | |
+| K170 | `x-prompt` は、Concrete のルートと、`properties` ・ `items` でたどるサブスキーマにだけ書く。`allOf` ・ `anyOf` ・ `oneOf` ・ `if` ・ `then` ・ `else` ・ `not` ・ `additionalProperties` ・ `patternProperties` などの中（その下も）は、Abstract（`$defs/noPrompt`）が JSON Schema で拒む。それらの中の rule は、当たるインスタンスの位置が値によって変わり、決定論的に決まらないため | このプロジェクト | 利用者の指示（2026-11-05） | |
 
 ## 3 テスト規約
 
@@ -342,7 +342,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 
 | ID | こうする | 種類 | 出どころ | 原文の引用 |
 |---|---|---|---|---|
-| T60 | domain はコンポーネントテストにする。変更点の求め方と x-decided-by: human の決まりはデシジョンテーブル、値オブジェクトと作法の検査は同値分割法で場合を作る | このプロジェクト | 具体のページ 9節「レベル」 | |
+| T60 | domain はコンポーネントテストにする。変更点の求め方はデシジョンテーブル、値オブジェクトと作法の検査は同値分割法で場合を作る | このプロジェクト | 具体のページ 9節「レベル」 | |
 | T61 | application とアダプターは、コンポーネント統合テストにする | このプロジェクト | 具体のページ 9節「レベル」 | |
 | T62 | システムテストは、UC の主成功シナリオか拡張1つを1場面にする | このプロジェクト | 具体のページ 9節「レベル」 | |
 | T63 | 場面は、`cmd/semantic-agent-schema/testdata/` の JSON のファイル1つに1場面で書く | このプロジェクト | 具体のページ 9節「レベル」 ・ T03 | |

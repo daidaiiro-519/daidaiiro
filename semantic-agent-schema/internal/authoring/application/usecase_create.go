@@ -9,7 +9,7 @@ import (
 
 // Create は、ユースケース「作成」。Concrete に従うインスタンス（または Abstract に従う Concrete）を、渡した path に作る。
 // 各ステップの担保：引数は機械的な検証（JSON Schema）、作成の prompt は意味的な検証（ドメインモデル）、
-// 生成は AI、JSON ドキュメントの形と値は機械的な検証（JSON Schema）、x-decided-by: human の値と作法は
+// 生成は AI、JSON ドキュメントの形と値は機械的な検証（JSON Schema）、作法は
 // 機械的な検証（ドメインモデル）、ファイルを書くことと操作の記録への追記は処理（アダプター）。
 type Create struct {
 	Documents  Documents
@@ -53,7 +53,7 @@ func (u Create) Run(ctx context.Context, path domain.Path, content []byte) (int6
 	return id, creation, nil
 }
 
-// check は、JSON ドキュメントを Concrete で検証し、作法と x-decided-by: human の値を確かめて、作成を返す。
+// check は、JSON ドキュメントを Concrete で検証し、作法を確かめて、作成を返す。
 func (u Create) check(ctx context.Context, path domain.Path, content []byte) (*domain.Write, error) {
 	value, err := domain.ParseJSON(content)
 	if err != nil {

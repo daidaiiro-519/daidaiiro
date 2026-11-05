@@ -111,10 +111,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 </table></div>
 <p><code>--help</code>（<code>semantic-agent-schema --help</code>、コマンドごとに <code>&lt;command&gt; --help</code> ・ <code>semantic &lt;command&gt; --help</code>）で、コマンドと引数の一覧を返す。説明は <code>arguments.schema.json</code> の description から作る。出力はログイベント <code>help</code> で、<code>commands</code>（<code>command</code> ・ <code>description</code> ・ <code>arguments</code>（<code>name</code> ・ <code>description</code> ・ <code>required</code>））を持つ。<code>--help</code> ・ <code>-h</code> で全部、<code>&lt;command&gt; --help</code> ・ <code>semantic &lt;command&gt; --help</code> でそのコマンドだけ。</p>
 <p class="soft">値を2つ以上渡す引数（<code>--schemas</code> ・ <code>--range</code> ・ <code>--where</code>）は繰り返す。<code>-</code> は標準入力から読む。終了コードは、rejected か violated の judgment があれば 1、ほかは 0。</p>
-<h3><code>x-decided-by: human</code> の値</h3>
+<h3>人かどうかの確かめ</h3>
 <ul>
-<li>create ・ update で <code>x-decided-by: human</code> の値を変えようとしたら、いつも <code>decided_by_human</code> の rejected を返す（D2）。作成では default のまま、更新では前の値のままでなければならない</li>
-<li>人は、ファイルを直接書いて値を決める。誰が決めたかは Git のコミットの作者が残す。validate は、人が書いたあとも普通に検証する</li>
 <li>人かどうかの確かめと、セッションとの結び付けは使う側の責務。Semantic Agent Schema は、実行したのが人か AI かを受け取らない ・ 残さない</li>
 </ul>
 <h3>next への引き継ぎ</h3>
@@ -126,7 +124,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <p>契約を変えるときは、v1 を残さず、一度に v2 にする（後方互換を作らない）。</p>
 <div class="wrap"><table class="stack">
 <tr><th>種類</th><th>ファイル</th><th>役目</th></tr>
-<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）と、Concrete に <code>$ref</code> を書かないことも、ここで JSON Schema にする。Concrete に書いてよい format の名前は <code>CODING.md</code> が持つ。rule の <code>related_fields</code> は、インスタンスのルートからの絶対の JSON Pointer で書く。<code>x-prompt</code> と <code>x-decided-by</code> を書いてよいのは、ルートと、properties ・ items のサブスキーマだけ。<code>abstract.schema.json</code> の <code>$defs/noPrompt</code> で、allOf ・ anyOf ・ oneOf ・ prefixItems ・ not ・ if ・ then ・ else ・ additionalProperties ・ patternProperties ・ dependentSchemas ・ propertyNames ・ contains ・ unevaluated* ・ contentSchema ・ $defs の中を禁じる（それらの中の rule は、当たる位置が値によって変わり、決定論的に決まらないため）</td></tr>
+<tr><td>Concrete を書く型</td><td><code>abstract.schema.json</code> ・ <code>vocabulary.schema.json</code> ・ <code>dialect.schema.json</code></td><td>拡張項目の形と閉じた一覧。<code>x-view</code> はルートだけ（入れ子では <code>false</code>）と、Concrete に <code>$ref</code> を書かないことも、ここで JSON Schema にする。Concrete に書いてよい format の名前は <code>CODING.md</code> が持つ。rule の <code>related_fields</code> は、インスタンスのルートからの絶対の JSON Pointer で書く。<code>x-prompt</code> を書いてよいのは、ルートと、properties ・ items のサブスキーマだけ。<code>abstract.schema.json</code> の <code>$defs/noPrompt</code> で、allOf ・ anyOf ・ oneOf ・ prefixItems ・ not ・ if ・ then ・ else ・ additionalProperties ・ patternProperties ・ dependentSchemas ・ propertyNames ・ contains ・ unevaluated* ・ contentSchema ・ $defs の中を禁じる（それらの中の rule は、当たる位置が値によって変わり、決定論的に決まらないため）</td></tr>
 <tr><td>引数</td><td><code>arguments.schema.json</code></td><td>コマンドごとの引数の JSON の形。必須 ・ 組み合わせ ・ path とハッシュの pattern。各引数の description は <code>--help</code> の説明になる</td></tr>
 <tr><td>出力</td><td><code>event.schema.json</code></td><td>ログイベントの1行。<code>event</code> の名前は、ユースケースで起きたことの過去形（下の表）</td></tr>
 <tr><td>prompt</td><td><code>prompt.schema.json</code></td><td><code>semantic &lt;ユースケース&gt;</code> が返す prompt。<code>*_requested</code> のログイベント。JSON ドキュメントの内容は貼らず、path で渡す。<code>path</code> ・ <code>hash</code>（判定のとき、内容のハッシュ。judgments の JSON に写す）・ <code>instruction</code>（判定と更新のとき。path のファイルを読み、判定では step ごとに判定し、更新では violations の reason に従って step の位置を直す手順）・ <code>steps</code> ・ <code>subschemas</code> ・ <code>violations</code> ・ <code>response</code> ・ <code>next</code>。検索は <code>question</code> と <code>documents</code>（path とハッシュだけ）。<br><code>steps</code>：作成は、サブスキーマごとの <code>keywordLocation</code> ・ title ・ description ・ <code>x-prompt</code>。更新は <code>instanceLocation</code> と <code>keywordLocation</code> だけで、violations があれば、その instance location ごとの step にする（keywordLocation は、その位置か、たどれる一番深い親のサブスキーマ）。判定はそれに rule の id（<code>rule</code>）を足したものだけ。どれも配列の要素までたどる。<br><code>subschemas</code>：更新と判定で、steps の <code>keywordLocation</code> が指すサブスキーマ。<code>x-prompt</code> は、ここに keyword location ごとに1回だけ、スキーマに書いた順のまま置く。<br><code>violations</code>：更新で、直す対象の violated の judgment（<code>rule</code> ・ <code>instanceLocation</code> ・ <code>verdict</code> ・ <code>by</code> ・ <code>reason</code>）。<br><code>response</code>：<code>$id</code> ではなく、JSON Schema の中身（作成は Concrete、更新は JSON Patch のスキーマ、判定は judgment-response、検索は search-response）。<br><code>next</code>：同じユースケースの機械的なコマンド。Concrete の更新では <code>--range</code> を引き継ぐ。<br>Concrete を判定するときは、Abstract のルートの rule を、Concrete の中の <code>x-prompt</code> の位置（ルートと、properties ・ items でたどるサブスキーマ）ごとに step にする</td></tr>
@@ -165,9 +163,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <tr><td><code>schema_violation</code></td><td>JSON ・ JSON Patch ・ response ・ デザインシステムが JSON Schema に違反した。instruction は、引数の JSON（<code>--json</code> ・ <code>--patch</code> ・ <code>--judgments</code> ・ <code>--matches</code>）の違反なら「渡した &lt;引数&gt; の JSON の "&lt;位置&gt;" を直す」、JSON ドキュメントの違反ならそのファイルの位置を直すと書き、2つを分ける</td><td>同じコマンド（直した値）</td></tr>
 <tr><td><code>convention_violation</code></td><td>作法の検査（S1）に違反した</td><td>同じコマンド</td></tr>
 <tr><td><code>path_outside</code> ・ <code>file_exists</code> ・ <code>file_not_found</code></td><td>path が working tree の外（D1）・ 作成で既にある ・ 更新 ・ 検証で path のファイルが無い</td><td><code>semantic update</code> ／ <code>semantic create</code></td></tr>
-<tr><td><code>decided_by_human</code></td><td>create ・ update で <code>x-decided-by: human</code> の値が変わる（D2）</td><td>その値を戻した同じコマンド。指示は、人がファイルを直接書いて決める値だと示す</td></tr>
 <tr><td><code>patch_not_applicable</code></td><td>JSON Patch を適用できない（path が無い ・ test が合わないなど）。<code>instanceLocation</code> はその operation の path</td><td><code>semantic update</code></td></tr>
-<tr><td><code>hash_mismatch</code></td><td>更新：書く直前（ロックの中）に、最初に読んだときからファイルのハッシュが変わっていた（D3）。書かない ／ 判定：<code>--judgments</code> の <code>hash</code>（prompt から写したもの）が、いまの内容のハッシュと違う ／ 検索：matches の hash が、いまの内容のハッシュと違う</td><td>更新：同じコマンドの打ち直し ／ 判定：<code>semantic validate</code> の打ち直し ／ 検索：<code>semantic search</code> の打ち直し</td></tr>
+<tr><td><code>hash_mismatch</code></td><td>更新：書く直前（ロックの中）に、最初に読んだときからファイルのハッシュが変わっていた（D2）。書かない ／ 判定：<code>--judgments</code> の <code>hash</code>（prompt から写したもの）が、いまの内容のハッシュと違う ／ 検索：matches の hash が、いまの内容のハッシュと違う</td><td>更新：同じコマンドの打ち直し ／ 判定：<code>semantic validate</code> の打ち直し ／ 検索：<code>semantic search</code> の打ち直し</td></tr>
 <tr><td><code>range_required</code> ・ <code>range_violation</code></td><td>Concrete の更新で <code>--range</code> が無い ・ 範囲のインスタンスが新しい Concrete に違反する、またはその <code>$schema</code> が更新する Concrete の <code>$id</code> と違う</td><td>同じコマンド ／ 範囲のインスタンスの <code>semantic update</code></td></tr>
 <tr><td><code>response_mismatch</code></td><td>判定：response の rule と instance location の組が prompt と違う（V2）／ 検索：matches の出どころが範囲の外か、その instance location が無い</td><td><code>semantic validate</code> ／ <code>semantic search</code> の打ち直し</td></tr>
 <tr><td><code>template_missing</code></td><td><code>x-view</code> が無い、またはその名前のテンプレートが無い（S5）</td><td>同じコマンド（デザインシステムを直して）</td></tr>
@@ -189,7 +186,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>表</th><th>列</th><th>抽象の行</th></tr>
 <tr><td><code>changes</code></td><td><code>id</code>（PK）・ <code>path</code> ・ <code>schema_id</code> ・ <code>command</code>（create ・ update）・ <code>before_hash</code> ・ <code>after_hash</code> ・ <code>at</code></td><td>UC1 ・ UC2</td></tr>
-<tr><td><code>field_changes</code></td><td><code>change_id</code>（FK）・ <code>instance_location</code> ・ <code>op</code>（add ・ remove ・ replace）・ <code>before</code> ・ <code>after</code>。作成では、ルートを含むすべての instance location を add で1行ずつ</td><td>D4</td></tr>
+<tr><td><code>field_changes</code></td><td><code>change_id</code>（FK）・ <code>instance_location</code> ・ <code>op</code>（add ・ remove ・ replace）・ <code>before</code> ・ <code>after</code>。作成では、ルートを含むすべての instance location を add で1行ずつ</td><td>D3</td></tr>
 <tr><td><code>validations</code></td><td><code>id</code>（PK）・ <code>event</code>（validated ・ judged）・ <code>path</code> ・ <code>schema_id</code> ・ <code>concrete_hash</code> ・ <code>content</code>（検証した JSON ドキュメント）・ <code>content_hash</code> ・ <code>at</code>。変更点の基準は、<code>event</code> が judged の最新の行</td><td>V1 ・ S4</td></tr>
 <tr><td><code>judgments</code></td><td><code>validation_id</code>（FK）・ <code>rule_id</code> ・ <code>instance_location</code> ・ <code>by</code>（machine ・ ai）・ <code>verdict</code>（verified ・ violated ・ unverified ・ not-judged）・ <code>reason</code></td><td>V3</td></tr>
 <tr><td>ビュー <code>operations</code></td><td><code>changes</code> と <code>validations</code> を UNION ALL し、<code>at</code> の順に並べる。列は <code>id</code> ・ <code>command</code> ・ <code>path</code> ・ <code>at</code></td><td>UC8</td></tr>
@@ -197,7 +194,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <ul>
 <li>どの表も追記だけ。UPDATE と DELETE は trigger で拒否する</li>
 <li>ID は INTEGER の主キー。ビューでは <code>command</code> と組にして指す（<code>--operation &lt;command&gt;:&lt;id&gt;</code>）</li>
-<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D3。最初に読んだときのハッシュと同じか）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、rejected のときはファイルも操作の記録も変わらない</li>
+<li>書く操作は <code>Records.WithLock</code> の中で行う：<code>BEGIN IMMEDIATE</code> → ハッシュの確認（D2。最初に読んだときのハッシュと同じか）→ 追記 → <code>Documents.Write</code> → <code>COMMIT</code>。書き込みに失敗したら <code>ROLLBACK</code> で追記も取り消すので、rejected のときはファイルも操作の記録も変わらない</li>
 <li><code>at</code> は RFC 3339 で、秒の小数を9桁にそろえて書く（文字列の順が時刻の順になる）</li>
 <li>表の形の版は <code>user_version</code> の 5。版が違えば開かず、<code>log_unavailable</code> で records.sqlite の削除を示す。前の版との互換は作らない</li>
 </ul>
@@ -244,7 +241,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1
 <div class="wrap"><table class="stack">
 <tr><th>条件</th><th>測り方</th><th>合格</th></tr>
 <tr><td>1 独立した書き起こし</td><td>コードだけを渡した新しい Agent が振る舞いを書き起こし、作成者の会話を引き継がない別の Agent が、2枚のページの振る舞いと比べる（無い ・ 余分 ・ 違う）。2回行う</td><td>2回とも0件</td></tr>
-<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。<code>x-decided-by: human</code> の値は、人の役としてファイルを直接書いて決め、そのあと検証する</td><td>人の助け無しで終える。rejected と violated の validated では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
+<tr><td>2 受け入れ</td><td>新しい Agent が <code>--help</code> とログイベントだけを見て、一時のリポジトリで作成と検証の往復（作成 ・ 意味的な検証 ・ 検証）と、描画 ・ 検索 ・ 操作の記録の参照を行う。</td><td>人の助け無しで終える。rejected と violated の validated では <code>instruction</code> と <code>next</code> だけで直せた</td></tr>
 <tr><td>3 振る舞い</td><td>試験を全部実行する。<code>go vet</code> ・ <code>gofmt -l</code> ・ <code>architecture_test.go</code> ・ exhaustive も含む。<code>deadcode ./cmd/semantic-agent-schema</code>（<code>-test</code> を付けない）</td><td>全部通る。main から届かない関数が0件</td></tr>
 </table></div>
 </section>
