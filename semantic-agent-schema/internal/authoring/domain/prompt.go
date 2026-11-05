@@ -17,7 +17,8 @@ const (
 )
 
 // Step は、prompt の step 1つ。作成では、1つのサブスキーマの keyword location ・ title ・ description ・ x-prompt を持つ。
-// 更新と判定では、インスタンスの側の instance location と、当たるサブスキーマの keyword location を持ち、title ・ description ・
+// 更新と判定では、インスタンスの側の instance location と、当たるサブスキーマの keyword location を持ち（更新で violated の
+// judgment があれば、その instance location）、title ・ description ・
 // x-prompt はサブスキーマごとに1回だけ置く（Prompt.Subschemas）。判定では、判定する rule の id も持つ
 // （step 1つが、rule と instance location の組1つ）。
 type Step struct {
@@ -119,27 +120,52 @@ type UpdateInput struct {
 }
 
 // NewUpdatePrompt は、ドメインサービス「prompt を作る」。いまの JSON ドキュメントと Concrete を一緒にたどり、
-// 更新の prompt を返す。title ・ description ・ x-prompt のどれかを持つサブスキーマに当たる instance location を、
-// たどった順に step にし、サブスキーマは keyword location ごとに1回だけ置く。直す対象の violated の judgment も持つ。
+// 更新の prompt を返す。直す対象の violated の judgment があれば、その instance location ごとに step を作り、keyword location は
+// その位置か、たどれる一番深い親の位置のサブスキーマにする。violated の judgment が無ければ、title ・ description ・ x-prompt の
+// どれかを持つサブスキーマに当たる instance location を、たどった順に step にする。サブスキーマは keyword location ごとに1回だけ置く。
 // response の形は JSON Patch のスキーマ。JSON ドキュメントの内容は貼らず、path で渡す。
 func NewUpdatePrompt(in UpdateInput) Prompt {
 	var steps []Step
 	var index subschemaIndex
+	keywords := map[string]Pointer{}
 	walkInstance(in.Concrete.structure(), in.Value, nil, nil, func(sub map[string]any, _ any, at, keyword []string) {
+		k := PointerOf(keyword...)
+		keywords[PointerOf(at...).String()] = k
 		title, _ := sub["title"].(string)              // 無ければ空
 		description, _ := sub["description"].(string)  // 無ければ空
 		xPrompt, _ := sub["x-prompt"].(map[string]any) // 無ければ nil
-		if title == "" && description == "" && xPrompt == nil {
+		if len(in.Violations) > 0 || (title == "" && description == "" && xPrompt == nil) {
 			return
 		}
-		k := PointerOf(keyword...)
 		index.add(in.Concrete, k)
 		steps = append(steps, Step{InstanceLocation: PointerOf(at...), KeywordLocation: k})
 	})
+	seen := map[string]bool{}
+	for _, v := range in.Violations {
+		location := v.InstanceLocation()
+		if seen[location.String()] {
+			continue
+		}
+		seen[location.String()] = true
+		k := keywordAt(keywords, location)
+		index.add(in.Concrete, k)
+		steps = append(steps, Step{InstanceLocation: location, KeywordLocation: k})
+	}
 	return generation{
 		command: UpdateCommand, path: in.Document.Path, steps: steps, subschemas: index.list,
 		responseID: in.PatchID, violations: in.Violations, forConcrete: in.ForConcrete,
 	}
+}
+
+// keywordAt は、instance location か、その一番深い親のうち、たどれた位置の keyword location を返す。ルートは必ずたどれる。
+func keywordAt(keywords map[string]Pointer, location Pointer) Pointer {
+	tokens := tokensOf(location)
+	for i := len(tokens); i > 0; i-- {
+		if k, ok := keywords[PointerOf(tokens[:i]...).String()]; ok {
+			return k
+		}
+	}
+	return PointerOf()
 }
 
 // NewJudgmentPrompt は、ドメインサービス「prompt を作る」。いまの JSON ドキュメントと Concrete を一緒にたどり、判定の prompt を返す。

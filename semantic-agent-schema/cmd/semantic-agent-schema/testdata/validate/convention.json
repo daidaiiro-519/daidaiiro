@@ -1,5 +1,5 @@
 {
-  "title": "Concrete が作法に違反する：$schema の const が $id と違う ・ rule の id が重なる ・ 例の related のキーが related_fields に無い。違反の位置は、例の related でなく同じ rule の related_fields で、next の update は Concrete に従うインスタンスを --range に渡す形",
+  "title": "Concrete が作法に違反する：$schema の const が $id と違う ・ rule の id が重なる ・ 例の related のキーが related_fields に無い。違反の位置は、例の related でなく同じ rule の related_fields で、bad と good の例の両方に無いキーがあっても rule ごとに1件。next の update は Concrete に従うインスタンスを --range に渡す形。続く更新の prompt の steps は、違反の instance location と、その位置か一番深い親の Abstract のサブスキーマの keyword location になる",
   "files": {
     "schemas/a.json": {
       "$schema": "urn:semantic-agent-schema:abstract:v1",
@@ -34,7 +34,15 @@
                     }
                   }
                 ],
-                "good": []
+                "good": [
+                  {
+                    "value": "2026-03-01",
+                    "related": {
+                      "/start": "2026-02-01",
+                      "/properties/start": "2026-02-01"
+                    }
+                  }
+                ]
               }
             ]
           }
@@ -80,6 +88,38 @@
           "/judgments/2/rule": "convention",
           "/judgments/2/instanceLocation": "/properties/start/x-prompt/rules/0/id",
           "/next": "semantic-agent-schema update schemas/a.json --schemas schemas --patch '<violated の instance location を直す JSON Patch>' --range <この Concrete に従うインスタンスの path（無ければ値なしの --range）>"
+        }
+      ]
+    },
+    {
+      "args": [
+        "semantic",
+        "update",
+        "schemas/a.json",
+        "--schemas",
+        "schemas"
+      ],
+      "exit": 0,
+      "events": [
+        {
+          "/event": "update_requested",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/properties/$schema/const",
+              "keywordLocation": "#/properties/properties/properties/$schema/properties/const"
+            },
+            {
+              "instanceLocation": "/properties/end/x-prompt/rules/0/related_fields",
+              "keywordLocation": "#/properties/properties"
+            },
+            {
+              "instanceLocation": "/properties/start/x-prompt/rules/0/id",
+              "keywordLocation": "#/properties/properties"
+            }
+          ],
+          "/prompt/subschemas/0/keywordLocation": "#/properties/properties/properties/$schema/properties/const",
+          "/prompt/subschemas/1/keywordLocation": "#/properties/properties",
+          "/prompt/violations/1/instanceLocation": "/properties/end/x-prompt/rules/0/related_fields"
         }
       ]
     }

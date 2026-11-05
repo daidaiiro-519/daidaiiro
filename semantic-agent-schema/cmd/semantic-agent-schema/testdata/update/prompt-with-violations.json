@@ -1,5 +1,5 @@
 {
-  "title": "更新の prompt は、いまの内容の直前の検証の violated の judgment を、直す対象として持つ。Concrete の更新の prompt の next は --range を引き継ぐ形にし、値なしの --range で、従うインスタンスが無いことを示して書き換えられる",
+  "title": "更新の prompt は、いまの内容の直前の検証の violated の judgment を、直す対象として持ち、steps をその instance location と、その位置のサブスキーマの keyword location にし、violations の reason に従って直す instruction を持つ。Concrete の更新の prompt の next は --range を引き継ぐ形にし、値なしの --range で、従うインスタンスが無いことを示して書き換えられる",
   "files": {
     "schemas/memo.json": {
       "$fixture": "memo.schema.json"
@@ -46,7 +46,15 @@
               "reason": "minLength: got 0, want 1"
             }
           ],
-          "/prompt/response/$id": "urn:semantic-agent-schema:patch:v1"
+          "/prompt/response/$id": "urn:semantic-agent-schema:patch:v1",
+          "/prompt/steps": [
+            {
+              "instanceLocation": "/title",
+              "keywordLocation": "#/properties/title"
+            }
+          ],
+          "/prompt/subschemas/0/keywordLocation": "#/properties/title",
+          "/prompt/instruction": "path のファイルを読み、violations の reason に従って、steps の instanceLocation の値を直す。keywordLocation で subschemas から引く x-prompt を満たす JSON Patch を response の形で作り、next を実行する"
         }
       ]
     },

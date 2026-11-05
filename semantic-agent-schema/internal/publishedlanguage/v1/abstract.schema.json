@@ -11,7 +11,7 @@
         "id": "schema-first",
         "rule": "JSON Schema で書ける決まりを、x-prompt の rule に書かない。JSON Schema で書けない、ほかの値との比較（終わりの日が始まりの日より後か など）は rule に置く",
         "why": "機械的に検証できるものは機械的な検証にし、rule は意味でしか決められないことだけにするため",
-        "check": "どの rule も、type ・ enum ・ pattern ・ minLength ・ maxLength ・ minimum ・ maximum ・ format などで書けない決まりか",
+        "check": "どの rule も、type ・ enum ・ pattern ・ minLength ・ maxLength ・ minimum ・ maximum ・ format などで書けない決まりか。rule-judgeable とは別に判定する",
         "related_fields": [],
         "bad": [
           {
@@ -80,7 +80,7 @@
         "id": "rule-judgeable",
         "rule": "rule は、値と related_fields の値だけを見て、満たすか満たさないかを決められる文にする",
         "why": "判定の verdict を、AI がぶれずに出せるようにするため",
-        "check": "どの rule も、値と related_fields の値だけで、満たす ・ 満たさないに決められるか",
+        "check": "どの rule も、値と related_fields の値だけで、満たす ・ 満たさないに決められるか。schema-first とは別に判定する",
         "related_fields": [],
         "bad": [
           {
@@ -179,9 +179,9 @@
       },
       {
         "id": "related-fields-exact",
-        "rule": "related_fields には、rule が読むほかの値の位置を過不足なく書く",
+        "rule": "related_fields には、rule が読むほかの値の位置を過不足なく書く。位置は、インスタンスの JSON Pointer（例 /start）で書く。Concrete の位置（/properties/start）ではない",
         "why": "変更点で判定し直す rule を、漏れなく、多すぎずに選ぶため",
-        "check": "rule の文が読むほかの値の位置が、related_fields に過不足なく入っているか",
+        "check": "rule の文が読むほかの値の位置が、related_fields に過不足なく、インスタンスの JSON Pointer（/properties/start のような Concrete の位置でなく /start）で入っているか",
         "related_fields": [],
         "bad": [
           {

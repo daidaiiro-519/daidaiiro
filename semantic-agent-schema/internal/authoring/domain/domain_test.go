@@ -111,6 +111,10 @@ func TestConventionFindsViolations(t *testing.T) {
 		{name: "例の related のキーが related_fields に無い", concrete: `{"$id": "urn:a",
 			"allOf": [{"x-prompt": {"rules": [{"id": "r1", "related_fields": [], "bad": [], "good": [{"value": 1, "related": {"/z": 1}}]}]}}]}`,
 			want: []string{"/allOf/0/x-prompt/rules/0/related_fields"}},
+		{name: "bad と good の例の related に related_fields に無いキーがあっても、同じ rule では1件", concrete: `{"$id": "urn:a",
+			"x-prompt": {"rules": [{"id": "r1", "related_fields": ["/start"],
+				"bad": [{"value": 1, "related": {"/start": 2, "/other": 1}}], "good": [{"value": 3, "related": {"/start": 2, "/z": 1}}]}]}}`,
+			want: []string{"/x-prompt/rules/0/related_fields"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
