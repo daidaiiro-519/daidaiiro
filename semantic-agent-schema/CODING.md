@@ -42,7 +42,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 
 ### 1.5 原文の一覧
 
-原文は、この文書と同じフォルダの `sources/` に置く。`go doc` の出力は go 1.27.2 で書き出し、exhaustive の doc は Go のモジュールキャッシュのファイルを読んだ。ほかは fact-check で取得した。引用は、どれも原文の文字列で照合した。
+原文はリポジトリに置かない。読み直すときは、表の URL から fact-check で取得し直す。`go doc` の出力は go 1.27.2 で書き出し、exhaustive の doc は Go のモジュールキャッシュのファイルを読んだ。ほかは fact-check で取得した。引用は、どれも原文の文字列で照合した。
 
 | 文書 | 種類 | ファイル | 取得した日 |
 |---|---|---|---|
@@ -56,7 +56,13 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | testing の package の doc | Go 公式 | `raw.githubusercontent.com_golang_go_master_src_testing_testing.go` | 2026-11-05 |
 | go コマンドの doc | Go 公式 | `raw.githubusercontent.com_golang_go_master_src_cmd_go_alldocs.go` | 2026-11-05 |
 | deadcode の doc | Go 公式 | `raw.githubusercontent.com_golang_tools_master_cmd_deadcode_doc.go` | 2026-11-05 |
-| `go doc` の出力（go 1.27.2） | Go 公式 | `go-doc_errors.Join.txt` ・ `go-doc_testing.T.Setenv.txt` ・ `go-doc_testing.T.Chdir.txt` | 2026-11-05 |
+| `go doc` の出力（go 1.27.2） | Go 公式 | `go-doc_errors.Join.txt` ・ `go-doc_testing.T.Setenv.txt` ・ `go-doc_testing.T.Chdir.txt` ・ `go-doc_context.txt`（2026-11-06 に書き出し） | 2026-11-05 |
+| Go の仕様 | Go 公式 | `go.dev_ref_spec.md` | 2026-11-06 |
+| Working with Errors in Go 1.13 | Go 公式 | `go.dev_blog_go1.13-errors.md` | 2026-11-06 |
+| Go Modules Reference | Go 公式 | `go.dev_ref_mod.md` | 2026-11-06 |
+| Data Race Detector | Go 公式 | `go.dev_doc_articles_race_detector.md` | 2026-11-06 |
+| Effective Go（更新が止まっている旨の注記を持つ版） | Go 公式 | `go.dev_doc_effective_go.md` | 2026-11-06 |
+| Go 1.22 ・ 1.24 ・ 1.27 のリリースノート | Go 公式 | `go.dev_doc_go1.22.md` ・ `go.dev_doc_go1.24.md` ・ `go.dev_doc_go1.27.md` | 2026-11-06 |
 | Go Proverbs | Go 公式 | `go-proverbs.github.io` | 2026-11-04 |
 | Google Go Style Guide：guide | Google | `raw.githubusercontent.com_google_styleguide_gh-pages_go_guide.md` | 2026-11-05 |
 | Google Go Style Guide：decisions | Google | `raw.githubusercontent.com_google_styleguide_gh-pages_go_decisions.md` | 2026-11-05 |
@@ -129,6 +135,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K52 | panic を使わない | Go 公式 | CodeReviewComments.md L131 | Don't use panic for normal error handling. Use error and multiple return values. |
 | K53 | `Must` の関数（`regexp.MustCompile` など）は、package の変数の初期化だけで呼ぶ | Google | decisions.md L2127–2129 | In general, they should only be called early on program startup, not on things like user input where normal Go error handling is preferred. |
 | K54 | panic を `recover` で止めない | Google | best-practices.md L1363 | resist the temptation to recover panics to avoid crashes |
+| K55 | `%w` で包むと、下の error の型と値が、呼ぶ側から `errors.Is` ・ `errors.As` で見える契約になる。包むか、境界の error（`*domain.Failure` など）に変換するかを、意図して決める | Go 公式 | go1.13-errors.md L631 | wrapping an error makes that error part of your API. |
 
 ### 2.5 コメントと doc
 
@@ -140,6 +147,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K67 | 関数の doc コメントには、何を返すか（副作用の関数は何をするか）を書く | Go 公式 | comment.md L240–241 | A function's doc comment should explain what the function returns or, for functions called for side effects, what it does. |
 | K68 | 型・関数・package のコメントには、それが設計の中で何を担うかを、具体モデリング概念の言葉（集約 ・ 値オブジェクト ・ ドメインサービス ・ ポート ・ アダプター ・ 機械的な検証 ・ 意味的な検証 ・ 変更点 ・ ログイベント ・ instruction と next など）で書く。抽象モデリング概念を実装としてどう具体にしたかが読めるようにする | このプロジェクト | 利用者の指示（2026-11-05） | |
 | K69 | コメントの設計の言葉は、部品に名前を付けて書く | Go 公式 | go-proverbs.github.io L30 | Design the architecture, name the components, document the details. |
+| K58 | ファイルや操作の記録に書き込む関数の doc コメントには、失敗したときに何が残るか（何も変わらない、など）を書く | このプロジェクト | 利用者の指示（2026-11-06） | |
 | K59 | コメントに、ページの行の識別子（`UC3` ・ `D1` ・ `S4` ・ `W5` など）を書かない | このプロジェクト | 利用者の指示（2026-11-05） | |
 | K62 | package コメントは `package` 句の直前に、空行を空けずに書く | Go 公式 | CodeReviewComments.md L453 | Package comments, like all comments to be presented by godoc, must appear adjacent to the package clause, with no blank line. |
 | K63 | package コメントは「Package <名前> は、」で始める。`main` は「Command semantic-agent-schema は、」で始める | Go 公式 | comment.md L64–65 | For a package comment, that means the [first sentence](/pkg/go/doc/#Package.Synopsis) begins with “Package <name>”. |
@@ -157,6 +165,8 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K74 | 不変条件を持たない型（verdict ごとの件数など）は、空の値でそのまま使える形にする | Go 公式 | go-proverbs.github.io L18 | Make the zero value useful. |
 | K75 | domain は、JSON Schema で書けない不変条件だけを持つ。JSON Schema で書ける検証を domain に書かない | このプロジェクト | 抽象のページ 7節 ・ 本質 `W5` ・ `W10` | |
 | K76 | ほかの package の構造体の値は、フィールドの名前を書いて作る | Go 公式 | go1compat.html L94–95 | We therefore recommend that composite literals whose type is defined in a separate package should use the keyed notation. |
+| K77 | slice ・ map ・ ポインタ（`json.RawMessage` を含む）を持つ値は、作るときに受け取った値を複製し、返すときも複製して返す。複製しないときは、外から変えられない形で渡す。非公開のフィールドと作る関数だけでは、不変条件は閉じない（値をコピーしても、中の配列は共有される） | Go 公式 | spec.md L2237 ・ L2269 | Non-nil pointer, function, slice, map, and channel values contain references ／ When multiple values share underlying data, changing one value may change another. |
+| K78 | 操作の記録や AI の response の JSON から値を戻す入口も、作る関数を通す | このプロジェクト | 利用者の指示（2026-11-06）。K72 ・ K77 | |
 
 ### 2.7 区分
 
@@ -182,6 +192,11 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 |---|---|---|---|---|
 | K100 | goroutine を起こさず、同期の関数で書く | Go 公式 | CodeReviewComments.md L555 | Prefer synchronous functions - functions which return their results directly or finish any callbacks or channel ops before returning - over asynchronous ones. |
 | K101 | 書く操作の排他は、`Records.WithLock`（`BEGIN IMMEDIATE`）の中で行う | このプロジェクト | 具体のページ 6節 | |
+| K102 | goroutine を起こす変更では、`go test -race` を、対応する環境で通す。race detector は、実行した経路の race だけを見る | Go 公式 | race_detector.md L629 | The race detector only finds races that happen at runtime, so it can't find |
+| K103 | `context.WithCancel` ・ `WithTimeout` ・ `WithDeadline` が返す cancel 関数は、全部の経路で呼ぶ | Go 公式 | go-doc_context.txt L20 | CancelFunc leaks the child and its children until the parent is canceled. |
+| K104 | 起こした goroutine の終わりは、起こした側が持つ（終わるのを待つか、止める）。いつ終わるか、終わらないかを、コードから読めるようにする | Go 公式 | CodeReviewComments.md L146。終わりを起こした側が持つ点は、利用者の指示（2026-11-06） | When you spawn goroutines, make it clear when - or whether - they exit. |
+
+K100 は、いま goroutine を起こさないと決めている。K102〜K104 は、K100 を変えて goroutine を起こす変更をするときに適用する決まりで、K100 の例外を認めるものではない。
 
 ### 2.10 依存の向き
 
@@ -259,6 +274,15 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K170 | Concrete の `x-prompt` は、値を書く所（ルート ・ `properties` ・ `patternProperties` ・ `additionalProperties` ・ `unevaluatedProperties` ・ `items` ・ `prefixItems` ・ `unevaluatedItems` のサブスキーマ）と、分岐の枝（`oneOf` ・ `anyOf` の各枝 ・ `then` ・ `else` ・ `dependentSchemas` の枝）に必ず書く。`const` か要素1つの `enum` だけで値が決まる所は、値を書く所でも省ける。`if` ・ `allOf` の枝 ・ `not` ・ `contains` ・ `propertyNames` には書かなくてよい。これは `abstract.schema.json` が JSON Schema（`writing` ・ `valueSchema` ・ `branchSchema`）で課し、ドメインのコードで同じことを確かめない。`$defs` は Concrete に書かせない（`$ref` を禁じているので使われない） | このプロジェクト | 利用者の指示（2026-11-06） | |
 | K171 | 値を書く所のサブスキーマは `true` にせずオブジェクトにする。`type` が `object` なら `additionalProperties` か `unevaluatedProperties`（`false` かサブスキーマ）を、`array` なら `items` ・ `prefixItems` ・ `unevaluatedItems` のどれかを書く。分岐（`then` ・ `oneOf` の枝など）の中でキーを定義するときは、`additionalProperties: false` がそのキーを弾くので、`unevaluatedProperties: false` を使う | このプロジェクト | 利用者の指示（2026-11-06） | |
 | K172 | 判定で当たる `x-prompt`（スキーマ検査アダプターの `Evaluate`）は、JSON Schema の注釈と同じに集める。拡張項目の呼び出しの中で、そのサブスキーマの検証をやり直し、通ったときだけ組にする。通った `anyOf` の枝は、ライブラリが打ち切った枝も検証し直して、すべて組にする。ドメインは組を JSON Schema の実装から受け取るだけで、スキーマをたどり直さない | このプロジェクト | JSON Schema 2020-12 Core 10.2.1.2 ・ 7.7 | all subschemas MUST be examined so that annotations are collected from each subschema that validates successfully ・ annotations are not retained for failing schemas |
+
+### 2.17 Go の版ごとの機能と embedding
+
+| ID | こうする | 種類 | 出どころ | 原文の引用 |
+|---|---|---|---|---|
+| K180 | Go の版ごとに新しい機能（generics など）が出ても、既存のコードを全面的に書き換えない。使うときは、`go.mod` の `go` の版と toolchain が、その機能を持つかを確かめる | Go 公式 | go1.22.md L467 ・ go1.24.md L459 ・ go1.27.md L457 ・ mod.md L914 | Go 1.27 now supports ／ Go toolchains refuse to use modules declaring newer Go versions. |
+| K181 | 構造体への埋め込みは、昇格した公開メソッドも外に見せる契約になる。継承の代わりに使わず、埋め込んだ型のメソッドをそのまま公開する意図があるときだけ使う | Go 公式 | spec.md L1575 ・ effective_go.md L3125 ・ L469（Effective Go は更新が止まっている文書） | promoted methods are included in the method set of the struct as follows: ／ Go does not provide the typical, type-driven notion of subclassing, ／ is not actively updated. While it remains a good guide for using the core language, |
+
+いまのコードは generics を使っていない。埋め込みも製品のコードでは使っておらず、試験に interface の埋め込みが1か所ある（`internal/authoring/application/update_test.go` の `changeBeforeLock`）。
 
 ## 3 テスト規約
 
@@ -359,6 +383,8 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | T70 | `deadcode ./cmd/semantic-agent-schema` を `-test` を付けずに実行し、報告される関数を0件にする。試験からしか呼ばれない関数を残さない | このプロジェクト | 具体のページ 9節「完成の条件」5 | |
 | T71 | deadcode が報告するのは、`main` から届かない関数である | Go 公式 | deadcode/doc.go L12–13 | Any functions that are not reachable are reported as dead code, grouped by package. |
 | T72 | `go vet` ・ `gofmt -l` ・ `go test ./...`（`architecture_test.go` と exhaustive を含む）を全部通す | このプロジェクト | 具体のページ 9節「完成の条件」5 | |
+| T73 | 依存を変えたら、`go.mod` ・ `go.sum` の差分を確かめ、`go mod tidy -diff`（ファイルを書き換えず差分を出す）が差分を出さないことを確かめる | Go 公式 | mod.md L2333 | with a non-zero code if the diff is not empty. |
+| T74 | 依存を変えない作業では、`go.mod` ・ `go.sum` が変わっていないことを確かめる | このプロジェクト | 利用者の指示（2026-11-06） | |
 
 ## 4 このプロジェクトのログイベントと error の書き方
 
