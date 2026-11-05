@@ -109,7 +109,7 @@ for n in ['change', 'judgment', 'settings', 'session', 'view', 'catalog', 'desig
 
 cc = json.load(open(os.path.join(C, 'examples', 'acdr.concrete.json'))); ins = json.load(open(os.path.join(C, 'examples', 'acdr.instances.json')))
 co = '<h2 id="con">6　Concrete スキーマ（ACDR）の全容</h2><p class="meta">正本 examples/acdr.concrete.json（本体に従う例）。ACDR は基盤の変更の記録を広げて見やすくする文脈</p>' + head(cc)
-co += '<h3>任せる先（x-delegates）</h3>' + T(['名前', '立場', '目的', '起動', '答えの形'], [[f'<code>{k}</code>', e(v['role']), v['run']['kind'], e(' '.join(v['run'].get('argv', [])) or 'AI ツール'), cons(v.get('answer', {}))] for k, v in cc['x-delegates'].items()])
+co += '<h3>任せる先（x-delegates）</h3>' + T(['名前', '立場', '目的', '起動', '答えの形'], [[f'<code>{k}</code>', e(v['role']), v['run']['kind'], e(' '.join(v['run'].get('argv', [])) or 'コーディングエージェント'), cons(v.get('answer', {}))] for k, v in cc['x-delegates'].items()])
 co += '<h3>欄（properties）</h3>' + fields(cc['properties'], cc.get('required', [])) + '<h3>状態ごとの条件</h3>' + conds(cc)
 if cc.get('$defs'): co += '<h3>部品（$defs）</h3>' + ''.join(f'<h4><code>$defs/{e(k)}</code></h4>' + (fields(v['properties'], v.get('required', [])) if isinstance(v.get('properties'), dict) else f'<pre class="code">{e(json.dumps(v, ensure_ascii=False, indent=1))}</pre>') for k, v in cc['$defs'].items())
 co += '<h3>インスタンスの例（accepted の姿）</h3><pre class="code">' + e(json.dumps(ins['I3'], ensure_ascii=False, indent=2)) + '</pre>' + rawjson(cc, 'acdr.concrete.json')

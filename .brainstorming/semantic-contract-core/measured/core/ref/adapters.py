@@ -210,7 +210,7 @@ class SqliteSessions:
         return [{'session': {'tool': r[0], 'id': r[1]}, 'change_id': r[2]} for r in self.conn().execute('SELECT * FROM session_changes ORDER BY 1,2,3')]
 
 
-# ---------------- AI ツールのセッション（場面が答えを決める）
+# ---------------- コーディングエージェントのセッション（場面が答えを決める）
 class FakeAiSessions:
     def __init__(self, table):
         self.t = table

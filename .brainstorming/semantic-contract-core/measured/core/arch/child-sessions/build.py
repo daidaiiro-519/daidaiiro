@@ -1,4 +1,4 @@
-"""子のセッションの3つの型と、AI ツールごとの能力（キャッシュが効くか）の頁。実測は 2026-10-25（各1回）。"""
+"""子のセッションの3つの型と、コーディングエージェントごとの能力（キャッシュが効くか）の頁。実測は 2026-10-25（各1回）。"""
 import os
 H = os.path.dirname(os.path.abspath(__file__)); C = os.path.dirname(os.path.dirname(H))
 src = open(os.path.join(C, 'arch.html')).read()
@@ -13,7 +13,7 @@ U = lambda t: f'<span class="u">不明</span> {t}'
 X = lambda t: f'<span class="n">できない</span> {t}'
 SIM = r'''
 <h2>5　シミュレーション：同じ契約を4つのツールで動かす</h2>
-<p class="meta">目的のセッション「ACDR 0199 依存の向きの検査ツール」が、約4万トークンの会話を積んだところから、3つの仕事を依頼する。呼び出し（契約）はどのツールでも同じで、ツールが返す能力で実際の動きが変わる。上のボタンでツールを切り替える</p>
+<p class="meta">目的のセッション「ACDR 0199 依存の向きの検査ツール」が、約4万トークンの会話を積んだところから、3つの仕事を依頼する。呼び出し（call の欄：delegate ・ task ・ handoff など）はどのツールでも同じで、ツールが返す能力で実際の動きが変わる。寿命と親の文脈は呼び出しの欄ではなく、型の選び方（セッションの context）が持つ。上のボタンでツールを切り替える</p>
 <div class="sim">
 <div class="tabs" role="tablist">
 <button data-t="claude" class="on">Claude Code</button><button data-t="codex">Codex</button><button data-t="copilot">Copilot</button><button data-t="kiro">Kiro</button>
@@ -35,9 +35,13 @@ SIM = r'''
 <script>
 (function(){
 const CALL={
- fork:'{"lifetime":"単発","context":"引き継ぐ","task":"設計の答えを反証する","returns":"指摘の一覧"}',
- a:'{"lifetime":"継続","context":"引き継がない","role":"実装役","task":"core.rs を規則どおり作る","handoff":"仕事の指示だけ"}',
- b:'{"lifetime":"継続","context":"引き継ぐ","role":"設計を知る実装役","task":"設計の議論を踏まえて cargo.rs を作る"}'};
+ fork:'{"delegate":"reviewer","task":"設計の答えを反証し、指摘の一覧を返した状態","handoff":"反証する答えと、利用者の言葉"}',
+ a:'{"delegate":"implementer","task":"core.rs を規則どおり作った状態","handoff":"仕事の指示だけ"}',
+ b:'{"delegate":"design-implementer","task":"設計の議論を踏まえて cargo.rs を作った状態","handoff":"設計の議論の要点"}'};
+const TYPE={
+ fork:'寿命：単発 ・ 親の文脈：引き継ぐ（登録しない）',
+ a:'寿命：継続 ・ 親の文脈：引き継がない（セッションの context：fresh、role：implementer）',
+ b:'寿命：継続 ・ 親の文脈：引き継ぐ（セッションの context：inherited、role：design-implementer）'};
 const T={
  claude:{name:'Claude Code',cap:{fork:'作れる ・ 親のキャッシュ 効く',a:'作れる ・ 再開で効く',b:'作れる ・ 親のキャッシュ 効く'},
   fork:['単発 ・ 引き継ぐ のまま','claude -p "<反証の指示>" --resume P --fork-session --no-session-persistence','約4万のうち 96% をキャッシュから読む（実測）','残らない'],
@@ -66,7 +70,8 @@ function render(k){
  [['fork','① 反証を依頼する（単発 ・ 引き継ぐ）'],['a','② 実装役に任せる（継続 ・ 引き継がない）'],['b','③ 設計を知る実装役に任せる（継続 ・ 引き継ぐ）']].forEach(([key,title])=>{
   const r=t[key];
   h+='<div class="step"><b>'+title+'</b>'
-   +'<span class="k">呼び出し（契約）</span><pre>'+esc(CALL[key])+'</pre>'
+   +'<span class="k">呼び出し（call）</span><pre>'+esc(CALL[key])+'</pre>'
+   +'<span class="k">型（呼び出しの外）</span><span>'+esc(TYPE[key])+'</span>'
    +'<span class="k">ツールが返す能力</span><span>'+esc(t.cap[key])+'</span>'
    +'<span class="k">選ばれる型</span><span>'+esc(r[0])+'</span>'
    +'<span class="k">実際のコマンド</span><pre>'+esc(r[1])+'</pre>'
@@ -89,18 +94,20 @@ body = f'''<main>
 <p class="ans">作業は「単発か継続か」×「親の文脈を引き継ぐか」で4つの型。単発はサブエージェント、継続は別のセッションを再開する。既定は引き継がない側</p>
 <h2>1　2つの軸と4つの型</h2>
 {FIG('quad.svg')}
+<p class="meta">AI の rule の判定は、子のセッションの型の外にある。基盤がコーディングエージェントごとのアダプター（coding-agents）で、判定ごとに道具なし ・ 新しいセッションで起動し、セッションに登録しない</p>
 <h2>2　型の決め方</h2>
 {FIG('decide.svg')}
 <details><summary>決め方の理由（表）</summary>
 {table(['軸', '決め方'], [
  ['単発か継続か', '1回の答えで終わるなら単発。何度もやりとりして積み上げるなら継続'],
  ['単発で引き継ぐか', '良し悪しが、この会話の意図で決まるなら引き継ぐ（反証は「利用者の言葉から外れていないか」を見る）'],
- ['単発で引き継がないか', '会話の外の事実だけで決まるとき（原文の調査）。会話を見せてはいけないとき（AI の rule の判定は、値と x-prompt だけで判定すると決着済み）'],
+ ['単発で引き継がないか', '会話の外の事実だけで決まるとき（原文の調査）。AI の rule の判定はこの型に入れない（下の注記）'],
  ['継続で引き継ぐか', '意図を指示に書き切れず、会話そのものを持たせないと外れるときだけ。続けるあいだ親の会話（横道も含む）を背負うので、文脈が二重になり発散しやすい'],
  ['継続で引き継がないか', '意図を指示に書き切れるとき。既定'],
 ])}
 </details>
-<h2>3　AI ツールごとの手段とキャッシュ（4つとも引き継げる）</h2>
+<h2>3　コーディングエージェントごとの手段とキャッシュ（調べた4つとも引き継げる）</h2>
+<p class="meta">Gemini CLI は、この型の手段（サブエージェント ・ fork）とキャッシュの効き方を調べていない（不明）。再開 ・ 新規の事実はコーディングエージェントの調査の頁が5つとも持つ</p>
 {FIG('matrix.svg')}
 <details><summary>全部の手段とコマンド（表）</summary>
 {table(['型', 'Claude Code 2.1.305', 'Codex 0.164.0', 'Copilot 1.0.103', 'Kiro 2.21.1'], [
@@ -125,9 +132,9 @@ body = f'''<main>
 <h2>6　契約に持つもの</h2>
 {table(['持つもの', '中身'], [
  ['作業の型', '寿命（単発 ・ 継続）と親の文脈（引き継ぐ ・ 引き継がない）。単発はセッションの集約に登録しない。継続は目的 ・ 親 ・ 役割の組で1つ'],
- ['AI ツールのアダプターが返す能力', '型ごとに「外からのコマンドで作れるか」と「親のキャッシュが効くか ・ 再開で効くか（効く ・ 効かない ・ 不明）」'],
+ ['コーディングエージェントのアダプターが返す能力', '型ごとに「外からのコマンドで作れるか」と「親のキャッシュが効くか ・ 再開で効くか（効く ・ 効かない ・ 不明）」'],
  ['選び方', '使う場面が型を求め、ツールができない ・ 効かないときは4節の代わりにする'],
- ['基盤が関わる範囲', '基盤は AI を起動しない。外からのコマンドの手段はアダプターの能力として持つだけで、AI の中の手段（サブエージェント ・ 対話のコマンド）は呼ぶ側の AI ツールの機能'],
+ ['基盤が関わる範囲', '基盤は作業させる AI を起動しない（判定させる AI は除く。基盤が coding-agents で、判定ごとに道具なし ・ 新しいセッションで起動する）。外からのコマンドの手段はアダプターの能力として持つだけで、AI の中の手段（サブエージェント ・ 対話のコマンド）は呼ぶ側のコーディングエージェントの機能'],
 ])}
 <h2>7　手元の DB に残るもの</h2>
 {table(['もの', '置き場所', '中身'], [

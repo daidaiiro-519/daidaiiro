@@ -13,7 +13,7 @@ EDGES = {
  'validation': ['resolver', 'change', 'declaration'], 'render': ['resolver', 'change', 'declaration'],
  'search': ['change', 'instance', 'declaration'], 'session': ['declaration'],
 }
-OUTBOUND = ['agents-contract', 'ai-cli', 'git', 'fs', 'tools', 'sqlite']
+OUTBOUND = ['agents-contract', 'coding-agents', 'git', 'fs', 'tools', 'sqlite']
 
 def crate(name, desc, src, o=OK, extra=None):
     kids = [F('Cargo.toml', f'crate の名前 {P}{name}', OK), D('src/', 'ソース', [F('lib.rs', 'モジュールを宣言し、公開するものを pub use で並べる', OK)] + src, OK)]
@@ -42,10 +42,10 @@ def svcs(items):
     return [D('services/', 'ドメインサービス', [F(f, d, OK, 'svc') for f, d in items], OK)]
 DOMAIN = [
  crate('declaration', '意味の宣言', [
-   *values([('urn.rs', '名前の型（URN）', OK), ('target.rs', '対象（id と kind か、パス）', OK), ('procedure.rs', 'procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）', OK), ('purpose_ref.rs', '目的の参照（session と change が使う）', REV)]),
+   *values([('breach.rs', '宣言の誤り（場所と理由）', OK), ('by.rs', '判定する者（machine ・ ai ・ human）', OK), ('urn.rs', '名前の型（URN）', OK), ('patch.rs', 'JSON Patch（test ・ add ・ replace ・ remove）。外れたら状態に触れずに断る', OK), ('target.rs', '対象（id と kind か、パス）', OK), ('term.rs', 'term：glossary の term を版付きの id で指す', OK), ('procedure.rs', 'procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）', OK), ('purpose_ref.rs', '目的の参照（session と change が使う）', REV)]),
    *aggs([('abstract_schema.rs', 'Semantic Abstract Schema', [], []), ('concrete_schema.rs', 'Semantic Concrete Schema', [('rule.rs', 'rule')], [('concrete_template.rs', 'Concrete の雛形')]), ('glossary.rs', 'glossary', [], [])],
          shared_entities=[('delegate.rs', '任せる先（x-delegates。Abstract と Concrete の両方が持つ）')])],
-   extra=[F('build.rs', 'schemas/v1/ を取り込み、$id で引く', OK)]),
+   extra=[]),
  crate('instance', 'インスタンスの作成と変更', [*aggs([('instance.rs', 'インスタンス', [], [('instance_factory.rs', 'インスタンス（作る ・ 取り込む）')])])]),
  crate('change', '変更の確かめと例外の判断', [
    *values([('verdict.rs', '検証結果（5つの値 ・ 根拠 ・ 判定した者）', OK), ('instance_state.rs', 'インスタンスの状態の4つ', OK), ('change_id.rs', '変更の記録の id（ULID）', OK)]),
@@ -62,9 +62,9 @@ APP = [('semantic.rs', 'セマンティック7つ。procedure を返す'), ('sea
        ('record.rs', 'record ・ まとめを作る'), ('history.rs', 'history'), ('release.rs', 'release ・ migrate'), ('session.rs', 'session（立てる ・ 再開する ・ 閉じる）')]
 PORTS = [('contracts.rs', '契約を読む ・ 書く'), ('instances.rs', 'インスタンスを読む ・ 書く'), ('judgments.rs', '判定の記録を読む ・ 書く'), ('change_records.rs', '変更の記録を読む ・ 書く'),
          ('sessions.rs', 'セッションと手元のセッションの索引（索引の型もここ）'), ('change_summaries.rs', '変更のまとめを読む ・ 書く'), ('changes.rs', '変更の仕組みとやりとりする'), ('published.rs', '公開された言葉を取りに行く'),
-         ('judge.rs', 'rule の判定を依頼する（AI）'), ('rendered.rs', '描画したものを書き出す'), ('tools.rs', '外のツールを呼ぶ'), ('ai_sessions.rs', 'AI ツールのセッションを問う'), ('settings.rs', '設定を読む')]
+         ('judge.rs', 'rule の判定を依頼する（AI）'), ('rendered.rs', '描画したものを書き出す'), ('tools.rs', '外のツールを呼ぶ'), ('ai_sessions.rs', 'コーディングエージェントのセッションを問う'), ('settings.rs', '設定を読む')]
 AD = [('agents-contract', '腐敗防止層（Agents 契約）。judge を実装する', [('call.rs', '依頼の一覧を Agents 契約の形へ直す'), ('answer.rs', '答えの形を読む')]),
-      ('ai-cli', 'AI ツールの CLI。ai_sessions を実装する', [('claude_code.rs', ''), ('codex.rs', ''), ('copilot.rs', ''), ('gemini.rs', ''), ('kiro.rs', '')]),
+      ('coding-agents', 'コーディングエージェントの CLI。ai_sessions を実装する', [('claude_code.rs', ''), ('codex.rs', ''), ('copilot.rs', ''), ('gemini.rs', ''), ('kiro.rs', '')]),
       ('git', '変更の仕組み（Git の CLI）。changes を実装する', [('changes.rs', '前後 ・ 単位の中身 ・ 確定する')]),
       ('fs', 'ファイル', [('files.rs', 'contracts ・ instances ・ judgments（rule の判定）・ change_summaries'), ('settings.rs', 'settings'), ('rendered.rs', 'rendered'), ('published.rs', 'published'), ('snapshot.rs', 'changes の別の実装（前と後のディレクトリ）')]),
       ('tools', '外のツール。tools を実装する', [('run.rs', '名前と版で起動する')]),
@@ -90,7 +90,7 @@ TREE = D('semantic-agent-schema/', 'リポジトリ直下。ワークスペー�
    D('domain/', '業務領域ごとの crate。値を受け取り値を返す。入出力をしない ・ ポートを持たない', [F('clippy.toml', '入出力を禁じる（disallowed-methods ・ disallowed-types）＋ 根の設定値の写し', NEW)] + DOMAIN, OK),
    crate('application', '使う場面とポート', [D('use_cases/', '使う場面（コマンドの組ごとに1ファイル）', [F(f, d, OK, 'uc') for f, d in APP], OK),
        D('ports/', '駆動される側のポート13（trait。outbound が実装する）', [F(f, d, OK, 'port') for f, d in PORTS], OK)],
-       extra=[D('tests/', '結合テスト', [D('use_cases/', '', [F('main.rs', '使う場面ごとのモジュール', NEW), D('doubles/', '代役（ポート1つ1ファイル。FakeXxx ・ StubXxx）', [F('…', '', NEW)], NEW)], NEW)], NEW)]),
+       extra=[D('tests/', '結合テスト', [D('use_cases/', '', [F('main.rs', '使う場面ごとのモジュール', NEW), F('doubles.rs', '代役の一覧', NEW), D('doubles/', '代役（ポート1つ1ファイル。FakeXxx ・ StubXxx）', [F('contracts.rs', 'FakeContracts（メモリの上に置く）', NEW), F('…', '', NEW)], NEW)], NEW)], NEW)]),
    D('outbound/', '駆動される側のアダプター。application の ports/ を実装する', [
        crate(n, d, [F(f, dd, OK, 'ad') for f, dd in fs], extra=[D('tests/', '結合テスト', [D(f'{n}/', '', [F('main.rs', '', NEW)], NEW)], NEW)]) for n, d, fs in AD], OK),
    D('inbound/', '駆動する側のアダプター（入口）', [crate('cli', '入口。lib ＋ 実行ファイル2つ（CLI ・ MCP）', [F('main.rs', 'CLI の実行ファイル。引数を受け取って compose を呼ぶだけ', OK), D('commands/', 'セマンティック7つ ・ 機械的なコマンドの引数を読む', [F('semantic.rs', '', NEW), F('mechanical.rs', '', NEW)], OK),

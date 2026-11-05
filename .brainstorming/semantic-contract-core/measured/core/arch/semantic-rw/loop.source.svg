@@ -5,8 +5,8 @@
 <rect class="box kind-3" x="30" y="76" width="260" height="56"/><text class="title kind-3" x="42" y="98">① procedure を受け取る</text><text class="note small" x="42" y="118">対象と欄を指して呼ぶ</text>
 <rect class="box kind-3" x="30" y="176" width="260" height="56"/><text class="title kind-3" x="42" y="198">② 入力を生成する</text><text class="note small" x="42" y="218">入力のスキーマに合う JSON Patch</text>
 <rect class="box kind-3" x="30" y="300" width="260" height="56"/><text class="title kind-3" x="42" y="322">④ 止めてよいか見る</text><text class="note small" x="42" y="342">止めない → ① へ ／ needs → 親へ</text>
-<rect class="box kind-2" x="420" y="76" width="550" height="56"/><text class="title kind-2" x="432" y="98">semantic-read ・ semantic-write（procedure を返す）</text><text class="note small" x="432" y="118">手順（x-prompt の read と write の rule）・ 入力のスキーマ ・ 出力のスキーマ ・ いまの値と版</text>
-<rect class="box kind-2" x="420" y="176" width="550" height="96"/><text class="title kind-2" x="432" y="198">③ patch（機械的）</text><text class="note small" x="432" y="218">検査①：入力が入力のスキーマに合うか。外れたら断り、状態に触れない</text><text class="note small" x="432" y="238">適用 → 検査②：出力が形 ・ 機械の rule ・ AI の rule に合うか</text><text class="note small" x="432" y="258">②で外れても保存し、violated で返す。結果 ・ 止めてよいか ・ needs</text>
+<rect class="box kind-2" x="420" y="76" width="550" height="56"/><text class="title kind-2" x="432" y="98">semantic-read ・ semantic-write（procedure を返す）</text><text class="note small" x="432" y="118">手順（x-prompt の read と write の rule）・ 入力のスキーマ ・ 出力のスキーマ ・ いまの値と ETag</text>
+<rect class="box kind-2" x="420" y="176" width="550" height="96"/><text class="title kind-2" x="432" y="198">③ patch（機械的）</text><text class="note small" x="432" y="218">検査①：入力が入力のスキーマに合うか。外れたら断り、状態に触れない</text><text class="note small" x="432" y="238">適用 → 検査②：出力が形 ・ 機械の rule ・ AI の rule に合うか</text><text class="note small" x="432" y="258">新しく持ち込んだ機械の違反は断る。前からの違反と AI の rule は状態で返す</text>
 <rect class="box" x="420" y="306" width="550" height="56"/><text class="title" x="432" y="328">record（止めたあとに1回）</text><text class="note small" x="432" y="348">意図と目的の参照で、変更の記録を手元の DB に1件作る</text>
 <path class="flow" d="M290,104 H418"/>
 <path class="flow" d="M160,132 V174"/>
@@ -15,5 +15,5 @@
 <path class="flow" d="M290,340 H418"/>
 <path class="flow" d="M30,328 H20 V104 H28"/>
 <text class="note" x="10" y="412">止める条件：機械の rule の violated が0。error ・ unverified ・ 人が決める欄 ・ AI の rule は needs として返し、繰り返しでは消そうとしない</text>
-<text class="note" x="10" y="432">まとめ（change-summary）は、コミットの前に基盤が手元の変更の記録から機械的に作る</text>
+<text class="note" x="10" y="432">まとめ（change-summary）は、コミットの前に record --summary で基盤が手元の変更の記録から機械的に作る</text>
 </svg>

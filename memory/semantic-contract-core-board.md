@@ -5,6 +5,8 @@ metadata:
   type: project
 ---
 
+2026-10-29 の現在地は [[sas-foundation-schemas]] にある。下の「次にすること」は古い。
+
 ## 現在地（2026-10-23）
 
 - ボードの Artifact は CdRCEdAdiSnUrBSc3svC5j。Q3 だけが開いていて、ほかは決着済み（Q11 セッション、Q1 の ER 図まで c1f48c9c）。

@@ -31,7 +31,7 @@ crates['application'] = os.path.join(root, 'crates', 'application')
 def deps_of(c):
     if c in EDGES: return EDGES[c]
     if c == 'application': return list(EDGES)
-    if c == 'agents-contract': return ['application', 'ai-cli']
+    if c == 'agents-contract': return ['application', 'coding-agents']
     if c in OUTBOUND: return ['application']
     if c == 'cli': return ['application'] + OUTBOUND
     return []
@@ -95,8 +95,6 @@ for c, path in crates.items():
     if c == 'cli':
         doc(os.path.join(src, 'main.rs'), '//! 実行ファイル semantic-agent-schema\nfn main() { semantic_agent_schema_cli::compose::compose(); }\n')
         doc(os.path.join(src, 'bin', 'mcp.rs'), '//! 実行ファイル semantic-agent-schema-mcp\nfn main() { semantic_agent_schema_cli::compose::compose(); }\n')
-    if c == 'declaration':
-        doc(os.path.join(path, 'build.rs'), '//! schemas/v1/ を取り込む\nfn main() {}\n')
 
 for dp, dn, fn in os.walk(root):
     for f in fn:

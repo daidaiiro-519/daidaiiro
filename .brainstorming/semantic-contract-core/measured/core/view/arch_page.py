@@ -18,13 +18,13 @@ dep = table(['crate', '依存してよい先', '理由'], [
  ['domain/instance', 'declaration', '集約 インスタンス。ファクトリ インスタンス（作る ・ 取り込む）'],
  ['domain/change', 'declaration', '判定の記録 ・ 変更の記録 ・ 検証結果 ・ 状態。ファクトリ 変更のまとめ（記録から機械的に作り、コミットする）。判定の記録はこの業務領域（Q9 #6）'],
  ['domain/resolver', 'instance ・ declaration', 'Semantic Schema Resolver。validation から分けた。描画と検証の両方が使う（Q5 #1）'],
- ['domain/validation', 'resolver ・ change ・ declaration', 'Semantic Schema Validator（2段：依頼の一覧を返す ・ 答えをまとめる）。change は検証を呼ばない'],
+ ['domain/validation', 'instance ・ resolver ・ change ・ declaration', 'Semantic Schema Validator（2段：依頼の一覧を返す ・ 答えをまとめる）。change は検証を呼ばない'],
  ['domain/render', 'resolver ・ change ・ declaration', 'Semantic Schema Renderer。状態と rule ごとの結果を描く。基盤の既定のビューも Concrete のビューも同じ形で描く'],
  ['domain/search', 'change ・ instance ・ declaration', '探す条件（JMESPath の where ・ select）・ 出どころ ・ 探した範囲'],
  ['domain/session', 'declaration', '集約 セッション。Session Selector（再開か新規かを、渡された値だけで決める）。子のセッションの型。目的の参照（values/purpose_ref.rs）を declaration から使う'],
  ['application', 'domain/ のすべて', '使う場面と ports/（駆動される側13）。読む → ドメインサービス ・ 集約の操作 → 書く'],
- ['outbound/agents-contract', 'application ・ outbound/ai-cli', 'judge を実装する。依頼の一覧を Agents 契約の形へ直し、ai-cli で起動する'],
- ['outbound/ai-cli ・ git ・ fs ・ tools ・ sqlite', 'application', 'ports/ の trait を実装する。sqlite は手元の DB（セッション ・ 手元の索引 ・ 変更の記録 ・ 意図の判定）'],
+ ['outbound/agents-contract', 'application ・ outbound/coding-agents', 'judge を実装する。依頼の一覧を Agents 契約の形へ直し、coding-agents で起動する'],
+ ['outbound/coding-agents ・ git ・ fs ・ tools ・ sqlite', 'application', 'ports/ の trait を実装する。sqlite は手元の DB（セッション ・ 手元の索引 ・ 変更の記録 ・ 意図の判定）'],
  ['inbound/cli', 'application ・ outbound/*', '起動と結びつけ。lib と実行ファイル2つ（src/main.rs の CLI ・ src/bin/mcp.rs の MCP）。コマンド（セマンティック7つ ・ 機械的）。時刻と id を値で渡す'],
 ])
 s = between(s, '<h2>4　依存の向き</h2>', '<h2>5　', f'''<h2>4　依存の向き</h2><div class="fig" style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto">{svg}</div>
@@ -34,7 +34,7 @@ s = between(s, '<h2>4　依存の向き</h2>', '<h2>5　', f'''<h2>4　依存の
 {table(['ドメインサービス', 'application がすること', 'ドメインサービスがすること'], [
  ['Semantic Schema Resolver（セマンティック スキーマ リゾルバー）', '文脈のリポジトリの契約 ・ glossary と、閉じた一覧にある公開された言葉の版を先に読んで渡す（Q4 #9）', '渡された中だけで解決し、無いものは断る'],
  ['Semantic Schema Validator（セマンティック スキーマ バリデーター）', '依頼の一覧を受け取り、judge ・ tools のポートで依頼して答えを渡す。答えどうしに連鎖があれば繰り返す', '① 依頼の一覧（呼び出し call）を返す ② 答えを5つの値にまとめる（割れた答えと根拠の無い答えは unverified。I14）'],
- ['Session Selector（セッション セレクター）', 'トランザクションを取り、索引 ・ AI ツール ・ 設定を読んで渡し、返った決定を索引へ書いてコミットする', '渡された値だけで、再開する ID か「新しく立てる」を返す'],
+ ['Session Selector（セッション セレクター）', 'トランザクションを取り、索引 ・ コーディングエージェント ・ 設定を読んで渡し、返った決定を索引へ書いてコミットする', '渡された値だけで、再開する ID か「新しく立てる」を返す'],
 ])}
 ''')
 s = s.replace('<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から adapters ・ entry への辺は種類を問わず0件</td>', '<td>dev-dependencies は循環を許す（change → fs → change が通った）</td><td>cargo metadata の辺を種類（normal ・ dev ・ build）ごとに architecture.json と突き合わせる。domain から application ・ outbound ・ inbound への辺は種類を問わず0件</td>')
@@ -52,7 +52,7 @@ s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7
  ['workflow', 'application', 'ddd：層の語にそろえる'],
  ['ポートは domain の各 crate の ports.rs', 'application の ports/。domain は値の関数', '利用者「私はportsはよくapplication層に置いてるんだよね」・ ddd ・ 反証（2回目）：Q0 #14「同じ入力から同じ結果」と Q4 の下書き「core は入出力に触らない」'],
  ['判定の記録を validation へ移す', 'change のまま。validation → change の向きにする', '反証（2回目）：Q9 #6 と食い違う'],
- ['render は declaration ・ values だけ', 'validation ・ change ・ declaration', '反証（2回目）：Q5 #1（Resolver は描画も使う）'],
+ ['render は declaration ・ values だけ', 'resolver ・ change ・ declaration', '反証（2回目）：Q5 #1（Resolver は描画も使う）'],
  ['instance → validation', '外す（application が順に呼ぶ）', '反証（2回目）：処理の順序は domain の辺ではない'],
  ['答えを5つの値へ直すのは agents-contract', 'validation（Validator の②）', '反証（2回目）：I14 はドメインの不変条件。Q9 #16'],
  ['adapters/ ・ entry/', 'outbound/ ・ inbound/', '反証（2回目）：Q5 #9「英語はコードのフォルダ名 inbound ・ outbound と同じ」'],
@@ -61,7 +61,7 @@ s = between(s, '<h2>7　レビューで直したこと</h2>', '<h2>8　', '<h2>7
  ['ドメインサービス13', '4つ（Resolver ・ Validator ・ Renderer ・ Session Selector）。残りは集約の操作とファクトリ3つ', '利用者「エンティティや値オブジェクト、集約でやるべき処理がほぼほぼ」・ arch/services の承認'],
  ['入口のコマンド：semantic-read ・ write ・ search と search ・ get ・ patch ・ validate、ほかは名前だけ', 'セマンティック7つ（search ・ read ・ create ・ write ・ judge ・ import ・ migrate。procedure を返す）と、機械的なコマンド。消すは無くし、不要なものは superseded で残す', 'arch/command-sim の承認'],
  ['変更の記録をコミットする', '変更の記録と意図の判定は手元の DB。目的ごとのまとめと rule の判定をコミットする', 'arch/change-summary の承認'],
- ['AI ツールごとに5 crate', 'agents-contract（腐敗防止層）1つ ＋ ai-cli 1つ（ツールはモジュール）', '3人とも'],
+ ['コーディングエージェントごとに5 crate', 'agents-contract（腐敗防止層）1つ ＋ coding-agents 1つ（ツールはモジュール）', '3人とも'],
  ['compose の crate', 'inbound/cli の lib の中（CLI と MCP の実行ファイル2つが同じ compose.rs を使う）', 'ddd ・ platform ・ ボード Q3（駆動する側は CLI ・ MCP）'],
  ['検査は Cargo.toml の辺と clippy', '許す辺の表（種類と外の crate を含む）・ clippy の forbid ・ 単独ビルド。pub use の grep と trait の検査は外した', 'platform（Cargo が止めない書き方4つを実測）・ 利用者「crateである程度依存の検証はできるよね？？」'],
 ]))
@@ -74,11 +74,11 @@ s = between(s, '<h2>8　', '</main>', '<h2>8　決めたこと</h2>' + table(['�
  ['入口', 'CLI（src/main.rs）と MCP（src/bin/mcp.rs）。inbound/cli の crate の lib の compose.rs を両方が使う'],
  ['変更の記録の置き場所', '1件ずつの変更の記録と意図の判定は手元の DB（sqlite）。コミットごとのまとめ（前回のコミットからの差し引きと例外）と rule の判定はファイルでコミットする'],
  ['消す', '無くす。不要なものは superseded にして残す。項目を消すのは Patch の remove。確定していない変更の取り消しは Git の側'],
- ['テスト', 'システムテストは約21場面（test-suite/）。残りは単体 ・ コンポーネント統合へ（テスト計画の頁）'],
+ ['テスト', 'システムテストは test-suite/scenarios（場面の JSON）。残りは単体 ・ コンポーネント統合へ（テスト計画の頁）'],
 ]) + '<h3>スキーマは集約なのに、なぜ crates/ の外か</h3>' + table(['分けるもの', '置き場所', '前提'], [
  ['集約 Semantic Abstract Schema の型と不変条件（出した版は変えない ・ $id の形）', 'crates/domain/declaration/src/aggregates/abstract_schema.rs', 'model.json aggregates（意味の宣言）'],
  ['集約の中身：版ごとのファイル', 'semantic-agent-schema/schemas/v1/（版を足すときは v2/ を並べる）', 'Q9「Abstract の版は公開された言葉である。版を並べて出す」・ Q6「最初の公開から出した版は変えない」'],
  ['基盤が読む方法', 'ポートを通さず、declaration の build.rs がビルドのときに取り込む', 'model.json ports.not_ports「Abstract（基盤の中）」'],
  ['crates/ の中に置かない理由', '公開された言葉の読み手は Rust の外にもいる（Concrete の作者の $schema ・ ほかの言語の Concrete ・ test-suite/ の試験）', 'boundary「実装の言語は契約に出さない」'],
-]) + '<p class="meta">まだ正本（model.json ・ Abstract のファイル）には適用していない。ACDR で変更前と変更後を示し、承認を得てから適用する</p>\n')
+]) + '\n')
 open(p, 'w').write(s); print('ok')

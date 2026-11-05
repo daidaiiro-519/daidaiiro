@@ -1,5 +1,5 @@
 """既定のビュー3つ（セッション ・ 変更のまとめ ・ 判定）のデザインシステムと完成イメージ。ux-advisor の回答（reviews/ux-advisor.json）に沿う。"""
-import os, json
+import os, json, html
 H = os.path.dirname(os.path.abspath(__file__))
 flow = open(os.path.join(H, 'flow.svg')).read()
 ux = json.load(open(os.path.join(H, 'reviews', 'ux-advisor.json')))
@@ -15,8 +15,37 @@ DARK = dict(bg='#0e1614', card='#16211e', ink='#e6eeeb', sub='#9dada8', line='#2
   ok='#86c27a', okbg='#1c2b19', okb='#86c27a', ng='#f0a3a0', ngbg='#3a1c1d', ngb='#f0a3a0', wt='#d9a35f', wtbg='#33281a', wtb='#d9a35f',
   bf='#d9b77e', bfbg='#241d14', af='#6cc9b8', afbg='#173330', nextfg='#0e1614', nextbg='#6cc9b8', focus='#6cc9b8', link='#6cc9b8')
 V = lambda d: ';'.join(f'--{k}:{v}' for k, v in d.items())
-TOK = [('color.surface.page','bg'),('color.surface.card','card'),('color.text','ink'),('color.text.secondary','sub'),('color.surface.line','line'),
- ('color.status.verified','ok'),('color.status.violated','ng'),('color.status.unverified','wt'),('color.diff.before','bf'),('color.diff.after','af'),('color.next','nextbg'),('color.focus','focus')]
+TOK = [('color.surface.page','bg'),('color.surface.card','card'),('color.surface.line','line'),('color.text','ink'),('color.text.secondary','sub'),
+ ('color.status.verified.fg','ok'),('color.status.verified.bg','okbg'),('color.status.verified.border','okb'),
+ ('color.status.violated.fg','ng'),('color.status.violated.bg','ngbg'),('color.status.violated.border','ngb'),
+ ('color.status.unverified.fg','wt'),('color.status.unverified.bg','wtbg'),('color.status.unverified.border','wtb'),
+ ('color.diff.before.fg','bf'),('color.diff.before.bg','bfbg'),('color.diff.after.fg','af'),('color.diff.after.bg','afbg'),
+ ('color.next.fg','nextfg'),('color.next.bg','nextbg'),('color.focus','focus'),('color.link','link')]
+K = {v: n for n, v in TOK}
+CONTRAST = [('ink','card',4.5),('sub','card',4.5),('ok','okbg',4.5),('ng','ngbg',4.5),('wt','wtbg',4.5),('okb','card',3),('ngb','card',3),('wtb','card',3),
+ ('bf','bfbg',4.5),('af','afbg',4.5),('nextfg','nextbg',4.5),('link','card',4.5),('focus','card',3)]
+TOKENS_DOC = {"$schema": "urn:semantic-agent-schema:base:design-tokens:v1", "kind": "design-tokens", "id": "tokens",
+  "tokens": {n: {"light": LIGHT[v].upper(), "dark": DARK[v].upper()} for n, v in TOK},
+  "contrast": [{"fg": K[f], "bg": K[b], "min": m} for f, b, m in CONTRAST]}
+PARTS = [
+ ('answer-band', '答えの帯', ['color.surface.card', 'color.surface.line', 'color.text']),
+ ('next-band', '次にすることの帯', ['color.next.bg', 'color.next.fg', 'color.surface.card', 'color.text']),
+ ('status-badge', '状態のバッジ', [f'color.status.{s}.{x}' for s in ('verified', 'violated', 'unverified') for x in ('fg', 'bg', 'border')]),
+ ('judged-by-badge', '判定した者のバッジ', ['color.text', 'color.text.secondary']),
+ ('exception-list', '例外の一覧', ['color.status.violated.fg', 'color.status.violated.bg', 'color.status.violated.border']),
+ ('intent-card', '意図のカード', ['color.surface.card', 'color.surface.line', 'color.text.secondary']),
+ ('diff', '差分の表示', ['color.diff.before.fg', 'color.diff.before.bg', 'color.diff.after.fg', 'color.diff.after.bg']),
+ ('judgment-row', '判定の行', ['color.surface.card', 'color.surface.line', 'color.text']),
+ ('session-tree', 'セッションの木', ['color.text']),
+ ('breadcrumb', '現在地の行', ['color.text.secondary', 'color.link']),
+ ('fold', '畳み（未決：下の注）', ['color.surface.card', 'color.surface.line', 'color.link']),
+]
+VIEW_DOC = {"$schema": "urn:semantic-agent-schema:base:view:v1", "kind": "view", "id": "change-summary",
+  "for": "urn:semantic-agent-schema:base:change-summary:v1",
+  "sections": [
+   {"title": "例外", "parts": [{"part": "exception-list", "value": "/exceptions", "label": "例外"}]},
+   {"title": "意図ごとの変更", "parts": [{"part": "intent-card", "value": "/purposes", "label": "目的 → 意図"}]},
+   {"title": "前後のコミット", "parts": [{"part": "fold", "value": "/range", "label": "この変更の前後のコミット"}]}]}
 def swatches(cls):
     return f'<div class="tile {cls}">' + ''.join(f'<div class="sw"><span class="chip" style="background:var(--{v})"></span><code>{n}</code></div>' for n, v in TOK) + '</div>'
 # ---- 部品
@@ -35,13 +64,13 @@ S1 = f'''<article class="screen" id="v-s" aria-labelledby="t-s">
 {crumb('目的 0199', '<b>セッション S-01</b>（あなた ・ open）')}
 <h2 id="t-s">セッション ─ 0199 依存の向きの検査ツール</h2>
 <p class="answer"><b>コミットの前に片付けること：2件</b>（意図 I-1 ・ I-2 の承認待ち）。意図に無い変更 1件は戻し済み</p>
-{next_band('意図 I-1 と I-2 の変更を確かめて、承認する', 'judge --intent I-1 I-2 --approve')}
+{next_band('意図 I-1 と I-2 の変更を確かめて、変更ごとに判定を記録する', 'judge &lt;変更の id&gt; --result verified --meaning &quot;&lt;意味&gt;&quot; --reason &quot;&lt;理由&gt;&quot;')}
 <h3>片付けること</h3>
 <div class="card"><div class="ch">{WT}<b>承認待ち</b> 意図 I-1　依存の向きを決めた記録を書く</div>
- <p class="meta2">対象 <code>0199</code> decision-record@1（新しく作った）・ 欄 3 ・ 意図の判定 {BY('AI')} pass</p>
+ <p class="meta2">対象 <code>0199</code> decision-record@1（新しく作った）・ 欄 3 ・ 意図の判定 {BY('AI')} verified</p>
  <details><summary>差分を開く（欄 3）</summary>{D0199}</details></div>
 <div class="card"><div class="ch">{WT}<b>承認待ち</b> 意図 I-2　cargo metadata から依存を読む</div>
- <p class="meta2">対象 <code>architecture-lint/src/cargo.rs</code> ・ 意図の判定 {BY('AI')} pass</p>
+ <p class="meta2">対象 <code>architecture-lint/src/cargo.rs</code> ・ 意図の判定 {BY('AI')} verified</p>
  <details><summary>差分を開く（Git の差分）</summary>{GITD}</details></div>
 <details class="fold"><summary>戻し済み（1件）</summary>
  <div class="card"><div class="ch">{NG}<b>戻した</b> 意図 I-1 に無い変更</div>
@@ -54,47 +83,50 @@ S1 = f'''<article class="screen" id="v-s" aria-labelledby="t-s">
 S2 = f'''<article class="screen" id="v-c" aria-labelledby="t-c" hidden>
 {crumb('目的 0199', '<b>コミット 3f2a9c1</b>（前回 8b01d4e から）')}
 <h2 id="t-c">変更のまとめ ─ 0199 依存の向きの検査ツール</h2>
-<p class="answer"><b>意図 2件とも意図どおり</b>（AI pass ・ 人 承認）。例外 1件は同じ変更の中で戻した</p>
-{next_band('例外 1件を確かめてから、この PR を承認する')}
-<section class="exc" aria-labelledby="t-exc"><h3 id="t-exc">！ 例外（1件）</h3>
- <ul><li><code>0185</code> の <code>/decision</code> を意図に無く変えた → 同じ変更の中で戻した（差し引き 0）
- <details><summary>判定の理由を見る</summary><p>意図 I-1（0199 を書く）に無い記録の決定を変えている。判定した者 {BY('AI')}</p></details></li></ul></section>
+<p class="answer"><b>意図 2件とも意図どおり</b>（判定 verified。最新は人）。例外 3件は、同じ変更の中で 0185 の /decision を変えて戻した分</p>
+{next_band('例外 3件を確かめてから、この PR を承認する')}
+<section class="exc" aria-labelledby="t-exc"><h3 id="t-exc">！ 例外（3件）</h3>
+ <ul><li>intent-mismatch 1件（C-2）：<code>0185</code> の <code>/decision</code> を意図に無く変えた
+ <details><summary>判定の理由を見る</summary><p>意図 I-1（0199 を書く）に無い記録の決定を変えている。判定した者 {BY('AI')}</p></details></li>
+ <li>no-change 2件（C-2 ・ C-3）：<code>0185</code> の <code>/decision</code> は同じ変更の中で戻したので、差し引き 0</li></ul></section>
 <h3>意図ごとの変更</h3>
 <div class="card"><div class="ch">{OK}<b>I-1</b> 依存の向きを決めた記録を書く</div>
- <p class="meta2">判定 {BY('AI')} pass ・ {BY('人')} 承認 ・ 対象 <code>0199</code> decision-record@1（新しく作った）・ 欄 <code>/title</code> <code>/decision</code> <code>/why</code></p>
+ <p class="meta2">判定 verified（最新：{BY('人')}）・ 対象 <code>0199</code> decision-record@1（新しく作った）・ 欄 <code>/title</code> <code>/decision</code> <code>/why</code></p>
  <details><summary>差分を開く（欄 3）</summary>{D0199}</details>
  <details><summary>判定の理由を開く</summary><p>意味「0199 に決定と理由を書いた」・ 理由「変えた欄が意図の範囲（0199）に収まる」</p></details></div>
 <div class="card"><div class="ch">{OK}<b>I-2</b> cargo metadata から依存を読む</div>
- <p class="meta2">判定 {BY('AI')} pass ・ {BY('人')} 承認 ・ 対象 <code>architecture-lint/src/cargo.rs</code></p>
+ <p class="meta2">判定 verified（最新：{BY('人')}）・ 対象 <code>architecture-lint/src/cargo.rs</code></p>
  <details><summary>差分を開く（Git の差分）</summary>{GITD}</details>
  <details><summary>判定の理由を開く</summary><p>意味「依存の読み取りを cargo metadata に替えた」・ 理由「変えたのは読み取りの関数だけ」</p></details></div>
 <h3>突き合わせ</h3>
-<p>記録に無い書き換え 0件 ・ 書き換えの無い記録 0件 ・ 状態が変わったインスタンス：<code>0199</code>（無い → {OK}）<a href="#" data-go="j" class="go">0199 の判定を見る</a></p>
+<p>記録に無い書き換え 0件 ・ 書き換えの無い記録 2件（C-2 ・ C-3）。インスタンスの状態はまとめには無く、validate . の data.files から出す（<code>0199</code>：無い → {OK}）<a href="#" data-go="j" class="go">0199 の判定を見る</a></p>
 <details class="fold"><summary>この変更の id と前後のコミット</summary><p><code>changes/01JB7….json</code> ・ 3f2a9c1 ← 8b01d4e</p></details>
 </article>'''
 S3 = f'''<article class="screen" id="v-j" aria-labelledby="t-j" hidden>
 {crumb('目的 0199', '<a href="#" data-go="c" class="go">コミット 3f2a9c1</a>', '<b>0199</b>', 'いまの姿 7c3e210')}
 <h2 id="t-j">判定 ─ 0199 decision-record@1</h2>
 <p class="answer">{WT}<b>rule 1件の取り直しが要る</b>　✓ 4 ・ ✕ 0 ・ ？ 1</p>
-{next_band('owner-format を版 4 で取り直す', 'semantic-judge 0199 owner-format')}
+{next_band('owner-format を取り直す（基盤が coding-agents で新しいセッションの AI に判定を依頼する。コマンドの名前はステップ4で決まる）', 'validate .acdr/0199-依存の向き/acdr.json')}
 <h3>要対応</h3>
-<div class="card" id="row-owner-format"><div class="ch">{WT}<b>owner-format</b>（版 4）</div>
+<div class="card" id="row-owner-format"><div class="ch">{WT}<b>owner-format</b></div>
  <p class="meta2">判定した値 <code>/owner</code> = maintainer daidaiiro</p>
- <p>理由：rule を版 3 → 4 に変えたので、版 3 の pass は効かない（前回 {BY('AI')} pass ・ 版 3）</p>
- <details><summary>rule の文（版 4）を開く</summary><p>責任者を role と名前で書く</p></details></div>
+ <p>理由：rule の文が変わったので、前の判定は効かない（前回 {BY('AI')} verified）。rule の文が変わったことをどう見分けるかは未決（rule に版の欄は無い）</p>
+ <details><summary>いまの rule の文を開く</summary><p>責任者を role と名前で書く</p></details></div>
 <details class="fold"><summary>✓ verified（4件）</summary>
-{table(['rule（版）','結果','判定した者','根拠'], [['形（JSON Schema）', OK, BY('機械'), '—'],['owner-required', OK, BY('機械'), 'owner がある'],['why-explains-decision（3）', OK, BY('AI'), '理由が、決定の手段と比べた案を述べている'],['decision-is-actionable（3）', OK, BY('AI'), '作るものが名前で決まっている']])}</details>
+{table(['rule','結果','判定した者','根拠'], [['形（JSON Schema）', OK, BY('機械'), '—'],['owner-required', OK, BY('機械'), 'owner がある'],['why-explains-decision', OK, BY('AI'), '理由が、決定の手段と比べた案を述べている'],['decision-is-actionable', OK, BY('AI'), '作るものが名前で決まっている']])}</details>
 <p class="meta2"><a href="#" data-go="c" class="go">この判定が出てくる変更のまとめへ戻る</a></p>
 </article>'''
-h_who, r_who = rows_of('見る人'); h_fold, r_fold = rows_of('ビュー'); h_parts, r_parts = rows_of('部品'); h_chk, r_chk = rows_of('原則'); h_ask, r_ask = rows_of('原則で決まらないこと')
+h_who, r_who = rows_of('見る人'); h_fold, r_fold = rows_of('ビュー'); h_parts, r_parts = rows_of('部品')
+# rule に版の欄は無い（③の未決）。ux-advisor の回答の「rule の名前と版」を、頁では rule の名前に直して出す
+r_parts = [[c.replace('rule の名前と版', 'rule の名前') for c in r] for r in r_parts]; h_chk, r_chk = rows_of('原則'); h_ask, r_ask = rows_of('原則で決まらないこと')
 GALLERY = f'''<div class="gal">
 <div class="gi"><h4>答えの帯</h4><p class="answer"><b>コミットの前に片付けること：2件</b></p></div>
-<div class="gi"><h4>次にすることの帯</h4>{next_band('owner-format を版 4 で取り直す', 'semantic-judge 0199 owner-format')}</div>
+<div class="gi"><h4>次にすることの帯</h4>{next_band('owner-format を取り直す（基盤が coding-agents で新しいセッションの AI に判定を依頼する。コマンドの名前はステップ4で決まる）', 'validate .acdr/0199-依存の向き/acdr.json')}</div>
 <div class="gi"><h4>状態の札</h4><p>{OK} {NG} {WT}</p></div>
 <div class="gi"><h4>判定した者の札</h4><p>{BY('機械')} {BY('AI')} {BY('人')}</p></div>
-<div class="gi"><h4>例外の一覧</h4><section class="exc"><h3>！ 例外（1件）</h3><ul><li><code>0185</code> の <code>/decision</code> を意図に無く変えた</li></ul></section></div>
+<div class="gi"><h4>例外の一覧</h4><section class="exc"><h3>！ 例外（3件）</h3><ul><li>intent-mismatch 1件（C-2）：<code>0185</code> の <code>/decision</code> を意図に無く変えた</li><li>no-change 2件（C-2 ・ C-3）</li></ul></section></div>
 <div class="gi"><h4>差分の表示</h4>{diff([('/why','（無い）','cargo-deny を避け…')])}</div>
-<div class="gi"><h4>意図のカード</h4><div class="card"><div class="ch">{OK}<b>I-2</b> cargo metadata から依存を読む</div><p class="meta2">判定 {BY('AI')} pass ・ {BY('人')} 承認</p></div></div>
+<div class="gi"><h4>意図のカード</h4><div class="card"><div class="ch">{OK}<b>I-2</b> cargo metadata から依存を読む</div><p class="meta2">判定 verified（最新：{BY('人')}）</p></div></div>
 <div class="gi"><h4>現在地の行 ・ 畳み</h4>{crumb('目的 0199','<b>0199</b>')}<details class="fold"><summary>✓ verified（4件）</summary><p>…</p></details></div>
 </div>'''
 CSS = f'''
@@ -165,10 +197,18 @@ body = f'''<title>既定のビューのデザインシステム</title>
 <h2>5　デザインシステム</h2>
 <h3>トークン（明るい地 ・ 暗い地）</h3>
 <div class="tiles">{swatches('t-light')}{swatches('t-dark')}</div>
+<p class="meta2">1つのトークンは1色（design-tokens の tokens の値は light ・ dark の2つの #RRGGBB だけ）。状態は文字 ・ 地 ・ 枠の3色を使うので、fg ・ bg ・ border の3つのトークンに分ける</p>
+<details class="fold"><summary>デザイントークンのインスタンス（design-tokens.schema.json の形 ・ トークン {len(TOK)} ・ コントラストの組 {len(CONTRAST)}）</summary><pre class="gd">{html.escape(json.dumps(TOKENS_DOC, ensure_ascii=False, indent=2))}</pre></details>
 <p class="meta2">色を使うのは状態 ・ 例外 ・ 差分 ・ 次にすることの4か所だけ。差分の色（砂色 ・ 青緑）は状態の色（緑 ・ 赤）と分ける。文字は 4.5:1 以上、状態の枠は 3:1 以上を明暗とも満たす（WCAG 1.4.3 ・ 1.4.11）</p>
 <h3>部品</h3>
 {GALLERY}
 {table(h_parts, r_parts)}
+<h3>部品のカタログ（catalog.schema.json の parts）</h3>
+{table(['部品と catalog の id', '使うトークン（tokens）'], [[f'{ja}<br><code>{pid}</code>', '<br>'.join(f'<code>{t}</code>' for t in toks)] for pid, ja, toks in PARTS])}
+<p class="meta2">id は ^[a-z0-9]+(-[a-z0-9]+)*$、各部品は description と tokens を持つ。tokens の名前はすべて上のデザイントークンにある（tokens-exist）</p>
+<h3>ビューの例（view.schema.json の形 ・ ② 変更のまとめ）</h3>
+<details class="fold"><summary>change-summary のビュー（sections ・ parts）</summary><pre class="gd">{html.escape(json.dumps(VIEW_DOC, ensure_ascii=False, indent=2))}</pre></details>
+<p class="meta2">parts の value は change-summary の欄を指す JSON Pointer（/exceptions ・ /purposes ・ /range。実装の schemas/v1/change-summary.schema.json の欄）。未決：view の形には「畳む」を書く欄が無い。上の例は畳みを部品 fold で持つ案で書いた。部品で持つか、sections に欄を足すかは決まっていない</p>
 
 <h2>6　原則での点検</h2>
 {table(h_chk, r_chk)}

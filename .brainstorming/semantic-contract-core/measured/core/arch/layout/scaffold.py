@@ -35,7 +35,7 @@ for p, node in nodes.items():
 def deps_of(c):
     if c in EDGES: return EDGES[c]
     if c == 'application': return list(EDGES)
-    if c == 'agents-contract': return ['application', 'ai-cli']
+    if c == 'agents-contract': return ['application', 'coding-agents']
     if c in OUTBOUND: return ['application']
     if c == 'cli': return ['application'] + OUTBOUND
     return []

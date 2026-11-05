@@ -9,8 +9,20 @@ def table(head_, rows):
     return '<div class="tw"><table><tr>' + ''.join(f'<th>{h}</th>' for h in head_) + '</tr>' + ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>' for r in rows) + '</table></div>'
 import json
 m = json.load(open(os.path.join(C, 'model', 'model.json')))
-outs = [[p[0], p[1]] for p in m['ports']['outbound']]
-ins = [[p[0], ' ・ '.join(p[1])] for p in m['ports']['inbound']]
+# ファイル名は実装の test-suite/trace.json の ports（名前の先頭で突き合わせる）
+tports = json.load(open(os.path.join(H, *['..'] * 6, 'semantic-agent-schema', 'test-suite', 'trace.json')))['ports']
+def port_file(name):
+    hit = [t['file'] for t in tports if name.startswith(t['name'].split('（')[0].split(' ・ 書く')[0])]
+    assert len(hit) == 1, (name, hit)
+    return 'ports/' + hit[0]
+outs = [[p[0], port_file(p[0]), p[1]] for p in m['ports']['outbound']]
+# 検査②の文は model.json（ports.inbound）が古いので、この頁では実装の CODING.md 6節の文に置き換えて出す
+OLD2 = '②適用した後の出力が形 ・ 機械の rule ・ AI の rule に合うか（外れても保存し violated で返す Q8）'
+NEW2 = '②適用した後の姿が形と rule に合うか（その書き込みが新しく持ち込んだ機械の violated があれば書かずに findings を返す。data.saved:false。前からある violated ・ AI と人の rule は書き込みを止めず、状態として返す）'
+OLD3 = 'AI の rule は needs で返し、semantic-judge の答えを validate がまとめる'
+NEW3 = 'AI の rule は needs で返し、application が judge のポートで判定させる AI を起動して（アダプター coding-agents。判定ごとに新しいセッション）、validate が答えをまとめる'
+ins = [[p[0].replace(OLD2, NEW2).replace(OLD3, NEW3), ' ・ '.join(p[1])] for p in m['ports']['inbound']]
+assert any(NEW2 in r[0] for r in ins)
 body = f'''<main>
 <h1>ポートの置き場所とドメインサービス</h1>
 <p class="meta">利用者の問い（ポートは domain か application か ・ ドメインサービスは1つの業務領域に属するか ・ その定義）への答え。ddd-advisor と反証役のレビューを、ボードの決着に照らして1つにした。ACDR 0201 で model.json ・ arch.html に入れた</p>
@@ -31,12 +43,12 @@ body = f'''<main>
 <h2>3　外の情報を使うドメインサービス</h2>
 {table(['ドメインサービス', '外の情報の受け取り方', '前提'], [
  ['Semantic Schema Resolver', 'application が文脈のリポジトリの契約 ・ glossary と、閉じた一覧にある公開された言葉の版を先に読んで渡す。Resolver は渡された中だけで解決し、無いものは断る', 'Q4 #9「検証の途中で、$ref が指す外のスキーマを取りに行かない」'],
- ['Semantic Schema Validator', '2段で動く。①依頼の一覧（呼び出し call）を値で返す ②application が AI に semantic-judge の procedure を渡し、返った答えを5つの値にまとめる（割れたら unverified）。rule の答えどうしに連鎖があれば、application が①②を繰り返す', 'I14 ・ C60'],
- ['Session Selector', 'application がトランザクションを取り、手元の索引 ・ AI ツールの答え ・ 設定を読んで渡す。返った「再開する ID」か「新しく立てる（閉じる ID）」を、セッションの集約のコマンドで書いてコミットする', 'boundary「基盤は起動の前に問われて、再開する ID か「新しく立てる」を返すだけ」'],
+ ['Semantic Schema Validator', '2段で動く。①依頼の一覧（呼び出し call）を値で返す ②application が judge ・ tools のポートで依頼し（判定させる AI は judge のアダプター agents-contract ＋ coding-agents が判定ごとに新しいセッションで起動する）、返った答えを5つの値にまとめる（割れたら unverified）。rule の答えどうしに連鎖があれば、application が①②を繰り返す', 'I14 ・ C60'],
+ ['Session Selector', 'application がトランザクションを取り、手元の索引 ・ コーディングエージェントの答え ・ 設定を読んで渡す。返った「再開する ID」か「新しく立てる（閉じる ID）」を、セッションの集約のコマンドで書いてコミットする', 'boundary「基盤は起動の前に問われて、再開する ID か「新しく立てる」を返すだけ」'],
  ['Semantic Schema Renderer', 'application が描くインスタンス ・ 状態 ・ ビュー（文脈の Concrete のビューか、Abstract に同梱した既定のビュー）を渡す。書き出しは application が「描画したものを書き出す」ポートで行う', 'I26'],
 ])}
 <h2>4　駆動される側のポート（{len(outs)}。application の ports/）</h2>
-{table(['ポート', '最初のアダプター'], outs)}
+{table(['ポート', 'ファイル（crates/application/src/）', '最初のアダプター'], outs)}
 <h2>5　駆動する側の入口（{len(ins)}。inbound）</h2>
 {table(['入口', '使う場面'], ins)}
 <p class="meta">AI が行う操作は、入口のセマンティックのコマンドが procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）を返し、AI が生成した入力を機械的なコマンドが適用する。消すコマンドは無い</p>

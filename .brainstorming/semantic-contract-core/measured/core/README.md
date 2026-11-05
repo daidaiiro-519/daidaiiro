@@ -9,7 +9,7 @@
 | ports.json | 駆動される側のポートの入出力 | 手で書く |
 | adapters/sqlite.sql | 手元の DB のアダプター | 手で書く（Abstract のファイル session の形から） |
 | examples/ | ACDR の Concrete とインスタンス | `python3 examples/build_examples.py` |
-| ref/ | 参照の実装（基盤 base.py と、アダプター adapters.py：Git ・ スナップショット ・ SQLite ・ AI ツールの模擬 ・ 判定の模擬 ・ 設定） | 手で書く |
+| ref/ | 参照の実装（基盤 base.py と、アダプター adapters.py：Git ・ スナップショット ・ SQLite ・ コーディングエージェントの模擬 ・ 判定の模擬 ・ 設定） | 手で書く |
 | behaviors/ | 期待する振る舞いの場面 | `python3 behaviors/build.py` |
 | coverage.json | 完成基準 K1 の対応表 | 手で書く |
 

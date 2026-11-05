@@ -3,7 +3,7 @@
 -- 登録は BEGIN IMMEDIATE で始め、「決める」が見た開いている行といまの開いている行を比べてから書く（アダプターのコード）。
 
 CREATE TABLE sessions (
-  tool         TEXT NOT NULL,                 -- AI ツールの種類（claude-code ・ codex ・ copilot ・ gemini ・ kiro）
+  tool         TEXT NOT NULL,                 -- コーディングエージェントの種類（claude-code ・ codex ・ copilot ・ gemini ・ kiro）
   id           TEXT NOT NULL,                 -- そのツールが発行した文字列。基盤は解釈しない（I34）
   purpose_ref  TEXT,                          -- 目的の参照。オーケストレーターのセッションは持たない
   parent_tool  TEXT,
@@ -22,7 +22,7 @@ CREATE TABLE sessions (
   )
 );
 
--- I46：開いているオーケストレーターは1つ。目的のセッションは AI ツールと親に関係なく同じ目的で1つ。
+-- I46：開いているオーケストレーターは1つ。目的のセッションはコーディングエージェントと親に関係なく同じ目的で1つ。
 --      任せる先のセッションは目的 ・ 親 ・ 役割が同じで1つ（目的は親で決まるので、親と役割で足りる）。
 CREATE UNIQUE INDEX one_open_orchestrator_session ON sessions ((1))
   WHERE state = 'open' AND purpose_ref IS NULL;
@@ -58,7 +58,7 @@ CREATE TRIGGER parent_kind BEFORE INSERT ON sessions WHEN NEW.parent_id IS NOT N
 
 -- 手元のセッションの索引（I38）。変更の記録はセッション ID を持たない（I34）。
 CREATE TABLE session_changes (
-  tool      TEXT NOT NULL,                    -- 変更の記録を書いたセッションの AI ツールの種類
+  tool      TEXT NOT NULL,                    -- 変更の記録を書いたセッションのコーディングエージェントの種類
   id        TEXT NOT NULL,                    -- そのセッションの ID
   change_id TEXT NOT NULL CHECK (change_id GLOB '[0-7][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z]*' AND length(change_id) = 26),  -- 変更の記録の id（ULID。正本はファイル）
   PRIMARY KEY (tool, id, change_id),

@@ -28,6 +28,7 @@ svc_rows = ''.join(f'<tr><td>{n}</td><td>{k}</td><td>{p_.replace("semantic-agent
 sec = f'''<h2>5　ディレクトリ構成（crate と、その中のモジュール）</h2>
 <p class="meta">コードは crates/ にまとめ、その下のフォルダで層を見せる（利用者が案 C を選んだ）。domain の各 crate の中は values/（値オブジェクト）・ aggregates/（集約）・ services/（ドメインサービス）に分け、エンティティかファクトリを持つ集約は aggregates/&lt;集約&gt;/ に entities/ ・ factories/ を置く（欄はその集約のフォルダの中にだけ見せる）。ポートは application の ports/ に置く（arch/ports の承認）。集約は model.json の9つと、作るときに突き合わせて全部が1回ずつ現れることを確かめている。ドメインサービスは決めた4つで、ほかの処理は集約の操作とファクトリ3つが持つ</p>
 <p class="meta lg"><span class="cr">crate</span> <span class="ag">集約</span> <span class="fc">ファクトリ</span> <span class="sv">ドメインサービス ・ 使う場面</span> <span class="pt">ポート</span></p>
+<p class="meta">木は主なファイルだけを載せた。ファイルの全部は実装の semantic-agent-schema/crates/ を正とする（例：declaration/src/values/ には breach.rs ・ by.rs ・ etag.rs ・ patch.rs ・ term.rs も、change/src/values/ には file_state.rs もある）</p>
 <pre class="v">{rows}</pre>
 <h3>ドメインサービス4つの置き場所</h3>
 <div class="tw"><table><tr><th>ドメインサービス</th><th>カタカナ</th><th>ファイル</th></tr>{svc_rows}</table></div>

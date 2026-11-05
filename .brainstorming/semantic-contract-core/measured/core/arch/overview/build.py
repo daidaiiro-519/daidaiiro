@@ -13,10 +13,14 @@ A = 'https://claude.ai/artifact/'
 L = lambda i, t: f'<a href="{A}{i}">{t}</a>'
 quad = fig('quad.svg', os.path.join(os.path.dirname(H), 'child-sessions'))
 arch_svg = fig('arch.svg', os.path.join(C, 'view'))
-ddl = '<pre>' + html.escape("""-- 手元の DB（SQLite）。確定しない。同じリポジトリのどの作業ディレクトリからも1つ
-CREATE TABLE sessions (
+ddl = '<pre>' + html.escape("""-- 手元の DB（SQLite）。確定しない（コミットされない）
+-- 置き場所：Git の中は git common dir の下（.git/semantic-agent-schema/local.db）で、同じリポジトリのどのワークツリーからも1つ
+--           Git の外は $XDG_STATE_HOME（無ければ ~/.local/state）の下に、作業の根ごとに1つ
+-- 実装済み：changes ・ change_items ・ 索引3つ ・ session_changes ・ トリガー4つ（crates/outbound/sqlite/src/change_store.rs）
+
+CREATE TABLE sessions (                 -- ステップ9 で実装
   tool         TEXT NOT NULL,
-  id           TEXT NOT NULL,            -- AI ツールが発行した値。基盤は解釈しない
+  id           TEXT NOT NULL,            -- コーディングエージェントが発行した値。基盤は解釈しない
   purpose_ref  TEXT,                     -- 目的の参照（オーケストレーターは持たない）
   parent_tool  TEXT, parent_id TEXT,     -- 親（任意）
   role         TEXT,                     -- 役割。継続の子だけ
@@ -33,9 +37,11 @@ CREATE TABLE changes (                   -- 変更の記録
   id                 TEXT PRIMARY KEY,   -- 打ち合わせなしで一意な値
   purpose_ref        TEXT NOT NULL,
   intent             TEXT NOT NULL,      -- 意図（1件に1つ）
-  writer_kind        TEXT NOT NULL CHECK (writer_kind IN ('human','agent')),
+  writer_kind        TEXT NOT NULL CHECK (writer_kind IN ('human','ai-agent')),
   replaces_intent_id TEXT,
   summary_id         TEXT,               -- 入ったまとめ（まだなら NULL）。1件は1つのまとめにだけ入る
+  worktree           TEXT,               -- 書いたワークツリー（Git ならメインは main、追加したものは worktrees/<名前>）
+  branch             TEXT,               -- 書いたブランチ。まとめはいまのワークツリーとブランチの記録を入れ、ブランチが無くなった記録も例外として入れる。どちらもまとめには写さない
   created_at         TEXT NOT NULL
 );                                       -- セッション ID は持たない
 CREATE TABLE change_items (              -- 変更の項目。前後の値は持たない（変更の仕組みから取る）
@@ -44,24 +50,41 @@ CREATE TABLE change_items (              -- 変更の項目。前後の値は持
   pointer   TEXT NOT NULL DEFAULT '',    -- 欄の JSON Pointer（ファイル全体は空）
   PRIMARY KEY (change_id, target, pointer)
 );
-CREATE TABLE intent_judgments (          -- 意図と変更が合うか（I33）・ 人の承認。上書きで最後の1件
-  change_id  TEXT PRIMARY KEY REFERENCES changes(id),
-  judge_kind TEXT NOT NULL CHECK (judge_kind IN ('ai','human')),
-  result     TEXT NOT NULL CHECK (result IN ('verified','violated','unverified')),
-  meaning    TEXT NOT NULL,              -- 意味
-  reason     TEXT NOT NULL               -- 判定の理由
+CREATE INDEX change_items_by_target ON change_items (target);
+CREATE INDEX changes_by_purpose ON changes (purpose_ref);
+CREATE INDEX changes_by_place ON changes (worktree, branch, summary_id);
+-- intent_judgments：ステップ4 で実装。いまの実装は change_id を主キーにして上書きする形（judged_values ・ delegate ・ judged_at はまだ無い）
+CREATE TABLE intent_judgments (          -- 意図と変更が合うか（I33）・ 人の承認。判定ごとに1行足し、最新が効く。覆された判定も残す（I28）
+  id            TEXT PRIMARY KEY,          -- 打ち合わせなしで一意な値
+  change_id     TEXT NOT NULL REFERENCES changes(id),
+  judge_kind    TEXT NOT NULL CHECK (judge_kind IN ('ai','human')),
+  result        TEXT NOT NULL CHECK (result IN ('verified','violated','unverified')),
+  meaning       TEXT NOT NULL,             -- 意味
+  reason        TEXT NOT NULL,             -- 判定の理由
+  judged_values TEXT NOT NULL,             -- 判定したときの項目の値（JSON）。いまの値と違えば効かない（I16）
+  delegate      TEXT,                      -- AI のとき：任せる先 ・ モデル ・ プロンプト（JSON）
+  judged_at     TEXT NOT NULL
 );
 CREATE TABLE session_changes (           -- 手元のセッションの索引
   tool TEXT NOT NULL, id TEXT NOT NULL, change_id TEXT NOT NULL REFERENCES changes(id),
   PRIMARY KEY (tool, id, change_id)
 );
-CREATE TABLE relations (                 -- 関係の索引。確定したファイルから作り直せる
+CREATE TABLE relations (                 -- 関係の索引。確定したファイルから作り直せる。未実装（作るステップは未決）
   from_id TEXT NOT NULL, to_id TEXT NOT NULL, via TEXT NOT NULL,
   PRIMARY KEY (from_id, to_id, via)
 );
--- 消す表は無い。不要なインスタンスは superseded にして残す""") + '</pre>'
+-- 消す表は無い。不要なインスタンスは superseded にして残す
+-- 記録の削除と書き換えはトリガーで断る（まとめの id を1回入れることだけ許す）
+CREATE TRIGGER no_delete_changes BEFORE DELETE ON changes BEGIN SELECT RAISE(ABORT, '変更の記録は消さない'); END;
+CREATE TRIGGER no_delete_change_items BEFORE DELETE ON change_items BEGIN SELECT RAISE(ABORT, '変更の項目は消さない'); END;
+CREATE TRIGGER no_update_changes BEFORE UPDATE ON changes
+  WHEN NOT (OLD.summary_id IS NULL AND NEW.summary_id IS NOT NULL AND NEW.id = OLD.id AND NEW.purpose_ref = OLD.purpose_ref
+            AND NEW.intent = OLD.intent AND NEW.writer_kind = OLD.writer_kind AND NEW.replaces_intent_id IS OLD.replaces_intent_id
+            AND NEW.created_at = OLD.created_at AND NEW.worktree IS OLD.worktree AND NEW.branch IS OLD.branch)
+  BEGIN SELECT RAISE(ABORT, '変更の記録は書き換えない（まとめの id を1回入れるだけ）'); END;
+CREATE TRIGGER no_update_change_items BEFORE UPDATE ON change_items BEGIN SELECT RAISE(ABORT, '変更の項目は書き換えない'); END;""") + '</pre>'
 FILES = [
- ['abstract.json（本体）', 'Concrete の形 ・ 9つの x- ・ 拡張の契約', 'Concrete が $schema に書く'],
+ ['semantic-abstract-schema.json（本体）', 'Concrete の根にだけ掛かる決まり ・ 9つの x- の形（$defs。$anchor の名前で指す）・ 拡張の契約 ・ 任せる先の出力の形（$defs/output-judging ・ output-working）。欄は title ・ description ・ x-prompt を持つ', 'Concrete が $schema に書く。本体の $schema は方言（dialect）'],
  ['change', '変更の記録の形 ・ 変更のまとまり（$defs）', '手元の DB の行の形'],
  ['change-summary', '変更のまとめ：目的 ・ 意図 ・ 対象と欄 ・ 例外 ・ 意図の判定の結果', 'コミットごとに1件。基盤が作る'],
  ['judgment', '判定の記録（rule の判定と意図の判定）', 'rule の判定はコミット、意図の判定は手元の DB'],
@@ -86,15 +109,15 @@ crates = diff([('', 'semantic-agent-schema/'), ('', '  Cargo.toml ・ CODING.md 
  ('', '      search/        値 探す条件 ・ 出どころ ・ 探した範囲'),
  ('', '      session/       集約 セッション、ドメインサービス Session Selector、値 子のセッションの型'),
  ('', '    application/     使う場面と ports/（駆動される側13）'),
- ('', '    outbound/        agents-contract ・ ai-cli ・ git ・ fs ・ tools ・ sqlite'),
+ ('', '    outbound/        agents-contract ・ coding-agents ・ git ・ fs ・ tools ・ sqlite'),
  ('', '    inbound/cli/     入口（セマンティック7つ ・ 機械的なコマンド）')])
 body = f'''<main>
 <h1>決めたことの全体</h1>
-<p class="meta">ACDR 0201 で、正本（ボード ・ model.json ・ アーキテクチャの頁）に適用した内容の1枚。作業ツリーに適用済みで、承認を待っている。詳しい中身は0節の各頁にある</p>
+<p class="meta">ACDR 0201（承認済み）で正本（ボード ・ model.json ・ アーキテクチャの頁）に適用した内容に、ステップ1〜3b の実装で決めたこと（書き込みを断る ・ ETag ・ DB の置き場所 ・ worktree と branch）を足した1枚。実装の進みは {L('JWgrBUZPWX7Deg5CXPYRoz', '実装計画')} にある。詳しい中身は0節の各頁にある</p>
 <p class="ans">ドメインサービスは4つ、domain の crate は8つ。AI が行う操作はすべてセマンティックのコマンド（7つ）で、procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）を返す。変更の記録と意図の判定は手元の DB、変更のまとめと rule の判定はコミットする。消すは持たない。Abstract のファイルは13個で、基盤の既定のビューを持つ</p>
 <h2>0　詳しい頁</h2>
 {table(['話', '頁'], [
- ['正本への適用（変更前と変更後）', L('TEX6vLna45nG38koC7Tfc1', 'ACDR 0201')],
+ ['正本への適用（変更前と変更後）', L('TEX6vLna45nG38koC7Tfc1', 'ACDR 0201') + '（経緯）'],
  ['アーキテクチャ（依存の向き ・ ディレクトリ ・ 検査）', L('YcHWX4NkaJCXPCgZR5iQaN', 'アーキテクチャ')],
  ['ドメインサービス（4つ）・ 集約の操作 ・ ファクトリ', L('LD2wfboxHLbFP6KvybezwE', 'ドメインサービス')],
  ['ポートの置き場所', L('7hZXTxh89Ce8Cs4uJnHQAu', 'ポートの置き場所')],
@@ -103,7 +126,7 @@ body = f'''<main>
  ['Semantic Search と用語', L('J4e6mDbKwUaBoDsmSHjHeV', 'Semantic Search と用語')],
  ['変更の記録とまとめ', L('GZ2Xz4eaBms5tZev9muEAC', '変更のまとめのシミュレーション')],
  ['子のセッションの型', L('Bxykci4FLw5JaERWa9gisu', '子のセッションの型')],
- ['テスト計画', L('3SeEdiiBwRmYLbrZAa699T', 'テスト計画')],
+ ['テスト計画', L('3SeEdiiBwRmYLbrZAa699T', 'テスト計画') + '（経緯）'],
  ['依存の向きの検査ツール', L('PYFjdKyGYcatEdBuSFy9ET', 'ACDR 0200 architecture-lint')],
 ])}
 <h2>1　ドメインモデル</h2>
@@ -118,22 +141,23 @@ body = f'''<main>
 <h2>2　コマンド</h2>
 {table(['種類', 'コマンド', '返すもの'], [
  ['セマンティック（AI が行う操作）', 'semantic-search ・ semantic-read ・ semantic-create ・ semantic-write ・ semantic-judge ・ semantic-import ・ semantic-migrate', 'procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）。AI は入力だけを作る'],
- ['機械的（入力を適用する）', 'search ・ get ・ create ・ patch ・ import ・ migrate ・ validate', '出力の型（query の結果 ・ 値 ・ change ・ 検証の結果）'],
- ['機械的（AI が行わない操作）', 'judge（人）・ render ・ history ・ record ・ release ・ session', 'judgment ・ HTML ・ 経緯 ・ 変更の記録 ・ 版 ・ セッション'],
+ ['機械的（入力を適用する）', 'search ・ get ・ create ・ patch ・ import ・ migrate ・ validate', '出力の型（query の結果 ・ 値 ・ change ・ 検証の結果）。get は ETag（文書の SHA-256 の先頭20字、保存しない）を返し、patch --if-match で楽観ロックする。JSON Patch は add ・ replace ・ remove だけ受け付ける。validate . で作業の根の下をすべて検証する'],
+ ['機械的（AI が行わない操作）', 'judge（人）・ render ・ history ・ record ・ record --summary ・ release ・ session', 'judgment ・ HTML ・ 経緯 ・ 変更の記録 ・ 変更のまとめ（.semantic-agent-schema/changes/&lt;ULID&gt;.json。コミットごとに1件、コミットしていないまとめがあれば2件目を作らない）・ 版 ・ セッション'],
 ])}
-<p class="meta">検査は2回 ── ①適用する前に入力が入力のスキーマに合うか（外れたら断り、状態に触れない）②適用した後に出力が形 ・ 機械の rule ・ AI の rule に合うか（外れても保存し violated、AI の rule は needs で返る）。AI の判定は semantic-judge が依頼を返し、validate が答えをまとめる。基盤は AI を起動しない</p>
+<p class="meta">出力は {{ok, findings, data}}（data.results ・ data.state{{name, label}} ・ saved ・ etag ・ unfilled）。コマンドの引数は実装の --help を正とする</p>
+<p class="meta">検査は2回 ── ①適用する前に入力が入力のスキーマに合うか（外れたら断り、状態に触れない）②適用した後に出力が形 ・ 機械の rule ・ AI の rule に合うかで、その書き込みが新しく持ち込んだ機械の violated があれば書かずに findings を返す（data.saved:false）。前からある violated ・ 書き込みの外で起きた violated ・ AI と人の rule は書き込みを止めず、状態として返す（CODING.md 6節）。semantic-* は作業させる AI を起動せず、procedure を返すだけ。判定させる AI は、基盤が judge のポート（agents-contract ＋ coding-agents）で判定ごとに新しいセッションで起動し、答えを Validator の2段目がまとめる</p>
 <h2>3　セッション</h2>
 {quad}
 {table(['', '中身'], [
  ['種類', 'オーケストレーター ・ 目的 ・ 任せる先。任せる先は「寿命（単発 ・ 継続）」×「親の文脈（引き継ぐ ・ 引き継がない）」の4つの型。単発は登録しない'],
- ['AI ツールのアダプター', '再開できるか ・ 有効時間 ・ 履歴の割合 ・ 型ごとの手段（fork ・ 親のセッション自身 ・ sessions import ・ session/fork）・ キャッシュが効くか'],
+ ['コーディングエージェントのアダプター', '再開できるか ・ 有効時間 ・ 履歴の割合 ・ 型ごとの手段（fork ・ 親のセッション自身 ・ sessions import ・ session/fork）・ キャッシュが効くか'],
  ['目的を引き継ぐとき', '引き継ぐ前にコミットする（手元の DB はほかの人に見えない）'],
 ])}
 <h2>4　DB（手元の SQLite）と ER</h2>
 {fig('er.svg')}
 {ddl}
 <h2>5　Abstract のファイル（13）</h2>
-<p class="meta">置き場所は semantic-agent-schema/schemas/v1/。$id は urn:semantic-agent-schema:base:…:v1。基盤の既定のビューは schemas/v1/views/</p>
+<p class="meta">置き場所は semantic-agent-schema/schemas/v1/。$id は urn:semantic-agent-schema:base:…:v1。基盤の既定のビューは schemas/v1/views/。実装にあるのは semantic-abstract-schema.json ・ glossary ・ change ・ change-summary ・ judgment の5つで、残りは実装計画のステップで足す。このほかに、本体が従う方言 dialect.schema.json（draft 2020-12 ＋ 基盤の語彙。$vocabulary）と、x- の9つの形だけを入れ子のどこにでも掛ける語彙のメタスキーマ vocab-meta.schema.json（$dynamicAnchor meta）がある（コミット fce9e98c。下の13には数えていない）</p>
 {table(['ファイル', '中身', '使われ方'], FILES)}
 <h2>5-2　変更の記録とまとめ</h2>
 {table(['もの', '置き場所', '読む人'], [
@@ -154,9 +178,7 @@ body = f'''<main>
 ])}
 <h2>8　次にすること</h2>
 {table(['順', 'すること'], [
- ['1', 'ACDR 0201 の承認を受けて、状態を accepted にしてコミットする'],
- ['2', 'semantic-agent-schema/ の Rust の雛形と CODING.md を、このアーキテクチャから作る'],
- ['3', 'model.json に状態を導く決定表の列を足し、単体テストから書く'],
+ ['1', 'ステップ1〜3b は実装済み。続きは ' + L('JWgrBUZPWX7Deg5CXPYRoz', '実装計画') + ' のステップ4（AI と外のツールに rule を判定させる）から、' + L('9xBWifdT2tcV8LzzkeuG91', '開発シミュレーター') + 'で確かめて進める'],
 ])}
 </main>'''
 open(os.path.join(H, 'index.html'), 'w').write(head + '\n' + body); print('ok')

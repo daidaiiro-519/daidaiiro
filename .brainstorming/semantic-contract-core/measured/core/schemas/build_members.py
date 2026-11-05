@@ -83,10 +83,10 @@ jr.update({"type": "object", "required": ["$schema", "kind", "id", "key", "targe
 # ---------------- session（手元の DB の行の形）
 sess = head('session', 'セッションと手元のセッションの索引の行', '手元の DB に置く行の形。確定しない。インスタンスのファイルは作らない。DDL は SQLite のアダプターがこの形から書く。')
 sid = {"type": "object", "required": ["tool", "id"], "additionalProperties": False, "properties": {
-  "tool": f({"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}, 'AI ツールの種類', 'セッションを発行した AI ツールの名前（claude-code ・ codex など）である。'),
-  "id": f({"type": "string", "minLength": 1}, 'ツールが発行した文字列', 'AI ツールが発行したセッションの文字列で、基盤は解釈しない。')}}
+  "tool": f({"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}, 'コーディングエージェントの種類', 'セッションを発行したコーディングエージェントの名前（claude-code ・ codex など）である。'),
+  "id": f({"type": "string", "minLength": 1}, 'ツールが発行した文字列', 'コーディングエージェントが発行したセッションの文字列で、基盤は解釈しない。')}}
 sess['$defs'] = {
- "session-id": f(sid, 'セッション ID', 'AI ツールの種類と、そのツールが発行した文字列の組である。基盤は文字列を解釈しない。'),
+ "session-id": f(sid, 'セッション ID', 'コーディングエージェントの種類と、そのツールが発行した文字列の組である。基盤は文字列を解釈しない。'),
  "session": {"type": "object", "required": ["session", "state", "last_used_at"], "additionalProperties": False,
    "properties": {
      "session": f({"$ref": "#/$defs/session-id"}, 'セッション ID', 'この行のセッションである。'),

@@ -1,0 +1,417 @@
+{
+ "kind": "judgment",
+ "question": "Semantic Agent Schema の基盤で、Concrete の x-delegates（任せる先）の種別をどう分けるか：①種別を「基盤の受け取り方」で分ける基準は、集約 ・ モデル変換装置 ・ 公開された言葉の観点で妥当か ②下書きの3分類（judging ・ working ・ 答えさせる）に過不足は無いか。とくに「答えさせる」（呼んだ側にそのまま返し、記録しない）を基盤の x-delegates に入れるべきか ③種別ごとの出力スキーマを Abstract に置き、Concrete が拡張する形は、公開された言葉と版の扱いとして妥当か ④argv の有無 ・ セッションの型（寿命と親の文脈）・ 返りを待つか を種別から外すのは妥当か",
+ "premises": [
+  {
+   "name": "利用者の基準",
+   "value": "「委譲するときに何をさせたいか」で分け、「その種別によって受け取り方が変わる」なら別の種別にする。種別ごとの出力スキーマは Abstract に置き、Concrete が拡張する",
+   "source": "相談の前提（下書き draft.md の「基準」）"
+  },
+  {
+   "name": "基盤は手段",
+   "value": "基盤は主体ではなく手段である。人 ・ 親のセッション ・ CI が主体で、基盤を使って任せる先を起動し、答えを基盤へ渡す",
+   "source": "相談の前提"
+  },
+  {
+   "name": "受け取り方の洗い出し",
+   "value": "68件の委譲は4通りの受け取り方になる。G1：rule ごとの5つの値にまとめて判定の記録に残す ／ G1b：同じ5つの値で、決定的な argv のツールなら機械の検証として毎回計算し、そうでなければ判定の記録に残す ／ G2：インスタンスに書かせ、入口（create ・ patch）で検証して変更の記録に残し、決めきれない点は needs で親へ返す ／ G3：答えの本体を呼んだ側にそのまま返し、基盤は記録も書き込みもしない（advisor ・ 原文の調査 ・ design-svg ・ 反証）",
+   "source": "inventory.json の groups"
+  },
+  {
+   "name": "原本の食い違い",
+   "value": "semantic-abstract-schema.json の purpose は judging ・ working の2値。model.json は「親のセッションが進め方として呼ぶ相手（advisor など）は x-delegates に書かない」。Artifact AjvjUjn は platform-advisor を working で x-delegates に置いている。rule の agent が指せるのは judging だけで、working と G3 は基盤の中から引く所が無い",
+   "source": "inventory.json の gaps ・ model.json の entities「任せる先」"
+  },
+  {
+   "name": "呼んだ側の配線",
+   "value": "advisor などを呼ぶ相手 ・ 依頼 ・ 返りを待つか（reliance：required ・ advisory ・ optional）は、リポジトリの配線表 skill-wiring.json と Orchestrator（親のセッション）が持つ",
+   "source": "CLAUDE.md の運用ルールと委譲パターン"
+  },
+  {
+   "name": "過去の回答との関係",
+   "value": "q3-ddd は、call と答えの形（Agents 契約）を Abstract のファイルに置く公開された言葉とし、2段の Validator をドメインサービス、AI の起動をポートとアダプターに置いた。この回答はそれを前提にし、取り消さない",
+   "source": "advisors/q3-ddd.json"
+  },
+  {
+   "name": "判断基準の範囲外",
+   "value": "種別の英語の名前（judging ・ working のほかの語）を何にするか、AI ツールごとの fork の仕組み、JSON Schema で拡張を表す書き方（$ref ・ unevaluatedProperties など）は判断基準の範囲外。判定の根拠にしない",
+   "source": "判断基準の範囲外"
+  }
+ ],
+ "conclusion": {
+  "stance": "conditional",
+  "headline": "①受け取り方で分ける基準は妥当で、種別は「答えを基盤のどの集約へどう変換して入れるか」の違いになる。②基盤の x-delegates は judging と working の2つにし、「答えさせる」は入れず親のセッションの側（配線表）に置く ── ただし working は、セッションの集約が任せる先の名前で登録する場合に限って基盤に残す。③出力スキーマを Abstract の版付きの公開された言葉に置き、Concrete の拡張は基盤が解釈しない欄に限るなら妥当。④argv はアダプター、セッションの型はセッションの集約の値、返りを待つかは呼んだ側の配線なので、種別から外すのは妥当。",
+  "because": "種別は、外の AI の答えを基盤のモデルへ変換する入口の違いで、変換先の集約（判定の記録 ・ 変更の記録）が違えば守る不変条件も違うので、受け取り方で分けるのは集約の境界に合う。「答えさせる」は基盤のどの集約にも入らないので、基盤の言葉に入れると一貫性と無関係な概念を足すことになり、advisor 側は自分の公開された言葉（answer.schema.json と validate）を既に持つ。"
+ },
+ "figure": {
+  "caption": "種別は、外の AI の答えを基盤のどの集約へ変換して入れるかで分かれる。「答えさせる」は基盤の集約に入らず、親のセッションが advisor の公開された言葉で直接受け取る。",
+  "nodes": [
+   {
+    "id": "parent",
+    "label": "主体：親のセッション ・ 人 ・ CI",
+    "role": "application"
+   },
+   {
+    "id": "wiring",
+    "label": "親のセッションの側：配線表（advisor ・ 調査 ・ 反証、reliance）",
+    "role": "application"
+   },
+   {
+    "id": "advisor",
+    "label": "advisor ・ fact-check ・ design-svg：各 Skill の answer.schema と validate（その Skill の公開された言葉）",
+    "role": "adapter"
+   },
+   {
+    "id": "pl",
+    "label": "基盤の公開された言葉（Abstract の版）：judging の出力 ・ working の出力",
+    "role": "domain"
+   },
+   {
+    "id": "ext",
+    "label": "Concrete の拡張：結果ごとの詳細（基盤は解釈しない）",
+    "role": "domain"
+   },
+   {
+    "id": "judging",
+    "label": "judging：rule ごとの5つの値へ変換",
+    "role": "domain"
+   },
+   {
+    "id": "working",
+    "label": "working：インスタンスを入口（create ・ patch）で検証",
+    "role": "domain"
+   },
+   {
+    "id": "judgeRec",
+    "label": "集約：判定の記録",
+    "role": "domain"
+   },
+   {
+    "id": "changeRec",
+    "label": "集約：変更の記録 ・ インスタンス",
+    "role": "domain"
+   },
+   {
+    "id": "session",
+    "label": "集約：セッション（寿命 ・ 親の文脈は型の値）",
+    "role": "domain"
+   },
+   {
+    "id": "adapter",
+    "label": "アダプター：argv の CLI ／ AI ツール",
+    "role": "adapter"
+   }
+  ],
+  "edges": [
+   {
+    "from": "parent",
+    "to": "pl",
+    "label": "基盤を手段に任せる"
+   },
+   {
+    "from": "parent",
+    "to": "wiring",
+    "label": "答えさせる ・ 返りを待つかを決める"
+   },
+   {
+    "from": "wiring",
+    "to": "advisor",
+    "label": "呼んで、そのまま受け取る"
+   },
+   {
+    "from": "ext",
+    "to": "pl",
+    "label": "拡張する",
+    "dashed": true
+   },
+   {
+    "from": "pl",
+    "to": "judging",
+    "label": "出力の形"
+   },
+   {
+    "from": "pl",
+    "to": "working",
+    "label": "出力の形（書く中身は対象の Concrete）"
+   },
+   {
+    "from": "judging",
+    "to": "judgeRec",
+    "label": "判定を残す"
+   },
+   {
+    "from": "working",
+    "to": "changeRec",
+    "label": "変更を残す"
+   },
+   {
+    "from": "working",
+    "to": "session",
+    "label": "継続なら役割ごとに登録（条件）",
+    "dashed": true
+   },
+   {
+    "from": "adapter",
+    "to": "judging",
+    "label": "どちらで起動しても同じ種別",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "①種別を「何をさせたいか」の名前で呼び、「基盤の受け取り方」が違うときだけ分ける",
+   "effect": "受け取り方は、答えを基盤のどの集約へどう変換するかである。判定の記録と変更の記録は別の集約で、守る不変条件も違う（5つの値の形 ・ 根拠が渡した値にあるか ／ 入口での検証 ・ 書いた記録を変えない）。種別が集約の境界と1対1になり、起動の仕方の違いは種別に入らない",
+   "chosen": true
+  },
+  {
+   "option": "①種別を起動の仕方（argv の有無 ・ セッションの型）で分ける",
+   "effect": "同じ5つの値へ変換する G1 と G1b が別の種別になり、同じ変換の規則が2か所に書かれる。起動の仕方はアダプターの選び方なので、AI ツールや CLI を替えるたびに種別が変わる",
+   "chosen": false
+  },
+  {
+   "option": "②3分類（judging ・ working ・ 答えさせる）をすべて基盤の x-delegates に置く",
+   "effect": "基盤は「答えさせる」の答えを判定の記録にも変更の記録にも入れないので、基盤のどの集約もこの種別を使わない。rule の agent からも指されない。advisor ごとの answer.schema を Concrete の拡張として基盤の側に写すと、advisor の版と基盤の版の2本の軸で同じ形を持つ。model.json の「advisor は x-delegates に書かない」とも食い違う",
+   "chosen": false
+  },
+  {
+   "option": "②基盤は judging と working の2つにし、「答えさせる」は親のセッションの側（配線表 ・ 各 Skill の answer.schema と validate）に置く",
+   "effect": "基盤の言葉は、基盤の集約が使う概念だけになる。advisor ・ fact-check ・ design-svg は、各 Skill が自分の公開された言葉と検査を持ったまま、親のセッションが直接受け取る。答えを基盤に記録したくなった時は、その答えを rule の判定（judging）か成果物（working）として入れ直せばよく、3つ目の種別は要らない",
+   "chosen": true
+  },
+  {
+   "option": "③出力スキーマを Abstract の版付きのファイルに置き、Concrete は結果ごとの詳細の欄だけを足す（基盤はその欄を解釈せずに運ぶ）",
+   "effect": "基盤が変換に使う外側（rule ・ result ・ reason ・ 根拠の場所／書いた対象 ・ needs）は1か所で版を並べて出せる。Concrete の詳細（直す箇所の並びなど）は Concrete の言葉のまま運ばれ、基盤のモデルに入らない",
+   "chosen": true
+  },
+  {
+   "option": "③Concrete が外側の欄そのもの（result の値 ・ 必須の欄）を変えられる拡張にする",
+   "effect": "基盤の変換の規則が Concrete ごとに変わり、5つの値へのまとめ方が Concrete しだいになる。公開された言葉の版を基盤が保証できない",
+   "chosen": false
+  },
+  {
+   "option": "④argv ・ セッションの型 ・ 返りを待つか を種別から外し、それぞれアダプター ・ セッションの集約の値 ・ 呼んだ側の配線に置く",
+   "effect": "種別は受け取り方だけを表す。judging を「単発 ・ 引き継がない」に固定する規則は、種別の値ではなく judging に付く不変条件として書ける。機械の検証として毎回計算するかは argv の有無ではなく、ツールが決定的か（ネットワーク ・ 時刻 ・ 乱数を使わないか）で決まる",
+   "chosen": true
+  },
+  {
+   "option": "④argv ・ セッションの型 ・ 返りを待つか を種別の値に掛け合わせる",
+   "effect": "種別の数が掛け算で増え、反証（単発 ・ 引き継ぐ）や原文の調査（単発 ・ 引き継がない）のように、受け取り方が同じでも別の種別になる。reliance は配線ごとの値なので、同じ任せる先が配線によって種別を変える",
+   "chosen": false
+  }
+ ],
+ "path": [
+  {
+   "ask": "①「受け取り方」は判断基準のどの概念に当たるか",
+   "answer": "外の AI（Concrete の任せる先）の答えを、基盤のモデルへ変換する入口である。基盤は公開された言葉（出力スキーマ）を出し、任せる先はそれに合わせて答え、基盤は受け取った答えを自分の集約へ入れる形に変換する。変換先が判定の記録なら5つの値への変換、インスタンスと変更の記録なら入口での検証になる。変換先の集約と、そこで守る不変条件が違うので、受け取り方が違えば種別が違う、は集約の境界に合う"
+  },
+  {
+   "ask": "①「何をさせたいか」の名前はどこで決めるか",
+   "answer": "種別の名前は、基盤の文脈の同じ言葉として、受け取り方を言い当てる語にする。「させたいこと」が違っても受け取り方が同じなら同じ種別にする（例：rule の判定と、ツールでの機械の検証は、どちらも5つの値へ変換するので judging）。逆に、させたいことの名前が同じでも受け取り方が違えば別の種別にする（例：reviewer は、rule を判定するなら judging、指摘の一覧を親へ返す反証なら基盤の外）"
+  },
+  {
+   "ask": "②judging ・ working に足りないものは無いか",
+   "answer": "基盤の集約へ入る受け取り方は、5つの値への変換（G1 ・ G1b）と、入口での検証（G2）の2つで、ほかは見つからない。人の判定（by: human）は x-delegates の外で、承認の仕組みが受け取る。判定の答えに5つの値の外の本体（reviewer の findings）が付くときは、3つ目の種別ではなく、③の Concrete の拡張（結果ごとの詳細）で運ぶ"
+  },
+  {
+   "ask": "②「答えさせる」は基盤の x-delegates に入れるべきか",
+   "answer": "入れない。区切られた文脈は、同じ言葉とモデルの一貫性を守る境界で、基盤の文脈が守るのはスキーマ ・ インスタンス ・ 判定の記録 ・ 変更の記録の一貫性である。「答えさせる」の答えは、基盤のどの集約にも入らず、rule からも指されないので、基盤のモデルにとって一貫性と無関係である。助言を採る ・ 採らないを決めるのは主体（親のセッション）なので、その配線は親のセッションの文脈（配線表）が持つ。形の検査は、advisor ・ fact-check ・ design-svg がそれぞれ自分の answer.schema と validate を公開された言葉として既に持つので、基盤がその形を写す必要は無い"
+  },
+  {
+   "ask": "②「基盤が x-prompt から依頼を描ける」は、入れる理由にならないか",
+   "answer": "ならない。依頼を描く道具を基盤から使うことと、任せる先を基盤の x-delegates の種別にすることは別である。依頼を描く道具が要るなら、主体が基盤の道具を使えばよく、答えを基盤の集約へ入れない限り種別は増えない。答えを基盤に残したい事情（例：fact-check の照合結果を rule の根拠にする）が出たら、それは judging の受け取り方であり、そのときは judging として書き直す"
+  },
+  {
+   "ask": "②working は基盤に残すべきか",
+   "answer": "条件付きで残す。インスタンスの入口（create ・ patch）での検証は、だれが書いても同じなので、それだけなら任せる先の種別は要らない。基盤の集約が任せる先の定義を使うのは、継続のセッションを役割ごとにセッションの集約へ登録するとき（Q11）と、needs を親へ返すときである。セッションの集約が x-delegates の名前で登録するなら working は基盤の概念で、登録しないなら「答えさせる」と同じく基盤の外へ出す。どちらかを model.json のセッションの集約の欄で確かめてから決める"
+  },
+  {
+   "ask": "③出力スキーマを Abstract に置く形は、公開された言葉として妥当か",
+   "answer": "妥当。出力スキーマは、基盤が任せる先に答えさせる通信規約で、基盤の内部の型と一致させずに連係用に定義する公開された言葉である。Abstract は版を並べて出す仕組みを持つ（q3-ddd で Agents 契約を Abstract のファイルに置いたのと同じ）。working の外側は「書いた対象と needs の並び」だけにし、書く中身の形は対象のインスタンスの Concrete に任せるのは、同じ形を2か所に書かない点で正しい"
+  },
+  {
+   "ask": "③Concrete の拡張の範囲はどこまでか",
+   "answer": "基盤が変換に使う外側の欄は、Concrete が変えられないようにする。Concrete が足すのは結果ごとの詳細だけで、基盤はそれを解釈せずに判定の記録へ値として運ぶ（Concrete の文脈の言葉のまま）。外側の欄を足す ・ 意味を変えるときは、Abstract の新しい版として並べて出し、古い版の Concrete を壊さない"
+  },
+  {
+   "ask": "④argv を種別から外すのは妥当か",
+   "answer": "妥当。argv の CLI か AI ツールかは、同じ受け取り方を実装するアダプターの違いで、ドメインの種別ではない。ただし、機械の検証として毎回計算するか判定の記録に残すかは、argv の有無ではなく、ツールが決定的かで決まる（model.json:330-335）。いまの by-matches-kind は by: machine を argv の有無に結んでおり、fact-check のようにネットワークを使う argv のツールと合わない。決定的かどうかを任せる先の run の値として宣言し、by: machine はそれに結ぶ"
+  },
+  {
+   "ask": "④セッションの型を種別から外すのは妥当か",
+   "answer": "妥当。寿命と親の文脈は、セッションの集約の値（型）で、受け取り方を変えない。judging を「単発 ・ 引き継がない」に固定するのは、judging の答えを判定の記録に入れるときの前提（I14 ・ Q11）なので、種別の値を増やさず、judging に付く不変条件（Abstract の rule）として書く"
+  },
+  {
+   "ask": "④返りを待つかを種別から外すのは妥当か",
+   "answer": "妥当。required ・ advisory ・ optional は、呼んだ側が答えを待つかの、配線ごとの値である。同じ任せる先でも配線によって変わるので、任せる先の種別には属さない。基盤の言葉に入れず、親のセッションの文脈（配線表）に置く"
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "aggregate",
+   "quote": "集約：1つのトランザクション境界にまとめたエンティティの階層構造。集約自身もエンティティで、ID を持ち状態が変化する。状態が変わるので一貫性を保つのは難しく、目標はデータの一貫性の保証にある。そのため内部と外部の間に明確な境界を定義する。"
+  },
+  {
+   "criterion": "aggregate",
+   "quote": "構成するもの：コマンド ・ 役割：集約が公開する状態変更のメソッド。外部から渡された内容を検証し、業務ルールと不変条件に違反した状態になることを防ぐ。集約の状態は、コマンドを実行したときにだけ変わる"
+  },
+  {
+   "criterion": "aggregate",
+   "quote": "対応：一貫性を保証する対象を、集約の業務ロジックが必要とするデータだけに限定し、集約をできるだけ小さく設計する ・ 理由：集約の全体が1つのトランザクションの単位なので、大きくすると不必要に複雑になり、性能やスケーラビリティが低下しやすい"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "条件：ある処理を変えるたびに、必ず2つの文脈を両方とも変更している ・ 対応：その処理がどちらの文脈の責任でもないなら、独立した文脈として切り出す"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"
+  },
+  {
+   "criterion": "ubiquitous-language",
+   "quote": "条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。同義語は最初は問題に見えないが、言葉が違えば、ほとんどの場合、意図も違う ・ 例：多くのシステムで「利用者」と同じ意味に、「サイト訪問者」「管理者」「会員」などが使われる。技術的に見れば「サイト訪問者」も「会員」もシステムのユーザーだが、未登録と登録済で種類が違い、行動も違う。サイト訪問者のデータは主に分析に使い、会員は実際にシステムの機能を使う。意図が違うなら、用語を文脈ごとに使い分ける"
+  },
+  {
+   "criterion": "anticorruption-layer",
+   "quote": "モデル変換装置：従属する関係と同じく上流のサービスが強い決定権を持つが、下流の文脈のチームが上流のモデルをそのまま受け入れず、自分たちのニーズに合うよう変換するために用意する仕組み。英語では AntiCorruption Layer と呼ぶ。"
+  },
+  {
+   "criterion": "model-translation",
+   "quote": "連係方法：共用サービス ・ 変換する側：上流の区切られた文脈 ・ 目的：自分のモデルの変更が下流の実装に影響しないようにする。下流は公開された言葉を利用する"
+  },
+  {
+   "criterion": "open-host-service",
+   "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"
+  },
+  {
+   "criterion": "open-host-service",
+   "quote": "対応：内部モデルを変更するときは、下流が使用中の公開された言葉を維持できるかを確認する ・ 理由：下流への影響を考慮せずに内部を変更できるのは、公開された言葉を維持できる場合だけである"
+  },
+  {
+   "criterion": "open-host-service",
+   "quote": "得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる"
+  },
+  {
+   "criterion": "open-host-service",
+   "quote": "得られること：実装の複雑さの隠蔽 ・ 内容：公開された言葉は、連係の要件に合わせて設計した限定されたモデルだけを公開し、利用者に関係の無い実装の複雑さを外から隠す。例：最小限のデータだけを、使いやすいモデルにして利用者に公開できる"
+  },
+  {
+   "criterion": "ports-and-adapters",
+   "quote": "アダプター：インフラストラクチャ層が、ポートの抽象的なインターフェースを個々の技術で実装したもの。ポートとアダプターを組み合わせる最大の狙いは、業務ロジックを基盤の層から分離することである。"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "業務要件が増えたとき、手っ取り早く既存の集約にコードを書き足して機能を追加する（ここでは、基盤が記録も使いもしない「答えさせる」を、x-delegates の種別として基盤に足す）",
+   "risk": "業務ロジックとして保証すべき一貫性と無関係なデータを集約に加えると、必要のない複雑さを導入する",
+   "alternative": "業務機能を専用の集約に抽出する。元の集約に加えて、その集約が所属する区切られた文脈も単純になる可能性がある。ここでは、「答えさせる」の配線を親のセッションの文脈（配線表）へ出し、基盤の x-delegates は judging と working だけにする"
+  },
+  {
+   "name": "（推測）advisor ごとの answer.schema を、基盤の Concrete の拡張として写す",
+   "risk": "同じ形が advisor の Skill と Concrete の2か所に書かれ、advisor の版と Abstract の版の2本の軸がずれる",
+   "alternative": "答えの形は各 Skill の answer.schema と validate に1か所だけ置き、親のセッションがそれで検査する"
+  },
+  {
+   "name": "（推測）Concrete の拡張で、基盤が変換に使う外側の欄（rule ・ result ・ needs）まで変えられるようにする",
+   "risk": "5つの値へのまとめ方が Concrete ごとに変わり、基盤が公開された言葉の版を保証できない",
+   "alternative": "外側の欄は Abstract だけが持ち、Concrete は解釈しない詳細の欄だけを足す。外側を変えるときは Abstract の新しい版を並べて出す"
+  },
+  {
+   "name": "（推測）機械の検証を argv の有無で決め続ける",
+   "risk": "ネットワーク ・ 時刻 ・ 乱数を使う argv のツール（fact-check など）が by: machine になり、毎回の計算で結果が変わる",
+   "alternative": "任せる先の run に「決定的か」を宣言させ、by: machine は決定的な argv のツールだけに結ぶ。そうでない argv のツールは judging として判定の記録に残す"
+  },
+  {
+   "name": "（推測）同じ名前（reviewer）を、judging の任せる先と、基盤の外の反証の両方に使う",
+   "risk": "1つの語が2つの受け取り方を指し、どちらの記録に入るかを読み手が決められない",
+   "alternative": "基盤の文脈では judging の任せる先にだけその名前を使い、反証は親のセッションの文脈の語で呼ぶ"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "Artifact AjvjUjn の platform-advisor のように、advisor を working として x-delegates に書く",
+   "check": "Concrete の x-delegates を全件読み、任せる先ごとに「答えが判定の記録か変更の記録に入るか」を見て、どちらにも入らないものが無いことを確かめる"
+  },
+  {
+   "breaks": "種別の enum に argv の有無やセッションの型を掛け合わせた値（judging-cli など）を足す",
+   "check": "kind の enum の各値について、基盤の受け取り方（変換先の集約）が互いに違うことを1行ずつ書き出して確かめる"
+  },
+  {
+   "breaks": "Concrete の拡張のスキーマが、Abstract の外側の欄を上書きする",
+   "check": "Concrete の出力スキーマを Abstract の外側の必須の欄と照らし、欄の追加だけで、既存の欄の型 ・ enum ・ required を変えていないことを validate の試験で確かめる"
+  },
+  {
+   "breaks": "reliance（required ・ advisory ・ optional）を x-delegates の欄に足す",
+   "check": "semantic-abstract-schema.json の x-delegates の properties に reliance が無く、skill-wiring.json の行にだけあることを検索で確かめる"
+  }
+ ],
+ "records": [
+  {
+   "target": "semantic-abstract-schema.json の run.kind の purpose",
+   "content": "種別は「基盤の受け取り方」で分ける。judging は答えを rule ごとの5つの値へ変換して判定の記録に入れ、working は書かせたインスタンスを入口で検証して変更の記録に入れる。基盤のどの集約にも入らない答え（助言 ・ 調査 ・ 反証 ・ 図）は x-delegates に書かない"
+  },
+  {
+   "target": "model.json の entities の「任せる先」",
+   "content": "argv の有無はアダプター、セッションの型はセッションの集約の値、返りを待つかは親のセッションの配線で、どれも種別に含めない。機械の検証は、run が決定的と宣言した argv のツールに限る"
+  },
+  {
+   "target": "Abstract の出力スキーマ（judging ・ working）",
+   "content": "外側の欄は Abstract の版で持ち、Concrete は結果ごとの詳細の欄だけを足す。基盤は詳細を解釈せずに運ぶ"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "Artifact AjvjUjn（platform-advisor を working で x-delegates に置く）",
+   "why": "助言はインスタンスを書かず、変更の記録にも入らないので、working の受け取り方と合わない。model.json の「advisor は x-delegates に書かない」とも食い違う"
+  },
+  {
+   "suspect": "semantic-abstract-schema.json の by-matches-kind（by: machine を argv のある judging に結ぶ）",
+   "why": "model.json:330-335 は、ネットワーク ・ 時刻 ・ 乱数を使うツールを機械の検証にしないとしており、argv の有無では決まらない"
+  },
+  {
+   "suspect": "セッションの集約が、継続の working を x-delegates の名前で登録するか（Q11 details[12]）",
+   "why": "登録しないなら、working も基盤の集約から使われず、「答えさせる」と同じく基盤の外へ出す判断になる。下書きはこの点を決めていない"
+  }
+ ],
+ "next": [
+  "model.json のセッションの集約の欄を読み、継続の working を x-delegates の名前で登録するかを確かめる",
+  "semantic-abstract-schema.json の purpose の rule と why を、受け取り方（変換先の集約）で書き直す",
+  "Artifact AjvjUjn の platform-advisor を x-delegates から外し、配線表の側へ移す案をボードの論点に書く",
+  "任せる先の run に「決定的か」の欄を足し、by-matches-kind を argv の有無からその欄へ結び直す",
+  "judging の出力スキーマの外側の欄と、Concrete が足せる詳細の欄の境目を Abstract に書く"
+ ],
+ "related": [
+  {
+   "criterion": "aggregate",
+   "relation": "種別ごとの変換先（判定の記録 ・ 変更の記録）と、基盤の集約に無関係な概念を足さない判断"
+  },
+  {
+   "criterion": "bounded-context",
+   "relation": "「答えさせる」を基盤の文脈ではなく、親のセッションの文脈（配線表）に置く判断"
+  },
+  {
+   "criterion": "open-host-service",
+   "relation": "出力スキーマを Abstract の版付きの公開された言葉として置き、Concrete の拡張を基盤が解釈しない欄に限る判断"
+  },
+  {
+   "criterion": "anticorruption-layer",
+   "relation": "受け取り方を、外の答えを基盤のモデルへ変換する入口として読む観点"
+  },
+  {
+   "criterion": "model-translation",
+   "relation": "変換をどちらの側でするかで、基盤の公開された言葉と各 advisor の公開された言葉を分ける観点"
+  },
+  {
+   "criterion": "ports-and-adapters",
+   "relation": "argv の CLI か AI ツールかを、種別ではなくアダプターの違いとする判断"
+  },
+  {
+   "criterion": "ubiquitous-language",
+   "relation": "種別の名前を受け取り方を言い当てる語にし、同じ名前（reviewer）を2つの受け取り方に使わない判断"
+  }
+ ]
+}

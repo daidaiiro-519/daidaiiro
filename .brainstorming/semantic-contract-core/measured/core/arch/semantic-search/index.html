@@ -59,7 +59,7 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
 <rect class="box kind-2" x="440" y="72" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="93" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">semantic-search（procedure を返す）</text><text class="note small" x="452" y="112" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">手順 ・ 入力のスキーマ（query の request）・ 出力のスキーマ（答えのスキーマ）</text>
 <rect class="box kind-2" x="440" y="152" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="173" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">③ search（機械的）</text><text class="note small" x="452" y="192" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">検査① → インスタンス ・ スキーマごとに where を評価 → query#/$defs/result</text>
 <rect class="box kind-2" x="440" y="232" width="530" height="50" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5" rx="5"/><text class="title kind-2" x="452" y="253" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">⑤ validate（機械的 ・ 保存しない）</text><text class="note small" x="452" y="272" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">検査②：答えのスキーマ ・ 出どころの版で式を評価し直し、写した値と一致するか</text>
-<rect class="box" x="440" y="312" width="530" height="50" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="452" y="333" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">⑥ semantic-judge（要約を含むときだけ）</text><text class="note small" x="452" y="352" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">needs の依頼を procedure で返し、AI の答えは validate がまとめる</text>
+<rect class="box" x="440" y="312" width="530" height="50" fill="#F3F7F5" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="452" y="333" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">⑥ 根拠の判定（要約を含むときだけ）</text><text class="note small" x="452" y="352" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">基盤が coding-agents で、判定ごとに新しいセッションの AI に判定させる</text>
 <path class="flow" d="M320,97 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-29f11e2d-arrow-5B6B66)"/>
 <path class="flow" d="M175,122 V150" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-29f11e2d-arrow-5B6B66)"/>
 <path class="flow" d="M320,177 H438" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-29f11e2d-arrow-5B6B66)"/>
@@ -69,10 +69,10 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
 <text class="note" x="10" y="404" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">決定論的と言えるのは、条件（式）から先。式と版を出どころに残すので、同じ結果を何度でも確かめられる</text>
 </svg></div>
 <h2>1　コマンドと用語</h2>
-<div class="tw"><table><tr><th>コマンド</th><th>種類</th><th>返すもの</th></tr><tr><td>semantic-search</td><td>セマンティック（procedure を返す）</td><td>手順 ・ 入力のスキーマ（query#/$defs/request）・ 出力のスキーマ（答えのスキーマ）・ 書き方の rule ・ kind と term の候補</td></tr><tr><td>semantic-read ・ semantic-write ・ semantic-create ・ semantic-judge ・ semantic-import ・ semantic-migrate</td><td>セマンティック（procedure を返す）</td><td>AI が行うほかの操作の手順と入出力のスキーマ（Semantic Read と Write の頁）</td></tr><tr><td>search</td><td>機械的</td><td>検査①のあと、インスタンス ・ スキーマごとに JMESPath の where を評価し、query#/$defs/result（id ・ 版 ・ 式 ・ select の値 ・ 探した範囲）を返す</td></tr><tr><td>get</td><td>機械的</td><td>欄 ・ インスタンス ・ スキーマの値 ・ x-prompt ・ 版。スキーマは $ref を解いた形</td></tr><tr><td>validate</td><td>機械的</td><td>検査②。渡した値を保存せずに検証する。出どころの式をその版で評価し直して一致を確かめる</td></tr></table></div>
+<div class="tw"><table><tr><th>コマンド</th><th>種類</th><th>返すもの</th></tr><tr><td>semantic-search</td><td>セマンティック（procedure を返す）</td><td>手順 ・ 入力のスキーマ（query#/$defs/request）・ 出力のスキーマ（答えのスキーマ）・ 書き方の rule ・ kind と term の候補</td></tr><tr><td>semantic-read ・ semantic-write ・ semantic-create ・ semantic-judge（残すかは未決）・ semantic-import ・ semantic-migrate</td><td>セマンティック（procedure を返す）</td><td>AI が行うほかの操作の手順と入出力のスキーマ（Semantic Read と Write の頁）</td></tr><tr><td>search</td><td>機械的</td><td>検査①のあと、インスタンス ・ スキーマごとに JMESPath の where を評価し、query#/$defs/result（id ・ 版 ・ 式 ・ select の値 ・ 探した範囲 scope ・ 範囲の外 not_searched）を返す。範囲の外は「探していない」と返し、0件を「無い」と返さない（I42）</td></tr><tr><td>get</td><td>機械的</td><td>data.path ・ pointer ・ value ・ etag（実装済み）。x-prompt と、スキーマの $ref を解いた形は、semantic-read の procedure が返すもの（未実装）</td></tr><tr><td>validate</td><td>機械的</td><td>検査②。&lt;パス&gt; の文書を検証し、data.results の各行（rule ・ by ・ pointer ・ result ・ reason）を返す（実装済み）。保存していない答えを渡す入力と、出どころの式をその版で評価し直す検査（provenance-reproduces）は、まだ実装に無い</td></tr></table></div>
 <p class="meta">AI が行う操作はすべてセマンティックのコマンドで、procedure を返す。AI は手順に従って入力を生成し、機械的なコマンドを呼ぶ</p>
 <h2>2　探す対象</h2>
-<div class="tw"><table><tr><th>対象</th><th>探し方</th><th>返す型</th></tr><tr><td>インスタンス</td><td>JMESPath の where ・ select をインスタンス1件ずつに評価する</td><td>query#/$defs/result</td></tr><tr><td>スキーマ（Concrete ・ glossary ・ published）</td><td>同じ（スキーマも JSON）。例：ある rule を使っている Concrete</td><td>query#/$defs/result</td></tr><tr><td>ドキュメント（Markdown ・ ソース）</td><td>本文は基盤が探さない。変更の記録とまとめ（JSON）から、意図 ・ 目的で変えたファイルのパスを引く。本文は AI が読む</td><td>query#/$defs/result（パス）</td></tr><tr><td>集まり（文脈 ・ 探す範囲）</td><td>contexts と、文脈の settings の探す範囲</td><td>結果の scope</td></tr></table></div>
+<div class="tw"><table><tr><th>対象</th><th>探し方</th><th>返す型</th></tr><tr><td>インスタンス</td><td>JMESPath の where ・ select をインスタンス1件ずつに評価する</td><td>query#/$defs/result</td></tr><tr><td>スキーマ（Concrete ・ glossary ・ published）</td><td>同じ（スキーマも JSON）。例：ある rule を使っている Concrete</td><td>query#/$defs/result</td></tr><tr><td>ドキュメント（Markdown ・ ソース）</td><td>本文は基盤が探さない。変更の記録とまとめ（JSON）から、意図 ・ 目的で変えたファイルのパスを引く。本文は AI が読む</td><td>query#/$defs/result（パス）</td></tr><tr><td>集まり（文脈 ・ 探す範囲）</td><td>contexts と、文脈の settings の探す範囲。文脈の地図に無い文脈は探さない</td><td>結果の scope（探した範囲）と not_searched（探していない文脈と理由）</td></tr></table></div>
 <h2>3　送る JSON と返る JSON</h2>
 <p class="meta">状態を変えない操作なので、事後状態は事前状態と同じ。増えるのは出力だけ</p>
 <div class="ex"><div class="pane"><b>① semantic-search に問う</b><pre>{
@@ -151,9 +151,65 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
       &quot;sample&quot;
     ],
     &quot;index_of&quot;: &quot;&lt;正本の版&gt;&quot;
-  }
+  },
+  &quot;not_searched&quot;: []
 }</pre></div></div>
-<div class="ex"><div class="pane"><b>④ AI が整形した答え → ⑤ validate（検査②）</b><pre>{
+<div class="ex"><div class="pane"><b>②′ term で探し、文脈の地図に無い文脈を渡した入力</b><pre>{
+  &quot;kind&quot;: [
+    &quot;urn:semantic-agent-schema:sample:record:v1&quot;
+  ],
+  &quot;term&quot;: [
+    &quot;urn:semantic-agent-schema:sample:glossary:v1#permission&quot;
+  ],
+  &quot;select&quot;: {
+    &quot;subject&quot;: &quot;subject&quot;
+  },
+  &quot;contexts&quot;: [
+    &quot;sample&quot;,
+    &quot;other&quot;
+  ]
+}</pre></div><div class="pane on"><b>出力：範囲の外は not_searched で返る</b><pre>{
+  &quot;$schema&quot;: &quot;urn:semantic-agent-schema:base:query:v1#/$defs/result&quot;,
+  &quot;query&quot;: {
+    &quot;kind&quot;: [
+      &quot;urn:semantic-agent-schema:sample:record:v1&quot;
+    ],
+    &quot;term&quot;: [
+      &quot;urn:semantic-agent-schema:sample:glossary:v1#permission&quot;
+    ],
+    &quot;select&quot;: {
+      &quot;subject&quot;: &quot;subject&quot;
+    },
+    &quot;contexts&quot;: [
+      &quot;sample&quot;,
+      &quot;other&quot;
+    ]
+  },
+  &quot;items&quot;: [
+    {
+      &quot;id&quot;: &quot;r-12&quot;,
+      &quot;kind&quot;: &quot;urn:semantic-agent-schema:sample:record:v1&quot;,
+      &quot;version&quot;: &quot;&lt;読んだ版&gt;&quot;,
+      &quot;values&quot;: {
+        &quot;subject&quot;: &quot;AI に何を許すか&quot;
+      }
+    }
+  ],
+  &quot;scope&quot;: {
+    &quot;contexts&quot;: [
+      &quot;sample&quot;
+    ],
+    &quot;index_of&quot;: &quot;&lt;正本の版&gt;&quot;
+  },
+  &quot;not_searched&quot;: [
+    {
+      &quot;context&quot;: &quot;other&quot;,
+      &quot;why&quot;: &quot;文脈の地図に無い&quot;
+    }
+  ]
+}</pre></div></div>
+<p class="meta">request は kind ・ term ・ where ・ select ・ contexts を持つ（形は Abstract のファイル query の予定。query のファイルはボードの schemas にも実装の schemas/v1 にもまだ無く、この頁の例が形の唯一の出どころ。search ・ semantic-* は未実装）。term は glossary の版付きの id（…:glossary:v1#permission）で一致を決め、別の版の term は別の語として探す（I25）。渡した文脈のうち文脈の地図に無いもの（other）は探さず、not_searched に理由と一緒に返す。items が0件でも、scope と not_searched で「どこを探して、どこを探していないか」が分かる（I42）</p>
+<div class="ex"><div class="pane"><b>④ AI が整形した答え → ⑤ validate（検査②。答えを渡す入力と provenance-reproduces は未実装）</b><pre>{
   &quot;$schema&quot;: &quot;urn:semantic-agent-schema:sample:answer-owner:v1&quot;,
   &quot;items&quot;: [
     {
@@ -172,14 +228,15 @@ pre.v .ag{background:var(--hot-bg);color:var(--hot)}pre.v .sv{background:var(--c
   {
     &quot;rule&quot;: &quot;provenance-reproduces&quot;,
     &quot;by&quot;: &quot;machine&quot;,
-    &quot;value&quot;: &quot;verified&quot;,
-    &quot;why&quot;: &quot;その版で where が真になり、select の owner を評価し直すと yamada&quot;
+    &quot;pointer&quot;: &quot;/items/0/provenance&quot;,
+    &quot;result&quot;: &quot;verified&quot;,
+    &quot;reason&quot;: &quot;その版で where が真になり、select の owner を評価し直すと yamada&quot;
   }
 ]</pre></div></div>
-<p class="meta">select は「出す名前 → JMESPath の式」の対応で、values のキーはその名前（呼ぶ側が決める）。出どころの select はその名前を指す。JMESPath は選ぶ（where）と取り出す（select）にだけ使い、それ以外の返す形は基盤が決める。読んだ版がいまの正本と違えば、validate は violated を返し、AI が読み直す。写した値でない要約 ・ 組み合わせを答えに入れたときだけ、AI の rule（根拠の判定）が必要になり、semantic-judge で依頼する</p>
+<p class="meta">select は「出す名前 → JMESPath の式」の対応で、values のキーはその名前（呼ぶ側が決める）。出どころの select はその名前を指す。JMESPath は選ぶ（where）と取り出す（select）にだけ使い、それ以外の返す形は基盤が決める。読んだ版がいまの正本と違えば、validate は violated を返し、AI が読み直す（未決：インスタンスに版の欄は無く、読んだ時点の中身を指せるのは ETag（保存しない）だけ。version ・ index_of に ETag とコミットのどちらを入れるかは決まっていない）。写した値でない要約 ・ 組み合わせを答えに入れたときだけ、AI の rule（根拠の判定）が必要になる。この判定は問う者の AI ではなく、基盤がコーディングエージェントごとのアダプター（coding-agents）で、判定ごとに新しいセッションの AI に判定させる</p>
 <h2>4　呼ぶ側</h2>
-<div class="tw"><table><tr><th>呼ぶ側</th><th>種類</th><th>使うコマンド</th></tr><tr><td>AI ツール（Claude Code ・ Codex ・ Copilot ・ Kiro）と、それを動かす harness</td><td>AI が伴う</td><td>semantic-* で procedure を受け取り、機械的なコマンドを呼ぶ</td></tr><tr><td>CI</td><td>AI が伴わない</td><td>機械的なコマンド（search ・ validate など）を直接呼ぶ</td></tr></table></div>
+<div class="tw"><table><tr><th>呼ぶ側</th><th>種類</th><th>使うコマンド</th></tr><tr><td>コーディングエージェント（Claude Code ・ Codex ・ Copilot ・ Kiro）と、それを動かす harness</td><td>AI が伴う</td><td>semantic-* で procedure を受け取り、機械的なコマンドを呼ぶ</td></tr><tr><td>CI</td><td>AI が伴わない</td><td>機械的なコマンド（search ・ validate など）を直接呼ぶ</td></tr></table></div>
 <h2>5　AI をどこで動かすか</h2>
 <div class="tw"><table><tr><th>形</th><th>セッション</th><th>キャッシュ</th><th>使う場面</th></tr><tr><td>A　いまのセッションで行う（基本）</td><td>増えない</td><td>いまの会話のまま効く</td><td>問う者が AI のとき</td></tr><tr><td>B　文脈を引き継ぎ、残さない fork</td><td>残らない</td><td>Claude Code の fork：効く（原典「its first request reads the parent's cache」）。Codex の fork --ephemeral：効く（実測 64%、再開と同じ）</td><td>いまの会話から切り離して1回だけ整形させたいとき</td></tr></table></div>
-<p class="meta">fork は呼ぶ側の AI ツールの機能で、基盤は関わらない（基盤は AI を起動しない）。子のセッションの4つの型と、ツールごとの手段は「子のセッションの型」の頁が持つ</p>
+<p class="meta">fork は呼ぶ側のコーディングエージェントの機能で、基盤は関わらない（基盤は作業させる AI を起動しない。判定させる AI は基盤が coding-agents で起動する）。子のセッションの4つの型と、ツールごとの手段は「子のセッションの型」の頁が持つ</p>
 </main>

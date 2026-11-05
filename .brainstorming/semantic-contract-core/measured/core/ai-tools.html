@@ -1,4 +1,4 @@
-<title>AI ツールの調査</title>
+<title>コーディングエージェントの調査</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
 <style>
@@ -43,9 +43,9 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 .y{background:var(--add);color:var(--add-ink);font-weight:700}.p{background:var(--hot-bg);color:var(--hot);font-weight:700}.n{background:var(--bad-bg);color:var(--bad);font-weight:700}td.y,td.p,td.n{font-size:12.5px}
 </style>
 <main>
-<h1>ほかの AI ツールを原典で調べた結果</h1>
-<p class="meta">Codex CLI ・ GitHub Copilot CLI ・ Gemini CLI ・ Kiro を、公式の文書（と Codex ・ Gemini はリポジトリの commit）の原文で照合した。全文は core/research/*.md、原文は sources/ai-tools/</p>
-<div class="ans">費用の式で比べる案は、トークン課金のときにしか成り立たない。採らない。<br>5つのツールすべてで成り立つのは「再開できるか ・ 有効時間（不明もある）・ 最後に使った時刻」だけ。Q11 #3 の形のままにし、有効時間が不明なら新しく立てる（案 B）。</div>
+<h1>コーディングエージェントの調査</h1>
+<p class="meta">Codex CLI ・ GitHub Copilot CLI ・ Gemini CLI ・ Kiro を、公式の文書（と Codex ・ Gemini はリポジトリの commit）の原文で照合した。全文は .brainstorming/semantic-contract-core/measured/core/research/*.md、原文は .brainstorming/semantic-contract-core/sources/ai-tools/。この頁が持つのは、セッションを再開するか新しく立てるかの事実だけ。判定させる AI を起動する事実（道具を外す旗 ・ 答えの形を渡す旗）は .brainstorming/semantic-contract-core/advisors/r96-coding-agents-facts.json（原文で照合済み）が持つ</p>
+<div class="ans">費用の式で比べる案は、トークン課金のときにしか成り立たない。採らない。<br>5つのツールすべてで成り立つのは「再開できるか ・ 有効時間（不明もある）・ 最後に使った時刻」だけ。Q11 #3 の形のままにし、有効時間が不明なら新しく立てる（案 B）。<br>採る形は5節：案 B に、履歴の割合で新しく立てる設定（settings の session.newWhenHistoryAbovePercent）を足す。</div>
 <h2>1　契約の入力が、ツールごとに取れるか</h2><div class="tw"><table><tr><th>契約の入力</th><th>Claude Code</th><th>Codex CLI</th><th>Copilot CLI</th><th>Gemini CLI</th><th>Kiro</th></tr><tr><td>再開（ID で、非対話でも）</td><td class="y">--resume ・ -p</td><td class="y">codex exec resume</td><td class="y">--resume ・ -p</td><td class="y">-r ・ -p</td><td class="y">--resume-id</td></tr><tr><td>料金の形</td><td class="p">定額の枠／API キーはトークン</td><td class="p">ChatGPT の枠／API キーはトークン</td><td class="p">トークン（2026-06 から）／年額の旧契約はリクエスト数</td><td class="p">Google アカウントは回数の上限／API キーはトークン</td><td class="n">定額＋クレジット</td></tr><tr><td>キャッシュの倍率（書く ・ 読む）</td><td class="y">1.25〜2 ・ 0.05〜0.1</td><td class="p">モデルで違う。枠の中では書く料金なし</td><td class="p">モデルごとの単価表から計算</td><td class="p">読むだけ記載。Google アカウントはキャッシュなし</td><td class="n">記載なし</td></tr><tr><td>有効時間</td><td class="y">会話1時間 ・ サブエージェント5分</td><td class="p">最小30分（保証は無い）</td><td class="p">1時間 ・ 24時間（手引きの記述。保証なし）</td><td class="n">implicit は記載なし</td><td class="n">記載なし</td></tr><tr><td>履歴の量</td><td class="y">使用量（トークン）</td><td class="y">トークン（セッションのファイル）</td><td class="y">トークン（OTel）</td><td class="y">トークン（セッションのファイル）</td><td class="p">割合（%）だけ</td></tr><tr><td>ターン数</td><td class="p">数える</td><td class="p">イベントを数える</td><td class="p">モデルの往復の回数だけ</td><td class="n">出す項目なし</td><td class="n">記載なし</td></tr></table></div>
 <p class="meta">緑：原典で取れる　黄：条件つき（料金の形やモデルで変わる、保証が無い）　赤：原典に無い</p>
 <h2>2　案の比べ</h2><div class="tw"><table><tr><th>案</th><th>アダプターが返すもの</th><th>成り立つツール</th><th>判定</th></tr><tr><td>前の案：費用の式で比べる</td><td>倍率3つ ・ 有効時間 ・ 履歴の量 ・ ターン数</td><td class="n">トークン課金のときだけ。Kiro ・ 定額の枠 ・ リクエスト数の課金では入力が取れない</td><td class="n">採らない</td></tr><tr><td>B　Q11 #3 のまま（有効時間内なら再開）</td><td>再開できるか ・ 有効時間（分からなければ「不明」）・ 最後に使った時刻</td><td class="y">5つとも。有効時間が「不明」のツールは毎回新しく立てて引き継ぐ</td><td class="y">私の見解</td></tr><tr><td>C　B ＋ 履歴が大きければ新規</td><td>B ＋ コンテキストの上限に対する履歴の割合</td><td class="y">5つとも（Kiro も % を返す）</td><td class="p">何%で切るかの根拠がまだ無い</td></tr></table></div>
@@ -54,17 +54,16 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 <div class="tw"><table><tr><th>外すもの</th><th>理由</th></tr>
 <tr><td>費用の式 ・ 料金の倍率 ・ 見込みのターン数</td><td>5つのうち2つ以上で取れない</td></tr>
 <tr><td>手元の DB の turns の列</td><td>ターン数を返すツールが無い</td></tr>
-<tr><td>設定ファイル（Abstract の一員 settings）</td><td>置く値が無くなる。必要になったときに足す（足す前に引く）</td></tr>
 </table></div>
-<p class="meta">残るもの：アダプターの返す値は「再開できるか ・ 有効時間（期間か『不明』）・ 最後に使った時刻」。有効時間の値は AI ツールと料金の形で変わるので、アダプターが利用者の環境から決める</p>
+<p class="meta">残るもの：アダプターの返す値は「再開できるか ・ 有効時間（期間か『不明』）・ 最後に使った時刻」。有効時間の値はコーディングエージェントと料金の形で変わるので、アダプターが利用者の環境から決める</p>
 <h2>5　採る形（案 C の割合を設定ファイルで持つ）</h2>
 <p class="meta">利用者：「何%は正直設定ファイルで持てるなら調節できるしあってもいい」。既定は置かない（根拠の無い数を基盤に書かない）。設定が無ければ案 B と同じ</p>
-<section class="two"><div class="pane"><pre><span>.semantic-agent-schema/settings.json（プロジェクト）</span><span>{ "$schema": "urn:semantic-agent-schema:base:settings:v1",</span><span class="a">  "session": { "newWhenHistoryAbovePercent": 60 } }</span></pre></div>
+<section class="two"><div class="pane"><pre><span>.semantic-agent-schema/settings.json（プロジェクト）</span><span>{ "$schema": "urn:semantic-agent-schema:base:settings:v1",</span><span>  "kind": "settings", "id": "project",</span><span class="a">  "session": { "newWhenHistoryAbovePercent": 60 } }</span></pre></div>
 <div class="pane"><pre><span>アダプターが返す値（5つのツールで取れる）</span><span>{ "resumable": true,</span><span>  "cacheLifetime": "PT1H" | "unknown",</span><span>  "lastUsedAt": "…",</span><span class="a">  "historyPercent": 70 }</span></pre></div></section>
 <div class="tw"><table><tr><th>場面：ACDR 0197 を30分後に続ける</th><th>設定なし</th><th>設定 60%</th></tr><tr><td>Claude Code、履歴がコンテキストの 30%</td><td class="y">有効時間内 → 再開</td><td class="y">60% 以下 ・ 有効時間内 → 再開</td></tr><tr><td>Claude Code、履歴が 70%</td><td class="y">有効時間内 → 再開</td><td class="p">60% を超える → 新しく立てて引き継ぐ</td></tr><tr><td>Kiro、履歴が 30%</td><td class="y">有効時間が不明 → 新しく立てる</td><td class="y">有効時間が不明 → 新しく立てる</td></tr></table></div>
 <div class="tw"><table><tr><th>決まり</th><th>中身</th></tr>
 <tr><td>判定の順</td><td>①再開できない ・ 有効時間が切れた ・ 不明 → 新規　②設定があり、履歴の割合がそれを超える → 新規　③それ以外 → 再開。新規にするときは古いほうを閉じる</td></tr>
-<tr><td>設定ファイル</td><td>Abstract の一員 settings。利用者 ・ プロジェクト ・ 手元の3段で、手元 ＞ プロジェクト ＞ 利用者。いまの欄は session.newWhenHistoryAbovePercent の1つ</td></tr>
+<tr><td>設定ファイル</td><td>Abstract のファイル settings。利用者 ・ プロジェクト ・ 手元の3段で、手元 ＞ プロジェクト ＞ 利用者。いまの欄は session.newWhenHistoryAbovePercent の1つ</td></tr>
 <tr><td>外すもの</td><td>費用の式 ・ 料金の倍率 ・ 見込みのターン数 ・ DB の turns の列</td></tr>
 </table></div>
 </main>

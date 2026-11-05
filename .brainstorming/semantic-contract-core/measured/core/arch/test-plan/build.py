@@ -8,15 +8,16 @@ fig = lambda n: '<div class="fig">' + open(os.path.join(H, n)).read() + '</div>'
 def table(h, rows):
     return '<div class="tw"><table><tr>' + ''.join(f'<th>{x}</th>' for x in h) + '</tr>' + ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>' for r in rows) + '</table></div>'
 body = f'''<main>
+<p id="history-note" role="note" style="box-sizing:border-box;border:2px solid #B45309;border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.6;background:transparent;color:inherit">この頁は 2026-10-24 時点の検討の経緯で、実装の拠り所ではない。今の決定は<a href="https://claude.ai/artifact/3cTvkRsQ2YEqzywBoxkTgV" style="color:inherit;text-decoration:underline">参照する頁の索引</a>の「実装の拠り所」から読む。</p>
 <h1>基盤のテスト計画</h1>
 <p class="meta">利用者の問い「テスト計画としてはどのようなテストをする予定ですかね？？テスト規約はどうなるんだろうか。テストピラミッド的に何をどうするのがいいでしょうか。」への答え。qa-advisor の計画（arch/reviews/qa-test-plan.html）を、結論を渡さない反証役に通し、前提に照らして1つにした。arch.html はまだ直していない</p>
 <p class="ans">単体テストを最も厚くし、domain の値の関数を決定表と状態遷移で確かめる。バイナリを通すシステムテストは、核で作った70場面のうち、バイナリでしか確かめられない約21場面だけにする。残りの場面は、それを守る側のテストへ移す</p>
 {fig('pyramid.svg')}
 <h2>1　レベルごとに何を確かめるか</h2>
 {table(['レベル', '対象', 'テストダブル', '核の場面から移すもの'], [
- ['単体', 'domain の集約 ・ ドメインサービス ・ 値オブジェクト。再開か新規かを決める（決定表）・ 状態を導く（決定表）・ セッションの開いている → 閉じた（状態遷移 I45）・ 答えを5つの値へまとめる（I14）', '使わない（値を渡すだけ）', 'S-SES-2〜9（AI ツールの答え ・ 有効時間 ・ 設定の組み合わせ ＝ 決定表の列）'],
+ ['単体', 'domain の集約 ・ ドメインサービス ・ 値オブジェクト。再開か新規かを決める（決定表）・ 状態を導く（決定表）・ セッションの開いている → 閉じた（状態遷移 I45）・ 答えを5つの値へまとめる（I14）', '使わない（値を渡すだけ）', 'S-SES-2〜9（コーディングエージェントの答え ・ 有効時間 ・ 設定の組み合わせ ＝ 決定表の列）'],
  ['コンポーネント統合：application', '使う場面ごとに、ポートが失敗したときの経路と、I33（意図と変更が合っているか）の判定の流れ', '保存のポートは Fake、外から答えを受け取るポート（judge ・ ai_sessions ・ tools）は Test Stub', 'given.judge を使う2場面（I33）'],
- ['コンポーネント統合：outbound', '本物の git ・ SQLite ・ ファイルを一時ディレクトリで動かす。git と snapshot に同じテストを当て、出力が一致することも確かめる（核の K5）。AI ツールは記録した出力で確かめ、本物は CI で呼ばない', '使わない（本物）', 'sql の14場面と S-SES-10（同時の登録）は crates/outbound/sqlite/tests/ へ'],
+ ['コンポーネント統合：outbound', '本物の git ・ SQLite ・ ファイルを一時ディレクトリで動かす。git と snapshot に同じテストを当て、出力が一致することも確かめる（核の K5）。コーディングエージェントは記録した出力で確かめ、本物は CI で呼ばない', '使わない（本物）', 'sql の14場面と S-SES-10（同時の登録）は crates/outbound/sqlite/tests/ へ'],
  ['コンポーネント統合：schemas', 'schemas/v1 の10ファイルが、正しいインスタンスを通し、誤ったインスタンスを断るか', '使わない', 'op が schema の24場面（核でも基盤を呼ばず JSON Schema の実装で検査していた）'],
  ['システム', 'バイナリを起動し、変更の記録 ・ 変更を見せる ・ 承認 ・ 設計の検査を protocol のコマンドだけで動かす。前提の状態づくりも結果の読み取りも protocol を通し、手元の DB を直接書かない', '使わない（模擬の AI を外から渡す経路を必要としない）', '残る約21場面（changes 14 ・ design 6 ・ S-SES-1）。形は protocol（Q4）が決まってから決める'],
  ['静的', 'arch.html 6節の検査と、test-suite/ の形を scenario.schema.json で検査する', '──', '──'],
@@ -38,7 +39,7 @@ body = f'''<main>
  ['同じ入力から同じ結果', '検証の操作（I13 の範囲）は2回実行して出力が同じ。git と snapshot で出力が一致する'],
  ['確かめるテストが抜けていない', '不変条件46と使う場面の事後 ・ 失敗時の全行に、それを確かめるテストがある。いま核では90行のうち65行が「確かめない」（参照実装の範囲外）なので、実装の段でそのテストを書く'],
 ])}
-<p class="meta">CI は毎回の push で、静的 → 単体とコンポーネント統合 → システムの順に全部を回す。本物の AI ツールは呼ばない</p>
+<p class="meta">CI は毎回の push で、静的 → 単体とコンポーネント統合 → システムの順に全部を回す。本物のコーディングエージェントは呼ばない</p>
 <h2>4　外したもの</h2>
 {table(['外したもの', '理由'], [
  ['テストダブルの名前 ・ 環境変数を grep する検査', 'dev-dependencies と tests/ の crate が本番のバイナリに入らないので、Cargo の仕組みで足りる'],

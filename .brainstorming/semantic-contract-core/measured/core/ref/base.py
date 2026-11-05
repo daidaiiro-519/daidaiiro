@@ -176,7 +176,7 @@ class Base:
         rec = self._load(REC + j['target']['id'] + '.json')
         return {'effective': all(r['value'] == rec.get(r['at'].lstrip('/')) for r in j['judged_values']['reads'])}
 
-    # ---------- ② 再開か新規かを決める（AI ツールに依らない）
+    # ---------- ② 再開か新規かを決める（コーディングエージェントに依らない）
     def decide(self, tool, purpose_ref=None, parent=None, role=None):
         cur = self.st.open_in_slot(purpose_ref, parent, role)
         if cur is None: return {'action': 'new', 'close': [], 'seen': None}

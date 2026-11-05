@@ -15,7 +15,7 @@ P = [
  '<text class="title" x="10" y="24">crate の依存の向き（矢印：依存する。どの矢印も上から下 ＝ 外から中心へ向かう）</text>',
  band(36, 76, '外側：入口（inbound）。outbound を application へ結びつける'), band(120, 76, '外側：外の技術（outbound）。application の ports/ を実装する'), band(204, 76, '使う場面とポート'), band(288, 382, '中心：業務（domain）。値を受け取り値を返す。入出力をしない ・ ポートを持たない'),
  box(250, 58, 400, 'crates/inbound/cli', 'CLI と MCP ・ コマンド：セマンティック7つ ・ 機械的', 'kind-3'),
- box(250, 142, 400, 'crates/outbound/*', 'agents-contract ・ ai-cli ・ git ・ fs ・ tools ・ sqlite', 'kind-1'),
+ box(250, 142, 400, 'crates/outbound/*', 'agents-contract ・ coding-agents ・ git ・ fs ・ tools ・ sqlite', 'kind-1'),
  box(300, 226, 300, 'crates/application', '使う場面 ・ ports/（駆動される側13）', 'kind-2'),
  down(450, 108, 142),
  down(450, 192, 226),

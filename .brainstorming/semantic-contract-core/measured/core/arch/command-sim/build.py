@@ -7,60 +7,70 @@ head = head.replace('<title>基盤のアーキテクチャ</title>', '<title>コ
 def table(h, rows):
     return '<div class="tw"><table><tr>' + ''.join(f'<th>{x}</th>' for x in h) + '</tr>' + ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>' for r in rows) + '</table></div>'
 J = lambda o: json.dumps(o, ensure_ascii=False, indent=1)
-R0 = {"$schema":"decision-record@1","id":"0199","title":"依存の向きの検査ツール","decision":"architecture-lint を作る","why":"","owner":"daidaiiro"}
+URN = "urn:semantic-agent-schema:acdr:decision-record:v1"
+P0199 = ".acdr/0199-依存の向き/acdr.json"
+WHY0 = "cargo-deny では層の並びを規則にできず、規則を手で確かめていたのと食い違っていた。規則ファイルで検査する形に合わせる。"
+WHY1 = "cargo-deny では層の並びを規則にできなかった。層の並びを規則ファイルに書いて検査する形に合わせる。"
+V0 = {"no":"0199","slug":"依存の向き","title":"依存の向きの検査ツール","status":"proposed","decision":"architecture-lint を作る","why":WHY0,
+      "shift":[{"what":"依存の向きの検査","from":"手で確かめる","to":"architecture-lint の規則ファイルで検査する"}],
+      "alternatives":[{"option":"cargo-deny を使う","why_not":"層の並びを規則にできない"}]}
+R0 = dict({"$schema":URN,"kind":"decision-record","id":"01m5t5rgz82kj790z41b7etrkw"}, **V0)
+ST_WAIT = {"name":"awaiting-judgment","label":"判断待ち"}
 # 段：題 ・ 使う場面 ・ セマンティック ・ procedure ・ AI の入力 ・ 機械的 ・ 事前 ・ 事後 ・ 入力の検査 ・ 出力の検査 ・ 状態
+# 出力の例は、実装の試験（test-suite/scenarios の S-INST-CREATE ・ S-INST-ETAG ・ S-INST-STALE ・ S-INST-EMPTY ・ S-INST-ACCEPTED）を基盤のコマンドで流した出力から取った
 STEPS = [
  dict(t="探す", uc="U28 問いに答える", sem="semantic-search", mech="search",
   proc={"手順":"問いを where と select に直す。kind と term は候補から選ぶ","入力のスキーマ":"query#/$defs/request","出力のスキーマ":"query#/$defs/result"},
-  inp={"where":"contains(title, '依存')","select":"{id: id, decision: decision}","範囲":["daidaiiro"]},
+  inp={"kind":[URN],"where":"contains(title, '依存')","select":{"no":"no","decision":"decision"},"contexts":["daidaiiro"]},
   before={"記録":["0185 依存の向きの規則","0199 依存の向きの検査ツール","0150 古い決定"]}, after=None,
-  out=[{"id":"0185","decision":"層の並びで検査する","出どころ":"0185#/decision"},{"id":"0199","decision":"architecture-lint を作る","出どころ":"0199#/decision"}],
+  out={"$schema":"urn:semantic-agent-schema:base:query:v1#/$defs/result","query":"（渡した request）",
+       "items":[{"id":"<0185 の id>","kind":URN,"version":"<読んだ版（何を入れるかは未決）>","values":{"no":"0185","decision":"層の並びで検査する"}},
+                {"id":R0["id"],"kind":URN,"version":"<読んだ版（何を入れるかは未決）>","values":{"no":"0199","decision":"architecture-lint を作る"}}],
+       "scope":{"contexts":["daidaiiro"],"index_of":"<正本の版（何を入れるかは未決）>"},"not_searched":[]},
   state="状態は変わらない", ic="合う", oc=["形：合う（query の result）","機械の rule：出どころを評価し直すと同じ値","AI の rule：無い"]),
  dict(t="読む", uc="U6 既存のインスタンスを変える（前段）", sem="semantic-read", mech="get",
-  proc={"手順":"read の means に従って読む。reads の値も一緒に読む","入力のスキーマ":"procedure#/$defs/read-request（id ・ JSON Pointer）","出力のスキーマ":"procedure#/$defs/read-result（値 ・ x-prompt ・ 版）"},
-  inp={"id":"0199","pointer":"/why"},
-  before=R0, after=None, out={"値":"","x-prompt":"決定の理由を、比べた案と一緒に書く","版":3},
+  proc={"手順":"欄の title ・ description と x-prompt の read に従って読む。reads の値も一緒に読む。書くときのために etag を控える","入力のスキーマ":"procedure#/$defs/read-request（パス ・ JSON Pointer）","出力のスキーマ":"get の出力（data.path ・ pointer ・ value ・ etag）"},
+  inp={"path":P0199,"pointer":"/why"},
+  before=R0, after=None, out={"ok":True,"findings":[],"data":{"path":P0199,"pointer":"/why","value":WHY0,"etag":"f5260089211aa13548b1"}},
   state="状態は変わらない", ic="合う", oc=["形：合う","機械の rule：無い","AI の rule：無い"]),
  dict(t="作る", uc="U5 インスタンスを作る", sem="semantic-create", mech="create",
-  proc={"手順":"人が決める欄（owner）は空のまま。書く順は title → decision → why。id は create が決める","入力のスキーマ":"procedure#/$defs/create-request（required から人が決める欄と id を除いた値）","出力のスキーマ":"decision-record@1"},
-  inp={"title":"依存の向きの検査ツール","decision":"architecture-lint を作る"},
+  proc={"手順":"人が決める欄（status）は default（proposed）のまま。必須の欄（required）はすべて値を渡す（空の欄があると作らない）。id は create が決める","入力のスキーマ":"procedure#/$defs/create-request（作るパス ・ --schema の URN ・ --value の値。値は required から id を除いたもの。パスは x-instance-path に合わせる）","出力のスキーマ":"decision-record と create の出力（data.saved ・ results ・ state ・ etag ・ unfilled）"},
+  inp={"path":P0199,"--schema":URN,"--value":V0},
   before={"記録":["0185","0150"]},
-  after={"記録":["0185","0150","0199"],"0199":{"$schema":"decision-record@1","id":"0199","title":"依存の向きの検査ツール","decision":"architecture-lint を作る","why":"","owner":""}},
-  state="インスタンスが1つ増える（id 0199 は create が決めた）。状態：violated", ic="合う", oc=["形：合う","機械の rule：why ・ owner が空で violated","AI の rule：まだ判定しない（why が空）"]),
+  after={"記録":["0185","0150","0199"],"0199":R0},
+  out={"ok":True,"findings":[],"data":{"saved":True,"id":R0["id"],"path":P0199,"state":ST_WAIT,"etag":"b8b79df7a32c32d15601",
+       "results":[{"rule":"level1-template","by":"machine","result":"verified","reason":"置き場所が x-instance-path に合う"},{"rule":"names-both","by":"ai","pointer":"/why","result":"unverified","reason":"AI の判定を依頼する（任せる先 reviewer）"},"…（ほかの rule）"],
+       "unfilled":[{"name":"docs","title":"変更した文書と、変更の印","description":"この決定で変えた文書と、その印","rules":["why-per-change"]},{"name":"superseded_by","title":"置き換えた記録の番号","description":"この記録を置き換えた、新しい記録の番号","rules":[]},{"name":"supersedes","title":"置き換えた記録の番号","description":"この記録が置き換えた、前の記録の番号","rules":["target-exists"]}]}},
+  state="インスタンスが1つ増える（id は create が決めた）。状態：判断待ち（AI の rule が unverified）。必須の欄が空なら作らない（exit 1、findings に「必須の欄が空：why」、data.saved:false）", ic="合う（必須の欄がそろう）", oc=["形：合う","機械の rule：level1-template が verified","AI の rule：names-both ・ noun ほかを unverified で返す（任せる先 reviewer）"]),
  dict(t="変える", uc="U6 既存のインスタンスを変える", sem="semantic-write", mech="patch",
-  proc={"手順":"write の rule に従って書く。test で今の値を確かめてから replace。版の食い違いは patch が断る","入力のスキーマ":"JSON Patch（test ・ add ・ replace ・ remove。対象の欄だけ）","出力のスキーマ":"decision-record@1 と change"},
-  inp=[{"op":"test","path":"/why","value":""},{"op":"replace","path":"/why","value":"cargo-deny を避け、言語に寄らない形で作る"}],
-  before=R0, after=dict(R0, why="cargo-deny を避け、言語に寄らない形で作る"),
-  state="欄が1つ変わる。状態：violated → unverified", ic="合う（使える op だけ）", oc=["形：合う","機械の rule：合う","AI の rule：why-explains-decision を needs で返す"]),
- dict(t="判定する", uc="U10 取り直す ・ U16 判定を入れる", sem="semantic-judge", mech="validate（答えをまとめる）",
-  proc={"手順":"Validator の1段目が返した依頼（rule why-explains-decision の x-prompt）に従って判定する。理由を書く","入力のスキーマ":"judgment#/$defs/verdict（rule ・ 版 ・ 結果 ・ 理由）","出力のスキーマ":"judgment と検証の結果"},
-  inp={"rule":"why-explains-decision","版":3,"結果":"pass","理由":"理由が決定の手段と比べた案を述べている"},
-  before={"0199 の判定":[],"needs":["why-explains-decision"]},
-  after={"0199 の判定":[{"rule":"why-explains-decision","版":3,"結果":"pass","誰":"AI"}],"needs":[]},
-  state="判定の記録が1つ増える。状態：unverified → verified", ic="合う", oc=["形：合う","機械の rule：合う","AI の rule：pass（この答え）"]),
+  proc={"手順":"write の rule に従って書く。get で控えた etag を patch --if-match で渡す（読んだあとに中身が変わっていれば patch が断る）","入力のスキーマ":"JSON Patch（add ・ replace ・ remove。対象の欄だけ）","出力のスキーマ":"decision-record と patch の出力（data.saved ・ results ・ state ・ etag ・ unfilled）"},
+  inp={"--patch":[{"op":"replace","path":"/why","value":WHY1}],"--if-match":"f5260089211aa13548b1"},
+  before=R0, after=dict(R0, why=WHY1),
+  out={"ok":True,"findings":[],"data":{"saved":True,"path":P0199,"state":ST_WAIT,"etag":"（書いたあとの中身から計算した新しい値）","results":["…（rule ごとの結果）"],"unfilled":["…"]}},
+  state="欄が1つ変わる。新しく持ち込んだ機械の rule の違反が無いので保存する（data.saved:true）。状態：判断待ちのまま（names-both は unverified）", ic="合う（使える op だけ ・ ETag が合う）", oc=["形：合う","機械の rule：新しい違反は無い（あれば書き込みを断る：data.saved:false、exit 1。前からある違反は断らない）","AI の rule：names-both を unverified で返す"]),
+ dict(t="判定する", uc="U10 取り直す ・ U16 判定を入れる", sem="基盤が起動する AI（coding-agents）", mech="validate（答えをまとめる）",
+  proc={"手順":"基盤が、Validator の1段目が返した依頼（rule names-both の x-prompt と reads の値）を、coding-agents のアダプターで判定ごとに新しいセッションの AI に渡す。AI は rule ごとの結果 ・ 理由 ・ 根拠の場所を返す（ステップ4で実装。semantic-judge を残すかは未決）","入力のスキーマ":"Abstract の本体の $defs/output-judging（results：rule ・ result ・ reason ・ grounds）","出力のスキーマ":"judgment と検証の結果"},
+  inp={"results":[{"rule":"names-both","result":"verified","reason":"食い違った相手（手で確かめる）と、合わせた先（規則ファイル）の両方がある","grounds":["/why"]}]},
+  before={"0199 の判定":[],"unverified":["names-both"]},
+  after={"0199 の判定":[{"rule":"names-both","結果":"verified","誰":"AI"}],"unverified":[]},
+  state="判定の記録が1つ増える。names-both：unverified → verified", ic="合う", oc=["形：合う","機械の rule：合う","AI の rule：verified（この答え）"]),
  dict(t="置き換えて残す", uc="U11 不要なインスタンスを置き換えて残す", sem="semantic-write", mech="patch",
-  proc={"手順":"置き換えた先を決め、status を superseded にする。指しているものはそのまま","入力のスキーマ":"JSON Patch（status ・ superseded_by）","出力のスキーマ":"decision-record@1 と change"},
+  proc={"手順":"置き換えた先を決め、status を superseded にする。指しているものはそのまま","入力のスキーマ":"JSON Patch（status ・ superseded_by）","出力のスキーマ":"decision-record と patch の出力","前提":"試験の ACDR の Concrete（S-CHANGE-APPROVE）は、acdr Skill の record.schema.json と同じ superseded_by の欄（置き換えた記録の番号）と「status が superseded なら superseded_by が必須」を持つ（コミット 9ef394f9）"},
   inp=[{"op":"replace","path":"/status","value":"superseded"},{"op":"add","path":"/superseded_by","value":"0199"}],
   before={"id":"0150","status":"accepted"}, after={"id":"0150","status":"superseded","superseded_by":"0199"},
   state="0150 は残り、置き換えた先を指す。0150 の判定は効かなくなる。0160（0150 を指す）は壊れない", ic="合う", oc=["形：合う","機械の rule：合う","AI の rule：無い"]),
  dict(t="取り込む", uc="U17 既存のファイルを取り込む", sem="semantic-import", mech="import",
-  proc={"手順":"$schema が決まらないファイルの中身を見て、Concrete の候補から選ぶ","入力のスキーマ":"procedure#/$defs/import-request（パス ・ $schema）","出力のスキーマ":"選んだ Concrete（decision-record@1）"},
-  inp={"path":"docs/old/0120.json","$schema":"decision-record@1"},
+  proc={"手順":"$schema が決まらないファイルの中身を見て、Concrete の候補から選ぶ","入力のスキーマ":"procedure#/$defs/import-request（パス ・ $schema）","出力のスキーマ":"選んだ Concrete（decision-record）"},
+  inp={"path":"docs/old/0120.json","$schema":URN},
   before={"下書き":["docs/old/0120.json（$schema が無い）"],"記録":["0199"]},
   after={"下書き":[],"記録":["0199","0120"]},
-  state="下書きがインスタンスになる。0120 の状態：unverified", ic="合う", oc=["形：合う（decision-record@1）","機械の rule：合う","AI の rule：needs で返す"]),
+  state="下書きがインスタンスになる。0120 の状態：unverified", ic="合う", oc=["形：合う（decision-record）","機械の rule：合う","AI の rule：unverified で返す"]),
  dict(t="移す", uc="U3 Abstract の新しい版に合わせる", sem="semantic-migrate", mech="patch",
   proc={"手順":"機械的な migrate が直せなかった欄だけを、移し方の案内に従って直す","入力のスキーマ":"JSON Patch（残った欄だけ）","出力のスキーマ":"abstract@2 に合う Concrete"},
-  inp=[{"op":"replace","path":"/properties/owner/x-prompt/rules/0","value":"責任者を role と名前で書く"}],
-  before={"$schema":"abstract@2","properties":{"owner":{"x-prompt":{"rules":["責任者を書く"]}}}},
-  after={"$schema":"abstract@2","properties":{"owner":{"x-prompt":{"rules":["責任者を role と名前で書く"]}}}},
+  inp=[{"op":"replace","path":"/properties/owner/x-prompt/write/0/rule","value":"責任者を role と名前で書く"}],
+  before={"$schema":"abstract@2","properties":{"owner":{"x-prompt":{"write":[{"id":"owner-format","rule":"責任者を書く"}]}}}},
+  after={"$schema":"abstract@2","properties":{"owner":{"x-prompt":{"write":[{"id":"owner-format","rule":"責任者を role と名前で書く"}]}}}},
   state="この前に、機械的な migrate が $schema を abstract@1 → @2 にして、直せない欄を1件残した。この段で残りが 1件 → 0件", ic="合う", oc=["形：合う（abstract@2）","機械の rule：合う","AI の rule：無い"]),
- dict(t="意図を書く", uc="U25 変更を確かめる（前段）", sem="semantic-write", mech="patch",
-  proc={"手順":"この変更が何のためかを、目的の参照と一緒に書く","入力のスキーマ":"JSON Patch（change の intent）","出力のスキーマ":"change"},
-  inp=[{"op":"replace","path":"/intent","value":"依存の向きを機械で検査する"}],
-  before={"目的":"0199","intent":"","対象":["architecture-lint/src/cargo.rs"]},
-  after={"目的":"0199","intent":"依存の向きを機械で検査する","対象":["architecture-lint/src/cargo.rs"]},
-  state="変更の記録に意図が入る", ic="合う", oc=["形：合う","機械の rule：合う","AI の rule：意図と変更が合うか（I33）を needs で返す"]),
 ]
 for s in STEPS:
     s["before"] = J(s["before"]); s["after"] = s["before"] if s["after"] is None else J(s["after"]); s["inp"] = J(s["inp"]); s["out"] = J(s["out"]) if "out" in s else ""
@@ -72,13 +82,13 @@ M = {
  ('欄','読む'):[SR,'get'], ('欄','変える'):[SW,'patch'],
  ('インスタンス','探す'):[SS,'search'], ('インスタンス','読む'):[SR,'get'], ('インスタンス','作る'):['semantic-create','create'],
  ('インスタンス','変える'):[SW,'patch'], ('インスタンス','検証'):['','validate'],
- ('インスタンス','判定'):['semantic-judge','validate ・ judge（人）'], ('インスタンス','描画'):['','render'], ('インスタンス','経緯'):['','history'],
+ ('インスタンス','判定'):['','validate（基盤が AI を起動する）'], ('インスタンス','描画'):['','render'], ('インスタンス','経緯'):['','history'],
  ('スキーマ','探す'):[SS,'search'], ('スキーマ','読む'):[SR,'get'], ('スキーマ','作る'):['semantic-create','create'],
  ('スキーマ','変える'):[SW,'patch'], ('スキーマ','検証'):['','validate'], ('スキーマ','版を出す'):['','release'], ('スキーマ','移す'):['semantic-migrate','migrate ・ patch'],
  ('ドキュメント','探す'):[SS,'search'], ('ドキュメント','読む'):[SR,''], ('ドキュメント','変える'):['','record'],
  ('ドキュメント','取り込む'):['semantic-import','import'], ('ドキュメント','経緯'):['','history'],
  ('集まり','探す'):[SS,'search'], ('集まり','検証'):['','validate'],
- ('変更','取り込む'):['','validate'], ('変更','判定'):['semantic-judge','validate ・ judge（人）'], ('変更','経緯'):['','history'],
+ ('変更','作る'):['','record'], ('変更','取り込む'):['','validate .'], ('変更','判定'):['','judge（人）'], ('変更','経緯'):['','history'],
  ('判定','検証'):['','validate'],
  ('セッション','作る'):['','session open'], ('セッション','読む'):['','session resume'], ('セッション','閉じる'):['','session close'],
  ('文脈','変える'):[SW,'patch'],
@@ -89,93 +99,94 @@ FSTEPS = [
    ["人","session open","セッション","作る","目的「依存の向きの検査ツールを作る」","セッション（ID）"]]],
  ["探す範囲を宣言し、validator をつなぐ", ["U26","U14"], [
    ["AI","semantic-write","文脈","変える","settings の探す範囲と validator","procedure"],
-   ["基盤","patch","文脈","変える","settings への JSON Patch","change（判定できない rule は unsupported）"]]],
+   ["基盤","patch","文脈","変える","settings への JSON Patch","data.results（判定できない rule は unsupported）"]]],
  ["過去の決定と、関係するソースを探す", ["U28"], [
    ["AI","semantic-search","集まり","探す","問い「依存の向きを決めた記録と、そこで変えたファイルは？」","procedure"],
    ["基盤","search","インスタンス","探す","記録に where（JMESPath）","query"],
    ["基盤","search","ドキュメント","探す","変更の記録から、変えたファイルのパス","query"]]],
  ["見つけた記録とソースを読む", ["U13"], [
    ["AI","semantic-read","インスタンス","読む","ACDR 0185","procedure"],
-   ["基盤","get","インスタンス","読む","ACDR 0185","値 ・ x-prompt ・ 版"],
+   ["基盤","get","インスタンス","読む","ACDR 0185","data.value ・ etag"],
    ["AI","semantic-read","ドキュメント","読む","judge.rs","procedure（読み方の案内）"],
    ["基盤","history","ドキュメント","経緯","judge.rs を変えた記録と意図","change の並び"],
    ["AI","（ファイルを読む）","ドキュメント","読む","judge.rs の本文","基盤は中身を解釈しない"]]],
  ["ほかの文脈の公開された言葉を読む", ["U24"], [
    ["AI","semantic-read","スキーマ","読む","published の glossary（x-relationship の先）","procedure"],
-   ["基盤","get","スキーマ","読む","published（版で固定）","JSON Schema ・ 版"]]],
+   ["基盤","get","スキーマ","読む","published の glossary のパスと /terms","data.value ・ etag"]]],
  ["記録の型を読む", ["U5"], [
    ["AI","semantic-read","スキーマ","読む","Concrete decision-record","procedure"],
-   ["基盤","get","スキーマ","読む","$ref を解いた形","JSON Schema"]]],
+   ["基盤","get","スキーマ","読む","Concrete のパス（pointer は空）","data.value ・ etag（$ref は解かない）"]]],
  ["記録を作り、欄を書く", ["U5"], [
    ["AI","semantic-create","インスタンス","作る","decision-record の新しい記録","procedure（書く順 ・ 人が決める欄）"],
-   ["基盤","create","インスタンス","作る","雛形から ACDR 0199","インスタンス"],
+   ["基盤","create","インスタンス","作る","ACDR 0199（必須の欄をそろえて渡す）","data.saved ・ results ・ state ・ etag ・ unfilled"],
    ["AI","semantic-write","欄","変える","0199 の /decision","procedure（write の rule）"],
-   ["基盤","patch","欄","変える","JSON Patch","change（検証の結果 ・ needs）"]]],
+   ["基盤","patch","欄","変える","JSON Patch と --if-match（create が返した etag）","data.saved ・ results ・ state ・ etag"],
+   ["基盤","record","変更","作る","0199 の変えた欄 ・ 意図 ・ 目的（--intent ・ --purpose は必須）","変更の記録（手元の DB）"]]],
  ["検証して、AI と人が rule と意図を判定する", ["U16"], [
-   ["基盤","validate","インスタンス","検証","0199","検証の結果 ・ needs"],
-   ["AI","semantic-judge","インスタンス","判定","0199 × rule why-explains-decision","procedure（依頼 ・ 判定の入力のスキーマ）"],
-   ["基盤","validate ・ judge（人）","インスタンス","判定","AI の答えをまとめる（Validator の2段目）","judgment ・ 検証の結果"],
-   ["人","judge","インスタンス","判定","0199 × rule「責任者を書く」（人が決める rule）","judgment"],
-   ["人","judge","変更","判定","意図と変更が合っているか（I33）","judgment"]]],
+   ["基盤","validate","インスタンス","検証","0199","data.results ・ state（AI の rule は unverified）"],
+   ["基盤","（AI の判定を依頼する）","インスタンス","判定","0199 × rule decision-no-means：coding-agents のアダプターで、判定ごとに新しいセッションの AI を起動する（ステップ4）","AI の答え"],
+   ["基盤","validate","インスタンス","判定","AI の答えをまとめる（Validator の2段目）","judgment ・ 検証の結果"],
+   ["人","judge","変更","判定","意図と変更が合っているか（I33）。人が決める欄を変えた記録なら、承認すると human-entry-only が verified","judgment"]]],
  ["判定を受けて、記録の2つの欄をまとめて直す", ["U6"], [
-   ["AI","semantic-write","インスタンス","変える","0199（/why と /owner）","procedure"],
-   ["基盤","patch","インスタンス","変える","2つの op を持つ JSON Patch","change"]]],
+   ["AI","semantic-write","インスタンス","変える","0199（/why と /alternatives）","procedure"],
+   ["基盤","patch","インスタンス","変える","2つの op を持つ JSON Patch と --if-match","data.saved ・ results ・ state ・ etag"]]],
  ["rule を直し、使っている所を探して直す", ["U2","U23","U7"], [
    ["AI","semantic-search","スキーマ","探す","問い「rule owner-required を使う Concrete は？」","procedure"],
    ["基盤","search","スキーマ","探す","Concrete に where","query"],
    ["AI","semantic-read","欄","読む","Concrete の /properties/owner/x-prompt","procedure"],
-   ["基盤","get","欄","読む","同じ欄","値 ・ x-prompt ・ 版"],
+   ["基盤","get","欄","読む","同じ欄","data.value ・ etag"],
    ["AI","semantic-write","スキーマ","変える","Concrete decision-record","procedure"],
-   ["基盤","patch","スキーマ","変える","JSON Patch","change"],
-   ["基盤","validate","スキーマ","検証","Concrete を Abstract に照らす","検証の結果"],
-   ["基盤","validate","集まり","検証","変更後の姿の全インスタンス","状態が変わったもの"],
+   ["基盤","patch","スキーマ","変える","JSON Patch","data.saved ・ results ・ state ・ etag"],
+   ["基盤","validate","スキーマ","検証","Concrete を Abstract に照らす","data.results ・ state"],
+   ["基盤","validate","集まり","検証","validate .（作業の根の下のすべて）","data.files（パスごとの状態）・ findings"],
    ["AI","semantic-write","インスタンス","変える","violated になった記録","procedure"]]],
  ["効かなくなった判定を取り直す", ["U10"], [
-   ["基盤","validate","判定","検証","入力が変わった rule だけ","検証の結果 ・ needs"]]],
+   ["基盤","validate","判定","検証","入力が変わった rule だけ","data.results ・ state"]]],
  ["ソースを直して、意図と結びつける", ["U13"], [
    ["AI","（ファイルを直す）","ドキュメント","変える","architecture-lint/src/cargo.rs","基盤は中身を解釈しない"],
-   ["基盤","record","ドキュメント","変える","cargo.rs ・ 意図 ・ 目的（0199）","change"]]],
+   ["基盤","record","ドキュメント","変える","cargo.rs ・ 意図 ・ 目的（0199）（--intent ・ --purpose は必須）","変更の記録（手元の DB に1件）"]]],
  ["手元の JSON を取り込む", ["U17"], [
    ["基盤","import","ドキュメント","取り込む","docs/old-decisions/*.json","インスタンス ・ 下書きの一覧"],
    ["AI","semantic-import","ドキュメント","取り込む","$schema が決まらない下書き 0120.json","procedure（Concrete の候補 ・ 入力のスキーマ）"],
    ["基盤","import","ドキュメント","取り込む","0120.json と選んだ $schema","インスタンス"]]],
  ["不要になった記録を置き換えて残す", ["U11"], [
    ["AI","semantic-write","インスタンス","変える","0150 の status を superseded、superseded_by を 0199","procedure"],
-   ["基盤","patch","インスタンス","変える","JSON Patch","change（0150 の判定は効かなくなる。0160 は壊れない）"]]],
+   ["基盤","patch","インスタンス","変える","JSON Patch","data.saved ・ results ・ state（0150 の判定は効かなくなる。0160 は壊れない）"]]],
  ["翌日、同じ目的のセッションを ID で再開する", ["U27"], [
    ["人","session resume","セッション","読む","前の日のセッション ID","セッション（続きから）"]]],
  ["新しい記録の型を作る", ["U1"], [
    ["AI","semantic-create","スキーマ","作る","Abstract から Concrete tool-record","procedure"],
-   ["基盤","create","スキーマ","作る","Concrete の雛形","Concrete"]]],
+   ["基盤","create","スキーマ","作る","Concrete の雛形（--owner ・ --kind ・ --value に title と description）","Concrete（$id は urn:semantic-agent-schema:&lt;owner&gt;:&lt;kind&gt;:v1）"]]],
  ["Abstract の新しい版を出し、Concrete を合わせる", ["U4","U3"], [
    ["提供側","release","スキーマ","版を出す","Abstract の新しい版と移し方","版 ・ 移し方"],
-   ["基盤","migrate","スキーマ","移す","Concrete decision-record","change ・ 直せなかった欄の一覧"],
+   ["基盤","migrate","スキーマ","移す","Concrete decision-record","直せなかった欄の一覧"],
    ["AI","semantic-migrate","スキーマ","移す","直せなかった欄 /properties/owner","procedure（移し方の案内 ・ Patch の入力のスキーマ）"],
-   ["基盤","migrate ・ patch","スキーマ","移す","残った欄への JSON Patch","change"]]],
+   ["基盤","migrate ・ patch","スキーマ","移す","残った欄への JSON Patch","data.saved ・ results ・ state"]]],
  ["人が読み、変更を確かめる", ["U12","U13","U25"], [
    ["基盤","render","インスタンス","描画","0199 と view","HTML"],
    ["基盤","history","インスタンス","経緯","0199","change ・ judgment の並び"],
-   ["基盤","history","変更","経緯","目的 0199 ・ このセッション","change のまとまり"]]],
+   ["基盤","history","変更","経緯","0199 を変えた変更の記録と意図の判定","data.changes"],
+   ["人","record --summary","変更","作る","前回のコミットからの変更（いまのワークツリーとブランチの記録）","まとめ1件（.semantic-agent-schema/changes/<ULID>.json。コミットする）"]]],
  ["ほかの変更を取り込み、CI で全部を検証する", ["U18","U8","U0"], [
    ["Git","（取り込む）","変更","取り込む","チームの変更","基盤の外"],
-   ["基盤","validate","変更","取り込む","取り込んだあとの姿","状態が変わったもの"],
-   ["CI","validate","集まり","検証","全インスタンス","violated ・ unverified の一覧"]]],
+   ["基盤","validate .","変更","取り込む","取り込んだあとの姿（作業の根の下のすべて）","data.files（パスごとの状態）・ findings"],
+   ["CI","validate .","集まり","検証","作業の根の下のすべての宣言とインスタンス","data.files ・ findings"]]],
  ["セッションを閉じる", ["U27"], [
    ["人","session close","セッション","閉じる","目的のセッション","セッション（閉じた）"]]],
 ]
 from states import ST
 assert len(ST)==len(FSTEPS)
 import json as _j
-UC = [[u[0], u[2]] for u in _j.load(open(os.path.join(C, 'model', 'model.json')))['use_cases']] + [['U28', 'Semantic Search（提案 ・ 未適用）']]
-UC = [[u, '不要なインスタンスを置き換えて残す（決めたこと。model.json はこれから書き換える）'] if u == 'U11' else [u, t] for u, t in UC]
+UC = [[u[0], u[2]] for u in _j.load(open(os.path.join(C, 'model', 'model.json')))['use_cases']]
 MECH_ONLY = [
- ['validate','状態を検査する。入力は無い（対象だけ）','状態 ・ needs を出す（保存しない）'],
+ ['validate','状態を検査する。入力は無い（対象のパスだけ。. なら作業の根の下のすべて）','findings と data.results（rule ごとの result）・ data.state（name ・ label）。validate . は data.files（パス ・ problems ・ state）。保存しない'],
  ['render','インスタンスと view','HTML（状態は変わらない）'],
- ['history','インスタンス ・ パス ・ 目的','change と judgment の並び'],
+ ['history','パス','data.changes（変更の記録 ・ 意図の判定 intent_judgment の並び）'],
  ['release','Abstract（提供側が書いたもの）','版 ・ 移し方'],
- ['record','パス（AI が直したファイル）','change（意図は空。意図は semantic-write で書く）'],
+ ['record','パス ・ --pointer ・ --intent ・ --purpose（意図と目的は必須。意図が空なら refused）・ --session','変更の記録1件（手元の DB）'],
+ ['record --summary','（無い。前回のコミットからの変更と、いまのワークツリーとブランチの記録を使う）','まとめ1件（.semantic-agent-schema/changes/<ULID>.json）。コミットしていないまとめがあれば断る'],
  ['session','目的 ・ 役割','セッション（open ・ resume ・ close）'],
- ['judge','人の判定（rule ・ 意図）','judgment'],
+ ['judge','変更の記録の id ・ --result ・ --meaning ・ --reason（人の判定：意図 I33 と、人が決める欄の承認）','judgment（data.by が human）'],
 ]
 data = json.dumps({"S": STEPS, "K":KINDS,"KN":KIND_NOTE,"O":OPS,"M":{f"{k}|{o}":v for (k,o),v in M.items()},"F":FSTEPS,"ST":ST,"U":UC}, ensure_ascii=False)
 FLOW = '''<div class="opflow">
@@ -193,8 +204,8 @@ body = f'''<main>
 {FLOW}
 {table(['問い','答え'], [
  ['出力は機械的に作るか','作る。AI は入力（Patch ・ 条件 ・ 判定）だけを生成し、状態に適用するのは機械的なコマンド'],
- ['入力を機械的に適用したら、出力は型どおりか','そうとは限らない。だから検査が2回ある ── ①入力が入力のスキーマに合うか（適用する前）②出力が形 ・ 機械の rule ・ AI の rule に合うか（適用した後。AI の rule は needs で返る）'],
- ['検査で外れたら','①で外れた入力は断り、状態に触れない。②で外れても保存し、violated で返す（Q8：保存は断らない）'],
+ ['入力を機械的に適用したら、出力は型どおりか','そうとは限らない。だから検査が2回ある ── ①入力が入力のスキーマに合うか（適用する前）②出力が形 ・ 機械の rule ・ AI の rule に合うか（適用した後。AI の rule は unverified で返る）'],
+ ['検査で外れたら','①で外れた入力は断り、状態に触れない。②で新しく持ち込んだ機械の rule の違反があれば、書き込みを断る（data.saved:false、exit 1）。前からある違反 ・ AI と人の rule は断らず、状態として返す'],
  ['状態を変える操作の入力は何か','事前状態に足す ・ 変える ・ 取り除く分だけ（Patch の add ・ replace ・ remove）。作るは新しい文書の値、判定は判定1件が入力になる'],
  ['状態を変えない操作（探す ・ 読む）は','事後状態は事前状態と同じ。出力（結果）だけが増え、それも出力のスキーマで検査する'],
 ])}
@@ -226,13 +237,14 @@ body = f'''<main>
 {table(['決めたこと','理由'], [
  ['AI が行う操作は、すべてセマンティックのコマンドにする','AI が関わるかどうかで、セマンティックと機械的を分ける'],
  ['セマンティックのコマンドは procedure（手順 ・ 入力のスキーマ ・ 出力のスキーマ）を返す。procedure は Abstract のファイルに足す','AI が生成する入力と、機械的に作る出力を、どちらも型で検査できる'],
- ['セマンティックは、入力のスキーマが違う操作ごとに別のコマンドにする（7つ）','返す型は同じ procedure でも、入力が操作ごとに違う。変えると意図を書くは、どちらも Patch なので semantic-write 1つ'],
- ['検査は2回。①適用する前に入力を見る ②適用した後に出力を見る','①で外れた入力は断り、状態に触れない。②で外れても保存し、violated で返す（Q8）'],
- ['AI の判定は、semantic-judge が依頼を返し、validate が答えをまとめる。judge は人の判定だけ','承認済みの Validator の2段（依頼の一覧を返す → 答えをまとめる）に合わせる'],
+ ['セマンティックは、入力のスキーマが違う操作ごとに別のコマンドにする（7つ。semantic-judge を残すかは未決）','返す型は同じ procedure でも、入力が操作ごとに違う。意図は record が --intent で受け取り、Patch では書かない'],
+ ['検査は2回。①適用する前に入力を見る ②適用した後に出力を見る','①で外れた入力は断り、状態に触れない。②で新しく持ち込んだ機械の rule の違反は書き込みを断る（data.saved:false）。前からある違反 ・ AI と人の rule は断らない'],
+ ['AI の rule の判定は、基盤が coding-agents のアダプターで判定ごとに新しいセッションの AI を起動して依頼し、答えを Validator の2段目に渡す（ステップ4）。judge は人の判定だけ','domain は AI を起動しない。起動はポート「rule の判定を依頼する（AI）」のアダプターに置く（CODING.md）'],
+ ['楽観ロックは ETag。get が data.etag を返し、patch --if-match で渡す。JSON Patch の op は add ・ replace ・ remove だけ','ETag は文書の SHA-256 の先頭20字で、保存しない'],
  ['消すを無くす。不要になったものは superseded にして残す。項目を消すのは変える（Patch の remove）','消すでしか済まない場面が無く、消すと指している記録が壊れる'],
  ['確定していない変更の取り消しは Git の側でする。基盤は戻った姿を validate するだけ','基盤は変更の仕組みを持たない'],
 ])}
-<p class="meta">あとで正本に適用するときに書き換える前提：U11「消す」→「置き換えて残す」、I11「判定は効かない」→「superseded の記録の判定は効かない」。0150 ・ 0160 ・ 0120 ・ 0210 は架空。U28 ・ query ・ procedure は、まだ正本（model.json ・ Abstract のファイル）に適用していない</p>
+<p class="meta">U11（不要になったインスタンスを置き換えて残す）・ I11（superseded のインスタンスに結び付いた判定の記録は効かない）・ U28（Semantic Search）・ boundary の query ・ procedure は、ACDR 0201 で model.json に適用済み。query ・ procedure の Abstract のファイルはまだ無い。0150 ・ 0160 ・ 0120 ・ 0210 は架空。セマンティックのコマンド（procedure を返す）・ search ・ import ・ migrate ・ render ・ session ・ release はまだ実装に無い。2節のカードの decision-record@1 ・ abstract@1 は略記で、URN は urn:semantic-agent-schema:acdr:decision-record:v1 など。3節の出力の例は、実装の試験のシナリオを基盤のコマンドで流した出力から取った</p>
 </main>
 <style>
 main>*,.sim>*{{min-width:0;max-width:100%}}
@@ -327,7 +339,7 @@ function show(i){{const s=D.S[i];const [bf,af]=diff(s.before,s.after);
  '<div class="pn"><h4>事後状態</h4><pre>'+af+'</pre>'+(s.out?'<h4>出力</h4><pre>'+esc(s.out)+'</pre>':'')+'<span class="ok">検査②</span><ul class="ck">'+s.oc.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div></div>';
  [...tabs.children].forEach((b,j)=>b.classList.toggle('on',j===i))}}
 show(3);
-const DET={{'semantic-search':0,'semantic-read':1,'semantic-create':2,'semantic-write':3,'semantic-judge':4,'semantic-import':6,'semantic-migrate':7}};
+const DET={{'semantic-search':0,'semantic-read':1,'semantic-create':2,'semantic-write':3,'（AI の判定を依頼する）':4,'semantic-import':6,'semantic-migrate':7}};
 function chip(c){{return c.startsWith('semantic')?'s':c.startsWith('（')?'u':'m'}}
 
 const vv=v=>v===''?'（空）':v;

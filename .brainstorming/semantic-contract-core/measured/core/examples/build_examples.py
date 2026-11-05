@@ -45,7 +45,7 @@ out = {}
 for k, v in ins.items():
     v = copy.deepcopy(v)
     v['docs'] = [{'key': 'tool', 'tab': '画面の AI の起動', 'file': 'brainstorming/tool/agent.rs', 'rev': 'HEAD',
-                  'marks': [{'find': 'fn spawn_agent(cfg: &AgentCfg)', 'before': 'fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool])', 'why': '許可の一覧を渡さず、各 AI ツールの設定ファイルに合わせる。'}]}]
+                  'marks': [{'find': 'fn spawn_agent(cfg: &AgentCfg)', 'before': 'fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool])', 'why': '許可の一覧を渡さず、各コーディングエージェントの設定ファイルに合わせる。'}]}]
     v = {'$schema': v.pop('$schema'), 'kind': v.pop('kind'), 'id': '0197-ai-permissions', **v}
     out[k] = v
 json.dump(out, open(os.path.join(HERE, 'acdr.instances.json'), 'w'), ensure_ascii=False, indent=2)

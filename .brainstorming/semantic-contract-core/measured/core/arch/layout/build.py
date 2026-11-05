@@ -84,6 +84,7 @@ QUOTES = [
 ]
 REV_ROWS = [[a, b, c, d] for a, b, c, d in REVISIONS]
 body = f'''<main>
+<p id="history-note" role="note" style="box-sizing:border-box;border:2px solid #B45309;border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.6;background:transparent;color:inherit">この頁は 2026-10-25 時点の検討の経緯で、実装の拠り所ではない。今の決定は<a href="https://claude.ai/artifact/3cTvkRsQ2YEqzywBoxkTgV" style="color:inherit;text-decoration:underline">参照する頁の索引</a>の「実装の拠り所」から読む。</p>
 <h1>ディレクトリ構成と CODING.md</h1>
 <p class="ans">承認済みの構成（ACDR 0201 の arch.html とボード）を土台にした。domain の crate の中は values/ ・ aggregates/ ・ services/ のフォルダで分ける。エンティティかファクトリを持つ集約は aggregates/&lt;集約&gt;/ に entities/ ・ factories/ を置き、欄をその集約のフォルダの中にだけ見せる（別の集約からも書き換えられないことをコンパイラで確かめた）。この木から作った雛形で cargo check と architecture-lint が通ることを実測した</p>
 <h2>1　ディレクトリ構成</h2>

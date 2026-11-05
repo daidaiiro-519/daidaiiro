@@ -9,7 +9,7 @@ S_P1 = {'session': P1, 'purpose_ref': 'ACDR 0197', 'parent': O1, 'state': 'open'
 FILES = {'docs/SKILL.md': '# brainstorming\n\n画面の AI に何を許すかは agents.json で決める。\n',
          'tool/agent.rs': 'fn spawn_agent(cfg: &AgentCfg, allowed: &[Tool]) -> Child {\n    todo!()\n}\n',
          '.acdr/0197-ai-permissions/acdr.json': json.dumps({'$schema': ACDR, 'kind': 'decision-record', 'id': '0197-ai-permissions', 'no': '0197', 'title': '画面の AI の許可', 'status': 'proposed', 'why': '食い違っていた。'}, ensure_ascii=False, indent=1)}
-EDIT = {'docs/SKILL.md': '# brainstorming\n\n画面の AI に何を許すかは各 AI ツールの設定ファイルで決める。\n',
+EDIT = {'docs/SKILL.md': '# brainstorming\n\n画面の AI に何を許すかは各コーディングエージェントの設定ファイルで決める。\n',
         'tool/agent.rs': 'fn spawn_agent(cfg: &AgentCfg) -> Child {\n    todo!()\n}\n'}
 GIVEN = lambda **kw: dict(files=FILES, sessions=[S_O1, S_P1], ids=[U(1), U(2), U(3)], **kw)
 BOTH = ['git', 'snapshot']
@@ -100,7 +100,7 @@ sessions = [
  ses('S-SES-3', '有効時間が切れたら、古いほうを閉じて新しく立てる', ['I46', 'I45'], {'sessions': [S_O1, S_P1], 'ai': {'claude-code/P1': AI(lastUsedAt='2026-10-24T08:00:00Z')}},
      {'tool': 'claude-code', 'purpose_ref': 'ACDR 0197', 'parent': O1},
      [T('E1', '/result/decision/action', '新しく立てない', equals='new'), T('E2', '/state/sessions/2/state', '古いほうの P1 が閉じない', equals='closed'), T('E3', '/state/sessions/0/state', '新しいほうが開かない', equals='open')]),
- ses('S-SES-4', '有効時間が分からない AI ツールは新しく立てる', ['I46'], {'sessions': [S_O1, {**S_P1, 'session': {'tool': 'kiro', 'id': 'P1'}}], 'ai': {'kiro/P1': AI(cacheLifetime='unknown')}},
+ ses('S-SES-4', '有効時間が分からないコーディングエージェントは新しく立てる', ['I46'], {'sessions': [S_O1, {**S_P1, 'session': {'tool': 'kiro', 'id': 'P1'}}], 'ai': {'kiro/P1': AI(cacheLifetime='unknown')}},
      {'tool': 'kiro', 'purpose_ref': 'ACDR 0197', 'parent': O1}, [T('E1', '/result/decision/action', '分からないのに再開した', equals='new')], new={'tool': 'kiro', 'id': 'NEW'}),
  ses('S-SES-5', '履歴の割合が設定の値を超えたら、有効時間内でも新しく立てる', ['U27:事後'], {'sessions': [S_O1, S_P1], 'ai': {'claude-code/P1': AI(historyPercent=70)}, 'settings': {'project': {'newWhenHistoryAbovePercent': 60}}},
      {'tool': 'claude-code', 'purpose_ref': 'ACDR 0197', 'parent': O1}, [T('E1', '/result/decision/why', '設定で新規にならない', equals='history-above-setting')]),
@@ -110,7 +110,7 @@ sessions = [
      {'tool': 'claude-code', 'purpose_ref': 'ACDR 0197', 'parent': O1}, [T('E1', '/result/decision/action', '手元の 80 が効いていない', equals='resume')]),
  ses('S-SES-8', '親が替わっても、同じ目的のセッションを再開する', ['I46', 'U27:事後'], {'sessions': [{**S_O1, 'state': 'closed'}, {'session': {'tool': 'claude-code', 'id': 'O2'}, 'state': 'open', 'last_used_at': '2026-10-24T09:59:00Z'}, S_P1], 'ai': {'claude-code/P1': AI()}},
      {'tool': 'claude-code', 'purpose_ref': 'ACDR 0197', 'parent': {'tool': 'claude-code', 'id': 'O2'}}, [T('E1', '/result/decision/action', '再開しない', equals='resume'), T('E2', '/result/decision/session/id', '別の ID', equals='P1')]),
- ses('S-SES-9', 'ほかの AI ツールで同じ枠が開いていれば断る', ['I46'], {'sessions': [S_O1], 'ai': {}}, {'tool': 'codex'},
+ ses('S-SES-9', 'ほかのコーディングエージェントで同じ枠が開いていれば断る', ['I46'], {'sessions': [S_O1], 'ai': {}}, {'tool': 'codex'},
      [T('E1', '/result/decision/action', '同時に開こうとした', equals='refuse')], new={'tool': 'codex', 'id': 'NEW'}),
  dict(id='S-SES-10', title='2つの端末が同時に新しく立てると、後の側は先の ID に切り替わる', traces=['I46'], adapters=['snapshot'],
       given={'files': {}, 'sessions': [S_O1]},

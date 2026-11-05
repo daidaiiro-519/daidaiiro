@@ -12,7 +12,7 @@ CH = lambda n, f, s='手元': card('変更の記録', n, 'change', f, s)
 JI = lambda n, f: card('判定（意図）', n, 'judgment', f)
 JR = lambda n, f, s='未確定': card('判定（rule）', n, 'judgment', f, s)
 FI = lambda n, f, s='未確定': card('ファイル', n, f.pop('形式'), f, s)
-SUM = lambda f, s='未確定': card('まとめ', 'changes/01JB7….json', 'change-summary', f, s)
+SUM = lambda f, s='未確定': card('まとめ', '.semantic-agent-schema/changes/01JB8A….json', 'change-summary', f, s)
 # 段：題 ・ 使う場面 ・ 誰が何をした ・ 事前（DB, リポジトリ）・ 事後（DB, リポジトリ）
 C1 = CH('C-1', {"意図": "I-1 依存の向きを決めた記録を書く", "対象": "0199", "欄": "title ・ decision ・ why"})
 C2 = CH('C-2', {"意図": "I-1", "対象": "0185", "欄": "decision"})
@@ -21,23 +21,25 @@ C4 = CH('C-4', {"意図": "I-2 cargo metadata から依存を読む", "対象": 
 F0199 = lambda s='未確定': FI('0199.json', {"形式": "decision-record@1", "decision": "architecture-lint を作る"}, s)
 FCARGO = lambda s='未確定': FI('cargo.rs', {"形式": "Rust", "中身": "直した版"}, s)
 F0185 = FI('0185.json', {"形式": "decision-record@1", "decision": "層の並びで検査する"}, 'コミット済み')
-JR1 = lambda s='未確定': JR('J-2', {"対象": "0199 × why-explains-decision", "結果": "pass", "誰": "AI"}, s)
-SUMF = {"目的": "0199", "意図": "I-1 → 0199（title ・ decision ・ why） ／ I-2 → cargo.rs",
-        "例外": "0185 /decision を意図に無く変えた → 戻した（差し引き0）。記録に無い書き換え ・ 書き換えの無い記録：0件", "意図の判定": "I-1 pass（AI）・ 承認（人） ／ I-2 pass（AI）・ 承認（人）", "数": "変更の記録 4件 → まとめ 2意図"}
-J1 = JI('J-1', {"対象": "C-1 × 意図と変更が合うか", "結果": "pass", "誰": "AI"})
+JR1 = lambda s='未確定': JR('J-2', {"対象": "0199 × why-explains-decision", "結果": "verified", "誰": "AI"}, s)
+SUMF = {"range": "before：前回のコミット ／ after：working-tree",
+        "exceptions": "intent-mismatch 1件（C-2）・ no-change 2件（C-2 ・ C-3。0185 /decision は戻したので差し引き0）",
+        "purposes": "0199 依存の向きの検査ツール → C-1 0199（fields：/title ・ /decision ・ /why）verified ／ C-2 violated ・ C-3 none（targets 無し）／ C-4 cargo.rs（lines）verified",
+        "unreadable": "[]"}
+J1 = JI('J-1', {"対象": "C-1 × 意図と変更が合うか", "結果": "verified", "誰": "AI"})
 J3 = JI('J-3', {"対象": "C-2 × 意図と変更が合うか", "結果": "violated（意図に無い）", "誰": "AI"})
-J4 = JI('J-4', {"対象": "I-1 ・ I-2", "結果": "承認", "誰": "人"})
+J4 = JI('J-4', {"対象": "C-1 ・ C-4（judge は変更の記録ごとに1回）", "結果": "verified", "誰": "人"})
 def done(c): return dict(c, s='まとめに入った')
 DB = [SES('open'), C1, J1, C2, J3, C3, C4, J4]
 S = [
  dict(t="目的のセッションを立てる", uc="U27", who="人が目的 0199 を渡す", post=[[SES('open')], [F0185]]),
- dict(t="0199 を作って書く", uc="U5", who="AI：semantic-create → create、semantic-write → patch。基盤が変更の記録を作る", post=[[SES('open'), C1], [F0185, F0199()]]),
- dict(t="意図と変更が合うかを判定する", uc="U16 ・ I33", who="AI：semantic-judge。意図の判定は手元の DB に、rule の判定はリポジトリに置く", post=[[SES('open'), C1, J1], [F0185, F0199(), JR1()]]),
+ dict(t="0199 を作って書く", uc="U5", who="AI：semantic-create → create、semantic-write → patch。止めたあとに AI が record（--intent ・ --purpose）で変更の記録を作る", post=[[SES('open'), C1], [F0185, F0199()]]),
+ dict(t="意図と変更が合うかを判定する", uc="U16 ・ I33", who="基盤が、判定させる AI を coding-agents のアダプターで判定ごとに新しいセッションで起動する（ステップ4で実装）。意図の判定は手元の DB に1行足し（覆された判定も残り、最新が効く）、rule の判定はリポジトリに置く", post=[[SES('open'), C1, J1], [F0185, F0199(), JR1()]]),
  dict(t="意図に無い変更が混ざる → 作業者が気づいて戻す", uc="U16 ・ U7", who="AI が 0185 も書き換えた。I33 の判定が violated で返り、作業者がセッションの中で戻す（0185.json は元のまま。差し引き0）", post=[[SES('open'), C1, J1, C2, J3, C3], [F0185, F0199(), JR1()]]),
  dict(t="ソースを直す", uc="U13", who="AI がファイルを直し、record で変更の記録を作る", post=[[SES('open'), C1, J1, C2, J3, C3, C4], [F0185, F0199(), JR1(), FCARGO()]]),
  dict(t="人が意図を承認する", uc="U16", who="人：judge（意図 I-1 ・ I-2）", post=[[SES('open'), C1, J1, C2, J3, C3, C4, J4], [F0185, F0199(), JR1(), FCARGO()]]),
- dict(t="まとめを作る（コミットの前）", uc="U25", who="基盤が DB の記録から機械的に作る（AI は書かない）。作業者の手元で、validate が記録と変更の前後を両方向で突き合わせ（I31）、例外をまとめに入れる", post=[DB, [F0185, F0199(), JR1(), FCARGO(), SUM(dict(SUMF))]]),
- dict(t="コミットする", uc="U25", who="人が Git でコミットする。変更の記録と意図の判定は手元に残り、「まとめに入った」の印が付く", post=[[SES('open')] + [done(c) for c in DB[1:]], [F0185, F0199('コミット'), JR1('コミット'), FCARGO('コミット'), SUM(dict(SUMF), 'コミット')]]),
+ dict(t="まとめを作る（コミットの前）", uc="U25", who="作業者が record --summary を実行する。基盤が、いまのワークツリーとブランチの記録のうちまだまとめに入っていないものと、前回のコミットからのファイルの前後を両方向で突き合わせ（I31）、例外を入れたまとめを .semantic-agent-schema/changes/<ULID>.json に置く（AI は書かない）。入った記録には「まとめに入った」の印が付く。コミットしていないまとめがあれば断る", post=[[SES('open')] + [done(c) if c['k'] == '変更の記録' else c for c in DB[1:]], [F0185, F0199(), JR1(), FCARGO(), SUM(dict(SUMF))]]),
+ dict(t="コミットする", uc="U25", who="人が Git でコミットする。変更の記録と意図の判定は手元に残る", post=[[SES('open')] + [done(c) if c['k'] == '変更の記録' else c for c in DB[1:]], [F0185, F0199('コミット'), JR1('コミット'), FCARGO('コミット'), SUM(dict(SUMF), 'コミット')]]),
 ]
 prev = [[], []]
 for st in S:
@@ -45,17 +47,19 @@ for st in S:
 READERS = [
  ['PR を見る人', 'U25 変更を確かめる', 'まとめ1件', '目的 → 意図 → 変えた所 → 例外 → 意図の判定の順に読める。1件ずつの記録（C-2 ・ C-3 の行き来）は読まなくてよい', '足りる'],
  ['半年後に経緯をたどる人', 'U13 経緯を対象ごとに確かめる', 'まとめを対象（cargo.rs）で探す', 'cargo.rs → まとめ → 意図 I-2 にたどれる。欄の単位までは分かる。1件ずつの書き換えの順は Git の履歴で見る。1件ずつの記録そのものは見えない', '足りる'],
- ['ほかの人の手元 ・ CI', 'U8 ・ U0 全部を検証する', '判定（rule）のファイル ・ まとめ', '判定（rule）がコミットされているので、0199 は verified のまま。コミットの差分とまとめを片方向で突き合わせ、まとめに無い書き換えは「記録に無い」で出る。逆向き（書き換えの無い記録）は、作業者の手元でまとめを作るときにだけ見る', '足りる（逆向きは手元だけ）'],
+ ['ほかの人の手元 ・ CI', 'U8 ・ U0 全部を検証する', '判定（rule）のファイル ・ まとめ', '判定（rule）がコミットされているので、0199 は verified のまま。コミットの差分とまとめを片方向で突き合わせ、まとめに無い書き換えは「記録に無い」で出る（この CI の片方向の突き合わせは model.json の I31 の決まりで、まだ実装に無い。いまの validate . は data.files と findings だけを返す。どのステップで作るかは未決）。逆向き（書き換えの無い記録）は、作業者の手元でまとめを作るときにだけ見る', '足りる（逆向きは手元だけ。CI の片方向の突き合わせは未実装）'],
  ['ほかの変更を取り込む人', 'U18', 'まとめ ・ 判定（rule）', '同じ欄を両方で変えたら、Git の衝突として出る。まとめの id は打ち合わせなしで一意な値なので、2人が同じ目的でコミットしても名前が衝突しない', '足りる'],
  ['同じ目的を引き継ぐ人', 'U27 ・ U16', 'コミット済みのまとめ', 'コミットの前の意図 ・ 変更の記録 ・ 意図の承認は、引き継ぐ人には見えない。U16 の承認は作業した本人がする', '引き継ぐ前にコミットして、まとめを渡す'],
  ['作業者（セッションの中）', 'U16 ・ U7', '手元の DB の変更の記録', '意図に無い変更（C-2）が、その場で violated として出て戻せた', '足りる'],
  ['手元の DB を失った作業者', 'I40', 'コミット済みのもの', 'コミットの前なら、意図と変更の記録を失う（ファイルの変更は Git に残る）。コミットの後なら、必要なものはまとめに残っている', 'コミットの前の分は失う'],
 ]
 PLACE = [
- ['1件ずつの変更の記録（意図 ・ 変えた欄）', 'コミットする', '手元の DB', '作業者と基盤が I33 を確かめるため'],
- ['目的ごとのまとめ', '保存しない（見るたびに作る）', 'コミットする', 'PR を見る人と、経緯をたどる人が読む'],
+ ['1件ずつの変更の記録（意図 ・ 変えた欄）', 'コミットする', '手元の DB（git common dir の下の semantic-agent-schema/local.db。Git の外は $XDG_STATE_HOME の下）。記録を書いたワークツリーとブランチ（worktree ・ branch）を持つ', '作業者と基盤が I33 を確かめるため'],
+ ['目的ごとのまとめ', '保存しない（見るたびに作る）', 'コミットする。record --summary が .semantic-agent-schema/changes/<ULID>.json に置く。コミットごとに1件で、コミットしていないまとめがあれば2件目を作らない（断る）', 'PR を見る人と、経緯をたどる人が読む'],
+ ['まとめに入れる記録', '（無い）', 'いまのワークツリーとブランチの記録のうち、まだまとめに入っていないもの。書いたブランチが無くなった記録は、いまのブランチのまとめに入り、例外 branch-gone になる', '目的ごとのワークツリーの記録が、ほかのまとめに混ざらないように'],
+ ['まとめの形', '（無い）', '$schema ・ kind ・ id ・ range{before, after} ・ exceptions[{type, count, items}] ・ purposes[{purpose_ref, intents[{change_id, intent, judgment, meaning, targets[{target, kind, fields[{at, before, after}] か lines}]}]}] ・ unreadable。例外の type は unrecorded（記録に無い書き換え）・ no-change（書き換えの無い記録）・ human-field-changed（人が決める欄を承認なしに変えた）・ intent-mismatch（意図の判定が violated）・ branch-gone の5つ', 'semantic-agent-schema/schemas/v1/change-summary.schema.json'],
  ['判定（rule）：インスタンス × rule', 'コミットする', 'コミットする（変えない）', 'ほかの人の手元と CI が verified を決める材料'],
- ['判定（意図）：I33 ・ 人の承認', 'コミットする', '手元の DB。結果はまとめに入る', '意図の判定は変更の記録が対象で、インスタンスの状態の導出には使わない（I33 ・ I17）'],
+ ['判定（意図）：I33 ・ 人の承認', 'コミットする', '手元の DB。判定ごとに1行足し、最新が効く（覆された判定も残る。実装はステップ4）。結果はまとめに入る', '意図の判定は変更の記録が対象で、インスタンスの状態の導出には使わない（I33 ・ I17）'],
  ['セッション ・ 手元の索引', '手元の DB', '手元の DB（変えない）', ''],
 ]
 data = json.dumps({"S": S}, ensure_ascii=False)
@@ -64,7 +68,7 @@ body = f'''<main>
 <p class="ans">1件ずつの変更の記録は、作業者がセッションの中で確かめるために手元の DB に置く。コミットするのは、目的ごとのまとめ（ACDR のように確かめやすい形）と、ほかの人が verified を決めるのに使う rule の判定。まとめは基盤が記録から機械的に作り、AI は書かない</p>
 
 <h2>1　何をどこに置くか</h2>
-{table(['もの','いま（model.json）','この形','なぜ'], PLACE)}
+{table(['もの','前の案','この形（model.json と実装に適用済み）','なぜ'], PLACE)}
 
 <h2>2　目的のセッションの流れ：「0199 依存の向きの検査ツール」</h2>
 <div class="sim">
@@ -80,8 +84,8 @@ body = f'''<main>
 <h2>3　読む人ごとに、まとめで足りるか</h2>
 {table(['読む人','使う場面','読むもの','分かること','結果'], READERS)}
 
-<h2>4　この形にすると書き換える前提</h2>
-{table(['前提','いまの文','書き換えた文'], [
+<h2>4　この形にするために書き換えた前提（model.json に適用済み）</h2>
+{table(['前提','前の文','書き換えた文'], [
  ['保存の決まり ・ I40','変更の記録 ・ 判定の記録の正本は、確定するファイル','rule の判定とまとめは、確定するファイル。変更の記録と意図の判定は、手元の DB'],
  ['境界（変更の記録の置き場所）','文脈のリポジトリ','手元の DB。まとめは文脈のリポジトリ'],
  ['I35','まとまりは保存しない。出すたびに記録から作る','コミットの前に、前回のコミットからの差し引きと例外でまとめを作って保存する。1件の変更の記録は、1つのまとめにだけ入る'],
@@ -101,8 +105,11 @@ body = f'''<main>
  ['まとめは基盤が機械的に作る。AI が書く欄は持たない','意図の文が説明になっている。AI の欄を足すと、その欄の rule と判定を必要とする'],
  ['rule の判定はコミットに残す','状態は変更に入れた判定の記録だけから導く（I17）。残さないと、ほかの人の手元と CI では unverified になる'],
  ['同じ目的を引き継ぐときは、引き継ぐ前にコミットする','手元の DB はほかの人に見えない'],
+ ['まとめは record --summary が作り、.semantic-agent-schema/changes/<ULID>.json に置く。コミットしていないまとめがあれば2件目を作らない。validate . は作業の根の下の宣言とインスタンスをすべて検証する','コミットとまとめが1対1になる'],
+ ['変更の記録は書いたワークツリーとブランチを持ち、まとめはいまのワークツリーとブランチの記録で作る。ブランチが無くなった記録は例外 branch-gone','目的ごとのワークツリーで並べて作業しても、まとめが混ざらない'],
+ ['意図の判定は判定ごとに1行足し、最新が効く。覆された判定も残す（実装はステップ4）','人が AI の判定を覆した経緯が残る'],
 ])}
-<p class="meta">0185 ・ C-1〜C-4 ・ J-1〜J-4 は例。まとめのファイル名 changes/01JB7….json は、打ち合わせなしで一意な id の例</p>
+<p class="meta">0185 ・ C-1〜C-4 ・ J-1〜J-4 は例。まとめのファイル名 .semantic-agent-schema/changes/01JB8A….json の id は、打ち合わせなしで一意な値（ULID）の例。まとめのカードの欄は実装のキー名（kind はカードの右肩の change-summary）</p>
 </main>
 <style>
 main>*,.sim>*{{min-width:0;max-width:100%}}
