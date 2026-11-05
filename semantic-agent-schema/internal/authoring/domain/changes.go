@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
+	"slices"
 	"strconv"
 )
 
@@ -19,7 +21,7 @@ func NewPrevious(content []byte, concreteHash string, judgments []Judgment) (*Pr
 	if err != nil {
 		return nil, err
 	}
-	return &Previous{content: content, concreteHash: h, judgments: judgments}, nil
+	return &Previous{content: bytes.Clone(content), concreteHash: h, judgments: slices.Clone(judgments)}, nil
 }
 
 // ChangedLocations は、ドメインサービス「変更点を求める」。

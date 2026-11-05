@@ -3,6 +3,7 @@ package domain
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 )
 
@@ -66,20 +67,29 @@ type generation struct {
 
 func (g generation) Command() commandName           { return g.command }
 func (g generation) Path() Path                     { return g.path }
-func (g generation) Steps() []Step                  { return g.steps }
-func (g generation) Subschemas() []Step             { return g.subschemas }
+func (g generation) Steps() []Step                  { return cloneSteps(g.steps) }
+func (g generation) Subschemas() []Step             { return cloneSteps(g.subschemas) }
 func (g generation) Hash() Hash                     { return g.hash }
 func (g generation) ResponseSchemaID() string       { return g.responseID }
-func (g generation) ResponseSchema() map[string]any { return g.response }
-func (g generation) Violations() []Judgment         { return g.violations }
+func (g generation) ResponseSchema() map[string]any { return cloneObject(g.response) }
+func (g generation) Violations() []Judgment         { return slices.Clone(g.violations) }
 func (g generation) ForConcrete() bool              { return g.forConcrete }
 func (generation) prompt()                          {}
+
+// cloneSteps は、step の並びを、x-prompt のバイト列まで複製して返す。
+func cloneSteps(steps []Step) []Step {
+	out := slices.Clone(steps)
+	for i := range out {
+		out[i].XPrompt = cloneRaw(out[i].XPrompt)
+	}
+	return out
+}
 
 // NewCreatePrompt は、ドメインサービス「prompt を作る」。Concrete のサブスキーマの x-prompt から、作成の prompt を返す。
 // title ・ description ・ x-prompt のどれかを持つサブスキーマを、keyword location の順に step にする。同じ入力なら同じ prompt になる。
 func NewCreatePrompt(path Path, concrete Concrete) Prompt {
 	var steps []Step
-	for _, sub := range concrete.Subschemas() {
+	for _, sub := range concrete.Subschemas() { // 複製が返るので、step の x-prompt は Concrete と共有しない
 		if sub.Title == "" && sub.Description == "" && sub.XPrompt == nil {
 			continue
 		}
@@ -106,7 +116,7 @@ func (x *subschemaIndex) add(concrete Concrete, keyword Pointer) {
 		return
 	}
 	x.seen[keyword.String()] = true
-	sub := subschemaAt(concrete, keyword)
+	sub := concrete.subschemaAt(keyword)
 	x.list = append(x.list, Step{KeywordLocation: keyword, Title: sub.Title, Description: sub.Description, XPrompt: sub.XPrompt})
 }
 
@@ -133,7 +143,7 @@ func NewUpdatePrompt(in UpdateInput) Prompt {
 		if _, ok := keywords[e.InstanceLocation.String()]; !ok {
 			keywords[e.InstanceLocation.String()] = e.KeywordLocation // 同じ位置は、keyword location の順で最初のサブスキーマ
 		}
-		sub := subschemaAt(in.Concrete, e.KeywordLocation)
+		sub := in.Concrete.subschemaAt(e.KeywordLocation)
 		if len(in.Violations) > 0 || (sub.Title == "" && sub.Description == "" && sub.XPrompt == nil) {
 			continue
 		}
@@ -157,7 +167,7 @@ func NewUpdatePrompt(in UpdateInput) Prompt {
 	}
 	return generation{
 		command: UpdateCommand, path: in.Document.Path, steps: steps, subschemas: index.list,
-		responseID: in.PatchID, violations: in.Violations, forConcrete: in.ForConcrete,
+		responseID: in.PatchID, violations: slices.Clone(in.Violations), forConcrete: in.ForConcrete,
 	}
 }
 
@@ -192,8 +202,9 @@ func NewJudgmentPrompt(document Document, concrete Concrete, evaluations []Evalu
 func judgmentSteps(concrete Concrete, evaluations []Evaluation, changed map[string]bool) ([]Step, []Step) {
 	var steps []Step
 	var index subschemaIndex
+	root := concrete.structure()
 	for _, e := range sortedEvaluations(evaluations) {
-		for _, item := range promptRules(schemaAt(concrete.structure(), tokensOf(e.KeywordLocation))) {
+		for _, item := range promptRules(schemaAt(root, tokensOf(e.KeywordLocation))) {
 			ruleObject, _ := item.(map[string]any) // 形は Abstract が決める
 			id, _ := ruleObject["id"].(string)
 			rule, ok := concrete.Rule(id)

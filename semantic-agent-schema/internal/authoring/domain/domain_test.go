@@ -3,6 +3,7 @@ package domain_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -818,4 +819,157 @@ func TestCSSOfConvertsTypesToCSS(t *testing.T) {
 			t.Errorf("CSSOf(%s, %s) = %q, want %q", c.tokenType, c.value, got, c.want)
 		}
 	}
+}
+
+func TestConcreteDoesNotShareContentWithCallerOrReaders(t *testing.T) {
+	t.Parallel()
+	content := []byte(plan)
+	c, err := domain.NewConcrete(nil, content)
+	if err != nil {
+		t.Fatalf("NewConcrete = %v", err)
+	}
+	want := string(c.Content())
+	content[0] = 'X'
+	got := c.Content()
+	got[0] = 'Y'
+	subs := c.Subschemas()
+	for i := range subs {
+		for j := range subs[i].XPrompt {
+			subs[i].XPrompt[j] = 'Z'
+		}
+	}
+	if after := string(c.Content()); after != want {
+		t.Errorf("Concrete.Content() = %q, want %q（作るときに渡した値と、取り出した値を書き換えた後）", after, want)
+	}
+	if after := c.Subschemas(); !slices.EqualFunc(after, concrete(t, plan).Subschemas(), func(a, b domain.Subschema) bool {
+		return a.KeywordLocation.String() == b.KeywordLocation.String() && string(a.XPrompt) == string(b.XPrompt)
+	}) {
+		t.Errorf("Concrete.Subschemas() = %+v, 取り出した値を書き換えた後に変わった", after)
+	}
+	prompt := domain.NewCreatePrompt(mustPath(t, "a.json"), c)
+	prompt.ResponseSchema()["$id"] = "changed"
+	if id := prompt.ResponseSchema()["$id"]; id != "urn:example:plan:v1" {
+		t.Errorf("ResponseSchema()[$id] = %v, want urn:example:plan:v1（取り出した値を書き換えた後）", id)
+	}
+}
+
+func TestRuleDoesNotShareRelatedFields(t *testing.T) {
+	t.Parallel()
+	field, err := domain.NewPointer("/start")
+	if err != nil {
+		t.Fatalf("NewPointer = %v", err)
+	}
+	other, err := domain.NewPointer("/end")
+	if err != nil {
+		t.Fatalf("NewPointer = %v", err)
+	}
+	fields := []domain.Pointer{field}
+	rule, err := domain.NewRule("r", fields)
+	if err != nil {
+		t.Fatalf("NewRule = %v", err)
+	}
+	fields[0] = other
+	rule.RelatedFields()[0] = other
+	if got := rule.RelatedFields(); len(got) != 1 || got[0].String() != "/start" {
+		t.Errorf("Rule.RelatedFields() = %v, want [/start]", got)
+	}
+}
+
+func TestValidationAndWriteDoNotShareDocumentContent(t *testing.T) {
+	t.Parallel()
+	content := []byte(`{"title": "t"}`)
+	value, err := domain.ParseJSON(content)
+	if err != nil {
+		t.Fatalf("ParseJSON = %v", err)
+	}
+	path := mustPath(t, "plan.json")
+	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
+	c := concrete(t, plan)
+	violation := domain.Violation{InstanceLocation: mustPointer(t, "/title"), AbsoluteKeywordLocation: "k", Message: "m"}
+	validation := domain.NewValidation(domain.ValidationInput{Document: document, Value: value, Concrete: c, Violations: []domain.Violation{violation}})
+	content[0] = 'X'
+	validation.Document().Content[1] = 'Y'
+	validation.Judgments()[0] = nil
+	if got := string(validation.Document().Content); got != `{"title": "t"}` {
+		t.Errorf("Validation.Document().Content = %q, want 元の内容", got)
+	}
+	if got := len(validation.Judgments()); got != 1 || validation.Judgments()[0] == nil {
+		t.Errorf("Validation.Judgments() = %v, 取り出した値を書き換えた後に変わった", validation.Judgments())
+	}
+
+	input := []byte(`{"title":"t"}`)
+	write, err := domain.NewCreation(domain.WriteInput{Path: path, Content: input, Value: value, Concrete: c})
+	if err != nil {
+		t.Fatalf("NewCreation = %v", err)
+	}
+	want := string(write.Document().Content)
+	input[0] = 'X'
+	write.Document().Content[0] = 'Y'
+	changes := write.Changes()
+	changes[0] = nil
+	if got := string(write.Document().Content); got != want {
+		t.Errorf("Write.Document().Content = %q, want %q", got, want)
+	}
+	if write.Changes()[0] == nil {
+		t.Errorf("Write.Changes()[0] = nil, 取り出した値を書き換えた後に変わった")
+	}
+}
+
+func mustPath(t *testing.T, value string) domain.Path {
+	t.Helper()
+	p, err := domain.NewPath(value)
+	if err != nil {
+		t.Fatalf("NewPath(%q) = %v", value, err)
+	}
+	return p
+}
+
+func mustPointer(t *testing.T, value string) domain.Pointer {
+	t.Helper()
+	p, err := domain.NewPointer(value)
+	if err != nil {
+		t.Fatalf("NewPointer(%q) = %v", value, err)
+	}
+	return p
+}
+
+func TestPromptDoesNotShareStepsWithReaders(t *testing.T) {
+	t.Parallel()
+	c := concrete(t, plan)
+	document := domain.Document{Path: mustPath(t, "plan.json"), Content: []byte(`{}`), Hash: domain.HashOf([]byte(`{}`))}
+	evaluations := evaluated(t, "/properties/title /title")
+	for name, p := range map[string]domain.Prompt{
+		"create":   domain.NewCreatePrompt(document.Path, c),
+		"judgment": domain.NewJudgmentPrompt(document, c, evaluations, nil, "urn:example:response"),
+	} {
+		want := describeSteps(p.Steps())
+		for _, list := range [][]domain.Step{p.Steps(), p.Subschemas()} {
+			for i := range list {
+				list[i].Title = "changed"
+				for j := range list[i].XPrompt {
+					list[i].XPrompt[j] = 'Z'
+				}
+			}
+			if len(list) > 0 {
+				list[0].Rule = "changed"
+			}
+		}
+		if got := describeSteps(p.Steps()); got != want {
+			t.Errorf("%s の Steps() = %s, want %s（取り出した値を書き換えた後）", name, got, want)
+		}
+		for _, s := range p.Subschemas() {
+			if s.Title == "changed" || strings.Contains(string(s.XPrompt), "Z") {
+				t.Errorf("%s の Subschemas() が、取り出した値を書き換えた後に変わった: %+v", name, s)
+			}
+		}
+	}
+}
+
+// describeSteps は、step の並びを、比べるための文字列にする。
+func describeSteps(steps []domain.Step) string {
+	var b strings.Builder
+	for _, s := range steps {
+		fmt.Fprintf(&b, "%s|%s|%s|%s|%s|%s\n", s.KeywordLocation, s.InstanceLocation, s.Title, s.Description, s.XPrompt, s.Rule)
+	}
+	return b.String()
 }

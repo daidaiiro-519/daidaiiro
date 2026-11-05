@@ -14,6 +14,12 @@ type Document struct {
 	Hash    Hash
 }
 
+// clone は、Content を複製した Document を返す。
+func (d Document) clone() Document {
+	d.Content = bytes.Clone(d.Content)
+	return d
+}
+
 // Violation は、機械的な検証の違反1つ。JSON Schema の実装が出した違反の葉か、作法の検査の違反。
 type Violation struct {
 	InstanceLocation        Pointer

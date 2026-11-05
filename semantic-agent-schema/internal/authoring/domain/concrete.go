@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
 	"slices"
 	"strconv"
@@ -20,8 +21,10 @@ type Concrete interface {
 	View() string
 	// Subschemas は、title ・ description ・ x-prompt のどれかを持つサブスキーマを、分岐の枝も含めて keyword location の順に返す。
 	Subschemas() []Subschema
-	// structure は、Concrete を読んだルートスキーマを返す。
+	// structure は、Concrete を読んだルートスキーマの複製を返す。
 	structure() map[string]any
+	// subschemaAt は、keyword location のサブスキーマの、AI が読む部分を返す。無ければ keyword location だけを持つ Subschema。
+	subschemaAt(keyword Pointer) Subschema
 	// ruleLocation は、id の rule を置いたサブスキーマの keyword location を返す。無ければ false を返す。
 	ruleLocation(id string) (Pointer, bool)
 }
@@ -47,7 +50,7 @@ type schema struct {
 
 func (s schema) ID() string      { return s.id }
 func (s schema) Path() Path      { return s.path }
-func (s schema) Content() []byte { return s.content }
+func (s schema) Content() []byte { return bytes.Clone(s.content) }
 func (s schema) Hash() Hash      { return s.hash }
 func (s schema) Rule(id string) (Rule, bool) {
 	r, ok := s.rules[id]
@@ -59,8 +62,8 @@ func (s schema) ruleLocation(id string) (Pointer, bool) {
 	p, ok := s.ruleAt[id]
 	return p, ok
 }
-func (s schema) Subschemas() []Subschema   { return s.subs }
-func (s schema) structure() map[string]any { return s.root }
+func (s schema) Subschemas() []Subschema   { return cloneSubschemas(s.subs) }
+func (s schema) structure() map[string]any { return cloneObject(s.root) }
 func (s schema) View() string {
 	view, _ := s.root["x-view"].(string) // 無ければ空
 	return view
@@ -70,6 +73,7 @@ func (s schema) View() string {
 // 公開された言葉の Abstract なら nil を渡す。JSON として読めなければ invalid_json、
 // $id の無いオブジェクトなら schema_violation の Failure を返す。
 func NewConcrete(path Path, content []byte) (Concrete, error) {
+	content = bytes.Clone(content) // 呼び出し側が後から書き換えても、Concrete の中身は変わらない
 	value, err := ParseJSON(content)
 	if err != nil {
 		return nil, err
@@ -106,6 +110,45 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, ruleAt: ruleAt, subs: subschemasOf(root, content), root: root}, nil
 }
 
+// cloneSubschemas は、サブスキーマの並びを、x-prompt のバイト列まで複製して返す。
+func cloneSubschemas(subs []Subschema) []Subschema {
+	out := slices.Clone(subs)
+	for i := range out {
+		out[i].XPrompt = cloneRaw(out[i].XPrompt)
+	}
+	return out
+}
+
+// cloneRaw は、書いたままのバイト列を複製して返す。nil は nil のまま返す。
+func cloneRaw(raw json.RawMessage) json.RawMessage { return json.RawMessage(bytes.Clone(raw)) }
+
+// cloneObject は、ParseJSON が読んだオブジェクトを、入れ子の map ・ slice まで複製して返す。nil は nil のまま返す。
+func cloneObject(object map[string]any) map[string]any {
+	if object == nil {
+		return nil
+	}
+	out := make(map[string]any, len(object))
+	for k, v := range object {
+		out[k] = cloneValue(v)
+	}
+	return out
+}
+
+// cloneValue は、ParseJSON が読んだ値の map ・ slice を複製して返す。それ以外（string ・ json.Number ・ bool ・ nil）は変わらない値なので、そのまま返す。
+func cloneValue(value any) any {
+	switch v := value.(type) {
+	case map[string]any:
+		return cloneObject(v)
+	case []any:
+		out := make([]any, len(v))
+		for i, item := range v {
+			out[i] = cloneValue(item)
+		}
+		return out
+	}
+	return value
+}
+
 // subschemasOf は、ルートスキーマからたどれるサブスキーマを、keyword location の順に集める。x-prompt は、キーの順を変えずに取り出すため、書いたままのバイト列から取る。
 func subschemasOf(root map[string]any, content json.RawMessage) []Subschema {
 	var subs []Subschema
@@ -132,14 +175,14 @@ func member(raw json.RawMessage, name string) json.RawMessage {
 
 // subschemaAt は、keyword location のサブスキーマの、AI が読む部分を返す。x-prompt は書いたままのバイト列から取り出す。
 // 無ければ keyword location だけを持つ Subschema。
-func subschemaAt(c Concrete, keyword Pointer) Subschema {
+func (s schema) subschemaAt(keyword Pointer) Subschema {
 	tokens := tokensOf(keyword)
 	sub := Subschema{KeywordLocation: keyword}
-	object := schemaAt(c.structure(), tokens)
+	object := schemaAt(s.root, tokens)
 	sub.Title, _ = object["title"].(string)             // 無ければ空
 	sub.Description, _ = object["description"].(string) // 無ければ空
 	if _, ok := object["x-prompt"].(map[string]any); ok {
-		sub.XPrompt = member(rawAt(c.Content(), tokens), "x-prompt")
+		sub.XPrompt = member(rawAt(s.content, tokens), "x-prompt")
 	}
 	return sub
 }

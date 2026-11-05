@@ -1,5 +1,7 @@
 package domain
 
+import "slices"
+
 // Rule は、値オブジェクト rule。judgment がどの決まりに照らした結果かを表す。
 // x-prompt の rules の1件なら、id と related_fields（インスタンスのルートからの絶対の JSON Pointer）を持つ。
 // 機械的な検証の rule は、JSON Schema の absolute keyword location か、作法の検査の名前を id にする。
@@ -15,7 +17,7 @@ type promptRule struct {
 }
 
 func (r promptRule) ID() string               { return r.id }
-func (r promptRule) RelatedFields() []Pointer { return r.related }
+func (r promptRule) RelatedFields() []Pointer { return slices.Clone(r.related) }
 func (promptRule) rule()                      {}
 
 // ConventionRule は、作法の検査（ドメインサービス バリデーター）の judgment の rule の id。
@@ -26,5 +28,5 @@ func NewRule(id string, relatedFields []Pointer) (Rule, error) {
 	if id == "" {
 		return nil, Fail(SchemaViolation, "", "rule の id が空")
 	}
-	return promptRule{id: id, related: relatedFields}, nil
+	return promptRule{id: id, related: slices.Clone(relatedFields)}, nil
 }

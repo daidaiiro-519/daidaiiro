@@ -165,7 +165,7 @@ semantic-agent-schema の Go のコードと試験を書くときに守る決ま
 | K74 | 不変条件を持たない型（verdict ごとの件数など）は、空の値でそのまま使える形にする | Go 公式 | go-proverbs.github.io L18 | Make the zero value useful. |
 | K75 | domain は、JSON Schema で書けない不変条件だけを持つ。JSON Schema で書ける検証を domain に書かない | このプロジェクト | 抽象のページ 7節 ・ 本質 `W5` ・ `W10` | |
 | K76 | ほかの package の構造体の値は、フィールドの名前を書いて作る | Go 公式 | go1compat.html L94–95 | We therefore recommend that composite literals whose type is defined in a separate package should use the keyed notation. |
-| K77 | slice ・ map ・ ポインタ（`json.RawMessage` を含む）を持つ値は、作るときに受け取った値を複製し、返すときも複製して返す。複製しないときは、外から変えられない形で渡す。非公開のフィールドと作る関数だけでは、不変条件は閉じない（値をコピーしても、中の配列は共有される） | Go 公式 | spec.md L2237 ・ L2269 | Non-nil pointer, function, slice, map, and channel values contain references ／ When multiple values share underlying data, changing one value may change another. |
+| K77 | slice ・ map ・ ポインタ（`json.RawMessage` を含む）を持つ値は、作るときに受け取った値を複製し、返すときも複製して返す。複製しないときは、外から変えられない形で渡す。非公開のフィールドと作る関数だけでは、不変条件は閉じない（値をコピーしても、中の配列は共有される） 不変条件を持たず、公開フィールドでデータを運ぶだけの構造体は除く。その構造体を受け取る作る関数が複製する | Go 公式 | spec.md L2237 ・ L2269 | Non-nil pointer, function, slice, map, and channel values contain references ／ When multiple values share underlying data, changing one value may change another. |
 | K78 | 操作の記録や AI の response の JSON から値を戻す入口も、作る関数を通す | このプロジェクト | 利用者の指示（2026-11-06）。K72 ・ K77 | |
 
 ### 2.7 区分

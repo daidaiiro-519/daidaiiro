@@ -3,6 +3,7 @@ package domain
 import (
 	"bytes"
 	"encoding/json"
+	"slices"
 )
 
 // Write は、集約「JSON ドキュメント」を書く操作（作成か更新）。書いた後の JSON ドキュメント ・ 書く前のハッシュ ・
@@ -70,7 +71,7 @@ func newWrite(c commandName, in WriteInput, indent string, beforeHash Hash, befo
 func (w *Write) Command() commandName { return w.command }
 
 // Document は、書いた後の JSON ドキュメントを返す。
-func (w *Write) Document() Document { return w.document }
+func (w *Write) Document() Document { return w.document.clone() }
 
 // BeforeHash は、書く前のハッシュを返す。作成では nil。
 func (w *Write) BeforeHash() Hash { return w.beforeHash }
@@ -79,7 +80,7 @@ func (w *Write) BeforeHash() Hash { return w.beforeHash }
 func (w *Write) Concrete() Concrete { return w.concrete }
 
 // Changes は、instance location ごとの change を返す。
-func (w *Write) Changes() []Change { return w.changes }
+func (w *Write) Changes() []Change { return slices.Clone(w.changes) }
 
 // MatchHash は、集約 JSON ドキュメントの不変条件（楽観ロック）として、最初に読んだときのハッシュが、書く直前のいまのハッシュと
 // 同じかを確かめる。違えば hash_mismatch の Failure を返す。確かめることと書くことは、ロックの中で行う。

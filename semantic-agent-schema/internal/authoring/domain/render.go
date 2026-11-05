@@ -71,11 +71,15 @@ func SelectTemplate(path Path, concrete Concrete, templates map[string]Template)
 func CheckReferences(template Template, concrete Concrete, tokens any, references []Reference) error {
 	var failures []error
 	seen := map[string]bool{}
+	var root map[string]any // Value の欄を照らすときに、最初の1回だけ Concrete から取る
 	for _, r := range references {
 		missing := -1 // 無い欄の、Segments の中の位置。-1 なら照らせた
 		switch r.Root {
 		case "Value":
-			missing = inSchema(concrete.structure(), r.Segments)
+			if root == nil {
+				root = concrete.structure()
+			}
+			missing = inSchema(root, r.Segments)
 		case "Tokens":
 			missing = inTokens(tokens, r.Segments)
 		default:

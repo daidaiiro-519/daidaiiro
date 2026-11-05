@@ -1,5 +1,7 @@
 package domain
 
+import "slices"
+
 // Validation は、集約「検証」。1つの JSON ドキュメントの、1つの内容について、機械的な検証の judgment と、
 // 前回の検証から引き継いだ AI の judgment を持つ。ID は操作の記録に追記したときに付き、作った後は変えない。
 type Validation struct {
@@ -41,7 +43,7 @@ func NewValidation(in ValidationInput) *Validation {
 		judgments = append(judgments, notJudged(in)...)
 	}
 	judgments = append(judgments, Inherited(in.Previous, in.Value, in.Concrete)...)
-	return &Validation{document: in.Document, concrete: in.Concrete, judgments: judgments, judged: in.Judged != nil, forConcrete: in.ForConcrete}
+	return &Validation{document: in.Document.clone(), concrete: in.Concrete, judgments: judgments, judged: in.Judged != nil, forConcrete: in.ForConcrete}
 }
 
 // notJudged は、判定の prompt と同じ組を、not-judged の judgment にして返す。
@@ -64,13 +66,13 @@ func machine(r Rule, v Violation) Judgment {
 }
 
 // Document は、検証した JSON ドキュメントを返す。
-func (v *Validation) Document() Document { return v.document }
+func (v *Validation) Document() Document { return v.document.clone() }
 
 // Concrete は、検証に使ったスキーマを返す。
 func (v *Validation) Concrete() Concrete { return v.concrete }
 
 // Judgments は、機械的な検証の judgment と、引き継いだ AI の judgment を返す。
-func (v *Validation) Judgments() []Judgment { return v.judgments }
+func (v *Validation) Judgments() []Judgment { return slices.Clone(v.judgments) }
 
 // Judged は、AI の判定を受け取った意味的な検証かを返す。意味的な検証は、次の変更点の基準になる。
 func (v *Validation) Judged() bool { return v.judged }
