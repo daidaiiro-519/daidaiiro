@@ -25,7 +25,7 @@ type Update struct {
 // Prompt は、いまの JSON ドキュメントと Concrete から、更新の prompt を作って返す。いまの内容の直前の検証に violated の
 // judgment があれば、直す対象として prompt に入れる。
 func (u Update) Prompt(ctx context.Context, path domain.Path) (domain.Prompt, error) {
-	document, value, concrete, err := u.read(ctx, path)
+	document, concrete, err := u.read(ctx, path)
 	if err != nil {
 		return nil, at(path, err)
 	}
@@ -33,8 +33,12 @@ func (u Update) Prompt(ctx context.Context, path domain.Path) (domain.Prompt, er
 	if err != nil {
 		return nil, at(path, err)
 	}
+	_, evaluations, err := u.Validator.Evaluate(ctx, concrete.ID(), document.Content)
+	if err != nil {
+		return nil, at(path, err)
+	}
 	return domain.NewUpdatePrompt(domain.UpdateInput{
-		Document: document, Value: value, Concrete: concrete, PatchID: u.PatchID,
+		Document: document, Concrete: concrete, Evaluations: evaluations, PatchID: u.PatchID,
 		Violations: last.Violated(document.Hash), ForConcrete: concrete.ID() == u.AbstractID,
 	}), nil
 }
@@ -211,25 +215,25 @@ func (u Update) rangeSatisfies(ctx context.Context, in UpdateInput, concrete []b
 }
 
 // read は、JSON ドキュメントを読み、その $schema の Concrete を引く。
-func (u Update) read(ctx context.Context, path domain.Path) (domain.Document, any, domain.Concrete, error) {
+func (u Update) read(ctx context.Context, path domain.Path) (domain.Document, domain.Concrete, error) {
 	document, err := u.Documents.Read(ctx, path)
 	if err != nil {
-		return domain.Document{}, nil, nil, err
+		return domain.Document{}, nil, err
 	}
 	value, err := domain.ParseJSON(document.Content)
 	if err != nil {
-		return domain.Document{}, nil, nil, err
+		return domain.Document{}, nil, err
 	}
 	schemaID, ok := domain.SchemaIDOf(value)
 	if !ok {
-		return domain.Document{}, nil, nil, &domain.Failure{
+		return domain.Document{}, nil, &domain.Failure{
 			Code: domain.SchemaNotFound, InstanceLocation: "/$schema",
 			Message: "$schema に従う Concrete の $id が無い",
 		}
 	}
 	concrete, err := u.Schemas.Lookup(ctx, schemaID)
 	if err != nil {
-		return domain.Document{}, nil, nil, err
+		return domain.Document{}, nil, err
 	}
-	return document, value, concrete, nil
+	return document, concrete, nil
 }

@@ -1,6 +1,6 @@
 // Package schemacheck は、アダプター。ポート Validator を JSON Schema の実装で満たし、違反をライブラリの出力のまま
 // instance location ・ absolute keyword location ・ message へ変換する。独自の判定も独自の文も足さない。
-// x-prompt を持つサブスキーマがインスタンスのどの位置に当たるかも、ライブラリの検証が決めた組をそのまま返す。
+// サブスキーマがインスタンスのどの位置に当たるかも、ライブラリの検証が決めた組をそのまま返す。
 package schemacheck
 
 import (
@@ -57,7 +57,7 @@ func (c *Checker) Check(ctx context.Context, schemaID string, content []byte) ([
 	return violations, err
 }
 
-// Evaluate は、content を schemaID のスキーマで検証し、JSON Schema の違反と、x-prompt を持つサブスキーマが当たったインスタンスの
+// Evaluate は、content を schemaID のスキーマで検証し、JSON Schema の違反と、サブスキーマが当たったインスタンスの
 // 位置の組を返す。組は、検証のたびにライブラリが呼ぶ拡張項目の SchemaExt が集めたもので、keyword location は schemaID の
 // スキーマ（resource）の中の位置にする。ほかの resource のサブスキーマの組は返さない。
 func (c *Checker) Evaluate(ctx context.Context, schemaID string, content []byte) ([]domain.Violation, []domain.Evaluation, error) {
@@ -84,25 +84,25 @@ func (c *Checker) Evaluate(ctx context.Context, schemaID string, content []byte)
 	return violations, evaluations, nil
 }
 
-// located は、検証で、x-prompt を持つサブスキーマ schema が、インスタンスの位置 at（参照トークンの並び）に当たったこと。
+// located は、検証で、サブスキーマ schema が、インスタンスの位置 at（参照トークンの並び）に当たったこと。
 type located struct {
 	schema *jsonschema.Schema
 	at     []string
 }
 
-// xPrompt は、x-prompt を持つサブスキーマの SchemaExt。検証の振る舞いは足さず、当たったインスタンスの位置を into に足すだけ。
-type xPrompt struct {
+// applied は、すべてのサブスキーマの SchemaExt。検証の振る舞いは足さず、当たったインスタンスの位置を into に足すだけ。
+type applied struct {
 	schema *jsonschema.Schema
 	into   *[]located
 }
 
 // Validate は、このサブスキーマが当たったインスタンスの位置を記録する。
-func (x *xPrompt) Validate(ctx *jsonschema.ValidatorContext, _ any) {
+func (x *applied) Validate(ctx *jsonschema.ValidatorContext, _ any) {
 	*x.into = append(*x.into, located{schema: x.schema, at: slices.Clone(ctx.ValueLocation())})
 }
 
 // check は、prepare（無ければ nil）で Compiler に resource を足してから、content を schemaID のスキーマで検証する。
-// JSON Schema の違反と、x-prompt を持つサブスキーマが当たった位置を返す。
+// JSON Schema の違反と、サブスキーマが当たった位置を返す。
 func (c *Checker) check(ctx context.Context, schemaID string, content []byte, prepare func(*jsonschema.Compiler) error) ([]domain.Violation, []located, error) {
 	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
 	if err != nil {
@@ -153,7 +153,7 @@ func (c *Checker) CheckWith(ctx context.Context, schema, content []byte) ([]doma
 }
 
 // newCompiler は、公開された言葉を resource にし、拡張項目の語彙を登録した Compiler を返す。
-// x-prompt を持つサブスキーマは、検証で当たったインスタンスの位置を into に足す。
+// サブスキーマは、検証で当たったインスタンスの位置を into に足す。
 func newCompiler(l *loader, into *[]located) (*jsonschema.Compiler, error) {
 	vocabulary, err := compileVocabulary()
 	if err != nil {
@@ -168,13 +168,9 @@ func newCompiler(l *loader, into *[]located) (*jsonschema.Compiler, error) {
 	compiler.RegisterVocabulary(&jsonschema.Vocabulary{
 		URL:    publishedlanguage.VocabularyID,
 		Schema: vocabulary,
-		// 拡張項目は検証の振る舞いを足さない。形は vocabulary.schema.json が決める。x-prompt を持つサブスキーマだけ、
-		// 自分の *Schema（Location を持つ）を引いて、当たった位置を記録する
-		Compile: func(ctx *jsonschema.CompilerContext, object map[string]any) (jsonschema.SchemaExt, error) {
-			if _, ok := object["x-prompt"].(map[string]any); !ok {
-				return nil, nil
-			}
-			return &xPrompt{schema: ctx.Enqueue(nil), into: into}, nil
+		// 拡張項目は検証の振る舞いを足さない。形は vocabulary.schema.json が決める。サブスキーマごとに、自分の *Schema（Location を持つ）を引いて、当たった位置を記録する
+		Compile: func(ctx *jsonschema.CompilerContext, _ map[string]any) (jsonschema.SchemaExt, error) {
+			return &applied{schema: ctx.Enqueue(nil), into: into}, nil
 		},
 	})
 	compiler.UseLoader(l)

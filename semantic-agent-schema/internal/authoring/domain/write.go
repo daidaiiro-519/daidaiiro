@@ -23,7 +23,7 @@ type Write struct {
 // WriteInput は、書く操作を作るために application が読んだもの。
 type WriteInput struct {
 	Path     Path
-	Content  []byte // 書いた後の JSON ドキュメントのバイト列。書くときは字下げをそろえる
+	Content  []byte // 書いた後の JSON ドキュメントのバイト列。書くときは字下げをそろえる（更新では、書く前のファイルの字下げ）
 	Value    any    // Content を ParseJSON で読んだ値
 	Concrete Concrete
 }
@@ -42,7 +42,7 @@ func NewCreation(in WriteInput) (*Write, error) {
 	if err := errors.Join(sortFailures(failures)...); err != nil {
 		return nil, err
 	}
-	return newWrite(CreateCommand, in, nil, nil, false)
+	return newWrite(CreateCommand, in, defaultIndent, nil, nil, false)
 }
 
 // NewUpdate は、更新を返す。before は書く前の JSON ドキュメント。x-decided-by: human のサブスキーマに
@@ -64,13 +64,28 @@ func NewUpdate(in WriteInput, before Document, beforeValue any) (*Write, error) 
 	if err := errors.Join(sortFailures(failures)...); err != nil {
 		return nil, err
 	}
-	return newWrite(UpdateCommand, in, before.Hash, beforeValue, true)
+	return newWrite(UpdateCommand, in, indentOf(before.Content), before.Hash, beforeValue, true)
 }
 
-// newWrite は、書く操作を返す。書く内容は、2文字の字下げと末尾の改行にそろえ、ハッシュはそのバイト列から求める。
-func newWrite(c commandName, in WriteInput, beforeHash Hash, beforeValue any, hasBefore bool) (*Write, error) {
+// defaultIndent は、作成と、字下げを読み取れない更新で書く字下げ。
+const defaultIndent = "  "
+
+// indentOf は、書く前のファイルの字下げ（字下げの文字と幅）を、最初に字下げした行の先頭の空白から読み取って返す。
+// 字下げした行が無ければ（1行にまとめて書いてあれば）defaultIndent を返す。
+func indentOf(content []byte) string {
+	for _, line := range bytes.Split(content, []byte("\n")) {
+		trimmed := bytes.TrimLeft(line, " \t")
+		if len(trimmed) > 0 && len(trimmed) < len(line) {
+			return string(line[:len(line)-len(trimmed)])
+		}
+	}
+	return defaultIndent
+}
+
+// newWrite は、書く操作を返す。書く内容は、indent の字下げと末尾の改行にそろえ、ハッシュはそのバイト列から求める。
+func newWrite(c commandName, in WriteInput, indent string, beforeHash Hash, beforeValue any, hasBefore bool) (*Write, error) {
 	var formatted bytes.Buffer
-	if err := json.Indent(&formatted, in.Content, "", "  "); err != nil {
+	if err := json.Indent(&formatted, in.Content, "", indent); err != nil {
 		return nil, Fail(InvalidJSON, in.Path.String(), err.Error())
 	}
 	formatted.WriteByte('\n')
@@ -131,7 +146,7 @@ func decidedValues(concrete Concrete, value any) map[string]decided {
 // decidedByHuman は、インスタンスと Concrete を JSON Schema の構造（properties と items）で一緒にたどり、
 // x-decided-by: human のサブスキーマに当たるインスタンスの値ごとに found を呼ぶ。配列は要素ごとにたどる。
 func decidedByHuman(subschema map[string]any, value any, at []string, found func(location Pointer, value, def any, hasDefault bool)) {
-	walkInstance(subschema, value, at, nil, func(sub map[string]any, v any, location, _ []string) {
+	walkInstance(subschema, value, at, func(sub map[string]any, v any, location []string) {
 		if sub["x-decided-by"] == "human" {
 			def, hasDefault := sub["default"]
 			found(PointerOf(location...), v, def, hasDefault)
@@ -140,24 +155,24 @@ func decidedByHuman(subschema map[string]any, value any, at []string, found func
 }
 
 // walkInstance は、ドメインサービス「サブスキーマを引く」の、インスタンスがあるときの側。インスタンスと Concrete を
-// JSON Schema の構造（properties と items）で一緒にたどり、インスタンスにある値ごとに、そのサブスキーマ ・ instance location ・
-// keyword location で visit を呼ぶ。
-func walkInstance(subschema map[string]any, value any, at, keyword []string, visit func(subschema map[string]any, value any, at, keyword []string)) {
-	visit(subschema, value, at, keyword)
+// JSON Schema の構造（properties と items）で一緒にたどり、インスタンスにある値ごとに、そのサブスキーマ ・ instance location で
+// visit を呼ぶ。x-decided-by: human の確認だけが使う。
+func walkInstance(subschema map[string]any, value any, at []string, visit func(subschema map[string]any, value any, at []string)) {
+	visit(subschema, value, at)
 	if properties, ok := subschema["properties"].(map[string]any); ok {
 		object, _ := value.(map[string]any) // オブジェクトでなければ、たどる値が無い
 		for _, name := range sortedNames(properties) {
 			child, isSchema := properties[name].(map[string]any)
 			v, present := object[name]
 			if isSchema && present {
-				walkInstance(child, v, append(slices.Clone(at), name), append(slices.Clone(keyword), "properties", name), visit)
+				walkInstance(child, v, append(slices.Clone(at), name), visit)
 			}
 		}
 	}
 	if items, ok := subschema["items"].(map[string]any); ok {
 		array, _ := value.([]any) // 配列でなければ、たどる値が無い
 		for i, v := range array {
-			walkInstance(items, v, append(slices.Clone(at), strconv.Itoa(i)), append(slices.Clone(keyword), "items"), visit)
+			walkInstance(items, v, append(slices.Clone(at), strconv.Itoa(i)), visit)
 		}
 	}
 }

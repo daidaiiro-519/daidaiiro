@@ -101,33 +101,43 @@ func NewConcrete(path Path, content []byte) (Concrete, error) {
 			}
 		}
 	})
-	var subs []Subschema
-	walkStructure(root, content, nil, &subs)
-	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, ruleAt: ruleAt, subs: subs, root: root}, nil
+	return schema{id: id, path: path, content: content, hash: HashOf(content), rules: rules, ruleAt: ruleAt, subs: structureSubschemas(root, content), root: root}, nil
 }
 
-// walkStructure は、ドメインサービス「サブスキーマを引く」の、Concrete の側。ルートスキーマから JSON Schema の構造
-// （properties と items）だけをたどり、keyword location ごとにサブスキーマを集める。raw は、同じサブスキーマの書いたままの
-// バイト列で、x-prompt をキーの順を変えずに取り出すために、値と並べてたどる。
-func walkStructure(subschema map[string]any, raw json.RawMessage, at []string, into *[]Subschema) {
-	sub := Subschema{KeywordLocation: PointerOf(at...)}
-	sub.Title, _ = subschema["title"].(string)             // 無ければ空
-	sub.Description, _ = subschema["description"].(string) // 無ければ空
-	if _, ok := subschema["x-prompt"].(map[string]any); ok {
-		sub.XPrompt = member(raw, "x-prompt")
-	}
-	*into = append(*into, sub)
-	if properties, ok := subschema["properties"].(map[string]any); ok {
-		rawProperties := member(raw, "properties")
-		for _, name := range sortedNames(properties) {
-			if child, ok := properties[name].(map[string]any); ok {
-				walkStructure(child, member(rawProperties, name), append(slices.Clone(at), "properties", name), into)
+// structureSubschemas は、ルートスキーマから JSON Schema の構造（properties と items）でたどれるサブスキーマを、
+// keyword location の順に集める。x-prompt は、キーの順を変えずに取り出すため、書いたままのバイト列から取る。
+func structureSubschemas(root map[string]any, content json.RawMessage) []Subschema {
+	var subs []Subschema
+	walkSubschemas(root, nil, func(subschema map[string]any, at []string) {
+		if !inStructure(at) {
+			return
+		}
+		sub := Subschema{KeywordLocation: PointerOf(at...)}
+		sub.Title, _ = subschema["title"].(string)             // 無ければ空
+		sub.Description, _ = subschema["description"].(string) // 無ければ空
+		if _, ok := subschema["x-prompt"].(map[string]any); ok {
+			sub.XPrompt = member(rawAt(content, at), "x-prompt")
+		}
+		subs = append(subs, sub)
+	})
+	return subs
+}
+
+// inStructure は、keyword location の参照トークンが、properties とその名前、items だけでできているかを返す。
+func inStructure(at []string) bool {
+	for i := 0; i < len(at); i++ {
+		switch at[i] {
+		case "properties":
+			i++ // 次のトークンは名前
+			if i >= len(at) {
+				return false
 			}
+		case "items":
+		default:
+			return false
 		}
 	}
-	if items, ok := subschema["items"].(map[string]any); ok {
-		walkStructure(items, member(raw, "items"), append(slices.Clone(at), "items"), into)
-	}
+	return true
 }
 
 // member は、書いたままの JSON オブジェクトから、name のメンバーの値を書いたままのバイト列で返す。無ければ nil。

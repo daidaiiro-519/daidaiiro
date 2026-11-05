@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Evaluation は、機械的な検証（JSON Schema）で、x-prompt を持つサブスキーマが、インスタンスのどの位置に当たったかの組。
+// Evaluation は、機械的な検証（JSON Schema）で、サブスキーマが、インスタンスのどの位置に当たったかの組。
 // KeywordLocation は検証に使ったスキーマ（インスタンスなら Concrete、Concrete なら Abstract）の中のサブスキーマの位置、
 // InstanceLocation はそのサブスキーマが当たったインスタンスの位置。rule は、それを置いたサブスキーマが当たるインスタンスの位置に
 // 当たる。組を決めるのは JSON Schema の実装で、ポート Validator を通して受け取る。ドメインモデルはスキーマの構造をたどらない。

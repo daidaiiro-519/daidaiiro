@@ -170,7 +170,7 @@ func judgment(t *testing.T, rule, location, verdict, by string) domain.Judgment 
 	return j
 }
 
-// evaluated は、機械的な検証が返す組（x-prompt を持つサブスキーマの keyword location と、当たった instance location）を作る。
+// evaluated は、機械的な検証が返す組（サブスキーマの keyword location と、当たった instance location）を作る。
 // 組は「keyword location instance location」の文字列で書く。
 func evaluated(t *testing.T, pairs ...string) []domain.Evaluation {
 	t.Helper()
@@ -465,6 +465,40 @@ func TestNewUpdateDecidedByHuman(t *testing.T) {
 	}
 }
 
+// 更新が書くファイルは、書く前のファイルの字下げ（2つの空白 ・ 4つの空白 ・ タブ）で書き、変えていない行を変えない。
+func TestNewUpdateKeepsIndentOfFile(t *testing.T) {
+	t.Parallel()
+	const after = `{"title":"u","status":"draft","items":[{"checked":false}]}`
+	path, err := domain.NewPath("memo.json")
+	if err != nil {
+		t.Fatalf("NewPath = %v", err)
+	}
+	for name, indent := range map[string]string{"2つの空白": "  ", "4つの空白": "    ", "タブ": "\t"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			before := "{\n" + indent + `"title": "t",` + "\n" + indent + `"status": "draft",` + "\n" + indent + `"items": [` + "\n" +
+				indent + indent + "{\n" + indent + indent + indent + `"checked": false` + "\n" + indent + indent + "}\n" + indent + "]\n}\n"
+			beforeValue, err := domain.ParseJSON([]byte(before))
+			if err != nil {
+				t.Fatalf("ParseJSON = %v", err)
+			}
+			value, err := domain.ParseJSON([]byte(after))
+			if err != nil {
+				t.Fatalf("ParseJSON = %v", err)
+			}
+			document := domain.Document{Path: path, Content: []byte(before), Hash: domain.HashOf([]byte(before))}
+			w, err := domain.NewUpdate(domain.WriteInput{Path: path, Content: []byte(after), Value: value, Concrete: concrete(t, memo)}, document, beforeValue)
+			if err != nil {
+				t.Fatalf("NewUpdate = %v", err)
+			}
+			want := strings.Replace(before, `"title": "t"`, `"title": "u"`, 1)
+			if got := string(w.Document().Content); got != want {
+				t.Errorf("NewUpdate(%s).Document().Content = %q, want %q", name, got, want)
+			}
+		})
+	}
+}
+
 func TestMatchHashRejectsChangeAfterRead(t *testing.T) {
 	t.Parallel()
 	path, err := domain.NewPath("memo.json")
@@ -484,16 +518,15 @@ func TestMatchHashRejectsChangeAfterRead(t *testing.T) {
 func TestNewUpdatePromptMakesStepsFromInstanceLocations(t *testing.T) {
 	t.Parallel()
 	content := []byte(`{"title": "t", "items": [{"checked": false}, {}]}`)
-	value, err := domain.ParseJSON(content)
-	if err != nil {
-		t.Fatalf("ParseJSON = %v", err)
-	}
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
 	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
-	p := domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: concrete(t, memo), PatchID: "urn:patch"})
+	p := domain.NewUpdatePrompt(domain.UpdateInput{
+		Document: document, Concrete: concrete(t, memo), PatchID: "urn:patch",
+		Evaluations: evaluated(t, " ", "/properties/title /title", "/properties/items/items /items/1", "/properties/items/items /items/0"),
+	})
 	var got []string
 	for _, step := range p.Steps() {
 		got = append(got, step.InstanceLocation.String()+" "+step.KeywordLocation.String())
@@ -521,17 +554,13 @@ func TestNewUpdatePromptPointsViolationsAtRuleSubschema(t *testing.T) {
 	c := concrete(t, `{"$id": "urn:example:meta:v1", "$defs": {"keywords": {"properties": {"x-prompt": {"properties": {
 		"meaning": {"x-prompt": {"meaning": "m", "rules": [{"id": "meaning-domain"}]}}}}}}}}`)
 	content := []byte(`{"properties": {"title": {"x-prompt": {"meaning": "題名"}}}}`)
-	value, err := domain.ParseJSON(content)
-	if err != nil {
-		t.Fatalf("ParseJSON = %v", err)
-	}
 	path, err := domain.NewPath("schemas/memo.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
 	}
 	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
 	violated := judgment(t, "meaning-domain", "/properties/title/x-prompt/meaning", "violated", "ai")
-	p := domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: c, Violations: []domain.Judgment{violated}})
+	p := domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Concrete: c, Evaluations: evaluated(t, " "), Violations: []domain.Judgment{violated}})
 	var got []string
 	for _, step := range p.Steps() {
 		got = append(got, step.InstanceLocation.String()+" "+step.KeywordLocation.String())
@@ -549,10 +578,6 @@ func TestPromptKeepsXPromptInWrittenOrder(t *testing.T) {
 	xPrompt := `{"meaning": "題名", "rules": [{"id": "title-short", "rule": "短く書く", "check": "短いか", "bad": [], "good": []}]}`
 	c := concrete(t, `{"$id": "urn:example:order-of-keys:v1", "properties": {"title": {"x-prompt": `+xPrompt+`}}}`)
 	content := []byte(`{"title": "t"}`)
-	value, err := domain.ParseJSON(content)
-	if err != nil {
-		t.Fatalf("ParseJSON = %v", err)
-	}
 	path, err := domain.NewPath("memo.json")
 	if err != nil {
 		t.Fatalf("NewPath = %v", err)
@@ -560,7 +585,7 @@ func TestPromptKeepsXPromptInWrittenOrder(t *testing.T) {
 	document := domain.Document{Path: path, Content: content, Hash: domain.HashOf(content)}
 	prompts := map[string]domain.Prompt{
 		"作成": domain.NewCreatePrompt(path, c),
-		"更新": domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Value: value, Concrete: c}),
+		"更新": domain.NewUpdatePrompt(domain.UpdateInput{Document: document, Concrete: c, Evaluations: evaluated(t, "/properties/title /title")}),
 		"判定": domain.NewJudgmentPrompt(document, c, evaluated(t, "/properties/title /title"), nil, "urn:judgment"),
 	}
 	for name, p := range prompts {

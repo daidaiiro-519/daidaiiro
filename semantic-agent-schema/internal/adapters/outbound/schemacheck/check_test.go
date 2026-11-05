@@ -201,23 +201,30 @@ func TestCheckWithUsesUnwrittenConcrete(t *testing.T) {
 	}
 }
 
-// x-prompt を持つサブスキーマが当たる位置は、JSON Schema の検証が決める。インスタンスでは Concrete の、Concrete では Abstract の
-// サブスキーマの位置との組になり、x-prompt の無い start には組が無い。
+// サブスキーマが当たる位置は、JSON Schema の検証が決める。インスタンスでは Concrete の、Concrete では Abstract の
+// サブスキーマの位置との組になる。Concrete では、$ref ・ allOf で当たるサブスキーマの組も返るので、x-prompt の組が含まれることを確かめる。
 func TestEvaluateReturnsWhereXPromptSubschemasApply(t *testing.T) {
 	t.Parallel()
 	const xPrompt = "/$defs/keywords/properties/x-prompt/properties"
 	cases := []struct {
 		name, schemaID, content string
 		want                    []string
+		subset                  bool // want が、返った組の一部であればよい
 	}{
 		{name: "インスタンスでは Concrete のサブスキーマ", schemaID: "urn:example:plan:v1",
 			content: `{"$schema": "urn:example:plan:v1", "title": "t", "start": "2026-01-01", "tasks": [{"name": "a"}, {"name": "b"}]}`,
 			want: []string{
+				" ← ",
+				"/$schema ← /properties/$schema",
+				"/start ← /properties/start",
+				"/tasks ← /properties/tasks",
+				"/tasks/0 ← /properties/tasks/items",
 				"/tasks/0/name ← /properties/tasks/items/properties/name",
+				"/tasks/1 ← /properties/tasks/items",
 				"/tasks/1/name ← /properties/tasks/items/properties/name",
 				"/title ← /properties/title",
 			}},
-		{name: "Concrete では Abstract のサブスキーマ", schemaID: publishedlanguage.AbstractID, content: plan,
+		{name: "Concrete では Abstract のサブスキーマ", schemaID: publishedlanguage.AbstractID, content: plan, subset: true,
 			want: []string{
 				" ← ",
 				"/properties/tasks/items/properties/name/x-prompt/meaning ← " + xPrompt + "/meaning",
@@ -241,6 +248,9 @@ func TestEvaluateReturnsWhereXPromptSubschemasApply(t *testing.T) {
 				got = append(got, e.InstanceLocation.String()+" ← "+e.KeywordLocation.String())
 			}
 			slices.Sort(got)
+			if c.subset {
+				got = slices.DeleteFunc(got, func(pair string) bool { return !slices.Contains(c.want, pair) })
+			}
 			if diff := cmp.Diff(c.want, got); diff != "" {
 				t.Errorf("Evaluate(%s) mismatch (-want +got):\n%s", c.name, diff)
 			}

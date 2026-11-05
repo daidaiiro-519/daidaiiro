@@ -58,7 +58,7 @@ type checked struct {
 	concrete    domain.Concrete
 	violations  []domain.Violation
 	convention  []domain.Violation
-	evaluations []domain.Evaluation // x-prompt を持つサブスキーマが当たったインスタンスの位置の組
+	evaluations []domain.Evaluation // サブスキーマが当たったインスタンスの位置の組
 	forConcrete bool                // JSON ドキュメントが Abstract に従う Concrete か
 }
 
@@ -73,7 +73,7 @@ func (c checked) input(previous *domain.Previous) domain.ValidationInput {
 
 // mechanical は、JSON ドキュメントを読み、機械的な検証をする。インスタンスを Concrete で、Concrete を Abstract で
 // 検証し（JSON Schema）、JSON ドキュメントが Concrete なら作法を確かめる（ドメインモデル）。違反は error にせず、結果に持つ。
-// x-prompt を持つサブスキーマがインスタンスのどの位置に当たるかも、同じ検証で JSON Schema の実装から受け取る。
+// サブスキーマがインスタンスのどの位置に当たるかも、同じ検証で JSON Schema の実装から受け取る。
 func mechanical(ctx context.Context, documents Documents, schemas Schemas, validator Validator, abstractID string, path domain.Path) (checked, error) {
 	document, err := documents.Read(ctx, path)
 	if err != nil {

@@ -112,34 +112,34 @@ func (x *subschemaIndex) add(concrete Concrete, keyword Pointer) {
 // UpdateInput は、更新の prompt を作るために application が読んだもの。
 type UpdateInput struct {
 	Document    Document
-	Value       any
 	Concrete    Concrete
+	Evaluations []Evaluation // 機械的な検証で、title ・ description ・ サブスキーマが当たったインスタンスの位置の組
 	PatchID     string
 	Violations  []Judgment // 直す対象の violated の judgment（いまの内容の、直前の検証のもの）
 	ForConcrete bool
 }
 
-// NewUpdatePrompt は、ドメインサービス「prompt を作る」。いまの JSON ドキュメントと Concrete を一緒にたどり、
-// 更新の prompt を返す。直す対象の violated の judgment があれば、その instance location ごとに step を作り、keyword location は
+// NewUpdatePrompt は、ドメインサービス「prompt を作る」。機械的な検証が返した、サブスキーマが当たったインスタンスの位置の組
+// （evaluations）から、更新の prompt を返す。直す対象の violated の judgment があれば、その instance location ごとに step を作り、keyword location は
 // その rule を置いたサブスキーマ（x-prompt の rule でなければ、その位置か、たどれる一番深い親の位置のサブスキーマ）にする。violated の judgment が無ければ、title ・ description ・ x-prompt の
-// どれかを持つサブスキーマに当たる instance location を、たどった順に step にする。サブスキーマは keyword location ごとに1回だけ置く。
+// どれかを持つサブスキーマに当たる instance location を、組の順に step にする。サブスキーマは keyword location ごとに1回だけ置く。
 // response の形は JSON Patch のスキーマ。JSON ドキュメントの内容は貼らず、path で渡す。
 func NewUpdatePrompt(in UpdateInput) Prompt {
 	var steps []Step
 	var index subschemaIndex
 	keywords := map[string]Pointer{}
-	walkInstance(in.Concrete.structure(), in.Value, nil, nil, func(sub map[string]any, _ any, at, keyword []string) {
-		k := PointerOf(keyword...)
-		keywords[PointerOf(at...).String()] = k
-		title, _ := sub["title"].(string)              // 無ければ空
-		description, _ := sub["description"].(string)  // 無ければ空
-		xPrompt, _ := sub["x-prompt"].(map[string]any) // 無ければ nil
-		if len(in.Violations) > 0 || (title == "" && description == "" && xPrompt == nil) {
-			return
+	for _, e := range sortedEvaluations(in.Evaluations) {
+		if !inStructure(tokensOf(e.KeywordLocation)) {
+			continue // Concrete.Subschemas と同じく、properties ・ items でたどれるサブスキーマだけを扱う
 		}
-		index.add(in.Concrete, k)
-		steps = append(steps, Step{InstanceLocation: PointerOf(at...), KeywordLocation: k})
-	})
+		keywords[e.InstanceLocation.String()] = e.KeywordLocation
+		sub := subschemaAt(in.Concrete, e.KeywordLocation)
+		if len(in.Violations) > 0 || (sub.Title == "" && sub.Description == "" && sub.XPrompt == nil) {
+			continue
+		}
+		index.add(in.Concrete, e.KeywordLocation)
+		steps = append(steps, Step{InstanceLocation: e.InstanceLocation, KeywordLocation: e.KeywordLocation})
+	}
 	seen := map[string]bool{}
 	for _, v := range in.Violations {
 		location := v.InstanceLocation()
@@ -172,7 +172,7 @@ func keywordAt(keywords map[string]Pointer, location Pointer) Pointer {
 	return PointerOf()
 }
 
-// NewJudgmentPrompt は、ドメインサービス「prompt を作る」。機械的な検証で x-prompt を持つサブスキーマが当たったインスタンスの
+// NewJudgmentPrompt は、ドメインサービス「prompt を作る」。機械的な検証で サブスキーマが当たったインスタンスの
 // 位置の組（evaluations）から、判定の prompt を返す。そのサブスキーマの x-prompt の rules の1件と、当たった instance location の
 // 組ごとに step を作る。インスタンスでも Concrete（concrete が Abstract）でも同じ決め方で、どの rule も、それを置いたサブスキーマが
 // 当たる位置にだけ当たる。changed が nil ならすべての組を、そうでなければ instance location か rule の related_fields が変更点に

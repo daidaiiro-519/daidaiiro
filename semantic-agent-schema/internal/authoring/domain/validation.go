@@ -19,7 +19,7 @@ type ValidationInput struct {
 	Convention []Violation // 作法の検査の違反
 	Judged     []Judgment  // AI が判定した judgments。意味的な検証でなければ nil
 	Previous   *Previous   // 前回の検証。無ければ nil。引き継ぐ AI の judgment の出どころ
-	// Evaluations は、機械的な検証で、x-prompt を持つサブスキーマが当たったインスタンスの位置の組。判定する組はここから作る
+	// Evaluations は、機械的な検証で、サブスキーマが当たったインスタンスの位置の組。判定する組はここから作る
 	Evaluations []Evaluation
 	// ForConcrete は、JSON ドキュメントが Abstract に従う Concrete か。Concrete を直す next に --range を足す
 	ForConcrete bool
