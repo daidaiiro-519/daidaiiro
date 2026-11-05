@@ -13,3 +13,7 @@
 - [ユースケース駆動開発の手法の構成のボード](use-case-driven-development-board.md) ── プロダクトを最上位のドメインに置く構成と、2冊の概念の置き場所。論点1〜3 決着。次は ACDR で2つのボードへ反映
 - [具体と抽象の advisor](concrete-abstract-advisor.md) ── meta-thinking-advisor（判断基準65件）を作って承認済み。配線表に2行（0135）
 - [Semantic Agent Schema のボード](semantic-contract-core-board.md) ── 土台（Q0 ・ Q8 ・ Q9）を直した。次は論点「目的ごとのセッション」
+- [基盤で用意すべきスキーマ](sas-foundation-schemas.md) ── 2026-11-01：計画 版2 は全部済み（b2ae6ad7 ・ dc769345）。残る決め事は意味の手順の量と判定者の扱い
+- [ユースケースからドメインモデリングへ](usecase-to-domain-modeling-board.md) ── ガイドのボードとシミュレーション。Q2 回答待ち・Q8 決着。見るのは土台と設計のページの2つ（ACDR 0215）。シミュレーション版4 の承認待ち。語は「要求を書く」「要求文書」（2026-10-31）
+- [Agents Workspace](agents-workspace-board.md) ── 依存を外した入れ物。エージェントがワークフローの定義になる版6 を公開、感想待ち（2026-11-01）
+- [SAS のセッション管理を軽くする意見](sas-light-sessions-opinion.md) ── Agents Workspace の話から出た、SAS のセッションへの1つの意見（未承認）。表3つ・-p のやり直しは新しく起動・DB は git-common-dir（2026-10-31）
